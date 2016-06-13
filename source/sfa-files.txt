@@ -1,0 +1,17 @@
+sfa.tcl
+sfa-data.tcl
+sfa-data1.tcl
+sfa-dimtol.tcl
+sfa-ent.tcl
+sfa-entcsv.tcl
+sfa-gen.tcl
+sfa-geotol.tcl
+sfa-grafpmi.tcl
+sfa-gui.tcl
+sfa-indent.tcl
+sfa-inv.tcl
+sfa-multi.tcl
+sfa-proc.tcl
+sfa-step.tcl
+sfa-valprop.tcl
+tclIndex
