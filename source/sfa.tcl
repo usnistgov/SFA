@@ -115,8 +115,6 @@ if {(![file exists $optionsFile1] && ![file exists $optionsFile2]) || \
   } optionserr
 }
 
-set filemenuinc 4
-set lenlist 25
 set upgrade 0
 set excelYear ""
 
@@ -231,15 +229,17 @@ proc whatsNew {} {
   if {$sfaVersion > 0 && $sfaVersion < [getVersion]} {outputMsg "\nThe previous version of the STEP File Analyzer was: $sfaVersion" red}
 
 outputMsg "\nWhat's New (Version: [getVersion]  Updated: [string trim [clock format $progtime -format "%e %b %Y"]])" blue
-outputMsg "- Support for CSV files (Options tab)
+outputMsg "- Faster processing of Inverse Relationships (Options tab)
+- Support for CSV files (Options tab)
 - Support for other STEP application protocols (Help > Other STEP APs)
 - Source code on GitHub (Websites menu)
 - Updated User's Guide Version 3
 - PMI Representation Coverage worksheet Color-coded by expected PMI in NIST CAD models (Help > Coverage Analysis)
 - Improved processing of Datum Targets and AP209 files
-- Improved reporting of Associated Geometry for Tolerances and Annotations
-- Feature Count (e.g. 4X) removed from Tolerances, can be derived from Associated Geometry
-- Fixed bug that slowed processing when Inverse Relationships was selected"
+- Improved reporting of Associated Geometry for Tolerances and Annotations"
+
+#- Feature Count (e.g. 4X) removed from Tolerances, can be derived from Associated Geometry
+#- Fixed bug that slowed processing when Inverse Relationships was selected
 
   .tnb select .tnb.status
   update idletasks

@@ -98,8 +98,6 @@ if {(![file exists $optionsFile1] && ![file exists $optionsFile2]) || \
   } optionserr
 }
 
-set filemenuinc 4
-set lenlist 25
 set upgrade 0
 set excelYear ""
 
@@ -205,14 +203,14 @@ for {set i 1} {$i <= 100} {incr i} {
 
 # options used from GUI version
 puts "\nOptions last used in the GUI version are being used.  Some of them are:"
-if {$opt(PMISEM)}  {puts " PMI Representation"}
-if {$opt(PMIGRF)}  {puts " PMI Presentation"}
-if {$opt(VALPROP)} {puts " Validation Properties"}
-#if {$opt(INVERSE)} {puts " Inverse Relationships"}
-if {$opt(INVERSE)}  {
-  set opt(INVERSE) 0
-  puts " Inverse Relationships are not processed"
-}
+if {$opt(PMISEM)}  {puts " PMI Representation Report"}
+if {$opt(PMIGRF)}  {puts " PMI Presentation Report"}
+if {$opt(VALPROP)} {puts " Validation Properties Report"}
+if {$opt(INVERSE)} {puts " Inverse Relationships"}
+#if {$opt(INVERSE)}  {
+#  set opt(INVERSE) 0
+#  puts " Inverse Relationships are not processed"
+#}
 
 set localName [lindex $argv 0]
 if {[string first ":" $localName] == -1} {set localName [file join [pwd] $localName]}

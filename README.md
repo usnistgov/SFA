@@ -13,7 +13,7 @@ The STEP File Analyzer can only be built and run on Windows computers.  [Microso
 - Extract STEP-File-Analyzer.exe from the zip file and run it.  This will install the IFCsvr toolkit that is used to read STEP files.
 - Generate a spreadsheet or CSV files for at least one STEP file.  This will install the STEP schema files for the IFCsvr toolkit.  
 
-Download the SFA files from the GitHub 'source' directory to a directory on your computer.
+Download the SFA files from the GitHub 'source' directory to a directory on your computer.  The source code is based on version 1.72 of the NIST-built version.
 
 - The name of the directory is not important
 - The STEP File Analyzer is written in [Tcl](https://www.tcl.tk/)
@@ -64,9 +64,14 @@ An alternative might be to build the STEP File Analyzer with a version of Tcl/Tk
 
 ##Possible improvements
 
-The IFCsvr toolkit used to read STEP files could be replaced.  IFCsvr toolkit is a wrapper around an old version of [STEPtools ST-Developer](http://www.steptools.com/products/stdev/).  The free [personal edition of ST-Developer](http://www.steptools.com/products/stdev/personal.html) could replace the IFCsvr toolkit.  The personal edition of ST-Developer also includes some useful STEP utility programs.
+The IFCsvr toolkit used to read STEP files should be replaced.  IFCsvr toolkit is a wrapper around an old version of [STEPtools ST-Developer](http://www.steptools.com/products/stdev/).  The IFCsvr toolkit is the reason why versions of Tcl greater than 8.5.15 cannot be used.
 
-The [STEPcode toolkit](http://stepcode.org/) might also be used to replace the IFCsvr toolkit.
+- The free [personal edition of ST-Developer](http://www.steptools.com/products/stdev/personal.html) could replace the IFCsvr toolkit.  The personal edition of ST-Developer also includes some useful STEP utility programs.
+- The [STEPcode toolkit](http://stepcode.org/) could also be used to replace the IFCsvr toolkit.
+
+The Tcl package [tcom](http://wiki.tcl.tk/1821) (COM) is used to connect with a STEP file and with Excel.  tcom could be replaced with the COM features in [twapi](http://twapi.magicsplat.com/).
+
+No toolkit is used to interact with Excel spreadsheets.  The home-grown code could be replaced with [CAWT](http://www.posoft.de/html/extCawt.html).
 
 ##Contact
 

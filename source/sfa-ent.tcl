@@ -1,16 +1,13 @@
 proc getEntity {objEntity checkInverse} {
-  global worksheets wsCount sheetLast sheetList opt nproc entName attrType
-  global worksheet cells row col heading thisEntType excel count
-  global entityCount inverses comma invmsg fixent fixprm localName
-  global colinv invs developer roseLogical
-  global multiFile lastName rowmax entCount badAttributes
-
+  global attrType badAttributes cells col count developer entCount entName excelVersion
+  global fixent fixprm heading invMsg invVals localName opt roseLogical row rowmax sheetLast
+  global thisEntType worksheet worksheets wsCount
+  
 # get entity type
   set thisEntType [$objEntity Type]
   #if {$developer} {if {$thisEntType != $expectedEnt} {errorMsg "Mismatch: $thisEntType  $expectedEnt"}}
 
-  incr nproc
-  if {[info exists invs]} {unset invs}
+  if {[info exists invVals]} {unset invVals}
 
 # -------------------------------------------------------------------------------------------------
 # open worksheet for each entity if it does not already exist
@@ -35,7 +32,6 @@ proc getEntity {objEntity checkInverse} {
     }
     $worksheet($thisEntType) Activate
     
-    lappend sheetList $thisEntType
     set sheetLast $worksheet($thisEntType)
 
     set name $thisEntType
@@ -46,7 +42,6 @@ proc getEntity {objEntity checkInverse} {
       }
       errorMsg " Worksheet names are truncated to the first 31 characters" red
     }
-    set lastName $name
     set ws_name($thisEntType) [$worksheet($thisEntType) Name $name]
     set cells($thisEntType)   [$worksheet($thisEntType) Cells]
     set heading($thisEntType) 1
@@ -59,12 +54,12 @@ proc getEntity {objEntity checkInverse} {
 
     set entName($name) $thisEntType
     set count($thisEntType) 0
-    set invmsg ""
+    set invMsg ""
 
     #[$worksheet($thisEntType) Range [cellRange 1 1] [cellRange 1 1]] Select
 
 # color tab
-    if {[expr {int([$excel Version])}] >= 12} {
+    if {$excelVersion >= 12} {
       set cidx [setColorIndex $thisEntType]
       if {$cidx > 0} {[$worksheet($thisEntType) Tab] ColorIndex [expr $cidx]}      
     }
@@ -121,11 +116,9 @@ proc getEntity {objEntity checkInverse} {
 # -------------------------------------------------------------------------------------------------
 # find inverse relationships for specific entities
     if {$checkInverse} {invFind $objEntity}
-    set okinvs 0
-    set leninvs 0
-    if {[info exists invs]} {
-      set leninvs [array size invs]
-      if {$leninvs > 0} {set okinvs 1}
+    set invLen 0
+    if {[info exists invVals]} {
+      set invLen [array size invVals]
     }
 
 # -------------------------------------------------------------------------------------------------
@@ -320,7 +313,7 @@ proc getEntity {objEntity checkInverse} {
 
 # -------------------------------------------------------------------------------------------------
 # report inverses    
-    if {$leninvs > 0} {invReport}
+    if {$invLen > 0} {invReport}
 
 # rows exceeded
   } else {

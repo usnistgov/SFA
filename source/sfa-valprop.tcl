@@ -1,6 +1,5 @@
 proc valPropStart {objDesign} {
-  global entAttrList ent pdcol pd pdheading ncartpt elevel
-  global cells col opt propDefRow valPropNames
+  global cells col elevel ent entAttrList ncartpt opt pd pdcol pdheading propDefRow valPropNames
   
 # CAx-IF RP Geometric and Assembly Validation Properties, section 8
   set valPropNames(geometric_validation_property) [list \
@@ -117,9 +116,8 @@ proc valPropStart {objDesign} {
 
 # -------------------------------------------------------------------------------
 proc valPropReport {objEntity} {
-  global elevel ent entAttrList pdcol pd prefix nrep maxrep pdheading ncartpt
-  global cells col opt propDefIDRow propDefID propDefRow propDefOK pointLimit
-  global pmivalprop syntaxErr repName valName propDefName valPropNames stepAP flag recPracNames
+  global cells col elevel ent entAttrList maxrep ncartpt nrep opt pd pdcol pdheading pmivalprop pointLimit prefix 
+  global propDefID propDefIDRow propDefName propDefOK propDefRow recPracNames repName stepAP syntaxErr valName valPropNames
 
   if {[info exists propDefOK]} {if {$propDefOK == 0} {return}}
 
@@ -582,13 +580,13 @@ proc valPropReport {objEntity} {
 
 # -------------------------------------------------------------------------------
 proc valPropFormat {} {
-  global thisEntType cells col row worksheet propDefRow excel recPracNames stepAP
+  global cells col excel propDefRow recPracNames row stepAP thisEntType worksheet
 
   if {[info exists cells($thisEntType)] && $col($thisEntType) > 4} {
-    outputMsg " Formatting Validation Properties on: property_definition" blue
-    if {[llength $propDefRow] == 0 && $stepAP != ""} {
-      outputMsg " No Validation Properties found as defined by\n  CAx-IF Recommended Practice for $recPracNames(valprop)" red
-    }
+    #if {[llength $propDefRow] == 0 && $stepAP != ""} {
+    #  outputMsg " No Validation Properties found as defined by\n  CAx-IF Recommended Practice for $recPracNames(valprop)" red
+    #}
+    outputMsg " Formatting Properties on: property_definition" blue
   
 # delete unused columns
   set delcol 0
@@ -615,7 +613,7 @@ proc valPropFormat {} {
   }
 
 # header
-    catch {$cells($thisEntType) Item 2 5 "Validation Properties"}
+    catch {$cells($thisEntType) Item 2 5 "Properties"}
     set range [$worksheet($thisEntType) Range "E2"]
     $range HorizontalAlignment [expr -4108]
     [$range Font] Bold [expr 1]
@@ -681,10 +679,11 @@ proc valPropFormat {} {
     catch {[[$range Borders] Item [expr 9]] Weight [expr -4138]}
     
 # fix column widths
-    for {set i 1} {$i <= [expr {$col($thisEntType)+20}]} {incr i} {
+    set colrange [[[$worksheet($thisEntType) UsedRange] Columns] Count]
+    for {set i 1} {$i <= $colrange} {incr i} {
       set val [[$cells($thisEntType) Item 3 $i] Value]
       if {$val == "value name"} {
-        for {set i1 $i} {$i1 <= [expr {$i+7}]} {incr i1} {
+        for {set i1 $i} {$i1 <= $colrange} {incr i1} {
           set range [$worksheet($thisEntType) Range [cellRange -1 $i1]]
           $range ColumnWidth [expr 255]
         }

@@ -1,15 +1,12 @@
 proc getEntityCSV {objEntity} {
-  global worksheets wsCount sheetLast sheetList opt nproc entName attrType
-  global worksheet cells row col heading thisEntType excel count
-  global entityCount inverses comma invmsg fixent fixprm localName
-  global colinv invs developer roseLogical
-  global multiFile lastName rowmax entCount badAttributes
+  global thisEntType count
+  global fixent fixprm localName
+  global roseLogical
+  global entCount badAttributes
   global csvfile csvdirnam csvstr fcsv
 
 # get entity type
   set thisEntType [$objEntity Type]
-
-  incr nproc
 
 # -------------------------------------------------------------------------------------------------
 # csv file for each entity if it does not already exist
@@ -33,7 +30,6 @@ proc getEntityCSV {objEntity} {
     puts $fcsv $csvstr
     unset csvstr
 
-    set row($thisEntType) 4
     set count($thisEntType) 0
 
 # file of entities not to process
@@ -65,9 +61,6 @@ proc getEntityCSV {objEntity} {
 
 # entity ID
   set p21id [$objEntity P21ID]
-    
-# keep track of property_defintion or annotation occurrence rows in propDefIDRow, gpmiIDRow
-  setIDRow $thisEntType $p21id
 
 # -------------------------------------------------------------------------------------------------
 # for all attributes of the entity
@@ -110,9 +103,6 @@ proc getEntityCSV {objEntity} {
     incr nattr
 
 # -------------------------------------------------------------------------------------------------
-# values in rows
-    incr col($thisEntType)
-
 # not a handle, just a single value
     if {[string first "handle" $objValue] == -1} {
       set ov $objValue
@@ -139,7 +129,6 @@ proc getEntityCSV {objEntity} {
         } emsg2]} {
 
 # process like a list which is very unusual
-          #if {$developer} {errorMsg " Attribute reference is a List: $emsg2"}
           catch {foreach idx [array names cellval] {unset cellval($idx)}}
           ::tcom::foreach val $refEntity {
             append cellval([$val Type]) "[$val P21ID] "
@@ -232,9 +221,7 @@ proc getEntityCSV {objEntity} {
 
 # -------------------------------------------------------------------------------------------------
 # clean up variables to hopefully release some memory
-  foreach var {objAttributes attrName refEntity refType} {
-    if {[info exists $var]} {unset $var}
-  }
+  foreach var {objAttributes attrName refEntity refType} {if {[info exists $var]} {unset $var}}
   update idletasks
   return 1
 }

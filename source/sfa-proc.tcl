@@ -44,7 +44,7 @@ proc getSchemaFromFile {fname {msg 0}} {
  
 #-------------------------------------------------------------------------------
 proc checkValues {} {
-  global opt buttons appNames appName programfiles userentlist
+  global opt buttons appNames appName programfiles userEntityList
   global edmWriteToFile edmWhereRules eeWriteToFile
 
   if {[info exists buttons(appCombo)]} {
@@ -110,13 +110,12 @@ proc checkValues {} {
   if {$opt(PMIGRF)} {
     set opt(PR_STEP_QUAN) 1
     set opt(PR_STEP_OTHER) 1
-    set opt(PR_STEP_AP242) 1
-    #set opt(PR_STEP_AP242_GEOM) 1
+    set opt(PR_STEP_AP242_GEOM) 1
     set opt(PR_STEP_ASPECT) 1
     $buttons(optGENX3DOM) configure -state normal
     $buttons(optPR_STEP_QUAN) configure -state disabled
     $buttons(optPR_STEP_OTHER) configure -state disabled
-    $buttons(optPR_STEP_AP242) configure -state disabled
+    $buttons(optPR_STEP_AP242_GEOM) configure -state disabled
     $buttons(optPR_STEP_ASPECT) configure -state disabled
   } else {
     set opt(GENX3DOM) 0
@@ -126,7 +125,7 @@ proc checkValues {} {
     if {!$opt(PMISEM)}  {
       $buttons(optPR_STEP_ASPECT) configure -state normal
       $buttons(optPR_STEP_OTHER) configure -state normal
-      $buttons(optPR_STEP_AP242) configure -state normal
+      $buttons(optPR_STEP_AP242_GEOM) configure -state normal
     }
   }
   if {$opt(VALPROP)} {
@@ -151,13 +150,12 @@ proc checkValues {} {
     set opt(PR_STEP_ASPECT) 1
     set opt(PR_STEP_QUAN) 1
     set opt(PR_STEP_OTHER) 1
-    set opt(PR_STEP_AP242) 1
-    #set opt(PR_STEP_AP242_GEOM) 1
+    set opt(PR_STEP_AP242_GEOM) 1
     $buttons(optPR_STEP_TOLR) configure -state disabled
     $buttons(optPR_STEP_ASPECT) configure -state disabled
     $buttons(optPR_STEP_QUAN) configure -state disabled
     $buttons(optPR_STEP_OTHER) configure -state disabled
-    $buttons(optPR_STEP_AP242) configure -state disabled
+    $buttons(optPR_STEP_AP242_GEOM) configure -state disabled
     catch {$buttons(optDEBUG2) configure -state normal}
   } else {
     $buttons(optPR_STEP_TOLR) configure -state normal
@@ -169,7 +167,7 @@ proc checkValues {} {
       if {!$opt(VALPROP)} {$buttons(optPR_STEP_QUAN) configure -state normal}
       $buttons(optPR_STEP_ASPECT) configure -state normal
       $buttons(optPR_STEP_OTHER) configure -state normal
-      $buttons(optPR_STEP_AP242) configure -state normal
+      $buttons(optPR_STEP_AP242_GEOM) configure -state normal
     }
   }
   
@@ -181,7 +179,7 @@ proc checkValues {} {
     } else {
       $buttons(userentity) configure -state disabled
       $buttons(userentityopen) configure -state disabled
-      set userentlist {}
+      set userEntityList {}
     }
   }
   
@@ -474,6 +472,9 @@ proc addHeaderWorksheet {objDesign numFile fname} {
 proc setColorIndex {ent {stat 0}} {
   global entCategory entColorIndex opt
   
+# special case
+  if {[string first "geometric_representation_context" $ent] != -1} {set ent "geometric_representation_context"}
+  
 # simple entity, not compound with _and_
   foreach i [array names entCategory] {
     if {[string first STEP $i] != -1} {
@@ -535,26 +536,29 @@ proc setColorIndex {ent {stat 0}} {
 
 #-------------------------------------------------------------------------------
 proc displayURL {url} {
+  global programfiles
 
-# open in whatever is registered for the file extension
-  if {[catch {
-    exec {*}[auto_execok start] "" $url
-  } emsg]} {
-    if {[string first "is not recognized" $emsg] == -1} {
-      errorMsg "ERROR opening $url\n $emsg"
+# open in whatever is registered for the file extension, except for .cgi
+  if {[string first ".cgi" $url] == -1} {
+    if {[catch {
+      exec {*}[auto_execok start] "" $url
+    } emsg]} {
+      if {[string first "is not recognized" $emsg] == -1} {
+        errorMsg "ERROR opening $url\n $emsg"
+      }
     }
-  }
 
-# old method, find web browser command  
-  #global programfiles
-  #set webCmd ""
-  #catch {
-  #  set reg_wb [registry get {HKEY_CURRENT_USER\Software\Classes\http\shell\open\command} {}]
-  #  set reg_wb [lindex [split $reg_wb "\""] 1]
-  #  set webCmd $reg_wb
-  #}
-  #if {$webCmd == "" || ![file exists $webCmd]} {set webCmd [file join $programfiles "Internet Explorer" IEXPLORE.EXE]}
-  #exec $webCmd $url &
+# find web browser command  
+  } else {
+    set webCmd ""
+    catch {
+      set reg_wb [registry get {HKEY_CURRENT_USER\Software\Classes\http\shell\open\command} {}]
+      set reg_wb [lindex [split $reg_wb "\""] 1]
+      set webCmd $reg_wb
+    }
+    if {$webCmd == "" || ![file exists $webCmd]} {set webCmd [file join $programfiles "Internet Explorer" IEXPLORE.EXE]}
+    exec $webCmd $url &
+  }
 }
 
 #-------------------------------------------------------------------------------
@@ -675,7 +679,7 @@ proc unzipFile {} {
 #-------------------------------------------------------------------------------
 proc saveState {} {
   global optionsFile fileDir openFileList opt userWriteDir dispCmd dispCmds
-  global flag lastXLS lastXLS1 userXLSFile fileDir1 mydocs sfaVersion upgrade
+  global lastXLS lastXLS1 userXLSFile fileDir1 mydocs sfaVersion upgrade
   global excelYear userEntityFile buttons statusFont mingeo
 
   if {![info exists buttons]} {return}
@@ -760,9 +764,9 @@ proc saveState {} {
 
 #-------------------------------------------------------------------------------
 proc displayResult {} {
-  global localName dispCmd appName transFile programfiles
+  global localName dispCmd appName transFile
   global sccmsg model_typ pfbent
-  global openFileList File filemenuinc lenlist padcmd
+  global openFileList File padcmd
   global edmWriteToFile edmWhereRules eeWriteToFile
   
   set dispFile $localName
@@ -1351,7 +1355,10 @@ proc findFile {startDir {recurse 0}} {
 
 #-------------------------------------------------------------------------------
 proc addFileToMenu {} {
-  global openFileList localName File filemenuinc lenlist buttons
+  global openFileList localName File buttons
+
+  set lenlist 25
+  set filemenuinc 4
   
   if {![info exists buttons]} {return}
   
@@ -1411,7 +1418,7 @@ proc addFileToMenu {} {
 #-------------------------------------------------------------------------------
 # open a spreadsheet
 proc openXLS {filename {check 0} {multiFile 0}} {
-  global lastXLS programfiles pf64 buttons
+  global lastXLS pf64 buttons
 
   if {[info exists buttons]} {.tnb select .tnb.status}
 
@@ -1853,7 +1860,7 @@ proc copyRoseFiles {} {
 #-------------------------------------------------------------------------------
 # install IFCsvr
 proc installIFCsvr {} {
-  global programfiles wdir mydocs mytemp ifcsvrdir nistVersion
+  global wdir mydocs mytemp ifcsvrdir nistVersion
 
   set ifcsvr     "ifcsvrr300_setup_1008_en.msi"
   set ifcsvrinst [file join $wdir schemas $ifcsvr]
@@ -1898,7 +1905,7 @@ proc installIFCsvr {} {
     if {[file exists $ifcsvrmsi]} {
       exec {*}[auto_execok start] "" $ifcsvrmsi
     } else {
-      if {[file exists $ifcsvrinst]} {errorMsg "IFCsvr cannot be automatically installed."}
+      if {[file exists $ifcsvrinst]} {errorMsg "IFCsvr Toolkit cannot be automatically installed."}
       outputMsg " "
       if {!$nistVersion} {
         errorMsg "To install the IFCsvr Toolkit you must install the NIST version of the STEP File Analyzer."

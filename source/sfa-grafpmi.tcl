@@ -1,8 +1,6 @@
 proc gpmiProp {objDesign entType} {
-
-  global entAttrList ent pmiCol ao pmiHeading elevel pmiStartCol aoEntTypes
-  global cells col opt gpmiRow stepAP nindex recPracNames
-  global x3domCoord x3domIndex x3domFile x3domShape x3domColor syntaxErr
+  global ao aoEntTypes cells col elevel ent entAttrList gpmiRow nindex opt pmiCol pmiHeading pmiStartCol
+  global recPracNames stepAP syntaxErr x3domColor x3domCoord x3domFile x3domIndex x3domShape
 
   if {$opt(DEBUG1)} {outputMsg "START gpmiProp $entType" red}
 
@@ -162,15 +160,13 @@ proc gpmiProp {objDesign entType} {
 # -------------------------------------------------------------------------------
 
 proc gpmiPropReport {objEntity} {
-  #outputMsg "gpmiPropReport" red
-  global elevel ent entAttrList pmiCol ao prefix nrep maxrep pmiHeading pmiStartCol incrcol
-  global cells col opt gpmiIDRow gpmiID gpmiRow gpmiOK pointLimit badAttributes
-  global x3domPointID iPolyline numPolyline currX3domPointID numX3domPointID nindex savedViewCol pmiColumns syntaxErr
-  global x3domFileOpen x3domFileName x3domCoord x3domIndex x3domFile x3domShape localName x3domMin x3domMax
-  global x3domPoint dirRatio numCompCurveSeg iCompCurveSeg numCompCurve iCompCurve gpmiTypes x3domColor avgX3domColor
-  global draftModelCameras gpmiValProp gpmiTypesPerFile gpmiTypesInvalid 
-  global propDefIDS stepAP recPracNames aoname gpmiEnts assocGeom objEntity1
+  global ao aoname assocGeom avgX3domColor badAttributes cells col currX3domPointID dirRatio draftModelCameras
+  global elevel ent entAttrList gpmiEnts gpmiID gpmiIDRow gpmiOK gpmiRow gpmiTypes gpmiTypesInvalid gpmiTypesPerFile gpmiValProp
+  global iCompCurve iCompCurveSeg incrcol iPolyline localName maxrep nindex nrep numCompCurve numCompCurveSeg numPolyline numX3domPointID
+  global objEntity1 opt pmiCol pmiColumns pmiHeading pmiStartCol pointLimit prefix propDefIDS recPracNames savedViewCol stepAP syntaxErr 
+  global x3domColor x3domCoord x3domFile x3domFileName x3domFileOpen x3domIndex x3domMax x3domMin x3domPoint x3domPointID x3domShape 
 
+  #outputMsg "gpmiPropReport" red
   #if {[info exists gpmiOK]} {if {$gpmiOK == 0} {return}}
 
 # elevel is very important, keeps track level of entity in hierarchy
@@ -1236,27 +1232,21 @@ proc reportAssocGeom {} {
 # set X3DOM color
 proc gpmiSetColor {type} {
   global idxColor
+
   if {$type == 1} {return "0 0 0"}
+
   if {$type == 2} {
     incr idxColor
-    if {$idxColor == 1} {
-      set color "0 0 0"
-    } elseif {$idxColor == 2} {
-      set color "1 0 0"
-    } elseif {$idxColor == 3} {
-      set color "1 1 0"
-    } elseif {$idxColor == 4} {
-      set color "0 1 0"
-    } elseif {$idxColor == 5} {
-      set color "0 1 1"
-    } elseif {$idxColor == 6} {
-      set color "0 0 1"
-    } elseif {$idxColor == 7} {
-      set color "1 0 1"
-    } elseif {$idxColor == 8} {
-      set color "1 1 1"
+    switch $idxColor {
+      1 {set color "0 0 0"}
+      2 {set color "1 0 0"}
+      3 {set color "1 1 0"}
+      4 {set color "0 1 0"}
+      5 {set color "0 1 1"}
+      6 {set color "0 0 1"}
+      7 {set color "1 0 1"}
+      8 {set color "1 1 1"}
     }
-    #outputMsg "$idxColor  $color"
     if {$idxColor == 8} {set idxColor 0}
   }
   return $color
@@ -1388,8 +1378,9 @@ proc displayX3DOM {} {
 # -------------------------------------------------------------------------------
 # start PMI Presentation coverage analysis worksheet
 proc gpmiCoverageStart {{multi 1}} {
-  global worksheet1 worksheets1 multiFileDir gpmiTypes excel1 pmi_coverage cells1 recPracNames
-  global worksheets worksheet cells sheetLast
+  global cells cells1 gpmiTypes multiFileDir pmi_coverage recPracNames
+  global sheetLast worksheet worksheet1 worksheets worksheets1 
+
   #outputMsg "gpmiCoverageStart $multi" red
   
   if {[catch {
@@ -1445,8 +1436,9 @@ proc gpmiCoverageStart {{multi 1}} {
 # -------------------------------------------------------------------------------
 # write PMI coverage analysis worksheet
 proc gpmiCoverageWrite {{fn ""} {sum ""} {multi 1}} {
-  global worksheet1 worksheets1 pmi_coverage col1 cells1 gpmiTypesPerFile pmi_totals gpmiTypesInvalid gpmiTypes pmi_rows
-  global worksheet worksheets cells
+  global cells cells1 col1 gpmiTypes gpmiTypesInvalid gpmiTypesPerFile pmi_coverage pmi_rows pmi_totals
+  global worksheet worksheet1
+
   #outputMsg "gpmiCoverageWrite $multi" red
 
   if {[catch {
@@ -1553,8 +1545,9 @@ proc gpmiCoverageWrite {{fn ""} {sum ""} {multi 1}} {
 # -------------------------------------------------------------------------------
 # format PMI coverage analysis worksheet, also PMI totals
 proc gpmiCoverageFormat {{sum ""} {multi 1}} {
-  global col1 pmi_coverage lenfilelist pmi_totals worksheet1 excel1 cells1 gpmiTypes opt pmi_rows
-  global recPracNames worksheet excel cells localName
+  global cells cells1 col1 excel excel1 gpmiTypes lenfilelist localName opt
+  global pmi_coverage pmi_rows pmi_totals recPracNames worksheet worksheet1
+
   #outputMsg "gpmiCoverageFormat $multi" red
 
 # delete worksheet if no graphical PMI

@@ -1,22 +1,16 @@
 # generate an Excel spreadsheet from a STEP file
 
 proc genExcel {{numFile 0}} {
-  global localName localNameList programfiles env entCategories openFileList File buttons fileDir opt
-  global worksheet worksheets wsCount sheetLast workbook workbooks worksheet1
-  global cells row col heading thisEntType colColor count
-  global propDefIDRow propDefID propDefRow propDefOK
-  global gpmiIDRow gpmiID gpmiRow gpmiOK syntaxErr
-  global excel excel1 entsIgnored nproc homedir filemenuinc lenlist startrow stepAP
-  global writeDir entColorIndex entName errmsg lastXLS
-  global ype nline entityCount userXLSFile comma colinv
-  global cells1 col1 all_entity file_entity total_entity timeStamp xlFileNames xlFileName extXLS excelYear
-  global multiFile spmiSumRow idxColor tlast developer
-  global rowmax entCount userentlist userEntityFile flag
-  global fixent fixprm lenfilelist badAttributes multiFileDir
-  global ap203all ap209all ap210all ap214all ap238all ap242all
-  global x3domFileOpen x3domFileName x3domCoord x3domIndex x3domFile x3domMin x3domMax x3domColor pmiCol spmiEntity
-  global excelVersion recPracNames creo tolStandard dim coverageValues coverageLegend nistName
-  global fcsv csvdirnam csvfile nistVersion
+  global allEntity ap203all ap209all ap210all ap214all ap238all ap242all badAttributes buttons
+  global cells cells1 col col1 comma count coverageLegend coverageValues creo csvdirnam csvfile
+  global developer dim entCategories entColorIndex entCount entityCount entsIgnored env errmsg
+  global excel excelVersion excelYear extXLS fcsv File fileEntity fixent fixprm idxColor inverses
+  global lastXLS lenfilelist localName localNameList multiFile multiFileDir nistName nistVersion nline
+  global opt pmiCol programfiles recPracNames row rowmax sheetLast spmiEntity spmiSumRow startrow stepAP
+  global thisEntType timeStamp tlast tolStandard totalEntity userEntityFile userEntityList userXLSFile
+  global workbook workbooks worksheet worksheet1 worksheets writeDir wsCount
+  global x3domColor x3domCoord x3domFile x3domFileName x3domFileOpen x3domIndex x3domMax x3domMin
+  global xlFileName xlFileNames
   
   if {[info exists errmsg]} {set errmsg ""}
 
@@ -241,35 +235,28 @@ proc genExcel {{numFile 0}} {
       [$excel ErrorCheckingOptions] TextDate False
       
       set excelVersion [expr {int([$excel Version])}]
+      set extXLS "xlsx"
+      set rowmax [expr {2**20}]
+      $excel DefaultSaveFormat [expr 51]
       if {$excelVersion < 12} {
         set extXLS "xls"
         set rowmax [expr {2**16}]
         $excel DefaultSaveFormat [expr 56]
-      } else {
-        set extXLS "xlsx"
-        set rowmax [expr {2**20}]
-        $excel DefaultSaveFormat [expr 51]
       }
       set excelYear ""
-      if {$excelVersion == 9} {
-        set excelYear 2000
-      } elseif {$excelVersion == 10} {
-        set excelYear 2002
-      } elseif {$excelVersion == 11} {
-        set excelYear 2003
-      } elseif {$excelVersion == 12} {
-        set excelYear 2007
-      } elseif {$excelVersion == 14} {
-        set excelYear 2010
-      } elseif {$excelVersion == 15} {
-        set excelYear 2013
-      } elseif {$excelVersion == 16} {
-        set excelYear 2016
+      switch $excelVersion {
+        9  {set excelYear 2000}
+        10 {set excelYear 2002}
+        11 {set excelYear 2003}
+        12 {set excelYear 2007}
+        14 {set excelYear 2010}
+        15 {set excelYear 2013}
+        16 {set excelYear 2016}
       }
       if {$excelVersion >= 2000 && $excelVersion < 2100} {set excelYear $excelVersion}
       outputMsg "Connecting to Excel $excelYear" green
   
-      if {$excelVersion  < 12} {errorMsg " Some spreadsheet features are not available with this older version of Excel."}
+      if {$excelVersion < 12} {errorMsg " Some spreadsheet features are not available with this older version of Excel."}
   
 # turning off ScreenUpdating saves A LOT of time
       if {$opt(XL_KEEPOPEN) && $numFile == 0} {
@@ -285,14 +272,11 @@ proc genExcel {{numFile 0}} {
 # error with Excel, use CSV instead
     } emsg]} {
       errorMsg "ERROR connecting to Excel: $emsg"
-      #if {[string first "Invalid class string" $emsg] != -1} {
-        errorMsg "The STEP File will be written to CSV files.  See the option on the Spreadsheet tab."
-        set opt(XLSCSV) "CSV"
-        checkValues
-        tk_messageBox -type ok -icon error -title "ERROR connecting to Excel" -message "Cannot connect to Excel or Excel is not installed.\nThe STEP file will be written to CSV files.\nSee the option on the Spreadsheet tab."
-        catch {raise .}
-        #return 0
-      #}
+      errorMsg "The STEP File will be written to CSV files.  See the setting on the Options tab."
+      set opt(XLSCSV) "CSV"
+      checkValues
+      tk_messageBox -type ok -icon error -title "ERROR connecting to Excel" -message "Cannot connect to Excel or Excel is not installed.\nThe STEP file will be written to CSV files.\nSee the setting on the Options tab."
+      catch {raise .}
     }
 
 # -------------------------------------------------------------------------------------------------
@@ -334,7 +318,7 @@ proc genExcel {{numFile 0}} {
   }
   
 # -------------------------------------------------------------------------------------------------
-# add header worksheet, for CSV files create directory too and header file
+# add header worksheet, for CSV files create directory and header file
   addHeaderWorksheet $objDesign $numFile $fname
 
 # -------------------------------------------------------------------------------------------------
@@ -407,27 +391,16 @@ proc genExcel {{numFile 0}} {
   set numEnts 0
   
 # user-defined entity list
-  catch {set userentlist {}}
-  if {$opt(PR_USER) && [llength $userentlist] == 0 && [info exists userEntityFile]} {
-    set userentlist {}
+  catch {set userEntityList {}}
+  if {$opt(PR_USER) && [llength $userEntityList] == 0 && [info exists userEntityFile]} {
+    set userEntityList {}
     set fileUserEnt [open $userEntityFile r]
     while {[gets $fileUserEnt line] != -1} {
       set line [split [string trim $line] " "]
-      foreach ent $line {
-        if {[lsearch $ap203all $ent] != -1 || \
-            [lsearch $ap209all $ent] != -1 || \
-            [lsearch $ap210all $ent] != -1 || \
-            [lsearch $ap214all $ent] != -1 || \
-            [lsearch $ap238all $ent] != -1 || \
-            [lsearch $ap242all $ent] != -1} {
-          lappend userentlist $ent
-        } elseif {[string first "_and_" $ent] != -1} {
-          lappend userentlist $ent            
-        }
-      }
+      foreach ent $line {lappend userEntityList $ent}
     }
     close $fileUserEnt
-    if {[llength $userentlist] == 0} {
+    if {[llength $userEntityList] == 0} {
       set opt(PR_USER) 0
       checkValues
     }
@@ -436,25 +409,27 @@ proc genExcel {{numFile 0}} {
 # get totals of each entity in file
   set fixlist {}
   if {![info exists objDesign]} {return}
-  foreach entType [$objDesign EntityTypeNames [expr 2]] {
+
+  set entityTypeNames [$objDesign EntityTypeNames [expr 2]]
+  foreach entType $entityTypeNames {
     set entCount($entType) [$objDesign CountEntities "$entType"]
 
     if {$entCount($entType) > 0} {
       if {$numFile != 0} {
         set idx [setColorIndex $entType 1]
         if {$idx == -2} {set idx 99}
-        lappend all_entity "$idx$entType"
-        lappend file_entity($numFile) "$entType $entCount($entType)"
-        if {![info exists total_entity($entType)]} {
-          set total_entity($entType) $entCount($entType)
+        lappend allEntity "$idx$entType"
+        lappend fileEntity($numFile) "$entType $entCount($entType)"
+        if {![info exists totalEntity($entType)]} {
+          set totalEntity($entType) $entCount($entType)
         } else {
-          incr total_entity($entType) $entCount($entType)
+          incr totalEntity($entType) $entCount($entType)
         }
       }
 
 # user-defined entities
       set ok 0
-      if {$opt(PR_USER) && [lsearch $userentlist $entType] != -1} {set ok 1}
+      if {$opt(PR_USER) && [lsearch $userEntityList $entType] != -1} {set ok 1}
       
 # STEP entities that are translated depending on the options
       set ok1 [setEntsToProcess $entType $objDesign]
@@ -507,6 +482,18 @@ proc genExcel {{numFile 0}} {
       }
     }
   }
+    
+# filter inverse relationships to check only by entities in file
+    if {$opt(INVERSE)} {
+      if {$entityTypeNames != ""} {
+        initDataInverses
+        set invNew {}
+        foreach item $inverses {
+          if {[lsearch $entityTypeNames [lindex $item 0]] != -1} {lappend invNew $item}
+        }
+        set inverses $invNew
+      }
+    }
   
 # list entities not processed based on fix file
   if {[llength $fixlist] > 0} {
@@ -601,7 +588,6 @@ proc genExcel {{numFile 0}} {
     set inverseEnts {}
     set lastEnt ""
     set nline 0
-    set nproc 0
     set wsCount 0
     set stat 1
     set spmiEntity {}
@@ -926,15 +912,14 @@ proc genExcel {{numFile 0}} {
   update idletasks
 
 # clean up variables to hopefully release some memory and/or to reset them
-  global currX3domPointID numX3domPointID pmiStartCol nrep invGroup dimrep dimrepID pmiColumns
-  foreach var {colColor count entsIgnored colinv \
-               worksheet worksheets workbook workbooks cells \
-               heading entName \
-               propDefIDRow propDefID propDefRow propDefOK \
-               gpmiIDRow gpmiID gpmiRow gpmiOK \
-               currX3domPointID numX3domPointID pmiCol pmivalprop pmiStartCol \
-               x3domFileOpen x3domFileName x3domCoord x3domIndex x3domFile x3domMin x3domMax \
-               syntaxErr nrep invGroup dimrep dimrepID pmiColumns} {
+  global colColor invCol currX3domPointID dimrep dimrepID entName gpmiID gpmiIDRow gpmiOK gpmiRow
+  global heading invGroup nrep numX3domPointID pmiColumns pmiStartCol 
+  global propDefID propDefIDRow propDefOK propDefRow syntaxErr 
+  foreach var {cells colColor invCol count currX3domPointID dimrep dimrepID entName entsIgnored \
+              gpmiID gpmiIDRow gpmiOK gpmiRow heading invGroup nrep numX3domPointID \
+              pmiCol pmiColumns pmiStartCol pmivalprop propDefID propDefIDRow propDefOK propDefRow \
+              syntaxErr workbook workbooks worksheet worksheets \
+              x3domCoord x3domFile x3domFileName x3domFileOpen x3domIndex x3domMax x3domMin} {
     if {[info exists $var]} {unset $var}
   }
   if {!$multiFile} {
@@ -952,6 +937,7 @@ proc genExcel {{numFile 0}} {
 proc sumAddWorksheet {} {
   global worksheet cells sum sheetSort sheetLast col worksheets row entCategory opt entsIgnored excel
   global x3domFileName spmiEntity entCount gpmiEnts spmiEnts nistVersion
+  global propDefRow stepAP
 
   outputMsg "Adding Summary worksheet"
   set sum "Summary"
@@ -1003,7 +989,7 @@ proc sumAddWorksheet {} {
 # for STEP add [Validation Properties], [PMI Presentation], [PMI Representation] text string and link to X3DOM file    
         set okao 0
         if {$entType == "property_definition" && $col($entType) > 4} {
-          $cells($sum) Item $sumRow 1 "property_definition  \[Validation Properties\]"
+          $cells($sum) Item $sumRow 1 "property_definition  \[Properties\]"
         } elseif {$entType == "dimensional_characteristic_representation" && $col($entType) > 3} {
           $cells($sum) Item $sumRow 1 "dimensional_characteristic_representation  \[PMI Representation\]"
         } elseif {[lsearch $spmiEntity $entType] != -1} {

@@ -1,77 +1,77 @@
 # check 'inverses' with GetUsedIn
 
 proc invFind {objEntity} {
-  global inverses invs invmsg opt developer
-
-  set DEBUGINV $opt(DEBUGINV)
-  if {$DEBUGINV} {outputMsg \ninvFind red}
+  global inverses invVals invMsg opt developer
 
   set objType [$objEntity Type]
   set objP21ID [$objEntity P21ID]
   set stat ""
+
+  set DEBUGINV $opt(DEBUGINV)
+  if {$DEBUGINV} {outputMsg "invFind  $objP21ID=$objType  [llength $inverses]" red}
   
   if {[catch {
     foreach inverse $inverses {
-      set invEntities [$objEntity GetUsedIn [lindex $inverse 0] [lindex $inverse 1]]
-      ::tcom::foreach invEntity $invEntities {
-        set invType [$invEntity Type]
+      catch {unset invEnts}
+      set invEnts [$objEntity GetUsedIn [join [lindex $inverse 0]] [join [lindex $inverse 1]]]
+      ::tcom::foreach invEnt $invEnts {
+        set invType [$invEnt Type]
         set invRule [lindex $inverse 2]
-        #outputMsg here2
         set msg " Inverse ($invRule) [formatComplexEnt $invType]:"
         set msgok 0
         set nattr 0
   
-        ::tcom::foreach invAttribute [$invEntity Attributes] {
-          set attrName  [string tolower [$invAttribute Name]]
-          set attrValue [$invAttribute Value]
+        ::tcom::foreach invAttr [$invEnt Attributes] {
+          set attrName  [string tolower [$invAttr Name]]
+          set attrValue [$invAttr Value]
           if {$DEBUGINV} {
             incr nattr
             if {$nattr == 1} {outputMsg "Inverse [lindex $inverse 0]  [lindex $inverse 1]  [lindex $inverse 2]" blue}
             outputMsg "  attrName $attrName"
           }
 
-# look for 'relating'
-          if {[string first "relating" $attrName] != -1} {
+# look for 'relating' or 'rep_1'
+          if {[string first "relating" $attrName] != -1 || [string first "rep_1" $attrName] != -1} {
             set stat "relating [lindex $inverse 0] [lindex $inverse 1]"
-            if {$DEBUGINV} {outputMsg "relating $attrName [$invAttribute NodeType] [$invAttribute Value]" red}
+            if {$DEBUGINV} {outputMsg "relating $attrName [$invAttr NodeType] [$invAttr Value]" red}
             if {[string first "handle" $attrValue] != -1} {
               set subType [$attrValue Type]
               if {$DEBUGINV} {outputMsg " $subType [$attrValue P21ID]  $objType $objP21ID" red}
               if {[$attrValue P21ID] != $objP21ID} {
                 if {$DEBUGINV} {outputMsg "  OK" red}
-                lappend invs($invRule) "$subType [$attrValue P21ID]"
+                lappend invVals($invRule) "$subType [$attrValue P21ID]"
                 if {[string first "DELETETHIS" $msg] == -1} {append msg " $subType DELETETHIS$objType"}
                 set msgok 1
               }
             }
 
-# look for 'related'
-          } elseif {[string first "related" $attrName] != -1} {
+# look for 'related' or 'rep_2'
+          } elseif {[string first "related" $attrName] != -1 || [string first "rep_2" $attrName] != -1} {
             if {[string first "handle" $attrValue] != -1} {
-              set stat "related [$invAttribute NodeType] [lindex $inverse 0] [lindex $inverse 1]"
-              if {[$invAttribute NodeType] == 18 || [$invAttribute NodeType] == 19} {
-                if {$DEBUGINV} {outputMsg "related $attrName [$invAttribute NodeType] [$invAttribute Value]" green}
+              set stat "related [$invAttr NodeType] [lindex $inverse 0] [lindex $inverse 1]"
+              if {[$invAttr NodeType] == 18 || [$invAttr NodeType] == 19} {
+                if {$DEBUGINV} {outputMsg "related $attrName [$invAttr NodeType] [$invAttr Value]" green}
                 set subType [$attrValue Type]
                 if {$DEBUGINV} {outputMsg " $subType [$attrValue P21ID] $objType $objP21ID" green}
                 if {[$attrValue P21ID] != $objP21ID} {
                   if {$DEBUGINV} {outputMsg "  OK" green}
-                  lappend invs($invRule) "$subType [$attrValue P21ID]"
+                  lappend invVals($invRule) "$subType [$attrValue P21ID]"
                   if {[string first "DELETETHIS" $msg] == -1} {append msg " $subType DELETETHIS$objType"}
                   set msgok 1
                 }
 
 # still needs some work to remove the catch below           
 # nodetype = 20
-              } elseif {[$invAttribute NodeType] == 20 && $attrName != [string tolower [lindex $inverse 1]]} {
-                set stat "related [$invAttribute NodeType] A [lindex $inverse 0] [lindex $inverse 1]"
-                if {$DEBUGINV} {outputMsg "related $attrName [$invAttribute NodeType] [$invAttribute Value]" magenta}
-                if {$DEBUGINV} {outputMsg " $objType $objP21ID / [$invEntity Type] [$invEntity P21ID]" magenta}
+              } elseif {[$invAttr NodeType] == 20 && $attrName != [string tolower [lindex $inverse 1]]} {
+                set stat "related [$invAttr NodeType] A [lindex $inverse 0] [lindex $inverse 1]"
+                if {$DEBUGINV} {outputMsg "related $attrName [$invAttr NodeType] [$invAttr Value]" magenta}
+                if {$DEBUGINV} {outputMsg " $objType $objP21ID / [$invEnt Type] [$invEnt P21ID]" magenta}
                 if {[catch {
-                  ::tcom::foreach aval [$invAttribute Value] {
-                    if {$DEBUGINV} {outputMsg "  $aval / [$aval Type] [$aval P21ID] / $objType $objP21ID / [$invEntity Type] [$invEntity P21ID]" magenta}
+                  ::tcom::foreach aval [$invAttr Value] {
+                    if {$DEBUGINV} {outputMsg "  $aval / [$aval Type] [$aval P21ID] / $objType $objP21ID / [$invEnt Type] [$invEnt P21ID]" magenta}
                     if {[$aval P21ID] != $objP21ID && [$aval Type] != $objType} {
                       if {$DEBUGINV} {outputMsg "  OK A  [$aval Type] [$aval P21ID]" magenta}
-                      lappend invs($invRule) "[$aval Type] [$aval P21ID]"
+                      lappend invVals($invRule) "[$aval Type] [$aval P21ID]"
                       if {[string first "DELETETHIS" $msg] == -1} {append msg " [$aval Type] DELETETHIS$objType"}
                       set msgok 1
                     }
@@ -79,13 +79,13 @@ proc invFind {objEntity} {
                 } emsg1]} {
 
 # still needs some work to remove the catch                
-                  set stat "related [$invAttribute NodeType] B [lindex $inverse 0] [lindex $inverse 1]"
-                  foreach aval [$invAttribute Value] {
+                  set stat "related [$invAttr NodeType] B [lindex $inverse 0] [lindex $inverse 1]"
+                  foreach aval [$invAttr Value] {
                     catch {
-                      if {$DEBUGINV} {outputMsg "  [$aval Type] [$aval P21ID] / $objType $objP21ID / [$invEntity Type] [$invEntity P21ID]" magenta}
+                      if {$DEBUGINV} {outputMsg "  [$aval Type] [$aval P21ID] / $objType $objP21ID / [$invEnt Type] [$invEnt P21ID]" magenta}
                       if {[$aval P21ID] != $objP21ID && [$aval Type] != $objType} {
                         if {$DEBUGINV} {outputMsg "  OK B" magenta}
-                        lappend invs($invRule) "[$aval Type] [$aval P21ID]"
+                        lappend invVals($invRule) "[$aval Type] [$aval P21ID]"
                         if {[string first "DELETETHIS" $msg] == -1} {append msg " [$aval Type] DELETETHIS$objType"}
                         set msgok 1
                       }
@@ -96,39 +96,39 @@ proc invFind {objEntity} {
             }
 
 # look for other GetUsedIn relationships that are not relating/related Inverses 
-          } else {
-            set attrValue [$invAttribute Value]
-            if {$DEBUGINV} {outputMsg "  attrValue(L=[llength $attrValue])  ($attrValue)  NodeType=[$invAttribute NodeType]"}
+          } elseif {$attrName == [lindex $inverse 1]} {
+            set attrValue [$invAttr Value]
+            if {$DEBUGINV} {outputMsg "    attrValue(L=[llength $attrValue])  ($attrValue)  NodeType=[$invAttr NodeType]"}
             if {[string first "handle" $attrValue] != -1} {
 
 # nodetype = 20
-              if {[$invAttribute NodeType] == 20} {
+              if {[$invAttr NodeType] == 20} {
                 if {[catch {
-                  set stat "used in [$invAttribute NodeType] A [lindex $inverse 0] [lindex $inverse 1]"
+                  set stat "used in [$invAttr NodeType] A [lindex $inverse 0] [lindex $inverse 1]"
                   ::tcom::foreach val $attrValue {
-                    if {$DEBUGINV} {outputMsg "   $val [$val Type] [$val P21ID] / $objType $objP21ID / [$invEntity Type] [$invEntity P21ID]"}
+                    if {$DEBUGINV} {outputMsg "       $val [$val Type] [$val P21ID] / $objType $objP21ID / [$invEnt Type] [$invEnt P21ID]"}
                     if {[$val P21ID] == $objP21ID} {
-                      #lappend invs($invRule) "[$invEntity Type].[lindex $inverse 1] [$invEntity P21ID]"
-                      set str "[formatComplexEnt [$invEntity Type]].[lindex $inverse 1] [$invEntity P21ID]"
-                      if {![info exists invs($invRule)]} {
-                        lappend invs($invRule) $str
-                      } elseif {[lsearch $invs($invRule) $str] == -1} {
-                        lappend invs($invRule) $str
+                      #lappend invVals($invRule) "[$invEnt Type].[lindex $inverse 1] [$invEnt P21ID]"
+                      set str "[formatComplexEnt [$invEnt Type]].[lindex $inverse 1] [$invEnt P21ID]"
+                      if {![info exists invVals($invRule)]} {
+                        lappend invVals($invRule) $str
+                      } elseif {[lsearch $invVals($invRule) $str] == -1} {
+                        lappend invVals($invRule) $str
                       }
                       if {[string first "DELETETHIS" $msg] == -1} {append msg " [lindex $inverse 1] DELETETHIS$objType"}
                       set msgok 1
                     }
                   }
                 } emsg]} {
-                  set stat "used in [$invAttribute NodeType] B [lindex $inverse 0] [lindex $inverse 1]"
+                  set stat "used in [$invAttr NodeType] B [lindex $inverse 0] [lindex $inverse 1]"
                   if {[catch {
-                    if {$DEBUGINV} {outputMsg "   $val / $objType $objP21ID / [$invEntity Type] [$invEntity P21ID]"}
-                    #lappend invs($invRule) "[$invEntity Type].[lindex $inverse 1] [$invEntity P21ID]"
-                    set str "[$invEntity Type].[lindex $inverse 1] [$invEntity P21ID]"
-                    if {![info exists invs($invRule)]} {
-                      lappend invs($invRule) $str
-                    } elseif {[lsearch $invs($invRule) $str] == -1} {
-                      lappend invs($invRule) $str
+                    if {$DEBUGINV} {outputMsg "       $val / $objType $objP21ID / [$invEnt Type] [$invEnt P21ID]"}
+                    #lappend invVals($invRule) "[$invEnt Type].[lindex $inverse 1] [$invEnt P21ID]"
+                    set str "[$invEnt Type].[lindex $inverse 1] [$invEnt P21ID]"
+                    if {![info exists invVals($invRule)]} {
+                      lappend invVals($invRule) $str
+                    } elseif {[lsearch $invVals($invRule) $str] == -1} {
+                      lappend invVals($invRule) $str
                     }
                     if {[string first "DELETETHIS" $msg] == -1} {append msg " [lindex $inverse 1] DELETETHIS$objType"}
                     set msgok 1
@@ -140,17 +140,17 @@ proc invFind {objEntity} {
 # STEP Inverses non-related/relating get processed here, nodetype = 18, 19
               } else {
                 if {[catch {
-                  set stat "used in [$invAttribute NodeType] C [lindex $inverse 0] [lindex $inverse 1]"
+                  set stat "used in [$invAttr NodeType] C [lindex $inverse 0] [lindex $inverse 1]"
                   set subType [$attrValue Type]
-                  if {$DEBUGINV} {outputMsg "     $subType [$attrValue P21ID] / $objType $objP21ID / [$invEntity Type] [$invEntity P21ID]"}
+                  if {$DEBUGINV} {outputMsg "     $subType [$attrValue P21ID] / $objType $objP21ID / [$invEnt Type] [$invEnt P21ID]"}
   
                   if {[$attrValue P21ID] == $objP21ID} {
                     if {$DEBUGINV} {outputMsg "     $invType  $attrValue  $subType"}
-                    set str "[$invEntity Type].[lindex $inverse 1] [$invEntity P21ID]"
-                    if {![info exists invs($invRule)]} {
-                      lappend invs($invRule) $str
-                    } elseif {[lsearch $invs($invRule) $str] == -1} {
-                      lappend invs($invRule) $str
+                    set str "[$invEnt Type].[lindex $inverse 1] [$invEnt P21ID]"
+                    if {![info exists invVals($invRule)]} {
+                      lappend invVals($invRule) $str
+                    } elseif {[lsearch $invVals($invRule) $str] == -1} {
+                      lappend invVals($invRule) $str
                     }
                     if {[string first "DELETETHIS" $msg] == -1} {append msg " [lindex $inverse 1] DELETETHIS$objType"}
                     set msgok 1
@@ -158,12 +158,12 @@ proc invFind {objEntity} {
 
 # special case for a nodetype 18 or 19 that is more like 20 (a list)
                 } emsg2]} {
-                  set stat "used in [$invAttribute NodeType] D [lindex $inverse 0] [lindex $inverse 1]"
-                  ::tcom::foreach aval [$invAttribute Value] {
-                    #if {$DEBUGINV} {outputMsg "  $aval / [$aval Type] [$aval P21ID] / $objType $objP21ID / [$invEntity Type] [$invEntity P21ID]" magenta}
+                  set stat "used in [$invAttr NodeType] D [lindex $inverse 0] [lindex $inverse 1]"
+                  ::tcom::foreach aval [$invAttr Value] {
+                    #if {$DEBUGINV} {outputMsg "  $aval / [$aval Type] [$aval P21ID] / $objType $objP21ID / [$invEnt Type] [$invEnt P21ID]" magenta}
                     if {[$aval P21ID] != $objP21ID && [$aval Type] != $objType} {
                       #if {$DEBUGINV} {outputMsg "  OK A  [$aval Type] [$aval P21ID]" magenta}
-                      lappend invs($invRule) "[$aval Type] [$aval P21ID]"
+                      lappend invVals($invRule) "[$aval Type] [$aval P21ID]"
                       if {[string first "DELETETHIS" $msg] == -1} {append msg " [$aval Type] DELETETHIS$objType"}
                       set msgok 1
                     }
@@ -189,14 +189,14 @@ proc invFind {objEntity} {
           }
         }     
   
-        if {$msgok && [string first $msg $invmsg] == -1} {
-          append invmsg $msg
+        if {$msgok && [string first $msg $invMsg] == -1} {
+          append invMsg $msg
           errorMsg $msg blue
         }
       }
     }
   } emsg]} {
-    if {!$developer} {
+    if {!$developer || $stat == ""} {
       errorMsg "ERROR processing Inverse for '[$objEntity Type]': $emsg"
     } else {
       errorMsg "ERROR processing Inverse for '[$objEntity Type]': $emsg\n ($stat)"
@@ -207,14 +207,14 @@ proc invFind {objEntity} {
 # -------------------------------------------------------------------------------
 # report inverses 
 proc invReport {} {
-  global invs cellval cells thisEntType row col colinv
+  global invVals cellval cells thisEntType row col invCol
   #outputMsg invReport red
   
 # inverse values and heading
-  foreach item [array names invs] {
+  foreach item [array names invVals] {
     catch {foreach idx [array names cellval] {unset cellval($idx)}}
 
-    foreach val $invs($item) {
+    foreach val $invVals($item) {
       set val [split $val " "]
       set val0 [lindex $val 0]
       set val1 "[lindex $val 1] "
@@ -250,8 +250,8 @@ proc invReport {} {
     }
     
     set idx "$thisEntType $item"
-    if {[info exists colinv($idx)]} {
-      $cells($thisEntType) Item $row($thisEntType) $colinv($idx) [string trim $str]
+    if {[info exists invCol($idx)]} {
+      $cells($thisEntType) Item $row($thisEntType) $invCol($idx) [string trim $str]
     } else {
       while {[[$cells($thisEntType) Item 3 $col($thisEntType)] Value] != ""} {incr col($thisEntType)}
       $cells($thisEntType) Item $row($thisEntType) $col($thisEntType) [string trim $str]
@@ -266,7 +266,7 @@ proc invReport {} {
         $cells($thisEntType) Item 3 $col($thisEntType) "Used In"
         set idx "$thisEntType $item"
       }
-      set colinv($idx) $col($thisEntType)
+      set invCol($idx) $col($thisEntType)
     }
   }
 }
@@ -336,16 +336,17 @@ proc invFormat {rancol} {
 # as more inverse relationships are checked, it is important that only entities with inverses are checked
 # checking an entity without inverses is costly, particularly if there are a lot of them
 proc invSetCheck {entType} {
-  global opt entCategory
+  global opt entCategory userEntityList
   
   set checkInv 0
 
-# tolerance and AP209 entities
+# tolerance, AP209, and user-defined entities
   if {($opt(PR_STEP_TOLR)  && [lsearch $entCategory(PR_STEP_TOLR)  $entType] != -1) || \
-      ($opt(PR_STEP_AP209) && [lsearch $entCategory(PR_STEP_AP209) $entType] != -1)} {
+      ($opt(PR_STEP_AP209) && [lsearch $entCategory(PR_STEP_AP209) $entType] != -1) || \
+      ($opt(PR_USER) && [lsearch $userEntityList $entType] != -1)} {
     set checkInv 1
 
-# entities related to shape_aspect, PMI, product
+# other types of entities
   } elseif { \
       [string first "action"        $entType] != -1 || \
       [string first "angular"       $entType] != -1 || \
@@ -358,7 +359,9 @@ proc invSetCheck {entType} {
       [string first "dimension"     $entType] != -1 || \
       [string first "document"      $entType] != -1 || \
       [string first "item_"         $entType] != -1 || \
+      [string first "kinematic"     $entType] != -1 || \
       [string first "machining"     $entType] != -1 || \
+      [string first "process"       $entType] != -1 || \
       [string first "product"       $entType] != -1 || \
       [string first "resource"      $entType] != -1 || \
       [string first "shape"         $entType] != -1 || \
@@ -367,12 +370,13 @@ proc invSetCheck {entType} {
       [string first "draughting_callout"  $entType] != -1 || \
       [string first "mechanical_design"   $entType] != -1 || \
       [string first "next_assembly"       $entType] != -1 || \
-      [string first "property_definition" $entType] != -1} {
+      [string first "property_definition" $entType] != -1 || \
+      [string first "representation"      $entType] != -1} {
 
 # not these specific entities
-        #$entType != "draughting_model_item_association" &&
     if {$entType != "annotation_fill_area" && \
         $entType != "dimensional_characteristic_representation" && \
+        $entType != "draughting_model_item_association" && \
         $entType != "draughting_pre_defined_colour" && \
         $entType != "draughting_pre_defined_curve_font" && \
         $entType != "geometric_item_specific_usage" && \
@@ -388,8 +392,9 @@ proc invSetCheck {entType} {
 # -------------------------------------------------------------------------------
 # set inverse relationships
 proc initDataInverses {} {
-  global inverses tolNames stepAP opt
-
+  global tolNames inverses
+  
+# when adding used_in or inverse (related, relating) relationships also add entities to check in invSetCheck above  
   set inverses {}
   lappend inverses [list annotation_curve_occurrence item used_in]
   lappend inverses [list annotation_occurrence item used_in]
@@ -424,8 +429,6 @@ proc initDataInverses {} {
   lappend inverses [list geometric_tolerance_relationship relating_geometric_tolerance related_geometric_tolerance]
 
   lappend inverses [list id_attribute identified_item used_in]
-  lappend inverses [list kinematic_joint edge_end used_in]
-  lappend inverses [list kinematic_joint edge_start used_in]
   lappend inverses [list leader_directed_callout contents used_in]
 
   lappend inverses [list make_from_usage_option related_product_definition relating_product_definition]
@@ -433,13 +436,10 @@ proc initDataInverses {} {
   lappend inverses [list multi_level_reference_designator location used_in]
   lappend inverses [list multi_level_reference_designator related_product_definition relating_product_definition]
   lappend inverses [list multi_level_reference_designator relating_product_definition related_product_definition]
-  lappend inverses [list multi_level_reference_designator location used_in]
 
+  lappend inverses [list name_attribute named_item used_in]
   lappend inverses [list next_assembly_usage_occurrence related_product_definition relating_product_definition]
   lappend inverses [list next_assembly_usage_occurrence relating_product_definition related_product_definition]
-
-  lappend inverses [list pair_representation_relationship rep_1 used_in]
-  lappend inverses [list pair_representation_relationship rep_2 used_in]
 
   lappend inverses [list product frame_of_reference used_in]
   lappend inverses [list product_context frame_of_reference used_in]
@@ -452,18 +452,19 @@ proc initDataInverses {} {
 
   lappend inverses [list property_definition definition used_in]
   lappend inverses [list referenced_modified_datum referenced_datum used_in]
-  lappend inverses [list representation_relationship_with_transformation transformation_operator used_in]
-  lappend inverses [list representation_relationship_with_transformation_and_shape_representation_relationship transformation_operator used_in]
-  lappend inverses [list rigid_link_representation represented_link used_in]
-  lappend inverses [list roundness_definition projection_end used_in]
+  lappend inverses [list representation_relationship rep_1 rep_2]
+  lappend inverses [list representation_relationship rep_2 rep_1]
+  lappend inverses [list representation_relationship_with_transformation rep_1 rep_2]
+  lappend inverses [list representation_relationship_with_transformation rep_2 rep_1]
+  lappend inverses [list representation_relationship_with_transformation_and_shape_representation_relationship rep_1 rep_2]
+  lappend inverses [list representation_relationship_with_transformation_and_shape_representation_relationship rep_2 rep_1]
 
   lappend inverses [list shape_aspect of_shape used_in]
   lappend inverses [list shape_aspect_relationship related_shape_aspect relating_shape_aspect]
   lappend inverses [list shape_aspect_relationship relating_shape_aspect related_shape_aspect]
   lappend inverses [list shape_definition_representation definition used_in]
   lappend inverses [list shape_definition_representation used_representation used_in]
-  lappend inverses [list shape_representation_relationship rep1 used_in]
-  lappend inverses [list shape_representation_relationship rep2 used_in]
+  lappend inverses [list shape_representation context_of_items used_in]
 
   lappend inverses [list tessellated_annotation_occurrence item used_in]
 
@@ -480,31 +481,13 @@ proc initDataInverses {} {
   lappend inverses [list projected_zone_definition projection_end used_in]
   lappend inverses [list projected_zone_definition zone used_in]
   lappend inverses [list tolerance_zone defining_tolerance used_in]
-  
-  set modlist [list geometric_tolerance_with_datum_reference \
-                    geometric_tolerance_with_datum_reference_and_geometric_tolerance_with_modifiers \
-                    geometric_tolerance_with_datum_reference_and_modified_geometric_tolerance]
 
   foreach tol $tolNames {
     lappend inverses [list $tol toleranced_shape_aspect used_in]
     lappend inverses [list $tol datum_system used_in]
-  
-    foreach mod $modlist {
-      if {[string compare [string index $mod 0] [string index $tol 0]] == -1} {
-        lappend inverses [list $mod\_and_$tol toleranced_shape_aspect used_in]
-        lappend inverses [list $mod\_and_$tol datum_system used_in]
-        lappend inverses [list $mod\_and_$tol\_and_unequally_disposed_geometric_tolerance toleranced_shape_aspect used_in]
-        lappend inverses [list $mod\_and_$tol\_and_unequally_disposed_geometric_tolerance datum_system used_in]
-      } else {
-        lappend inverses [list $tol\_and_$mod toleranced_shape_aspect used_in]
-        lappend inverses [list $tol\_and_$mod datum_system used_in]
-        lappend inverses [list $tol\_and_$mod\_and_unequally_disposed_geometric_tolerance toleranced_shape_aspect used_in]
-        lappend inverses [list $tol\_and_$mod\_and_unequally_disposed_geometric_tolerance datum_system used_in]
-      }
-    }
   }
   
-# AP209 related
+# AP209
   lappend inverses [list curve_3d_element_representation node_list used_in]
   lappend inverses [list nodal_freedom_action_definition degrees_of_freedom used_in]
   lappend inverses [list nodal_freedom_action_definition node used_in]
@@ -515,10 +498,16 @@ proc initDataInverses {} {
   lappend inverses [list single_point_constraint_element freedoms_and_values used_in]
   lappend inverses [list single_point_constraint_element required_node used_in]
   lappend inverses [list surface_3d_element_representation node_list used_in]
+  lappend inverses [list surface_3d_element_location_point_volume_variable_values values_and_locations used_in]
   lappend inverses [list volume_3d_element_representation node_list used_in]
-  #lappend inverses [list surface_3d_element_location_point_volume_variable_values values_and_locations used_in]
-  #lappend inverses [list volume_3d_element_location_point_volume_variable_values values_and_locations used_in]
+  lappend inverses [list volume_3d_element_location_point_volume_variable_values values_and_locations used_in]
+
+# kinematics  
+  lappend inverses [list kinematic_joint edge_end used_in]
+  lappend inverses [list kinematic_joint edge_start used_in]
+  lappend inverses [list rigid_link_representation represented_link used_in]
   
+# AP214 (AP238, AP242)
   lappend inverses [list action_relationship related_action relating_action]
   lappend inverses [list action_relationship relating_action related_action]
   lappend inverses [list action_resource usage used_in]
@@ -530,6 +519,8 @@ proc initDataInverses {} {
   lappend inverses [list requirement_for_action_resource resources used_in]
   lappend inverses [list resource_property_representation property used_in]
   lappend inverses [list resource_property_representation representation used_in]
+
+  lappend inverses [list roundness_definition projection_end used_in]
 }
 
 # -------------------------------------------------------------------------------

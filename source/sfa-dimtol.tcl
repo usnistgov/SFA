@@ -1,8 +1,5 @@
 proc spmiDimtolStart {objDesign entType} {
-
-  global entAttrList ent pmiCol pmiHeading pmiStartCol dt
-  global cells col opt stepAP spmiRow
-  global elevel lastEnt
+  global cells col dt elevel ent entAttrList lastEnt opt pmiCol pmiHeading pmiStartCol spmiRow stepAP 
 
   if {$opt(DEBUG1)} {outputMsg "START spmiDimtolStart $entType" red}
 
@@ -95,13 +92,10 @@ proc spmiDimtolStart {objDesign entType} {
 # -------------------------------------------------------------------------------
 
 proc spmiDimtolReport {objEntity} {
-  global elevel ent entAttrList pmiCol dt prefix nrep maxrep pmiHeading pmiStartCol incrcol
-  global cells col opt spmiIDRow spmiID spmiRow spmiOK badAttributes
-  global pmiColumns syntaxErr
-  global draftModelCameras dtpmivalprop
-  global propDefIDS dimSizeNames lastEnt lastAttr dim dimtolEnt dimrep dimval dimrepID entlevel2
-  global dimModNames pmiUnicode pmiModifiers dimBasic dimReference
-  global spmiTypesPerFile recPracNames developer tolStandard localName spmiEnts nistName assocGeom
+  global assocGeom badAttributes cells col dim dimBasic dimModNames dimReference dimrep dimrepID
+  global dimSizeNames dimtolEnt dimval draftModelCameras dt dtpmivalprop elevel ent entAttrList entlevel2
+  global incrcol lastAttr lastEnt maxrep nistName nrep opt pmiCol pmiColumns pmiHeading pmiModifiers pmiStartCol
+  global pmiUnicode prefix recPracNames spmiEnts spmiID spmiIDRow spmiOK spmiRow spmiTypesPerFile syntaxErr tolStandard
 
   if {$opt(DEBUG1)} {outputMsg "spmiDimtolReport" red}
   #if {[info exists spmiOK]} {if {$spmiOK == 0} {return}}

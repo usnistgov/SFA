@@ -1,9 +1,6 @@
 proc spmiGeotolStart {objDesign entType} {
-
-  global entAttrList ent pmiCol pmiHeading pmiStartCol gt
-  global cells col opt stepAP spmiRow
-  global elevel lastEnt tolNames spmiEntity
-  global spmiTypesPerFile
+  global cells col elevel ent entAttrList gt lastEnt opt pmiCol pmiHeading pmiStartCol
+  global spmiEntity spmiRow spmiTypesPerFile stepAP tolNames
 
   if {$opt(DEBUG1)} {outputMsg "START spmiGeotolStart $entType" red}
 
@@ -109,14 +106,11 @@ proc spmiGeotolStart {objDesign entType} {
 # -------------------------------------------------------------------------------
 
 proc spmiGeotolReport {objEntity} {
-  global elevel ent entAttrList pmiCol gt pmiHeading pmiStartCol incrcol
-  global cells worksheet col opt spmiIDRow spmiID spmiRow spmiOK badAttributes
-  global syntaxErr entCount noDimtol noDatum
-  global lastEnt lastAttr stepAP
-  global datumFeature datumCompartment datumSystem objID tolNames tzfNames datsys gtEntity 
-  global ATR fcount dimrep tol_dimrep tol_dimprec dim
-  global pmiModifiers pmiUnicode tolval
-  global spmiTypesPerFile all_around all_over between recPracNames tzf1 ptz spmiEnts assocGeom pmiColumns
+  global all_around all_over assocGeom ATR badAttributes between cells col datsys datumCompartment datumFeature datumSystem
+  global dim dimrep elevel ent entAttrList entCount fcount gt gtEntity incrcol lastAttr lastEnt noDatum noDimtol objID opt
+  global pmiCol pmiColumns pmiHeading pmiModifiers pmiStartCol pmiUnicode ptz recPracNames
+  global spmiEnts spmiID spmiIDRow spmiOK spmiRow spmiTypesPerFile stepAP syntaxErr
+  global tol_dimprec tol_dimrep tolNames tolval tzf1 tzfNames worksheet
 
   if {$opt(DEBUG1)} {outputMsg "spmiGeotolReport" red}
   #if {[info exists spmiOK]} {if {$spmiOK == 0} {return}}
@@ -1516,10 +1510,9 @@ proc spmiGetDatumFeature {ent str1} {
 # -------------------------------------------------------------------------------
 # start semantic PMI coverage analysis worksheet
 proc spmiCoverageStart {{multi 1}} {
-  global worksheets1 worksheet1 cells1
-  global worksheets worksheet cells sheetLast
-  global multiFileDir spmiTypes sempmi_coverage opt
-  global pmiModifiers pmiModifiersRP pmiUnicode
+		global cells cells1 multiFileDir opt pmiModifiers pmiModifiersRP pmiUnicode
+		global sempmi_coverage sheetLast spmiTypes worksheet worksheet1 worksheets worksheets1 
+		
   #outputMsg "spmiCoverageStart $multi" red
 
   if {[catch {
@@ -1579,8 +1572,8 @@ proc spmiCoverageStart {{multi 1}} {
 # -------------------------------------------------------------------------------
 # write semantic PMI coverage analysis worksheet
 proc spmiCoverageWrite {{fn ""} {sum ""} {multi 1}} {
-  global worksheet worksheet1 sempmi_coverage col1 cells cells1 spmiTypesPerFile sempmi_totals spmiTypes entCount
-  global localName spmiCoverages coverageStyle nfile fileList nistName coverageLegend legendColor
+  global cells cells1 col1 coverageLegend coverageStyle entCount fileList legendColor nfile nistName 
+  global sempmi_coverage sempmi_totals spmiCoverages spmiTypes spmiTypesPerFile worksheet worksheet1
   #outputMsg "spmiCoverageWrite $multi" red
 
   if {[catch {
@@ -1789,8 +1782,9 @@ proc spmiCoverageWrite {{fn ""} {sum ""} {multi 1}} {
 # -------------------------------------------------------------------------------
 # format semantic PMI coverage analysis worksheet, also PMI totals
 proc spmiCoverageFormat {sum {multi 1}} {
-  global col1 sempmi_coverage lenfilelist sempmi_totals worksheet worksheet1 excel1 cells cells1 spmiTypes
-  global pmiModifiers pmiUnicode opt recPracNames localName coverageStyle coverageLegend
+  global cells cells1 col1 coverageLegend coverageStyle excel1 lenfilelist localName opt
+  global pmiModifiers pmiUnicode recPracNames sempmi_coverage sempmi_totals spmiTypes worksheet worksheet1 
+
   #outputMsg "spmiCoverageFormat $multi" red
 
 # delete worksheet if no semantic PMI
@@ -1913,7 +1907,7 @@ proc spmiCoverageFormat {sum {multi 1}} {
 # -------------------------------------------------------------------------------
 # add coverage legend
 proc spmiCoverageLegend {multi {row 3}} {
-  global cells cells1 worksheet worksheet1 sempmi_coverage legendColor
+  global cells cells1 legendColor sempmi_coverage worksheet worksheet1
   
   if {$multi == 0} {
     set cl $cells($sempmi_coverage)

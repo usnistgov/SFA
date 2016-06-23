@@ -173,7 +173,7 @@ proc indentSearchLine {line ndent} {
 #-------------------------------------------------------------------------------
 
 proc indentFile {ifile} {
-  global indentWriteFile indentReadFile indentEntity programfiles opt
+  global indentWriteFile indentReadFile indentEntity opt
   global indentMissing padcmd indentdat2 indentPass indentstat errmsg
   global writeDir
     

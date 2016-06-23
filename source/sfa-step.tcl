@@ -1,6 +1,6 @@
 #-------------------------------------------------------------------------------
 proc getVersion {{pt ""}} {
-  set app_version 1.70
+  set app_version 1.72
   return $app_version
 }
 
@@ -41,6 +41,7 @@ proc gpmiCheckEnt {ent} {
 # which STEP entities are processed depending on options
 proc setEntsToProcess {entType objDesign} {
   global opt gpmiEnts spmiEnts
+  
   set ok 0
   set gpmiEnts($entType) 0
   set spmiEnts($entType) 0
@@ -122,8 +123,8 @@ proc setEntsToProcess {entType objDesign} {
 # propDefIDRow, gpmiIDRow, spmiIDRow
 
 proc setIDRow {entType p21id} {
-  global propDefIDRow gpmiIDRow spmiIDRow row gpmiEnts spmiEnts
-
+  global gpmiEnts gpmiIDRow propDefIDRow row spmiEnts spmiIDRow
+  
   if {$entType == "property_definition"} {
     set propDefIDRow($p21id) $row($entType)
   } elseif {$gpmiEnts($entType)} {
@@ -136,7 +137,7 @@ proc setIDRow {entType p21id} {
 # -------------------------------------------------------------------------------
 # check validation properties and PMI presentation
 proc checkForPMIandValProps {objDesign entType} {
-  global opt cells fixent savedViewCol pmiColumns gpmiEnts spmiEnts
+  global cells fixent gpmiEnts opt pmiColumns savedViewCol spmiEnts
   
 # check for validation properties, call valProp
   if {$entType == "property_definition_representation"} {
@@ -219,8 +220,8 @@ proc getStepAP {fname} {
 
 # -------------------------------------------------------------------------------
 proc pmiFormatColumns {str} {
-  global thisEntType cells col row worksheet gpmiRow spmiRow pmiStartCol invGroup opt excel syntaxErr recPracNames
-
+		global cells col excel gpmiRow invGroup opt pmiStartCol recPracNames row spmiRow thisEntType worksheet
+		
   if {![info exists pmiStartCol($thisEntType)]} {
     return
   } else {  
@@ -331,8 +332,7 @@ proc pmiFormatColumns {str} {
 # -------------------------------------------------------------------------------
 # Semantic PMI summary worksheet
 proc spmiSummary {} {
-  global worksheets sheetLast spmiSumName spmiSumRow localName xlFileName entName
-  global worksheet cells excel thisEntType row
+  global cells entName excel localName row sheetLast spmiSumName spmiSumRow thisEntType worksheet worksheets xlFileName
   
   if {$spmiSumRow == 1} {
     set spmiSumName "PMI Representation Summary"
@@ -416,8 +416,8 @@ proc spmiSummary {} {
 # -------------------------------------------------------------------------------
 # add images for the CAx-IF and NIST PMI models
 proc pmiAddModelPictures {ent} {
-  global localName modelPictures modelURLs wdir mytemp worksheet cells nistName
-  
+  global cells localName modelPictures modelURLs mytemp nistName wdir worksheet
+
   set ftail [string tolower [file tail $localName]]
   
   if {[catch {

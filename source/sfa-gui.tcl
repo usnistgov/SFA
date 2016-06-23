@@ -142,7 +142,7 @@ proc guiButtons {} {
       set l3 [label $ftrans.l3 -relief flat -bd 0]
       $l3 config -image [image create photo -file [file join $wdir images nist.gif]]
       pack $l3 -side right -padx 10
-      bind $l3 <ButtonRelease-1> {displayURL http://www.nist.gov/el/}
+      bind $l3 <ButtonRelease-1> {displayURL http://www.nist.gov/}
       tooltip::tooltip $l3 "Click here"
     }
   }
@@ -157,7 +157,6 @@ proc guiButtons {} {
   set nprogfile 0
   set buttons(pgb1) [ttk::progressbar $fbar.pgb1 -mode determinate -variable nprogfile]
   pack forget $buttons(pgb1)
-  #pack $fbar.pgb1 -side top -padx 10 -pady {5 0} -expand true -fill x
   pack $fbar -side bottom -padx 10 -pady {0 10} -fill x
   
 # NIST icon bitmap
@@ -312,7 +311,7 @@ proc guiFileMenu {} {
 #-------------------------------------------------------------------------------
 # options tab, process and report
 proc guiProcessAndReports {} {
-  global fopt fopta nb opt cb buttons entCategory developer userentlist userEntityFile
+  global fopt fopta nb opt cb buttons entCategory developer
 
   set cb 0
   set wopt [ttk::panedwindow $nb.opt -orient horizontal]
@@ -325,9 +324,9 @@ proc guiProcessAndReports {} {
   guiUserDefinedEntities
   
   set fopta1 [frame $fopta.1 -bd 0]
-  foreach item {{" AP242" opt(PR_STEP_AP242)} \
-                {" AP203" opt(PR_STEP_AP203)} \
+  foreach item {{" AP203" opt(PR_STEP_AP203)} \
                 {" AP214" opt(PR_STEP_AP214)} \
+                {" AP242" opt(PR_STEP_AP242)} \
                 {" AP209" opt(PR_STEP_AP209)} \
                 {" AP210" opt(PR_STEP_AP210)}} {
     regsub -all {[\(\)]} [lindex $item 1] "" idx
@@ -422,10 +421,7 @@ proc guiProcessAndReports {} {
       -command {
         if {$allnone} {
           foreach item [array names opt] {
-            if {[string first "PR_STEP" $item] == 0} {
-                set opt($item) $allnone
-              
-            }
+            if {[string first "PR_STEP" $item] == 0} {set opt($item) $allnone}
           }
         } else {
           if {$opt(PMISEM) == 0 && $opt(PMIGRF) == 0 && $opt(VALPROP) == 0} {
@@ -436,6 +432,10 @@ proc guiProcessAndReports {} {
           set opt(PR_STEP_AP203) 1
           set opt(PR_STEP_AP214) 1
           set opt(PR_STEP_AP238) 1
+          set opt(PR_STEP_AP242) 1
+          set opt(PR_STEP_PRES)  1
+          set opt(PR_STEP_REP)  1
+          set opt(INVERSE) 1
         }
         set opt(PR_STEP_GEO)  0
         set opt(PR_STEP_CPNT) 0
@@ -462,8 +462,8 @@ proc guiProcessAndReports {} {
   regsub -all {[\(\)]} [lindex $item 1] "" idx
     set buttons($idx) [ttk::checkbutton $foptd4.$cb -text [lindex $item 0] \
       -variable [lindex $item 1] -command {
-      if {$opt(PMISEM)} {set opt(INVERSE) 1}
-      checkValues
+        if {$opt(PMISEM)} {set opt(INVERSE) 1}
+        checkValues
     }]
     pack $buttons($idx) -side left -anchor w -padx 5 -pady 0 -ipady 0
     incr cb
@@ -475,7 +475,8 @@ proc guiProcessAndReports {} {
     regsub -all {[\(\)]} [lindex $item 1] "" idx
     set buttons($idx) [ttk::checkbutton $foptd3.$cb -text [lindex $item 0] \
       -variable [lindex $item 1] -command {
-      checkValues
+        if {$opt(PMIGRF)} {set opt(INVERSE) 1}
+        checkValues
     }]
     pack $buttons($idx) -side left -anchor w -padx 5 -pady 0 -ipady 0
     incr cb
@@ -507,7 +508,8 @@ proc guiProcessAndReports {} {
     regsub -all {[\(\)]} [lindex $item 1] "" idx
     set buttons($idx) [ttk::checkbutton $foptd1.$cb -text [lindex $item 0] \
       -variable [lindex $item 1] -command {
-      checkValues
+        if {$opt(VALPROP)} {set opt(INVERSE) 1}
+        checkValues
     }]
     pack $buttons($idx) -side left -anchor w -padx 5 -pady 0 -ipady 0
     incr cb
@@ -526,7 +528,7 @@ proc guiProcessAndReports {} {
 #-------------------------------------------------------------------------------
 # user-defined list of entities
 proc guiUserDefinedEntities {} {
-  global fopta opt cb buttons fileDir userEntityFile userentlist
+  global fopta opt cb buttons fileDir userEntityFile userEntityList
   
   set fopta6 [frame $fopta.6 -bd 0]
   foreach item {{" User-Defined List: " opt(PR_USER)}} {
@@ -547,15 +549,15 @@ proc guiUserDefinedEntities {} {
       set userEntityFile [file nativename $uef]
       outputMsg "User-defined STEP list: [truncFileName $userEntityFile]" blue
       set fileent [open $userEntityFile r]
-      set userentlist {}
+      set userEntityList {}
       while {[gets $fileent line] != -1} {
         set line [split [string trim $line] " "]
-        foreach ent1 $line {lappend userentlist $ent1}
+        foreach ent1 $line {lappend userEntityList $ent1}
       }
       close $fileent
-      set llist [llength $userentlist]
+      set llist [llength $userEntityList]
       if {$llist > 0} {
-        outputMsg " ($llist) $userentlist"
+        outputMsg " ($llist) $userEntityList"
       } else {
         outputMsg "File does not contain any STEP entity names" red
         set opt(PR_USER) 0
@@ -581,7 +583,7 @@ proc guiInverse {} {
   global buttons cb fopt inverses opt developer
   
   set foptc [ttk::labelframe $fopt.3 -text " Inverse Relationships "]
-  set txt " Display some Inverse Relationships and Backwards References (Used In) for\n PMI, Shape Aspect, Draughting Model, Annotations, Analysis"
+  set txt " Display some Inverse Relationships and Backwards References (Used In) for\n PMI, Shape Aspect, Annotations, Representation, Analysis"
 
   regsub -all {[\(\)]} opt(INVERSE) "" idx
   set buttons($idx) [ttk::checkbutton $foptc.$cb -text $txt \
@@ -595,27 +597,31 @@ proc guiInverse {} {
   set ttmsg "Inverse Relationships\n"
   set lent ""
   set litem ""
-  foreach item [lsort $inverses] {
-    set ok 1
-    if {[string first "geometric_tolerance_with" $item] != -1} {set ok 0}
-    if {[string first "related" $item] < [string first "relating" $item]} {set ok 0}
-    if {$ok} {
-      set ilist [split $item " "]
-      set ent [lindex $ilist 0]
-      if {$ent != $lent} {
-        if {$litem != ""} {append ttmsg \n$litem}
-        regsub " " $item "  (" item
-        append item ")"
-        set litem $item
-        set lent [lindex $ent 0]
-      } else {
-        append litem "  ([lindex $ilist 1] [lindex $ilist 2])"
+  if {[info exists inverses]} {
+    foreach item [lsort $inverses] {
+      set ok 1
+      if {[string first "geometric_tolerance_with" $item] != -1} {set ok 0}
+      if {[string first "_and_" $item] != -1} {set ok 0}
+      if {[string first "related" $item] < [string first "relating" $item]} {set ok 0}
+      if {[string first "rep_2" $item] < [string first "rep_1" $item]} {set ok 0}
+      if {$ok} {
+        set ilist [split $item " "]
+        set ent [lindex $ilist 0]
+        if {$ent != $lent} {
+          if {$litem != ""} {append ttmsg \n$litem}
+          regsub " " $item "  (" item
+          append item ")"
+          set litem $item
+          set lent [lindex $ent 0]
+        } else {
+          append litem "  ([lindex $ilist 1] [lindex $ilist 2])"
+        }
       }
     }
+    append ttmsg \n$litem
+    append ttmsg "\n\nInverse Relationships are displayed on the entity worksheets.  The Inverse values are\ndisplayed in additional columns of the worksheets that are highlighted in light blue and purple."
+    catch {tooltip::tooltip $foptc $ttmsg}
   }
-  append ttmsg \n$litem
-  append ttmsg "\n\nInverse Relationships are displayed on the entity worksheets.  The Inverse values are\ndisplayed in additional columns of the worksheets that are highlighted in light blue."
-  catch {tooltip::tooltip $foptc $ttmsg}
 }
 
 #-------------------------------------------------------------------------------
@@ -869,7 +875,7 @@ proc guiSpreadsheet {} {
 #-------------------------------------------------------------------------------
 # help menu
 proc guiHelpMenu {} {
-  global Help opt nistVersion mytemp
+  global Help opt nistVersion mytemp programfiles excelYear ifcsvrdir
 
   $Help add command -label "User's Guide (pdf)" -command {displayGuide}
   $Help add command -label "What's New" -command {whatsNew}
@@ -1215,11 +1221,12 @@ always displayed exactly as they appear in the STEP file."
   $Help add command -label "Conformance Checking" -command {
 outputMsg "\nConformance Checking -------------------------------------------------------" blue
 outputMsg "STEP AP203 and AP214 files can be checked for conformance with the free ST-Developer Personal
-Edition.  If installed, then it will show up in the 'Display STEP File in' pull-down menu in the
-Options tab. A spreadsheet does not have be generated to run it.  If the option to 'Write results
-to a file' is selected, then the output file will be named mystepfile_stdev.log  To download
-ST-Developer Personal Edition, go to: http://www.steptools.com/products/stdev/personal.html  This
-software also includes some useful STEP utility programs.
+Edition.  If installed, it will show up in the 'Display STEP File in' pull-down menu in the
+Options tab.  A spreadsheet does not have be generated to run it.  If the option to 'Write results
+to a file' is selected, then the output file will be named mystepfile_stdev.log
+
+To download ST-Developer Personal Edition, go to: http://www.steptools.com/products/stdev/personal.html
+This software also includes some useful STEP utility programs.
 
 To check for some missing entity references, in the Options tab under Display STEP File, use
 Indent STEP File (for debugging)."
@@ -1230,10 +1237,25 @@ Indent STEP File (for debugging)."
   
   $Help add command -label "Other STEP APs" -command {
 outputMsg "\nOther STEP APs -------------------------------------------------------------" blue
-outputMsg "Processing of STEP files from other STEP APs can be enabled by installing the free ST-Developer
-Personal Edition.  To download ST-Developer Personal Edition, go to:
-http://www.steptools.com/products/stdev/personal.html  This software also includes some useful
-STEP utility programs."
+outputMsg "The following STEP APs are supported in the STEP File Analyzer:\n"
+
+set other 0
+catch {file delete -force [file join $ifcsvrdir ap214e3_2010.rose]}
+foreach schema [lsort [glob -nocomplain -directory $ifcsvrdir *.rose]] {
+  if {[string first "ifc" $schema] == -1 && [string first "header_section" $schema] == -1 && \
+      [string first "keystone" $schema] == -1} {
+    outputMsg "  [file rootname [file tail $schema]]"
+    if {[string first "ship" $schema] != -1} {set other 1}
+  }
+}
+
+if {!$other} {
+  outputMsg "\nProcessing of STEP files from some other STEP APs can be enabled by installing the free
+ST-Developer Personal Edition.  To download it, go to: http://www.steptools.com/products/stdev/personal.html
+This software also includes some useful STEP utility programs."
+} elseif {"$nistVersion"} {
+  outputMsg "\nTo enable other STEP APs, contact the developer (Help > About)"
+}
   
     .tnb select .tnb.status
     update idletasks
@@ -1336,6 +1358,7 @@ can be used to kill those processes."
       outputMsg os-$tcl_platform(os)-$tcl_platform(osVersion)
       outputMsg [::twapi::get_os_description]
       outputMsg [::twapi::get_os_version]
+      outputMsg [package versions tcom]
       outputMsg "Debug Messages above" red
     }
   
@@ -1370,6 +1393,10 @@ proc guiWebsitesMenu {} {
   $Websites add command -label "AP214e3 Schema"     -command {displayURL http://www.steptools.com/support/stdev_docs/express/ap214/html/index.html}
   
   $Websites add separator
+  $Websites add command -label "STEPcode"               -command {displayURL http://stepcode.org/}
+  $Websites add command -label "STEP Module Repository" -command {displayURL http://stepmod.sourceforge.net/}
+  
+  $Websites add separator
   $Websites add command -label "PDES, Inc."   -command {displayURL https://pdesinc.org/}
   $Websites add command -label "ProSTEP iViP" -command {displayURL http://www.prostep.org/en/projects.html}
   $Websites add command -label "LOTAR"        -command {displayURL http://www.lotar-international.org/}
@@ -1377,11 +1404,11 @@ proc guiWebsitesMenu {} {
   $Websites add separator
   $Websites add cascade -label "Research" -menu $Websites.3
   set Websites3 [menu $Websites.3 -tearoff 1]
+  $Websites3 add command -label "Investigating the Impact of Standards-Based Interoperability for Design to Manufacturing and Quality in the Supply Chain"  -command {displayURL http://dx.doi.org/10.6028/NIST.GCR.15-1009}
+  $Websites3 add command -label "Measuring the PMI Modeling Capability in CAD Systems"  -command {displayURL http://dx.doi.org/10.6028/NIST.GCR.15-998}
   $Websites3 add command -label "An ISO STEP Tolerancing Standard as an Enabler of Smart Manufacturing Systems"  -command {displayURL http://www.nist.gov/manuscript-publication-search.cfm?pub_id=915430}
   $Websites3 add command -label "Standardized STEP Composite Structure Design and Manufacturing Information"     -command {displayURL http://www.nist.gov/manuscript-publication-search.cfm?pub_id=913466}
   $Websites3 add command -label "A Strategy for Testing Product Conformance to GD&T Standards"                   -command {displayURL http://www.nist.gov/manuscript-publication-search.cfm?pub_id=911123}
-  $Websites3 add command -label "The Role of Science in the Evolution of Dimensioning and Tolerancing Standards" -command {displayURL http://www.nist.gov/manuscript-publication-search.cfm?pub_id=910523}
-  $Websites3 add command -label "Model Based Enterprise for Manufacturing"                                       -command {displayURL http://www.nist.gov/manuscript-publication-search.cfm?pub_id=908343}
   $Websites3 add command -label "MBE Standardization and Validation"                                             -command {displayURL http://www.nist.gov/manuscript-publication-search.cfm?pub_id=908106}
 }
 
