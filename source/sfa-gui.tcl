@@ -115,7 +115,7 @@ proc guiStartWindow {} {
 # buttons and progress bar
 
 proc guiButtons {} {
-  global buttons wdir nline nprogfile ftrans mytemp opt nistVersion
+  global buttons wdir nprogEnts nprogFile ftrans mytemp opt nistVersion
   
   set ftrans [frame .ftrans1 -bd 2 -background "#F0F0F0"]
   set butstr "Spreadsheet"
@@ -142,20 +142,21 @@ proc guiButtons {} {
       set l3 [label $ftrans.l3 -relief flat -bd 0]
       $l3 config -image [image create photo -file [file join $wdir images nist.gif]]
       pack $l3 -side right -padx 10
-      bind $l3 <ButtonRelease-1> {displayURL http://www.nist.gov/}
+      bind $l3 <ButtonRelease-1> {displayURL https://www.nist.gov}
       tooltip::tooltip $l3 "Click here"
     }
   }
 
   pack $ftrans -side top -padx 10 -pady 10 -fill x
 
+# progress bars
   set fbar [frame .fbar -bd 2 -background "#F0F0F0"]
-  set nline 0
-  set buttons(pgb) [ttk::progressbar $fbar.pgb -mode determinate -variable nline]
+  set nprogEnts 0
+  set buttons(pgb) [ttk::progressbar $fbar.pgb -mode determinate -variable nprogEnts]
   pack $fbar.pgb -side top -padx 10 -fill x
 
-  set nprogfile 0
-  set buttons(pgb1) [ttk::progressbar $fbar.pgb1 -mode determinate -variable nprogfile]
+  set nprogFile 0
+  set buttons(pgb1) [ttk::progressbar $fbar.pgb1 -mode determinate -variable nprogFile]
   pack forget $buttons(pgb1)
   pack $fbar -side bottom -padx 10 -pady {0 10} -fill x
   
@@ -314,7 +315,7 @@ proc guiProcessAndReports {} {
   global fopt fopta nb opt cb buttons entCategory developer
 
   set cb 0
-  set wopt [ttk::panedwindow $nb.opt -orient horizontal]
+  set wopt [ttk::panedwindow $nb.options -orient horizontal]
   $nb add $wopt -text " Options " -padding 2
   set fopt [frame $wopt.fopt -bd 2 -relief sunken]
   
@@ -323,61 +324,12 @@ proc guiProcessAndReports {} {
   # option to process user-defined entities
   guiUserDefinedEntities
   
-  set fopta1 [frame $fopta.1 -bd 0]
-  foreach item {{" AP203" opt(PR_STEP_AP203)} \
-                {" AP214" opt(PR_STEP_AP214)} \
-                {" AP242" opt(PR_STEP_AP242)} \
-                {" AP209" opt(PR_STEP_AP209)} \
-                {" AP210" opt(PR_STEP_AP210)}} {
-    regsub -all {[\(\)]} [lindex $item 1] "" idx
-    set buttons($idx) [ttk::checkbutton $fopta1.$cb -text [lindex $item 0] \
-      -variable [lindex $item 1] -command {checkValues}]
-    pack $buttons($idx) -side top -anchor w -padx 5 -pady 0 -ipady 0
-    incr cb
-    set tt [string range $idx 3 end]
-    if {[info exists entCategory($tt)]} {
-      if {$tt == "PR_STEP_AP203" || $tt == "PR_STEP_AP214"} {
-        set ttmsg "[lindex $item 0] entities ([llength $entCategory($tt)])"
-        append ttmsg "  Some entities are also found in AP242"
-      } else {
-        set ttmsg "These entities are unique to[lindex $item 0] ([llength $entCategory($tt)])"
-      }
-      set ttmsg1 $ttmsg
-      append ttmsg "\n\n"
-      set ttmsg [processToolTip $ttmsg $tt 210]
-      append ttmsg "\n\n$ttmsg1"
-      catch {tooltip::tooltip $buttons($idx) $ttmsg}
-    }
-  }
-  pack $fopta1 -side left -anchor w -pady 0 -padx 0 -fill y
-  
-  set fopta2 [frame $fopta.2 -bd 0]
-  foreach item {{" AP242 Geometry"     opt(PR_STEP_AP242_GEOM)} \
-                {" AP242 Kinematics"   opt(PR_STEP_AP242_KINE)} \
-                {" AP242 Data Quality" opt(PR_STEP_AP242_QUAL)} \
-                {" AP242 Constraint"   opt(PR_STEP_AP242_CONS)} \
-                {" AP242 Math"         opt(PR_STEP_AP242_MATH)}} {
-    regsub -all {[\(\)]} [lindex $item 1] "" idx
-    set buttons($idx) [ttk::checkbutton $fopta2.$cb -text [lindex $item 0] \
-      -variable [lindex $item 1] -command {checkValues}]
-    pack $buttons($idx) -side top -anchor w -padx 5 -pady 0 -ipady 0
-    incr cb
-    set tt [string range $idx 3 end]
-    if {[info exists entCategory($tt)]} {
-      set ttmsg "[lindex $item 0] ([llength $entCategory($tt)])  These entities are unique to AP242"
-      append ttmsg "\n\n"
-      set ttmsg [processToolTip $ttmsg $tt]
-      catch {tooltip::tooltip $buttons($idx) $ttmsg}
-    }
-  }
-  pack $fopta2 -side left -anchor w -pady 0 -padx 0 -fill y
-  
   set fopta3 [frame $fopta.3 -bd 0]
-  foreach item {{" Common"         opt(PR_STEP_OTHER)} \
-                {" Shape Aspect"   opt(PR_STEP_ASPECT)} \
-                {" GD&T"           opt(PR_STEP_TOLR)} \
-                {" Presentation"   opt(PR_STEP_PRES)} \
-                {" Representation" opt(PR_STEP_REP)}} {
+  foreach item {{" Common"         opt(PR_STEP_COMM)} \
+                {" Shape Aspect"   opt(PR_STEP_SHAP)} \
+                {" Tolerance"      opt(PR_STEP_TOLR)} \
+                {" Representation" opt(PR_STEP_REPR)} \
+                {" Presentation"   opt(PR_STEP_PRES)}} {
     regsub -all {[\(\)]} [lindex $item 1] "" idx
     set buttons($idx) [ttk::checkbutton $fopta3.$cb -text [lindex $item 0] \
       -variable [lindex $item 1] -command {
@@ -387,17 +339,23 @@ proc guiProcessAndReports {} {
     incr cb
     set tt [string range $idx 3 end]
     if {[info exists entCategory($tt)]} {
-      set ttmsg "[lindex $item 0] entities ([llength $entCategory($tt)])\n\n"
-      set ttmsg [processToolTip $ttmsg $tt 120]
+      set ttmsg "[string trim [lindex $item 0]] entities ([llength $entCategory($tt)])  These entities are found in most APs.\nSee Help > Supported STEP APs and Websites > AP... Schema\n\n"
+      if {$tt != "PR_STEP_COMM"} {
+        set ttmsg [processToolTip $ttmsg $tt 120]
+      } else {
+        append ttmsg "All AP-specific entities from APs other than AP203, AP214, and AP242 are always processed."
+      }
       catch {tooltip::tooltip $buttons($idx) $ttmsg}
     }
   }
   pack $fopta3 -side left -anchor w -pady 0 -padx 0 -fill y
   
   set fopta4 [frame $fopta.4 -bd 0]
-  foreach item {{" Geometry"        opt(PR_STEP_GEO)} \
-                {" Cartesian Point" opt(PR_STEP_CPNT)} \
-                {" Measure"         opt(PR_STEP_QUAN)}} {
+  foreach item {{" Measure"         opt(PR_STEP_QUAN)} \
+                {" Composites"      opt(PR_STEP_COMP)} \
+                {" Kinematics"      opt(PR_STEP_KINE)} \
+                {" Geometry"        opt(PR_STEP_GEOM)} \
+                {" Cartesian Point" opt(PR_STEP_CPNT)}} {
     regsub -all {[\(\)]} [lindex $item 1] "" idx
     set buttons($idx) [ttk::checkbutton $fopta4.$cb -text [lindex $item 0] \
       -variable [lindex $item 1] -command {checkValues}]
@@ -405,11 +363,36 @@ proc guiProcessAndReports {} {
     incr cb
     set tt [string range $idx 3 end]
     if {[info exists entCategory($tt)]} {
-      set ttmsg "[lindex $item 0] entities ([llength $entCategory($tt)])\n\n"
-      if {$tt == "PR_STEP_GEO" || $tt == "PR_STEP_CPNT"} {
-        append ttmsg "For large STEP files, this option can slow down the processing of the file and increase the size of the spreadsheet.\nUse Maximum Rows options to possibly speed up the processing of these entities.\n\n"
+      set ttmsg "[string trim [lindex $item 0]] entities ([llength $entCategory($tt)])"
+      if {$tt == "PR_STEP_KINE" || $tt == "PR_STEP_COMP"} {
+        append ttmsg "  These entities are found in some APs.\nSee Help > Supported STEP APs and Websites > AP... Schema\n\n"
+      } elseif {$tt == "PR_STEP_QUAN"} {
+        append ttmsg "  These entities are found in most APs.\nSee Help > Supported STEP APs and Websites > AP... Schema\n\n"
+      } elseif {$tt == "PR_STEP_GEOM"} {
+        append ttmsg "  These entities are found in all APs.\nSee Help > Supported STEP APs and Websites > AP... Schema\n\nThere are new entities in the AP242 schema for tessellated geometry and CSG.\n\nFor large STEP files, this option can slow down the processing of the file and increase the size of the spreadsheet.\nUse Maximum Rows options to speed up the processing of these entities.\n\n"
+      } elseif {$tt == "PR_STEP_CPNT"} {
+        append ttmsg "\n\nFor large STEP files, this option can slow down the processing of the file and increase the size of the spreadsheet.\nUse Maximum Rows options to speed up the processing of these entities.\n\n"
       }
       set ttmsg [processToolTip $ttmsg $tt]
+      catch {tooltip::tooltip $buttons($idx) $ttmsg}
+    }
+  }
+  pack $fopta4 -side left -anchor w -pady 0 -padx 0 -fill y
+  
+  set fopta1 [frame $fopta.1 -bd 0]
+  foreach item {{" AP242" opt(PR_STEP_AP242)}} {
+    regsub -all {[\(\)]} [lindex $item 1] "" idx
+    set buttons($idx) [ttk::checkbutton $fopta1.$cb -text [lindex $item 0] \
+      -variable [lindex $item 1] -command {checkValues}]
+    pack $buttons($idx) -side top -anchor w -padx 5 -pady 0 -ipady 0
+    incr cb
+    set tt [string range $idx 3 end]
+    if {[info exists entCategory($tt)]} {
+      set ttmsg "[string trim [lindex $item 0]] entities ([llength $entCategory($tt)])"
+      if {$tt == "PR_STEP_AP242"} {
+        append ttmsg "\n\nThese entities are new in AP242 and not found in AP203 or AP214.\nOther new AP242 entities are also found in the Tolerance, Shape Aspect,\nComposites, and Kinematics categories."
+        append ttmsg "\n\nSee Websites > STEP AP242 Project and AP242 Schema"
+      }
       catch {tooltip::tooltip $buttons($idx) $ttmsg}
     }
   }
@@ -417,27 +400,21 @@ proc guiProcessAndReports {} {
   set anbut {{"All" 1} {"For Reports" 0}}
   foreach item $anbut {
     set bn "anbut[lindex $item 1]"            
-    set buttons($bn) [ttk::radiobutton $fopta4.$cb -variable allnone -text [lindex $item 0] -value [lindex $item 1] \
+    set buttons($bn) [ttk::radiobutton $fopta1.$cb -variable allNone -text [lindex $item 0] -value [lindex $item 1] \
       -command {
-        if {$allnone} {
+        if {$allNone} {
           foreach item [array names opt] {
-            if {[string first "PR_STEP" $item] == 0} {set opt($item) $allnone}
+            if {[string first "PR_STEP" $item] == 0} {set opt($item) $allNone}
           }
         } else {
-          if {$opt(PMISEM) == 0 && $opt(PMIGRF) == 0 && $opt(VALPROP) == 0} {
+          if {$opt(PMISEM) == 0 || $opt(PMIGRF) == 0 || $opt(VALPROP) == 0} {
             set opt(PMISEM) 1
             set opt(PMIGRF) 1
             set opt(VALPROP) 1
           }
-          set opt(PR_STEP_AP203) 1
-          set opt(PR_STEP_AP214) 1
-          set opt(PR_STEP_AP238) 1
-          set opt(PR_STEP_AP242) 1
-          set opt(PR_STEP_PRES)  1
-          set opt(PR_STEP_REP)  1
           set opt(INVERSE) 1
         }
-        set opt(PR_STEP_GEO)  0
+        set opt(PR_STEP_GEOM)  0
         set opt(PR_STEP_CPNT) 0
         checkValues
       }]
@@ -448,7 +425,8 @@ proc guiProcessAndReports {} {
     tooltip::tooltip $buttons(anbut0) "Selects all of the Reports below and the required entities for the reports"
     tooltip::tooltip $buttons(anbut1) "Selects all Entity types except Geometry and Cartesian Point"
   }
-  pack $fopta4 -side left -anchor w -pady 0 -padx 0 -fill y
+
+  pack $fopta1 -side left -anchor w -pady 0 -padx 0 -fill y
   
   pack $fopta -side top -anchor w -pady {5 2} -padx 10 -fill both
   
@@ -493,13 +471,13 @@ proc guiProcessAndReports {} {
     pack $buttons($idx) -side left -anchor w -padx 5 -pady 0 -ipady 0
     incr cb
   }
-  set buttons(linecolor) [label $foptd5.l3 -text "Line Color:"]
-  pack $foptd5.l3 -side left -anchor n -padx 5 -pady 0 -ipady 0
-  set gpmiColorVal {{" From file" 0} {" Black" 1} {" Random" 2}}
+  set buttons(linecolor) [label $foptd5.l3 -text "Color:"]
+  pack $foptd5.l3 -side left -anchor n -padx 0 -pady 0 -ipady 0
+  set gpmiColorVal {{"Random" 2} {"From file" 0} {"Black" 1}}
   foreach item $gpmiColorVal {
     set bn "gpmiColor[lindex $item 1]"            
     set buttons($bn) [ttk::radiobutton $foptd5.$cb -variable opt(gpmiColor) -text [lindex $item 0] -value [lindex $item 1]]
-    pack $buttons($bn) -side left -anchor n -padx 1 -pady 0 -ipady 0
+    pack $buttons($bn) -side left -anchor n -padx 2 -pady 0 -ipady 0
     incr cb
   }
   pack $foptd5 -side top -anchor w -pady 0 -padx 22 -fill y
@@ -518,10 +496,10 @@ proc guiProcessAndReports {} {
   
   pack $foptd -side top -anchor w -pady {5 2} -padx 10 -fill both
   catch {
-    tooltip::tooltip $buttons(optPMISEM) "PMI Representation includes all information necessary to represent GD&T without any graphical presentation elements.\nPMI Representation is associated with CAD model geometry and is computer-interpretable to facilitate automated\nconsumption by downstream applications for manufacturing, measurement, inspection, and other processes.\n\nPMI Representation information is defined in a CAx-IF Recommended Practices\nand is reported for Dimensional Tolerances, Geometric Tolerances, and Datum Features.\nThe results are reported on various entities as indicated by PMI Representation on the Summary worksheet.\n\nSelecting this report automatically selects the required entities above for the report.\n\nSee Help > PMI Representation"
-    tooltip::tooltip $buttons(optPMIGRF) "PMI Presentation (also known as graphical PMI) consists of geometric elements such as\nlines and arcs preserving the exact appearance (color, shape, positioning) of the GD&T\nannotations.  PMI Presentation is not intended to be computer-interpretable and does not\ncarry any representation information, although it can be linked to its corresponding\nPMI Representation.\n\nPMI Presentation annotations are defined in CAx-IF Recommended Practices.\nThe PMI Presentation information is reported in columns highlighted in yellow and green\non the Annotation_*_occurrence worksheets.\n\nAssociated presentation style, saved views, and PMI validation properties are also reported.\nA PMI coverage analysis worksheet is also generated.\nAn X3DOM file (WebGL) of the PMI Presentation can also be generated.\n\nSelecting this report automatically selects the required entities above for the report.\n\nSee Help > PMI Presentation"
-    tooltip::tooltip $buttons(optGENX3DOM) "PMI Presentation annotations can be visualized with an\nX3DOM (WebGL) file that can be displayed in most web browsers.\n\nTessellated annotations are not supported.\nThe color of the line segments can be modified.\n\nSee Help > PMI Presentation"
-    tooltip::tooltip $buttons(optVALPROP) "Validation properties for geometry, assemblies, PMI, annotations,\nattributes, and tessellations are defined in CAx-IF Recommended Practices.\nThe property values are reported in columns highlighted in yellow and green\non the Property_definition worksheet.  The worksheet can also be sorted and filtered.\n\nSelecting this report automatically selects the required entities above for the report.\n\nSee Help > Validation Properties"
+    tooltip::tooltip $buttons(optPMISEM) "PMI Representation includes all information necessary to represent GD&T without any\ngraphical presentation elements.  PMI Representation is associated with CAD model\ngeometry and is computer-interpretable to facilitate automated consumption by\ndownstream applications for manufacturing, measurement, inspection, and other processes.\n\nPMI Representation information is defined in a CAx-IF Recommended Practices\nand is reported for Dimensional Tolerances, Geometric Tolerances, and Datum Features.\nThe results are reported on various entities as indicated by PMI Representation on the\nSummary worksheet.\n\nPMI Representation is found mainly in AP242 files.\n\nSee Help > PMI Representation"
+    tooltip::tooltip $buttons(optPMIGRF) "PMI Presentation (also known as graphical PMI) consists of geometric elements such as\nlines and arcs preserving the exact appearance (color, shape, positioning) of the GD&T\nannotations.  PMI Presentation is not intended to be computer-interpretable and does not\ncarry any representation information, although it can be linked to its corresponding\nPMI Representation.\n\nPMI Presentation annotations are defined in CAx-IF Recommended Practices.\nThe PMI Presentation information is reported in columns highlighted in yellow and green\non the Annotation_*_occurrence worksheets.\n\nAssociated presentation style, saved views, and PMI validation properties are also reported.\nA PMI coverage analysis worksheet is also generated.\nAn X3DOM file (WebGL) of the PMI Presentation can also be generated.\n\nSee Help > PMI Presentation"
+    tooltip::tooltip $buttons(optGENX3DOM) "PMI Presentation annotations can be visualized with an\nX3DOM (WebGL) file that can be opened in most web browsers.\nThe color of the annotations can be modified.\nTessellated annotations are not supported.\n\nSee Help > PMI Presentation"
+    tooltip::tooltip $buttons(optVALPROP) "Validation properties for geometry, assemblies, PMI, annotations,\nattributes, and tessellations are defined in CAx-IF Recommended Practices.\nThe property values are reported in columns highlighted in yellow and green\non the Property_definition worksheet.\n\nOther properties and User-Defined Attributes are also reported.\n\nSee Help > Validation Properties"
   }
 }
 
@@ -571,7 +549,7 @@ proc guiUserDefinedEntities {} {
   incr cb
   catch {
     foreach item {optPR_USER userentity userentityopen} {
-      tooltip::tooltip $buttons($item) "The User-Defined List is defined in a text file with one STEP entity name per line.\nThis allows for more control to process only the required entity types.\nIt is also useful when processing large files that might crash the software."
+      tooltip::tooltip $buttons($item) "A User-Defined List is a text file with one STEP entity name per line.\nThis allows for more control to process only the required entity types.\nIt is also useful when processing large files that might crash the software."
     }
   }
   pack $fopta6 -side bottom -anchor w -pady 5 -padx 0 -fill y
@@ -580,10 +558,10 @@ proc guiUserDefinedEntities {} {
 #-------------------------------------------------------------------------------
 # inverse relationships
 proc guiInverse {} {
-  global buttons cb fopt inverses opt developer
+  global buttons cb fopt inverses opt developer entCategory
   
   set foptc [ttk::labelframe $fopt.3 -text " Inverse Relationships "]
-  set txt " Display some Inverse Relationships and Backwards References (Used In) for\n PMI, Shape Aspect, Annotations, Representation, Analysis"
+  set txt " Show Inverse Relationships and Backwards References (Used In) for\n PMI, Shape Aspect, Annotations, Representation, Analysis"
 
   regsub -all {[\(\)]} opt(INVERSE) "" idx
   set buttons($idx) [ttk::checkbutton $foptc.$cb -text $txt \
@@ -600,6 +578,8 @@ proc guiInverse {} {
   if {[info exists inverses]} {
     foreach item [lsort $inverses] {
       set ok 1
+      set ilist [split $item " "]
+      set ent [lindex $ilist 0]
       if {[string first "geometric_tolerance_with" $item] != -1} {set ok 0}
       if {[string first "_and_" $item] != -1} {set ok 0}
       if {[string first "related" $item] < [string first "relating" $item]} {set ok 0}
@@ -619,18 +599,18 @@ proc guiInverse {} {
       }
     }
     append ttmsg \n$litem
-    append ttmsg "\n\nInverse Relationships are displayed on the entity worksheets.  The Inverse values are\ndisplayed in additional columns of the worksheets that are highlighted in light blue and purple."
+    append ttmsg "\n\nInverse Relationships are shown on the entity worksheets.  The Inverse values are\nshown in additional columns of the worksheets that are highlighted in light blue and purple."
     catch {tooltip::tooltip $foptc $ttmsg}
   }
 }
 
 #-------------------------------------------------------------------------------
-# display result
+# open STEP file
 proc guiDisplayResult {} {
   global buttons cb fopt appNames dispCmds appName dispApps foptf
   global edmWriteToFile edmWhereRules eeWriteToFile
   
-  set foptf [ttk::labelframe $fopt.f -text " Display STEP File in "]
+  set foptf [ttk::labelframe $fopt.f -text " Open STEP File in "]
 
   set buttons(appCombo) [ttk::combobox $foptf.spinbox -values $appNames -width 35]
   pack $foptf.spinbox -side left -anchor w -padx 7 -pady {0 3}
@@ -683,7 +663,7 @@ proc guiDisplayResult {} {
     $foptf.spinbox configure -values $appNames
   }
 
-  set buttons(appDisplay) [ttk::button $foptf.$cb -text " Display " -state disabled -command {
+  set buttons(appDisplay) [ttk::button $foptf.$cb -text " Open " -state disabled -command {
     displayResult
     saveState
   }]
@@ -699,7 +679,7 @@ proc guiDisplayResult {} {
         pack forget $buttons($idx)
         incr cb
       }
-      foreach item {{" Check WHERE, UNIQUENESS rules" edmWhereRules}} {
+      foreach item {{" Check other rules" edmWhereRules}} {
         regsub -all {[\(\)]} [lindex $item 1] "" idx
         set buttons($idx) [ttk::checkbutton $foptf.$cb -text [lindex $item 0] \
           -variable [lindex $item 1] -command {checkValues}]
@@ -718,8 +698,8 @@ proc guiDisplayResult {} {
     }
   }
   if {[lsearch $appNames "Indent STEP File (for debugging)"] != -1} {
-    foreach item {{" Include Geometry" indentGeometry} \
-                  {" Include Styled_item" indentStyledItem}} {
+    foreach item {{" Include Styled_item" indentStyledItem} \
+                  {" Include Geometry" indentGeometry}} {
       regsub -all {[\(\)]} [lindex $item 1] "" idx
       set buttons($idx) [ttk::checkbutton $foptf.$cb -text [lindex $item 0] \
         -variable opt([lindex $item 1]) -command {checkValues}]
@@ -728,7 +708,7 @@ proc guiDisplayResult {} {
     }
   }
   
-  catch {tooltip::tooltip $foptf "This option is a convenient way to display a STEP file in other applications.\nThe pull-down menu will contain applications that can display a STEP file\nsuch as STEP viewers, browsers, and conformance checkers only if they are\ninstalled in their default location.\n\nThe 'Indent STEP File (for debugging)' option rearranges and indents the\nentities to show the hierarchy of information in a STEP file.  The 'indented'\nfile is written to the same directory as the STEP file or to the same\nuser-defined directory specified in the Spreadsheet tab.  Including Geometry\nor Styled_item can make the 'indented' file very large.\n\nThe 'Default STEP Viewer' option will open the STEP file in whatever\napplication is associated with STEP files.\n\nA text editor will always appear in the menu."}
+  catch {tooltip::tooltip $foptf "This option is a convenient way to open a STEP file in other applications.\nThe pull-down menu will contain applications that can open a STEP file\nsuch as STEP viewers, browsers, and conformance checkers, only if they are\ninstalled in their default location.\n\nSee Websites > STEP File Viewers\n\nThe 'Indent STEP File (for debugging)' option rearranges and indents the\nentities to show the hierarchy of information in a STEP file.  The 'indented'\nfile is written to the same directory as the STEP file or to the same\nuser-defined directory specified in the Spreadsheet tab.  Including Geometry\nor Styled_item can make the 'indented' file very large.\n\nThe 'Default STEP Viewer' option will open the STEP file in whatever\napplication is associated with STEP (.stp) files."}
   pack $foptf -side top -anchor w -pady {5 2} -padx 10 -fill both
 
   set foptk [ttk::labelframe $fopt.k -text " Output Format "]
@@ -751,7 +731,7 @@ proc guiSpreadsheet {} {
   set fxls [frame $wxls.fxls -bd 2 -relief sunken]
 
   set fxlsz [ttk::labelframe $fxls.z -text " Tables "]
-  foreach item {{" Generate Tables for Sorting and Filtering" opt(SORT)}} {
+  foreach item {{" Generate Tables for Sorting and Filtering" opt(XL_SORT)}} {
     regsub -all {[\(\)]} [lindex $item 1] "" idx
     set buttons($idx) [ttk::checkbutton $fxlsz.$cb -text [lindex $item 0] \
       -variable [lindex $item 1]]
@@ -759,9 +739,11 @@ proc guiSpreadsheet {} {
     incr cb
   }
   pack $fxlsz -side top -anchor w -pady {5 2} -padx 10 -fill both
+  set msg "Worksheets can be sorted by column values.\nThe worksheet with Properties is always sorted."
+  catch {tooltip::tooltip $fxlsz $msg}
 
   set fxlsa [ttk::labelframe $fxls.a -text " Number Format "]
-  foreach item {{" Do not round Real Numbers (See Help > Number Format)" opt(XL_FPREC)}} {
+  foreach item {{" Do not round Real Numbers" opt(XL_FPREC)}} {
     regsub -all {[\(\)]} [lindex $item 1] "" idx
     set buttons($idx) [ttk::checkbutton $fxlsa.$cb -text [lindex $item 0] \
       -variable [lindex $item 1]]
@@ -769,11 +751,13 @@ proc guiSpreadsheet {} {
     incr cb
   }
   pack $fxlsa -side top -anchor w -pady {5 2} -padx 10 -fill both
+  set msg "Excel rounds real numbers if there are more than 11 characters in the number string.  For example,\nthe number 0.12499999999999997 in the STEP file will be shown as 0.125  However, double\nclicking in a cell with a rounded number will show all of the digits.\n\nThis option will show most real numbers exactly as they appear in the STEP file.  This applies\nonly to single real numbers.  Lists of real numbers, such as cartesian point coordinates, are\nalways shown exactly as they appear in the STEP file."
+  catch {tooltip::tooltip $fxlsa $msg}
   
   set fxlsb [ttk::labelframe $fxls.b -text " Maximum Rows for any worksheet"]
   set rlimit {{" No limit" 10000000} {" 100" 103} {" 500" 503} {" 1000" 1003} {" 5000" 5003} {" 10000" 10003} {" 50000" 50003} {" 100000" 100003}}
   foreach item $rlimit {
-    pack [ttk::radiobutton $fxlsb.$cb -variable opt(ROWLIM) -text [lindex $item 0] -value [lindex $item 1]] -side left -anchor n -padx 5 -pady 0 -ipady 0
+    pack [ttk::radiobutton $fxlsb.$cb -variable opt(XL_ROWLIM) -text [lindex $item 0] -value [lindex $item 1]] -side left -anchor n -padx 5 -pady 0 -ipady 0
     incr cb
   }
   pack $fxlsb -side top -anchor w -pady 5 -padx 10 -fill both
@@ -858,7 +842,7 @@ proc guiSpreadsheet {} {
 
   if {$developer} {
     set fxlsx [ttk::labelframe $fxls.x -text " Debug "]
-    foreach item {{" Everything" opt(DEBUG1)} \
+    foreach item {{" Reports" opt(DEBUG1)} \
                   {" Inverses" opt(DEBUGINV)} \
                   {" Dimtol > geotol path" opt(DEBUG2)}} {
       regsub -all {[\(\)]} [lindex $item 1] "" idx
@@ -882,6 +866,7 @@ proc guiHelpMenu {} {
 
   if {$nistVersion} {
     $Help add command -label "Check for Update" -command {
+      .tnb select .tnb.status
       set lastupgrade [expr {round(([clock seconds] - $upgrade)/86400.)}]
       outputMsg "The last check for an update was $lastupgrade days ago." red
       set os $tcl_platform(osVersion)
@@ -893,12 +878,12 @@ proc guiHelpMenu {} {
   }
 
   $Help add separator
-  $Help add command -label "Sample STEP Files (zip)"                          -command {displayURL http://www.nist.gov/el/msid/infotest/upload/NIST_MBE_PMI_CTC_STEP_PMI.zip}
+  $Help add command -label "Sample STEP Files (zip)"                    -command {displayURL http://www.nist.gov/sites/default/files/documents/el/msid/infotest/NIST_MBE_PMI_CTC_STEP_PMI.zip}
   $Help add cascade -label "Sample Output" -menu $Help.5
   set Help5 [menu $Help.5 -tearoff 1]
-  $Help5 add command -label "Spreadsheet - PMI Representation"          -command {displayURL http://www.nist.gov/el/msid/infotest/upload/STEP-File-Analyzer-PMI-Representation_stp.xlsx}
-  $Help5 add command -label "Spreadsheet - PMI Presentation, ValProps"  -command {displayURL http://www.nist.gov/el/msid/infotest/upload/STEP-File-Analyzer_stp.xlsx}
-  $Help5 add command -label "Spreadsheet - Coverage Analysis"           -command {displayURL http://www.nist.gov/el/msid/infotest/upload/STEP-File-Analyzer-Coverage.xlsx}
+  $Help5 add command -label "Spreadsheet - PMI Representation"          -command {displayURL https://www.nist.gov/file/317941}
+  $Help5 add command -label "Spreadsheet - PMI Presentation, ValProps"  -command {displayURL https://www.nist.gov/file/317946}
+  $Help5 add command -label "Spreadsheet - Coverage Analysis"           -command {displayURL https://www.nist.gov/file/317951}
   $Help5 add command -label "X3DOM (WebGL) file - PMI Presentation"     -command {displayURL http://www.nist.gov/el/msid/infotest/upload/STEP-File-Analyzer_x3dom.html}
 
   $Help add separator
@@ -927,256 +912,94 @@ Tooltip help is available for the selections in the tabs.  Hold the mouse over t
 until a tooltip appears.
 
 Function keys F5 and F6 change the font size in this tab."
-
     .tnb select .tnb.status
-    update idletasks
   }
 
 # options help
   $Help add command -label "Options" -command {
 outputMsg "\nOptions --------------------------------------------------------------------" blue
-outputMsg "*Process: Select which types of entities are processed.  The tooltip help lists all the entities
+outputMsg "Process: Select which types of entities are processed.  The tooltip help lists all the entities
 associated with that type.  Selectively process only the entities relevant to your analysis.
 Entity types can also be selected with the All and None buttons.  The None button will select all
-Reports and associated entities."
+Reports and associated entities.
 
-outputMsg "\n*Report PMI Representation: Dimensional tolerances, geometric tolerances, and datum features are
+Report PMI Representation: Dimensional tolerances, geometric tolerances, and datum features are
 reported on various entities indicated by PMI Representation on the Summary worksheet.  Values are
-reported in columns highlighted in yellow and green on those worksheets."
+reported in columns highlighted in yellow and green on those worksheets.
 
-outputMsg "\n*Report PMI Presentation: Geometric entities used for PMI Presentation annotations are reported
+Report PMI Presentation: Geometric entities used for PMI Presentation annotations are reported
 in columns highlighted in yellow and green on Annotation_*_occurrence worksheets.  Associated
 Saved Views, Validation Properties, and Geometry are also reported.  PMI Presentation annotations
-can also be visualized with an X3DOM (WebGL) file."
+can also be visualized with an X3DOM (WebGL) file.
 
-outputMsg "\n*Report Validation Properties: Geometric, assembly, PMI, annotation, attribute, and tessellated
+Report Validation Properties: Geometric, assembly, PMI, annotation, attribute, and tessellated
 validation properties are reported.  The property values are reported in columns highlighted in
-yellow and green on the Property_definition worksheet."
+yellow and green on the Property_definition worksheet.
 
-outputMsg "\n*Inverse Relationships: For some entities, Inverse relationships and backwards references
-(Used In) are displayed on the worksheets.  The values are displayed in additional columns of
-entity worksheets that are highlighted in light blue and purple."
+Inverse Relationships: For some entities, Inverse relationships and backwards references
+(Used In) are shown on the worksheets.  The values are shown in additional columns of entity
+worksheets that are highlighted in light blue and purple.
 
-outputMsg "\n*Output Format: Generate Excel spreadsheets or CSV files.  If Excel is not installed,
-CSV files are automatically generated.  Some options are not available with CSV files."
+Output Format: Generate Excel spreadsheets or CSV files.  If Excel is not installed,
+CSV files are automatically generated.  Some options are not available with CSV files.
 
-outputMsg "\n*Table: Generate tables for each spreadsheet to facilitate sorting and filtering (Spreadsheet tab)."
+Table: Generate tables for each spreadsheet to facilitate sorting and filtering (Spreadsheet tab).
 
-outputMsg "\n*Number Format: Option to not round real numbers."
+Number Format: Option to not round real numbers.
 
-outputMsg "\n*Maximum Rows: The maximum number of rows for any worksheet can be set lower than the normal
+Maximum Rows: The maximum number of rows for any worksheet can be set lower than the normal
 limits for Excel.  This is useful for very large STEP files at the expense of not processing some
 entities."
-
     .tnb select .tnb.status
-    update idletasks
-  }
-
-# validation properties, PMI presentation, conformance checking help
-  $Help add command -label "PMI Representation (Semantic PMI)" -command {
-outputMsg "\nPMI Representation ---------------------------------------------------------" blue
-
-outputMsg "PMI Representation (aka Semantic PMI) includes all information necessary to represent GD&T without
-any graphical presentation elements. PMI Representation is associated with CAD model geometry and
-is computer-interpretable to facilitate automated consumption by downstream applications for
-manufacturing, measurement, inspection, and other processes.
-
-Worksheets with PMI Representation show a visual recreation of the representation for Dimensional
-Tolerances, Geometric Tolerances, and Datum Features.  The results are reported on various entity
-worksheets as indicated by 'PMI Representation' on the Summary Worksheet.  The results are in
-columns, highlighted in yellow and green, on the relevant worksheets.  The GD&T is recreated as
-best as possible given the constraints of Excel.
-
-Dimensional Tolerances are reported on the dimensional_characteristic_representation worksheet.
-The dimension name, representation name, length/angle, length/angle name, and plus minus bounds
-are reported.  The relevant section in the Recommended Practice is shown in the column headings.
-The resulting Dimensional Tolerance is reported in the last column.
-
-Datum Features are reported on datum_* entities.  Datum_system will show the complete Datum
-Reference Frame.  Datum Targets are reported on placed_datum_target_feature.
-
-Geometric Tolerances are reported on *_tolerance entities by showing the complete Feature Control
-Frame (FCF), and possible Dimensional Tolerance and Datum Feature.  The FCF should contain the
-geometry tool, tolerance zone, datum reference frame, and associated modifiers.
-
-If a Dimensional Tolerance refers to the same geometric face as a Geometric Tolerance, then it
-will be shown above the FCF.  If a Datum Feature refers to the same geometric face as a Geometric
-Tolerance, then it will be shown below the FCF.
-
-The association of the Datum Feature with a Geometric Tolerance is based on each referring to the
-same geometric face in the STEP file.  However, the PMI Presentation might show the Geometric
-Tolerance and Datum Feature as two separate annotations with leader lines attached to the same
-geometric face.
-
-Sometimes an expected association between a Dimensional and Geometric Tolerance is not found.
-
-A Feature Count Modifier, such as ‘8X’ might be displayed in the visual presentation of the PMI
-Representation although it might not appear in the PMI Presentation.
-
-All of the Datum Systems, Dimensional Tolerances, and Geometric Tolerances that are reported on
-individual worksheets are collected on one PMI Representation Summary worksheet.
-
-Some syntax errors that indicate non-conformance to a CAx-IF Recommended Practices related to PMI
-Representation are also reported in the Status tab and the relevant worksheet cells.  Syntax
-errors are highlighted in red.
-
-Inverse Relationships are automatically selected when reporting PMI Representation because they
-contain information about the relationship between entities used to model PMI Representation.
-
-PMI Representation is defined by the CAx-IF Recommended Practice for:
-  Representation and Presentation of Product Manufacturing Information (AP242)
-  
-Go to Help > Websites > CAx-IF Recommended Practices to access documentation."
-  
-    .tnb select .tnb.status
-    update idletasks
   }
   
-  $Help add command -label "PMI Presentation (Graphical PMI)" -command {
-outputMsg "\nPMI Presentation -----------------------------------------------------------" blue
-outputMsg "PMI Presentation (aka Graphical PMI) consists of geometric elements such as lines and arcs
-preserving the exact appearance (color, shape, positioning) of the GD&T annotations.  PMI
-Presentation is not intended to be computer-interpretable and does not carry any representation
-information, although it can be linked to its corresponding PMI Representation.
+  $Help add command -label "Supported STEP APs" -command {
+outputMsg "\Supported STEP APs ----------------------------------------------------------" blue
+outputMsg "The following STEP APs are supported by the STEP File Analyzer:\n"
 
-Geometric entities used for PMI Presentation annotations are reported in columns, highlighted in
-yellow and green, on Annotation_*_occurrence worksheets.  PMI Presentation annotations are used to
-specify GD&T (Geometric Dimensioning and Tolerancing).  The Summary worksheet will indicate on the
-Annotation_*_occurrence row if PMI Presentation is reported.
+set other 0
+set nschema 0
+catch {file delete -force [file join $ifcsvrdir ap214e3_2010.rose]}
 
-Some syntax errors related to PMI Presentation are also reported in the Status tab and the
-relevant worksheet cells.  Syntax errors are highlighted in red.
-
-Presentation Style, Saved Views, Validation Properties, Associated Geometry, and Associated
-Representation are also reported.
-
-A PMI Presentation Coverage Analysis worksheet is generated.
-
-PMI Presentation annotations can be visualized with an X3DOM (WebGL) file that can be displayed in
-most web browsers.  The X3DOM file is only of the annotations, not the model geometry.  The
-resulting X3DOM file is named mystepfile_x3dom.html  Tessellated annotations are not supported.
-
-PMI Presentation annotations are found in the STEP file by inspecting the Annotation_*_occurrence
-entities and associated geometric_curve_set or annotation_fill_area entities.  Polyline,
-trimmed_curve, composite_curve, and line entities used for PMI Presentation are checked.  Circles
-are ignored.
-
-PMI Presentation is defined by the CAx-IF Recommended Practices for:
-  Representation and Presentation of Product Manufacturing Information (AP242)
-  PMI Polyline Presentation (AP203/AP242)
-  
-Section numbers in the PMI Presentation worksheet refer to the first recommended
-practice related to AP242.
-  
-Go to Help > Websites > CAx-IF Recommended Practices to access documentation."
-  
-    .tnb select .tnb.status
-    update idletasks
-  }
-
-# coverage analysis help
-  $Help add command -label "Coverage Analysis" -command {
-outputMsg "\nCoverage Analysis ----------------------------------------------------------" blue
-outputMsg "Coverage Analysis worksheets are generated when processing single or multiple files and when
-reports for PMI Representation or Presentation are selected.  
-
-PMI Representation Coverage Analysis (semantic PMI) counts the number of PMI elements found in a
-STEP file for tolerances, dimensions, datums, modifiers, and CAx-IF Recommended Practices for PMI
-Representation.  On the coverage analysis worksheet, some PMI elements show their associated
-symbol, while others show the relevant section in the Recommended Practice.  The PMI elements are
-grouped by features related tolerances, dimensions, datums, tolerance zones, common modifiers, and
-other modifiers.
-
-PMI Presentation Coverage Analysis (graphical PMI) counts the occurrences of a name attribute
-defined in the CAx-IF Recommended Practice for PMI Representation and Presentation of PMI (AP242),
-section 8.4, table 14.  The name attribute is associated with the graphic elements used to draw a
-PMI annotation."
-
-    .tnb select .tnb.status
-    update idletasks
-
-    if {$nistVersion || [file exists [file nativename [file join $mytemp SFA-semantic-coverage.xlsx]]]} {
-outputMsg "\n----------
-If the STEP file was generated from a NIST CAD model (http://go.usa.gov/mGVm) and the file can be
-recognized as having been generated from one of the CAD models, then the PMI Representation
-Coverage Analysis worksheet is color-coded by the expected number of PMI elements.  The expected
-results were determined by manually counting the number of PMI elements found in each test case
-drawing.  Counting of some modifiers, e.g. maximum material condition, does not differentiate by
-whether they appear in the tolerance zone definition or datum reference frame.
-
-Green is a match to the expected number of STEP PMI elements.  Yellow means that more were
-found.  Red means that less were found.  A magneta cell means that none of an expected PMI element
-were found in the STEP file.
-
-Red, magenta, or yellow cells might mean that the CAD system or translator: (1) mapped an internal
-PMI element to the wrong STEP PMI element, (2) has not implemented exporting a PMI element to a
-STEP file, (3) does not support a type of PMI element, or (4) did not correctly model a PMI
-element defined in a test case.  For example, in the STEP file, a required spherical radius might
-appear as a radius.  In the coverage analysis worksheet, the missing spherical radius would appear
-red or magenta, while the extra radius would appear yellow.
-
-Gray means that a PMI element is in a test case definition but there is no CAx-IF Recommended
-Practice to model it.  For example, there is no recommended practice for hole depth,
-counterbore, and countersink.  This means that the dimensions of a hole are not associated
-with a dimension type such as diameter and radius in the STEP file although the dimension value
-is still represented semantically.  This does not affect the PMI Presentation (graphics) for
-those PMI elements."
-  
-      .tnb select .tnb.status
-      update idletasks
+set schemas {}
+foreach match [lsort [glob -nocomplain -directory $ifcsvrdir *.rose]] {
+  set schema [file rootname [file tail $match]]
+  if {[string first "ifc" $schema] == -1 && [string first "header_section" $schema] == -1 && \
+      [string first "keystone" $schema] == -1 && [string range $schema end-2 end] != "mim"} {
+    if {[string first "automotive" $schema] == 0} {
+      lappend schemas "AP214 - $schema"
+    } elseif {[string first "config" $schema] == 0 || [string first "ccd" $schema] == 0} {
+      lappend schemas "AP203 - $schema"
+    } elseif {[string first "integrated" $schema] == 0} {
+      lappend schemas "AP238 - $schema"
+    } elseif {[string first "structural_analysis" $schema] == 0} {
+      lappend schemas "AP209 - $schema"
+    } elseif {[string first "engineering_properties" $schema] == 0} {
+      lappend schemas "AP235 - $schema"
+    } elseif {[string first "feature_based" $schema] == 0} {
+      lappend schemas "AP224 - $schema"
+    } elseif {[string first "ap" $schema] == 0} {
+      lappend schemas "[string toupper [string range $schema 0 4]] - $schema"
+    } else { 
+      lappend schemas "$schema"
     }
+    if {[string first "ship" $schema] != -1} {set other 1}
+    incr nschema
   }
-    
-  $Help add command -label "Validation Properties" -command {
-outputMsg "\nValidation Properties ------------------------------------------------------" blue
-outputMsg "Geometric, assembly, PMI, annotation, attribute, and tessellated validation properties are
-reported.  The property values are reported in columns highlighted in yellow and green on the
-Property_definition worksheet.  The worksheet can also be sorted and filtered.
+}
 
-Syntax errors related to validation property attribute values are also reported in the Status tab
-and the relevant worksheet cells.  Syntax errors are highlighted in red.
+foreach item [lsort $schemas] {outputMsg "  [string toupper $item]"}
 
-Clicking on the plus '+' symbols above the columns will show other columns that contain the entity
-ID and attribute name of the validation property value.  All of the other columns can be shown or
-hidden by clicking the '1' or '2' in the upper right corner of the spreadsheet.
+if {$nschema == 0} {errorMsg "No Supported STEP APs were found.\nThere was a problem copying STEP schema files (*.rose) to the IFCsvr/dll directory."}
 
-The Summary worksheet will indicate on the property_definition row if validation properties are
-reported.
-
-The number of Cartesian Points reported for smooth or sharp sampling points can also be limited.
-
-Other non-validation properties such as material properties are also reported.
-
-Validation properties are found in the STEP file by inspecting the Representation entities related
-to Property_definition through Property_definition_representation.  Property values other than
-validation properties are also reported if the relationship is found.
-
-Validation properties are defined by the CAx-IF.
-Go to Help > Websites > CAx-IF Recommended Practices to access documentation."
-  
+if {!$other} {
+  outputMsg "\nProcessing of STEP files from some other STEP APs can be enabled by installing the free
+ST-Developer Personal Edition.  Download it from: http://www.steptools.com/products/stdev/personal.html
+This software also includes some useful STEP utility programs.  See Help > Disclaimer."
+} elseif {"$nistVersion"} {
+  outputMsg "\nTo enable other STEP APs, contact the developer (Help > About)"
+}
     .tnb select .tnb.status
-    update idletasks
-  }
-  $Help add separator
-
-# display files help
-  $Help add command -label "Display STEP Files" -command {
-outputMsg "\nDisplay STEP Files ---------------------------------------------------------" blue
-outputMsg "This option is a convenient way to display a STEP file in other applications. The pull-down menu
-will contain applications that can display a STEP file such as STEP viewers, browsers, and
-conformance checkers.  If applications are installed in their default location, then they will
-appear in the pull-down menu.  
-
-The 'Indent STEP File (for debugging)' option rearranges and indents the entities to show the
-hierarchy of information in a STEP file.  The 'indented' file is written to the same directory as
-the STEP file or to the same user-defined directory specified in the Spreadsheet tab.  It is
-useful for debugging STEP files but is not recommended for large STEP files.
-
-The 'Default STEP Viewer' option will open the STEP file in whatever application is associated
-with STEP files.  A text editor will always appear in the menu."
-
-    .tnb select .tnb.status
-    update idletasks
   }
 
 # multiple files help
@@ -1197,68 +1020,243 @@ Processing of most of the entity types and options in the Options tab.
 
 If the reports for PMI Representation or Presentation are selected, then Coverage Analysis
 worksheets are also generated."
-
     .tnb select .tnb.status
-    update idletasks
   }
 
-# number format help
-  $Help add command -label "Number Format" -command {
-outputMsg "\nNumber Format --------------------------------------------------------------" blue
-outputMsg "Excel rounds real numbers if there are more than 11 characters in the number string.  For example,
-the number 0.12499999999999997 in the STEP file will be displayed as 0.125  However, double
-clicking in a cell with a rounded number will show all of the digits.
+# open STEP files help
+  $Help add command -label "Open STEP File in Apps" -command {
+outputMsg "\nOpen STEP File in Apps -----------------------------------------------------" blue
+outputMsg "STEP files can be opened in other applications.  If applications are installed in their default
+location, then the pull-down menu in the Options tab will contain applications that can open a
+STEP file such as STEP viewers, browsers, and conformance checkers.
 
-This option will display most real numbers exactly as they appear in the STEP file.  This applies
-only to single real numbers.  Lists of real numbers, such as cartesian point coordinates, are
-always displayed exactly as they appear in the STEP file."
+The 'Indent STEP File (for debugging)' option rearranges and indents the entities to show the
+hierarchy of information in a STEP file.  The 'indented' file is written to the same directory as
+the STEP file or to the same user-defined directory specified in the Spreadsheet tab.  It is
+useful for debugging STEP files but is not recommended for large STEP files.
 
+The 'Default STEP Viewer' option will open the STEP file in whatever application is associated
+with STEP files.  A text editor will always appear in the menu."
     .tnb select .tnb.status
-    update idletasks
   }
+
+  $Help add separator
+
+# validation properties, PMI presentation, conformance checking help
+  $Help add command -label "PMI Representation (Semantic PMI)" -command {
+outputMsg "\nPMI Representation ---------------------------------------------------------" blue
+
+outputMsg "PMI Representation (aka Semantic PMI) includes all information necessary to represent geometric
+and dimensional tolerances (GD&T) without any graphical presentation elements.  PMI Representation
+is associated with CAD model geometry and is computer-interpretable to facilitate automated
+consumption by downstream applications for manufacturing, measurement, inspection, and other
+processes.  PMI Representation is found mainly in AP242 files.
+
+Worksheets with PMI Representation show a visual recreation of the representation for Dimensional
+Tolerances, Geometric Tolerances, and Datum Features.  The results are in columns, highlighted in
+yellow and green, on the relevant worksheets.  The GD&T is recreated as best as possible given the
+constraints of Excel.
+
+All of the visual recreation of Datum Systems, Dimensional Tolerances, and Geometric Tolerances
+that are reported on individual worksheets are collected on one PMI Representation Summary worksheet.
+
+If STEP files from the NIST CAD models (Websites > MBE PMI Validation Testing) are processed,
+then the PMI the visual recreation of the PMI Representation is color-coded by the expected PMI
+in each CAD model.  See Help > NIST CAD Models.
+
+Dimensional Tolerances are reported on the dimensional_characteristic_representation worksheet.
+The dimension name, representation name, length/angle, length/angle name, and plus minus bounds
+are reported.  The relevant section in the Recommended Practice is shown in the column headings.
+The resulting Dimensional Tolerance is reported in the last column.
+
+Datum Features are reported on datum_* entities.  Datum_system will show the complete Datum
+Reference Frame.  Datum Targets are reported on placed_datum_target_feature.
+
+Geometric Tolerances are reported on *_tolerance entities by showing the complete Feature Control
+Frame (FCF), and possible Dimensional Tolerance and Datum Feature.  The FCF should contain the
+geometry tool, tolerance zone, datum reference frame, and associated modifiers.
+
+If a Dimensional Tolerance refers to the same geometric element as a Geometric Tolerance, then it
+will be shown above the FCF.  If a Datum Feature refers to the same geometric face as a Geometric
+Tolerance, then it will be shown below the FCF.  If an expected Dimensional Tolerance is not shown
+above a Geometric Tolerance then the tolerances do not reference the same geometric element.  For
+example, referencing the edge of a hole versus the surfaces of a hole.
+
+The association of the Datum Feature with a Geometric Tolerance is based on each referring to the
+same geometric element.  However, the PMI Presentation might show the Geometric Tolerance and
+Datum Feature as two separate annotations with leader lines attached to the same geometric element.
+
+Some syntax errors that indicate non-conformance to a CAx-IF Recommended Practices related to PMI
+Representation are also reported in the Status tab and the relevant worksheet cells.  Syntax
+errors are highlighted in red.
+
+A PMI Representation Coverage Analysis worksheet is generated.  See Help > PMI Coverage Analysis.
+
+PMI Representation is defined by the CAx-IF Recommended Practice for:
+  Representation and Presentation of Product Manufacturing Information (AP242)
+Go to Websites > Recommended Practices to access documentation."
+    .tnb select .tnb.status
+  }
+  
+  $Help add command -label "PMI Presentation (Graphical PMI)" -command {
+outputMsg "\nPMI Presentation -----------------------------------------------------------" blue
+outputMsg "PMI Presentation (aka Graphical PMI) consists of geometric elements such as lines and arcs
+preserving the exact appearance (color, shape, positioning) of the geometric and dimensional
+tolerance (GD&T) annotations.  PMI Presentation is not intended to be computer-interpretable and
+does not carry any representation information, although it can be linked to its corresponding PMI
+Representation.
+
+Geometric entities used for PMI Presentation annotations are reported in columns, highlighted in
+yellow and green, on Annotation_*_occurrence worksheets.  The Summary worksheet will indicate on
+the Annotation_*_occurrence row if PMI Presentation is reported.
+
+Some syntax errors related to PMI Presentation are also reported in the Status tab and the
+relevant worksheet cells.  Syntax errors are highlighted in red.
+
+Presentation Style, Saved Views, Validation Properties, Associated Geometry, and Associated
+Representation are also reported.
+
+A PMI Presentation Coverage Analysis worksheet is generated.  See Help > PMI Coverage Analysis.
+
+PMI Presentation annotations can be visualized with an X3DOM (WebGL) file that can be opened in
+any web browsers.  The X3DOM file is only of the annotations, not the model geometry.  The
+resulting X3DOM file is named mystepfile_x3dom.html  Filled characters are not filled.  Saved
+Views are ignored.  Tessellated annotations are not supported.
+
+PMI Presentation is defined by the CAx-IF Recommended Practices for:
+  Representation and Presentation of Product Manufacturing Information (AP242)
+  PMI Polyline Presentation (AP203/AP242)
+Go to Websites > Recommended Practices to access documentation."
+    .tnb select .tnb.status
+  }
+
+# coverage analysis help
+  $Help add command -label "PMI Coverage Analysis" -command {
+outputMsg "\nPMI Coverage Analysis ------------------------------------------------------" blue
+outputMsg "PMI Coverage Analysis worksheets are generated when processing single or multiple files and when
+reports for PMI Representation or Presentation are selected.  
+
+PMI Representation Coverage Analysis (semantic PMI) counts the number of PMI elements found in a
+STEP file for tolerances, dimensions, datums, modifiers, and CAx-IF Recommended Practices for PMI
+Representation.  On the coverage analysis worksheet, some PMI elements show their associated
+symbol, while others show the relevant section in the Recommended Practice.  The PMI elements are
+grouped by features related tolerances, dimensions, datums, tolerance zones, common modifiers, and
+other modifiers.
+
+If STEP files from the NIST CAD models (Websites > MBE PMI Validation Testing) are processed, then
+the PMI Representation Coverage Analysis worksheet is color-coded by the expected number of PMI
+elements in each CAD model.  See Help > NIST CAD Models.
+
+PMI Presentation Coverage Analysis (graphical PMI) counts the occurrences of a name attribute
+defined in the CAx-IF Recommended Practice for PMI Representation and Presentation of PMI (AP242),
+section 8.4, table 14.  The name attribute is associated with the graphic elements used to draw a
+PMI annotation."
+    .tnb select .tnb.status
+  }
+
+
+# coverage analysis help
+  $Help add command -label "NIST CAD Models" -command {
+outputMsg "\nNIST CAD Models ------------------------------------------------------------" blue
+outputMsg "If a STEP file from a NIST CAD model is processed, then the PMI found in the STEP file is
+automatically checked against the expected PMI in the corresponding NIST test case.  The PMI
+Representation Coverage and Summary worksheets are color-coded by the expected PMI in each NIST
+test case.  The color-coding only works if a STEP file name can be recognized as having been
+generated from one of the CAD models.
+
+See Websites > MBE PMI Validation Testing
+    Websites > Research > Measuring the PMI Modeling Capability in CAD Systems
+
+* PMI Representation Summary *
+This worksheet is color-coded by the expected PMI annotations in a test case drawing.  Green is a
+match to a PMI annotation.  Cyan is a partial match.  Yellow is a possible match, although some of
+these matches are also partial matches.  Red is no match.  For partial and possible matches, the
+best Similar PMI match is shown.  Missing PMI annotations are also shown.
+
+Trailing and leading zeros and feature counts, e.g., '2X' are ignored when matching a PMI
+annotation.  Matches also only consider the current capabilities of PMI annotations in STEP AP242
+and CAx-IF Recommended Practices.  For example, PMI annotations for holes such as counterbore,
+countersink, and depth are ignored.
+
+Some causes of partial and possible matches are missing associations from a geometric tolerance
+to a dimensional tolerance or datum feature, missing modifiers, and missing diameter dimensions.
+Sometimes there might be a better similar PMI for a possible PMI match.
+
+* PMI Representation Coverage Analysis *
+This worksheet is color-coded by the expected number of PMI elements in a test case drawing.  The
+expected results were determined by manually counting the number of PMI elements in each drawing.
+Counting of some modifiers, e.g. maximum material condition, does not differentiate whether they
+appear in the tolerance zone definition or datum reference frame.
+
+Green is a match to the expected number of STEP PMI elements.  Yellow means that more were
+found.  Red means that less were found.  A magneta cell means that none of an expected PMI element
+were found in the STEP file.
+
+Gray means that a PMI element is in a test case definition but there is no CAx-IF Recommended
+Practice to model it.  For example, there is no recommended practice for hole depth,
+counterbore, and countersink.  This means that the dimensions of a hole are not associated
+with a dimension type such as diameter and radius in the STEP file although the dimension value
+is still represented semantically.  This does not affect the PMI Presentation (graphics) for
+those PMI elements.
+
+* Missing PMI *
+Missing PMI annotations on the Summary worksheet or PMI elements on the Coverage worksheet might
+mean that the CAD system or translator:
+
+- did not or cannot correctly create in the CAD model a PMI annotation defined in a NIST test case
+  (See Websites > Research > Measuring the PMI Modeling Capability in CAD Systems)
+- did not follow CAx-IF Recommended Practices for PMI (See Websites > Recommended Practices)
+- has not implemented exporting a PMI element to a STEP file
+- mapped an internal PMI element to the wrong STEP PMI element
+
+For example, in the STEP file, an expected spherical radius might have only been modeled as a
+radius.  In the coverage analysis worksheet, the missing spherical radius would appear red or
+magenta, while the extra radius would appear yellow.  In the PMI summary worksheet this would
+appear cyan or yellow as a partial or possible match.
+
+Some of the NIST test cases have complex PMI annotations that are not commonly used.  There may
+be ambiguities in counting the number of PMI elements, particularly for dimensions."
+    .tnb select .tnb.status
+  }
+    
+  $Help add command -label "Validation Properties" -command {
+outputMsg "\nValidation Properties ------------------------------------------------------" blue
+outputMsg "Geometric, assembly, PMI, annotation, attribute, and tessellated validation properties are
+reported.  The property values are reported in columns highlighted in yellow and green on the
+Property_definition worksheet.  The worksheet can also be sorted and filtered.
+
+Other properties and User-Defined Attributes are also reported.
+
+Syntax errors related to validation property attribute values are also reported in the Status tab
+and the relevant worksheet cells.  Syntax errors are highlighted in red.
+
+Clicking on the plus '+' symbols above the columns will show other columns that contain the entity
+ID and attribute name of the validation property value.  All of the other columns can be shown or
+hidden by clicking the '1' or '2' in the upper right corner of the spreadsheet.
+
+The Summary worksheet will indicate on the property_definition entity if properties are reported.
+
+Validation properties are defined by the CAx-IF.
+Go to Websites > Recommended Practices to access documentation."
+    .tnb select .tnb.status
+  }
+
   $Help add separator
   
   $Help add command -label "Conformance Checking" -command {
 outputMsg "\nConformance Checking -------------------------------------------------------" blue
-outputMsg "STEP AP203 and AP214 files can be checked for conformance with the free ST-Developer Personal
-Edition.  If installed, it will show up in the 'Display STEP File in' pull-down menu in the
-Options tab.  A spreadsheet does not have be generated to run it.  If the option to 'Write results
-to a file' is selected, then the output file will be named mystepfile_stdev.log
+outputMsg "STEP AP203 and AP214 files can be checked for conformance to their respective schemas with the
+free ST-Developer Personal Edition software.  If installed, it will show up in the
+'Open STEP File in' pull-down menu in the Options tab.  A spreadsheet does not have be generated
+to run it.  If the option to 'Write results to a file' is selected, then the output file will be
+named 'mystepfile_stdev.log'
 
-To download ST-Developer Personal Edition, go to: http://www.steptools.com/products/stdev/personal.html
-This software also includes some useful STEP utility programs.
+Download ST-Developer Personal Edition from: http://www.steptools.com/products/stdev/personal.html
+This software also includes some useful STEP utility programs.  See Help > Disclaimer.
 
-To check for some missing entity references, in the Options tab under Display STEP File, use
+To check for some missing entity references, in the Options tab under Open STEP File, use
 Indent STEP File (for debugging)."
-  
     .tnb select .tnb.status
-    update idletasks
-  }
-  
-  $Help add command -label "Other STEP APs" -command {
-outputMsg "\nOther STEP APs -------------------------------------------------------------" blue
-outputMsg "The following STEP APs are supported in the STEP File Analyzer:\n"
-
-set other 0
-catch {file delete -force [file join $ifcsvrdir ap214e3_2010.rose]}
-foreach schema [lsort [glob -nocomplain -directory $ifcsvrdir *.rose]] {
-  if {[string first "ifc" $schema] == -1 && [string first "header_section" $schema] == -1 && \
-      [string first "keystone" $schema] == -1} {
-    outputMsg "  [file rootname [file tail $schema]]"
-    if {[string first "ship" $schema] != -1} {set other 1}
-  }
-}
-
-if {!$other} {
-  outputMsg "\nProcessing of STEP files from some other STEP APs can be enabled by installing the free
-ST-Developer Personal Edition.  To download it, go to: http://www.steptools.com/products/stdev/personal.html
-This software also includes some useful STEP utility programs."
-} elseif {"$nistVersion"} {
-  outputMsg "\nTo enable other STEP APs, contact the developer (Help > About)"
-}
-  
-    .tnb select .tnb.status
-    update idletasks
   }
 
 # large files help
@@ -1267,20 +1265,17 @@ outputMsg "\nLarge STEP Files --------------------------------------------------
 outputMsg "To reduce the amount of time to process large STEP files and to reduce the size of the resulting
 spreadsheet, several options are available:
 - In the Process section, deselect entity types Geometry and Cartesian Point
-- In the Spreadsheet tab, select a value for the Maximum Rows
+- In the Process section, select only a User-Defined List of required entities 
 - In the Options tab, deselect Reports and Inverse Relationships
+- In the Spreadsheet tab, select a value for the Maximum Rows
 
 The STEP File Analyzer might also crash when processing very large STEP files.  Popup dialogs
-might appear that say \"unable to alloc xxx bytes\".  In this case, deselect some entity types to
-process in Options tab or use a User-Defined List of entities to process.  See the Help for Crash
-Recovery."
-
+might appear that say 'unable to alloc xxx bytes'.  See the Help > Crash Recovery."
     .tnb select .tnb.status
-    update idletasks
   }
 
   $Help add command -label "Crash Recovery" -command {
-outputMsg "\nCrash Recovery -------------------------------------------------------------" red
+outputMsg "\nCrash Recovery -------------------------------------------------------------" blue
 outputMsg "Sometimes the STEP File Analyzer will crash after a STEP file has been successfully opened and the
 processing of entities has started.  Popup dialogs might appear that say \"ActiveState Basekit has
 stopped working\". 
@@ -1303,35 +1298,14 @@ caused the crash, then the *_fix.dat file is still created as described above an
 deleted.
 
 - Processing of the type of entity that caused the error can be deselected in the Options tab
-under Process.  However, this will prevent processing of other entities that do not cause a crash.
-
-The STEP File Analyzer might also crash when processing very large STEP files.  Popup dialogs
-might appear that say \"unable to alloc xxx bytes\".  In this case, deselect some entity types to
-process in Options tab or use a User-Defined List of entities to process."
-
+under Process.  However, this will prevent processing of other entities that do not cause a crash."
   .tnb select .tnb.status
-  update idletasks
 }
-  
-  $Help add command -label "Errors" -command {
-outputMsg "\nErrors ---------------------------------------------------------------------" blue
-outputMsg "If sufficient memory is not available to process a very large STEP file, then the STEP File
-Analyzer will stop with an error message that might say \"Fatal Error in Wish - unable to alloc
-123456 bytes\".  Try processing the STEP file on a computer with more memory or deselect some
-categories of entities to Process in the Options tab.
-
-After stopping the program when a large STEP file has been processed, sometimes the
-STEP-File-Analyzer.exe and/or EXCEL.EXE processes will still be running.  The Windows Task Manager
-can be used to kill those processes."
-
-    .tnb select .tnb.status
-    update idletasks
-  }
 
   $Help add separator
   if {"$nistVersion"} {
     $Help add command -label "Disclaimer" -command {displayDisclaimer}
-    $Help add command -label "NIST Disclaimer" -command {displayURL http://www.nist.gov/public_affairs/disclaimer.cfm}
+    $Help add command -label "NIST Disclaimer" -command {displayURL https://www.nist.gov/disclaimer}
   }
   $Help add command -label "About" -command {
     outputMsg "\nSTEP File Analyzer ---------------------------------------------------------" blue
@@ -1345,7 +1319,7 @@ can be used to kill those processes."
     }
   
   # debug
-    if {$opt(ROWLIM) == 100003} {
+    if {$opt(XL_ROWLIM) == 100003} {
       outputMsg "\nDebug Messages below" red
       foreach id [lsort [array names env]] {outputMsg "$id   $env($id)"}
       outputMsg \nUSERPROFILE-$env(USERPROFILE)
@@ -1361,9 +1335,7 @@ can be used to kill those processes."
       outputMsg [package versions tcom]
       outputMsg "Debug Messages above" red
     }
-  
     .tnb select .tnb.status
-    update idletasks
   }
 }
 
@@ -1372,11 +1344,11 @@ can be used to kill those processes."
 proc guiWebsitesMenu {} {
   global Websites
 
-  $Websites add command -label "STEP File Analyzer"     -command {displayURL http://www.nist.gov/el/msid/infotest/step-file-analyzer.cfm}
+  $Websites add command -label "STEP File Analyzer"     -command {displayURL http://go.usa.gov/yccx}
   $Websites add command -label "Source code on GitHub"  -command {displayURL https://github.com/usnistgov/SFA}
-  $Websites add command -label "Journal of CAD Article" -command {displayURL http://www.nist.gov/manuscript-publication-search.cfm?pub_id=917105}
-  $Websites add command -label "MBE PMI Validation Testing (free CAD models and STEP files)" -command {displayURL http://www.nist.gov/el/msid/infotest/mbe-pmi-validation.cfm}
-  $Websites add command -label "Enabling the Digital Thread for Smart Manufacturing"         -command {displayURL http://www.nist.gov/el/msid/infotest/digital-thread-manufacturing.cfm}
+  $Websites add command -label "Journal of CAD Article" -command {displayURL https://www.nist.gov/node/557526}
+  $Websites add command -label "MBE PMI Validation Testing (free CAD models and STEP files)" -command {displayURL http://go.usa.gov/mGVm}
+  $Websites add command -label "Enabling the Digital Thread for Smart Manufacturing"         -command {displayURL http://go.usa.gov/6nPh}
   
   $Websites add separator
   $Websites add command -label "CAx Implementor Forum (CAx-IF)" -command {displayURL https://www.cax-if.org/}
@@ -1386,15 +1358,11 @@ proc guiWebsitesMenu {} {
   $Websites add command -label "Recommended Practices"          -command {displayURL https://www.cax-if.org/joint_testing_info.html#recpracs}
   
   $Websites add separator
-  $Websites add command -label "STEP AP242 Project" -command {displayURL http://www.ap242.org/}
-  $Websites add command -label "EXPRESS Schemas"    -command {displayURL https://www.cax-if.org/joint_testing_info.html#schemas}
-  $Websites add command -label "AP242 Schema"       -command {displayURL http://www.steptools.com/support/stdev_docs/express/ap242/html/index.html}
-  $Websites add command -label "AP203e2 Schema"     -command {displayURL http://www.steptools.com/support/stdev_docs/express/ap203e2/html/index.html}
-  $Websites add command -label "AP214e3 Schema"     -command {displayURL http://www.steptools.com/support/stdev_docs/express/ap214/html/index.html}
-  
-  $Websites add separator
-  $Websites add command -label "STEPcode"               -command {displayURL http://stepcode.org/}
-  $Websites add command -label "STEP Module Repository" -command {displayURL http://stepmod.sourceforge.net/}
+  $Websites add command -label "STEP AP242 Project"   -command {displayURL http://www.ap242.org/}
+  $Websites add command -label "STEP AP209 Project"   -command {displayURL http://www.ap209.org/}
+  $Websites add command -label "STEP AP239 Project"   -command {displayURL http://www.ap239.org/}
+  $Websites add command -label "EXPRESS Schemas"      -command {displayURL https://www.cax-if.org/joint_testing_info.html#schemas}
+  $Websites add command -label "More EXPRESS Schemas" -command {displayURL http://www.steptools.com/support/stdev_docs/express/}
   
   $Websites add separator
   $Websites add command -label "PDES, Inc."   -command {displayURL https://pdesinc.org/}
@@ -1404,12 +1372,13 @@ proc guiWebsitesMenu {} {
   $Websites add separator
   $Websites add cascade -label "Research" -menu $Websites.3
   set Websites3 [menu $Websites.3 -tearoff 1]
+  $Websites3 add command -label "Measuring the PMI Modeling Capability in CAD Systems (Report 1)"                -command {displayURL http://dx.doi.org/10.6028/NIST.GCR.15-997}
+  $Websites3 add command -label "Measuring the PMI Modeling Capability in CAD Systems (Report 2)"                -command {displayURL http://dx.doi.org/10.6028/NIST.GCR.15-998}
+  $Websites3 add command -label "Measuring the PMI Modeling Capability in CAD Systems (Report 3)"                -command {displayURL http://dx.doi.org/10.6028/NIST.GCR.15-999}
   $Websites3 add command -label "Investigating the Impact of Standards-Based Interoperability for Design to Manufacturing and Quality in the Supply Chain"  -command {displayURL http://dx.doi.org/10.6028/NIST.GCR.15-1009}
-  $Websites3 add command -label "Measuring the PMI Modeling Capability in CAD Systems"  -command {displayURL http://dx.doi.org/10.6028/NIST.GCR.15-998}
-  $Websites3 add command -label "An ISO STEP Tolerancing Standard as an Enabler of Smart Manufacturing Systems"  -command {displayURL http://www.nist.gov/manuscript-publication-search.cfm?pub_id=915430}
-  $Websites3 add command -label "Standardized STEP Composite Structure Design and Manufacturing Information"     -command {displayURL http://www.nist.gov/manuscript-publication-search.cfm?pub_id=913466}
-  $Websites3 add command -label "A Strategy for Testing Product Conformance to GD&T Standards"                   -command {displayURL http://www.nist.gov/manuscript-publication-search.cfm?pub_id=911123}
-  $Websites3 add command -label "MBE Standardization and Validation"                                             -command {displayURL http://www.nist.gov/manuscript-publication-search.cfm?pub_id=908106}
+  $Websites3 add command -label "An ISO STEP Tolerancing Standard as an Enabler of Smart Manufacturing Systems"  -command {displayURL https://www.nist.gov/node/570586}
+  $Websites3 add command -label "Recent Advances in Sharing Standardized STEP Composite Structure Design and Manufacturing Information"     -command {displayURL https://www.nist.gov/node/579546}
+  $Websites3 add command -label "A Strategy for Testing Product Conformance to GD&T Standards"                   -command {displayURL https://www.nist.gov/node/589131}
 }
 
 #-------------------------------------------------------------------------------
@@ -1418,11 +1387,27 @@ proc displayDisclaimer {} {
   global nistVersion
 
   if {$nistVersion} {
+    outputMsg "\nDisclaimer -------------------------------------------------------------" blue
+    outputMsg "This software was developed at the National Institute of Standards and Technology by employees of
+the Federal Government in the course of their official duties. Pursuant to Title 17 Section 105 of
+the United States Code this software is not subject to copyright protection and is in the public
+domain.  This software is an experimental system.  NIST assumes no responsibility whatsoever for
+its use by other parties, and makes no guarantees, expressed or implied, about its quality,
+reliability, or any other characteristic.
+
+Any mention of commercial products or references to web pages in this software is for information
+purposes only; it does not imply recommendation or endorsement by NIST.  For any of the web links
+in this software, NIST does not necessarily endorse the views expressed, or concur with the facts
+presented on those web sites.
+
+This software uses Microsoft Excel and IFCsvr that are covered by their own EULAs."
+    .tnb select .tnb.status
+
 set txt "This software was developed at the National Institute of Standards and Technology by employees of the Federal Government in the course of their official duties. Pursuant to Title 17 Section 105 of the United States Code this software is not subject to copyright protection and is in the public domain.  This software is an experimental system.  NIST assumes no responsibility whatsoever for its use by other parties, and makes no guarantees, expressed or implied, about its quality, reliability, or any other characteristic.
 
 Any mention of commercial products or references to web pages in this software is for information purposes only; it does not imply recommendation or endorsement by NIST.  For any of the web links in this software, NIST does not necessarily endorse the views expressed, or concur with the facts presented on those web sites.
 
-This software uses Microsoft Excel and IFCsvr that are covered by their own EULAs (End-User License Agreements)."
+This software uses Microsoft Excel and IFCsvr that are covered by their own End-User License Agreements."
   
     tk_messageBox -type ok -icon info -title "Disclaimers for STEP File Analyzer" -message $txt
   }
@@ -1450,15 +1435,17 @@ Please report other types of crashes to the software developer."
 }
 
 #-------------------------------------------------------------------------------
-# display user guide
+# open user guide
 proc displayGuide {} {
-  
   set ugName [file nativename [file join [file dirname [info nameofexecutable]] SFA-Users-Guide.pdf]]
   if {[file exists $ugName]} {
     exec {*}[auto_execok start] "" $ugName
   } else {
     displayURL http://dx.doi.org/10.6028/NIST.IR.8122
   }
+  errorMsg "The User's Guide is based on version 1.60 of the STEP File Analyzer.\n New features are documented in the Help menu."
+  outputMsg " "
+  .tnb select .tnb.status
 }
  
 #-------------------------------------------------------------------------------
@@ -1468,7 +1455,7 @@ proc processToolTip {ttmsg tt {ttlim 120}} {
   set ttlen 0
   set lchar ""
   set r1 0
-  if {$tt == "PR_STEP_OTHER"} {set ttlim 160}
+  if {$tt == "PR_STEP_COMM"} {set ttlim 160}
 
   foreach item [lsort $entCategory($tt)] {
     if {[string range $item 0 $r1] != $lchar && $lchar != ""} {

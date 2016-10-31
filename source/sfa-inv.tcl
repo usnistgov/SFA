@@ -9,6 +9,7 @@ proc invFind {objEntity} {
 
   set DEBUGINV $opt(DEBUGINV)
   if {$DEBUGINV} {outputMsg "invFind  $objP21ID=$objType  [llength $inverses]" red}
+  #errorMsg "invFind  $objType  [llength $inverses]" red
   
   if {[catch {
     foreach inverse $inverses {
@@ -274,19 +275,18 @@ proc invReport {} {
 # -------------------------------------------------------------------------------
 # set column color, border, group for INVERSES and Used In
 proc invFormat {rancol} {
-  global thisEntType col cells row rowmax worksheet invGroup excel
+  global thisEntType col cells row rowmax worksheet invGroup excelVersion
   
   set igrp1 100
   set igrp2 0
   set i1 [expr {$rancol+1}]
-  #set i1 [expr {$col($thisEntType)+20}]
     
 # fix column widths
   for {set i 1} {$i <= $i1} {incr i} {
     set val [[$cells($thisEntType) Item 3 $i] Value]
     if {$val == "Used In" || [string first "INV-" $val] != -1} {
       set range [$worksheet($thisEntType) Range [cellRange -1 $i]]
-      $range ColumnWidth [expr 255]
+      $range ColumnWidth [expr 80]
     }
   }
   [$worksheet($thisEntType) Columns] AutoFit
@@ -296,7 +296,6 @@ proc invFormat {rancol} {
   for {set i 1} {$i <= $i1} {incr i} {
     set val [[$cells($thisEntType) Item 3 $i] Value]
     if {[string first "INV-" $val] != -1 || [string first "Used In" $val] != -1} {
-      #set r1 [expr {$row($thisEntType)+2}]
       set r1 $row($thisEntType)
       if {$r1 > $rowmax} {set r1 [expr {$r1-1}]}
       set range [$worksheet($thisEntType) Range [cellRange 3 $i] [cellRange $r1 $i]]
@@ -307,7 +306,7 @@ proc invFormat {rancol} {
       }
       if {$i < $igrp1} {set igrp1 $i}
       if {$i > $igrp2} {set igrp2 $i}
-      if {[expr {int([$excel Version])}] >= 12} {
+      if {$excelVersion >= 12} {
         set range [$worksheet($thisEntType) Range [cellRange 4 $i] [cellRange $r1 $i]]
         for {set k 7} {$k <= 12} {incr k} {
           if {$k != 9} {
@@ -336,17 +335,25 @@ proc invFormat {rancol} {
 # as more inverse relationships are checked, it is important that only entities with inverses are checked
 # checking an entity without inverses is costly, particularly if there are a lot of them
 proc invSetCheck {entType} {
-  global opt entCategory userEntityList
+  global opt entCategory userEntityList stepAP ap203all ap214all ap242all
   
   set checkInv 0
+  
+# other APs  
+  if {$stepAP != "AP203" && $stepAP != "AP214" && $stepAP != "AP242"} {
+    if {[lsearch $ap203all $entType] == -1 && \
+        [lsearch $ap214all $entType] == -1 && \
+        [lsearch $ap242all $entType] == -1} {
+      set checkInv 1
+    }
 
-# tolerance, AP209, and user-defined entities
-  if {($opt(PR_STEP_TOLR)  && [lsearch $entCategory(PR_STEP_TOLR)  $entType] != -1) || \
-      ($opt(PR_STEP_AP209) && [lsearch $entCategory(PR_STEP_AP209) $entType] != -1) || \
+# tolerance, user-defined entities
+  } elseif {($opt(PR_STEP_TOLR)  && [lsearch $entCategory(PR_STEP_TOLR)  $entType] != -1) || \
       ($opt(PR_USER) && [lsearch $userEntityList $entType] != -1)} {
     set checkInv 1
+    #outputMsg "checkInv $entType" blue
 
-# other types of entities
+# other types of entities (should be more selective to make it faster)
   } elseif { \
       [string first "action"        $entType] != -1 || \
       [string first "angular"       $entType] != -1 || \
@@ -361,17 +368,19 @@ proc invSetCheck {entType} {
       [string first "item_"         $entType] != -1 || \
       [string first "kinematic"     $entType] != -1 || \
       [string first "machining"     $entType] != -1 || \
+      [string first "milling"       $entType] != -1 || \
       [string first "process"       $entType] != -1 || \
       [string first "product"       $entType] != -1 || \
+      [string first "representation" $entType] != -1 || \
       [string first "resource"      $entType] != -1 || \
       [string first "shape"         $entType] != -1 || \
       [string first "symmetry"      $entType] != -1 || \
       [string first "draughting_model"    $entType] != -1 || \
       [string first "draughting_callout"  $entType] != -1 || \
+      [string first "instanced_feature"   $entType] != -1 || \
       [string first "mechanical_design"   $entType] != -1 || \
       [string first "next_assembly"       $entType] != -1 || \
-      [string first "property_definition" $entType] != -1 || \
-      [string first "representation"      $entType] != -1} {
+      [string first "property_definition" $entType] != -1} {
 
 # not these specific entities
     if {$entType != "annotation_fill_area" && \
@@ -380,10 +389,13 @@ proc invSetCheck {entType} {
         $entType != "draughting_pre_defined_colour" && \
         $entType != "draughting_pre_defined_curve_font" && \
         $entType != "geometric_item_specific_usage" && \
+        $entType != "representation_item" && \
+        $entType != "product_definition_relationship" && \
         $entType != "property_definition_representation" && \
         $entType != "shape_aspect_deriving_relationship" && \
         $entType != "shape_aspect_relationship"} {
       set checkInv 1
+      #outputMsg "checkInv $entType" green
     }
   }
   return $checkInv
@@ -400,6 +412,7 @@ proc initDataInverses {} {
   lappend inverses [list annotation_occurrence item used_in]
   lappend inverses [list annotation_occurrence_relationship related_annotation_occurrence relating_annotation_occurrence]
   lappend inverses [list annotation_occurrence_relationship relating_annotation_occurrence related_annotation_occurrence]
+  lappend inverses [list annotation_placeholder_occurrence item used_in]
   lappend inverses [list annotation_plane elements used_in]
   lappend inverses [list applied_presented_item items used_in]
 
@@ -421,6 +434,9 @@ proc initDataInverses {} {
   lappend inverses [list draughting_model_item_association definition used_in]
   lappend inverses [list draughting_model_item_association identified_item used_in]
   lappend inverses [list draughting_model_item_association used_representation used_in]
+  lappend inverses [list draughting_model_item_association_with_placeholder definition used_in]
+  lappend inverses [list draughting_model_item_association_with_placeholder identified_item used_in]
+  lappend inverses [list draughting_model_item_association_with_placeholder used_representation used_in]
 
   lappend inverses [list geometric_item_specific_usage definition used_in]
   lappend inverses [list geometric_item_specific_usage identified_item used_in]
@@ -486,21 +502,81 @@ proc initDataInverses {} {
     lappend inverses [list $tol toleranced_shape_aspect used_in]
     lappend inverses [list $tol datum_system used_in]
   }
+  lappend inverses [list geometric_tolerance_with_datum_reference datum_system used_in]
   
 # AP209
+  lappend inverses [list control_linear_static_analysis_step analysis_control used_in]
+  lappend inverses [list control_linear_static_analysis_step initial_state used_in]
+  lappend inverses [list control_linear_static_analysis_step process used_in]
+  lappend inverses [list control_linear_static_load_increment_process final_input_state used_in]
+  lappend inverses [list control_result_relationship control result]
+  lappend inverses [list control_result_relationship result control]
+
+  lappend inverses [list curve_3d_element_property interval_definitions used_in]
+  lappend inverses [list curve_3d_element_property end_offsets used_in]
+  lappend inverses [list curve_3d_element_property end_releases used_in]
+  #lappend inverses [list curve_3d_element_representation items used_in]
+  #lappend inverses [list curve_3d_element_representation context_of_items used_in]
   lappend inverses [list curve_3d_element_representation node_list used_in]
-  lappend inverses [list nodal_freedom_action_definition degrees_of_freedom used_in]
+  lappend inverses [list curve_element_interval_constant finish_position used_in]
+  lappend inverses [list curve_element_interval_constant eu_angles used_in]
+  lappend inverses [list curve_element_interval_constant section used_in]
+  lappend inverses [list curve_element_location coordinate used_in]
+
+  lappend inverses [list element_geometric_relationship element_ref item]
+  lappend inverses [list element_geometric_relationship item element_ref]
+  lappend inverses [list element_group model_ref used_in]
+  lappend inverses [list element_group elements used_in]
+
+  lappend inverses [list fea_material_property_representation definition used_in]
+  lappend inverses [list fea_material_property_representation used_representation used_in]
+  #lappend inverses [list fea_material_property_representation dependent_environment used_in]
+  lappend inverses [list fea_model_3d items used_in]
+  lappend inverses [list fea_model_definition of_shape used_in]
+
+  lappend inverses [list nodal_freedom_action_definition defined_state used_in]
   lappend inverses [list nodal_freedom_action_definition node used_in]
+  lappend inverses [list nodal_freedom_action_definition coordinate_system used_in]
+  lappend inverses [list nodal_freedom_action_definition degrees_of_freedom used_in]
+  lappend inverses [list nodal_freedom_values defined_state used_in]
   lappend inverses [list nodal_freedom_values degrees_of_freedom used_in]
+  lappend inverses [list nodal_freedom_values coordinate_system used_in]
   lappend inverses [list nodal_freedom_values node used_in]
   lappend inverses [list node_geometric_relationship node_ref used_in]
   lappend inverses [list node_group nodes used_in]
-  lappend inverses [list single_point_constraint_element freedoms_and_values used_in]
+  lappend inverses [list node_group model_ref used_in]
+  lappend inverses [list node_set nodes used_in]
+
+  lappend inverses [list output_request_state steps used_in]
+  lappend inverses [list point_representation items used_in]
+  lappend inverses [list result_linear_modes_and_frequencies_analysis_sub_step control used_in]
+  lappend inverses [list result_linear_modes_and_frequencies_analysis_sub_step result used_in]
+  lappend inverses [list result_linear_modes_and_frequencies_analysis_sub_step states used_in]
+  lappend inverses [list result_linear_static_analysis_sub_step analysis_control used_in]
+  lappend inverses [list result_linear_static_analysis_sub_step analysis_result used_in]
+  lappend inverses [list result_linear_static_analysis_sub_step state used_in]
+
+  lappend inverses [list single_point_constraint_element steps used_in]
   lappend inverses [list single_point_constraint_element required_node used_in]
+  lappend inverses [list single_point_constraint_element freedoms_and_values used_in]
+  lappend inverses [list single_point_constraint_element_values defined_state used_in]
+  lappend inverses [list single_point_constraint_element_values element used_in]
+  lappend inverses [list single_point_constraint_element_values degrees_of_freedom used_in]
+
+  lappend inverses [list state_component state used_in]
+  lappend inverses [list state_relationship related_state relating_state]
+  lappend inverses [list state_relationship relating_state related_state]
+
+  lappend inverses [list surface_3d_element_location_point_volume_variable_values defined_state used_in]
+  lappend inverses [list surface_3d_element_location_point_volume_variable_values element used_in]
+  lappend inverses [list surface_3d_element_location_point_volume_variable_values values_and_locations used_in]
   lappend inverses [list surface_3d_element_representation node_list used_in]
   lappend inverses [list surface_3d_element_location_point_volume_variable_values values_and_locations used_in]
+  lappend inverses [list surface_element_location coordinates used_in]
+
   lappend inverses [list volume_3d_element_representation node_list used_in]
   lappend inverses [list volume_3d_element_location_point_volume_variable_values values_and_locations used_in]
+  lappend inverses [list whole_model_modes_and_frequencies_analysis_message defined_state used_in]
 
 # kinematics  
   lappend inverses [list kinematic_joint edge_end used_in]
@@ -521,6 +597,27 @@ proc initDataInverses {} {
   lappend inverses [list resource_property_representation representation used_in]
 
   lappend inverses [list roundness_definition projection_end used_in]
+  
+# AP238
+  lappend inverses [list feature_component_relationship relating_shape_aspect related_shape_aspect]
+  lappend inverses [list feature_component_relationship related_shape_aspect relating_shape_aspect]
+  lappend inverses [list shape_defining_relationship relating_shape_aspect related_shape_aspect]
+  lappend inverses [list shape_defining_relationship related_shape_aspect relating_shape_aspect]
+  lappend inverses [list machining_feature_relationship relating_method related_method]
+  lappend inverses [list machining_feature_relationship related_method relating_method]
+  lappend inverses [list machining_functions_relationship relating_method related_method]
+  lappend inverses [list machining_functions_relationship related_method relating_method]
+  lappend inverses [list machining_operation_relationship relating_method related_method]
+  lappend inverses [list machining_operation_relationship related_method relating_method]
+  lappend inverses [list machining_process_branch_relationship relating_method related_method]
+  lappend inverses [list machining_process_branch_relationship related_method relating_method]
+  lappend inverses [list machining_process_sequence_relationship relating_method related_method]
+  lappend inverses [list machining_process_sequence_relationship related_method relating_method]
+  lappend inverses [list machining_technology_relationship relating_method related_method]
+  lappend inverses [list machining_technology_relationship related_method relating_method]
+  lappend inverses [list machining_toolpath_sequence_relationship relating_method related_method]
+  lappend inverses [list machining_toolpath_sequence_relationship related_method relating_method]
+
 }
 
 # -------------------------------------------------------------------------------

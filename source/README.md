@@ -6,10 +6,8 @@
 - sfa-cl.tcl - main program for command-line version
 - sfa-gui.tcl - generate user interface
 - sfa-data.tcl - set lots of variables
-- sfa-data1.tcl - entity lists for several STEP schemas
 - sfa-gen.tcl - generate a spreadsheet
-- sfa-ent.tcl - write a STEP entity to worksheet
-- sfa-entcsv.tcl - write a STEP entity to a CSV file
+- sfa-ent.tcl - write a STEP entity to a worksheet or CSV file
 - sfa-step.tcl - utility procedures
 - sfa-proc.tcl - more utility procedures
 - sfa-inv.tcl - process inverse relationships
@@ -24,11 +22,11 @@
 
 - sfa-files.txt - freewrap input file that lists all of the above files
 
-- nist_ctc_02_asme1_ap242-1.stp - STEP file from the [NIST MBE PMI Validation and Conformance Testing project](http://www.nist.gov/el/msid/infotest/mbe-pmi-validation.cfm)
+- nist_ctc_02_asme1_ap242-1.stp - STEP file from the [NIST MBE PMI Validation and Conformance Testing project](http://go.usa.gov/mGVm)
 
 ##Contact
 
-[Robert Lipman](http://www.nist.gov/el/msid/infotest/rlipman.cfm), <robert.lipman@nist.gov>, 301-975-3829
+[Robert Lipman](https://www.nist.gov/people/robert-r-lipman), <robert.lipman@nist.gov>, 301-975-3829
 
 ##Disclaimers
 

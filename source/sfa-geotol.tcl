@@ -6,6 +6,9 @@ proc spmiGeotolStart {objDesign entType} {
 
   set dtm [list datum identification]
   set cdt [list common_datum identification]
+  set df1 [list datum_feature name]
+  set df2 [list composite_shape_aspect_and_datum_feature name]
+  set df3 [list composite_group_shape_aspect_and_datum_feature name]
   set dr  [list datum_reference precedence referenced_datum $dtm $cdt]
   set dre [list datum_reference_element base $dtm modifiers]
   set drc [list datum_reference_compartment base $dtm $dre modifiers [list datum_reference_modifier_with_value modifier_type modifier_value]]
@@ -16,6 +19,10 @@ proc spmiGeotolStart {objDesign entType} {
   set len3 [list length_measure_with_unit_and_measure_representation_item_and_qualified_representation_item value_component]
   set len4 [list plane_angle_measure_with_unit value_component]
  
+  set PMIP(datum_feature)                                  $df1
+  set PMIP(composite_shape_aspect_and_datum_feature)       $df2
+  set PMIP(composite_group_shape_aspect_and_datum_feature) $df3
+  
   set PMIP(datum_reference)             $dr
   set PMIP(datum_reference_element)     $dre
   set PMIP(datum_reference_compartment) $drc
@@ -27,8 +34,7 @@ proc spmiGeotolStart {objDesign entType} {
 # set PMIP for all *_tolerance entities (datum_system must be last)
   foreach tol $tolNames {set PMIP($tol) [list $tol magnitude $len1 $len2 $len3 $len4\
                                                   toleranced_shape_aspect \
-                                                    [list datum_feature name] [list centre_of_symmetry_and_datum_feature name] \
-                                                    [list composite_group_shape_aspect_and_datum_feature name] [list composite_shape_aspect_and_datum_feature name] \
+                                                    $df1 $df2 $df3 [list centre_of_symmetry_and_datum_feature name] \
                                                     [list composite_group_shape_aspect name] [list composite_shape_aspect name] \
                                                     [list composite_unit_shape_aspect name] [list composite_unit_shape_aspect_and_datum_feature name] \
                                                     [list all_around_shape_aspect name] [list between_shape_aspect name] [list shape_aspect name] [list product_definition_shape name] \
@@ -107,13 +113,12 @@ proc spmiGeotolStart {objDesign entType} {
 
 proc spmiGeotolReport {objEntity} {
   global all_around all_over assocGeom ATR badAttributes between cells col datsys datumCompartment datumFeature datumSystem
-  global dim dimrep elevel ent entAttrList entCount fcount gt gtEntity incrcol lastAttr lastEnt noDatum noDimtol objID opt
-  global pmiCol pmiColumns pmiHeading pmiModifiers pmiStartCol pmiUnicode ptz recPracNames
-  global spmiEnts spmiID spmiIDRow spmiOK spmiRow spmiTypesPerFile stepAP syntaxErr
+  global dim dimrep elevel ent entAttrList entCount gt gtEntity incrcol lastAttr lastEnt noDatum noDimtol objID opt
+  global pmiCol pmiHeading pmiModifiers pmiStartCol pmiUnicode ptz recPracNames
+  global spmiEnts spmiID spmiIDRow spmiRow spmiTypesPerFile stepAP syntaxErr
   global tol_dimprec tol_dimrep tolNames tolval tzf1 tzfNames worksheet
 
   if {$opt(DEBUG1)} {outputMsg "spmiGeotolReport" red}
-  #if {[info exists spmiOK]} {if {$spmiOK == 0} {return}}
    
 # elevel is very important, keeps track level of entity in hierarchy
   incr elevel
@@ -134,9 +139,6 @@ proc spmiGeotolReport {objEntity} {
       if {$objType == "datum_reference"} {
         errorMsg "Syntax Error: Use 'datum_system' instead of 'datum_reference' for PMI Representation in AP242 files.\n[string repeat " " 14]\($recPracNames(pmi242), Sec. 6.9.7)"        
       }
-      if {[string first "modified_geometric_tolerance" $objType] != -1} {
-        errorMsg "Syntax Error: Use 'geometric_tolerance_with_modifiers' instead of 'modified_geometric_tolerance' for PMI Representation in AP242 files.\n[string repeat " " 14]\($recPracNames(pmi242), Sec. 6.9.3)"
-      }
     }
 
 # check if there are rows with gt
@@ -145,10 +147,7 @@ proc spmiGeotolReport {objEntity} {
         set spmiID $objID
         if {![info exists spmiIDRow($gt,$spmiID)]} {
           incr elevel -1
-          set spmiOK 0
           return
-        } else {
-          set spmiOK 1
         }
       }
     }
@@ -198,7 +197,7 @@ proc spmiGeotolReport {objEntity} {
 # get values for these entity and attribute pairs
                 switch -glob $ent1 {
                   "datum_reference_compartment base" {
-# datum_reference_compartment.base refers to a datum or datum_reference_element
+# datum_reference_compartment.base refers to a datum or datum_reference_element(s)
                     if {$gt == "datum_system" && [info exists datumCompartment($objID)]} {
                       set col($gt) $pmiStartCol($gt)
                       set ok 1
@@ -207,125 +206,137 @@ proc spmiGeotolReport {objEntity} {
                     } elseif {$gt == "datum_reference_compartment" && $objValue == ""} {
                       errorMsg "Syntax Error: Missing 'base' attribute on [lindex $ent1 0].\n[string repeat " " 14]\($recPracNames(pmi242), Sec. 6.9.7)"
                       lappend syntaxErr([lindex [split $ent1 " "] 0]) [list $objID [lindex [split $ent1 " "] 1]]
+                    } else {
+                      set baseType ""
+                      catch {set baseType [$objValue Type]}
+                      if {$baseType == "common_datum"} {
+                        errorMsg "Syntax Error: Use 'datum_reference_element' (common_datum_list) instead of 'common_datum' for the 'base' attribute on [lindex $ent1 0].\n[string repeat " " 14]\($recPracNames(pmi242), Sec. 6.9.8)"
+                        lappend syntaxErr([lindex [split $ent1 " "] 0]) [list $objID [lindex [split $ent1 " "] 1]]
+                      }
                     }
                   }
                   "*_tolerance* toleranced_shape_aspect" {
-                    set tsaType [$objValue Type]
-                    set tsaID   [$objValue P21ID]
+                    set oktsa 1
+                    if {$objValue != ""} {
+                      set tsaType [$objValue Type]
+                      set tsaID   [$objValue P21ID]
+                    } else {
+                      errorMsg "Syntax Error: Missing 'toleranced_shape_aspect' attribute on $objType\n[string repeat " " 14]\($recPracNames(pmi242))"
+                      lappend syntaxErr([lindex [split $ent1 " "] 0]) [list [$gtEntity P21ID] [lindex [split $ent1 " "] 1]]
+                      set oktsa 0
+                    }
                     set noDimtol 1
                     set noDatum  1
 
 # get toleranced geometry
-                    getAssocGeom $objValue
+                    if {$oktsa} {
+                      getAssocGeom $objValue
                     
 # get dimension directly
-                    if {[string first "dimensional_" $tsaType] != -1} {
-                      if {[info exists dimrep($tsaID)]} {
-                        set tol_dimrep $dimrep($tsaID)
-                        set noDimtol 0
-                      }
-                      #set dimtolPath "[$objValue Type] [$objValue P21ID]"
-                    }
-
-# get datum feature
-                    set str1 "*_tolerance.toleranced_shape_aspect [$gtEntity P21ID] > [$objValue Type] [$objValue P21ID]"
-                    if {[string first "datum_feature" [$objValue Type]] != -1} {
-                      spmiGetDatumFeature $objValue "Path to Datum Feature (1): $str1"
-                      set noDatum 0
-                    }                    
-
-# follow dimensional_size or dimensional_location
-                    #if {$noDimtol} {
-                    #  set dimtolPath [spmiGetDimtol $e4 "4" $str1 $e4]
-                    #  if {$dimtolPath == ""} {unset dimtolPath}
-                    #}
-                    foreach item [list [list dimensional_location relating_shape_aspect] [list dimensional_size applies_to]] {
-                      set e1s [$objValue GetUsedIn [string trim [lindex $item 0]] [string trim [lindex $item 1]]]
-                      ::tcom::foreach e1 $e1s {
-                        if {[string first "dimensional_" [$e1 Type]] != -1} {
-                          set tol_dimrep $dimrep([$e1 P21ID])
-                          if {$opt(DEBUG2)} {outputMsg "Path to DimTol (1): $str1 << [$e1 Type] [$e1 P21ID] ($tol_dimrep)" green}
-                          if {[$e1 Type] != $tsaType} {set dimtolPath "[$e1 Type] [$e1 P21ID]"}
+                      if {[string first "dimensional_" $tsaType] != -1} {
+                        if {[info exists dimrep($tsaID)]} {
+                          set tol_dimrep $dimrep($tsaID)
                           set noDimtol 0
                         }
+                        #set dimtolPath "[$objValue Type] [$objValue P21ID]"
                       }
-                    }
+
+# get datum feature
+                      set str1 "*_tolerance.toleranced_shape_aspect [$gtEntity P21ID] > [$objValue Type] [$objValue P21ID]"
+                      if {[string first "datum_feature" [$objValue Type]] != -1} {
+                        spmiGetDatumFeature $objValue "Path to Datum Feature (1): $str1"
+                        set noDatum 0
+                      }                    
+
+# follow dimensional_size or dimensional_location
+                      foreach item [list [list dimensional_location relating_shape_aspect] [list dimensional_size applies_to]] {
+                        set e1s [$objValue GetUsedIn [string trim [lindex $item 0]] [string trim [lindex $item 1]]]
+                        ::tcom::foreach e1 $e1s {
+                          if {[string first "dimensional_" [$e1 Type]] != -1} {
+                            set tol_dimrep $dimrep([$e1 P21ID])
+                            if {$opt(DEBUG2)} {outputMsg "Path to DimTol (1): $str1 << [$e1 Type] [$e1 P21ID] ($tol_dimrep)" green}
+                            if {[$e1 Type] != $tsaType} {set dimtolPath "[$e1 Type] [$e1 P21ID]"}
+                            set noDimtol 0
+                          }
+                        }
+                      }
 
 # follow SAR to dimensional_location or dimensional_size
-                    if {$noDimtol || $noDatum} {
-                      foreach item1 [list [list relating_shape_aspect related_shape_aspect 2] [list related_shape_aspect relating_shape_aspect 5]] {
-                        set rel1 [lindex $item1 0]
-                        set rel2 [lindex $item1 1]
-                        set relid [lindex $item1 2]
-                        set e1s [$objValue GetUsedIn [string trim shape_aspect_relationship] [string trim $rel1]]
-                        ::tcom::foreach e1 $e1s {
-                          ::tcom::foreach a1 [$e1 Attributes] {
-                            if {[$a1 Name] == $rel2} {
-                              set e2 [$a1 Value]
-                              set str1 "*_tolerance.toleranced_shape_aspect [$gtEntity P21ID] > [$objValue Type] [$objValue P21ID]\n  << [$e1 Type] [$e1 P21ID] > [$e2 Type] [$e2 P21ID]"
-                              if {$noDatum} {
-                                set datumPath [spmiGetDatumFeature $e2 "Path to Datum Feature ($relid): $str1"]
-                                if {$datumPath == ""} {unset datumPath; set noDatum 1}
-                              }
-                              if {$noDimtol} {
-                                if {[string first "dimensional_" [$e2 Type]] == 0} {
-                                  set tol_dimrep $dimrep([$e2 P21ID])
-                                  if {$opt(DEBUG2)} {outputMsg "Path to DimTol ($relid\A): $str1 ($tol_dimrep)" green}
-                                  set dimtolPath "[$e2 Type] [$e2 P21ID]"
-                                  set noDimtol 0
-                                  #set dimtolPath "[$e2 Type] [$e2 P21ID][format "%c" 10]([$e1 Type] [$e1 P21ID])"
-                                } else {
-                                  if {$noDimtol} {
-                                    set dimtolPath [spmiGetDimtol $e2 "$relid" $str1 $e2]
-                                    if {$dimtolPath == ""} {unset dimtolPath; set noDimtol 1}
+                      if {$noDimtol || $noDatum} {
+                        foreach item1 [list [list relating_shape_aspect related_shape_aspect 2] [list related_shape_aspect relating_shape_aspect 5]] {
+                          set rel1 [lindex $item1 0]
+                          set rel2 [lindex $item1 1]
+                          set relid [lindex $item1 2]
+                          set e1s [$objValue GetUsedIn [string trim shape_aspect_relationship] [string trim $rel1]]
+                          ::tcom::foreach e1 $e1s {
+                            ::tcom::foreach a1 [$e1 Attributes] {
+                              if {[$a1 Name] == $rel2} {
+                                set e2 [$a1 Value]
+                                set str1 "*_tolerance.toleranced_shape_aspect [$gtEntity P21ID] > [$objValue Type] [$objValue P21ID]\n  << [$e1 Type] [$e1 P21ID] > [$e2 Type] [$e2 P21ID]"
+                                if {$noDatum} {
+                                  set datumPath [spmiGetDatumFeature $e2 "Path to Datum Feature ($relid): $str1"]
+                                  if {$datumPath == ""} {unset datumPath; set noDatum 1}
+                                }
+                                if {$noDimtol} {
+                                  if {[string first "dimensional_" [$e2 Type]] == 0} {
+                                    set tol_dimrep $dimrep([$e2 P21ID])
+                                    if {$opt(DEBUG2)} {outputMsg "Path to DimTol ($relid\A): $str1 ($tol_dimrep)" green}
+                                    set dimtolPath "[$e2 Type] [$e2 P21ID]"
+                                    set noDimtol 0
+                                    #set dimtolPath "[$e2 Type] [$e2 P21ID][format "%c" 10]([$e1 Type] [$e1 P21ID])"
+                                  } else {
+                                    if {$noDimtol} {
+                                      set dimtolPath [spmiGetDimtol $e2 "$relid" $str1 $e2]
+                                      if {$dimtolPath == ""} {unset dimtolPath; set noDimtol 1}
+                                    }
                                   }
                                 }
                               }
                             }
                           }
                         }
-                      }
 
 # follow gisu through shape_aspect and advanced_face to get to dimensional tolerance
-                      if {$noDimtol || $noDatum} {
-                        set e1s [$objValue GetUsedIn [string trim geometric_item_specific_usage] [string trim definition]]
-                        ::tcom::foreach e1 $e1s {
-                          ::tcom::foreach a1 [$e1 Attributes] {
-                            if {[$a1 Name] == "identified_item"} {
-                              set e2 [$a1 Value]
-                              if {[$e2 Type] == "oriented_edge"} {
-                                ::tcom::foreach a9 [$e2 Attributes] {if {[$a9 Name] == "edge_element"} {set e2 [$a9 Value]}}
-                              }
-                              set e3s [$e2 GetUsedIn [string trim geometric_item_specific_usage] [string trim identified_item]]
-                              ::tcom::foreach e3 $e3s {
-                                if {[$e1 P21ID] != [$e3 P21ID]} {
-                                  ::tcom::foreach a3 [$e3 Attributes] {
-                                    if {[$a3 Name] == "definition"} {
-                                      set e4 [$a3 Value]
-                                      set str1 "*_tolerance.toleranced_shape_aspect [$gtEntity P21ID] > [$objValue Type] [$objValue P21ID]\n  << gisu.definition - identified_item [$e1 P21ID] >  [$e2 Type] [$e2 P21ID]\n  << gisu.identified_item - definition [$e3 P21ID]"
-                                      if {$noDatum} {
-                                        if {![info exists datumFeature] && [string first "datum_feature" [$e4 Type]] != -1} {
-                                          set str "Path to Datum Feature (3): $str1 > [$e4 Type] [$e4 P21ID]"
-                                          set datumPath [spmiGetDatumFeature $e4 $str]
+                        if {$noDimtol || $noDatum} {
+                          set e1s [$objValue GetUsedIn [string trim geometric_item_specific_usage] [string trim definition]]
+                          ::tcom::foreach e1 $e1s {
+                            ::tcom::foreach a1 [$e1 Attributes] {
+                              if {[$a1 Name] == "identified_item"} {
+                                set e2 [$a1 Value]
+                                if {[$e2 Type] == "oriented_edge"} {
+                                  ::tcom::foreach a9 [$e2 Attributes] {if {[$a9 Name] == "edge_element"} {set e2 [$a9 Value]}}
+                                }
+                                set e3s [$e2 GetUsedIn [string trim geometric_item_specific_usage] [string trim identified_item]]
+                                ::tcom::foreach e3 $e3s {
+                                  if {[$e1 P21ID] != [$e3 P21ID]} {
+                                    ::tcom::foreach a3 [$e3 Attributes] {
+                                      if {[$a3 Name] == "definition"} {
+                                        set e4 [$a3 Value]
+                                        set str1 "*_tolerance.toleranced_shape_aspect [$gtEntity P21ID] > [$objValue Type] [$objValue P21ID]\n  << gisu.definition - identified_item [$e1 P21ID] >  [$e2 Type] [$e2 P21ID]\n  << gisu.identified_item - definition [$e3 P21ID]"
+                                        if {$noDatum} {
+                                          if {![info exists datumFeature] && [string first "datum_feature" [$e4 Type]] != -1} {
+                                            set str "Path to Datum Feature (3): $str1 > [$e4 Type] [$e4 P21ID]"
+                                            set datumPath [spmiGetDatumFeature $e4 $str]
+                                          }
                                         }
-                                      }
-                                      if {$noDimtol} {
-                                        set dimtolPath [spmiGetDimtol $e4 "3" $str1 $e4]
-                                        if {$dimtolPath == ""} {
-                                          unset dimtolPath
-                                          set noDimtol 1
+                                        if {$noDimtol} {
+                                          set dimtolPath [spmiGetDimtol $e4 "3" $str1 $e4]
+                                          if {$dimtolPath == ""} {
+                                            unset dimtolPath
+                                            set noDimtol 1
+                                          }
                                         }
-                                      }
-                                      if {$noDatum} {
-                                        set e6s [$e4 GetUsedIn [string trim shape_aspect_relationship] [string trim related_shape_aspect]]
-                                        ::tcom::foreach e6 $e6s {
-                                          ::tcom::foreach a6 [$e6 Attributes] {
-                                            if {[$a6 Name] == "relating_shape_aspect"} {
-                                              set e7 [$a6 Value]
-                                              if {[string first "datum_feature" [$e7 Type]] != -1} {
-                                                set str "Path to Datum Feature (3A): $str1 > [$e4 Type] [$e4 P21ID]\n  << [$e6 Type] [$e6 P21ID] > [$e7 Type] [$e7 P21ID]"
-                                                set datumPath [spmiGetDatumFeature $e7 $str]
-                                              }                                              
+                                        if {$noDatum} {
+                                          set e6s [$e4 GetUsedIn [string trim shape_aspect_relationship] [string trim related_shape_aspect]]
+                                          ::tcom::foreach e6 $e6s {
+                                            ::tcom::foreach a6 [$e6 Attributes] {
+                                              if {[$a6 Name] == "relating_shape_aspect"} {
+                                                set e7 [$a6 Value]
+                                                if {[string first "datum_feature" [$e7 Type]] != -1} {
+                                                  set str "Path to Datum Feature (3A): $str1 > [$e4 Type] [$e4 P21ID]\n  << [$e6 Type] [$e6 P21ID] > [$e7 Type] [$e7 P21ID]"
+                                                  set datumPath [spmiGetDatumFeature $e7 $str]
+                                                }                                              
+                                              }
                                             }
                                           }
                                         }
@@ -337,53 +348,53 @@ proc spmiGeotolReport {objEntity} {
                             }
                           }
                         }
-                      }
 
 # follow shape_aspect_relationship, then gisu through shape_aspect and advanced_face to get to dimensional tolerance
-                      if {$noDimtol || $noDatum} {
-                        set e0s [$objValue GetUsedIn [string trim shape_aspect_relationship] [string trim relating_shape_aspect]]
-                        ::tcom::foreach e0 $e0s {
-                          ::tcom::foreach a0 [$e0 Attributes] {
-                            if {[$a0 Name] == "related_shape_aspect"} {
-                              set e01 [$a0 Value]
-                              set e1s [$e01 GetUsedIn [string trim geometric_item_specific_usage] [string trim definition]]
-                              ::tcom::foreach e1 $e1s {
-                                ::tcom::foreach a1 [$e1 Attributes] {
-                                  if {[$a1 Name] == "identified_item"} {
-                                    set e2 [$a1 Value]
-                                    if {[$e2 Type] == "oriented_edge"} {
-                                      ::tcom::foreach a9 [$e2 Attributes] {if {[$a9 Name] == "edge_element"} {set e2 [$a9 Value]}}
-                                    }
-                                    set e3s [$e2 GetUsedIn [string trim geometric_item_specific_usage] [string trim identified_item]]
-                                    ::tcom::foreach e3 $e3s {
-                                      if {[$e1 P21ID] != [$e3 P21ID]} {
-                                        ::tcom::foreach a3 [$e3 Attributes] {
-                                          if {[$a3 Name] == "definition"} {
-                                            set e4 [$a3 Value]
-                                            set str1 "*_tolerance.toleranced_shape_aspect [$gtEntity P21ID] > [$objValue Type] [$objValue P21ID]\n  << [$e0 Type] [$e0 P21ID] >  [$e01 Type] [$e01 P21ID]\n  << gisu.definition - identified_item [$e1 P21ID] >  [$e2 Type] [$e2 P21ID]\n  << gisu.identified_item - definition [$e3 P21ID]"
-                                            if {![info exists datumFeature] && [string first "datum_feature" [$e4 Type]] != -1} {
-                                              set str "Path to Datum Feature (4): $str1 > [$e4 Type] [$e4 P21ID]"
-                                              set datumPath [spmiGetDatumFeature $e4 $str]
-                                            }
-                                            if {$noDimtol} {
-                                              set dimtolPath [spmiGetDimtol $e4 "4" $str1 $e4]
-                                              if {$dimtolPath == ""} {unset dimtolPath}
-                                            }
+                        if {$noDimtol || $noDatum} {
+                          set e0s [$objValue GetUsedIn [string trim shape_aspect_relationship] [string trim relating_shape_aspect]]
+                          ::tcom::foreach e0 $e0s {
+                            ::tcom::foreach a0 [$e0 Attributes] {
+                              if {[$a0 Name] == "related_shape_aspect"} {
+                                set e01 [$a0 Value]
+                                set e1s [$e01 GetUsedIn [string trim geometric_item_specific_usage] [string trim definition]]
+                                ::tcom::foreach e1 $e1s {
+                                  ::tcom::foreach a1 [$e1 Attributes] {
+                                    if {[$a1 Name] == "identified_item"} {
+                                      set e2 [$a1 Value]
+                                      if {[$e2 Type] == "oriented_edge"} {
+                                        ::tcom::foreach a9 [$e2 Attributes] {if {[$a9 Name] == "edge_element"} {set e2 [$a9 Value]}}
+                                      }
+                                      set e3s [$e2 GetUsedIn [string trim geometric_item_specific_usage] [string trim identified_item]]
+                                      ::tcom::foreach e3 $e3s {
+                                        if {[$e1 P21ID] != [$e3 P21ID]} {
+                                          ::tcom::foreach a3 [$e3 Attributes] {
+                                            if {[$a3 Name] == "definition"} {
+                                              set e4 [$a3 Value]
+                                              set str1 "*_tolerance.toleranced_shape_aspect [$gtEntity P21ID] > [$objValue Type] [$objValue P21ID]\n  << [$e0 Type] [$e0 P21ID] >  [$e01 Type] [$e01 P21ID]\n  << gisu.definition - identified_item [$e1 P21ID] >  [$e2 Type] [$e2 P21ID]\n  << gisu.identified_item - definition [$e3 P21ID]"
+                                              if {![info exists datumFeature] && [string first "datum_feature" [$e4 Type]] != -1} {
+                                                set str "Path to Datum Feature (4): $str1 > [$e4 Type] [$e4 P21ID]"
+                                                set datumPath [spmiGetDatumFeature $e4 $str]
+                                              }
+                                              if {$noDimtol} {
+                                                set dimtolPath [spmiGetDimtol $e4 "4" $str1 $e4]
+                                                if {$dimtolPath == ""} {unset dimtolPath}
+                                              }
 
 # check for datum feature and dimensional tolerance 
-                                            if {$noDatum || $noDimtol} {
-                                              set e6s [$e4 GetUsedIn [string trim shape_aspect_relationship] [string trim related_shape_aspect]]
-                                              ::tcom::foreach e6 $e6s {
-                                                ::tcom::foreach a6 [$e6 Attributes] {
-                                                  if {[$a6 Name] == "relating_shape_aspect"} {
-                                                    set e7 [$a6 Value]
-                                                    if {[string first "datum_feature" [$e7 Type]] != -1} {
-                                                      set str "Path to Datum Feature (4A): $str1 > [$e4 Type] [$e4 P21ID]\n  << [$e6 Type] [$e6 P21ID] > [$e7 Type] [$e7 P21ID]"
-                                                      set datumPath [spmiGetDatumFeature $e7 $str]
-                                                    }
-                                                    if {$noDimtol} {
-                                                      set dimtolPath [spmiGetDimtol $e7 "4A" $str1 $e4]
-                                                      if {$dimtolPath == ""} {unset dimtolPath}
+                                              if {$noDatum || $noDimtol} {
+                                                set e6s [$e4 GetUsedIn [string trim shape_aspect_relationship] [string trim related_shape_aspect]]
+                                                ::tcom::foreach e6 $e6s {
+                                                  ::tcom::foreach a6 [$e6 Attributes] {
+                                                    if {[$a6 Name] == "relating_shape_aspect"} {
+                                                      set e7 [$a6 Value]
+                                                      if {[string first "datum_feature" [$e7 Type]] != -1} {
+                                                        set str "Path to Datum Feature (4A): $str1 > [$e4 Type] [$e4 P21ID]\n  << [$e6 Type] [$e6 P21ID] > [$e7 Type] [$e7 P21ID]"
+                                                        set datumPath [spmiGetDatumFeature $e7 $str]
+                                                      }
+                                                      if {$noDimtol} {
+                                                        set dimtolPath [spmiGetDimtol $e7 "4A" $str1 $e4]
+                                                        if {$dimtolPath == ""} {unset dimtolPath}
+                                                      }
                                                     }
                                                   }
                                                 }
@@ -400,18 +411,18 @@ proc spmiGeotolReport {objEntity} {
                           }
                         }
                       }
-                    }
 # check for all around, between
-                    if {[$objValue Type] == "all_around_shape_aspect"} {
-                      set ok 1
-                      set idx "all_around"
-                      set all_around 1
-                      lappend spmiTypesPerFile $idx
-                    } elseif {[$objValue Type] == "between_shape_aspect"} {
-                      set ok 1
-                      #set idx "between"
-                      #set between 1
-                      #lappend spmiTypesPerFile $idx
+                      if {[$objValue Type] == "all_around_shape_aspect"} {
+                        set ok 1
+                        set idx "all_around"
+                        set all_around 1
+                        lappend spmiTypesPerFile $idx
+                      } elseif {[$objValue Type] == "between_shape_aspect"} {
+                        set ok 1
+                        set idx "between"
+                        set between 1
+                        lappend spmiTypesPerFile $idx
+                      }
                     }
                   }
                   "length_measure_with_unit* value_component" {
@@ -427,24 +438,27 @@ proc spmiGeotolReport {objEntity} {
                             if {[$attrTZF Name] == "name"} {
                               set tzfName [$attrTZF Value]
                               if {[lsearch $tzfNames $tzfName] != -1} {
-                                if {[info exists pmiUnicode($tzfName)]} {
-                                  set tzf $pmiUnicode($tzfName)
+                                set tzfName1 $tzfName
+                                if {$tzfName1 == "spherical"} {set tzfName1 "spherical diameter"}
+                                if {[info exists pmiUnicode($tzfName1)]} {
+                                  set tzf $pmiUnicode($tzfName1)
                                 } else {
-                                  #outputMsg "  Tolerance Zone Form: $tzfName" green
-                                  set tzf1 "(TZF-$tzfName)"
+                                  set tzf1 "(TZF: $tzfName)"
                                 }
                               } else {
                                 if {$tzfName == "cylindrical" || $tzfName == "circular"} {
                                   errorMsg "Syntax Error: 'tolerance_zone_form.name' attribute ($tzfName) must be 'cylindrical or circular' on [$gtEntity Type].\n[string repeat " " 14]\($recPracNames(pmi242), Sec. 6.9.2, Table 11)"
                                 } elseif {$tzfName != "" && [string tolower $tzfName] != "unknown"} {
-                                  errorMsg "Syntax Error: Invalid 'tolerance_zone_form.name' attribute ($tzfName) on [$gtEntity Type].\n[string repeat " " 14]\($recPracNames(pmi242), Sec. 6.9.2, Tables 11, 12)"
+                                  errorMsg "Syntax Error: Invalid 'tolerance_zone_form.name' attribute ($tzfName) for a tolerance.\n[string repeat " " 14]\($recPracNames(pmi242), Sec. 6.9.2, Tables 11, 12)"
                                 }
                                 lappend syntaxErr(tolerance_zone_form) [list [[$attrTZ Value] P21ID] "name"]
-                                set tzf1 "(TZF-$tzfName)"
+                                set tzf1 "(Invalid TZF: $tzfName)"
                               }
-                              #lappend spmiTypesPerFile "tolerance zone"
-                              if {$tzfName == "cylindrical or circular"} {lappend spmiTypesPerFile "tolerance zone diameter"}
-                              if {$tzfName == "spherical"}               {lappend spmiTypesPerFile "tolerance zone spherical diameter"}
+                              if {$tzfName == "cylindrical or circular"} {
+                                lappend spmiTypesPerFile "tolerance zone diameter"
+                              } elseif {$tzfName == "spherical"} {
+                                lappend spmiTypesPerFile "tolerance zone spherical diameter"
+                                }
 # only these tolerances allow a tolerance zone form                              
                               set ok1 0
                               foreach item {"position" "perpendicularity" "parallelism" "angularity" "coaxiality" "concentricity" "straightness"} {
@@ -452,7 +466,9 @@ proc spmiGeotolReport {objEntity} {
                                 if {[string first $gtol [$gtEntity Type]] != -1} {set ok1 1}
                               }
                               if {$ok1 == 0 && [string tolower $tzfName] != "unknown"} {
-                                errorMsg "Syntax Error: 'tolerance_zone_form.name' attributes ($tzfName)\n[string repeat " " 14]not allowed with [$gtEntity Type]"
+                                set tolType [$gtEntity Type]
+                                foreach item $tolNames {if {[string first [$gtEntity Type] $item] != -1} {set tolType $item}}
+                                errorMsg "Syntax Error: Tolerance zones are not allowed with $tolType."
                                 lappend syntaxErr(tolerance_zone_form) [list [[$attrTZ Value] P21ID] "name"]
                               }
                             }
@@ -497,13 +513,13 @@ proc spmiGeotolReport {objEntity} {
 # truncate
                           if {[getPrecision $objValue] > 6} {set objValue [string trimright [format "%.6f" $objValue] "0"]}
                           set tolval $objValue
-                          set objValue "$tname | $tzf $objValue"
+                          set objValue "$tname | $tzf$objValue"
 
 # add projected or non-uniform tolerance zone magnitude value
                           if {$ptz != ""} {
                             if {$ptz != "NON-UNIFORM"} {
                               set idx "projected"
-                              append objValue " $pmiModifiers($idx)$ptz"
+                              append objValue " $pmiModifiers($idx) $ptz"
                               lappend spmiTypesPerFile $idx
                             } else {
                               set objValue "[string range $objValue 0 [string first "|" $objValue]] $ptz"
@@ -518,7 +534,7 @@ proc spmiGeotolReport {objEntity} {
                     } elseif {$ATR(1) == "displacement" && [string first "unequally_disposed" $gt] != -1} {
                       set ok 1
                       set idx "unequally_disposed"
-                      set objValue " $pmiModifiers($idx)$objValue"
+                      set objValue " $pmiModifiers($idx) $objValue"
                       lappend spmiTypesPerFile $idx
 
 # get unit-basis tolerance value (6.9.6)
@@ -577,7 +593,7 @@ proc spmiGeotolReport {objEntity} {
                       if {[string first "/ $pmiUnicode(diameter)" $val] == -1} {
                         $cells($gt) Item $r $c "[string range $val 0 [string first "X" $val]-2] $objValue"
                       }
-                    } elseif {[string first "(U)" $objValue] == -1 && $ATR(1) != "unit_size"} {
+                    } elseif {[string first $pmiModifiers(unequally_disposed) $objValue] == -1 && $ATR(1) != "unit_size"} {
                       #$cells($gt) Item $r $c "$val | $objValue"
                       if {[string first "handle" $objValue] == -1} {$cells($gt) Item $r $c "$val | $objValue"}
                     } else {
@@ -649,7 +665,15 @@ proc spmiGeotolReport {objEntity} {
                             append nval " $pmiModifiers($val)"
                           }
                           set ok 1
-                          lappend spmiTypesPerFile $val
+                          if {[string first $gt $ent1] == 0} {lappend spmiTypesPerFile $val}
+                          
+                          if {[string first "_material_condition" $val] != -1 && $stepAP == "AP242"} {
+                            if {[string first "max" $val] == 0} {
+                              errorMsg "Syntax Error: Use 'maximum_material_requirement' instead of 'maximum_material_condition' for PMI Representation in AP242 files.\n[string repeat " " 14]\($recPracNames(pmi242), Sec. 6.9.3)"
+                            } elseif {[string first "least" $val] == 0} {
+                              errorMsg "Syntax Error: Use 'least_material_requirement' instead of 'least_material_condition' for PMI Representation in AP242 files.\n[string repeat " " 14]\($recPracNames(pmi242), Sec. 6.9.3)"
+                            }  
+                          }
                         } else {
                           if {$val != ""} {append nval " \[$val\]"}
                           set ok 1
@@ -751,10 +775,14 @@ proc spmiGeotolReport {objEntity} {
                     } else {
                       set colName "Datum Identification"
                     }
+                    if {![string is alpha $ov]} {
+                      errorMsg "Syntax Error: 'datum.identification' $ov is not a letter.\n[string repeat " " 14]\($recPracNames(pmi242), Sec. 6.5)"
+                    }
                   }
                   "common_datum identification" {
                     set common_datum ""
-# common datum (A-B)
+# common datum (A-B), not the recommended practice
+                    errorMsg "Syntax Error: Use 'common_datum_list' instead of 'common_datum' for multiple datum features.\n[string repeat " " 14]\($recPracNames(pmi242), Sec. 6.9.8)"
                     set e1s [$objEntity GetUsedIn [string trim shape_aspect_relationship] [string trim relating_shape_aspect]]
                     ::tcom::foreach e1 $e1s {
                       ::tcom::foreach a1 [$e1 Attributes] {
@@ -778,14 +806,18 @@ proc spmiGeotolReport {objEntity} {
                     set c1 [string last "_" $gt]
                     if {$c1 != -1} {
                       set colName "[string range $gt $c1+1 end][format "%c" 10](Sec. 6.9.7, 6.9.8)"
-                   } else {
+                    } else {
                       set colName "Datum Identification"
                     }
                   }
                   "*datum_feature* name" {
 # get datum feature and associated geometry (datum_feature usually set someplace else first)
-                    if {![info exists datumFeature]} {
+                    if {![info exists datumFeature] && [string first "datum_feature" [$gtEntity Type]] == -1} {
                       set datumPath [spmiGetDatumFeature $objEntity "Path to Datum Feature (5): *_tolerance.toleranced_shape_aspect [$gtEntity P21ID] > [$objEntity Type] [$objEntity P21ID]"]
+                    }
+                    if {[string first "datum_feature" [$gtEntity Type]] != -1} {
+                      getAssocGeom $gtEntity
+                      reportAssocGeom
                     }
                   }
                   "referenced_modified_datum modifier" {
@@ -808,10 +840,10 @@ proc spmiGeotolReport {objEntity} {
                     set datumTargetType $ov
                     set oktarget 1
                     if {[$gtEntity Type] == "placed_datum_target_feature"} {
-                      if {$ov != "point" && $ov != "line" && $ov != "rectangle" && $ov != "circle"} {
+                      if {$ov != "point" && $ov != "line" && $ov != "rectangle" && $ov != "circle" && $ov != "circular curve"} {
                         set oktarget 0
                       } else {
-                        lappend spmiTypesPerFile "$ov datum target (6.6)"
+                        lappend spmiTypesPerFile "$ov placed datum target (6.6)"
                       }
 # placed datum target feature geometry
                       set e0s [$gtEntity GetUsedIn [string trim feature_for_datum_target_relationship] [string trim related_shape_aspect]]
@@ -836,18 +868,15 @@ proc spmiGeotolReport {objEntity} {
                         set col($gt) [expr {$pmiStartCol($gt)+2}]
                         set colName "Target Geometry[format "%c" 10](Sec. 6.6.2)"
                         set objValue $datumTargetGeom
+                        lappend spmiTypesPerFile "placed datum target geometry (6.6.2)"
                       } else {
-                        errorMsg "Syntax Error: Missing target geometry for [$gtEntity Type].\n[string repeat " " 14]\($recPracNames(pmi242), Sec. 6.6.2)"
+                        #errorMsg "Syntax Error: Missing target geometry for [$gtEntity Type].\n[string repeat " " 14]\($recPracNames(pmi242), Sec. 6.6.2)"
                       }
                     } else {
                       if {$ov != "area" && $ov != "curve"} {
                         set oktarget 0
                       } else {
-                        if {$ov == "area"} {
-                          lappend spmiTypesPerFile "$ov datum target (6.6)"
-                        } else {
-                          lappend spmiTypesPerFile "$ov datum target"
-                        }
+                        lappend spmiTypesPerFile "$ov datum target (6.6)"
                       }
 # datum target feature geometry
                       set e1s [$gtEntity GetUsedIn [string trim geometric_item_specific_usage] [string trim definition]]
@@ -906,8 +935,8 @@ proc spmiGeotolReport {objEntity} {
                     set ok 1
                     set col($gt) $pmiStartCol($gt)
                     set colName "Datum Target[format "%c" 10](Sec. 6.6)"
-                    set objValue $datumTarget
-                    lappend spmiTypesPerFile "datum target"
+                    set objValue "$datumTarget ($datumTargetType)"
+                    #lappend spmiTypesPerFile "datum target"
 #
 # datum target shape representation (Section 6.6.1)
                     set datumTargetRep ""
@@ -982,6 +1011,8 @@ proc spmiGeotolReport {objEntity} {
                                           }
                                         }
                                         append datumTargetRep "[format "%c" 10]movable target direction   $dirrat[format "%c" 10]   (direction [$e4 P21ID])"
+                                        lappend spmiTypesPerFile "movable datum target"
+                                        append objValue " (movable)"
                                       } else {
                                         errorMsg "Syntax Error: Invalid 'item' ([$e4 Type]) on shape_representation_with_parameters for a datum target\n[string repeat " " 14]\($recPracNames(pmi242), Sec. 6.6)"
                                       }
@@ -1001,19 +1032,8 @@ proc spmiGeotolReport {objEntity} {
                       }
                     }
                   }
-                  "shape_aspect name" {
-# all over, wrong practice with IDA-STEP
-                    if {$ov == "All Over"} {
-                      set ok 1
-                      set all_over 1
-                      set idx "all over"
-                      lappend spmiTypesPerFile $idx
-                      errorMsg "Possible Syntax Error: Recommended Practice not followed for All Over.\n[string repeat " " 14]\($recPracNames(pmi242), Sec. 6.3)"
-                      set invalid 1
-                    }
-                  }
                   "product_definition_shape name" {
-# all over, right way
+# all over
                     if {$ATR(1) == "toleranced_shape_aspect"} {
                       set ok 1
                       set all_over 1
@@ -1021,37 +1041,11 @@ proc spmiGeotolReport {objEntity} {
                       lappend spmiTypesPerFile $idx
                     }
                   }
-                  "composite_group_shape_aspect name" -
-                  "composite_shape_aspect name" -
-                  "all_around_shape_aspect name" -
-                  "between_shape_aspect name" {
-                    #outputMsg "here [$objEntity Type]"
-# get the modifier count (fcount)
-                    #set e1s [$objEntity GetUsedIn [string trim shape_aspect_relationship] [string trim relating_shape_aspect]]
-                    #set fcount 0
-                    #::tcom::foreach e1 $e1s {
-                    #  ::tcom::foreach a1 [$e1 Attributes] {
-                    #    if {[$a1 Name] == "related_shape_aspect"} {
-                    #      set e2 [$a1 Value]
-                    #      if {[$e2 Type] == "shape_aspect"} {
-                    #        incr fcount
-                    #      } elseif {[$e2 Type] == "composite_shape_aspect"} {
-                    #        set e3s [$e2 GetUsedIn [string trim shape_aspect_relationship] [string trim relating_shape_aspect]]
-                    #        ::tcom::foreach e3 $e3s {
-                    #          ::tcom::foreach a3 [$e3 Attributes] {
-                    #            if {[$a3 Name] == "related_shape_aspect"} {
-                    #              set e4 [$a3 Value]
-                    #              if {[$e4 Type] == "shape_aspect"} {incr fcount}
-                    #            }
-                    #          }
-                    #        }
-                    #      }
-                    #    }
-                    #  }
-                    #}
-                  }
                   "*modified_geometric_tolerance* modifier" {
-# AP203 get geotol modifier
+# AP203 get geotol modifier, not used in AP242
+                    if {[string first "modified_geometric_tolerance" $objType] != -1 && $stepAP == "AP242"} {
+                      errorMsg "Syntax Error: Use 'geometric_tolerance_with_modifiers' instead of 'modified_geometric_tolerance' for PMI Representation in AP242 files.\n[string repeat " " 14]\($recPracNames(pmi242), Sec. 6.9.3)"
+                    }
                     set col($gt) $pmiStartCol($gt)
                     set nval ""
                     foreach val $objValue {
@@ -1059,6 +1053,13 @@ proc spmiGeotolReport {objEntity} {
                         append nval " $pmiModifiers($val)"
                         set ok 1
                         lappend spmiTypesPerFile $val
+                        if {[string first "_material_condition" $val] != -1 && $stepAP == "AP242"} {
+                          if {[string first "max" $val] == 0} {
+                            errorMsg "Syntax Error: Use 'maximum_material_requirement' instead of 'maximum_material_condition' for PMI Representation in AP242 files.\n[string repeat " " 14]\($recPracNames(pmi242), Sec. 6.9.3)"
+                          } elseif {[string first "least" $val] == 0} {
+                            errorMsg "Syntax Error: Use 'least_material_requirement' instead of 'least_material_condition' for PMI Representation in AP242 files.\n[string repeat " " 14]\($recPracNames(pmi242), Sec. 6.9.3)"
+                          }  
+                        }
                       } else {
                         if {$val != ""} {append nval " \[$val\]"}
                         set ok 1
@@ -1111,6 +1112,8 @@ proc spmiGeotolReport {objEntity} {
                     if {[info exists all_over]} {
                       $cells($gt) Item $r $c "\[ALL OVER\] | $val"
                       unset all_over
+
+# common or multiple datum features (section 6.9.8)
                     } elseif {$ent1 == "datum identification"} {
                       if {$gt == "datum_reference_compartment"} {
                         set nval $val-$ov
@@ -1233,11 +1236,9 @@ proc spmiGeotolReport {objEntity} {
       errorMsg "ERROR adding Datum Feature: $emsg3"
     }
     
-# check for composite or stacked tolerance
+# check for composite tolerance (not stacked)
     if {[catch {
       if {[string first "tolerance" $gt] != -1} {
-        #set comptol [list composite simultaneity precedence]
-        set comptol [list composite]
         set c [string index [cellRange 1 $col($gt)] 0]
         set r $spmiIDRow($gt,$spmiID)
         set val [[$cells($gt) Item $r $c] Value]
@@ -1246,17 +1247,19 @@ proc spmiGeotolReport {objEntity} {
           ::tcom::foreach a1 [$e1 Attributes] {
             if {[$a1 Name] == "name"} {
               set compval [$a1 Value]
-              if {[lsearch $comptol [string tolower $compval]] != -1 && $compval != [string tolower $compval]} {
-                errorMsg "Syntax Error: Use lower case for 'name' attribute ($compval) on geometric_tolerance_relationship.\n[string repeat " " 14]\($recPracNames(pmi242), Sec. 6.9.9)"
-                set compval [string tolower $compval]
-              } elseif {[lsearch $comptol $compval] == -1} {
-                errorMsg "Syntax Error: Invalid 'name' attribute ($compval) on geometric_tolerance_relationship.\n[string repeat " " 14]\($recPracNames(pmi242), Sec. 6.9.9)"
+              if {$compval != "composite"} {
+                if {[string tolower $compval] == "composite"} {
+                  errorMsg "Syntax Error: Use lower case for 'name' attribute ($compval) on geometric_tolerance_relationship.\n[string repeat " " 14]\($recPracNames(pmi242), Sec. 6.9.9)"
+                  set compval [string tolower $compval]
+                } elseif {$compval == "precedence" || $compval == "simultaneity"} {
+                  errorMsg "Syntax Error: 'name' attribute ($compval) not recommended on geometric_tolerance_relationship.\n[string repeat " " 14]\($recPracNames(pmi242), Sec. 6.9.9)"
+                } else {
+                  errorMsg "Syntax Error: Invalid 'name' attribute ($compval) on geometric_tolerance_relationship.\n[string repeat " " 14]\($recPracNames(pmi242), Sec. 6.9.9)"
+                }
               }
             } elseif {[$a1 Name] == "relating_geometric_tolerance"} {
-              set str "composite"
-              #if {[$objEntity Type] != [[$a1 Value] Type]} {set str "stacked"}
-              $cells($gt) Item $r $c "$val[format "%c" 10]($str with [[$a1 Value] P21ID])"
-              lappend spmiTypesPerFile "$str tolerance"
+              $cells($gt) Item $r $c "$val[format "%c" 10](composite with [[$a1 Value] P21ID])"
+              lappend spmiTypesPerFile "composite tolerance"
             }
           }
         }
@@ -1266,14 +1269,6 @@ proc spmiGeotolReport {objEntity} {
     }
 
     if {[catch {
-      set fok 0
-      #if {[info exists fcount]} {
-      #  if {$fcount > 1} {
-      #    set fok 1
-      #    lappend spmiTypesPerFile "feature count 'nX'"
-      #    errorMsg " Feature Count (e.g., 4X) is based on counting Shape Aspects associated with a Tolerance.\n It may not be accurate and does not correspond to the associated PMI Presentation." red
-      #  }
-      #}
     
 # add dimensional tolerance and count
       if {[info exists tol_dimrep]} {
@@ -1321,25 +1316,8 @@ proc spmiGeotolReport {objEntity} {
           }
         }
 
-        if {$fok} {
-          if {[string first "'" $tol_dimrep] != 0} {
-            $cells($gt) Item $r $c "$fcount\X $tol_dimrep[format "%c" 10]$val"
-          } else {
-            $cells($gt) Item $r $c "$fcount\X[format "%c" 10][string range $tol_dimrep 1 end][format "%c" 10]$val"
-          }
-          unset fcount
-        } else {
-          $cells($gt) Item $r $c "$tol_dimrep[format "%c" 10]$val"
-        }
+        $cells($gt) Item $r $c "$tol_dimrep[format "%c" 10]$val"
         unset tol_dimrep
-
-# add only count
-      } elseif {$fok} {
-        set c [string index [cellRange 1 $col($gt)] 0]
-        set r $spmiIDRow($gt,$spmiID)
-        set val [[$cells($gt) Item $r $c] Value]
-        $cells($gt) Item $r $c "$fcount\X[format "%c" 10]$val"
-        unset fcount
       }
 
 # add TZF (tzf1) for those that are wrong or do not have a symbol associated with them
@@ -1349,6 +1327,7 @@ proc spmiGeotolReport {objEntity} {
           set r $spmiIDRow($gt,$spmiID)
           set val [[$cells($gt) Item $r $c] Value]
           $cells($gt) Item $r $c "$val[format "%c" 10]$tzf1"
+          unset tzf1
         }
       }
       
@@ -1393,20 +1372,25 @@ proc spmiGeotolReport {objEntity} {
       unset datumPath
     }
       
-# report associated geometry
+# report toleranced geometry
     if {[info exists assocGeom]} {
       set str [reportAssocGeom]
       if {$str != ""  } {
         set c1 [expr {$col($gt)+3}]
         set c [string index [cellRange 1 $c1] 0]
         set r $spmiIDRow($gt,$spmiID)
-        set heading "Toleranced Geometry[format "%c" 10](column E)"
+        if {[string first "datum_feature" [$gtEntity Type]] == -1} {
+          set heading "Toleranced Geometry[format "%c" 10](column E)"
+        } else {
+          set heading "Associated Geometry[format "%c" 10](Sec. 6.5)"
+        }
         if {![info exists pmiHeading($c1)]} {
           $cells($gt) Item 3 $c $heading
           set pmiHeading($c1)) 1
           set pmiCol [expr {max($c1,$pmiCol)}]
         }
         $cells($gt) Item $r $c [string trim $str]
+        if {[lsearch $spmiRow($gt) $r] == -1} {lappend spmiRow($gt) $r}
       }
     }
   }
@@ -1510,59 +1494,70 @@ proc spmiGetDatumFeature {ent str1} {
 # -------------------------------------------------------------------------------
 # start semantic PMI coverage analysis worksheet
 proc spmiCoverageStart {{multi 1}} {
-		global cells cells1 multiFileDir opt pmiModifiers pmiModifiersRP pmiUnicode
-		global sempmi_coverage sheetLast spmiTypes worksheet worksheet1 worksheets worksheets1 
-		
+  global cells cells1 multiFileDir pmiModifiers pmiModifiersRP pmiUnicode
+  global sempmi_coverage sheetLast spmiTypes worksheet worksheet1 worksheets worksheets1 
   #outputMsg "spmiCoverageStart $multi" red
 
   if {[catch {
     set sempmi_coverage "PMI Representation Coverage"
+
+# multiple files
     if {$multi} {
-      if {$opt(PMIGRF)} {
-        set worksheet1($sempmi_coverage) [$worksheets1 Item [expr 3]]
-      } else {
-        set worksheet1($sempmi_coverage) [$worksheets1 Item [expr 2]]
-      }
-      $worksheet1($sempmi_coverage) Activate
+      set worksheet1($sempmi_coverage) [$worksheets1 Item [expr 2]]
+      #$worksheet1($sempmi_coverage) Activate
       $worksheet1($sempmi_coverage) Name $sempmi_coverage
       set cells1($sempmi_coverage) [$worksheet1($sempmi_coverage) Cells]
       $cells1($sempmi_coverage) Item 1 1 "STEP Directory"
       $cells1($sempmi_coverage) Item 1 2 "[file nativename $multiFileDir]"
-      $cells1($sempmi_coverage) Item 3 1 "PMI Element"
+      $cells1($sempmi_coverage) Item 3 1 "PMI Element   (See Help > PMI Coverage Analysis)"
       set range [$worksheet1($sempmi_coverage) Range "B1:K1"]
       [$range Font] Bold [expr 1]
       $range MergeCells [expr 1]
+
+# single file
     } else {
       set worksheet($sempmi_coverage) [$worksheets Add [::tcom::na] $sheetLast]
-      $worksheet($sempmi_coverage) Activate
+      #$worksheet($sempmi_coverage) Activate
       $worksheet($sempmi_coverage) Name $sempmi_coverage
       set cells($sempmi_coverage) [$worksheet($sempmi_coverage) Cells]
       set wsCount [$worksheets Count]
       [$worksheets Item [expr $wsCount]] -namedarg Move Before [$worksheets Item [expr 4]]
-      $cells($sempmi_coverage) Item 3 1 "PMI Element"
+
+      $cells($sempmi_coverage) Item 3 1 "PMI Element (See Help > PMI Coverage Analysis)"
       $cells($sempmi_coverage) Item 3 2 "Count"
       set range [$worksheet($sempmi_coverage) Range "1:3"]
       [$range Font] Bold [expr 1]
+
+      [$worksheet($sempmi_coverage) Range A:A] ColumnWidth [expr 48]
+      [$worksheet($sempmi_coverage) Range B:B] ColumnWidth [expr 6]
+      [$worksheet($sempmi_coverage) Range D:D] ColumnWidth [expr 48]
     }
     
+# add pmi types
     set row1($sempmi_coverage) 3
     set row($sempmi_coverage) 3
+
+# add modifiers
     foreach item $spmiTypes {
       set str0 [join $item]
       set str $str0
       if {$str != "square" && $str != "controlled_radius"} {
         if {[info exists pmiModifiers($str0)]}   {append str "  $pmiModifiers($str0)"}
         if {[info exists pmiModifiersRP($str0)]} {append str "  ($pmiModifiersRP($str0))"}
+
+# tolerance
         set str1 $str
         set c1 [string last "_" $str]
         if {$c1 != -1} {set str1 [string range $str 0 $c1-1]}
         if {[info exists pmiUnicode($str1)]} {append str "  $pmiUnicode($str1)"}
-        if {$multi} {
-          $cells1($sempmi_coverage) Item [incr row1($sempmi_coverage)] 1 $str
-        } else {
+
+        if {!$multi} {
           $cells($sempmi_coverage) Item [incr row($sempmi_coverage)] 1 $str
+        } else {
+          $cells1($sempmi_coverage) Item [incr row1($sempmi_coverage)] 1 $str
         }
       }
+      #outputMsg $str
     }
   } emsg3]} {
     errorMsg "ERROR starting PMI Representation Coverage worksheet: $emsg3"
@@ -1668,7 +1663,7 @@ proc spmiCoverageWrite {{fn ""} {sum ""} {multi 1}} {
       catch {if {$multi} {unset spmiTypesPerFile}}
     }
 
-# get spmiCoverages (see sfa-gen.tcl to make sure spmiGetCoverageValues is called)
+# get spmiCoverages (see sfa-gen.tcl to make sure spmiGetPMI is called)
     if {![info exists nfile]} {
       set nf 0
     } else {
@@ -1782,7 +1777,7 @@ proc spmiCoverageWrite {{fn ""} {sum ""} {multi 1}} {
 # -------------------------------------------------------------------------------
 # format semantic PMI coverage analysis worksheet, also PMI totals
 proc spmiCoverageFormat {sum {multi 1}} {
-  global cells cells1 col1 coverageLegend coverageStyle excel1 lenfilelist localName opt
+  global cells cells1 col1 coverageLegend coverageStyle excel1 lenfilelist localName opt excelVersion
   global pmiModifiers pmiUnicode recPracNames sempmi_coverage sempmi_totals spmiTypes worksheet worksheet1 
 
   #outputMsg "spmiCoverageFormat $multi" red
@@ -1827,8 +1822,8 @@ proc spmiCoverageFormat {sum {multi 1}} {
     }
  
 # horizontal break lines
-    set idx1 [list 20 41 53 59 79]
-    if {!$multi} {set idx1 [list 3 4 20 41 53 59 79]}
+    set idx1 [list 20 41 54 60 80]
+    if {!$multi} {set idx1 [list 3 4 20 41 54 60 80]}
     for {set r 200} {$r >= [lindex $idx1 end]} {incr r -1} {
       if {$multi} {
         set val [[$cells1($sempmi_coverage) Item $r 1] Value]
@@ -1884,7 +1879,7 @@ proc spmiCoverageFormat {sum {multi 1}} {
       }
       
       if {$coverageLegend} {spmiCoverageLegend $multi}
-      [$worksheet($sempmi_coverage) Columns] AutoFit        
+      [$worksheet($sempmi_coverage) Columns] AutoFit
 
       $cells($sempmi_coverage) Item 1 4 "Section Numbers refer to the CAx-IF Recommended Practice for $recPracNames(pmi242)"
       set range [$worksheet($sempmi_coverage) Range D1:N1]
@@ -1892,7 +1887,6 @@ proc spmiCoverageFormat {sum {multi 1}} {
       set anchor [$worksheet($sempmi_coverage) Range D1]
       [$worksheet($sempmi_coverage) Hyperlinks] Add $anchor [join "https://www.cax-if.org/joint_testing_info.html#recpracs"] [join ""] [join "Link to CAx-IF Recommended Practices"]
 
-      [$worksheet($sempmi_coverage) Rows] AutoFit
       [$worksheet($sempmi_coverage) Range "A1"] Select
       [$worksheet($sempmi_coverage) PageSetup] PrintGridlines [expr 1]
       $cells($sempmi_coverage) Item 1 1 [file tail $localName]
@@ -1907,7 +1901,7 @@ proc spmiCoverageFormat {sum {multi 1}} {
 # -------------------------------------------------------------------------------
 # add coverage legend
 proc spmiCoverageLegend {multi {row 3}} {
-  global cells cells1 legendColor sempmi_coverage worksheet worksheet1
+  global cells cells1 excel excel1 legendColor sempmi_coverage worksheet worksheet1
   
   if {$multi == 0} {
     set cl $cells($sempmi_coverage)
@@ -1920,97 +1914,38 @@ proc spmiCoverageLegend {multi {row 3}} {
     set r $row
     set c A
   }
-  
-  $cl Item $r $c "Values as Compared to NIST Test Case Drawing"
-  [[[$ws Range $c$r] Borders] Item [expr 8]] Weight [expr 2]
-  [[[$ws Range $c$r] Borders] Item [expr 10]] Weight [expr 2]
-  [[[$ws Range $c$r] Borders] Item [expr 7]] Weight [expr 2]
-  [[$ws Range $c$r] Font] Bold [expr 1]
-  incr r
-  $cl Item $r $c "See Help > Coverage Analysis"
-  [[[$ws Range $c$r] Borders] Item [expr 10]] Weight [expr 2]
-  [[[$ws Range $c$r] Borders] Item [expr 7]] Weight [expr 2]
-  incr r
-  $cl Item $r $c "Match"
-  [[$ws Range $c$r] Interior] Color $legendColor(green)
-  [[[$ws Range $c$r] Borders] Item [expr 10]] Weight [expr 2]
-  [[[$ws Range $c$r] Borders] Item [expr 7]] Weight [expr 2]
-  incr r
-  $cl Item $r $c "More than expected"
-  [[$ws Range $c$r] Interior] Color $legendColor(yellow)
-  [[[$ws Range $c$r] Borders] Item [expr 10]] Weight [expr 2]
-  [[[$ws Range $c$r] Borders] Item [expr 7]] Weight [expr 2]
-  incr r
-  $cl Item $r $c "Less than expected"
-  [[$ws Range $c$r] Interior] Color $legendColor(red)
-  [[[$ws Range $c$r] Borders] Item [expr 10]] Weight [expr 2]
-  [[[$ws Range $c$r] Borders] Item [expr 7]] Weight [expr 2]
-  incr r
-  $cl Item $r $c "None found"
-  [[$ws Range $c$r] Interior] Color $legendColor(magenta)
-  [[[$ws Range $c$r] Borders] Item [expr 10]] Weight [expr 2]
-  [[[$ws Range $c$r] Borders] Item [expr 7]] Weight [expr 2]
-  incr r
-  $cl Item $r $c "Not in CAx-IF Recommended Practice"
-  [[$ws Range $c$r] Interior] Color $legendColor(gray)
-  [[[$ws Range $c$r] Borders] Item [expr 10]] Weight [expr 2]
-  [[[$ws Range $c$r] Borders] Item [expr 7]] Weight [expr 2]
-  [[[$ws Range $c$r] Borders] Item [expr 9]] Weight [expr 2]
-}
 
-# -------------------------------------------------------------------------------
-# get coverages from semantic-coverage.xlsx, (called from sfa-gen.tcl)
-proc spmiGetCoverageValues {} {
-  global wdir mytemp spmiCoverages  
+  if {!$multi} {set e $excel}
+  if {$multi} {set e $excel1}
   
-  if {[catch {
-    #outputMsg "[file exists [file join $wdir SFA-semantic-coverage.xlsx]]  [file join $wdir SFA-semantic-coverage.xlsx]"
-    if {[file exists [file join $wdir SFA-semantic-coverage.xlsx]]} {file copy -force [file join $wdir SFA-semantic-coverage.xlsx] $mytemp}
-    set fname [file nativename [file join $mytemp SFA-semantic-coverage.xlsx]]
+  set n 0
+  set legend {{"Values as Compared to NIST Test Case Drawing" ""} \
+              {"See Help > NIST CAD Models" ""} \
+              {"Match" "green"} \
+              {"More than expected" "yellow"} \
+              {"Less than expected" "red"} \
+              {"None found" "magenta"} \
+              {"Not in CAx-IF Recommended Practice" "gray"}}
+  foreach item $legend {
+    set str [lindex $item 0]
+    $cl Item $r $c $str
 
-    if {[file exists $fname]} {
-      set pid1 [twapi::get_process_ids -name "EXCEL.EXE"]
-      set excel2 [::tcom::ref createobject Excel.Application]
-      set pid2 [lindex [intersect3 $pid1 [twapi::get_process_ids -name "EXCEL.EXE"]] 2]
-  
-      $excel2 Visible 0
-      set workbooks2  [$excel2 Workbooks]
-      set workbook2   [$workbooks2 Open $fname]
-      set worksheets2 [$workbook2 Worksheets]
-      set cells2      [[$worksheets2 Item [expr 1]] Cells]
-    
-      set c1 [[[[$worksheets2 Item [expr 1]] UsedRange] Columns] Count]
-      set r1 [[[[$worksheets2 Item [expr 1]] UsedRange] Rows] Count]
-    
-      for {set c 2} {$c <= $c1} {incr c} {set i2($c) "nist_[[$cells2 Item 1 $c] Value]"}
-    
-      for {set r 2} {$r <= $r1} {incr r} {
-        set i1 [[$cells2 Item $r 1] Value]
-        if {$i1 != ""} {
-          for {set c 2} {$c <= $c1} {incr c} {
-            set spmiCoverages($i1,$i2($c)) [[$cells2 Item $r $c] Value]
+    set range [$ws Range $c$r]
+    [$range Font] Bold [expr 1]
 
-# create gpmi coverage (not going to work because more than one annotation occurrence can be used for a single annotation, gets too complicated)
-            #if {[string first "_tolerance" $i1] != -1} {
-            #  set j1 [string range $i1 0 [string last "_" $i1]-1]
-            #  regsub -all "_" $j1 " " j1
-            #  if {$j1 == "line profile"}    {set j1 "profile of line"}
-            #  if {$j1 == "surface profile"} {set j1 "profile of surface"}
-            #  set gpmiCoverages($j1,$i2($c)) [[$cells2 Item $r $c] Value]
-            #}
-          }
-        }
+    set color [lindex $item 1]
+    if {$color != ""} {[$range Interior] Color $legendColor($color)}
+
+    if {[expr {int([$e Version])}] >= 12} {
+      [[$range Borders] Item [expr 10]] Weight [expr 2]
+      [[$range Borders] Item [expr 7]] Weight [expr 2]
+      incr n
+      if {$n == 1} {
+        [[$range Borders] Item [expr 8]] Weight [expr 2]
+      } elseif {$n == [llength $legend]} {
+        [[$range Borders] Item [expr 9]] Weight [expr 2]
       }
-      #foreach item [lsort [array names spmiCoverages]] {outputMsg "$item / $spmiCoverages($item)" green}
-      #foreach item [lsort [array names gpmiCoverages]] {outputMsg "$item / $gpmiCoverages($item)" blue}
-  
-      $workbooks2 Close
-      $excel2 Quit
-      catch {twapi::end_process $pid2 -force}
     }
-
-# errors
-  } emsg]} {
-    errorMsg "ERROR reading Tolerance Coverage worksheet: $emsg"
+    incr r    
   }
 }

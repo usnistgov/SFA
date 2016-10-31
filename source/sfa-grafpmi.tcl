@@ -6,53 +6,45 @@ proc gpmiProp {objDesign entType} {
 
 # basic geometry
   if {$opt(GENX3DOM)} {
-    set cartesian_point [list cartesian_point name coordinates]
+    set direction       [list direction name direction_ratios]
+    set cartesian_point [list cartesian_point coordinates]
+    set polyline        [list polyline name points $cartesian_point]
+    set a2p3d           [list axis2_placement_3d location $cartesian_point axis $direction]
+    #set a2p3d           [list axis2_placement_3d location $cartesian_point axis $direction ref_direction $direction]
+    set circle          [list circle name position $a2p3d radius]
+    set trimmed_curve   [list trimmed_curve name basis_curve $circle]
   } else {
-    set cartesian_point [list cartesian_point name]
+    set circle          [list circle]
+    set polyline        [list polyline]
+    set trimmed_curve   [list trimmed_curve basis_curve]
   }
-  set direction [list direction name direction_ratios]
-  set a2p3d [list axis2_placement_3d name location $cartesian_point axis $direction ref_direction $direction]
-
-# basic geometry
-  if {$opt(GENX3DOM)} {
-    set line [list line pnt $cartesian_point dir \
-               [list vector name orientation $direction magnitude]]
-  } else {
-    set line [list line pnt $cartesian_point dir]
-  }
-  set polyline [list polyline points $cartesian_point]
-  set circle [list circle name position $a2p3d radius]
-
-  set trimmed_curve [list trimmed_curve basis_curve $line $circle]
-  set composite_curve [list composite_curve name segments \
-                        [list composite_curve_segment transition same_sense parent_curve $trimmed_curve] self_intersect]
-                        
+  set composite_curve [list composite_curve segments [list composite_curve_segment parent_curve $trimmed_curve]]                        
 
 # tessellated geometry
   set complex_triangulated_surface_set [list complex_triangulated_surface_set name]
-  set tessellated_curve_set [list tessellated_curve_set name]
-  set tessellated_geometric_set [list tessellated_geometric_set name children]
-  set repo_tessellated_geometric_set [list repositioned_tessellated_item_and_tessellated_geometric_set name children]
+  set tessellated_curve_set            [list tessellated_curve_set name]
+  set tessellated_geometric_set        [list tessellated_geometric_set name children]
+  set repo_tessellated_geometric_set   [list repositioned_tessellated_item_and_tessellated_geometric_set name children]
   
 # curve and fill style
-  set colour [list colour_rgb name red green blue]
-  set curve_style [list presentation_style_assignment styles [list curve_style name curve_font curve_width curve_colour $colour [list draughting_pre_defined_colour name]]]
+  set colour      [list colour_rgb name red green blue]
+  set curve_style [list presentation_style_assignment styles [list curve_style name curve_colour $colour [list draughting_pre_defined_colour name]]]
+  #set curve_style [list presentation_style_assignment styles [list curve_style name curve_font curve_width curve_colour $colour [list draughting_pre_defined_colour name]]]
   set fill_style  [list presentation_style_assignment styles [list surface_style_usage style [list surface_side_style styles [list surface_style_fill_area fill_area [list fill_area_style name fill_styles [list fill_area_style_colour fill_colour $colour [list draughting_pre_defined_colour name]]]]]]]
 
-# bad fill style
-  #set fill_style  [list presentation_style_assignment styles [list fill_area_style name fill_styles [list fill_area_style_colour fill_colour $colour]]]
-
-  set geometric_curve_set                   [list geometric_curve_set name elements $polyline $circle $trimmed_curve $composite_curve]
-  set annotation_fill_area                  [list annotation_fill_area name boundaries $polyline $circle $trimmed_curve]
+  set geometric_curve_set  [list geometric_curve_set name elements $polyline $circle $trimmed_curve $composite_curve]
+  set annotation_fill_area [list annotation_fill_area name boundaries $polyline $circle $trimmed_curve]
 
 # annotation occurrence (clean up)
   set PMIP(annotation_occurrence)             [list annotation_occurrence name styles $curve_style item $geometric_curve_set]
-  set PMIP(draughting_annotation_occurrence)  [list draughting_annotation_occurrence name styles $curve_style item $geometric_curve_set]
-  set PMIP(draughting_annotation_occurrence_and_geometric_representation_item)  [list draughting_annotation_occurrence_and_geometric_representation_item name styles $curve_style item $geometric_curve_set]
   set PMIP(annotation_curve_occurrence)       [list annotation_curve_occurrence name styles $curve_style item $geometric_curve_set]
-  set PMIP(annotation_curve_occurrence_and_geometric_representation_item)       [list annotation_curve_occurrence_and_geometric_representation_item name styles $curve_style item $geometric_curve_set]
+  set PMIP(annotation_curve_occurrence_and_geometric_representation_item) [list annotation_curve_occurrence_and_geometric_representation_item name styles $curve_style item $geometric_curve_set]
   set PMIP(annotation_fill_area_occurrence)   [list annotation_fill_area_occurrence name styles $fill_style item $annotation_fill_area]
+  set PMIP(annotation_placeholder_occurrence) [list annotation_placeholder_occurrence name item $geometric_curve_set role]
+  set PMIP(draughting_annotation_occurrence)  [list draughting_annotation_occurrence name styles $curve_style item $geometric_curve_set]
+  set PMIP(draughting_annotation_occurrence_and_geometric_representation_item) [list draughting_annotation_occurrence_and_geometric_representation_item name styles $curve_style item $geometric_curve_set]
   set PMIP(tessellated_annotation_occurrence) [list tessellated_annotation_occurrence name styles $curve_style item $tessellated_geometric_set $repo_tessellated_geometric_set]
+
   #set PMIP(over_riding_styled_item_and_tessellated_annotation_occurrence) [list over_riding_styled_item_and_tessellated_annotation_occurrence name styles $curve_style item $tessellated_geometric_set $repo_tessellated_geometric_set]
     
 # generate correct PMIP variable accounting for variations like characterized_object
@@ -160,11 +152,12 @@ proc gpmiProp {objDesign entType} {
 # -------------------------------------------------------------------------------
 
 proc gpmiPropReport {objEntity} {
-  global ao aoname assocGeom avgX3domColor badAttributes cells col currX3domPointID dirRatio draftModelCameras
-  global elevel ent entAttrList gpmiEnts gpmiID gpmiIDRow gpmiOK gpmiRow gpmiTypes gpmiTypesInvalid gpmiTypesPerFile gpmiValProp
-  global iCompCurve iCompCurveSeg incrcol iPolyline localName maxrep nindex nrep numCompCurve numCompCurveSeg numPolyline numX3domPointID
+  global ao aoname assocGeom avgX3domColor badAttributes cells circleCenter col currX3domPointID curveTrim dirRatio dirType draftModelCameras
+  global elevel ent entAttrList entCount geomType gpmiEnts gpmiID gpmiIDRow gpmiOK gpmiRow gpmiTypes gpmiTypesInvalid gpmiTypesPerFile gpmiValProp
+  global iCompCurve iCompCurveSeg incrcol iPolyline localName nindex numCompCurve numCompCurveSeg numPolyline numX3domPointID
   global objEntity1 opt pmiCol pmiColumns pmiHeading pmiStartCol pointLimit prefix propDefIDS recPracNames savedViewCol stepAP syntaxErr 
-  global x3domColor x3domCoord x3domFile x3domFileName x3domFileOpen x3domIndex x3domMax x3domMin x3domPoint x3domPointID x3domShape 
+  global x3domColor x3domCoord x3domFile x3domFileName x3domFileOpen x3domIndex x3domMax x3domMin x3domPoint x3domPointID x3domShape
+  global nistVersion
 
   #outputMsg "gpmiPropReport" red
   #if {[info exists gpmiOK]} {if {$gpmiOK == 0} {return}}
@@ -213,14 +206,6 @@ proc gpmiPropReport {objEntity} {
       }
     }
     
-# cannot handle circles whether by themselves or part of a trimmed curve
-    if {$objType == "circle" && ($elevel == 3 || $elevel == 4)} {
-      if {$opt(GENX3DOM)} {
-        errorMsg "$objType\(s) are ignored for PMI Presentation X3DOM\n Some of the line segments will be missing"
-        incr numPolyline -1
-      }
-    }
-    
 # keep track of the number of c_c or c_c_s, if not polyline
     if {$objType == "composite_curve"} {
       incr iCompCurve
@@ -228,14 +213,13 @@ proc gpmiPropReport {objEntity} {
       incr iCompCurveSeg
     }
     
-    if {$elevel == 2 && $objType != "geometric_curve_set" && \
-                    $objType != "annotation_fill_area" && \
-                    $objType != "presentation_style_assignment" && \
-                    [string first "tessellated_geometric_set" $objType] == -1} {
+    if {$elevel == 2 && \
+        $objType != "geometric_curve_set" && $objType != "annotation_fill_area" && $objType != "presentation_style_assignment" && \
+        [string first "tessellated_geometric_set" $objType] == -1} {
       if {$stepAP == "AP242"} {
-        errorMsg "Syntax Error: '$objType' is not allow as an 'item' attribute of: $ao\n[string repeat " " 14]\($recPracNames(pmi242), Sec. 8.1.1, 8.1.2, 8.2)"
+        errorMsg "Syntax Error: '$objType' is not allowed as an 'item' attribute of: $ao\n[string repeat " " 14]\($recPracNames(pmi242), Sec. 8.1.1, 8.1.2, 8.2)"
       } else {
-        errorMsg "Syntax Error: '$objType' is not allow as an 'item' attribute of: $ao\n[string repeat " " 14]\($recPracNames(pmi203), Sec. 4.1.1, 4.1.2)"
+        errorMsg "Syntax Error: '$objType' is not allowed as an 'item' attribute of: $ao\n[string repeat " " 14]\($recPracNames(pmi203), Sec. 4.1.1, 4.1.2)"
       }
       lappend syntaxErr($ao) [list $gpmiID item]
     }
@@ -251,15 +235,15 @@ proc gpmiPropReport {objEntity} {
       #outputMsg "$ent1 $okattr" blue
 
       if {$okattr} {
-        set objValue [$objAttribute Value]
+        set objValue    [$objAttribute Value]
         set objNodeType [$objAttribute NodeType]
-        set objSize [$objAttribute Size]
+        set objSize     [$objAttribute Size]
         set objAttrType [$objAttribute Type]
   
         set idx [lsearch $entAttrList $ent1]
 
 # -----------------
-# nodeType = 18,19,  not used (yet)
+# nodeType = 18,19
         if {$objNodeType == 18 || $objNodeType == 19} {
           if {[catch {
             if {$idx != -1} {
@@ -269,9 +253,18 @@ proc gpmiPropReport {objEntity} {
                 set ok 0
 
 # get values for these entity and attribute pairs
-                #switch -glob $ent1 {
-                #  "composite_curve_segment parent_curve" {outputMsg "iCompCurveSeg $iCompCurveSeg  numCompCurveSeg $numCompCurveSeg"}
-                #}
+                switch -glob $ent1 {
+                  "trimmed_curve basis_curve" {
+                    if {[$objValue Type] != "circle"} {
+                      if {$stepAP == "AP242"} {
+                        errorMsg "Syntax Error: '[$objValue Type]' is not allowed as a 'basis_curve' for trimmed_curve\n[string repeat " " 14]\($recPracNames(pmi242), Sec. 8.1.1, 8.1.2)"
+                      } else {
+                        errorMsg "Syntax Error: '[$objValue Type]' is not allowed as a 'basis_curve' for trimmed_curve\n[string repeat " " 14]\($recPracNames(pmi203), Sec. 4.1.1, 4.1.2)"
+                      }
+                    }
+                  }
+                  "axis2_placement_3d axis" {set dirType "axis"}
+                }
   
                 set colName "value"
     
@@ -353,7 +346,43 @@ proc gpmiPropReport {objEntity} {
 # g_c_s and a_f_a both start keeping track of their polylines
 # cartesian_point is need to generated X3DOM
                 switch -glob $ent1 {
-                  "geometric_curve_set elements"    {
+                  "cartesian_point coordinates" {
+                    if {$opt(GENX3DOM) && $x3domFileName != ""} {
+                      #outputMsg "$elevel $geomType $ent1" red
+
+# elevel = 4 for polyline
+                      if {$elevel == 4 && $geomType == "polyline"} {
+                        append x3domCoord "[format "%.4f" [lindex $objValue 0]] [format "%.4f" [lindex $objValue 1]] [format "%.4f" [lindex $objValue 2]] " 
+    
+                        set x3domPoint(x) [lindex $objValue 0]
+                        set x3domPoint(y) [lindex $objValue 1]
+                        set x3domPoint(z) [lindex $objValue 2]
+
+# min,max of points
+                        foreach idx {x y z} {
+                          if {$x3domPoint($idx) > $x3domMax($idx)} {set x3domMax($idx) $x3domPoint($idx)}
+                          if {$x3domPoint($idx) < $x3domMin($idx)} {set x3domMin($idx) $x3domPoint($idx)}
+                        }
+
+# write coord and index to X3DOM file for polyline
+                        if {$elevel == 4} {
+                          if {$iPolyline == $numPolyline && $currX3domPointID == $numX3domPointID} {
+                            outputMsg "polyline" blue
+                            puts $x3domFile " <indexedLineSet coordIndex='[string trim $x3domIndex]'>\n  <coordinate point='[string trim $x3domCoord]'></coordinate>\n </indexedLineSet>\n</shape>"
+                            set x3domCoord ""
+                            set x3domIndex ""
+                            set x3domShape 0
+                            set x3domColor ""
+                          }
+                        }             
+
+# circle center
+                      } elseif {$geomType == "circle"} {
+                        set circleCenter $objValue
+                      }
+                    }
+                  }
+                  "geometric_curve_set elements" {
                     set ok 1
                     set col($ao) [expr {$pmiStartCol($ao)+1}]
                     if {$stepAP == "AP242"} {
@@ -388,49 +417,17 @@ proc gpmiPropReport {objEntity} {
                     set x3domCoord ""
                     set nindex 0
                   }
-                  "*tessellated_geometric_set children"    {
+                  "*tessellated_geometric_set children" {
                     set ok 1
                     set col($ao) [expr {$pmiStartCol($ao)+1}]
                     set colName "children[format "%c" 10](Sec. 8.2)"
                   }
-                  "composite_curve segments" {
-                    set numCompCurveSeg $objSize
-                  }
                   "direction direction_ratios" {
-                    set dirRatio(x) [lindex $objValue 0]
-                    set dirRatio(y) [lindex $objValue 1]
-                    set dirRatio(z) [lindex $objValue 2]
+                    set dirRatio(x) [format "%.4f" [lindex $objValue 0]]
+                    set dirRatio(y) [format "%.4f" [lindex $objValue 1]]
+                    set dirRatio(z) [format "%.4f" [lindex $objValue 2]]
                   }
-                  "cartesian_point coordinates" {
-                    if {$opt(GENX3DOM) && $x3domFileName != ""} {
-
-# elevel = 4 for polyline, elevel = 5 or 7 for lines that are trimmed curves
-                      if {$elevel == 4 || $elevel == 5 || $elevel == 7} {
-                        append x3domCoord "$objValue "
-    
-                        set x3domPoint(x) [lindex $objValue 0]
-                        set x3domPoint(y) [lindex $objValue 1]
-                        set x3domPoint(z) [lindex $objValue 2]
-
-# min,max of points
-                        foreach idx {x y z} {
-                          if {$x3domPoint($idx) > $x3domMax($idx)} {set x3domMax($idx) $x3domPoint($idx)}
-                          if {$x3domPoint($idx) < $x3domMin($idx)} {set x3domMin($idx) $x3domPoint($idx)}
-                        }
-
-# write coord and index to X3DOM file for polyline
-                        if {$elevel == 4} {
-                          if {$iPolyline == $numPolyline && $currX3domPointID == $numX3domPointID} {
-                            puts $x3domFile " <indexedLineSet coordIndex='[string trim $x3domIndex]'>\n  <coordinate point='[string trim $x3domCoord]'></coordinate>\n </indexedLineSet>\n</shape>"
-                            set x3domCoord ""
-                            set x3domIndex ""
-                            set x3domShape 0
-                            set x3domColor ""
-                          }
-                        }             
-                      }
-                    }
-                  }
+                  "composite_curve segments" {set numCompCurveSeg $objSize}
                 }
 
 # value in spreadsheet
@@ -452,7 +449,16 @@ proc gpmiPropReport {objEntity} {
                   if {[catch {
                     ::tcom::foreach val [$objAttribute Value] {append cellval([$val Type]) "[$val P21ID] "}
                   } emsg]} {
-                    foreach val [$objAttribute Value]         {append cellval([$val Type]) "[$val P21ID] "}
+                    foreach val [$objAttribute Value] {
+                      append cellval([$val Type]) "[$val P21ID] "
+                      if {$ent1 == "geometric_curve_set items" && [$val Type] != "polyline" && [$val Type] != "trimmed_curve" && [$val Type] != "circle"} {
+                        if {$stepAP == "AP242"} {
+                          errorMsg "Syntax Error: Invalid '[$val Type]' attribute for geometric_curve_set.items\n[string repeat " " 14]\($recPracNames(pmi242), Sec. 8.1.1, 8.1.2)"
+                        } else {
+                          errorMsg "Syntax Error: Invalid '[$val Type]' attribute for geometric_curve_set.items\n[string repeat " " 14]\($recPracNames(pmi203), Sec. 4.1.1, 4.1.2)"
+                        }
+                      }
+                    }
                   }
   
                   set str ""
@@ -481,7 +487,7 @@ proc gpmiPropReport {objEntity} {
                     if {[catch {
                       $cells($ao) Item $r $c "$val[format "%c" 10]$ov"
                     } emsg]} {
-                      errorMsg "  ERROR: Too much data to display in a cell" red
+                      errorMsg "  ERROR: Too much data to show in a cell" red
                     }
                   }
               
@@ -515,6 +521,74 @@ proc gpmiPropReport {objEntity} {
 
 # get values for these entity and attribute pairs
                 switch -glob $ent1 {
+                  "circle radius" {
+                    if {$opt(GENX3DOM) && $x3domFileName != ""} {
+# write circle to X3DOM                    
+                      #set ns 8
+                      set ns 24
+                      set angle 0
+                      set dlt [expr {6.28319/$ns}]
+                      set trimmed 0
+                      if {[info exists curveTrim(trim_1)]} {
+                        set angle $curveTrim(trim_1)
+                        set dlt [expr {($curveTrim(trim_2)-$curveTrim(trim_1))/$ns}]
+                        set trimmed 1
+                        incr ns
+                        unset curveTrim
+                      }
+                      for {set i 0} {$i < $ns} {incr i} {append x3domIndex "[expr {$i+$nindex}] "}
+                      if {!$trimmed} {
+                        append x3domIndex "$nindex -1 "
+                      } else {
+                        append x3domIndex "-1 "
+                      }
+                      incr nindex $ns
+  
+                      for {set i 0} {$i < $ns} {incr i} {
+                        if {[expr {abs($dirRatio(z))}] > 0.99} {
+                          set x3domPoint(x) [expr {$objValue*cos($angle)+[lindex $circleCenter 0]}]
+                          set x3domPoint(y) [expr {-1.*$objValue*sin($angle)+[lindex $circleCenter 1]}]
+                          set x3domPoint(z) [lindex $circleCenter 2]
+                        } elseif {[expr {abs($dirRatio(y))}] > 0.99} {
+                          set x3domPoint(x) [expr {$objValue*cos($angle)+[lindex $circleCenter 0]}]
+                          set x3domPoint(z) [expr {-1.*$objValue*sin($angle)+[lindex $circleCenter 2]}]
+                          set x3domPoint(y) [lindex $circleCenter 1]
+                        } elseif {[expr {abs($dirRatio(x))}] > 0.99} {
+                          set x3domPoint(z) [expr {$objValue*cos($angle)+[lindex $circleCenter 2]}]
+                          set x3domPoint(y) [expr {-1.*$objValue*sin($angle)+[lindex $circleCenter 1]}]
+                          set x3domPoint(x) [lindex $circleCenter 0]
+                        } else {
+                          errorMsg "PMI annotation circle orientation ($dirRatio(x), $dirRatio(y), $dirRatio(z)) is ignored."
+                          set x3domPoint(x) [expr {$objValue*cos($angle)+[lindex $circleCenter 0]}]
+                          set x3domPoint(y) [expr {-1.*$objValue*sin($angle)+[lindex $circleCenter 1]}]
+                          set x3domPoint(z) [lindex $circleCenter 2]
+                        }
+                        foreach idx {x y z} {
+                          if {$x3domPoint($idx) > $x3domMax($idx)} {set x3domMax($idx) $x3domPoint($idx)}
+                          if {$x3domPoint($idx) < $x3domMin($idx)} {set x3domMin($idx) $x3domPoint($idx)}
+                        }
+                        append x3domCoord "[format "%.4f" $x3domPoint(x)] [format "%.4f" $x3domPoint(y)] [format "%.4f" $x3domPoint(z)] "
+                        set angle [expr {$angle+$dlt}]
+                      }
+                    }
+                  }
+                  "trimmed_curve name" {
+# get trim values here
+                    ::tcom::foreach a0 $objAttributes {
+                      if {[string first "trim" [$a0 Name]] != -1} {
+                        set val [$a0 Value]
+                        if {[string first "handle" $val] != -1} {set val [lindex $val 1]}
+                        set curveTrim([$a0 Name]) $val
+                      }
+                    }
+                    errorMsg "Trimmed circles in PMI annotations might have the wrong orientation."
+                  }
+                  "cartesian_point name" {
+                    if {$elevel == 4} {
+                      set ok 1
+                      set col($ao) [expr {$pmiStartCol($ao)+2}]
+                    }
+                  }
                   "geometric_curve_set name" -
                   "annotation_fill_area name" -
                   "*tessellated_geometric_set name" {
@@ -526,56 +600,12 @@ proc gpmiPropReport {objEntity} {
                       set colName "name[format "%c" 10](Sec. 4.3)"
                     }
                   }
-                  "annotation_fill_area_occurrence* name" -
                   "annotation_curve_occurrence* name" -
+                  "annotation_fill_area_occurrence* name" -
+                  "annotation_placeholder_occurrence* name" -
                   "*annotation_occurrence* name" -
                   "*tessellated_annotation_occurrence* name" {
-# keep track of ao name for coverage analysis
                     set aoname $objValue
-                  }
-                  "composite_curve name" {
-# keep track of composite curve segments
-                    set iCompCurveSeg 0
-                  }
-                  "vector magnitude" {
-# vector magnitude assumes a line and a point that begins the line, line can be part of a trimmed curve or composite curve
-# given the starting point (x3domPoint), vector magnitude (vecMag), and direction ratios (dirRatio)
-# compute the end point.  direction ratios do not have to be normalized
-                    if {$opt(GENX3DOM) && $x3domFileName != ""} {
-                      if {$elevel == 5 || $elevel == 7} {
-                        set vecMag $objValue
-                        set x3domMag 0
-                        foreach idx {x y z} {
-                          set x3domPoint1($idx) [expr {$dirRatio($idx)*$vecMag}]
-                          set x3domMag [expr {$x3domMag + $x3domPoint1($idx)*$x3domPoint1($idx)}]
-                        }
-                        set x3domMag [expr {sqrt($x3domMag)}]
-                        set vecMag1 [expr {$vecMag / $x3domMag}]
-                        set x3domMag 0
-                        foreach idx {x y z} {
-                          set x3domPoint1($idx) [expr {$x3domPoint($idx) + $dirRatio($idx)*$vecMag*$vecMag1}]
-                          set x3domMag [expr {$x3domMag + $x3domPoint1($idx)*$x3domPoint1($idx)}]
-                          if {$x3domPoint1($idx) > $x3domMax($idx)} {set x3domMax($idx) $x3domPoint1($idx)}
-                          if {$x3domPoint1($idx) < $x3domMin($idx)} {set x3domMin($idx) $x3domPoint1($idx)}
-                        }
-                        append x3domCoord "$x3domPoint1(x) $x3domPoint1(y) $x3domPoint1(z)\n"
-                        append x3domIndex "$nindex [expr {$nindex+1}] -1 "
-                        incr nindex 2
-                        if {$numCompCurve == $iCompCurve && $numCompCurveSeg == $iCompCurveSeg} {
-                          puts $x3domFile " <indexedLineSet coordIndex='[string trim $x3domIndex]'>\n  <coordinate point='[string trim $x3domCoord]'></coordinate>\n </indexedLineSet>\n</shape>"
-                          set x3domCoord ""
-                          set x3domIndex ""
-                          set x3domShape 0
-                          set x3domColor ""
-                        }
-                      }
-                    }
-                  }
-                  "cartesian_point name" {
-                    if {$elevel == 4} {
-                      set ok 1
-                      set col($ao) [expr {$pmiStartCol($ao)+2}]
-                    }
                   }
                   "curve_style name" -
                   "fill_area_style name" {
@@ -646,6 +676,9 @@ proc gpmiPropReport {objEntity} {
                       set pmiCol [expr {max($col($ao),$pmiCol)}]
                     }
                   }
+                  "polyline name" {set geomType "polyline"}
+                  "circle name"   {set geomType "circle"}
+                  "composite_curve name" {set iCompCurveSeg 0}
                 }
 
 # value in spreadsheet
@@ -731,13 +764,20 @@ proc gpmiPropReport {objEntity} {
                           set x3domFileName [file rootname $localName]_x3dom.html
                           catch {file delete -force $x3domFileName}
                           set x3domFile [open $x3domFileName w]
-                          outputMsg " Writing PMI to X3DOM file: [truncFileName [file nativename $x3domFileName]]" green
-
-                          puts $x3domFile "<!DOCTYPE html>\n<html>\n<head>\n<meta http-equiv='Content-Type' content='text/html;charset=utf-8'></meta>\n<link rel='stylesheet' type='text/css' href='http://www.x3dom.org/x3dom/release/x3dom.css'></link>\n<script type='text/javascript' src='http://www.x3dom.org/x3dom/release/x3dom.js'></script>\n</head>\n<body>"
-                          puts $x3domFile "<UL><LI><B>PMI Presentation Graphics:  [file tail $localName]</B>"
-                          puts $x3domFile "<LI>The graphics can be displayed in a <A HREF=\"http://www.x3dom.org/contact/\">web browser</A> that supports X3DOM.  <a href=\"http://www.x3dom.org/documentation/interaction/\">Use the mouse</a>, Page Up/Down keys, or touch gestures to navigate the model."
-                          puts $x3domFile "<LI>Segments of annotations constructed with circles, instead of polylines, are not displayed.  Filled characters are not filled.  Saved Views are ignored."
-                          puts $x3domFile "<LI>Generated by the <a href=\"http://www.nist.gov/el/msid/infotest/step-file-analyzer.cfm\">NIST STEP File Analyzer (v[getVersion])</A> on [clock format [clock seconds]]"
+                          outputMsg " Writing PMI Annotations to: [truncFileName [file nativename $x3domFileName]]" green
+                          
+                          set str "NIST "
+                          set url "http://go.usa.gov/yccx"
+                          if {!$nistVersion} {
+                            set str ""
+                            set url "https://github.com/usnistgov/SFA"
+                          }
+                          
+                          puts $x3domFile "<!DOCTYPE html>\n<html>\n<head>\n<title>[file tail $localName]</title>\n<base target=\"_blank\">\n<meta http-equiv='Content-Type' content='text/html;charset=utf-8'></meta>\n<link rel='stylesheet' type='text/css' href='http://www.x3dom.org/x3dom/release/x3dom.css'></link>\n<script type='text/javascript' src='http://www.x3dom.org/x3dom/release/x3dom.js'></script>\n</head>\n<body>"
+                          puts $x3domFile "<FONT FACE=\"Arial\"><H3>PMI Presentation Annotations for:  [file tail $localName]</H3><UL>"
+                          #if {[info exists entCount(annotation_fill_area_occurrence)]} {puts $x3domFile "<LI>Filled characters are not filled."}
+                          puts $x3domFile "<LI><a href=\"http://www.x3dom.org/documentation/interaction/\">Use the mouse</a>, Page Up/Down keys, or touch gestures to navigate the model."
+                          puts $x3domFile "<LI>Generated by the <a href=\"$url\">$str\STEP File Analyzer (v[getVersion])</A> on [clock format [clock seconds]] and displayed with <A HREF=\"http://www.x3dom.org/\">X3DOM</A>."
                           puts $x3domFile "</UL>"
                           puts $x3domFile "<x3d id='someUniqueId' showStat='false' showLog='false' x='0px' y='0px' width='1200px' height='900px'>\n<scene DEF='scene'>"
 
@@ -745,23 +785,23 @@ proc gpmiPropReport {objEntity} {
                         }
 
 # start X3DOM Shape node                    
-                        if {$ao == "annotation_fill_area_occurrence"} {errorMsg " Only the outline of filled characters are written to the X3DOM file." red}
+                        if {$ao == "annotation_fill_area_occurrence"} {errorMsg "PMI annotations with filled characters are not filled."}
                         if {$x3domColor != ""} {
-                          puts $x3domFile "<shape>\n  <appearance><material diffuseColor='$x3domColor' emissiveColor='$x3domColor'></material></appearance>"
+                          puts $x3domFile "<shape>\n <appearance><material emissiveColor='$x3domColor'></material></appearance>"
                           set colors [split $x3domColor " "]
                           for {set i 0} {$i < 3} {incr i} {set avgX3domColor($i) [expr {$avgX3domColor($i)+[lindex $colors $i]}]}
                           incr avgX3domColor(3)
                         } elseif {[string first "annotation_occurrence" $ao] == 0} {
-                          puts $x3domFile "<shape>\n  <appearance><material diffuseColor='1 0.5 0' emissiveColor='1 0.5 0'></material></appearance>"
+                          puts $x3domFile "<shape>\n <appearance><material emissiveColor='1 0.5 0'></material></appearance>"
                           errorMsg "Syntax Error: Color not specified for PMI Presentation (using orange)"
                         } elseif {[string first "annotation_fill_area_occurrence" $ao] == 0} {
-                          puts $x3domFile "<shape>\n  <appearance><material diffuseColor='1 0.5 0' emissiveColor='1 0.5 0'></material></appearance>"
+                          puts $x3domFile "<shape>\n <appearance><material emissiveColor='1 0.5 0'></material></appearance>"
                           errorMsg "Syntax Error: Color not specified for PMI Presentation (using orange)"
                         }
                         set x3domShape 1
                         update idletasks
                       } else {
-                        errorMsg " X3DOM (WebGL) files are not generated for Tessellated Annotations." red
+                        errorMsg " Tessellated PMI Annotations are not supported." red
                       }
                     }               
 
@@ -772,23 +812,7 @@ proc gpmiPropReport {objEntity} {
                     if {$val == ""} {
                       $cells($ao) Item $r $c $ov
                     } else {
-                      if {![info exists nrep] || $c != "G"} {
-                        $cells($ao) Item $r $c "$val[format "%c" 10]$ov"
-
-# add nrep count
-                      } elseif {$maxrep > 1} {
-                        if {$nrep != 2} {
-                          $cells($ao) Item $r $c "$val[format "%c" 10]($nrep) $ov"
-                        } else {
-                          if {[string range $val 0 2] != "(1)"} {
-                            $cells($ao) Item $r $c "(1) $val[format "%c" 10]($nrep) $ov"
-                          } else {
-                            $cells($ao) Item $r $c "$val[format "%c" 10]($nrep) $ov"
-                          }
-                        }
-                      } else {
-                        $cells($ao) Item $r $c "$val[format "%c" 10]$ov"
-                      }
+                      $cells($ao) Item $r $c "$val[format "%c" 10]$ov"
                     }
 
 # keep track of max column
@@ -834,14 +858,24 @@ proc gpmiPropReport {objEntity} {
       catch {unset assocGeom}
       catch {unset assocSPMI}
       
-      set ok 0
-      set objDC [$objEntity GetUsedIn [string trim draughting_callout] [string trim contents]]
-      ::tcom::foreach objGuiEntity $objDC {
-        set objGuiEntities [$objGuiEntity GetUsedIn [string trim draughting_model_item_association] [string trim identified_item]]
-        set ok 1
+      if {[string first "placeholder" $ao] == -1} {
+        set ok 0
+        set objDC [$objEntity GetUsedIn [string trim draughting_callout] [string trim contents]]
+        ::tcom::foreach objGuiEntity $objDC {
+          set objGuiEntities [$objGuiEntity GetUsedIn [string trim draughting_model_item_association] [string trim identified_item]]
+          set ok 1
+        }
+        if {!$ok} {set objGuiEntities [$objEntity GetUsedIn [string trim draughting_model_item_association] [string trim identified_item]]}
+      } else {
+        set ok 0
+        set objDC [$objEntity GetUsedIn [string trim draughting_callout] [string trim contents]]
+        ::tcom::foreach objGuiEntity $objDC {
+          set objGuiEntities [$objGuiEntity GetUsedIn [string trim draughting_model_item_association_with_placeholder [string trim identified_item]]
+          set ok 1
+        }
+        if {!$ok} {set objGuiEntities [$objEntity GetUsedIn [string trim draughting_model_item_association_with_placeholder] [string trim identified_item]]}
       }
-      if {!$ok} {set objGuiEntities [$objEntity GetUsedIn [string trim draughting_model_item_association] [string trim identified_item]]}
-
+      
       ::tcom::foreach objGuiEntity $objGuiEntities {
         #outputMsg "\n[$objGuiEntity Type] [$objGuiEntity P21ID]  (ao [$objEntity P21ID])" red
         ::tcom::foreach attrDMIA [$objGuiEntity Attributes] {
@@ -931,7 +965,7 @@ proc gpmiPropReport {objEntity} {
 # report associated geometry
     if {[catch {
       if {[info exists assocGeom]} {
-        set str [reportAssocGeom]
+        set str [reportAssocGeom 0]
         if {$str != ""  } {
           #outputMsg "  Adding Associated Geometry" green
           if {![info exists pmiColumns(ageom)]} {set pmiColumns(ageom) [getNextUnusedColumn $ao 3]}
@@ -1087,13 +1121,14 @@ proc gpmiPropReport {objEntity} {
 # -------------------------------------------------------------------------------
 # dt = 1 for dimtol
 proc getAssocGeom {entDef {dt 0}} {
-  global assocGeom
+  global assocGeom recPracNames
   
   set entDefType [$entDef Type]
   #outputMsg "  getGeom $entDefType [$entDef P21ID]" green
 
   if {[catch {
-    if {$entDefType == "shape_aspect" || ([string first "datum" $entDefType] != -1 && [string first "_and_" $entDefType] == -1)} {
+    if {$entDefType == "shape_aspect" || \
+      ([string first "datum" $entDefType] != -1 && [string first "_and_" $entDefType] == -1)} {
 
 # add shape_aspect to AG for dimtol
       if {$dt && ($entDefType == "shape_aspect" || $entDefType == "datum_feature")} {
@@ -1125,7 +1160,7 @@ proc getAssocGeom {entDef {dt 0}} {
 
 # look at composite_shape_aspect to find SAs
     } else {
-      #outputMsg " $entDefType [$entDef P21ID]"
+      #outputMsg "   $entDefType [$entDef P21ID]" red
       set type [appendAssocGeom $entDef]
       set e0s [$entDef GetUsedIn [string trim shape_aspect_relationship] [string trim relating_shape_aspect]]
       ::tcom::foreach e0 $e0s {
@@ -1161,6 +1196,19 @@ proc getAssocGeom {entDef {dt 0}} {
                 }
               }
             }
+          }
+        }
+      }
+      
+# check all around
+      if {$entDefType == "all_around_shape_aspect"} {
+        if {[llength $assocGeom($type)] == 1} {
+          #outputMsg "   assocGeom $type $assocGeom($type) [llength $assocGeom($type)]" blue
+          if {$type == "advanced_face"} {
+            errorMsg "Syntax Error: 'shape_aspect relationship' relates '$entDefType' to only one 'shape_aspect'.\n[string repeat " " 14]\($recPracNames(pmi242), Sec. 6.4)"
+          } elseif {$type == $entDefType} {
+            errorMsg "Syntax Error: Missing 'shape_aspect relationship' relating '$entDefType' to 'shape_aspect'.\n[string repeat " " 14]\($recPracNames(pmi242), Sec. 6.4)"
+            unset assocGeom($type)
           }
         }
       }
@@ -1203,12 +1251,12 @@ proc getFaceGeom {a0 {type ""}} {
 }
 
 # -------------------------------------------------------------------------------
-proc reportAssocGeom {} {
+proc reportAssocGeom {{type 1}} {
   global assocGeom
   
   set str ""
   foreach item [array names assocGeom] {
-    if {[string first "shape_aspect" $item] == -1 && [string first "datum" $item] == -1 && $item != "advanced_face"} {
+    if {[string first "shape_aspect" $item] == -1 && [string first "centre" $item] == -1 && [string first "datum" $item] == -1 && $item != "advanced_face"} {
       if {[string length $str] > 0} {append str [format "%c" 10]}
       append str "([llength $assocGeom($item)]) $item [lsort -integer $assocGeom($item)]"
     }
@@ -1219,8 +1267,11 @@ proc reportAssocGeom {} {
       append str "([llength $assocGeom($item)]) $item [lsort -integer $assocGeom($item)]"
     }
   }
+  if {[string length $str] == 0 && $type} {
+    errorMsg "Syntax Error: Missing 'geometric_item_specific_usage.definition' for a 'shape_aspect' or 'datum_feature'."
+  }
   foreach item [array names assocGeom] {
-    if {[string first "shape_aspect" $item] != -1 || [string first "datum_feature" $item] != -1} {
+    if {[string first "shape_aspect" $item] != -1 || [string first "centre" $item] != -1 || [string first "datum_feature" $item] != -1} {
       if {[string length $str] > 0} {append str [format "%c" 10]}
       append str "([llength $assocGeom($item)]) $item [lsort -integer $assocGeom($item)]"
     }
@@ -1330,7 +1381,7 @@ proc gpmiX3DOMViewpoints {} {
   
   foreach idx {x y z} {
     set delt($idx) [expr {$x3domMax($idx)-$x3domMin($idx)}]
-    set xyzcen($idx) [expr {0.5*$delt($idx) + $x3domMin($idx)}]
+    set xyzcen($idx) [format "%.4f" [expr {0.5*$delt($idx) + $x3domMin($idx)}]]
   }
 
   set maxxyz $delt(x)
@@ -1360,16 +1411,16 @@ proc gpmiX3DOMViewpoints {} {
 }
 
 # -------------------------------------------------------------------------------------------------
-# display X3DOM file 
+# open X3DOM file 
 proc displayX3DOM {} {
   global opt x3domFileName multiFile
   
   if {$opt(GENX3DOM) && $x3domFileName != "" && $multiFile == 0} {
-    outputMsg "\nOpening X3DOM file of PMI Presentation in the default Web Browser" blue
+    outputMsg "\nOpening PMI Presentation Annotations in the default Web Browser" blue
     if {[catch {
       exec {*}[auto_execok start] "" $x3domFileName
     } emsg]} {
-      errorMsg "No application is associated with X3DOM (.html) files.  Open the file in a web browser that supports X3DOM.\n $emsg"
+      errorMsg "No application is associated with HTML files.  Open the file in a web browser that supports X3DOM.  http://www.x3dom.org/check/\n $emsg"
     }
     update idletasks
   }
@@ -1378,9 +1429,8 @@ proc displayX3DOM {} {
 # -------------------------------------------------------------------------------
 # start PMI Presentation coverage analysis worksheet
 proc gpmiCoverageStart {{multi 1}} {
-  global cells cells1 gpmiTypes multiFileDir pmi_coverage recPracNames
+  global cells cells1 gpmiTypes multiFileDir opt pmi_coverage recPracNames
   global sheetLast worksheet worksheet1 worksheets worksheets1 
-
   #outputMsg "gpmiCoverageStart $multi" red
   
   if {[catch {
@@ -1388,8 +1438,12 @@ proc gpmiCoverageStart {{multi 1}} {
 
 # multiple files
     if {$multi} {
-      set worksheet1($pmi_coverage) [$worksheets1 Item [expr 2]]
-      $worksheet1($pmi_coverage) Activate
+      if {$opt(PMISEM)} {
+        set worksheet1($pmi_coverage) [$worksheets1 Item [expr 3]]
+      } else {
+        set worksheet1($pmi_coverage) [$worksheets1 Item [expr 2]]
+      }
+      #$worksheet1($pmi_coverage) Activate
       $worksheet1($pmi_coverage) Name $pmi_coverage
       set cells1($pmi_coverage) [$worksheet1($pmi_coverage) Cells]
       $cells1($pmi_coverage) Item 1 1 "STEP Directory"
@@ -1408,7 +1462,7 @@ proc gpmiCoverageStart {{multi 1}} {
         set n 5
       }
       set worksheet($pmi_coverage) [$worksheets Add [::tcom::na] $sheetLast]
-      $worksheet($pmi_coverage) Activate
+      #$worksheet($pmi_coverage) Activate
       $worksheet($pmi_coverage) Name $pmi_coverage
       set cells($pmi_coverage) [$worksheet($pmi_coverage) Cells]
       set wsCount [$worksheets Count]
@@ -1438,7 +1492,6 @@ proc gpmiCoverageStart {{multi 1}} {
 proc gpmiCoverageWrite {{fn ""} {sum ""} {multi 1}} {
   global cells cells1 col1 gpmiTypes gpmiTypesInvalid gpmiTypesPerFile pmi_coverage pmi_rows pmi_totals
   global worksheet worksheet1
-
   #outputMsg "gpmiCoverageWrite $multi" red
 
   if {[catch {
@@ -1547,7 +1600,6 @@ proc gpmiCoverageWrite {{fn ""} {sum ""} {multi 1}} {
 proc gpmiCoverageFormat {{sum ""} {multi 1}} {
   global cells cells1 col1 excel excel1 gpmiTypes lenfilelist localName opt
   global pmi_coverage pmi_rows pmi_totals recPracNames worksheet worksheet1
-
   #outputMsg "gpmiCoverageFormat $multi" red
 
 # delete worksheet if no graphical PMI
@@ -1629,10 +1681,10 @@ proc gpmiCoverageFormat {{sum ""} {multi 1}} {
       set anchor [$worksheet($pmi_coverage) Range E1]
       [$worksheet($pmi_coverage) Hyperlinks] Add $anchor [join "https://www.cax-if.org/joint_testing_info.html#recpracs"] [join ""] [join "Link to CAx-IF Recommended Practices"]
       
-      [$worksheet($pmi_coverage) Rows] AutoFit
       [$worksheet($pmi_coverage) Range "A1"] Select
       [$worksheet($pmi_coverage) PageSetup] PrintGridlines [expr 1]
       $cells($pmi_coverage) Item 1 1 [file tail $localName]
+      $cells($pmi_coverage) Item 35 1 "See Help > PMI Coverage Analysis"
 
 # add images for the CAx-IF and NIST PMI models
       pmiAddModelPictures $pmi_coverage

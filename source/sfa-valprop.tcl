@@ -3,53 +3,47 @@ proc valPropStart {objDesign} {
   
 # CAx-IF RP Geometric and Assembly Validation Properties, section 8
   set valPropNames(geometric_validation_property) [list \
-    [list volume [list "volume measure"]] \
-    [list "surface area" [list "surface area measure" "wetted area measure"]] \
+    [list "bounding box" [list "bounding box corner point"]] \
     [list centroid [list "centre point"]] \
+    [list "independent curve centroid" [list "curve centre point"]] \
+    [list "independent curve length" [list "curve length measure"]] \
+    [list "independent points centroid" [list "independent points centre point"]] \
     [list "independent surface area" [list "independent surface area measure"]] \
     [list "independent surface centroid" [list "surface centre point"]] \
-    [list "independent curve length" [list "curve length measure"]] \
-    [list "independent curve centroid" [list "curve centre point"]] \
     [list "number of independent points" [list "number of independent points"]] \
-    [list "independent points centroid" [list "independent points centre point"]] \
-    [list "bounding box" [list "bounding box corner point"]] \
-    [list "smooth sampling points" [list "sampling point"]] \
     [list "sharp sampling points" [list "sampling point"]] \
-  ]
+    [list "smooth sampling points" [list "sampling point"]] \
+    [list "surface area" [list "surface area measure" "wetted area measure"]] \
+    [list volume [list "volume measure"]]]
 
 # CAx-IF RP Geometric and Assembly Validation Properties, section 8
   set valPropNames(assembly_validation_property) [list \
-    [list "number of children" [list "number of children"]] \
     [list "notional solids centroid" [list "centre point"]] \
-  ]
+    [list "number of children" [list "number of children"]]]
 
-# includes tessellated pmi and proposed semantic pmi valprops
+# includes tessellated pmi and semantic pmi valprops, section 10
   set valPropNames(pmi_validation_property) [list \
-    [list "" [list "number of annotations" "number of views" "polyline curve length" "polyline centre point" "equivalent unicode string" \
-              "font name" "affected area" "affected curve length" "number of segments" \
-              "tessellated curve length" "tessellated curve centre point" "tessellated surface centre point" "number of facets" \
-              "tessellated surface area" "number of semantic pmi elements" "number of dimensional locations" "number of dimensional sizes" \
-              "number of geometric tolerances" "number of composite tolerances" "number of datum features" "number of datum targets" "number of datum references" \
-              "datum references" "number of PMI presentation elements"]] \
-  ]
+    [list "" [list "affected area" "affected curve length" "datum references" "equivalent unicode string" "font name" \
+      "number of annotations" "number of composite tolerances" "number of datum features" "number of datum references" \
+      "number of datum targets" "number of dimensional locations" "number of dimensional sizes" "number of facets" \
+      "number of geometric tolerances" "number of PMI presentation elements" "number of segments" "number of semantic pmi elements" \
+      "number of views" "polyline centre point" "polyline curve length" "tessellated curve centre point" \
+      "tessellated curve length" "tessellated surface area" "tessellated surface centre point"]]]
 
 # CAx-IF RP User Defined Attributes, section 8
   set valPropNames(attribute_validation_property) [list \
-    [list "" [list "vertex user attributes" "edge user attributes" "face user attributes" "solid user attributes" \
-              "part user attributes" "instance user attributes" "user attribute groups" "group user attributes" \
-              "integer user attributes" "real user attributes" "text user attributes" "boolean user attributes"\
-              "measure value user attributes"]] \
-  ]
+    [list "" [list "boolean user attributes" "edge user attributes" "face user attributes" "group user attributes" \
+      "instance user attributes" "integer user attributes" "measure value user attributes" "part user attributes" \
+      "real user attributes" "solid user attributes" "text user attributes" "user attribute groups" "vertex user attributes"]]]
 
 # tessellated geometry recommended practice
   set valPropNames(tessellated_validation_property) [list \
+    [list "bounding box" [list "bounding box corner point"]] \
+    [list centroid [list "tessellated surface centre point" "tessellated curve centre point" "tessellated point set centre point"]] \
+    [list "curve length" [list "tessellated curve length"]] \
     [list "number of facets" [list "number of facets"]] \
     [list "number of segments" [list "number of segments"]] \
-    [list "curve length" [list "tessellated curve length"]] \
-    [list "surface area" [list "tessellated surface area"]] \
-    [list centroid [list "tessellated surface centre point" "tessellated curve centre point" "tessellated point set centre point"]] \
-    [list "bounding box" [list "bounding box corner point"]] \
-  ]
+    [list "surface area" [list "tessellated surface area"]]]
 
   set derived_unit_element [list derived_unit_element unit \
             [list conversion_based_unit_and_length_unit dimensions name conversion_factor] \
@@ -85,7 +79,8 @@ proc valPropStart {objDesign} {
   if {[info exists pdheading]} {unset pdheading}
   if {[info exists ent]}       {unset ent}
 
-  outputMsg " Adding Validation Properties to property_definition worksheet" green
+  outputMsg " Adding Properties to property_definition worksheet" green
+  #outputMsg " Adding Validation Properties to property_definition worksheet" green
 
   if {$opt(DEBUG1)} {outputMsg \n}
   set elevel 0
@@ -278,7 +273,7 @@ proc valPropReport {objEntity} {
                 if {[catch {
                   $cells($pd) Item $r $c "$val[format "%c" 10]$ov"
                 } emsg]} {
-                  errorMsg "  ERROR: Too much data to display in a cell" red
+                  errorMsg "  ERROR: Too much data to show in a cell" red
                 }
               }
 
@@ -342,26 +337,27 @@ proc valPropReport {objEntity} {
 # get values for these entity and attribute pairs
             switch -glob $ent1 {
               "descriptive_representation_item description" -
-              "*_representation_item the_value"              {set ok 1; set col($pd) 9;  set colName "value"}
+              "*_representation_item the_value"       {set ok 1; set col($pd) 9;  set colName "value"}
 
-              "conversion_based_unit_and_*_unit name"        {set ok 1; set col($pd) 11; set colName "units"}
+              "conversion_based_unit_and_*_unit name" {set ok 1; set col($pd) 11; set colName "units"}
 
-              "*_unit_and_si_unit name"                      -
-              "si_unit_and_*_unit name"                      {set ok 1; set col($pd) 11; set colName "units"; set objValue "$prefix$objValue"}
+              "*_unit_and_si_unit name"               -
+              "si_unit_and_*_unit name"               {set ok 1; set col($pd) 11; set colName "units"; set objValue "$prefix$objValue"}
 
-              "derived_unit_element exponent"                {set ok 1; set col($pd) 13; set colName "exponent"}
+              "derived_unit_element exponent"         {set ok 1; set col($pd) 13; set colName "exponent"}
 
-              "*_unit_and_si_unit prefix"                    -
-              "si_unit_and_*_unit prefix"                    {set ok 0; set prefix $objValue}
+              "*_unit_and_si_unit prefix"             -
+              "si_unit_and_*_unit prefix"             {set ok 0; set prefix $objValue}
 
-              "property_definition name"                     {
+              "property_definition name" {
                 set ok 0
                 set pmivalprop 1
                 regsub -all " " $objValue "_" propDefName
                 
                 if {[string first "validation property" $objValue] != -1} {
                   if {[string first "geometric" $objValue] != 0 && [string first "assembly" $objValue] != 0 && \
-                    [string first "pmi" $objValue] != 0 && [string first "tessellated" $objValue] != 0 && [string first "attribute" $objValue] != 0} {
+                      [string first "pmi" $objValue] != 0 && [string first "tessellated" $objValue] != 0 && \
+                      [string first "attribute" $objValue] != 0} {
                     errorMsg "Possible Syntax Error: Unexpected Validation Property '$objValue'"
                     set invalid 1
                     lappend syntaxErr([lindex [split $ent1 " "] 0]) [list $objID [lindex [split $ent1 " "] 1]]
@@ -468,7 +464,7 @@ proc valPropReport {objEntity} {
                       }
                       append emsg "'$ent2' attribute ($objValue) for '$propDefName'.\n              "
                       if {$propDefName == "geometric_validation_property" || $propDefName == "assembly_validation_property"} {
-                        append emsg "($recPracNames(valprop), Sec. 8, Table 1)"
+                        append emsg "($recPracNames(valprop), Sec. 8)"
                       } elseif {$propDefName == "pmi_validation_property"} {
                         if {$stepAP == "AP242"} {
                           append emsg "($recPracNames(pmi242), Sec. 10)"
@@ -476,7 +472,7 @@ proc valPropReport {objEntity} {
                           append emsg "($recPracNames(pmi203), Sec. 6)"
                         }
                       } elseif {$propDefName == "tessellated_validation_property"} {
-                        append emsg "($recPracNames(tessgeom), Sec. 8.4)"
+                        append emsg "($recPracNames(tessgeom), Sec. 8)"
                       } elseif {$propDefName == "attribute_validation_property"} {
                         append emsg "($recPracNames(uda), Sec. 8)"
                       }
@@ -505,8 +501,8 @@ proc valPropReport {objEntity} {
               if {[lsearch $propDefRow $r] == -1 && [string first "validation_property" $propDefName] != -1} {lappend propDefRow $r}
 
               set val [[$cells($pd) Item $r $c] Value]
+              if {$val == " "} {set val ""}
               if {$invalid} {lappend syntaxErr($pd) [list $r $col($pd)]}
-              #if {$invalid} {lappend syntaxErr($pd) [list $r $c]}
 
               if {$val == ""} {
                 $cells($pd) Item $r $c $objValue
@@ -580,7 +576,7 @@ proc valPropReport {objEntity} {
 
 # -------------------------------------------------------------------------------
 proc valPropFormat {} {
-  global cells col excel propDefRow recPracNames row stepAP thisEntType worksheet
+  global cells col excelVersion propDefRow recPracNames row stepAP thisEntType worksheet
 
   if {[info exists cells($thisEntType)] && $col($thisEntType) > 4} {
     #if {[llength $propDefRow] == 0 && $stepAP != ""} {
@@ -602,7 +598,7 @@ proc valPropFormat {} {
   set col($thisEntType) [expr {$col($thisEntType)-$ndelcol}]
 
 # sort
-  if {[expr {int([$excel Version])}] >= 12} {
+  if {$excelVersion >= 12} {
     set ranrow $row($thisEntType)
     if {$ranrow > 8} {
       set range [$worksheet($thisEntType) Range [cellRange 3 1] [cellRange $ranrow $col($thisEntType)]]
@@ -685,7 +681,7 @@ proc valPropFormat {} {
       if {$val == "value name"} {
         for {set i1 $i} {$i1 <= $colrange} {incr i1} {
           set range [$worksheet($thisEntType) Range [cellRange -1 $i1]]
-          $range ColumnWidth [expr 255]
+          $range ColumnWidth [expr 96]
         }
         break
       }

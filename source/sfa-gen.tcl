@@ -1,12 +1,12 @@
 # generate an Excel spreadsheet from a STEP file
 
 proc genExcel {{numFile 0}} {
-  global allEntity ap203all ap209all ap210all ap214all ap238all ap242all badAttributes buttons
-  global cells cells1 col col1 comma count coverageLegend coverageValues creo csvdirnam csvfile
-  global developer dim entCategories entColorIndex entCount entityCount entsIgnored env errmsg
-  global excel excelVersion excelYear extXLS fcsv File fileEntity fixent fixprm idxColor inverses
-  global lastXLS lenfilelist localName localNameList multiFile multiFileDir nistName nistVersion nline
-  global opt pmiCol programfiles recPracNames row rowmax sheetLast spmiEntity spmiSumRow startrow stepAP
+  global allEntity ap203all ap214all ap242all badAttributes buttons
+  global cells cells1 col col1 comma count coverageLegend readPMI creo csvdirnam csvfile
+  global developer dim entCategories entCategory entColorIndex entCount entityCount entsIgnored env errmsg
+  global excel excelVersion excelYear extXLS fcsv File fileEntity fixent fixprm gpmiTypesPerFile idxColor inverses
+  global lastXLS lenfilelist localName localNameList multiFile multiFileDir nistName nistVersion nprogEnts
+  global opt pmiCol pmiMaster programfiles recPracNames row rowmax sheetLast spmiEntity spmiSumName spmiSumRow spmiTypesPerFile startrow stepAP
   global thisEntType timeStamp tlast tolStandard totalEntity userEntityFile userEntityList userXLSFile
   global workbook workbooks worksheet worksheet1 worksheets writeDir wsCount
   global x3domColor x3domCoord x3domFile x3domFileName x3domFileOpen x3domIndex x3domMax x3domMin
@@ -40,8 +40,10 @@ proc genExcel {{numFile 0}} {
   set env(ROSE_RUNTIME) [file join $programfiles IFCsvrR300 dll]
   set env(ROSE_SCHEMAS) [file join $programfiles IFCsvrR300 dll]
 
-  if {[info exists buttons]} {$buttons(genExcel) configure -state disable}
-  catch {.tnb select .tnb.status}
+  if {[info exists buttons]} {
+    $buttons(genExcel) configure -state disable
+    .tnb select .tnb.status
+  }
   set lasttime [clock clicks -milliseconds]
 
   set multiFile 0
@@ -50,7 +52,7 @@ proc genExcel {{numFile 0}} {
 # -------------------------------------------------------------------------------------------------
 # connect to IFCsvr
   if {[catch {
-    outputMsg "\nConnecting to IFCsvr" green
+    #outputMsg "\nConnecting to IFCsvr" green
     set objIFCsvr [::tcom::ref createobject IFCsvr.R300]
     
 # print errors
@@ -63,8 +65,8 @@ proc genExcel {{numFile 0}} {
 # -------------------------------------------------------------------------------------------------
 # open STEP file
   if {[catch {
-    set nline 0
-    outputMsg "Opening STEP file"
+    set nprogEnts 0
+    outputMsg "\nOpening STEP file"
     set fname $localName  
 
 # add file name and size to multi file summary
@@ -131,12 +133,13 @@ proc genExcel {{numFile 0}} {
     set nistName ""
     set ftail [string tolower [file tail $localName]]
     set ctcftc 0
-    set filePrefix [list sp4_ sp5_ sp6_ sp7_ tgp1_ tgp2_ tgp3_ tgp4_ lsp_ lpp_ ltg_ ltp_]
+    set filePrefix [list sp4_ sp5_ sp6_ sp7_ tgp1_ tgp2_ tgp3_ tgp4_ tp3_ tp4_ tp5_ lsp_ lpp_ ltg_ ltp_]
 
     set ok  0
     set ok1 0
     foreach prefix $filePrefix {
-      if {[string first $prefix $ftail] == 0 || [string first "nist" $ftail] != -1} {
+      if {[string first $prefix $ftail] == 0 || [string first "nist" $ftail] != -1 || \
+          [string first "ctc" $ftail] != -1 || [string first "ftc" $ftail] != -1} {
         set tmp "nist_"
         foreach item {ctc ftc} {
           if {[string first $item $ftail] != -1} {
@@ -194,27 +197,22 @@ proc genExcel {{numFile 0}} {
     }
     if {$developer && [string first "step-file-analyzer" $ftail] == 0} {set nistName "nist_ctc_01"}
     
-# open tolerance coverage worksheet if PMI presentation and correct file name
-    if {$opt(PMISEM) && !$coverageValues} {
-      set ft [string tolower [file tail $fname]]
-      if {([string first "sp" $ft] == 0 || [string first "lsp" $ft] == 0 || \
-          [string first "nist" $ft] != -1 || [string first "ctc" $ft] != -1 || [string first "ftc" $ft] != -1 || \
-          [string first "step-file-analyzer" $ft] != -1) && [string first "sp3" $ft] == -1} {
-        spmiGetCoverageValues
-        set coverageValues 1
-      }
+# open expected PMI worksheet (once) if PMI presentation and correct file name
+    if {$opt(PMISEM) && $stepAP == "AP242" && $nistName != ""} {
+      if {![info exists pmiMaster($nistName)]} {spmiGetPMI}
     }
     
 # error opening file, report the schema
   } emsg]} {
-    errorMsg "ERROR opening STEP file: $emsg"
-    errorMsg "Possible causes of the error: (1) syntax errors in the STEP file, see Help > Conformance Checking\n (2) STEP schema is not supported or found, see Help > Other STEP APs,\n (3) wrong file extension, (4) file is not a STEP file." red
+    errorMsg "ERROR opening STEP file"
+    #errorMsg "ERROR opening STEP file: $emsg"
+    errorMsg "Possible causes of the ERROR:\n- Syntax errors in the STEP file, see Help > Conformance Checking\n- STEP schema is not supported, see Help > Supported STEP APs\n- Wrong file extension, should be '.stp'\n- STEP file contains new features from ISO 10303 Part 21 edition 3\n- File is not an ISO 10303 Part 21 STEP file" red
     getSchemaFromFile $fname 1
     if {!$nistVersion} {
       outputMsg " "
       errorMsg "You must process at least one STEP file with the NIST version of the STEP File Analyzer\n before using a user-built version."
     }
-    outputMsg "\nClosing IFCsvr" green
+    #outputMsg "\nClosing IFCsvr" green
     if {[info exists errmsg]} {unset errmsg}
     catch {
       $objDesign Delete
@@ -254,7 +252,7 @@ proc genExcel {{numFile 0}} {
         16 {set excelYear 2016}
       }
       if {$excelVersion >= 2000 && $excelVersion < 2100} {set excelYear $excelVersion}
-      outputMsg "Connecting to Excel $excelYear" green
+      #outputMsg "Connecting to Excel $excelYear" green
   
       if {$excelVersion < 12} {errorMsg " Some spreadsheet features are not available with this older version of Excel."}
   
@@ -267,7 +265,7 @@ proc genExcel {{numFile 0}} {
       }
       
       set rowmax [expr {$rowmax-2}]
-      if {$opt(ROWLIM) < $rowmax} {set rowmax $opt(ROWLIM)}
+      if {$opt(XL_ROWLIM) < $rowmax} {set rowmax $opt(XL_ROWLIM)}
       
 # error with Excel, use CSV instead
     } emsg]} {
@@ -376,10 +374,9 @@ proc genExcel {{numFile 0}} {
 
 # set types of entities to process
   set entCategories {}
-  global entCategory
   foreach pr [array names entCategory] {
     set ok 1
-    if {[info exists opt($pr)] && $ok} {
+    if {[info exists opt($pr)] && [info exists entCategory($pr)] && $ok} {
       if {$opt($pr)} {set entCategories [concat $entCategories $entCategory($pr)]}
     }
   }
@@ -416,7 +413,7 @@ proc genExcel {{numFile 0}} {
 
     if {$entCount($entType) > 0} {
       if {$numFile != 0} {
-        set idx [setColorIndex $entType 1]
+        set idx [setColorIndex $entType]
         if {$idx == -2} {set idx 99}
         lappend allEntity "$idx$entType"
         lappend fileEntity($numFile) "$entType $entCount($entType)"
@@ -435,15 +432,19 @@ proc genExcel {{numFile 0}} {
       set ok1 [setEntsToProcess $entType $objDesign]
       if {$ok == 0} {set ok $ok1}
       
-# entities in unsupported APs
-      if {$stepAP == ""} {
-        if {[lsearch $ap203all $entType] == -1 && \
-            [lsearch $ap209all $entType] == -1 && \
-            [lsearch $ap210all $entType] == -1 && \
-            [lsearch $ap214all $entType] == -1 && \
-            [lsearch $ap238all $entType] == -1 && \
-            [lsearch $ap242all $entType] == -1} {
-          set ok 1
+# entities in unsupported APs that are not AP203, AP214, AP242
+      if {$stepAP != "AP203" && $stepAP != "AP214" && $stepAP != "AP242"} {
+        set et $entType
+        set c1 [string first "_and_" $et]
+        if {$c1 != -1} {set et [string range $et 0 $c1-1]}
+        if {[lsearch $ap203all $et] == -1 && [lsearch $ap214all $et] == -1 && [lsearch $ap242all $et] == -1} {
+          if {$c1 == -1} {
+            set ok 1
+          } else {
+            if {[lsearch $ap203all $entType] == -1 && [lsearch $ap214all $entType] == -1 && [lsearch $ap242all $entType] == -1} {
+              set ok 1
+            }
+          }
         }
       }
 
@@ -540,6 +541,7 @@ proc genExcel {{numFile 0}} {
     lset entsToProcess $i [string range [lindex $entsToProcess $i] 2 end]
   }
 
+# max progress bar - number of entities  
   if {[info exists buttons]} {$buttons(pgb) configure -maximum $numEnts}
       
 # check for ISO/ASME standards on product_definition_formation, document, product
@@ -587,7 +589,7 @@ proc genExcel {{numFile 0}} {
   if {[catch {
     set inverseEnts {}
     set lastEnt ""
-    set nline 0
+    set nprogEnts 0
     set wsCount 0
     set stat 1
     set spmiEntity {}
@@ -625,8 +627,8 @@ proc genExcel {{numFile 0}} {
 # process the entity
       ::tcom::foreach objEntity [$objDesign FindObjects [join $entType]] {
         if {$entType == [$objEntity Type]} {
-          incr nline
-          if {[expr {$nline%1000}] == 0} {update idletasks}
+          incr nprogEnts
+          if {[expr {$nprogEnts%1000}] == 0} {update idletasks}
 
           if {[catch {
             if {$opt(XLSCSV) == "Excel"} {
@@ -642,31 +644,25 @@ proc genExcel {{numFile 0}} {
             set msg "ERROR processing " 
             if {[info exists objEntity]} {
               if {[string first "handle" $objEntity] != -1} {
-                if {[$objEntity Type] != "trimmed_curve"} {
-                  append msg "\#[$objEntity P21ID]=[$objEntity Type] (row [expr {$row($thisEntType)+2}]): $emsg1"
+                append msg "\#[$objEntity P21ID]=[$objEntity Type] (row [expr {$row($thisEntType)+2}]): $emsg1"
 
 # handle specific errors
-                  if {[string first "Unknown error" $emsg1] != -1} {
-                    errorMsg $msg
-                    catch {raise .}
-                    incr nerr1
-                    if {$nerr1 > 20} {
-                      errorMsg "Processing of $entType entities has stopped" red
-                      set nline [expr {$nline + $entCount($thisEntType) - $count($thisEntType)}]
-                      break
-                    }
-
-                  } elseif {[string first "Insufficient memory to perform operation" $emsg1] != -1} {
-                    errorMsg $msg
-                    errorMsg "Several options are available to reduce memory usage:\nUse the option to limit the Maximum Rows"
-                    if {$opt(INVERSE)} {errorMsg "Turn off Inverse Relationships and process the file again" red}
-                    catch {raise .}
+                if {[string first "Unknown error" $emsg1] != -1} {
+                  errorMsg $msg
+                  catch {raise .}
+                  incr nerr1
+                  if {$nerr1 > 20} {
+                    errorMsg "Processing of $entType entities has stopped" red
+                    set nprogEnts [expr {$nprogEnts + $entCount($thisEntType) - $count($thisEntType)}]
                     break
                   }
 
-# error message for trimmed_curve (causes problems for IFCsvr)
-                } else {
-                  append msg [$objEntity Type]
+                } elseif {[string first "Insufficient memory to perform operation" $emsg1] != -1} {
+                  errorMsg $msg
+                  errorMsg "Several options are available to reduce memory usage:\nUse the option to limit the Maximum Rows"
+                  if {$opt(INVERSE)} {errorMsg "Turn off Inverse Relationships and process the file again" red}
+                  catch {raise .}
+                  break
                 }
                 errorMsg $msg 
                 catch {raise .}
@@ -674,7 +670,7 @@ proc genExcel {{numFile 0}} {
             }
           }
           if {$stat != 1} {
-            set nline [expr {$nline + $entCount($thisEntType) - $count($thisEntType)}]
+            set nprogEnts [expr {$nprogEnts + $entCount($thisEntType) - $count($thisEntType)}]
             break
           }
         }
@@ -683,7 +679,7 @@ proc genExcel {{numFile 0}} {
       if {$opt(XLSCSV) == "CSV"} {catch {close $fcsv}}
       
 # check for validation properties, PMI presentation and representation
-      checkForPMIandValProps $objDesign $entType
+      checkPMIValProps $objDesign $entType
     }
 
   } emsg2]} {
@@ -727,7 +723,7 @@ proc genExcel {{numFile 0}} {
 # -------------------------------------------------------------------------------------------------
 # quit IFCsvr, but not sure how to do it properly
   if {[catch {
-    outputMsg "\nClosing IFCsvr" green
+    #outputMsg "\nClosing IFCsvr" green
     $objDesign Delete
     unset objDesign
     unset objIFCsvr
@@ -751,7 +747,7 @@ proc genExcel {{numFile 0}} {
     set sumHeaderRow [sumAddFileName $sum $sumLinks]
 
 # freeze panes (must be before adding color and hyperlinks below)
-    [$worksheet($sum) Range "B[expr {$sumHeaderRow+3}]"] Select
+    [$worksheet($sum) Range "A[expr {$sumHeaderRow+3}]"] Select
     [$excel ActiveWindow] FreezePanes [expr 1]
     [$worksheet($sum) Range "A1"] Select
   
@@ -767,7 +763,6 @@ proc genExcel {{numFile 0}} {
 # -------------------------------------------------------------------------------------------------
 # add PMI Rep. Coverage Analysis worksheet for a single file
     if {$opt(PMISEM)} {
-      global spmiTypesPerFile
       if {[info exists spmiTypesPerFile]} {
         set sempmi_coverage "PMI Representation Coverage"
         if {![info exists worksheet($sempmi_coverage)]} {
@@ -776,25 +771,14 @@ proc genExcel {{numFile 0}} {
           spmiCoverageWrite "" "" 0
           spmiCoverageFormat "" 0
         }
-  
-# add line to bottow of PMI rep summary worksheet
-        global spmiSumName  
-        if {$spmiSumRow > 1} {
-          [$worksheet($spmiSumName) Columns] AutoFit
-          [$worksheet($spmiSumName) Rows] AutoFit
-          incr spmiSumRow 2
-          $cells($spmiSumName) Item 1 3 "See CAx-IF Recommended Practice for $recPracNames(pmi242)"
-          set range [$worksheet($spmiSumName) Range C1:K1]
-          $range MergeCells [expr 1]
-          set anchor [$worksheet($spmiSumName) Range C1]
-          [$worksheet($spmiSumName) Hyperlinks] Add $anchor [join "https://www.cax-if.org/joint_testing_info.html#recpracs"] [join ""] [join "Link to CAx-IF Recommended Practices"]
-        }
       }
+
+# format PMI Representation Summary worksheet
+      if {[info exists spmiSumName]} {spmiSummaryFormat}
     }
   
 # add PMI Pres. Coverage Analysis worksheet for a single file
     if {$opt(PMIGRF)} {
-      global gpmiTypesPerFile
       if {[info exists gpmiTypesPerFile]} {
         set pmi_coverage "PMI Presentation Coverage"
         if {![info exists worksheet($pmi_coverage)]} {
@@ -806,11 +790,13 @@ proc genExcel {{numFile 0}} {
       }
     }
     
+# -------------------------------------------------------------------------------------------------
 # select the first tab
     [$worksheets Item [expr 1]] Select
     [$excel ActiveWindow] ScrollRow [expr 1]
   }
 
+# processing time
   set cc [clock clicks -milliseconds]
   set proctime [expr {($cc - $lasttime)/1000}]
   if {$proctime <= 60} {set proctime [expr {(($cc - $lasttime)/100)/10.}]}
@@ -818,7 +804,6 @@ proc genExcel {{numFile 0}} {
 
 # -------------------------------------------------------------------------------------------------
 # save spreadsheet
-
   if {$opt(XLSCSV) == "Excel"} {
     if {[catch {
       #getTiming "save spreadsheet"
@@ -837,7 +822,7 @@ proc genExcel {{numFile 0}} {
       catch {$excel ScreenUpdating 1}
 
 # close Excel
-      outputMsg "Closing Excel" green
+      #outputMsg "Closing Excel" green
       $excel Quit
       if {[info exists excel]} {unset excel}
       set openxl 1
@@ -865,9 +850,9 @@ proc genExcel {{numFile 0}} {
 # errors
     } emsg]} {
       errorMsg "ERROR saving Spreadsheet: $emsg"
-      if {[string first "The file or path name not found" $emsg]} {
-        outputMsg " "
-        errorMsg "Either copy the STEP file to a different directory and try generating the\n spreadsheet again or use the option to write the spreadsheet to a user-defined\n directory (Spreadsheet tab)."
+      if {[string first "The file or path name not found" $emsg] == -1} {
+        #outputMsg " "
+        errorMsg "The current version of the Spreadsheet needs to be closed before processing the STEP file again."
       }
       catch {raise .}
       set openxl 0
@@ -901,7 +886,7 @@ proc genExcel {{numFile 0}} {
   }
 
 # -------------------------------------------------------------------------------------------------
-# display X3DOM file of graphical PMI
+# open X3DOM file of graphical PMI
   displayX3DOM
 
 # -------------------------------------------------------------------------------------------------
@@ -914,22 +899,263 @@ proc genExcel {{numFile 0}} {
 # clean up variables to hopefully release some memory and/or to reset them
   global colColor invCol currX3domPointID dimrep dimrepID entName gpmiID gpmiIDRow gpmiOK gpmiRow
   global heading invGroup nrep numX3domPointID pmiColumns pmiStartCol 
-  global propDefID propDefIDRow propDefOK propDefRow syntaxErr 
+  global propDefID propDefIDRow propDefName propDefOK propDefRow syntaxErr 
   foreach var {cells colColor invCol count currX3domPointID dimrep dimrepID entName entsIgnored \
               gpmiID gpmiIDRow gpmiOK gpmiRow heading invGroup nrep numX3domPointID \
-              pmiCol pmiColumns pmiStartCol pmivalprop propDefID propDefIDRow propDefOK propDefRow \
+              pmiCol pmiColumns pmiStartCol pmivalprop propDefID propDefIDRow propDefName propDefOK propDefRow \
               syntaxErr workbook workbooks worksheet worksheets \
               x3domCoord x3domFile x3domFileName x3domFileOpen x3domIndex x3domMax x3domMin} {
     if {[info exists $var]} {unset $var}
   }
   if {!$multiFile} {
-    global gpmiTypesPerFile spmiTypesPerFile
-    foreach var {gpmiTypesPerFile spmiTypesPerFile} {
-      if {[info exists $var]} {unset $var}
-    }
+    foreach var {gpmiTypesPerFile spmiTypesPerFile} {if {[info exists $var]} {unset $var}}
   }
   update idletasks
   return 1
+}
+  
+# -------------------------------------------------------------------------------------------------
+proc addHeaderWorksheet {objDesign numFile fname} {
+  global excel worksheets worksheet cells row timeStamp creo fileSchema cadSystem opt localName
+  global excel1 worksheet1 cells1 col1
+  global csvdirnam
+   
+  if {[catch {
+    if {$opt(XLSCSV) == "Excel"} {
+      outputMsg "Generating Header worksheet" green
+    } else {
+      outputMsg "Generating Header CSV file" green
+    }
+  
+# all app names that might appear in header section
+    set cadApps {"3D_Evolution" ACIS "Alias - OpenModel" "Alias AutoStudio" "Alias OpenModel" "Alias Studio" Alibre AutoCAD "Autodesk Inventor" \
+      CADDS CADfix CADIF CATIA "CATIA V4" "CATIA V5" "CATIA V6" "CATIA Version 5" CgiStepCamp CoreTechnologie Creo "CV - CADDS 5" \
+      DATAKIT Datakit "Datakit CrossCad" DATAVISION Elysium EXPRESSO FEMAP FiberSim HiCAD IDA-STEP "I-DEAS" "Implementor Forum Team" "ITI TranscenData" \
+      "jt_step translator" Kubotek "Kubotek KeyCreator" "Mechanical Desktop" "Mentor Graphics" NX "OneSpace Designer" "Open CASCADE" \
+      Parasolid Patran PlanetCAD PolyTrans "PRO/ENGINEER" Siemens "SIEMENS PLM Software NX 10.0" "SIEMENS PLM Software NX 11.0" \
+      "SIEMENS PLM Software NX 7.0" "SIEMENS PLM Software NX 7.5" "SIEMENS PLM Software NX 8.0" "SIEMENS PLM Software NX 8.5" \
+      "SIEMENS PLM Software NX 9.0" "SIEMENS PLM Software NX" "Solid Edge" SolidEdge SolidWorks "ST-ACIS" "STEP Caselib" \
+      "STEP-NC Explorer" "STEP-NC Maker" "T3D tool generator" THEOREM Theorem "THEOREM SOLUTIONS" "Theorem Solutions" "T-Systems" \
+      "UGS - NX" Unigraphics CoCreate Adobe Elysium ASFALIS CAPVIDIA 3DTransVidia MBDVidia NAFEMS COM209 CADCAM-E 3DEXPERIENCE ECCO SimDM}
+
+# sort cadApps by string length
+    set cadApps [sortlength2 $cadApps]
+
+    set cadSystem ""
+    set timeStamp ""
+    set creo 0
+
+    set hdr "Header"
+    if {$opt(XLSCSV) == "Excel"} { 
+      set worksheet($hdr) [$worksheets Item [expr 1]]
+      $worksheet($hdr) Activate
+      $worksheet($hdr) Name $hdr
+      set cells($hdr) [$worksheet($hdr) Cells]
+
+# create directory for CSV files
+    } else {
+      foreach var {csvdirnam csvfname fcsv} {catch {unset $var}}
+      set csvdirnam "[file join [file dirname $localName] [file rootname [file tail $localName]]]-sfa-csv"
+      file mkdir $csvdirnam
+      set csvfname [file join $csvdirnam $hdr.csv]
+      if {[file exists $csvfname]} {file delete -force $csvfname}
+      set fcsv [open $csvfname w]
+      #outputMsg $fcsv red
+    }
+
+    set row($hdr) 0
+    foreach attr {Name FileDirectory FileDescription FileImplementationLevel FileTimeStamp FileAuthor \
+                  FileOrganization FilePreprocessorVersion FileOriginatingSystem FileAuthorisation SchemaName} {
+      incr row($hdr)
+      if {$opt(XLSCSV) == "Excel"} { 
+        $cells($hdr) Item $row($hdr) 1 $attr
+      } else {
+        set csvstr $attr
+      }
+      set objAttr [string trim [join [$objDesign $attr]]]
+
+# FileDirectory
+      if {$attr == "FileDirectory"} {
+        if {$opt(XLSCSV) == "Excel"} { 
+          $cells($hdr) Item $row($hdr) 2 [$objDesign $attr]
+        } else {
+          append csvstr ",[$objDesign $attr]"
+          puts $fcsv $csvstr
+        }
+        outputMsg "$attr:  [$objDesign $attr]"
+
+# SchemaName
+      } elseif {$attr == "SchemaName"} {
+        set sn [getSchemaFromFile $fname]
+        if {$opt(XLSCSV) == "Excel"} { 
+          $cells($hdr) Item $row($hdr) 2 $sn
+        } else {
+          append csvstr ",$sn"
+          puts $fcsv $csvstr
+        }
+        outputMsg "$attr:  $sn" blue
+        if {[string range $sn end-3 end] == "_MIM"} {
+          errorMsg "Syntax Error: Schema name should end with _MIM_LF"
+          [$worksheet($hdr) Range B11] Style "Bad"
+       }
+
+        set fileSchema  [string toupper [string range $objAttr 0 5]]
+        if {[string first "IFC" $fileSchema] == 0} {
+          errorMsg "Use the IFC File Analyzer with IFC files."
+          after 1000
+          displayURL http://go.usa.gov/xK9gh
+        } elseif {$objAttr == "STRUCTURAL_FRAME_SCHEMA"} {
+          errorMsg "This is a CIS/2 file that can be visualized with SteelVis.  http://go.usa.gov/s8fm"
+        }
+
+# other File attributes
+      } else {
+        if {$attr == "FileDescription" || $attr == "FileAuthor" || $attr == "FileOrganization"} {
+          set str1 "$attr:  "
+          set str2 ""
+          foreach item [$objDesign $attr] {
+            append str1 "[string trim $item], "
+            if {$opt(XLSCSV) == "Excel"} { 
+              append str2 "[string trim $item][format "%c" 10]"
+            } else {
+              append str2 ",[string trim $item]"
+            }
+          }
+          outputMsg [string range $str1 0 end-2]
+          if {$opt(XLSCSV) == "Excel"} { 
+            $cells($hdr) Item $row($hdr) 2 "'[string trim $str2]"
+            set range [$worksheet($hdr) Range "$row($hdr):$row($hdr)"]
+            $range VerticalAlignment [expr -4108]
+          } else {
+            append csvstr [string trim $str2]
+            puts $fcsv $csvstr
+          }
+        } else {
+          outputMsg "$attr:  $objAttr"
+          if {$opt(XLSCSV) == "Excel"} { 
+            $cells($hdr) Item $row($hdr) 2 "'$objAttr"
+            set range [$worksheet($hdr) Range "$row($hdr):$row($hdr)"]
+            $range VerticalAlignment [expr -4108]
+          } else {
+            append csvstr ",$objAttr"
+            puts $fcsv $csvstr
+          }
+        }
+
+# check implementation level        
+        if {$attr == "FileImplementationLevel"} {
+          if {$objAttr != "2\;1"} {
+            errorMsg "Syntax Error: Implementation Level should be '2\;1'"
+            [$worksheet($hdr) Range B4] Style "Bad"
+          }
+        }
+
+# check for Creo
+        if {$attr == "FileOriginatingSystem"} {
+          if {[string first "PRO/ENGINEER" $objAttr] != -1 || [string first "CREO PARAMETRIC" $objAttr] != -1} {set creo 1}
+        }
+
+# check and add time stamp to multi file summary
+        if {$attr == "FileTimeStamp"} {
+          if {([string first "-" $objAttr] == -1 || [string length $objAttr] < 17) && $objAttr != ""} {
+            errorMsg "Syntax Error: Wrong format for FileTimeStamp"            
+            if {$opt(XLSCSV) == "Excel"} {[$worksheet($hdr) Range B5] Style "Bad"}
+          }
+          if {$numFile != 0 && [info exists cells1(Summary)] && $opt(XLSCSV) == "Excel"} {
+            set timeStamp $objAttr
+            set colsum [expr {$col1(Summary)+1}]
+            set range [$worksheet1(Summary) Range [cellRange 5 $colsum]]
+            catch {$cells1(Summary) Item 5 $colsum "'[string range $timeStamp 2 9]"}
+          }
+        }
+      }
+    }
+
+    if {$opt(XLSCSV) == "Excel"} { 
+      [[$worksheet($hdr) Range "A:A"] Font] Bold [expr 1]
+      [$worksheet($hdr) Columns] AutoFit
+      [$worksheet($hdr) Rows] AutoFit
+      [$worksheet($hdr) PageSetup] Orientation [expr 2]
+      [$worksheet($hdr) PageSetup] PrintGridlines [expr 1]
+    }
+      
+# check for CAx-IF Recommended Practices in the file description
+    set caxifrp {}
+    foreach fd [$objDesign "FileDescription"] {
+      set c1 [string first "CAx-IF Rec." $fd]
+      if {$c1 != -1} {lappend caxifrp [string trim [string range $fd $c1+20 end]]}
+    }
+    if {[llength $caxifrp] > 0} {
+      outputMsg "\nCAx-IF Recommended Practices: (www.cax-if.org/joint_testing_info.html#recpracs)"
+      foreach item $caxifrp {
+        outputMsg " $item" blue
+        if {[string first "AP242" $fileSchema] == -1 && [string first "Tessellated" $item] != -1} {
+          errorMsg "  Error: Recommended Practices related to 'Tessellated' only apply to AP242 files."
+        }
+      }
+    }
+
+
+# set the application from various file attributes, cadApps is a list of all application names defined above, take the first one that matches
+    set ok 0
+    foreach attr {FilePreprocessorVersion FileOriginatingSystem FileDescription FileAuthorisation FileOrganization} {
+      foreach app $cadApps {
+        set app1 $app
+        if {$cadSystem == "" && [string first [string tolower $app] [string tolower [join [$objDesign $attr]]]] != -1} {
+          set cadSystem [join [$objDesign $attr]]
+
+# for multiple files, modify the app string to fit in file summary worksheet
+          if {$numFile != 0 && [info exists cells1(Summary)]} {
+            if {$app == "3D_Evolution"}            {set app1 "CT 3D Evolution"}
+            if {$app == "CoreTechnologie"}         {set app1 "CT 3D Evolution"}
+            if {$app == "DATAKIT"}                 {set app1 "Datakit"}
+            if {$app == "Implementor Forum Team"}  {set app1 "CAx-IF"}
+            if {$app == "jt_step translator"}      {set app1 "Siemens NX"}
+            if {$app == "PRO/ENGINEER"}            {set app1 "Creo"}
+            if {$app == "SIEMENS PLM Software NX"} {set app1 "Siemens NX"}
+            if {$app == "UGS - NX"}                {set app1 "UGS-NX"}
+            if {$app == "Unigraphics"}             {set app1 "Siemens NX"}
+            if {$app == "UNIGRAPHICS"}             {set app1 "Unigraphics"}
+            if {$app == "3DEXPERIENCE"}            {set app1 "CATIA"}
+            if {[string first "CATIA Version"           $app] == 0} {set app1 "CATIA V[string range $app 14 end]"}
+            if {[string first "SIEMENS PLM Software NX" $app] == 0} {set app1 "Siemens NX[string range $app 23 end]"}
+            if {[string first "THEOREM"   [$objDesign FilePreprocessorVersion]] != -1} {set app1 "Theorem"}
+            if {[string first "T-Systems" [$objDesign FilePreprocessorVersion]] != -1} {set app1 "T-Systems"}
+
+# set caxifVendor based on CAx-IF vendor notation used in testing rounds, use for app if appropriate
+            set caxifVendor [setCAXIFvendor]
+            if {$caxifVendor != ""} {
+              if {[string first [lindex [split $caxifVendor " "] 0] $app1] != -1} {
+                if {[string length $caxifVendor] > [string length $app1]} {set app1 $caxifVendor}
+              } elseif {[string first [lindex [split $app1 " "] 0] $caxifVendor] != -1} {
+                if {[string length $caxifVendor] < [string length $app1]} {set app1 "$app1 ($caxifVendor)"}
+              }
+            }
+            set ok 1
+            set app2 $app1
+            break
+          }
+        }
+      }
+    }
+    
+# add app2 to multiple file summary worksheet    
+    if {$numFile != 0 && $opt(XLSCSV) == "Excel"} {
+      if {$ok == 0} {set app2 [setCAXIFvendor]}
+      set colsum [expr {$col1(Summary)+1}]
+      if {$colsum > 16} {[$excel1 ActiveWindow] ScrollColumn [expr {$colsum-16}]}
+      regsub -all " " $app2 [format "%c" 10] app2
+      $cells1(Summary) Item 6 $colsum [string trim $app2]
+    }
+    if {$cadSystem == ""} {set cadSystem [setCAXIFvendor]}
+
+# close csv file
+    if {$opt(XLSCSV) == "CSV"} {close $fcsv} 
+
+  } emsg]} {
+    errorMsg "ERROR adding Header worksheet: $emsg"
+    catch {raise .}
+  }
 }
 
 #-------------------------------------------------------------------------------------------------
@@ -939,7 +1165,7 @@ proc sumAddWorksheet {} {
   global x3domFileName spmiEntity entCount gpmiEnts spmiEnts nistVersion
   global propDefRow stepAP
 
-  outputMsg "Adding Summary worksheet"
+  outputMsg "\nGenerating Summary worksheet" green
   set sum "Summary"
   #getTiming "done processing entities"
 
@@ -986,7 +1212,7 @@ proc sumAddWorksheet {} {
       if {$ok} {
         $cells($sum) Item $sumRow 1 $entType
         
-# for STEP add [Validation Properties], [PMI Presentation], [PMI Representation] text string and link to X3DOM file    
+# for STEP add [Properties], [PMI Presentation], [PMI Representation] text string and link to X3DOM file    
         set okao 0
         if {$entType == "property_definition" && $col($entType) > 4} {
           $cells($sum) Item $sumRow 1 "property_definition  \[Properties\]"
@@ -1014,7 +1240,7 @@ proc sumAddWorksheet {} {
         set entType_multiline "($entType_multiline)"
         $cells($sum) Item $sumRow 1 $entType_multiline
 
-# for STEP add [Validation Properties] or [PMI Presentation] text string and link to X3DOM file    
+# for STEP add [Properties] or [PMI Presentation] text string and link to X3DOM file    
         set okao 0
         if {[string first "annotation" $entType] != -1} {
           if {$gpmiEnts($entType) && $col($entType) > 7} {set okao 1}
@@ -1068,11 +1294,15 @@ proc sumAddWorksheet {} {
     $range AutoFormat
     
 # name and link to program website that generated the spreadsheet
-    set str ""
-    if {$nistVersion} {set str "NIST "}
+    set str "NIST "
+    set url "http://go.usa.gov/yccx"
+    if {!$nistVersion} {
+      set str ""
+      set url "https://github.com/usnistgov/SFA"
+    }
     $cells($sum) Item [expr {$row($sum)+2}] 1 "Spreadsheet generated by the $str\STEP File Analyzer (v[getVersion])"
     set anchor [$worksheet($sum) Range [cellRange [expr {$row($sum)+2}] 1]]
-    [$worksheet($sum) Hyperlinks] Add $anchor [join "http://www.nist.gov/el/msid/infotest/step-file-analyzer.cfm"] [join ""] [join "Link to STEP File Analyzer"]
+    [$worksheet($sum) Hyperlinks] Add $anchor [join $url] [join ""] [join "Link to STEP File Analyzer"]
     $cells($sum) Item [expr {$row($sum)+3}] 1 "[clock format [clock seconds]]"
 
 # print errors
@@ -1205,12 +1435,10 @@ proc sumAddColorLinks {sum sumHeaderRow sumLinks sheetSort sumRow} {
   global worksheet cells row excel entName xlFileName col entsIgnored
 
   if {[catch {
-    outputMsg "Adding links on Summary to STEP documentation"
+    #outputMsg " Adding links on Summary to Entity worksheets"
     set row($sum) [expr {$sumHeaderRow+2}]
-    set nline 0
 
     foreach ent $sheetSort {
-      incr nline
       update idletasks
 
       incr row($sum)
@@ -1248,7 +1476,7 @@ proc sumAddColorLinks {sum sumHeaderRow sumLinks sheetSort sumRow} {
 # add links for entsIgnored entities, find row where they start
     set i1 [expr {max([array size worksheet],9)}]
     for {set i $i1} {$i < 1000} {incr i} {
-      if {[string first "Entity" [[$cells($sum) Item $i 1] Value]] == 0} {
+      if {[string first "Entity types" [[$cells($sum) Item $i 1] Value]] == 0} {
         set rowIgnored $i
         break
       }
@@ -1265,10 +1493,9 @@ proc sumAddColorLinks {sum sumHeaderRow sumLinks sheetSort sumRow} {
       set nrow [expr {20-$sumHeaderRow}]
       if {$rowIgnored > $nrow} {[$excel ActiveWindow] ScrollRow [expr {$rowIgnored-$nrow}]}
       set ncol [expr {$col($sum)-1}]
-      #entDocLink $sum $ent $rowIgnored $sumDocCol $sumLinks
 
       set range [$worksheet($sum) Range [cellRange $rowIgnored 1]]
-      set cidx [setColorIndex $ent 1]
+      set cidx [setColorIndex $ent]
       if {$cidx > 0} {[$range Interior] ColorIndex [expr $cidx]}      
     }
     [$worksheet($sum) Columns] AutoFit
@@ -1285,16 +1512,16 @@ proc sumAddColorLinks {sum sumHeaderRow sumLinks sheetSort sumRow} {
 # format worksheets
 proc formatWorksheets {sheetSort sumRow inverseEnts} {
   global buttons worksheet excel cells opt count entCount col row rowmax xlFileName thisEntType schemaLinks stepAP syntaxErr
-  global gpmiEnts spmiEnts
+  global gpmiEnts spmiEnts nprogEnts excelVersion
   
-  outputMsg "Formatting Worksheets"
+  outputMsg "Formatting Worksheets" green
 
   if {[info exists buttons]} {$buttons(pgb) configure -maximum [llength $sheetSort]}
-  set nline 0
+  set nprogEnts 0
   set nsort 0
   foreach thisEntType $sheetSort {
     #getTiming "START FORMATTING $thisEntType"
-    incr nline
+    incr nprogEnts
     update idletasks
     
     if {[catch {
@@ -1349,7 +1576,7 @@ proc formatWorksheets {sheetSort sumRow inverseEnts} {
       } elseif {$spmiEnts($thisEntType) && $opt(PMISEM)} {
         pmiFormatColumns "PMI Representation"
 
-# add PMI Represenation Summary worksheet
+# add PMI Representation Summary worksheet
         spmiSummary
         #getTiming " format spmi"
       }
@@ -1401,24 +1628,18 @@ proc formatWorksheets {sheetSort sumRow inverseEnts} {
 # color "Bad" (red) for syntax errors
       if {[info exists syntaxErr($thisEntType)]} {colorBadCells $thisEntType}
       #getTiming " color bad syntax"
-
-# landscape page orientation, print gridlines
-      #if {$opt(XL_ORIENT)} {
-      #  [$worksheet($thisEntType) PageSetup] Orientation [expr 2]
-      #  [$worksheet($thisEntType) PageSetup] PrintGridlines [expr 1]
-      #}
   
 # -------------------------------------------------------------------------------------------------
 # add table for sorting and filtering
-      if {[expr {int([$excel Version])}] >= 12} {
+      if {$excelVersion >= 12} {
         if {[catch {
-          if {$opt(SORT) && $thisEntType != "property_definition"} {
+          if {$opt(XL_SORT) && $thisEntType != "property_definition"} {
             if {$ranrow > 8} {
               set range [$worksheet($thisEntType) Range [cellRange 3 1] [cellRange $ranrow $rancol]]
               set tname [string trim "TABLE-$thisEntType"]
               [[$worksheet($thisEntType) ListObjects] Add 1 $range] Name $tname
               [[$worksheet($thisEntType) ListObjects] Item $tname] TableStyle "TableStyleLight1" 
-              if {[incr ntable] == 1 && $opt(SORT)} {outputMsg " Generating Tables for Sorting" blue}
+              if {[incr ntable] == 1 && $opt(XL_SORT)} {outputMsg " Generating Tables for Sorting" blue}
             }
           }
         } emsg]} {

@@ -1,6 +1,6 @@
 ISO-10303-21;
 HEADER;
-FILE_DESCRIPTION(('CTC-02 geometry with PMI representation and/or presentation from the NIST MBE PMI Validation and Conformance Testing Project - http://www.nist.gov/el/msid/infotest/mbe-pmi-validation.cfm'),'2;1');
+FILE_DESCRIPTION(('CTC-02 geometry with PMI representation and/or presentation from the NIST MBE PMI Validation and Conformance Testing Project - http://go.usa.gov/mGVm'),'2;1');
 FILE_NAME('nist_ctc_02_asme1_ap242-2.stp','2015-02-17T08:33:43+01:00',(''),(''),'','','');
 FILE_SCHEMA (('AP242_MANAGED_MODEL_BASED_3D_ENGINEERING_MIM_LF { 1 0 10303 442 20130219 1 4 }'));
 ENDSEC;

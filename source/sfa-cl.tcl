@@ -32,37 +32,46 @@ package require tcom
 package require twapi
 package require Tclx
 
+catch {
+  lappend auto_path C:/Tcl/lib/teapot/package/win32-ix86/lib/vfs1.4.2
+  package require vfs::zip
+}
+
 set nistVersion 0
 foreach item $auto_path {if {[string first "STEP-File-Analyzer" $item] != -1} {set nistVersion 1}}
 
-foreach id {XL_OPEN XL_KEEPOPEN XL_LINK1 XL_FPREC \
-            VALPROP PMIGRF PMISEM GENX3DOM DEBUG1 DEBUG2 \
-            INVERSE SORT PR_USER \
-            PR_STEP_AP242 PR_STEP_AP242_QUAL PR_STEP_AP242_CONS \
-            PR_STEP_AP242_MATH PR_STEP_AP242_KINE PR_STEP_AP242_GEOM \
-            PR_STEP_AP203 PR_STEP_AP209 PR_STEP_AP210 PR_STEP_AP214 PR_STEP_AP238 \
-            PR_STEP_OTHER PR_STEP_GEO PR_STEP_QUAN PR_STEP_PRES PR_STEP_TOLR PR_STEP_REP PR_STEP_CPNT PR_STEP_ASPECT} {set opt($id) 1}
+foreach id {XL_OPEN XL_KEEPOPEN XL_LINK1 XL_FPREC XL_SORT \
+            VALPROP PMIGRF PMISEM GENX3DOM INVERSE DEBUG1 DEBUG2 \
+            PR_STEP_AP242 PR_USER PR_STEP_KINE PR_STEP_COMP PR_STEP_COMM PR_STEP_GEOM PR_STEP_QUAN \
+            PR_STEP_FEAT PR_STEP_PRES PR_STEP_TOLR PR_STEP_REPR PR_STEP_CPNT PR_STEP_SHAP} {set opt($id) 1}
 
-set opt(SORT)  0
-set opt(PR_USER) 0
-set opt(PR_STEP_GEO)  0
-set opt(PR_STEP_CPNT) 0
-set opt(GENX3DOM) 0
-
-set opt(XL_KEEPOPEN) 0
-
-set opt(XLSCSV) Excel
-
-set opt(DEBUGINV) 0
 set opt(DEBUG1) 0
 set opt(DEBUG2) 0
-set pointLimit 2
-
-set x3domFileOpen 1
-set x3domFileName ""
+set opt(DEBUGINV) 0
+set opt(GENX3DOM) 0
+set opt(PR_STEP_CPNT) 0
+set opt(PR_STEP_GEOM)  0
+set opt(PR_USER) 0
+set opt(XL_ROWLIM) 10000000
+set opt(XL_SORT) 0
+set opt(writeDirType) 0
+set opt(XL_KEEPOPEN) 0
+set opt(XLSCSV) Excel
 
 set coverageSTEP 0
-set coverageValues 0
+set dispCmd ""
+set dispCmds {}
+set excelYear ""
+set firsttime 1
+set lastXLS  ""
+set lastXLS1 ""
+set openFileList {}
+set pointLimit 2
+set sfaVersion 0
+set upgrade 0
+set userXLSFile ""
+set x3domFileName ""
+set x3domFileOpen 1
 
 set developer 0
 if {$env(USERNAME) == "lipman"} {set developer 1}
@@ -71,19 +80,26 @@ if {$env(USERNAME) == "lipman"} {set developer 1}
 # set drive, myhome, mydocs, mydesk
 setHomeDir
 
+set fileDir  $mydocs
+set fileDir1 $mydocs
+set userWriteDir $mydocs
+set writeDir $userWriteDir
+
+# set program files
+set programfiles "C:/Program Files"
+set pf64 ""
+if {[info exists env(ProgramFiles)]} {set programfiles $env(ProgramFiles)}
+if {[info exists env(ProgramW6432)]} {set pf64 $env(ProgramW6432)}
+
+# default installation directory for IFCsvr toolkit
+set ifcsvrdir [file join $programfiles IFCsvrR300 dll]
+
 # -----------------------------------------------------------------------------------------------------
 # initialize data
 initData
 initDataInverses
 
-set userWriteDir $mydocs
-set writeDir ""
-set opt(writeDirType) 0
-set opt(ROWLIM) 10000000
-
-set openFileList {}
-set fileDir  $mydocs
-set fileDir1 $mydocs
+# set options file name
 set optionsFile1 [file nativename [file join $fileDir STEP_Excel_options.dat]]
 set optionsFile2 [file nativename [file join $fileDir STEP-File-Analyzer-options.dat]]
 
@@ -98,31 +114,7 @@ if {(![file exists $optionsFile1] && ![file exists $optionsFile2]) || \
   } optionserr
 }
 
-set upgrade 0
-set excelYear ""
-
-set writeDir $userWriteDir
-
-set userXLSFile ""
-
-set dispCmd ""
-set dispCmds {}
-
-# set program files
-set programfiles "C:/Program Files"
-set pf64 ""
-if {[info exists env(ProgramFiles)]} {set programfiles $env(ProgramFiles)}
-if {[info exists env(ProgramW6432)]} {set pf64 $env(ProgramW6432)}
-
-# default installation directory for IFCsvr toolkit
-set ifcsvrdir [file join $programfiles IFCsvrR300 dll]
-
-set firsttime 1
-set lastXLS  ""
-set lastXLS1 ""
-set sfaVersion 0
-
-# check for options file and source
+# check for options file and read
 set optionserr ""
 if {[file exists $optionsFile]} {
   catch {source $optionsFile} optionserr
@@ -131,6 +123,7 @@ if {[file exists $optionsFile]} {
   puts "\n*** RUN THE GUI VERSION FIRST BEFORE RUNNING THE COMMAND-LINE VERSION ***"
 }
 
+# adjust some variables
 if {[info exists userEntityFile]} {
   if {![file exists $userEntityFile]} {
     set userEntityFile ""
@@ -138,9 +131,10 @@ if {[info exists userEntityFile]} {
   }
 }
 
+#-------------------------------------------------------------------------------
 # start 
 set progtime 0
-foreach item {sfa-cl sfa-data sfa-data1 sfa-dimtol sfa-ent sfa-entcsv sfa-gen sfa-geotol sfa-grafpmi sfa-proc sfa-step sfa-valprop} {
+foreach item {sfa-cl sfa-data sfa-dimtol sfa-ent sfa-gen sfa-geotol sfa-grafpmi sfa-proc sfa-step sfa-valprop} {
   set fname [file join $wdir $item.tcl]
   set mtime [file mtime $fname]
   if {$mtime > $progtime} {set progtime $mtime}
@@ -172,7 +166,7 @@ if {$argc == 0 || ($argc == 1 && ($arg == "help" || $arg == "-help" || $arg == "
   puts "  csv       Generate CSV files"                                                                                        
   puts "  noopen    Do not open spreadsheet after it has been generated"                                                                                        
 
-  puts "\nOptions last used in the GUI version are used in this program.\nInverse Relationships are not processed."
+  puts "\nOptions last used in the GUI version are used in this program."
 
 if {$nistVersion} { 
 puts "\n\nDisclaimers:

@@ -42,8 +42,8 @@ proc spmiDimtolStart {objDesign entType} {
                                                       ]]
    
   if {![info exists PMIP($entType)]} {return}
-  set dt $entType
 
+  set dt $entType
   set lastEnt {}
   set entAttrList {}
   set pmiCol 0
@@ -92,13 +92,12 @@ proc spmiDimtolStart {objDesign entType} {
 # -------------------------------------------------------------------------------
 
 proc spmiDimtolReport {objEntity} {
-  global assocGeom badAttributes cells col dim dimBasic dimModNames dimReference dimrep dimrepID
+  global assocGeom badAttributes cells col dim dimBasic dimModNames dimOrient dimReference dimrep dimrepID
   global dimSizeNames dimtolEnt dimval draftModelCameras dt dtpmivalprop elevel ent entAttrList entlevel2
-  global incrcol lastAttr lastEnt maxrep nistName nrep opt pmiCol pmiColumns pmiHeading pmiModifiers pmiStartCol
-  global pmiUnicode prefix recPracNames spmiEnts spmiID spmiIDRow spmiOK spmiRow spmiTypesPerFile syntaxErr tolStandard
+  global incrcol lastAttr lastEnt nistName opt pmiCol pmiColumns pmiHeading pmiModifiers pmiStartCol
+  global pmiUnicode prefix recPracNames spmiEnts spmiID spmiIDRow spmiRow spmiTypesPerFile syntaxErr tolStandard
 
   if {$opt(DEBUG1)} {outputMsg "spmiDimtolReport" red}
-  #if {[info exists spmiOK]} {if {$spmiOK == 0} {return}}
 
 # elevel is very important, keeps track level of entity in hierarchy
   incr elevel
@@ -138,14 +137,12 @@ proc spmiDimtolReport {objEntity} {
     }
 
 # check if there are rows with dt
-    if {$spmiEnts($objType)} {
+    if {$spmiEnts($objType) && [string first "datum_feature" $objType] == -1} {
       set spmiID $objID
+      #outputMsg "set spmiID $spmiID [info exists spmiIDRow($dt,$spmiID)]" green
       if {![info exists spmiIDRow($dt,$spmiID)]} {
         incr elevel -1
-        set spmiOK 0
         return
-      } else {
-        set spmiOK 1
       }
     }
 
@@ -183,8 +180,8 @@ proc spmiDimtolReport {objEntity} {
 # get values for these entity and attribute pairs
                   switch -glob $ent1 {
 # length/angle value, add to dimrep
-                    "*measure_with_unit* value_component" -
-                    "*measure_representation_item_and_qualified_representation_item* value_component" {
+                    "*length_measure_with_unit* value_component" -
+                    "*plane_angle_measure_with_unit* value_component" {
                       set ok 1
                       set invalid 0
                       set col($dt) [expr {$pmiStartCol($dt)+2}]
@@ -192,13 +189,6 @@ proc spmiDimtolReport {objEntity} {
                       set dimval $objValue
                       incr dim(idx)
                       catch {unset dim(qual)}
-# check that length or plane_angle are used
-                      set dte [string range [$dimtolEnt Type] 0 2]
-                      if {$dte == "dim" && [string first "length" $ent1] == -1} {
-                        errorMsg "Syntax Error: Dimension not specified with 'length_measure_with_unit'.\n[string repeat " " 14]\($recPracNames(pmi242), Sec. 5.2.1)"
-                      } elseif {$dte == "ang" && [string first "plane_angle" $ent1] == -1} {
-                        errorMsg "Syntax Error: Angle not specified with 'plane_angle_measure_with_unit'."
-                      }
 # get units
                       ::tcom::foreach attr $objAttributes {
                         if {[$attr Name] == "unit_component"} {
@@ -237,7 +227,12 @@ proc spmiDimtolReport {objEntity} {
                                 set val2 [lindex [split $objValue "."] 1]
                                 append val2 "0000"
                                 if {$prec1 != 0} {
-                                  set dimtmp "$val1.[string range $val2 0 $dim(qual)-1]"
+                                  set dec [string range $val2 0 $dim(qual)-1]
+                                  if {$dec != ""} {
+                                    set dimtmp "$val1.$dec"
+                                  } else {
+                                    set dimtmp $val1
+                                  }
                                   if {[string length $val1] > $prec1} {
                                     errorMsg "Syntax Error: value_format_type_qualifier ([$attr1 Value]) too small for: $objValue\n[string repeat " " 14]\($recPracNames(pmi242), Sec. 5.4)"
                                   }
@@ -337,7 +332,7 @@ proc spmiDimtolReport {objEntity} {
                     }
                   }
       
-                  if {$ok && [info exists spmiID]} {
+                  if {$ok && [info exists spmiID] && [info exists spmiIDRow($dt,$spmiID)]} {
                     set c [string index [cellRange 1 $col($dt)] 0]
                     set r $spmiIDRow($dt,$spmiID)
 
@@ -364,6 +359,19 @@ proc spmiDimtolReport {objEntity} {
 
 # keep track of max column
                     set pmiCol [expr {max($col($dt),$pmiCol)}]
+                    
+# check that length or plane_angle are used
+                  } elseif {[string first "value_component" $ent1] != -1} {
+                    set dte [string range [$dimtolEnt Type] 0 2]
+                    if {$dte == "dim" && [string first "length" $ent1] == -1} {
+                      set emsg "Syntax Error: Dimension value incorrectly specified with '[lindex [split $ent1 " "] 0]' instead of 'length_measure_with_unit'."
+                      append emsg "\n[string repeat " " 14]\($recPracNames(pmi242), Sec. 5.2.1)"
+                      errorMsg $emsg
+                      errorMsg "The dimension value will NOT be reported on the 'dimensional_characteristic_representation' worksheet."
+                    } elseif {$dte == "ang" && [string first "plane_angle" $ent1] == -1} {
+                      errorMsg "Syntax Error: Angle value incorrectly specified with '[lindex [split $ent1 " "] 0]' instead of 'plane_angle_measure_with_unit'."
+                      errorMsg "The angle value will NOT be reported on the 'dimensional_characteristic_representation' worksheet."
+                    }
                   }
                 }
 
@@ -426,7 +434,7 @@ proc spmiDimtolReport {objEntity} {
 # get values for these entity and attribute pairs
                   switch -glob $ent1 {
                     "*dimensional_size* name" {
-# dimensional_size.name, from the name add symbol to dimrep for spherical, radius, diameter or thickness, account for names that aren't quite right
+# dimensional_size.name, from the name add symbol to dimrep for spherical, radius, diameter or thickness
                       set ok 1
                       set col($dt) $pmiStartCol($dt)
                       set colName "dimension name[format "%c" 10](Sec. 5.1.1, 5.1.5)"
@@ -440,10 +448,6 @@ proc spmiDimtolReport {objEntity} {
                       if {[string first "spher" $ov] != -1} {
                         append dimrep($dimrepID) "S"
                         append item "spherical "
-                      }
-                      if {[string first "controlled" $ov] != -1} {
-                        append dimrep($dimrepID) "C"
-                        append item "controlled "
                       }
                       if {[string first "diamet" $ov] != -1} {
                         append dimrep($dimrepID) $pmiUnicode(diameter)
@@ -470,8 +474,8 @@ proc spmiDimtolReport {objEntity} {
                         if {$ov == ""} {
                           errorMsg "Syntax Error: Missing 'name' attribute on [lindex $ent1 0].\n[string repeat " " 14]\($recPracNames(pmi242), Sec. 5.1.5, Table 4)"
                           set ov "(blank)"
-                          set invalid 1
                           lappend syntaxErr([lindex [split $ent1 " "] 0]) [list $objID [lindex [split $ent1 " "] 1]]
+                          set invalid 1
                         } elseif {[lsearch $dimSizeNames $ov] == -1} {
                           errorMsg "Syntax Error: Invalid 'name' attribute ($ov) on [lindex $ent1 0].\n[string repeat " " 14]\($recPracNames(pmi242), Sec. 5.1.5, Table 4)"
                           lappend syntaxErr([lindex [split $ent1 " "] 0]) [list $objID [lindex [split $ent1 " "] 1]]
@@ -492,15 +496,15 @@ proc spmiDimtolReport {objEntity} {
 
                       lappend spmiTypesPerFile "dimensional location"
   
-# syntax check for correct dimensional_size.name attribute from the RP                  
+# syntax check for correct dimensional_location.name attribute from the RP                  
                       if {$ent1 == "dimensional_location name"} {
                         if {$ov == ""} {
-                          errorMsg "Syntax Error: Missing 'name' attribute on [lindex $ent1 0].\n[string repeat " " 14]\($recPracNames(pmi242), Sec. 5.1.1, Tables 1,2)"
+                          errorMsg "Syntax Error: Missing 'name' attribute on [lindex $ent1 0].\n[string repeat " " 14]\($recPracNames(pmi242), Sec. 5.1.1, Tables 1 and 2)"
                           set ov "(blank)"
                           set invalid 1
                           lappend syntaxErr([lindex [split $ent1 " "] 0]) [list $objID [lindex [split $ent1 " "] 1]]
                         } elseif {$ov != "curved distance" && [string first "linear distance" $ov] == -1} {
-                          errorMsg "Syntax Error: Invalid 'name' attribute ($ov) on [lindex $ent1 0].\n[string repeat " " 14]\($recPracNames(pmi242), Sec. 5.1.1, Tables 1,2)"
+                          errorMsg "Syntax Error: Invalid 'name' attribute ($ov) on [lindex $ent1 0].\n[string repeat " " 14]\($recPracNames(pmi242), Sec. 5.1.1, Tables 1 and 2)"
                           lappend syntaxErr([lindex [split $ent1 " "] 0]) [list $objID [lindex [split $ent1 " "] 1]]
                           set invalid 1
                         }
@@ -598,19 +602,22 @@ proc spmiDimtolReport {objEntity} {
                         if {[lsearch $dimModNames $ov] != -1} {
                           regsub -all " " $ov "_" ov
 # controlled radius and square are prefixes, instead of the default suffix
+# counterbore, countersink, depth are experimental
                           if {$ov == "controlled_radius"} {
                             if {[string index $dimrep($dimrepID) 0] == "R"} {
                               set dimrep($dimrepID) "C$dimrep($dimrepID)"
                             } else {
                               set dimrep($dimrepID) "$pmiModifiers($ov)$dimrep($dimrepID)"
                             }
-                          } elseif {$ov == "square"} {
+                            set ov "controlled radius"
+                            set pos [lsearch $spmiTypesPerFile "radius"]
+                            set spmiTypesPerFile [lreplace $spmiTypesPerFile $pos $pos]
+                          } elseif {$ov == "square" || $ov == "counterbore" || $ov == "countersink" || $ov == "depth"} {
                             set dimrep($dimrepID) "$pmiModifiers($ov)$dimrep($dimrepID)"
                           } else {
                             append dimrep($dimrepID) " $pmiModifiers($ov)"
                           }
                           lappend spmiTypesPerFile $ov
-                          #lappend spmiTypesPerFile "dimension modifier"
                         } else {
                           lappend syntaxErr([lindex [split $ent1 " "] 0]) [list $objID [lindex [split $ent1 " "] 1]]
                           set invalid 1
@@ -646,12 +653,16 @@ proc spmiDimtolReport {objEntity} {
                     }
                     "axis2_placement_3d name" {
 # oriented dimension location
-                      set ok 1
-                      set col($dt) [expr {$pmiStartCol($dt)+10}]
-                      set colName "oriented dimension[format "%c" 10](Sec. 5.1.3)"
-                      if {$ov == "orientation"} {lappend spmiTypesPerFile "oriented dimensional location"}
-                      if {[string first "dimensional_location" [$dimtolEnt Type]] != 0} {
-                        errorMsg "Syntax Error: Oriented dimension used with [$dimtolEnt Type].\n[string repeat " " 14]\($recPracNames(pmi242), Sec. 5.1.3)"
+                      if {$objValue == "orientation"} {
+                        set dimOrient 1
+                        set dimOrientVal "($objType $objID)"
+                        set ok 1
+                        set col($dt) [expr {$pmiStartCol($dt)+10}]
+                        set colName "oriented dimension[format "%c" 10](Sec. 5.1.3)"
+                        lappend spmiTypesPerFile "oriented dimensional location"
+                        if {[string first "dimensional_location" [$dimtolEnt Type]] != 0} {
+                          errorMsg "Syntax Error: Oriented Dimension Location cannot be used with [$dimtolEnt Type].\n[string repeat " " 14]\($recPracNames(pmi242), Sec. 5.1.3)"
+                        }
                       }
                     }
                   }
@@ -659,65 +670,58 @@ proc spmiDimtolReport {objEntity} {
 # value in spreadsheet
                   if {$ok && [info exists spmiID]} {
                     set c [string index [cellRange 1 $col($dt)] 0]
-                    set r $spmiIDRow($dt,$spmiID)
-
-# column name
-                    if {$colName != ""} {
-                      if {![info exists pmiHeading($col($dt))]} {
-                        $cells($dt) Item 3 $c $colName
-                        set pmiHeading($col($dt)) 1
-                        set pmiCol [expr {max($col($dt),$pmiCol)}]
-                      }
-                    }
-
-# keep track of rows with semantic PMI
-                    if {[lsearch $spmiRow($dt) $r] == -1} {lappend spmiRow($dt) $r}
-    
-                    set ov $objValue 
-                    set val [[$cells($dt) Item $r $c] Value]
-                    if {$invalid} {
-                      if {$colName != ""} {
-                        lappend syntaxErr($dt) [list "-$r" $colName]
-                      } else {
-                        lappend syntaxErr($dt) [list $r $col($dt)]
-                      }
-                    }
+                    if {[info exists spmiIDRow($dt,$spmiID)]} {
+                      set r $spmiIDRow($dt,$spmiID)
+                      #outputMsg "$dt $spmiID $r" blue
   
-                    if {$val == ""} {
-                      $cells($dt) Item $r $c $ov
-                    } else {
-                      if {![info exists nrep] || $c != "G"} {
+# column name
+                      if {$colName != ""} {
+                        if {![info exists pmiHeading($col($dt))]} {
+                          $cells($dt) Item 3 $c $colName
+                          set pmiHeading($col($dt)) 1
+                          set pmiCol [expr {max($col($dt),$pmiCol)}]
+                        }
+                      }
+  
+# keep track of rows with semantic PMI
+                      if {[lsearch $spmiRow($dt) $r] == -1} {lappend spmiRow($dt) $r}
+      
+                      set ov $objValue 
+                      set val [[$cells($dt) Item $r $c] Value]
+                      if {$invalid} {
+                        if {$colName != ""} {
+                          lappend syntaxErr($dt) [list "-$r" $colName]
+                        } else {
+                          lappend syntaxErr($dt) [list $r $col($dt)]
+                        }
+                      }
 
+# append a2p3d orientation
+                      if {[info exists dimOrientVal]} {append ov "[format "%c" 10]$dimOrientVal"}
+                      
+                      if {$val == ""} {
+                        $cells($dt) Item $r $c $ov
+                      } else {
+  
 # value range (limit dimension), Sec. 5.2.4, usually 'nominal value' is missing
                         if {[string first "limit" $val] != -1 && [string first "limit" $ov] != -1 && $dim(num) == 2} {
                           errorMsg "Syntax Error: Missing 'nominal value' for value range.\n[string repeat " " 14]\($recPracNames(pmi242), Sec. 5.2.4)"
                           lappend syntaxErr($dt) [list $r $col($dt)]
                         }
-
+  
                         if {$ov == "upper limit"} {
                           set item "value range"
                           lappend spmiTypesPerFile $item
                         }
                         $cells($dt) Item $r $c "$val[format "%c" 10]$ov"
-
-# add nrep count (not used, could delete)
-                      } elseif {$maxrep > 1} {
-                        if {$nrep != 2} {
-                          $cells($dt) Item $r $c "$val[format "%c" 10]($nrep) $ov"
-                        } else {
-                          if {[string range $val 0 2] != "(1)"} {
-                            $cells($dt) Item $r $c "(1) $val[format "%c" 10]($nrep) $ov"
-                          } else {
-                            $cells($dt) Item $r $c "$val[format "%c" 10]($nrep) $ov"
-                          }
-                        }
-                      } else {
-                        $cells($dt) Item $r $c "$val[format "%c" 10]$ov"
                       }
-                    }
-
+  
 # keep track of max column
-                    set pmiCol [expr {max($col($dt),$pmiCol)}]
+                      set pmiCol [expr {max($col($dt),$pmiCol)}]
+                    } else {
+                      errorMsg "ERROR processing Dimensional Tolerance"
+                      #outputMsg "$dt $spmiID [info exists spmiIDRow($dt,$spmiID)]" red
+                    }
                   }
                 }
               }
@@ -737,9 +741,8 @@ proc spmiDimtolReport {objEntity} {
     
 # associated geometry (5.1.5), find link between dimtol and geometry through geometric_item_specific_usage (gisu)
 # dimtolEnt is either dimensional_location, angular_location, or dimensional_size
-    if {[catch {      
+    if {[catch {
       if {[info exists dimtolEnt]} {
-        #outputMsg "[$dimtolEnt Type] [$dimtolEnt P21ID]"
         
 # dimensional_size
         if {[string first "dimensional_size" [$dimtolEnt Type]] != -1} {
@@ -784,7 +787,7 @@ proc spmiDimtolReport {objEntity} {
       if {[info exists assocGeom]} {
         set str [reportAssocGeom]
         
-        if {$str != ""  } {
+        if {$str != "" && [info exists spmiIDRow($dt,$spmiID)]} {
           if {![info exists pmiColumns(ch)]} {set pmiColumns(ch) [expr {$pmiStartCol($dt)+12}]}
           set colName "Associated Geometry[format "%c" 10](Sec. 5.1.1, 5.1.5)"
           set c [string index [cellRange 1 $pmiColumns(ch)] 0]
@@ -848,7 +851,7 @@ proc spmiDimtolReport {objEntity} {
         }
 
 # construct correct plus-minus
-        if {$plusminus != ""} {
+        if {$plusminus != "" && [info exists spmiIDRow($dt,$spmiID)]} {
 
 # tolerance class
           if {[info exists form_variance]} {
@@ -1010,13 +1013,14 @@ proc spmiDimtolReport {objEntity} {
                   }
                 }
                 
-# display reconstructed +- tolerance
+# show reconstructed +- tolerance
                 set indent [string repeat " " [expr {3*[string length $dimrep($dimrepID)]}]]
-                if {$tolStandard(type) == "ISO"} {
-                  set dimrep($dimrepID) "'$indent$pmval(1)[format "%c" 10]$dimrep($dimrepID)  $pmval(0)"
-                } else {
-                  append dimrep($dimrepID) "  $pmval(1)[format "%c" 10]$indent$pmval(0)"
-                }
+                append dimrep($dimrepID) "  $pmval(1)[format "%c" 10]$indent$pmval(0)"
+                #if {$tolStandard(type) == "ISO"} {
+                #  set dimrep($dimrepID) "'$indent$pmval(1)[format "%c" 10]$dimrep($dimrepID)  $pmval(0)"
+                #} else {
+                #  append dimrep($dimrepID) "  $pmval(1)[format "%c" 10]$indent$pmval(0)"
+                #}
                 if {[llength $sdimrep] > 1} {append dimrep($dimrepID) "  [lrange $sdimrep 1 end]"}
                 lappend spmiTypesPerFile "plusminus - unequal"
               }
@@ -1030,7 +1034,7 @@ proc spmiDimtolReport {objEntity} {
     
 # report complete dimension representation (dimrep)
     if {[catch {
-      if {[info exists dimrep]} {
+      if {[info exists dimrep] && [info exists spmiIDRow($dt,$spmiID)]} {
         if {![info exists pmiColumns(dmrp)]} {set pmiColumns(dmrp) [expr {$pmiStartCol($dt)+11}]}
         set c [string index [cellRange 1 $pmiColumns(dmrp)] 0]
         set r $spmiIDRow($dt,$spmiID)
@@ -1040,7 +1044,7 @@ proc spmiDimtolReport {objEntity} {
           set pmiHeading($pmiColumns(dmrp)) 1
           set pmiCol [expr {max($pmiColumns(dmrp),$pmiCol)}]
         }
-
+        
 # add brackets or parentheses for basic or reference dimensions
         if {[info exists dimBasic]} {
           if {$dim(unit) == "INCH" && $dim(angle) == 0} {
@@ -1073,6 +1077,13 @@ proc spmiDimtolReport {objEntity} {
           }
           set dr "'$dr"
         }
+        
+# oriented
+        if {[info exist dimOrient]} {
+          append dr " (oriented)"
+          unset dimOrient
+        }
+        
         $cells($dt) Item $r $pmiColumns(dmrp) $dr
       }
     } emsg]} {

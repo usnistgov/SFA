@@ -220,11 +220,12 @@ proc indentFile {ifile} {
   ]
   if {[info exists opt(indentGeometry)]} {
     if {!$opt(indentGeometry)} {
-      lappend indentdat2 ADVANCED_FACE CLOSED_SHELL GEOMETRIC_CURVE_SET CONSTRUCTIVE_GEOMETRY_REPRESENTATION
+      lappend indentdat2 ADVANCED_FACE CLOSED_SHELL GEOMETRIC_CURVE_SET CONSTRUCTIVE_GEOMETRY_REPRESENTATION TESSELLATED_SOLID
     }
   }
   
-  outputMsg "\nIndenting: [truncFileName [file nativename $ifile] 1] ([expr {[file size $ifile]/1024}] Kb)" blue
+  .tnb select .tnb.status
+  outputMsg "Indenting: [truncFileName [file nativename $ifile] 1] ([expr {[file size $ifile]/1024}] Kb)" blue
   outputMsg "Pass 1 of 2"
   set indentPass 1
   set indentReadFile [open $ifile r]
@@ -297,10 +298,10 @@ proc indentFile {ifile} {
   
   set fs [expr {[file size $indentFileName]/1024}]
   if {$padcmd != "" && $fs < 30000} {
-    outputMsg "Opening indented STEP file: [truncFileName [file nativename $indentFileName] 1] ($fs Kb)"
+    outputMsg "Opening indented STEP file: [truncFileName [file nativename $indentFileName] 1] ($fs Kb)" blue
     exec $padcmd $indentFileName &
   } else {
-    outputMsg "Indented STEP file written: [truncFileName [file nativename $indentFileName] 1] ($fs Kb)"
+    outputMsg "Indented STEP file written: [truncFileName [file nativename $indentFileName] 1] ($fs Kb)" blue
   }
 }
 
@@ -311,11 +312,11 @@ proc indentCheckLine {line} {
 
   if {[string last ";" $line] == -1 && [string last "*/" $line] == -1} {
     if {[gets $indentReadFile line1] != -1} {
-      if {[string length $line] < 900} {
+      if {[string length $line] < 500} {
         append line $line1
       } else {
-        if {$indentPass == 1} {outputMsg "Long line truncated: [string range $line 0 50] ..." red}
-        set iline [string range $line 0 900]
+        #if {$indentPass == 1} {outputMsg "Long line truncated: [string range $line 0 50] ..." red}
+        set iline [string range $line 0 500]
         set c1 [string last "," $iline]
         set iline "[string range $iline 0 $c1] (truncated)"
         if {[string last ";" $line1] != -1} {

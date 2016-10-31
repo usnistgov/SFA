@@ -37,49 +37,60 @@ package require Tclx
 package require Iwidgets 4.0.2
 
 catch {
+  lappend auto_path C:/Tcl/lib/teapot/package/win32-ix86/lib/vfs1.4.2
+  package require vfs::zip
+}
+
+catch {
   lappend auto_path C:/Tcl/lib/teapot/package/tcl/lib/tooltip1.4.4
   package require tooltip
 }
 
+# detect if NIST version
 set nistVersion 0
 foreach item $auto_path {if {[string first "STEP-File-Analyzer" $item] != -1} {set nistVersion 1}}
 
-foreach id {XL_OPEN XL_KEEPOPEN XL_LINK1 XL_FPREC \
-            VALPROP PMIGRF PMISEM GENX3DOM DEBUG1 DEBUG2 \
-            INVERSE SORT PR_USER \
-            PR_STEP_AP242 PR_STEP_AP242_QUAL PR_STEP_AP242_CONS \
-            PR_STEP_AP242_MATH PR_STEP_AP242_KINE PR_STEP_AP242_GEOM \
-            PR_STEP_AP203 PR_STEP_AP209 PR_STEP_AP210 PR_STEP_AP214 PR_STEP_AP238 \
-            PR_STEP_OTHER PR_STEP_GEO PR_STEP_QUAN PR_STEP_PRES PR_STEP_TOLR PR_STEP_REP PR_STEP_CPNT PR_STEP_ASPECT} {set opt($id) 1}
+# initialize variables
+foreach id {XL_OPEN XL_KEEPOPEN XL_LINK1 XL_FPREC XL_SORT \
+            VALPROP PMIGRF PMISEM GENX3DOM INVERSE DEBUG1 DEBUG2 \
+            PR_STEP_AP242 PR_USER PR_STEP_KINE PR_STEP_COMP PR_STEP_COMM PR_STEP_GEOM PR_STEP_QUAN \
+            PR_STEP_FEAT PR_STEP_PRES PR_STEP_TOLR PR_STEP_REPR PR_STEP_CPNT PR_STEP_SHAP} {set opt($id) 1}
 
-set opt(SORT)  0
-set opt(PR_USER) 0
-set opt(PR_STEP_GEO)  0
 set opt(PR_STEP_CPNT) 0
+set opt(PR_STEP_GEOM)  0
+set opt(PR_USER) 0
 
-set opt(XLSCSV) Excel
-
-set opt(XL_KEEPOPEN) 0
-
-set opt(DEBUGINV) 0
+set opt(CRASH) 0
 set opt(DEBUG1) 0
 set opt(DEBUG2) 0
-set pointLimit 2
+set opt(DEBUGINV) 0
+set opt(DISPGUIDE1) 1
+set opt(FIRSTTIME) 1
 set opt(gpmiColor) 2
-
-set x3domFileOpen 1
-set x3domFileName ""
+set opt(indentGeometry) 0
+set opt(indentStyledItem) 0
+set opt(writeDirType) 0
+set opt(XL_KEEPOPEN) 0
+set opt(XL_ROWLIM) 10000000
+set opt(XL_SORT) 0
+set opt(XLSCSV) Excel
 
 set coverageSTEP 0
-set coverageValues 0
-
-set edmWriteToFile 0
+set dispCmd "Default"
+set dispCmds {}
 set edmWhereRules 0
+set edmWriteToFile 0
 set eeWriteToFile  0
-set opt(indentStyledItem) 0
-set opt(indentGeometry) 0
-set opt(CRASH) 0
-set opt(DISPGUIDE1) 1
+set excelYear ""
+set lastXLS  ""
+set lastXLS1 ""
+set openFileList {}
+set pointLimit 2
+set sfaVersion 0
+set upgrade 0
+set userXLSFile ""
+set x3domFileName ""
+set x3domFileOpen 1
 
 set developer 0
 if {$env(USERNAME) == "lipman"} {set developer 1}
@@ -88,19 +99,26 @@ if {$env(USERNAME) == "lipman"} {set developer 1}
 # set drive, myhome, mydocs, mydesk
 setHomeDir
 
+set fileDir  $mydocs
+set fileDir1 $mydocs
+set userWriteDir $mydocs
+set writeDir $userWriteDir
+
+# set program files
+set programfiles "C:/Program Files"
+set pf64 ""
+if {[info exists env(ProgramFiles)]} {set programfiles $env(ProgramFiles)}
+if {[info exists env(ProgramW6432)]} {set pf64 $env(ProgramW6432)}
+
+# default installation directory for IFCsvr toolkit
+set ifcsvrdir [file join $programfiles IFCsvrR300 dll]
+
 # -----------------------------------------------------------------------------------------------------
 # initialize data
 initData
 initDataInverses
 
-set userWriteDir $mydocs
-set writeDir ""
-set opt(writeDirType) 0
-set opt(ROWLIM) 10000000
-
-set openFileList {}
-set fileDir  $mydocs
-set fileDir1 $mydocs
+# set options file name
 set optionsFile1 [file nativename [file join $fileDir STEP_Excel_options.dat]]
 set optionsFile2 [file nativename [file join $fileDir STEP-File-Analyzer-options.dat]]
 
@@ -115,40 +133,45 @@ if {(![file exists $optionsFile1] && ![file exists $optionsFile2]) || \
   } optionserr
 }
 
-set upgrade 0
-set excelYear ""
-
-set writeDir $userWriteDir
-
-set userXLSFile ""
-
-set dispCmd ""
-set dispCmds {}
-
-set opt(FIRSTTIME) 1
-set lastXLS  ""
-set lastXLS1 ""
-set sfaVersion 0
-
-# check for options file and source
+# check for options file and read
 set optionserr ""
 if {[file exists $optionsFile]} {
   catch {source $optionsFile} optionserr
   if {[string first "+" $optionserr] == 0} {set optionserr ""}
 
 # check for old variable names
-  if {[info exists verite]} {set sfaVersion $verite; unset verite}
-
   if {[info exists opt(PMIVRML)]} {set opt(GENX3DOM) $opt(PMIVRML)}
   if {[info exists opt(PMIPROP)]} {set opt(PMIGRF)   $opt(PMIPROP)}
   if {[info exists opt(SEMPROP)]} {set opt(PMISEM)   $opt(SEMPROP)}
 
+  if {[info exists opt(ROWLIM)]} {set opt(XL_ROWLIM) $opt(ROWLIM)}
+  if {[info exists opt(SORT)]}   {set opt(XL_SORT)   $opt(SORT)}
+
+  if {[info exists opt(PR_STEP_GEO)]}    {set opt(PR_STEP_GEOM) $opt(PR_STEP_GEO)}
+  if {[info exists opt(PR_STEP_REP)]}    {set opt(PR_STEP_REPR) $opt(PR_STEP_REP)}
+  if {[info exists opt(PR_STEP_ASPECT)]} {set opt(PR_STEP_SHAP) $opt(PR_STEP_ASPECT)}
+  if {[info exists opt(PR_STEP_OTHER)]}  {set opt(PR_STEP_COMM) $opt(PR_STEP_OTHER)}
+
+  if {[info exists opt(PR_STEP_AP203)]} {set opt(PR_STEP_COMM) 1}
+  if {[info exists opt(PR_STEP_AP209)]} {set opt(PR_STEP_COMM) 1}
+  if {[info exists opt(PR_STEP_AP210)]} {set opt(PR_STEP_COMM) 1}
+  if {[info exists opt(PR_STEP_AP214)]} {set opt(PR_STEP_COMM) 1}
+
+  if {[info exists opt(PR_STEP_AP242_KINE)]} {set opt(PR_STEP_KINE) 1}
+  if {[info exists opt(PR_STEP_AP242_QUAL)]} {set opt(PR_STEP_AP242) 1}
+  if {[info exists opt(PR_STEP_AP242_CONS)]} {set opt(PR_STEP_AP242) 1}
+  if {[info exists opt(PR_STEP_AP242_MATH)]} {set opt(PR_STEP_AP242) 1}
+  if {[info exists opt(PR_STEP_AP242_GEOM)]} {set opt(PR_STEP_AP242) 1}
+  if {[info exists opt(PR_STEP_AP242_OTHER)]} {set opt(PR_STEP_AP242) 1}
+
+# unset old variable names
+  if {[info exists verite]} {set sfaVersion $verite; unset verite}
   if {[info exists indentStyledItem]} {set opt(indentStyledItem) $indentStyledItem; unset indentStyledItem}
   if {[info exists indentGeometry]}   {set opt(indentGeometry)   $indentGeometry;   unset indentGeometry}
   if {[info exists writeDirType]}     {set opt(writeDirType)     $writeDirType;     unset writeDirType}
 
   if {[info exists gpmiColor]} {set opt(gpmiColor) $gpmiColor; unset gpmiColor}
-  if {[info exists row_limit]} {set opt(ROWLIM)    $row_limit; unset row_limit}
+  if {[info exists row_limit]} {set opt(XL_ROWLIM)    $row_limit; unset row_limit}
   if {[info exists firsttime]} {set opt(FIRSTTIME) $firsttime; unset firsttime}
   if {[info exists ncrash]}    {set opt(CRASH)     $ncrash;    unset ncrash}
 
@@ -157,11 +180,15 @@ if {[file exists $optionsFile]} {
   if {[info exists flag(DISPGUIDE1)]} {set opt(DISPGUIDE1) $flag(DISPGUIDE1); unset flag(DISPGUIDE1)}
 
   foreach item {PR_STEP_BAD PR_STEP_UNIT PR_TYPE XL_XLSX COUNT EX_A2P3D FN_APPEND XL_LINK2 XL_LINK3 XL_ORIENT \
-                XL_SCROLL PMIVRML PMIPROP SEMPROP PMIP EX_ANAL EX_ARBP EX_LP VPDBG} {
+                XL_SCROLL PMIVRML PMIPROP SEMPROP PMIP EX_ANAL EX_ARBP EX_LP VPDBG \
+                PR_STEP_AP242_QUAL PR_STEP_AP242_CONS PR_STEP_AP242_MATH PR_STEP_AP242_KINE PR_STEP_AP242_OTHER PR_STEP_AP242_GEOM \
+                PR_STEP_AP209 PR_STEP_AP210 PR_STEP_AP238 PR_STEP_AP239 PR_STEP_AP203 PR_STEP_AP214 PR_STEP_OTHER \
+                PR_STEP_GEO PR_STEP_REP PR_STEP_ASPECT ROWLIM SORT} {
     catch {unset opt($item)}
   }
 }
 
+# adjust some variables
 if {[info exists userWriteDir]} {if {![file exists $userWriteDir]} {set userWriteDir $mydocs}}
 if {[info exists fileDir]}      {if {![file exists $fileDir]}      {set fileDir      $mydocs}}
 if {[info exists fileDir1]}     {if {![file exists $fileDir1]}     {set fileDir1     $mydocs}}
@@ -171,20 +198,10 @@ if {[info exists userEntityFile]} {
     set opt(PR_USER) 0
   }
 }
-
-if {[string index $opt(ROWLIM) end] == 1} {set opt(ROWLIM) [expr {$opt(ROWLIM)+2}]}
-
-# set program files
-set programfiles "C:/Program Files"
-set pf64 ""
-if {[info exists env(ProgramFiles)]} {set programfiles $env(ProgramFiles)}
-if {[info exists env(ProgramW6432)]} {set pf64 $env(ProgramW6432)}
-
-# default installation directory for IFCsvr toolkit
-set ifcsvrdir [file join $programfiles IFCsvrR300 dll]
+if {[string index $opt(XL_ROWLIM) end] == 1} {set opt(XL_ROWLIM) [expr {$opt(XL_ROWLIM)+2}]}
 
 #-------------------------------------------------------------------------------
-# get programs that can display STEP files
+# get programs that can open STEP files
 getDisplayPrograms
 
 #-------------------------------------------------------------------------------
@@ -216,8 +233,7 @@ guiFileMenu
 
 # What's New
 set progtime 0
-foreach item {sfa sfa-data sfa-data1 sfa-dimtol sfa-ent sfa-entcsv sfa-gen sfa-geotol \
-              sfa-grafpmi sfa-gui sfa-indent sfa-inv sfa-multi sfa-proc sfa-step sfa-valprop} {
+foreach item {sfa sfa-data sfa-dimtol sfa-ent sfa-gen sfa-geotol sfa-grafpmi sfa-gui sfa-indent sfa-inv sfa-multi sfa-proc sfa-step sfa-valprop} {
   set fname [file join $wdir $item.tcl]
   set mtime [file mtime $fname]
   if {$mtime > $progtime} {set progtime $mtime}
@@ -229,17 +245,17 @@ proc whatsNew {} {
   if {$sfaVersion > 0 && $sfaVersion < [getVersion]} {outputMsg "\nThe previous version of the STEP File Analyzer was: $sfaVersion" red}
 
 outputMsg "\nWhat's New (Version: [getVersion]  Updated: [string trim [clock format $progtime -format "%e %b %Y"]])" blue
-outputMsg "- Faster processing of Inverse Relationships (Options tab)
-- Support for CSV files (Options tab)
-- Support for other STEP application protocols (Help > Other STEP APs)
-- Source code on GitHub (Websites menu)
-- Updated User's Guide Version 3
-- PMI Representation Coverage worksheet Color-coded by expected PMI in NIST CAD models (Help > Coverage Analysis)
-- Improved processing of Datum Targets and AP209 files
-- Improved reporting of Associated Geometry for Tolerances and Annotations"
+outputMsg "- Automated checking of PMI Annotations for the NIST CAD models
+   PMI Representation Summary and Coverage worksheets are color-coded by expected PMI
+   Similar and Missing PMI is also reported
+  See Help > NIST CAD Models
 
-#- Feature Count (e.g. 4X) removed from Tolerances, can be derived from Associated Geometry
-#- Fixed bug that slowed processing when Inverse Relationships was selected
+- Improved visualization of PMI Presentation Annotations (Options tab)
+- Improved reporting of Associated Geometry for Tolerances, Datum Features, and Annotations
+- Support for AP209e2 'Multidisciplinary analysis and design' (Help > Supported STEP APs)
+- Simplified Process options (Options tab)
+- Support for CSV files (Options tab)
+- Source code on GitHub (Websites menu)"
 
   .tnb select .tnb.status
   update idletasks
@@ -262,7 +278,7 @@ guiProcessAndReports
 # inverse relationships
 guiInverse
 
-# display option
+# open option
 guiDisplayResult
 pack $fopt -side top -fill both -expand true -anchor nw
 
@@ -271,6 +287,9 @@ guiSpreadsheet
 
 # generate logo, progress bars
 guiButtons
+
+# switch to options tab (any text output will switch back to the status tab)
+.tnb select .tnb.options
 
 #-------------------------------------------------------------------------------
 # resize tabbed notebook in 8.5 because iwidgets messagebox is too big
@@ -287,7 +306,6 @@ catch {
 set copyrose 0
 set ask 0
 if {$opt(FIRSTTIME)} {
-  #helpOverview
   whatsNew
   if {$nistVersion} {displayDisclaimer}
   
@@ -319,6 +337,7 @@ if {$opt(FIRSTTIME)} {
   setShortcuts
 }
 
+# look for rose files in STEPtools
 if {[info exists env(ROSE)]} {
   set n [string range $env(ROSE) end-2 end-1]
   set stdir [file join $programfiles "STEP Tools" "ST-Runtime $n" schemas]
@@ -359,7 +378,7 @@ if {$nistVersion} {
   }
 }
 
-# display user's guide if it hasn't already
+# open user's guide if it hasn't already
 if {$opt(DISPGUIDE1)} {
   displayGuide
   set opt(DISPGUIDE1) 0
@@ -379,12 +398,17 @@ if {$argv != ""} {
     set localName [file join [pwd] $localName]
   }
   if {$localName != ""} {
-    set localNameList [list $localName]
-    outputMsg "Ready to process: [file tail $localName] ([expr {[file size $localName]/1024}] Kb)" blue
-    if {[info exists buttons(appDisplay)]} {$buttons(appDisplay) configure -state normal}
-    if {[info exists buttons(genExcel)]} {
-      $buttons(genExcel) configure -state normal
-      focus $buttons(genExcel)
+    .tnb select .tnb.status
+    if {[file exists $localName]} {
+      set localNameList [list $localName]
+      outputMsg "Ready to process: [file tail $localName] ([expr {[file size $localName]/1024}] Kb)" blue
+      if {[info exists buttons(appDisplay)]} {$buttons(appDisplay) configure -state normal}
+      if {[info exists buttons(genExcel)]} {
+        $buttons(genExcel) configure -state normal
+        focus $buttons(genExcel)
+      }
+    } else {
+      errorMsg "File not found: [truncFileName [file nativename $localName]]"
     }
   }
 }
@@ -392,12 +416,14 @@ if {$argv != ""} {
 set writeDir $userWriteDir
 checkValues
 
+# problem reading options file
 if {[string length $optionserr] > 5} {
   errorMsg "ERROR reading options file: $optionsFile\n $optionserr"
   errorMsg "Some previously saved options might be lost."
   .tnb select .tnb.status
 }
 
+# other STEP File Analyzers already running
 set pid2 [twapi::get_process_ids -name "STEP-File-Analyzer.exe"]
 set pid2 [concat $pid2 [twapi::get_process_ids -name "sfa.exe"]]
 
@@ -410,18 +436,22 @@ if {[llength $pid2] > 1} {
       if {$pid != [pid]} {catch {twapi::end_process $pid -force}}
     }
     outputMsg "Other STEP File Analyzers closed" red
+    .tnb select .tnb.status
   }
 }
 
 # copy schema rose files that are in the Tcl Virtual File System (VFS) or STEPtools runtime to the IFCsvr dll directory
 if {$copyrose} {copyRoseFiles}
 
+# warn if spreadsheets not written to default directory
 if {$opt(writeDirType) == 1} {
   outputMsg " "
   errorMsg "Spreadsheets will be written to a user-defined file name (Spreadsheet tab)"
+  .tnb select .tnb.status
 } elseif {$opt(writeDirType) == 2} {
   outputMsg " "
   errorMsg "Spreadsheets will be written to a user-defined directory (Spreadsheet tab)"
+  .tnb select .tnb.status
 }
 
 # set window minimum size
@@ -435,5 +465,14 @@ if {![info exists mingeo]} {
   wm minsize . [lindex $wg 0] [lindex $wg 1]
 }
 
+# DEBUG
+
 #outputMsg [info script]
 #outputMsg [file system [info script]]
+
+#set allents {}
+#foreach item [array names entCategory] {set allents [concat $allents $entCategory($item)]}
+#set allents [lrmdups $allents]
+#compareLists "203/214/242 vs allents" [lrmdups [concat $ap203all $ap214all $ap242all]] $allents
+#set allents [lrmdups [concat $ap203all $ap214all]]
+#foreach item [array names entCategory] {compareLists $item $allents $entCategory($item)}

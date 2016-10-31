@@ -1,48 +1,4 @@
 #-------------------------------------------------------------------------------
-proc getSchemaFromFile {fname {msg 0}} {
-  set schema ""
-  set ok 0
-  set nline 0
-  set stepfile [open $fname r]
-  while {[gets $stepfile line] != -1 && $nline < 50} {
-    if {$msg} {
-      foreach item {"MIME-Version" "Content-Type" "X-MimeOLE" "DOCTYPE HTML" "META content"} {
-        if {[string first $item $line] != -1} {
-          errorMsg "Syntax Error: The STEP file was probably saved as an EMAIL or HTML file.  The STEP file cannot be translated.\n In the email client, save the STEP file as a TEXT file and try again.\n The first line in the STEP file should be 'ISO-10301-21\;'"
-        }
-      }
-    }
-
-    incr nline
-    if {[string first "FILE_SCHEMA" $line] != -1} {
-      set ok 1
-      set fsline $line
-    } elseif {[string first "ENDSEC" $line] != -1} {
-      set schema [lindex [split $fsline "'"] 1]
-      if {$msg} {
-        errorMsg "The schema used is:\n $fsline"
-        if {[string first "_MIM" $fsline] != -1 && [string first "_MIM_LF" $fsline] == -1} {errorMsg "The schema name should end with _MIM_LF"}
-
-# check for CIS/2 or IFC files
-        if {[string first "STRUCTURAL_FRAME_SCHEMA" $fsline] != -1} {
-          errorMsg "This is a CIS/2 file that should be analyzed the CIS/2 File Analyzer available with SteelVis.\n  www.nist.gov/el/msid/infotest/steelvis.cfm"
-          displayURL http://www.nist.gov/el/msid/infotest/steelvis.cfm         
-        }
-        if {[string first "IFC" $fsline] != -1} {
-          errorMsg "This is an IFC file that cannot be analyzed by the STEP File Analyzer.\n Use the IFC File Analyzer  www.nist.gov/el/msid/infotest/ifc-file-analyzer.cfm"
-          displayURL http://www.nist.gov/el/msid/infotest/ifc-file-analyzer.cfm
-        }
-      }
-      break
-    } elseif {$ok} {
-      append fsline $line
-    }
-  }
-  close $stepfile
-  return $schema
-}
- 
-#-------------------------------------------------------------------------------
 proc checkValues {} {
   global opt buttons appNames appName programfiles userEntityList
   global edmWriteToFile edmWhereRules eeWriteToFile
@@ -79,53 +35,55 @@ proc checkValues {} {
   }
 
   if {$opt(XLSCSV) == "CSV"} {
-    set opt(PMIGRF) 0
-    set opt(PMISEM) 0
-    set opt(VALPROP) 0
     set opt(INVERSE) 0
-    set opt(XL_OPEN) 1
+    set opt(PMIGRF)  0
+    set opt(PMISEM)  0
+    set opt(VALPROP) 0
     set opt(writeDirType) 0
+    set opt(XL_OPEN) 1
+    $buttons(genExcel)   configure -text "Generate CSV Files"
+    $buttons(optINVERSE) configure -state disabled
     $buttons(optPMIGRF)  configure -state disabled
     $buttons(optPMISEM)  configure -state disabled
     $buttons(optVALPROP) configure -state disabled
-    $buttons(optINVERSE) configure -state disabled
-    $buttons(optSORT)    configure -state disabled
-    $buttons(optXL_FPREC) configure -state disabled
-    $buttons(optXL_LINK1) configure -state disabled
+    $buttons(optXL_FPREC)    configure -state disabled
     $buttons(optXL_KEEPOPEN) configure -state disabled
-    $buttons(genExcel)   configure -text "Generate CSV Files"
+    $buttons(optXL_LINK1)    configure -state disabled
+    $buttons(optXL_SORT)     configure -state disabled
   } else {
+    $buttons(genExcel)   configure -text "Generate Spreadsheet"
+    $buttons(optINVERSE) configure -state normal
     $buttons(optPMIGRF)  configure -state normal
     $buttons(optPMISEM)  configure -state normal
     $buttons(optVALPROP) configure -state normal
-    $buttons(optINVERSE) configure -state normal
-    $buttons(optSORT)    configure -state normal
-    $buttons(optXL_FPREC) configure -state normal
-    $buttons(optXL_LINK1) configure -state normal
+    $buttons(optXL_FPREC)    configure -state normal
     $buttons(optXL_KEEPOPEN) configure -state normal
-    $buttons(genExcel)   configure -text "Generate Spreadsheet"
+    $buttons(optXL_LINK1)    configure -state normal
+    $buttons(optXL_SORT)     configure -state normal
   }
   
 # STEP related
   if {$opt(PMIGRF)} {
+    set opt(PR_STEP_AP242) 1
+    set opt(PR_STEP_COMM) 1
+    set opt(PR_STEP_PRES) 1
     set opt(PR_STEP_QUAN) 1
-    set opt(PR_STEP_OTHER) 1
-    set opt(PR_STEP_AP242_GEOM) 1
-    set opt(PR_STEP_ASPECT) 1
+    set opt(PR_STEP_SHAP) 1
     $buttons(optGENX3DOM) configure -state normal
+    $buttons(optPR_STEP_AP242) configure -state disabled
+    $buttons(optPR_STEP_COMM) configure -state disabled
+    $buttons(optPR_STEP_PRES) configure -state disabled
     $buttons(optPR_STEP_QUAN) configure -state disabled
-    $buttons(optPR_STEP_OTHER) configure -state disabled
-    $buttons(optPR_STEP_AP242_GEOM) configure -state disabled
-    $buttons(optPR_STEP_ASPECT) configure -state disabled
+    $buttons(optPR_STEP_SHAP) configure -state disabled
   } else {
     set opt(GENX3DOM) 0
     $buttons(optGENX3DOM) configure -state disabled
     $buttons(optPR_STEP_PRES) configure -state normal
     if {!$opt(VALPROP)} {$buttons(optPR_STEP_QUAN) configure -state normal}
     if {!$opt(PMISEM)}  {
-      $buttons(optPR_STEP_ASPECT) configure -state normal
-      $buttons(optPR_STEP_OTHER) configure -state normal
-      $buttons(optPR_STEP_AP242_GEOM) configure -state normal
+      $buttons(optPR_STEP_AP242) configure -state normal
+      $buttons(optPR_STEP_COMM) configure -state normal
+      $buttons(optPR_STEP_SHAP) configure -state normal
     }
   }
   if {$opt(VALPROP)} {
@@ -146,18 +104,21 @@ proc checkValues {} {
     $buttons(linecolor)  configure -state disabled
   }
   if {$opt(PMISEM)} {
-    set opt(PR_STEP_TOLR) 1
-    set opt(PR_STEP_ASPECT) 1
+    set opt(PR_STEP_AP242) 1
+    set opt(PR_STEP_COMM) 1
     set opt(PR_STEP_QUAN) 1
-    set opt(PR_STEP_OTHER) 1
-    set opt(PR_STEP_AP242_GEOM) 1
-    $buttons(optPR_STEP_TOLR) configure -state disabled
-    $buttons(optPR_STEP_ASPECT) configure -state disabled
+    set opt(PR_STEP_REPR) 1
+    set opt(PR_STEP_SHAP) 1
+    set opt(PR_STEP_TOLR) 1
+    $buttons(optPR_STEP_AP242) configure -state disabled
+    $buttons(optPR_STEP_COMM) configure -state disabled
     $buttons(optPR_STEP_QUAN) configure -state disabled
-    $buttons(optPR_STEP_OTHER) configure -state disabled
-    $buttons(optPR_STEP_AP242_GEOM) configure -state disabled
+    $buttons(optPR_STEP_REPR) configure -state disabled
+    $buttons(optPR_STEP_SHAP) configure -state disabled
+    $buttons(optPR_STEP_TOLR) configure -state disabled
     catch {$buttons(optDEBUG2) configure -state normal}
   } else {
+    $buttons(optPR_STEP_REPR) configure -state normal
     $buttons(optPR_STEP_TOLR) configure -state normal
     catch {
       set opt(DEBUG2) 0
@@ -165,312 +126,63 @@ proc checkValues {} {
     }
     if {!$opt(PMIGRF)} {
       if {!$opt(VALPROP)} {$buttons(optPR_STEP_QUAN) configure -state normal}
-      $buttons(optPR_STEP_ASPECT) configure -state normal
-      $buttons(optPR_STEP_OTHER) configure -state normal
-      $buttons(optPR_STEP_AP242_GEOM) configure -state normal
+      $buttons(optPR_STEP_AP242) configure -state normal
+      $buttons(optPR_STEP_COMM) configure -state normal
+      $buttons(optPR_STEP_SHAP) configure -state normal
     }
   }
   
 # user-defined entity list
   if {[info exists opt(PR_USER)]} {
     if {$opt(PR_USER)} {
-      $buttons(userentity) configure -state normal
+      $buttons(userentity)     configure -state normal
       $buttons(userentityopen) configure -state normal
     } else {
-      $buttons(userentity) configure -state disabled
+      $buttons(userentity)     configure -state disabled
       $buttons(userentityopen) configure -state disabled
       set userEntityList {}
     }
   }
   
   if {$opt(writeDirType) == 0} {
-    $buttons(userentry) configure -state disabled
-    $buttons(userdir) configure -state disabled
+    $buttons(userdir)    configure -state disabled
+    $buttons(userentry)  configure -state disabled
     $buttons(userentry1) configure -state disabled
-    $buttons(userfile) configure -state disabled
+    $buttons(userfile)   configure -state disabled
   } elseif {$opt(writeDirType) == 1} {
-    $buttons(userentry) configure -state disabled
-    $buttons(userdir) configure -state disabled
+    $buttons(userdir)    configure -state disabled
+    $buttons(userentry)  configure -state disabled
     $buttons(userentry1) configure -state normal
-    $buttons(userfile) configure -state normal
+    $buttons(userfile)   configure -state normal
   } elseif {$opt(writeDirType) == 2} {
-    $buttons(userentry) configure -state normal
-    $buttons(userdir) configure -state normal
+    $buttons(userdir)    configure -state normal
+    $buttons(userentry)  configure -state normal
     $buttons(userentry1) configure -state disabled
-    $buttons(userfile) configure -state disabled
+    $buttons(userfile)   configure -state disabled
   }
 
 # make sure there is some entity type to process
   set nopt 0
   foreach idx [lsort [array names opt]] {
-    if {([string first "PR_" $idx] == 0 || $idx == "VALPROP" || $idx == "PMIGRF" || $idx == "PMISEM") && \
-         [string first "AP238" $idx] == -1} {incr nopt $opt($idx)}
+    if {([string first "PR_" $idx] == 0 || $idx == "VALPROP" || $idx == "PMIGRF" || $idx == "PMISEM") && [string first "FEAT" $idx] == -1} {
+      incr nopt $opt($idx)
+    }
   }
   if {$nopt == 0} {
-    set opt(PR_STEP_AP203) 1
-    set opt(PR_STEP_AP209) 1
-    set opt(PR_STEP_AP210) 1
-    set opt(PR_STEP_AP214) 1
-    set opt(PR_STEP_AP238) 1
     set opt(PR_STEP_AP242) 1
-    set opt(PR_STEP_AP242_GEOM) 1
-    set opt(PR_STEP_TOLR)  1
-    set opt(PR_STEP_PRES)  1
-    set opt(PR_STEP_REP)   1
-    set opt(PR_STEP_OTHER) 1
-    set opt(PR_STEP_QUAN)  1
-    set opt(PR_STEP_ASPECT) 1
-  }
-}
-  
-# -------------------------------------------------------------------------------------------------
-proc addHeaderWorksheet {objDesign numFile fname} {
-  global excel worksheets worksheet cells row timeStamp creo fileSchema cadSystem opt localName
-  global excel1 worksheet1 cells1 col1
-  global csvdirnam
-   
-  if {[catch {
-    if {$opt(XLSCSV) == "Excel"} {
-      outputMsg "Generating Header worksheet" green
-    } else {
-      outputMsg "Generating Header CSV file" green
-    }
-  
-# all app names that might appear in header section
-    set cadApps {"3D_Evolution" ACIS "Alias - OpenModel" "Alias AutoStudio" "Alias OpenModel" "Alias Studio" Alibre AutoCAD "Autodesk Inventor" \
-      CADDS CADfix CADIF CATIA "CATIA V4" "CATIA V5" "CATIA V6" "CATIA Version 5" CgiStepCamp CoreTechnologie Creo "CV - CADDS 5" \
-      DATAKIT Datakit "Datakit CrossCad" DATAVISION Elysium EXPRESSO FEMAP FiberSim HiCAD IDA-STEP "I-DEAS" "Implementor Forum Team" "ITI TranscenData" \
-      "jt_step translator" Kubotek "Kubotek KeyCreator" "Mechanical Desktop" "Mentor Graphics" NX "OneSpace Designer" "Open CASCADE" \
-      Parasolid Patran PlanetCAD PolyTrans "PRO/ENGINEER" Siemens "SIEMENS PLM Software NX 10.0" "SIEMENS PLM Software NX 11.0" \
-      "SIEMENS PLM Software NX 7.0" "SIEMENS PLM Software NX 7.5" "SIEMENS PLM Software NX 8.0" "SIEMENS PLM Software NX 8.5" \
-      "SIEMENS PLM Software NX 9.0" "SIEMENS PLM Software NX" "Solid Edge" SolidEdge SolidWorks "ST-ACIS" "STEP Caselib" \
-      "STEP-NC Explorer" "STEP-NC Maker" "T3D tool generator" THEOREM Theorem "THEOREM SOLUTIONS" "Theorem Solutions" "T-Systems" \
-      "UGS - NX" Unigraphics CoCreate Adobe Elysium ASFALIS CAPVIDIA 3DTransVidia MBDVidia NAFEMS COM209 CADCAM-E 3DEXPERIENCE ECCO}
-# sort cadApps by string length
-    set cadApps [sortlength2 $cadApps]
-
-    set cadSystem ""
-    set timeStamp ""
-    set creo 0
-
-    set hdr "Header"
-    if {$opt(XLSCSV) == "Excel"} { 
-      set worksheet($hdr) [$worksheets Item [expr 1]]
-      $worksheet($hdr) Activate
-      $worksheet($hdr) Name $hdr
-      set cells($hdr) [$worksheet($hdr) Cells]
-
-# create directory for CSV files
-    } else {
-      foreach var {csvdirnam csvfname fcsv} {catch {unset $var}}
-      set csvdirnam "[file join [file dirname $localName] [file rootname [file tail $localName]]]-sfa-csv"
-      file mkdir $csvdirnam
-      set csvfname [file join $csvdirnam $hdr.csv]
-      if {[file exists $csvfname]} {file delete -force $csvfname}
-      set fcsv [open $csvfname w]
-      #outputMsg $fcsv red
-    }
-
-    set row($hdr) 0
-    foreach attr {Name FileDirectory FileDescription FileImplementationLevel FileTimeStamp FileAuthor \
-                  FileOrganization FilePreprocessorVersion FileOriginatingSystem FileAuthorisation SchemaName} {
-      incr row($hdr)
-      if {$opt(XLSCSV) == "Excel"} { 
-        $cells($hdr) Item $row($hdr) 1 $attr
-      } else {
-        set csvstr $attr
-      }
-      set objAttr [string trim [join [$objDesign $attr]]]
-
-# FileDirectory
-      if {$attr == "FileDirectory"} {
-        if {$opt(XLSCSV) == "Excel"} { 
-          $cells($hdr) Item $row($hdr) 2 [$objDesign $attr]
-        } else {
-          append csvstr ",[$objDesign $attr]"
-          puts $fcsv $csvstr
-        }
-        outputMsg "$attr:  [$objDesign $attr]"
-
-# SchemaName
-      } elseif {$attr == "SchemaName"} {
-        set sn [getSchemaFromFile $fname]
-        if {$opt(XLSCSV) == "Excel"} { 
-          $cells($hdr) Item $row($hdr) 2 $sn
-        } else {
-          append csvstr ",$sn"
-          puts $fcsv $csvstr
-        }
-        outputMsg "$attr:  $sn" blue
-        if {[string range $sn end-3 end] == "_MIM"} {
-          errorMsg "Syntax Error: Schema name should end with _MIM_LF"
-          [$worksheet($hdr) Range B11] Style "Bad"
-       }
-
-        set fileSchema  [string toupper [string range $objAttr 0 5]]
-        if {[string first "IFC" $fileSchema] == 0} {
-          errorMsg "This is an IFC file that cannot be analyzed by the STEP File Analyzer.\n Use the IFC File Analyzer  www.nist.gov/el/msid/infotest/ifc-file-analyzer.cfm"
-          displayURL http://www.nist.gov/el/msid/infotest/ifc-file-analyzer.cfm
-        }          
-        if {$objAttr == "STRUCTURAL_FRAME_SCHEMA"} {
-          errorMsg "This is a CIS/2 file that should be analyzed the CIS/2 File Analyzer available with SteelVis.\n  www.nist.gov/el/msid/infotest/steelvis.cfm"
-          displayURL http://www.nist.gov/el/msid/infotest/steelvis.cfm
-        }
-
-# other File attributes
-      } else {
-        if {$attr == "FileDescription" || $attr == "FileAuthor" || $attr == "FileOrganization"} {
-          set str1 "$attr:  "
-          set str2 ""
-          foreach item [$objDesign $attr] {
-            append str1 "[string trim $item], "
-            if {$opt(XLSCSV) == "Excel"} { 
-              append str2 "[string trim $item][format "%c" 10]"
-            } else {
-              append str2 ",[string trim $item]"
-            }
-          }
-          outputMsg [string range $str1 0 end-2]
-          if {$opt(XLSCSV) == "Excel"} { 
-            $cells($hdr) Item $row($hdr) 2 "'[string trim $str2]"
-            set range [$worksheet($hdr) Range "$row($hdr):$row($hdr)"]
-            $range VerticalAlignment [expr -4108]
-          } else {
-            append csvstr [string trim $str2]
-            puts $fcsv $csvstr
-          }
-        } else {
-          outputMsg "$attr:  $objAttr"
-          if {$opt(XLSCSV) == "Excel"} { 
-            $cells($hdr) Item $row($hdr) 2 "'$objAttr"
-            set range [$worksheet($hdr) Range "$row($hdr):$row($hdr)"]
-            $range VerticalAlignment [expr -4108]
-          } else {
-            append csvstr ",$objAttr"
-            puts $fcsv $csvstr
-          }
-        }
-
-# check implementation level        
-        if {$attr == "FileImplementationLevel"} {
-          if {$objAttr != "2\;1"} {
-            errorMsg "Syntax Error: Implementation Level should be '2\;1'"
-            [$worksheet($hdr) Range B4] Style "Bad"
-          }
-        }
-
-# check for Creo
-        if {$attr == "FileOriginatingSystem"} {
-          if {[string first "PRO/ENGINEER" $objAttr] != -1 || [string first "CREO PARAMETRIC" $objAttr] != -1} {set creo 1}
-        }
-
-# check and add time stamp to multi file summary
-        if {$attr == "FileTimeStamp"} {
-          if {[string first "-" $objAttr] == -1 && $objAttr != ""} {
-            errorMsg "Syntax Error: Wrong format for FileTimeStamp"            
-            if {$opt(XLSCSV) == "Excel"} {[$worksheet($hdr) Range B5] Style "Bad"}
-          }
-          if {$numFile != 0 && [info exists cells1(Summary)] && $opt(XLSCSV) == "Excel"} {
-            set timeStamp $objAttr
-            set colsum [expr {$col1(Summary)+1}]
-            set range [$worksheet1(Summary) Range [cellRange 5 $colsum]]
-            catch {$cells1(Summary) Item 5 $colsum "'[string range $timeStamp 2 9]"}
-          }
-        }
-      }
-    }
-
-    if {$opt(XLSCSV) == "Excel"} { 
-      [[$worksheet($hdr) Range "A:A"] Font] Bold [expr 1]
-      [$worksheet($hdr) Columns] AutoFit
-      [$worksheet($hdr) Rows] AutoFit
-      [$worksheet($hdr) PageSetup] Orientation [expr 2]
-      [$worksheet($hdr) PageSetup] PrintGridlines [expr 1]
-    }
-      
-# check for CAx-IF Recommended Practices in the file description
-    set caxifrp {}
-    foreach fd [$objDesign "FileDescription"] {
-      set c1 [string first "CAx-IF Rec." $fd]
-      if {$c1 != -1} {lappend caxifrp [string trim [string range $fd $c1+20 end]]}
-    }
-    if {[llength $caxifrp] > 0} {
-      outputMsg "\nCAx-IF Recommended Practices: (www.cax-if.org/joint_testing_info.html#recpracs)"
-      foreach item $caxifrp {
-        outputMsg " $item" blue
-        if {[string first "AP242" $fileSchema] == -1 && [string first "Tessellated" $item] != -1} {
-          errorMsg "  Error: Recommended Practices related to 'Tessellated' only apply to AP242 files."
-        }
-      }
-    }
-
-
-# set the application from various file attributes, cadApps is a list of all application names defined above, take the first one that matches
-    set ok 0
-    foreach attr {FilePreprocessorVersion FileOriginatingSystem FileDescription FileAuthorisation FileOrganization} {
-      foreach app $cadApps {
-        set app1 $app
-        if {$cadSystem == "" && [string first [string tolower $app] [string tolower [join [$objDesign $attr]]]] != -1} {
-          set cadSystem [join [$objDesign $attr]]
-
-# for multiple files, modify the app string to fit in file summary worksheet
-          if {$numFile != 0 && [info exists cells1(Summary)]} {
-            if {$app == "3D_Evolution"}            {set app1 "CT 3D Evolution"}
-            if {$app == "CoreTechnologie"}         {set app1 "CT 3D Evolution"}
-            if {$app == "DATAKIT"}                 {set app1 "Datakit"}
-            if {$app == "Implementor Forum Team"}  {set app1 "CAx-IF"}
-            if {$app == "jt_step translator"}      {set app1 "Siemens NX"}
-            if {$app == "PRO/ENGINEER"}            {set app1 "Creo"}
-            if {$app == "SIEMENS PLM Software NX"} {set app1 "Siemens NX"}
-            if {$app == "UGS - NX"}                {set app1 "UGS-NX"}
-            if {$app == "Unigraphics"}             {set app1 "Siemens NX"}
-            if {$app == "UNIGRAPHICS"}             {set app1 "Unigraphics"}
-            if {$app == "3DEXPERIENCE"}            {set app1 "CATIA"}
-            if {[string first "CATIA Version"           $app] == 0} {set app1 "CATIA V[string range $app 14 end]"}
-            if {[string first "SIEMENS PLM Software NX" $app] == 0} {set app1 "Siemens NX[string range $app 23 end]"}
-            if {[string first "THEOREM"   [$objDesign FilePreprocessorVersion]] != -1} {set app1 "Theorem"}
-            if {[string first "T-Systems" [$objDesign FilePreprocessorVersion]] != -1} {set app1 "T-Systems"}
-
-# set caxifVendor based on CAx-IF vendor notation used in testing rounds, use for app if appropriate
-            set caxifVendor [setCAXIFvendor]
-            if {$caxifVendor != ""} {
-              if {[string first [lindex [split $caxifVendor " "] 0] $app1] != -1} {
-                if {[string length $caxifVendor] > [string length $app1]} {set app1 $caxifVendor}
-              } elseif {[string first [lindex [split $app1 " "] 0] $caxifVendor] != -1} {
-                if {[string length $caxifVendor] < [string length $app1]} {set app1 "$app1 ($caxifVendor)"}
-              }
-            }
-            set ok 1
-            set app2 $app1
-            break
-          }
-        }
-      }
-    }
-    
-# add app2 to multiple file summary worksheet    
-    if {$numFile != 0 && $opt(XLSCSV) == "Excel"} {
-      if {$ok == 0} {set app2 [setCAXIFvendor]}
-      set colsum [expr {$col1(Summary)+1}]
-      if {$colsum > 16} {[$excel1 ActiveWindow] ScrollColumn [expr {$colsum-16}]}
-      regsub -all " " $app2 [format "%c" 10] app2
-      $cells1(Summary) Item 6 $colsum [string trim $app2]
-    }
-    if {$cadSystem == ""} {set cadSystem [setCAXIFvendor]}
-
-# close csv file
-    if {$opt(XLSCSV) == "CSV"} {close $fcsv} 
-
-  } emsg]} {
-    errorMsg "ERROR adding Header worksheet: $emsg"
-    catch {raise .}
+    set opt(PR_STEP_COMM) 1
+    set opt(PR_STEP_PRES) 1
+    set opt(PR_STEP_QUAN) 1
+    set opt(PR_STEP_REPR) 1
+    set opt(PR_STEP_SHAP) 1
+    set opt(PR_STEP_TOLR) 1
   }
 }
 
 # -------------------------------------------------------------------------------------------------
 # set color based on entColorIndex variable
-proc setColorIndex {ent {stat 0}} {
-  global entCategory entColorIndex opt
+proc setColorIndex {ent {multi 0}} {
+  global entCategory entColorIndex stepAP
   
 # special case
   if {[string first "geometric_representation_context" $ent] != -1} {set ent "geometric_representation_context"}
@@ -526,11 +238,22 @@ proc setColorIndex {ent {stat 0}} {
     set tc [expr {min($tc1,$tc2,$tc3)}]
 
 # exception for STEP measures    
-    if {$tc1 == $entColorIndex(PR_STEP_QUAN) || $tc2 == $entColorIndex(PR_STEP_QUAN) || $tc3 == $entColorIndex(PR_STEP_QUAN)} {set tc $entColorIndex(PR_STEP_QUAN)}
+    if {$tc1 == $entColorIndex(PR_STEP_QUAN) || $tc2 == $entColorIndex(PR_STEP_QUAN) || $tc3 == $entColorIndex(PR_STEP_QUAN)} {
+      set tc $entColorIndex(PR_STEP_QUAN)
+    }
 
     #outputMsg "TC $tc"
     if {$tc < 1000} {return $tc}
   }
+
+# entity not in any category, color by AP
+  if {!$multi} {
+    if {$stepAP == "AP209"} {return 19} 
+    if {$stepAP == "AP210"} {return 15} 
+    if {$stepAP == "AP238"} {return 24}
+  }
+
+# entity from other APs (no color)
   return -2      
 }
 
@@ -567,8 +290,8 @@ proc openFile {{openName ""}} {
 
   if {$openName == ""} {
   
-# file types for file select dialog
-    set typelist {{"STEP Files" {".stp" ".step" ".p21" ".stpZ" ".stpnc"}}}
+# file types for file select dialog (removed .stpnc)
+    set typelist {{"STEP Files" {".stp" ".step" ".p21" ".stpZ"}}}
     lappend typelist {"All Files" {*}}
 
 # file open dialog
@@ -576,11 +299,11 @@ proc openFile {{openName ""}} {
     if {[llength $localNameList] <= 1} {set localName [lindex $localNameList 0]}
     catch {
       set fext [string tolower [file extension $localName]]
-      if {[string tolower $fext] == ".ifc" || [string tolower $fext] == ".ifczip"} {
-        errorMsg "This is an IFC file that cannot be analyzed by the STEP File Analyzer.\n Use the IFC File Analyzer  www.nist.gov/el/msid/infotest/ifc-file-analyzer.cfm"
-        displayURL http://www.nist.gov/el/msid/infotest/ifc-file-analyzer.cfm
-        set localName ""
-        return
+      if {[string first ".ifc" $fext] != -1} {
+        #errorMsg "Use the IFC File Analyzer with IFC files."
+        #displayURL http://go.usa.gov/xK9gh
+      } elseif {$fext == ".stpnc"} {
+        errorMsg "Rename the file extension to '.stp' to process STEP-NC files."
       }
     }
 
@@ -619,7 +342,6 @@ proc openFile {{openName ""}} {
     if {$localName != ""} {errorMsg "File not found: [truncFileName [file nativename $localName]]"}
   }
   .tnb select .tnb.status
-  update idletasks
 }
 
 #-------------------------------------------------------------------------------
@@ -772,7 +494,7 @@ proc displayResult {} {
   set dispFile $localName
   set idisp [file rootname [file tail $dispCmd]]
   if {[info exists appName]} {if {$appName != ""} {set idisp $appName}}
-  outputMsg "Displaying STEP file in: $idisp"
+  outputMsg "Opening STEP file in: $idisp"
 
 # display file
 #  (list is programs that CANNOT start up with a file *OR* need specific commands below)
@@ -792,7 +514,6 @@ proc displayResult {} {
 
 # default viewer associated with file extension
   } elseif {[string first "Default" $idisp] == 0} {
-    .tnb select .tnb.status
     if {[catch {
       exec {*}[auto_execok start] "" $dispFile
     } emsg]} {
@@ -802,7 +523,6 @@ proc displayResult {} {
 
 # indent file
   } elseif {[string first "Indent" $idisp] != -1} {
-    .tnb select .tnb.status
     indentFile $dispFile
 
 # QuickStep
@@ -813,7 +533,6 @@ proc displayResult {} {
 #-------------------------------------------------------------------------------
 # validate file with ST-Developer Conformance Checkers
   } elseif {[string first "Conformance" $idisp] != -1} {
-    .tnb select .tnb.status
     set stfile $dispFile
     outputMsg "Ready to validate:  [truncFileName [file nativename $stfile]] ([expr {[file size $stfile]/1024}] Kb)" blue
     cd [file dirname $stfile]
@@ -824,6 +543,7 @@ proc displayResult {} {
 
 # non-gui version
     } else {
+      .tnb select .tnb.status
       set stname [file tail $stfile]
       set stlog  "[file rootname $stname]\_stdev.log"
       catch {if {[file exists $stlog]} {file delete -force $stlog}}
@@ -850,7 +570,6 @@ proc displayResult {} {
 # EDM Model Checker (only for developer)
   } elseif {[string first "EDM Model Checker" $idisp] != -1} {
     set filename $dispFile
-    .tnb select .tnb.status
     outputMsg "Ready to validate:  [truncFileName [file nativename $filename]] ([expr {[file size $filename]/1024}] Kb)" blue
     cd [file dirname $filename]
 
@@ -864,7 +583,7 @@ proc displayResult {} {
     set edmdir [join [lrange $edmdir 0 [expr {$i-1}]] [file separator]]
     set edmdbopen "ACCUMULATING_COMMAND_OUTPUT,OPEN_SESSION"
     
-# open file to find STEP schema name (can't create ap214 and ap210 because the schemas won't compile in EDMS)
+# open file to find STEP schema name (can't create ap214 and ap210 because the schemas won't compile in EDMS without errors)
     set fschema [getSchemaFromFile $filename]
     if {$fschema == "CONFIG_CONTROL_DESIGN"} {
       puts $scriptfile "Database>Open([file nativename [file join $edmdir Db]], ap203, ap203, \"$edmdbopen\")"
@@ -872,17 +591,12 @@ proc displayResult {} {
       puts $scriptfile "Database>Open([file nativename [file join $edmdir Db]], ap203_lf, ap203_lf, \"$edmdbopen\")"
     } elseif {[string first "AP242_MANAGED_MODEL_BASED_3D_ENGINEERING_MIM_LF" $fschema] == 0} {
       puts $scriptfile "Database>Open([file nativename [file join $edmdir Db]], ap242_lf, ap242_lf, \"$edmdbopen\")"
-    } elseif {[string first "AP242_MANAGED_MODEL_BASED_3D_ENGINEERING_MIM" $fschema] == 0} {
-      puts $scriptfile "Database>Open([file nativename [file join $edmdir Db]], ap242, ap242, \"$edmdbopen\")"
+    } elseif {[string first "AP209_MULTIDISCIPLINARY_ANALYSIS_AND_DESIGN_MIM_LF" $fschema] == 0} {
+      puts $scriptfile "Database>Open([file nativename [file join $edmdir Db]], ap209, ap209, \"$edmdbopen\")"
     } else {
       outputMsg "EDM Model Checker cannot be used with:\n $fschema" red
       set okschema 0
     }
-    #if {[string first "AUTOMOTIVE_DESIGN" $fschema] == 0} {
-    #  puts $scriptfile "Database>Open([file nativename [file join $edmdir Db]], ap214, ap214, \"ACCUMULATING_COMMAND_OUTPUT,OPEN_SESSION\")"
-    #} elseif {[string first "AP210_ELECTRONIC_ASSEMBLY_INTERCONNECT_AND_PACKAGING_DESIGN_MIM" $fschema] == 0} {
-    #  puts $scriptfile "Database>Open([file nativename [file join $edmdir Db]], ap210, ap210, \"ACCUMULATING_COMMAND_OUTPUT,OPEN_SESSION\")"
-    #}
 
 # create a temporary file if certain characters appear in the name, copy original to temporary and process that one
     if {$okschema} {
@@ -907,10 +621,10 @@ proc displayResult {} {
       }
 
 # validate everything
-      set validate "FULL_VALIDATION,OUTPUT_STEPID"
+      #set validate "FULL_VALIDATION,OUTPUT_STEPID"
 
-# do not validate DERIVE
-      set validate "GLOBAL_RULES,REQUIRED_ATTRIBUTES,ATTRIBUTE_DATA_TYPE,AGGREGATE_DATA_TYPE,AGGREGATE_SIZE,ARRAY_REQUIRED_ELEMENTS,AGGREGATE_UNIQUENESS,OUTPUT_STEPID"
+# not validating DERIVE, ARRAY_REQUIRED_ELEMENTS
+      set validate "GLOBAL_RULES,REQUIRED_ATTRIBUTES,ATTRIBUTE_DATA_TYPE,AGGREGATE_DATA_TYPE,AGGREGATE_SIZE,AGGREGATE_UNIQUENESS,OUTPUT_STEPID"
       if {$edmWhereRules} {append validate ",LOCAL_RULES,UNIQUENESS_RULES,INVERSE_RULES"}
 
 # write script file if not writing output to file, just import model and validate
@@ -977,8 +691,8 @@ proc displayResult {} {
 
 # all others
   } else {
-    outputMsg "You have to manually import the STEP file to $idisp." red
     .tnb select .tnb.status
+    outputMsg "You have to manually import the STEP file to $idisp." red
     exec $dispCmd &
   }
   
@@ -1045,6 +759,18 @@ proc getDisplayPrograms {} {
         if {[file exists [file join $pf "STEP Tools" "STEP-NC Machine" STEPNCExplorer_x86.exe]]} {
           set name "STEP-NC Explorer"
           set dispApps([file join $pf "STEP Tools" "STEP-NC Machine" STEPNCExplorer_x86.exe]) $name
+        }
+        if {[file exists [file join $pf "STEP Tools" "STEP-NC Machine" STEPNCExplorer.exe]]} {
+          set name "STEP-NC Explorer"
+          set dispApps([file join $pf "STEP Tools" "STEP-NC Machine" STEPNCExplorer.exe]) $name
+        }
+        if {[file exists [file join $pf "STEP Tools" "STEP-NC Machine Personal Edition" STEPNCExplorer_x86.exe]]} {
+          set name "STEP-NC Explorer PE"
+          set dispApps([file join $pf "STEP Tools" "STEP-NC Machine Personal Edition" STEPNCExplorer_x86.exe]) $name
+        }
+        if {[file exists [file join $pf "STEP Tools" "STEP-NC Machine Personal Edition" STEPNCExplorer.exe]]} {
+          set name "STEP-NC Explorer PE"
+          set dispApps([file join $pf "STEP Tools" "STEP-NC Machine Personal Edition" STEPNCExplorer.exe]) $name
         }
 
 # ST-Developer STEP Geometry Viewer
@@ -1334,7 +1060,7 @@ proc findFile {startDir {recurse 0}} {
     return
   }
 
-  set exts {".stp" ".step" ".p21" ".stpnc" ".stpz"}
+  set exts {".stp" ".step" ".p21" ".stpz"}
 
   foreach match [glob -nocomplain -- *] {
     foreach ext $exts {
@@ -1388,7 +1114,7 @@ proc addFileToMenu {} {
 
 # insert file name at top of list
   set fext [string tolower [file extension $localName]]
-  if {$ifile != 0 && ($fext == ".stp" || $fext == ".step" || $fext == ".p21" || $fext == ".stpnc")} {
+  if {$ifile != 0 && ($fext == ".stp" || $fext == ".step" || $fext == ".p21")} {
     set openFileList [linsert $openFileList 0 $localName]
     $File insert $filemenuinc command -label [truncFileName [file nativename $localName] 1] \
       -command [list openFile $localName] -accelerator "F1"
@@ -1426,11 +1152,11 @@ proc openXLS {filename {check 0} {multiFile 0}} {
 
 # check if instances of Excel are already running
     if {$check} {checkForExcel}
-    outputMsg " "
+    #outputMsg " "
     
 # start Excel
     if {[catch {
-      outputMsg "Starting Excel" green
+      #outputMsg "Starting Excel" green
       set xl [::tcom::ref createobject Excel.Application]
       [$xl ErrorCheckingOptions] TextDate False
 
@@ -1441,7 +1167,7 @@ proc openXLS {filename {check 0} {multiFile 0}} {
     
 # open spreadsheet in Excel, works even if Excel not already started above although slower
     if {[catch {
-      outputMsg "Opening Spreadsheet: [file tail $filename]  ([expr {[file size $filename]/1024}] Kb)" blue
+      outputMsg "\nOpening Spreadsheet: [file tail $filename]  ([expr {[file size $filename]/1024}] Kb)" blue
       exec {*}[auto_execok start] "" $filename
 
 # errors
@@ -1469,7 +1195,7 @@ proc checkForExcel {{multFile 0}} {
   if {[llength $pid1] > 0} {
     if {[info exists buttons]} {
       if {!$multFile} {
-        set msg "There are ([llength $pid1]) instances of Excel already running.\nThe windows for the other instances might not be visible but will show up in the Windows Task Manager as EXCEL.EXE"
+        set msg "There are ([llength $pid1]) instances of Excel already running.\nThe spreadsheets for the other instances might not be visible but will show up in the Windows Task Manager as EXCEL.EXE"
         append msg "\n\nThey might affect generating, saving, or viewing a new Excel spreadsheet."
         append msg "\n\nDo you want to close the other instances of Excel?"
 
@@ -1479,7 +1205,7 @@ proc checkForExcel {{multFile 0}} {
         }
         set choice [tk_messageBox -type yesno -default $dflt -message $msg -icon question -title "Close Excel?"]
         if {$choice == "yes"} {
-          outputMsg "Closing Excel" red
+          #outputMsg "Closing Excel" red
           for {set i 0} {$i < 5} {incr i} {
             set nnc 0
             foreach pid $pid1 {
@@ -1492,16 +1218,16 @@ proc checkForExcel {{multFile 0}} {
             set pid1 [twapi::get_process_ids -name "EXCEL.EXE"]
             if {[llength $pid1] == 0} {break}
           }
-          #if {$nnc > 0} {errorMsg " Some instances ($nnc) of Excel were not closed.  $emsg" red}
+          #if {$nnc > 0} {errorMsg "Some instances ($nnc) of Excel were not closed: $emsg" red}
         }
       }
     } else {
-      outputMsg "Closing Excel" red
+      #outputMsg "Closing Excel" red
       foreach pid $pid1 {
         if {[catch {
           twapi::end_process $pid -force
         } emsg]} {
-          errorMsg " Some instances of Excel were not closed.  $emsg" red
+          #errorMsg "Some instances of Excel were not closed: $emsg" red
         }
       }
     }
@@ -1514,17 +1240,6 @@ proc checkForExcel {{multFile 0}} {
 proc getNextUnusedColumn {ent r} {
   global worksheet
   return [expr {[[[$worksheet($ent) UsedRange] Columns] Count]} + 1]
-  
-  #global cells
-  #for {set c 30} {$c > 1} {incr c -1} {
-  #  set val [[$cells($ent) Item $r $c] Value]
-  #  if {$val != ""} {
-  #    set nextcol [expr {$c+1}]
-  #    outputMsg "getNextUnusedColumn $val $nextcol" red
-  #    outputMsg "UsedRange [[[$worksheet($ent) UsedRange] Columns] Count]" red
-  #    return $nextcol
-  #  }
-  #}
 }
 
 # -------------------------------------------------------------------------------
@@ -1538,7 +1253,7 @@ proc formatComplexEnt {str {space 0}} {
 
 # check if _and_ is part of the entity name
     set ok 1
-    foreach cat {PR_STEP_AP203 PR_STEP_AP209 PR_STEP_AP214 PR_STEP_AP242_GEOM PR_STEP_AP242_KINE PR_STEP_PRES PR_STEP_TOLR PR_STEP_OTHER} {
+    foreach cat {PR_STEP_AP242 PR_STEP_COMM PR_STEP_TOLR PR_STEP_PRES PR_STEP_KINE PR_STEP_COMP} {
       if {$opt($cat)} {if {[lsearch $entCategory($cat) $str] != -1} {set ok 0; break}}
     }
 
@@ -1590,7 +1305,7 @@ proc addCellComment {ent r c text} {
 
 #-------------------------------------------------------------------------------
 proc colorBadCells {ent} {
-  global excel syntaxErr count cells worksheet stepAP
+  global excelVersion syntaxErr count cells worksheet stepAP
   
   if {$stepAP == ""} {return}
       
@@ -1598,7 +1313,7 @@ proc colorBadCells {ent} {
   set lastr 4
   set rmax [expr {$count($ent)+3}]
   
-  if {[expr {int([$excel Version])}] >= 12} {
+  if {$excelVersion >= 12} {
     for {set n 0} {$n < [llength $syntaxErr($ent)]} {incr n} {
       if {[catch {
         set err [lindex $syntaxErr($ent) $n]
@@ -1623,22 +1338,25 @@ proc colorBadCells {ent} {
               }
             }
           }
-          set c $nc($c)
+          
+          if {[info exists nc($c)]} {
+            set c $nc($c)
           
 # entity ID
-          if {$r > 0} {
-            for {set i $lastr} {$i <= $rmax} {incr i} {
-              set val [[$cells($ent) Item $i 1] Value]
-              if {$val == $r} {
-                set r $i
-                set lastr [expr {$r+1}]
-                [$worksheet($ent) Range [cellRange $r $c] [cellRange $r $c]] Style "Bad"
-                break
-              }              
+            if {$r > 0} {
+              for {set i $lastr} {$i <= $rmax} {incr i} {
+                set val [[$cells($ent) Item $i 1] Value]
+                if {$val == $r} {
+                  set r $i
+                  set lastr [expr {$r+1}]
+                  [$worksheet($ent) Range [cellRange $r $c] [cellRange $r $c]] Style "Bad"
+                  break
+                }              
+              }
+            } else {
+              set r [expr {abs($r)}]
+              [$worksheet($ent) Range [cellRange $r $c] [cellRange $r $c]] Style "Bad"
             }
-          } else {
-            set r [expr {abs($r)}]
-            [$worksheet($ent) Range [cellRange $r $c] [cellRange $r $c]] Style "Bad"
           }
         }
       } emsg]} {
@@ -1782,7 +1500,6 @@ proc truncFileName {fname {compact 0}} {
 # this only works with Tcl 8.5.15 and lower
 proc copyRoseFiles {} {
   global programfiles wdir mytemp developer env ifcsvrdir nistVersion
-  #return
   
   if {[file exists $ifcsvrdir]} {
 
@@ -1803,7 +1520,8 @@ proc copyRoseFiles {} {
             file copy -force $fn $f2
             if {$developer} {outputMsg "Copying ROSE file: $fn1" red}
           } emsg]} {
-            errorMsg "ERROR: $emsg"
+            errorMsg "ERROR copying STEP schema files (*.rose) to $ifcsvrdir"
+            .tnb select .tnb.status
           }
           if {![file exists [file join $ifcsvrdir $fn1]]} {
             set ok 0
@@ -1817,7 +1535,11 @@ proc copyRoseFiles {} {
       }
       if {!$ok} {
         errorMsg "STEP schema files (*.rose) could not be copied to IFCsvr/dll directory"
-        errorMsg "  Before continuing, copy the *.rose file in $mytemp to $ifcsvrdir"
+        outputMsg " "
+        errorMsg "Check if any STEP APs are supported at Help > Supported STEP APs"
+        outputMsg " "
+        errorMsg "If none are supported, then before continuing,\n copy the *.rose file in $mytemp\n to $ifcsvrdir\nThis might require administrator privileges."
+        .tnb select .tnb.status
       }
     }
 
@@ -1832,7 +1554,7 @@ proc copyRoseFiles {} {
           if {[string first "_EXP" $fn1] == -1 && ([string first "ap" $fn1] == 0 || [string first "auto" $fn1] == 0 || [string first "building" $fn1] == 0 || \
               [string first "cast" $fn1] == 0 || [string first "config" $fn1] == 0 || [string first "integrated" $fn1] == 0 || [string first "plant" $fn1] == 0 || \
               [string first "ship" $fn1] == 0 || [string first "structural" $fn1] == 0 || [string first "feature" $fn1] == 0 || [string first "furniture" $fn1] == 0 || \
-              [string first "engineering" $fn1] == 0)} {
+              [string first "engineering" $fn1] == 0 || [string first "technical" $fn1] == 0)} {
             set f2 [file join $ifcsvrdir $fn1]
             set okcopy 0
             if {![file exists $f2]} {
@@ -1845,7 +1567,8 @@ proc copyRoseFiles {} {
                 file copy -force $fn $f2
                 if {$developer} {outputMsg "Copying STEPtools ROSE file: $fn1" red}
               } emsg]} {
-                errorMsg "ERROR: $emsg"
+                errorMsg "ERROR copying STEP schema files (*.rose) from STEPtools to $ifcsvrdir"
+                .tnb select .tnb.status
               }
             }
           }
@@ -1868,11 +1591,12 @@ proc installIFCsvr {} {
 # install if not already installed
   #outputMsg "installIFCsvr [file exists $ifcsvrdir] $ifcsvrdir" red
   if {![file exists $ifcsvrdir]} {
+    .tnb select .tnb.status
     set msg "The IFCsvr Toolkit needs to be installed to read and process STEP files."
     outputMsg $msg red
     if {[file exists $ifcsvrinst]} {
       set msg "The IFCsvr Toolkit needs to be installed to read and process STEP files."
-      append msg "\n\nSTEP AP203, AP209, AP210, AP214, AP238, AP239, and AP242 files are supported."
+      append msg "\n\nSee Help > Supported STEP APs to see which type of STEP files are supported."
       append msg "\n\nAfter clicking OK the IFCsvr Toolkit installation will start.\n\nUse the default installation folder for IFCsvr.\n\nPlease wait for the installation process to complete before generating a spreadsheet."
       append msg "\n\nTo enable processing of STEP files from other APs, install STEPtools ST-Developer Personal Edition (See Help > Other APs)"
       set choice [tk_messageBox -type ok -message $msg -icon info -title "Install IFCsvr"]
@@ -1909,12 +1633,13 @@ proc installIFCsvr {} {
       outputMsg " "
       if {!$nistVersion} {
         errorMsg "To install the IFCsvr Toolkit you must install the NIST version of the STEP File Analyzer."
-        outputMsg " 1 - Go to http://www.nist.gov/el/msid/infotest/step-file-analyzer.cfm"
+        outputMsg " 1 - Go to http://go.usa.gov/yccx"
         outputMsg " 2 - Click on Download STEP File Analyzer"
         outputMsg " 3 - Fill out the form, submit it, and follow the instructions"
         outputMsg " 4 - IFCsvr Toolkit will be installed when the NIST STEP File Analyzer is run"
         outputMsg " 5 - Generate a spreadsheet for at least one STEP file"
-        displayURL http://www.nist.gov/el/msid/infotest/step-file-analyzer.cfm
+        after 1000
+        displayURL http://go.usa.gov/yccx
       } else {
         errorMsg "To manually install IFCsvr:"
         outputMsg " 1 - Join the IFCsvr ActiveX Component Group (you will need a Yahoo account)"
@@ -1924,6 +1649,7 @@ proc installIFCsvr {} {
         outputMsg " 4 - Run the installer and follow the instructions.  Use the default installation folder for IFCsvr."
         outputMsg " 5 - Rerun this software."
         outputMsg "\nIf there are still problems with the IFCsvr installation, email the Contact (Help > About)"
+        after 1000
         displayURL https://groups.yahoo.com/neo/groups/ifcsvr-users/info
       }
     }
@@ -2034,7 +1760,8 @@ proc setHomeDir {} {
         if {[string first $env(USERNAME) $mytemp] == -1} {
           unset mytemp
         } else {
-          set mytemp [file join $mytemp NIST]
+          if {[file exists [file join $mytemp NIST]]} {catch {file delete -force [file join $mytemp NIST]}}
+          set mytemp [file join $mytemp SFA]
           if {![file exists $mytemp]} {file mkdir $mytemp}
         }
       }
@@ -2045,7 +1772,8 @@ proc setHomeDir {} {
         if {[string first $env(USERNAME) $mytemp] == -1} {
           unset mytemp
         } else {
-          set mytemp [file join $mytemp NIST]
+          if {[file exists [file join $mytemp NIST]]} {catch {file delete -force [file join $mytemp NIST]}}
+          set mytemp [file join $mytemp SFA]
           if {![file exists $mytemp]} {file mkdir $mytemp}
         }
     }
@@ -2186,4 +1914,44 @@ proc sortlength2 {wordlist} {
     lappend result [lindex $pair 1]
   }
   return $result
+}
+
+#-------------------------------------------------------------------------------
+proc stringSimilarity {a b} {
+  set totalLength [max [string length $a] [string length $b]]
+  return [string range [max [expr {double($totalLength-[levenshteinDistance $a $b])/$totalLength}] 0.0] 0 4]
+}
+
+#-------------------------------------------------------------------------------
+proc levenshteinDistance {s t} {
+  if {![set n [string length $t]]} {
+    return [string length $s]
+  } elseif {![set m [string length $s]]} {
+    return $n
+  }
+  for {set i 0} {$i <= $m} {incr i} {
+    lappend d 0
+    lappend p $i
+  }
+  for {set j 0} {$j < $n} {} {
+    set tj [string index $t $j]
+    lset d 0 [incr j]
+    for {set i 0} {$i < $m} {} {
+      set a [expr {[lindex $d $i]+1}]
+      set b [expr {[lindex $p $i]+([string index $s $i] ne $tj)}]
+      set c [expr {[lindex $p [incr i]]+1}]
+      lset d $i [expr {$a<$b ? $c<$a ? $c : $a : $c<$b ? $c : $b}]
+    }
+    set nd $p; set p $d; set d $nd
+  }
+  return [lindex $p end]
+}
+
+#-------------------------------------------------------------------------------
+proc compareLists {str l1 l2} {
+  set l3 [intersect3 $l1 $l2]
+  outputMsg "\n$str" red
+  outputMsg "Unique to L1 ([llength [lindex $l3 0]])\n  [lrange [lindex $l3 0] 0 500]"
+  outputMsg "Common to both ([llength [lindex $l3 1]])\n  [lrange [lindex $l3 1] 0 500]"
+  outputMsg "Unique to L2 ([llength [lindex $l3 2]])\n  [lrange [lindex $l3 2] 0 600]"
 }

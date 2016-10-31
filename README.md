@@ -1,6 +1,6 @@
 # STEP File Analyzer
 
-The following are instructions for building the [STEP File Analyzer](http://www.nist.gov/el/msid/infotest/step-file-analyzer.cfm) (SFA).  The SFA reads an ISO 10303 Part 21 STEP file and generates a spreadsheet.  More information, sample spreadsheets, and documentation about the SFA is available on the website including the [STEP File Analyzer User's Guide](http://dx.doi.org/10.6028/NIST.IR.8122).
+The following are instructions for building the [STEP File Analyzer](http://go.usa.gov/yccx) (SFA).  The SFA reads an ISO 10303 Part 21 STEP file and generates a spreadsheet.  More information, sample spreadsheets, and documentation about the SFA is available on the website including the [STEP File Analyzer User's Guide](http://dx.doi.org/10.6028/NIST.IR.8122).
 
 ##Prerequisites
 
@@ -8,12 +8,12 @@ The STEP File Analyzer can only be built and run on Windows computers.  [Microso
 
 **You must install and run the NIST version of the STEP File Analyzer before running your own version.**
 
-- Go to <http://www.nist.gov/el/msid/infotest/step-file-analyzer.cfm> and click on the link to Download the STEP File Analyzer
+- Go to <http://go.usa.gov/yccx> and click on the link to Download the STEP File Analyzer
 - Submit the form to get a link to download SFA.zip
 - Extract STEP-File-Analyzer.exe from the zip file and run it.  This will install the IFCsvr toolkit that is used to read STEP files.
 - Generate a spreadsheet or CSV files for at least one STEP file.  This will install the STEP schema files for the IFCsvr toolkit.  
 
-Download the SFA files from the GitHub 'source' directory to a directory on your computer.  The source code is based on version 1.72 of the NIST-built version.
+Download the SFA files from the GitHub 'source' directory to a directory on your computer.  The source code is based on version 1.90 of the NIST-built version.
 
 - The name of the directory is not important
 - The STEP File Analyzer is written in [Tcl](https://www.tcl.tk/)
@@ -25,7 +25,7 @@ freeWrap wraps the SFA Tcl code to create an executable.
 
 Download the ActiveTcl Community Edition 8.5.\* pre-built Tcl distribution from <http://www.activestate.com/activetcl/downloads>.
 
-- Scroll down to 'Other Versions' and download the latest **Windows (x86) 8.5.\*** version.  Do **not** download the 8.6 version or the 64-bit version.
+- Scroll down to 'Download Tcl: Other Platforms and Versions' and download the latest **Windows (x86) 8.5.\*** version.  Do **not** download the 8.6 version or the 64-bit version.
 - Run the installer and use the default installation folders
 - Several Tcl packages from ActiveTcl also need to be installed.  Open a command prompt window, change to C:\\Tcl\\bin and enter the following three commands:
 
@@ -52,7 +52,7 @@ freewrap -f sfa-files.txt
 
 ##Differences from the NIST-built version of STEP File Analyzer
 
-Some features are not available in the user-built version including: tooltips, unzipping compressed STEP files, color-coded coverage analysis results, and inserting images of the NIST test cases in the spreadsheets.  Some of the features are restored if the NIST-built version is run first.
+Some features are not available in the user-built version including: tooltips, unzipping compressed STEP files, automated PMI checking for the [NIST CAD models](<http://go.usa.gov/mGVm>), and inserting images of the NIST test cases in the spreadsheets.  Some of the features are restored if the NIST-built version is run first.
 
 ##Alternate build methods
 
@@ -75,7 +75,7 @@ No toolkit is used to interact with Excel spreadsheets.  The home-grown code cou
 
 ##Contact
 
-[Robert Lipman](http://www.nist.gov/el/msid/infotest/rlipman.cfm), <robert.lipman@nist.gov>, 301-975-3829
+[Robert Lipman](https://www.nist.gov/people/robert-r-lipman), <robert.lipman@nist.gov>, 301-975-3829
 
 ##Disclaimers
 
