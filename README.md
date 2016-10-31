@@ -25,7 +25,7 @@ freeWrap wraps the SFA Tcl code to create an executable.
 
 Download the ActiveTcl Community Edition 8.5.\* pre-built Tcl distribution from <http://www.activestate.com/activetcl/downloads>.
 
-- Scroll down to 'Download Tcl: Other Platforms and Versions' and download the latest **Windows (x86) 8.5.\*** version.  Do **not** download the 8.6 version or the 64-bit version.
+- Scroll down to 'Download Tcl: Other Platforms and Versions' and download the latest **Windows (x86) 8.5.x** version.  Do **not** download the 8.6 version or the 64-bit version.
 - Run the installer and use the default installation folders
 - Several Tcl packages from ActiveTcl also need to be installed.  Open a command prompt window, change to C:\\Tcl\\bin and enter the following three commands:
 
