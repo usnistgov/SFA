@@ -494,6 +494,8 @@ proc displayResult {} {
   set dispFile $localName
   set idisp [file rootname [file tail $dispCmd]]
   if {[info exists appName]} {if {$appName != ""} {set idisp $appName}}
+
+  .tnb select .tnb.status
   outputMsg "Opening STEP file in: $idisp"
 
 # display file
@@ -543,7 +545,6 @@ proc displayResult {} {
 
 # non-gui version
     } else {
-      .tnb select .tnb.status
       set stname [file tail $stfile]
       set stlog  "[file rootname $stname]\_stdev.log"
       catch {if {[file exists $stlog]} {file delete -force $stlog}}
@@ -558,7 +559,7 @@ proc displayResult {} {
       } else {
         if {[catch {exec $dispCmd1 $stfile >> $stlog &} err]} {outputMsg "Conformance Checker error:\n $err" red}
       }  
-      if {[string first "TextPad" $padcmd] != -1} {
+      if {[string first "TextPad" $padcmd] != -1 || [string first "Notepad++" $padcmd] != -1} {
         outputMsg "Opening log file in editor"
         exec $padcmd $stlog &
       } else {
@@ -654,8 +655,8 @@ proc displayResult {} {
 
 # if results are written to a file, open output file from the validation (edmlog) and output file if there are input errors (edmloginput)
       if {$edmWriteToFile} {
-        if {[string first "TextPad" $padcmd] != -1} {
-          outputMsg "Opening log file in editor"
+        if {[string first "TextPad" $padcmd] != -1 || [string first "Notepad++" $padcmd] != -1} {
+          outputMsg "Opening log file(s) in editor"
           exec $padcmd $edmlog &
           after 1000
           if {[file size $edmloginput] > 0} {
@@ -943,14 +944,7 @@ proc getDisplayPrograms {} {
   }
 
 # other text editors
-  set padcmd1 [file join $programfiles Notepad++ notepad++.exe]
-  if {[file exists $padcmd1]} {
-    set padnam1 "Notepad++"
-    set dispApps($padcmd1) $padnam1
-    set padcmd $padcmd1
-    set padnam $padnam1
-  }
-  for {set i 12} {$i > 5} {incr i -1} {
+  for {set i 9} {$i > 5} {incr i -1} {
     set padcmd1 [file join $programfiles "TextPad $i" TextPad.exe]
     if {[file exists $padcmd1]} {
       set padnam1 "TextPad $i"
@@ -958,6 +952,13 @@ proc getDisplayPrograms {} {
       set padcmd $padcmd1
       set padnam $padnam1
     }
+  }
+  set padcmd1 [file join $programfiles Notepad++ notepad++.exe]
+  if {[file exists $padcmd1]} {
+    set padnam1 "Notepad++"
+    set dispApps($padcmd1) $padnam1
+    set padcmd $padcmd1
+    set padnam $padnam1
   }
 
 #-------------------------------------------------------------------------------
@@ -1596,9 +1597,8 @@ proc installIFCsvr {} {
     outputMsg $msg red
     if {[file exists $ifcsvrinst]} {
       set msg "The IFCsvr Toolkit needs to be installed to read and process STEP files."
+      append msg "\n\nAfter clicking OK the IFCsvr Toolkit installation will start.\nUse the default installation folder for IFCsvr.\nPlease wait for the installation process to complete before generating a spreadsheet."
       append msg "\n\nSee Help > Supported STEP APs to see which type of STEP files are supported."
-      append msg "\n\nAfter clicking OK the IFCsvr Toolkit installation will start.\n\nUse the default installation folder for IFCsvr.\n\nPlease wait for the installation process to complete before generating a spreadsheet."
-      append msg "\n\nTo enable processing of STEP files from other APs, install STEPtools ST-Developer Personal Edition (See Help > Other APs)"
       set choice [tk_messageBox -type ok -message $msg -icon info -title "Install IFCsvr"]
       set msg "\nPlease wait for the installation process to complete before generating a spreadsheet.\n"
       outputMsg $msg red

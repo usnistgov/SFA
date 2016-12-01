@@ -195,6 +195,13 @@ proc genExcel {{numFile 0}} {
         }
       }
     }
+    
+# other files
+    if {!$ok && [string first "sp3" $ftail] == 0} {
+      if {[string first "1101"  $ftail] != -1} {set nistName "sp3-1101"}
+      if {[string first "16792" $ftail] != -1} {set nistName "sp3-16792"}
+      if {[string first "box"   $ftail] != -1} {set nistName "sp3-box"}
+    }
     if {$developer && [string first "step-file-analyzer" $ftail] == 0} {set nistName "nist_ctc_01"}
     
 # open expected PMI worksheet (once) if PMI presentation and correct file name

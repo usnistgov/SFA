@@ -1711,7 +1711,7 @@ proc spmiCoverageWrite {{fn ""} {sum ""} {multi 1}} {
               if {$ok} {
                 set ci $coverage($item)
                 catch {set ci [expr {int($ci)}]}
-                #outputMsg "$item / $tval / $coverage($item) / $ci" red
+                #outputMsg " $item / $tval / $coverage($item) / $ci" red
 # neutral - grey         
                 if {$coverage($item) != "" && $ci < 0} {
                   [[$worksheet($sempmi_coverage) Range B$r] Interior] Color $legendColor(gray)

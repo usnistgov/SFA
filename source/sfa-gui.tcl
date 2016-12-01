@@ -136,7 +136,7 @@ proc guiButtons {} {
   }]
   pack $ftrans.generate1 -side left -padx 10
 
-# NIST logo
+# NIST logo and icon
   if {$nistVersion} {
     catch {
       set l3 [label $ftrans.l3 -relief flat -bd 0]
@@ -145,6 +145,7 @@ proc guiButtons {} {
       bind $l3 <ButtonRelease-1> {displayURL https://www.nist.gov}
       tooltip::tooltip $l3 "Click here"
     }
+    catch {[file copy -force [file join $wdir images NIST.ico] [file join $mytemp NIST.ico]]}
   }
 
   pack $ftrans -side top -padx 10 -pady 10 -fill x
@@ -992,6 +993,8 @@ foreach item [lsort $schemas] {outputMsg "  [string toupper $item]"}
 
 if {$nschema == 0} {errorMsg "No Supported STEP APs were found.\nThere was a problem copying STEP schema files (*.rose) to the IFCsvr/dll directory."}
 
+outputMsg "\nThe schema name is on the FILE_SCHEMA entity in the HEADER section of a STEP file."
+
 if {!$other} {
   outputMsg "\nProcessing of STEP files from some other STEP APs can be enabled by installing the free
 ST-Developer Personal Edition.  Download it from: http://www.steptools.com/products/stdev/personal.html
@@ -1360,6 +1363,7 @@ proc guiWebsitesMenu {} {
   $Websites add separator
   $Websites add command -label "STEP AP242 Project"   -command {displayURL http://www.ap242.org/}
   $Websites add command -label "STEP AP209 Project"   -command {displayURL http://www.ap209.org/}
+  #$Websites add command -label "STEP AP238 Project"   -command {displayURL http://www.ap238.org/}
   $Websites add command -label "STEP AP239 Project"   -command {displayURL http://www.ap239.org/}
   $Websites add command -label "EXPRESS Schemas"      -command {displayURL https://www.cax-if.org/joint_testing_info.html#schemas}
   $Websites add command -label "More EXPRESS Schemas" -command {displayURL http://www.steptools.com/support/stdev_docs/express/}
