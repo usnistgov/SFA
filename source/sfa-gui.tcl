@@ -1023,6 +1023,8 @@ foreach item [lsort $schemas] {
 
 if {$nschema == 0} {errorMsg "No Supported STEP APs were found.\nThere was a problem copying STEP schema files (*.rose) to the IFCsvr/dll directory."}
 
+outputMsg "\nThe schema name is on the FILE_SCHEMA entity in the HEADER section of a STEP file."
+
 if {!$other} {
   outputMsg "\nProcessing of STEP files from some other STEP APs can be enabled by installing the free
 ST-Developer Personal Edition.  Download it from: http://www.steptools.com/products/stdev/personal.html

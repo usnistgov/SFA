@@ -2,7 +2,11 @@
 # version number
 
 proc getVersion {} {
+<<<<<<< HEAD
   set app_version 1.94
+=======
+  set app_version 1.92
+>>>>>>> origin/master
   return $app_version
 }
 

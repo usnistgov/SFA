@@ -560,7 +560,11 @@ proc displayResult {} {
       } else {
         if {[catch {exec $dispCmd1 $stfile >> $stlog &} err]} {outputMsg "Conformance Checker error:\n $err" red}
       }  
+<<<<<<< HEAD
       if {[string first "TextPad" $editorCmd] != -1 || [string first "Notepad++" $editorCmd] != -1} {
+=======
+      if {[string first "TextPad" $padcmd] != -1 || [string first "Notepad++" $padcmd] != -1} {
+>>>>>>> origin/master
         outputMsg "Opening log file in editor"
         exec $editorCmd $stlog &
       } else {
@@ -658,9 +662,15 @@ proc displayResult {} {
 
 # if results are written to a file, open output file from the validation (edmlog) and output file if there are input errors (edmloginput)
       if {$edmWriteToFile} {
+<<<<<<< HEAD
         if {[string first "TextPad" $editorCmd] != -1 || [string first "Notepad++" $editorCmd] != -1} {
           outputMsg "Opening log file(s) in editor"
           exec $editorCmd $edmlog &
+=======
+        if {[string first "TextPad" $padcmd] != -1 || [string first "Notepad++" $padcmd] != -1} {
+          outputMsg "Opening log file(s) in editor"
+          exec $padcmd $edmlog &
+>>>>>>> origin/master
           after 1000
           if {[file size $edmloginput] > 0} {
             exec $editorCmd $edmloginput &
@@ -954,6 +964,7 @@ proc getDisplayPrograms {} {
 
 # other text editors
   for {set i 9} {$i > 5} {incr i -1} {
+<<<<<<< HEAD
     set editorCmd1 [file join $programfiles "TextPad $i" TextPad.exe]
     if {[file exists $editorCmd1]} {
       set editorName1 "TextPad $i"
@@ -968,6 +979,22 @@ proc getDisplayPrograms {} {
     set dispApps($editorCmd1) $editorName1
     set editorCmd $editorCmd1
     set editorName $editorName1
+=======
+    set padcmd1 [file join $programfiles "TextPad $i" TextPad.exe]
+    if {[file exists $padcmd1]} {
+      set padnam1 "TextPad $i"
+      set dispApps($padcmd1) $padnam1
+      set padcmd $padcmd1
+      set padnam $padnam1
+    }
+  }
+  set padcmd1 [file join $programfiles Notepad++ notepad++.exe]
+  if {[file exists $padcmd1]} {
+    set padnam1 "Notepad++"
+    set dispApps($padcmd1) $padnam1
+    set padcmd $padcmd1
+    set padnam $padnam1
+>>>>>>> origin/master
   }
 
 #-------------------------------------------------------------------------------
