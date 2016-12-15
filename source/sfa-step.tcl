@@ -2,8 +2,178 @@
 # version number
 
 proc getVersion {} {
-  set app_version 1.90
+  set app_version 1.94
   return $app_version
+}
+
+# -------------------------------------------------------------------------------
+# dt = 1 for dimtol
+proc getAssocGeom {entDef {dt 0}} {
+  global assocGeom entCount recPracNames
+  
+  set entDefType [$entDef Type]
+  #outputMsg "  getGeom $entDefType [$entDef P21ID]" green
+
+  if {[catch {
+    if {$entDefType == "shape_aspect" || \
+      ([string first "datum" $entDefType] != -1 && [string first "_and_" $entDefType] == -1)} {
+
+# add shape_aspect to AG for dimtol
+      if {$dt && ($entDefType == "shape_aspect" || $entDefType == "datum_feature")} {
+        set type [appendAssocGeom $entDef]
+      }
+
+# find datum_feature for datum
+      if {$entDefType == "datum"} {
+        set e0s [$entDef GetUsedIn [string trim shape_aspect_relationship] [string trim related_shape_aspect]]
+        ::tcom::foreach e0 $e0s {
+          ::tcom::foreach a0 [$e0 Attributes] {
+            if {[$a0 Name] == "relating_shape_aspect"} {
+              if {[[$a0 Value] Type] == "datum_feature"} {set entDef [$a0 Value]}
+            }
+          }
+        }
+      }
+      
+# find AF for SA with GISU or IIRU
+      foreach usage {geometric_item_specific_usage item_identified_representation_usage} {
+        set e1s [$entDef GetUsedIn [string trim $usage] [string trim definition]]
+        ::tcom::foreach e1 $e1s {
+          ::tcom::foreach a1 [$e1 Attributes] {
+            if {[$a1 Name] == "identified_item"} {
+              if {[catch {
+                set type [appendAssocGeom [$a1 Value]]
+                if {$type == "advanced_face"} {getFaceGeom [$a1 Value] A}
+              } emsg1]} {
+                ::tcom::foreach e2 [$a1 Value] {
+                  set type [appendAssocGeom $e2]
+                  if {$type == "advanced_face"} {getFaceGeom $e2 D}
+                }
+              }
+            }
+          }
+        }
+      }
+      
+# look at composite_shape_aspect to find SAs
+    } else {
+      #outputMsg "   $entDefType [$entDef P21ID]" red
+      set type [appendAssocGeom $entDef]
+      set e0s [$entDef GetUsedIn [string trim shape_aspect_relationship] [string trim relating_shape_aspect]]
+      ::tcom::foreach e0 $e0s {
+        ::tcom::foreach a0 [$e0 Attributes] {
+          if {[$a0 Name] == "related_shape_aspect"} {
+            set type [appendAssocGeom [$a0 Value]]
+            if {$type == "advanced_face"} {getFaceGeom [$a0 Value] B}
+
+            set a0val {}
+            if {[[$a0 Value] Type] == "composite_shape_aspect"} {
+              set e1s [[$a0 Value] GetUsedIn [string trim shape_aspect_relationship] [string trim relating_shape_aspect]]
+              ::tcom::foreach e1 $e1s {
+                ::tcom::foreach a1 [$e1 Attributes] {
+                  if {[$a1 Name] == "related_shape_aspect"} {
+                    lappend a0val [$a1 Value]
+                    set type [appendAssocGeom [$a1 Value]]
+                  }
+                }
+              }
+            } else {
+              lappend a0val [$a0 Value]
+            }
+
+# find AF for SA with GISU
+            foreach val $a0val {
+              set e1s [$val GetUsedIn [string trim geometric_item_specific_usage] [string trim definition]]
+              ::tcom::foreach e1 $e1s {
+                ::tcom::foreach a1 [$e1 Attributes] {
+                  if {[$a1 Name] == "identified_item"} {
+                    set type [appendAssocGeom [$a1 Value]]
+                    if {$type == "advanced_face"} {getFaceGeom [$a1 Value] C}
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+      
+# check all around
+      if {$entDefType == "all_around_shape_aspect"} {
+        if {[llength $assocGeom($type)] == 1} {
+          #outputMsg "   assocGeom $type $assocGeom($type) [llength $assocGeom($type)]" blue
+          if {$type == "advanced_face"} {
+            errorMsg "Syntax Error: 'shape_aspect relationship' relates '$entDefType' to only one 'shape_aspect'.\n[string repeat " " 14]\($recPracNames(pmi242), Sec. 6.4)"
+          } elseif {$type == $entDefType} {
+            errorMsg "Syntax Error: Missing 'shape_aspect relationship' relating '$entDefType' to 'shape_aspect'.\n[string repeat " " 14]\($recPracNames(pmi242), Sec. 6.4)"
+            unset assocGeom($type)
+          }
+        }
+      }
+    }
+  } emsg]} {
+    errorMsg "ERROR adding Associated Geometry: $emsg"
+  }
+}
+
+# -------------------------------------------------------------------------------
+proc appendAssocGeom {ent} {
+  global assocGeom
+  
+  set p21id [$ent P21ID]
+  set type  [$ent Type]
+
+  if {![info exists assocGeom($type)]} {
+    lappend assocGeom($type) $p21id
+  } elseif {[lsearch $assocGeom($type) $p21id] == -1} {
+    lappend assocGeom($type) $p21id
+  }
+  return $type
+}
+
+# -------------------------------------------------------------------------------
+proc getFaceGeom {a0 {type ""}} {
+  global assocGeom
+  
+  ::tcom::foreach a1 [$a0 Attributes] {
+    if {[$a1 Name] == "face_geometry"} {
+      set type1 [[$a1 Value] Type]
+      set id1   [[$a1 Value] P21ID]
+      if {![info exists assocGeom($type1)]} {
+        lappend assocGeom($type1) $id1
+      } elseif {[lsearch $assocGeom($type1) $id1] == -1} {
+        lappend assocGeom($type1) $id1
+      }
+    }
+  }
+}
+
+# -------------------------------------------------------------------------------
+proc reportAssocGeom {{type 1}} {
+  global assocGeom
+  
+  set str ""
+  foreach item [array names assocGeom] {
+    if {[string first "shape_aspect" $item] == -1 && [string first "centre" $item] == -1 && [string first "datum" $item] == -1 && $item != "advanced_face"} {
+      if {[string length $str] > 0} {append str [format "%c" 10]}
+      append str "([llength $assocGeom($item)]) $item [lsort -integer $assocGeom($item)]"
+    }
+  }
+  foreach item [array names assocGeom] {
+    if {$item == "advanced_face"} {
+      if {[string length $str] > 0} {append str [format "%c" 10]}
+      append str "([llength $assocGeom($item)]) $item [lsort -integer $assocGeom($item)]"
+    }
+  }
+  if {[string length $str] == 0 && $type} {
+    errorMsg "Syntax Error: Missing Associated Geometry for shape_aspect through GISU or IIRU."
+  }
+  foreach item [array names assocGeom] {
+    if {[string first "shape_aspect" $item] != -1 || [string first "centre" $item] != -1 || [string first "datum_feature" $item] != -1} {
+      if {[string length $str] > 0} {append str [format "%c" 10]}
+      append str "([llength $assocGeom($item)]) $item [lsort -integer $assocGeom($item)]"
+    }
+  }
+  return $str
 }
 
 # -------------------------------------------------------------------------------
@@ -945,16 +1115,18 @@ proc getStepAP {fname} {
   
   set fs [getSchemaFromFile $fname]
   set fileSchema1 [string toupper $fs]
-  if {$fs != $fileSchema1} {errorMsg "File schema name '$fs' should be uppercase."}
+  #if {$fs != $fileSchema1} {errorMsg "File schema name '$fs' should be uppercase."}
   
   set ap ""
-  foreach aps {AP203 AP209 AP210 AP214 AP238 AP239 AP242} {if {[string first $aps $fs] != -1} {set ap $aps}}
+  foreach aps {AP203 AP209 AP210 AP238 AP239 AP242} {if {[string first $aps $fs] != -1} {set ap $aps}}
+
   if {$ap == ""} {
-    if {[string first "CONFIGURATION_CONTROL_3D_DESIGN" $fileSchema1] != -1}  {set ap AP203}
-    if {[string first "CONFIG_CONTROL" $fileSchema1] != -1}                   {set ap AP203}
-    if {[string first "CCD_CLA_GVP_AST" [string tolower $fileSchema1]] != -1} {set ap AP203}
+    if {[string first "CONFIGURATION_CONTROL_3D_DESIGN" $fileSchema1] != -1}  {set ap AP203e1}
+    if {[string first "CONFIGURATION_CONTROL_3D_DESIGN_ED2" $fileSchema1] != -1} {set ap AP203}
+    if {[string first "CONFIG_CONTROL" $fileSchema1] != -1}                   {set ap AP203e1}
+    if {[string first "CCD_CLA_GVP_AST" $fileSchema1] != -1}                  {set ap AP203e1}
+    if {[string first "STRUCTURAL_ANALYSIS_DESIGN" $fileSchema1] != -1}       {set ap AP209e1}
     if {[string first "AUTOMOTIVE_DESIGN" $fileSchema1] != -1}                {set ap AP214}
-    if {[string first "STRUCTURAL_ANALYSIS_DESIGN" $fileSchema1] != -1}       {set ap AP209}
     if {[string first "INTEGRATED_CNC_SCHEMA" $fileSchema1] != -1}            {set ap AP238}
     if {[string first "STRUCTURAL_FRAME_SCHEMA" $fileSchema1] != -1}          {set ap CIS/2}
   }
@@ -968,7 +1140,7 @@ proc getSchemaFromFile {fname {msg 0}} {
   set ok 0
   set nline 0
   set stepfile [open $fname r]
-  while {[gets $stepfile line] != -1 && $nline < 50} {
+  while {[gets $stepfile line] != -1 && $nline < 100} {
     if {$msg} {
       foreach item {"MIME-Version" "Content-Type" "X-MimeOLE" "DOCTYPE HTML" "META content"} {
         if {[string first $item $line] != -1} {

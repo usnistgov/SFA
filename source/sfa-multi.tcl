@@ -287,10 +287,10 @@ proc openMultiFile {{ask 1}} {
               if {$opt(PMIGRF)} {gpmiCoverageWrite $fn $sum}
               if {$opt(PMISEM)} {spmiCoverageWrite $fn $sum}
             }
+          }
 
 # done adding coverage analysis results
 # -------------------------------------------------------------------------
-          }
           incr nprogFile
         }
           
@@ -433,10 +433,6 @@ proc openMultiFile {{ask 1}} {
                   }
                 }
               }      
-
-# scroll
-              #set scrollrow 10
-              #if {$entrow($ent) > $scrollrow} {[$excel1 ActiveWindow] ScrollRow [expr {$entrow($ent)-$scrollrow}]}
             }
 
             #[$excel1 ActiveWindow] ScrollRow [expr 1]
@@ -504,7 +500,7 @@ proc openMultiFile {{ask 1}} {
             [$worksheet1($sum) Range "B[expr {$startrow+1}]"] Select
             [$excel1 ActiveWindow] FreezePanes [expr 1]
             [$worksheet1($sum) Range "A1"] Select
-            [$worksheet1($sum) PageSetup] PrintGridlines [expr 1]
+            catch {[$worksheet1($sum) PageSetup] PrintGridlines [expr 1]}
 
 # errors
           } emsg]} {

@@ -174,7 +174,7 @@ proc indentSearchLine {line ndent} {
 
 proc indentFile {ifile} {
   global indentWriteFile indentReadFile indentEntity opt
-  global indentMissing padcmd indentdat2 indentPass indentstat errmsg
+  global indentMissing editorCmd indentdat2 indentPass indentstat errmsg
   global writeDir
     
 # indent on these STEP entities
@@ -297,9 +297,9 @@ proc indentFile {ifile} {
   if {[llength $indentMissing] > 0} {errorMsg "Missing STEP entities: [lsort $indentMissing]"}
   
   set fs [expr {[file size $indentFileName]/1024}]
-  if {$padcmd != "" && $fs < 30000} {
+  if {$editorCmd != "" && $fs < 30000} {
     outputMsg "Opening indented STEP file: [truncFileName [file nativename $indentFileName] 1] ($fs Kb)" blue
-    exec $padcmd $indentFileName &
+    exec $editorCmd $indentFileName &
   } else {
     outputMsg "Indented STEP file written: [truncFileName [file nativename $indentFileName] 1] ($fs Kb)" blue
   }

@@ -340,7 +340,7 @@ proc invSetCheck {entType} {
   set checkInv 0
   
 # other APs  
-  if {$stepAP != "AP203" && $stepAP != "AP214" && $stepAP != "AP242"} {
+  if {[string first "AP203" $stepAP] == -1 && $stepAP != "AP214" && $stepAP != "AP242"} {
     if {[lsearch $ap203all $entType] == -1 && \
         [lsearch $ap214all $entType] == -1 && \
         [lsearch $ap242all $entType] == -1} {
@@ -355,6 +355,7 @@ proc invSetCheck {entType} {
 
 # other types of entities (should be more selective to make it faster)
   } elseif { \
+      [string first "additive"      $entType] != -1 || \
       [string first "action"        $entType] != -1 || \
       [string first "angular"       $entType] != -1 || \
       [string first "annotation"    $entType] != -1 || \
@@ -457,12 +458,19 @@ proc initDataInverses {} {
   lappend inverses [list next_assembly_usage_occurrence related_product_definition relating_product_definition]
   lappend inverses [list next_assembly_usage_occurrence relating_product_definition related_product_definition]
 
+  lappend inverses [list process_plan chosen_method used_in]
+  lappend inverses [list process_product_association defined_product used_in]
+  lappend inverses [list process_product_association process used_in]
+
   lappend inverses [list product frame_of_reference used_in]
   lappend inverses [list product_context frame_of_reference used_in]
+  lappend inverses [list product_category_relationship category used_in]
+  lappend inverses [list product_category_relationship sub_category used_in]
   lappend inverses [list product_definition formation used_in]
   lappend inverses [list product_definition frame_of_reference used_in]
   lappend inverses [list product_definition_context frame_of_reference used_in]
   lappend inverses [list product_definition_formation of_product used_in]
+  lappend inverses [list product_definition_process chosen_method used_in]
   lappend inverses [list product_definition_shape definition used_in]
   lappend inverses [list product_related_product_category products used_in]
 
@@ -549,6 +557,8 @@ proc initDataInverses {} {
 
   lappend inverses [list output_request_state steps used_in]
   lappend inverses [list point_representation items used_in]
+  lappend inverses [list product_definition_formation_relationship relating_product_definition_formation related_product_definition_formation]
+  lappend inverses [list product_definition_formation_relationship related_product_definition_formation relating_product_definition_formation]
   lappend inverses [list result_linear_modes_and_frequencies_analysis_sub_step control used_in]
   lappend inverses [list result_linear_modes_and_frequencies_analysis_sub_step result used_in]
   lappend inverses [list result_linear_modes_and_frequencies_analysis_sub_step states used_in]

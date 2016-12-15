@@ -54,7 +54,7 @@ proc spmiDimtolStart {objDesign entType} {
 
   outputMsg " Adding PMI Representation" green
   
-  if {$stepAP == "AP203" || $stepAP == "AP214"} {
+  if {[string first "AP203" $stepAP] == 0 || $stepAP == "AP214"} {
     errorMsg "Syntax Error: There is no Recommended Practice for PMI Representation in $stepAP files.  Use AP242 for PMI Representation."
   }
 
@@ -95,7 +95,7 @@ proc spmiDimtolReport {objEntity} {
   global assocGeom badAttributes cells col dim dimBasic dimModNames dimOrient dimReference dimrep dimrepID
   global dimSizeNames dimtolEnt dimval draftModelCameras dt dtpmivalprop elevel ent entAttrList entlevel2
   global incrcol lastAttr lastEnt nistName opt pmiCol pmiColumns pmiHeading pmiModifiers pmiStartCol
-  global pmiUnicode prefix recPracNames spmiEnts spmiID spmiIDRow spmiRow spmiTypesPerFile syntaxErr tolStandard
+  global pmiUnicode prefix recPracNames savedModifier spmiEnts spmiID spmiIDRow spmiRow spmiTypesPerFile syntaxErr tolStandard
 
   if {$opt(DEBUG1)} {outputMsg "spmiDimtolReport" red}
 
@@ -615,7 +615,11 @@ proc spmiDimtolReport {objEntity} {
                           } elseif {$ov == "square" || $ov == "counterbore" || $ov == "countersink" || $ov == "depth"} {
                             set dimrep($dimrepID) "$pmiModifiers($ov)$dimrep($dimrepID)"
                           } else {
-                            append dimrep($dimrepID) " $pmiModifiers($ov)"
+                            if {[string length $dimrep($dimrepID)] > 1 || [string is integer $dimrep($dimrepID)]} {
+                              append dimrep($dimrepID) " $pmiModifiers($ov)"
+                            } else {
+                              set savedModifier $pmiModifiers($ov)
+                            }
                           }
                           lappend spmiTypesPerFile $ov
                         } else {
@@ -932,7 +936,7 @@ proc spmiDimtolReport {objEntity} {
                 set dimrep($dimrepID) "$dmval $pmiUnicode(plusminus) $pmval(1)"
                 if {[info exists dim(angle)]} {if {$dim(angle)} {append dimrep($dimrepID) $pmiUnicode(degree)}}
                 if {[llength $sdimrep] > 1} {append dimrep($dimrepID) "  [lrange $sdimrep 1 end]"}
-                lappend spmiTypesPerFile "plusminus - equal"
+                lappend spmiTypesPerFile "bilateral tolerance"
 
 # NON EQUAL values
               } else {
@@ -1022,7 +1026,7 @@ proc spmiDimtolReport {objEntity} {
                 #  append dimrep($dimrepID) "  $pmval(1)[format "%c" 10]$indent$pmval(0)"
                 #}
                 if {[llength $sdimrep] > 1} {append dimrep($dimrepID) "  [lrange $sdimrep 1 end]"}
-                lappend spmiTypesPerFile "plusminus - unequal"
+                lappend spmiTypesPerFile "non-bilateral tolerance"
               }
             }
           }
@@ -1082,6 +1086,12 @@ proc spmiDimtolReport {objEntity} {
         if {[info exist dimOrient]} {
           append dr " (oriented)"
           unset dimOrient
+        }
+        
+# saved modifier
+        if {[info exist savedModifier]} {
+          append dr " $savedModifier"
+          unset savedModifier
         }
         
         $cells($dt) Item $r $pmiColumns(dmrp) $dr

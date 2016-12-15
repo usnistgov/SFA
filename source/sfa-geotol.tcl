@@ -70,7 +70,7 @@ proc spmiGeotolStart {objDesign entType} {
   outputMsg " Adding PMI Representation" green
   lappend spmiEntity $entType
   
-  if {$stepAP == "AP203" || $stepAP == "AP214"} {
+  if {[string first "AP203" $stepAP] == 0 || $stepAP == "AP214"} {
     errorMsg "Syntax Error: There is no Recommended Practice for PMI Representation in $stepAP files.  Use AP242 for PMI Representation."
   }
 
@@ -1711,7 +1711,7 @@ proc spmiCoverageWrite {{fn ""} {sum ""} {multi 1}} {
               if {$ok} {
                 set ci $coverage($item)
                 catch {set ci [expr {int($ci)}]}
-                #outputMsg "$item / $tval / $coverage($item) / $ci" red
+                #outputMsg " $item / $tval / $coverage($item) / $ci" red
 # neutral - grey         
                 if {$coverage($item) != "" && $ci < 0} {
                   [[$worksheet($sempmi_coverage) Range B$r] Interior] Color $legendColor(gray)
@@ -1868,7 +1868,7 @@ proc spmiCoverageFormat {sum {multi 1}} {
       [$worksheet1($sempmi_coverage) Range "B4"] Select
       [$excel1 ActiveWindow] FreezePanes [expr 1]
       [$worksheet1($sempmi_coverage) Range "A1"] Select
-      [$worksheet1($sempmi_coverage) PageSetup] PrintGridlines [expr 1]
+      catch {[$worksheet1($sempmi_coverage) PageSetup] PrintGridlines [expr 1]}
 
 # single file
     } else {
@@ -1888,7 +1888,7 @@ proc spmiCoverageFormat {sum {multi 1}} {
       [$worksheet($sempmi_coverage) Hyperlinks] Add $anchor [join "https://www.cax-if.org/joint_testing_info.html#recpracs"] [join ""] [join "Link to CAx-IF Recommended Practices"]
 
       [$worksheet($sempmi_coverage) Range "A1"] Select
-      [$worksheet($sempmi_coverage) PageSetup] PrintGridlines [expr 1]
+      catch {[$worksheet($sempmi_coverage) PageSetup] PrintGridlines [expr 1]}
       $cells($sempmi_coverage) Item 1 1 [file tail $localName]
     }
 
