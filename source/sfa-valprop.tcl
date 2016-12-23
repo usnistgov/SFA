@@ -585,28 +585,28 @@ proc valPropFormat {} {
     outputMsg " Formatting Properties on: property_definition" blue
   
 # delete unused columns
-  set delcol 0
-  set ndelcol 0
-  for {set i [expr {$col($thisEntType)-0}]} {$i > 3} {incr i -1} {
-    set val [[$cells($thisEntType) Item 3 $i] Value]
-    if {$val == ""} {
-      set range [$worksheet($thisEntType) Range [cellRange -1 $i]]
-      $range Delete
-      incr ndelcol 
+    set delcol 0
+    set ndelcol 0
+    for {set i [expr {$col($thisEntType)-0}]} {$i > 3} {incr i -1} {
+      set val [[$cells($thisEntType) Item 3 $i] Value]
+      if {$val == ""} {
+        set range [$worksheet($thisEntType) Range [cellRange -1 $i]]
+        $range Delete
+        incr ndelcol 
+      }
     }
-  }
-  set col($thisEntType) [expr {$col($thisEntType)-$ndelcol}]
-
+    set col($thisEntType) [expr {$col($thisEntType)-$ndelcol}]
+  
 # sort
-  if {$excelVersion >= 12} {
-    set ranrow $row($thisEntType)
-    if {$ranrow > 8} {
-      set range [$worksheet($thisEntType) Range [cellRange 3 1] [cellRange $ranrow $col($thisEntType)]]
-      set tname [string trim "TABLE-$thisEntType"]
-      [[$worksheet($thisEntType) ListObjects] Add 1 $range] Name $tname
-      [[$worksheet($thisEntType) ListObjects] Item $tname] TableStyle "TableStyleLight1" 
+    if {$excelVersion >= 12} {
+      set ranrow $row($thisEntType)
+      if {$ranrow > 8} {
+        set range [$worksheet($thisEntType) Range [cellRange 3 1] [cellRange $ranrow $col($thisEntType)]]
+        set tname [string trim "TABLE-$thisEntType"]
+        [[$worksheet($thisEntType) ListObjects] Add 1 $range] Name $tname
+        [[$worksheet($thisEntType) ListObjects] Item $tname] TableStyle "TableStyleLight1" 
+      }
     }
-  }
 
 # header
     catch {$cells($thisEntType) Item 2 5 "Properties"}
@@ -697,5 +697,12 @@ proc valPropFormat {} {
       [$range Columns] Group
     }
     [$worksheet($thisEntType) Outline] ShowLevels [expr 0] [expr 1]
+    
+# link to RP
+    $cells($thisEntType) Item 2 1 "See CAx-IF Recommended Practices for Validation Properties"
+    set range [$worksheet($thisEntType) Range A2:D2]
+    $range MergeCells [expr 1]
+    set anchor [$worksheet($thisEntType) Range A2]
+    [$worksheet($thisEntType) Hyperlinks] Add $anchor [join "https://www.cax-if.org/joint_testing_info.html#recpracs"] [join ""] [join "Link to CAx-IF Recommended Practices"]    
   }
 }

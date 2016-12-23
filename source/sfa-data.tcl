@@ -18,7 +18,9 @@ set recPracNames(tessgeom) "3D Tessellated Geometry"
 set recPracNames(uda)      "User Defined Attributes"
 
 set schemaLinks(AP203) "http://www.steptools.com/support/stdev_docs/express/ap203e2/html/index.html"
+set schemaLinks(AP203e1) "http://www.steptools.com/support/stdev_docs/express/ap203/html/index.html"
 set schemaLinks(AP209) "https://www.cax-if.org/documents/AP209_HTML/AP209ed2_mim_lf_v1.46.htm"
+set schemaLinks(AP209e1) "http://www.steptools.com/support/stdev_docs/express/ap209/index.html"
 set schemaLinks(AP210) "http://www.steptools.com/support/stdev_docs/express/ap210/html/index.html"
 set schemaLinks(AP214) "http://www.steptools.com/support/stdev_docs/express/ap214/html/index.html"
 set schemaLinks(AP238) "http://www.steptools.com/support/stdev_docs/express/ap238/html/index.html"
@@ -103,7 +105,7 @@ set spmiTypes $tolNames
 
 foreach item [list \
   "composite tolerance (6.9.9)" "dimensional location (5.1.1)" "dimensional size (5.1.5)" "angular location (5.1.2)" "angular size (5.1.6)" \
-  "plusminus - equal (5.2.3)" "plusminus - unequal (5.2.3)" "value range (5.2.4)" "diameter \u2205 (5.1.5)" \
+  "bilateral tolerance (5.2.3)" "non-bilateral tolerance (5.2.3)" "value range (5.2.4)" "diameter \u2205 (5.1.5)" \
   "radius R (5.1.5)" "spherical diameter S\u2205 (5.1.5)" "spherical radius SR (5.1.5)" "controlled radius CR (5.3)" "square \u25A1 (5.3)" \
   "basic dimension (5.3)" "reference dimension (5.3)" "type qualifier (5.2.2)" "tolerance class (5.2.5)" \
   "oriented dimensional location (5.1.3)" "derived shapes dimensional location (5.1.4)" "location with path (5.1.7)" "decimal places (5.4)" \
@@ -301,42 +303,23 @@ set badAttributes(triangulated_surface_set) {triangles}
 
 # -----------------------------------------------------------------------------------------------------
 # pictures that are embedded in a spreadsheet based on STEP file name
-set modelPictures  {{sp3-1101  caxif-1101.jpg  E3 0} \
-                    {sp3-16792 caxif-16792.jpg E3 0} \
-                    {sp3-box   caxif-boxy1.jpg E3 0} \
-                    {sp3-box   caxif-boxy2.jpg Q3 16} \
-                    {sp3-box   caxif-boxy3.jpg AC3 28} \
-                    {STEP-File-Analyzer nist_ctc_01.jpg E3 0} \
+set modelPictures  {{sp3-1101  caxif-1101.jpg  E4 0} \
+                    {sp3-16792 caxif-16792.jpg E4 0} \
+                    {sp3-box   caxif-boxy123.jpg E4 0} \
+                    {STEP-File-Analyzer nist_ctc_01.jpg E4 0} \
                     {nist_ctc_01 nist_ctc_01.jpg E4 0} \
-                    {nist_ctc_02 nist_ctc_02a.jpg E4 0} \
-                    {nist_ctc_02 nist_ctc_02b.jpg U4 20} \
-                    {nist_ctc_02 nist_ctc_02c.jpg AK4 36} \
+                    {nist_ctc_02 nist_ctc_02abc.jpg E4 0} \
                     {nist_ctc_03 nist_ctc_03.jpg E4 0} \
                     {nist_ctc_04 nist_ctc_04.jpg E4 0} \
-                    {nist_ctc_05 nist_ctc_05a.jpg E4 0} \
-                    {nist_ctc_05 nist_ctc_05b.jpg U4 20} \
-                    {nist_ftc_06 nist_ftc_06a.jpg E4 0} \
-                    {nist_ftc_06 nist_ftc_06b.jpg U4 20} \
-                    {nist_ftc_06 nist_ftc_06c.jpg AK4 36} \
-                    {nist_ftc_07 nist_ftc_07a.jpg E4 0} \
-                    {nist_ftc_07 nist_ftc_07b.jpg U4 20} \
-                    {nist_ftc_07 nist_ftc_07c.jpg AK4 36} \
-                    {nist_ftc_07 nist_ftc_07d.jpg BA4 52} \
-                    {nist_ftc_08 nist_ftc_08a.jpg E4 0} \
-                    {nist_ftc_08 nist_ftc_08b.jpg U4 20} \
-                    {nist_ftc_08 nist_ftc_08c.jpg AK4 36} \
-                    {nist_ftc_08 nist_ftc_08d.jpg BA4 52} \
-                    {nist_ftc_09 nist_ftc_09a.jpg E4 0} \
-                    {nist_ftc_09 nist_ftc_09b.jpg U4 20} \
-                    {nist_ftc_09 nist_ftc_09c.jpg AK4 36} \
-                    {nist_ftc_09 nist_ftc_09d.jpg BA4 52} \
-                    {nist_ftc_10 nist_ftc_10a.jpg E4 0} \
-                    {nist_ftc_10 nist_ftc_10b.jpg U4 20} \
-                    {nist_ftc_10 nist_ftc_10c.jpg AK4 36} \
-                    {nist_ftc_10 nist_ftc_10d.jpg BA4 52} \
-                    {nist_ftc_10 nist_ftc_10e.jpg BQ4 68} \
-                    {nist_ftc_11 nist_ftc_11a.jpg E4 0} \
-                    {nist_ftc_11 nist_ftc_11b.jpg U4 20}}
+                    {nist_ctc_05 nist_ctc_05ab.jpg E4 0} \
+                    {nist_ftc_06 nist_ftc_06abc.jpg E4 0} \
+                    {nist_ftc_07 nist_ftc_07abc.jpg E4 0} \
+                    {nist_ftc_07 nist_ftc_07d.jpg T4 20} \
+                    {nist_ftc_08 nist_ftc_08abcd.jpg E4 0} \
+                    {nist_ftc_09 nist_ftc_09abcd.jpg E4 0} \
+                    {nist_ftc_10 nist_ftc_10abc.jpg E4 0} \
+                    {nist_ftc_10 nist_ftc_10de.jpg T4 20} \
+                    {nist_ftc_11 nist_ftc_11ab.jpg E4 0}}
 
 set modelURLs [list nist_ctc_01_asme1_rd.pdf \
                     nist_ctc_02_asme1_rc.pdf \
@@ -390,7 +373,7 @@ set entCategory(PR_STEP_CPNT) [list cartesian_point ]
 set entCategory(PR_STEP_SHAP) [lsort [list \
 all_around_shape_aspect apex between_shape_aspect centre_of_symmetry component_path_shape_aspect composite_group_shape_aspect composite_shape_aspect \
 composite_unit_shape_aspect continuous_shape_aspect derived_shape_aspect extension geometric_alignment geometric_contact geometric_intersection \
-geometric_item_specific_usage parallel_offset perpendicular_to \
+geometric_item_specific_usage item_identified_representation_usage parallel_offset perpendicular_to \
 shape_aspect shape_aspect_associativity shape_aspect_deriving_relationship shape_aspect_relationship shape_aspect_relationship_representation_association \
 shape_aspect_transition symmetric_shape_aspect tangent \
 ]]
@@ -569,7 +552,7 @@ general_material_property general_property general_property_association general_
 geometric_representation_context geometric_representation_item geometrically_bounded_2d_wireframe_representation \
 geometrically_bounded_surface_shape_representation geometrically_bounded_wireframe_shape_representation \
 hardness_representation \
-item_defined_transformation item_identified_representation_usage \
+item_defined_transformation \
 manifold_subsurface_shape_representation manifold_surface_shape_representation material_property_representation \
 material_property externally_defined_general_property \
 mechanical_design_geometric_presentation_representation moments_of_inertia_representation \

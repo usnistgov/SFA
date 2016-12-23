@@ -195,6 +195,13 @@ proc genExcel {{numFile 0}} {
         }
       }
     }
+    
+# other files
+    if {!$ok && [string first "sp3" $ftail] == 0} {
+      if {[string first "1101"  $ftail] != -1} {set nistName "sp3-1101"}
+      if {[string first "16792" $ftail] != -1} {set nistName "sp3-16792"}
+      if {[string first "box"   $ftail] != -1} {set nistName "sp3-box"}
+    }
     if {$developer && [string first "step-file-analyzer" $ftail] == 0} {set nistName "nist_ctc_01"}
     
 # open expected PMI worksheet (once) if PMI presentation and correct file name
@@ -206,7 +213,7 @@ proc genExcel {{numFile 0}} {
   } emsg]} {
     errorMsg "ERROR opening STEP file"
     #errorMsg "ERROR opening STEP file: $emsg"
-    errorMsg "Possible causes of the ERROR:\n- Syntax errors in the STEP file, see Help > Conformance Checking\n- STEP schema is not supported, see Help > Supported STEP APs\n- Wrong file extension, should be '.stp'\n- STEP file contains new features from ISO 10303 Part 21 edition 3\n- File is not an ISO 10303 Part 21 STEP file" red
+    errorMsg "Possible causes of the ERROR:\n- Syntax errors in the STEP file, see Help > Conformance Checking\n- STEP schema is not supported, see Help > Supported STEP APs\n- Multiple schemas are used\n- Wrong file extension, should be '.stp'\n- STEP file contains new features from ISO 10303 Part 21 edition 3\n- File is not an ISO 10303 Part 21 STEP file" red
     getSchemaFromFile $fname 1
     if {!$nistVersion} {
       outputMsg " "
@@ -433,7 +440,7 @@ proc genExcel {{numFile 0}} {
       if {$ok == 0} {set ok $ok1}
       
 # entities in unsupported APs that are not AP203, AP214, AP242
-      if {$stepAP != "AP203" && $stepAP != "AP214" && $stepAP != "AP242"} {
+      if {[string first "AP203" $stepAP] == -1 && $stepAP != "AP214" && $stepAP != "AP242"} {
         set et $entType
         set c1 [string first "_and_" $et]
         if {$c1 != -1} {set et [string range $et 0 $c1-1]}
@@ -447,6 +454,9 @@ proc genExcel {{numFile 0}} {
           }
         }
       }
+      
+# new AP242 entities in a ROSE file, but not yet in ap242all or any entity category, for testing new schemas      
+      if {$stepAP == "AP242" && [lsearch $ap242all $entType] == -1} {set ok 1}
 
 # handle '_and_' due to a complex entity, entType_1 is the first part before the '_and_'
       set entType_1 $entType
@@ -1075,8 +1085,8 @@ proc addHeaderWorksheet {objDesign numFile fname} {
       [[$worksheet($hdr) Range "A:A"] Font] Bold [expr 1]
       [$worksheet($hdr) Columns] AutoFit
       [$worksheet($hdr) Rows] AutoFit
-      [$worksheet($hdr) PageSetup] Orientation [expr 2]
-      [$worksheet($hdr) PageSetup] PrintGridlines [expr 1]
+      catch {[$worksheet($hdr) PageSetup] Orientation [expr 2]}
+      catch {[$worksheet($hdr) PageSetup] PrintGridlines [expr 1]}
     }
       
 # check for CAx-IF Recommended Practices in the file description

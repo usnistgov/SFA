@@ -13,7 +13,7 @@ The STEP File Analyzer can only be built and run on Windows computers.  [Microso
 - Extract STEP-File-Analyzer.exe from the zip file and run it.  This will install the IFCsvr toolkit that is used to read STEP files.
 - Generate a spreadsheet or CSV files for at least one STEP file.  This will install the STEP schema files for the IFCsvr toolkit.  
 
-Download the SFA files from the GitHub 'source' directory to a directory on your computer.  The source code is based on version 1.90 of the NIST-built version.
+Download the SFA files from the GitHub 'source' directory to a directory on your computer.  The source code is based on version 1.94 of the NIST-built version.
 
 - The name of the directory is not important
 - The STEP File Analyzer is written in [Tcl](https://www.tcl.tk/)

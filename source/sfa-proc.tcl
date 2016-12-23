@@ -7,6 +7,8 @@ proc checkValues {} {
     set ic [lsearch $appNames $appName]
     if {$ic < 0} {set ic 0}
     $buttons(appCombo) current $ic
+
+# Jotne EDM Model Checker
     catch {
       if {[string first "EDM Model Checker" $appName] == 0} {
         pack $buttons(edmWriteToFile) -side left -anchor w -padx 5
@@ -16,6 +18,8 @@ proc checkValues {} {
         pack forget $buttons(edmWhereRules)
       }
     }
+
+# STEPtools
     catch {
       if {[string first "Conformance Checker" $appName] != -1} {
         pack $buttons(eeWriteToFile) -side left -anchor w -padx 5
@@ -23,6 +27,7 @@ proc checkValues {} {
         pack forget $buttons(eeWriteToFile)
       }
     }
+    
     catch {
       if {$appName == "Indent STEP File (for debugging)"} {
         pack $buttons(indentGeometry) -side left -anchor w -padx 5
@@ -189,11 +194,9 @@ proc setColorIndex {ent {multi 0}} {
   
 # simple entity, not compound with _and_
   foreach i [array names entCategory] {
-    if {[string first STEP $i] != -1} {
-      if {[info exist entColorIndex($i)]} {
-        if {[lsearch $entCategory($i) $ent] != -1} {
-          return $entColorIndex($i)
-        }
+    if {[info exist entColorIndex($i)]} {
+      if {[lsearch $entCategory($i) $ent] != -1} {
+        return $entColorIndex($i)
       }
     }
   }
@@ -207,30 +210,28 @@ proc setColorIndex {ent {multi 0}} {
     set tc3 "1000"
     
     foreach i [array names entCategory] {
-      if {[string first STEP $i] != -1} {
-        if {[info exist entColorIndex($i)]} {
-          set ent1 [string range $ent 0 $c1-1]
-          if {[lsearch $entCategory($i) $ent1] != -1} {
-            #outputMsg "1 AND $ent  $ent1  $i  $entColorIndex($i)"
-            set tc1 $entColorIndex($i)
-          }
-          if {$c2 == $c1} {
-            set ent2 [string range $ent $c1+5 end]
-            if {[lsearch $entCategory($i) $ent2] != -1} {
-              #outputMsg "2 AND $ent  $ent2  $i  $entColorIndex($i)"
-              set tc2 $entColorIndex($i)
-            } 
-          } elseif {$c2 != $c1} {
-            set ent2 [string range $ent $c1+5 $c2-1]
-            if {[lsearch $entCategory($i) $ent2] != -1} {
-              #outputMsg "2 AND $ent  $ent2  $i  $entColorIndex($i)"
-              set tc2 $entColorIndex($i)
-            } 
-            set ent3 [string range $ent $c2+5 end]
-            if {[lsearch $entCategory($i) $ent3] != -1} {
-              #outputMsg "3 AND $ent  $ent3  $i  $entColorIndex($i)"
-              set tc3 $entColorIndex($i)
-            }
+      if {[info exist entColorIndex($i)]} {
+        set ent1 [string range $ent 0 $c1-1]
+        if {[lsearch $entCategory($i) $ent1] != -1} {
+          #outputMsg "1 AND $ent  $ent1  $i  $entColorIndex($i)"
+          set tc1 $entColorIndex($i)
+        }
+        if {$c2 == $c1} {
+          set ent2 [string range $ent $c1+5 end]
+          if {[lsearch $entCategory($i) $ent2] != -1} {
+            #outputMsg "2 AND $ent  $ent2  $i  $entColorIndex($i)"
+            set tc2 $entColorIndex($i)
+          } 
+        } elseif {$c2 != $c1} {
+          set ent2 [string range $ent $c1+5 $c2-1]
+          if {[lsearch $entCategory($i) $ent2] != -1} {
+            #outputMsg "2 AND $ent  $ent2  $i  $entColorIndex($i)"
+            set tc2 $entColorIndex($i)
+          } 
+          set ent3 [string range $ent $c2+5 end]
+          if {[lsearch $entCategory($i) $ent3] != -1} {
+            #outputMsg "3 AND $ent  $ent3  $i  $entColorIndex($i)"
+            set tc3 $entColorIndex($i)
           }
         }
       }
@@ -248,7 +249,7 @@ proc setColorIndex {ent {multi 0}} {
 
 # entity not in any category, color by AP
   if {!$multi} {
-    if {$stepAP == "AP209"} {return 19} 
+    if {[string first "AP209" $stepAP] != -1} {return 19} 
     if {$stepAP == "AP210"} {return 15} 
     if {$stepAP == "AP238"} {return 24}
   }
@@ -261,7 +262,7 @@ proc setColorIndex {ent {multi 0}} {
 proc displayURL {url} {
   global programfiles
 
-# open in whatever is registered for the file extension, except for .cgi
+# open in whatever is registered for the file extension, except for .cgi for upgrade url
   if {[string first ".cgi" $url] == -1} {
     if {[catch {
       exec {*}[auto_execok start] "" $url
@@ -488,12 +489,14 @@ proc saveState {} {
 proc displayResult {} {
   global localName dispCmd appName transFile
   global sccmsg model_typ pfbent
-  global openFileList File padcmd
+  global openFileList File editorCmd
   global edmWriteToFile edmWhereRules eeWriteToFile
   
   set dispFile $localName
   set idisp [file rootname [file tail $dispCmd]]
   if {[info exists appName]} {if {$appName != ""} {set idisp $appName}}
+
+  .tnb select .tnb.status
   outputMsg "Opening STEP file in: $idisp"
 
 # display file
@@ -543,7 +546,6 @@ proc displayResult {} {
 
 # non-gui version
     } else {
-      .tnb select .tnb.status
       set stname [file tail $stfile]
       set stlog  "[file rootname $stname]\_stdev.log"
       catch {if {[file exists $stlog]} {file delete -force $stlog}}
@@ -558,16 +560,16 @@ proc displayResult {} {
       } else {
         if {[catch {exec $dispCmd1 $stfile >> $stlog &} err]} {outputMsg "Conformance Checker error:\n $err" red}
       }  
-      if {[string first "TextPad" $padcmd] != -1} {
+      if {[string first "TextPad" $editorCmd] != -1 || [string first "Notepad++" $editorCmd] != -1} {
         outputMsg "Opening log file in editor"
-        exec $padcmd $stlog &
+        exec $editorCmd $stlog &
       } else {
         outputMsg "Wait until the Conformance Checker has finished and then open the log file"
       }
     }
 
 #-------------------------------------------------------------------------------
-# EDM Model Checker (only for developer)
+# Jotne EDM Model Checker (only for developer)
   } elseif {[string first "EDM Model Checker" $idisp] != -1} {
     set filename $dispFile
     outputMsg "Ready to validate:  [truncFileName [file nativename $filename]] ([expr {[file size $filename]/1024}] Kb)" blue
@@ -588,9 +590,11 @@ proc displayResult {} {
     if {$fschema == "CONFIG_CONTROL_DESIGN"} {
       puts $scriptfile "Database>Open([file nativename [file join $edmdir Db]], ap203, ap203, \"$edmdbopen\")"
     } elseif {[string first "AP203_CONFIGURATION_CONTROLLED_3D_DESIGN_OF_MECHANICAL_PARTS_AND_ASSEMBLIES_MIM_LF" $fschema] == 0} {
-      puts $scriptfile "Database>Open([file nativename [file join $edmdir Db]], ap203_lf, ap203_lf, \"$edmdbopen\")"
+      puts $scriptfile "Database>Open([file nativename [file join $edmdir Db]], ap203e2, ap203e2, \"$edmdbopen\")"
     } elseif {[string first "AP242_MANAGED_MODEL_BASED_3D_ENGINEERING_MIM_LF" $fschema] == 0} {
-      puts $scriptfile "Database>Open([file nativename [file join $edmdir Db]], ap242_lf, ap242_lf, \"$edmdbopen\")"
+      puts $scriptfile "Database>Open([file nativename [file join $edmdir Db]], ap242, ap242, \"$edmdbopen\")"
+    } elseif {[string first "AM_AP242_MANAGED_MODEL_BASED_3D_ENGINEERING_MIM_LF" $fschema] == 0} {
+      puts $scriptfile "Database>Open([file nativename [file join $edmdir Db]], ap242_am, ap242_am, \"$edmdbopen\")"
     } elseif {[string first "AP209_MULTIDISCIPLINARY_ANALYSIS_AND_DESIGN_MIM_LF" $fschema] == 0} {
       puts $scriptfile "Database>Open([file nativename [file join $edmdir Db]], ap209, ap209, \"$edmdbopen\")"
     } else {
@@ -654,12 +658,12 @@ proc displayResult {} {
 
 # if results are written to a file, open output file from the validation (edmlog) and output file if there are input errors (edmloginput)
       if {$edmWriteToFile} {
-        if {[string first "TextPad" $padcmd] != -1} {
-          outputMsg "Opening log file in editor"
-          exec $padcmd $edmlog &
+        if {[string first "TextPad" $editorCmd] != -1 || [string first "Notepad++" $editorCmd] != -1} {
+          outputMsg "Opening log file(s) in editor"
+          exec $editorCmd $edmlog &
           after 1000
           if {[file size $edmloginput] > 0} {
-            exec $padcmd $edmloginput &
+            exec $editorCmd $edmloginput &
           } else {
             catch {file delete -force $edmloginput}
           }
@@ -705,7 +709,7 @@ proc displayResult {} {
 #-------------------------------------------------------------------------------
 proc getDisplayPrograms {} {
   global dispApps dispCmds dispCmd appNames appName env programfiles pf64
-  global drive edmexe padcmd developer myhome
+  global drive edmexe editorCmd developer myhome
 
   set pflist {}
   set pf [string range $programfiles 3 end]
@@ -721,7 +725,7 @@ proc getDisplayPrograms {} {
   }
   set lastver 0
 
-# EDM Model Checker
+# Jotne EDM Model Checker
   if {$developer} {
     set edmexe  ""
     set edms [glob -nocomplain -directory [file join $drive edm] -join edm* bin Edms.exe]
@@ -867,6 +871,18 @@ proc getDisplayPrograms {} {
       }
 
 # other STP viewers
+      foreach match [glob -nocomplain -directory [file join $pf CADSoftTools] -join "ABViewer*" ABViewer.exe] {
+        if {![info exists dispApps($match)]} {
+          set name [lindex [split [file nativename $match] [file separator]] 3]
+          set dispApps($match) $name
+        }
+      }
+      foreach match [glob -nocomplain -directory [file join $pf "Soft Gold"] -join "ABViewer*" ABViewer.exe] {
+        if {![info exists dispApps($match)]} {
+          set name [lindex [split [file nativename $match] [file separator]] 3]
+          set dispApps($match) $name
+        }
+      }
       if {[file exists [file join $pf STPViewer STPViewer.exe]]} {
         set name "STP Viewer"
         set dispApps([file join $pf STPViewer STPViewer.exe]) $name
@@ -875,10 +891,8 @@ proc getDisplayPrograms {} {
         set name "QuickStep"
         set dispApps([file join $pf CadFaster QuickStep QuickStep.exe]) $name
       }
-      if {[file exists [file join $pf "Soft Gold" "ABViewer 9" ABViewer.exe]]} {
-        set name "ABViewer 9"
-        set dispApps([file join $pf "Soft Gold" "ABViewer 9" ABViewer.exe]) $name
-      }
+
+# two IFC programs that work with STEP files
       if {[file exists [file join $pf IFCBrowser IfcQuickBrowser.exe]]} {
         set name "IfcQuickBrowser"
         set dispApps([file join $pf IFCBrowser IfcQuickBrowser.exe]) $name
@@ -886,10 +900,6 @@ proc getDisplayPrograms {} {
       if {[file exists [file join $pf "Tekla BIMsight" BIMsight.exe]]} {
         set name "Tekla BIMsight"
         set dispApps([file join $pf "Tekla BIMsight" BIMsight.exe]) $name
-      }
-      if {[file exists [file join $pf av avwin avwin.exe]]} {
-        set name "AutoVue"
-        set dispApps([file join $pf av avwin avwin.exe]) $name
       }
 
 # Adobe Acrobat X Pro with Tetra4D
@@ -927,37 +937,37 @@ proc getDisplayPrograms {} {
 
 #-------------------------------------------------------------------------------
 # set text editor command and name
-  set padcmd ""
-  set padnam ""
+  set editorCmd ""
+  set editorName ""
 
 # Notepad
   if {[info exists env(windir)]} {
-    set padcmd [file join $env(windir) Notepad.exe]
-    set padnam "Notepad"
-    set dispApps($padcmd) $padnam
-    if {![file exists $padcmd]} {
-      set padcmd [file join $env(windir) system32 Notepad.exe]
-      set padnam "Notepad"
-      set dispApps($padcmd) $padnam
+    set editorCmd [file join $env(windir) Notepad.exe]
+    set editorName "Notepad"
+    set dispApps($editorCmd) $editorName
+    if {![file exists $editorCmd]} {
+      set editorCmd [file join $env(windir) system32 Notepad.exe]
+      set editorName "Notepad"
+      set dispApps($editorCmd) $editorName
     }
   }
 
 # other text editors
-  set padcmd1 [file join $programfiles Notepad++ notepad++.exe]
-  if {[file exists $padcmd1]} {
-    set padnam1 "Notepad++"
-    set dispApps($padcmd1) $padnam1
-    set padcmd $padcmd1
-    set padnam $padnam1
-  }
-  for {set i 12} {$i > 5} {incr i -1} {
-    set padcmd1 [file join $programfiles "TextPad $i" TextPad.exe]
-    if {[file exists $padcmd1]} {
-      set padnam1 "TextPad $i"
-      set dispApps($padcmd1) $padnam1
-      set padcmd $padcmd1
-      set padnam $padnam1
+  for {set i 9} {$i > 5} {incr i -1} {
+    set editorCmd1 [file join $programfiles "TextPad $i" TextPad.exe]
+    if {[file exists $editorCmd1]} {
+      set editorName1 "TextPad $i"
+      set dispApps($editorCmd1) $editorName1
+      set editorCmd $editorCmd1
+      set editorName $editorName1
     }
+  }
+  set editorCmd1 [file join $programfiles Notepad++ notepad++.exe]
+  if {[file exists $editorCmd1]} {
+    set editorName1 "Notepad++"
+    set dispApps($editorCmd1) $editorName1
+    set editorCmd $editorCmd1
+    set editorName $editorName1
   }
 
 #-------------------------------------------------------------------------------
@@ -1596,9 +1606,8 @@ proc installIFCsvr {} {
     outputMsg $msg red
     if {[file exists $ifcsvrinst]} {
       set msg "The IFCsvr Toolkit needs to be installed to read and process STEP files."
+      append msg "\n\nAfter clicking OK the IFCsvr Toolkit installation will start.\nUse the default installation folder for IFCsvr.\nPlease wait for the installation process to complete before generating a spreadsheet."
       append msg "\n\nSee Help > Supported STEP APs to see which type of STEP files are supported."
-      append msg "\n\nAfter clicking OK the IFCsvr Toolkit installation will start.\n\nUse the default installation folder for IFCsvr.\n\nPlease wait for the installation process to complete before generating a spreadsheet."
-      append msg "\n\nTo enable processing of STEP files from other APs, install STEPtools ST-Developer Personal Edition (See Help > Other APs)"
       set choice [tk_messageBox -type ok -message $msg -icon info -title "Install IFCsvr"]
       set msg "\nPlease wait for the installation process to complete before generating a spreadsheet.\n"
       outputMsg $msg red

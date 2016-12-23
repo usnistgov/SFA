@@ -111,6 +111,7 @@ proc getEntity {objEntity checkInverse} {
 # entity ID
     set p21id [$objEntity P21ID]
     $cells($thisEntType) Item $row($thisEntType) 1 $p21id
+    [$worksheet($thisEntType) Range A$row($thisEntType)] NumberFormat "0"
       
 # keep track of property_defintion or annotation occurrence rows in propDefIDRow, gpmiIDRow
     setIDRow $thisEntType $p21id
@@ -180,8 +181,8 @@ proc getEntity {objEntity checkInverse} {
             } else {
               set c [string index $letters [expr {$inc-1}]][string index $letters [expr {$c-$inc*26-1}]]
             }
-            set range [$worksheet($thisEntType) Range "$c:$c"]
-            [$range Columns] NumberFormat "@"
+            #set range [$worksheet($thisEntType) Range "$c:$c"]
+            #[$range Columns] NumberFormat "@"
           } 
         }
       }

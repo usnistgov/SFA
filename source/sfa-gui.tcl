@@ -136,7 +136,7 @@ proc guiButtons {} {
   }]
   pack $ftrans.generate1 -side left -padx 10
 
-# NIST logo
+# NIST logo and icon
   if {$nistVersion} {
     catch {
       set l3 [label $ftrans.l3 -relief flat -bd 0]
@@ -145,6 +145,7 @@ proc guiButtons {} {
       bind $l3 <ButtonRelease-1> {displayURL https://www.nist.gov}
       tooltip::tooltip $l3 "Click here"
     }
+    catch {[file copy -force [file join $wdir images NIST.ico] [file join $mytemp NIST.ico]]}
   }
 
   pack $ftrans -side top -padx 10 -pady 10 -fill x
@@ -616,15 +617,19 @@ proc guiDisplayResult {} {
   pack $foptf.spinbox -side left -anchor w -padx 7 -pady {0 3}
   bind $buttons(appCombo) <<ComboboxSelected>> {
     set appName [$buttons(appCombo) get]
+
+# Jotne EDM Model Checker
     catch {
       if {[string first "EDM Model Checker" $appName] == 0} {
-        pack $buttons(edmWriteToFile)  -side left -anchor w -padx 5
+        pack $buttons(edmWriteToFile) -side left -anchor w -padx 5
         pack $buttons(edmWhereRules) -side left -anchor w -padx 5
       } else {
         pack forget $buttons(edmWriteToFile)
         pack forget $buttons(edmWhereRules)
       }
     }
+
+# STEPtools
     catch {
       if {[string first "Conformance Checker" $appName] != -1} {
         pack $buttons(eeWriteToFile) -side left -anchor w -padx 5
@@ -632,6 +637,7 @@ proc guiDisplayResult {} {
         pack forget $buttons(eeWriteToFile)
       }
     }
+
     catch {
       if {$appName == "Indent STEP File (for debugging)"} {
         pack $buttons(indentStyledItem) -side left -anchor w -padx 5
@@ -670,6 +676,7 @@ proc guiDisplayResult {} {
   pack $foptf.$cb -side left -anchor w -padx {10 0} -pady {0 3}
   incr cb
   
+# Jotne EDM Model Checker
   foreach item $appNames {
     if {[string first "EDM Model Checker" $item] == 0} {
       foreach item {{" Write results to a file" edmWriteToFile}} {
@@ -688,6 +695,8 @@ proc guiDisplayResult {} {
       }
     }
   }
+
+# Express Engine
   if {[lsearch -glob $appNames "*Conformance Checker*"] != -1} {
     foreach item {{" Write results to a file" eeWriteToFile}} {
       regsub -all {[\(\)]} [lindex $item 1] "" idx
@@ -697,6 +706,8 @@ proc guiDisplayResult {} {
       incr cb
     }
   }
+
+# built-in file indenter
   if {[lsearch $appNames "Indent STEP File (for debugging)"] != -1} {
     foreach item {{" Include Styled_item" indentStyledItem} \
                   {" Include Geometry" indentGeometry}} {
@@ -878,15 +889,6 @@ proc guiHelpMenu {} {
   }
 
   $Help add separator
-  $Help add command -label "Sample STEP Files (zip)"                    -command {displayURL http://www.nist.gov/sites/default/files/documents/el/msid/infotest/NIST_MBE_PMI_CTC_STEP_PMI.zip}
-  $Help add cascade -label "Sample Output" -menu $Help.5
-  set Help5 [menu $Help.5 -tearoff 1]
-  $Help5 add command -label "Spreadsheet - PMI Representation"          -command {displayURL https://www.nist.gov/file/317941}
-  $Help5 add command -label "Spreadsheet - PMI Presentation, ValProps"  -command {displayURL https://www.nist.gov/file/317946}
-  $Help5 add command -label "Spreadsheet - Coverage Analysis"           -command {displayURL https://www.nist.gov/file/317951}
-  $Help5 add command -label "X3DOM (WebGL) file - PMI Presentation"     -command {displayURL http://www.nist.gov/el/msid/infotest/upload/STEP-File-Analyzer_x3dom.html}
-
-  $Help add separator
   $Help add command -label "Overview" -command {
 outputMsg "\nOverview -------------------------------------------------------------------" blue
 outputMsg "The STEP File Analyzer reads a STEP file and generates an Excel spreadsheet or CSV files.  One
@@ -954,8 +956,9 @@ entities."
   }
   
   $Help add command -label "Supported STEP APs" -command {
-outputMsg "\Supported STEP APs ----------------------------------------------------------" blue
-outputMsg "The following STEP APs are supported by the STEP File Analyzer:\n"
+outputMsg "\nSupported STEP APs ----------------------------------------------------------" blue
+outputMsg "The following STEP Application Protocols (AP) are supported by the STEP File Analyzer."
+outputMsg "The name of the AP is on the FILE_SCHEMA entity in the HEADER section of a STEP file.\n"
 
 set other 0
 set nschema 0
@@ -966,14 +969,21 @@ foreach match [lsort [glob -nocomplain -directory $ifcsvrdir *.rose]] {
   set schema [file rootname [file tail $match]]
   if {[string first "ifc" $schema] == -1 && [string first "header_section" $schema] == -1 && \
       [string first "keystone" $schema] == -1 && [string range $schema end-2 end] != "mim"} {
-    if {[string first "automotive" $schema] == 0} {
+    if {$schema == "automotive_design"} {
       lappend schemas "AP214 - $schema"
-    } elseif {[string first "config" $schema] == 0 || [string first "ccd" $schema] == 0} {
-      lappend schemas "AP203 - $schema"
+
+    } elseif {[string first "ap203" $schema] == 0} {
+      lappend schemas "AP203e2 - $schema"
+    } elseif {[string first "config_control_design" $schema] == 0} {
+      lappend schemas "AP203e1 - $schema"
+
+    } elseif {[string first "structural_analysis_design" $schema] == 0} {
+      lappend schemas "AP209e1 - $schema"
+    } elseif {[string first "ap209_multidisciplinary" $schema] == 0} {
+      lappend schemas "AP209e2 - $schema"
+
     } elseif {[string first "integrated" $schema] == 0} {
       lappend schemas "AP238 - $schema"
-    } elseif {[string first "structural_analysis" $schema] == 0} {
-      lappend schemas "AP209 - $schema"
     } elseif {[string first "engineering_properties" $schema] == 0} {
       lappend schemas "AP235 - $schema"
     } elseif {[string first "feature_based" $schema] == 0} {
@@ -988,7 +998,19 @@ foreach match [lsort [glob -nocomplain -directory $ifcsvrdir *.rose]] {
   }
 }
 
-foreach item [lsort $schemas] {outputMsg "  [string toupper $item]"}
+set n 0
+foreach item [lsort $schemas] {
+  set c1 [string first "-" $item]
+  if {$c1 == -1} {
+    if {$n == 0} {
+      incr n
+      outputMsg " "
+    }
+    outputMsg "  [string toupper $item]"
+  } else {
+    outputMsg "  [string range $item 0 $c1][string toupper [string range $item $c1+1 end]]"
+  }
+}
 
 if {$nschema == 0} {errorMsg "No Supported STEP APs were found.\nThere was a problem copying STEP schema files (*.rose) to the IFCsvr/dll directory."}
 
@@ -1303,6 +1325,15 @@ under Process.  However, this will prevent processing of other entities that do 
 }
 
   $Help add separator
+  $Help add command -label "Sample STEP Files (zip)"                    -command {displayURL http://www.nist.gov/sites/default/files/documents/el/msid/infotest/NIST_MBE_PMI_CTC_STEP_PMI.zip}
+  #$Help add cascade -label "Sample Output" -menu $Help.5
+  #set Help5 [menu $Help.5 -tearoff 1]
+  $Help add command -label "Spreadsheet - PMI Representation"          -command {displayURL https://www.nist.gov/file/331631}
+  $Help add command -label "Spreadsheet - PMI Presentation, ValProps"  -command {displayURL https://www.nist.gov/file/331656}
+  $Help add command -label "Spreadsheet - Coverage Analysis"           -command {displayURL https://www.nist.gov/file/317951}
+  #$Help5 add command -label "X3DOM (WebGL) file - PMI Presentation"     -command {displayURL http://www.nist.gov/el/msid/infotest/upload/STEP-File-Analyzer_x3dom.html}
+
+  $Help add separator
   if {"$nistVersion"} {
     $Help add command -label "Disclaimer" -command {displayDisclaimer}
     $Help add command -label "NIST Disclaimer" -command {displayURL https://www.nist.gov/disclaimer}
@@ -1360,6 +1391,7 @@ proc guiWebsitesMenu {} {
   $Websites add separator
   $Websites add command -label "STEP AP242 Project"   -command {displayURL http://www.ap242.org/}
   $Websites add command -label "STEP AP209 Project"   -command {displayURL http://www.ap209.org/}
+  #$Websites add command -label "STEP AP238 Project"   -command {displayURL http://www.ap238.org/}
   $Websites add command -label "STEP AP239 Project"   -command {displayURL http://www.ap239.org/}
   $Websites add command -label "EXPRESS Schemas"      -command {displayURL https://www.cax-if.org/joint_testing_info.html#schemas}
   $Websites add command -label "More EXPRESS Schemas" -command {displayURL http://www.steptools.com/support/stdev_docs/express/}
@@ -1370,15 +1402,15 @@ proc guiWebsitesMenu {} {
   $Websites add command -label "LOTAR"        -command {displayURL http://www.lotar-international.org/}
   
   $Websites add separator
-  $Websites add cascade -label "Research" -menu $Websites.3
-  set Websites3 [menu $Websites.3 -tearoff 1]
-  $Websites3 add command -label "Measuring the PMI Modeling Capability in CAD Systems (Report 1)"                -command {displayURL http://dx.doi.org/10.6028/NIST.GCR.15-997}
-  $Websites3 add command -label "Measuring the PMI Modeling Capability in CAD Systems (Report 2)"                -command {displayURL http://dx.doi.org/10.6028/NIST.GCR.15-998}
-  $Websites3 add command -label "Measuring the PMI Modeling Capability in CAD Systems (Report 3)"                -command {displayURL http://dx.doi.org/10.6028/NIST.GCR.15-999}
-  $Websites3 add command -label "Investigating the Impact of Standards-Based Interoperability for Design to Manufacturing and Quality in the Supply Chain"  -command {displayURL http://dx.doi.org/10.6028/NIST.GCR.15-1009}
-  $Websites3 add command -label "An ISO STEP Tolerancing Standard as an Enabler of Smart Manufacturing Systems"  -command {displayURL https://www.nist.gov/node/570586}
-  $Websites3 add command -label "Recent Advances in Sharing Standardized STEP Composite Structure Design and Manufacturing Information"     -command {displayURL https://www.nist.gov/node/579546}
-  $Websites3 add command -label "A Strategy for Testing Product Conformance to GD&T Standards"                   -command {displayURL https://www.nist.gov/node/589131}
+  #$Websites add cascade -label "Research" -menu $Websites.3
+  #set Websites3 [menu $Websites.3 -tearoff 1]
+  $Websites add command -label "Measuring the PMI Modeling Capability in CAD Systems (Report 1)"               -command {displayURL https://www.nist.gov/node/763791}
+  $Websites add command -label "Measuring the PMI Modeling Capability in CAD Systems (Report 2)"               -command {displayURL https://www.nist.gov/node/763781}
+  $Websites add command -label "Measuring the PMI Modeling Capability in CAD Systems (Report 3)"               -command {displayURL https://www.nist.gov/node/763786}
+  $Websites add command -label "Standards-Based Interoperability for Design to Manufacturing and Quality"      -command {displayURL https://www.nist.gov/node/787671}
+  $Websites add command -label "An ISO STEP Tolerancing Standard as an Enabler of Smart Manufacturing Systems" -command {displayURL https://www.nist.gov/node/570586}
+  $Websites add command -label "STEP Composite Structure Design and Manufacturing Information"                 -command {displayURL https://www.nist.gov/node/579546}
+  $Websites add command -label "A Strategy for Testing Product Conformance to GD&T Standards"                  -command {displayURL https://www.nist.gov/node/589131}
 }
 
 #-------------------------------------------------------------------------------
