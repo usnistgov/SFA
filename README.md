@@ -64,10 +64,9 @@ An alternative might be to build the STEP File Analyzer with a version of Tcl/Tk
 
 ##Possible improvements
 
-The IFCsvr toolkit used to read STEP files should be replaced.  IFCsvr toolkit is a wrapper around an old version of [STEPtools ST-Developer](http://www.steptools.com/products/stdev/).  The IFCsvr toolkit is the reason why versions of Tcl greater than 8.5.15 cannot be used.
+The IFCsvr toolkit used to read STEP files should be replaced.  IFCsvr toolkit is a wrapper around an old version of STEP Tools ST-Developer.  The IFCsvr toolkit is the reason why versions of Tcl greater than 8.5.15 cannot be used.
 
-- The free [personal edition of ST-Developer](http://www.steptools.com/products/stdev/personal.html) could replace the IFCsvr toolkit.  The personal edition of ST-Developer also includes some useful STEP utility programs.
-- The [STEPcode toolkit](http://stepcode.org/) could also be used to replace the IFCsvr toolkit.
+The [STEPcode toolkit](http://stepcode.org/) could also be used to replace the IFCsvr toolkit.
 
 The Tcl package [tcom](http://wiki.tcl.tk/1821) (COM) is used to connect with a STEP file and with Excel.  tcom could be replaced with the COM features in [twapi](http://twapi.magicsplat.com/).
 
