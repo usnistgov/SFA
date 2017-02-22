@@ -1,5 +1,5 @@
 proc valPropStart {objDesign} {
-  global cells col elevel ent entAttrList ncartpt opt pd pdcol pdheading propDefRow valPropNames
+  global cells col elevel ent entAttrList ncartpt opt pd pdcol pdheading propDefRow valPropLink valPropNames 
   
 # CAx-IF RP Geometric and Assembly Validation Properties, section 8
   set valPropNames(geometric_validation_property) [list \
@@ -46,31 +46,36 @@ proc valPropStart {objDesign} {
     [list "surface area" [list "tessellated surface area"]]]
 
   set derived_unit_element [list derived_unit_element unit \
-            [list conversion_based_unit_and_length_unit dimensions name conversion_factor] \
-            [list conversion_based_unit_and_mass_unit dimensions name conversion_factor] \
-            [list length_unit_and_si_unit prefix name] exponent]
+    [list conversion_based_unit_and_length_unit dimensions name conversion_factor] \
+    [list conversion_based_unit_and_mass_unit dimensions name conversion_factor] \
+    [list length_unit_and_si_unit prefix name] exponent]
   set cartesian_point [list cartesian_point name coordinates]
+  set a2p3d [list axis2_placement_3d name location $cartesian_point axis [list direction name direction_ratios] ref_direction [list direction name direction_ratios]]
+
+  set drep [list descriptive_representation_item name description]
+  set vrep [list value_representation_item name value_component]
+  set brep [list boolean_representation_item name the_value]
+  set irep [list integer_representation_item name the_value]
+  set rrep [list real_representation_item name the_value]
+  set mrep [list measure_representation_item name value_component unit_component \
+    [list derived_unit elements $derived_unit_element] \
+    [list area_unit elements $derived_unit_element] \
+    [list volume_unit elements $derived_unit_element] \
+    [list mass_unit_and_si_unit prefix name] \
+    [list si_unit_and_thermodynamic_temperature_unit dimensions prefix name]]
+
+  set len1 [list length_measure_with_unit_and_measure_representation_item value_component unit_component name]
+  set len2 [list length_measure_with_unit_and_measure_representation_item_and_qualified_representation_item value_component unit_component name qualifiers]
+  set mass1 [list mass_measure_with_unit_and_measure_representation_item value_component unit_component name]
+
+  set rep1 [list representation name items $a2p3d $drep $vrep $brep $irep $rrep $mrep $len1 $len2 $mass1 $cartesian_point]
+  set rep2 [list shape_representation_with_parameters name items $a2p3d $drep $vrep $brep $irep $rrep $mrep $len1 $len2 $mass1 $cartesian_point]
 
   set gvp [list property_definition_representation \
-                definition [list property_definition name description definition] \
-                used_representation [list representation name items \
-                  [list axis2_placement_3d name location $cartesian_point axis [list direction name direction_ratios] ref_direction [list direction name direction_ratios]] \
-                  [list descriptive_representation_item name description] \
-                  [list value_representation_item name value_component] \
-                  [list boolean_representation_item name the_value] \
-                  [list integer_representation_item name the_value] \
-                  [list real_representation_item name the_value] \
-                  [list length_measure_with_unit_and_measure_representation_item value_component unit_component name] \
-                  [list length_measure_with_unit_and_measure_representation_item_and_qualified_representation_item value_component unit_component name qualifiers] \
-                  [list mass_measure_with_unit_and_measure_representation_item value_component unit_component name] \
-                  [list measure_representation_item name value_component unit_component \
-                    [list derived_unit elements $derived_unit_element] \
-                    [list area_unit elements $derived_unit_element] \
-                    [list volume_unit elements $derived_unit_element] \
-                    [list mass_unit_and_si_unit prefix name] \
-                    [list si_unit_and_thermodynamic_temperature_unit dimensions prefix name]] \
-                  $cartesian_point]]
+    definition [list property_definition name description definition] \
+    used_representation $rep1 $rep2]
 
+  set valPropLink 0
   set entAttrList {}
   set pdcol 0
   set propDefRow {}
@@ -80,7 +85,6 @@ proc valPropStart {objDesign} {
   if {[info exists ent]}       {unset ent}
 
   outputMsg " Adding Properties to property_definition worksheet" green
-  #outputMsg " Adding Validation Properties to property_definition worksheet" green
 
   if {$opt(DEBUG1)} {outputMsg \n}
   set elevel 0
@@ -112,7 +116,7 @@ proc valPropStart {objDesign} {
 # -------------------------------------------------------------------------------
 proc valPropReport {objEntity} {
   global cells col elevel ent entAttrList maxrep ncartpt nrep opt pd pdcol pdheading pmivalprop pointLimit prefix 
-  global propDefID propDefIDRow propDefName propDefOK propDefRow recPracNames repName stepAP syntaxErr valName valPropNames
+  global propDefID propDefIDRow propDefName propDefOK propDefRow recPracNames repName stepAP syntaxErr valName valPropLink valPropNames
 
   if {[info exists propDefOK]} {if {$propDefOK == 0} {return}}
 
@@ -243,7 +247,8 @@ proc valPropReport {objEntity} {
             switch -glob $ent1 {
               "cartesian_point coordinates" -
               "direction direction_ratios"  {set ok 1; set col($pd) 9; set colName "value"}
-              "representation items"        {set nrep 0; set maxrep $objSize}
+              "representation items" -
+              "shape_representation_with_parameters items" {set nrep 0; set maxrep $objSize}
             }
 
 # value in spreadsheet
@@ -289,19 +294,23 @@ proc valPropReport {objEntity} {
               set pdcol [expr {max($col($pd),$pdcol)}]
               
 # add blank columns for units and exponent, if more than one representation
-              if {$maxrep > 1} {
-                for {set i 0} {$i < 4} {incr i} {
-                  incr col($pd)
-                  set c [string index [cellRange 1 $col($pd)] 0]
-                  set val [[$cells($pd) Item $r $c] Value]
-                  if {$val == ""} {
-                    $cells($pd) Item $r $c " "
-                  } else {
-                    $cells($pd) Item $r $c "$val[format "%c" 10] "
-                  }
-                  set pdcol [expr {max($col($pd),$pdcol)}]
-                }             
-              }       
+              if {[info exists maxrep]} {
+                if {$maxrep > 1} {
+                  for {set i 0} {$i < 4} {incr i} {
+                    incr col($pd)
+                    set c [string index [cellRange 1 $col($pd)] 0]
+                    set val [[$cells($pd) Item $r $c] Value]
+                    if {$val == ""} {
+                      $cells($pd) Item $r $c " "
+                    } else {
+                      $cells($pd) Item $r $c "$val[format "%c" 10] "
+                    }
+                    set pdcol [expr {max($col($pd),$pdcol)}]
+                  }             
+                }
+              } else {
+                errorMsg "maxrep does not exist"
+              }
             }
           }
 
@@ -362,6 +371,7 @@ proc valPropReport {objEntity} {
                     set invalid 1
                     lappend syntaxErr([lindex [split $ent1 " "] 0]) [list $objID [lindex [split $ent1 " "] 1]]
                   }
+                  set valPropLink 1
                 }
               }
 
@@ -576,7 +586,7 @@ proc valPropReport {objEntity} {
 
 # -------------------------------------------------------------------------------
 proc valPropFormat {} {
-  global cells col excelVersion propDefRow recPracNames row stepAP thisEntType worksheet
+  global cells col excelVersion propDefRow recPracNames row stepAP thisEntType worksheet valPropLink
 
   if {[info exists cells($thisEntType)] && $col($thisEntType) > 4} {
     #if {[llength $propDefRow] == 0 && $stepAP != ""} {
@@ -699,10 +709,12 @@ proc valPropFormat {} {
     [$worksheet($thisEntType) Outline] ShowLevels [expr 0] [expr 1]
     
 # link to RP
-    $cells($thisEntType) Item 2 1 "See CAx-IF Recommended Practices for Validation Properties"
-    set range [$worksheet($thisEntType) Range A2:D2]
-    $range MergeCells [expr 1]
-    set anchor [$worksheet($thisEntType) Range A2]
-    [$worksheet($thisEntType) Hyperlinks] Add $anchor [join "https://www.cax-if.org/joint_testing_info.html#recpracs"] [join ""] [join "Link to CAx-IF Recommended Practices"]    
+    if {$valPropLink} {
+      $cells($thisEntType) Item 2 1 "See CAx-IF Recommended Practices for Validation Property Definitions"
+      set range [$worksheet($thisEntType) Range A2:D2]
+      $range MergeCells [expr 1]
+      set anchor [$worksheet($thisEntType) Range A2]
+      [$worksheet($thisEntType) Hyperlinks] Add $anchor [join "https://www.cax-if.org/joint_testing_info.html#recpracs"] [join ""] [join "Link to CAx-IF Recommended Practices"]    
+    }
   }
 }

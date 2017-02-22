@@ -2,7 +2,7 @@
 # version number
 
 proc getVersion {} {
-  set app_version 1.95
+  set app_version 1.96
   return $app_version
 }
 
@@ -102,9 +102,9 @@ proc getAssocGeom {entDef {dt 0}} {
         if {[llength $assocGeom($type)] == 1} {
           #outputMsg " assocGeom $type $assocGeom($type) [llength $assocGeom($type)]" blue
           if {$type == "advanced_face"} {
-            errorMsg "Syntax Error: 'shape_aspect relationship' relates '$entDefType' to only one 'shape_aspect'.\n[string repeat " " 14]\($recPracNames(pmi242), Sec. 6.4)"
+            errorMsg "Syntax Error: For All Around tolerance, 'shape_aspect relationship' relates '$entDefType' to only one 'shape_aspect'.\n[string repeat " " 14]\($recPracNames(pmi242), Sec. 6.4, Fig. 31)"
           } elseif {$type == $entDefType} {
-            errorMsg "Syntax Error: Missing 'shape_aspect relationship' relating '$entDefType' to 'shape_aspect'.\n[string repeat " " 14]\($recPracNames(pmi242), Sec. 6.4)"
+            errorMsg "Syntax Error: For All Around tolerance, missing 'shape_aspect relationship' relating '$entDefType' to 'shape_aspect'.\n[string repeat " " 14]\($recPracNames(pmi242), Sec. 6.4, Fig. 31)"
             unset assocGeom($type)
           }
         }
@@ -153,7 +153,7 @@ proc getFaceGeom {a0 {id ""}} {
 }
 
 # -------------------------------------------------------------------------------
-proc reportAssocGeom {{type 1}} {
+proc reportAssocGeom {entType {type 1}} {
   global assocGeom
   
   set str ""
@@ -170,7 +170,7 @@ proc reportAssocGeom {{type 1}} {
     }
   }
   if {[string length $str] == 0 && $type} {
-    errorMsg "Syntax Error: Missing Associated Geometry for shape_aspect through GISU or IIRU."
+    errorMsg "Syntax Error: Associated Geometry not found for '$entType'.  Check GISU or IIRU 'definition' attribute."
   }
   foreach item [array names assocGeom] {
     if {[string first "shape_aspect" $item] != -1 || [string first "centre" $item] != -1 || [string first "datum_feature" $item] != -1} {
@@ -367,11 +367,11 @@ proc spmiSummary {} {
                         set diff [expr {[string length $pmi] - [string length $val]}]
                         if {$diff <= 2 && $diff >= 0 && [string first $val $pmi] != -1} {
                           set pmiSim 0.95
-                          #outputMsg "$val $pmiSim aa"
+                          #outputMsg "$val / $diff / $pmi / $pmiSim / aa"
                         } elseif {[string is integer [string index $val 0]] || \
                                   [string range $val 0 1] == [string range $pmi 0 1]} {
                           set pmiSim [stringSimilarity $val $pmi]
-                          #outputMsg "$val $pmiSim bb"
+                          #outputMsg "$val / $diff / $pmi / $pmiSim / bb"
                         }
 
 # tolerances
@@ -409,14 +409,46 @@ proc spmiSummary {} {
                       if {$pmiSim > $pmiMatch} {
                         #outputMsg "$pmiSim / $val / $pmi / [string first $val $pmi]" red
                         set pmiMatch $pmiSim
-                        if {[string first "datum_target" $valType($val)] == -1} {
+                        if {[string first "datum_target" $valType($val)] == -1 && [string first "dimension" $valType($val)] == -1} {
                           if {$pmiSim >= 0.6} {
                             set pmiSimilar $pmiActual($pmi)
                             #append pmiSimilar "[format "%c" 10](Similarity: [string range $pmiMatch 0 4])"
                           }
 
+# dimensions
+                        } elseif {[string first "dimension" $valType($val)] != -1} {
+                          #outputMsg "$pmiSim / $val / $pmi / [string first $val $pmi]" red
+                          if {$pmiSim >= 0.6} {set pmiSimilar $pmiActual($pmi)}
+
+# dimension rounding issues
+                          if {$pmiSim > 0.85} {
+                            set c1 [string first " " $val]
+                            if {$c1 != -1} {
+                              set c2 [string first " " $pmi]
+                              if {$c2 != -1} {
+                                if {[string range $val $c1+1 end] == [string range $pmi $c2+1 end]} {
+                                  set val1 [string range $val 0 $c1-1]
+                                  set pmi1 [string range $pmi 0 $c2-1]
+                                  if {[string index $val1 0] == [string index $pmi1 0]} {
+                                    set c3 0  
+                                    if {[string index $val 0] == $pmiUnicode(diameter)} {set c3 1}
+                                    set val1 [string range $val1 $c3 end]
+                                    set pmi1 [string range $pmi1 $c3 end]
+                                    set diff 1.
+                                    catch {set diff [expr {abs($val1-$pmi1)}]}
+                                    #outputMsg $diff green
+                                    if {$diff < 0.00101} {
+                                      set pmiSim 1.
+                                      set pmiMatch $pmiSim
+                                    }
+                                  }
+                                }
+                              }
+                            }
+                          }
+
 # handle datum targets differently
-                        } else {
+                        } elseif {[string first "datum_target" $valType($val)] != -1} {
                           set pmiSim 0.95
                           set pmiMatch $pmiSim
                           set pmiSimilar $pmi
@@ -649,42 +681,33 @@ proc spmiGetPMI {} {
       }
 
 # get PMI coverage
-      set fn "SFA-PMI-NIST-coverage.xlsx"
+      set fn "SFA-PMI-NIST-coverage.csv"
+      #set fn "SFA-PMI-NIST-coverage.xlsx"
       if {[file exists NIST/$fn]} {file copy -force NIST/$fn [file join $mytemp $fn]}
       set fname [file nativename [file join $mytemp $fn]]
 
       if {[file exists $fname]} {
-        set pid1 [twapi::get_process_ids -name "EXCEL.EXE"]
-        set excel2 [::tcom::ref createobject Excel.Application]
-        set pid2 [lindex [intersect3 $pid1 [twapi::get_process_ids -name "EXCEL.EXE"]] 2]
-    
-        $excel2 Visible 0
-        set workbooks2  [$excel2 Workbooks]
-        set workbook2   [$workbooks2 Open $fname]
-        set worksheets2 [$workbook2 Worksheets]
-        set cells2      [[$worksheets2 Item [expr 1]] Cells]
-      
-        set c1 [[[[$worksheets2 Item [expr 1]] UsedRange] Columns] Count]
-        set r1 [[[[$worksheets2 Item [expr 1]] UsedRange] Rows] Count]
-      
-        for {set c 2} {$c <= $c1} {incr c} {
-          set colName [[$cells2 Item 1 $c] Value]
-          if {$colName != ""} {set i2($c) "nist_$colName"}
-        }
-      
-        for {set r 2} {$r <= $r1} {incr r} {
-          set i1 [[$cells2 Item $r 1] Value]
-          if {$i1 != ""} {
-            for {set c 2} {$c <= $c1} {incr c} {
-              if {[info exists i2($c)]} {set spmiCoverages($i1,$i2($c)) [[$cells2 Item $r $c] Value]}
+        outputMsg "Reading Expected PMI Representation Coverage" blue
+        set f [open $fname r]
+        set r 0
+        while {[gets $f line] >= 0} {
+          set lline [split $line ","]
+          set c 0
+          if {$r == 0} {
+            foreach colName $lline {
+              if {$colName != ""} {set i2($c) "nist_$colName"}
+              incr c
+            }
+          } else {
+            set i1 [lindex $lline 0]
+            foreach cval $lline {
+              if {[info exists i2($c)]} {set spmiCoverages($i1,$i2($c)) $cval}
+              incr c
             }
           }
+          incr r
         }
-        
-        $workbooks2 Close
-        $excel2 Quit
-        catch {twapi::end_process $pid2 -force}
-        after 100
+        close $f
       }
     }
           
@@ -696,28 +719,39 @@ proc spmiGetPMI {} {
       set fname [file nativename [file join $mytemp $fn]]
 
       if {[file exists $fname]} {
+        outputMsg "Reading Expected PMI for: $nistName (See Help > NIST CAD Models)\n" blue
         set pid1 [twapi::get_process_ids -name "EXCEL.EXE"]
         set excel2 [::tcom::ref createobject Excel.Application]
         set pid2 [lindex [intersect3 $pid1 [twapi::get_process_ids -name "EXCEL.EXE"]] 2]
     
         $excel2 Visible 0
         set workbooks2  [$excel2 Workbooks]
-        set workbook2   [$workbooks2 Open $fname]
-        set worksheets2 [$workbook2 Worksheets]
-        set cells2      [[$worksheets2 Item [expr 1]] Cells]
-      
-        set r1 [[[[$worksheets2 Item [expr 1]] UsedRange] Rows] Count]
-  
-        for {set r 1} {$r <= $r1} {incr r} {
-          set typ [[$cells2 Item $r 1] Value]
-          set pmi [[$cells2 Item $r 2] Value]
+        set worksheets2 [[$workbooks2 Open $fname] Worksheets]
+
+        set matrix [GetWorksheetAsMatrix [$worksheets2 Item [expr 1]]]
+        set r1 [llength $matrix]
+        for {set r 0} {$r < $r1} {incr r} {
+          set typ [lindex [lindex $matrix $r] 0]
+          set pmi [lindex [lindex $matrix $r] 1]
           if {$typ != "" && $pmi != ""} {lappend pmiMaster($nistName) "$typ\\$pmi"}
         }
+
+        #getTiming doneMatrixstartCells
+        #set r1 [[[[$worksheets2 Item [expr 1]] UsedRange] Rows] Count]
+        #set cells2      [[$worksheets2 Item [expr 1]] Cells]
+        #for {set r 1} {$r <= $r1} {incr r} {
+        #  set typ [[$cells2 Item $r 1] Value]
+        #  set pmi [[$cells2 Item $r 2] Value]
+        #  if {$typ != "" && $pmi != ""} {lappend pmiMaster($nistName) "$typ\\$pmi"}
+        #}
+        #getTiming doneCells
     
         $workbooks2 Close
         $excel2 Quit
-        catch {twapi::end_process $pid2 -force}
+        catch {unset excel2}
         after 100
+        #outputMsg pid1-$pid1-pid2-$pid2
+        for {set i 0} {$i < 20} {incr i} {catch {twapi::end_process $pid2 -force}}
       }
     }
 
@@ -891,10 +925,13 @@ proc pmiFormatColumns {str} {
       }
     }
 
-# group columns
-    if {[info exists invGroup($thisEntType)]} {if {$invGroup($thisEntType) < $c2} {set c2 $invGroup($thisEntType)}}
-    set range [$worksheet($thisEntType) Range [cellRange 1 $c2] [cellRange [expr {$row($thisEntType)+2}] $c3]]
-    [$range Columns] Group
+# group columns for inverses
+    if {$c1 > 2} {
+      set range [$worksheet($thisEntType) Range [cellRange 1 2] [cellRange [expr {$row($thisEntType)+2}] $c1]]
+      #if {[info exists invGroup($thisEntType)]} {if {$invGroup($thisEntType) < $c2} {set c2 $invGroup($thisEntType)}}
+      #set range [$worksheet($thisEntType) Range [cellRange 1 $c2] [cellRange [expr {$row($thisEntType)+2}] $c3]]
+      [$range Columns] Group
+    }
     
 # fix column widths
     set colrange [[[$worksheet($thisEntType) UsedRange] Columns] Count]
@@ -908,7 +945,7 @@ proc pmiFormatColumns {str} {
 # link to RP
     set str "pmi242"
     if {$stepAP == "AP203"} {set str "pmi203"}
-    $cells($thisEntType) Item 2 1 "See CAx-IF Recommended Practice for $recPracNames($str)"
+    $cells($thisEntType) Item 2 1 "See CAx-IF Rec. Prac. for $recPracNames($str)"
     if {$thisEntType != "dimensional_characteristic_representation"} {
       set range [$worksheet($thisEntType) Range A2:D2]
     } else {
@@ -1034,16 +1071,16 @@ proc setEntsToProcess {entType objDesign} {
 }
 
 # -------------------------------------------------------------------------------
-# check validation properties and PMI presentation
-proc checkPMIValProps {objDesign entType} {
-  global cells fixent gpmiEnts opt pmiColumns savedViewCol spmiEnts
+# check for all types of reports
+proc checkForReports {objDesign entType} {
+  global cells skipEntities gpmiEnts opt pmiColumns savedViewCol spmiEnts
   
 # check for validation properties, call valProp
   if {$entType == "property_definition_representation"} {
     if {[catch {
       if {[info exists opt(VALPROP)]} {
         if {$opt(VALPROP)} {
-          if {[lsearch $fixent "representation"] == -1} {
+          if {[lsearch $skipEntities "representation"] == -1} {
             if {[info exists cells(property_definition)]} {
               valPropStart $objDesign
             }
@@ -1060,7 +1097,7 @@ proc checkPMIValProps {objDesign entType} {
       if {[info exists opt(PMIGRF)]} {
         if {$opt(PMIGRF)} {
           if {[info exists cells($entType)]} {
-            gpmiProp $objDesign $entType
+            gpmiAnnotation $objDesign $entType
             set ok 0
           }
           catch {unset savedViewCol}
@@ -1088,6 +1125,18 @@ proc checkPMIValProps {objDesign entType} {
       }
     } emsg]} {
       errorMsg "ERROR adding PMI Representation information to '[formatComplexEnt $entType]'\n  $emsg"
+    }
+
+# check for AP209
+  } elseif {$entType == "node"} {
+    if {[catch {
+      if {[info exists opt(VIZ209)]} {
+        if {$opt(VIZ209)} {
+          analysisStart $objDesign $entType
+        }
+      }
+    } emsg]} {
+      errorMsg "ERROR adding Analysis information to '$entType'\n  $emsg"
     }
   }
 }
@@ -1154,9 +1203,13 @@ proc getStepAP {fname} {
 
 #-------------------------------------------------------------------------------
 proc getSchemaFromFile {fname {msg 0}} {
+  global p21e3
+  
+  set p21e3 0
   set schema ""
   set ok 0
   set nline 0
+  set niderr 0
   set stepfile [open $fname r]
   while {[gets $stepfile line] != -1 && $nline < 100} {
     if {$msg} {
@@ -1178,21 +1231,36 @@ proc getSchemaFromFile {fname {msg 0}} {
         errorMsg "STEP file schema: [lindex [split $schema " "] 0]"
         if {[llength $sline] > 3} {
           set schema1 [lindex $sline 3]
-          errorMsg "Second STEP file schema: $schema1\n A second schema is valid but will not work with the STEP File Analyzer.\n Edit the FILE_SCHEMA to delete the second schema."
+          errorMsg "Second STEP file schema: $schema1\n A second schema is valid but will not work with the STEP File Analyzer.\n Export the STEP file with a single schema or edit the FILE_SCHEMA to delete the second schema."
         } elseif {[string first "_MIM" $fsline] != -1 && [string first "_MIM_LF" $fsline] == -1} {
           errorMsg "The schema name should end with _MIM_LF"
         }
 
 # check for CIS/2 or IFC files
         if {[string first "STRUCTURAL_FRAME_SCHEMA" $fsline] != -1} {
-          errorMsg "This is a CIS/2 file that can be visualized with SteelVis.  http://go.usa.gov/s8fm"
+          errorMsg "Use SteelVis to visualize the CIS/2 file.  http://go.usa.gov/s8fm"
         } elseif {[string first "IFC" $fsline] != -1} {
           errorMsg "Use the IFC File Analyzer with IFC files."
           after 1000
-          displayURL http://go.usa.gov/xK9gh
+          openURL http://go.usa.gov/xK9gh
         }
       }
-      break
+      if {$p21e3} {break}
+
+# check for IDs >= 2^31, valid but will be a different number in the spreadsheet
+    } elseif {[string first "#" $line] == 0} {
+      set id [string range $line 1 [string first "=" $line]-1]
+      if {$id > 2147483647 && $niderr == 0} {
+        errorMsg "An entity ID (#$id) >= 2147483648 (2^31)\n Very large IDs are valid but will appear as different numbers in the spreadsheet."
+        incr niderr
+      }
+      
+# check for part 21 edition 3 files
+    } elseif {[string first "4\;1" $line] != -1 || [string first "ANCHOR\;" $line] != -1 || \
+              [string first "REFERENCE\;" $line] != -1 || [string first "SIGNATURE\;" $line] != -1} {
+      set p21e3 1
+      if {[string first "4\;1" $line] == -1} {break}
+
     } elseif {$ok} {
       append fsline $line
     }

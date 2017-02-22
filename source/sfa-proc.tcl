@@ -19,7 +19,7 @@ proc checkValues {} {
       }
     }
 
-# STEPtools
+# STEP Tools
     catch {
       if {[string first "Conformance Checker" $appName] != -1} {
         pack $buttons(eeWriteToFile) -side left -anchor w -padx 5
@@ -74,15 +74,15 @@ proc checkValues {} {
     set opt(PR_STEP_PRES) 1
     set opt(PR_STEP_QUAN) 1
     set opt(PR_STEP_SHAP) 1
-    $buttons(optGENX3DOM) configure -state normal
+    $buttons(optVIZPMI) configure -state normal
     $buttons(optPR_STEP_AP242) configure -state disabled
     $buttons(optPR_STEP_COMM) configure -state disabled
     $buttons(optPR_STEP_PRES) configure -state disabled
     $buttons(optPR_STEP_QUAN) configure -state disabled
     $buttons(optPR_STEP_SHAP) configure -state disabled
   } else {
-    set opt(GENX3DOM) 0
-    $buttons(optGENX3DOM) configure -state disabled
+    set opt(VIZPMI) 0
+    $buttons(optVIZPMI) configure -state disabled
     $buttons(optPR_STEP_PRES) configure -state normal
     if {!$opt(VALPROP)} {$buttons(optPR_STEP_QUAN) configure -state normal}
     if {!$opt(PMISEM)}  {
@@ -97,7 +97,7 @@ proc checkValues {} {
   } else {
     if {!$opt(PMIGRF)} {$buttons(optPR_STEP_QUAN) configure -state normal}
   }
-  if {$opt(GENX3DOM)} {
+  if {$opt(VIZPMI)} {
     $buttons(gpmiColor0) configure -state normal
     $buttons(gpmiColor1) configure -state normal
     $buttons(gpmiColor2) configure -state normal
@@ -259,7 +259,7 @@ proc setColorIndex {ent {multi 0}} {
 }
 
 #-------------------------------------------------------------------------------
-proc displayURL {url} {
+proc openURL {url} {
   global programfiles
 
 # open in whatever is registered for the file extension, except for .cgi for upgrade url
@@ -292,7 +292,7 @@ proc openFile {{openName ""}} {
   if {$openName == ""} {
   
 # file types for file select dialog (removed .stpnc)
-    set typelist {{"STEP Files" {".stp" ".step" ".p21" ".stpZ"}}}
+    set typelist {{"STEP Files" {".stp" ".step" ".p21" ".stpZ" ".ifc"}}}
     lappend typelist {"All Files" {*}}
 
 # file open dialog
@@ -302,7 +302,7 @@ proc openFile {{openName ""}} {
       set fext [string tolower [file extension $localName]]
       if {[string first ".ifc" $fext] != -1} {
         #errorMsg "Use the IFC File Analyzer with IFC files."
-        #displayURL http://go.usa.gov/xK9gh
+        #openURL http://go.usa.gov/xK9gh
       } elseif {$fext == ".stpnc"} {
         errorMsg "Rename the file extension to '.stp' to process STEP-NC files."
       }
@@ -320,7 +320,7 @@ proc openFile {{openName ""}} {
 
     outputMsg "Ready to process [llength $localNameList] STEP files" blue
     $buttons(genExcel) configure -state normal
-    if {[info exists buttons(appDisplay)]} {$buttons(appDisplay) configure -state normal}
+    if {[info exists buttons(appOpen)]} {$buttons(appOpen) configure -state normal}
     focus $buttons(genExcel)
 
 # single file selected
@@ -333,7 +333,7 @@ proc openFile {{openName ""}} {
     if {[string first "z" [string tolower [file extension $localName]]] == -1} {
       outputMsg "Ready to process: [file tail $localName] ([expr {[file size $localName]/1024}] Kb)" blue
       $buttons(genExcel) configure -state normal
-      if {[info exists buttons(appDisplay)]} {$buttons(appDisplay) configure -state normal}
+      if {[info exists buttons(appOpen)]} {$buttons(appOpen) configure -state normal}
       focus $buttons(genExcel)
       set lastXLS "[file nativename [file join [file dirname $localName] [file rootname [file tail $localName]]]]_stp.xlsx"
     }
@@ -486,7 +486,7 @@ proc saveState {} {
 }
 
 #-------------------------------------------------------------------------------
-proc displayResult {} {
+proc runOpenProgram {} {
   global localName dispCmd appName transFile
   global sccmsg model_typ pfbent
   global openFileList File editorCmd
@@ -499,13 +499,12 @@ proc displayResult {} {
   .tnb select .tnb.status
   outputMsg "Opening STEP file in: $idisp"
 
-# display file
+# open file
 #  (list is programs that CANNOT start up with a file *OR* need specific commands below)
   if {[string first "Conformance"       $idisp] == -1 && \
       [string first "Indent"            $idisp] == -1 && \
       [string first "Default"           $idisp] == -1 && \
       [string first "QuickStep"         $idisp] == -1 && \
-      [string first "SketchUp"          $idisp] == -1 && \
       [string first "EDM Model Checker" $idisp] == -1} {
 
 # start up with a file
@@ -576,27 +575,27 @@ proc displayResult {} {
     cd [file dirname $filename]
 
 # write script file to open database
-    set edmscript "[file rootname $filename]_edm.scr"
-    set scriptfile [open $edmscript w]
+    set edmScript "[file rootname $filename]_edm.scr"
+    set scriptFile [open $edmScript w]
     set okschema 1
 
-    set edmdir [split [file nativename $dispCmd] [file separator]]
-    set i [lsearch $edmdir "bin"]
-    set edmdir [join [lrange $edmdir 0 [expr {$i-1}]] [file separator]]
-    set edmdbopen "ACCUMULATING_COMMAND_OUTPUT,OPEN_SESSION"
+    set edmDir [split [file nativename $dispCmd] [file separator]]
+    set i [lsearch $edmDir "bin"]
+    set edmDir [join [lrange $edmDir 0 [expr {$i-1}]] [file separator]]
+    set edmDBopen "ACCUMULATING_COMMAND_OUTPUT,OPEN_SESSION"
     
 # open file to find STEP schema name (can't create ap214 and ap210 because the schemas won't compile in EDMS without errors)
     set fschema [getSchemaFromFile $filename]
     if {$fschema == "CONFIG_CONTROL_DESIGN"} {
-      puts $scriptfile "Database>Open([file nativename [file join $edmdir Db]], ap203, ap203, \"$edmdbopen\")"
+      puts $scriptFile "Database>Open([file nativename [file join $edmDir Db]], ap203, ap203, \"$edmDBopen\")"
     } elseif {[string first "AP203_CONFIGURATION_CONTROLLED_3D_DESIGN_OF_MECHANICAL_PARTS_AND_ASSEMBLIES_MIM_LF" $fschema] == 0} {
-      puts $scriptfile "Database>Open([file nativename [file join $edmdir Db]], ap203e2, ap203e2, \"$edmdbopen\")"
+      puts $scriptFile "Database>Open([file nativename [file join $edmDir Db]], ap203e2, ap203e2, \"$edmDBopen\")"
     } elseif {[string first "AP242_MANAGED_MODEL_BASED_3D_ENGINEERING_MIM_LF" $fschema] == 0} {
-      puts $scriptfile "Database>Open([file nativename [file join $edmdir Db]], ap242, ap242, \"$edmdbopen\")"
+      puts $scriptFile "Database>Open([file nativename [file join $edmDir Db]], ap242, ap242, \"$edmDBopen\")"
     } elseif {[string first "AM_AP242_MANAGED_MODEL_BASED_3D_ENGINEERING_MIM_LF" $fschema] == 0} {
-      puts $scriptfile "Database>Open([file nativename [file join $edmdir Db]], ap242_am, ap242_am, \"$edmdbopen\")"
+      puts $scriptFile "Database>Open([file nativename [file join $edmDir Db]], ap242_am, ap242_am, \"$edmDBopen\")"
     } elseif {[string first "AP209_MULTIDISCIPLINARY_ANALYSIS_AND_DESIGN_MIM_LF" $fschema] == 0} {
-      puts $scriptfile "Database>Open([file nativename [file join $edmdir Db]], ap209, ap209, \"$edmdbopen\")"
+      puts $scriptFile "Database>Open([file nativename [file join $edmDir Db]], ap209, ap209, \"$edmDBopen\")"
     } else {
       outputMsg "EDM Model Checker cannot be used with:\n $fschema" red
       set okschema 0
@@ -605,67 +604,67 @@ proc displayResult {} {
 # create a temporary file if certain characters appear in the name, copy original to temporary and process that one
     if {$okschema} {
       set tmpfile 0
-      set fileroot [file rootname [file tail $filename]]
-      if {[string is integer [string index $fileroot 0]] || \
-        [string first " " $fileroot] != -1 || \
-        [string first "." $fileroot] != -1 || \
-        [string first "+" $fileroot] != -1 || \
-        [string first "%" $fileroot] != -1 || \
-        [string first "(" $fileroot] != -1 || \
-        [string first ")" $fileroot] != -1} {
-        if {[string is integer [string index $fileroot 0]]} {set fileroot "a_$fileroot"}
-        regsub -all " " $fileroot "_" fileroot
-        regsub -all {[\.()]} $fileroot "_" fileroot
-        set edmfile [file join [file dirname $filename] $fileroot]
-        append edmfile [file extension $filename]
-        file copy -force $filename $edmfile
+      set fileRoot [file rootname [file tail $filename]]
+      if {[string is integer [string index $fileRoot 0]] || \
+        [string first " " $fileRoot] != -1 || \
+        [string first "." $fileRoot] != -1 || \
+        [string first "+" $fileRoot] != -1 || \
+        [string first "%" $fileRoot] != -1 || \
+        [string first "(" $fileRoot] != -1 || \
+        [string first ")" $fileRoot] != -1} {
+        if {[string is integer [string index $fileRoot 0]]} {set fileRoot "a_$fileRoot"}
+        regsub -all " " $fileRoot "_" fileRoot
+        regsub -all {[\.()]} $fileRoot "_" fileRoot
+        set edmFile [file join [file dirname $filename] $fileRoot]
+        append edmFile [file extension $filename]
+        file copy -force $filename $edmFile
         set tmpfile 1
       } else {
-        set edmfile $filename
+        set edmFile $filename
       }
 
 # validate everything
       #set validate "FULL_VALIDATION,OUTPUT_STEPID"
 
 # not validating DERIVE, ARRAY_REQUIRED_ELEMENTS
-      set validate "GLOBAL_RULES,REQUIRED_ATTRIBUTES,ATTRIBUTE_DATA_TYPE,AGGREGATE_DATA_TYPE,AGGREGATE_SIZE,AGGREGATE_UNIQUENESS,OUTPUT_STEPID"
-      if {$edmWhereRules} {append validate ",LOCAL_RULES,UNIQUENESS_RULES,INVERSE_RULES"}
+      set edmValidate "GLOBAL_RULES,REQUIRED_ATTRIBUTES,ATTRIBUTE_DATA_TYPE,AGGREGATE_DATA_TYPE,AGGREGATE_SIZE,AGGREGATE_UNIQUENESS,OUTPUT_STEPID"
+      if {$edmWhereRules} {append edmValidate ",LOCAL_RULES,UNIQUENESS_RULES,INVERSE_RULES"}
 
 # write script file if not writing output to file, just import model and validate
-      set edmimport "ACCUMULATING_COMMAND_OUTPUT,KEEP_STEP_IDENTIFIERS,DELETING_EXISTING_MODEL,LOG_ERRORS_AND_WARNINGS_ONLY"
+      set edmImport "ACCUMULATING_COMMAND_OUTPUT,KEEP_STEP_IDENTIFIERS,DELETING_EXISTING_MODEL,LOG_ERRORS_AND_WARNINGS_ONLY"
       if {$edmWriteToFile == 0} {
-        puts $scriptfile "Data>ImportModel(DataRepository, $fileroot, DataRepository, $fileroot\_HeaderModel, \"[file nativename $edmfile]\", \$, \$, \$, \"$edmimport,LOG_TO_STDOUT\")"
-        puts $scriptfile "Data>Validate>Model(DataRepository, $fileroot, \$, \$, \$, \"ACCUMULATING_COMMAND_OUTPUT,$validate,FULL_OUTPUT\")"
+        puts $scriptFile "Data>ImportModel(DataRepository, $fileRoot, DataRepository, $fileRoot\_HeaderModel, \"[file nativename $edmFile]\", \$, \$, \$, \"$edmImport,LOG_TO_STDOUT\")"
+        puts $scriptFile "Data>Validate>Model(DataRepository, $fileRoot, \$, \$, \$, \"ACCUMULATING_COMMAND_OUTPUT,$edmValidate,FULL_OUTPUT\")"
 
 # write script file if writing output to file, create file names, import model, validate, and exit
       } else {
-        set edmlog  "[file rootname $filename]_edm.log"
-        set edmloginput "[file rootname $filename]_edm_input.log"
-        puts $scriptfile "Data>ImportModel(DataRepository, $fileroot, DataRepository, $fileroot\_HeaderModel, \"[file nativename $edmfile]\", \"[file nativename $edmloginput]\", \$, \$, \"$edmimport,LOG_TO_FILE\")"
-        puts $scriptfile "Data>Validate>Model(DataRepository, $fileroot, \$, \"[file nativename $edmlog]\", \$, \"ACCUMULATING_COMMAND_OUTPUT,$validate,FULL_OUTPUT\")"
-        puts $scriptfile "Data>Close>Model(DataRepository, $fileroot, \" ACCUMULATING_COMMAND_OUTPUT\")"
-        puts $scriptfile "Data>Delete>ModelContents(DataRepository, $fileroot, ACCUMULATING_COMMAND_OUTPUT)"
-        puts $scriptfile "Data>Delete>Model(DataRepository, $fileroot, header_section_schema, \"ACCUMULATING_COMMAND_OUTPUT,DELETE_ALL_MODELS_OF_SCHEMA\")"
-        puts $scriptfile "Data>Delete>Model(DataRepository, $fileroot, \$, ACCUMULATING_COMMAND_OUTPUT)"
-        puts $scriptfile "Data>Delete>Model(DataRepository, $fileroot, \$, \"ACCUMULATING_COMMAND_OUTPUT,CLOSE_MODEL_BEFORE_DELETION\")"
-        puts $scriptfile "Exit>Exit()"
+        set edmLog  "[file rootname $filename]_edm.log"
+        set edmLogImport "[file rootname $filename]_edm_import.log"
+        puts $scriptFile "Data>ImportModel(DataRepository, $fileRoot, DataRepository, $fileRoot\_HeaderModel, \"[file nativename $edmFile]\", \"[file nativename $edmLogImport]\", \$, \$, \"$edmImport,LOG_TO_FILE\")"
+        puts $scriptFile "Data>Validate>Model(DataRepository, $fileRoot, \$, \"[file nativename $edmLog]\", \$, \"ACCUMULATING_COMMAND_OUTPUT,$edmValidate,FULL_OUTPUT\")"
+        puts $scriptFile "Data>Close>Model(DataRepository, $fileRoot, \" ACCUMULATING_COMMAND_OUTPUT\")"
+        puts $scriptFile "Data>Delete>ModelContents(DataRepository, $fileRoot, ACCUMULATING_COMMAND_OUTPUT)"
+        puts $scriptFile "Data>Delete>Model(DataRepository, $fileRoot, header_section_schema, \"ACCUMULATING_COMMAND_OUTPUT,DELETE_ALL_MODELS_OF_SCHEMA\")"
+        puts $scriptFile "Data>Delete>Model(DataRepository, $fileRoot, \$, ACCUMULATING_COMMAND_OUTPUT)"
+        puts $scriptFile "Data>Delete>Model(DataRepository, $fileRoot, \$, \"ACCUMULATING_COMMAND_OUTPUT,CLOSE_MODEL_BEFORE_DELETION\")"
+        puts $scriptFile "Exit>Exit()"
       }
-      close $scriptfile
+      close $scriptFile
 
 # run EDM Model Checker with the script file
       outputMsg "Running EDM Model Checker"
-      eval exec {$dispCmd} $edmscript &
+      eval exec {$dispCmd} $edmScript &
 
-# if results are written to a file, open output file from the validation (edmlog) and output file if there are input errors (edmloginput)
+# if results are written to a file, open output file from the validation (edmLog) and output file if there are import errors (edmLogImport)
       if {$edmWriteToFile} {
         if {[string first "TextPad" $editorCmd] != -1 || [string first "Notepad++" $editorCmd] != -1} {
           outputMsg "Opening log file(s) in editor"
-          exec $editorCmd $edmlog &
+          exec $editorCmd $edmLog &
           after 1000
-          if {[file size $edmloginput] > 0} {
-            exec $editorCmd $edmloginput &
+          if {[file size $edmLogImport] > 0} {
+            exec $editorCmd $edmLogImport &
           } else {
-            catch {file delete -force $edmloginput}
+            catch {file delete -force $edmLogImport}
           }
         } else {
           outputMsg "Wait until the EDM Model Checker has finished and then open the log file"
@@ -674,20 +673,20 @@ proc displayResult {} {
 
 # attempt to delete the script file
       set nerr 0
-      while {[file exists $edmscript]} {
+      while {[file exists $edmScript]} {
         after 1000
         incr nerr
-        catch {file delete $edmscript}
+        catch {file delete $edmScript}
         if {$nerr > 60} {break}
       }
 
 # if using a temporary file, attempt to delete it
       if {$tmpfile} {
         set nerr 0
-        while {[file exists $edmfile]} {
+        while {[file exists $edmFile]} {
           after 1000
           incr nerr
-          catch {file delete $edmfile}
+          catch {file delete $edmFile}
           if {$nerr > 60} {break}
         }
       }
@@ -707,10 +706,13 @@ proc displayResult {} {
 }
 
 #-------------------------------------------------------------------------------
-proc getDisplayPrograms {} {
+proc getOpenPrograms {} {
   global dispApps dispCmds dispCmd appNames appName env programfiles pf64
   global drive edmexe editorCmd developer myhome
 
+# Including any of the CAD viewers and checkers below does not imply a recommendation or endorsement of them by NIST https://www.nist.gov/disclaimer
+# For more STEP viewers, go to https://www.cax-if.org/step_viewers.html
+  
   set pflist {}
   set pf [string range $programfiles 3 end]
   foreach drives {C D E F G H I J K L M N O P Q R S T U V W X Y Z} {
@@ -730,8 +732,9 @@ proc getDisplayPrograms {} {
     set edmexe  ""
     set edms [glob -nocomplain -directory [file join $drive edm] -join edm* bin Edms.exe]
     foreach match $edms {
-      set vernum [string range [lindex [split $match "/"] 2] 3 11]
-      set name "EDM Model Checker $vernum"
+      #set vernum [string range [lindex [split $match "/"] 2] 3 11]
+      #set name "EDM Model Checker $vernum"
+      set name "EDM Model Checker"
       set edmexe $match
       set dispApps($edmexe) $name
     }
@@ -740,101 +743,21 @@ proc getDisplayPrograms {} {
   if {[info exists programfiles]} {
     foreach pf $pflist {
 
-# ST-Developer STEP File Browser, check for STEP Tools directory
+# STEP Tools apps
       if {[file isdirectory [file join $pf "STEP Tools"]]} {
-        set stmatch ""
-        foreach match [glob -nocomplain -directory $pf -join "STEP Tools" "ST-Developer*" bin stepbrws.exe] {
-          if {$stmatch == ""} {
-            set stmatch $match
-            set lastver [lindex [split [file nativename $match] [file separator]] 3]
-          } else {
-            set ver [lindex [split [file nativename $match] [file separator]] 3]
-            if {$ver > $lastver} {set stmatch $match}
-          }
-        }
-        if {$stmatch != ""} {
-          if {![info exists dispApps($stmatch)]} {
-            set vn [lindex [lindex [split [file nativename $stmatch] [file separator]] 3] 1]
-            set dispApps($stmatch) "STEP File Browser v$vn"
-          }
-        }
-
-# STEP-NC Explorer        
-        if {[file exists [file join $pf "STEP Tools" "STEP-NC Machine" STEPNCExplorer_x86.exe]]} {
-          set name "STEP-NC Explorer"
-          set dispApps([file join $pf "STEP Tools" "STEP-NC Machine" STEPNCExplorer_x86.exe]) $name
-        }
-        if {[file exists [file join $pf "STEP Tools" "STEP-NC Machine" STEPNCExplorer.exe]]} {
-          set name "STEP-NC Explorer"
-          set dispApps([file join $pf "STEP Tools" "STEP-NC Machine" STEPNCExplorer.exe]) $name
-        }
-        if {[file exists [file join $pf "STEP Tools" "STEP-NC Machine Personal Edition" STEPNCExplorer_x86.exe]]} {
-          set name "STEP-NC Explorer PE"
-          set dispApps([file join $pf "STEP Tools" "STEP-NC Machine Personal Edition" STEPNCExplorer_x86.exe]) $name
-        }
-        if {[file exists [file join $pf "STEP Tools" "STEP-NC Machine Personal Edition" STEPNCExplorer.exe]]} {
-          set name "STEP-NC Explorer PE"
-          set dispApps([file join $pf "STEP Tools" "STEP-NC Machine Personal Edition" STEPNCExplorer.exe]) $name
-        }
-
-# ST-Developer STEP Geometry Viewer
-        set stmatch ""
-        foreach match [glob -nocomplain -directory $pf -join "STEP Tools" "ST-Developer*" bin stview.exe] {
-          if {$stmatch == ""} {
-            set stmatch $match
-            set lastver [lindex [split [file nativename $match] [file separator]] 3]
-          } else {
-            set ver [lindex [split [file nativename $match] [file separator]] 3]
-            if {$ver > $lastver} {set stmatch $match}
-          }
-        }
-        if {$stmatch != ""} {
-          if {![info exists dispApps($stmatch)]} {
-            set vn [lindex [lindex [split [file nativename $stmatch] [file separator]] 3] 1]
-            set dispApps($stmatch) "ST-Viewer v$vn"
-          }
-        }
-
-# ST-Developer STEP Check and Browse
-        set stmatch ""
-        foreach match [glob -nocomplain -directory $pf -join "STEP Tools" "ST-Developer*" bin stpcheckgui.exe] {
-          if {$stmatch == ""} {
-            set stmatch $match
-            set lastver [lindex [split [file nativename $match] [file separator]] 3]
-          } else {
-            set ver [lindex [split [file nativename $match] [file separator]] 3]
-            if {$ver > $lastver} {set stmatch $match}
-          }
-        }
-        if {$stmatch != ""} {
-          if {![info exists dispApps($stmatch)]} {
-            set vn [lindex [lindex [split [file nativename $stmatch] [file separator]] 3] 1]
-            set dispApps($stmatch) "STEP Check and Browse v$vn"
-          }
-        }
-
-# ST-Developer STEP File Cleaner
-        set stmatch ""
-        foreach match [glob -nocomplain -directory $pf -join "STEP Tools" "ST-Developer*" bin stepcleangui.exe] {
-          if {$stmatch == ""} {
-            set stmatch $match
-            set lastver [lindex [split [file nativename $match] [file separator]] 3]
-          } else {
-            set ver [lindex [split [file nativename $match] [file separator]] 3]
-            if {$ver > $lastver} {set stmatch $match}
-          }
-        }
-        if {$stmatch != ""} {
-          if {![info exists dispApps($stmatch)]} {
-            set vn [lindex [lindex [split [file nativename $stmatch] [file separator]] 3] 1]
-            set dispApps($stmatch) "STEP File Cleaner v$vn"
-          }
-        }
-
-# ST-Developer AP specific Conformance Checkers
-        foreach ap {203 209 214} {
+        set applist [list \
+          [list stepbrws.exe "STEP File Browser"] \
+          [list stview.exe "STEP Viewer"] \
+          [list stpcheckgui.exe "STEP Check and Browse"] \
+          [list stepcleangui.exe "STEP File Cleaner"] \
+          [list ap203checkgui.exe "STEP AP203 Conformance Checker"] \
+          [list ap209checkgui.exe "STEP AP209 Conformance Checker"] \
+          [list ap214checkgui.exe "STEP AP214 Conformance Checker"] \
+          [list apconformgui.exe "STEP AP Conformance Checker"] \
+        ]
+        foreach app $applist {
           set stmatch ""
-          foreach match [glob -nocomplain -directory $pf -join "STEP Tools" "ST-Developer*" bin ap$ap\checkgui.exe] {
+          foreach match [glob -nocomplain -directory $pf -join "STEP Tools" "ST-Developer*" bin [lindex $app 0]] {
             if {$stmatch == ""} {
               set stmatch $match
               set lastver [lindex [split [file nativename $match] [file separator]] 3]
@@ -845,76 +768,74 @@ proc getDisplayPrograms {} {
           }
           if {$stmatch != ""} {
             if {![info exists dispApps($stmatch)]} {
-              set vn [lindex [lindex [split [file nativename $stmatch] [file separator]] 3] 1]
-              set dispApps($stmatch) "STEP AP$ap Checker v$vn"
+              #set vn [lindex [lindex [split [file nativename $stmatch] [file separator]] 3] 1]
+              set dispApps($stmatch) [lindex $app 1]
             }
           }
         }
+      }
 
-# ST-Developer generic Conformance Checker
-        set stmatch ""
-        foreach match [glob -nocomplain -directory $pf -join "STEP Tools" "ST-Developer*" bin apconformgui.exe] {
-          if {$stmatch == ""} {
-            set stmatch $match
-            set lastver [lindex [split [file nativename $match] [file separator]] 3]
-          } else {
-            set ver [lindex [split [file nativename $match] [file separator]] 3]
-            if {$ver > $lastver} {set stmatch $match}
+# other STEP file apps
+      set applist [list \
+        [list {*}[glob -nocomplain -directory [file join $pf Materialise] -join "Magics *" Magics.exe] Magics] \
+        [list {*}[glob -nocomplain -directory [file join $pf Actify SpinFire] -join "*" SpinFire.exe] SpinFire] \
+        [list {*}[glob -nocomplain -directory [file join $pf] -join "3D-Tool V*" 3D-Tool.exe] 3D-Tool] \
+        [list {*}[glob -nocomplain -directory [file join $pf] -join "VariCADViewer *" bin varicad-x64.exe] "VariCAD Viewer"] \
+        [list {*}[glob -nocomplain -directory [file join $pf "Stratasys Direct Manufacturing"] -join "SolidView Pro RP *" bin SldView.exe] SolidView] \
+        [list {*}[glob -nocomplain -directory [file join $pf "TransMagic Inc"] -join "TransMagic *" System code bin TransMagic.exe] TransMagic] \
+        [list {*}[glob -nocomplain -directory [file join $pf CADSoftTools] -join "ABViewer*" ABViewer.exe] ABViewer] \
+        [list {*}[glob -nocomplain -directory [file join $pf "Soft Gold"] -join "ABViewer*" ABViewer.exe] ABViewer] \
+        [list {*}[glob -nocomplain -directory [file join $pf Autodesk] -join "Navisworks Manage*" roamer.exe] "Navisworks Manage"] \
+      ]
+      foreach app $applist {
+        if {[llength $app] == 2} {
+          set match [join [lindex $app 0]]
+          if {$match != "" && ![info exists dispApps($match)]} {
+            set dispApps($match) [lindex $app 1]
           }
         }
-        if {$stmatch != ""} {
-          if {![info exists dispApps($stmatch)]} {
-            set vn [lindex [lindex [split [file nativename $stmatch] [file separator]] 3] 1]
-            set dispApps($stmatch) "STEP AP Conformance Checker v$vn"
-          }
+      }
+      
+      set applist [list \
+        [list [file join $pf "STEP Tools" "STEP-NC Machine" STEPNCExplorer.exe] "STEP-NC Machine"] \
+        [list [file join $pf "STEP Tools" "STEP-NC Machine" STEPNCExplorer_x86.exe] "STEP-NC Machine"] \
+        [list [file join $pf "STEP Tools" "STEP-NC Machine Personal Edition" STEPNCExplorer.exe] "STEP-NC Machine"] \
+        [list [file join $pf "STEP Tools" "STEP-NC Machine Personal Edition" STEPNCExplorer_x86.exe] "STEP-NC Machine"] \
+        [list [file join $pf Glovius Glovius glovius.exe] Glovius] \
+        [list [file join $pf "CAD Exchanger" bin Exchanger.exe] "CAD Exchanger"] \
+        [list [file join $pf "CAD Assistant" CADAssistant.exe] "CAD Assistant"] \
+        [list [file join $pf "3DJuump X64" 3DJuump.exe] "3DJuump"] \
+        [list [file join $pf STPViewer STPViewer.exe] "STP Viewer"] \
+        [list [file join $pf CadFaster QuickStep QuickStep.exe] QuickStep] \
+        [list [file join $pf Kisters 3DViewStation 3DViewStation.exe] 3DViewStation] \
+        [list [file join $pf IFCBrowser IfcQuickBrowser.exe] IfcQuickBrowser] \
+        [list [file join $pf "Tekla BIMsight" BIMsight.exe] "Tekla BIMsight"] \
+      ]
+      foreach app $applist {
+        if {[file exists [lindex $app 0]]} {
+          set name [lindex $app 1]
+          set dispApps([lindex $app 0]) $name
         }
       }
 
-# other STP viewers
-      foreach match [glob -nocomplain -directory [file join $pf CADSoftTools] -join "ABViewer*" ABViewer.exe] {
-        if {![info exists dispApps($match)]} {
-          set name [lindex [split [file nativename $match] [file separator]] 3]
-          set dispApps($match) $name
-        }
-      }
-      foreach match [glob -nocomplain -directory [file join $pf "Soft Gold"] -join "ABViewer*" ABViewer.exe] {
-        if {![info exists dispApps($match)]} {
-          set name [lindex [split [file nativename $match] [file separator]] 3]
-          set dispApps($match) $name
-        }
-      }
-      if {[file exists [file join $pf STPViewer STPViewer.exe]]} {
-        set name "STP Viewer"
-        set dispApps([file join $pf STPViewer STPViewer.exe]) $name
-      }
-      if {[file exists [file join $pf CadFaster QuickStep QuickStep.exe]]} {
-        set name "QuickStep"
-        set dispApps([file join $pf CadFaster QuickStep QuickStep.exe]) $name
-      }
-
-# two IFC programs that work with STEP files
-      if {[file exists [file join $pf IFCBrowser IfcQuickBrowser.exe]]} {
-        set name "IfcQuickBrowser"
-        set dispApps([file join $pf IFCBrowser IfcQuickBrowser.exe]) $name
-      }
-      if {[file exists [file join $pf "Tekla BIMsight" BIMsight.exe]]} {
-        set name "Tekla BIMsight"
-        set dispApps([file join $pf "Tekla BIMsight" BIMsight.exe]) $name
-      }
-
-# Adobe Acrobat X Pro with Tetra4D
-      for {set i 20} {$i > 9} {incr i -1} {
-        foreach match [glob -nocomplain -directory $pf -join Adobe "Acrobat $i.0" Acrobat Acrobat.exe] {
-          if {[file exists [file join $pf Adobe "Acrobat $i.0" Acrobat plug_ins 3DPDFConverter 3DPDFConverter.exe]]} {
+# Tetra4D in Adobe Acrobat
+      for {set i 40} {$i > 9} {incr i -1} {
+        if {$i > 11} {
+          set j "20$i"
+        } else {
+          set j "$i.0"
+        }        
+        foreach match [glob -nocomplain -directory $pf -join Adobe "Acrobat $j" Acrobat Acrobat.exe] {
+          if {[file exists [file join $pf Adobe "Acrobat $j" Acrobat plug_ins 3DPDFConverter 3DPDFConverter.exe]]} {
             if {![info exists dispApps($match)]} {
-              set name "Tetra4D (Acrobat $i Pro)"
+              set name "Tetra4D Converter"
               set dispApps($match) $name
             }
           }
         }
-        set match [file join $pf Adobe "Acrobat $i.0" Acrobat plug_ins 3DPDFConverter 3DReviewer.exe]
+        set match [file join $pf Adobe "Acrobat $j" Acrobat plug_ins 3DPDFConverter 3DReviewer.exe]
         if {![info exists dispApps($match)]} {
-          set name "Tetra4D 3D Reviewer"
+          set name "Tetra4D Reviewer"
           set dispApps($match) $name
         }
       }
@@ -1055,7 +976,7 @@ proc getFirstFile {} {
   if {$localName != ""} {
     set remoteName $localName
     outputMsg "Ready to process: [file tail $localName] ([expr {[file size $localName]/1024}] Kb)" blue
-    if {[info exists buttons(appDisplay)]} {$buttons(appDisplay) configure -state normal}
+    if {[info exists buttons(appOpen)]} {$buttons(appOpen) configure -state normal}
   }
   return $localName
 }
@@ -1202,6 +1123,8 @@ proc checkForExcel {{multFile 0}} {
   global lastXLS localName buttons
   
   set pid1 [twapi::get_process_ids -name "EXCEL.EXE"]
+  #outputMsg "checkForExcel-$pid1"
+  
   if {[llength $pid1] > 0} {
     if {[info exists buttons]} {
       if {!$multFile} {
@@ -1512,11 +1435,13 @@ proc copyRoseFiles {} {
   global programfiles wdir mytemp developer env ifcsvrdir nistVersion
   
   if {[file exists $ifcsvrdir]} {
+    #set developer 0
 
 # rose files in SFA distribution
     if {[llength [glob -nocomplain -directory [file join $wdir schemas] *.rose]] > 0} {
       set ok 1
       foreach fn [glob -nocomplain -directory [file join $wdir schemas] *.rose] {
+          
         set fn1 [file tail $fn]
         set f2 [file join $ifcsvrdir $fn1]
         set okcopy 0
@@ -1525,6 +1450,16 @@ proc copyRoseFiles {} {
         } elseif {[file mtime $fn] > [file mtime $f2]} {
           set okcopy 1
         }
+
+# developer schemas
+        set devfile 0
+        if {[string first "am_ap242" $fn] != -1} {set devfile 1}
+        if {!$developer && $devfile} {
+          set okcopy 0
+          if {[file exists $f2]} {catch {file delete -force $f2}}
+        }
+
+# copy files
         if {$okcopy} {
           if {[catch {
             file copy -force $fn $f2
@@ -1543,48 +1478,48 @@ proc copyRoseFiles {} {
           }
         }
       }
+
+# error copying files
       if {!$ok} {
         errorMsg "STEP schema files (*.rose) could not be copied to IFCsvr/dll directory"
-        outputMsg " "
         errorMsg "Check if any STEP APs are supported at Help > Supported STEP APs"
-        outputMsg " "
-        errorMsg "If none are supported, then before continuing,\n copy the *.rose file in $mytemp\n to $ifcsvrdir\nThis might require administrator privileges."
+        errorMsg "If none are supported, then before continuing,\n copy the *.rose file(s) in $mytemp\n to $ifcsvrdir\nThis might require administrator privileges."
         .tnb select .tnb.status
       }
     }
 
-# rose files in STEPtools distribution
-    if {[info exists env(ROSE)]} {
-      set n [string range $env(ROSE) end-2 end-1]
-      set stdir [file join $programfiles "STEP Tools" "ST-Runtime $n" schemas]
-      if {[file exists $stdir]} {
-        set ok 1
-        foreach fn [glob -nocomplain -directory $stdir *.rose] {
-          set fn1 [file tail $fn]
-          if {[string first "_EXP" $fn1] == -1 && ([string first "ap" $fn1] == 0 || [string first "auto" $fn1] == 0 || [string first "building" $fn1] == 0 || \
-              [string first "cast" $fn1] == 0 || [string first "config" $fn1] == 0 || [string first "integrated" $fn1] == 0 || [string first "plant" $fn1] == 0 || \
-              [string first "ship" $fn1] == 0 || [string first "structural" $fn1] == 0 || [string first "feature" $fn1] == 0 || [string first "furniture" $fn1] == 0 || \
-              [string first "engineering" $fn1] == 0 || [string first "technical" $fn1] == 0)} {
-            set f2 [file join $ifcsvrdir $fn1]
-            set okcopy 0
-            if {![file exists $f2]} {
-              set okcopy 1
-            } elseif {[file mtime $fn] > [file mtime $f2]} {
-              set okcopy 1
-            }
-            if {$okcopy} {
-              if {[catch {
-                file copy -force $fn $f2
-                if {$developer} {outputMsg "Copying STEPtools ROSE file: $fn1" red}
-              } emsg]} {
-                errorMsg "ERROR copying STEP schema files (*.rose) from STEPtools to $ifcsvrdir"
-                .tnb select .tnb.status
-              }
-            }
-          }
-        }      
-      }
-    }
+# rose files in STEP Tools distribution
+    #if {[info exists env(ROSE)]} {
+    #  set n [string range $env(ROSE) end-2 end-1]
+    #  set stdir [file join $programfiles "STEP Tools" "ST-Runtime $n" schemas]
+    #  if {[file exists $stdir]} {
+    #    set ok 1
+    #    foreach fn [glob -nocomplain -directory $stdir *.rose] {
+    #      set fn1 [file tail $fn]
+    #      if {[string first "_EXP" $fn1] == -1 && ([string first "ap" $fn1] == 0 || [string first "auto" $fn1] == 0 || [string first "building" $fn1] == 0 || \
+    #          [string first "cast" $fn1] == 0 || [string first "config" $fn1] == 0 || [string first "integrated" $fn1] == 0 || [string first "plant" $fn1] == 0 || \
+    #          [string first "ship" $fn1] == 0 || [string first "structural" $fn1] == 0 || [string first "feature" $fn1] == 0 || [string first "furniture" $fn1] == 0 || \
+    #          [string first "engineering" $fn1] == 0 || [string first "technical" $fn1] == 0)} {
+    #        set f2 [file join $ifcsvrdir $fn1]
+    #        set okcopy 0
+    #        if {![file exists $f2]} {
+    #          set okcopy 1
+    #        } elseif {[file mtime $fn] > [file mtime $f2]} {
+    #          set okcopy 1
+    #        }
+    #        if {$okcopy} {
+    #          if {[catch {
+    #            file copy -force $fn $f2
+    #            if {$developer} {outputMsg "Copying STEP Tools ROSE file: $fn1" red}
+    #          } emsg]} {
+    #            errorMsg "ERROR copying STEP schema files (*.rose) from STEP Tools to $ifcsvrdir"
+    #            .tnb select .tnb.status
+    #          }
+    #        }
+    #      }
+    #    }      
+    #  }
+    #}
   } else {
     #errorMsg "ERROR: IFCsvr Toolkit needs to be installed before copying STEP schema files (*.rose) to\n $ifcsvrdir"
   }
@@ -1648,7 +1583,7 @@ proc installIFCsvr {} {
         outputMsg " 4 - IFCsvr Toolkit will be installed when the NIST STEP File Analyzer is run"
         outputMsg " 5 - Generate a spreadsheet for at least one STEP file"
         after 1000
-        displayURL http://go.usa.gov/yccx
+        openURL http://go.usa.gov/yccx
       } else {
         errorMsg "To manually install IFCsvr:"
         outputMsg " 1 - Join the IFCsvr ActiveX Component Group (you will need a Yahoo account)"
@@ -1659,7 +1594,7 @@ proc installIFCsvr {} {
         outputMsg " 5 - Rerun this software."
         outputMsg "\nIf there are still problems with the IFCsvr installation, email the Contact (Help > About)"
         after 1000
-        displayURL https://groups.yahoo.com/neo/groups/ifcsvr-users/info
+        openURL https://groups.yahoo.com/neo/groups/ifcsvr-users/info
       }
     }
 
@@ -1761,7 +1696,22 @@ proc setHomeDir {} {
       set reg_menu [registry get {HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\User Shell Folders} {Programs}]
       if {[string first "%USERPROFILE%" $reg_menu] == 0} {regsub "%USERPROFILE%" $reg_menu $env(USERPROFILE) mymenu}
     }
-    if {$tcl_platform(osVersion) < 6.0} {
+    
+# windows 7 or greater    
+    if {$tcl_platform(osVersion) >= 6.0} {
+      set reg_temp [registry get {HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\User Shell Folders} {Local AppData}]
+      if {[string first "%USERPROFILE%" $reg_menu] == 0} {regsub "%USERPROFILE%" $reg_temp $env(USERPROFILE) mytemp}
+      set mytemp [file join $mytemp Temp]
+      if {[string first $env(USERNAME) $mytemp] == -1} {
+        unset mytemp
+      } else {
+        if {[file exists [file join $mytemp NIST]]} {catch {file delete -force [file join $mytemp NIST]}}
+        set mytemp [file nativename [file join $mytemp SFA]]
+        if {![file exists $mytemp]} {file mkdir $mytemp}
+      }
+
+# windows xp
+    } else {
       catch {
         set reg_temp [registry get {HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\User Shell Folders} {Local Settings}]
         if {[string first "%USERPROFILE%" $reg_menu] == 0} {regsub "%USERPROFILE%" $reg_temp $env(USERPROFILE) mytemp}
@@ -1774,17 +1724,6 @@ proc setHomeDir {} {
           if {![file exists $mytemp]} {file mkdir $mytemp}
         }
       }
-    } else {
-        set reg_temp [registry get {HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\User Shell Folders} {Local AppData}]
-        if {[string first "%USERPROFILE%" $reg_menu] == 0} {regsub "%USERPROFILE%" $reg_temp $env(USERPROFILE) mytemp}
-        set mytemp [file join $mytemp Temp]
-        if {[string first $env(USERNAME) $mytemp] == -1} {
-          unset mytemp
-        } else {
-          if {[file exists [file join $mytemp NIST]]} {catch {file delete -force [file join $mytemp NIST]}}
-          set mytemp [file join $mytemp SFA]
-          if {![file exists $mytemp]} {file mkdir $mytemp}
-        }
     }
   }
 
@@ -1825,6 +1764,7 @@ proc setHomeDir {} {
 }
 
 # -------------------------------------------------------------------------------
+# http://wiki.tcl.tk/1844
 proc get_shortcut_filename {file} {
   set dir [file nativename [file dirname $file]]
   set tail [file nativename [file tail $file]]
@@ -1862,7 +1802,6 @@ proc get_shortcut_filename {file} {
   }
 }
 
-# -------------------------------------------------------------------------------
 proc create_shortcut {file args} {
   if {![string match ".lnk" [string tolower [file extension $file]]]} {
     append file ".lnk"
@@ -1913,6 +1852,7 @@ proc getTiming {{str ""}} {
 }
 
 #-------------------------------------------------------------------------------
+# http://wiki.tcl.tk/4021
 proc sortlength2 {wordlist} {
   set words {}
   foreach word $wordlist {
@@ -1926,12 +1866,12 @@ proc sortlength2 {wordlist} {
 }
 
 #-------------------------------------------------------------------------------
+# http://wiki.tcl.tk/3070
 proc stringSimilarity {a b} {
   set totalLength [max [string length $a] [string length $b]]
   return [string range [max [expr {double($totalLength-[levenshteinDistance $a $b])/$totalLength}] 0.0] 0 4]
 }
 
-#-------------------------------------------------------------------------------
 proc levenshteinDistance {s t} {
   if {![set n [string length $t]]} {
     return [string length $s]
@@ -1963,4 +1903,29 @@ proc compareLists {str l1 l2} {
   outputMsg "Unique to L1 ([llength [lindex $l3 0]])\n  [lrange [lindex $l3 0] 0 500]"
   outputMsg "Common to both ([llength [lindex $l3 1]])\n  [lrange [lindex $l3 1] 0 500]"
   outputMsg "Unique to L2 ([llength [lindex $l3 2]])\n  [lrange [lindex $l3 2] 0 600]"
+}
+
+#-------------------------------------------------------------------------------
+# http://www.posoft.de/html/extCawt.html
+proc GetWorksheetAsMatrix {worksheetId} {
+  set cellId [[$worksheetId Cells] Range [GetCellRange 1 1 [[[$worksheetId UsedRange] Rows] Count] [[[$worksheetId UsedRange] Columns] Count]]]
+  set matrixList [$cellId Value2]
+  return $matrixList
+}
+
+proc GetCellRange {row1 col1 row2 col2} {
+  set range [format "%s%d:%s%d" [ColumnIntToChar $col1] $row1 [ColumnIntToChar $col2] $row2]
+  return $range
+}
+
+proc ColumnIntToChar {col} {
+  if {$col <= 0} {errorMsg "Column number $col is invalid."}
+  set dividend $col
+  set columnName ""
+  while {$dividend > 0} {
+    set modulo [expr {($dividend - 1) % 26} ]
+    set columnName [format "%c${columnName}" [expr {65 + $modulo}]]
+    set dividend [expr {($dividend - $modulo) / 26}]
+  }
+  return $columnName
 }

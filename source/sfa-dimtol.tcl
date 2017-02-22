@@ -69,7 +69,7 @@ proc spmiDimtolStart {objDesign entType} {
   set elevel 0
   
 # get next unused column by checking if there is a colName
-  set pmiStartCol($dt) [getNextUnusedColumn $startent 3]
+  set pmiStartCol($dt) [expr {[getNextUnusedColumn $startent 3]+1}]
   #outputMsg pmiStartCol$pmiStartCol($dt)
 
 # process all, call spmiDimtolReport
@@ -87,6 +87,7 @@ proc spmiDimtolStart {objDesign entType} {
     }
   }
   set col($dt) $pmiCol
+  set pmiStartCol($dt) [expr {$pmiStartCol($dt)-1}]
 }
 
 # -------------------------------------------------------------------------------
@@ -221,7 +222,7 @@ proc spmiDimtolReport {objEntity} {
                                 set tmp [split [lindex [split [$attr1 Value] " "] 1] "."]
                                 set prec1 [expr {abs([lindex $tmp 0])}]
                                 set dim(qual) [lindex $tmp 1]
-                                if {$dim(qual) > 5} {errorMsg "Syntax Error: value_format_type_qualifier ([$attr1 Value]) might have too many decimal places"}
+                                if {$dim(qual) > 5} {errorMsg "Syntax Error: value_format_type_qualifier ([$attr1 Value]) might have too many decimal places\n[string repeat " " 14]\($recPracNames(pmi242), Sec. 5.4)"}
                                 set objValue [string trimright [format "%.4f" $objValue] "0"]
                                 set val1 [lindex [split $objValue "."] 0]
                                 set val2 [lindex [split $objValue "."] 1]
@@ -235,6 +236,13 @@ proc spmiDimtolReport {objEntity} {
                                   }
                                   if {[string length $val1] > $prec1} {
                                     errorMsg "Syntax Error: value_format_type_qualifier ([$attr1 Value]) too small for: $objValue\n[string repeat " " 14]\($recPracNames(pmi242), Sec. 5.4)"
+                                  }
+                                  if {[info exists dim(unit)]} {
+                                    if {$dim(unit) == "INCH"} {
+                                      if {$objValue < 1. && $prec1 > 0} {
+                                        errorMsg "Syntax Error: For INCH units and Dimensions < 1 (no leading zero), value_format_type_qualifier 'NR2 1.n' should be 'NR2 0.n'\n[string repeat " " 14]\($recPracNames(pmi242), Sec. 5.4)"
+                                      }
+                                    }
                                   }
                                 } else {
                                   set dimtmp ".[string range $val2 0 $dim(qual)-1]"
@@ -540,11 +548,11 @@ proc spmiDimtolReport {objEntity} {
                     }
                     "shape_dimension_representation name" {
 # shape_dimension.name, look for independency or envelope requirement per the RP, Sec 5.2.1                    
-                      set ok 1
-                      set col($dt) [expr {$pmiStartCol($dt)+1}]
-                      set colName "representation name[format "%c" 10](Sec. 5.2.1)"
                       set invalid 0
                       if {$ov != ""} {
+                        set ok 1
+                        set col($dt) [expr {$pmiStartCol($dt)+1}]
+                        set colName "representation name[format "%c" 10](Sec. 5.2.1)"
                         if {$ov != "independency" && $ov != "envelope requirement"} {
                           errorMsg "Syntax Error: Invalid 'name' attribute ($ov) on [lindex $ent1 0].\n[string repeat " " 14]\($recPracNames(pmi242), Sec. 5.2.1, Table 5)"
                           lappend syntaxErr([lindex [split $ent1 " "] 0]) [list $objID [lindex [split $ent1 " "] 1]]
@@ -789,7 +797,7 @@ proc spmiDimtolReport {objEntity} {
 
 # report associated geometry
       if {[info exists assocGeom]} {
-        set str [reportAssocGeom]
+        set str [reportAssocGeom [$dimtolEnt Type]]
         
         if {$str != "" && [info exists spmiIDRow($dt,$spmiID)]} {
           if {![info exists pmiColumns(ch)]} {set pmiColumns(ch) [expr {$pmiStartCol($dt)+12}]}
@@ -1039,7 +1047,8 @@ proc spmiDimtolReport {objEntity} {
 # report complete dimension representation (dimrep)
     if {[catch {
       if {[info exists dimrep] && [info exists spmiIDRow($dt,$spmiID)]} {
-        if {![info exists pmiColumns(dmrp)]} {set pmiColumns(dmrp) [expr {$pmiStartCol($dt)+11}]}
+        if {![info exists pmiColumns(dmrp)]} {set pmiColumns(dmrp) 4}
+        #if {![info exists pmiColumns(dmrp)]} {set pmiColumns(dmrp) [expr {$pmiStartCol($dt)+11}]}
         set c [string index [cellRange 1 $pmiColumns(dmrp)] 0]
         set r $spmiIDRow($dt,$spmiID)
         if {![info exists pmiHeading($pmiColumns(dmrp))]} {

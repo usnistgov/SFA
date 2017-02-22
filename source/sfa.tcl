@@ -52,13 +52,14 @@ foreach item $auto_path {if {[string first "STEP-File-Analyzer" $item] != -1} {s
 
 # initialize variables
 foreach id {XL_OPEN XL_KEEPOPEN XL_LINK1 XL_FPREC XL_SORT \
-            VALPROP PMIGRF PMISEM GENX3DOM INVERSE DEBUG1 DEBUG2 \
+            VALPROP PMIGRF PMISEM VIZPMI VIZ209 INVERSE DEBUG1 DEBUG2 \
             PR_STEP_AP242 PR_USER PR_STEP_KINE PR_STEP_COMP PR_STEP_COMM PR_STEP_GEOM PR_STEP_QUAN \
             PR_STEP_FEAT PR_STEP_PRES PR_STEP_TOLR PR_STEP_REPR PR_STEP_CPNT PR_STEP_SHAP} {set opt($id) 1}
 
 set opt(PR_STEP_CPNT) 0
 set opt(PR_STEP_GEOM)  0
 set opt(PR_USER) 0
+set opt(VIZ209) 0
 
 set opt(CRASH) 0
 set opt(DEBUG1) 0
@@ -140,9 +141,10 @@ if {[file exists $optionsFile]} {
   if {[string first "+" $optionserr] == 0} {set optionserr ""}
 
 # check for old variable names
-  if {[info exists opt(PMIVRML)]} {set opt(GENX3DOM) $opt(PMIVRML)}
-  if {[info exists opt(PMIPROP)]} {set opt(PMIGRF)   $opt(PMIPROP)}
-  if {[info exists opt(SEMPROP)]} {set opt(PMISEM)   $opt(SEMPROP)}
+  if {[info exists opt(PMIVRML)]}  {set opt(VIZPMI) $opt(PMIVRML)}
+  if {[info exists opt(PMIPROP)]}  {set opt(PMIGRF) $opt(PMIPROP)}
+  if {[info exists opt(SEMPROP)]}  {set opt(PMISEM) $opt(SEMPROP)}
+  if {[info exists opt(GENX3DOM)]} {set opt(VIZPMI) $opt(GENX3DOM)}
 
   if {[info exists opt(ROWLIM)]} {set opt(XL_ROWLIM) $opt(ROWLIM)}
   if {[info exists opt(SORT)]}   {set opt(XL_SORT)   $opt(SORT)}
@@ -202,7 +204,7 @@ if {[string index $opt(XL_ROWLIM) end] == 1} {set opt(XL_ROWLIM) [expr {$opt(XL_
 
 #-------------------------------------------------------------------------------
 # get programs that can open STEP files
-getDisplayPrograms
+getOpenPrograms
 
 #-------------------------------------------------------------------------------
 # user interface
@@ -216,7 +218,7 @@ foreach m {File Websites Help} {
   .menubar add cascade -label $m -menu .menubar.m$m
 }
 
-# check if menu font is Segoe UI
+# check if menu font is Segoe UI for windows 7 or greater
 catch {
   if {$tcl_platform(osVersion) >= 6.0} {
     set ff [join [$File cget -font]]
@@ -250,12 +252,9 @@ outputMsg "- Automated checking of PMI Annotations for the NIST CAD models
    Similar and Missing PMI is also reported
   See Help > NIST CAD Models
 
+- Bug fixes and minor improvements
 - Improved visualization of PMI Presentation Annotations (Options tab)
-- Improved reporting of Associated Geometry for Tolerances, Datum Features, and Annotations
-- Support for AP209e2 'Multidisciplinary analysis and design' (Help > Supported STEP APs)
-- Simplified Process options (Options tab)
-- Support for CSV files (Options tab)
-- Source code on GitHub (Websites menu)"
+- Improved reporting of Associated Geometry for Tolerances, Datum Features, and Annotations"
 
   .tnb select .tnb.status
   update idletasks
@@ -279,7 +278,7 @@ guiProcessAndReports
 guiInverse
 
 # open option
-guiDisplayResult
+guiOpenSTEPFile
 pack $fopt -side top -fill both -expand true -anchor nw
 
 # spreadsheet tab
@@ -307,13 +306,13 @@ set copyrose 0
 set ask 0
 if {$opt(FIRSTTIME)} {
   whatsNew
-  if {$nistVersion} {displayDisclaimer}
+  if {$nistVersion} {showDisclaimer}
   
   set sfaVersion [getVersion]
   set opt(FIRSTTIME) 0
   
   after 1000
-  displayGuide
+  showUsersGuide
   set opt(DISPGUIDE1) 0
   
   saveState
@@ -329,7 +328,7 @@ if {$opt(FIRSTTIME)} {
   whatsNew
   if {$sfaVersion < 1.60} {
     errorMsg "- Version 3 of the User's Guide is now available"
-    displayGuide
+    showUsersGuide
   }
   set sfaVersion [getVersion]
   saveState
@@ -337,7 +336,7 @@ if {$opt(FIRSTTIME)} {
   setShortcuts
 }
 
-# look for rose files in STEPtools
+# look for rose files in STEP Tools
 if {[info exists env(ROSE)]} {
   set n [string range $env(ROSE) end-2 end-1]
   set stdir [file join $programfiles "STEP Tools" "ST-Runtime $n" schemas]
@@ -349,7 +348,7 @@ if {$developer} {set copyrose 1}
 #-------------------------------------------------------------------------------
 # crash recovery message
 if {$opt(CRASH) < 2} {
-  displayCrashRecovery
+  showCrashRecovery
   incr opt(CRASH)
   saveState
 }
@@ -367,7 +366,7 @@ if {$nistVersion} {
         if {$pf64 != ""} {append os ".64"}
         set url "http://ciks.cbt.nist.gov/cgi-bin/ctv/sfa_upgrade.cgi?version=[getVersion]&auto=$lastupgrade&os=$os"
         if {[info exists excelYear]} {if {$excelYear != ""} {append url "&yr=[expr {$excelYear-2000}]"}}
-        displayURL $url
+        openURL $url
       }
       set upgrade [clock seconds]
       saveState
@@ -380,7 +379,7 @@ if {$nistVersion} {
 
 # open user's guide if it hasn't already
 if {$opt(DISPGUIDE1)} {
-  displayGuide
+  showUsersGuide
   set opt(DISPGUIDE1) 0
   saveState
 }
@@ -402,7 +401,7 @@ if {$argv != ""} {
     if {[file exists $localName]} {
       set localNameList [list $localName]
       outputMsg "Ready to process: [file tail $localName] ([expr {[file size $localName]/1024}] Kb)" blue
-      if {[info exists buttons(appDisplay)]} {$buttons(appDisplay) configure -state normal}
+      if {[info exists buttons(appOpen)]} {$buttons(appOpen) configure -state normal}
       if {[info exists buttons(genExcel)]} {
         $buttons(genExcel) configure -state normal
         focus $buttons(genExcel)
@@ -440,7 +439,7 @@ if {[llength $pid2] > 1} {
   }
 }
 
-# copy schema rose files that are in the Tcl Virtual File System (VFS) or STEPtools runtime to the IFCsvr dll directory
+# copy schema rose files that are in the Tcl Virtual File System (VFS) or STEP Tools runtime to the IFCsvr dll directory
 if {$copyrose} {copyRoseFiles}
 
 # warn if spreadsheets not written to default directory

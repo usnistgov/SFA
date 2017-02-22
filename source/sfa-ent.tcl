@@ -2,7 +2,7 @@
 
 proc getEntity {objEntity checkInverse} {
   global attrType badAttributes cells col count developer entCount entName excelVersion
-  global fixent fixprm heading invMsg invVals localName opt roseLogical row rowmax sheetLast
+  global skipEntities skipPerm heading invMsg invVals localName opt roseLogical row rowmax sheetLast
   global thisEntType worksheet worksheets wsCount
   
 # get entity type
@@ -58,8 +58,6 @@ proc getEntity {objEntity checkInverse} {
     set count($thisEntType) 0
     set invMsg ""
 
-    #[$worksheet($thisEntType) Range [cellRange 1 1] [cellRange 1 1]] Select
-
 # color tab
     if {$excelVersion >= 12} {
       set cidx [setColorIndex $thisEntType]
@@ -68,18 +66,17 @@ proc getEntity {objEntity checkInverse} {
 
     set wsCount [$worksheets Count]
     set sheetLast $worksheet($thisEntType)
-    #$worksheet($thisEntType) Activate
 
 # file of entities not to process
     set cfile [file rootname $localName]
-    append cfile "_fix.dat"
+    append cfile "-skip.dat"
     if {[catch {
-      set fixfile [open $cfile w]
-      foreach item $fixent {if {[lsearch $fixprm $item] == -1} {puts $fixfile $item}}
-      if {[lsearch $fixent $thisEntType] == -1 && [lsearch $fixprm $thisEntType] == -1} {puts $fixfile $thisEntType}
-      close $fixfile
+      set skipFile [open $cfile w]
+      foreach item $skipEntities {if {[lsearch $skipPerm $item] == -1} {puts $skipFile $item}}
+      if {[lsearch $skipEntities $thisEntType] == -1 && [lsearch $skipPerm $thisEntType] == -1} {puts $skipFile $thisEntType}
+      close $skipFile
     } emsg]} {
-      errorMsg "ERROR processing 'fix' file: $emsg"
+      errorMsg "ERROR processing 'skip' file: $emsg"
     }
     update idletasks
 
@@ -120,9 +117,7 @@ proc getEntity {objEntity checkInverse} {
 # find inverse relationships for specific entities
     if {$checkInverse} {invFind $objEntity}
     set invLen 0
-    if {[info exists invVals]} {
-      set invLen [array size invVals]
-    }
+    if {[info exists invVals]} {set invLen [array size invVals]}
 
 # -------------------------------------------------------------------------------------------------
 # for all attributes of the entity
@@ -145,7 +140,13 @@ proc getEntity {objEntity checkInverse} {
             set objValue [$objAttribute Value]
           } else {
             set objValue "???"
-            errorMsg " Skipping '$attrName' attribute on $thisEntType" red
+            if {[llength $badAttributes($thisEntType)] == 1} {
+              errorMsg " Skipping attribute '$attrName' on $thisEntType, '???' will appear in spreadsheet for this attribute" red
+            } else {
+              set str $badAttributes($thisEntType)
+              regsub -all " " $str "' '" str
+              errorMsg " Skipping attributes '$str' on $thisEntType\n '???' will appear in spreadsheet for these attributes" red
+            }
           }
         }
 
@@ -355,12 +356,8 @@ proc setIDRow {entType p21id} {
 # -------------------------------------------------------------------------------------------------
 # read entity and write to CSV file
 proc getEntityCSV {objEntity} {
-  global thisEntType count
-  global fixent fixprm localName
-  global roseLogical
-  global entCount badAttributes
-  global csvfile csvdirnam csvstr fcsv
-
+  global badAttributes count csvdirnam csvfile csvstr entCount fcsv skipEntities skipPerm localName roseLogical thisEntType 
+  
 # get entity type
   set thisEntType [$objEntity Type]
 
@@ -390,14 +387,14 @@ proc getEntityCSV {objEntity} {
 
 # file of entities not to process
     set cfile [file rootname $localName]
-    append cfile "_fix.dat"
+    append cfile "-skip.dat"
     if {[catch {
-      set fixfile [open $cfile w]
-      foreach item $fixent {if {[lsearch $fixprm $item] == -1} {puts $fixfile $item}}
-      if {[lsearch $fixent $thisEntType] == -1 && [lsearch $fixprm $thisEntType] == -1} {puts $fixfile $thisEntType}
-      close $fixfile
+      set skipFile [open $cfile w]
+      foreach item $skipEntities {if {[lsearch $skipPerm $item] == -1} {puts $skipFile $item}}
+      if {[lsearch $skipEntities $thisEntType] == -1 && [lsearch $skipPerm $thisEntType] == -1} {puts $skipFile $thisEntType}
+      close $skipFile
     } emsg]} {
-      errorMsg "ERROR processing 'fix' file: $emsg"
+      errorMsg "ERROR processing 'skip' file: $emsg"
     }
     update idletasks
   }

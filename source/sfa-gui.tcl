@@ -142,7 +142,7 @@ proc guiButtons {} {
       set l3 [label $ftrans.l3 -relief flat -bd 0]
       $l3 config -image [image create photo -file [file join $wdir images nist.gif]]
       pack $l3 -side right -padx 10
-      bind $l3 <ButtonRelease-1> {displayURL https://www.nist.gov}
+      bind $l3 <ButtonRelease-1> {openURL https://www.nist.gov}
       tooltip::tooltip $l3 "Click here"
     }
     catch {[file copy -force [file join $wdir images NIST.ico] [file join $mytemp NIST.ico]]}
@@ -191,14 +191,10 @@ proc guiStatusTab {} {
   $outputWin type add error -foreground black -background "#ffff99"
   $outputWin type add syntax -foreground black -background "#ff9999"
   
+# windows 7 or greater
   if {$tcl_platform(osVersion) >= 6.0} {
     if {![info exists statusFont]} {
       set statusFont [$outputWin type cget black -font]
-      #set newsize [expr {int((508./[winfo screenmmwidth .])*120.)}]
-      #if {[string index $newsize 2] != 0} {
-      #  set newsize [expr {round($newsize/10.)*10}]
-      #  for {set i 210} {$i >= 100} {incr i -10} {regsub -all $i $statusFont $newsize statusFont}
-      #}
     }
     if {[string first "Courier" $statusFont] != -1} {
       regsub "Courier" $statusFont "Consolas" statusFont
@@ -340,7 +336,7 @@ proc guiProcessAndReports {} {
     incr cb
     set tt [string range $idx 3 end]
     if {[info exists entCategory($tt)]} {
-      set ttmsg "[string trim [lindex $item 0]] entities ([llength $entCategory($tt)])  These entities are found in most APs.\nSee Help > Supported STEP APs and Websites > AP... Schema\n\n"
+      set ttmsg "[string trim [lindex $item 0]] entities ([llength $entCategory($tt)])  These entities are found in most APs.\nSee Help > Supported STEP APs and Websites > EXPRESS Schemas\n\n"
       if {$tt != "PR_STEP_COMM"} {
         set ttmsg [processToolTip $ttmsg $tt 120]
       } else {
@@ -356,7 +352,7 @@ proc guiProcessAndReports {} {
                 {" Composites"      opt(PR_STEP_COMP)} \
                 {" Kinematics"      opt(PR_STEP_KINE)} \
                 {" Geometry"        opt(PR_STEP_GEOM)} \
-                {" Cartesian Point" opt(PR_STEP_CPNT)}} {
+                {" Coordinates"     opt(PR_STEP_CPNT)}} {
     regsub -all {[\(\)]} [lindex $item 1] "" idx
     set buttons($idx) [ttk::checkbutton $fopta4.$cb -text [lindex $item 0] \
       -variable [lindex $item 1] -command {checkValues}]
@@ -366,11 +362,11 @@ proc guiProcessAndReports {} {
     if {[info exists entCategory($tt)]} {
       set ttmsg "[string trim [lindex $item 0]] entities ([llength $entCategory($tt)])"
       if {$tt == "PR_STEP_KINE" || $tt == "PR_STEP_COMP"} {
-        append ttmsg "  These entities are found in some APs.\nSee Help > Supported STEP APs and Websites > AP... Schema\n\n"
+        append ttmsg "  These entities are found in some APs.\nSee Help > Supported STEP APs and Websites > EXPRESS Schemas\n\n"
       } elseif {$tt == "PR_STEP_QUAN"} {
-        append ttmsg "  These entities are found in most APs.\nSee Help > Supported STEP APs and Websites > AP... Schema\n\n"
+        append ttmsg "  These entities are found in most APs.\nSee Help > Supported STEP APs and Websites > EXPRESS Schemas\n\n"
       } elseif {$tt == "PR_STEP_GEOM"} {
-        append ttmsg "  These entities are found in all APs.\nSee Help > Supported STEP APs and Websites > AP... Schema\n\nThere are new entities in the AP242 schema for tessellated geometry and CSG.\n\nFor large STEP files, this option can slow down the processing of the file and increase the size of the spreadsheet.\nUse Maximum Rows options to speed up the processing of these entities.\n\n"
+        append ttmsg "  These entities are found in most APs.  AP242, AP209, and AP210 also support tessellated geometry.\nSee Help > Supported STEP APs and Websites > EXPRESS Schemas\n\nFor large STEP files, this option can slow down the processing of the file and increase the size of the spreadsheet.\nUse Maximum Rows options to speed up the processing of these entities.\n\n"
       } elseif {$tt == "PR_STEP_CPNT"} {
         append ttmsg "\n\nFor large STEP files, this option can slow down the processing of the file and increase the size of the spreadsheet.\nUse Maximum Rows options to speed up the processing of these entities.\n\n"
       }
@@ -424,7 +420,7 @@ proc guiProcessAndReports {} {
   }
   catch {
     tooltip::tooltip $buttons(anbut0) "Selects all of the Reports below and the required entities for the reports"
-    tooltip::tooltip $buttons(anbut1) "Selects all Entity types except Geometry and Cartesian Point"
+    tooltip::tooltip $buttons(anbut1) "Selects all Entity types except Geometry and Coordinates"
   }
 
   pack $fopta1 -side left -anchor w -pady 0 -padx 0 -fill y
@@ -434,12 +430,11 @@ proc guiProcessAndReports {} {
 #-------------------------------------------------------------------------------
 # report
   set foptd [ttk::labelframe $fopt.1 -text " Report "]
-  set foptd1 [frame $foptd.1 -bd 0]
   
-  set foptd4 [frame $foptd.4 -bd 0]
+  set foptd1 [frame $foptd.1 -bd 0]
   foreach item {{" PMI Representation (Semantic PMI)" opt(PMISEM)}} {
   regsub -all {[\(\)]} [lindex $item 1] "" idx
-    set buttons($idx) [ttk::checkbutton $foptd4.$cb -text [lindex $item 0] \
+    set buttons($idx) [ttk::checkbutton $foptd1.$cb -text [lindex $item 0] \
       -variable [lindex $item 1] -command {
         if {$opt(PMISEM)} {set opt(INVERSE) 1}
         checkValues
@@ -447,12 +442,12 @@ proc guiProcessAndReports {} {
     pack $buttons($idx) -side left -anchor w -padx 5 -pady 0 -ipady 0
     incr cb
   }
-  pack $foptd4 -side top -anchor w -pady 0 -padx 0 -fill y
+  pack $foptd1 -side top -anchor w -pady 0 -padx 0 -fill y
   
-  set foptd3 [frame $foptd.3 -bd 0]
+  set foptd2 [frame $foptd.2 -bd 0]
   foreach item {{" PMI Presentation (Graphical PMI)" opt(PMIGRF)}} {
     regsub -all {[\(\)]} [lindex $item 1] "" idx
-    set buttons($idx) [ttk::checkbutton $foptd3.$cb -text [lindex $item 0] \
+    set buttons($idx) [ttk::checkbutton $foptd2.$cb -text [lindex $item 0] \
       -variable [lindex $item 1] -command {
         if {$opt(PMIGRF)} {set opt(INVERSE) 1}
         checkValues
@@ -460,32 +455,33 @@ proc guiProcessAndReports {} {
     pack $buttons($idx) -side left -anchor w -padx 5 -pady 0 -ipady 0
     incr cb
   }
-  pack $foptd3 -side top -anchor w -pady 0 -padx 0 -fill y
+  pack $foptd2 -side top -anchor w -pady 0 -padx 0 -fill y
   
-  set foptd5 [frame $foptd.5 -bd 0]
-  foreach item {{" Visualize PMI Presentation" opt(GENX3DOM)}} {
+  set foptd3 [frame $foptd.3 -bd 0]
+  foreach item {{" Visualize PMI Presentation" opt(VIZPMI)}} {
     regsub -all {[\(\)]} [lindex $item 1] "" idx
-    set buttons($idx) [ttk::checkbutton $foptd5.$cb -text [lindex $item 0] \
+    set buttons($idx) [ttk::checkbutton $foptd3.$cb -text [lindex $item 0] \
       -variable [lindex $item 1] -command {
       checkValues
     }]
     pack $buttons($idx) -side left -anchor w -padx 5 -pady 0 -ipady 0
     incr cb
   }
-  set buttons(linecolor) [label $foptd5.l3 -text "Color:"]
-  pack $foptd5.l3 -side left -anchor n -padx 0 -pady 0 -ipady 0
+  set buttons(linecolor) [label $foptd3.l3 -text "Color:"]
+  pack $foptd3.l3 -side left -anchor n -padx 0 -pady 0 -ipady 0
   set gpmiColorVal {{"Random" 2} {"From file" 0} {"Black" 1}}
   foreach item $gpmiColorVal {
     set bn "gpmiColor[lindex $item 1]"            
-    set buttons($bn) [ttk::radiobutton $foptd5.$cb -variable opt(gpmiColor) -text [lindex $item 0] -value [lindex $item 1]]
+    set buttons($bn) [ttk::radiobutton $foptd3.$cb -variable opt(gpmiColor) -text [lindex $item 0] -value [lindex $item 1]]
     pack $buttons($bn) -side left -anchor n -padx 2 -pady 0 -ipady 0
     incr cb
   }
-  pack $foptd5 -side top -anchor w -pady 0 -padx 22 -fill y
+  pack $foptd3 -side top -anchor w -pady 0 -padx 22 -fill y
   
+  set foptd4 [frame $foptd.4 -bd 0]
   foreach item {{" Validation Properties" opt(VALPROP)}} {
     regsub -all {[\(\)]} [lindex $item 1] "" idx
-    set buttons($idx) [ttk::checkbutton $foptd1.$cb -text [lindex $item 0] \
+    set buttons($idx) [ttk::checkbutton $foptd4.$cb -text [lindex $item 0] \
       -variable [lindex $item 1] -command {
         if {$opt(VALPROP)} {set opt(INVERSE) 1}
         checkValues
@@ -493,13 +489,28 @@ proc guiProcessAndReports {} {
     pack $buttons($idx) -side left -anchor w -padx 5 -pady 0 -ipady 0
     incr cb
   }
-  pack $foptd1 -side top -anchor w -pady 0 -padx 0 -fill y
+  pack $foptd4 -side top -anchor w -pady 0 -padx 0 -fill y
+  
+  if {$developer} {
+    set foptd5 [frame $foptd.5 -bd 0]
+    foreach item {{" Visualize Analysis Model" opt(VIZ209)}} {
+      regsub -all {[\(\)]} [lindex $item 1] "" idx
+      set buttons($idx) [ttk::checkbutton $foptd5.$cb -text [lindex $item 0] \
+        -variable [lindex $item 1] -command {
+          #if {$opt(VALPROP)} {set opt(INVERSE) 1}
+          checkValues
+      }]
+      pack $buttons($idx) -side left -anchor w -padx 5 -pady 0 -ipady 0
+      incr cb
+    }
+    pack $foptd5 -side top -anchor w -pady 0 -padx 0 -fill y
+  }
   
   pack $foptd -side top -anchor w -pady {5 2} -padx 10 -fill both
   catch {
     tooltip::tooltip $buttons(optPMISEM) "PMI Representation includes all information necessary to represent GD&T without any\ngraphical presentation elements.  PMI Representation is associated with CAD model\ngeometry and is computer-interpretable to facilitate automated consumption by\ndownstream applications for manufacturing, measurement, inspection, and other processes.\n\nPMI Representation information is defined in a CAx-IF Recommended Practices\nand is reported for Dimensional Tolerances, Geometric Tolerances, and Datum Features.\nThe results are reported on various entities as indicated by PMI Representation on the\nSummary worksheet.\n\nPMI Representation is found mainly in AP242 files.\n\nSee Help > PMI Representation"
     tooltip::tooltip $buttons(optPMIGRF) "PMI Presentation (also known as graphical PMI) consists of geometric elements such as\nlines and arcs preserving the exact appearance (color, shape, positioning) of the GD&T\nannotations.  PMI Presentation is not intended to be computer-interpretable and does not\ncarry any representation information, although it can be linked to its corresponding\nPMI Representation.\n\nPMI Presentation annotations are defined in CAx-IF Recommended Practices.\nThe PMI Presentation information is reported in columns highlighted in yellow and green\non the Annotation_*_occurrence worksheets.\n\nAssociated presentation style, saved views, and PMI validation properties are also reported.\nA PMI coverage analysis worksheet is also generated.\nAn X3DOM file (WebGL) of the PMI Presentation can also be generated.\n\nSee Help > PMI Presentation"
-    tooltip::tooltip $buttons(optGENX3DOM) "PMI Presentation annotations can be visualized with an\nX3DOM (WebGL) file that can be opened in most web browsers.\nThe color of the annotations can be modified.\nTessellated annotations are not supported.\n\nSee Help > PMI Presentation"
+    tooltip::tooltip $buttons(optVIZPMI) "PMI Presentation annotations can be visualized with an\nX3DOM (WebGL) file that can be opened in most web browsers.\nThe color of the annotations can be modified.\nTessellated annotations are not supported.\n\nSee Help > PMI Presentation"
     tooltip::tooltip $buttons(optVALPROP) "Validation properties for geometry, assemblies, PMI, annotations,\nattributes, and tessellations are defined in CAx-IF Recommended Practices.\nThe property values are reported in columns highlighted in yellow and green\non the Property_definition worksheet.\n\nOther properties and User-Defined Attributes are also reported.\n\nSee Help > Validation Properties"
   }
 }
@@ -607,13 +618,13 @@ proc guiInverse {} {
 
 #-------------------------------------------------------------------------------
 # open STEP file
-proc guiDisplayResult {} {
+proc guiOpenSTEPFile {} {
   global buttons cb fopt appNames dispCmds appName dispApps foptf
   global edmWriteToFile edmWhereRules eeWriteToFile
   
   set foptf [ttk::labelframe $fopt.f -text " Open STEP File in "]
 
-  set buttons(appCombo) [ttk::combobox $foptf.spinbox -values $appNames -width 35]
+  set buttons(appCombo) [ttk::combobox $foptf.spinbox -values $appNames -width 40]
   pack $foptf.spinbox -side left -anchor w -padx 7 -pady {0 3}
   bind $buttons(appCombo) <<ComboboxSelected>> {
     set appName [$buttons(appCombo) get]
@@ -629,7 +640,7 @@ proc guiDisplayResult {} {
       }
     }
 
-# STEPtools
+# STEP Tools
     catch {
       if {[string first "Conformance Checker" $appName] != -1} {
         pack $buttons(eeWriteToFile) -side left -anchor w -padx 5
@@ -669,8 +680,8 @@ proc guiDisplayResult {} {
     $foptf.spinbox configure -values $appNames
   }
 
-  set buttons(appDisplay) [ttk::button $foptf.$cb -text " Open " -state disabled -command {
-    displayResult
+  set buttons(appOpen) [ttk::button $foptf.$cb -text " Open " -state disabled -command {
+    runOpenProgram
     saveState
   }]
   pack $foptf.$cb -side left -anchor w -padx {10 0} -pady {0 3}
@@ -719,7 +730,7 @@ proc guiDisplayResult {} {
     }
   }
   
-  catch {tooltip::tooltip $foptf "This option is a convenient way to open a STEP file in other applications.\nThe pull-down menu will contain applications that can open a STEP file\nsuch as STEP viewers, browsers, and conformance checkers, only if they are\ninstalled in their default location.\n\nSee Websites > STEP File Viewers\n\nThe 'Indent STEP File (for debugging)' option rearranges and indents the\nentities to show the hierarchy of information in a STEP file.  The 'indented'\nfile is written to the same directory as the STEP file or to the same\nuser-defined directory specified in the Spreadsheet tab.  Including Geometry\nor Styled_item can make the 'indented' file very large.\n\nThe 'Default STEP Viewer' option will open the STEP file in whatever\napplication is associated with STEP (.stp) files."}
+  catch {tooltip::tooltip $foptf "This option is a convenient way to open a STEP file in other applications.\nThe pull-down menu will contain some applications that can open a STEP file\nsuch as STEP viewers, browsers, and conformance checkers, only if they are\ninstalled in their default location.\n\nSee Websites > STEP File Viewers  and  Help > NIST Disclaimer\n\nThe 'Indent STEP File (for debugging)' option rearranges and indents the\nentities to show the hierarchy of information in a STEP file.  The 'indented'\nfile (.txt) is written to the same directory as the STEP file or to the same\nuser-defined directory specified in the Spreadsheet tab.  Including Geometry\nor Styled_item can make the 'indented' file very large.\n\nThe 'Default STEP Viewer' option will open the STEP file in whatever\napplication is associated with STEP (.stp) files."}
   pack $foptf -side top -anchor w -pady {5 2} -padx 10 -fill both
 
   set foptk [ttk::labelframe $fopt.k -text " Output Format "]
@@ -872,7 +883,7 @@ proc guiSpreadsheet {} {
 proc guiHelpMenu {} {
   global Help opt nistVersion mytemp programfiles excelYear ifcsvrdir
 
-  $Help add command -label "User's Guide (pdf)" -command {displayGuide}
+  $Help add command -label "User's Guide (pdf)" -command {showUsersGuide}
   $Help add command -label "What's New" -command {whatsNew}
 
   if {$nistVersion} {
@@ -884,7 +895,7 @@ proc guiHelpMenu {} {
       if {$pf64 != ""} {append os ".64"}
       set url "http://ciks.cbt.nist.gov/cgi-bin/ctv/sfa_upgrade.cgi?version=[getVersion]&auto=-$lastupgrade&os=$os"
       if {[info exists excelYear]} {if {$excelYear != ""} {append url "&yr=[expr {$excelYear-2000}]"}}
-      displayURL $url
+      openURL $url
     }
   }
 
@@ -967,8 +978,8 @@ catch {file delete -force [file join $ifcsvrdir ap214e3_2010.rose]}
 set schemas {}
 foreach match [lsort [glob -nocomplain -directory $ifcsvrdir *.rose]] {
   set schema [file rootname [file tail $match]]
-  if {[string first "ifc" $schema] == -1 && [string first "header_section" $schema] == -1 && \
-      [string first "keystone" $schema] == -1 && [string range $schema end-2 end] != "mim"} {
+  if {[string first "header_section" $schema] == -1 && [string first "keystone" $schema] == -1 && \
+      [string range $schema end-2 end] != "mim"} {
     if {$schema == "automotive_design"} {
       lappend schemas "AP214 - $schema"
 
@@ -988,8 +999,12 @@ foreach match [lsort [glob -nocomplain -directory $ifcsvrdir *.rose]] {
       lappend schemas "AP235 - $schema"
     } elseif {[string first "feature_based" $schema] == 0} {
       lappend schemas "AP224 - $schema"
+    } elseif {[string first "structural_frame" $schema] == 0} {
+      lappend schemas "CIS/2 - $schema"
     } elseif {[string first "ap" $schema] == 0} {
       lappend schemas "[string toupper [string range $schema 0 4]] - $schema"
+    } elseif {[string first "ifc" $schema] == 0} {
+      if {$schema == "ifc2x3" || $schema == "ifc4"} {lappend schemas "[string toupper $schema] - INDUSTRY FOUNDATION CLASSES"}
     } else { 
       lappend schemas "$schema"
     }
@@ -1013,14 +1028,25 @@ foreach item [lsort $schemas] {
 }
 
 if {$nschema == 0} {errorMsg "No Supported STEP APs were found.\nThere was a problem copying STEP schema files (*.rose) to the IFCsvr/dll directory."}
+if {"$nistVersion"} {outputMsg "\nTo enable other STEP APs, contact the developer (Help > About)"}
 
-if {!$other} {
-  outputMsg "\nProcessing of STEP files from some other STEP APs can be enabled by installing the free
-ST-Developer Personal Edition.  Download it from: http://www.steptools.com/products/stdev/personal.html
-This software also includes some useful STEP utility programs.  See Help > Disclaimer."
-} elseif {"$nistVersion"} {
-  outputMsg "\nTo enable other STEP APs, contact the developer (Help > About)"
-}
+    .tnb select .tnb.status
+  }
+
+# open STEP files help
+  $Help add command -label "Open STEP File in Apps" -command {
+outputMsg "\nOpen STEP File in Apps -----------------------------------------------------" blue
+outputMsg "STEP files can be opened in other applications.  If applications are installed in their default
+location, then the pull-down menu in the Options tab will contain applications that can open a
+STEP file such as STEP viewers, browsers, and conformance checkers.
+
+The 'Indent STEP File (for debugging)' option rearranges and indents the entities to show the
+hierarchy of information in a STEP file.  The 'indented' file (.txt) is written to the same
+directory as the STEP file or to the same user-defined directory specified in the Spreadsheet
+tab.  It is useful for debugging STEP files but is not recommended for large STEP files.
+
+The 'Default STEP Viewer' option will open the STEP file in whatever application is associated
+with STEP files.  A text editor will always appear in the menu."
     .tnb select .tnb.status
   }
 
@@ -1042,23 +1068,6 @@ Processing of most of the entity types and options in the Options tab.
 
 If the reports for PMI Representation or Presentation are selected, then Coverage Analysis
 worksheets are also generated."
-    .tnb select .tnb.status
-  }
-
-# open STEP files help
-  $Help add command -label "Open STEP File in Apps" -command {
-outputMsg "\nOpen STEP File in Apps -----------------------------------------------------" blue
-outputMsg "STEP files can be opened in other applications.  If applications are installed in their default
-location, then the pull-down menu in the Options tab will contain applications that can open a
-STEP file such as STEP viewers, browsers, and conformance checkers.
-
-The 'Indent STEP File (for debugging)' option rearranges and indents the entities to show the
-hierarchy of information in a STEP file.  The 'indented' file is written to the same directory as
-the STEP file or to the same user-defined directory specified in the Spreadsheet tab.  It is
-useful for debugging STEP files but is not recommended for large STEP files.
-
-The 'Default STEP Viewer' option will open the STEP file in whatever application is associated
-with STEP files.  A text editor will always appear in the menu."
     .tnb select .tnb.status
   }
 
@@ -1187,7 +1196,6 @@ test case.  The color-coding only works if a STEP file name can be recognized as
 generated from one of the CAD models.
 
 See Websites > MBE PMI Validation Testing
-    Websites > Research > Measuring the PMI Modeling Capability in CAD Systems
 
 * PMI Representation Summary *
 This worksheet is color-coded by the expected PMI annotations in a test case drawing.  Green is a
@@ -1226,7 +1234,6 @@ Missing PMI annotations on the Summary worksheet or PMI elements on the Coverage
 mean that the CAD system or translator:
 
 - did not or cannot correctly create in the CAD model a PMI annotation defined in a NIST test case
-  (See Websites > Research > Measuring the PMI Modeling Capability in CAD Systems)
 - did not follow CAx-IF Recommended Practices for PMI (See Websites > Recommended Practices)
 - has not implemented exporting a PMI element to a STEP file
 - mapped an internal PMI element to the wrong STEP PMI element
@@ -1262,45 +1269,38 @@ Validation properties are defined by the CAx-IF.
 Go to Websites > Recommended Practices to access documentation."
     .tnb select .tnb.status
   }
+  
+#  $Help add command -label "Conformance Checking" -command {
+#outputMsg "\nConformance Checking -------------------------------------------------------" blue
+#outputMsg "STEP AP203 and AP214 files can be checked for conformance to their respective schemas with the
+#free ST-Developer Personal Edition software.  If installed, it will show up in the
+#'Open STEP File in' pull-down menu in the Options tab.  A spreadsheet does not have be generated
+#to run it.  If the option to 'Write results to a file' is selected, then the output file will be
+#named 'mystepfile_stdev.log'
+#
+#Download ST-Developer Personal Edition from: http://www.steptools.com/products/stdev/personal.html
+#This software also includes some useful STEP utility programs.  See Help > Disclaimer.
+#
+#To check for some missing entity references, in the Options tab under Open STEP File, use
+#Indent STEP File (for debugging)."
+#    .tnb select .tnb.status
+#  }
 
   $Help add separator
-  
-  $Help add command -label "Conformance Checking" -command {
-outputMsg "\nConformance Checking -------------------------------------------------------" blue
-outputMsg "STEP AP203 and AP214 files can be checked for conformance to their respective schemas with the
-free ST-Developer Personal Edition software.  If installed, it will show up in the
-'Open STEP File in' pull-down menu in the Options tab.  A spreadsheet does not have be generated
-to run it.  If the option to 'Write results to a file' is selected, then the output file will be
-named 'mystepfile_stdev.log'
+  $Help add command -label "Sample STEP Files (zip)"                   -command {openURL http://www.nist.gov/sites/default/files/documents/el/msid/infotest/NIST_MBE_PMI_CTC_STEP_PMI.zip}
+  $Help add command -label "Spreadsheet - PMI Representation"          -command {openURL https://www.nist.gov/file/331631}
+  $Help add command -label "Spreadsheet - PMI Presentation, ValProps"  -command {openURL https://www.nist.gov/file/331656}
+  $Help add command -label "Spreadsheet - Coverage Analysis"           -command {openURL https://www.nist.gov/file/317951}
+  #$Help add command -label "X3DOM (WebGL) file - PMI Presentation"     -command {openURL http://www.nist.gov/el/msid/infotest/upload/STEP-File-Analyzer_x3dom.html}
 
-Download ST-Developer Personal Edition from: http://www.steptools.com/products/stdev/personal.html
-This software also includes some useful STEP utility programs.  See Help > Disclaimer.
-
-To check for some missing entity references, in the Options tab under Open STEP File, use
-Indent STEP File (for debugging)."
-    .tnb select .tnb.status
-  }
-
-# large files help
-  $Help add command -label "Large STEP Files" -command {
-outputMsg "\nLarge STEP Files -----------------------------------------------------------" blue
-outputMsg "To reduce the amount of time to process large STEP files and to reduce the size of the resulting
-spreadsheet, several options are available:
-- In the Process section, deselect entity types Geometry and Cartesian Point
-- In the Process section, select only a User-Defined List of required entities 
-- In the Options tab, deselect Reports and Inverse Relationships
-- In the Spreadsheet tab, select a value for the Maximum Rows
-
-The STEP File Analyzer might also crash when processing very large STEP files.  Popup dialogs
-might appear that say 'unable to alloc xxx bytes'.  See the Help > Crash Recovery."
-    .tnb select .tnb.status
-  }
+  $Help add separator
 
   $Help add command -label "Crash Recovery" -command {
 outputMsg "\nCrash Recovery -------------------------------------------------------------" blue
 outputMsg "Sometimes the STEP File Analyzer will crash after a STEP file has been successfully opened and the
-processing of entities has started.  Popup dialogs might appear that say \"ActiveState Basekit has
-stopped working\". 
+processing of entities has started.  Popup dialogs might appear that say \"Runtime Error!\" or
+\"ActiveState Basekit has stopped working\".  A crash might also be caused by a very large STEP
+file.  See Help > Large STEP Files.
 
 A crash is most likely due to syntax errors in the STEP file or sometimes due to limitations of
 the toolkit used to read STEP files.  To see which type of entity caused the error, check the
@@ -1311,12 +1311,14 @@ Workarounds for this problem:
 - The program keeps track of the last entity type processed when it crashed.  Simply restart the
 STEP File Analyzer and hit F1 to process the last STEP file or F4 if processing multiple files.
 The type of entity that caused the crash will be skipped.  The list of bad entity types that will
-not be processed is stored in a file myfile_fix.dat.  If syntax errors related to the bad entities
-are corrected, then delete the *_fix.dat file so that the corrected entities are processed.  When
-the STEP file is processed, the list of specific entities that are not processed is reported.
+not be processed is stored in a file myfile-skip.dat.
+
+If syntax errors related to the bad entities are corrected, then delete the *-skip.dat file so
+that the corrected entities are processed.  When the STEP file is processed, the list of specific
+entities that are not processed is reported.
 
 - Deselect Inverse Relationships and all Reports in the Options tab.  If one of these features
-caused the crash, then the *_fix.dat file is still created as described above and might need to be
+caused the crash, then the *-skip.dat file is still created as described above and might need to be
 deleted.
 
 - Processing of the type of entity that caused the error can be deselected in the Options tab
@@ -1324,19 +1326,25 @@ under Process.  However, this will prevent processing of other entities that do 
   .tnb select .tnb.status
 }
 
-  $Help add separator
-  $Help add command -label "Sample STEP Files (zip)"                    -command {displayURL http://www.nist.gov/sites/default/files/documents/el/msid/infotest/NIST_MBE_PMI_CTC_STEP_PMI.zip}
-  #$Help add cascade -label "Sample Output" -menu $Help.5
-  #set Help5 [menu $Help.5 -tearoff 1]
-  $Help add command -label "Spreadsheet - PMI Representation"          -command {displayURL https://www.nist.gov/file/331631}
-  $Help add command -label "Spreadsheet - PMI Presentation, ValProps"  -command {displayURL https://www.nist.gov/file/331656}
-  $Help add command -label "Spreadsheet - Coverage Analysis"           -command {displayURL https://www.nist.gov/file/317951}
-  #$Help5 add command -label "X3DOM (WebGL) file - PMI Presentation"     -command {displayURL http://www.nist.gov/el/msid/infotest/upload/STEP-File-Analyzer_x3dom.html}
+# large files help
+  $Help add command -label "Large STEP Files" -command {
+outputMsg "\nLarge STEP Files -----------------------------------------------------------" blue
+outputMsg "To reduce the amount of time to process large STEP files and to reduce the size of the resulting
+spreadsheet, several options are available:
+- In the Process section, deselect entity types Geometry and Coordinates
+- In the Process section, select only a User-Defined List of required entities 
+- In the Spreadsheet tab, select a smaller value for the Maximum Rows
+- In the Options tab, deselect Reports and Inverse Relationships
+
+The STEP File Analyzer might also crash when processing very large STEP files.  Popup dialogs
+might appear that say 'Unable to alloc xxx bytes'.  See the Help > Crash Recovery."
+    .tnb select .tnb.status
+  }
 
   $Help add separator
   if {"$nistVersion"} {
-    $Help add command -label "Disclaimer" -command {displayDisclaimer}
-    $Help add command -label "NIST Disclaimer" -command {displayURL https://www.nist.gov/disclaimer}
+    $Help add command -label "Disclaimer" -command {showDisclaimer}
+    $Help add command -label "NIST Disclaimer" -command {openURL https://www.nist.gov/disclaimer}
   }
   $Help add command -label "About" -command {
     outputMsg "\nSTEP File Analyzer ---------------------------------------------------------" blue
@@ -1375,47 +1383,37 @@ under Process.  However, this will prevent processing of other entities that do 
 proc guiWebsitesMenu {} {
   global Websites
 
-  $Websites add command -label "STEP File Analyzer"     -command {displayURL http://go.usa.gov/yccx}
-  $Websites add command -label "Source code on GitHub"  -command {displayURL https://github.com/usnistgov/SFA}
-  $Websites add command -label "Journal of CAD Article" -command {displayURL https://www.nist.gov/node/557526}
-  $Websites add command -label "MBE PMI Validation Testing (free CAD models and STEP files)" -command {displayURL http://go.usa.gov/mGVm}
-  $Websites add command -label "Enabling the Digital Thread for Smart Manufacturing"         -command {displayURL http://go.usa.gov/6nPh}
+  $Websites add command -label "STEP File Analyzer"     -command {openURL http://go.usa.gov/yccx}
+  $Websites add command -label "Source code on GitHub"  -command {openURL https://github.com/usnistgov/SFA}
+  $Websites add command -label "Journal of CAD Article" -command {openURL https://www.nist.gov/node/557526}
+  $Websites add command -label "MBE PMI Validation Testing (free CAD models and STEP files)" -command {openURL http://go.usa.gov/mGVm}
+  $Websites add command -label "Enabling the Digital Thread for Smart Manufacturing"         -command {openURL http://go.usa.gov/6nPh}
   
   $Websites add separator
-  $Websites add command -label "CAx Implementor Forum (CAx-IF)" -command {displayURL https://www.cax-if.org/}
-  $Websites add command -label "Implementation Coverage"        -command {displayURL https://www.cax-if.org/vendor_info.php}
-  $Websites add command -label "STEP File Viewers"              -command {displayURL https://www.cax-if.org/step_viewers.html}
-  $Websites add command -label "STEP File Library"              -command {displayURL https://www.cax-if.org/library/index.html}
-  $Websites add command -label "Recommended Practices"          -command {displayURL https://www.cax-if.org/joint_testing_info.html#recpracs}
+  $Websites add command -label "CAx Implementor Forum (CAx-IF)" -command {openURL https://www.cax-if.org/}
+  $Websites add command -label "Implementation Coverage"        -command {openURL https://www.cax-if.org/vendor_info.php}
+  $Websites add command -label "STEP File Viewers"              -command {openURL https://www.cax-if.org/step_viewers.html}
+  $Websites add command -label "STEP File Library"              -command {openURL https://www.cax-if.org/library/index.html}
+  $Websites add command -label "Recommended Practices"          -command {openURL https://www.cax-if.org/joint_testing_info.html#recpracs}
   
   $Websites add separator
-  $Websites add command -label "STEP AP242 Project"   -command {displayURL http://www.ap242.org/}
-  $Websites add command -label "STEP AP209 Project"   -command {displayURL http://www.ap209.org/}
-  #$Websites add command -label "STEP AP238 Project"   -command {displayURL http://www.ap238.org/}
-  $Websites add command -label "STEP AP239 Project"   -command {displayURL http://www.ap239.org/}
-  $Websites add command -label "EXPRESS Schemas"      -command {displayURL https://www.cax-if.org/joint_testing_info.html#schemas}
-  $Websites add command -label "More EXPRESS Schemas" -command {displayURL http://www.steptools.com/support/stdev_docs/express/}
+  $Websites add command -label "STEP AP242 Project"   -command {openURL http://www.ap242.org/}
+  $Websites add command -label "STEP AP209 Project"   -command {openURL http://www.ap209.org/}
+  $Websites add command -label "STEP AP238 Project"   -command {openURL http://www.ap238.org/}
+  $Websites add command -label "STEP AP239 Project"   -command {openURL http://www.ap239.org/}
+  $Websites add command -label "EXPRESS Schemas"      -command {openURL https://www.cax-if.org/joint_testing_info.html#schemas}
+  $Websites add command -label "More EXPRESS Schemas" -command {openURL http://web.archive.org/web/20160322005246/www.steptools.com/support/stdev_docs/express/}
   
   $Websites add separator
-  $Websites add command -label "PDES, Inc."   -command {displayURL https://pdesinc.org/}
-  $Websites add command -label "ProSTEP iViP" -command {displayURL http://www.prostep.org/en/projects.html}
-  $Websites add command -label "LOTAR"        -command {displayURL http://www.lotar-international.org/}
-  
-  $Websites add separator
-  #$Websites add cascade -label "Research" -menu $Websites.3
-  #set Websites3 [menu $Websites.3 -tearoff 1]
-  $Websites add command -label "Measuring the PMI Modeling Capability in CAD Systems (Report 1)"               -command {displayURL https://www.nist.gov/node/763791}
-  $Websites add command -label "Measuring the PMI Modeling Capability in CAD Systems (Report 2)"               -command {displayURL https://www.nist.gov/node/763781}
-  $Websites add command -label "Measuring the PMI Modeling Capability in CAD Systems (Report 3)"               -command {displayURL https://www.nist.gov/node/763786}
-  $Websites add command -label "Standards-Based Interoperability for Design to Manufacturing and Quality"      -command {displayURL https://www.nist.gov/node/787671}
-  $Websites add command -label "An ISO STEP Tolerancing Standard as an Enabler of Smart Manufacturing Systems" -command {displayURL https://www.nist.gov/node/570586}
-  $Websites add command -label "STEP Composite Structure Design and Manufacturing Information"                 -command {displayURL https://www.nist.gov/node/579546}
-  $Websites add command -label "A Strategy for Testing Product Conformance to GD&T Standards"                  -command {displayURL https://www.nist.gov/node/589131}
+  $Websites add command -label "PDES, Inc."   -command {openURL https://pdesinc.org/}
+  $Websites add command -label "ProSTEP iViP" -command {openURL http://www.prostep.org/en/projects.html}
+  $Websites add command -label "AFNeT"        -command {openURL http://afnet.fr/dotank/sps/}
+  $Websites add command -label "LOTAR"        -command {openURL http://www.lotar-international.org/}
 }
 
 #-------------------------------------------------------------------------------
 
-proc displayDisclaimer {} {
+proc showDisclaimer {} {
   global nistVersion
 
   if {$nistVersion} {
@@ -1447,7 +1445,7 @@ This software uses Microsoft Excel and IFCsvr that are covered by their own End-
 
 #-------------------------------------------------------------------------------
 # crash recovery dialog
-proc displayCrashRecovery {} {
+proc showCrashRecovery {} {
 
 set txt "Sometimes the STEP File Analyzer will crash AFTER a file has been successfully opened and the processing of entities has started.
 
@@ -1455,7 +1453,7 @@ A crash is most likely due to syntax errors in the STEP file or sometimes due to
 
 If this happens, simply restart the STEP File Analyzer and process the same STEP file again by using function key F1 or F4 if processing multiple STEP files.  Also deselect, Reports and Inverse Relationships in the Options tab.
 
-The STEP File Analyzer keeps track of which entity type caused the error for a particular STEP file and won't process that type again.  The bad entities types are stored in a file *_fix.dat  If syntax errors related to the bad entities are corrected, then delete the *_fix.dat file so that the corrected entities are processed.
+The STEP File Analyzer keeps track of which entity type caused the error for a particular STEP file and won't process that type again.  The bad entities types are stored in a file *-skip.dat  If syntax errors related to the bad entities are corrected, then delete the *-skip.dat file so that the corrected entities are processed.
 
 The software might also crash when processing very large STEP files.  In this case, deselect some entity types to process in Options tab or use a User-Defined List of entities to process.
 
@@ -1468,12 +1466,12 @@ Please report other types of crashes to the software developer."
 
 #-------------------------------------------------------------------------------
 # open user guide
-proc displayGuide {} {
+proc showUsersGuide {} {
   set ugName [file nativename [file join [file dirname [info nameofexecutable]] SFA-Users-Guide.pdf]]
   if {[file exists $ugName]} {
     exec {*}[auto_execok start] "" $ugName
   } else {
-    displayURL http://dx.doi.org/10.6028/NIST.IR.8122
+    openURL http://dx.doi.org/10.6028/NIST.IR.8122
   }
   errorMsg "The User's Guide is based on version 1.60 of the STEP File Analyzer.\n New features are documented in the Help menu."
   outputMsg " "

@@ -41,14 +41,15 @@ set nistVersion 0
 foreach item $auto_path {if {[string first "STEP-File-Analyzer" $item] != -1} {set nistVersion 1}}
 
 foreach id {XL_OPEN XL_KEEPOPEN XL_LINK1 XL_FPREC XL_SORT \
-            VALPROP PMIGRF PMISEM GENX3DOM INVERSE DEBUG1 DEBUG2 \
+            VALPROP PMIGRF PMISEM VIZPMI VIZ209 INVERSE DEBUG1 DEBUG2 \
             PR_STEP_AP242 PR_USER PR_STEP_KINE PR_STEP_COMP PR_STEP_COMM PR_STEP_GEOM PR_STEP_QUAN \
             PR_STEP_FEAT PR_STEP_PRES PR_STEP_TOLR PR_STEP_REPR PR_STEP_CPNT PR_STEP_SHAP} {set opt($id) 1}
 
 set opt(DEBUG1) 0
 set opt(DEBUG2) 0
 set opt(DEBUGINV) 0
-set opt(GENX3DOM) 0
+set opt(VIZPMI) 0
+set opt(VIZ209) 0
 set opt(PR_STEP_CPNT) 0
 set opt(PR_STEP_GEOM)  0
 set opt(PR_USER) 0

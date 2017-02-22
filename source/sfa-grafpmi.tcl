@@ -1,11 +1,11 @@
-proc gpmiProp {objDesign entType} {
+proc gpmiAnnotation {objDesign entType} {
   global ao aoEntTypes cells col elevel ent entAttrList gpmiRow nindex opt pmiCol pmiHeading pmiStartCol
   global recPracNames stepAP syntaxErr x3domColor x3domCoord x3domFile x3domIndex x3domShape
 
-  if {$opt(DEBUG1)} {outputMsg "START gpmiProp $entType" red}
+  if {$opt(DEBUG1)} {outputMsg "START gpmiAnnotation $entType" red}
 
 # basic geometry
-  if {$opt(GENX3DOM)} {
+  if {$opt(VIZPMI)} {
     set direction       [list direction name direction_ratios]
     set cartesian_point [list cartesian_point coordinates]
     set polyline        [list polyline name points $cartesian_point]
@@ -119,7 +119,7 @@ proc gpmiProp {objDesign entType} {
 # get next unused column by checking if there is a colName
   set pmiStartCol($ao) [getNextUnusedColumn $startent 3]
 
-# process all annotation_occurrence entities, call gpmiPropReport
+# process all annotation_occurrence entities, call gpmiAnnotationReport
   ::tcom::foreach objEntity [$objDesign FindObjects [join $startent]] {
     if {[$objEntity Type] == $startent} {
       if {$n < 10000000} {
@@ -127,7 +127,7 @@ proc gpmiProp {objDesign entType} {
           if {$n > 0} {outputMsg "  $n"}
           update idletasks
         }
-        gpmiPropReport $objEntity
+        gpmiAnnotationReport $objEntity
         if {$opt(DEBUG1)} {outputMsg \n}
       }
       incr n
@@ -151,7 +151,7 @@ proc gpmiProp {objDesign entType} {
 
 # -------------------------------------------------------------------------------
 
-proc gpmiPropReport {objEntity} {
+proc gpmiAnnotationReport {objEntity} {
   global ao aoname assocGeom avgX3domColor badAttributes cells circleCenter col currX3domPointID curveTrim dirRatio dirType draftModelCameras
   global elevel ent entAttrList entCount geomType gpmiEnts gpmiID gpmiIDRow gpmiOK gpmiRow gpmiTypes gpmiTypesInvalid gpmiTypesPerFile gpmiValProp
   global iCompCurve iCompCurveSeg incrcol iPolyline localName nindex numCompCurve numCompCurveSeg numPolyline numX3domPointID
@@ -159,7 +159,7 @@ proc gpmiPropReport {objEntity} {
   global x3domColor x3domCoord x3domFile x3domFileName x3domFileOpen x3domIndex x3domMax x3domMin x3domPoint x3domPointID x3domShape
   global nistVersion
 
-  #outputMsg "gpmiPropReport" red
+  #outputMsg "gpmiAnnotationReport" red
   #if {[info exists gpmiOK]} {if {$gpmiOK == 0} {return}}
 
 # elevel is very important, keeps track level of entity in hierarchy
@@ -306,7 +306,7 @@ proc gpmiPropReport {objEntity} {
               }
 
 # if referred to another, get the entity
-              if {[string first "handle" $objEntity] != -1} {gpmiPropReport $objValue}
+              if {[string first "handle" $objEntity] != -1} {gpmiAnnotationReport $objValue}
             }
           } emsg3]} {
             errorMsg "ERROR processing PMI Presentation ($objNodeType $ent2): $emsg3"
@@ -347,7 +347,7 @@ proc gpmiPropReport {objEntity} {
 # cartesian_point is need to generated X3DOM
                 switch -glob $ent1 {
                   "cartesian_point coordinates" {
-                    if {$opt(GENX3DOM) && $x3domFileName != ""} {
+                    if {$opt(VIZPMI) && $x3domFileName != ""} {
                       #outputMsg "$elevel $geomType $ent1" red
 
 # elevel = 4 for polyline
@@ -447,7 +447,12 @@ proc gpmiPropReport {objEntity} {
 
 # format cellval into str
                   if {[catch {
-                    ::tcom::foreach val [$objAttribute Value] {append cellval([$val Type]) "[$val P21ID] "}
+                    ::tcom::foreach val [$objAttribute Value] {
+                      append cellval([$val Type]) "[$val P21ID] "
+                      if {$ent1 == "tessellated_geometric_set children" && [$val Type] != "tessellated_curve_set" && [$val Type] != "complex_triangulated_surface_set"} {
+                        errorMsg "Syntax Error: Invalid '[$val Type]' attribute for tessellated_geometric_set.children\n[string repeat " " 14]\($recPracNames(pmi242), Sec. 8.2)"
+                      }
+                    }
                   } emsg]} {
                     foreach val [$objAttribute Value] {
                       append cellval([$val Type]) "[$val P21ID] "
@@ -499,9 +504,9 @@ proc gpmiPropReport {objEntity} {
 # -------------------------------------------------
 # recursively get the entities that are referred to
               if {[catch {
-                ::tcom::foreach val1 $objValue {gpmiPropReport $val1}
+                ::tcom::foreach val1 $objValue {gpmiAnnotationReport $val1}
               } emsg]} {
-                foreach val2 $objValue {gpmiPropReport $val2}
+                foreach val2 $objValue {gpmiAnnotationReport $val2}
               }
             }
           } emsg3]} {
@@ -522,7 +527,7 @@ proc gpmiPropReport {objEntity} {
 # get values for these entity and attribute pairs
                 switch -glob $ent1 {
                   "circle radius" {
-                    if {$opt(GENX3DOM) && $x3domFileName != ""} {
+                    if {$opt(VIZPMI) && $x3domFileName != ""} {
 # write circle to X3DOM                    
                       #set ns 8
                       set ns 24
@@ -757,7 +762,7 @@ proc gpmiPropReport {objEntity} {
                     #catch {outputMsg $gpmiTypesPerFile red}
                 
 # start X3DOM file
-                    if {$opt(GENX3DOM)} {
+                    if {$opt(VIZPMI)} {
                       if  {[string first "tessellated" $ao] == -1} {
                         if {$x3domFileOpen} {
                           set x3domFileOpen 0
@@ -773,11 +778,11 @@ proc gpmiPropReport {objEntity} {
                             set url "https://github.com/usnistgov/SFA"
                           }
                           
-                          puts $x3domFile "<!DOCTYPE html>\n<html>\n<head>\n<title>[file tail $localName]</title>\n<base target=\"_blank\">\n<meta http-equiv='Content-Type' content='text/html;charset=utf-8'></meta>\n<link rel='stylesheet' type='text/css' href='http://www.x3dom.org/x3dom/release/x3dom.css'></link>\n<script type='text/javascript' src='http://www.x3dom.org/x3dom/release/x3dom.js'></script>\n</head>\n<body>"
+                          puts $x3domFile "<!DOCTYPE html>\n<html>\n<head>\n<title>[file tail $localName] | PMI Annotations</title>\n<base target=\"_blank\">\n<meta http-equiv='Content-Type' content='text/html;charset=utf-8'></meta>\n<link rel='stylesheet' type='text/css' href='http://www.x3dom.org/x3dom/release/x3dom.css'></link>\n<script type='text/javascript' src='http://www.x3dom.org/x3dom/release/x3dom.js'></script>\n</head>\n<body>"
                           puts $x3domFile "<FONT FACE=\"Arial\"><H3>PMI Presentation Annotations for:  [file tail $localName]</H3><UL>"
                           #if {[info exists entCount(annotation_fill_area_occurrence)]} {puts $x3domFile "<LI>Filled characters are not filled."}
-                          puts $x3domFile "<LI>Generated by the <a href=\"$url\">$str\STEP File Analyzer (v[getVersion])</A> on [clock format [clock seconds]] and displayed with <A HREF=\"http://www.x3dom.org/\">X3DOM</A>."
-                          puts $x3domFile "<LI>Only the PMI annotations are displayed.  Part geometry can be displayed with <A HREF=\"https://www.cax-if.org/step_viewers.html\">STEP viewers</A>."
+                          puts $x3domFile "<LI>Generated by the <a href=\"$url\">$str\STEP File Analyzer (v[getVersion])</A> on [clock format [clock seconds]] and rendered with <A HREF=\"http://www.x3dom.org/\">X3DOM</A>."
+                          puts $x3domFile "<LI>Only the PMI annotations are shown.  Part geometry can be viewed with <A HREF=\"https://www.cax-if.org/step_viewers.html\">STEP file viewers</A>."
                           puts $x3domFile "<LI><a href=\"http://www.x3dom.org/documentation/interaction/\">Use the mouse</a>, Page Up/Down keys, or touch gestures to rotate, pan, and zoom the annotations."
                           puts $x3domFile "</UL>"
                           puts $x3domFile "<x3d id='someUniqueId' showStat='false' showLog='false' x='0px' y='0px' width='1200px' height='900px'>\n<scene DEF='scene'>"
@@ -802,7 +807,7 @@ proc gpmiPropReport {objEntity} {
                         set x3domShape 1
                         update idletasks
                       } else {
-                        errorMsg " Tessellated PMI Annotations are not supported." red
+                        errorMsg " Visualizing Tessellated PMI Annotations is not supported." red
                       }
                     }               
 
@@ -968,7 +973,7 @@ proc gpmiPropReport {objEntity} {
 # report associated geometry
     if {[catch {
       if {[info exists assocGeom]} {
-        set str [reportAssocGeom 0]
+        set str [reportAssocGeom $ao 0]
         if {$str != ""  } {
           #outputMsg "  Adding Associated Geometry" green
           if {![info exists pmiColumns(ageom)]} {set pmiColumns(ageom) [getNextUnusedColumn $ao 3]}
@@ -1254,10 +1259,10 @@ proc gpmiX3DOMViewpoints {} {
 
 # -------------------------------------------------------------------------------------------------
 # open X3DOM file 
-proc displayX3DOM {} {
+proc openX3DOM {} {
   global opt x3domFileName multiFile
   
-  if {$opt(GENX3DOM) && $x3domFileName != "" && $multiFile == 0} {
+  if {$opt(VIZPMI) && $x3domFileName != "" && $multiFile == 0} {
     outputMsg "\nOpening PMI Presentation Annotations in the default Web Browser" blue
     if {[catch {
       exec {*}[auto_execok start] "" $x3domFileName

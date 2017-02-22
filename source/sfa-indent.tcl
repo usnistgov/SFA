@@ -129,42 +129,37 @@ proc indentSearchLine {line ndent} {
   for {set i 1} {$i < [llength $sline]} {incr i} {
     set str [lindex $sline $i]
     set id [indentGetID $str]
-    if {[string is integer $id]} {
-      set str "  "
-      for {set j 1} {$j < $ndent} {incr j} {append str "  "}
-      if {[info exists indentEntity($id)]} {
-        append str $indentEntity($id)
-        set cmnt ""
-        if {[info exists comment($id)]} {set cmnt $comment($id)}
-        #outputMsg "PUT LINE 1"
-        if {![info exists indentstat]} {set indentstat 1}
-        set indentstat [indentPutLine $str $cmnt $indentstat]
-        #outputMsg $indentstat
-        if {$indentstat ==  0} {break}
-        #if {$indentstat == -1} {break}
-        set line1 [string range $indentEntity($id) 1 end]
-        if {[string first "\#" $line1] != -1} {
-          set ok 1
+    if {$id > 2147483647} {errorMsg "An entity ID >= 2147483648 (2^31)"}
+
+    set str "  "
+    for {set j 1} {$j < $ndent} {incr j} {append str "  "}
+    if {[info exists indentEntity($id)]} {
+      append str $indentEntity($id)
+      set cmnt ""
+      if {[info exists comment($id)]} {set cmnt $comment($id)}
+      if {![info exists indentstat]} {set indentstat 1}
+      set indentstat [indentPutLine $str $cmnt $indentstat]
+      if {$indentstat ==  0} {break}
+      set line1 [string range $indentEntity($id) 1 end]
+      if {[string first "\#" $line1] != -1} {
+        set ok 1
 
 # check for entities that stop the indentation ($indentdat2)
-          foreach idx $indentdat2 {
-            if {[string first $idx $line1] != -1} {
-              set ok 0
-              break
-            }
-          }
-          if {$indentstat == -1} {set ok 0}
-
-          if {$ok} {
-            #outputMsg "SEARCH LINE 1  $indentstat"
-            set stat [indentSearchLine $line1 $ndent]
-            if {$stat == 0} {break}
-            #outputMsg XXX$stat
+        foreach idx $indentdat2 {
+          if {[string first $idx $line1] != -1} {
+            set ok 0
+            break
           }
         }
-      } else {
-        if {[lsearch $indentMissing "#$id"] == -1} {lappend indentMissing "#$id"}
+        if {$indentstat == -1} {set ok 0}
+
+        if {$ok} {
+          set stat [indentSearchLine $line1 $ndent]
+          if {$stat == 0} {break}
+        }
       }
+    } else {
+      if {[lsearch $indentMissing "#$id"] == -1} {lappend indentMissing "#$id"}
     }
   }
   return 1
@@ -207,7 +202,7 @@ proc indentFile {ifile} {
     B_SPLINE_CURVE B_SPLINE_SURFACE \
     CSG_2D_SHAPE_REPRESENTATION CYLINDRICAL_PAIR_WITH_RANGE COMPOSITE_TEXT CURVE_3D_ELEMENT_REPRESENTATION \
     DATUM( DATUM_FEATURE( DATUM_FEATURE_CALLOUT DATUM_REFERENCE_COMPARTMENT DATUM_REFERENCE_ELEMENT DATUM_SYSTEM( DRAUGHTING_CALLOUT \
-    ELEMENT_MATERIAL FEA_MODEL_3D \
+    ELEMENT_MATERIAL FEA_AXIS2_PLACEMENT_3D FEA_MODEL_3D \
     GEOMETRIC_REPRESENTATION_CONTEXT GEOMETRIC_SET \
     LAYERED_ASSEMBLY_MODULE_USAGE_VIEW \
     NODE \
@@ -237,7 +232,7 @@ proc indentFile {ifile} {
   } else {
     set indentFileName [file join $writeDir [file rootname [file tail $ifile]]]
   }
-  append indentFileName ".ind"
+  append indentFileName ".txt"
   set indentWriteFile [open $indentFileName w]
 
   set cmnt ""
@@ -310,12 +305,14 @@ proc indentFile {ifile} {
 proc indentCheckLine {line} {
   global indentReadFile indentPass
 
-  if {[string last ";" $line] == -1 && [string last "*/" $line] == -1} {
+  if {([string last ";" $line] == -1 && [string last "*/" $line] == -1) || \
+       [string range $line end end] == "(" || [string range $line end end] == ")" || [string range $line end end] == ","} {
+
+# read more if the line is not complete
     if {[gets $indentReadFile line1] != -1} {
       if {[string length $line] < 500} {
         append line $line1
       } else {
-        #if {$indentPass == 1} {outputMsg "Long line truncated: [string range $line 0 50] ..." red}
         set iline [string range $line 0 500]
         set c1 [string last "," $iline]
         set iline "[string range $iline 0 $c1] (truncated)"

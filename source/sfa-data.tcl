@@ -17,15 +17,20 @@ set recPracNames(valprop)  "Geometric and Assembly Validation Properties"
 set recPracNames(tessgeom) "3D Tessellated Geometry"
 set recPracNames(uda)      "User Defined Attributes"
 
-set schemaLinks(AP203) "http://www.steptools.com/support/stdev_docs/express/ap203e2/html/index.html"
-set schemaLinks(AP203e1) "http://www.steptools.com/support/stdev_docs/express/ap203/html/index.html"
-set schemaLinks(AP209) "https://www.cax-if.org/documents/AP209_HTML/AP209ed2_mim_lf_v1.46.htm"
-set schemaLinks(AP209e1) "http://www.steptools.com/support/stdev_docs/express/ap209/index.html"
-set schemaLinks(AP210) "http://www.steptools.com/support/stdev_docs/express/ap210/html/index.html"
-set schemaLinks(AP214) "http://www.steptools.com/support/stdev_docs/express/ap214/html/index.html"
-set schemaLinks(AP238) "http://www.steptools.com/support/stdev_docs/express/ap238/html/index.html"
-set schemaLinks(AP242) "http://www.steptools.com/support/stdev_docs/express/ap242/html/index.html"
-set schemaLinks(CIS/2) "http://www.steptools.com/support/stdev_docs/express/cis/html/index.html"
+set schemaLinks(AP203)   "https://www.cax-if.org/documents/AP203e2_html/AP203e2.htm"
+set schemaLinks(AP203e1) "http://web.archive.org/web/20160322005246/www.steptools.com/support/stdev_docs/express/ap203/html/index.html"
+set schemaLinks(AP209)   "https://www.cax-if.org/documents/AP209_HTML/AP209ed2_mim_lf_v1.46.htm"
+set schemaLinks(AP209e1) "http://web.archive.org/web/20160322005246/www.steptools.com/support/stdev_docs/express/ap209/index.html"
+set schemaLinks(AP210)   "http://web.archive.org/web/20160322005246/www.steptools.com/support/stdev_docs/express/ap210/html/index.html"
+set schemaLinks(AP214)   "https://www.cax-if.org/documents/AP214E3/AP214_e3.htm"
+set schemaLinks(AP238)   "http://web.archive.org/web/20160322005246/www.steptools.com/support/stdev_docs/express/ap238/html/index.html"
+set schemaLinks(AP239)   "http://web.archive.org/web/20160322005246/www.steptools.com/support/stdev_docs/express/ap239/html/index.html"
+set schemaLinks(AP242)   "https://www.cax-if.org/documents/AP242/AP242_mim_lf_1.36.htm"
+set schemaLinks(CIS/2)   "http://web.archive.org/web/20160322005246/www.steptools.com/support/stdev_docs/express/cis/html/index.html"
+
+#set schemaLinks(AP203) "http://www.steptools.com/support/stdev_docs/express/ap203e2/html/index.html"
+#set schemaLinks(AP214) "http://www.steptools.com/support/stdev_docs/express/ap214/html/index.html"
+#set schemaLinks(AP242) "http://www.steptools.com/support/stdev_docs/express/ap242/html/index.html"
 
 # list of annotation occurrence entities, *order is important*
 set aoEntTypes [list \
@@ -299,7 +304,7 @@ set badAttributes(tessellated_curve_set) {line_strips}
 set badAttributes(tessellated_face) {normals}
 set badAttributes(tessellated_surface_set) {normals}
 set badAttributes(triangulated_face) {normals triangles}
-set badAttributes(triangulated_surface_set) {triangles}
+set badAttributes(triangulated_surface_set) {normals triangles}
 
 # -----------------------------------------------------------------------------------------------------
 # pictures that are embedded in a spreadsheet based on STEP file name
@@ -341,6 +346,7 @@ advanced_face axis1_placement axis2_placement_2d axis2_placement_3d \
 b_spline_curve b_spline_curve_with_knots b_spline_surface b_spline_surface_with_knots bezier_curve bezier_surface block boolean_result \
 boundary_curve bounded_curve bounded_pcurve bounded_surface bounded_surface_curve box_domain boxed_half_space brep_with_voids \
 cartesian_transformation_operator cartesian_transformation_operator_2d cartesian_transformation_operator_3d circle closed_shell \
+complex_triangulated_face complex_triangulated_surface_set \
 composite_curve composite_curve_on_surface composite_curve_segment conic conical_surface connected_edge_set connected_face_set \
 connected_face_sub_set csg_solid curve curve_bounded_surface curve_replica cylindrical_surface \
 degenerate_pcurve degenerate_toroidal_surface direction \
@@ -354,18 +360,21 @@ oriented_path oriented_surface outer_boundary_curve \
 parabola path pcurve placement planar_box planar_extent plane point point_on_curve point_on_surface point_replica poly_loop polyline \
 quasi_uniform_curve quasi_uniform_surface \
 rational_b_spline_curve rational_b_spline_surface rectangular_composite_surface rectangular_trimmed_surface \
-reparametrised_composite_curve_segment revolved_area_solid revolved_face_solid right_angular_wedge right_circular_cone right_circular_cylinder \
+reparametrised_composite_curve_segment repositioned_tessellated_item revolved_area_solid revolved_face_solid right_angular_wedge right_circular_cone right_circular_cylinder \
 ruled_surface_swept_area_solid \
 seam_curve shell_based_surface_model solid_model solid_replica sphere spherical_surface subedge subface surface surface_curve \
 surface_curve_swept_area_solid surface_of_linear_extrusion surface_of_revolution surface_patch surface_replica swept_area_solid \
 swept_disk_solid swept_face_solid swept_surface \
-toroidal_surface torus trimmed_curve \
+tessellated_connecting_edge \
+tessellated_curve_set tessellated_edge tessellated_face tessellated_geometric_set tessellated_item tessellated_point_set \
+tessellated_shell tessellated_solid tessellated_structured_item tessellated_surface_set tessellated_vertex tessellated_wire \
+toroidal_surface torus triangulated_face triangulated_surface_set trimmed_curve \
 uniform_curve uniform_surface vector vertex vertex_loop vertex_point \
 ]]
 
 # STEP cartesian point
 
-set entCategory(PR_STEP_CPNT) [list cartesian_point ]
+set entCategory(PR_STEP_CPNT) [list cartesian_point coordinates_list]
 
 # -----------------------------------------------------------------------------------------------------
 # STEP shape aspect
@@ -439,7 +448,7 @@ externally_defined_dimension_definition feature_for_datum_target_relationship fl
 geometric_tolerance geometric_tolerance_relationship geometric_tolerance_with_datum_reference geometric_tolerance_with_defined_area_unit \
 geometric_tolerance_with_defined_unit geometric_tolerance_with_maximum_tolerance geometric_tolerance_with_modifiers \
 limits_and_fits line_profile_tolerance modified_geometric_tolerance non_uniform_zone_definition \
-parallelism_tolerance perpendicularity_tolerance placed_datum_target_feature placed_feature plus_minus_tolerance position_tolerance \
+parallelism_tolerance perpendicularity_tolerance placed_datum_target_feature plus_minus_tolerance position_tolerance \
 projected_zone_definition projected_zone_definition_with_offset \
 referenced_modified_datum roundness_tolerance runout_zone_definition runout_zone_orientation runout_zone_orientation_reference_direction \
 shape_dimension_representation straightness_tolerance surface_profile_tolerance symmetry_tolerance \
@@ -575,7 +584,7 @@ set entCategory(PR_STEP_FEAT) [lsort [list \
 boss boss_top chamfer chamfer_offset circular_closed_profile circular_pattern closed_path_profile composite_hole compound_feature edge_round \
 feature_component_definition feature_component_relationship feature_definition feature_pattern \
 fillet hole_bottom instanced_feature linear_profile ngon_closed_profile open_path_profile outside_profile \
-partial_circular_profile path_feature_component pocket pocket_bottom rectangular_closed_profile rectangular_pattern \
+partial_circular_profile path_feature_component placed_feature pocket pocket_bottom rectangular_closed_profile rectangular_pattern \
 replicate_feature revolved_profile rib round_hole rounded_u_profile slot slot_end \
 square_u_profile tee_profile thread transition_feature vee_profile \
 ]]
@@ -594,10 +603,10 @@ cdgc_with_dimension chain_based_geometric_item_specific_usage chain_based_item_i
 change_element change_element_sequence change_group change_group_assignment characterized_chain_based_item_within_representation circular_area \
 clgc_with_dimension coaxial_assembly_constraint coaxial_geometric_constraint complex_area complex_number_literal complex_number_literal_polar \
 closed_curve_style_parameters curve_style_parameters_representation curve_style_parameters_with_ends \
-complex_triangulated_face complex_triangulated_surface_set component_definition component_feature component_feature_joint \
+component_definition component_feature component_feature_joint \
 component_feature_relationship component_mating_constraint_condition component_terminal composite_curve_transition_locator \
 connection_zone_based_assembly_joint connection_zone_interface_plane_relationship constant_function contacting_feature convex_hexahedron \
-coordinates_list csg_2d_shape_representation csg_primitive_solid_2d csg_solid_2d current_change_element_assignment curve_distance_geometric_constraint \
+csg_2d_shape_representation csg_primitive_solid_2d csg_solid_2d current_change_element_assignment curve_distance_geometric_constraint \
 curve_length_geometric_constraint curve_segment_set curve_smoothness_geometric_constraint curve_with_excessive_segments \
 curve_with_small_curvature_radius cyclide_segment_solid data_quality_assessment_measurement_association data_quality_assessment_specification \
 data_quality_criteria_representation data_quality_criterion data_quality_criterion_assessment_association data_quality_criterion_measurement_association \
@@ -653,7 +662,7 @@ product_definition_reference product_definition_reference_with_local_representat
 product_planned_to_realized product_relationship profile_floor protrusion quantifier_expression radius_geometric_constraint rationalize_function \
 real_interval_from_min real_interval_to_max real_tuple_literal rectangular_area rectangular_array_placement_group_component \
 rectangular_composite_surface_transition_locator rectangular_pyramid reindexed_array_function removal_volume repackaging_function \
-repositioned_neutral_sketch repositioned_tessellated_item representation_proxy_item representative_shape_representation restriction_function \
+repositioned_neutral_sketch representation_proxy_item representative_shape_representation restriction_function \
 rgc_with_dimension rib_top rib_top_floor rigid_subsketch rounded_end sdgc_with_dimension selector_function self_intersecting_curve \
 self_intersecting_geometry self_intersecting_loop self_intersecting_shell self_intersecting_surface series_composed_function \
 shape_criteria_representation_with_accuracy shape_data_quality_assessment_by_logical_test shape_data_quality_assessment_by_numerical_test \
@@ -670,11 +679,10 @@ SQL_mappable_defined_function \
 steep_angle_between_adjacent_faces steep_geometry_transition_across_edge step su_parameters subsketch summary_report_request \
 surface_distance_assembly_constraint_with_dimension surface_distance_geometric_constraint surface_patch_set surface_smoothness_geometric_constraint \
 surface_with_excessive_patches_in_one_direction surface_with_small_curvature_radius swept_curve_surface_geometric_constraint \
-swept_point_curve_geometric_constraint symmetry_geometric_constraint tangent_assembly_constraint tangent_geometric_constraint tessellated_connecting_edge \
-tessellated_curve_set tessellated_edge tessellated_face tessellated_geometric_set tessellated_item tessellated_point_set \
-tessellated_shell tessellated_solid tessellated_structured_item tessellated_surface_set tessellated_vertex tessellated_wire tetrahedron thermal_component \
+swept_point_curve_geometric_constraint symmetry_geometric_constraint tangent_assembly_constraint tangent_geometric_constraint \
+tetrahedron thermal_component \
 thread_runout topology_related_to_multiply_defined_geometry topology_related_to_nearly_degenerate_geometry topology_related_to_overlapping_geometry \
-topology_related_to_self_intersecting_geometry triangulated_face triangulated_surface_set turned_knurl unbound_parameter_environment \
+topology_related_to_self_intersecting_geometry turned_knurl unbound_parameter_environment \
 unbound_variational_parameter unbound_variational_parameter_semantics uniform_product_space unused_patches unused_shape_element variable_expression \
 variational_current_representation_relationship variational_parameter variational_representation volume wrong_element_name wrongly_oriented_void \
 wrongly_placed_loop wrongly_placed_void zero_surface_normal \

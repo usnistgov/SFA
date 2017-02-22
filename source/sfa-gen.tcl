@@ -2,11 +2,11 @@
 
 proc genExcel {{numFile 0}} {
   global allEntity ap203all ap214all ap242all badAttributes buttons
-  global cells cells1 col col1 comma count coverageLegend readPMI creo csvdirnam csvfile
+  global cells cells1 col col1 comma count coverageLegend readPMI noPSA csvdirnam csvfile
   global developer dim entCategories entCategory entColorIndex entCount entityCount entsIgnored env errmsg
-  global excel excelVersion excelYear extXLS fcsv File fileEntity fixent fixprm gpmiTypesPerFile idxColor inverses
+  global excel excelVersion excelYear extXLS fcsv File fileEntity skipEntities skipPerm gpmiTypesPerFile idxColor inverses
   global lastXLS lenfilelist localName localNameList multiFile multiFileDir nistName nistVersion nprogEnts
-  global opt pmiCol pmiMaster programfiles recPracNames row rowmax sheetLast spmiEntity spmiSumName spmiSumRow spmiTypesPerFile startrow stepAP
+  global opt p21e3 pmiCol pmiMaster programfiles recPracNames row rowmax sheetLast spmiEntity spmiSumName spmiSumRow spmiTypesPerFile startrow stepAP
   global thisEntType timeStamp tlast tolStandard totalEntity userEntityFile userEntityList userXLSFile
   global workbook workbooks worksheet worksheet1 worksheets writeDir wsCount
   global x3domColor x3domCoord x3domFile x3domFileName x3domFileOpen x3domIndex x3domMax x3domMin
@@ -14,8 +14,8 @@ proc genExcel {{numFile 0}} {
   
   if {[info exists errmsg]} {set errmsg ""}
 
-# initialize for PMI X3DOM
-  if {$opt(GENX3DOM)} {
+# initialize for PMI OR AP209 X3DOM
+  if {$opt(VIZPMI) || $opt(VIZ209)} {
     set x3domFileOpen 1
     set x3domFileName ""
     set x3domColor ""
@@ -114,26 +114,42 @@ proc genExcel {{numFile 0}} {
       $cells1(Summary) Item $startrow $colsum $entityCount
     }
     
-# open file of entities not to process (fixent)
+# open file of entities (-skip.dat) not to process (skipEntities), skipPerm are entities always to skip
     set cfile [file rootname $fname]
-    append cfile "_fix.dat"
-    set fixprm {}
-    set fixent $fixprm
+    append cfile "-skip.dat"
+    set skipPerm {}
+    set skipEntities $skipPerm
     if {[file exists $cfile]} {
-      set fixfile [open $cfile r]
-      while {[gets $fixfile line] >= 0} {
-        if {[lsearch $fixent $line] == -1 && $line != "" && ![info exists badAttributes($line)]} {
-          lappend fixent $line
+      set skipFile [open $cfile r]
+      while {[gets $skipFile line] >= 0} {
+        if {[lsearch $skipEntities $line] == -1 && $line != "" && ![info exists badAttributes($line)]} {
+          lappend skipEntities $line
         }
       }
-      close $fixfile
+      close $skipFile
+
+# old skip file name (_fix.dat), delete
+    } else {
+      set cfile1 [file rootname $fname]
+      append cfile1 "_fix.dat"
+      if {[file exists $cfile1]} {
+        set skipFile [open $cfile1 r]
+        while {[gets $skipFile line] >= 0} {
+          if {[lsearch $skipEntities $line] == -1 && $line != "" && ![info exists badAttributes($line)]} {
+            lappend skipEntities $line
+          }
+        }
+        close $skipFile
+        file delete -force $cfile1
+        errorMsg "File of entities to skip '[file tail $cfile1]' renamed to '[file tail $cfile]'."
+      }
     }
 
 # check if a file generated from a NIST test case is being processed
     set nistName ""
     set ftail [string tolower [file tail $localName]]
     set ctcftc 0
-    set filePrefix [list sp4_ sp5_ sp6_ sp7_ tgp1_ tgp2_ tgp3_ tgp4_ tp3_ tp4_ tp5_ lsp_ lpp_ ltg_ ltp_]
+    set filePrefix [list sp4_ sp5_ sp6_ sp7_ tgp1_ tgp2_ tgp3_ tgp4_ tp3_ tp4_ tp5_ tp6_ lsp_ lpp_ ltg_ ltp_]
 
     set ok  0
     set ok1 0
@@ -212,9 +228,17 @@ proc genExcel {{numFile 0}} {
 # error opening file, report the schema
   } emsg]} {
     errorMsg "ERROR opening STEP file"
-    #errorMsg "ERROR opening STEP file: $emsg"
-    errorMsg "Possible causes of the ERROR:\n- Syntax errors in the STEP file, see Help > Conformance Checking\n- STEP schema is not supported, see Help > Supported STEP APs\n- Multiple schemas are used\n- Wrong file extension, should be '.stp'\n- STEP file contains new features from ISO 10303 Part 21 edition 3\n- File is not an ISO 10303 Part 21 STEP file" red
     getSchemaFromFile $fname 1
+
+    if {!$p21e3} {
+      errorMsg "Possible causes of the ERROR:\n- Syntax errors in the STEP file\n- STEP schema is not supported, see Help > Supported STEP APs\n- Multiple schemas are used\n- Wrong file extension, should be '.stp'\n- STEP file contains new features from ISO 10303 Part 21 edition 3\n- File is not an ISO 10303 Part 21 STEP file" red
+      #errorMsg "Possible causes of the ERROR:\n- Syntax errors in the STEP file, see Help > Conformance Checking\n- STEP schema is not supported, see Help > Supported STEP APs\n- Multiple schemas are used\n- Wrong file extension, should be '.stp'\n- STEP file contains new features from ISO 10303 Part 21 edition 3\n- File is not an ISO 10303 Part 21 STEP file" red
+    
+# part 21 edition 3
+    } else {
+      outputMsg " "
+      errorMsg "The STEP file uses the new Part 21 Edition 3 and cannot be processed by the STEP File Analyzer.\n Edit the STEP file to delete the Edition 3 content such as the ANCHOR, REFERENCE, and SIGNATURE sections."
+    }
     if {!$nistVersion} {
       outputMsg " "
       errorMsg "You must process at least one STEP file with the NIST version of the STEP File Analyzer\n before using a user-built version."
@@ -464,26 +488,26 @@ proc genExcel {{numFile 0}} {
       if {$c1 != -1} {set entType_1 [string range $entType_1 0 $c1-1]}
       
 # check for entities that cause crashes
-      set nofix 1
-      if {[info exists fixent]} {if {[lsearch $fixent $entType] != -1} {set nofix 0}}
-      if {$entType == "presentation_style_assignment" && $creo == 1} {set nofix 0}
+      set noSkip 1
+      if {[info exists skipEntities]} {if {[lsearch $skipEntities $entType] != -1} {set noSkip 0}}
+      if {$entType == "presentation_style_assignment" && $noPSA == 1} {set noSkip 0}
 
 # add to list of entities to process (entsToProcess), uses color index to set the order
       if {([lsearch $entCategories $entType_1] != -1 || $ok)} {
-        if {$nofix} {
+        if {$noSkip} {
           lappend entsToProcess "[setColorIndex $entType]$entType"
           incr numEnts $entCount($entType)
         } else {
-          if {$entType != "presentation_style_assignment" || $creo == 0} {lappend fixlist $entType}
+          if {$entType != "presentation_style_assignment" || $noPSA == 0} {lappend fixlist $entType}
           lappend entsToIgnore $entType
           set entsIgnored($entType) $entCount($entType)
         }
       } elseif {[lsearch $entCategories $entType] != -1} {
-        if {$nofix} {
+        if {$noSkip} {
           lappend entsToProcess "[setColorIndex $entType]$entType"
           incr numEnts $entCount($entType)
         } else {
-          if {$entType != "presentation_style_assignment" || $creo == 0} {lappend fixlist $entType}
+          if {$entType != "presentation_style_assignment" || $noPSA == 0} {lappend fixlist $entType}
           lappend entsToIgnore $entType
           set entsIgnored($entType) $entCount($entType)
         }
@@ -511,11 +535,13 @@ proc genExcel {{numFile 0}} {
     outputMsg " "
     if {[file exists $cfile]} {
       set ok 0
-      foreach item $fixlist {if {[lsearch $fixprm $item] == -1} {set ok 1}}
-      if {$ok} {errorMsg "Based on entities listed in [truncFileName [file nativename $cfile]]"}
+      foreach item $fixlist {if {[lsearch $skipPerm $item] == -1} {set ok 1}}
     }
-    errorMsg " Worksheets will not be generated for the following entities:"
-    foreach item [lsort $fixlist] {outputMsg "  $item" red}
+    if {$ok} {
+      errorMsg "Worksheets will NOT be generated for entities listed in\n [truncFileName [file nativename $cfile]]:"
+      foreach item [lsort $fixlist] {outputMsg "  $item" red}
+      errorMsg " See Help > Crash Recovery"
+    }
   }
   
 # sort entsToProcess by color index
@@ -564,13 +590,13 @@ proc genExcel {{numFile 0}} {
         if {[$attr Name] == "id"} {
           set val [$attr Value]
           if {([string first "ISO" $val] != -1 || [string first "ASME" $val] != -1) && [string first "NIST" [string toupper $val]] == -1} {
-            if {[string first "ISO"  $val] != -1} {
+            if {[string first "ISO" $val] != -1} {
               set tolStandard(type) "ISO"
-              if {[string first "1101" $val] != "" || [string first "16792" $val] != ""} {if {[string first $val $tolStandard(num)] == -1} {append tolStandard(num) "$val  "}}
+              if {[string first "1101" $val] != "" || [string first "16792" $val] != ""} {if {[string first $val $tolStandard(num)] == -1} {append tolStandard(num) "$val    "}}
             }
             if {[string first "ASME" $val] != -1 && [string first "NIST" [string toupper $val]] == -1} {
               set tolStandard(type) "ASME"
-              if {[string first "Y14." $val] != ""} {if {[string first $val $tolStandard(num)] == -1} {append tolStandard(num) "$val  "}}
+              if {[string first "Y14." $val] != ""} {if {[string first $val $tolStandard(num)] == -1} {append tolStandard(num) "$val    "}}
             }
             set ok 1
             foreach std $stds {if {[string first $val $std] != -1} {set ok 0}}
@@ -688,8 +714,8 @@ proc genExcel {{numFile 0}} {
 
       if {$opt(XLSCSV) == "CSV"} {catch {close $fcsv}}
       
-# check for validation properties, PMI presentation and representation
-      checkPMIValProps $objDesign $entType
+# check for reports (validation properties, PMI presentation and representation, AP209)
+      checkForReports $objDesign $entType
     }
 
   } emsg2]} {
@@ -710,25 +736,25 @@ proc genExcel {{numFile 0}} {
   if {[info exists cfile]} {
     set fixtmp {}
     if {[file exists $cfile]} {
-      set fixfile [open $cfile r]
-      while {[gets $fixfile line] >= 0} {
+      set skipFile [open $cfile r]
+      while {[gets $skipFile line] >= 0} {
         if {[lsearch $fixtmp $line] == -1 && $line != $lastEnt} {lappend fixtmp $line}
       }
-      close $fixfile
+      close $skipFile
     }
 
     if {[join $fixtmp] == ""} {
       catch {file delete -force $cfile}
     } else {
-      set fixfile [open $cfile w]
-      foreach item $fixtmp {puts $fixfile $item}
-      close $fixfile
+      set skipFile [open $cfile w]
+      foreach item $fixtmp {puts $skipFile $item}
+      close $skipFile
     }
   }
 
 # -------------------------------------------------------------------------------------------------
 # set viewpoints and close PMI X3DOM file 
-  if {$opt(GENX3DOM) && $x3domFileName != ""} {gpmiX3DOMViewpoints}
+  if {$opt(VIZPMI) && $x3domFileName != ""} {gpmiX3DOMViewpoints}
 
 # -------------------------------------------------------------------------------------------------
 # quit IFCsvr, but not sure how to do it properly
@@ -897,7 +923,7 @@ proc genExcel {{numFile 0}} {
 
 # -------------------------------------------------------------------------------------------------
 # open X3DOM file of graphical PMI
-  displayX3DOM
+  openX3DOM
 
 # -------------------------------------------------------------------------------------------------
 # save state
@@ -926,7 +952,7 @@ proc genExcel {{numFile 0}} {
   
 # -------------------------------------------------------------------------------------------------
 proc addHeaderWorksheet {objDesign numFile fname} {
-  global excel worksheets worksheet cells row timeStamp creo fileSchema cadSystem opt localName
+  global excel worksheets worksheet cells row timeStamp noPSA fileSchema cadSystem opt localName p21e3
   global excel1 worksheet1 cells1 col1
   global csvdirnam
    
@@ -946,14 +972,17 @@ proc addHeaderWorksheet {objDesign numFile fname} {
       "SIEMENS PLM Software NX 7.0" "SIEMENS PLM Software NX 7.5" "SIEMENS PLM Software NX 8.0" "SIEMENS PLM Software NX 8.5" \
       "SIEMENS PLM Software NX 9.0" "SIEMENS PLM Software NX" "Solid Edge" SolidEdge SolidWorks "ST-ACIS" "STEP Caselib" \
       "STEP-NC Explorer" "STEP-NC Maker" "T3D tool generator" THEOREM Theorem "THEOREM SOLUTIONS" "Theorem Solutions" "T-Systems" \
-      "UGS - NX" Unigraphics CoCreate Adobe Elysium ASFALIS CAPVIDIA 3DTransVidia MBDVidia NAFEMS COM209 CADCAM-E 3DEXPERIENCE ECCO SimDM}
+      "UGS - NX" Unigraphics CoCreate Adobe Elysium ASFALIS CAPVIDIA 3DTransVidia MBDVidia NAFEMS COM209 CADCAM-E 3DEXPERIENCE ECCO SimDM \
+      SDS/2 Tekla Revit RISA SAP2000 ETABS SmartPlant CADWorx "Advance Steel" ProSteel STAAD RAM Cype Parabuild RFEM RSTAB BuiltWorks EDMsix \
+      "3D Reviewer" "3D Converter" HOOPS}
 
 # sort cadApps by string length
     set cadApps [sortlength2 $cadApps]
 
     set cadSystem ""
     set timeStamp ""
-    set creo 0
+    set noPSA 0
+    set p21e3
 
     set hdr "Header"
     if {$opt(XLSCSV) == "Excel"} { 
@@ -1013,7 +1042,7 @@ proc addHeaderWorksheet {objDesign numFile fname} {
         if {[string first "IFC" $fileSchema] == 0} {
           errorMsg "Use the IFC File Analyzer with IFC files."
           after 1000
-          displayURL http://go.usa.gov/xK9gh
+          openURL http://go.usa.gov/xK9gh
         } elseif {$objAttr == "STRUCTURAL_FRAME_SCHEMA"} {
           errorMsg "This is a CIS/2 file that can be visualized with SteelVis.  http://go.usa.gov/s8fm"
         }
@@ -1054,15 +1083,18 @@ proc addHeaderWorksheet {objDesign numFile fname} {
 
 # check implementation level        
         if {$attr == "FileImplementationLevel"} {
-          if {$objAttr != "2\;1"} {
-            errorMsg "Syntax Error: Implementation Level should be '2\;1'"
+          if {[string first "\;" $objAttr] == -1} {
+            errorMsg "Syntax Error: Implementation Level is usually '2\;1'"
             [$worksheet($hdr) Range B4] Style "Bad"
+          } elseif {$objAttr == "4\;1"} {
+            set p21e3 1
           }
         }
 
-# check for Creo
+# check for Creo or Inventor to prevent presentation_style_assignment being processed
         if {$attr == "FileOriginatingSystem"} {
-          if {[string first "PRO/ENGINEER" $objAttr] != -1 || [string first "CREO PARAMETRIC" $objAttr] != -1} {set creo 1}
+          if {[string first "PRO/ENGINEER" $objAttr] != -1 || [string first "CREO PARAMETRIC" $objAttr] != -1 || \
+              [string first "Inventor" $objAttr] != -1} {set noPSA 1}
         }
 
 # check and add time stamp to multi file summary
@@ -1235,8 +1267,8 @@ proc sumAddWorksheet {} {
         }
         if {$okao} {
           $cells($sum) Item $sumRow 1 "$entType  \[PMI Presentation\]"
-          if {$opt(GENX3DOM) && $x3domFileName != "" && $x3domLink} {
-            $cells($sum) Item $sumRow 3 "Graphics"
+          if {$opt(VIZPMI) && $x3domFileName != "" && $x3domLink} {
+            $cells($sum) Item $sumRow 3 "Graphic PMI"
             set x3domLink 0
             set anchor [$worksheet($sum) Range [cellRange $sumRow 3]]
             $sumLinks Add $anchor [join $x3domFileName] [join ""] [join "Link to Graphics file"]
@@ -1259,7 +1291,7 @@ proc sumAddWorksheet {} {
         }
         if {$okao} {
           $cells($sum) Item $sumRow 1 "$entType_multiline  \[PMI Presentation\]"
-          if {$opt(GENX3DOM) && $x3domFileName != "" && $x3domLink} {
+          if {$opt(VIZPMI) && $x3domFileName != "" && $x3domLink} {
             $cells($sum) Item $sumRow 3 "Graphics"
             set x3domLink 0
             set anchor [$worksheet($sum) Range [cellRange $sumRow 3]]
@@ -1346,11 +1378,13 @@ proc sumAddFileName {sum sumLinks} {
 
     if {$tolStandard(type) != ""} {
       [$worksheet($sum) Range "1:1"] Insert
-      $cells($sum) Item 1 1 "Tolerance Standard"
+      $cells($sum) Item 1 1 "Standards"
       if {$tolStandard(num) != ""} {
-        $cells($sum) Item 1 2 "$tolStandard(num)"
+        $cells($sum) Item 1 2 [string trim $tolStandard(num)]
+        #set range [$worksheet($sum) Range "1:1"]
+        #$range VerticalAlignment [expr -4108]
       } else {
-        $cells($sum) Item 1 2 "$tolStandard(type)"
+        $cells($sum) Item 1 2 [string trim $tolStandard(type)]
       }
       set range [$worksheet($sum) Range "B1:K1"]
       $range MergeCells [expr 1]

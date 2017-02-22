@@ -277,8 +277,10 @@ proc invReport {} {
 proc invFormat {rancol} {
   global thisEntType col cells row rowmax worksheet invGroup excelVersion
   
-  set igrp1 100
-  set igrp2 0
+  set igrp1 2
+  set igrp2 100
+  #set igrp1 100
+  #set igrp2 0
   set i1 [expr {$rancol+1}]
     
 # fix column widths
@@ -287,7 +289,9 @@ proc invFormat {rancol} {
     if {$val == "Used In" || [string first "INV-" $val] != -1} {
       set range [$worksheet($thisEntType) Range [cellRange -1 $i]]
       $range ColumnWidth [expr 80]
+      if {$i < $igrp2} {set igrp2 [expr {$i-1}]}
     }
+    if {($val == "name" || $val == "description") && $i < 4} {set igrp1 [expr {$i+1}]}
   }
   [$worksheet($thisEntType) Columns] AutoFit
   [$worksheet($thisEntType) Rows] AutoFit
@@ -304,8 +308,8 @@ proc invFormat {rancol} {
       } else {
         [$range Interior] Color [expr 16768477]
       }
-      if {$i < $igrp1} {set igrp1 $i}
-      if {$i > $igrp2} {set igrp2 $i}
+      #if {$i < $igrp1} {set igrp1 $i}
+      #if {$i > $igrp2} {set igrp2 $i}
       if {$excelVersion >= 12} {
         set range [$worksheet($thisEntType) Range [cellRange 4 $i] [cellRange $r1 $i]]
         for {set k 7} {$k <= 12} {incr k} {
@@ -323,7 +327,7 @@ proc invFormat {rancol} {
   }
 
 # group
-  if {$igrp2 > 0} {
+  if {$igrp2 > $igrp1 && $igrp2 != 100} {
     set grange [$worksheet($thisEntType) Range [cellRange 1 $igrp1] [cellRange [expr {$row($thisEntType)+2}] $igrp2]]
     [$grange Columns] Group
     set invGroup($thisEntType) $igrp1
@@ -366,6 +370,7 @@ proc invSetCheck {entType} {
       [string first "datum"         $entType] != -1 || \
       [string first "dimension"     $entType] != -1 || \
       [string first "document"      $entType] != -1 || \
+      [string first "hole"          $entType] != -1 || \
       [string first "item_"         $entType] != -1 || \
       [string first "kinematic"     $entType] != -1 || \
       [string first "machining"     $entType] != -1 || \
@@ -513,6 +518,7 @@ proc initDataInverses {} {
   lappend inverses [list geometric_tolerance_with_datum_reference datum_system used_in]
   
 # AP209
+  lappend inverses [list control model_ref used_in]
   lappend inverses [list control_linear_static_analysis_step analysis_control used_in]
   lappend inverses [list control_linear_static_analysis_step initial_state used_in]
   lappend inverses [list control_linear_static_analysis_step process used_in]
@@ -535,10 +541,12 @@ proc initDataInverses {} {
   lappend inverses [list element_geometric_relationship item element_ref]
   lappend inverses [list element_group model_ref used_in]
   lappend inverses [list element_group elements used_in]
+  lappend inverses [list dummy_node model_ref used_in]
+  lappend inverses [list element_material properties used_in]
 
   lappend inverses [list fea_material_property_representation definition used_in]
   lappend inverses [list fea_material_property_representation used_representation used_in]
-  #lappend inverses [list fea_material_property_representation dependent_environment used_in]
+  lappend inverses [list fea_material_property_representation dependent_environment used_in]
   lappend inverses [list fea_model_3d items used_in]
   lappend inverses [list fea_model_definition of_shape used_in]
 
@@ -576,16 +584,38 @@ proc initDataInverses {} {
   lappend inverses [list state_component state used_in]
   lappend inverses [list state_relationship related_state relating_state]
   lappend inverses [list state_relationship relating_state related_state]
+  lappend inverses [list structural_response_property definition used_in]
+  lappend inverses [list structural_response_property_definition_representation definition used_in]
+  lappend inverses [list structural_response_property_definition_representation used_representation used_in]
 
+  lappend inverses [list surface_3d_element_boundary_constant_specified_surface_variable_value defined_state used_in]
+  lappend inverses [list surface_3d_element_boundary_constant_specified_surface_variable_value element used_in]
   lappend inverses [list surface_3d_element_location_point_volume_variable_values defined_state used_in]
   lappend inverses [list surface_3d_element_location_point_volume_variable_values element used_in]
   lappend inverses [list surface_3d_element_location_point_volume_variable_values values_and_locations used_in]
+  lappend inverses [list surface_3d_element_representation items used_in]
   lappend inverses [list surface_3d_element_representation node_list used_in]
+  lappend inverses [list surface_3d_element_representation model_ref used_in]
+  lappend inverses [list surface_3d_element_representation element_descriptor used_in]
+  lappend inverses [list surface_3d_element_representation property used_in]
+  lappend inverses [list surface_3d_element_representation material used_in]
   lappend inverses [list surface_3d_element_location_point_volume_variable_values values_and_locations used_in]
+  lappend inverses [list surface_3d_element_value location used_in]
+  lappend inverses [list surface_3d_element_value_and_volume_location location used_in]
   lappend inverses [list surface_element_location coordinates used_in]
+  lappend inverses [list surface_element_property section used_in]
+  lappend inverses [list surface_section_field_constant definition used_in]
+  lappend inverses [list surface_volume_element_location field_location used_in]
+  lappend inverses [list surface_volume_element_location section_location used_in]
 
   lappend inverses [list volume_3d_element_representation node_list used_in]
   lappend inverses [list volume_3d_element_location_point_volume_variable_values values_and_locations used_in]
+  lappend inverses [list volume_3d_element_representation items used_in]
+  lappend inverses [list volume_3d_element_representation node_list used_in]
+  lappend inverses [list volume_3d_element_representation model_ref used_in]
+  lappend inverses [list volume_3d_element_representation element_descriptor used_in]
+  lappend inverses [list volume_3d_element_representation property used_in]
+  lappend inverses [list volume_3d_element_representation material used_in]
   lappend inverses [list whole_model_modes_and_frequencies_analysis_message defined_state used_in]
 
 # kinematics  

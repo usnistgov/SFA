@@ -817,7 +817,7 @@ proc spmiGeotolReport {objEntity} {
                     }
                     if {[string first "datum_feature" [$gtEntity Type]] != -1} {
                       getAssocGeom $gtEntity
-                      reportAssocGeom
+                      reportAssocGeom [$gtEntity Type]
                     }
                   }
                   "referenced_modified_datum modifier" {
@@ -1374,7 +1374,7 @@ proc spmiGeotolReport {objEntity} {
       
 # report toleranced geometry
     if {[info exists assocGeom]} {
-      set str [reportAssocGeom]
+      set str [reportAssocGeom $gt]
       if {$str != ""  } {
         set c1 [expr {$col($gt)+3}]
         set c [string index [cellRange 1 $c1] 0]
