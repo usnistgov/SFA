@@ -52,14 +52,14 @@ foreach item $auto_path {if {[string first "STEP-File-Analyzer" $item] != -1} {s
 
 # initialize variables
 foreach id {XL_OPEN XL_KEEPOPEN XL_LINK1 XL_FPREC XL_SORT \
-            VALPROP PMIGRF PMISEM VIZPMI VIZ209 INVERSE DEBUG1 DEBUG2 \
+            VALPROP PMIGRF PMISEM VIZPMI VIZFEA INVERSE DEBUG1 DEBUG2 \
             PR_STEP_AP242 PR_USER PR_STEP_KINE PR_STEP_COMP PR_STEP_COMM PR_STEP_GEOM PR_STEP_QUAN \
             PR_STEP_FEAT PR_STEP_PRES PR_STEP_TOLR PR_STEP_REPR PR_STEP_CPNT PR_STEP_SHAP} {set opt($id) 1}
 
 set opt(PR_STEP_CPNT) 0
 set opt(PR_STEP_GEOM)  0
 set opt(PR_USER) 0
-set opt(VIZ209) 0
+set opt(VIZFEA) 1
 
 set opt(CRASH) 0
 set opt(DEBUG1) 0
@@ -145,6 +145,7 @@ if {[file exists $optionsFile]} {
   if {[info exists opt(PMIPROP)]}  {set opt(PMIGRF) $opt(PMIPROP)}
   if {[info exists opt(SEMPROP)]}  {set opt(PMISEM) $opt(SEMPROP)}
   if {[info exists opt(GENX3DOM)]} {set opt(VIZPMI) $opt(GENX3DOM)}
+  if {[info exists opt(VIZ209)]}   {set opt(VIZFEA) $opt(VIZ209)}
 
   if {[info exists opt(ROWLIM)]} {set opt(XL_ROWLIM) $opt(ROWLIM)}
   if {[info exists opt(SORT)]}   {set opt(XL_SORT)   $opt(SORT)}
@@ -173,7 +174,7 @@ if {[file exists $optionsFile]} {
   if {[info exists writeDirType]}     {set opt(writeDirType)     $writeDirType;     unset writeDirType}
 
   if {[info exists gpmiColor]} {set opt(gpmiColor) $gpmiColor; unset gpmiColor}
-  if {[info exists row_limit]} {set opt(XL_ROWLIM)    $row_limit; unset row_limit}
+  if {[info exists row_limit]} {set opt(XL_ROWLIM) $row_limit; unset row_limit}
   if {[info exists firsttime]} {set opt(FIRSTTIME) $firsttime; unset firsttime}
   if {[info exists ncrash]}    {set opt(CRASH)     $ncrash;    unset ncrash}
 
@@ -185,7 +186,7 @@ if {[file exists $optionsFile]} {
                 XL_SCROLL PMIVRML PMIPROP SEMPROP PMIP EX_ANAL EX_ARBP EX_LP VPDBG \
                 PR_STEP_AP242_QUAL PR_STEP_AP242_CONS PR_STEP_AP242_MATH PR_STEP_AP242_KINE PR_STEP_AP242_OTHER PR_STEP_AP242_GEOM \
                 PR_STEP_AP209 PR_STEP_AP210 PR_STEP_AP238 PR_STEP_AP239 PR_STEP_AP203 PR_STEP_AP214 PR_STEP_OTHER \
-                PR_STEP_GEO PR_STEP_REP PR_STEP_ASPECT ROWLIM SORT} {
+                PR_STEP_GEO PR_STEP_REP PR_STEP_ASPECT ROWLIM SORT GENX3DOM VIZ209} {
     catch {unset opt($item)}
   }
 }
@@ -247,14 +248,11 @@ proc whatsNew {} {
   if {$sfaVersion > 0 && $sfaVersion < [getVersion]} {outputMsg "\nThe previous version of the STEP File Analyzer was: $sfaVersion" red}
 
 outputMsg "\nWhat's New (Version: [getVersion]  Updated: [string trim [clock format $progtime -format "%e %b %Y"]])" blue
-outputMsg "- Automated checking of PMI Annotations for the NIST CAD models
-   PMI Representation Summary and Coverage worksheets are color-coded by expected PMI
-   Similar and Missing PMI is also reported
-  See Help > NIST CAD Models
-
-- Bug fixes and minor improvements
-- Improved visualization of PMI Presentation Annotations (Options tab)
-- Improved reporting of Associated Geometry for Tolerances, Datum Features, and Annotations"
+outputMsg "- New visualization of AP209 finite element models (Options tab, Help > Analysis Model)
+- Improved reporting of PMI Annotation Saved Views and related recommended practices
+- Improved visualization of PMI Annotations (Options tab)
+- Automated checking of PMI Annotations in the NIST CAD models (Help > NIST CAD Models)
+- Bug fixes and minor improvements"
 
   .tnb select .tnb.status
   update idletasks

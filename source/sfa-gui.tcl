@@ -241,38 +241,6 @@ proc guiStatusTab {} {
     }
     #if {$developer} {outputMsg $statusFont}
   }
-  
-  #bind . <Key-F7> {
-  #  set statusFont [$outputWin type cget black -font]
-  #  if {[string first "Courier" $statusFont] != -1} {
-  #    regsub "Courier" $statusFont "Consolas" statusFont
-  #  } else {
-  #    regsub "Consolas" $statusFont "Courier" statusFont
-  #  }
-  #  foreach typ {black red green magenta cyan blue error syntax} {
-  #    $outputWin type configure $typ -font $statusFont
-  #  }
-  #}
-
-# excel colors
-  #$outputWin type add excel12 -foreground black -background "#808000"
-  #$outputWin type add excel15 -foreground black -background "#C0C0C0"
-  #$outputWin type add excel16 -foreground black -background "#808080"
-  #$outputWin type add excel17 -foreground black -background "#9999FF"
-  #$outputWin type add excel19 -foreground black -background "#FFFFCC"
-  #$outputWin type add excel20 -foreground black -background "#CCFFFF"
-  #$outputWin type add excel22 -foreground black -background "#FF8080"
-  #$outputWin type add excel24 -foreground black -background "#CCCCFF"
-  #$outputWin type add excel34 -foreground black -background "#CCFFFF"
-  #$outputWin type add excel35 -foreground black -background "#CCFFCC"
-  #$outputWin type add excel36 -foreground black -background "#FFFF99"
-  #$outputWin type add excel37 -foreground black -background "#99CCFF"
-  #$outputWin type add excel38 -foreground black -background "#FF99CC"
-  #$outputWin type add excel39 -foreground black -background "#CC99FF"
-  #$outputWin type add excel42 -foreground black -background "#33CCCC"
-  #$outputWin type add excel43 -foreground black -background "#99CC00"
-  #$outputWin type add excel44 -foreground black -background "#FFCC00"
-  #$outputWin type add excel48 -foreground black -background "#969696"
 }
 
 #-------------------------------------------------------------------------------
@@ -394,22 +362,26 @@ proc guiProcessAndReports {} {
     }
   }
   
-  set anbut {{"All" 1} {"For Reports" 0}}
+  set anbut [list {"All" 1} {"None" 2} {"For Reports" 0}]
   foreach item $anbut {
     set bn "anbut[lindex $item 1]"            
     set buttons($bn) [ttk::radiobutton $fopta1.$cb -variable allNone -text [lindex $item 0] -value [lindex $item 1] \
       -command {
-        if {$allNone} {
-          foreach item [array names opt] {
-            if {[string first "PR_STEP" $item] == 0} {set opt($item) $allNone}
-          }
-        } else {
-          if {$opt(PMISEM) == 0 || $opt(PMIGRF) == 0 || $opt(VALPROP) == 0} {
-            set opt(PMISEM) 1
-            set opt(PMIGRF) 1
-            set opt(VALPROP) 1
-          }
-          set opt(INVERSE) 1
+        if {$allNone == 1} {
+          foreach item [array names opt] {if {[string first "PR_STEP" $item] == 0} {set opt($item) 1}}
+        } elseif {$allNone == 0} {
+          set opt(PMISEM) 1
+          set opt(PMIGRF) 1
+          set opt(VALPROP) 1
+          set opt(VIZFEA) 1
+          #set opt(INVERSE) 1
+        } elseif {$allNone == 2} {
+          foreach item [array names opt] {if {[string first "PR_STEP" $item] == 0} {set opt($item) 0}}
+          set opt(PMISEM) 0
+          set opt(PMIGRF) 0
+          set opt(VALPROP) 0
+          set opt(INVERSE) 0
+          set opt(PR_STEP_COMM) 1
         }
         set opt(PR_STEP_GEOM)  0
         set opt(PR_STEP_CPNT) 0
@@ -419,8 +391,9 @@ proc guiProcessAndReports {} {
     incr cb
   }
   catch {
-    tooltip::tooltip $buttons(anbut0) "Selects all of the Reports below and the required entities for the reports"
+    tooltip::tooltip $buttons(anbut0) "Selects all of the Reports and the required entities for the reports"
     tooltip::tooltip $buttons(anbut1) "Selects all Entity types except Geometry and Coordinates"
+    tooltip::tooltip $buttons(anbut2) "Deselects Reports and all Entity types expect Common"
   }
 
   pack $fopta1 -side left -anchor w -pady 0 -padx 0 -fill y
@@ -436,7 +409,7 @@ proc guiProcessAndReports {} {
   regsub -all {[\(\)]} [lindex $item 1] "" idx
     set buttons($idx) [ttk::checkbutton $foptd1.$cb -text [lindex $item 0] \
       -variable [lindex $item 1] -command {
-        if {$opt(PMISEM)} {set opt(INVERSE) 1}
+        #if {$opt(PMISEM)} {set opt(INVERSE) 1}
         checkValues
     }]
     pack $buttons($idx) -side left -anchor w -padx 5 -pady 0 -ipady 0
@@ -449,7 +422,7 @@ proc guiProcessAndReports {} {
     regsub -all {[\(\)]} [lindex $item 1] "" idx
     set buttons($idx) [ttk::checkbutton $foptd2.$cb -text [lindex $item 0] \
       -variable [lindex $item 1] -command {
-        if {$opt(PMIGRF)} {set opt(INVERSE) 1}
+        #if {$opt(PMIGRF)} {set opt(INVERSE) 1}
         checkValues
     }]
     pack $buttons($idx) -side left -anchor w -padx 5 -pady 0 -ipady 0
@@ -483,7 +456,7 @@ proc guiProcessAndReports {} {
     regsub -all {[\(\)]} [lindex $item 1] "" idx
     set buttons($idx) [ttk::checkbutton $foptd4.$cb -text [lindex $item 0] \
       -variable [lindex $item 1] -command {
-        if {$opt(VALPROP)} {set opt(INVERSE) 1}
+        #if {$opt(VALPROP)} {set opt(INVERSE) 1}
         checkValues
     }]
     pack $buttons($idx) -side left -anchor w -padx 5 -pady 0 -ipady 0
@@ -491,20 +464,17 @@ proc guiProcessAndReports {} {
   }
   pack $foptd4 -side top -anchor w -pady 0 -padx 0 -fill y
   
-  if {$developer} {
-    set foptd5 [frame $foptd.5 -bd 0]
-    foreach item {{" Visualize Analysis Model" opt(VIZ209)}} {
-      regsub -all {[\(\)]} [lindex $item 1] "" idx
-      set buttons($idx) [ttk::checkbutton $foptd5.$cb -text [lindex $item 0] \
-        -variable [lindex $item 1] -command {
-          #if {$opt(VALPROP)} {set opt(INVERSE) 1}
-          checkValues
-      }]
-      pack $buttons($idx) -side left -anchor w -padx 5 -pady 0 -ipady 0
-      incr cb
-    }
-    pack $foptd5 -side top -anchor w -pady 0 -padx 0 -fill y
+  set foptd5 [frame $foptd.5 -bd 0]
+  foreach item {{" Visualize AP209 Analysis Model" opt(VIZFEA)}} {
+    regsub -all {[\(\)]} [lindex $item 1] "" idx
+    set buttons($idx) [ttk::checkbutton $foptd5.$cb -text [lindex $item 0] \
+      -variable [lindex $item 1] -command {
+        checkValues
+    }]
+    pack $buttons($idx) -side left -anchor w -padx 5 -pady 0 -ipady 0
+    incr cb
   }
+  pack $foptd5 -side top -anchor w -pady 0 -padx 0 -fill y
   
   pack $foptd -side top -anchor w -pady {5 2} -padx 10 -fill both
   catch {
@@ -512,6 +482,7 @@ proc guiProcessAndReports {} {
     tooltip::tooltip $buttons(optPMIGRF) "PMI Presentation (also known as graphical PMI) consists of geometric elements such as\nlines and arcs preserving the exact appearance (color, shape, positioning) of the GD&T\nannotations.  PMI Presentation is not intended to be computer-interpretable and does not\ncarry any representation information, although it can be linked to its corresponding\nPMI Representation.\n\nPMI Presentation annotations are defined in CAx-IF Recommended Practices.\nThe PMI Presentation information is reported in columns highlighted in yellow and green\non the Annotation_*_occurrence worksheets.\n\nAssociated presentation style, saved views, and PMI validation properties are also reported.\nA PMI coverage analysis worksheet is also generated.\nAn X3DOM file (WebGL) of the PMI Presentation can also be generated.\n\nSee Help > PMI Presentation"
     tooltip::tooltip $buttons(optVIZPMI) "PMI Presentation annotations can be visualized with an\nX3DOM (WebGL) file that can be opened in most web browsers.\nThe color of the annotations can be modified.\nTessellated annotations are not supported.\n\nSee Help > PMI Presentation"
     tooltip::tooltip $buttons(optVALPROP) "Validation properties for geometry, assemblies, PMI, annotations,\nattributes, and tessellations are defined in CAx-IF Recommended Practices.\nThe property values are reported in columns highlighted in yellow and green\non the Property_definition worksheet.\n\nOther properties and User-Defined Attributes are also reported.\n\nSee Help > Validation Properties"
+    tooltip::tooltip $buttons(optVIZFEA) "See Help > Analysis Model"
   }
 }
 
@@ -1185,8 +1156,7 @@ PMI annotation."
     .tnb select .tnb.status
   }
 
-
-# coverage analysis help
+# NIST CAD model help
   $Help add command -label "NIST CAD Models" -command {
 outputMsg "\nNIST CAD Models ------------------------------------------------------------" blue
 outputMsg "If a STEP file from a NIST CAD model is processed, then the PMI found in the STEP file is
@@ -1269,25 +1239,26 @@ Validation properties are defined by the CAx-IF.
 Go to Websites > Recommended Practices to access documentation."
     .tnb select .tnb.status
   }
-  
-#  $Help add command -label "Conformance Checking" -command {
-#outputMsg "\nConformance Checking -------------------------------------------------------" blue
-#outputMsg "STEP AP203 and AP214 files can be checked for conformance to their respective schemas with the
-#free ST-Developer Personal Edition software.  If installed, it will show up in the
-#'Open STEP File in' pull-down menu in the Options tab.  A spreadsheet does not have be generated
-#to run it.  If the option to 'Write results to a file' is selected, then the output file will be
-#named 'mystepfile_stdev.log'
-#
-#Download ST-Developer Personal Edition from: http://www.steptools.com/products/stdev/personal.html
-#This software also includes some useful STEP utility programs.  See Help > Disclaimer.
-#
-#To check for some missing entity references, in the Options tab under Open STEP File, use
-#Indent STEP File (for debugging)."
-#    .tnb select .tnb.status
-#  }
+    
+  $Help add command -label "Analysis Model" -command {
+outputMsg "\nAnalysis Model -------------------------------------------------------------" blue
+outputMsg "The finite element analysis model in an AP209 file can be visualized with an X3DOM (WebGL) file
+that can be viewed in any web browser.  Nodes and elements are displayed.  If the number of nodes
+per element type (1D, 2D, or 3D) exceeds 1000, then nodes are not displayed.  In the X3DOM display,
+nodes and elements can be toggled on and off.  The transparency of the elements can also be changed.
+The viewer is experimental and still under development.
+
+All AP209 entities are always processed.  For large AP209 files, deselect Inverse Relationships.
+To generate only the X3DOM file, select None in the Process section, select Visualize AP209
+Analysis model, and deselect Open Spreadsheet (Spreadsheet tab).  If necessary, the spreadsheet can
+be opened with F2.
+
+See Websites > STEP AP209 Project"
+    .tnb select .tnb.status
+  }
 
   $Help add separator
-  $Help add command -label "Sample STEP Files (zip)"                   -command {openURL http://www.nist.gov/sites/default/files/documents/el/msid/infotest/NIST_MBE_PMI_CTC_STEP_PMI.zip}
+  $Help add command -label "Sample STEP Files (zip)"                   -command {openURL https://s3.amazonaws.com/nist-el/mfg_digitalthread/NIST_CTC_STEP_PMI.zip}
   $Help add command -label "Spreadsheet - PMI Representation"          -command {openURL https://www.nist.gov/file/331631}
   $Help add command -label "Spreadsheet - PMI Presentation, ValProps"  -command {openURL https://www.nist.gov/file/331656}
   $Help add command -label "Spreadsheet - Coverage Analysis"           -command {openURL https://www.nist.gov/file/317951}
@@ -1385,7 +1356,7 @@ proc guiWebsitesMenu {} {
 
   $Websites add command -label "STEP File Analyzer"     -command {openURL http://go.usa.gov/yccx}
   $Websites add command -label "Source code on GitHub"  -command {openURL https://github.com/usnistgov/SFA}
-  $Websites add command -label "Journal of CAD Article" -command {openURL https://www.nist.gov/node/557526}
+  $Websites add command -label "Journal of CAD Article" -command {openURL https://www.nist.gov/publications/conformance-checking-pmi-representation-cad-model-step-data-exchange-files}
   $Websites add command -label "MBE PMI Validation Testing (free CAD models and STEP files)" -command {openURL http://go.usa.gov/mGVm}
   $Websites add command -label "Enabling the Digital Thread for Smart Manufacturing"         -command {openURL http://go.usa.gov/6nPh}
   

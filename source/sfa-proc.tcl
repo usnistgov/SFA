@@ -335,7 +335,7 @@ proc openFile {{openName ""}} {
       $buttons(genExcel) configure -state normal
       if {[info exists buttons(appOpen)]} {$buttons(appOpen) configure -state normal}
       focus $buttons(genExcel)
-      set lastXLS "[file nativename [file join [file dirname $localName] [file rootname [file tail $localName]]]]_stp.xlsx"
+      #set lastXLS "[file nativename [file join [file dirname $localName] [file rootname [file tail $localName]]]]_stp.xlsx"
     }
   
 # not found
@@ -1134,9 +1134,10 @@ proc checkForExcel {{multFile 0}} {
 
         set dflt yes
         if {[info exists lastXLS] && [info exists localName]} {
-          if {[string first [file nativename [file rootname $localName]] [file nativename $lastXLS]] != 0} {set dflt no}
+          if {[llength $pid1] == 1} {if {[string first [file nativename [file rootname $localName]] [file nativename $lastXLS]] != 0} {set dflt no}}
         }
         set choice [tk_messageBox -type yesno -default $dflt -message $msg -icon question -title "Close Excel?"]
+
         if {$choice == "yes"} {
           #outputMsg "Closing Excel" red
           for {set i 0} {$i < 5} {incr i} {
@@ -1487,39 +1488,6 @@ proc copyRoseFiles {} {
         .tnb select .tnb.status
       }
     }
-
-# rose files in STEP Tools distribution
-    #if {[info exists env(ROSE)]} {
-    #  set n [string range $env(ROSE) end-2 end-1]
-    #  set stdir [file join $programfiles "STEP Tools" "ST-Runtime $n" schemas]
-    #  if {[file exists $stdir]} {
-    #    set ok 1
-    #    foreach fn [glob -nocomplain -directory $stdir *.rose] {
-    #      set fn1 [file tail $fn]
-    #      if {[string first "_EXP" $fn1] == -1 && ([string first "ap" $fn1] == 0 || [string first "auto" $fn1] == 0 || [string first "building" $fn1] == 0 || \
-    #          [string first "cast" $fn1] == 0 || [string first "config" $fn1] == 0 || [string first "integrated" $fn1] == 0 || [string first "plant" $fn1] == 0 || \
-    #          [string first "ship" $fn1] == 0 || [string first "structural" $fn1] == 0 || [string first "feature" $fn1] == 0 || [string first "furniture" $fn1] == 0 || \
-    #          [string first "engineering" $fn1] == 0 || [string first "technical" $fn1] == 0)} {
-    #        set f2 [file join $ifcsvrdir $fn1]
-    #        set okcopy 0
-    #        if {![file exists $f2]} {
-    #          set okcopy 1
-    #        } elseif {[file mtime $fn] > [file mtime $f2]} {
-    #          set okcopy 1
-    #        }
-    #        if {$okcopy} {
-    #          if {[catch {
-    #            file copy -force $fn $f2
-    #            if {$developer} {outputMsg "Copying STEP Tools ROSE file: $fn1" red}
-    #          } emsg]} {
-    #            errorMsg "ERROR copying STEP schema files (*.rose) from STEP Tools to $ifcsvrdir"
-    #            .tnb select .tnb.status
-    #          }
-    #        }
-    #      }
-    #    }      
-    #  }
-    #}
   } else {
     #errorMsg "ERROR: IFCsvr Toolkit needs to be installed before copying STEP schema files (*.rose) to\n $ifcsvrdir"
   }
@@ -1852,7 +1820,7 @@ proc getTiming {{str ""}} {
 }
 
 #-------------------------------------------------------------------------------
-# http://wiki.tcl.tk/4021
+# From http://wiki.tcl.tk/4021
 proc sortlength2 {wordlist} {
   set words {}
   foreach word $wordlist {
@@ -1866,7 +1834,7 @@ proc sortlength2 {wordlist} {
 }
 
 #-------------------------------------------------------------------------------
-# http://wiki.tcl.tk/3070
+# From http://wiki.tcl.tk/3070
 proc stringSimilarity {a b} {
   set totalLength [max [string length $a] [string length $b]]
   return [string range [max [expr {double($totalLength-[levenshteinDistance $a $b])/$totalLength}] 0.0] 0 4]
@@ -1897,16 +1865,7 @@ proc levenshteinDistance {s t} {
 }
 
 #-------------------------------------------------------------------------------
-proc compareLists {str l1 l2} {
-  set l3 [intersect3 $l1 $l2]
-  outputMsg "\n$str" red
-  outputMsg "Unique to L1 ([llength [lindex $l3 0]])\n  [lrange [lindex $l3 0] 0 500]"
-  outputMsg "Common to both ([llength [lindex $l3 1]])\n  [lrange [lindex $l3 1] 0 500]"
-  outputMsg "Unique to L2 ([llength [lindex $l3 2]])\n  [lrange [lindex $l3 2] 0 600]"
-}
-
-#-------------------------------------------------------------------------------
-# http://www.posoft.de/html/extCawt.html
+# Based on http://www.posoft.de/html/extCawt.html
 proc GetWorksheetAsMatrix {worksheetId} {
   set cellId [[$worksheetId Cells] Range [GetCellRange 1 1 [[[$worksheetId UsedRange] Rows] Count] [[[$worksheetId UsedRange] Columns] Count]]]
   set matrixList [$cellId Value2]
@@ -1928,4 +1887,13 @@ proc ColumnIntToChar {col} {
     set dividend [expr {($dividend - $modulo) / 26}]
   }
   return $columnName
+}
+
+#-------------------------------------------------------------------------------
+proc compareLists {str l1 l2} {
+  set l3 [intersect3 $l1 $l2]
+  outputMsg "\n$str" red
+  outputMsg "Unique to L1 ([llength [lindex $l3 0]])\n  [lrange [lindex $l3 0] 0 500]"
+  outputMsg "Common to both ([llength [lindex $l3 1]])\n  [lrange [lindex $l3 1] 0 500]"
+  outputMsg "Unique to L2 ([llength [lindex $l3 2]])\n  [lrange [lindex $l3 2] 0 600]"
 }

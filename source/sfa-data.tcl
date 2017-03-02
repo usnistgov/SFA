@@ -4,6 +4,7 @@ global entCategory entColorIndex badAttributes roseLogical
 global aoEntTypes gpmiTypes spmiEntTypes dimSizeNames tolNames tzfNames dimModNames pmiModifiers pmiModifiersRP pmiUnicode
 global spmiTypes recPracNames modelPictures schemaLinks modelURLs legendColor
 global ap203all ap214all ap242all
+global feaIndex
 
 set roseLogical(0) "FALSE"
 set roseLogical(1) "TRUE"
@@ -337,6 +338,39 @@ set modelURLs [list nist_ctc_01_asme1_rd.pdf \
                     nist_ftc_09_asme1_rd.pdf \
                     nist_ftc_10_asme1_rb.pdf \
                     nist_ftc_11_asme1_rb.pdf]
+
+# -----------------------------------------------------------------------------------------------------
+# AP209 element index
+
+set feaIndex(surface_3d,4,line) [list 1 2 3 4 1 -1]
+set feaIndex(surface_3d,4,surf) [list 1 2 3 4 -1]
+set feaIndex(surface_3d,3,line) [list 1 2 3 1 -1]
+set feaIndex(surface_3d,3,surf) [list 1 2 3 -1]
+
+set feaIndex(surface_3d,8,line) [list 1 5 2 6 3 7 4 8 1 -1]
+set feaIndex(surface_3d,8,surf) [list 1 5 8 -1 5 2 6 -1 6 3 7 -1 7 4 8 -1 5 6 7 8 -1]
+set feaIndex(surface_3d,9,line) [list 1 5 2 6 3 7 4 8 1 -1]
+set feaIndex(surface_3d,9,surf) [list 1 5 8 -1 5 2 6 -1 6 3 7 -1 7 4 8 -1 5 6 7 8 -1]
+set feaIndex(surface_3d,6,line) [list 1 4 2 5 3 6 1 -1]
+set feaIndex(surface_3d,6,surf) [list 1 4 6 -1 4 2 5 -1 4 5 6 -1 6 5 3 -1]
+
+set feaIndex(volume_3d,8,line) [list 1 2 3 4 1 -1 5 6 7 8 5 -1 1 5 -1 2 6 -1 3 7 -1 4 8 -1]
+set feaIndex(volume_3d,8,surf) [list 1 4 3 2 -1 5 6 7 8 -1 1 2 6 5 -1 2 3 7 6 -1 3 4 8 7 -1 4 1 5 8 -1]
+set feaIndex(volume_3d,6,line) [list 1 2 3 1 -1 4 5 6 4 -1 1 4 -1 2 5 -1 3 6 -1]
+set feaIndex(volume_3d,6,surf) [list 1 3 2 -1 4 5 6 -1 1 2 5 4 -1 2 3 6 5 -1 3 1 4 6 -1]
+set feaIndex(volume_3d,5,line) [list 1 2 5 1 4 3 2 -1 2 5 3 -1]
+set feaIndex(volume_3d,5,surf) [list 1 4 3 2 -1 1 2 5 -1 2 3 5 -1 4 1 5 -1]
+set feaIndex(volume_3d,4,line) [list 1 2 3 1 -1 1 4 -1 2 4 -1 3 4 -1]
+set feaIndex(volume_3d,4,surf) [list 1 3 2 -1 1 2 4 -1 2 3 4 -1 3 1 4 -1]
+
+set feaIndex(volume_3d,20,line) [list 1 9 5 20 8 12 4 16 1 13 2 14 3 11 7 18 6 10 2 -1 4 15 3 -1 8 19 7 -1 5 17 6 -1]
+set feaIndex(volume_3d,20,surf) [list 1 16 4 15 3 14 2 13 -1 5 20 8 12 4 16 1 9 -1 6 18 7 19 8 20 5 17 -1 2 14 3 11 7 18 6 10 -1 4 12 8 19 7 11 3 15 -1 2 10 6 17 5 9 1 13 -1]
+set feaIndex(volume_3d,15,line) [list 1 7 4 13 5 8 2 10 1 12 3 9 6 15 4 -1 2 11 3 -1 5 14 6 -1]
+set feaIndex(volume_3d,15,surf) [list 1 7 4 15 6 9 3 12 -1 3 9 6 14 5 8 2 11 -1 2 8 5 13 4 7 1 10 -1 1 12 3 11 2 10 -1 4 13 5 14 6 15 -1]
+set feaIndex(volume_3d,13,line) [list 1 6 5 9 4 13 1 10 2 7 5 8 3 11 2 -1 1 10 2 -1 4 12 3 -1]
+set feaIndex(volume_3d,13,surf) [list 1 6 5 9 4 13 -1 4 9 5 8 3 12 -1 3 8 5 7 2 11 -1 2 7 5 6 1 10 -1 1 13 4 12 3 11 2 10 -1]
+set feaIndex(volume_3d,10,line) [list 1 5 4 7 3 10 1 8 2 6 4 -1 2 9 3 -1]
+set feaIndex(volume_3d,10,surf) [list 1 5 4 7 3 10 -1 3 7 4 6 2 9 -1 2 6 4 5 1 8 -1 1 10 3 9 2 8 1 -1]
 
 # -----------------------------------------------------------------------------------------------------
 # STEP geometry

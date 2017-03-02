@@ -1,5 +1,5 @@
 proc valPropStart {objDesign} {
-  global cells col elevel ent entAttrList ncartpt opt pd pdcol pdheading propDefRow valPropLink valPropNames 
+  global cells col entLevel ent entAttrList ncartpt opt pd pdcol pdheading propDefRow valPropLink valPropNames 
   
 # CAx-IF RP Geometric and Assembly Validation Properties, section 8
   set valPropNames(geometric_validation_property) [list \
@@ -87,15 +87,15 @@ proc valPropStart {objDesign} {
   outputMsg " Adding Properties to property_definition worksheet" green
 
   if {$opt(DEBUG1)} {outputMsg \n}
-  set elevel 0
-  pmiSetEntAttrList $gvp
+  set entLevel 0
+  setEntAttrList $gvp
   if {$opt(DEBUG1)} {outputMsg "entAttrList $entAttrList"}
   if {$opt(DEBUG1)} {outputMsg \n}
   unset ent
     
   set startent [lindex $gvp 0]
   set n 0
-  set elevel 0
+  set entLevel 0
   ::tcom::foreach objEntity [$objDesign FindObjects [join $startent]] {
     set ncartpt 0
     if {[$objEntity Type] == $startent} {
@@ -115,23 +115,23 @@ proc valPropStart {objDesign} {
 
 # -------------------------------------------------------------------------------
 proc valPropReport {objEntity} {
-  global cells col elevel ent entAttrList maxrep ncartpt nrep opt pd pdcol pdheading pmivalprop pointLimit prefix 
+  global cells col entLevel ent entAttrList maxrep ncartpt nrep opt pd pdcol pdheading pmivalprop pointLimit prefix 
   global propDefID propDefIDRow propDefName propDefOK propDefRow recPracNames repName stepAP syntaxErr valName valPropLink valPropNames
 
   if {[info exists propDefOK]} {if {$propDefOK == 0} {return}}
 
-  incr elevel
-  set ind [string repeat " " [expr {4*($elevel-1)}]]
+  incr entLevel
+  set ind [string repeat " " [expr {4*($entLevel-1)}]]
 
   if {[string first "handle" $objEntity] == -1} {
     #if {$objEntity != ""} {outputMsg "$ind $objEntity"}
   } else {
     set objType [$objEntity Type]
     set objID   [$objEntity P21ID]
-    set ent($elevel) [$objEntity Type]
+    set ent($entLevel) [$objEntity Type]
     set objAttributes [$objEntity Attributes]
 
-    if {$opt(DEBUG1)} {outputMsg "$ind ENT $elevel #$objID=$objType (ATR=[$objAttributes Count])" blue}
+    if {$opt(DEBUG1)} {outputMsg "$ind ENT $entLevel #$objID=$objType (ATR=[$objAttributes Count])" blue}
 
 # limit sampling points to pointLimit (2)
     if {[info exists repName]} {
@@ -139,7 +139,7 @@ proc valPropReport {objEntity} {
         incr ncartpt
         if {$ncartpt > $pointLimit} {
           errorMsg " Only the first $pointLimit sampling points are reported" red
-          incr elevel -1
+          incr entLevel -1
           return  
         }
       }
@@ -148,7 +148,7 @@ proc valPropReport {objEntity} {
     if {$objType == "property_definition"} {
       set propDefID $objID
       if {![info exists propDefIDRow($propDefID)]} {
-        incr elevel -1
+        incr entLevel -1
         set propDefOK 0
         return
       } else {
@@ -156,7 +156,7 @@ proc valPropReport {objEntity} {
       }
     }
     
-    if {$elevel == 1} {set pmivalprop 0}
+    if {$entLevel == 1} {set pmivalprop 0}
 
     ::tcom::foreach objAttribute $objAttributes {
       set objName  [$objAttribute Name]
@@ -165,15 +165,15 @@ proc valPropReport {objEntity} {
       set objSize [$objAttribute Size]
       set objAttrType [$objAttribute Type]
 
-      set ent1 "$ent($elevel) $objName"
-      set ent2 "$ent($elevel).$objName"
+      set ent1 "$ent($entLevel) $objName"
+      set ent2 "$ent($entLevel).$objName"
       set idx [lsearch $entAttrList $ent1]
 
 # -----------------
 # nodeType = 18,19
       if {$objNodeType == 18 || $objNodeType == 19} {
         if {$idx != -1} {
-          if {$opt(DEBUG1)} {outputMsg "$ind   ATR $elevel $objName - $objValue ($objNodeType, $objSize, $objAttrType)"}
+          if {$opt(DEBUG1)} {outputMsg "$ind   ATR $entLevel $objName - $objValue ($objNodeType, $objSize, $objAttrType)"}
 
           if {[info exists cells($pd)]} {
             set ok 0
@@ -237,7 +237,7 @@ proc valPropReport {objEntity} {
 # nodeType = 20
       } elseif {$objNodeType == 20} {
         if {$idx != -1} {
-          if {$opt(DEBUG1)} {outputMsg "$ind   ATR $elevel $objName - $objValue ($objNodeType, $objSize, $objAttrType)"}
+          if {$opt(DEBUG1)} {outputMsg "$ind   ATR $entLevel $objName - $objValue ($objNodeType, $objSize, $objAttrType)"}
 
           if {[info exists cells($pd)]} {
             set ok 0
@@ -336,7 +336,7 @@ proc valPropReport {objEntity} {
 # nodeType != 18,19,20
       } else {
         if {$idx != -1} {
-          if {$opt(DEBUG1)} {outputMsg "$ind   ATR $elevel $objName - $objValue ($objNodeType, $objAttrType)"}
+          if {$opt(DEBUG1)} {outputMsg "$ind   ATR $entLevel $objName - $objValue ($objNodeType, $objAttrType)"}
 
           if {[info exists cells($pd)]} {
             set ok 0
@@ -384,7 +384,7 @@ proc valPropReport {objEntity} {
                 if {[string first "sampling points" $repName] != -1} {set ncardpt 0}
 
                 if {[info exists propDefName]} {
-                  if {$elevel == 2 && [info exists valPropNames($propDefName)]} {
+                  if {$entLevel == 2 && [info exists valPropNames($propDefName)]} {
                     set ok1 0
 
 # look for valid representation.name in valPropNames
@@ -437,7 +437,7 @@ proc valPropReport {objEntity} {
 
 # new RP allows for blank representation.name (repName) except for sampling points
                 if {[info exists propDefName]} {
-                  if {$elevel == 3 && [info exists valPropNames($propDefName)]} {
+                  if {$entLevel == 3 && [info exists valPropNames($propDefName)]} {
                     set ok1 0
                     foreach idx $valPropNames($propDefName) {
                       if {[lindex $idx 0] == $repName || [lindex $idx 0] == "" || [string trim $repName] == ""} {
@@ -581,7 +581,7 @@ proc valPropReport {objEntity} {
       }
     }
   }
-  incr elevel -1
+  incr entLevel -1
 }
 
 # -------------------------------------------------------------------------------

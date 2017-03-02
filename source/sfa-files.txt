@@ -1,5 +1,4 @@
 sfa.tcl
-sfa-analysis.tcl
 sfa-data.tcl
 sfa-dimtol.tcl
 sfa-ent.tcl

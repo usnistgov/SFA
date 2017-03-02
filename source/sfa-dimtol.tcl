@@ -1,5 +1,5 @@
 proc spmiDimtolStart {objDesign entType} {
-  global cells col dt elevel ent entAttrList lastEnt opt pmiCol pmiHeading pmiStartCol spmiRow stepAP 
+  global cells col dt entLevel ent entAttrList lastEnt opt pmiCol pmiHeading pmiStartCol spmiRow stepAP 
 
   if {$opt(DEBUG1)} {outputMsg "START spmiDimtolStart $entType" red}
 
@@ -59,14 +59,14 @@ proc spmiDimtolStart {objDesign entType} {
   }
 
   if {$opt(DEBUG1)} {outputMsg \n}
-  set elevel 0
-  pmiSetEntAttrList $PMIP($dt)
+  set entLevel 0
+  setEntAttrList $PMIP($dt)
   if {$opt(DEBUG1)} {outputMsg "entAttrList $entAttrList"}
   if {$opt(DEBUG1)} {outputMsg \n}
     
   set startent [lindex $PMIP($dt) 0]
   set n 0
-  set elevel 0
+  set entLevel 0
   
 # get next unused column by checking if there is a colName
   set pmiStartCol($dt) [expr {[getNextUnusedColumn $startent 3]+1}]
@@ -94,15 +94,15 @@ proc spmiDimtolStart {objDesign entType} {
 
 proc spmiDimtolReport {objEntity} {
   global assocGeom badAttributes cells col dim dimBasic dimModNames dimOrient dimReference dimrep dimrepID
-  global dimSizeNames dimtolEnt dimval draftModelCameras dt dtpmivalprop elevel ent entAttrList entlevel2
+  global dimSizeNames dimtolEnt dimval draftModelCameras dt dtpmivalprop entLevel ent entAttrList entlevel2
   global incrcol lastAttr lastEnt nistName opt pmiCol pmiColumns pmiHeading pmiModifiers pmiStartCol
   global pmiUnicode prefix recPracNames savedModifier spmiEnts spmiID spmiIDRow spmiRow spmiTypesPerFile syntaxErr tolStandard
 
   if {$opt(DEBUG1)} {outputMsg "spmiDimtolReport" red}
 
-# elevel is very important, keeps track level of entity in hierarchy
-  incr elevel
-  set ind [string repeat " " [expr {4*($elevel-1)}]]
+# entLevel is very important, keeps track level of entity in hierarchy
+  incr entLevel
+  set ind [string repeat " " [expr {4*($entLevel-1)}]]
   
   if {[string first "handle" $objEntity] == -1} {
     #if {$objEntity != ""} {outputMsg "$ind $objEntity"}
@@ -112,10 +112,10 @@ proc spmiDimtolReport {objEntity} {
     set objType [$objEntity Type]
     set objID   [$objEntity P21ID]
     set objAttributes [$objEntity Attributes]
-    set ent($elevel) $objType
+    set ent($entLevel) $objType
 
-    if {$opt(DEBUG1) && $objType != "cartesian_point"} {outputMsg "$ind ENT $elevel #$objID=$objType (ATR=[$objAttributes Count])" blue}
-    #if {$elevel == 1} {outputMsg "#$objID=$objType" blue}
+    if {$opt(DEBUG1) && $objType != "cartesian_point"} {outputMsg "$ind ENT $entLevel #$objID=$objType (ATR=[$objAttributes Count])" blue}
+    #if {$entLevel == 1} {outputMsg "#$objID=$objType" blue}
 
 # only skip when an entity refers to itself, very unusual case with dimensional_*_and_datum_feature
     set noskip 1
@@ -127,11 +127,11 @@ proc spmiDimtolReport {objEntity} {
     }
     set lastEnt "$objID $objType"
     
-    if {$elevel == 1} {
+    if {$entLevel == 1} {
       catch {unset dimtolEnt}
       catch {unset entlevel2}
       catch {unset assocGeom}
-    } elseif {$elevel == 2} {
+    } elseif {$entLevel == 2} {
       if {![info exists entlevel2]} {
         set entlevel2 [list $objID $objType]
       }
@@ -142,7 +142,7 @@ proc spmiDimtolReport {objEntity} {
       set spmiID $objID
       #outputMsg "set spmiID $spmiID [info exists spmiIDRow($dt,$spmiID)]" green
       if {![info exists spmiIDRow($dt,$spmiID)]} {
-        incr elevel -1
+        incr entLevel -1
         return
       }
     }
@@ -150,9 +150,9 @@ proc spmiDimtolReport {objEntity} {
     if {$noskip} {
       ::tcom::foreach objAttribute $objAttributes {
         set objName  [$objAttribute Name]
-        if {$elevel < 1} {set elevel 1}
-        set ent1 "$ent($elevel) $objName"
-        set ent2 "$ent($elevel).$objName"
+        if {$entLevel < 1} {set entLevel 1}
+        set ent1 "$ent($entLevel) $objName"
+        set ent2 "$ent($entLevel).$objName"
         #outputMsg "$ind  $ent1"
 
 # look for entities with bad attributes that cause a crash
@@ -172,7 +172,7 @@ proc spmiDimtolReport {objEntity} {
           if {$objNodeType == 18 || $objNodeType == 19} {
             if {[catch {
               if {$idx != -1} {
-                if {$opt(DEBUG1)} {outputMsg "$ind   ATR $elevel $objName - $objValue ($objNodeType, $objSize, $objAttrType)"}
+                if {$opt(DEBUG1)} {outputMsg "$ind   ATR $entLevel $objName - $objValue ($objNodeType, $objSize, $objAttrType)"}
                 set lastAttr $objName
       
                 if {[info exists cells($dt)]} {
@@ -402,14 +402,14 @@ proc spmiDimtolReport {objEntity} {
               }
             } emsg3]} {
               errorMsg "ERROR processing Dimtol ($objNodeType $ent2)\n $emsg3"
-              set elevel 1
+              set entLevel 1
             }
 
 # --------------
 # nodeType = 20
           } elseif {$objNodeType == 20} {
             if {$idx != -1} {
-              if {$opt(DEBUG1)} {outputMsg "$ind   ATR $elevel $objName - $objValue ($objNodeType, $objSize, $objAttrType)"}
+              if {$opt(DEBUG1)} {outputMsg "$ind   ATR $entLevel $objName - $objValue ($objNodeType, $objSize, $objAttrType)"}
 
 # get number of dimensions
               if {$objType == "shape_dimension_representation" && $objName == "items"} {
@@ -431,7 +431,7 @@ proc spmiDimtolReport {objEntity} {
           } else {
             if {[catch {
               if {$idx != -1} {
-                if {$opt(DEBUG1)} {outputMsg "$ind   ATR $elevel $objName - $objValue ($objNodeType, $objAttrType)  ($ent1)"}
+                if {$opt(DEBUG1)} {outputMsg "$ind   ATR $entLevel $objName - $objValue ($objNodeType, $objAttrType)  ($ent1)"}
       
                 if {[info exists cells($dt)]} {
                   set ok 0
@@ -593,7 +593,7 @@ proc spmiDimtolReport {objEntity} {
                         set invalid 1
                         lappend syntaxErr([lindex [split $ent1 " "] 0]) [list $objID [lindex [split $ent1 " "] 1]]
 # theoretical, auxiliary, i.e.  basic [50], reference (50) (Section 5.3)
-                      } elseif {$elevel == 3} {
+                      } elseif {$entLevel == 3} {
                         if {$ov == "theoretical"} {
                           set dimBasic 1
                           lappend spmiTypesPerFile "basic dimension"
@@ -606,7 +606,7 @@ proc spmiDimtolReport {objEntity} {
                           set invalid 1
                         }
 # dimension modifier - statistical tolerance, continuous feature, controlled radius, square, etc. (Section 5.3, Table 8)
-                      } elseif {$elevel == 4} {
+                      } elseif {$entLevel == 4} {
                         if {[lsearch $dimModNames $ov] != -1} {
                           regsub -all " " $ov "_" ov
 # controlled radius and square are prefixes, instead of the default suffix
@@ -739,17 +739,17 @@ proc spmiDimtolReport {objEntity} {
               }
             } emsg3]} {
               errorMsg "ERROR processing Dimtol ($objNodeType $ent2)\n $emsg3"
-              set elevel 1
+              set entLevel 1
             }
           }
         }
       }
     }
   }
-  incr elevel -1
+  incr entLevel -1
   
 # write a few more things at the end of processing a semantic PMI entity
-  if {$elevel == 0} {
+  if {$entLevel == 0} {
     
 # associated geometry (5.1.5), find link between dimtol and geometry through geometric_item_specific_usage (gisu)
 # dimtolEnt is either dimensional_location, angular_location, or dimensional_size
@@ -899,7 +899,7 @@ proc spmiDimtolReport {objEntity} {
             if {[llength $pm] == 2} {
 
 # truncate
-              if {[getPrecision [lindex $pm 0]] > 4} {
+              if {[getPrecision [lindex $pm 0]] > 4 || [getPrecision [lindex $pm 1]] > 4} {
                 set pm1 [string trimright [format "%.4f" [lindex $pm 0]] "0"]
                 set pm2 [string trimright [format "%.4f" [lindex $pm 1]] "0"]
                 set pm [list $pm1 $pm2]
@@ -1116,7 +1116,6 @@ proc spmiDimtolReport {objEntity} {
 
 #-------------------------------------------------------------------------------
 proc getPrecision {val} {
-  
   set c1 [string first "." $val]
   set prec 0
   if {$c1 != -1} {set prec [string length [lindex [split $val "."] 1]]}

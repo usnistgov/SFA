@@ -530,9 +530,9 @@ proc openMultiFile {{ask 1}} {
           set ptime "[trimNum [expr {double($ptime)/3600.}] 1 1] hours"
         }
         if {$opt(XLSCSV) == "Excel"} {
-          outputMsg "\n($nfile) Spreadsheets Generated in $ptime" green
+          outputMsg "\n($nfile) Spreadsheets Generated in $ptime" blue
         } else {
-          outputMsg "\n($nfile) CSV files Generated in $ptime" green
+          outputMsg "\n($nfile) CSV files Generated in $ptime" blue
         }
         outputMsg "-------------------------------------------------------------------------------"
 

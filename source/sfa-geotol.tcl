@@ -1,5 +1,5 @@
 proc spmiGeotolStart {objDesign entType} {
-  global cells col elevel ent entAttrList gt lastEnt opt pmiCol pmiHeading pmiStartCol
+  global cells col entLevel ent entAttrList gt lastEnt opt pmiCol pmiHeading pmiStartCol
   global spmiEntity spmiRow spmiTypesPerFile stepAP tolNames
 
   if {$opt(DEBUG1)} {outputMsg "START spmiGeotolStart $entType" red}
@@ -75,14 +75,14 @@ proc spmiGeotolStart {objDesign entType} {
   }
 
   if {$opt(DEBUG1)} {outputMsg \n}
-  set elevel 0
-  pmiSetEntAttrList $PMIP($gt)
+  set entLevel 0
+  setEntAttrList $PMIP($gt)
   if {$opt(DEBUG1)} {outputMsg "entAttrList $entAttrList"}
   if {$opt(DEBUG1)} {outputMsg \n}
     
   set startent [lindex $PMIP($gt) 0]
   set n 0
-  set elevel 0
+  set entLevel 0
   
 # get next unused column by checking if there is a colName
   set pmiStartCol($gt) [getNextUnusedColumn $startent 3]
@@ -113,16 +113,16 @@ proc spmiGeotolStart {objDesign entType} {
 
 proc spmiGeotolReport {objEntity} {
   global all_around all_over assocGeom ATR badAttributes between cells col datsys datumCompartment datumFeature datumSystem
-  global dim dimrep elevel ent entAttrList entCount gt gtEntity incrcol lastAttr lastEnt noDatum noDimtol objID opt
+  global dim dimrep entLevel ent entAttrList entCount gt gtEntity incrcol lastAttr lastEnt noDatum noDimtol objID opt
   global pmiCol pmiHeading pmiModifiers pmiStartCol pmiUnicode ptz recPracNames
   global spmiEnts spmiID spmiIDRow spmiRow spmiTypesPerFile stepAP syntaxErr
   global tol_dimprec tol_dimrep tolNames tolval tzf1 tzfNames worksheet
 
   if {$opt(DEBUG1)} {outputMsg "spmiGeotolReport" red}
    
-# elevel is very important, keeps track level of entity in hierarchy
-  incr elevel
-  set ind [string repeat " " [expr {4*($elevel-1)}]]
+# entLevel is very important, keeps track level of entity in hierarchy
+  incr entLevel
+  set ind [string repeat " " [expr {4*($entLevel-1)}]]
 
   if {[string first "handle" $objEntity] == -1} {
     #if {$objEntity != ""} {outputMsg "$ind $objEntity" red}
@@ -130,10 +130,10 @@ proc spmiGeotolReport {objEntity} {
     set objType [$objEntity Type]
     set objID   [$objEntity P21ID]
     set objAttributes [$objEntity Attributes]
-    set ent($elevel) $objType
+    set ent($entLevel) $objType
     #outputMsg "$objEntity $objType $objID" red
 
-    if {$opt(DEBUG1)} {outputMsg "$ind ENT $elevel #$objID=$objType (ATR=[$objAttributes Count])" blue}
+    if {$opt(DEBUG1)} {outputMsg "$ind ENT $entLevel #$objID=$objType (ATR=[$objAttributes Count])" blue}
     
     if {$stepAP == "AP242"} {
       if {$objType == "datum_reference"} {
@@ -142,17 +142,17 @@ proc spmiGeotolReport {objEntity} {
     }
 
 # check if there are rows with gt
-    if {$elevel == 1} {
+    if {$entLevel == 1} {
       if {$spmiEnts($objType)} {
         set spmiID $objID
         if {![info exists spmiIDRow($gt,$spmiID)]} {
-          incr elevel -1
+          incr entLevel -1
           return
         }
       }
     }
     
-    if {$elevel == 1} {
+    if {$entLevel == 1} {
       catch {unset datsys}
       catch {unset datumFeature}
       catch {unset assocGeom}
@@ -166,9 +166,9 @@ proc spmiGeotolReport {objEntity} {
     
     ::tcom::foreach objAttribute $objAttributes {
       set objName  [$objAttribute Name]
-      if {$elevel < 1} {set elevel 1}
-      set ent1 "$ent($elevel) $objName"
-      set ent2 "$ent($elevel).$objName"
+      if {$entLevel < 1} {set entLevel 1}
+      set ent1 "$ent($entLevel) $objName"
+      set ent2 "$ent($entLevel).$objName"
 
 # look for entities with bad attributes that cause a crash
       set okattr 1
@@ -187,8 +187,8 @@ proc spmiGeotolReport {objEntity} {
         if {$objNodeType == 18 || $objNodeType == 19} {
           if {[catch {
             if {$idx != -1} {
-              if {$opt(DEBUG1)} {outputMsg "$ind   ATR $elevel $objName - $objValue ($objNodeType, $objSize, $objAttrType)"}
-              set ATR($elevel) $objName
+              if {$opt(DEBUG1)} {outputMsg "$ind   ATR $entLevel $objName - $objValue ($objNodeType, $objSize, $objAttrType)"}
+              set ATR($entLevel) $objName
               set lastAttr $objName
     
               if {[info exists cells($gt)]} {
@@ -629,7 +629,7 @@ proc spmiGeotolReport {objEntity} {
             }
           } emsg3]} {
             errorMsg "ERROR processing Geotol ($objNodeType $ent2)\n $emsg3"
-            set elevel 1
+            set entLevel 1
           }
 
 # --------------
@@ -637,7 +637,7 @@ proc spmiGeotolReport {objEntity} {
         } elseif {$objNodeType == 20} {
           if {[catch {
             if {$idx != -1} {
-              if {$opt(DEBUG1)} {outputMsg "$ind   ATR $elevel $objName - $objValue ($objNodeType, $objSize, $objAttrType)"}
+              if {$opt(DEBUG1)} {outputMsg "$ind   ATR $entLevel $objName - $objValue ($objNodeType, $objSize, $objAttrType)"}
     
               if {[info exists cells($gt)]} {
                 set ok 0
@@ -747,7 +747,7 @@ proc spmiGeotolReport {objEntity} {
             }
           } emsg3]} {
             errorMsg "ERROR processing Geotol ($objNodeType $ent2)\n $emsg3"
-            set elevel 1
+            set entLevel 1
           }
 
 # ---------------------
@@ -755,7 +755,7 @@ proc spmiGeotolReport {objEntity} {
         } else {
           if {[catch {
             if {$idx != -1} {
-              if {$opt(DEBUG1)} {outputMsg "$ind   ATR $elevel $objName - $objValue ($objNodeType, $objAttrType)  ($ent1)"}
+              if {$opt(DEBUG1)} {outputMsg "$ind   ATR $entLevel $objName - $objValue ($objNodeType, $objAttrType)  ($ent1)"}
     
               if {[info exists cells($gt)]} {
                 set ok 0
@@ -1176,16 +1176,16 @@ proc spmiGeotolReport {objEntity} {
             }
           } emsg3]} {
             errorMsg "ERROR processing Geotol ($objNodeType $ent2)\n $emsg3"
-            set elevel 1
+            set entLevel 1
           }
         }
       }
     }
   }
-  incr elevel -1
+  incr entLevel -1
   
 # write a few more things at the end of processing a semantic PMI entity
-  if {$elevel == 0} {
+  if {$entLevel == 0} {
     if {[catch {
 
 # check for tolerances that require a datum system (section 6.8, table 10), don't check if using old method of datum_reference

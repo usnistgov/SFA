@@ -141,11 +141,11 @@ proc getEntity {objEntity checkInverse} {
           } else {
             set objValue "???"
             if {[llength $badAttributes($thisEntType)] == 1} {
-              errorMsg " Skipping attribute '$attrName' on $thisEntType, '???' will appear in spreadsheet for this attribute" red
+              errorMsg " Skipping attribute '$attrName' on [formatComplexEnt $thisEntType] - '???' will appear in spreadsheet for this attribute" red
             } else {
               set str $badAttributes($thisEntType)
               regsub -all " " $str "' '" str
-              errorMsg " Skipping attributes '$str' on $thisEntType\n '???' will appear in spreadsheet for these attributes" red
+              errorMsg " Skipping attributes '$str' on [formatComplexEnt $thisEntType]\n '???' will appear in spreadsheet for these attributes" red
             }
           }
         }
@@ -436,7 +436,7 @@ proc getEntityCSV {objEntity} {
           set objValue [$objAttribute Value]
         } else {
           set objValue "???"
-          errorMsg " Skipping '$attrName' attribute on $thisEntType" red
+          errorMsg " Skipping '$attrName' attribute on [formatComplexEnt $thisEntType] - '???' will appear in the CSV file for this attribute" red
         }
       }
 

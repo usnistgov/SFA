@@ -2,7 +2,7 @@
 # version number
 
 proc getVersion {} {
-  set app_version 1.96
+  set app_version 2.0
   return $app_version
 }
 
@@ -158,7 +158,8 @@ proc reportAssocGeom {entType {type 1}} {
   
   set str ""
   foreach item [array names assocGeom] {
-    if {[string first "shape_aspect" $item] == -1 && [string first "centre" $item] == -1 && [string first "datum" $item] == -1 && $item != "advanced_face"} {
+    if {[string first "shape_aspect" $item] == -1 && [string first "centre" $item] == -1 && \
+        [string first "datum" $item] == -1 && [string first "draughting_callout" $item] == -1 && $item != "advanced_face"} {
       if {[string length $str] > 0} {append str [format "%c" 10]}
       append str "([llength $assocGeom($item)]) $item [lsort -integer $assocGeom($item)]"
     }
@@ -170,7 +171,7 @@ proc reportAssocGeom {entType {type 1}} {
     }
   }
   if {[string length $str] == 0 && $type} {
-    errorMsg "Syntax Error: Associated Geometry not found for '$entType'.  Check GISU or IIRU 'definition' attribute."
+    errorMsg "Syntax Error: Associated Geometry not found for '[formatComplexEnt $entType]'.  Check GISU or IIRU 'definition' attribute."
   }
   foreach item [array names assocGeom] {
     if {[string first "shape_aspect" $item] != -1 || [string first "centre" $item] != -1 || [string first "datum_feature" $item] != -1} {
@@ -682,7 +683,6 @@ proc spmiGetPMI {} {
 
 # get PMI coverage
       set fn "SFA-PMI-NIST-coverage.csv"
-      #set fn "SFA-PMI-NIST-coverage.xlsx"
       if {[file exists NIST/$fn]} {file copy -force NIST/$fn [file join $mytemp $fn]}
       set fname [file nativename [file join $mytemp $fn]]
 
@@ -735,22 +735,11 @@ proc spmiGetPMI {} {
           set pmi [lindex [lindex $matrix $r] 1]
           if {$typ != "" && $pmi != ""} {lappend pmiMaster($nistName) "$typ\\$pmi"}
         }
-
-        #getTiming doneMatrixstartCells
-        #set r1 [[[[$worksheets2 Item [expr 1]] UsedRange] Rows] Count]
-        #set cells2      [[$worksheets2 Item [expr 1]] Cells]
-        #for {set r 1} {$r <= $r1} {incr r} {
-        #  set typ [[$cells2 Item $r 1] Value]
-        #  set pmi [[$cells2 Item $r 2] Value]
-        #  if {$typ != "" && $pmi != ""} {lappend pmiMaster($nistName) "$typ\\$pmi"}
-        #}
-        #getTiming doneCells
     
         $workbooks2 Close
         $excel2 Quit
         catch {unset excel2}
         after 100
-        #outputMsg pid1-$pid1-pid2-$pid2
         for {set i 0} {$i < 20} {incr i} {catch {twapi::end_process $pid2 -force}}
       }
     }
@@ -803,12 +792,6 @@ proc pmiAddModelPictures {ent} {
             }
           }
           [$excel ActiveWindow] FreezePanes [expr 1]
- 
-# group columns for image
-          #if {[lindex $pic 3] > 0} {
-          #  set range [$worksheet($ent) Range [cellRange 1 5] [cellRange 1 [lindex $pic 3]]]
-          #  [$range Columns] Group
-          #}
 
 # link to test model drawings (doesn't always work)
           if {[string first "nist_" $fl] == 0 && $nlink < 2} {
@@ -928,8 +911,6 @@ proc pmiFormatColumns {str} {
 # group columns for inverses
     if {$c1 > 2} {
       set range [$worksheet($thisEntType) Range [cellRange 1 2] [cellRange [expr {$row($thisEntType)+2}] $c1]]
-      #if {[info exists invGroup($thisEntType)]} {if {$invGroup($thisEntType) < $c2} {set c2 $invGroup($thisEntType)}}
-      #set range [$worksheet($thisEntType) Range [cellRange 1 $c2] [cellRange [expr {$row($thisEntType)+2}] $c3]]
       [$range Columns] Group
     }
     
@@ -1088,7 +1069,7 @@ proc checkForReports {objDesign entType} {
         }
       }
     } emsg]} {
-      errorMsg "ERROR adding Validation Property information to '$entType'\n  $emsg"
+      errorMsg "ERROR adding Validation Properties to '$entType'\n  $emsg"
     }
 
 # check for PMI Presentation, call pmiProp
@@ -1105,7 +1086,7 @@ proc checkForReports {objDesign entType} {
         }
       }
     } emsg]} {
-      errorMsg "ERROR adding PMI Presentation information to '$entType'\n  $emsg"
+      errorMsg "ERROR adding PMI Presentation to '$entType'\n  $emsg"
     }
 
 # check for Semantic PMI, call spmiDimtolStart or spmiGeotolStart
@@ -1124,55 +1105,56 @@ proc checkForReports {objDesign entType} {
         }
       }
     } emsg]} {
-      errorMsg "ERROR adding PMI Representation information to '[formatComplexEnt $entType]'\n  $emsg"
+      errorMsg "ERROR adding PMI Representation to '[formatComplexEnt $entType]'\n  $emsg"
     }
 
-# check for AP209
-  } elseif {$entType == "node"} {
+# check for AP209 analysis elements
+  } elseif {$entType == "curve_3d_element_representation" || \
+            $entType == "surface_3d_element_representation" || \
+            $entType == "volume_3d_element_representation"} {
     if {[catch {
-      if {[info exists opt(VIZ209)]} {
-        if {$opt(VIZ209)} {
-          analysisStart $objDesign $entType
+      if {[info exists opt(VIZFEA)]} {
+        if {$opt(VIZFEA)} {
+          feaStart $objDesign $entType
         }
       }
     } emsg]} {
-      errorMsg "ERROR adding Analysis information to '$entType'\n  $emsg"
+      errorMsg "ERROR adding Analysis Model to '$entType'\n  $emsg"
     }
   }
 }
 
 # -------------------------------------------------------------------------------
-proc pmiSetEntAttrList {abc} {
-  global elevel entAttrList ent opt
+proc setEntAttrList {abc} {
+  global entLevel entAttrList ent opt
 
-  incr elevel
-  set ind [string repeat " " [expr {4*($elevel-1)}]]
+  incr entLevel
+  set ind [string repeat " " [expr {4*($entLevel-1)}]]
   if {$opt(DEBUG1)} {outputMsg "$ind PARSE"}
 
   set ni 0
   foreach item $abc {
     if {[llength $item] > 1} {
-      pmiSetEntAttrList $item
+      setEntAttrList $item
     } else {
       if {$ni == 0} {
         set typ "ENT"
-        set ent($elevel) $item
+        set ent($entLevel) $item
       } else {
         set typ "  ATR"
-        lappend entAttrList "$ent($elevel) $item"
+        lappend entAttrList "$ent($entLevel) $item"
       }
       if {$opt(DEBUG1)} {
         if {$typ == "ENT"} {
-          outputMsg "$ind $typ $elevel $ni $item" blue
+          outputMsg "$ind $typ $entLevel $ni $item" blue
         } else {
-          outputMsg "$ind $typ $elevel $ni $item"
+          outputMsg "$ind $typ $entLevel $ni $item"
         }
       }
       incr ni
     }
   }
-
-  incr elevel -1
+  incr entLevel -1
 }  
 
 # -------------------------------------------------------------------------------
@@ -1295,6 +1277,7 @@ proc setCAXIFvendor {} {
   set vendor(dp) "Datakit CrossCad (Creo)"
   set vendor(du) "Datakit CrossCad (NX)"
   set vendor(dw) "Datakit CrossCad (SolidWorks)"
+  set vendor(ec) "Elysium"
   set vendor(fs) "Vistagy FiberSim"
   set vendor(h3) "HOOPS 3D Exchange"
   set vendor(h5) "HOOPS 3D (CATIA V5)"
@@ -1320,6 +1303,7 @@ proc setCAXIFvendor {} {
   set vendor(s5) "T-Systems COM/FOX (CATIA V5)"
   set vendor(se) "SolidEdge"
   set vendor(sw) "SolidWorks"
+  set vendor(t3d) "TechSoft3D"
   set vendor(t4) "Theorem Cadverter (CATIA V4)"
   set vendor(t5) "Theorem Cadverter (CATIA V5)"
   set vendor(tc) "Theorem Cadverter (CADDS)"

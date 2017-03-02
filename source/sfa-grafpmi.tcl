@@ -1,6 +1,6 @@
 proc gpmiAnnotation {objDesign entType} {
-  global ao aoEntTypes cells col elevel ent entAttrList gpmiRow nindex opt pmiCol pmiHeading pmiStartCol
-  global recPracNames stepAP syntaxErr x3domColor x3domCoord x3domFile x3domIndex x3domShape
+  global ao aoEntTypes cells col entLevel ent entAttrList gpmiRow nindex opt pmiCol pmiHeading pmiStartCol
+  global recPracNames stepAP syntaxErr x3domColor x3domCoord x3domFile x3domIndex x3domShape x3domMsg
 
   if {$opt(DEBUG1)} {outputMsg "START gpmiAnnotation $entType" red}
 
@@ -66,6 +66,7 @@ proc gpmiAnnotation {objDesign entType} {
   set nindex 0
   set x3domShape 0
   set gpmiRow($ao) {}
+  if {![info exists x3domMsg]} {set x3domMsg {}}
 
   if {[info exists pmiHeading]} {unset pmiHeading}
   if {[info exists ent]}        {unset ent}
@@ -98,23 +99,25 @@ proc gpmiAnnotation {objDesign entType} {
   }
   
   if {[string first "draughting" $ao] != -1} {
+    set msg "Syntax Error: Using 'draughting_annotation_*_occurrence' is not valid for PMI Presentation.\n[string repeat " " 14]"
     if {$stepAP == "AP242"} {
-      errorMsg "Syntax Error: Using 'draughting_annotation_*_occurrence' is not valid for PMI Presentation.\n[string repeat " " 14]\($recPracNames(pmi242), Sec. 8.1)"
+      append msg "($recPracNames(pmi242), Sec. 8.1)"
     } else {
-      errorMsg "Syntax Error: Using 'draughting_annotation_*_occurrence' is not valid for PMI Presentation.\n[string repeat " " 14]\($recPracNames(pmi203), Sec. 4.1)"
+      append msg "($recPracNames(pmi203), Sec. 4.1)"
     }
+    errorMsg $msg
     lappend syntaxErr($ao) [list 1 1]
   }
 
   if {$opt(DEBUG1)} {outputMsg \n}
-  set elevel 0
-  pmiSetEntAttrList $PMIP($ao)
+  set entLevel 0
+  setEntAttrList $PMIP($ao)
   if {$opt(DEBUG1)} {outputMsg "entattrlist $entAttrList"}
   if {$opt(DEBUG1)} {outputMsg \n}
     
   set startent [lindex $PMIP($ao) 0]
   set n 0
-  set elevel 0
+  set entLevel 0
   
 # get next unused column by checking if there is a colName
   set pmiStartCol($ao) [getNextUnusedColumn $startent 3]
@@ -138,11 +141,11 @@ proc gpmiAnnotation {objDesign entType} {
 # write any remaining X3DOM
   if {[info exists x3domCoord] || $x3domShape} {
     if {[string length $x3domCoord] > 0} {
-      puts $x3domFile " <indexedLineSet coordIndex='[string trim $x3domIndex]'>\n  <coordinate point='[string trim $x3domCoord]'></coordinate>\n </indexedLineSet>\n</shape>"
+      puts $x3domFile " <IndexedLineSet coordIndex='[string trim $x3domIndex]'>\n  <Coordinate point='[string trim $x3domCoord]'></Coordinate>\n </IndexedLineSet>\n</Shape>"
       set x3domCoord ""
       set x3domIndex ""
     } elseif {$x3domShape} {
-      puts $x3domFile "</indexedLineSet></shape>"
+      puts $x3domFile "</IndexedLineSet></Shape>"
     }
     set x3domShape 0
     set x3domColor ""
@@ -153,18 +156,18 @@ proc gpmiAnnotation {objDesign entType} {
 
 proc gpmiAnnotationReport {objEntity} {
   global ao aoname assocGeom avgX3domColor badAttributes cells circleCenter col currX3domPointID curveTrim dirRatio dirType draftModelCameras
-  global elevel ent entAttrList entCount geomType gpmiEnts gpmiID gpmiIDRow gpmiOK gpmiRow gpmiTypes gpmiTypesInvalid gpmiTypesPerFile gpmiValProp
+  global entLevel ent entAttrList entCount geomType gpmiEnts gpmiID gpmiIDRow gpmiOK gpmiRow gpmiTypes gpmiTypesInvalid gpmiTypesPerFile gpmiValProp
   global iCompCurve iCompCurveSeg incrcol iPolyline localName nindex numCompCurve numCompCurveSeg numPolyline numX3domPointID
   global objEntity1 opt pmiCol pmiColumns pmiHeading pmiStartCol pointLimit prefix propDefIDS recPracNames savedViewCol stepAP syntaxErr 
-  global x3domColor x3domCoord x3domFile x3domFileName x3domFileOpen x3domIndex x3domMax x3domMin x3domPoint x3domPointID x3domShape
+  global x3domColor x3domCoord x3domFile x3domFileName x3domFileOpen x3domIndex x3domMax x3domMin x3domPoint x3domPointID x3domShape x3domMsg
   global nistVersion
 
   #outputMsg "gpmiAnnotationReport" red
   #if {[info exists gpmiOK]} {if {$gpmiOK == 0} {return}}
 
-# elevel is very important, keeps track level of entity in hierarchy
-  incr elevel
-  set ind [string repeat " " [expr {4*($elevel-1)}]]
+# entLevel is very important, keeps track level of entity in hierarchy
+  incr entLevel
+  set ind [string repeat " " [expr {4*($entLevel-1)}]]
 
   set maxcp $pointLimit
 
@@ -175,17 +178,17 @@ proc gpmiAnnotationReport {objEntity} {
     set objType [$objEntity Type]
     set objID   [$objEntity P21ID]
     set objAttributes [$objEntity Attributes]
-    set ent($elevel) $objType
-    if {$elevel == 1} {set objEntity1 $objEntity}
+    set ent($entLevel) $objType
+    if {$entLevel == 1} {set objEntity1 $objEntity}
 
-    if {$opt(DEBUG1) && $objType != "cartesian_point"} {outputMsg "$ind ENT $elevel #$objID=$objType (ATR=[$objAttributes Count])" blue}
-    #if {$elevel == 1} {outputMsg "#$objID=$objType" blue}
+    if {$opt(DEBUG1) && $objType != "cartesian_point"} {outputMsg "$ind ENT $entLevel #$objID=$objType (ATR=[$objAttributes Count])" blue}
+    #if {$entLevel == 1} {outputMsg "#$objID=$objType" blue}
 
 # check if there are rows with ao
     if {$gpmiEnts($objType)} {
       set gpmiID $objID
       if {![info exists gpmiIDRow($ao,$gpmiID)]} {
-        incr elevel -1
+        incr entLevel -1
         set gpmiOK 0
         return
       } else {
@@ -195,11 +198,11 @@ proc gpmiAnnotationReport {objEntity} {
 # write any leftover X3DOM from previous Shape
       if {[info exists x3domCoord] || $x3domShape} {
         if {[string length $x3domCoord] > 0} {
-          puts $x3domFile " <indexedLineSet coordIndex='[string trim $x3domIndex]'>\n  <coordinate point='[string trim $x3domCoord]'></coordinate>\n </indexedLineSet>\n</shape>"
+          puts $x3domFile " <IndexedLineSet coordIndex='[string trim $x3domIndex]'>\n  <Coordinate point='[string trim $x3domCoord]'></Coordinate>\n </IndexedLineSet>\n</Shape>"
           set x3domCoord ""
           set x3domIndex ""
         } elseif {$x3domShape} {
-          puts $x3domFile "</indexedLineSet></shape>"
+          puts $x3domFile "</IndexedLineSet></Shape>"
         }
         set x3domShape 0
         set x3domColor ""
@@ -213,21 +216,23 @@ proc gpmiAnnotationReport {objEntity} {
       incr iCompCurveSeg
     }
     
-    if {$elevel == 2 && \
+    if {$entLevel == 2 && \
         $objType != "geometric_curve_set" && $objType != "annotation_fill_area" && $objType != "presentation_style_assignment" && \
         [string first "tessellated_geometric_set" $objType] == -1} {
+      set msg "Syntax Error: '$objType' is not allowed as an 'item' attribute of: $ao\n[string repeat " " 14]"
       if {$stepAP == "AP242"} {
-        errorMsg "Syntax Error: '$objType' is not allowed as an 'item' attribute of: $ao\n[string repeat " " 14]\($recPracNames(pmi242), Sec. 8.1.1, 8.1.2, 8.2)"
+        append msg "($recPracNames(pmi242), Sec. 8.1.1, 8.1.2, 8.2)"
       } else {
-        errorMsg "Syntax Error: '$objType' is not allowed as an 'item' attribute of: $ao\n[string repeat " " 14]\($recPracNames(pmi203), Sec. 4.1.1, 4.1.2)"
+        append msg "($recPracNames(pmi203), Sec. 4.1.1, 4.1.2)"
       }
+      errorMsg $msg
       lappend syntaxErr($ao) [list $gpmiID item]
     }
 
     ::tcom::foreach objAttribute $objAttributes {
       set objName  [$objAttribute Name]
-      set ent1 "$ent($elevel) $objName"
-      set ent2 "$ent($elevel).$objName"
+      set ent1 "$ent($entLevel) $objName"
+      set ent2 "$ent($entLevel).$objName"
 
 # look for entities with bad attributes that cause a crash
       set okattr 1
@@ -247,7 +252,7 @@ proc gpmiAnnotationReport {objEntity} {
         if {$objNodeType == 18 || $objNodeType == 19} {
           if {[catch {
             if {$idx != -1} {
-              if {$opt(DEBUG1)} {outputMsg "$ind   ATR $elevel $objName - $objValue ($objNodeType, $objSize, $objAttrType)"}
+              if {$opt(DEBUG1)} {outputMsg "$ind   ATR $entLevel $objName - $objValue ($objNodeType, $objSize, $objAttrType)"}
     
               if {[info exists cells($ao)]} {
                 set ok 0
@@ -256,11 +261,15 @@ proc gpmiAnnotationReport {objEntity} {
                 switch -glob $ent1 {
                   "trimmed_curve basis_curve" {
                     if {[$objValue Type] != "circle"} {
+                      set msg "Syntax Error: '[$objValue Type]' is not allowed as a 'basis_curve' for trimmed_curve\n[string repeat " " 14]"
                       if {$stepAP == "AP242"} {
-                        errorMsg "Syntax Error: '[$objValue Type]' is not allowed as a 'basis_curve' for trimmed_curve\n[string repeat " " 14]\($recPracNames(pmi242), Sec. 8.1.1, 8.1.2)"
+                        append msg "($recPracNames(pmi242), Sec. 8.1.1, 8.1.2)"
                       } else {
-                        errorMsg "Syntax Error: '[$objValue Type]' is not allowed as a 'basis_curve' for trimmed_curve\n[string repeat " " 14]\($recPracNames(pmi203), Sec. 4.1.1, 4.1.2)"
+                        append msg "($recPracNames(pmi203), Sec. 4.1.1, 4.1.2)"
                       }
+                      errorMsg $msg
+                      set msg "Some annotation line segments may be missing."
+                      if {[lsearch $x3domMsg $msg] == -1} {lappend x3domMsg $msg}
                     }
                   }
                   "axis2_placement_3d axis" {set dirType "axis"}
@@ -317,11 +326,11 @@ proc gpmiAnnotationReport {objEntity} {
         } elseif {$objNodeType == 20} {
           if {[catch {
             if {$idx != -1} {
-              if {$opt(DEBUG1) && $objName != "coordinates"} {outputMsg "$ind   ATR $elevel $objName - $objValue ($objNodeType, $objSize, $objAttrType)"}
+              if {$opt(DEBUG1) && $objName != "coordinates"} {outputMsg "$ind   ATR $entLevel $objName - $objValue ($objNodeType, $objSize, $objAttrType)"}
           
-# start of a list of cartesian points, assuming it is for a polyline, elevel = 3
-              if {$objAttrType == "ListOfcartesian_point" && $elevel == 3} {
-                #outputMsg 1elevel$elevel red
+# start of a list of cartesian points, assuming it is for a polyline, entLevel = 3
+              if {$objAttrType == "ListOfcartesian_point" && $entLevel == 3} {
+                #outputMsg 1entLevel$entLevel red
                 if {$maxcp <= 10 && $maxcp < $objSize} {
                   append x3domPointID "($maxcp of $objSize) cartesian_point "
                 } else {
@@ -348,10 +357,10 @@ proc gpmiAnnotationReport {objEntity} {
                 switch -glob $ent1 {
                   "cartesian_point coordinates" {
                     if {$opt(VIZPMI) && $x3domFileName != ""} {
-                      #outputMsg "$elevel $geomType $ent1" red
+                      #outputMsg "$entLevel $geomType $ent1" red
 
-# elevel = 4 for polyline
-                      if {$elevel == 4 && $geomType == "polyline"} {
+# entLevel = 4 for polyline
+                      if {$entLevel == 4 && $geomType == "polyline"} {
                         append x3domCoord "[format "%.4f" [lindex $objValue 0]] [format "%.4f" [lindex $objValue 1]] [format "%.4f" [lindex $objValue 2]] " 
     
                         set x3domPoint(x) [lindex $objValue 0]
@@ -365,10 +374,10 @@ proc gpmiAnnotationReport {objEntity} {
                         }
 
 # write coord and index to X3DOM file for polyline
-                        if {$elevel == 4} {
+                        if {$entLevel == 4} {
                           if {$iPolyline == $numPolyline && $currX3domPointID == $numX3domPointID} {
                             outputMsg "polyline" blue
-                            puts $x3domFile " <indexedLineSet coordIndex='[string trim $x3domIndex]'>\n  <coordinate point='[string trim $x3domCoord]'></coordinate>\n </indexedLineSet>\n</shape>"
+                            puts $x3domFile " <IndexedLineSet coordIndex='[string trim $x3domIndex]'>\n  <Coordinate point='[string trim $x3domCoord]'></Coordinate>\n </IndexedLineSet>\n</Shape>"
                             set x3domCoord ""
                             set x3domIndex ""
                             set x3domShape 0
@@ -457,11 +466,13 @@ proc gpmiAnnotationReport {objEntity} {
                     foreach val [$objAttribute Value] {
                       append cellval([$val Type]) "[$val P21ID] "
                       if {$ent1 == "geometric_curve_set items" && [$val Type] != "polyline" && [$val Type] != "trimmed_curve" && [$val Type] != "circle"} {
+                        set msg "Syntax Error: Invalid '[$val Type]' attribute for geometric_curve_set.items\n[string repeat " " 14]"
                         if {$stepAP == "AP242"} {
-                          errorMsg "Syntax Error: Invalid '[$val Type]' attribute for geometric_curve_set.items\n[string repeat " " 14]\($recPracNames(pmi242), Sec. 8.1.1, 8.1.2)"
+                          append msg "($recPracNames(pmi242), Sec. 8.1.1, 8.1.2)"
                         } else {
-                          errorMsg "Syntax Error: Invalid '[$val Type]' attribute for geometric_curve_set.items\n[string repeat " " 14]\($recPracNames(pmi203), Sec. 4.1.1, 4.1.2)"
+                          append msg "($recPracNames(pmi203), Sec. 4.1.1, 4.1.2)"
                         }
+                        errorMsg $msg
                       }
                     }
                   }
@@ -518,7 +529,7 @@ proc gpmiAnnotationReport {objEntity} {
         } else {
           if {[catch {
             if {$idx != -1} {
-              if {$opt(DEBUG1) && $ent1 != "cartesian_point name"} {outputMsg "$ind   ATR $elevel $objName - $objValue ($objNodeType, $objAttrType)  ($ent1)"}
+              if {$opt(DEBUG1) && $ent1 != "cartesian_point name"} {outputMsg "$ind   ATR $entLevel $objName - $objValue ($objNodeType, $objAttrType)  ($ent1)"}
     
               if {[info exists cells($ao)]} {
                 set ok 0
@@ -564,6 +575,8 @@ proc gpmiAnnotationReport {objEntity} {
                           set x3domPoint(x) [lindex $circleCenter 0]
                         } else {
                           errorMsg "PMI annotation circle orientation ($dirRatio(x), $dirRatio(y), $dirRatio(z)) is ignored."
+                          set msg "Complex circle orientation is ignored."
+                          if {[lsearch $x3domMsg $msg] == -1} {lappend x3domMsg $msg}
                           set x3domPoint(x) [expr {$objValue*cos($angle)+[lindex $circleCenter 0]}]
                           set x3domPoint(y) [expr {-1.*$objValue*sin($angle)+[lindex $circleCenter 1]}]
                           set x3domPoint(z) [lindex $circleCenter 2]
@@ -587,9 +600,11 @@ proc gpmiAnnotationReport {objEntity} {
                       }
                     }
                     errorMsg "Trimmed circles in PMI annotations might have the wrong orientation."
+                    set msg "Trimmed circles might have the wrong orientation."
+                    if {[lsearch $x3domMsg $msg] == -1} {lappend x3domMsg $msg}
                   }
                   "cartesian_point name" {
-                    if {$elevel == 4} {
+                    if {$entLevel == 4} {
                       set ok 1
                       set col($ao) [expr {$pmiStartCol($ao)+2}]
                     }
@@ -611,6 +626,10 @@ proc gpmiAnnotationReport {objEntity} {
                   "*annotation_occurrence* name" -
                   "*tessellated_annotation_occurrence* name" {
                     set aoname $objValue
+                    if {[string first "fill" $ent1] != -1} {
+                      set msg "Filled characters are not filled."
+                      if {[lsearch $x3domMsg $msg] == -1} {lappend x3domMsg $msg}
+                    }
                   }
                   "curve_style name" -
                   "fill_area_style name" {
@@ -624,19 +643,19 @@ proc gpmiAnnotationReport {objEntity} {
                     update idletasks
                   }
                   "colour_rgb red" {
-                    if {$elevel == 4 || $elevel == 8} {
+                    if {$entLevel == 4 || $entLevel == 8} {
                       set x3domColor $objValue
                       if {$opt(gpmiColor) > 0} {set x3domColor [gpmiSetColor $opt(gpmiColor)]}
                     }
                   }
                   "colour_rgb green" {
-                    if {$elevel == 4 || $elevel == 8} {
+                    if {$entLevel == 4 || $entLevel == 8} {
                       append x3domColor " $objValue"
                       if {$opt(gpmiColor) > 0} {set x3domColor [gpmiSetColor $opt(gpmiColor)]}
                     }
                   }
                   "colour_rgb blue" {
-                    if {$elevel == 4 || $elevel == 8} {
+                    if {$entLevel == 4 || $entLevel == 8} {
                       append x3domColor " $objValue"
                       set ok 1
                       set col($ao) [expr {$pmiStartCol($ao)+3}]
@@ -650,7 +669,7 @@ proc gpmiAnnotationReport {objEntity} {
                     }
                   }
                   "draughting_pre_defined_colour name" {
-                    if {$elevel == 4 || $elevel == 8} {
+                    if {$entLevel == 4 || $entLevel == 8} {
                       if {$objValue == "white"} {
                         set x3domColor "1 1 1"
                       } elseif {$objValue == "black"} {
@@ -712,14 +731,17 @@ proc gpmiAnnotationReport {objEntity} {
                       $ent1 == "composite_curve name"} {
                     set ov $objValue
 
+
 # look for invalid 'name' values                  
                     set invalid 0
                     if {$ov == ""} {
+                      set msg "Syntax Error: Missing 'name' attribute on [lindex $ent1 0].\n[string repeat " " 14]"
                       if {$stepAP == "AP242"} {
-                        errorMsg "Syntax Error: Missing 'name' attribute on [lindex $ent1 0].\n[string repeat " " 14]\($recPracNames(pmi242), Sec. 8.4, Table 14)"
+                        append msg "($recPracNames(pmi242), Sec. 8.4, Table 14)"
                       } else {
-                        errorMsg "Syntax Error: Missing 'name' attribute on [lindex $ent1 0].\n[string repeat " " 14]\($recPracNames(pmi203), Sec. 4.3, Table 1)"
+                        append msg "($recPracNames(pmi203), Sec. 4.3, Table 1)"
                       }
+                      errorMsg $msg
                       set ov "(blank)"
                       if {[info exists gpmiTypesInvalid]} {
                         if {[lsearch $gpmiTypesInvalid $ov] == -1} {lappend gpmiTypesInvalid $ov}
@@ -727,11 +749,13 @@ proc gpmiAnnotationReport {objEntity} {
                       set invalid 1
                       lappend syntaxErr([lindex [split $ent1 " "] 0]) [list $objID [lindex [split $ent1 " "] 1]]
                     } elseif {[lsearch $gpmiTypes $ov] == -1} {
+                      set msg "Syntax Error: Invalid 'name' attribute ($ov) on [lindex $ent1 0].\n[string repeat " " 14]"
                       if {$stepAP == "AP242"} {
-                        errorMsg "Syntax Error: Invalid 'name' attribute ($ov) on [lindex $ent1 0].\n[string repeat " " 14]\($recPracNames(pmi242), Sec. 8.4, Table 14)"
+                        append msg "($recPracNames(pmi242), Sec. 8.4, Table 14)"
                       } else {
-                        errorMsg "Syntax Error: Invalid 'name' attribute ($ov) on [lindex $ent1 0].\n[string repeat " " 14]\($recPracNames(pmi203), Sec. 4.3, Table 1)"
+                        append msg "($recPracNames(pmi203), Sec. 4.3, Table 1)"
                       }
+                      errorMsg $msg
                       if {[info exists gpmiTypesInvalid]} {
                         if {[lsearch $gpmiTypesInvalid $ov] == -1} {lappend gpmiTypesInvalid $ov}
                       }
@@ -778,14 +802,21 @@ proc gpmiAnnotationReport {objEntity} {
                             set url "https://github.com/usnistgov/SFA"
                           }
                           
-                          puts $x3domFile "<!DOCTYPE html>\n<html>\n<head>\n<title>[file tail $localName] | PMI Annotations</title>\n<base target=\"_blank\">\n<meta http-equiv='Content-Type' content='text/html;charset=utf-8'></meta>\n<link rel='stylesheet' type='text/css' href='http://www.x3dom.org/x3dom/release/x3dom.css'></link>\n<script type='text/javascript' src='http://www.x3dom.org/x3dom/release/x3dom.js'></script>\n</head>\n<body>"
-                          puts $x3domFile "<FONT FACE=\"Arial\"><H3>PMI Presentation Annotations for:  [file tail $localName]</H3><UL>"
-                          #if {[info exists entCount(annotation_fill_area_occurrence)]} {puts $x3domFile "<LI>Filled characters are not filled."}
-                          puts $x3domFile "<LI>Generated by the <a href=\"$url\">$str\STEP File Analyzer (v[getVersion])</A> on [clock format [clock seconds]] and rendered with <A HREF=\"http://www.x3dom.org/\">X3DOM</A>."
+                          puts $x3domFile "<!DOCTYPE html>\n<html>\n<head>\n<title>[file tail $localName] | PMI Annotations</title>\n<Base target=\"_blank\">\n<meta http-equiv='Content-Type' content='text/html;charset=utf-8'></meta>\n<link rel='stylesheet' type='text/css' href='http://www.x3dom.org/x3dom/release/x3dom.css'></link>\n<script type='text/javascript' src='http://www.x3dom.org/x3dom/release/x3dom.js'></script>\n</head>\n<Body>"
+                          puts $x3domFile "<FONT FACE=\"Arial\"><H3>PMI Annotations for:  [file tail $localName]</H3><UL>"
+                          puts $x3domFile "<LI>Visualization of PMI Annotations generated by the <a href=\"$url\">$str\STEP File Analyzer (v[getVersion])</A> and rendered with <A HREF=\"http://www.x3dom.org/\">X3DOM</A>."
                           puts $x3domFile "<LI>Only the PMI annotations are shown.  Part geometry can be viewed with <A HREF=\"https://www.cax-if.org/step_viewers.html\">STEP file viewers</A>."
-                          puts $x3domFile "<LI><a href=\"http://www.x3dom.org/documentation/interaction/\">Use the mouse</a>, Page Up/Down keys, or touch gestures to rotate, pan, and zoom the annotations."
-                          puts $x3domFile "</UL>"
-                          puts $x3domFile "<x3d id='someUniqueId' showStat='false' showLog='false' x='0px' y='0px' width='1200px' height='900px'>\n<scene DEF='scene'>"
+                          puts $x3domFile "<LI><a href=\"http://www.x3dom.org/documentation/interaction/\">Use the mouse</a> to rotate, pan, and zoom.  Use Page Down to switch between perspective and orthographic views."
+                          puts $x3domFile "</UL><table><tr><td>"
+
+# x3d window size
+                          set height 800
+                          set width [expr {int($height*1.5)}]
+                          catch {
+                            set height [expr {int([winfo screenheight .]*0.7)}]
+                            set width [expr {int($height*[winfo screenwidth .]/[winfo screenheight .])}]
+                          }
+                          puts $x3domFile "<x3d id='someUniqueId' showStat='false' showLog='false' x='0px' y='0px' width='$width\px' height='$height\px'>\n<scene DEF='scene'>"
 
                           for {set i 0} {$i < 4} {incr i} {set avgX3domColor($i) 0}
                         }
@@ -793,21 +824,21 @@ proc gpmiAnnotationReport {objEntity} {
 # start X3DOM Shape node                    
                         if {$ao == "annotation_fill_area_occurrence"} {errorMsg "PMI annotations with filled characters are not filled."}
                         if {$x3domColor != ""} {
-                          puts $x3domFile "<shape>\n <appearance><material emissiveColor='$x3domColor'></material></appearance>"
+                          puts $x3domFile "<Shape>\n <Appearance><Material emissiveColor='$x3domColor'></Material></Appearance>"
                           set colors [split $x3domColor " "]
                           for {set i 0} {$i < 3} {incr i} {set avgX3domColor($i) [expr {$avgX3domColor($i)+[lindex $colors $i]}]}
                           incr avgX3domColor(3)
                         } elseif {[string first "annotation_occurrence" $ao] == 0} {
-                          puts $x3domFile "<shape>\n <appearance><material emissiveColor='1 0.5 0'></material></appearance>"
+                          puts $x3domFile "<Shape>\n <Appearance><Material emissiveColor='1 0.5 0'></Material></Appearance>"
                           errorMsg "Syntax Error: Color not specified for PMI Presentation (using orange)"
                         } elseif {[string first "annotation_fill_area_occurrence" $ao] == 0} {
-                          puts $x3domFile "<shape>\n <appearance><material emissiveColor='1 0.5 0'></material></appearance>"
+                          puts $x3domFile "<Shape>\n <Appearance><Material emissiveColor='1 0.5 0'></Material></Appearance>"
                           errorMsg "Syntax Error: Color not specified for PMI Presentation (using orange)"
                         }
                         set x3domShape 1
                         update idletasks
                       } else {
-                        errorMsg " Visualizing Tessellated PMI Annotations is not supported." red
+                        errorMsg " Visualization of Tessellated PMI Annotations is not supported." red
                       }
                     }               
 
@@ -832,12 +863,12 @@ proc gpmiAnnotationReport {objEntity} {
 # cell value for presentation style or color
                   } else {
                     if {$colName != "colour"} {
-                      $cells($ao) Item $r $c "$ent($elevel) $objID"
+                      $cells($ao) Item $r $c "$ent($entLevel) $objID"
                     } else {
-                      if {$ent($elevel) == "colour_rgb"} {
-                        $cells($ao) Item $r $c "$ent($elevel) $objID  ($x3domColor)"
+                      if {$ent($entLevel) == "colour_rgb"} {
+                        $cells($ao) Item $r $c "$ent($entLevel) $objID  ($x3domColor)"
                       } else {
-                        $cells($ao) Item $r $c "$ent($elevel) $objID  ($objValue)"
+                        $cells($ao) Item $r $c "$ent($entLevel) $objID  ($objValue)"
                       }
                     }
                   }
@@ -846,16 +877,16 @@ proc gpmiAnnotationReport {objEntity} {
             }
           } emsg3]} {
             errorMsg "ERROR processing PMI Presentation ($objNodeType $ent2): $emsg3"
-            set elevel 1
+            set entLevel 1
           }
         }
       }
     }
   }
-  incr elevel -1
+  incr entLevel -1
   
 # write a few more things at the end of processing an annotation_occurrence entity
-  if {$elevel == 0} {
+  if {$entLevel == 0} {
 
 # associated geometry, (1) find link between annotation_occurrence and a geometric item through
 # draughting_model_item_association or draughting_callout and geometric_item_specific_usage
@@ -913,7 +944,13 @@ proc gpmiAnnotationReport {objEntity} {
                 #outputMsg "   $dmiaDefType [$dmiaDef P21ID]  $attrName" red
               }
             } else {
-              errorMsg "Syntax Error: Missing 'definition' attribute on \#[$objGuiEntity P21ID]=draughting_model_item_association\n[string repeat " " 14]\($recPracNames(pmi242), Sec. 9.3.1, Fig. 76)"
+              set msg "Syntax Error: Missing 'definition' attribute on \#[$objGuiEntity P21ID]=draughting_model_item_association\n[string repeat " " 14]"
+              if {$stepAP == "AP242"} {
+                append msg "($recPracNames(pmi242), Sec. 9.3.1, Fig. 76)"
+              } else {
+                append msg "($recPracNames(pmi203), Sec. 5.3.1, Fig. 12)"
+              }
+              errorMsg $msg
             }
           } elseif {[$attrDMIA Name] == "used_representation"} {
             set dmiaDef [$attrDMIA Value]
@@ -1026,15 +1063,26 @@ proc gpmiAnnotationReport {objEntity} {
       set savedViews ""    
       set nsv 0
       if {[info exists draftModelCameras]} {
-        foreach dm {draughting_model characterized_object_and_draughting_model characterized_representation_and_draughting_model_and_representation}  {
-          set objGuiEntities [$objEntity GetUsedIn [string trim $dm] [string trim items]]
-          #outputMsg "$dm  $objGuiEntities"
-          ::tcom::foreach objGuiEntity $objGuiEntities {
-            #outputMsg [$objGuiEntity P21ID]
-            if {[info exists draftModelCameras([$objGuiEntity P21ID])]} {
-              set str $draftModelCameras([$objGuiEntity P21ID])
+        set dmlist {}
+        foreach dms [list draughting_model characterized_object_and_draughting_model characterized_representation_and_draughting_model characterized_representation_and_draughting_model_and_representation] {
+          if {[info exists entCount($dms)]} {if {$entCount($dms) > 0} {lappend dmlist $dms}}
+        }
+        foreach dm $dmlist {
+          set entDraughtingModels [$objEntity GetUsedIn [string trim $dm] [string trim items]]
+          
+# check for draughting_callout.contents -> ao (PMI RP, section 9.4.4, figure 93)
+          set entDraughtingCallouts [$objEntity GetUsedIn [string trim draughting_callout] [string trim contents]]
+          ::tcom::foreach entDraughtingCallout $entDraughtingCallouts {
+            set entDraughtingModels [$entDraughtingCallout GetUsedIn [string trim $dm] [string trim items]]
+            #outputMsg [$entDraughtingCallout P21ID][$entDraughtingCallout Type] green
+          }
+      
+          ::tcom::foreach entDraughtingModel $entDraughtingModels {
+            if {[info exists draftModelCameras([$entDraughtingModel P21ID])]} {
+              #outputMsg "[$entDraughtingModel P21ID] [$entDraughtingModel Type]" red
+              set str $draftModelCameras([$entDraughtingModel P21ID])
               if {[string first $str $savedViews] == -1} {
-                append savedViews $draftModelCameras([$objGuiEntity P21ID])
+                append savedViews $draftModelCameras([$entDraughtingModel P21ID])
                 incr nsv
               }
               #errorMsg "  Adding Saved Views" green
@@ -1055,11 +1103,41 @@ proc gpmiAnnotationReport {objEntity} {
               if {$nsv == 1} {set str "camera_model_d3 [string trim $savedViews]"}
               $cells($ao) Item $r $c $str
               if {[string first "()" $savedViews] != -1} {lappend syntaxErr($ao) [list $r $savedViewCol]}
+          
+# check MDADR rep_1 vs. rep_2
+              if {$stepAP == "AP242"} {
+                set ok 1
+                set rep1Ents [$entDraughtingModel GetUsedIn [string trim mechanical_design_and_draughting_relationship] [string trim rep_1]]
+                ::tcom::foreach rep1Ent $rep1Ents {set ok 0}
+                if {$ok} {
+                  set msg "Syntax Error: mechanical_design_and_draughting_relationship reference to draughting_model uses rep_2 instead of rep_1\n[string repeat " " 14]"
+                  append msg "Check the Inverse Relationships on draughting_model (Options tab)\n[string repeat " " 14]"
+                  append msg "($recPracNames(pmi242), Sec. 9.4.4 Note 1, Fig. 93, Table 16)"
+                  errorMsg $msg
+                }
+              }
             }
           }
         }
-        catch {unset objGuiEntity}
-        catch {unset objGuiEntities}
+        catch {unset entDraughtingModel}
+        catch {unset entDraughtingModels}
+
+        if {$stepAP != "AP214"} {
+          if {![info exist entCount(mechanical_design_and_draughting_relationship)] && [info exist entCount(representation_relationship)]} {
+            set msg "Recommend using 'mechanical_design_and_draughting_relationship' instead of 'representation_relationship'\n  to relate draughting models "
+            if {$stepAP == "AP242"} {
+              append msg "($recPracNames(pmi242), Sec. 9.4.4 Note 2)"
+            } else {
+              append msg "($recPracNames(pmi203), Sec. 5.4.4 Note 2)"
+            }
+            errorMsg $msg
+          }
+        }
+
+# too broad a check, move or make more specific        
+        #if {$nsv == 0 && $savedViews == ""} {
+        #  errorMsg "Syntax Error: Saved View not associated with $objType\n[string repeat " " 14]\($recPracNames(pmi242), Sec. 9.4.2.1, Fig. 86)"
+        #}
       }
     } emsg]} {
       errorMsg "ERROR adding Saved Views: $emsg"
@@ -1153,42 +1231,52 @@ proc gpmiSetColor {type} {
 # -------------------------------------------------------------------------------
 # get camera models and validation properties
 proc pmiGetCamerasAndProperties {objDesign} {
-  global draftModelCameras gpmiValProp syntaxErr propDefIDS stepAP recPracNames
+  global draftModelCameras gpmiValProp syntaxErr propDefIDS stepAP recPracNames entCount
 
+  #outputMsg getCameras blue
   catch {unset draftModelCameras}
   if {[catch {
+    set cmlist {}
+    foreach cms [list camera_model_d3 camera_model_d3_multi_clipping] {
+      if {[info exists entCount($cms)]} {if {$entCount($cms) > 0} {lappend cmlist $cms}}
+    }
+    set dmlist {}
+    foreach dms [list draughting_model characterized_object_and_draughting_model characterized_representation_and_draughting_model characterized_representation_and_draughting_model_and_representation] {
+      if {[info exists entCount($dms)]} {if {$entCount($dms) > 0} {lappend dmlist $dms}}
+    }
 
 # loop over camera model entities
-    foreach cm [list camera_model_d3 camera_model_d3_multi_clipping] {
-      ::tcom::foreach objCMEntity [$objDesign FindObjects [string trim $cm]] {
-        set objCMAttributes [$objCMEntity Attributes]
+    foreach cm $cmlist {
+      ::tcom::foreach entCameraModel [$objDesign FindObjects [string trim $cm]] {
+        set attrCameraModels [$entCameraModel Attributes]
   
 # loop over draughting model entities
-        foreach dm {draughting_model characterized_object_and_draughting_model characterized_representation_and_draughting_model} {
-          set objGuiEntities [$objCMEntity GetUsedIn [string trim $dm] [string trim items]]
-          ::tcom::foreach objGuiEntity $objGuiEntities {
-            set objCMAttributes [$objCMEntity Attributes]
-            ::tcom::foreach objCMAttribute $objCMAttributes {
-              set objCMName [$objCMAttribute Name]
-              if {$objCMName == "name"} {set name [$objCMAttribute Value]}
+        foreach dm $dmlist {
+          set entDraughtingModels [$entCameraModel GetUsedIn [string trim $dm] [string trim items]]
+          ::tcom::foreach entDraughtingModel $entDraughtingModels {
+            ::tcom::foreach attrCameraModel $attrCameraModels {
+              set nameCameraModel [$attrCameraModel Name]
+              if {$nameCameraModel == "name"} {set name [$attrCameraModel Value]}
               if {$name == ""} {
+                set msg "Syntax Error: Required 'name' attribute on camera_model_d3 is blank.\n[string repeat " " 14]"
                 if {$stepAP == "AP242"} {
-                  errorMsg "Syntax Error: Required 'name' attribute on camera_model_d3 is blank.\n[string repeat " " 14]\($recPracNames(pmi242), Sec. 9.4.2, Fig. 76)"
+                  append msg "($recPracNames(pmi242), Sec. 9.4.2, Fig. 76)"
                 } else {
-                  errorMsg "Syntax Error: Required 'name' attribute on camera_model_d3 is blank.\n[string repeat " " 14]\($recPracNames(pmi203), Sec. 5.4.2, Fig. 14)"
+                  append msg "($recPracNames(pmi203), Sec. 5.4.2, Fig. 14)"
                 }
-                lappend syntaxErr($cm) [list [$objCMEntity P21ID] name]
+                errorMsg $msg
+                lappend syntaxErr($cm) [list [$entCameraModel P21ID] name]
               }
             }
   
-            set str "[$objCMEntity P21ID] ($name)  "
-            set id [$objGuiEntity P21ID]
+            set str "[$entCameraModel P21ID] ($name)  "
+            set id [$entDraughtingModel P21ID]
             if {![info exists draftModelCameras($id)]} {
               set draftModelCameras($id) $str
             } elseif {[string first $str $draftModelCameras($id)] == -1} {
-              append draftModelCameras($id) "[$objCMEntity P21ID] ($name)  "
+              append draftModelCameras($id) "[$entCameraModel P21ID] ($name)  "
             }
-            #outputMsg "$id  $draftModelCameras($id)"
+            #outputMsg "$id  $draftModelCameras($id)  $dm  $cm"
           }
         }
       }
@@ -1222,48 +1310,92 @@ proc pmiGetCamerasAndProperties {objDesign} {
 }  
 
 # -------------------------------------------------------------------------------
-# set viewpoints, add navigation and background color, and close PMI X3DOM file
-proc gpmiX3DOMViewpoints {} {
-  global x3domMax x3domMin x3domFile avgX3domColor opt
+# set viewpoints, add navigation and background color, and close X3DOM file
+proc x3domViewpoints {} {
+  global avgX3domColor opt stepAP x3domMax x3domMin x3domFile x3domMsg stepAP entCount
   
+# viewpoints
   foreach idx {x y z} {
     set delt($idx) [expr {$x3domMax($idx)-$x3domMin($idx)}]
     set xyzcen($idx) [format "%.4f" [expr {0.5*$delt($idx) + $x3domMin($idx)}]]
   }
-
   set maxxyz $delt(x)
   if {$delt(y) > $maxxyz} {set maxxyz $delt(y)}
   if {$delt(z) > $maxxyz} {set maxxyz $delt(z)}
+  set cor "centerOfRotation='$xyzcen(x) $xyzcen(y) $xyzcen(z)'"
+  puts $x3domFile "\n<Viewpoint $cor position='$xyzcen(x) [trimNum [expr {0. - ($xyzcen(y) + 1.4*$maxxyz)}]] $xyzcen(z)' orientation='1 0 0 1.5708' description='Front'></Viewpoint>"
+  set fov [trimNum [expr {$delt(z)*0.5 + $delt(y)*0.5}]]
+  puts $x3domFile "<OrthoViewpoint fieldOfView='\[-$fov,-$fov,$fov,$fov\]' $cor position='$xyzcen(x) [trimNum [expr {0. - ($xyzcen(y) + 1.4*$maxxyz)}]] $xyzcen(z)' orientation='1 0 0 1.5708' description='Ortho'></Viewpoint>"
 
-  puts $x3domFile "<viewpoint position='$xyzcen(x) $xyzcen(y) [trimNum [expr {$xyzcen(z) + 1.4*$maxxyz}]]' description='Front'></viewpoint>"
-  puts $x3domFile "<viewpoint position='[trimNum [expr {0. - ($xyzcen(x) + 1.4*$maxxyz)}]] $xyzcen(y) $xyzcen(z)' orientation='0 1 0 -1.5708' description='Left'></viewpoint>"
-  puts $x3domFile "<viewpoint position='$xyzcen(x) $xyzcen(y) [trimNum [expr {0. - ($xyzcen(z) + 1.4*$maxxyz)}]]' orientation='0 1 0 3.1416' description='Back'></viewpoint>"
-  puts $x3domFile "<viewpoint position='[trimNum [expr {$xyzcen(x) + 1.4*$maxxyz}]] $xyzcen(y) $xyzcen(z)' orientation='0 1 0 1.5708' description='Right'></viewpoint>"
-  puts $x3domFile "<viewpoint position='$xyzcen(x) [trimNum [expr {$xyzcen(y) + 1.4*$maxxyz}]] $xyzcen(z)' orientation='-1 0 0 1.5708' description='Top'></viewpoint>"
-  puts $x3domFile "<viewpoint position='$xyzcen(x) [trimNum [expr {0. - ($xyzcen(y) + 1.4*$maxxyz)}]] $xyzcen(z)' orientation='-1 0 0 -1.5708' description='Bottom'></viewpoint>"
-  puts $x3domFile "<navigationInfo type='\"EXAMINE\" \"WALK\" \"FLY\" \"ANY\"'></navigationInfo>"
-  for {set i 0} {$i < 3} {incr i} {set avgX3domColor($i) [expr {$avgX3domColor($i)/$avgX3domColor(3)}]}
-  set acolor [expr {$avgX3domColor(0)+$avgX3domColor(1)+$avgX3domColor(2)}]
-  if {($acolor < 0.2 || $opt(gpmiColor) == 1) && $opt(gpmiColor) != 2} {
-    puts $x3domFile "<background groundAngle='1.5708' groundColor='.9 .9 .9 .9 .9 .9' skyAngle='1.5708' skyColor='1. 1. 1. 1. 1. 1.'></background>"
-  } elseif {$acolor < 2.0} {
-    puts $x3domFile "<background groundAngle='1.5708' groundColor='.7 .7 .7 .7 .7 .7' skyAngle='1.5708' skyColor='.8 .8 .8 .8 .8 .8'></background>"
+# old viewpoints
+  #puts $x3domFile "<Viewpoint $cor position='$xyzcen(x) $xyzcen(y) [trimNum [expr {$xyzcen(z) + 1.4*$maxxyz}]]' description='Top'></Viewpoint>"
+  #puts $x3domFile "<Viewpoint $cor position='[trimNum [expr {$xyzcen(x) + 1.4*$maxxyz}]] $xyzcen(y) $xyzcen(z)' orientation='0 1 0 1.5708' description='Side 1'></Viewpoint>"
+  #puts $x3domFile "<Viewpoint $cor position='[trimNum [expr {$xyzcen(x) + 1.4*$maxxyz}]] $xyzcen(y) $xyzcen(z)' orientation='1 1 1 2.0944' description='Side 2'></Viewpoint>"
+
+  #puts $x3domFile "<viewpoint position='$xyzcen(x) $xyzcen(y) [trimNum [expr {$xyzcen(z) + 1.4*$maxxyz}]]' description='Front'></viewpoint>"
+  #puts $x3domFile "<viewpoint position='[trimNum [expr {0. - ($xyzcen(x) + 1.4*$maxxyz)}]] $xyzcen(y) $xyzcen(z)' orientation='0 1 0 -1.5708' description='Left'></viewpoint>"
+  #puts $x3domFile "<viewpoint position='$xyzcen(x) $xyzcen(y) [trimNum [expr {0. - ($xyzcen(z) + 1.4*$maxxyz)}]]' orientation='0 1 0 3.1416' description='Back'></viewpoint>"
+  #puts $x3domFile "<viewpoint position='[trimNum [expr {$xyzcen(x) + 1.4*$maxxyz}]] $xyzcen(y) $xyzcen(z)' orientation='0 1 0 1.5708' description='Right'></viewpoint>"
+  #puts $x3domFile "<viewpoint position='$xyzcen(x) [trimNum [expr {$xyzcen(y) + 1.4*$maxxyz}]] $xyzcen(z)' orientation='-1 0 0 1.5708' description='Top'></viewpoint>"
+  #puts $x3domFile "<viewpoint position='$xyzcen(x) [trimNum [expr {0. - ($xyzcen(y) + 1.4*$maxxyz)}]] $xyzcen(z)' orientation='-1 0 0 -1.5708' description='Bottom'></viewpoint>"
+  
+  puts $x3domFile "<NavigationInfo type='\"EXAMINE\" \"ANY\"'></NavigationInfo>"
+
+# find average color
+  set ok 0
+  if {[string first "AP209" $stepAP] == -1} {
+    for {set i 0} {$i < 3} {incr i} {set avgX3domColor($i) [expr {$avgX3domColor($i)/$avgX3domColor(3)}]}
+    set acolor [expr {$avgX3domColor(0)+$avgX3domColor(1)+$avgX3domColor(2)}]
+    if {($acolor < 0.2 || $opt(gpmiColor) == 1) && $opt(gpmiColor) != 2} {set ok 1}
+
+    if {[info exists entCount(tessellated_annotation_occurrence)]} {lappend x3domMsg "Segments of the PMI annotations modeled with tessellated geometry are not displayed."}
+
+# AP209 color
   } else {
-    puts $x3domFile "<background groundAngle='1.5708' groundColor='.3 .3 .3 .3 .3 .3' skyAngle='1.5708' skyColor='.4 .4 .4 .4 .4 .4'></background>"
+    set ok 1
   }
-  puts $x3domFile "</scene></x3d>"
+
+# background color
+  if {$ok} {
+    puts $x3domFile "<Background skyColor='1. 1. 1.'></Background>"
+  } elseif {$acolor < 2.0} {
+    puts $x3domFile "<Background skyColor='.8 .8 .8'></Background>"
+  } else {
+    puts $x3domFile "<Background skyColor='.4 .4 .4'></Background>"
+  }
+
+  puts $x3domFile "\n</scene></x3d>\n</td></tr></table>\n<p>"
+  
+# extra messages
+  if {[info exists x3domMsg]} {
+    if {[llength $x3domMsg] > 0} {
+      puts $x3domFile "<UL>"
+      foreach item $x3domMsg {puts $x3domFile "<LI>$item"}
+      puts $x3domFile "</UL>"
+      unset x3domMsg
+    }
+  }
+  
+  puts $x3domFile "[clock format [clock seconds]]"
+
   puts $x3domFile "</body></html>"
   close $x3domFile
   update idletasks
+  
+  unset x3domMax
+  unset x3domMin
+  catch {unset avgX3domColor}
 }
 
 # -------------------------------------------------------------------------------------------------
 # open X3DOM file 
 proc openX3DOM {} {
-  global opt x3domFileName multiFile
+  global opt x3domFileName multiFile stepAP
   
-  if {$opt(VIZPMI) && $x3domFileName != "" && $multiFile == 0} {
-    outputMsg "\nOpening PMI Presentation Annotations in the default Web Browser" blue
+  if {($opt(VIZPMI) || $opt(VIZFEA)) && $x3domFileName != "" && $multiFile == 0} {
+    set str "PMI Presentation Annotations"
+    if {$stepAP == "AP209"} {set str "Analysis Model"}
+    outputMsg "Opening $str in the default Web Browser" blue
     if {[catch {
       exec {*}[auto_execok start] "" $x3domFileName
     } emsg]} {

@@ -4,7 +4,7 @@ proc genExcel {{numFile 0}} {
   global allEntity ap203all ap214all ap242all badAttributes buttons
   global cells cells1 col col1 comma count coverageLegend readPMI noPSA csvdirnam csvfile
   global developer dim entCategories entCategory entColorIndex entCount entityCount entsIgnored env errmsg
-  global excel excelVersion excelYear extXLS fcsv File fileEntity skipEntities skipPerm gpmiTypesPerFile idxColor inverses
+  global excel excelVersion excelYear extXLS fcsv feaElemTypes File fileEntity skipEntities skipPerm gpmiTypesPerFile idxColor inverses
   global lastXLS lenfilelist localName localNameList multiFile multiFileDir nistName nistVersion nprogEnts
   global opt p21e3 pmiCol pmiMaster programfiles recPracNames row rowmax sheetLast spmiEntity spmiSumName spmiSumRow spmiTypesPerFile startrow stepAP
   global thisEntType timeStamp tlast tolStandard totalEntity userEntityFile userEntityList userXLSFile
@@ -15,7 +15,7 @@ proc genExcel {{numFile 0}} {
   if {[info exists errmsg]} {set errmsg ""}
 
 # initialize for PMI OR AP209 X3DOM
-  if {$opt(VIZPMI) || $opt(VIZ209)} {
+  if {$opt(VIZPMI) || $opt(VIZFEA)} {
     set x3domFileOpen 1
     set x3domFileName ""
     set x3domColor ""
@@ -437,6 +437,7 @@ proc genExcel {{numFile 0}} {
 # get totals of each entity in file
   set fixlist {}
   if {![info exists objDesign]} {return}
+  catch {unset entCount}
 
   set entityTypeNames [$objDesign EntityTypeNames [expr 2]]
   foreach entType $entityTypeNames {
@@ -618,11 +619,13 @@ proc genExcel {{numFile 0}} {
 # -------------------------------------------------------------------------------------------------
 # generate worksheet for each entity
   if {$opt(XLSCSV) == "Excel"} {
-    outputMsg "\nGenerating STEP Entity worksheets" green
+    outputMsg "\nGenerating STEP Entity worksheets" blue
   } else {
-    outputMsg "\nGenerating STEP Entity CSV files" green
+    outputMsg "\nGenerating STEP Entity CSV files" blue
   }
   if {[catch {
+
+# initialize variables
     set inverseEnts {}
     set lastEnt ""
     set nprogEnts 0
@@ -638,7 +641,7 @@ proc genExcel {{numFile 0}} {
     set dim(prec,max) 0
     set dim(unit) ""
     #set dim(name) ""
-
+    
 # find camera models used in draughting model items andannotation_occurrence used in property_definition and datums
     if {$opt(PMIGRF)} {pmiGetCamerasAndProperties $objDesign}
 
@@ -753,8 +756,8 @@ proc genExcel {{numFile 0}} {
   }
 
 # -------------------------------------------------------------------------------------------------
-# set viewpoints and close PMI X3DOM file 
-  if {$opt(VIZPMI) && $x3domFileName != ""} {gpmiX3DOMViewpoints}
+# set viewpoints and close graphic PMI or FEM X3DOM file 
+  if {($opt(VIZPMI) || $opt(VIZFEA)) && $x3domFileName != ""} {x3domViewpoints}
 
 # -------------------------------------------------------------------------------------------------
 # quit IFCsvr, but not sure how to do it properly
@@ -836,7 +839,7 @@ proc genExcel {{numFile 0}} {
   set cc [clock clicks -milliseconds]
   set proctime [expr {($cc - $lasttime)/1000}]
   if {$proctime <= 60} {set proctime [expr {(($cc - $lasttime)/100)/10.}]}
-  outputMsg "Processing time: $proctime seconds" green
+  outputMsg "Processing time: $proctime seconds" blue
 
 # -------------------------------------------------------------------------------------------------
 # save spreadsheet
@@ -922,7 +925,7 @@ proc genExcel {{numFile 0}} {
   }
 
 # -------------------------------------------------------------------------------------------------
-# open X3DOM file of graphical PMI
+# open X3DOM file of graphical PMI or analysis model
   openX3DOM
 
 # -------------------------------------------------------------------------------------------------
@@ -958,9 +961,9 @@ proc addHeaderWorksheet {objDesign numFile fname} {
    
   if {[catch {
     if {$opt(XLSCSV) == "Excel"} {
-      outputMsg "Generating Header worksheet" green
+      outputMsg "Generating Header worksheet" blue
     } else {
-      outputMsg "Generating Header CSV file" green
+      outputMsg "Generating Header CSV file" blue
     }
   
 # all app names that might appear in header section
@@ -1207,7 +1210,7 @@ proc sumAddWorksheet {} {
   global x3domFileName spmiEntity entCount gpmiEnts spmiEnts nistVersion
   global propDefRow stepAP
 
-  outputMsg "\nGenerating Summary worksheet" green
+  outputMsg "\nGenerating Summary worksheet" blue
   set sum "Summary"
   #getTiming "done processing entities"
 
@@ -1271,7 +1274,7 @@ proc sumAddWorksheet {} {
             $cells($sum) Item $sumRow 3 "Graphic PMI"
             set x3domLink 0
             set anchor [$worksheet($sum) Range [cellRange $sumRow 3]]
-            $sumLinks Add $anchor [join $x3domFileName] [join ""] [join "Link to Graphics file"]
+            $sumLinks Add $anchor [join $x3domFileName] [join ""] [join "Link to Graphic PMI"]
           }
         }
 
@@ -1292,10 +1295,10 @@ proc sumAddWorksheet {} {
         if {$okao} {
           $cells($sum) Item $sumRow 1 "$entType_multiline  \[PMI Presentation\]"
           if {$opt(VIZPMI) && $x3domFileName != "" && $x3domLink} {
-            $cells($sum) Item $sumRow 3 "Graphics"
+            $cells($sum) Item $sumRow 3 "Graphic PMI"
             set x3domLink 0
             set anchor [$worksheet($sum) Range [cellRange $sumRow 3]]
-            $sumLinks Add $anchor [join $x3domFileName] [join ""] [join "Link to Graphics file"]
+            $sumLinks Add $anchor [join $x3domFileName] [join ""] [join "Link to Graphic PMI"]
           }
         }
         set range [$worksheet($sum) Range $sumRow:$sumRow]
@@ -1558,7 +1561,7 @@ proc formatWorksheets {sheetSort sumRow inverseEnts} {
   global buttons worksheet excel cells opt count entCount col row rowmax xlFileName thisEntType schemaLinks stepAP syntaxErr
   global gpmiEnts spmiEnts nprogEnts excelVersion
   
-  outputMsg "Formatting Worksheets" green
+  outputMsg "Formatting Worksheets" blue
 
   if {[info exists buttons]} {$buttons(pgb) configure -maximum [llength $sheetSort]}
   set nprogEnts 0
