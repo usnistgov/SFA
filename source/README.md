@@ -4,20 +4,20 @@
 
 - sfa.tcl - main program
 - sfa-cl.tcl - main program for command-line version
-- sfa-gui.tcl - generate user interface
 - sfa-data.tcl - set lots of variables
-- sfa-gen.tcl - generate a spreadsheet
-- sfa-ent.tcl - write a STEP entity to a worksheet or CSV file
+- sfa-dimtol.tcl - process dimensional tolerances
+- sfa-ent.tcl - write STEP entity to worksheet or CSV file
 - sfa-fea.tcl - visualize AP209 files
-- sfa-step.tcl - utility procedures
-- sfa-proc.tcl - more utility procedures
+- sfa-gen.tcl - generate a spreadsheet
+- sfa-geotol.tcl- process geometric tolerances
+- sfa-grafpmi.tcl - process graphical PMI
+- sfa-gui.tcl - generate user interface
+- sfa-indent.tcl - indents STEP file
 - sfa-inv.tcl - process inverse relationships
 - sfa-multi.tcl - process multiple STEP files
-- sfa-indent.tcl - indents a STEP file
-- sfa-geotol.tcl- generates semantic PMI (representation) report
-- sfa-dimtol.tcl - process dimensional tolerances
-- sfa-grafpmi.tcl - generates graphical PMI (presentation) report
-- sfa-valprop.tcl - generates validation properties report
+- sfa-proc.tcl - more utility procedures
+- sfa-step.tcl - utility procedures
+- sfa-valprop.tcl - process validation properties
 
 - tclIndex - required Tcl code that lists all procedures in each Tcl file
 
