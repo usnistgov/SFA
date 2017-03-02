@@ -8,6 +8,7 @@
 - sfa-data.tcl - set lots of variables
 - sfa-gen.tcl - generate a spreadsheet
 - sfa-ent.tcl - write a STEP entity to a worksheet or CSV file
+- sfa-fea.tcl - visualize AP209 files
 - sfa-step.tcl - utility procedures
 - sfa-proc.tcl - more utility procedures
 - sfa-inv.tcl - process inverse relationships

@@ -2,6 +2,7 @@ sfa.tcl
 sfa-data.tcl
 sfa-dimtol.tcl
 sfa-ent.tcl
+sfa-fea.tcl
 sfa-gen.tcl
 sfa-geotol.tcl
 sfa-grafpmi.tcl
