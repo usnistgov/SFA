@@ -481,7 +481,7 @@ proc genExcel {{numFile 0}} {
       }
       
 # new AP242 entities in a ROSE file, but not yet in ap242all or any entity category, for testing new schemas      
-      if {$stepAP == "AP242" && [lsearch $ap242all $entType] == -1} {set ok 1}
+      #if {$stepAP == "AP242" && [lsearch $ap242all $entType] == -1} {set ok 1}
 
 # handle '_and_' due to a complex entity, entType_1 is the first part before the '_and_'
       set entType_1 $entType
@@ -1045,9 +1045,9 @@ proc addHeaderWorksheet {objDesign numFile fname} {
         if {[string first "IFC" $fileSchema] == 0} {
           errorMsg "Use the IFC File Analyzer with IFC files."
           after 1000
-          openURL http://go.usa.gov/xK9gh
+          openURL https://go.usa.gov/xK9gh
         } elseif {$objAttr == "STRUCTURAL_FRAME_SCHEMA"} {
-          errorMsg "This is a CIS/2 file that can be visualized with SteelVis.  http://go.usa.gov/s8fm"
+          errorMsg "This is a CIS/2 file that can be visualized with SteelVis.  https://go.usa.gov/s8fm"
         }
 
 # other File attributes
@@ -1340,7 +1340,7 @@ proc sumAddWorksheet {} {
     
 # name and link to program website that generated the spreadsheet
     set str "NIST "
-    set url "http://go.usa.gov/yccx"
+    set url "https://go.usa.gov/yccx"
     if {!$nistVersion} {
       set str ""
       set url "https://github.com/usnistgov/SFA"

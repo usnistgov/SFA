@@ -2,7 +2,7 @@
 # version number
 
 proc getVersion {} {
-  set app_version 2.0
+  set app_version 2.01
   return $app_version
 }
 
@@ -1220,11 +1220,11 @@ proc getSchemaFromFile {fname {msg 0}} {
 
 # check for CIS/2 or IFC files
         if {[string first "STRUCTURAL_FRAME_SCHEMA" $fsline] != -1} {
-          errorMsg "Use SteelVis to visualize the CIS/2 file.  http://go.usa.gov/s8fm"
+          errorMsg "Use SteelVis to visualize the CIS/2 file.  https://go.usa.gov/s8fm"
         } elseif {[string first "IFC" $fsline] != -1} {
           errorMsg "Use the IFC File Analyzer with IFC files."
           after 1000
-          openURL http://go.usa.gov/xK9gh
+          openURL https://go.usa.gov/xK9gh
         }
       }
       if {$p21e3} {break}

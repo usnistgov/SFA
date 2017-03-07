@@ -302,7 +302,7 @@ proc openFile {{openName ""}} {
       set fext [string tolower [file extension $localName]]
       if {[string first ".ifc" $fext] != -1} {
         #errorMsg "Use the IFC File Analyzer with IFC files."
-        #openURL http://go.usa.gov/xK9gh
+        #openURL https://go.usa.gov/xK9gh
       } elseif {$fext == ".stpnc"} {
         errorMsg "Rename the file extension to '.stp' to process STEP-NC files."
       }
@@ -403,7 +403,7 @@ proc unzipFile {} {
 proc saveState {} {
   global optionsFile fileDir openFileList opt userWriteDir dispCmd dispCmds
   global lastXLS lastXLS1 userXLSFile fileDir1 mydocs sfaVersion upgrade
-  global excelYear userEntityFile buttons statusFont mingeo
+  global excelYear userEntityFile buttons statusFont
 
   if {![info exists buttons]} {return}
   
@@ -458,7 +458,6 @@ proc saveState {} {
     puts $fileOptions "set winpos \"$winpos\""
     set wingeo [string range $wg 0 [expr {[string first "+" $wg]-1}]]
     puts $fileOptions "set wingeo \"$wingeo\""
-    if {[info exists mingeo]} {puts $fileOptions "set mingeo \"$mingeo\""}
 
     foreach idx [lsort [array names opt]] {
       if {([string first "PR_" $idx] == -1 || [string first "PR_STEP" $idx] == 0 || [string first "PR_USER" $idx] == 0) && [string first "DEBUG" $idx] == -1} {
@@ -1248,6 +1247,7 @@ proc colorBadCells {ent} {
   set rmax [expr {$count($ent)+3}]
   
   if {$excelVersion >= 12} {
+    set syntaxErr($ent) [lsort [lrmdups $syntaxErr($ent)]]
     for {set n 0} {$n < [llength $syntaxErr($ent)]} {incr n} {
       if {[catch {
         set err [lindex $syntaxErr($ent) $n]
@@ -1436,7 +1436,6 @@ proc copyRoseFiles {} {
   global programfiles wdir mytemp developer env ifcsvrdir nistVersion
   
   if {[file exists $ifcsvrdir]} {
-    #set developer 0
 
 # rose files in SFA distribution
     if {[llength [glob -nocomplain -directory [file join $wdir schemas] *.rose]] > 0} {
@@ -1455,7 +1454,7 @@ proc copyRoseFiles {} {
 # developer schemas
         set devfile 0
         if {[string first "am_ap242" $fn] != -1} {set devfile 1}
-        if {!$developer && $devfile} {
+        if {$developer == 0 && $devfile} {
           set okcopy 0
           if {[file exists $f2]} {catch {file delete -force $f2}}
         }
@@ -1545,13 +1544,13 @@ proc installIFCsvr {} {
       outputMsg " "
       if {!$nistVersion} {
         errorMsg "To install the IFCsvr Toolkit you must install the NIST version of the STEP File Analyzer."
-        outputMsg " 1 - Go to http://go.usa.gov/yccx"
+        outputMsg " 1 - Go to https://go.usa.gov/yccx"
         outputMsg " 2 - Click on Download STEP File Analyzer"
         outputMsg " 3 - Fill out the form, submit it, and follow the instructions"
         outputMsg " 4 - IFCsvr Toolkit will be installed when the NIST STEP File Analyzer is run"
         outputMsg " 5 - Generate a spreadsheet for at least one STEP file"
         after 1000
-        openURL http://go.usa.gov/yccx
+        openURL https://go.usa.gov/yccx
       } else {
         errorMsg "To manually install IFCsvr:"
         outputMsg " 1 - Join the IFCsvr ActiveX Component Group (you will need a Yahoo account)"

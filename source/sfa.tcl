@@ -189,6 +189,7 @@ if {[file exists $optionsFile]} {
                 PR_STEP_GEO PR_STEP_REP PR_STEP_ASPECT ROWLIM SORT GENX3DOM VIZ209} {
     catch {unset opt($item)}
   }
+  catch {unset mingeo}
 }
 
 # adjust some variables
@@ -289,19 +290,10 @@ guiButtons
 .tnb select .tnb.options
 
 #-------------------------------------------------------------------------------
-# resize tabbed notebook in 8.5 because iwidgets messagebox is too big
-update idletasks
-catch {
-  set maxx [expr {max([winfo reqwidth $fopt],[winfo reqwidth $fxls])}]
-  $nb configure -width $maxx
-  set maxy [expr {max([winfo reqheight $fopt],[winfo reqheight $fxls])}]
-  $nb configure -height [expr {$maxy*1.5}]
-}
-
-#-------------------------------------------------------------------------------
 # first time user
 set copyrose 0
 set ask 0
+
 if {$opt(FIRSTTIME)} {
   whatsNew
   if {$nistVersion} {showDisclaimer}
@@ -332,13 +324,6 @@ if {$opt(FIRSTTIME)} {
   saveState
   set copyrose 1
   setShortcuts
-}
-
-# look for rose files in STEP Tools
-if {[info exists env(ROSE)]} {
-  set n [string range $env(ROSE) end-2 end-1]
-  set stdir [file join $programfiles "STEP Tools" "ST-Runtime $n" schemas]
-  if {[file exists $stdir]} {set copyrose 1}
 }
 
 if {$developer} {set copyrose 1}
@@ -451,21 +436,7 @@ if {$opt(writeDirType) == 1} {
   .tnb select .tnb.status
 }
 
-# set window minimum size
-update idletasks
-if {![info exists mingeo]} {
-  set mingeo "[winfo width .]x[winfo height .]"
-  wm minsize . [winfo width .] [winfo height .]
-  saveState
-} else {
-  set wg [split $mingeo "x"]
-  wm minsize . [lindex $wg 0] [lindex $wg 1]
-}
-
 # DEBUG
-
-#outputMsg [info script]
-#outputMsg [file system [info script]]
 
 #set allents {}
 #foreach item [array names entCategory] {set allents [concat $allents $entCategory($item)]}

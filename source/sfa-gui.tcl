@@ -2,7 +2,7 @@
 # start window, bind keys
 
 proc guiStartWindow {} {
-  global winpos wingeo localName localNameList lastXLS lastXLS1 fout mingeo
+  global winpos wingeo localName localNameList lastXLS lastXLS1 fout
   
   wm title . "STEP File Analyzer  (v[getVersion])"
   wm protocol . WM_DELETE_WINDOW {exit}
@@ -36,35 +36,11 @@ proc guiStartWindow {} {
       if {$phgt < 0} {set phgt 200}
     }
     set winpos "+$pwid+$phgt"
-
-# check that the saved window geometry keeps the entire window on the screen and isn't smaller than the minimum
-    if {[expr {$pwid+$gwid}] > [winfo screenwidth  .]} {
-      set gwid [expr {[winfo screenwidth  .]-$pwid-40}]
-      set mwid [lindex [split $mingeo "x"] 0]
-      if {$gwid < $mwid} {set gwid $mwid}
-    }
-    if {[expr {$phgt+$ghgt}] > [winfo screenheight  .]} {
-      set ghgt [expr {[winfo screenheight  .]-$phgt-40}]
-      set mhgt [lindex [split $mingeo "x"] 1]
-      if {$ghgt < $mhgt} {set ghgt $mhgt}
-    }
-    set wingeo "$gwid\x$ghgt"
   }
 
 # set the window position and dimensions
   if {[info exists winpos]} {catch {wm geometry . $winpos}}
   if {[info exists wingeo]} {catch {wm geometry . $wingeo}}
-
-# fonts
-  #set fontfam {MS San Serif}
-  #set normalfont [list $fontfam]
-  #set boldfont   [list $fontfam 0 bold]
-  #
-  #catch {option add *Button.font      $normalfont}
-  #catch {option add *Checkbutton.font $normalfont}
-  #catch {option add *Entry.font       $normalfont}
-  #catch {option add *Label.font       $normalfont}
-  #catch {option add *Radiobutton.font $normalfont}
 
 # yellow background color
   set bgcolor  "#ffffbb"
@@ -356,7 +332,7 @@ proc guiProcessAndReports {} {
       set ttmsg "[string trim [lindex $item 0]] entities ([llength $entCategory($tt)])"
       if {$tt == "PR_STEP_AP242"} {
         append ttmsg "\n\nThese entities are new in AP242 and not found in AP203 or AP214.\nOther new AP242 entities are also found in the Tolerance, Shape Aspect,\nComposites, and Kinematics categories."
-        append ttmsg "\n\nSee Websites > STEP AP242 Project and AP242 Schema"
+        append ttmsg "\n\nSee Websites > STEP AP242 Project and EXPRESS Schemas"
       }
       catch {tooltip::tooltip $buttons($idx) $ttmsg}
     }
@@ -402,8 +378,9 @@ proc guiProcessAndReports {} {
   
 #-------------------------------------------------------------------------------
 # report
-  set foptd [ttk::labelframe $fopt.1 -text " Report "]
-  
+  set foptrv [frame $fopt.rv -bd 0]
+
+  set foptd [ttk::labelframe $foptrv.1 -text " Report "]
   set foptd1 [frame $foptd.1 -bd 0]
   foreach item {{" PMI Representation (Semantic PMI)" opt(PMISEM)}} {
   regsub -all {[\(\)]} [lindex $item 1] "" idx
@@ -430,27 +407,6 @@ proc guiProcessAndReports {} {
   }
   pack $foptd2 -side top -anchor w -pady 0 -padx 0 -fill y
   
-  set foptd3 [frame $foptd.3 -bd 0]
-  foreach item {{" Visualize PMI Presentation" opt(VIZPMI)}} {
-    regsub -all {[\(\)]} [lindex $item 1] "" idx
-    set buttons($idx) [ttk::checkbutton $foptd3.$cb -text [lindex $item 0] \
-      -variable [lindex $item 1] -command {
-      checkValues
-    }]
-    pack $buttons($idx) -side left -anchor w -padx 5 -pady 0 -ipady 0
-    incr cb
-  }
-  set buttons(linecolor) [label $foptd3.l3 -text "Color:"]
-  pack $foptd3.l3 -side left -anchor n -padx 0 -pady 0 -ipady 0
-  set gpmiColorVal {{"Random" 2} {"From file" 0} {"Black" 1}}
-  foreach item $gpmiColorVal {
-    set bn "gpmiColor[lindex $item 1]"            
-    set buttons($bn) [ttk::radiobutton $foptd3.$cb -variable opt(gpmiColor) -text [lindex $item 0] -value [lindex $item 1]]
-    pack $buttons($bn) -side left -anchor n -padx 2 -pady 0 -ipady 0
-    incr cb
-  }
-  pack $foptd3 -side top -anchor w -pady 0 -padx 22 -fill y
-  
   set foptd4 [frame $foptd.4 -bd 0]
   foreach item {{" Validation Properties" opt(VALPROP)}} {
     regsub -all {[\(\)]} [lindex $item 1] "" idx
@@ -464,25 +420,56 @@ proc guiProcessAndReports {} {
   }
   pack $foptd4 -side top -anchor w -pady 0 -padx 0 -fill y
   
-  set foptd5 [frame $foptd.5 -bd 0]
-  foreach item {{" Visualize AP209 Analysis Model" opt(VIZFEA)}} {
+  pack $foptd -side left -anchor w -pady {5 2} -padx 10 -fill both -expand true
+  catch {
+    tooltip::tooltip $buttons(optPMISEM) "PMI Representation includes all information necessary to represent GD&T without any\ngraphical presentation elements.  PMI Representation is associated with CAD model\ngeometry and is computer-interpretable to facilitate automated consumption by\ndownstream applications for manufacturing, measurement, inspection, and other processes.\n\nPMI Representation information is defined in a CAx-IF Recommended Practices\nand is reported for Dimensional Tolerances, Geometric Tolerances, and Datum Features.\nThe results are reported on various entities as indicated by PMI Representation on the\nSummary worksheet.\n\nPMI Representation is found mainly in AP242 files.\n\nSee Help > PMI Representation"
+    tooltip::tooltip $buttons(optPMIGRF) "PMI Presentation (also known as graphical PMI) consists of geometric elements such as\nlines and arcs preserving the exact appearance (color, shape, positioning) of the GD&T\nannotations.  PMI Presentation is not intended to be computer-interpretable and does not\ncarry any representation information, although it can be linked to its corresponding\nPMI Representation.\n\nPMI Presentation annotations are defined in CAx-IF Recommended Practices.\nThe PMI Presentation information is reported in columns highlighted in yellow and green\non the Annotation_*_occurrence worksheets.\n\nAssociated presentation style, saved views, and PMI validation properties are also reported.\nA PMI coverage analysis worksheet is also generated.\nAn X3DOM file (WebGL) of the PMI Presentation can also be generated.\n\nSee Help > PMI Presentation"
+    tooltip::tooltip $buttons(optVALPROP) "Validation properties for geometry, assemblies, PMI, annotations,\nattributes, and tessellations are defined in CAx-IF Recommended Practices.\nThe property values are reported in columns highlighted in yellow and green\non the Property_definition worksheet.\n\nOther properties and User-Defined Attributes are also reported.\n\nSee Help > Validation Properties"
+  }
+  
+# visualize
+  set foptv [ttk::labelframe $foptrv.9 -text " Visualize "]
+  set foptv3 [frame $foptv.3 -bd 0]
+  foreach item {{" Graphical PMI" opt(VIZPMI)}} {
     regsub -all {[\(\)]} [lindex $item 1] "" idx
-    set buttons($idx) [ttk::checkbutton $foptd5.$cb -text [lindex $item 0] \
+    set buttons($idx) [ttk::checkbutton $foptv3.$cb -text [lindex $item 0] \
+      -variable [lindex $item 1] -command {
+      checkValues
+    }]
+    pack $buttons($idx) -side left -anchor w -padx 5 -pady 0 -ipady 0
+    incr cb
+  }
+  pack $foptv3 -side top -anchor w -pady 0 -padx 0 -fill y  
+
+  set foptv4 [frame $foptv.4 -bd 0]
+  set buttons(linecolor) [label $foptv4.l3 -text "Color:"]
+  pack $foptv4.l3 -side left -anchor w -padx 0 -pady 0 -ipady 0
+  set gpmiColorVal {{"Random" 2} {"From file" 0} {"Black" 1}}
+  foreach item $gpmiColorVal {
+    set bn "gpmiColor[lindex $item 1]"            
+    set buttons($bn) [ttk::radiobutton $foptv4.$cb -variable opt(gpmiColor) -text [lindex $item 0] -value [lindex $item 1]]
+    pack $buttons($bn) -side left -anchor w -padx 2 -pady 0 -ipady 0
+    incr cb
+  }
+  pack $foptv4 -side top -anchor w -pady 0 -padx 25 -fill y  
+  
+  set foptv5 [frame $foptv.5 -bd 0]
+  foreach item {{" AP209 Analysis Model" opt(VIZFEA)}} {
+    regsub -all {[\(\)]} [lindex $item 1] "" idx
+    set buttons($idx) [ttk::checkbutton $foptv5.$cb -text [lindex $item 0] \
       -variable [lindex $item 1] -command {
         checkValues
     }]
     pack $buttons($idx) -side left -anchor w -padx 5 -pady 0 -ipady 0
     incr cb
   }
-  pack $foptd5 -side top -anchor w -pady 0 -padx 0 -fill y
-  
-  pack $foptd -side top -anchor w -pady {5 2} -padx 10 -fill both
+  pack $foptv5 -side top -anchor w -pady 0 -padx 0 -fill y
+
+  pack $foptv -side left -anchor w -pady {5 2} -padx 10 -fill both -expand true
+  pack $foptrv -side top -anchor w -pady 0 -fill x
   catch {
-    tooltip::tooltip $buttons(optPMISEM) "PMI Representation includes all information necessary to represent GD&T without any\ngraphical presentation elements.  PMI Representation is associated with CAD model\ngeometry and is computer-interpretable to facilitate automated consumption by\ndownstream applications for manufacturing, measurement, inspection, and other processes.\n\nPMI Representation information is defined in a CAx-IF Recommended Practices\nand is reported for Dimensional Tolerances, Geometric Tolerances, and Datum Features.\nThe results are reported on various entities as indicated by PMI Representation on the\nSummary worksheet.\n\nPMI Representation is found mainly in AP242 files.\n\nSee Help > PMI Representation"
-    tooltip::tooltip $buttons(optPMIGRF) "PMI Presentation (also known as graphical PMI) consists of geometric elements such as\nlines and arcs preserving the exact appearance (color, shape, positioning) of the GD&T\nannotations.  PMI Presentation is not intended to be computer-interpretable and does not\ncarry any representation information, although it can be linked to its corresponding\nPMI Representation.\n\nPMI Presentation annotations are defined in CAx-IF Recommended Practices.\nThe PMI Presentation information is reported in columns highlighted in yellow and green\non the Annotation_*_occurrence worksheets.\n\nAssociated presentation style, saved views, and PMI validation properties are also reported.\nA PMI coverage analysis worksheet is also generated.\nAn X3DOM file (WebGL) of the PMI Presentation can also be generated.\n\nSee Help > PMI Presentation"
-    tooltip::tooltip $buttons(optVIZPMI) "PMI Presentation annotations can be visualized with an\nX3DOM (WebGL) file that can be opened in most web browsers.\nThe color of the annotations can be modified.\nTessellated annotations are not supported.\n\nSee Help > PMI Presentation"
-    tooltip::tooltip $buttons(optVALPROP) "Validation properties for geometry, assemblies, PMI, annotations,\nattributes, and tessellations are defined in CAx-IF Recommended Practices.\nThe property values are reported in columns highlighted in yellow and green\non the Property_definition worksheet.\n\nOther properties and User-Defined Attributes are also reported.\n\nSee Help > Validation Properties"
-    tooltip::tooltip $buttons(optVIZFEA) "See Help > Analysis Model"
+    tooltip::tooltip $buttons(optVIZPMI) "PMI Presentation annotations can be visualized with an\nX3DOM (WebGL) file that can be opened in most web browsers.\nThe color of the annotations can be modified.\nTessellated annotations are not supported.\n\nSee Help > PMI Presentation\nSee Help > Graphical PMI Viewer"
+    tooltip::tooltip $buttons(optVIZFEA) "See Help > Analysis Model\nSee Help > AP209 Viewer"
   }
 }
 
@@ -555,34 +542,23 @@ proc guiInverse {} {
   incr cb
 
   pack $foptc -side top -anchor w -pady {5 2} -padx 10 -fill both
-  set ttmsg "Inverse Relationships\n"
+  set ttmsg "Inverse Relationships and Backwards References are reported for some attributes for the following entities.\nInverse (or Used In) values are shown in additional columns highlighted in light blue and purple.\n\n"
   set lent ""
-  set litem ""
+  set ttlen 0
   if {[info exists inverses]} {
     foreach item [lsort $inverses] {
-      set ok 1
-      set ilist [split $item " "]
-      set ent [lindex $ilist 0]
-      if {[string first "geometric_tolerance_with" $item] != -1} {set ok 0}
-      if {[string first "_and_" $item] != -1} {set ok 0}
-      if {[string first "related" $item] < [string first "relating" $item]} {set ok 0}
-      if {[string first "rep_2" $item] < [string first "rep_1" $item]} {set ok 0}
-      if {$ok} {
-        set ilist [split $item " "]
-        set ent [lindex $ilist 0]
-        if {$ent != $lent} {
-          if {$litem != ""} {append ttmsg \n$litem}
-          regsub " " $item "  (" item
-          append item ")"
-          set litem $item
-          set lent [lindex $ent 0]
-        } else {
-          append litem "  ([lindex $ilist 1] [lindex $ilist 2])"
+    set ent [lindex [split $item " "] 0]
+      if {$ent != $lent} {
+        set str "[formatComplexEnt $ent]   "
+        append ttmsg $str
+        incr ttlen [string length $str]
+        if {$ttlen > 120} {
+          if {[string index $ttmsg end] != "\n"} {append ttmsg "\n"}
+          set ttlen 0
         }
       }
+      set lent $ent
     }
-    append ttmsg \n$litem
-    append ttmsg "\n\nInverse Relationships are shown on the entity worksheets.  The Inverse values are\nshown in additional columns of the worksheets that are highlighted in light blue and purple."
     catch {tooltip::tooltip $foptc $ttmsg}
   }
 }
@@ -942,7 +918,6 @@ outputMsg "\nSupported STEP APs ------------------------------------------------
 outputMsg "The following STEP Application Protocols (AP) are supported by the STEP File Analyzer."
 outputMsg "The name of the AP is on the FILE_SCHEMA entity in the HEADER section of a STEP file.\n"
 
-set other 0
 set nschema 0
 catch {file delete -force [file join $ifcsvrdir ap214e3_2010.rose]}
 
@@ -951,10 +926,10 @@ foreach match [lsort [glob -nocomplain -directory $ifcsvrdir *.rose]] {
   set schema [file rootname [file tail $match]]
   if {[string first "header_section" $schema] == -1 && [string first "keystone" $schema] == -1 && \
       [string range $schema end-2 end] != "mim"} {
-    if {$schema == "automotive_design"} {
+    if {[string first "automotive_design" $schema] == 0} {
       lappend schemas "AP214 - $schema"
 
-    } elseif {[string first "ap203" $schema] == 0} {
+    } elseif {[string first "ap203" $schema] == 0 || [string first "configuration_control_3d_design_ed2" $schema] == 0} {
       lappend schemas "AP203e2 - $schema"
     } elseif {[string first "config_control_design" $schema] == 0} {
       lappend schemas "AP203e1 - $schema"
@@ -979,7 +954,6 @@ foreach match [lsort [glob -nocomplain -directory $ifcsvrdir *.rose]] {
     } else { 
       lappend schemas "$schema"
     }
-    if {[string first "ship" $schema] != -1} {set other 1}
     incr nschema
   }
 }
@@ -1258,11 +1232,13 @@ See Websites > STEP AP209 Project"
   }
 
   $Help add separator
-  $Help add command -label "Sample STEP Files (zip)"                   -command {openURL https://s3.amazonaws.com/nist-el/mfg_digitalthread/NIST_CTC_STEP_PMI.zip}
-  $Help add command -label "Spreadsheet - PMI Representation"          -command {openURL https://www.nist.gov/file/331631}
-  $Help add command -label "Spreadsheet - PMI Presentation, ValProps"  -command {openURL https://www.nist.gov/file/331656}
-  $Help add command -label "Spreadsheet - Coverage Analysis"           -command {openURL https://www.nist.gov/file/317951}
-  #$Help add command -label "X3DOM (WebGL) file - PMI Presentation"     -command {openURL http://www.nist.gov/el/msid/infotest/upload/STEP-File-Analyzer_x3dom.html}
+  $Help add command -label "Sample STEP Files (zip)"                  -command {openURL https://s3.amazonaws.com/nist-el/mfg_digitalthread/NIST_CTC_STEP_PMI.zip}
+  $Help add command -label "Spreadsheet - PMI Representation"         -command {openURL https://www.nist.gov/file/331631}
+  $Help add command -label "Spreadsheet - PMI Presentation, ValProps" -command {openURL https://www.nist.gov/file/331656}
+  $Help add command -label "Spreadsheet - Coverage Analysis"          -command {openURL https://www.nist.gov/file/317951}
+  $Help add separator
+  $Help add command -label "Graphical PMI Viewer" -command {openURL https://pages.nist.gov/CAD-PMI-Testing/graphical-pmi-viewer.html}
+  $Help add command -label "AP209 Viewer"         -command {openURL https://pages.nist.gov/CAD-PMI-Testing/ap209-viewer.html}
 
   $Help add separator
 
@@ -1354,11 +1330,11 @@ might appear that say 'Unable to alloc xxx bytes'.  See the Help > Crash Recover
 proc guiWebsitesMenu {} {
   global Websites
 
-  $Websites add command -label "STEP File Analyzer"     -command {openURL http://go.usa.gov/yccx}
+  $Websites add command -label "STEP File Analyzer"     -command {openURL https://go.usa.gov/yccx}
   $Websites add command -label "Source code on GitHub"  -command {openURL https://github.com/usnistgov/SFA}
   $Websites add command -label "Journal of CAD Article" -command {openURL https://www.nist.gov/publications/conformance-checking-pmi-representation-cad-model-step-data-exchange-files}
-  $Websites add command -label "MBE PMI Validation Testing (free CAD models and STEP files)" -command {openURL http://go.usa.gov/mGVm}
-  $Websites add command -label "Enabling the Digital Thread for Smart Manufacturing"         -command {openURL http://go.usa.gov/6nPh}
+  $Websites add command -label "MBE PMI Validation Testing (free CAD models and STEP files)" -command {openURL https://go.usa.gov/mGVm}
+  $Websites add command -label "Enabling the Digital Thread for Smart Manufacturing"         -command {openURL https://go.usa.gov/6nPh}
   
   $Websites add separator
   $Websites add command -label "CAx Implementor Forum (CAx-IF)" -command {openURL https://www.cax-if.org/}
@@ -1468,7 +1444,6 @@ proc processToolTip {ttmsg tt {ttlim 120}} {
     if {$ttlen > $ttlim} {
       if {[string index $ttmsg end] != "\n"} {append ttmsg "\n"}
       set ttlen 0
-      set ok 0
     }
     set lchar [string range $item 0 $r1]
   }
