@@ -58,6 +58,7 @@ set opt(XL_SORT) 0
 set opt(writeDirType) 0
 set opt(XL_KEEPOPEN) 0
 set opt(XLSCSV) Excel
+set opt(feaNodeType) 1
 
 set coverageSTEP 0
 set dispCmd ""

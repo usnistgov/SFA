@@ -410,7 +410,7 @@ proc invSetCheck {entType} {
 # -------------------------------------------------------------------------------
 # set inverse relationships
 proc initDataInverses {} {
-  global tolNames inverses
+  global tolNames inverses developer
   
 # when adding used_in or inverse (related, relating) relationships also add entities to check in invSetCheck above  
   set inverses {}
@@ -659,12 +659,14 @@ proc initDataInverses {} {
   lappend inverses [list machining_toolpath_sequence_relationship related_method relating_method]
 
 # new AM entities
-  lappend inverses [list additive_manufacturing_build_plate_relationship relating_product_definition related_product_definition]
-  lappend inverses [list additive_manufacturing_build_plate_relationship related_product_definition relating_product_definition]
-  lappend inverses [list additive_manufacturing_setup_support_relationship relating_product_definition related_product_definition]
-  lappend inverses [list additive_manufacturing_setup_support_relationship related_product_definition relating_product_definition]
-  lappend inverses [list additive_manufacturing_setup_workpiece_relationship relating_product_definition related_product_definition]
-  lappend inverses [list additive_manufacturing_setup_workpiece_relationship related_product_definition relating_product_definition]
+  if {$developer} {
+    lappend inverses [list additive_manufacturing_build_plate_relationship relating_product_definition related_product_definition]
+    lappend inverses [list additive_manufacturing_build_plate_relationship related_product_definition relating_product_definition]
+    lappend inverses [list additive_manufacturing_setup_support_relationship relating_product_definition related_product_definition]
+    lappend inverses [list additive_manufacturing_setup_support_relationship related_product_definition relating_product_definition]
+    lappend inverses [list additive_manufacturing_setup_workpiece_relationship relating_product_definition related_product_definition]
+    lappend inverses [list additive_manufacturing_setup_workpiece_relationship related_product_definition relating_product_definition]
+  }
 }
 
 # -------------------------------------------------------------------------------

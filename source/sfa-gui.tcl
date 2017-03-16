@@ -423,7 +423,7 @@ proc guiProcessAndReports {} {
   pack $foptd -side left -anchor w -pady {5 2} -padx 10 -fill both -expand true
   catch {
     tooltip::tooltip $buttons(optPMISEM) "PMI Representation includes all information necessary to represent GD&T without any\ngraphical presentation elements.  PMI Representation is associated with CAD model\ngeometry and is computer-interpretable to facilitate automated consumption by\ndownstream applications for manufacturing, measurement, inspection, and other processes.\n\nPMI Representation information is defined in a CAx-IF Recommended Practices\nand is reported for Dimensional Tolerances, Geometric Tolerances, and Datum Features.\nThe results are reported on various entities as indicated by PMI Representation on the\nSummary worksheet.\n\nPMI Representation is found mainly in AP242 files.\n\nSee Help > PMI Representation"
-    tooltip::tooltip $buttons(optPMIGRF) "PMI Presentation (also known as graphical PMI) consists of geometric elements such as\nlines and arcs preserving the exact appearance (color, shape, positioning) of the GD&T\nannotations.  PMI Presentation is not intended to be computer-interpretable and does not\ncarry any representation information, although it can be linked to its corresponding\nPMI Representation.\n\nPMI Presentation annotations are defined in CAx-IF Recommended Practices.\nThe PMI Presentation information is reported in columns highlighted in yellow and green\non the Annotation_*_occurrence worksheets.\n\nAssociated presentation style, saved views, and PMI validation properties are also reported.\nA PMI coverage analysis worksheet is also generated.\nAn X3DOM file (WebGL) of the PMI Presentation can also be generated.\n\nSee Help > PMI Presentation"
+    tooltip::tooltip $buttons(optPMIGRF) "PMI Presentation (also known as graphical PMI) consists of geometric elements such as\nlines and arcs preserving the exact appearance (color, shape, positioning) of the GD&T\nannotations.  PMI Presentation is not intended to be computer-interpretable and does not\ncarry any representation information, although it can be linked to its corresponding\nPMI Representation.\n\nPMI Presentation annotations are defined in CAx-IF Recommended Practices.\nThe PMI Presentation information is reported in columns highlighted in yellow and green\non the Annotation_*_occurrence worksheets.\n\nAssociated presentation style, saved views, and PMI validation properties are also reported.\nA PMI coverage analysis worksheet is also generated.\nGraphical PMI can be viewed in a web browser.\n\nSee Help > PMI Presentation\nSee Help > Graphical PMI Viewer"
     tooltip::tooltip $buttons(optVALPROP) "Validation properties for geometry, assemblies, PMI, annotations,\nattributes, and tessellations are defined in CAx-IF Recommended Practices.\nThe property values are reported in columns highlighted in yellow and green\non the Property_definition worksheet.\n\nOther properties and User-Defined Attributes are also reported.\n\nSee Help > Validation Properties"
   }
   
@@ -442,7 +442,7 @@ proc guiProcessAndReports {} {
   pack $foptv3 -side top -anchor w -pady 0 -padx 0 -fill y  
 
   set foptv4 [frame $foptv.4 -bd 0]
-  set buttons(linecolor) [label $foptv4.l3 -text "Color:"]
+  set buttons(linecolor) [label $foptv4.l3 -text "PMI color:"]
   pack $foptv4.l3 -side left -anchor w -padx 0 -pady 0 -ipady 0
   set gpmiColorVal {{"Random" 2} {"From file" 0} {"Black" 1}}
   foreach item $gpmiColorVal {
@@ -465,10 +465,22 @@ proc guiProcessAndReports {} {
   }
   pack $foptv5 -side top -anchor w -pady 0 -padx 0 -fill y
 
+  set foptv6 [frame $foptv.6 -bd 0]
+  set buttons(feaNodeType) [label $foptv6.l3 -text "Show nodes as:"]
+  pack $foptv6.l3 -side left -anchor w -padx 0 -pady 0 -ipady 0
+  set feaNodeType {{"Point" 1} {"Cube" 2}}
+  foreach item $feaNodeType {
+    set bn "feaNodeType[lindex $item 1]"            
+    set buttons($bn) [ttk::radiobutton $foptv6.$cb -variable opt(feaNodeType) -text [lindex $item 0] -value [lindex $item 1]]
+    pack $buttons($bn) -side left -anchor w -padx 2 -pady 0 -ipady 0
+    incr cb
+  }
+  pack $foptv6 -side top -anchor w -pady 0 -padx 25 -fill y  
+
   pack $foptv -side left -anchor w -pady {5 2} -padx 10 -fill both -expand true
   pack $foptrv -side top -anchor w -pady 0 -fill x
   catch {
-    tooltip::tooltip $buttons(optVIZPMI) "PMI Presentation annotations can be visualized with an\nX3DOM (WebGL) file that can be opened in most web browsers.\nThe color of the annotations can be modified.\nTessellated annotations are not supported.\n\nSee Help > PMI Presentation\nSee Help > Graphical PMI Viewer"
+    tooltip::tooltip $buttons(optVIZPMI) "Graphical PMI (PMI Presentation) can be viewed in a web browser.  The color\nof the annotations can be modified.  Tessellated annotations are not supported.\n\nSee Help > PMI Presentation\nSee Help > Graphical PMI Viewer"
     tooltip::tooltip $buttons(optVIZFEA) "See Help > Analysis Model\nSee Help > AP209 Viewer"
   }
 }
@@ -531,7 +543,7 @@ proc guiInverse {} {
   global buttons cb fopt inverses opt developer entCategory
   
   set foptc [ttk::labelframe $fopt.3 -text " Inverse Relationships "]
-  set txt " Show Inverse Relationships and Backwards References (Used In) for\n PMI, Shape Aspect, Annotations, Representation, Analysis"
+  set txt " Show Inverses and Backwards References (Used In) for PMI, Shape Aspect, Representation, Analysis, and more"
 
   regsub -all {[\(\)]} opt(INVERSE) "" idx
   set buttons($idx) [ttk::checkbutton $foptc.$cb -text $txt \
@@ -542,17 +554,17 @@ proc guiInverse {} {
   incr cb
 
   pack $foptc -side top -anchor w -pady {5 2} -padx 10 -fill both
-  set ttmsg "Inverse Relationships and Backwards References are reported for some attributes for the following entities.\nInverse (or Used In) values are shown in additional columns highlighted in light blue and purple.\n\n"
+  set ttmsg "Inverse Relationships and Backwards References (Used In) are reported for some attributes for the following entities.\nInverse or Used In values are shown in additional columns highlighted in light blue and purple.\n\n"
   set lent ""
   set ttlen 0
   if {[info exists inverses]} {
     foreach item [lsort $inverses] {
     set ent [lindex [split $item " "] 0]
       if {$ent != $lent} {
-        set str "[formatComplexEnt $ent]   "
+        set str "[formatComplexEnt $ent]    "
         append ttmsg $str
         incr ttlen [string length $str]
-        if {$ttlen > 120} {
+        if {$ttlen > 140} {
           if {[string index $ttmsg end] != "\n"} {append ttmsg "\n"}
           set ttlen 0
         }
@@ -566,7 +578,7 @@ proc guiInverse {} {
 #-------------------------------------------------------------------------------
 # open STEP file
 proc guiOpenSTEPFile {} {
-  global buttons cb fopt appNames dispCmds appName dispApps foptf
+  global buttons cb fopt appNames developer dispCmds appName dispApps foptf
   global edmWriteToFile edmWhereRules eeWriteToFile
   
   set foptf [ttk::labelframe $fopt.f -text " Open STEP File in "]
@@ -577,13 +589,15 @@ proc guiOpenSTEPFile {} {
     set appName [$buttons(appCombo) get]
 
 # Jotne EDM Model Checker
-    catch {
-      if {[string first "EDM Model Checker" $appName] == 0} {
-        pack $buttons(edmWriteToFile) -side left -anchor w -padx 5
-        pack $buttons(edmWhereRules) -side left -anchor w -padx 5
-      } else {
-        pack forget $buttons(edmWriteToFile)
-        pack forget $buttons(edmWhereRules)
+    if {$developer} {
+      catch {
+        if {[string first "EDM Model Checker" $appName] == 0} {
+          pack $buttons(edmWriteToFile) -side left -anchor w -padx 5
+          pack $buttons(edmWhereRules) -side left -anchor w -padx 5
+        } else {
+          pack forget $buttons(edmWriteToFile)
+          pack forget $buttons(edmWhereRules)
+        }
       }
     }
 
@@ -635,28 +649,30 @@ proc guiOpenSTEPFile {} {
   incr cb
   
 # Jotne EDM Model Checker
-  foreach item $appNames {
-    if {[string first "EDM Model Checker" $item] == 0} {
-      foreach item {{" Write results to a file" edmWriteToFile}} {
-        regsub -all {[\(\)]} [lindex $item 1] "" idx
-        set buttons($idx) [ttk::checkbutton $foptf.$cb -text [lindex $item 0] \
-          -variable [lindex $item 1] -command {checkValues}]
-        pack forget $buttons($idx)
-        incr cb
-      }
-      foreach item {{" Check other rules" edmWhereRules}} {
-        regsub -all {[\(\)]} [lindex $item 1] "" idx
-        set buttons($idx) [ttk::checkbutton $foptf.$cb -text [lindex $item 0] \
-          -variable [lindex $item 1] -command {checkValues}]
-        pack forget $buttons($idx)
-        incr cb
+  if {$developer} {
+    foreach item $appNames {
+      if {[string first "EDM Model Checker" $item] == 0} {
+        foreach item {{" Write results to file" edmWriteToFile}} {
+          regsub -all {[\(\)]} [lindex $item 1] "" idx
+          set buttons($idx) [ttk::checkbutton $foptf.$cb -text [lindex $item 0] \
+            -variable [lindex $item 1] -command {checkValues}]
+          pack forget $buttons($idx)
+          incr cb
+        }
+        foreach item {{" Check rules" edmWhereRules}} {
+          regsub -all {[\(\)]} [lindex $item 1] "" idx
+          set buttons($idx) [ttk::checkbutton $foptf.$cb -text [lindex $item 0] \
+            -variable [lindex $item 1] -command {checkValues}]
+          pack forget $buttons($idx)
+          incr cb
+        }
       }
     }
   }
 
 # Express Engine
   if {[lsearch -glob $appNames "*Conformance Checker*"] != -1} {
-    foreach item {{" Write results to a file" eeWriteToFile}} {
+    foreach item {{" Write results to file" eeWriteToFile}} {
       regsub -all {[\(\)]} [lindex $item 1] "" idx
       set buttons($idx) [ttk::checkbutton $foptf.$cb -text [lindex $item 0] \
         -variable [lindex $item 1] -command {checkValues}]
@@ -871,7 +887,7 @@ spreadsheet is also generated.
 Tooltip help is available for the selections in the tabs.  Hold the mouse over text in the tabs
 until a tooltip appears.
 
-Function keys F5 and F6 change the font size in this tab."
+Use F6 and F5 to change the font size.  Right-click to save the text."
     .tnb select .tnb.status
   }
 
@@ -890,7 +906,7 @@ reported in columns highlighted in yellow and green on those worksheets.
 Report PMI Presentation: Geometric entities used for PMI Presentation annotations are reported
 in columns highlighted in yellow and green on Annotation_*_occurrence worksheets.  Associated
 Saved Views, Validation Properties, and Geometry are also reported.  PMI Presentation annotations
-can also be visualized with an X3DOM (WebGL) file.
+(Graphical PMI) can also be viewed in a web browser.
 
 Report Validation Properties: Geometric, assembly, PMI, annotation, attribute, and tessellated
 validation properties are reported.  The property values are reported in columns highlighted in
@@ -1094,10 +1110,10 @@ Representation are also reported.
 
 A PMI Presentation Coverage Analysis worksheet is generated.  See Help > PMI Coverage Analysis.
 
-PMI Presentation annotations can be visualized with an X3DOM (WebGL) file that can be opened in
-any web browsers.  The X3DOM file is only of the annotations, not the model geometry.  The
-resulting X3DOM file is named mystepfile_x3dom.html  Filled characters are not filled.  Saved
-Views are ignored.  Tessellated annotations are not supported.
+PMI Presentation annotations can be viewed in a web browser.  The visualization is only of the
+graphical PMI, not the model geometry.  The graphical PMI file is named mystepfile_x3dom.html
+Filled characters are not filled.  Saved Views are ignored.  Tessellated annotations are not
+supported.
 
 PMI Presentation is defined by the CAx-IF Recommended Practices for:
   Representation and Presentation of Product Manufacturing Information (AP242)
@@ -1216,18 +1232,24 @@ Go to Websites > Recommended Practices to access documentation."
     
   $Help add command -label "Analysis Model" -command {
 outputMsg "\nAnalysis Model -------------------------------------------------------------" blue
-outputMsg "The finite element analysis model in an AP209 file can be visualized with an X3DOM (WebGL) file
-that can be viewed in any web browser.  Nodes and elements are displayed.  If the number of nodes
-per element type (1D, 2D, or 3D) exceeds 1000, then nodes are not displayed.  In the X3DOM display,
-nodes and elements can be toggled on and off.  The transparency of the elements can also be changed.
-The viewer is experimental and still under development.
+outputMsg "The finite element analysis model in an AP209 file can be viewed in a web browser.  Nodes and
+elements are displayed.  Nodes can be displayed as a point or small cube.  If there are a lot of
+nodes, then nodes will always be displayed as points.  If there are a lot of solid elements, then
+the faces of the elements are not displayed.  In the viewer, nodes and elements can be toggled on
+and off.
+
+The transparency of the elements can also be changed although it might not look correct
+particularly with solid elements.  
 
 All AP209 entities are always processed.  For large AP209 files, deselect Inverse Relationships.
-To generate only the X3DOM file, select None in the Process section, select Visualize AP209
-Analysis model, and deselect Open Spreadsheet (Spreadsheet tab).  If necessary, the spreadsheet can
+To only view the finite element model, select None in the Process section, select AP209
+Analysis Model, and deselect Open Spreadsheet (Spreadsheet tab).  If necessary, the spreadsheet can
 be opened with F2.
 
-See Websites > STEP AP209 Project"
+The viewer is experimental and still under development.  The viewer is not optimized to work with
+very large finite element models.
+
+See Websites > STEP AP209 Project and Help > AP209 Viewer"
     .tnb select .tnb.status
   }
 
@@ -1330,11 +1352,11 @@ might appear that say 'Unable to alloc xxx bytes'.  See the Help > Crash Recover
 proc guiWebsitesMenu {} {
   global Websites
 
-  $Websites add command -label "STEP File Analyzer"     -command {openURL https://go.usa.gov/yccx}
+  $Websites add command -label "STEP File Analyzer"     -command {openURL https://www.nist.gov/services-resources/software/step-file-analyzer}
   $Websites add command -label "Source code on GitHub"  -command {openURL https://github.com/usnistgov/SFA}
   $Websites add command -label "Journal of CAD Article" -command {openURL https://www.nist.gov/publications/conformance-checking-pmi-representation-cad-model-step-data-exchange-files}
-  $Websites add command -label "MBE PMI Validation Testing (free CAD models and STEP files)" -command {openURL https://go.usa.gov/mGVm}
-  $Websites add command -label "Enabling the Digital Thread for Smart Manufacturing"         -command {openURL https://go.usa.gov/6nPh}
+  $Websites add command -label "MBE PMI Validation Testing (free CAD models and STEP files)" -command {openURL https://www.nist.gov/el/systems-integration-division-73400/mbe-pmi-validation-and-conformance-testing}
+  $Websites add command -label "Enabling the Digital Thread for Smart Manufacturing"         -command {openURL https://www.nist.gov/el/systems-integration-division-73400/enabling-digital-thread-smart-manufacturing}
   
   $Websites add separator
   $Websites add command -label "CAx Implementor Forum (CAx-IF)" -command {openURL https://www.cax-if.org/}

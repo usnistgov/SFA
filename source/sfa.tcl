@@ -67,6 +67,7 @@ set opt(DEBUG2) 0
 set opt(DEBUGINV) 0
 set opt(DISPGUIDE1) 1
 set opt(FIRSTTIME) 1
+set opt(feaNodeType) 1
 set opt(gpmiColor) 2
 set opt(indentGeometry) 0
 set opt(indentStyledItem) 0
@@ -189,7 +190,6 @@ if {[file exists $optionsFile]} {
                 PR_STEP_GEO PR_STEP_REP PR_STEP_ASPECT ROWLIM SORT GENX3DOM VIZ209} {
     catch {unset opt($item)}
   }
-  catch {unset mingeo}
 }
 
 # adjust some variables
@@ -310,7 +310,7 @@ if {$opt(FIRSTTIME)} {
   setShortcuts
   
   outputMsg " "
-  errorMsg "Use function keys F6 and F5 to change this font size."
+  errorMsg "Use F6 and F5 to change the font size.  Right-click to save the text."
   saveState
 
 # what's new message
@@ -435,6 +435,10 @@ if {$opt(writeDirType) == 1} {
   errorMsg "Spreadsheets will be written to a user-defined directory (Spreadsheet tab)"
   .tnb select .tnb.status
 }
+
+# set window minimum size
+update idletasks
+wm minsize . [winfo reqwidth .] [expr {int([winfo reqheight .]*1.05)}]
 
 # DEBUG
 

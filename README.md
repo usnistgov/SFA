@@ -1,6 +1,6 @@
 # STEP File Analyzer
 
-The following are instructions for building the [STEP File Analyzer](http://go.usa.gov/yccx) (SFA).  The SFA reads an ISO 10303 Part 21 STEP file and generates a spreadsheet.  More information, sample spreadsheets, and documentation about the SFA is available on the website including the [STEP File Analyzer User's Guide](http://dx.doi.org/10.6028/NIST.IR.8122).
+The following are instructions for building the [STEP File Analyzer](https://www.nist.gov/services-resources/software/step-file-analyzer) (SFA).  The SFA reads an ISO 10303 Part 21 STEP file and generates a spreadsheet.  More information, sample spreadsheets, and documentation about the SFA is available on the website including the [STEP File Analyzer User's Guide](https://www.nist.gov/publications/step-file-analyzer-users-guide-version-3).
 
 ##Prerequisites
 
@@ -8,7 +8,7 @@ The STEP File Analyzer can only be built and run on Windows computers.  [Microso
 
 **You must install and run the NIST version of the STEP File Analyzer before running your own version.**
 
-- Go to <http://go.usa.gov/yccx> and click on the link to Download the STEP File Analyzer
+- Go to the [STEP File Analyzer](https://www.nist.gov/services-resources/software/step-file-analyzer) and click on the link to Download the STEP File Analyzer
 - Submit the form to get a link to download SFA.zip
 - Extract STEP-File-Analyzer.exe from the zip file and run it.  This will install the IFCsvr toolkit that is used to read STEP files.
 - Generate a spreadsheet or CSV files for at least one STEP file.  This will install the STEP schema files for the IFCsvr toolkit.  
@@ -52,7 +52,7 @@ freewrap -f sfa-files.txt
 
 ##Differences from the NIST-built version of STEP File Analyzer
 
-Some features are not available in the user-built version including: tooltips, unzipping compressed STEP files, automated PMI checking for the [NIST CAD models](<http://go.usa.gov/mGVm>), and inserting images of the NIST test cases in the spreadsheets.  Some of the features are restored if the NIST-built version is run first.
+Some features are not available in the user-built version including: tooltips, unzipping compressed STEP files, automated PMI checking for the [NIST CAD models](<https://www.nist.gov/el/systems-integration-division-73400/mbe-pmi-validation-and-conformance-testing>), and inserting images of the NIST test cases in the spreadsheets.  Some of the features are restored if the NIST-built version is run first.
 
 ##Alternate build methods
 

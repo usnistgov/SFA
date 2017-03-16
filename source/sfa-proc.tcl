@@ -1,6 +1,6 @@
 #-------------------------------------------------------------------------------
 proc checkValues {} {
-  global opt buttons appNames appName programfiles userEntityList
+  global opt buttons appNames appName developer programfiles userEntityList
   global edmWriteToFile edmWhereRules eeWriteToFile
 
   if {[info exists buttons(appCombo)]} {
@@ -9,13 +9,15 @@ proc checkValues {} {
     $buttons(appCombo) current $ic
 
 # Jotne EDM Model Checker
-    catch {
-      if {[string first "EDM Model Checker" $appName] == 0} {
-        pack $buttons(edmWriteToFile) -side left -anchor w -padx 5
-        pack $buttons(edmWhereRules) -side left -anchor w -padx 5
-      } else {
-        pack forget $buttons(edmWriteToFile)
-        pack forget $buttons(edmWhereRules)
+    if {$developer} {
+      catch {
+        if {[string first "EDM Model Checker" $appName] == 0} {
+          pack $buttons(edmWriteToFile) -side left -anchor w -padx 5
+          pack $buttons(edmWhereRules) -side left -anchor w -padx 5
+        } else {
+          pack forget $buttons(edmWriteToFile)
+          pack forget $buttons(edmWhereRules)
+        }
       }
     }
 
@@ -135,6 +137,15 @@ proc checkValues {} {
       $buttons(optPR_STEP_COMM) configure -state normal
       $buttons(optPR_STEP_SHAP) configure -state normal
     }
+  }
+  if {$opt(VIZFEA)} {
+    $buttons(feaNodeType) configure -state normal
+    $buttons(feaNodeType1) configure -state normal
+    $buttons(feaNodeType2) configure -state normal
+  } else {
+    $buttons(feaNodeType) configure -state disabled
+    $buttons(feaNodeType1) configure -state disabled
+    $buttons(feaNodeType2) configure -state disabled
   }
   
 # user-defined entity list
@@ -302,7 +313,7 @@ proc openFile {{openName ""}} {
       set fext [string tolower [file extension $localName]]
       if {[string first ".ifc" $fext] != -1} {
         #errorMsg "Use the IFC File Analyzer with IFC files."
-        #openURL https://go.usa.gov/xK9gh
+        #openURL https://www.nist.gov/services-resources/software/ifc-file-analyzer
       } elseif {$fext == ".stpnc"} {
         errorMsg "Rename the file extension to '.stp' to process STEP-NC files."
       }
@@ -325,6 +336,7 @@ proc openFile {{openName ""}} {
 
 # single file selected
   } elseif {[file exists $localName]} {
+    catch {pack forget $buttons(pgb1)}
   
 # check for zipped file
     if {[string first ".stpz" [string tolower $localName]] != -1} {unzipFile}  
@@ -1544,13 +1556,13 @@ proc installIFCsvr {} {
       outputMsg " "
       if {!$nistVersion} {
         errorMsg "To install the IFCsvr Toolkit you must install the NIST version of the STEP File Analyzer."
-        outputMsg " 1 - Go to https://go.usa.gov/yccx"
+        outputMsg " 1 - Go to https://www.nist.gov/services-resources/software/step-file-analyzer"
         outputMsg " 2 - Click on Download STEP File Analyzer"
         outputMsg " 3 - Fill out the form, submit it, and follow the instructions"
         outputMsg " 4 - IFCsvr Toolkit will be installed when the NIST STEP File Analyzer is run"
         outputMsg " 5 - Generate a spreadsheet for at least one STEP file"
         after 1000
-        openURL https://go.usa.gov/yccx
+        openURL https://www.nist.gov/services-resources/software/step-file-analyzer
       } else {
         errorMsg "To manually install IFCsvr:"
         outputMsg " 1 - Join the IFCsvr ActiveX Component Group (you will need a Yahoo account)"

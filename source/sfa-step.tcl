@@ -2,7 +2,7 @@
 # version number
 
 proc getVersion {} {
-  set app_version 2.01
+  set app_version 2.04
   return $app_version
 }
 
@@ -153,8 +153,8 @@ proc getFaceGeom {a0 {id ""}} {
 }
 
 # -------------------------------------------------------------------------------
-proc reportAssocGeom {entType {type 1}} {
-  global assocGeom
+proc reportAssocGeom {entType {dimtol 1}} {
+  global assocGeom recPracNames
   
   set str ""
   foreach item [array names assocGeom] {
@@ -170,8 +170,8 @@ proc reportAssocGeom {entType {type 1}} {
       append str "([llength $assocGeom($item)]) $item [lsort -integer $assocGeom($item)]"
     }
   }
-  if {[string length $str] == 0 && $type} {
-    errorMsg "Syntax Error: Associated Geometry not found for '[formatComplexEnt $entType]'.  Check GISU or IIRU 'definition' attribute."
+  if {[string length $str] == 0 && $dimtol} {
+    errorMsg "Syntax Error: Associated Geometry not found for '[formatComplexEnt $entType]'.  Check GISU or IIRU 'definition' attribute.\n[string repeat " " 14]\($recPracNames(pmi242), Sec. 5.1, Figs. 5, 6, 12)"
   }
   foreach item [array names assocGeom] {
     if {[string first "shape_aspect" $item] != -1 || [string first "centre" $item] != -1 || [string first "datum_feature" $item] != -1} {
@@ -817,7 +817,7 @@ proc pmiAddModelPictures {ent} {
  
 # -------------------------------------------------------------------------------
 proc pmiFormatColumns {str} {
-		global cells col excelVersion gpmiRow invGroup opt pmiStartCol recPracNames row spmiRow stepAP thisEntType worksheet
+  global cells col excelVersion gpmiRow invGroup opt pmiStartCol recPracNames row spmiRow stepAP thisEntType worksheet
 		
   if {![info exists pmiStartCol($thisEntType)]} {
     return
@@ -1010,6 +1010,7 @@ proc setEntsToProcess {entType objDesign} {
         $entType == "fill_area_style" || \
         $entType == "fill_area_style_colour" || \
         $entType == "geometric_curve_set" || \
+        $entType == "geometric_set" || \
         $entType == "presentation_style_assignment" || \
         $entType == "property_definition" || \
         $entType == "representation_relationship" || \
@@ -1220,11 +1221,11 @@ proc getSchemaFromFile {fname {msg 0}} {
 
 # check for CIS/2 or IFC files
         if {[string first "STRUCTURAL_FRAME_SCHEMA" $fsline] != -1} {
-          errorMsg "Use SteelVis to visualize the CIS/2 file.  https://go.usa.gov/s8fm"
+          errorMsg "Use SteelVis to visualize the CIS/2 file.\n https://www.nist.gov/services-resources/software/steelvis-aka-cis2-viewer"
         } elseif {[string first "IFC" $fsline] != -1} {
           errorMsg "Use the IFC File Analyzer with IFC files."
           after 1000
-          openURL https://go.usa.gov/xK9gh
+          openURL https://www.nist.gov/services-resources/software/ifc-file-analyzer
         }
       }
       if {$p21e3} {break}

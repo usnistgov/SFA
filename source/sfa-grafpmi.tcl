@@ -5,12 +5,12 @@ proc gpmiAnnotation {objDesign entType} {
   if {$opt(DEBUG1)} {outputMsg "START gpmiAnnotation $entType" red}
 
 # basic geometry
+  set cartesian_point [list cartesian_point coordinates]
+  set direction       [list direction name direction_ratios]
+  set a2p3d           [list axis2_placement_3d location $cartesian_point axis $direction]
+
   if {$opt(VIZPMI)} {
-    set direction       [list direction name direction_ratios]
-    set cartesian_point [list cartesian_point coordinates]
     set polyline        [list polyline name points $cartesian_point]
-    set a2p3d           [list axis2_placement_3d location $cartesian_point axis $direction]
-    #set a2p3d           [list axis2_placement_3d location $cartesian_point axis $direction ref_direction $direction]
     set circle          [list circle name position $a2p3d radius]
     set trimmed_curve   [list trimmed_curve name basis_curve $circle]
   } else {
@@ -40,10 +40,12 @@ proc gpmiAnnotation {objDesign entType} {
   set PMIP(annotation_curve_occurrence)       [list annotation_curve_occurrence name styles $curve_style item $geometric_curve_set]
   set PMIP(annotation_curve_occurrence_and_geometric_representation_item) [list annotation_curve_occurrence_and_geometric_representation_item name styles $curve_style item $geometric_curve_set]
   set PMIP(annotation_fill_area_occurrence)   [list annotation_fill_area_occurrence name styles $fill_style item $annotation_fill_area]
-  set PMIP(annotation_placeholder_occurrence) [list annotation_placeholder_occurrence name item $geometric_curve_set role]
   set PMIP(draughting_annotation_occurrence)  [list draughting_annotation_occurrence name styles $curve_style item $geometric_curve_set]
   set PMIP(draughting_annotation_occurrence_and_geometric_representation_item) [list draughting_annotation_occurrence_and_geometric_representation_item name styles $curve_style item $geometric_curve_set]
   set PMIP(tessellated_annotation_occurrence) [list tessellated_annotation_occurrence name styles $curve_style item $tessellated_geometric_set $repo_tessellated_geometric_set]
+
+  set geometric_set  [list geometric_set name elements $cartesian_point $a2p3d]
+  set PMIP(annotation_placeholder_occurrence) [list annotation_placeholder_occurrence name item $geometric_set]
 
   #set PMIP(over_riding_styled_item_and_tessellated_annotation_occurrence) [list over_riding_styled_item_and_tessellated_annotation_occurrence name styles $curve_style item $tessellated_geometric_set $repo_tessellated_geometric_set]
     
@@ -218,7 +220,7 @@ proc gpmiAnnotationReport {objEntity} {
     
     if {$entLevel == 2 && \
         $objType != "geometric_curve_set" && $objType != "annotation_fill_area" && $objType != "presentation_style_assignment" && \
-        [string first "tessellated_geometric_set" $objType] == -1} {
+        $objType != "geometric_set" && [string first "tessellated_geometric_set" $objType] == -1} {
       set msg "Syntax Error: '$objType' is not allowed as an 'item' attribute of: $ao\n[string repeat " " 14]"
       if {$stepAP == "AP242"} {
         append msg "($recPracNames(pmi242), Sec. 8.1.1, 8.1.2, 8.2)"
@@ -409,6 +411,15 @@ proc gpmiAnnotationReport {objEntity} {
 # keep track of composite curve items
                     set numCompCurve $objSize
                     set iCompCurve 0
+                  }
+                  "geometric_set elements" {
+                    set ok 1
+                    set col($ao) [expr {$pmiStartCol($ao)+1}]
+                    if {$stepAP == "AP242"} {
+                      set colName "elements[format "%c" 10](Sec. 8.1.1)"
+                    } else {
+                      set colName "elements[format "%c" 10](Sec. 4.1.1)"
+                    }
                   }
                   "annotation_fill_area boundaries" {
                     set ok 1
@@ -795,17 +806,9 @@ proc gpmiAnnotationReport {objEntity} {
                           set x3domFile [open $x3domFileName w]
                           outputMsg " Writing PMI Annotations to: [truncFileName [file nativename $x3domFileName]]" green
                           
-                          set str "NIST "
-                          set url "https://go.usa.gov/yccx"
-                          if {!$nistVersion} {
-                            set str ""
-                            set url "https://github.com/usnistgov/SFA"
-                          }
-                          
-                          puts $x3domFile "<!DOCTYPE html>\n<html>\n<head>\n<title>[file tail $localName] | PMI Annotations</title>\n<base target=\"_blank\">\n<meta http-equiv='Content-Type' content='text/html;charset=utf-8'/>\n<link rel='stylesheet' type='text/css' href='https://www.x3dom.org/x3dom/release/x3dom.css'/>\n<script type='text/javascript' src='https://www.x3dom.org/x3dom/release/x3dom.js'></script>\n</head>"
-                          puts $x3domFile "\n<body><font face=\"arial\">\n<h3>PMI Annotations for:  [file tail $localName]</h3>"
-                          puts $x3domFile "<ul><li>Visualization of PMI annotations generated by the <a href=\"$url\">$str\STEP File Analyzer (v[getVersion])</a> and rendered with <a href=\"https://www.x3dom.org/\">X3DOM</a>."
-                          puts $x3domFile "<li>Only the PMI annotations are shown.  Part geometry can be viewed with <a href=\"https://www.cax-if.org/step_viewers.html\">STEP file viewers</a>."
+                          puts $x3domFile "<!DOCTYPE html>\n<html>\n<head>\n<title>[file tail $localName] | Graphical PMI</title>\n<base target=\"_blank\">\n<meta http-equiv='Content-Type' content='text/html;charset=utf-8'/>\n<link rel='stylesheet' type='text/css' href='https://www.x3dom.org/x3dom/release/x3dom.css'/>\n<script type='text/javascript' src='https://www.x3dom.org/x3dom/release/x3dom.js'></script>\n</head>"
+                          puts $x3domFile "\n<body><font face=\"arial\">\n<h3>Graphical PMI:  [file tail $localName]</h3>"
+                          puts $x3domFile "<ul><li>Only the graphical PMI is shown.  Part geometry can be viewed with <a href=\"https://www.cax-if.org/step_viewers.html\">STEP file viewers</a>."
                           puts $x3domFile "<li><a href=\"https://www.x3dom.org/documentation/interaction/\">Use the mouse</a> to rotate, pan, and zoom.  Use Page Down to switch between perspective and orthographic views.  Saved Views are ignored."
                           puts $x3domFile "</ul><table><tr><td>"
 
@@ -824,15 +827,15 @@ proc gpmiAnnotationReport {objEntity} {
 # start X3DOM Shape node                    
                         if {$ao == "annotation_fill_area_occurrence"} {errorMsg "PMI annotations with filled characters are not filled."}
                         if {$x3domColor != ""} {
-                          puts $x3domFile "<Shape id='ao$objID'>\n <Appearance><Material emissiveColor='$x3domColor'></Material></Appearance>"
+                          puts $x3domFile "<Shape>\n <Appearance><Material emissiveColor='$x3domColor'></Material></Appearance>"
                           set colors [split $x3domColor " "]
                           for {set i 0} {$i < 3} {incr i} {set avgX3domColor($i) [expr {$avgX3domColor($i)+[lindex $colors $i]}]}
                           incr avgX3domColor(3)
                         } elseif {[string first "annotation_occurrence" $ao] == 0} {
-                          puts $x3domFile "<Shape id='ao$objID'>\n <Appearance><Material emissiveColor='1 0.5 0'></Material></Appearance>"
+                          puts $x3domFile "<Shape>\n <Appearance><Material emissiveColor='1 0.5 0'></Material></Appearance>"
                           errorMsg "Syntax Error: Color not specified for PMI Presentation (using orange)"
                         } elseif {[string first "annotation_fill_area_occurrence" $ao] == 0} {
-                          puts $x3domFile "<Shape id='ao$objID'>\n <Appearance><Material emissiveColor='1 0.5 0'></Material></Appearance>"
+                          puts $x3domFile "<Shape>\n <Appearance><Material emissiveColor='1 0.5 0'></Material></Appearance>"
                           errorMsg "Syntax Error: Color not specified for PMI Presentation (using orange)"
                         }
                         set x3domShape 1
@@ -907,7 +910,7 @@ proc gpmiAnnotationReport {objEntity} {
         set ok 0
         set objDC [$objEntity GetUsedIn [string trim draughting_callout] [string trim contents]]
         ::tcom::foreach objGuiEntity $objDC {
-          set objGuiEntities [$objGuiEntity GetUsedIn [string trim draughting_model_item_association_with_placeholder [string trim identified_item]]
+          set objGuiEntities [$objGuiEntity GetUsedIn [string trim draughting_model_item_association_with_placeholder] [string trim identified_item]]
           set ok 1
         }
         if {!$ok} {set objGuiEntities [$objEntity GetUsedIn [string trim draughting_model_item_association_with_placeholder] [string trim identified_item]]}
@@ -1027,6 +1030,7 @@ proc gpmiAnnotationReport {objEntity} {
             set pmiCol [expr {max($pmiColumns(ageom),$pmiCol)}]
           }
           $cells($ao) Item $r $pmiColumns(ageom) [string trim $str]
+          if {[lsearch $gpmiRow($ao) $r] == -1} {lappend gpmiRow($ao) $r}
         }
       }
 
@@ -1052,6 +1056,7 @@ proc gpmiAnnotationReport {objEntity} {
             set pmiCol [expr {max($pmiColumns(spmi),$pmiCol)}]
           }
           $cells($ao) Item $r $pmiColumns(spmi) [string trim $str]
+          if {[lsearch $gpmiRow($ao) $r] == -1} {lappend gpmiRow($ao) $r}
         }
       }
     } emsg]} {
@@ -1103,8 +1108,9 @@ proc gpmiAnnotationReport {objEntity} {
               if {$nsv == 1} {set str "camera_model_d3 [string trim $savedViews]"}
               $cells($ao) Item $r $c $str
               if {[string first "()" $savedViews] != -1} {lappend syntaxErr($ao) [list $r $savedViewCol]}
+              if {[lsearch $gpmiRow($ao) $r] == -1} {lappend gpmiRow($ao) $r}
               
-# check for a mapped_item in draughting_model.items
+# check for a mapped_item in draughting_model.items, do not check style_item
               set attrsDraughtingModel [$entDraughtingModel Attributes]
               ::tcom::foreach attrDraughtingModel $attrsDraughtingModel {
                 if {[$attrDraughtingModel Name] == "name"} {
@@ -1113,19 +1119,32 @@ proc gpmiAnnotationReport {objEntity} {
                 if {[$attrDraughtingModel Name] == "items" && $nameDraughtingModel != ""} {
                   set okcm 0
                   set okmi 0
+                  set oksi 0
                   ::tcom::foreach item [$attrDraughtingModel Value] {
                     if {[$item Type] == "mapped_item"} {set okmi 1}
+                    #if {[$item Type] == "styled_item"} {set oksi 1}
                     if {[string first "camera_model_d3" [$item Type]] == 0} {set okcm 1}
                   }
-                  if {$okcm && $okmi == 0} {
-                    set msg "Syntax Error: For Saved Views, [formatComplexEnt [$entDraughtingModel Type]].items missing required reference to 'mapped_item'\n[string repeat " " 14]"
-                    if {$stepAP == "AP242"} {
-                      append msg "($recPracNames(pmi242), Sec. 9.4.2.1, Fig. 86)"
-                    } else {
-                      append msg "($recPracNames(pmi203), Sec. 5.4.2, Fig. 14)"
+                  if {$okcm} {
+                    if {$okmi == 0} {
+                      set msg "Syntax Error: For Saved Views, missing required reference to 'mapped_item' on [formatComplexEnt [$entDraughtingModel Type]].items\n[string repeat " " 14]"
+                      if {$stepAP == "AP242"} {
+                        append msg "($recPracNames(pmi242), Sec. 9.4.2.1, Fig. 86)"
+                      } else {
+                        append msg "($recPracNames(pmi203), Sec. 5.4.2, Fig. 14)"
+                      }
+                      errorMsg $msg
+                      lappend syntaxErr([$entDraughtingModel Type]) [list [$entDraughtingModel P21ID] items]
+                    #} elseif {$oksi == 0} {
+                      #set msg "Syntax Error: For Saved Views, missing required reference to 'styled_item' on [formatComplexEnt [$entDraughtingModel Type]].items\n[string repeat " " 14]"
+                      #if {$stepAP == "AP242"} {
+                      #  append msg "($recPracNames(pmi242), Sec. 9.4.2.1, Fig. 86)"
+                      #} else {
+                      #  append msg "($recPracNames(pmi203), Sec. 5.4.2, Fig. 14)"
+                      #}
+                      #errorMsg $msg
+                      #lappend syntaxErr([$entDraughtingModel Type]) [list [$entDraughtingModel P21ID] items]
                     }
-                    errorMsg $msg
-                    lappend syntaxErr([$entDraughtingModel Type]) [list [$entDraughtingModel P21ID] items]
                   }
                 }
               }
@@ -1297,18 +1316,49 @@ proc pmiGetCamerasAndProperties {objDesign} {
         foreach dm $dmlist {
           set entDraughtingModels [$entCameraModel GetUsedIn [string trim $dm] [string trim items]]
           ::tcom::foreach entDraughtingModel $entDraughtingModels {
+            set attrDraughtingModels [$entDraughtingModel Attributes]
+
+# DM name attribute
+            set ok 0
+            if {[llength $dmlist] == 1 || [string first "characterized" $dm] != -1} {set ok 1}
+            if {$ok} {
+              set nattr 0
+              set iattr 1
+              if {[string first "object" $dm] != -1} {set iattr 3}
+              ::tcom::foreach attrDraughtingModel $attrDraughtingModels {
+                incr nattr
+                set nameDraughtingModel [$attrDraughtingModel Name]
+                if {$nameDraughtingModel == "name" && $nattr == $iattr} {
+                  set name [$attrDraughtingModel Value]
+                  if {$name == ""} {
+                    set msg "Syntax Error: For Saved Views, missing required 'name' attribute on [formatComplexEnt $dm]\n[string repeat " " 14]"
+                    if {$stepAP == "AP242"} {
+                      append msg "($recPracNames(pmi242), Sec. 9.4.2)"
+                    } else {
+                      append msg "($recPracNames(pmi203), Sec. 5.4.2)"
+                    }
+                    errorMsg $msg
+                    lappend syntaxErr($dm) [list [$entDraughtingModel P21ID] name]
+                  }
+                }
+              }
+            }
+
+# CM name attribute
             ::tcom::foreach attrCameraModel $attrCameraModels {
               set nameCameraModel [$attrCameraModel Name]
-              if {$nameCameraModel == "name"} {set name [$attrCameraModel Value]}
-              if {$name == ""} {
-                set msg "Syntax Error: For Saved Views, required 'name' attribute on camera_model_d3 is blank.\n[string repeat " " 14]"
-                if {$stepAP == "AP242"} {
-                  append msg "($recPracNames(pmi242), Sec. 9.4.2, Fig. 76)"
-                } else {
-                  append msg "($recPracNames(pmi203), Sec. 5.4.2, Fig. 14)"
+              if {$nameCameraModel == "name"} {
+                set name [$attrCameraModel Value]
+                if {$name == ""} {
+                  set msg "Syntax Error: For Saved Views, missing required 'name' attribute on $cm\n[string repeat " " 14]"
+                  if {$stepAP == "AP242"} {
+                    append msg "($recPracNames(pmi242), Sec. 9.4.2.1, Fig. 86)"
+                  } else {
+                    append msg "($recPracNames(pmi203), Sec. 5.4.2.1, Fig. 14)"
+                  }
+                  errorMsg $msg
+                  lappend syntaxErr($cm) [list [$entCameraModel P21ID] name]
                 }
-                errorMsg $msg
-                lappend syntaxErr($cm) [list [$entCameraModel P21ID] name]
               }
             }
   
@@ -1355,7 +1405,7 @@ proc pmiGetCamerasAndProperties {objDesign} {
 # -------------------------------------------------------------------------------
 # set viewpoints, add navigation and background color, and close X3DOM file
 proc x3domViewpoints {} {
-  global avgX3domColor opt stepAP x3domMax x3domMin x3domFile x3domMsg stepAP entCount
+  global avgX3domColor opt stepAP x3domMax x3domMin x3domFile x3domMsg stepAP entCount nistVersion
   
 # viewpoints
   foreach idx {x y z} {
@@ -1418,7 +1468,14 @@ proc x3domViewpoints {} {
       unset x3domMsg
     }
   }
-  
+                          
+  set str "NIST "
+  set url "https://www.nist.gov/services-resources/software/step-file-analyzer"
+  if {!$nistVersion} {
+    set str ""
+    set url "https://github.com/usnistgov/SFA"
+  }
+  puts $x3domFile "Generated by the <a href=\"$url\">$str\STEP File Analyzer (v[getVersion])</a> and rendered with <a href=\"https://www.x3dom.org/\">X3DOM</a>."
   puts $x3domFile "[clock format [clock seconds]]"
 
   puts $x3domFile "</font></body></html>"

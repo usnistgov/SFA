@@ -232,12 +232,11 @@ proc genExcel {{numFile 0}} {
 
     if {!$p21e3} {
       errorMsg "Possible causes of the ERROR:\n- Syntax errors in the STEP file\n- STEP schema is not supported, see Help > Supported STEP APs\n- Multiple schemas are used\n- Wrong file extension, should be '.stp'\n- STEP file contains new features from ISO 10303 Part 21 edition 3\n- File is not an ISO 10303 Part 21 STEP file" red
-      #errorMsg "Possible causes of the ERROR:\n- Syntax errors in the STEP file, see Help > Conformance Checking\n- STEP schema is not supported, see Help > Supported STEP APs\n- Multiple schemas are used\n- Wrong file extension, should be '.stp'\n- STEP file contains new features from ISO 10303 Part 21 edition 3\n- File is not an ISO 10303 Part 21 STEP file" red
     
 # part 21 edition 3
     } else {
       outputMsg " "
-      errorMsg "The STEP file uses the new Part 21 Edition 3 and cannot be processed by the STEP File Analyzer.\n Edit the STEP file to delete the Edition 3 content such as the ANCHOR, REFERENCE, and SIGNATURE sections."
+      errorMsg "The STEP file uses the new Edition 3 of Part 21 and cannot be processed by the STEP File Analyzer.\n Edit the STEP file to delete the Edition 3 content such as the ANCHOR, REFERENCE, and SIGNATURE sections."
     }
     if {!$nistVersion} {
       outputMsg " "
@@ -708,8 +707,13 @@ proc genExcel {{numFile 0}} {
               }
             }
           }
+          
+# max rows exceeded          
           if {$stat != 1} {
-            set nprogEnts [expr {$nprogEnts + $entCount($thisEntType) - $count($thisEntType)}]
+            set n $nprogEnts
+            set ok 1
+            if {[string first "element_representation" $thisEntType] != -1 && $opt(VIZFEA)} {set ok 0}
+            if {$ok} {set nprogEnts [expr {$nprogEnts + $entCount($thisEntType) - $count($thisEntType)}]}
             break
           }
         }
@@ -1045,9 +1049,9 @@ proc addHeaderWorksheet {objDesign numFile fname} {
         if {[string first "IFC" $fileSchema] == 0} {
           errorMsg "Use the IFC File Analyzer with IFC files."
           after 1000
-          openURL https://go.usa.gov/xK9gh
+          openURL https://www.nist.gov/services-resources/software/ifc-file-analyzer
         } elseif {$objAttr == "STRUCTURAL_FRAME_SCHEMA"} {
-          errorMsg "This is a CIS/2 file that can be visualized with SteelVis.  https://go.usa.gov/s8fm"
+          errorMsg "This is a CIS/2 file that can be visualized with SteelVis.\n https://www.nist.gov/services-resources/software/steelvis-aka-cis2-viewer"
         }
 
 # other File attributes
@@ -1340,7 +1344,7 @@ proc sumAddWorksheet {} {
     
 # name and link to program website that generated the spreadsheet
     set str "NIST "
-    set url "https://go.usa.gov/yccx"
+    set url "https://www.nist.gov/services-resources/software/step-file-analyzer"
     if {!$nistVersion} {
       set str ""
       set url "https://github.com/usnistgov/SFA"
