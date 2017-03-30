@@ -23,7 +23,7 @@
 
 - sfa-files.txt - freewrap input file that lists all of the above files
 
-- nist_ctc_02_asme1_ap242-1.stp - STEP file from the [NIST MBE PMI Validation and Conformance Testing project](http://go.usa.gov/mGVm)
+- nist_ctc_02_asme1_ap242-1.stp - STEP file from the [NIST MBE PMI Validation and Conformance Testing project](https://www.nist.gov/el/systems-integration-division-73400/mbe-pmi-validation-and-conformance-testing)
 
 ## Contact
 
