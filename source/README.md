@@ -1,6 +1,6 @@
 # STEP File Analyzer source code
 
-##Tcl files
+## Tcl files
 
 - sfa.tcl - main program
 - sfa-cl.tcl - main program for command-line version
@@ -25,10 +25,10 @@
 
 - nist_ctc_02_asme1_ap242-1.stp - STEP file from the [NIST MBE PMI Validation and Conformance Testing project](http://go.usa.gov/mGVm)
 
-##Contact
+## Contact
 
 [Robert Lipman](https://www.nist.gov/people/robert-r-lipman), <robert.lipman@nist.gov>, 301-975-3829
 
-##Disclaimers
+## Disclaimers
 
 [NIST Disclaimer](http://www.nist.gov/public_affairs/disclaimer.cfm)
