@@ -45,6 +45,14 @@ proc valPropStart {objDesign} {
     [list "number of segments" [list "number of segments"]] \
     [list "surface area" [list "tessellated surface area"]]]
 
+# composite recommended practice
+  set valPropNames(composite_validation_property) [list \
+    [list "" [list "number of composite tables" "number of composite materials per part" "number of composite materials per part" \
+      "number of orientations per part" "number of plies per part" "number of plies per laminate table" \
+      "number of composite sequences per laminate table" "number of composite materials per laminate table" \
+      "number of composite orientations per laminate table" "ordered sequences per laminate table" \
+      "notational centroid" "number of ply pieces per ply"]]]
+
   set derived_unit_element [list derived_unit_element unit \
     [list conversion_based_unit_and_length_unit dimensions name conversion_factor] \
     [list conversion_based_unit_and_mass_unit dimensions name conversion_factor] \

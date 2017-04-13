@@ -17,14 +17,8 @@ proc getEntity {objEntity checkInverse} {
     set msg "[formatComplexEnt $thisEntType] ($entCount($thisEntType))"
     outputMsg $msg
     
-    if {$thisEntType == "datum_reference_modifier_with_value"} {
-      errorMsg " Datum reference value modifiers are ignored in the DRF"
-    }
-
-    if {$entCount($thisEntType) > 50000 && $rowmax > 50010} {
-      errorMsg " Number of entities > 50000.  Consider using the Maximum Rows option." red
-    }
-    update idletasks
+    if {$thisEntType == "datum_reference_modifier_with_value"} {errorMsg " Datum reference value modifiers are ignored in the DRF"}
+    if {$entCount($thisEntType) > 50000 && $rowmax > 50010} {errorMsg " Number of entities > 50000.  Consider using the Maximum Rows option." red}
 
     set wsCount [$worksheets Count]
     if {$wsCount < 1} {
@@ -368,7 +362,6 @@ proc getEntityCSV {objEntity} {
     outputMsg $msg
     
     if {$thisEntType == "datum_reference_modifier_with_value"} {errorMsg " Datum reference value modifiers are ignored in the DRF"}
-    update idletasks
 
 # open csv file
     set csvfile($thisEntType) 1

@@ -45,7 +45,7 @@ proc gpmiAnnotation {objDesign entType} {
   set PMIP(tessellated_annotation_occurrence) [list tessellated_annotation_occurrence name styles $curve_style item $tessellated_geometric_set $repo_tessellated_geometric_set]
 
   set geometric_set  [list geometric_set name elements $cartesian_point $a2p3d]
-  set PMIP(annotation_placeholder_occurrence) [list annotation_placeholder_occurrence name item $geometric_set]
+  set PMIP(annotation_placeholder_occurrence) [list annotation_placeholder_occurrence name styles $curve_style item $geometric_set]
 
   #set PMIP(over_riding_styled_item_and_tessellated_annotation_occurrence) [list over_riding_styled_item_and_tessellated_annotation_occurrence name styles $curve_style item $tessellated_geometric_set $repo_tessellated_geometric_set]
     
@@ -651,23 +651,24 @@ proc gpmiAnnotationReport {objEntity} {
                     } else {
                       set colName "presentation style[format "%c" 10](Sec. 4.4)"
                     }
-                    update idletasks
                   }
                   "colour_rgb red" {
                     if {$entLevel == 4 || $entLevel == 8} {
-                      set x3domColor $objValue
-                      if {$opt(gpmiColor) > 0} {set x3domColor [gpmiSetColor $opt(gpmiColor)]}
+                      if {$opt(gpmiColor) > 0} {
+                        set x3domColor [gpmiSetColor $opt(gpmiColor)]
+                      } else {
+                        set x3domColor $objValue
+                      }
                     }
                   }
                   "colour_rgb green" {
                     if {$entLevel == 4 || $entLevel == 8} {
-                      append x3domColor " $objValue"
-                      if {$opt(gpmiColor) > 0} {set x3domColor [gpmiSetColor $opt(gpmiColor)]}
+                      if {$opt(gpmiColor) == 0} {append x3domColor " $objValue"}
                     }
                   }
                   "colour_rgb blue" {
                     if {$entLevel == 4 || $entLevel == 8} {
-                      append x3domColor " $objValue"
+                      if {$opt(gpmiColor) == 0} {append x3domColor " $objValue"}
                       set ok 1
                       set col($ao) [expr {$pmiStartCol($ao)+3}]
                       if {$stepAP == "AP242"} {
@@ -676,7 +677,6 @@ proc gpmiAnnotationReport {objEntity} {
                         set colName "color[format "%c" 10](Sec. 4.4)"
                       }
                       set pmiCol [expr {max($col($ao),$pmiCol)}]
-                      if {$opt(gpmiColor) > 0} {set x3domColor [gpmiSetColor $opt(gpmiColor)]}
                     }
                   }
                   "draughting_pre_defined_colour name" {
@@ -798,7 +798,7 @@ proc gpmiAnnotationReport {objEntity} {
                 
 # start X3DOM file
                     if {$opt(VIZPMI)} {
-                      if  {[string first "tessellated" $ao] == -1} {
+                      if {[string first "tessellated" $ao] == -1} {
                         if {$x3domFileOpen} {
                           set x3domFileOpen 0
                           set x3domFileName [file rootname $localName]_x3dom.html
@@ -1277,13 +1277,13 @@ proc gpmiSetColor {type} {
     incr idxColor
     switch $idxColor {
       1 {set color "0 0 0"}
-      2 {set color "1 0 0"}
-      3 {set color "1 1 0"}
-      4 {set color "0 1 0"}
-      5 {set color "0 1 1"}
-      6 {set color "0 0 1"}
-      7 {set color "1 0 1"}
-      8 {set color "1 1 1"}
+      2 {set color "1 1 1"}
+      3 {set color "1 0 0"}
+      4 {set color "1 1 0"}
+      5 {set color "0 1 0"}
+      6 {set color "0 1 1"}
+      7 {set color "0 0 1"}
+      8 {set color "1 0 1"}
     }
     if {$idxColor == 8} {set idxColor 0}
   }
@@ -1416,22 +1416,9 @@ proc x3domViewpoints {} {
   if {$delt(y) > $maxxyz} {set maxxyz $delt(y)}
   if {$delt(z) > $maxxyz} {set maxxyz $delt(z)}
   set cor "centerOfRotation='$xyzcen(x) $xyzcen(y) $xyzcen(z)'"
-  puts $x3domFile "\n<Viewpoint $cor position='$xyzcen(x) [trimNum [expr {0. - ($xyzcen(y) + 1.4*$maxxyz)}]] $xyzcen(z)' orientation='1 0 0 1.5708' description='Front'></Viewpoint>"
+  puts $x3domFile "\n<Viewpoint $cor position='$xyzcen(x) [trimNum [expr {0. - ($xyzcen(y) + 1.2*$maxxyz)}]] $xyzcen(z)' orientation='1 0 0 1.5708' description='Front'></Viewpoint>"
   set fov [trimNum [expr {$delt(z)*0.5 + $delt(y)*0.5}]]
-  puts $x3domFile "<OrthoViewpoint fieldOfView='\[-$fov,-$fov,$fov,$fov\]' $cor position='$xyzcen(x) [trimNum [expr {0. - ($xyzcen(y) + 1.4*$maxxyz)}]] $xyzcen(z)' orientation='1 0 0 1.5708' description='Ortho'></OrthoViewpoint>"
-
-# old viewpoints
-  #puts $x3domFile "<Viewpoint $cor position='$xyzcen(x) $xyzcen(y) [trimNum [expr {$xyzcen(z) + 1.4*$maxxyz}]]' description='Top'></Viewpoint>"
-  #puts $x3domFile "<Viewpoint $cor position='[trimNum [expr {$xyzcen(x) + 1.4*$maxxyz}]] $xyzcen(y) $xyzcen(z)' orientation='0 1 0 1.5708' description='Side 1'></Viewpoint>"
-  #puts $x3domFile "<Viewpoint $cor position='[trimNum [expr {$xyzcen(x) + 1.4*$maxxyz}]] $xyzcen(y) $xyzcen(z)' orientation='1 1 1 2.0944' description='Side 2'></Viewpoint>"
-
-  #puts $x3domFile "<viewpoint position='$xyzcen(x) $xyzcen(y) [trimNum [expr {$xyzcen(z) + 1.4*$maxxyz}]]' description='Front'></viewpoint>"
-  #puts $x3domFile "<viewpoint position='[trimNum [expr {0. - ($xyzcen(x) + 1.4*$maxxyz)}]] $xyzcen(y) $xyzcen(z)' orientation='0 1 0 -1.5708' description='Left'></viewpoint>"
-  #puts $x3domFile "<viewpoint position='$xyzcen(x) $xyzcen(y) [trimNum [expr {0. - ($xyzcen(z) + 1.4*$maxxyz)}]]' orientation='0 1 0 3.1416' description='Back'></viewpoint>"
-  #puts $x3domFile "<viewpoint position='[trimNum [expr {$xyzcen(x) + 1.4*$maxxyz}]] $xyzcen(y) $xyzcen(z)' orientation='0 1 0 1.5708' description='Right'></viewpoint>"
-  #puts $x3domFile "<viewpoint position='$xyzcen(x) [trimNum [expr {$xyzcen(y) + 1.4*$maxxyz}]] $xyzcen(z)' orientation='-1 0 0 1.5708' description='Top'></viewpoint>"
-  #puts $x3domFile "<viewpoint position='$xyzcen(x) [trimNum [expr {0. - ($xyzcen(y) + 1.4*$maxxyz)}]] $xyzcen(z)' orientation='-1 0 0 -1.5708' description='Bottom'></viewpoint>"
-  
+  puts $x3domFile "<OrthoViewpoint fieldOfView='\[-$fov,-$fov,$fov,$fov\]' $cor position='$xyzcen(x) [trimNum [expr {0. - ($xyzcen(y) + 1.4*$maxxyz)}]] $xyzcen(z)' orientation='1 0 0 1.5708' description='Ortho'></OrthoViewpoint>"  
   puts $x3domFile "<NavigationInfo type='\"EXAMINE\" \"ANY\"'></NavigationInfo>"
 
 # find average color
@@ -1442,6 +1429,7 @@ proc x3domViewpoints {} {
     if {($acolor < 0.2 || $opt(gpmiColor) == 1) && $opt(gpmiColor) != 2} {set ok 1}
 
     if {[info exists entCount(tessellated_annotation_occurrence)]} {lappend x3domMsg "Segments of the PMI annotations modeled with tessellated geometry are not displayed."}
+    if {[info exists entCount(annotation_placeholder_occurrence)]} {lappend x3domMsg "Annotation placeholders are not displayed."}
 
 # AP209 color
   } else {
@@ -1494,7 +1482,7 @@ proc openX3DOM {} {
   
   if {($opt(VIZPMI) || $opt(VIZFEA)) && $x3domFileName != "" && $multiFile == 0} {
     set str "PMI Presentation Annotations"
-    if {$stepAP == "AP209"} {set str "Analysis Model"}
+    if {[string first "AP209" $stepAP] != -1} {set str "Finite Element Model"}
     outputMsg "Opening $str in the default Web Browser" blue
     if {[catch {
       exec {*}[auto_execok start] "" $x3domFileName
@@ -1763,7 +1751,7 @@ proc gpmiCoverageFormat {{sum ""} {multi 1}} {
       [$worksheet($pmi_coverage) Range "A1"] Select
       catch {[$worksheet($pmi_coverage) PageSetup] PrintGridlines [expr 1]}
       $cells($pmi_coverage) Item 1 1 [file tail $localName]
-      $cells($pmi_coverage) Item 35 1 "See Help > PMI Coverage Analysis"
+      $cells($pmi_coverage) Item [expr {$pmi_rows+3}] 1 "See Help > PMI Coverage Analysis"
 
 # add images for the CAx-IF and NIST PMI models
       pmiAddModelPictures $pmi_coverage

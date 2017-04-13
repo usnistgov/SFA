@@ -2,7 +2,7 @@
 # version number
 
 proc getVersion {} {
-  set app_version 2.04
+  set app_version 2.06
   return $app_version
 }
 
@@ -1048,6 +1048,7 @@ proc setEntsToProcess {entType objDesign} {
     }
     if {$entType == "axis2_placement_3d" && [$objDesign CountEntities "placed_datum_target_feature"] > 0} {set ok 1}
   }
+
   #outputMsg "$ok  $entType"
   return $ok
 }
@@ -1116,7 +1117,7 @@ proc checkForReports {objDesign entType} {
     if {[catch {
       if {[info exists opt(VIZFEA)]} {
         if {$opt(VIZFEA)} {
-          feaStart $objDesign $entType
+          feaModel $objDesign $entType
         }
       }
     } emsg]} {

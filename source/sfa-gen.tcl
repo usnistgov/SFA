@@ -5,7 +5,7 @@ proc genExcel {{numFile 0}} {
   global cells cells1 col col1 comma count coverageLegend readPMI noPSA csvdirnam csvfile
   global developer dim entCategories entCategory entColorIndex entCount entityCount entsIgnored env errmsg
   global excel excelVersion excelYear extXLS fcsv feaElemTypes File fileEntity skipEntities skipPerm gpmiTypesPerFile idxColor inverses
-  global lastXLS lenfilelist localName localNameList multiFile multiFileDir nistName nistVersion nprogEnts
+  global lastXLS lenfilelist localName localNameList multiFile multiFileDir nistName nistVersion nodeIndex nprogEnts
   global opt p21e3 pmiCol pmiMaster programfiles recPracNames row rowmax sheetLast spmiEntity spmiSumName spmiSumRow spmiTypesPerFile startrow stepAP
   global thisEntType timeStamp tlast tolStandard totalEntity userEntityFile userEntityList userXLSFile
   global workbook workbooks worksheet worksheet1 worksheets writeDir wsCount
@@ -282,9 +282,7 @@ proc genExcel {{numFile 0}} {
         16 {set excelYear 2016}
       }
       if {$excelVersion >= 2000 && $excelVersion < 2100} {set excelYear $excelVersion}
-      #outputMsg "Connecting to Excel $excelYear" green
-  
-      if {$excelVersion < 12} {errorMsg " Some spreadsheet features are not available with this older version of Excel."}
+      if {$excelVersion < 12} {errorMsg " Some spreadsheet features are not available with older versions of Excel."}
   
 # turning off ScreenUpdating saves A LOT of time
       if {$opt(XL_KEEPOPEN) && $numFile == 0} {
@@ -463,24 +461,34 @@ proc genExcel {{numFile 0}} {
       set ok1 [setEntsToProcess $entType $objDesign]
       if {$ok == 0} {set ok $ok1}
       
-# entities in unsupported APs that are not AP203, AP214, AP242
-      if {[string first "AP203" $stepAP] == -1 && $stepAP != "AP214" && $stepAP != "AP242"} {
-        set et $entType
-        set c1 [string first "_and_" $et]
-        if {$c1 != -1} {set et [string range $et 0 $c1-1]}
-        if {[lsearch $ap203all $et] == -1 && [lsearch $ap214all $et] == -1 && [lsearch $ap242all $et] == -1} {
-          if {$c1 == -1} {
-            set ok 1
-          } else {
-            if {[lsearch $ap203all $entType] == -1 && [lsearch $ap214all $entType] == -1 && [lsearch $ap242all $entType] == -1} {
+# entities in unsupported APs that are not AP203, AP214, AP242 - if not using a user-defined list
+      if {!$opt(PR_USER)} {
+        if {[string first "AP203" $stepAP] == -1 && $stepAP != "AP214" && $stepAP != "AP242"} {
+          set et $entType
+          set c1 [string first "_and_" $et]
+          if {$c1 != -1} {set et [string range $et 0 $c1-1]}
+          if {[lsearch $ap203all $et] == -1 && [lsearch $ap214all $et] == -1 && [lsearch $ap242all $et] == -1} {
+            if {$c1 == -1} {
               set ok 1
+            } else {
+              if {[lsearch $ap203all $entType] == -1 && [lsearch $ap214all $entType] == -1 && [lsearch $ap242all $entType] == -1} {
+                set ok 1
+              }
             }
           }
         }
       }
+  
+# AP209 nodes
+      if {[string first "AP209" $stepAP] != -1} {
+        if {$entType == "node" && $opt(PR_STEP_CPNT) == 0} {
+          set ok 0
+          outputMsg " To process 'node' entities in AP209 files, select Coordinates in the Options tab" red
+        }
+      }
       
-# new AP242 entities in a ROSE file, but not yet in ap242all or any entity category, for testing new schemas      
-      #if {$stepAP == "AP242" && [lsearch $ap242all $entType] == -1} {set ok 1}
+# new AP242 entities in a ROSE file, but not yet in ap242all or any entity category, for testing new schemas
+      #if {$developer} {if {$stepAP == "AP242" && [lsearch $ap242all $entType] == -1} {set ok 1}}
 
 # handle '_and_' due to a complex entity, entType_1 is the first part before the '_and_'
       set entType_1 $entType
@@ -635,6 +643,7 @@ proc genExcel {{numFile 0}} {
     set spmiSumRow 1
     set idxColor 0
     set coverageLegend 0
+    set nodeIndex -1
 
     if {[info exists dim]} {unset dim}
     set dim(prec,max) 0
@@ -710,7 +719,7 @@ proc genExcel {{numFile 0}} {
           
 # max rows exceeded          
           if {$stat != 1} {
-            set n $nprogEnts
+            #set n $nprogEnts
             set ok 1
             if {[string first "element_representation" $thisEntType] != -1 && $opt(VIZFEA)} {set ok 0}
             if {$ok} {set nprogEnts [expr {$nprogEnts + $entCount($thisEntType) - $count($thisEntType)}]}
@@ -874,7 +883,6 @@ proc genExcel {{numFile 0}} {
       } else {
         errorMsg " Excel might not have been closed" red
       }
-      update idletasks
       #getTiming "save done"
 
 # add Link(n) text to multi file summary
@@ -889,6 +897,7 @@ proc genExcel {{numFile 0}} {
           $cells1(Summary) Item 3 $colsum "$numFile"
         }
       }
+      update idletasks
 
 # errors
     } emsg]} {
@@ -929,7 +938,7 @@ proc genExcel {{numFile 0}} {
   }
 
 # -------------------------------------------------------------------------------------------------
-# open X3DOM file of graphical PMI or analysis model
+# open X3DOM file of graphical PMI or FEM
   openX3DOM
 
 # -------------------------------------------------------------------------------------------------
@@ -942,12 +951,14 @@ proc genExcel {{numFile 0}} {
 # clean up variables to hopefully release some memory and/or to reset them
   global colColor invCol currX3domPointID dimrep dimrepID entName gpmiID gpmiIDRow gpmiOK gpmiRow
   global heading invGroup nrep numX3domPointID pmiColumns pmiStartCol 
-  global propDefID propDefIDRow propDefName propDefOK propDefRow syntaxErr 
+  global propDefID propDefIDRow propDefName propDefOK propDefRow syntaxErr
+  global feaNodes nodeArr
   foreach var {cells colColor invCol count currX3domPointID dimrep dimrepID entName entsIgnored \
               gpmiID gpmiIDRow gpmiOK gpmiRow heading invGroup nrep numX3domPointID \
               pmiCol pmiColumns pmiStartCol pmivalprop propDefID propDefIDRow propDefName propDefOK propDefRow \
               syntaxErr workbook workbooks worksheet worksheets \
-              x3domCoord x3domFile x3domFileName x3domFileOpen x3domIndex x3domMax x3domMin} {
+              x3domCoord x3domFile x3domFileName x3domFileOpen x3domIndex x3domMax x3domMin \
+              feaNodes nodeArr} {
     if {[info exists $var]} {unset $var}
   }
   if {!$multiFile} {
@@ -981,7 +992,7 @@ proc addHeaderWorksheet {objDesign numFile fname} {
       "STEP-NC Explorer" "STEP-NC Maker" "T3D tool generator" THEOREM Theorem "THEOREM SOLUTIONS" "Theorem Solutions" "T-Systems" \
       "UGS - NX" Unigraphics CoCreate Adobe Elysium ASFALIS CAPVIDIA 3DTransVidia MBDVidia NAFEMS COM209 CADCAM-E 3DEXPERIENCE ECCO SimDM \
       SDS/2 Tekla Revit RISA SAP2000 ETABS SmartPlant CADWorx "Advance Steel" ProSteel STAAD RAM Cype Parabuild RFEM RSTAB BuiltWorks EDMsix \
-      "3D Reviewer" "3D Converter" HOOPS}
+      "3D Reviewer" "3D Converter" HOOPS MicroStation}
 
 # sort cadApps by string length
     set cadApps [sortlength2 $cadApps]
@@ -1274,12 +1285,12 @@ proc sumAddWorksheet {} {
         }
         if {$okao} {
           $cells($sum) Item $sumRow 1 "$entType  \[PMI Presentation\]"
-          if {$opt(VIZPMI) && $x3domFileName != "" && $x3domLink} {
-            $cells($sum) Item $sumRow 3 "Graphic PMI"
-            set x3domLink 0
-            set anchor [$worksheet($sum) Range [cellRange $sumRow 3]]
-            $sumLinks Add $anchor [join $x3domFileName] [join ""] [join "Link to Graphic PMI"]
-          }
+          #if {$opt(VIZPMI) && $x3domFileName != "" && $x3domLink} {
+          #  $cells($sum) Item $sumRow 3 "Graphic PMI"
+          #  set x3domLink 0
+          #  set anchor [$worksheet($sum) Range [cellRange $sumRow 3]]
+          #  $sumLinks Add $anchor [join $x3domFileName] [join ""] [join "Link to Graphic PMI"]
+          #}
         }
 
 # for '_and_' (complex entity) split on multiple lines
@@ -1298,12 +1309,12 @@ proc sumAddWorksheet {} {
         }
         if {$okao} {
           $cells($sum) Item $sumRow 1 "$entType_multiline  \[PMI Presentation\]"
-          if {$opt(VIZPMI) && $x3domFileName != "" && $x3domLink} {
-            $cells($sum) Item $sumRow 3 "Graphic PMI"
-            set x3domLink 0
-            set anchor [$worksheet($sum) Range [cellRange $sumRow 3]]
-            $sumLinks Add $anchor [join $x3domFileName] [join ""] [join "Link to Graphic PMI"]
-          }
+          #if {$opt(VIZPMI) && $x3domFileName != "" && $x3domLink} {
+          #  $cells($sum) Item $sumRow 3 "Graphic PMI"
+          #  set x3domLink 0
+          #  set anchor [$worksheet($sum) Range [cellRange $sumRow 3]]
+          #  $sumLinks Add $anchor [join $x3domFileName] [join ""] [join "Link to Graphic PMI"]
+          #}
         }
         set range [$worksheet($sum) Range $sumRow:$sumRow]
         $range VerticalAlignment [expr -4108]

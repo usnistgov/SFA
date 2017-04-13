@@ -29,8 +29,8 @@ set auto_index(spmiFormat) [list source [file join $dir sfa-step.tcl]]
 set auto_index(spmiGetPMI) [list source [file join $dir sfa-step.tcl]]
 set auto_index(spmiSummary) [list source [file join $dir sfa-step.tcl]]
 
-set auto_index(feaStart) [list source [file join $dir sfa-fea.tcl]]
-set auto_index(feaReport) [list source [file join $dir sfa-fea.tcl]]
+set auto_index(feaModel) [list source [file join $dir sfa-fea.tcl]]
+set auto_index(feaElements) [list source [file join $dir sfa-fea.tcl]]
 set auto_index(x3domScript) [list source [file join $dir sfa-fea.tcl]]
 
 set auto_index(getPrecision) [list source [file join $dir sfa-dimtol.tcl]]

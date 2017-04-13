@@ -59,7 +59,7 @@ proc guiStartWindow {} {
   font configure fontBold -weight bold
   ttk::style configure TLabelframe.Label -background $bgcolor -font fontBold
 
-# control o,q
+# key bindings
   bind . <Control-o> {openFile}
   bind . <Control-d> {openMultiFile}
   bind . <Key-F4>    {openMultiFile 0}
@@ -349,14 +349,13 @@ proc guiProcessAndReports {} {
           set opt(PMISEM) 1
           set opt(PMIGRF) 1
           set opt(VALPROP) 1
-          set opt(VIZFEA) 1
-          #set opt(INVERSE) 1
         } elseif {$allNone == 2} {
           foreach item [array names opt] {if {[string first "PR_STEP" $item] == 0} {set opt($item) 0}}
           set opt(PMISEM) 0
           set opt(PMIGRF) 0
           set opt(VALPROP) 0
           set opt(INVERSE) 0
+          set opt(PR_USER) 0
           set opt(PR_STEP_COMM) 1
         }
         set opt(PR_STEP_GEOM)  0
@@ -423,7 +422,7 @@ proc guiProcessAndReports {} {
   pack $foptd -side left -anchor w -pady {5 2} -padx 10 -fill both -expand true
   catch {
     tooltip::tooltip $buttons(optPMISEM) "PMI Representation includes all information necessary to represent GD&T without any\ngraphical presentation elements.  PMI Representation is associated with CAD model\ngeometry and is computer-interpretable to facilitate automated consumption by\ndownstream applications for manufacturing, measurement, inspection, and other processes.\n\nPMI Representation information is defined in a CAx-IF Recommended Practices\nand is reported for Dimensional Tolerances, Geometric Tolerances, and Datum Features.\nThe results are reported on various entities as indicated by PMI Representation on the\nSummary worksheet.\n\nPMI Representation is found mainly in AP242 files.\n\nSee Help > PMI Representation"
-    tooltip::tooltip $buttons(optPMIGRF) "PMI Presentation (also known as graphical PMI) consists of geometric elements such as\nlines and arcs preserving the exact appearance (color, shape, positioning) of the GD&T\nannotations.  PMI Presentation is not intended to be computer-interpretable and does not\ncarry any representation information, although it can be linked to its corresponding\nPMI Representation.\n\nPMI Presentation annotations are defined in CAx-IF Recommended Practices.\nThe PMI Presentation information is reported in columns highlighted in yellow and green\non the Annotation_*_occurrence worksheets.\n\nAssociated presentation style, saved views, and PMI validation properties are also reported.\nA PMI coverage analysis worksheet is also generated.\nGraphical PMI can be viewed in a web browser.\n\nSee Help > PMI Presentation\nSee Help > Graphical PMI Viewer"
+    tooltip::tooltip $buttons(optPMIGRF) "PMI Presentation (also known as graphical PMI) consists of geometric elements such as\nlines and arcs preserving the exact appearance (color, shape, positioning) of the GD&T\nannotations.  PMI Presentation is not intended to be computer-interpretable and does not\ncarry any representation information, although it can be linked to its corresponding\nPMI Representation.\n\nPMI Presentation annotations are defined in CAx-IF Recommended Practices.\nThe PMI Presentation information is reported in columns highlighted in yellow and green\non the Annotation_*_occurrence worksheets.\n\nAssociated presentation style, saved views, and PMI validation properties are also reported.\nA PMI coverage analysis worksheet is also generated.\nGraphical PMI can be viewed in a web browser.\n\nSee Help > PMI Presentation\nSee Examples > Graphical PMI Viewer"
     tooltip::tooltip $buttons(optVALPROP) "Validation properties for geometry, assemblies, PMI, annotations,\nattributes, and tessellations are defined in CAx-IF Recommended Practices.\nThe property values are reported in columns highlighted in yellow and green\non the Property_definition worksheet.\n\nOther properties and User-Defined Attributes are also reported.\n\nSee Help > Validation Properties"
   }
   
@@ -454,7 +453,7 @@ proc guiProcessAndReports {} {
   pack $foptv4 -side top -anchor w -pady 0 -padx 25 -fill y  
   
   set foptv5 [frame $foptv.5 -bd 0]
-  foreach item {{" AP209 Analysis Model" opt(VIZFEA)}} {
+  foreach item {{" AP209 Finite Element Model" opt(VIZFEA)}} {
     regsub -all {[\(\)]} [lindex $item 1] "" idx
     set buttons($idx) [ttk::checkbutton $foptv5.$cb -text [lindex $item 0] \
       -variable [lindex $item 1] -command {
@@ -465,23 +464,11 @@ proc guiProcessAndReports {} {
   }
   pack $foptv5 -side top -anchor w -pady 0 -padx 0 -fill y
 
-  set foptv6 [frame $foptv.6 -bd 0]
-  set buttons(feaNodeType) [label $foptv6.l3 -text "Show nodes as:"]
-  pack $foptv6.l3 -side left -anchor w -padx 0 -pady 0 -ipady 0
-  set feaNodeType {{"Point" 1} {"Cube" 2}}
-  foreach item $feaNodeType {
-    set bn "feaNodeType[lindex $item 1]"            
-    set buttons($bn) [ttk::radiobutton $foptv6.$cb -variable opt(feaNodeType) -text [lindex $item 0] -value [lindex $item 1]]
-    pack $buttons($bn) -side left -anchor w -padx 2 -pady 0 -ipady 0
-    incr cb
-  }
-  pack $foptv6 -side top -anchor w -pady 0 -padx 25 -fill y  
-
   pack $foptv -side left -anchor w -pady {5 2} -padx 10 -fill both -expand true
   pack $foptrv -side top -anchor w -pady 0 -fill x
   catch {
-    tooltip::tooltip $buttons(optVIZPMI) "Graphical PMI (PMI Presentation) can be viewed in a web browser.  The color\nof the annotations can be modified.  Tessellated annotations are not supported.\n\nSee Help > PMI Presentation\nSee Help > Graphical PMI Viewer"
-    tooltip::tooltip $buttons(optVIZFEA) "See Help > Analysis Model\nSee Help > AP209 Viewer"
+    tooltip::tooltip $buttons(optVIZPMI) "Graphical PMI (PMI Presentation) can be viewed in a web browser.  The color\nof the annotations can be modified.  Tessellated annotations are not supported.\n\nSee Help > PMI Presentation\nSee Examples > Graphical PMI Viewer"
+    tooltip::tooltip $buttons(optVIZFEA) "See Help > Finite Element Model\nSee Examples > AP209 FEM Viewer"
   }
 }
 
@@ -844,7 +831,7 @@ proc guiSpreadsheet {} {
 #-------------------------------------------------------------------------------
 # help menu
 proc guiHelpMenu {} {
-  global Help opt nistVersion mytemp programfiles excelYear ifcsvrdir
+  global Examples Help opt nistVersion mytemp programfiles excelYear ifcsvrdir
 
   $Help add command -label "User's Guide (pdf)" -command {showUsersGuide}
   $Help add command -label "What's New" -command {whatsNew}
@@ -854,9 +841,7 @@ proc guiHelpMenu {} {
       .tnb select .tnb.status
       set lastupgrade [expr {round(([clock seconds] - $upgrade)/86400.)}]
       outputMsg "The last check for an update was $lastupgrade days ago." red
-      set os $tcl_platform(osVersion)
-      if {$pf64 != ""} {append os ".64"}
-      set url "http://ciks.cbt.nist.gov/cgi-bin/ctv/sfa_upgrade.cgi?version=[getVersion]&auto=-$lastupgrade&os=$os"
+      set url "http://ciks.cbt.nist.gov/cgi-bin/ctv/sfa_upgrade.cgi?version=[getVersion]&auto=-$lastupgrade"
       if {[info exists excelYear]} {if {$excelYear != ""} {append url "&yr=[expr {$excelYear-2000}]"}}
       openURL $url
     }
@@ -1113,7 +1098,7 @@ A PMI Presentation Coverage Analysis worksheet is generated.  See Help > PMI Cov
 PMI Presentation annotations can be viewed in a web browser.  The visualization is only of the
 graphical PMI, not the model geometry.  The graphical PMI file is named mystepfile_x3dom.html
 Filled characters are not filled.  Saved Views are ignored.  Tessellated annotations are not
-supported.
+supported.  See Examples > Graphical PMI Viewer
 
 PMI Presentation is defined by the CAx-IF Recommended Practices for:
   Representation and Presentation of Product Manufacturing Information (AP242)
@@ -1230,37 +1215,25 @@ Go to Websites > Recommended Practices to access documentation."
     .tnb select .tnb.status
   }
     
-  $Help add command -label "Analysis Model" -command {
-outputMsg "\nAnalysis Model -------------------------------------------------------------" blue
-outputMsg "The finite element analysis model in an AP209 file can be viewed in a web browser.  Nodes and
-elements are displayed.  Nodes can be displayed as a point or small cube.  If there are a lot of
-nodes, then nodes will always be displayed as points.  If there are a lot of solid elements, then
-the faces of the elements are not displayed.  In the viewer, nodes and elements can be toggled on
-and off.
+  $Help add command -label "Finite Element Model" -command {
+outputMsg "\nFinite Element Model -------------------------------------------------------" blue
+outputMsg "The finite element model in an AP209 file can be viewed in a web browser.  Nodes and elements are
+displayed.  If there are a lot of solid elements, then the faces of the elements are not displayed.
 
-The transparency of the elements can also be changed although it might not look correct
-particularly with solid elements.  
+In the viewer, nodes and elements can be toggled on and off.  The transparency of the elements can
+also be changed although it might not look correct particularly with solid elements.  
 
 All AP209 entities are always processed.  For large AP209 files, deselect Inverse Relationships.
-To only view the finite element model, select None in the Process section, select AP209
-Analysis Model, and deselect Open Spreadsheet (Spreadsheet tab).  If necessary, the spreadsheet can
-be opened with F2.
+To only view the finite element model, select None in the Process section, select AP209 Finite
+Element Model, and deselect Open Spreadsheet (Spreadsheet tab).  If necessary, the spreadsheet can
+be opened with F2.  All elements are processed regardless if Maximum Rows is set (Spreadsheet tab).
 
 The viewer is experimental and still under development.  The viewer is not optimized to work with
 very large finite element models.
 
-See Websites > STEP AP209 Project and Help > AP209 Viewer"
+See Websites > STEP AP209 Project and Examples > AP209 FEM Viewer"
     .tnb select .tnb.status
   }
-
-  $Help add separator
-  $Help add command -label "Sample STEP Files (zip)"                  -command {openURL https://s3.amazonaws.com/nist-el/mfg_digitalthread/NIST_CTC_STEP_PMI.zip}
-  $Help add command -label "Spreadsheet - PMI Representation"         -command {openURL https://www.nist.gov/file/331631}
-  $Help add command -label "Spreadsheet - PMI Presentation, ValProps" -command {openURL https://www.nist.gov/file/331656}
-  $Help add command -label "Spreadsheet - Coverage Analysis"          -command {openURL https://www.nist.gov/file/317951}
-  $Help add separator
-  $Help add command -label "Graphical PMI Viewer" -command {openURL https://pages.nist.gov/CAD-PMI-Testing/graphical-pmi-viewer.html}
-  $Help add command -label "AP209 Viewer"         -command {openURL https://pages.nist.gov/CAD-PMI-Testing/ap209-viewer.html}
 
   $Help add separator
 
@@ -1345,6 +1318,20 @@ might appear that say 'Unable to alloc xxx bytes'.  See the Help > Crash Recover
     }
     .tnb select .tnb.status
   }
+
+# examples menu  
+  $Examples add command -label "Sample STEP Files (zip)" -command {openURL https://s3.amazonaws.com/nist-el/mfg_digitalthread/NIST_CTC_STEP_PMI.zip}
+  $Examples add command -label "STEP File Library"       -command {openURL https://www.cax-if.org/library/index.html}
+  $Examples add command -label "AP203e2 Archive"         -command {openURL http://web.archive.org/web/20160812122922/http://www.steptools.com/support/stdev_docs/stpfiles/ap203e2/index.html}
+  $Examples add command -label "AP203 Archive"           -command {openURL http://web.archive.org/web/20160812122922/http://www.steptools.com/support/stdev_docs/stpfiles/ap203/index.html}
+  $Examples add command -label "AP214 Archive"           -command {openURL http://web.archive.org/web/20160903141712/http://www.steptools.com/support/stdev_docs/stpfiles/ap214/index.html}
+  $Examples add separator
+  $Examples add command -label "Spreadsheet - PMI Representation"         -command {openURL https://s3.amazonaws.com/nist-el/mfg_digitalthread/STEP-File-Analyzer-PMI-Representation_stp.xlsx}
+  $Examples add command -label "Spreadsheet - PMI Presentation, ValProps" -command {openURL https://s3.amazonaws.com/nist-el/mfg_digitalthread/STEP-File-Analyzer_stp.xlsx}
+  $Examples add command -label "Spreadsheet - PMI Coverage Analysis"      -command {openURL https://s3.amazonaws.com/nist-el/mfg_digitalthread/STEP-File-Analyzer-Coverage.xlsx}
+  $Examples add separator
+  $Examples add command -label "Graphical PMI Viewer" -command {openURL https://pages.nist.gov/CAD-PMI-Testing/graphical-pmi-viewer.html}
+  $Examples add command -label "AP209 FEM Viewer"     -command {openURL https://pages.nist.gov/CAD-PMI-Testing/ap209-viewer.html}
 }
 
 #-------------------------------------------------------------------------------
@@ -1352,17 +1339,17 @@ might appear that say 'Unable to alloc xxx bytes'.  See the Help > Crash Recover
 proc guiWebsitesMenu {} {
   global Websites
 
-  $Websites add command -label "STEP File Analyzer"     -command {openURL https://www.nist.gov/services-resources/software/step-file-analyzer}
-  $Websites add command -label "Source code on GitHub"  -command {openURL https://github.com/usnistgov/SFA}
-  $Websites add command -label "Journal of CAD Article" -command {openURL https://www.nist.gov/publications/conformance-checking-pmi-representation-cad-model-step-data-exchange-files}
+  $Websites add command -label "STEP File Analyzer"                        -command {openURL https://www.nist.gov/services-resources/software/step-file-analyzer}
+  $Websites add command -label "Conformance Checking of PMI in STEP Files" -command {openURL https://www.nist.gov/publications/conformance-checking-pmi-representation-cad-model-step-data-exchange-files}
+  $Websites add command -label "Journal of NIST Research citation"         -command {openURL https://www.nist.gov/publications/step-file-analyzer-software}
   $Websites add command -label "MBE PMI Validation Testing (free CAD models and STEP files)" -command {openURL https://www.nist.gov/el/systems-integration-division-73400/mbe-pmi-validation-and-conformance-testing}
   $Websites add command -label "Enabling the Digital Thread for Smart Manufacturing"         -command {openURL https://www.nist.gov/el/systems-integration-division-73400/enabling-digital-thread-smart-manufacturing}
+  $Websites add command -label "Source code on GitHub"                     -command {openURL https://github.com/usnistgov/SFA}
   
   $Websites add separator
   $Websites add command -label "CAx Implementor Forum (CAx-IF)" -command {openURL https://www.cax-if.org/}
   $Websites add command -label "Implementation Coverage"        -command {openURL https://www.cax-if.org/vendor_info.php}
   $Websites add command -label "STEP File Viewers"              -command {openURL https://www.cax-if.org/step_viewers.html}
-  $Websites add command -label "STEP File Library"              -command {openURL https://www.cax-if.org/library/index.html}
   $Websites add command -label "Recommended Practices"          -command {openURL https://www.cax-if.org/joint_testing_info.html#recpracs}
   
   $Websites add separator

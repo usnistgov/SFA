@@ -58,7 +58,6 @@ set opt(XL_SORT) 0
 set opt(writeDirType) 0
 set opt(XL_KEEPOPEN) 0
 set opt(XLSCSV) Excel
-set opt(feaNodeType) 1
 
 set coverageSTEP 0
 set dispCmd ""
@@ -203,10 +202,6 @@ if {$opt(PMISEM)}  {puts " PMI Representation Report"}
 if {$opt(PMIGRF)}  {puts " PMI Presentation Report"}
 if {$opt(VALPROP)} {puts " Validation Properties Report"}
 if {$opt(INVERSE)} {puts " Inverse Relationships"}
-#if {$opt(INVERSE)}  {
-#  set opt(INVERSE) 0
-#  puts " Inverse Relationships are not processed"
-#}
 
 set localName [lindex $argv 0]
 if {[string first ":" $localName] == -1} {set localName [file join [pwd] $localName]}

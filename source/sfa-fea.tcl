@@ -1,17 +1,17 @@
-proc feaStart {objDesign entType} {
+proc feaModel {objDesign entType} {
   global ent entAttrList entCount entLevel opt rowmax nprogEnts count
-  global x3domCoord x3domFile x3domIndex x3domIndex1 x3domFile x3domMin x3domMax x3domMsg
-  global feaType feaTypes feaElemTypes feaNodes feaFaces x3dwire x3delements
+  global x3domFile x3domIndex x3domIndex1 x3domFile x3domMin x3domMax x3domMsg
+  global feaType feaTypes feaElemTypes feaNodes feaFaces x3dmesh x3delements
 
-  if {$opt(DEBUG1)} {outputMsg "START feaStart $entType\n" red}
+  if {$opt(DEBUG1)} {outputMsg "START feaModel $entType\n" red}
 
 # finite elements
   set cartesian_point [list cartesian_point coordinates]
-  set node            [list node items $cartesian_point]
+  set node            [list node name items $cartesian_point]
   set dummy_node      [list dummy_node name items]
-  set curve_3d_element_descriptor   [list curve_3d_element_descriptor topology_order description]
-  set surface_3d_element_descriptor [list surface_3d_element_descriptor topology_order description Shape]
-  set volume_3d_element_descriptor  [list volume_3d_element_descriptor topology_order description purpose Shape]
+  set curve_3d_element_descriptor   [list curve_3d_element_descriptor description]
+  set surface_3d_element_descriptor [list surface_3d_element_descriptor description]
+  set volume_3d_element_descriptor  [list volume_3d_element_descriptor description]
   
   set FEA(curve_3d_element_representation)   [list curve_3d_element_representation   name node_list $node element_descriptor $curve_3d_element_descriptor]
   set FEA(surface_3d_element_representation) [list surface_3d_element_representation name node_list $node $dummy_node element_descriptor $surface_3d_element_descriptor]
@@ -27,19 +27,19 @@ proc feaStart {objDesign entType} {
   if {$entType == "surface_3d_element_representation"} {
     if {$entCount(surface_3d_element_representation) > 2000000} {
       set feaFaces(2D) 0
-      errorMsg "For surface_3d_element_representation, too many elements ($entCount(surface_3d_element_representation)) to display faces"
+      errorMsg "Too many 'surface_3d_element_representation' elements ($entCount(surface_3d_element_representation)) to display faces"
     }
   }
   set feaFaces(3D) 1
   if {$entType == "volume_3d_element_representation"} {
     if {$entCount(volume_3d_element_representation) > 200000} {
       set feaFaces(3D) 0
-      errorMsg "For volume_3d_element_representation, too many elements ($entCount(volume_3d_element_representation)) to display faces"
+      errorMsg "Too many 'volume_3d_element_representation' elements ($entCount(volume_3d_element_representation)) to display faces"
     }
   }
   catch {unset feaTypes}
 
-# process all *_element_representation entities, call feaReport
+# process all *_element_representation entities, call feaElements
   set n 0
   set startent [lindex $FEA($entType) 0]
   ::tcom::foreach objEntity [$objDesign FindObjects [join $startent]] {
@@ -49,11 +49,8 @@ proc feaStart {objDesign entType} {
           if {$n > 0} {outputMsg "  $n"}
           update idletasks
         }
-        if {$n > $rowmax} {
-         incr nprogEnts
-         if {[expr {$nprogEnts%1000}] == 0} {update idletasks}
-        }
-        feaReport $objEntity
+        if {$n > $rowmax} {incr nprogEnts}
+        feaElements $objEntity
         if {$opt(DEBUG1)} {outputMsg \n}
       }
       incr n
@@ -62,59 +59,50 @@ proc feaStart {objDesign entType} {
 
 # done processing entities, write fem  
 # coordinate min, max for node and axes size
-  foreach idx {x y z} {
-    set delt($idx) [expr {$x3domMax($idx)-$x3domMin($idx)}]
-    set xyzcen($idx) [format "%.4f" [expr {0.5*$delt($idx) + $x3domMin($idx)}]]
+  foreach xyz {x y z} {
+    set delt($xyz) [expr {$x3domMax($xyz)-$x3domMin($xyz)}]
+    set xyzcen($xyz) [format "%.4f" [expr {0.5*$delt($xyz) + $x3domMin($xyz)}]]
   }
 
   set maxxyz $delt(x)
   if {$delt(y) > $maxxyz} {set maxxyz $delt(y)}
   if {$delt(z) > $maxxyz} {set maxxyz $delt(z)}
 
-# save nodes
-  if {[llength $x3domCoord] > 4000 && $opt(feaNodeType) == 2} {
-    errorMsg "Too many Nodes to display as Cubes ([llength $x3domCoord]) for '$feaType\_element_representation'\n Switching to Nodes displayed as Points"
-    set opt(feaNodeType) 1
-  }
-  foreach coord $x3domCoord {lappend feaNodes $coord}
-
 # 1D elements
   if {$feaType == "curve_3d"} {
-    append x3delements "\n<Switch whichChoice='0' id='sw1D'>"
-    append x3delements "<Shape>\n <Appearance><Material emissiveColor='1 0 1'></Material></Appearance>"
-    append x3delements " <IndexedLineSet coordIndex='$x3domIndex'>"
-    foreach coord $x3domCoord {append coords "$coord "}
-    append x3delements "  <Coordinate point='$coords'></Coordinate></IndexedLineSet>\n</Shape>"
-    append x3delements "</Switch>"
+    append x3delements "\n<Switch whichChoice='0' id='sw1DElements'>"
+    append x3delements "\n <Shape><Appearance><Material emissiveColor='1 0 1'></Material></Appearance>"
+    append x3delements "\n  <IndexedLineSet coordIndex='$x3domIndex'>"
+    append x3delements "\n   <Coordinate USE='coords'></Coordinate></IndexedLineSet></Shape>"
+    append x3delements "\n</Switch>"
     unset x3domIndex    
 
 # 2D, 3D elements
   } else {
 
-# wireframe
-    append x3dwire "<Shape>\n <Appearance><Material emissiveColor='0 0 0'></Material></Appearance>"
-    append x3dwire " <IndexedLineSet coordIndex='$x3domIndex'>"
-    foreach coord $x3domCoord {append coords "$coord "}
-    append x3dwire "  <Coordinate point='$coords'></Coordinate></IndexedLineSet>\n</Shape>"
+# mesh
+    if {[info exists x3dmesh]} {append x3dmesh \n}
+    append x3dmesh " <Shape id='$feaType'><Appearance><Material emissiveColor='0 0 0'></Material></Appearance>"
+    append x3dmesh "\n  <IndexedLineSet coordIndex='$x3domIndex'>"
+    append x3dmesh "\n   <Coordinate USE='coords'></Coordinate></IndexedLineSet></Shape>"
     unset x3domIndex
 
 # faces
     if {[info exists x3domIndex1]} {
       if {$feaType == "surface_3d"} {
-        append x3delements "\n<Switch whichChoice='0' id='sw2D'><Group>"
+        append x3delements "\n<Switch whichChoice='0' id='sw2DElements'>"
         set dc "0 1 1"
         set id "mat2D"
       } else {
-        append x3delements "\n<Switch whichChoice='0' id='sw3D'><Group>"      
+        append x3delements "\n<Switch whichChoice='0' id='sw3DElements'>"      
         set dc "1 1 0"
         set id "mat3D"
       }
-      append x3delements "<Shape>\n <Appearance><Material id='$id' diffuseColor='$dc'></Material></Appearance>"
-      append x3delements " <IndexedFaceSet solid='FALSE' coordIndex='$x3domIndex1'>"
-      foreach coord $x3domCoord {append coords "$coord "}
-      append x3delements "  <Coordinate point='$coords'></Coordinate></IndexedFaceSet>\n</Shape>"
+      append x3delements "\n <Shape><Appearance><Material id='$id' diffuseColor='$dc'></Material></Appearance>"
+      append x3delements "\n  <IndexedFaceSet solid='FALSE' coordIndex='$x3domIndex1'>"
+      append x3delements "\n   <Coordinate USE='coords'></Coordinate></IndexedFaceSet></Shape>"
+      append x3delements "\n</Switch>"
       unset x3domIndex1
-      append x3delements "</Group></Switch>"
     }
   }
 
@@ -125,7 +113,7 @@ proc feaStart {objDesign entType} {
   if {$feaType == "curve_3d" && ![info exists entCount(surface_3d_element_representation)] && \
                                 ![info exists entCount(volume_3d_element_representation)]} {set writeX3DOM 1}
 
-# write wireframe, nodes, axes at the end of processing all element types
+# write mesh, nodes, axes at the end of processing all element types
   if {$writeX3DOM} {
 
 # coordinate axes    
@@ -138,32 +126,19 @@ proc feaStart {objDesign entType} {
     if {[info exists feaNodes]} {
       set nc 1
       set gsize [expr {$maxxyz/500.}]
-      puts $x3domFile "<Switch whichChoice='0' id='swND'><Group>"
-      if {$opt(feaNodeType) == 2} {
-        foreach coord $feaNodes {
-          if {$nc != 1} {
-            puts $x3domFile "<Transform translation='$coord'><Shape USE='node'></Shape></Transform>"
-          } else {
-            puts $x3domFile "<Transform translation='$coord'>\n <Shape DEF='node'>\n  <Appearance><Material diffuseColor='0 1 0'></Material></Appearance>\n  <Box size='$gsize $gsize $gsize'></Box>\n </Shape>\n</Transform>"
-            #puts $x3domFile "<Transform translation='$coord'>\n <Shape DEF='sphere'>\n  <Appearance><Material diffuseColor='0 1 0'></Material></Appearance>\n  <Sphere radius='$gsize'></Sphere>\n </Shape>\n</Transform>"
-          }
-          incr nc
-        }
-      } elseif {$opt(feaNodeType) == 1} {
-        puts $x3domFile "<Shape>\n <Appearance><Material emissiveColor='0 0.7 0'></Material></Appearance>"
-        puts $x3domFile " <PointSet>"
-        foreach coord $x3domCoord {append coords "$coord "}
-        puts $x3domFile "  <Coordinate point='$coords'></Coordinate></PointSet>\n</Shape>"
-      }
-      puts $x3domFile "</Group></Switch>"
+      puts $x3domFile "\n<Switch whichChoice='0' id='swNodes'>"
+      puts $x3domFile " <Shape><Appearance><Material emissiveColor='0 0 1'></Material></Appearance>"
+      foreach coord $feaNodes {append coords "$coord "}
+      puts $x3domFile "  <PointSet><Coordinate DEF='coords' point='$coords'></Coordinate></PointSet></Shape>"
+      puts $x3domFile "</Switch>"
     }
     
-# write wireframe
-    if {[info exists x3dwire]} {
-      puts $x3domFile "<Switch whichChoice='0' id='swWF'><Group>"
-      puts $x3domFile $x3dwire
+# write mesh
+    if {[info exists x3dmesh]} {
+      puts $x3domFile "\n<Switch whichChoice='0' id='swMesh'><Group>"
+      puts $x3domFile $x3dmesh
       puts $x3domFile "</Group></Switch>"
-      unset x3dwire
+      unset x3dmesh
     }
     
 # write elements
@@ -173,11 +148,12 @@ proc feaStart {objDesign entType} {
         unset x3delements
       }
     }
-
-    lappend x3domMsg "$entCount(node) - Nodes"
+    
+    lappend x3domMsg "[llength $feaNodes] - Nodes"
+    set ndiff [expr {$entCount(node)-[llength $feaNodes]}]
+    if {$ndiff != 0} {errorMsg "Some Nodes ($ndiff) are not associated with any Elements"}
     catch {unset feaNodes}
   }  
-  unset x3domCoord
   
   if {[info exists feaTypes]} {
     foreach item [array names feaTypes] {lappend x3domMsg "$feaTypes($item) - $item"}
@@ -185,16 +161,16 @@ proc feaStart {objDesign entType} {
 }
 
 # -------------------------------------------------------------------------------
-
-proc feaReport {objEntity} {
+proc feaElements {objEntity} {
   global badAttributes ent entAttrList entCount entLevel localName nistVersion opt
-  global x3domCoord x3domFile x3domFileName x3domFileOpen x3domIndex x3domIndex1 x3domMax x3domMin x3domPoint
-  global idx feaIndex feaType feaTypes firstID nnode nnodes feaFaces
+  global x3domFile x3domFileName x3domFileOpen x3domIndex x3domIndex1 x3domMax x3domMin x3domPoint
+  global idx feaIndex feaType feaTypes firstID nnode nnodes feaFaces nodeID feaNodes nodeArr nodeIndex
 
 # entLevel is very important, keeps track level of entity in hierarchy
   #outputMsg [$objEntity Type] red
   incr entLevel
   set ind [string repeat " " [expr {4*($entLevel-1)}]]
+  set idx(-1) -1
 
   if {[string first "handle" $objEntity] != -1} {
     set objType [$objEntity Type]
@@ -228,10 +204,10 @@ proc feaReport {objEntity} {
               if {$opt(DEBUG1)} {outputMsg "$ind   ATR $entLevel $objName - $objValue ($objNodeType, $objSize, $objAttrType)"}
 
 # referenced entities
-              if {[string first "handle" $objEntity] != -1} {feaReport $objValue}
+              if {[string first "handle" $objEntity] != -1} {feaElements $objValue}
             }
           } emsg3]} {
-            errorMsg "ERROR processing Analysis Model ($objNodeType $ent2): $emsg3"
+            errorMsg "ERROR processing FEM ($objNodeType $ent2): $emsg3"
           }
 
 # --------------
@@ -246,34 +222,33 @@ proc feaReport {objEntity} {
                 "dummy_node items" -
                 "cartesian_point coordinates" {
 # node index
-                  if {$objType == "cartesian_point"} {
-                    if {[info exists x3domCoord]} {
-                      set id [lsearch $x3domCoord $objValue]
-                      if {$id == -1} {
-                        lappend x3domCoord $objValue
-                        set id [expr {[llength $x3domCoord]-1}]
-                      }
-                    } else {
-                      lappend x3domCoord $objValue
-                      set id 0
-                    }
-                    set idx($nnode) $id
+                  if {[info exists nodeArr($nodeID)]} {
+                    set id $nodeArr($nodeID)
+                  } else {
+                    lappend feaNodes $objValue
+                    incr nodeIndex
+                    set nodeArr($nodeID) $nodeIndex
+                    set id $nodeIndex
                   }
+                  set idx($nnode) $id
 
 # element connectivity based on part 104 ordering               
                   incr nnode
                   if {$nnode == 1} {set firstID $id}
   
+# done reading nodes, write index
 # curve_3d
                   if {$nnode == $nnodes} {
                     if {$feaType == "curve_3d"} {
-                      if {$nnodes == 3} {
-                        foreach id {1 3 2} {append x3domIndex "$idx([expr {$id-1}]) "}
+                      if {$nnodes == 2} {
+                        foreach id [array names idx] {append x3domIndex "$idx($id) "}
+                      } elseif {$nnodes == 3} {
+                        foreach id {0 2 1} {append x3domIndex "$idx($id) "}
                       } elseif {$nnodes == 4} {
-                        foreach id {1 3 4 2} {append x3domIndex "$idx([expr {$id-1}]) "}
+                        foreach id {0 2 3 1} {append x3domIndex "$idx($id) "}
                       } else {
                         foreach id [lsort [array names idx]] {append x3domIndex "$idx($id) "}
-                        if {$nnodes > 4} {errorMsg "Unexpect number of nodes ($nnodes) for a $feaType element"}
+                        errorMsg "Unexpect number of nodes ($nnodes) for a $feaType element"
                       }
                       append x3domIndex "-1 "
                       unset idx
@@ -281,13 +256,9 @@ proc feaReport {objEntity} {
 # surface_3d, volume_3d (feaIndex)
                     } elseif {$feaType == "surface_3d" || $feaType == "volume_3d"} {
                       if {[info exists feaIndex($feaType,$nnodes,line)]} {
-                        foreach id $feaIndex($feaType,$nnodes,line) {
-                          if {$id != -1} {append x3domIndex "$idx([expr {$id-1}]) "} else {append x3domIndex "$id "}
-                        }
+                        foreach id $feaIndex($feaType,$nnodes,line) {append x3domIndex "$idx($id) "}
                         if {($feaFaces(2D) && $feaType == "surface_3d") || ($feaFaces(3D) && $feaType == "volume_3d")} {
-                          foreach id $feaIndex($feaType,$nnodes,surf) {
-                            if {$id != -1} {append x3domIndex1 "$idx([expr {$id-1}]) "} else {append x3domIndex1 "$id "}
-                          }
+                          foreach id $feaIndex($feaType,$nnodes,surf) {append x3domIndex1 "$idx($id) "}
                         }
                       } else {
                         foreach id [lsort [array names idx]] {append x3domIndex "$idx($id) "}
@@ -318,13 +289,13 @@ proc feaReport {objEntity} {
 
 # referenced entities
               if {[catch {
-                ::tcom::foreach val1 $objValue {feaReport $val1}
+                ::tcom::foreach val1 $objValue {feaElements $val1}
               } emsg]} {
-                foreach val2 $objValue {feaReport $val2}
+                foreach val2 $objValue {feaElements $val2}
               }
             }
           } emsg3]} {
-            errorMsg "ERROR processing Analysis Model ($objNodeType $ent2): $emsg3"
+            errorMsg "ERROR processing FEM ($objNodeType $ent2): $emsg3"
           }
 
 # ---------------------
@@ -343,16 +314,16 @@ proc feaReport {objEntity} {
                     set x3domFileName [file rootname $localName]_x3dom.html
                     catch {file delete -force $x3domFileName}
                     set x3domFile [open $x3domFileName w]
-                    outputMsg " Writing Analysis Model to: [truncFileName [file nativename $x3domFileName]]" green
-                    puts $x3domFile "<!DOCTYPE html>\n<html>\n<head>\n<title>[file tail $localName] | AP209 Analysis Model</title>\n<base target=\"_blank\">\n<meta http-equiv='Content-Type' content='text/html;charset=utf-8'/>\n<link rel='stylesheet' type='text/css' href='https://www.x3dom.org/x3dom/release/x3dom.css'/>\n<script type='text/javascript' src='https://www.x3dom.org/x3dom/release/x3dom.js'></script>"
+                    outputMsg " Writing FEM to: [truncFileName [file nativename $x3domFileName]]" green
+                    puts $x3domFile "<!DOCTYPE html>\n<html>\n<head>\n<title>[file tail $localName] | AP209 Finite Element Model</title>\n<base target=\"_blank\">\n<meta http-equiv='Content-Type' content='text/html;charset=utf-8'/>\n<link rel='stylesheet' type='text/css' href='https://www.x3dom.org/x3dom/release/x3dom.css'/>\n<script type='text/javascript' src='https://www.x3dom.org/x3dom/release/x3dom.js'></script>"
 
 # node, element checkbox script
-                    x3domScript ND
+                    x3domScript Nodes
                     if {[info exists entCount(surface_3d_element_representation)] || \
-                        [info exists entCount(volume_3d_element_representation)]}  {x3domScript WF}
-                    if {[info exists entCount(curve_3d_element_representation)]}   {x3domScript 1D}
-                    if {[info exists entCount(surface_3d_element_representation)]} {x3domScript 2D}
-                    if {[info exists entCount(volume_3d_element_representation)]}  {x3domScript 3D}
+                        [info exists entCount(volume_3d_element_representation)]}  {x3domScript Mesh}
+                    if {[info exists entCount(curve_3d_element_representation)]}   {x3domScript 1DElements}
+                    if {[info exists entCount(surface_3d_element_representation)]} {x3domScript 2DElements}
+                    if {[info exists entCount(volume_3d_element_representation)]}  {x3domScript 3DElements}
 
 # transparency script
                     if {[info exists entCount(surface_3d_element_representation)] || [info exists entCount(volume_3d_element_representation)]} {
@@ -363,22 +334,22 @@ proc feaReport {objEntity} {
                     }
                     puts $x3domFile "</head>"
 
-                    puts $x3domFile "\n<body><font face=\"arial\">\n<h3>AP209 Analysis Model:  [file tail $localName]</h3>"
+                    puts $x3domFile "\n<body><font face=\"arial\">\n<h3>AP209 Finite Element Model:  [file tail $localName]</h3>"
                     puts $x3domFile "<ul><li><a href=\"https://www.x3dom.org/documentation/interaction/\">Use the mouse</a> to rotate, pan, and zoom.  Use Page Down to switch between perspective and orthographic views."
-                    puts $x3domFile "<li>The viewer is experimental and not optimized for large models."
+                    puts $x3domFile "<li>The viewer is experimental and not optimized for large models.  Internal faces are not removed."
                     puts $x3domFile "</ul>"
 
 # node, element checkboxes
-                    puts $x3domFile "<input type='checkbox' checked onclick='togND(this.value)'/>Nodes&nbsp;&nbsp;"
+                    puts $x3domFile "<input type='checkbox' checked onclick='togNodes(this.value)'/>Nodes&nbsp;&nbsp;"
                     if {[info exists entCount(surface_3d_element_representation)] || \
-                        [info exists entCount(volume_3d_element_representation)]}  {puts $x3domFile "<input type='checkbox' checked onclick='togWF(this.value)'/>Wireframe&nbsp;&nbsp;"}
-                    if {[info exists entCount(curve_3d_element_representation)]}   {puts $x3domFile "<input type='checkbox' checked onclick='tog1D(this.value)'/>Curve_3D&nbsp;&nbsp;"}
-                    if {[info exists entCount(surface_3d_element_representation)]} {puts $x3domFile "<input type='checkbox' checked onclick='tog2D(this.value)'/>Surface_3D&nbsp;&nbsp;"}
-                    if {[info exists entCount(volume_3d_element_representation)]}  {puts $x3domFile "<input type='checkbox' checked onclick='tog3D(this.value)'/>Volume_3D&nbsp;&nbsp;"}
+                        [info exists entCount(volume_3d_element_representation)]}  {puts $x3domFile "<input type='checkbox' checked onclick='togMesh(this.value)'/>Mesh&nbsp;&nbsp;"}
+                    if {[info exists entCount(curve_3d_element_representation)]}   {puts $x3domFile "<input type='checkbox' checked onclick='tog1DElements(this.value)'/>Curve_3D&nbsp;&nbsp;"}
+                    if {[info exists entCount(surface_3d_element_representation)]} {puts $x3domFile "<input type='checkbox' checked onclick='tog2DElements(this.value)'/>Surface_3D&nbsp;&nbsp;"}
+                    if {[info exists entCount(volume_3d_element_representation)]}  {puts $x3domFile "<input type='checkbox' checked onclick='tog3DElements(this.value)'/>Volume_3D&nbsp;&nbsp;"}
 
 # transparency slider
                     if {[info exists entCount(surface_3d_element_representation)] || [info exists entCount(volume_3d_element_representation)]} {
-                      puts $x3domFile "<input style='width:80px' type='range' min='0' max='1' step='0.25' value='0' onchange='matTrans(this.value)'/>Transparency (might not appear correct)"
+                      puts $x3domFile "<input style='width:80px' type='range' min='0' max='0.8' step='0.2' value='0' onchange='matTrans(this.value)'/>Transparency (might not appear correct)"
                     }
                     puts $x3domFile "<table><tr><td>"
                     
@@ -396,10 +367,13 @@ proc feaReport {objEntity} {
 # can also use with topology_order, Shape                
                   incr feaTypes($objValue)
                 }
+                "node name" {
+                  set nodeID $objID
+                }
               }
             }
           } emsg3]} {
-            errorMsg "ERROR processing Analysis Model ($objNodeType $ent2): $emsg3"
+            errorMsg "ERROR processing FEM ($objNodeType $ent2): $emsg3"
             set entLevel 1
           }
         }

@@ -580,16 +580,13 @@ proc openMultiFile {{ask 1}} {
 # unset some variables for the multi-file summary 
           foreach var {excel1 worksheets1 worksheet1 cells1 row1 col1} {if {[info exists $var]} {unset $var}}
         }
-
         update idletasks
 
 # restore saved variables
         set opt(writeDirType) $writeDirTypeSav
         saveState
         $buttons(genExcel) configure -state normal
-        
       }
-      #close $f2
 
 # no files found
     } elseif {[info exists recurse]} {

@@ -67,7 +67,6 @@ set opt(DEBUG2) 0
 set opt(DEBUGINV) 0
 set opt(DISPGUIDE1) 1
 set opt(FIRSTTIME) 1
-set opt(feaNodeType) 1
 set opt(gpmiColor) 2
 set opt(indentGeometry) 0
 set opt(indentStyledItem) 0
@@ -187,7 +186,7 @@ if {[file exists $optionsFile]} {
                 XL_SCROLL PMIVRML PMIPROP SEMPROP PMIP EX_ANAL EX_ARBP EX_LP VPDBG \
                 PR_STEP_AP242_QUAL PR_STEP_AP242_CONS PR_STEP_AP242_MATH PR_STEP_AP242_KINE PR_STEP_AP242_OTHER PR_STEP_AP242_GEOM \
                 PR_STEP_AP209 PR_STEP_AP210 PR_STEP_AP238 PR_STEP_AP239 PR_STEP_AP203 PR_STEP_AP214 PR_STEP_OTHER \
-                PR_STEP_GEO PR_STEP_REP PR_STEP_ASPECT ROWLIM SORT GENX3DOM VIZ209} {
+                PR_STEP_GEO PR_STEP_REP PR_STEP_ASPECT ROWLIM SORT GENX3DOM VIZ209 feaNodeType} {
     catch {unset opt($item)}
   }
 }
@@ -215,7 +214,7 @@ guiStartWindow
 # top menu
 set Menu [menu .menubar]
 . config -men .menubar
-foreach m {File Websites Help} {
+foreach m {File Websites Examples Help} {
   set $m [menu .menubar.m$m -tearoff 1]
   .menubar add cascade -label $m -menu .menubar.m$m
 }
@@ -227,6 +226,7 @@ catch {
     if {[string first "Segoe" $ff] == -1} {
       $File     configure -font [list {Segoe UI}]
       $Websites configure -font [list {Segoe UI}]
+      $Examples configure -font [list {Segoe UI}]
       $Help     configure -font [list {Segoe UI}]
     }
   }
@@ -249,7 +249,8 @@ proc whatsNew {} {
   if {$sfaVersion > 0 && $sfaVersion < [getVersion]} {outputMsg "\nThe previous version of the STEP File Analyzer was: $sfaVersion" red}
 
 outputMsg "\nWhat's New (Version: [getVersion]  Updated: [string trim [clock format $progtime -format "%e %b %Y"]])" blue
-outputMsg "- New visualization of AP209 finite element models (Options tab, Help > Analysis Model)
+outputMsg "- Visualization of AP209 finite element models (Options tab, Help > Finite Element Model)
+- Examples menu
 - Improved reporting of PMI Annotation Saved Views and related recommended practices
 - Improved visualization of PMI Annotations (Options tab)
 - Automated checking of PMI Annotations in the NIST CAD models (Help > NIST CAD Models)
@@ -345,9 +346,7 @@ if {$nistVersion} {
       set choice [tk_messageBox -type yesno -default yes -title "Check for Update" \
         -message "Do you want to check for a newer version of the STEP File Analyzer?\n \nThe last check for an update was $lastupgrade days ago.\n \nYou can always check for an update with Help > Check for Update" -icon question]
       if {$choice == "yes"} {
-        set os $tcl_platform(osVersion)
-        if {$pf64 != ""} {append os ".64"}
-        set url "http://ciks.cbt.nist.gov/cgi-bin/ctv/sfa_upgrade.cgi?version=[getVersion]&auto=$lastupgrade&os=$os"
+        set url "http://ciks.cbt.nist.gov/cgi-bin/ctv/sfa_upgrade.cgi?version=[getVersion]&auto=$lastupgrade"
         if {[info exists excelYear]} {if {$excelYear != ""} {append url "&yr=[expr {$excelYear-2000}]"}}
         openURL $url
       }

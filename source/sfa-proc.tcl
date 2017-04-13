@@ -138,15 +138,6 @@ proc checkValues {} {
       $buttons(optPR_STEP_SHAP) configure -state normal
     }
   }
-  if {$opt(VIZFEA)} {
-    $buttons(feaNodeType) configure -state normal
-    $buttons(feaNodeType1) configure -state normal
-    $buttons(feaNodeType2) configure -state normal
-  } else {
-    $buttons(feaNodeType) configure -state disabled
-    $buttons(feaNodeType1) configure -state disabled
-    $buttons(feaNodeType2) configure -state disabled
-  }
   
 # user-defined entity list
   if {[info exists opt(PR_USER)]} {
@@ -184,15 +175,7 @@ proc checkValues {} {
       incr nopt $opt($idx)
     }
   }
-  if {$nopt == 0} {
-    set opt(PR_STEP_AP242) 1
-    set opt(PR_STEP_COMM) 1
-    set opt(PR_STEP_PRES) 1
-    set opt(PR_STEP_QUAN) 1
-    set opt(PR_STEP_REPR) 1
-    set opt(PR_STEP_SHAP) 1
-    set opt(PR_STEP_TOLR) 1
-  }
+  if {$nopt == 0} {set opt(PR_STEP_COMM) 1}
 }
 
 # -------------------------------------------------------------------------------------------------
@@ -635,7 +618,7 @@ proc runOpenProgram {} {
       }
 
 # validate everything
-      #set validate "FULL_VALIDATION,OUTPUT_STEPID"
+      #set edmValidate "FULL_VALIDATION,OUTPUT_STEPID"
 
 # not validating DERIVE, ARRAY_REQUIRED_ELEMENTS
       set edmValidate "GLOBAL_RULES,REQUIRED_ATTRIBUTES,ATTRIBUTE_DATA_TYPE,AGGREGATE_DATA_TYPE,AGGREGATE_SIZE,AGGREGATE_UNIQUENESS,OUTPUT_STEPID"
@@ -1743,7 +1726,7 @@ proc setHomeDir {} {
 }
 
 # -------------------------------------------------------------------------------
-# http://wiki.tcl.tk/1844
+# From http://wiki.tcl.tk/1844
 proc get_shortcut_filename {file} {
   set dir [file nativename [file dirname $file]]
   set tail [file nativename [file tail $file]]
