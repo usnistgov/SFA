@@ -336,15 +336,17 @@ set modelURLs [list nist_ctc_01_asme1_rd.pdf \
                     nist_ftc_11_asme1_rb.pdf]
 
 # -----------------------------------------------------------------------------------------------------
-# AP209 element index
+# AP209 element index based on ISO 10303 Part 104 ordering
+# line is for the wireframe mesh, surf is for faces of 2D elements, face is for faces of 3D elements
+# ordered so that normals point outward
 
-# tri
+# 2D tri
 set feaIndex(surface_3d,3,line) [list 0 1 2 0 -1] 
 set feaIndex(surface_3d,3,surf) [list 0 1 2 -1] 
 set feaIndex(surface_3d,6,line) [list 0 3 1 4 2 5 0 -1] 
 set feaIndex(surface_3d,6,surf) [list 0 3 5 -1 3 1 4 -1 3 4 5 -1 5 4 2 -1] 
 
-# quad
+# 2D quad
 set feaIndex(surface_3d,4,line) [list 0 1 2 3 0 -1] 
 set feaIndex(surface_3d,4,surf) [list 0 1 2 3 -1] 
 set feaIndex(surface_3d,8,line) [list 0 4 1 5 2 6 3 7 0 -1] 
@@ -352,29 +354,37 @@ set feaIndex(surface_3d,8,surf) [list 0 4 7 -1 4 1 5 -1 5 2 6 -1 6 3 7 -1 4 5 7 
 set feaIndex(surface_3d,9,line) [list 0 4 1 5 2 6 3 7 0 -1] 
 set feaIndex(surface_3d,9,surf) [list 0 4 7 -1 4 1 5 -1 5 2 6 -1 6 3 7 -1 4 8 7 -1 4 5 8 -1 7 8 6 -1 8 5 6 -1] 
 
-# tetra
-set feaIndex(volume_3d,4,line) [list 0 1 2 0 3 1 -1 2 3 -1] 
-set feaIndex(volume_3d,4,surf) [list 0 2 1 -1 0 1 3 -1 1 2 3 -1 2 0 3 -1] 
+# 3D tetra
+set feaIndex(volume_3d,4,line)  [list 0 1 2 0 3 1 -1 2 3 -1] 
+set feaIndex(volume_3d,4,face)  [list 0 2 1 -1 0 1 3 -1 1 2 3 -1 0 3 2 -1] 
 set feaIndex(volume_3d,10,line) [list 0 4 3 6 2 9 0 7 1 5 3 -1 1 8 2 -1] 
-set feaIndex(volume_3d,10,surf) [list 0 4 9 -1 9 4 6 -1 9 6 2 -1 4 3 6 -1 0 7 4 -1 7 5 4 -1 7 1 5 -1 4 5 3 -1 1 8 5 -1 8 6 5 -1 8 2 6 -1 5 6 3 -1 1 7 8 -1 7 9 8 -1 8 9 2 -1 7 0 9 -1] 
+set feaIndex(volume_3d,10,face) [list 0 9 2 8 1 7 -1 0 7 1 5 3 4 -1 1 8 2 6 3 5 -1 0 4 3 6 2 9 -1] 
 
-# pyra
-set feaIndex(volume_3d,5,line) [list 0 1 4 0 3 2 1 4 2 -1 3 2 4 3 0 4 -1] 
-set feaIndex(volume_3d,5,surf) [list 0 3 2 -1 1 3 2 -1 0 1 4 -1 1 2 4 -1 2 3 4 -1 3 0 4 -1] 
+# 3D pyra
+set feaIndex(volume_3d,5,line)  [list 0 1 4 0 3 2 1 4 2 -1 3 2 4 3 0 4 -1] 
+set feaIndex(volume_3d,5,face)  [list 0 3 2 1 -1 0 4 3 -1 2 3 4 -1 1 2 4 -1] 
 set feaIndex(volume_3d,13,line) [list 0 5 4 8 3 12 0 9 1 6 4 7 2 10 1 -1 0 9 1 -1 3 11 2 -1] 
-set feaIndex(volume_3d,13,surf) [list 0 5 4 8 3 12 -1 3 8 4 7 2 11 -1 2 7 4 6 1 10 -1 1 6 4 5 0 9 -1 0 12 3 11 2 10 1 9 -1] 
+set feaIndex(volume_3d,13,face) [list 0 5 4 8 3 12 -1 3 8 4 7 2 11 -1 2 7 4 6 1 10 -1 1 6 4 5 0 9 -1 0 12 3 11 2 10 1 9 -1] 
+set feaIndex(volume_3d,14,line) $feaIndex(volume_3d,13,line)
+set feaIndex(volume_3d,14,face) $feaIndex(volume_3d,13,face)
 
-# wedge
-set feaIndex(volume_3d,6,line) [list 0 1 2 0 -1 3 4 5 3 -1 0 3 -1 1 4 -1 2 5 -1] 
-set feaIndex(volume_3d,6,surf) [list 0 2 1 -1 3 4 5 -1 0 3 2 -1 2 3 5 -1 0 3 4 -1 0 4 1 -1 1 4 5 -1 1 5 2 -1] 
+# 3D wedge
+set feaIndex(volume_3d,6,line)  [list 0 1 2 0 -1 3 4 5 3 -1 0 3 -1 1 4 -1 2 5 -1] 
+set feaIndex(volume_3d,6,face)  [list 0 2 1 -1 3 4 5 -1 0 3 5 2 -1 0 1 4 3 -1 1 2 5 4 -1]
 set feaIndex(volume_3d,15,line) [list 0 6 3 12 4 7 1 9 0 11 2 8 5 14 3 -1 1 10 2 -1 4 13 5 -1] 
-set feaIndex(volume_3d,15,surf) [list 0 6 3 14 5 8 2 11 -1 2 8 5 13 4 7 1 10 -1 1 7 4 12 3 6 0 9 -1 0 11 2 10 1 9 -1 3 12 4 13 5 14 -1] 
+set feaIndex(volume_3d,15,face) [list 0 9 11 -1 1 9 10 -1 9 10 11 -1 2 10 11 -1 3 12 14 -1 4 12 13 -1 12 13 14 -1 5 13 14 -1 \
+                                      0 6 3 14 5 8 2 11 -1 0 9 1 7 4 12 3 6 -1 1 10 2 8 5 13 4 7 -1]
+set feaIndex(volume_3d,18,line) $feaIndex(volume_3d,15,line)
+set feaIndex(volume_3d,18,face) $feaIndex(volume_3d,15,face)
 
-# hexa
-set feaIndex(volume_3d,8,line) [list 0 1 2 3 0 -1 4 5 6 7 4 -1 0 4 -1 1 5 -1 2 6 -1 3 7 -1] 
-set feaIndex(volume_3d,8,surf) [list 0 3 1 -1 1 3 2 -1 0 4 3 -1 3 4 7 -1 3 7 6 -1 3 6 2 -1 0 4 5 -1 0 5 1 -1 1 5 6 -1 1 6 2 -1 5 4 7 -1 5 7 6 -1] 
+# 3D hexa
+set feaIndex(volume_3d,8,line)  [list 0 1 2 3 0 -1 4 5 6 7 4 -1 0 4 -1 1 5 -1 2 6 -1 3 7 -1] 
+set feaIndex(volume_3d,8,face)  [list 0 3 2 1 -1 0 4 7 3 -1 3 7 6 2 -1 4 5 6 7 -1 0 1 5 4 -1 1 2 6 5 -1]
 set feaIndex(volume_3d,20,line) [list 0 8 4 19 7 11 3 15 0 12 1 13 2 10 6 17 5 9 1 -1 3 14 2 -1 7 18 6 -1 4 16 5 -1] 
-set feaIndex(volume_3d,20,surf) [list 0 15 12 -1 12 15 13 -1 12 13 1 -1 15 3 14 -1 13 15 14 -1 13 14 2 -1 0 8 15 -1 15 8 19 -1 8 4 19 -1 15 11 3 -1 15 19 11 -1 11 19 7 -1 3 11 14 -1 14 11 18 -1 11 7 18 -1 14 10 2 -1 14 18 10 -1 10 18 6 -1 0 8 12 -1 12 8 16 -1 8 4 16 -1 12 9 1 -1 12 16 9 -1 9 16 5 -1 1 9 13 -1 13 9 17 -1 9 5 17 -1 13 17 10 -1 13 10 2 -1 10 17 6 -1 4 19 16 -1 16 19 17 -1 5 16 17 -1 19 7 18 -1 19 18 17 -1 17 18 6 -1] 
+set feaIndex(volume_3d,20,face) [list 0 15 3 14 2 13 1 12 -1 0 8 4 19 7 11 3 15 -1 3 11 7 18 6 10 2 14 -1 \
+                                      4 16 5 17 6 18 7 19 -1 0 12 1 9 5 16 4 8 -1 1 13 2 10 6 17 5 9 -1]
+set feaIndex(volume_3d,27,line) $feaIndex(volume_3d,20,line)
+set feaIndex(volume_3d,27,face) $feaIndex(volume_3d,20,face)
 
 # -----------------------------------------------------------------------------------------------------
 # STEP geometry

@@ -282,7 +282,7 @@ proc guiProcessAndReports {} {
     if {[info exists entCategory($tt)]} {
       set ttmsg "[string trim [lindex $item 0]] entities ([llength $entCategory($tt)])  These entities are found in most APs.\nSee Help > Supported STEP APs and Websites > EXPRESS Schemas\n\n"
       if {$tt != "PR_STEP_COMM"} {
-        set ttmsg [processToolTip $ttmsg $tt 120]
+        set ttmsg [guiToolTip $ttmsg $tt 120]
       } else {
         append ttmsg "All AP-specific entities from APs other than AP203, AP214, and AP242 are always processed."
       }
@@ -314,7 +314,7 @@ proc guiProcessAndReports {} {
       } elseif {$tt == "PR_STEP_CPNT"} {
         append ttmsg "\n\nFor large STEP files, this option can slow down the processing of the file and increase the size of the spreadsheet.\nUse Maximum Rows options to speed up the processing of these entities.\n\n"
       }
-      set ttmsg [processToolTip $ttmsg $tt]
+      set ttmsg [guiToolTip $ttmsg $tt]
       catch {tooltip::tooltip $buttons($idx) $ttmsg}
     }
   }
@@ -421,9 +421,9 @@ proc guiProcessAndReports {} {
   
   pack $foptd -side left -anchor w -pady {5 2} -padx 10 -fill both -expand true
   catch {
-    tooltip::tooltip $buttons(optPMISEM) "PMI Representation includes all information necessary to represent GD&T without any\ngraphical presentation elements.  PMI Representation is associated with CAD model\ngeometry and is computer-interpretable to facilitate automated consumption by\ndownstream applications for manufacturing, measurement, inspection, and other processes.\n\nPMI Representation information is defined in a CAx-IF Recommended Practices\nand is reported for Dimensional Tolerances, Geometric Tolerances, and Datum Features.\nThe results are reported on various entities as indicated by PMI Representation on the\nSummary worksheet.\n\nPMI Representation is found mainly in AP242 files.\n\nSee Help > PMI Representation"
-    tooltip::tooltip $buttons(optPMIGRF) "PMI Presentation (also known as graphical PMI) consists of geometric elements such as\nlines and arcs preserving the exact appearance (color, shape, positioning) of the GD&T\nannotations.  PMI Presentation is not intended to be computer-interpretable and does not\ncarry any representation information, although it can be linked to its corresponding\nPMI Representation.\n\nPMI Presentation annotations are defined in CAx-IF Recommended Practices.\nThe PMI Presentation information is reported in columns highlighted in yellow and green\non the Annotation_*_occurrence worksheets.\n\nAssociated presentation style, saved views, and PMI validation properties are also reported.\nA PMI coverage analysis worksheet is also generated.\nGraphical PMI can be viewed in a web browser.\n\nSee Help > PMI Presentation\nSee Examples > Graphical PMI Viewer"
-    tooltip::tooltip $buttons(optVALPROP) "Validation properties for geometry, assemblies, PMI, annotations,\nattributes, and tessellations are defined in CAx-IF Recommended Practices.\nThe property values are reported in columns highlighted in yellow and green\non the Property_definition worksheet.\n\nOther properties and User-Defined Attributes are also reported.\n\nSee Help > Validation Properties"
+    tooltip::tooltip $buttons(optPMISEM)  "See Help > PMI Representation"
+    tooltip::tooltip $buttons(optPMIGRF)  "See Help > PMI Presentation\nSee Examples > Graphical PMI Viewer"
+    tooltip::tooltip $buttons(optVALPROP) "See Help > Validation Properties"
   }
   
 # visualize
@@ -467,7 +467,7 @@ proc guiProcessAndReports {} {
   pack $foptv -side left -anchor w -pady {5 2} -padx 10 -fill both -expand true
   pack $foptrv -side top -anchor w -pady 0 -fill x
   catch {
-    tooltip::tooltip $buttons(optVIZPMI) "Graphical PMI (PMI Presentation) can be viewed in a web browser.  The color\nof the annotations can be modified.  Tessellated annotations are not supported.\n\nSee Help > PMI Presentation\nSee Examples > Graphical PMI Viewer"
+    tooltip::tooltip $buttons(optVIZPMI) "See Help > PMI Presentation\nSee Examples > Graphical PMI Viewer"
     tooltip::tooltip $buttons(optVIZFEA) "See Help > Finite Element Model\nSee Examples > AP209 FEM Viewer"
   }
 }
@@ -1097,8 +1097,8 @@ A PMI Presentation Coverage Analysis worksheet is generated.  See Help > PMI Cov
 
 PMI Presentation annotations can be viewed in a web browser.  The visualization is only of the
 graphical PMI, not the model geometry.  The graphical PMI file is named mystepfile_x3dom.html
-Filled characters are not filled.  Saved Views are ignored.  Tessellated annotations are not
-supported.  See Examples > Graphical PMI Viewer
+The color of the annotations can be modified.  Filled characters are not filled.  Saved Views
+are ignored.  Tessellated annotations are not supported.  See Examples > Graphical PMI Viewer
 
 PMI Presentation is defined by the CAx-IF Recommended Practices for:
   Representation and Presentation of Product Manufacturing Information (AP242)
@@ -1217,19 +1217,19 @@ Go to Websites > Recommended Practices to access documentation."
     
   $Help add command -label "Finite Element Model" -command {
 outputMsg "\nFinite Element Model -------------------------------------------------------" blue
-outputMsg "The finite element model in an AP209 file can be viewed in a web browser.  Nodes and elements are
-displayed.  If there are a lot of solid elements, then the faces of the elements are not displayed.
+outputMsg "An AP209 finite element model can be viewed in a web browser (Options tab).  Nodes, mesh, and
+elements are displayed which can be toggled on and off in the viewer.  Internal faces for solid
+elements are not displayed.  The elements can be made transparent although it might not look correct.
 
-In the viewer, nodes and elements can be toggled on and off.  The transparency of the elements can
-also be changed although it might not look correct particularly with solid elements.  
+For very large finite element models, there might be insufficient memory to process all of the
+elements.
 
-All AP209 entities are always processed.  For large AP209 files, deselect Inverse Relationships.
-To only view the finite element model, select None in the Process section, select AP209 Finite
-Element Model, and deselect Open Spreadsheet (Spreadsheet tab).  If necessary, the spreadsheet can
-be opened with F2.  All elements are processed regardless if Maximum Rows is set (Spreadsheet tab).
-
-The viewer is experimental and still under development.  The viewer is not optimized to work with
-very large finite element models.
+All AP209 entities are always processed unless a User-defined list is used.  For large AP209 files,
+deselect Inverse Relationships.  To only view the finite element model, select None in the Process
+section, select AP209 Finite Element Model, and deselect Open Spreadsheet (Spreadsheet tab).  If
+necessary, the spreadsheet can be opened with F2.  All elements are processed regardless if Maximum
+Rows is set (Spreadsheet tab).  To write 'node' entities to the spreadsheet select Coordinates in
+the Options tab.
 
 See Websites > STEP AP209 Project and Examples > AP209 FEM Viewer"
     .tnb select .tnb.status
@@ -1435,7 +1435,7 @@ proc showUsersGuide {} {
 }
  
 #-------------------------------------------------------------------------------
-proc processToolTip {ttmsg tt {ttlim 120}} {
+proc guiToolTip {ttmsg tt {ttlim 120}} {
   global entCategory
  
   set ttlen 0

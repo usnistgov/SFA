@@ -1,6 +1,7 @@
 proc gpmiAnnotation {objDesign entType} {
   global ao aoEntTypes cells col entLevel ent entAttrList gpmiRow nindex opt pmiCol pmiHeading pmiStartCol
   global recPracNames stepAP syntaxErr x3domColor x3domCoord x3domFile x3domIndex x3domShape x3domMsg
+  global geomType
 
   if {$opt(DEBUG1)} {outputMsg "START gpmiAnnotation $entType" red}
 
@@ -29,13 +30,12 @@ proc gpmiAnnotation {objDesign entType} {
 # curve and fill style
   set colour      [list colour_rgb name red green blue]
   set curve_style [list presentation_style_assignment styles [list curve_style name curve_colour $colour [list draughting_pre_defined_colour name]]]
-  #set curve_style [list presentation_style_assignment styles [list curve_style name curve_font curve_width curve_colour $colour [list draughting_pre_defined_colour name]]]
   set fill_style  [list presentation_style_assignment styles [list surface_style_usage style [list surface_side_style styles [list surface_style_fill_area fill_area [list fill_area_style name fill_styles [list fill_area_style_colour fill_colour $colour [list draughting_pre_defined_colour name]]]]]]]
 
   set geometric_curve_set  [list geometric_curve_set name elements $polyline $circle $trimmed_curve $composite_curve]
   set annotation_fill_area [list annotation_fill_area name boundaries $polyline $circle $trimmed_curve]
 
-# annotation occurrence (clean up)
+# annotation occurrences
   set PMIP(annotation_occurrence)             [list annotation_occurrence name styles $curve_style item $geometric_curve_set]
   set PMIP(annotation_curve_occurrence)       [list annotation_curve_occurrence name styles $curve_style item $geometric_curve_set]
   set PMIP(annotation_curve_occurrence_and_geometric_representation_item) [list annotation_curve_occurrence_and_geometric_representation_item name styles $curve_style item $geometric_curve_set]
@@ -43,11 +43,12 @@ proc gpmiAnnotation {objDesign entType} {
   set PMIP(draughting_annotation_occurrence)  [list draughting_annotation_occurrence name styles $curve_style item $geometric_curve_set]
   set PMIP(draughting_annotation_occurrence_and_geometric_representation_item) [list draughting_annotation_occurrence_and_geometric_representation_item name styles $curve_style item $geometric_curve_set]
   set PMIP(tessellated_annotation_occurrence) [list tessellated_annotation_occurrence name styles $curve_style item $tessellated_geometric_set $repo_tessellated_geometric_set]
-
-  set geometric_set  [list geometric_set name elements $cartesian_point $a2p3d]
-  set PMIP(annotation_placeholder_occurrence) [list annotation_placeholder_occurrence name styles $curve_style item $geometric_set]
-
   #set PMIP(over_riding_styled_item_and_tessellated_annotation_occurrence) [list over_riding_styled_item_and_tessellated_annotation_occurrence name styles $curve_style item $tessellated_geometric_set $repo_tessellated_geometric_set]
+
+# annotation placeholder
+  set planar_box    [list planar_box size_in_x size_in_y placement $a2p3d]
+  set geometric_set [list geometric_set name elements $cartesian_point $a2p3d $planar_box]
+  set PMIP(annotation_placeholder_occurrence) [list annotation_placeholder_occurrence name styles $curve_style item $geometric_set]
     
 # generate correct PMIP variable accounting for variations like characterized_object
   if {![info exists PMIP($entType)]} {
@@ -68,6 +69,7 @@ proc gpmiAnnotation {objDesign entType} {
   set nindex 0
   set x3domShape 0
   set gpmiRow($ao) {}
+  set geomType ""
   if {![info exists x3domMsg]} {set x3domMsg {}}
 
   if {[info exists pmiHeading]} {unset pmiHeading}
@@ -157,11 +159,11 @@ proc gpmiAnnotation {objDesign entType} {
 # -------------------------------------------------------------------------------
 
 proc gpmiAnnotationReport {objEntity} {
-  global ao aoname assocGeom avgX3domColor badAttributes cells circleCenter col currX3domPointID curveTrim dirRatio dirType draftModelCameras
+  global ao aoname assocGeom avgX3domColor badAttributes boxSize cells circleCenter col currX3domPointID curveTrim dirRatio dirType draftModelCameras
   global entLevel ent entAttrList entCount geomType gpmiEnts gpmiID gpmiIDRow gpmiOK gpmiRow gpmiTypes gpmiTypesInvalid gpmiTypesPerFile gpmiValProp
   global iCompCurve iCompCurveSeg incrcol iPolyline localName nindex numCompCurve numCompCurveSeg numPolyline numX3domPointID
   global objEntity1 opt pmiCol pmiColumns pmiHeading pmiStartCol pointLimit prefix propDefIDS recPracNames savedViewCol stepAP syntaxErr 
-  global x3domColor x3domCoord x3domFile x3domFileName x3domFileOpen x3domIndex x3domMax x3domMin x3domPoint x3domPointID x3domShape x3domMsg
+  global x3domColor x3domCoord x3domFile x3domFileName x3domStartFile x3domIndex x3domMax x3domMin x3domPoint x3domPointID x3domShape x3domMsg
   global nistVersion
 
   #outputMsg "gpmiAnnotationReport" red
@@ -183,7 +185,7 @@ proc gpmiAnnotationReport {objEntity} {
     set ent($entLevel) $objType
     if {$entLevel == 1} {set objEntity1 $objEntity}
 
-    if {$opt(DEBUG1) && $objType != "cartesian_point"} {outputMsg "$ind ENT $entLevel #$objID=$objType (ATR=[$objAttributes Count])" blue}
+    if {$opt(DEBUG1) && $geomType != "polyline"} {outputMsg "$ind ENT $entLevel #$objID=$objType (ATR=[$objAttributes Count])" blue}
     #if {$entLevel == 1} {outputMsg "#$objID=$objType" blue}
 
 # check if there are rows with ao
@@ -328,7 +330,8 @@ proc gpmiAnnotationReport {objEntity} {
         } elseif {$objNodeType == 20} {
           if {[catch {
             if {$idx != -1} {
-              if {$opt(DEBUG1) && $objName != "coordinates"} {outputMsg "$ind   ATR $entLevel $objName - $objValue ($objNodeType, $objSize, $objAttrType)"}
+              if {$opt(DEBUG1) && $geomType != "polyline"} {outputMsg "$ind   ATR $entLevel $objName - $objValue ($objNodeType, $objSize, $objAttrType)"}
+              #if {$opt(DEBUG1) && $objName != "coordinates"} {outputMsg "$ind   ATR $entLevel $objName - $objValue ($objNodeType, $objSize, $objAttrType)"}
           
 # start of a list of cartesian points, assuming it is for a polyline, entLevel = 3
               if {$objAttrType == "ListOfcartesian_point" && $entLevel == 3} {
@@ -343,9 +346,7 @@ proc gpmiAnnotationReport {objEntity} {
                 incr iPolyline
     
                 set str ""
-                for {set i 0} {$i < $objSize} {incr i} {
-                  append x3domIndex "[expr {$i+$nindex}] "
-                }
+                for {set i 0} {$i < $objSize} {incr i} {append x3domIndex "[expr {$i+$nindex}] "}
                 append x3domIndex "-1 "
                 incr nindex $objSize
               }
@@ -363,8 +364,7 @@ proc gpmiAnnotationReport {objEntity} {
 
 # entLevel = 4 for polyline
                       if {$entLevel == 4 && $geomType == "polyline"} {
-                        append x3domCoord "[format "%.4f" [lindex $objValue 0]] [format "%.4f" [lindex $objValue 1]] [format "%.4f" [lindex $objValue 2]] " 
-    
+                        foreach idx {0 1 2} {append x3domCoord "[format "%.4f" [lindex $objValue $idx]] " }
                         set x3domPoint(x) [lindex $objValue 0]
                         set x3domPoint(y) [lindex $objValue 1]
                         set x3domPoint(z) [lindex $objValue 2]
@@ -375,21 +375,34 @@ proc gpmiAnnotationReport {objEntity} {
                           if {$x3domPoint($idx) < $x3domMin($idx)} {set x3domMin($idx) $x3domPoint($idx)}
                         }
 
-# write coord and index to X3DOM file for polyline
-                        if {$entLevel == 4} {
-                          if {$iPolyline == $numPolyline && $currX3domPointID == $numX3domPointID} {
-                            outputMsg "polyline" blue
-                            puts $x3domFile " <IndexedLineSet coordIndex='[string trim $x3domIndex]'>\n  <Coordinate point='[string trim $x3domCoord]'></Coordinate>\n </IndexedLineSet>\n</Shape>"
-                            set x3domCoord ""
-                            set x3domIndex ""
-                            set x3domShape 0
-                            set x3domColor ""
-                          }
-                        }             
-
 # circle center
                       } elseif {$geomType == "circle"} {
                         set circleCenter $objValue
+
+# planar_box corner
+                      } elseif {$geomType == "planar_box"} {
+                        set x3domPoint(x) [lindex $objValue 0]
+                        set x3domPoint(y) [lindex $objValue 1]
+                        set x3domPoint(z) [lindex $objValue 2]
+                        foreach idx {x y z} {
+                          if {$x3domPoint($idx) > $x3domMax($idx)} {set x3domMax($idx) $x3domPoint($idx)}
+                          if {$x3domPoint($idx) < $x3domMin($idx)} {set x3domMin($idx) $x3domPoint($idx)}
+                        }
+
+# write corners
+                        foreach idx {0 1 2} {append x3domCoord "[format "%.4f" [lindex $objValue $idx]] " }
+
+                        append x3domCoord "[format "%.4f" [expr {[lindex $objValue 0]+$boxSize(x)}]] " 
+                        foreach idx {1 2} {append x3domCoord "[format "%.4f" [lindex $objValue $idx]] " }
+
+                        append x3domCoord "[format "%.4f" [lindex $objValue 0]] "
+                        append x3domCoord "[format "%.4f" [expr {[lindex $objValue 1]+$boxSize(y)}]] " 
+                        append x3domCoord "[format "%.4f" [lindex $objValue 2]] "
+
+                        append x3domCoord "[format "%.4f" [expr {[lindex $objValue 0]+$boxSize(x)}]] " 
+                        append x3domCoord "[format "%.4f" [expr {[lindex $objValue 1]+$boxSize(y)}]] " 
+                        append x3domCoord "[format "%.4f" [lindex $objValue 2]] "
+                        append x3domIndex "0 1 3 2 0 -1 "
                       }
                     }
                   }
@@ -610,7 +623,7 @@ proc gpmiAnnotationReport {objEntity} {
                         set curveTrim([$a0 Name]) $val
                       }
                     }
-                    errorMsg "Trimmed circles in PMI annotations might have the wrong orientation."
+                    errorMsg " Trimmed circles in PMI annotations might have the wrong orientation."
                     set msg "Trimmed circles might have the wrong orientation."
                     if {[lsearch $x3domMsg $msg] == -1} {lappend x3domMsg $msg}
                   }
@@ -620,6 +633,7 @@ proc gpmiAnnotationReport {objEntity} {
                       set col($ao) [expr {$pmiStartCol($ao)+2}]
                     }
                   }
+                  "geometric_set name" -
                   "geometric_curve_set name" -
                   "annotation_fill_area name" -
                   "*tessellated_geometric_set name" {
@@ -714,6 +728,14 @@ proc gpmiAnnotationReport {objEntity} {
                   "polyline name" {set geomType "polyline"}
                   "circle name"   {set geomType "circle"}
                   "composite_curve name" {set iCompCurveSeg 0}
+                  "planar_box size_in_*" {
+                    set geomType "planar_box"
+                    if {[string first "y" $ent1] != -1} {
+                      set boxSize(y) $objValue
+                    } else {
+                      set boxSize(x) $objValue
+                    }
+                  }
                 }
 
 # value in spreadsheet
@@ -735,7 +757,8 @@ proc gpmiAnnotationReport {objEntity} {
 
 # look for correct PMI name on 
 # geometric_curve_set  annotation_fill_area  tessellated_geometric_set  composite_curve
-                  if {$ent1 == "geometric_curve_set name"  || \
+                  if {$ent1 == "geometric_curve_set name" || \
+                      $ent1 == "geometric_set name" || \
                       $ent1 == "annotation_fill_area name" || \
                       $ent1 == "tessellated_geometric_set name" || \
                       $ent1 == "repositioned_tessellated_item_and_tessellated_geometric_set name" || \
@@ -799,8 +822,8 @@ proc gpmiAnnotationReport {objEntity} {
 # start X3DOM file
                     if {$opt(VIZPMI)} {
                       if {[string first "tessellated" $ao] == -1} {
-                        if {$x3domFileOpen} {
-                          set x3domFileOpen 0
+                        if {$x3domStartFile} {
+                          set x3domStartFile 0
                           set x3domFileName [file rootname $localName]_x3dom.html
                           catch {file delete -force $x3domFileName}
                           set x3domFile [open $x3domFileName w]
@@ -1416,7 +1439,7 @@ proc x3domViewpoints {} {
   if {$delt(y) > $maxxyz} {set maxxyz $delt(y)}
   if {$delt(z) > $maxxyz} {set maxxyz $delt(z)}
   set cor "centerOfRotation='$xyzcen(x) $xyzcen(y) $xyzcen(z)'"
-  puts $x3domFile "\n<Viewpoint $cor position='$xyzcen(x) [trimNum [expr {0. - ($xyzcen(y) + 1.2*$maxxyz)}]] $xyzcen(z)' orientation='1 0 0 1.5708' description='Front'></Viewpoint>"
+  puts $x3domFile "\n<Viewpoint $cor position='$xyzcen(x) [trimNum [expr {0. - ($xyzcen(y) + 1.4*$maxxyz)}]] $xyzcen(z)' orientation='1 0 0 1.5708' description='Front'></Viewpoint>"
   set fov [trimNum [expr {$delt(z)*0.5 + $delt(y)*0.5}]]
   puts $x3domFile "<OrthoViewpoint fieldOfView='\[-$fov,-$fov,$fov,$fov\]' $cor position='$xyzcen(x) [trimNum [expr {0. - ($xyzcen(y) + 1.4*$maxxyz)}]] $xyzcen(z)' orientation='1 0 0 1.5708' description='Ortho'></OrthoViewpoint>"  
   puts $x3domFile "<NavigationInfo type='\"EXAMINE\" \"ANY\"'></NavigationInfo>"
@@ -1429,7 +1452,7 @@ proc x3domViewpoints {} {
     if {($acolor < 0.2 || $opt(gpmiColor) == 1) && $opt(gpmiColor) != 2} {set ok 1}
 
     if {[info exists entCount(tessellated_annotation_occurrence)]} {lappend x3domMsg "Segments of the PMI annotations modeled with tessellated geometry are not displayed."}
-    if {[info exists entCount(annotation_placeholder_occurrence)]} {lappend x3domMsg "Annotation placeholders are not displayed."}
+    #if {[info exists entCount(annotation_placeholder_occurrence)]} {lappend x3domMsg "Annotation placeholders are not displayed."}
 
 # AP209 color
   } else {
@@ -1482,7 +1505,7 @@ proc openX3DOM {} {
   
   if {($opt(VIZPMI) || $opt(VIZFEA)) && $x3domFileName != "" && $multiFile == 0} {
     set str "PMI Presentation Annotations"
-    if {[string first "AP209" $stepAP] != -1} {set str "Finite Element Model"}
+    if {[string first "AP209" $stepAP] != -1} {set str "AP209 Finite Element Model"}
     outputMsg "Opening $str in the default Web Browser" blue
     if {[catch {
       exec {*}[auto_execok start] "" $x3domFileName

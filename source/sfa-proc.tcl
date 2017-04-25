@@ -976,35 +976,6 @@ proc getFirstFile {} {
 }
 
 #-------------------------------------------------------------------------------
-proc findFile {startDir {recurse 0}} {
-  global fileList
-  
-  set pwd [pwd]
-  if {[catch {cd $startDir} err]} {
-    errorMsg $err
-    return
-  }
-
-  set exts {".stp" ".step" ".p21" ".stpz"}
-
-  foreach match [glob -nocomplain -- *] {
-    foreach ext $exts {
-      if {[file extension [string tolower $match]] == $ext} {
-        if {$ext != ".stpz" || ![file exists [string range $match 0 end-1]]} {
-          lappend fileList [file join $startDir $match]
-        }
-      }
-    }
-  }
-  if {$recurse} {
-    foreach file [glob -nocomplain *] {
-      if {[file isdirectory $file]} {findFile [file join $startDir $file] $recurse}
-    }
-  }
-  cd $pwd
-}
-
-#-------------------------------------------------------------------------------
 proc addFileToMenu {} {
   global openFileList localName File buttons
 
@@ -1789,19 +1760,6 @@ proc create_shortcut {file args} {
     return 1
   }
   return 0
-}
- 
-#-------------------------------------------------------------------------------
-proc memusage {{str ""}} {
-  global anapid lastmem
-  
-  if {[info exists anapid]} {
-    if {![info exists lastmem]} {set lastmem 0}
-    set mem [lindex [twapi::get_process_info $anapid -workingset] 1]
-    set dmem [expr {$mem-$lastmem}]
-    outputMsg "  $str  dmem [expr {$dmem/1000}]  mem [expr {$mem/1000}]" red
-    set lastmem $mem
-  }
 }
 
 #-------------------------------------------------------------------------------

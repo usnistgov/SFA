@@ -5,18 +5,18 @@ proc genExcel {{numFile 0}} {
   global cells cells1 col col1 comma count coverageLegend readPMI noPSA csvdirnam csvfile
   global developer dim entCategories entCategory entColorIndex entCount entityCount entsIgnored env errmsg
   global excel excelVersion excelYear extXLS fcsv feaElemTypes File fileEntity skipEntities skipPerm gpmiTypesPerFile idxColor inverses
-  global lastXLS lenfilelist localName localNameList multiFile multiFileDir nistName nistVersion nodeIndex nprogEnts
+  global lastXLS lenfilelist localName localNameList multiFile multiFileDir mytemp nistName nistVersion nprogEnts
   global opt p21e3 pmiCol pmiMaster programfiles recPracNames row rowmax sheetLast spmiEntity spmiSumName spmiSumRow spmiTypesPerFile startrow stepAP
   global thisEntType timeStamp tlast tolStandard totalEntity userEntityFile userEntityList userXLSFile
   global workbook workbooks worksheet worksheet1 worksheets writeDir wsCount
-  global x3domColor x3domCoord x3domFile x3domFileName x3domFileOpen x3domIndex x3domMax x3domMin
+  global x3domColor x3domCoord x3domFile x3domFileName x3domStartFile x3domIndex x3domMax x3domMin
   global xlFileName xlFileNames
   
   if {[info exists errmsg]} {set errmsg ""}
 
 # initialize for PMI OR AP209 X3DOM
   if {$opt(VIZPMI) || $opt(VIZFEA)} {
-    set x3domFileOpen 1
+    set x3domStartFile 1
     set x3domFileName ""
     set x3domColor ""
     set x3domMax(x) -1.e10
@@ -483,7 +483,7 @@ proc genExcel {{numFile 0}} {
       if {[string first "AP209" $stepAP] != -1} {
         if {$entType == "node" && $opt(PR_STEP_CPNT) == 0} {
           set ok 0
-          outputMsg " To process 'node' entities in AP209 files, select Coordinates in the Options tab" red
+          outputMsg " For AP209 files, to write 'node' entities to the spreadsheet, select Coordinates in the Options tab" red
         }
       }
       
@@ -643,14 +643,16 @@ proc genExcel {{numFile 0}} {
     set spmiSumRow 1
     set idxColor 0
     set coverageLegend 0
-    set nodeIndex -1
+    foreach f {elements mesh meshIndex faceIndex} {
+      catch {file delete -force [file join $mytemp $f.txt]}
+    }
 
     if {[info exists dim]} {unset dim}
     set dim(prec,max) 0
     set dim(unit) ""
     #set dim(name) ""
     
-# find camera models used in draughting model items andannotation_occurrence used in property_definition and datums
+# find camera models used in draughting model items and annotation_occurrence used in property_definition and datums
     if {$opt(PMIGRF)} {pmiGetCamerasAndProperties $objDesign}
 
     if {[llength $entsToProcess] == 0} {
@@ -952,13 +954,12 @@ proc genExcel {{numFile 0}} {
   global colColor invCol currX3domPointID dimrep dimrepID entName gpmiID gpmiIDRow gpmiOK gpmiRow
   global heading invGroup nrep numX3domPointID pmiColumns pmiStartCol 
   global propDefID propDefIDRow propDefName propDefOK propDefRow syntaxErr
-  global feaNodes nodeArr
+
   foreach var {cells colColor invCol count currX3domPointID dimrep dimrepID entName entsIgnored \
               gpmiID gpmiIDRow gpmiOK gpmiRow heading invGroup nrep numX3domPointID \
               pmiCol pmiColumns pmiStartCol pmivalprop propDefID propDefIDRow propDefName propDefOK propDefRow \
               syntaxErr workbook workbooks worksheet worksheets \
-              x3domCoord x3domFile x3domFileName x3domFileOpen x3domIndex x3domMax x3domMin \
-              feaNodes nodeArr} {
+              x3domCoord x3domFile x3domFileName x3domStartFile x3domIndex x3domMax x3domMin} {
     if {[info exists $var]} {unset $var}
   }
   if {!$multiFile} {
@@ -988,11 +989,11 @@ proc addHeaderWorksheet {objDesign numFile fname} {
       "jt_step translator" Kubotek "Kubotek KeyCreator" "Mechanical Desktop" "Mentor Graphics" NX "OneSpace Designer" "Open CASCADE" \
       Parasolid Patran PlanetCAD PolyTrans "PRO/ENGINEER" Siemens "SIEMENS PLM Software NX 10.0" "SIEMENS PLM Software NX 11.0" \
       "SIEMENS PLM Software NX 7.0" "SIEMENS PLM Software NX 7.5" "SIEMENS PLM Software NX 8.0" "SIEMENS PLM Software NX 8.5" \
-      "SIEMENS PLM Software NX 9.0" "SIEMENS PLM Software NX" "Solid Edge" SolidEdge SolidWorks "ST-ACIS" "STEP Caselib" \
+      "SIEMENS PLM Software NX 9.0" "SIEMENS PLM Software NX" "Solid Edge" SolidEdge "ST-ACIS" "STEP Caselib" \
       "STEP-NC Explorer" "STEP-NC Maker" "T3D tool generator" THEOREM Theorem "THEOREM SOLUTIONS" "Theorem Solutions" "T-Systems" \
       "UGS - NX" Unigraphics CoCreate Adobe Elysium ASFALIS CAPVIDIA 3DTransVidia MBDVidia NAFEMS COM209 CADCAM-E 3DEXPERIENCE ECCO SimDM \
       SDS/2 Tekla Revit RISA SAP2000 ETABS SmartPlant CADWorx "Advance Steel" ProSteel STAAD RAM Cype Parabuild RFEM RSTAB BuiltWorks EDMsix \
-      "3D Reviewer" "3D Converter" HOOPS MicroStation}
+      "3D Reviewer" "3D Converter" HOOPS MicroStation SolidWorks Solidworks SOLIDWORKS "SOLIDWORKS MBD"}
 
 # sort cadApps by string length
     set cadApps [sortlength2 $cadApps]
@@ -1158,7 +1159,7 @@ proc addHeaderWorksheet {objDesign numFile fname} {
 
 # set the application from various file attributes, cadApps is a list of all application names defined above, take the first one that matches
     set ok 0
-    foreach attr {FilePreprocessorVersion FileOriginatingSystem FileDescription FileAuthorisation FileOrganization} {
+    foreach attr {FileOriginatingSystem FilePreprocessorVersion FileDescription FileAuthorisation FileOrganization} {
       foreach app $cadApps {
         set app1 $app
         if {$cadSystem == "" && [string first [string tolower $app] [string tolower [join [$objDesign $attr]]]] != -1} {
@@ -1177,10 +1178,11 @@ proc addHeaderWorksheet {objDesign numFile fname} {
             if {$app == "Unigraphics"}             {set app1 "Siemens NX"}
             if {$app == "UNIGRAPHICS"}             {set app1 "Unigraphics"}
             if {$app == "3DEXPERIENCE"}            {set app1 "CATIA"}
+            if {$app == "SOLIDWORKS MBD"}          {set app1 "Solidworks MBD"}
             if {[string first "CATIA Version"           $app] == 0} {set app1 "CATIA V[string range $app 14 end]"}
             if {[string first "SIEMENS PLM Software NX" $app] == 0} {set app1 "Siemens NX[string range $app 23 end]"}
-            if {[string first "THEOREM"   [$objDesign FilePreprocessorVersion]] != -1} {set app1 "Theorem"}
-            if {[string first "T-Systems" [$objDesign FilePreprocessorVersion]] != -1} {set app1 "T-Systems"}
+            if {[string first "THEOREM"    [$objDesign FilePreprocessorVersion]] != -1} {set app1 "Theorem"}
+            if {[string first "T-Systems"  [$objDesign FilePreprocessorVersion]] != -1} {set app1 "T-Systems"}
 
 # set caxifVendor based on CAx-IF vendor notation used in testing rounds, use for app if appropriate
             set caxifVendor [setCAXIFvendor]
@@ -1200,7 +1202,7 @@ proc addHeaderWorksheet {objDesign numFile fname} {
     }
     
 # add app2 to multiple file summary worksheet    
-    if {$numFile != 0 && $opt(XLSCSV) == "Excel"} {
+    if {$numFile != 0 && $opt(XLSCSV) == "Excel" && [info exists cells1(Summary)]} {
       if {$ok == 0} {set app2 [setCAXIFvendor]}
       set colsum [expr {$col1(Summary)+1}]
       if {$colsum > 16} {[$excel1 ActiveWindow] ScrollColumn [expr {$colsum-16}]}

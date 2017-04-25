@@ -2,7 +2,7 @@
 # version number
 
 proc getVersion {} {
-  set app_version 2.06
+  set app_version 2.10
   return $app_version
 }
 

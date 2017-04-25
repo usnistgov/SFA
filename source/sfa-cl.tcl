@@ -72,7 +72,7 @@ set sfaVersion 0
 set upgrade 0
 set userXLSFile ""
 set x3domFileName ""
-set x3domFileOpen 1
+set x3domStartFile 1
 
 set developer 0
 if {$env(USERNAME) == "lipman"} {set developer 1}

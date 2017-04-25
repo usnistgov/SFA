@@ -182,6 +182,11 @@ proc valPropReport {objEntity} {
       if {$objNodeType == 18 || $objNodeType == 19} {
         if {$idx != -1} {
           if {$opt(DEBUG1)} {outputMsg "$ind   ATR $entLevel $objName - $objValue ($objNodeType, $objSize, $objAttrType)"}
+          
+          if {[string length $objValue] == 0 && $objName == "unit_component" && \
+              ([string first "volume" $valName] == -1 || [string first "area" $valName] == -1 || [string first "length" $valName] == -1)} {
+            errorMsg "Syntax Error: Missing or invalid '$objName' attribute on $ent($entLevel)\n[string repeat " " 14]Units will not be reported for a length, area, or volume validation property"
+          }
 
           if {[info exists cells($pd)]} {
             set ok 0

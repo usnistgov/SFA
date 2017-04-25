@@ -599,3 +599,31 @@ proc openMultiFile {{ask 1}} {
   }
   update idletasks
 }
+
+#-------------------------------------------------------------------------------
+proc findFile {startDir {recurse 0}} {
+  global fileList
+  
+  set pwd [pwd]
+  if {[catch {cd $startDir} err]} {
+    errorMsg $err
+    return
+  }
+
+  set exts {".stp" ".step" ".p21" ".stpz"}
+  foreach match [glob -nocomplain -- *] {
+    foreach ext $exts {
+      if {[file extension [string tolower $match]] == $ext} {
+        if {$ext != ".stpz" || ![file exists [string range $match 0 end-1]]} {
+          lappend fileList [file join $startDir $match]
+        }
+      }
+    }
+  }
+  if {$recurse} {
+    foreach file [glob -nocomplain *] {
+      if {[file isdirectory $file]} {findFile [file join $startDir $file] $recurse}
+    }
+  }
+  cd $pwd
+}

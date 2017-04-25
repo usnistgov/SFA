@@ -91,7 +91,7 @@ set sfaVersion 0
 set upgrade 0
 set userXLSFile ""
 set x3domFileName ""
-set x3domFileOpen 1
+set x3domStartFile 1
 
 set developer 0
 if {$env(USERNAME) == "lipman"} {set developer 1}
@@ -420,6 +420,7 @@ if {[llength $pid2] > 1} {
     .tnb select .tnb.status
   }
 }
+set sfaPID [twapi::get_process_ids -name "STEP-File-Analyzer.exe"]
 
 # copy schema rose files that are in the Tcl Virtual File System (VFS) or STEP Tools runtime to the IFCsvr dll directory
 if {$copyrose} {copyRoseFiles}
