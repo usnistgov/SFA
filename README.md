@@ -54,10 +54,6 @@ freewrap -f sfa-files.txt
 
 Some features are not available in the user-built version including: tooltips, unzipping compressed STEP files, automated PMI checking for the [NIST CAD models](<https://www.nist.gov/el/systems-integration-division-73400/mbe-pmi-validation-and-conformance-testing>), and inserting images of the NIST test cases in the spreadsheets.  Some of the features are restored if the NIST-built version is run first.
 
-## Alternate build methods
-
-The STEP File Analyzer can also be built with the commercial toolkit [Tcl Dev Kit](<http://www.activestate.com/tcl-dev-kit>) or by using Tcl Starkits.  The NIST version is built with Tcl Dev Kit.
-
 ## Suggested improvements
 
 Replace the Tcl package [tcom](http://wiki.tcl.tk/1821) (COM) with the COM features in [twapi](http://twapi.magicsplat.com/).
@@ -72,4 +68,4 @@ Replace the home-grown code to interact with Excel spreadsheets with [CAWT](http
 
 ## Disclaimers
 
-[NIST Disclaimer](http://www.nist.gov/public_affairs/disclaimer.cfm)
+[NIST Disclaimer](https://www.nist.gov/public_affairs/disclaimer.cfm)
