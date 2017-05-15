@@ -58,19 +58,13 @@ Some features are not available in the user-built version including: tooltips, u
 
 The STEP File Analyzer can also be built with the commercial toolkit [Tcl Dev Kit](<http://www.activestate.com/tcl-dev-kit>) or by using Tcl Starkits.  The NIST version is built with Tcl Dev Kit.
 
-However, either method requires a version of ActiveTcl (8.5.15) that was released in 2013 and is not available anymore, at least as an ActiveTcl distribution.  The reason why version 8.5.15 or earlier has to be used is related to how STEP schema files are written to and read from the IFCsvr/dll directory.  Changes to the ActiveTcl distribution prevent this from working with newer versions.
+## Suggested improvements
 
-An alternative might be to build the STEP File Analyzer with a version of Tcl/Tk built from source code available at <http://www.tcl.tk/software/tcltk/>.  It is unclear whether this would still require Tcl 8.5.15 or if a newer version can be used.
+Replace the Tcl package [tcom](http://wiki.tcl.tk/1821) (COM) with the COM features in [twapi](http://twapi.magicsplat.com/).
 
-## Possible improvements
+Replace the IFCsvr toolkit with [STEPcode toolkit](http://stepcode.org/).
 
-The IFCsvr toolkit used to read STEP files should be replaced.  IFCsvr toolkit is a wrapper around an old version of STEP Tools ST-Developer.  The IFCsvr toolkit is the reason why versions of Tcl greater than 8.5.15 cannot be used.
-
-The [STEPcode toolkit](http://stepcode.org/) could also be used to replace the IFCsvr toolkit.
-
-The Tcl package [tcom](http://wiki.tcl.tk/1821) (COM) is used to connect with a STEP file and with Excel.  tcom could be replaced with the COM features in [twapi](http://twapi.magicsplat.com/).
-
-No toolkit is used to interact with Excel spreadsheets.  The home-grown code could be replaced with [CAWT](http://www.posoft.de/html/extCawt.html).
+Replace the home-grown code to interact with Excel spreadsheets with [CAWT](http://www.posoft.de/html/extCawt.html).
 
 ## Contact
 
