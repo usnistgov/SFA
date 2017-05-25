@@ -1,6 +1,6 @@
 proc feaModel {objDesign entType} {
   global ent entAttrList entCount entLevel opt rowmax nprogEnts count localName mytemp sfaPID
-  global x3domFile x3domMin x3domMax x3domMsg x3domStartFile x3domFileName
+  global x3dFile x3dMin x3dMax x3dMsg x3dStartFile x3dFileName
   global feaType feaTypes feaElemTypes feaFaces nodeArr nfeaElem feaFile feaFileName feaFaceList feaFaceOrig
 
   if {$opt(DEBUG1)} {outputMsg "START feaModel $entType\n" red}
@@ -21,32 +21,32 @@ proc feaModel {objDesign entType} {
   set entAttrList {}
   setEntAttrList $FEA($entType)
   
-# check number of elements to see if faces will be displayed
+# check number of elements to see if faces will be shown
   set feaFaces(2D) 1
   set feaFaces(3D) 1
 
   #if {$entType == "surface_3d_element_representation"} {
   #  if {$entCount(surface_3d_element_representation) > 2000000} {
   #    set feaFaces(2D) 0
-  #    errorMsg "Too many 'surface_3d_element_representation' elements ($entCount(surface_3d_element_representation)) to display faces"
+  #    errorMsg "Too many 'surface_3d_element_representation' elements ($entCount(surface_3d_element_representation)) to show faces"
   #  }
   #}
   #if {$entType == "volume_3d_element_representation"} {
   #  if {$entCount(volume_3d_element_representation) > 400000} {
   #    set feaFaces(3D) 0
-  #    errorMsg "Too many 'volume_3d_element_representation' elements ($entCount(volume_3d_element_representation)) to display faces"
+  #    errorMsg "Too many 'volume_3d_element_representation' elements ($entCount(volume_3d_element_representation)) to show faces"
   #  }
   #}
   catch {unset feaTypes}
 
 # ---------- 
 # start X3DOM file                
-  if {$x3domStartFile} {
-    set x3domStartFile 0
-    set x3domFileName [file rootname $localName]_x3dom.html
-    catch {file delete -force $x3domFileName}
-    set x3domFile [open $x3domFileName w]
-    puts $x3domFile "<!DOCTYPE html>\n<html>\n<head>\n<title>[file tail $localName] | STEP AP209 Finite Element Model</title>\n<base target=\"_blank\">\n<meta http-equiv='Content-Type' content='text/html;charset=utf-8'/>\n<link rel='stylesheet' type='text/css' href='https://www.x3dom.org/x3dom/release/x3dom.css'/>\n<script type='text/javascript' src='https://www.x3dom.org/x3dom/release/x3dom.js'></script>"
+  if {$x3dStartFile} {
+    set x3dStartFile 0
+    set x3dFileName [file rootname $localName]_x3dom.html
+    catch {file delete -force $x3dFileName}
+    set x3dFile [open $x3dFileName w]
+    puts $x3dFile "<!DOCTYPE html>\n<html>\n<head>\n<title>[file tail $localName] | STEP AP209 Finite Element Model</title>\n<base target=\"_blank\">\n<meta http-equiv='Content-Type' content='text/html;charset=utf-8'/>\n<link rel='stylesheet' type='text/css' href='https://www.x3dom.org/x3dom/release/x3dom.css'/>\n<script type='text/javascript' src='https://www.x3dom.org/x3dom/release/x3dom.js'></script>"
 
 # node, element checkbox script
     feaSwitch Nodes
@@ -58,33 +58,34 @@ proc feaModel {objDesign entType} {
 
 # transparency script
     if {[info exists entCount(surface_3d_element_representation)] || [info exists entCount(volume_3d_element_representation)]} {
-      puts $x3domFile "<script>function matTrans(trans){"
-      if {[info exists entCount(surface_3d_element_representation)]} {puts $x3domFile " document.getElementById('mat2D').setAttribute('transparency', trans);"}
+      puts $x3dFile "<script>function matTrans(trans){"
+      if {[info exists entCount(surface_3d_element_representation)]} {puts $x3dFile " document.getElementById('mat2D').setAttribute('transparency', trans);"}
       if {[info exists entCount(volume_3d_element_representation)]}  {
-        puts $x3domFile " document.getElementById('mat3D').setAttribute('transparency', trans);"
-        puts $x3domFile " if (trans > 0) {document.getElementById('faces').setAttribute('solid', true);} else {document.getElementById('faces').setAttribute('solid', false);}"
+        puts $x3dFile " document.getElementById('mat3D').setAttribute('transparency', trans);"
+        puts $x3dFile " if (trans > 0) {document.getElementById('faces').setAttribute('solid', true);} else {document.getElementById('faces').setAttribute('solid', false);}"
       }
-      puts $x3domFile "}\n</script>"
+      puts $x3dFile "}\n</script>"
     }
-    puts $x3domFile "</head>"
+    puts $x3dFile "</head>"
 
-    puts $x3domFile "\n<body><font face=\"arial\">\n<h3>STEP AP209 Finite Element Model:  [file tail $localName]</h3>"
-    puts $x3domFile "<ul><li><a href=\"https://www.x3dom.org/documentation/interaction/\">Use the mouse</a> to rotate, pan, and zoom.  Use Page Down to switch between perspective and orthographic views."
-    puts $x3domFile "</ul>"
+    puts $x3dFile "\n<body><font face=\"arial\">\n<h3>STEP AP209 Finite Element Model:  [file tail $localName]</h3>"
+    puts $x3dFile "<ul><li><a href=\"https://www.x3dom.org/documentation/interaction/\">Use the mouse</a> to rotate, pan, zoom.  Use 'a' to show all.  Left double-click to recenter."
+    puts $x3dFile "<li>Use Page Down to switch between perspective and orthographic views."
+    puts $x3dFile "</ul>"
 
 # node, element checkboxes
-    puts $x3domFile "<input type='checkbox' checked onclick='togNodes(this.value)'/>Nodes&nbsp;&nbsp;"
+    puts $x3dFile "<input type='checkbox' checked onclick='togNodes(this.value)'/>Nodes&nbsp;&nbsp;"
     if {[info exists entCount(surface_3d_element_representation)] || \
-        [info exists entCount(volume_3d_element_representation)]}  {puts $x3domFile "<input type='checkbox' checked onclick='togMesh(this.value)'/>Mesh&nbsp;&nbsp;"}
-    if {[info exists entCount(curve_3d_element_representation)]}   {puts $x3domFile "<input type='checkbox' checked onclick='tog1DElements(this.value)'/>1D Elements&nbsp;&nbsp;"}
-    if {[info exists entCount(surface_3d_element_representation)]} {puts $x3domFile "<input type='checkbox' checked onclick='tog2DElements(this.value)'/>2D Elements&nbsp;&nbsp;"}
-    if {[info exists entCount(volume_3d_element_representation)]}  {puts $x3domFile "<input type='checkbox' checked onclick='tog3DElements(this.value)'/>3D Elements&nbsp;&nbsp;"}
+        [info exists entCount(volume_3d_element_representation)]}  {puts $x3dFile "<input type='checkbox' checked onclick='togMesh(this.value)'/>Mesh&nbsp;&nbsp;"}
+    if {[info exists entCount(curve_3d_element_representation)]}   {puts $x3dFile "<input type='checkbox' checked onclick='tog1DElements(this.value)'/>1D Elements&nbsp;&nbsp;"}
+    if {[info exists entCount(surface_3d_element_representation)]} {puts $x3dFile "<input type='checkbox' checked onclick='tog2DElements(this.value)'/>2D Elements&nbsp;&nbsp;"}
+    if {[info exists entCount(volume_3d_element_representation)]}  {puts $x3dFile "<input type='checkbox' checked onclick='tog3DElements(this.value)'/>3D Elements&nbsp;&nbsp;"}
 
 # transparency slider
     if {[info exists entCount(surface_3d_element_representation)] || [info exists entCount(volume_3d_element_representation)]} {
-      puts $x3domFile "<input style='width:80px' type='range' min='0' max='0.8' step='0.2' value='0' onchange='matTrans(this.value)'/>Transparency (might not appear correct)"
+      puts $x3dFile "<input style='width:80px' type='range' min='0' max='0.8' step='0.2' value='0' onchange='matTrans(this.value)'/>Transparency (might not appear correct)"
     }
-    puts $x3domFile "<table><tr><td>"
+    puts $x3dFile "<table><tr><td>"
     
 # x3d window size
     set height 800
@@ -93,25 +94,25 @@ proc feaModel {objDesign entType} {
       set height [expr {int([winfo screenheight .]*0.7)}]
       set width [expr {int($height*[winfo screenwidth .]/[winfo screenheight .])}]
     }
-    puts $x3domFile "\n<X3D id='someUniqueId' showStat='false' showLog='false' x='0px' y='0px' width='$width\px' height='$height\px'>\n<Scene DEF='scene'>"
+    puts $x3dFile "\n<X3D id='someUniqueId' showStat='false' showLog='false' x='0px' y='0px' width='$width\px' height='$height\px'>\n<Scene DEF='scene'>"
 
 # nodes    
     feaGetNodes $objDesign
-    outputMsg " Writing FEM to: [truncFileName [file nativename $x3domFileName]]" blue
+    outputMsg " Writing FEM to: [truncFileName [file nativename $x3dFileName]]" blue
 
 # coordinate axes    
     foreach xyz {x y z} {
-      set delt($xyz) [expr {$x3domMax($xyz)-$x3domMin($xyz)}]
-      set xyzcen($xyz) [format "%.4f" [expr {0.5*$delt($xyz) + $x3domMin($xyz)}]]
+      set delt($xyz) [expr {$x3dMax($xyz)-$x3dMin($xyz)}]
+      set xyzcen($xyz) [format "%.4f" [expr {0.5*$delt($xyz) + $x3dMin($xyz)}]]
     }
     set maxxyz $delt(x)
     if {$delt(y) > $maxxyz} {set maxxyz $delt(y)}
     if {$delt(z) > $maxxyz} {set maxxyz $delt(z)}
     set asize [trimNum [expr {$maxxyz/30.}]]
 
-    puts $x3domFile "\n<Shape><Appearance><Material emissiveColor='1 0 0'></Material></Appearance><IndexedLineSet coordIndex='0 1 -1'><Coordinate point='0. 0. 0. $asize 0. 0.'></Coordinate></IndexedLineSet></Shape>"
-    puts $x3domFile "<Shape><Appearance><Material emissiveColor='0 1 0'></Material></Appearance><IndexedLineSet coordIndex='0 1 -1'><Coordinate point='0. 0. 0. 0. $asize 0.'></Coordinate></IndexedLineSet></Shape>"
-    puts $x3domFile "<Shape><Appearance><Material emissiveColor='0 0 1'></Material></Appearance><IndexedLineSet coordIndex='0 1 -1'><Coordinate point='0. 0. 0. 0. 0. $asize'></Coordinate></IndexedLineSet></Shape>"
+    puts $x3dFile "\n<Shape><Appearance><Material emissiveColor='1 0 0'></Material></Appearance><IndexedLineSet coordIndex='0 1 -1'><Coordinate point='0. 0. 0. $asize 0. 0.'></Coordinate></IndexedLineSet></Shape>"
+    puts $x3dFile "<Shape><Appearance><Material emissiveColor='0 1 0'></Material></Appearance><IndexedLineSet coordIndex='0 1 -1'><Coordinate point='0. 0. 0. 0. $asize 0.'></Coordinate></IndexedLineSet></Shape>"
+    puts $x3dFile "<Shape><Appearance><Material emissiveColor='0 0 1'></Material></Appearance><IndexedLineSet coordIndex='0 1 -1'><Coordinate point='0. 0. 0. 0. 0. $asize'></Coordinate></IndexedLineSet></Shape>"
     update idletasks
   }
 
@@ -136,7 +137,7 @@ proc feaModel {objDesign entType} {
           set mem [expr {[lindex [twapi::get_process_info $sfaPID -pagefilebytes] 1]/1048576}]
           if {$mem > 1780} {
             errorMsg "Insufficient memory to process all of the elements"
-            lappend x3domMsg "Some elements are not displayed"
+            lappend x3dMsg "Some elements were not processed"
             update idletasks
             break
           }
@@ -230,10 +231,10 @@ proc feaModel {objDesign entType} {
 # write mesh
     close $feaFile(mesh)
     if {[file size $feaFileName(mesh)] > 0} {
-      puts $x3domFile "\n<Switch whichChoice='0' id='swMesh'><Group>"
+      puts $x3dFile "\n<Switch whichChoice='0' id='swMesh'><Group>"
       set feaFile(mesh) [open $feaFileName(mesh) r]
-      while {[gets $feaFile(mesh) line] >= 0} {puts $x3domFile $line}
-      puts $x3domFile "</Group></Switch>"
+      while {[gets $feaFile(mesh) line] >= 0} {puts $x3dFile $line}
+      puts $x3dFile "</Group></Switch>"
       close $feaFile(mesh)
     }
     
@@ -241,7 +242,7 @@ proc feaModel {objDesign entType} {
     close $feaFile(elements)
     if {[file size $feaFileName(elements)] > 0} {
       set feaFile(elements) [open $feaFileName(elements) r]
-      while {[gets $feaFile(elements) line] >= 0} {puts $x3domFile $line}
+      while {[gets $feaFile(elements) line] >= 0} {puts $x3dFile $line}
       close $feaFile(elements)
     }
 
@@ -257,14 +258,14 @@ proc feaModel {objDesign entType} {
 
 # messages
   if {[info exists feaTypes]} {
-    foreach item [array names feaTypes] {lappend x3domMsg "$feaTypes($item) - $item"}
+    foreach item [array names feaTypes] {lappend x3dMsg "$feaTypes($item) - $item"}
   }
 }
 
 # -------------------------------------------------------------------------------
 proc feaElements {objEntity} {
   global badAttributes ent entAttrList entCount entLevel localName nistVersion opt
-  global x3domFile x3domFileName x3domStartFile feaMeshIndex feaFaceIndex x3domMax x3domMin x3domMsg
+  global x3dFile x3dFileName x3dStartFile feaMeshIndex feaFaceIndex x3dMsg
   global idx feaIndex feaType feaTypes firstID nnode nnodes feaFaces nodeID nodeArr nfeaElem feaFile feaFaceList
 
 # entLevel is very important, keeps track level of entity in hierarchy
@@ -417,7 +418,7 @@ proc feaElements {objEntity} {
                         append feaMeshIndex  "$firstID -1 "
                         if {$nnodes > 4} {
                           errorMsg "Unexpected number of nodes ($nnodes) for a $feaType element"
-                          lappend x3domMsg "Unexpected number of nodes ($nnodes) for a $feaType element.  Faces not displayed."
+                          lappend x3dMsg "Unexpected number of nodes ($nnodes) for a $feaType element.  Faces not shown."
                         }
                       }
                       unset idx
@@ -481,16 +482,16 @@ proc feaFaceSort {face} {
 # -------------------------------------------------------------------------------
 # get and write nodes
 proc feaGetNodes {objDesign} {
-  global entCount nodeArr x3domMax x3domMin x3domFile x3domMsg
+  global entCount nodeArr x3dMax x3dMin x3dFile x3dMsg
   catch {unset nodeArr}
 
   set nodeIndex -1
   outputMsg " Reading nodes ($entCount(node))" blue
 
 # start node output
-  puts $x3domFile "\n<Switch whichChoice='0' id='swNodes'>"
-  puts $x3domFile " <Shape><Appearance><Material emissiveColor='0 0 1'></Material></Appearance>"
-  puts $x3domFile "  <PointSet><Coordinate DEF='coords' point='"
+  puts $x3dFile "\n<Switch whichChoice='0' id='swNodes'>"
+  puts $x3dFile " <Shape><Appearance><Material emissiveColor='0 0 1'></Material></Appearance>"
+  puts $x3dFile "  <PointSet><Coordinate DEF='coords' point='"
   
 # get all nodes
  ::tcom::foreach e0 [$objDesign FindObjects [string trim node]] {
@@ -504,12 +505,12 @@ proc feaGetNodes {objDesign} {
       set coord(x) [lindex $coordList 0]
       set coord(y) [lindex $coordList 1]
       set coord(z) [lindex $coordList 2]
-      puts $x3domFile "[trimNum $coord(x) 5] [trimNum $coord(y) 5] [trimNum $coord(z) 5]"
+      puts $x3dFile "[trimNum $coord(x) 5] [trimNum $coord(y) 5] [trimNum $coord(z) 5]"
 
 # min max      
       foreach xyz {x y z} {
-        if {$coord($xyz) > $x3domMax($xyz)} {set x3domMax($xyz) $coord($xyz)}
-        if {$coord($xyz) < $x3domMin($xyz)} {set x3domMin($xyz) $coord($xyz)}
+        if {$coord($xyz) > $x3dMax($xyz)} {set x3dMax($xyz) $coord($xyz)}
+        if {$coord($xyz) < $x3dMin($xyz)} {set x3dMin($xyz) $coord($xyz)}
       }
       if {[expr {$nodeIndex%50000}] == 0} {
         if {$nodeIndex > 0} {outputMsg "  $nodeIndex"}
@@ -519,11 +520,11 @@ proc feaGetNodes {objDesign} {
   }
 
 # finish node output
-  puts $x3domFile "   '></Coordinate></PointSet></Shape>"
-  puts $x3domFile "</Switch>"
+  puts $x3dFile "   '></Coordinate></PointSet></Shape>"
+  puts $x3dFile "</Switch>"
 
-  lappend x3domMsg "$entCount(node) - Nodes"
-  if {[info exists entCount(dummy_node)]} {lappend x3domMsg "$entCount(dummy_node) - Dummy Node"}
+  lappend x3dMsg "$entCount(node) - Nodes"
+  if {[info exists entCount(dummy_node)]} {lappend x3dMsg "$entCount(dummy_node) - Dummy Node"}
 }
 
 # -------------------------------------------------------------------------------
@@ -542,9 +543,9 @@ proc feaWriteIndex {idx x3d} {
 # -------------------------------------------------------------------------------
 # script for switch node
 proc feaSwitch {type} {
-  global x3domFile
+  global x3dFile
   
-  puts $x3domFile "<script>\nfunction tog$type\(choice){"
-  puts $x3domFile " if (!document.getElementById('sw$type').checked) {\n  document.getElementById('sw$type').setAttribute('whichChoice', -1);\n } else {\n  document.getElementById('sw$type').setAttribute('whichChoice', 0);\n }"
-  puts $x3domFile " document.getElementById('sw$type').checked = !document.getElementById('sw$type').checked;\n}\n</script>"
+  puts $x3dFile "<script>\nfunction tog$type\(choice){"
+  puts $x3dFile " if (!document.getElementById('sw$type').checked) {\n  document.getElementById('sw$type').setAttribute('whichChoice', -1);\n } else {\n  document.getElementById('sw$type').setAttribute('whichChoice', 0);\n }"
+  puts $x3dFile " document.getElementById('sw$type').checked = !document.getElementById('sw$type').checked;\n}\n</script>"
 }

@@ -1,14 +1,14 @@
 proc gpmiAnnotation {objDesign entType} {
   global ao aoEntTypes cells col entLevel ent entAttrList gpmiRow nindex opt pmiCol pmiHeading pmiStartCol
-  global recPracNames stepAP syntaxErr x3domColor x3domCoord x3domFile x3domIndex x3domShape x3domMsg
-  global geomType
+  global recPracNames stepAP syntaxErr x3dColor x3dCoord x3dFile x3dIndex x3dShape x3dMsg x3dIndexType
+  global geomType tessCoordID tessPlacement
 
   if {$opt(DEBUG1)} {outputMsg "START gpmiAnnotation $entType" red}
 
 # basic geometry
   set cartesian_point [list cartesian_point coordinates]
   set direction       [list direction name direction_ratios]
-  set a2p3d           [list axis2_placement_3d location $cartesian_point axis $direction]
+  set a2p3d           [list axis2_placement_3d location $cartesian_point axis $direction ref_direction $direction]
 
   if {$opt(VIZPMI)} {
     set polyline        [list polyline name points $cartesian_point]
@@ -23,10 +23,17 @@ proc gpmiAnnotation {objDesign entType} {
 
 # tessellated geometry
   set complex_triangulated_surface_set [list complex_triangulated_surface_set name]
+  set triangulated_surface_set         [list triangulated_surface_set name]
   set tessellated_curve_set            [list tessellated_curve_set name]
-  set tessellated_geometric_set        [list tessellated_geometric_set name children]
-  set repo_tessellated_geometric_set   [list repositioned_tessellated_item_and_tessellated_geometric_set name children]
-  
+  set tessellated_geometric_set        [list tessellated_geometric_set name children $tessellated_curve_set $complex_triangulated_surface_set]
+  set repo_tessellated_geometric_set   [list repositioned_tessellated_item_and_tessellated_geometric_set name location $a2p3d children $tessellated_curve_set $complex_triangulated_surface_set]
+ 
+# solids and faces
+  set triangulated_face          [list triangulated_face name]
+  set complex_triangulated_face  [list complex_triangulated_face name]
+  set PMIP(tessellated_solid) [list tessellated_solid name items $triangulated_face $complex_triangulated_face $complex_triangulated_surface_set $triangulated_surface_set]
+  set PMIP(tessellated_shell) [list tessellated_shell name items $triangulated_face $complex_triangulated_face $complex_triangulated_surface_set $triangulated_surface_set]
+
 # curve and fill style
   set colour      [list colour_rgb name red green blue]
   set curve_style [list presentation_style_assignment styles [list curve_style name curve_colour $colour [list draughting_pre_defined_colour name]]]
@@ -67,50 +74,56 @@ proc gpmiAnnotation {objDesign entType} {
   set entAttrList {}
   set pmiCol 0
   set nindex 0
-  set x3domShape 0
+  set x3dShape 0
   set gpmiRow($ao) {}
   set geomType ""
-  if {![info exists x3domMsg]} {set x3domMsg {}}
+  set tessCoordID {}
+  if {![info exists x3dMsg]} {set x3dMsg {}}
 
-  if {[info exists pmiHeading]} {unset pmiHeading}
-  if {[info exists ent]}        {unset ent}
+  if {[info exist pmiHeading]} {unset pmiHeading}
+  if {[info exists ent]} {unset ent}
 
-  outputMsg " Adding PMI Presentation" green
+  if {[string first "occurrence" $ao] != -1}  {
+    outputMsg " Adding PMI Presentation" blue
   
 # look for syntax errors with entity usage
-  if {$stepAP == "AP242"} {
-    set c1 [string first "_and_characterized_object" $ao]
-    set c2 [string first "characterized_object_and_" $ao]
-    if {$c1 != -1} {
-      errorMsg "Syntax Error: Using 'characterized_object' with '[string range $ao 0 $c1-1]' is not valid for PMI Presentation.\n[string repeat " " 14]\($recPracNames(pmi242), Sec. 10.2, 10.3)"
-      lappend syntaxErr($ao) [list 1 1]
-    } elseif {$c2 != -1} {
-      errorMsg "Syntax Error: Using 'characterized_object' with '[string range $ao 25 end]' is not valid for PMI Presentation.\n[string repeat " " 14]\($recPracNames(pmi242), Sec. 10.2, 10.3)"
-      lappend syntaxErr($ao) [list 1 1]
-    }
-  
-    if {[string first "annotation_occurrence" $ao] != -1 && [string first "tessellated" $ao] == -1 && [string first "draughting_annotation_occurrence" $ao] == -1} {
-      errorMsg "Syntax Error: Using 'annotation_occurrence' with $stepAP is not valid for PMI Presentation.\n[string repeat " " 14]\($recPracNames(pmi242), Sec. 8.1.1)"
-      lappend syntaxErr($ao) [list 1 1]
-    }
-  }
-
-  if {[string first "AP203" $stepAP] == 0 || $stepAP == "AP214"} {
-    if {[string first "annotation_curve_occurrence" $ao] != -1} {
-      errorMsg "Syntax Error: Using 'annotation_curve_occurrence' with $stepAP is not valid for PMI Presentation.\n[string repeat " " 14]\($recPracNames(pmi203), Sec. 4.1.1)"
-      lappend syntaxErr($ao) [list 1 1]
-    }
-  }
-  
-  if {[string first "draughting" $ao] != -1} {
-    set msg "Syntax Error: Using 'draughting_annotation_*_occurrence' is not valid for PMI Presentation.\n[string repeat " " 14]"
     if {$stepAP == "AP242"} {
-      append msg "($recPracNames(pmi242), Sec. 8.1)"
-    } else {
-      append msg "($recPracNames(pmi203), Sec. 4.1)"
+      set c1 [string first "_and_characterized_object" $ao]
+      set c2 [string first "characterized_object_and_" $ao]
+      if {$c1 != -1} {
+        errorMsg "Syntax Error: Using 'characterized_object' with '[string range $ao 0 $c1-1]' is not valid for PMI Presentation.\n[string repeat " " 14]\($recPracNames(pmi242), Sec. 10.2, 10.3)"
+        lappend syntaxErr($ao) [list 1 1]
+      } elseif {$c2 != -1} {
+        errorMsg "Syntax Error: Using 'characterized_object' with '[string range $ao 25 end]' is not valid for PMI Presentation.\n[string repeat " " 14]\($recPracNames(pmi242), Sec. 10.2, 10.3)"
+        lappend syntaxErr($ao) [list 1 1]
+      }
+    
+      if {[string first "annotation_occurrence" $ao] != -1 && [string first "tessellated" $ao] == -1 && [string first "draughting_annotation_occurrence" $ao] == -1} {
+        errorMsg "Syntax Error: Using 'annotation_occurrence' with $stepAP is not valid for PMI Presentation.\n[string repeat " " 14]\($recPracNames(pmi242), Sec. 8.1.1)"
+        lappend syntaxErr($ao) [list 1 1]
+      }
     }
-    errorMsg $msg
-    lappend syntaxErr($ao) [list 1 1]
+  
+    if {[string first "AP203" $stepAP] == 0 || $stepAP == "AP214"} {
+      if {[string first "annotation_curve_occurrence" $ao] != -1} {
+        errorMsg "Syntax Error: Using 'annotation_curve_occurrence' with $stepAP is not valid for PMI Presentation.\n[string repeat " " 14]\($recPracNames(pmi203), Sec. 4.1.1)"
+        lappend syntaxErr($ao) [list 1 1]
+      }
+    }
+    
+    if {[string first "draughting" $ao] != -1} {
+      set msg "Syntax Error: Using 'draughting_annotation_*_occurrence' is not valid for PMI Presentation.\n[string repeat " " 14]"
+      if {$stepAP == "AP242"} {
+        append msg "($recPracNames(pmi242), Sec. 8.1)"
+      } else {
+        append msg "($recPracNames(pmi203), Sec. 4.1)"
+      }
+      errorMsg $msg
+      lappend syntaxErr($ao) [list 1 1]
+    }
+
+  } else {
+    outputMsg " Adding Tessellated Part Geometry" blue
   }
 
   if {$opt(DEBUG1)} {outputMsg \n}
@@ -134,7 +147,7 @@ proc gpmiAnnotation {objDesign entType} {
           if {$n > 0} {outputMsg "  $n"}
           update idletasks
         }
-        gpmiAnnotationReport $objEntity
+        gpmiAnnotationReport $objEntity $objDesign
         if {$opt(DEBUG1)} {outputMsg \n}
       }
       incr n
@@ -142,29 +155,61 @@ proc gpmiAnnotation {objDesign entType} {
   }
   set col($ao) $pmiCol
   
-# write any remaining X3DOM
-  if {[info exists x3domCoord] || $x3domShape} {
-    if {[string length $x3domCoord] > 0} {
-      puts $x3domFile " <IndexedLineSet coordIndex='[string trim $x3domIndex]'>\n  <Coordinate point='[string trim $x3domCoord]'></Coordinate>\n </IndexedLineSet>\n</Shape>"
-      set x3domCoord ""
-      set x3domIndex ""
-    } elseif {$x3domShape} {
-      puts $x3domFile "</IndexedLineSet></Shape>"
+# write any remaining geometry for polyline annotations
+  x3dShape
+}
+
+# -------------------------------------------------------------------------------
+# write geometry for polyline annotations
+proc x3dShape {} {
+  global ao x3dCoord x3dShape x3dIndex x3dIndexType x3dFile x3dColor gpmiPlacement placeOrigin placeAnchor boxSize
+
+  if {[info exists x3dCoord] || $x3dShape} {
+    if {[string length $x3dCoord] > 0} {
+      #set solid ""
+      #if {$x3dIndexType == "Face"} {set solid "solid='false'"}
+
+# placeholder transform
+      if {[string first "placeholder" $ao] != -1} {
+        puts $x3dFile "<Transform translation='$gpmiPlacement(origin)' rotation='[x3dRotation $gpmiPlacement(axis) $gpmiPlacement(refdir)]'>"
+      }  
+
+# start shape
+      if {$x3dColor != ""} {
+        puts $x3dFile "<Shape>\n <Appearance><Material diffuseColor='$x3dColor' emissiveColor='$x3dColor'></Material></Appearance>"
+      } elseif {[string first "annotation_occurrence" $ao] == 0 || [string first "annotation_fill_area_occurrence" $ao] == 0} {
+        puts $x3dFile "<Shape>\n <Appearance><Material emissiveColor='1 0.5 0'></Material></Appearance>"
+        errorMsg "Syntax Error: Color not specified for PMI Presentation (using orange)"
+      }
+
+# index and coordinates
+      puts $x3dFile " <IndexedLineSet coordIndex='[string trim $x3dIndex]'>\n  <Coordinate point='[string trim $x3dCoord]'></Coordinate>\n </IndexedLineSet>\n</Shape>"
+
+# end placeholder transform, add leader line
+      if {[string first "placeholder" $ao] != -1} {
+        puts $x3dFile "</Transform>"
+        puts $x3dFile "<Shape>\n <Appearance><Material emissiveColor='$x3dColor'></Material></Appearance>"
+        puts $x3dFile " <IndexedLineSet coordIndex='0 1 -1'>\n  <Coordinate point='$placeOrigin $placeAnchor '></Coordinate>\n </IndexedLineSet>\n</Shape>"
+      }
+
+      set x3dCoord ""
+      set x3dIndex ""
+    } elseif {$x3dShape} {
+      puts $x3dFile "</Indexed$x3dIndexType\Set></Shape>"
     }
-    set x3domShape 0
-    set x3domColor ""
+    set x3dShape 0
+    set x3dColor ""
   }
 }
 
 # -------------------------------------------------------------------------------
-
-proc gpmiAnnotationReport {objEntity} {
-  global ao aoname assocGeom avgX3domColor badAttributes boxSize cells circleCenter col currX3domPointID curveTrim dirRatio dirType draftModelCameras
-  global entLevel ent entAttrList entCount geomType gpmiEnts gpmiID gpmiIDRow gpmiOK gpmiRow gpmiTypes gpmiTypesInvalid gpmiTypesPerFile gpmiValProp
-  global iCompCurve iCompCurveSeg incrcol iPolyline localName nindex numCompCurve numCompCurveSeg numPolyline numX3domPointID
+proc gpmiAnnotationReport {objEntity objDesign} {
+  global ao aoname assocGeom badAttributes boxSize cells circleCenter col currx3dPID curveTrim developer dirRatio dirType draftModelCameras
+  global entCount entLevel ent entAttrList entCount geomType gpmiEnts gpmiID gpmiIDRow gpmiOK gpmiRow gpmiTypes gpmiTypesInvalid gpmiTypesPerFile gpmiValProp
+  global iCompCurve iCompCurveSeg incrcol iPolyline localName nindex nistVersion nshape numCompCurve numCompCurveSeg numPolyline numx3dPID
   global objEntity1 opt pmiCol pmiColumns pmiHeading pmiStartCol pointLimit prefix propDefIDS recPracNames savedViewCol stepAP syntaxErr 
-  global x3domColor x3domCoord x3domFile x3domFileName x3domStartFile x3domIndex x3domMax x3domMin x3domPoint x3domPointID x3domShape x3domMsg
-  global nistVersion
+  global x3dColor x3dCoord x3dFile x3dFileName x3dStartFile x3dIndex x3dPoint x3dPID x3dShape x3dMsg x3dIndexType x3dMax x3dMin
+  global tessCoord tessIndex tessIndexCoord tessCoordID tessColor tessRepo tessPlacement gpmiPlacement shapeRepName placeNCP placeOrigin placeAnchor
 
   #outputMsg "gpmiAnnotationReport" red
   #if {[info exists gpmiOK]} {if {$gpmiOK == 0} {return}}
@@ -199,18 +244,8 @@ proc gpmiAnnotationReport {objEntity} {
         set gpmiOK 1
       }
 
-# write any leftover X3DOM from previous Shape
-      if {[info exists x3domCoord] || $x3domShape} {
-        if {[string length $x3domCoord] > 0} {
-          puts $x3domFile " <IndexedLineSet coordIndex='[string trim $x3domIndex]'>\n  <Coordinate point='[string trim $x3domCoord]'></Coordinate>\n </IndexedLineSet>\n</Shape>"
-          set x3domCoord ""
-          set x3domIndex ""
-        } elseif {$x3domShape} {
-          puts $x3domFile "</IndexedLineSet></Shape>"
-        }
-        set x3domShape 0
-        set x3domColor ""
-      }
+# write geometry polyline annotations
+      x3dShape
     }
     
 # keep track of the number of c_c or c_c_s, if not polyline
@@ -220,17 +255,19 @@ proc gpmiAnnotationReport {objEntity} {
       incr iCompCurveSeg
     }
     
-    if {$entLevel == 2 && \
-        $objType != "geometric_curve_set" && $objType != "annotation_fill_area" && $objType != "presentation_style_assignment" && \
-        $objType != "geometric_set" && [string first "tessellated_geometric_set" $objType] == -1} {
-      set msg "Syntax Error: '$objType' is not allowed as an 'item' attribute of: $ao\n[string repeat " " 14]"
-      if {$stepAP == "AP242"} {
-        append msg "($recPracNames(pmi242), Sec. 8.1.1, 8.1.2, 8.2)"
-      } else {
-        append msg "($recPracNames(pmi203), Sec. 4.1.1, 4.1.2)"
+    if {[string first "occurrence" $ao] != -1}  {
+      if {$entLevel == 2 && \
+          $objType != "geometric_curve_set" && $objType != "annotation_fill_area" && $objType != "presentation_style_assignment" && \
+          $objType != "geometric_set" && [string first "tessellated_geometric_set" $objType] == -1} {
+        set msg "Syntax Error: '$objType' is not allowed as an 'item' attribute of: $ao\n[string repeat " " 14]"
+        if {$stepAP == "AP242"} {
+          append msg "($recPracNames(pmi242), Sec. 8.1.1, 8.1.2, 8.2)"
+        } else {
+          append msg "($recPracNames(pmi203), Sec. 4.1.1, 4.1.2)"
+        }
+        errorMsg $msg
+        lappend syntaxErr($ao) [list $gpmiID item]
       }
-      errorMsg $msg
-      lappend syntaxErr($ao) [list $gpmiID item]
     }
 
     ::tcom::foreach objAttribute $objAttributes {
@@ -273,10 +310,15 @@ proc gpmiAnnotationReport {objEntity} {
                       }
                       errorMsg $msg
                       set msg "Some annotation line segments may be missing."
-                      if {[lsearch $x3domMsg $msg] == -1} {lappend x3domMsg $msg}
+                      if {[lsearch $x3dMsg $msg] == -1} {lappend x3dMsg $msg}
                     }
                   }
-                  "axis2_placement_3d axis" {set dirType "axis"}
+                  "axis2_placement_3d axis" {
+                    set dirType "axis"
+                  }
+                  "axis2_placement_3d ref_direction" {
+                    set dirType "refdir"
+                  }
                 }
   
                 set colName "value"
@@ -287,7 +329,6 @@ proc gpmiAnnotationReport {objEntity} {
 
 # column name
                   if {![info exists pmiHeading($col($ao))]} {
-                    #$cells($ao) Item 1 $c $colName
                     $cells($ao) Item 3 $c $colName
                     set pmiHeading($col($ao)) 1
                   }
@@ -319,7 +360,7 @@ proc gpmiAnnotationReport {objEntity} {
               }
 
 # if referred to another, get the entity
-              if {[string first "handle" $objEntity] != -1} {gpmiAnnotationReport $objValue}
+              if {[string first "handle" $objEntity] != -1} {gpmiAnnotationReport $objValue $objDesign}
             }
           } emsg3]} {
             errorMsg "ERROR processing PMI Presentation ($objNodeType $ent2): $emsg3"
@@ -331,24 +372,24 @@ proc gpmiAnnotationReport {objEntity} {
           if {[catch {
             if {$idx != -1} {
               if {$opt(DEBUG1) && $geomType != "polyline"} {outputMsg "$ind   ATR $entLevel $objName - $objValue ($objNodeType, $objSize, $objAttrType)"}
-              #if {$opt(DEBUG1) && $objName != "coordinates"} {outputMsg "$ind   ATR $entLevel $objName - $objValue ($objNodeType, $objSize, $objAttrType)"}
           
 # start of a list of cartesian points, assuming it is for a polyline, entLevel = 3
               if {$objAttrType == "ListOfcartesian_point" && $entLevel == 3} {
                 #outputMsg 1entLevel$entLevel red
                 if {$maxcp <= 10 && $maxcp < $objSize} {
-                  append x3domPointID "($maxcp of $objSize) cartesian_point "
+                  append x3dPID "($maxcp of $objSize) cartesian_point "
                 } else {
-                  append x3domPointID "($objSize) cartesian_point "
+                  append x3dPID "($objSize) cartesian_point "
                 }
-                set numX3domPointID $objSize
-                set currX3domPointID 0
+                set numx3dPID $objSize
+                set currx3dPID 0
                 incr iPolyline
     
                 set str ""
-                for {set i 0} {$i < $objSize} {incr i} {append x3domIndex "[expr {$i+$nindex}] "}
-                append x3domIndex "-1 "
+                for {set i 0} {$i < $objSize} {incr i} {append x3dIndex "[expr {$i+$nindex}] "}
+                append x3dIndex "-1 "
                 incr nindex $objSize
+                set x3dIndexType "Line"
               }
     
               if {[info exists cells($ao)]} {
@@ -359,21 +400,28 @@ proc gpmiAnnotationReport {objEntity} {
 # cartesian_point is need to generated X3DOM
                 switch -glob $ent1 {
                   "cartesian_point coordinates" {
-                    if {$opt(VIZPMI) && $x3domFileName != ""} {
-                      #outputMsg "$entLevel $geomType $ent1" red
+                    set coord "[trimNum [lindex $objValue 0]] [trimNum [lindex $objValue 1]] [trimNum [lindex $objValue 2]]"
+
+# save origin for tessellated placement
+                    if {[info exists tessRepo]} {if {$tessRepo} {lappend tessPlacement(origin) $coord}}
+
+# placeholder origin and anchor
+                    if {[string first "placeholder" $ao] != -1} {
+                      incr placeNCP
+                      if {$placeNCP == 1} {
+                        set gpmiPlacement(origin) $coord
+                        set placeOrigin $coord
+                      } elseif {$placeNCP == 3} {
+                        set placeAnchor $coord
+                      }
+                    }
+
+                    if {$opt(VIZPMI) && $x3dFileName != ""} {
 
 # entLevel = 4 for polyline
                       if {$entLevel == 4 && $geomType == "polyline"} {
-                        foreach idx {0 1 2} {append x3domCoord "[format "%.4f" [lindex $objValue $idx]] " }
-                        set x3domPoint(x) [lindex $objValue 0]
-                        set x3domPoint(y) [lindex $objValue 1]
-                        set x3domPoint(z) [lindex $objValue 2]
-
-# min,max of points
-                        foreach idx {x y z} {
-                          if {$x3domPoint($idx) > $x3domMax($idx)} {set x3domMax($idx) $x3domPoint($idx)}
-                          if {$x3domPoint($idx) < $x3domMin($idx)} {set x3domMin($idx) $x3domPoint($idx)}
-                        }
+                        append x3dCoord "$coord "
+                        setCoordMinMax $objValue
 
 # circle center
                       } elseif {$geomType == "circle"} {
@@ -381,28 +429,17 @@ proc gpmiAnnotationReport {objEntity} {
 
 # planar_box corner
                       } elseif {$geomType == "planar_box"} {
-                        set x3domPoint(x) [lindex $objValue 0]
-                        set x3domPoint(y) [lindex $objValue 1]
-                        set x3domPoint(z) [lindex $objValue 2]
-                        foreach idx {x y z} {
-                          if {$x3domPoint($idx) > $x3domMax($idx)} {set x3domMax($idx) $x3domPoint($idx)}
-                          if {$x3domPoint($idx) < $x3domMin($idx)} {set x3domMin($idx) $x3domPoint($idx)}
+                        setCoordMinMax $objValue
+
+# write placeholder box after getting origin and anchor
+                        if {$placeNCP == 3} {
+                          append x3dCoord "0 0 0 "
+                          append x3dCoord "$boxSize(x) 0 0 " 
+                          append x3dCoord "0 $boxSize(y) 0 "
+                          append x3dCoord "$boxSize(x) $boxSize(y) 0 "
+                          append x3dIndex "0 1 3 2 0 -1"
+                          set x3dIndexType "Line"
                         }
-
-# write corners
-                        foreach idx {0 1 2} {append x3domCoord "[format "%.4f" [lindex $objValue $idx]] " }
-
-                        append x3domCoord "[format "%.4f" [expr {[lindex $objValue 0]+$boxSize(x)}]] " 
-                        foreach idx {1 2} {append x3domCoord "[format "%.4f" [lindex $objValue $idx]] " }
-
-                        append x3domCoord "[format "%.4f" [lindex $objValue 0]] "
-                        append x3domCoord "[format "%.4f" [expr {[lindex $objValue 1]+$boxSize(y)}]] " 
-                        append x3domCoord "[format "%.4f" [lindex $objValue 2]] "
-
-                        append x3domCoord "[format "%.4f" [expr {[lindex $objValue 0]+$boxSize(x)}]] " 
-                        append x3domCoord "[format "%.4f" [expr {[lindex $objValue 1]+$boxSize(y)}]] " 
-                        append x3domCoord "[format "%.4f" [lindex $objValue 2]] "
-                        append x3domIndex "0 1 3 2 0 -1 "
                       }
                     }
                   }
@@ -416,10 +453,10 @@ proc gpmiAnnotationReport {objEntity} {
                     }
 # keep track of polyline items
                     set numPolyline $objSize
-                    set x3domPointID ""
+                    set x3dPointID ""
                     set iPolyline 0
-                    set x3domIndex ""
-                    set x3domCoord ""
+                    set x3dIndex ""
+                    set x3dCoord ""
                     set nindex 0
 # keep track of composite curve items
                     set numCompCurve $objSize
@@ -444,10 +481,10 @@ proc gpmiAnnotationReport {objEntity} {
                     }
 # keep track of polyline items
                     set numPolyline $objSize
-                    set x3domPointID ""
+                    set x3dPointID ""
                     set iPolyline 0
-                    set x3domIndex ""
-                    set x3domCoord ""
+                    set x3dIndex ""
+                    set x3dCoord ""
                     set nindex 0
                   }
                   "*tessellated_geometric_set children" {
@@ -459,6 +496,8 @@ proc gpmiAnnotationReport {objEntity} {
                     set dirRatio(x) [format "%.4f" [lindex $objValue 0]]
                     set dirRatio(y) [format "%.4f" [lindex $objValue 1]]
                     set dirRatio(z) [format "%.4f" [lindex $objValue 2]]
+                    if {[info exists tessRepo]} {if {$tessRepo} {lappend tessPlacement($dirType) $objValue}}
+                    if {[string first "placeholder" $ao] != -1} {set gpmiPlacement($dirType) $objValue}
                   }
                   "composite_curve segments" {set numCompCurveSeg $objSize}
                 }
@@ -539,9 +578,9 @@ proc gpmiAnnotationReport {objEntity} {
 # -------------------------------------------------
 # recursively get the entities that are referred to
               if {[catch {
-                ::tcom::foreach val1 $objValue {gpmiAnnotationReport $val1}
+                ::tcom::foreach val1 $objValue {gpmiAnnotationReport $val1 $objDesign}
               } emsg]} {
-                foreach val2 $objValue {gpmiAnnotationReport $val2}
+                foreach val2 $objValue {gpmiAnnotationReport $val2 $objDesign}
               }
             }
           } emsg3]} {
@@ -562,7 +601,7 @@ proc gpmiAnnotationReport {objEntity} {
 # get values for these entity and attribute pairs
                 switch -glob $ent1 {
                   "circle radius" {
-                    if {$opt(VIZPMI) && $x3domFileName != ""} {
+                    if {$opt(VIZPMI) && $x3dFileName != ""} {
 # write circle to X3DOM                    
                       #set ns 8
                       set ns 24
@@ -576,40 +615,42 @@ proc gpmiAnnotationReport {objEntity} {
                         incr ns
                         unset curveTrim
                       }
-                      for {set i 0} {$i < $ns} {incr i} {append x3domIndex "[expr {$i+$nindex}] "}
+                      for {set i 0} {$i < $ns} {incr i} {append x3dIndex "[expr {$i+$nindex}] "}
                       if {!$trimmed} {
-                        append x3domIndex "$nindex -1 "
+                        append x3dIndex "$nindex -1 "
                       } else {
-                        append x3domIndex "-1 "
+                        append x3dIndex "-1 "
                       }
                       incr nindex $ns
+                      set x3dIndexType "Line"
   
                       for {set i 0} {$i < $ns} {incr i} {
                         if {[expr {abs($dirRatio(z))}] > 0.99} {
-                          set x3domPoint(x) [expr {$objValue*cos($angle)+[lindex $circleCenter 0]}]
-                          set x3domPoint(y) [expr {-1.*$objValue*sin($angle)+[lindex $circleCenter 1]}]
-                          set x3domPoint(z) [lindex $circleCenter 2]
+                          set x3dPoint(x) [expr {$objValue*cos($angle)+[lindex $circleCenter 0]}]
+                          set x3dPoint(y) [expr {-1.*$objValue*sin($angle)+[lindex $circleCenter 1]}]
+                          set x3dPoint(z) [lindex $circleCenter 2]
                         } elseif {[expr {abs($dirRatio(y))}] > 0.99} {
-                          set x3domPoint(x) [expr {$objValue*cos($angle)+[lindex $circleCenter 0]}]
-                          set x3domPoint(z) [expr {-1.*$objValue*sin($angle)+[lindex $circleCenter 2]}]
-                          set x3domPoint(y) [lindex $circleCenter 1]
+                          set x3dPoint(x) [expr {$objValue*cos($angle)+[lindex $circleCenter 0]}]
+                          set x3dPoint(z) [expr {-1.*$objValue*sin($angle)+[lindex $circleCenter 2]}]
+                          set x3dPoint(y) [lindex $circleCenter 1]
                         } elseif {[expr {abs($dirRatio(x))}] > 0.99} {
-                          set x3domPoint(z) [expr {$objValue*cos($angle)+[lindex $circleCenter 2]}]
-                          set x3domPoint(y) [expr {-1.*$objValue*sin($angle)+[lindex $circleCenter 1]}]
-                          set x3domPoint(x) [lindex $circleCenter 0]
+                          set x3dPoint(z) [expr {$objValue*cos($angle)+[lindex $circleCenter 2]}]
+                          set x3dPoint(y) [expr {-1.*$objValue*sin($angle)+[lindex $circleCenter 1]}]
+                          set x3dPoint(x) [lindex $circleCenter 0]
                         } else {
-                          errorMsg "PMI annotation circle orientation ($dirRatio(x), $dirRatio(y), $dirRatio(z)) is ignored."
+                          errorMsg " PMI annotation circle orientation ($dirRatio(x), $dirRatio(y), $dirRatio(z)) is ignored."
                           set msg "Complex circle orientation is ignored."
-                          if {[lsearch $x3domMsg $msg] == -1} {lappend x3domMsg $msg}
-                          set x3domPoint(x) [expr {$objValue*cos($angle)+[lindex $circleCenter 0]}]
-                          set x3domPoint(y) [expr {-1.*$objValue*sin($angle)+[lindex $circleCenter 1]}]
-                          set x3domPoint(z) [lindex $circleCenter 2]
+                          if {[lsearch $x3dMsg $msg] == -1} {lappend x3dMsg $msg}
+                          set x3dPoint(x) [expr {$objValue*cos($angle)+[lindex $circleCenter 0]}]
+                          set x3dPoint(y) [expr {-1.*$objValue*sin($angle)+[lindex $circleCenter 1]}]
+                          set x3dPoint(z) [lindex $circleCenter 2]
                         }
+
                         foreach idx {x y z} {
-                          if {$x3domPoint($idx) > $x3domMax($idx)} {set x3domMax($idx) $x3domPoint($idx)}
-                          if {$x3domPoint($idx) < $x3domMin($idx)} {set x3domMin($idx) $x3domPoint($idx)}
+                          if {$x3dPoint($idx) > $x3dMax($idx)} {set x3dMax($idx) $x3dPoint($idx)}
+                          if {$x3dPoint($idx) < $x3dMin($idx)} {set x3dMin($idx) $x3dPoint($idx)}
                         }
-                        append x3domCoord "[format "%.4f" $x3domPoint(x)] [format "%.4f" $x3domPoint(y)] [format "%.4f" $x3domPoint(z)] "
+                        append x3dCoord "[format "%.4f" $x3dPoint(x)] [format "%.4f" $x3dPoint(y)] [format "%.4f" $x3dPoint(z)] "
                         set angle [expr {$angle+$dlt}]
                       }
                     }
@@ -625,7 +666,7 @@ proc gpmiAnnotationReport {objEntity} {
                     }
                     errorMsg " Trimmed circles in PMI annotations might have the wrong orientation."
                     set msg "Trimmed circles might have the wrong orientation."
-                    if {[lsearch $x3domMsg $msg] == -1} {lappend x3domMsg $msg}
+                    if {[lsearch $x3dMsg $msg] == -1} {lappend x3dMsg $msg}
                   }
                   "cartesian_point name" {
                     if {$entLevel == 4} {
@@ -644,6 +685,15 @@ proc gpmiAnnotationReport {objEntity} {
                     } else {
                       set colName "name[format "%c" 10](Sec. 4.3)"
                     }
+                    set tessRepo 0
+                    if {[string first "repositioned" $ent1] != -1} {
+                      set tessRepo 1
+                      catch {unset tessPlacement}
+                    }
+                  }
+                  "tessellated_shell name" -
+                  "tessellated_solid name" {
+                    set ok 1
                   }
                   "annotation_curve_occurrence* name" -
                   "annotation_fill_area_occurrence* name" -
@@ -653,7 +703,120 @@ proc gpmiAnnotationReport {objEntity} {
                     set aoname $objValue
                     if {[string first "fill" $ent1] != -1} {
                       set msg "Filled characters are not filled."
-                      if {[lsearch $x3domMsg $msg] == -1} {lappend x3domMsg $msg}
+                      if {[lsearch $x3dMsg $msg] == -1} {lappend x3dMsg $msg}
+                    }
+                    if {[string first "placeholder" $ent1] != -1} {set placeNCP 0}
+                  }
+                  "*triangulated_face name" -
+                  "*triangulated_surface_set name" -
+                  "tessellated_curve_set name" {
+# write tessellated coords and index for pmi and part geometry
+                    if {($opt(VIZPMI) && $ao == "tessellated_annotation_occurrence") || \
+                        ($opt(VIZTES) && ($ao == "tessellated_solid" || $ao == "tessellated_shell"))} {
+                      if {[info exists tessIndex($objID)] && [info exists tessCoord($tessIndexCoord($objID))]} {
+                        set x3dIndex $tessIndex($objID)
+                        set x3dCoord $tessCoord($tessIndexCoord($objID))
+  
+                        if {$x3dColor == ""} {set x3dColor "1 1 0"}
+                        set x3dIndexType "Line"
+                        set solid ""
+                        set emit "emissiveColor='$x3dColor'"
+                        set spec ""
+
+# faces
+                        if {[string first "face" $ent1] != -1} {
+                          set x3dIndexType "Face"
+                          set solid "solid='false'"
+
+# tessellated part geometry
+                          if {$ao == "tessellated_solid" || $ao == "tessellated_shell"} {
+                            set tsID [$objEntity1 P21ID]
+
+# set color
+                            set x3dColor ".7 .7 .7"
+                            tessSetColor $tsID $objDesign
+                            set spec "specularColor='.5 .5 .5'"
+                            set emit ""
+
+# set placement for tessellated part geometry (axis and ref_direction)
+                            if {[info exists entCount(item_defined_transformation)]} {tessSetPlacement $tsID $objDesign}
+                          }
+                        }
+                      
+# write transform based on placement
+                        catch {unset endTransform}
+                        set nplace 0
+                        if {[info exists tessRepo]} {
+                          if {$tessRepo && [info exists tessPlacement(origin)]} {set nplace [llength $tessPlacement(origin)]}
+                        }
+                        if {$nplace == 0} {set nplace 1}
+
+                        for {set np 0} {$np < $nplace} {incr np} {
+                          if {[info exists tessPlacement(origin)]} {
+                            puts $x3dFile "<Transform translation='[lindex $tessPlacement(origin) $np]' rotation='[x3dRotation [lindex $tessPlacement(axis) $np] [lindex $tessPlacement(refdir) $np]]'>"
+                            set endTransform "</Transform>"
+                          }
+                      
+# write tessellated face or line
+                          if {$np == 0} {
+                            if {![info exists shapeRepName]} {set shapeRepName "shape"}
+                            puts $x3dFile "<Shape DEF='$shapeRepName$objID'>\n <Appearance><Material diffuseColor='$x3dColor' $emit $spec></Material></Appearance>"
+                            puts $x3dFile " <Indexed$x3dIndexType\Set $solid DEF='index$objID' coordIndex='[string trim $x3dIndex]'>"
+                            if {[lsearch $tessCoordID $tessIndexCoord($objID)] == -1} { 
+                              lappend tessCoordID $tessIndexCoord($objID)
+                              puts $x3dFile "  <Coordinate DEF='coord$tessIndexCoord($objID)' point='[string trim $x3dCoord]'></Coordinate>"
+                            } else {
+                              puts $x3dFile "  <Coordinate USE='coord$tessIndexCoord($objID)'></Coordinate>"
+                            }
+                            puts $x3dFile " </Indexed$x3dIndexType\Set>\n</Shape>"
+                          } else {
+                            puts $x3dFile " <Shape USE='$shapeRepName$objID'></Shape>"
+                          }
+                      
+# write mesh, based on faces, for part geometry
+                          set mesh 0
+                          if {[info exists entCount(triangulated_face)]}         {if {$entCount(triangulated_face)         < 10000} {set mesh 1}}
+                          if {[info exists entCount(complex_triangulated_face)]} {if {$entCount(complex_triangulated_face) < 10000} {set mesh 1}}
+  
+                          if {$x3dIndexType == "Face" && ($ao == "tessellated_solid" || $ao == "tessellated_shell") && $mesh} {
+                            if {$np == 0} {
+                              set x3dMesh ""
+                              set firstID [lindex $x3dIndex 0]
+                              set getFirst 0
+                              foreach id [split $x3dIndex " "] {
+                                if {$id == -1} {
+                                  append x3dMesh "$firstID "
+                                  set getFirst 1
+                                }
+                                append x3dMesh "$id "
+                                if {$id != -1 && $getFirst} {
+                                  set firstID $id
+                                  set getFirst 0
+                                }
+                              }
+                              
+                              set ecolor ""
+                              foreach c [split $x3dColor] {append ecolor "[expr {$c*.5}] "}
+                              puts $x3dFile "<Shape DEF='mesh$objID'>\n <Appearance><Material emissiveColor='$ecolor'></Material></Appearance>"
+                              puts $x3dFile " <IndexedLineSet coordIndex='[string trim $x3dMesh]'>\n  <Coordinate USE='coord$tessIndexCoord($objID)'></Coordinate>"
+                              puts $x3dFile " </IndexedLineSet>\n</Shape>"
+                            } else {
+                              puts $x3dFile " <Shape USE='mesh$objID'></Shape>"
+                            }
+                          }
+
+                          incr nshape
+                          if {[expr {$nshape%1000}] == 0} {outputMsg "  $nshape"}
+                        
+# end transform                      
+                          if {[info exists endTransform]} {puts $x3dFile $endTransform}
+                        }
+                        
+                        set x3dCoord ""
+                        set x3dIndex ""
+                      } else {
+                        errorMsg "Missing tessellated coordinates and index for $objID"
+                      }
                     }
                   }
                   "curve_style name" -
@@ -669,20 +832,20 @@ proc gpmiAnnotationReport {objEntity} {
                   "colour_rgb red" {
                     if {$entLevel == 4 || $entLevel == 8} {
                       if {$opt(gpmiColor) > 0} {
-                        set x3domColor [gpmiSetColor $opt(gpmiColor)]
+                        set x3dColor [gpmiSetColor $opt(gpmiColor)]
                       } else {
-                        set x3domColor $objValue
+                        set x3dColor $objValue
                       }
                     }
                   }
                   "colour_rgb green" {
                     if {$entLevel == 4 || $entLevel == 8} {
-                      if {$opt(gpmiColor) == 0} {append x3domColor " $objValue"}
+                      if {$opt(gpmiColor) == 0} {append x3dColor " $objValue"}
                     }
                   }
                   "colour_rgb blue" {
                     if {$entLevel == 4 || $entLevel == 8} {
-                      if {$opt(gpmiColor) == 0} {append x3domColor " $objValue"}
+                      if {$opt(gpmiColor) == 0} {append x3dColor " $objValue"}
                       set ok 1
                       set col($ao) [expr {$pmiStartCol($ao)+3}]
                       if {$stepAP == "AP242"} {
@@ -695,26 +858,22 @@ proc gpmiAnnotationReport {objEntity} {
                   }
                   "draughting_pre_defined_colour name" {
                     if {$entLevel == 4 || $entLevel == 8} {
-                      if {$objValue == "white"} {
-                        set x3domColor "1 1 1"
-                      } elseif {$objValue == "black"} {
-                        set x3domColor "0 0 0"
-                      } elseif {$objValue == "red"} {
-                        set x3domColor "1 0 0"
-                      } elseif {$objValue == "yellow"} {
-                        set x3domColor "1 1 0"
-                      } elseif {$objValue == "green"} {
-                        set x3domColor "0 1 0"
-                      } elseif {$objValue == "cyan"} {
-                        set x3domColor "0 1 1"
-                      } elseif {$objValue == "blue"} {
-                        set x3domColor "0 0 1"
-                      } elseif {$objValue == "magenta"} {
-                        set x3domColor "1 0 1"
-                      } else {
-                        errorMsg "Syntax Error: Unknown draughting_pre_defined_colour name '$objValue'"
+                      switch $objValue {
+                        black   {set x3dColor "0 0 0"}
+                        white   {set x3dColor "1 1 1"}
+                        red     {set x3dColor "1 0 0"}
+                        yellow  {set x3dColor "1 1 0"}
+                        green   {set x3dColor "0 1 0"}
+                        cyan    {set x3dColor "0 1 1"}
+                        blue    {set x3dColor "0 0 1"}
+                        magenta {set x3dColor "1 0 1"}
+                        default {
+                          set x3dColor ".7 .7 .7"
+                          errorMsg "Syntax Error: Unknown draughting_pre_defined_colour name '$objValue' (using gray)\n[string repeat " " 14]($recPracNames(model), Sec. 4.2.3, Table 2)"
+                        }
                       }
-                      if {$opt(gpmiColor) > 0} {set x3domColor [gpmiSetColor $opt(gpmiColor)]}
+                      #errorMsg "Syntax Error: Unknown draughting_pre_defined_colour name '$objValue'"
+                      if {$opt(gpmiColor) > 0} {set x3dColor [gpmiSetColor $opt(gpmiColor)]}
                       set ok 1
                       set col($ao) [expr {$pmiStartCol($ao)+3}]
                       if {$stepAP == "AP242"} {
@@ -731,160 +890,177 @@ proc gpmiAnnotationReport {objEntity} {
                   "planar_box size_in_*" {
                     set geomType "planar_box"
                     if {[string first "y" $ent1] != -1} {
-                      set boxSize(y) $objValue
+                      set boxSize(y) [trimNum $objValue]
                     } else {
-                      set boxSize(x) $objValue
+                      set boxSize(x) [trimNum $objValue]
                     }
                   }
                 }
 
 # value in spreadsheet
-                if {$ok && [info exists gpmiID]} {
-                  set c [string index [cellRange 1 $col($ao)] 0]
-                  set r $gpmiIDRow($ao,$gpmiID)
+                if {$ok} {
+                  if {[info exists gpmiID] && [string first "occurrence" $ao] != -1} {
+                    set c [string index [cellRange 1 $col($ao)] 0]
+                    set r $gpmiIDRow($ao,$gpmiID)
 
 # column name
-                  if {$colName != ""} {
-                    if {![info exists pmiHeading($col($ao))]} {
-                      $cells($ao) Item 3 $c $colName
-                      set pmiHeading($col($ao)) 1
-                      set pmiCol [expr {max($col($ao),$pmiCol)}]
+                    if {$colName != ""} {
+                      if {![info exists pmiHeading($col($ao))]} {
+                        $cells($ao) Item 3 $c $colName
+                        set pmiHeading($col($ao)) 1
+                        set pmiCol [expr {max($col($ao),$pmiCol)}]
+                      }
                     }
-                  }
 
 # keep track of rows with validation properties
-                  if {[lsearch $gpmiRow($ao) $r] == -1} {lappend gpmiRow($ao) $r}
+                    if {[lsearch $gpmiRow($ao) $r] == -1} {lappend gpmiRow($ao) $r}
+                  }
 
 # look for correct PMI name on 
 # geometric_curve_set  annotation_fill_area  tessellated_geometric_set  composite_curve
                   if {$ent1 == "geometric_curve_set name" || \
                       $ent1 == "geometric_set name" || \
                       $ent1 == "annotation_fill_area name" || \
+                      $ent1 == "tessellated_shell name" || \
+                      $ent1 == "tessellated_solid name" || \
                       $ent1 == "tessellated_geometric_set name" || \
                       $ent1 == "repositioned_tessellated_item_and_tessellated_geometric_set name" || \
                       $ent1 == "composite_curve name"} {
                     set ov $objValue
 
-
 # look for invalid 'name' values                  
                     set invalid 0
-                    if {$ov == ""} {
-                      set msg "Syntax Error: Missing 'name' attribute on [lindex $ent1 0].\n[string repeat " " 14]"
-                      if {$stepAP == "AP242"} {
-                        append msg "($recPracNames(pmi242), Sec. 8.4, Table 14)"
-                      } else {
-                        append msg "($recPracNames(pmi203), Sec. 4.3, Table 1)"
+                    if {[string first "occurrence" $ao] != -1} {
+                      if {$ov == ""} {
+                        set msg "Syntax Error: Missing 'name' attribute on [lindex $ent1 0].\n[string repeat " " 14]"
+                        if {$stepAP == "AP242"} {
+                          append msg "($recPracNames(pmi242), Sec. 8.4, Table 14)"
+                        } else {
+                          append msg "($recPracNames(pmi203), Sec. 4.3, Table 1)"
+                        }
+                        errorMsg $msg
+                        set ov "(blank)"
+                        if {[info exists gpmiTypesInvalid]} {
+                          if {[lsearch $gpmiTypesInvalid $ov] == -1} {lappend gpmiTypesInvalid $ov}
+                        }
+                        set invalid 1
+                        lappend syntaxErr([lindex [split $ent1 " "] 0]) [list $objID [lindex [split $ent1 " "] 1]]
+                      } elseif {[lsearch $gpmiTypes $ov] == -1} {
+                        set msg "Syntax Error: Invalid 'name' attribute ($ov) on [lindex $ent1 0].\n[string repeat " " 14]"
+                        if {$stepAP == "AP242"} {
+                          append msg "($recPracNames(pmi242), Sec. 8.4, Table 14)"
+                        } else {
+                          append msg "($recPracNames(pmi203), Sec. 4.3, Table 1)"
+                        }
+                        errorMsg $msg
+                        if {[info exists gpmiTypesInvalid]} {
+                          if {[lsearch $gpmiTypesInvalid $ov] == -1} {lappend gpmiTypesInvalid $ov}
+                        }
+                        set invalid 1
+                        lappend syntaxErr([lindex [split $ent1 " "] 0]) [list $objID [lindex [split $ent1 " "] 1]]
                       }
-                      errorMsg $msg
-                      set ov "(blank)"
-                      if {[info exists gpmiTypesInvalid]} {
-                        if {[lsearch $gpmiTypesInvalid $ov] == -1} {lappend gpmiTypesInvalid $ov}
-                      }
-                      set invalid 1
-                      lappend syntaxErr([lindex [split $ent1 " "] 0]) [list $objID [lindex [split $ent1 " "] 1]]
-                    } elseif {[lsearch $gpmiTypes $ov] == -1} {
-                      set msg "Syntax Error: Invalid 'name' attribute ($ov) on [lindex $ent1 0].\n[string repeat " " 14]"
-                      if {$stepAP == "AP242"} {
-                        append msg "($recPracNames(pmi242), Sec. 8.4, Table 14)"
-                      } else {
-                        append msg "($recPracNames(pmi203), Sec. 4.3, Table 1)"
-                      }
-                      errorMsg $msg
-                      if {[info exists gpmiTypesInvalid]} {
-                        if {[lsearch $gpmiTypesInvalid $ov] == -1} {lappend gpmiTypesInvalid $ov}
-                      }
-                      set invalid 1
-                      lappend syntaxErr([lindex [split $ent1 " "] 0]) [list $objID [lindex [split $ent1 " "] 1]]
                     }
                     
 # count number of gpmi types
-                    #outputMsg "$ov  $aoname" green
-                    if {$ov != $aoname} {
-                      lappend gpmiTypesPerFile "$ov/$aoname"
-                    } else {
-                      set n 0
-                      set objGuiEntities [$objEntity1 GetUsedIn [string trim draughting_model_item_association] [string trim identified_item]]
-                      ::tcom::foreach objGuiEntity $objGuiEntities {
-                        incr n
-                        if {$n == 1} {lappend gpmiTypesPerFile "$ov/$aoname[$objEntity1 P21ID]"}
-                        #lappend gpmiTypesPerFile "$ov/$aoname[$objGuiEntity P21ID]"
-                      }
-                      if {$n == 0} {
-                        set objGuiEntities [$objEntity1 GetUsedIn [string trim draughting_callout] [string trim contents]]
+                    if {[info exists aoname]} {
+                      if {$ov != $aoname} {
+                        lappend gpmiTypesPerFile "$ov/$aoname"
+                      } else {
+                        set n 0
+                        set objGuiEntities [$objEntity1 GetUsedIn [string trim draughting_model_item_association] [string trim identified_item]]
                         ::tcom::foreach objGuiEntity $objGuiEntities {
                           incr n
-                          if {$n == 1} {lappend gpmiTypesPerFile "$ov/$aoname[$objGuiEntity P21ID]"}
+                          if {$n == 1} {lappend gpmiTypesPerFile "$ov/$aoname[$objEntity1 P21ID]"}
+                        }
+                        if {$n == 0} {
+                          set objGuiEntities [$objEntity1 GetUsedIn [string trim draughting_callout] [string trim contents]]
+                          ::tcom::foreach objGuiEntity $objGuiEntities {
+                            incr n
+                            if {$n == 1} {lappend gpmiTypesPerFile "$ov/$aoname[$objGuiEntity P21ID]"}
+                          }
                         }
                       }
                     }
-                    #catch {outputMsg $gpmiTypesPerFile red}
                 
-# start X3DOM file
-                    if {$opt(VIZPMI)} {
-                      if {[string first "tessellated" $ao] == -1} {
-                        if {$x3domStartFile} {
-                          set x3domStartFile 0
-                          set x3domFileName [file rootname $localName]_x3dom.html
-                          catch {file delete -force $x3domFileName}
-                          set x3domFile [open $x3domFileName w]
-                          outputMsg " Writing PMI Annotations to: [truncFileName [file nativename $x3domFileName]]" green
-                          
-                          puts $x3domFile "<!DOCTYPE html>\n<html>\n<head>\n<title>[file tail $localName] | Graphical PMI</title>\n<base target=\"_blank\">\n<meta http-equiv='Content-Type' content='text/html;charset=utf-8'/>\n<link rel='stylesheet' type='text/css' href='https://www.x3dom.org/x3dom/release/x3dom.css'/>\n<script type='text/javascript' src='https://www.x3dom.org/x3dom/release/x3dom.js'></script>\n</head>"
-                          puts $x3domFile "\n<body><font face=\"arial\">\n<h3>Graphical PMI:  [file tail $localName]</h3>"
-                          puts $x3domFile "<ul><li>Only the graphical PMI is shown.  Part geometry can be viewed with <a href=\"https://www.cax-if.org/step_viewers.html\">STEP file viewers</a>."
-                          puts $x3domFile "<li><a href=\"https://www.x3dom.org/documentation/interaction/\">Use the mouse</a> to rotate, pan, and zoom.  Use Page Down to switch between perspective and orthographic views.  Saved Views are ignored."
-                          puts $x3domFile "</ul><table><tr><td>"
+# start X3DOM file, read tessellated geometry
+                    if {($opt(VIZPMI) && [string first "occurrence" $ao] != -1) || \
+                        ($opt(VIZTES) && [string first "occurrence" $ao] == -1)} {
+                      if {$x3dStartFile} {
+                        set x3dStartFile 0
+                        set x3dFileName [file rootname $localName]_x3dom.html
+                        catch {file delete -force $x3dFileName}
+                        set x3dFileName [file rootname $localName]-x3dom.html
+                        catch {file delete -force $x3dFileName}
+                        set x3dFile [open $x3dFileName w]
+                        if {[string first "occurrence" $ao] != -1} {
+                          if {([info exists entCount(tessellated_solid)] || [info exists entCount(tessellated_shell)]) && $opt(VIZTES)} {
+                            set title "Graphical PMI and Tessellated Part Geometry"
+                          } else {
+                            set title "Graphical PMI"
+                          }
+                        } else {
+                          set title "Tessellated Part Geometry"
+                        }
+                        #outputMsg " Writing $title to: [truncFileName [file nativename $x3dFileName]]" blue
+                        
+                        puts $x3dFile "<!DOCTYPE html>\n<html>\n<head>\n<title>[file tail $localName] | $title</title>\n<base target=\"_blank\">\n<meta http-equiv='Content-Type' content='text/html;charset=utf-8'/>\n<link rel='stylesheet' type='text/css' href='https://www.x3dom.org/x3dom/release/x3dom.css'/>\n<script type='text/javascript' src='https://www.x3dom.org/x3dom/release/x3dom.js'></script>\n</head>"
+                        puts $x3dFile "\n<body><font face=\"arial\">\n<h3>$title:  [file tail $localName]</h3>"
+                        puts $x3dFile "<ul><li>Only $title is shown.  Boundary representation (b-rep) part geometry can be viewed with <a href=\"https://www.cax-if.org/step_viewers.html\">STEP file viewers</a>."
+                        puts $x3dFile "<li><a href=\"https://www.x3dom.org/documentation/interaction/\">Use the mouse</a> to rotate, pan, zoom.  Use 'a' to show all.  Left double-click to recenter."
+                        puts $x3dFile "<li>Use Page Down to switch between perspective and orthographic views.  Saved Views are ignored.<p>"
+                        if {[string first "Tessellated" $title] != -1 && [info exist entCount(next_assembly_usage_occurrence)]} {
+                          puts $x3dFile "<li>Parts in an assembly might have the wrong position and orientation or be missing."
+                        }
+                        #if {[string first "Tessellated" $title] != -1 || ($opt(VIZPMI) && [info exist entCount(tessellated_annotation_occurrence)] && [info exist entCount(complex_triangulated_surface_set)])} {
+                        #  puts $x3dFile "<li>Some triangles may be missing or have the wrong color."
+                        #}
+                        puts $x3dFile "</ul><table><tr><td>"
 
 # x3d window size
-                          set height 800
-                          set width [expr {int($height*1.5)}]
-                          catch {
-                            set height [expr {int([winfo screenheight .]*0.7)}]
-                            set width [expr {int($height*[winfo screenwidth .]/[winfo screenheight .])}]
-                          }
-                          puts $x3domFile "\n<X3D id='someUniqueId' showStat='false' showLog='false' x='0px' y='0px' width='$width\px' height='$height\px'>\n<Scene DEF='scene'>"
-
-                          for {set i 0} {$i < 4} {incr i} {set avgX3domColor($i) 0}
+                        set height 800
+                        set width [expr {int($height*1.5)}]
+                        catch {
+                          set height [expr {int([winfo screenheight .]*0.7)}]
+                          set width [expr {int($height*[winfo screenwidth .]/[winfo screenheight .])}]
                         }
-
-# start X3DOM Shape node                    
-                        if {$ao == "annotation_fill_area_occurrence"} {errorMsg "PMI annotations with filled characters are not filled."}
-                        if {$x3domColor != ""} {
-                          puts $x3domFile "<Shape>\n <Appearance><Material emissiveColor='$x3domColor'></Material></Appearance>"
-                          set colors [split $x3domColor " "]
-                          for {set i 0} {$i < 3} {incr i} {set avgX3domColor($i) [expr {$avgX3domColor($i)+[lindex $colors $i]}]}
-                          incr avgX3domColor(3)
-                        } elseif {[string first "annotation_occurrence" $ao] == 0} {
-                          puts $x3domFile "<Shape>\n <Appearance><Material emissiveColor='1 0.5 0'></Material></Appearance>"
-                          errorMsg "Syntax Error: Color not specified for PMI Presentation (using orange)"
-                        } elseif {[string first "annotation_fill_area_occurrence" $ao] == 0} {
-                          puts $x3domFile "<Shape>\n <Appearance><Material emissiveColor='1 0.5 0'></Material></Appearance>"
-                          errorMsg "Syntax Error: Color not specified for PMI Presentation (using orange)"
+                        puts $x3dFile "\n<X3D id='someUniqueId' showStat='false' showLog='false' x='0px' y='0px' width='$width\px' height='$height\px'>\n<Scene DEF='scene'>"
+                        
+# read tessellated geometry separately because of IFCsvr limitations
+                        if {[info exists entCount(tessellated_annotation_occurrence)] || \
+                            [info exists entCount(tessellated_solid)] || \
+                            [info exists entCount(tessellated_shell)]} {
+                          tessReadGeometry
                         }
-                        set x3domShape 1
-                        update idletasks
-                      } else {
-                        errorMsg " Visualization of Tessellated PMI Annotations is not supported." red
+                        outputMsg " Writing $title to: [truncFileName [file nativename $x3dFileName]]" blue
                       }
+
+# moved (start shape node if not tessellated)
+                      if {$ao == "annotation_fill_area_occurrence"} {errorMsg "PMI annotations with filled characters are not filled."}
+                      if {[string first "tessellated" $ao] == -1} {
+                        set x3dShape 1
+                      }
+                      update idletasks
                     }               
 
 # value in spreadsheet  
-                    set val [[$cells($ao) Item $r $c] Value]
-                    if {$invalid} {lappend syntaxErr($ao) [list $r $col($ao)]}
-  
-                    if {$val == ""} {
-                      $cells($ao) Item $r $c $ov
-                    } else {
-                      $cells($ao) Item $r $c "$val[format "%c" 10]$ov"
-                    }
+                    if {[info exists gpmiID] && [string first "occurrence" $ao] != -1} {
+                      set val [[$cells($ao) Item $r $c] Value]
+                      if {$invalid} {lappend syntaxErr($ao) [list $r $col($ao)]}
+    
+                      if {$val == ""} {
+                        $cells($ao) Item $r $c $ov
+                      } else {
+                        $cells($ao) Item $r $c "$val[format "%c" 10]$ov"
+                      }
 
 # keep track of max column
-                    set pmiCol [expr {max($col($ao),$pmiCol)}]
+                      set pmiCol [expr {max($col($ao),$pmiCol)}]
+                    }
 
-# keep track of cartesian point ids (x3domPointID)
-                  } elseif {[info exists currX3domPointID] && $ent1 == "cartesian_point name"} {
-                    if {$currX3domPointID < $maxcp} {append x3domPointID "$objID "}
-                    incr currX3domPointID
+# keep track of cartesian point ids (x3dPID)
+                  } elseif {[info exists currx3dPID] && $ent1 == "cartesian_point name"} {
+                    if {$currx3dPID < $maxcp} {append x3dPID "$objID "}
+                    incr currx3dPID
 
 # cell value for presentation style or color
                   } else {
@@ -892,7 +1068,7 @@ proc gpmiAnnotationReport {objEntity} {
                       $cells($ao) Item $r $c "$ent($entLevel) $objID"
                     } else {
                       if {$ent($entLevel) == "colour_rgb"} {
-                        $cells($ao) Item $r $c "$ent($entLevel) $objID  ($x3domColor)"
+                        $cells($ao) Item $r $c "$ent($entLevel) $objID  ($x3dColor)"
                       } else {
                         $cells($ao) Item $r $c "$ent($entLevel) $objID  ($objValue)"
                       }
@@ -995,7 +1171,6 @@ proc gpmiAnnotationReport {objEntity} {
 
 # report annotation plane
     if {[catch {
-      #outputMsg "Annotation Plane" red
       set aps {}
       set ents [$objEntity GetUsedIn [string trim annotation_plane] [string trim elements]]
       ::tcom::foreach ap $ents {lappend aps $ap}
@@ -1217,9 +1392,9 @@ proc gpmiAnnotationReport {objEntity} {
           if {$stepAP == "AP214"} {set str "representation_relationship"}
           set msg "Syntax Error: For Saved Views, missing '$str' to relate 'draughting_model'\n[string repeat " " 14]"
           if {$stepAP == "AP242"} {
-            append msg "($recPracNames(pmi242), Sec. 9.4.4, Fig. 93)"
+            append msg "($recPracNames(pmi242), Sec. 9.4.4 Note 1, Fig. 93)"
           } else {
-            append msg "($recPracNames(pmi203), Sec. 5.4.4, Fig. 20)"
+            append msg "($recPracNames(pmi203), Sec. 5.4.4 Note 1, Fig. 20)"
           }
           errorMsg $msg
         }
@@ -1231,7 +1406,7 @@ proc gpmiAnnotationReport {objEntity} {
 # check if there are PMI validation properties (propDefIDS) associated with the annotation_occurrence
     if {[catch {
       if {[info exists propDefIDS]} {
-
+      
 # look for annotation_occurrence used in property_definition.definition
         set objGuiEntities [$objEntity GetUsedIn [string trim property_definition] [string trim definition]]
         ::tcom::foreach objGuiEntity $objGuiEntities {
@@ -1265,7 +1440,6 @@ proc gpmiAnnotationReport {objEntity} {
 # add valprop info to spreadsheet
       if {[info exists gpmiValProp($objID)]} {
         if {![info exists pmiColumns(vp)]} {set pmiColumns(vp) [getNextUnusedColumn $ao 3]}
-        #errorMsg "  Adding Validation Properties" green
         if {$stepAP == "AP242"} {
           set colName "Validation Properties[format "%c" 10](Sec. 10.3)"
         } else {
@@ -1274,7 +1448,6 @@ proc gpmiAnnotationReport {objEntity} {
         set c [string index [cellRange 1 $pmiColumns(vp)] 0]
         set r $gpmiIDRow($ao,$gpmiID)
         if {![info exists pmiHeading($pmiColumns(vp))]} {
-          #$cells($ao) Item 1 $c $colName
           $cells($ao) Item 3 $c $colName
           set pmiHeading($pmiColumns(vp)) 1
           set pmiCol [expr {max($pmiColumns(vp),$pmiCol)}]
@@ -1288,30 +1461,6 @@ proc gpmiAnnotationReport {objEntity} {
     }
   }
 }
-
-# -------------------------------------------------------------------------------
-# set X3DOM color
-proc gpmiSetColor {type} {
-  global idxColor
-
-  if {$type == 1} {return "0 0 0"}
-
-  if {$type == 2} {
-    incr idxColor
-    switch $idxColor {
-      1 {set color "0 0 0"}
-      2 {set color "1 1 1"}
-      3 {set color "1 0 0"}
-      4 {set color "1 1 0"}
-      5 {set color "0 1 0"}
-      6 {set color "0 1 1"}
-      7 {set color "0 0 1"}
-      8 {set color "1 0 1"}
-    }
-    if {$idxColor == 8} {set idxColor 0}
-  }
-  return $color
-} 
 
 # -------------------------------------------------------------------------------
 # get camera models and validation properties
@@ -1426,57 +1575,65 @@ proc pmiGetCamerasAndProperties {objDesign} {
 }  
 
 # -------------------------------------------------------------------------------
+# set X3DOM color
+proc gpmiSetColor {type} {
+  global idxColor
+
+  if {$type == 1} {return "0 0 0"}
+
+  if {$type == 2} {
+    incr idxColor
+    switch $idxColor {
+      1 {set color "0 0 0"}
+      2 {set color "1 1 1"}
+      3 {set color "1 0 0"}
+      4 {set color ".5 .25 0"}
+      5 {set color "1 1 0"}
+      6 {set color "0 .5 0"}
+      7 {set color "0 .5 .5"}
+      8 {set color "0 0 1"}
+      9 {set color "1 0 1"}
+    }
+    if {$idxColor == 9} {set idxColor 0}
+  }
+  return $color
+} 
+
+# -------------------------------------------------------------------------------
 # set viewpoints, add navigation and background color, and close X3DOM file
-proc x3domViewpoints {} {
-  global avgX3domColor opt stepAP x3domMax x3domMin x3domFile x3domMsg stepAP entCount nistVersion
+proc x3dViewpoints {} {
+  global opt stepAP x3dMax x3dMin x3dFile x3dMsg stepAP entCount nistVersion
   
 # viewpoints
   foreach idx {x y z} {
-    set delt($idx) [expr {$x3domMax($idx)-$x3domMin($idx)}]
-    set xyzcen($idx) [format "%.4f" [expr {0.5*$delt($idx) + $x3domMin($idx)}]]
+    set delt($idx) [expr {$x3dMax($idx)-$x3dMin($idx)}]
+    set xyzcen($idx) [trimNum [format "%.4f" [expr {0.5*$delt($idx) + $x3dMin($idx)}]]]
   }
   set maxxyz $delt(x)
   if {$delt(y) > $maxxyz} {set maxxyz $delt(y)}
   if {$delt(z) > $maxxyz} {set maxxyz $delt(z)}
+
   set cor "centerOfRotation='$xyzcen(x) $xyzcen(y) $xyzcen(z)'"
-  puts $x3domFile "\n<Viewpoint $cor position='$xyzcen(x) [trimNum [expr {0. - ($xyzcen(y) + 1.4*$maxxyz)}]] $xyzcen(z)' orientation='1 0 0 1.5708' description='Front'></Viewpoint>"
+  puts $x3dFile "\n<Viewpoint $cor position='$xyzcen(x) [trimNum [expr {0. - ($xyzcen(y) + 1.4*$maxxyz)}]] $xyzcen(z)' orientation='1 0 0 1.5708' description='Front'></Viewpoint>"
+
   set fov [trimNum [expr {$delt(z)*0.5 + $delt(y)*0.5}]]
-  puts $x3domFile "<OrthoViewpoint fieldOfView='\[-$fov,-$fov,$fov,$fov\]' $cor position='$xyzcen(x) [trimNum [expr {0. - ($xyzcen(y) + 1.4*$maxxyz)}]] $xyzcen(z)' orientation='1 0 0 1.5708' description='Ortho'></OrthoViewpoint>"  
-  puts $x3domFile "<NavigationInfo type='\"EXAMINE\" \"ANY\"'></NavigationInfo>"
+  puts $x3dFile "<OrthoViewpoint fieldOfView='\[-$fov,-$fov,$fov,$fov\]' $cor position='$xyzcen(x) [trimNum [expr {0. - ($xyzcen(y) + 1.4*$maxxyz)}]] $xyzcen(z)' orientation='1 0 0 1.5708' description='Ortho'></OrthoViewpoint>"  
 
-# find average color
-  set ok 0
+  puts $x3dFile "<NavigationInfo type='\"EXAMINE\" \"ANY\"'></NavigationInfo>"
   if {[string first "AP209" $stepAP] == -1} {
-    for {set i 0} {$i < 3} {incr i} {set avgX3domColor($i) [expr {$avgX3domColor($i)/$avgX3domColor(3)}]}
-    set acolor [expr {$avgX3domColor(0)+$avgX3domColor(1)+$avgX3domColor(2)}]
-    if {($acolor < 0.2 || $opt(gpmiColor) == 1) && $opt(gpmiColor) != 2} {set ok 1}
-
-    if {[info exists entCount(tessellated_annotation_occurrence)]} {lappend x3domMsg "Segments of the PMI annotations modeled with tessellated geometry are not displayed."}
-    #if {[info exists entCount(annotation_placeholder_occurrence)]} {lappend x3domMsg "Annotation placeholders are not displayed."}
-
-# AP209 color
+    puts $x3dFile "<Background skyColor='.8 .8 .8'></Background>"
   } else {
-    set ok 1
+    puts $x3dFile "<Background skyColor='1 1 1'></Background>"
   }
-
-# background color
-  if {$ok} {
-    puts $x3domFile "<Background skyColor='1. 1. 1.'></Background>"
-  } elseif {$acolor < 2.0} {
-    puts $x3domFile "<Background skyColor='.8 .8 .8'></Background>"
-  } else {
-    puts $x3domFile "<Background skyColor='.4 .4 .4'></Background>"
-  }
-
-  puts $x3domFile "</Scene></X3D>\n\n</td></tr></table>\n<p>"
+  puts $x3dFile "</Scene></X3D>\n\n</td></tr></table>\n<p>"
   
-# extra messages
-  if {[info exists x3domMsg]} {
-    if {[llength $x3domMsg] > 0} {
-      puts $x3domFile "<ul>"
-      foreach item $x3domMsg {puts $x3domFile "<li>$item"}
-      puts $x3domFile "</ul>"
-      unset x3domMsg
+# extra text messages
+  if {[info exists x3dMsg]} {
+    if {[llength $x3dMsg] > 0} {
+      puts $x3dFile "<ul>"
+      foreach item $x3dMsg {puts $x3dFile "<li>$item"}
+      puts $x3dFile "</ul>"
+      unset x3dMsg
     }
   }
                           
@@ -1486,31 +1643,28 @@ proc x3domViewpoints {} {
     set str ""
     set url "https://github.com/usnistgov/SFA"
   }
-  puts $x3domFile "Generated by the <a href=\"$url\">$str\STEP File Analyzer (v[getVersion])</a> and rendered with <a href=\"https://www.x3dom.org/\">X3DOM</a>."
-  puts $x3domFile "[clock format [clock seconds]]"
+  puts $x3dFile "Generated by the <a href=\"$url\">$str\STEP File Analyzer (v[getVersion])</a> and rendered with <a href=\"https://www.x3dom.org/\">X3DOM</a>."
+  puts $x3dFile "[clock format [clock seconds]]"
 
-  puts $x3domFile "</font></body></html>"
-  close $x3domFile
+  puts $x3dFile "</font></body></html>"
+  close $x3dFile
   update idletasks
   
-  unset x3domMax
-  unset x3domMin
-  catch {unset avgX3domColor}
+  unset x3dMax
+  unset x3dMin
 }
 
 # -------------------------------------------------------------------------------------------------
 # open X3DOM file 
 proc openX3DOM {} {
-  global opt x3domFileName multiFile stepAP
+  global opt x3dFileName multiFile stepAP
   
-  if {($opt(VIZPMI) || $opt(VIZFEA)) && $x3domFileName != "" && $multiFile == 0} {
-    set str "PMI Presentation Annotations"
-    if {[string first "AP209" $stepAP] != -1} {set str "AP209 Finite Element Model"}
-    outputMsg "Opening $str in the default Web Browser" blue
+  if {($opt(VIZPMI) || $opt(VIZFEA) || $opt(VIZTES)) && $x3dFileName != "" && $multiFile == 0} {
+    outputMsg "\nOpening Graphics in the default Web Browser"
     if {[catch {
-      exec {*}[auto_execok start] "" $x3domFileName
+      exec {*}[auto_execok start] "" $x3dFileName
     } emsg]} {
-      errorMsg "No application is associated with HTML files.  Open the file in a web browser that supports X3DOM.  https://www.x3dom.org/check/\n $emsg"
+      errorMsg "No application is associated with HTML files.  Open the file in a web browser.  https://www.x3dom.org/check/\n $emsg"
     }
     update idletasks
   }

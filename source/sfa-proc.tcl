@@ -1,6 +1,6 @@
 #-------------------------------------------------------------------------------
 proc checkValues {} {
-  global opt buttons appNames appName developer programfiles userEntityList
+  global opt buttons appNames appName developer pf32 userEntityList
   global edmWriteToFile edmWhereRules eeWriteToFile
 
   if {[info exists buttons(appCombo)]} {
@@ -72,15 +72,11 @@ proc checkValues {} {
 # STEP related
   if {$opt(PMIGRF)} {
     set opt(PR_STEP_AP242) 1
-    set opt(PR_STEP_COMM) 1
     set opt(PR_STEP_PRES) 1
-    set opt(PR_STEP_QUAN) 1
     set opt(PR_STEP_SHAP) 1
     $buttons(optVIZPMI) configure -state normal
     $buttons(optPR_STEP_AP242) configure -state disabled
-    $buttons(optPR_STEP_COMM) configure -state disabled
     $buttons(optPR_STEP_PRES) configure -state disabled
-    $buttons(optPR_STEP_QUAN) configure -state disabled
     $buttons(optPR_STEP_SHAP) configure -state disabled
   } else {
     set opt(VIZPMI) 0
@@ -93,12 +89,14 @@ proc checkValues {} {
       $buttons(optPR_STEP_SHAP) configure -state normal
     }
   }
+
   if {$opt(VALPROP)} {
     set opt(PR_STEP_QUAN) 1
     $buttons(optPR_STEP_QUAN) configure -state disabled
   } else {
     if {!$opt(PMIGRF)} {$buttons(optPR_STEP_QUAN) configure -state normal}
   }
+
   if {$opt(VIZPMI)} {
     $buttons(gpmiColor0) configure -state normal
     $buttons(gpmiColor1) configure -state normal
@@ -110,33 +108,33 @@ proc checkValues {} {
     $buttons(gpmiColor2) configure -state disabled
     $buttons(linecolor)  configure -state disabled
   }
+
   if {$opt(PMISEM)} {
     set opt(PR_STEP_AP242) 1
-    set opt(PR_STEP_COMM) 1
-    set opt(PR_STEP_QUAN) 1
     set opt(PR_STEP_REPR) 1
     set opt(PR_STEP_SHAP) 1
     set opt(PR_STEP_TOLR) 1
     $buttons(optPR_STEP_AP242) configure -state disabled
-    $buttons(optPR_STEP_COMM) configure -state disabled
-    $buttons(optPR_STEP_QUAN) configure -state disabled
     $buttons(optPR_STEP_REPR) configure -state disabled
     $buttons(optPR_STEP_SHAP) configure -state disabled
     $buttons(optPR_STEP_TOLR) configure -state disabled
-    catch {$buttons(optDEBUG2) configure -state normal}
   } else {
     $buttons(optPR_STEP_REPR) configure -state normal
     $buttons(optPR_STEP_TOLR) configure -state normal
-    catch {
-      set opt(DEBUG2) 0
-      $buttons(optDEBUG2) configure -state disabled
-    }
     if {!$opt(PMIGRF)} {
       if {!$opt(VALPROP)} {$buttons(optPR_STEP_QUAN) configure -state normal}
       $buttons(optPR_STEP_AP242) configure -state normal
       $buttons(optPR_STEP_COMM) configure -state normal
       $buttons(optPR_STEP_SHAP) configure -state normal
     }
+  }
+
+  if {$opt(VIZTES)} {
+    set opt(PR_STEP_REPR) 1
+    $buttons(optPR_STEP_REPR) configure -state disabled
+  } else {
+    if {!$opt(PMISEM) && !$opt(PMIGRF)} {$buttons(optPR_STEP_COMM) configure -state normal}
+    if {!$opt(PMISEM)} {$buttons(optPR_STEP_REPR) configure -state normal}
   }
   
 # user-defined entity list
@@ -175,7 +173,22 @@ proc checkValues {} {
       incr nopt $opt($idx)
     }
   }
-  if {$nopt == 0} {set opt(PR_STEP_COMM) 1}
+  if {$nopt == 0 && !$opt(VIZFEA)} {set opt(PR_STEP_COMM) 1}
+}
+
+# -------------------------------------------------------------------------------------------------
+proc setCoordMinMax {coord} {
+  global x3dPoint x3dMin x3dMax
+
+  set x3dPoint(x) [lindex $coord 0]
+  set x3dPoint(y) [lindex $coord 1]
+  set x3dPoint(z) [lindex $coord 2]
+
+# min,max of points
+  foreach idx {x y z} {
+    if {$x3dPoint($idx) > $x3dMax($idx)} {set x3dMax($idx) $x3dPoint($idx)}
+    if {$x3dPoint($idx) < $x3dMin($idx)} {set x3dMin($idx) $x3dPoint($idx)}
+  }
 }
 
 # -------------------------------------------------------------------------------------------------
@@ -254,7 +267,7 @@ proc setColorIndex {ent {multi 0}} {
 
 #-------------------------------------------------------------------------------
 proc openURL {url} {
-  global programfiles
+  global pf32
 
 # open in whatever is registered for the file extension, except for .cgi for upgrade url
   if {[string first ".cgi" $url] == -1} {
@@ -274,7 +287,7 @@ proc openURL {url} {
       set reg_wb [lindex [split $reg_wb "\""] 1]
       set webCmd $reg_wb
     }
-    if {$webCmd == "" || ![file exists $webCmd]} {set webCmd [file join $programfiles "Internet Explorer" IEXPLORE.EXE]}
+    if {$webCmd == "" || ![file exists $webCmd]} {set webCmd [file join $pf32 "Internet Explorer" IEXPLORE.EXE]}
     exec $webCmd $url &
   }
 }
@@ -312,7 +325,7 @@ proc openFile {{openName ""}} {
   if {[llength $localNameList] > 1} {
     set fileDir [file dirname [lindex $localNameList 0]]
 
-    outputMsg "Ready to process [llength $localNameList] STEP files" blue
+    outputMsg "\nReady to process [llength $localNameList] STEP files" blue
     $buttons(genExcel) configure -state normal
     if {[info exists buttons(appOpen)]} {$buttons(appOpen) configure -state normal}
     focus $buttons(genExcel)
@@ -326,7 +339,7 @@ proc openFile {{openName ""}} {
 
     set fileDir [file dirname $localName]
     if {[string first "z" [string tolower [file extension $localName]]] == -1} {
-      outputMsg "Ready to process: [file tail $localName] ([expr {[file size $localName]/1024}] Kb)" blue
+      outputMsg "\nReady to process: [file tail $localName] ([expr {[file size $localName]/1024}] Kb)" blue
       $buttons(genExcel) configure -state normal
       if {[info exists buttons(appOpen)]} {$buttons(appOpen) configure -state normal}
       focus $buttons(genExcel)
@@ -491,7 +504,7 @@ proc runOpenProgram {} {
   if {[info exists appName]} {if {$appName != ""} {set idisp $appName}}
 
   .tnb select .tnb.status
-  outputMsg "Opening STEP file in: $idisp"
+  outputMsg "\nOpening STEP file in: $idisp"
 
 # open file
 #  (list is programs that CANNOT start up with a file *OR* need specific commands below)
@@ -701,24 +714,15 @@ proc runOpenProgram {} {
 
 #-------------------------------------------------------------------------------
 proc getOpenPrograms {} {
-  global dispApps dispCmds dispCmd appNames appName env programfiles pf64
+  global dispApps dispCmds dispCmd appNames appName env pf32 pf64
   global drive edmexe editorCmd developer myhome
 
-# Including any of the CAD viewers and checkers below does not imply a recommendation or endorsement of them by NIST https://www.nist.gov/disclaimer
+# Including any of the CAD viewers and checkers below does not imply a recommendation or
+# endorsement of them by NIST https://www.nist.gov/disclaimer
 # For more STEP viewers, go to https://www.cax-if.org/step_viewers.html
   
-  set pflist {}
-  set pf [string range $programfiles 3 end]
-  foreach drives {C D E F G H I J K L M N O P Q R S T U V W X Y Z} {
-    set pf1 $drives
-    append pf1 ":/$pf"
-    if {[file isdirectory $pf1]} {lappend pflist $pf1}
-    if {$pf64 != ""} {
-      set pf1 $drives
-      append pf1 ":/[string range $pf64 3 end]"
-      if {[file isdirectory $pf1]} {lappend pflist $pf1}
-    }
-  }
+  set pflist [list $pf32]
+  if {$pf64 != ""} {lappend pflist $pf64}
   set lastver 0
 
 # Jotne EDM Model Checker
@@ -734,7 +738,7 @@ proc getOpenPrograms {} {
     }
   }
 
-  if {[info exists programfiles]} {
+  if {[info exists pf32]} {
     foreach pf $pflist {
 
 # STEP Tools apps
@@ -869,7 +873,7 @@ proc getOpenPrograms {} {
 
 # other text editors
   for {set i 9} {$i > 5} {incr i -1} {
-    set editorCmd1 [file join $programfiles "TextPad $i" TextPad.exe]
+    set editorCmd1 [file join $pf32 "TextPad $i" TextPad.exe]
     if {[file exists $editorCmd1]} {
       set editorName1 "TextPad $i"
       set dispApps($editorCmd1) $editorName1
@@ -877,7 +881,7 @@ proc getOpenPrograms {} {
       set editorName $editorName1
     }
   }
-  set editorCmd1 [file join $programfiles Notepad++ notepad++.exe]
+  set editorCmd1 [file join $pf32 Notepad++ notepad++.exe]
   if {[file exists $editorCmd1]} {
     set editorName1 "Notepad++"
     set dispApps($editorCmd1) $editorName1
@@ -969,7 +973,7 @@ proc getFirstFile {} {
   set localName [lindex $openFileList 0]
   if {$localName != ""} {
     set remoteName $localName
-    outputMsg "Ready to process: [file tail $localName] ([expr {[file size $localName]/1024}] Kb)" blue
+    outputMsg "\nReady to process: [file tail $localName] ([expr {[file size $localName]/1024}] Kb)" blue
     if {[info exists buttons(appOpen)]} {$buttons(appOpen) configure -state normal}
   }
   return $localName
@@ -1063,7 +1067,7 @@ proc openXLS {filename {check 0} {multiFile 0}} {
     
 # open spreadsheet in Excel, works even if Excel not already started above although slower
     if {[catch {
-      outputMsg "\nOpening Spreadsheet: [file tail $filename]  ([expr {[file size $filename]/1024}] Kb)" blue
+      outputMsg "\nOpening Spreadsheet: [file tail $filename]  ([expr {[file size $filename]/1024}] Kb)"
       exec {*}[auto_execok start] "" $filename
 
 # errors
@@ -1399,17 +1403,16 @@ proc truncFileName {fname {compact 0}} {
 # copy schema rose files that are in the Tcl Virtual File System (VFS) to the IFCsvr dll directory
 # this only works with Tcl 8.5.15 and lower
 proc copyRoseFiles {} {
-  global programfiles wdir mytemp developer env ifcsvrdir nistVersion
-  
-  if {[file exists $ifcsvrdir]} {
+  global pf32 pf64 wdir mytemp developer env ifcsvrDir nistVersion
 
 # rose files in SFA distribution
+  if {[file exists $ifcsvrDir]} {
     if {[llength [glob -nocomplain -directory [file join $wdir schemas] *.rose]] > 0} {
       set ok 1
       foreach fn [glob -nocomplain -directory [file join $wdir schemas] *.rose] {
           
         set fn1 [file tail $fn]
-        set f2 [file join $ifcsvrdir $fn1]
+        set f2 [file join $ifcsvrDir $fn1]
         set okcopy 0
         if {![file exists $f2]} {
           set okcopy 1
@@ -1431,10 +1434,10 @@ proc copyRoseFiles {} {
             file copy -force $fn $f2
             if {$developer} {outputMsg "Copying ROSE file: $fn1" red}
           } emsg]} {
-            errorMsg "ERROR copying STEP schema files (*.rose) to $ifcsvrdir"
+            errorMsg "ERROR copying STEP schema files (*.rose) to $ifcsvrDir"
             .tnb select .tnb.status
           }
-          if {![file exists [file join $ifcsvrdir $fn1]]} {
+          if {![file exists [file join $ifcsvrDir $fn1]]} {
             set ok 0
             if {[catch {
               file copy -force $fn [file join $mytemp $fn1]
@@ -1449,93 +1452,121 @@ proc copyRoseFiles {} {
       if {!$ok} {
         errorMsg "STEP schema files (*.rose) could not be copied to IFCsvr/dll directory"
         errorMsg "Check if any STEP APs are supported at Help > Supported STEP APs"
-        errorMsg "If none are supported, then before continuing,\n copy the *.rose file(s) in $mytemp\n to $ifcsvrdir\nThis might require administrator privileges."
+        errorMsg "If none are supported, then before continuing,\n copy the *.rose file(s) in $mytemp\n to $ifcsvrDir\nThis might require administrator privileges."
         .tnb select .tnb.status
       }
     }
+
+# rose files in STEP Tools distribution
+    if {[info exists env(ROSE)]} {
+      set n [string range $env(ROSE) end-2 end-1]
+      set stdir [file join $pf32 "STEP Tools" "ST-Runtime $n" schemas]
+      if {![file exists $stdir]} {set stdir [file join $pf64 "STEP Tools" "ST-Runtime $n" schemas]}
+      
+      if {[file exists $stdir]} {
+        set ok 1
+        foreach fn [glob -nocomplain -directory $stdir *.rose] {
+          set fn1 [file tail $fn]
+          if {[string first "_EXP" $fn1] == -1 && ([string first "ap" $fn1] == 0 || [string first "auto" $fn1] == 0 || [string first "building" $fn1] == 0 || \
+              [string first "cast" $fn1] == 0 || [string first "config" $fn1] == 0 || [string first "integrated" $fn1] == 0 || [string first "plant" $fn1] == 0 || \
+              [string first "ship" $fn1] == 0 || [string first "structural" $fn1] == 0 || [string first "feature" $fn1] == 0 || [string first "furniture" $fn1] == 0 || \
+              [string first "engineering" $fn1] == 0 || [string first "technical" $fn1] == 0)} {
+            set f2 [file join $ifcsvrDir $fn1]
+            set okcopy 0
+            if {![file exists $f2]} {
+              set okcopy 1
+            } elseif {[file mtime $fn] > [file mtime $f2]} {
+              set okcopy 1
+            }
+            if {$okcopy} {
+              if {[catch {
+                file copy -force $fn $f2
+                if {$developer} {outputMsg "Copying STEP Tools ROSE file: $fn1" red}
+              } emsg]} {
+                errorMsg "ERROR copying STEP schema files (*.rose) from STEP Tools to $ifcsvrDir"
+                .tnb select .tnb.status
+              }
+            }
+          }
+        }      
+      }
+    }
+
+# IFCsvr toolkit not found
   } else {
-    #errorMsg "ERROR: IFCsvr Toolkit needs to be installed before copying STEP schema files (*.rose) to\n $ifcsvrdir"
+    #errorMsg "ERROR: IFCsvr Toolkit needs to be installed before copying STEP schema files (*.rose) to\n $ifcsvrDir"
   }
 }
 
 #-------------------------------------------------------------------------------
 # install IFCsvr
 proc installIFCsvr {} {
-  global wdir mydocs mytemp ifcsvrdir nistVersion
+  global wdir mydocs mytemp ifcsvrDir nistVersion
 
   set ifcsvr     "ifcsvrr300_setup_1008_en.msi"
-  set ifcsvrinst [file join $wdir schemas $ifcsvr]
+  set ifcsvrInst [file join $wdir schemas $ifcsvr]
 
 # install if not already installed
-  #outputMsg "installIFCsvr [file exists $ifcsvrdir] $ifcsvrdir" red
-  if {![file exists $ifcsvrdir]} {
-    .tnb select .tnb.status
+  .tnb select .tnb.status
+  set msg "The IFCsvr Toolkit needs to be installed to read and process STEP files."
+  outputMsg $msg red
+  if {[file exists $ifcsvrInst]} {
     set msg "The IFCsvr Toolkit needs to be installed to read and process STEP files."
+    append msg "\n\nAfter clicking OK the IFCsvr Toolkit installation will start.\nUse the default installation folder for IFCsvr.\nPlease wait for the installation process to complete before generating a spreadsheet."
+    append msg "\n\nSee Help > Supported STEP APs to see which type of STEP files are supported."
+    set choice [tk_messageBox -type ok -message $msg -icon info -title "Install IFCsvr"]
+    set msg "\nPlease wait for the installation process to complete before generating a spreadsheet.\n"
     outputMsg $msg red
-    if {[file exists $ifcsvrinst]} {
-      set msg "The IFCsvr Toolkit needs to be installed to read and process STEP files."
-      append msg "\n\nAfter clicking OK the IFCsvr Toolkit installation will start.\nUse the default installation folder for IFCsvr.\nPlease wait for the installation process to complete before generating a spreadsheet."
-      append msg "\n\nSee Help > Supported STEP APs to see which type of STEP files are supported."
-      set choice [tk_messageBox -type ok -message $msg -icon info -title "Install IFCsvr"]
-      set msg "\nPlease wait for the installation process to complete before generating a spreadsheet.\n"
-      outputMsg $msg red
-    }
+  }
 
 # try copying installation file to several locations
-    set ifcsvrmsi [file join $mytemp $ifcsvr]
-    if {[file exists $ifcsvrinst]} {
+  set ifcsvrMsi [file join $mytemp $ifcsvr]
+  if {[file exists $ifcsvrInst]} {
+    if {[catch {
+      file copy -force $ifcsvrInst $ifcsvrMsi
+    } emsg1]} {
+      set ifcsvrMsi [file join $mydocs $ifcsvr]
       if {[catch {
-        file copy -force $ifcsvrinst $ifcsvrmsi
-      } emsg1]} {
-        set ifcsvrmsi [file join $mydocs $ifcsvr]
+        file copy -force $ifcsvrInst $ifcsvrMsi
+      } emsg2]} {
+        set ifcsvrMsi [file join [pwd] $ifcsvr]
         if {[catch {
-          file copy -force $ifcsvrinst $ifcsvrmsi
-        } emsg2]} {
-          set ifcsvrmsi [file join [pwd] $ifcsvr]
-          if {[catch {
-            file copy -force $ifcsvrinst $ifcsvrmsi
-          } emsg3]} {
-            errorMsg "ERROR copying the IFCsvr Toolkit installation file to a directory."
-            outputMsg " $emsg1\n $emsg2\n $emsg3"
-          }
+          file copy -force $ifcsvrInst $ifcsvrMsi
+        } emsg3]} {
+          errorMsg "ERROR copying the IFCsvr Toolkit installation file to a directory."
+          outputMsg " $emsg1\n $emsg2\n $emsg3"
         }
       }
     }
+  }
 
 # ready or not to install
-    if {[file exists $ifcsvrmsi]} {
-      exec {*}[auto_execok start] "" $ifcsvrmsi
-    } else {
-      if {[file exists $ifcsvrinst]} {errorMsg "IFCsvr Toolkit cannot be automatically installed."}
-      outputMsg " "
-      if {!$nistVersion} {
-        errorMsg "To install the IFCsvr Toolkit you must install the NIST version of the STEP File Analyzer."
-        outputMsg " 1 - Go to https://www.nist.gov/services-resources/software/step-file-analyzer"
-        outputMsg " 2 - Click on Download STEP File Analyzer"
-        outputMsg " 3 - Fill out the form, submit it, and follow the instructions"
-        outputMsg " 4 - IFCsvr Toolkit will be installed when the NIST STEP File Analyzer is run"
-        outputMsg " 5 - Generate a spreadsheet for at least one STEP file"
-        after 1000
-        openURL https://www.nist.gov/services-resources/software/step-file-analyzer
-      } else {
-        errorMsg "To manually install IFCsvr:"
-        outputMsg " 1 - Join the IFCsvr ActiveX Component Group (you will need a Yahoo account)"
-        outputMsg "     https://groups.yahoo.com/neo/groups/ifcsvr-users/info"
-        outputMsg " 2 - Download the installer (In the Yahoo group: Files > IFCsvrR300 > ifcsvrr300_setup_1008_en.zip)"
-        outputMsg " 3 - Extract the installer  ifcsvrr300_setup_1008.en.msi  from the zip file"
-        outputMsg " 4 - Run the installer and follow the instructions.  Use the default installation folder for IFCsvr."
-        outputMsg " 5 - Rerun this software."
-        outputMsg "\nIf there are still problems with the IFCsvr installation, email the Contact (Help > About)"
-        after 1000
-        openURL https://groups.yahoo.com/neo/groups/ifcsvr-users/info
-      }
-    }
-
-# delete the installation program if it is already installed
+  if {[file exists $ifcsvrMsi]} {
+    exec {*}[auto_execok start] "" $ifcsvrMsi
   } else {
-    #catch {file delete -force [file join $mytemp $ifcsvr]}
-    #catch {file delete -force [file join $mydocs $ifcsvr]}
-    #catch {file delete -force [file join [pwd]   $ifcsvr]}
+    if {[file exists $ifcsvrInst]} {errorMsg "IFCsvr Toolkit cannot be automatically installed."}
+    outputMsg " "
+    if {!$nistVersion} {
+      errorMsg "To install the IFCsvr Toolkit you must install the NIST version of the STEP File Analyzer."
+      outputMsg " 1 - Go to https://www.nist.gov/services-resources/software/step-file-analyzer"
+      outputMsg " 2 - Click on Download STEP File Analyzer"
+      outputMsg " 3 - Fill out the form, submit it, and follow the instructions"
+      outputMsg " 4 - IFCsvr Toolkit will be installed when the NIST STEP File Analyzer is run"
+      outputMsg " 5 - Generate a spreadsheet for at least one STEP file"
+      after 1000
+      openURL https://www.nist.gov/services-resources/software/step-file-analyzer
+    } else {
+      errorMsg "To manually install IFCsvr:"
+      outputMsg " 1 - Join the IFCsvr ActiveX Component Group (you will need a Yahoo account)"
+      outputMsg "     https://groups.yahoo.com/neo/groups/ifcsvr-users/info"
+      outputMsg " 2 - Download the installer (In the Yahoo group: Files > IFCsvrR300 > ifcsvrr300_setup_1008_en.zip)"
+      outputMsg " 3 - Extract the installer  ifcsvrr300_setup_1008.en.msi  from the zip file"
+      outputMsg " 4 - Run the installer and follow the instructions.  Use the default installation folder for IFCsvr."
+      outputMsg " 5 - Rerun this software."
+      outputMsg "\nIf there are still problems with the IFCsvr installation, email the Contact (Help > About)"
+      after 1000
+      openURL https://groups.yahoo.com/neo/groups/ifcsvr-users/info
+    }
   }
 }
 

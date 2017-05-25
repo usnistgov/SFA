@@ -265,14 +265,13 @@ proc guiProcessAndReports {} {
   # option to process user-defined entities
   guiUserDefinedEntities
   
-  set fopta3 [frame $fopta.3 -bd 0]
+  set fopta1 [frame $fopta.1 -bd 0]
   foreach item {{" Common"         opt(PR_STEP_COMM)} \
-                {" Shape Aspect"   opt(PR_STEP_SHAP)} \
-                {" Tolerance"      opt(PR_STEP_TOLR)} \
+                {" Presentation"   opt(PR_STEP_PRES)} \
                 {" Representation" opt(PR_STEP_REPR)} \
-                {" Presentation"   opt(PR_STEP_PRES)}} {
+                {" Tolerance"      opt(PR_STEP_TOLR)}} {
     regsub -all {[\(\)]} [lindex $item 1] "" idx
-    set buttons($idx) [ttk::checkbutton $fopta3.$cb -text [lindex $item 0] \
+    set buttons($idx) [ttk::checkbutton $fopta1.$cb -text [lindex $item 0] \
       -variable [lindex $item 1] -command {
       checkValues
     }]
@@ -284,21 +283,47 @@ proc guiProcessAndReports {} {
       if {$tt != "PR_STEP_COMM"} {
         set ttmsg [guiToolTip $ttmsg $tt 120]
       } else {
-        append ttmsg "All AP-specific entities from APs other than AP203, AP214, and AP242 are always processed."
+        append ttmsg "All AP-specific entities from APs other than AP203, AP214, and AP242\nare always processed, including AP209, AP210, AP238, and AP239."
       }
       catch {tooltip::tooltip $buttons($idx) $ttmsg}
     }
   }
-  pack $fopta3 -side left -anchor w -pady 0 -padx 0 -fill y
+  pack $fopta1 -side left -anchor w -pady 0 -padx 0 -fill y
   
-  set fopta4 [frame $fopta.4 -bd 0]
-  foreach item {{" Measure"         opt(PR_STEP_QUAN)} \
-                {" Composites"      opt(PR_STEP_COMP)} \
-                {" Kinematics"      opt(PR_STEP_KINE)} \
-                {" Geometry"        opt(PR_STEP_GEOM)} \
-                {" Coordinates"     opt(PR_STEP_CPNT)}} {
+  set fopta2 [frame $fopta.2 -bd 0]
+  foreach item {{" Measure"        opt(PR_STEP_QUAN)} \
+                {" Shape Aspect"   opt(PR_STEP_SHAP)} \
+                {" Geometry"       opt(PR_STEP_GEOM)} \
+                {" Coordinates"    opt(PR_STEP_CPNT)}} {
     regsub -all {[\(\)]} [lindex $item 1] "" idx
-    set buttons($idx) [ttk::checkbutton $fopta4.$cb -text [lindex $item 0] \
+    set buttons($idx) [ttk::checkbutton $fopta2.$cb -text [lindex $item 0] \
+      -variable [lindex $item 1] -command {
+      checkValues
+    }]
+    pack $buttons($idx) -side top -anchor w -padx 5 -pady 0 -ipady 0
+    incr cb
+    set tt [string range $idx 3 end]
+    if {[info exists entCategory($tt)]} {
+      set ttmsg "[string trim [lindex $item 0]] entities ([llength $entCategory($tt)])"
+      if {$tt == "PR_STEP_GEOM"} {
+        append ttmsg "  These entities are found in most APs.\nAP242, AP209, and AP210 also support tessellated geometry.\nSee Help > Supported STEP APs and Websites > EXPRESS Schemas\n\nFor large STEP files, this option can slow down the processing of the file and increase the size of the spreadsheet.\nUse Maximum Rows options to speed up the processing of these entities.\n\n"
+      } elseif {$tt == "PR_STEP_CPNT"} {
+        append ttmsg "\n\nFor large STEP files, this option can slow down the processing of the file and increase the size of the spreadsheet.\nUse Maximum Rows options to speed up the processing of these entities.\n\n"
+      } else {
+        append ttmsg "  These entities are found in most APs.\nSee Help > Supported STEP APs and Websites > EXPRESS Schemas\n\n"
+      }
+      set ttmsg [guiToolTip $ttmsg $tt 120]
+      catch {tooltip::tooltip $buttons($idx) $ttmsg}
+    }
+  }
+  pack $fopta2 -side left -anchor w -pady 0 -padx 0 -fill y
+  
+  set fopta3 [frame $fopta.3 -bd 0]
+  foreach item {{" AP242" opt(PR_STEP_AP242)} \
+                {" Composites"      opt(PR_STEP_COMP)} \
+                {" Kinematics"      opt(PR_STEP_KINE)}} {
+    regsub -all {[\(\)]} [lindex $item 1] "" idx
+    set buttons($idx) [ttk::checkbutton $fopta3.$cb -text [lindex $item 0] \
       -variable [lindex $item 1] -command {checkValues}]
     pack $buttons($idx) -side top -anchor w -padx 5 -pady 0 -ipady 0
     incr cb
@@ -307,50 +332,34 @@ proc guiProcessAndReports {} {
       set ttmsg "[string trim [lindex $item 0]] entities ([llength $entCategory($tt)])"
       if {$tt == "PR_STEP_KINE" || $tt == "PR_STEP_COMP"} {
         append ttmsg "  These entities are found in some APs.\nSee Help > Supported STEP APs and Websites > EXPRESS Schemas\n\n"
-      } elseif {$tt == "PR_STEP_QUAN"} {
-        append ttmsg "  These entities are found in most APs.\nSee Help > Supported STEP APs and Websites > EXPRESS Schemas\n\n"
-      } elseif {$tt == "PR_STEP_GEOM"} {
-        append ttmsg "  These entities are found in most APs.  AP242, AP209, and AP210 also support tessellated geometry.\nSee Help > Supported STEP APs and Websites > EXPRESS Schemas\n\nFor large STEP files, this option can slow down the processing of the file and increase the size of the spreadsheet.\nUse Maximum Rows options to speed up the processing of these entities.\n\n"
-      } elseif {$tt == "PR_STEP_CPNT"} {
-        append ttmsg "\n\nFor large STEP files, this option can slow down the processing of the file and increase the size of the spreadsheet.\nUse Maximum Rows options to speed up the processing of these entities.\n\n"
-      }
-      set ttmsg [guiToolTip $ttmsg $tt]
-      catch {tooltip::tooltip $buttons($idx) $ttmsg}
-    }
-  }
-  pack $fopta4 -side left -anchor w -pady 0 -padx 0 -fill y
-  
-  set fopta1 [frame $fopta.1 -bd 0]
-  foreach item {{" AP242" opt(PR_STEP_AP242)}} {
-    regsub -all {[\(\)]} [lindex $item 1] "" idx
-    set buttons($idx) [ttk::checkbutton $fopta1.$cb -text [lindex $item 0] \
-      -variable [lindex $item 1] -command {checkValues}]
-    pack $buttons($idx) -side top -anchor w -padx 5 -pady 0 -ipady 0
-    incr cb
-    set tt [string range $idx 3 end]
-    if {[info exists entCategory($tt)]} {
-      set ttmsg "[string trim [lindex $item 0]] entities ([llength $entCategory($tt)])"
-      if {$tt == "PR_STEP_AP242"} {
+        set ttmsg [guiToolTip $ttmsg $tt]
+      } elseif {$tt == "PR_STEP_AP242"} {
         append ttmsg "\n\nThese entities are new in AP242 and not found in AP203 or AP214.\nOther new AP242 entities are also found in the Tolerance, Shape Aspect,\nComposites, and Kinematics categories."
         append ttmsg "\n\nSee Websites > STEP AP242 Project and EXPRESS Schemas"
       }
       catch {tooltip::tooltip $buttons($idx) $ttmsg}
     }
   }
+  pack $fopta3 -side left -anchor w -pady 0 -padx 0 -fill y
   
+  set fopta4 [frame $fopta.4 -bd 0]
   set anbut [list {"All" 1} {"None" 2} {"For Reports" 0}]
   foreach item $anbut {
     set bn "anbut[lindex $item 1]"            
-    set buttons($bn) [ttk::radiobutton $fopta1.$cb -variable allNone -text [lindex $item 0] -value [lindex $item 1] \
+    set buttons($bn) [ttk::radiobutton $fopta4.$cb -variable allNone -text [lindex $item 0] -value [lindex $item 1] \
       -command {
         if {$allNone == 1} {
           foreach item [array names opt] {if {[string first "PR_STEP" $item] == 0} {set opt($item) 1}}
+          set opt(PR_STEP_COMP) 0
+          set opt(PR_STEP_KINE) 0
         } elseif {$allNone == 0} {
           set opt(PMISEM) 1
           set opt(PMIGRF) 1
           set opt(VALPROP) 1
         } elseif {$allNone == 2} {
           foreach item [array names opt] {if {[string first "PR_STEP" $item] == 0} {set opt($item) 0}}
+          set opt(VIZFEA) 0
+          set opt(VIZTES) 0
           set opt(PMISEM) 0
           set opt(PMIGRF) 0
           set opt(VALPROP) 0
@@ -371,7 +380,7 @@ proc guiProcessAndReports {} {
     tooltip::tooltip $buttons(anbut2) "Deselects Reports and all Entity types expect Common"
   }
 
-  pack $fopta1 -side left -anchor w -pady 0 -padx 0 -fill y
+  pack $fopta4 -side left -anchor w -pady 0 -padx 0 -fill y
   
   pack $fopta -side top -anchor w -pady {5 2} -padx 10 -fill both
   
@@ -381,43 +390,45 @@ proc guiProcessAndReports {} {
 
   set foptd [ttk::labelframe $foptrv.1 -text " Report "]
   set foptd1 [frame $foptd.1 -bd 0]
-  foreach item {{" PMI Representation (Semantic PMI)" opt(PMISEM)}} {
+  foreach item {{" PMI Presentation (Graphical PMI)" opt(PMIGRF)} \
+                {" PMI Representation (Semantic PMI)" opt(PMISEM)} \
+                {" Validation Properties" opt(VALPROP)}} {
   regsub -all {[\(\)]} [lindex $item 1] "" idx
     set buttons($idx) [ttk::checkbutton $foptd1.$cb -text [lindex $item 0] \
       -variable [lindex $item 1] -command {
         #if {$opt(PMISEM)} {set opt(INVERSE) 1}
         checkValues
     }]
-    pack $buttons($idx) -side left -anchor w -padx 5 -pady 0 -ipady 0
+    pack $buttons($idx) -side top -anchor w -padx 5 -pady 0 -ipady 0
     incr cb
   }
   pack $foptd1 -side top -anchor w -pady 0 -padx 0 -fill y
   
-  set foptd2 [frame $foptd.2 -bd 0]
-  foreach item {{" PMI Presentation (Graphical PMI)" opt(PMIGRF)}} {
-    regsub -all {[\(\)]} [lindex $item 1] "" idx
-    set buttons($idx) [ttk::checkbutton $foptd2.$cb -text [lindex $item 0] \
-      -variable [lindex $item 1] -command {
-        #if {$opt(PMIGRF)} {set opt(INVERSE) 1}
-        checkValues
-    }]
-    pack $buttons($idx) -side left -anchor w -padx 5 -pady 0 -ipady 0
-    incr cb
-  }
-  pack $foptd2 -side top -anchor w -pady 0 -padx 0 -fill y
+  #set foptd2 [frame $foptd.2 -bd 0]
+  #foreach item {{" PMI Presentation (Graphical PMI)" opt(PMIGRF)}} {
+  #  regsub -all {[\(\)]} [lindex $item 1] "" idx
+  #  set buttons($idx) [ttk::checkbutton $foptd2.$cb -text [lindex $item 0] \
+  #    -variable [lindex $item 1] -command {
+  #      #if {$opt(PMIGRF)} {set opt(INVERSE) 1}
+  #      checkValues
+  #  }]
+  #  pack $buttons($idx) -side left -anchor w -padx 5 -pady 0 -ipady 0
+  #  incr cb
+  #}
+  #pack $foptd2 -side top -anchor w -pady 0 -padx 0 -fill y
   
-  set foptd4 [frame $foptd.4 -bd 0]
-  foreach item {{" Validation Properties" opt(VALPROP)}} {
-    regsub -all {[\(\)]} [lindex $item 1] "" idx
-    set buttons($idx) [ttk::checkbutton $foptd4.$cb -text [lindex $item 0] \
-      -variable [lindex $item 1] -command {
-        #if {$opt(VALPROP)} {set opt(INVERSE) 1}
-        checkValues
-    }]
-    pack $buttons($idx) -side left -anchor w -padx 5 -pady 0 -ipady 0
-    incr cb
-  }
-  pack $foptd4 -side top -anchor w -pady 0 -padx 0 -fill y
+  #set foptd4 [frame $foptd.4 -bd 0]
+  #foreach item {{" Validation Properties" opt(VALPROP)}} {
+  #  regsub -all {[\(\)]} [lindex $item 1] "" idx
+  #  set buttons($idx) [ttk::checkbutton $foptd4.$cb -text [lindex $item 0] \
+  #    -variable [lindex $item 1] -command {
+  #      #if {$opt(VALPROP)} {set opt(INVERSE) 1}
+  #      checkValues
+  #  }]
+  #  pack $buttons($idx) -side left -anchor w -padx 5 -pady 0 -ipady 0
+  #  incr cb
+  #}
+  #pack $foptd4 -side top -anchor w -pady 0 -padx 0 -fill y
   
   pack $foptd -side left -anchor w -pady {5 2} -padx 10 -fill both -expand true
   catch {
@@ -453,13 +464,14 @@ proc guiProcessAndReports {} {
   pack $foptv4 -side top -anchor w -pady 0 -padx 25 -fill y  
   
   set foptv5 [frame $foptv.5 -bd 0]
-  foreach item {{" AP209 Finite Element Model" opt(VIZFEA)}} {
+  foreach item {{" Tessellated Part Geometry"  opt(VIZTES)} \
+                {" AP209 Finite Element Model" opt(VIZFEA)}} {
     regsub -all {[\(\)]} [lindex $item 1] "" idx
     set buttons($idx) [ttk::checkbutton $foptv5.$cb -text [lindex $item 0] \
       -variable [lindex $item 1] -command {
         checkValues
     }]
-    pack $buttons($idx) -side left -anchor w -padx 5 -pady 0 -ipady 0
+    pack $buttons($idx) -side top -anchor w -padx 5 -pady 0 -ipady 0
     incr cb
   }
   pack $foptv5 -side top -anchor w -pady 0 -padx 0 -fill y
@@ -469,6 +481,7 @@ proc guiProcessAndReports {} {
   catch {
     tooltip::tooltip $buttons(optVIZPMI) "See Help > PMI Presentation\nSee Examples > Graphical PMI Viewer"
     tooltip::tooltip $buttons(optVIZFEA) "See Help > Finite Element Model\nSee Examples > AP209 FEM Viewer"
+    tooltip::tooltip $buttons(optVIZTES) "This feature is still be developed.\nParts in an assembly might have the wrong position and orientation or be missing.\n\nSee Help > Tessellated Part Geometry"
   }
 }
 
@@ -486,7 +499,7 @@ proc guiUserDefinedEntities {} {
     incr cb
   }
 
-  set buttons(userentity) [ttk::entry $fopta6.entry -width 40 -textvariable userEntityFile]
+  set buttons(userentity) [ttk::entry $fopta6.entry -width 50 -textvariable userEntityFile]
   pack $fopta6.entry -side left -anchor w
 
   set buttons(userentityopen) [ttk::button $fopta6.$cb -text " Browse " -command {
@@ -815,8 +828,7 @@ proc guiSpreadsheet {} {
   if {$developer} {
     set fxlsx [ttk::labelframe $fxls.x -text " Debug "]
     foreach item {{" Reports" opt(DEBUG1)} \
-                  {" Inverses" opt(DEBUGINV)} \
-                  {" Dimtol > geotol path" opt(DEBUG2)}} {
+                  {" Inverses" opt(DEBUGINV)}} {
       regsub -all {[\(\)]} [lindex $item 1] "" idx
       set buttons($idx) [ttk::checkbutton $fxlsx.$cb -text [lindex $item 0] -variable [lindex $item 1]]
       pack $buttons($idx) -side left -anchor w -padx 5 -pady 0 -ipady 0
@@ -831,7 +843,7 @@ proc guiSpreadsheet {} {
 #-------------------------------------------------------------------------------
 # help menu
 proc guiHelpMenu {} {
-  global Examples Help opt nistVersion mytemp programfiles excelYear ifcsvrdir
+  global Examples Help opt nistVersion mytemp pf32 excelYear ifcsvrDir
 
   $Help add command -label "User's Guide (pdf)" -command {showUsersGuide}
   $Help add command -label "What's New" -command {whatsNew}
@@ -920,10 +932,10 @@ outputMsg "The following STEP Application Protocols (AP) are supported by the ST
 outputMsg "The name of the AP is on the FILE_SCHEMA entity in the HEADER section of a STEP file.\n"
 
 set nschema 0
-catch {file delete -force [file join $ifcsvrdir ap214e3_2010.rose]}
+catch {file delete -force [file join $ifcsvrDir ap214e3_2010.rose]}
 
 set schemas {}
-foreach match [lsort [glob -nocomplain -directory $ifcsvrdir *.rose]] {
+foreach match [lsort [glob -nocomplain -directory $ifcsvrDir *.rose]] {
   set schema [file rootname [file tail $match]]
   if {[string first "header_section" $schema] == -1 && [string first "keystone" $schema] == -1 && \
       [string range $schema end-2 end] != "mim"} {
@@ -1098,7 +1110,7 @@ A PMI Presentation Coverage Analysis worksheet is generated.  See Help > PMI Cov
 PMI Presentation annotations can be viewed in a web browser.  The visualization is only of the
 graphical PMI, not the model geometry.  The graphical PMI file is named mystepfile_x3dom.html
 The color of the annotations can be modified.  Filled characters are not filled.  Saved Views
-are ignored.  Tessellated annotations are not supported.  See Examples > Graphical PMI Viewer
+are ignored.  See Examples > Graphical PMI Viewer
 
 PMI Presentation is defined by the CAx-IF Recommended Practices for:
   Representation and Presentation of Product Manufacturing Information (AP242)
@@ -1214,15 +1226,29 @@ Validation properties are defined by the CAx-IF.
 Go to Websites > Recommended Practices to access documentation."
     .tnb select .tnb.status
   }
+
+  $Help add separator
+    
+  $Help add command -label "Tessellated Part Geometry" -command {
+outputMsg "\nTessellated Part Geometry --------------------------------------------------" blue
+outputMsg "This feature is still being developed.
+
+Parts modeled with tessellated geometry can be viewed in a web browser (Options tab).  Tessellated
+geometry is optional in AP242 files and supplementary to boundary representation (b-rep) geometry.
+
+Parts in an assembly might have the wrong position and orientation or be missing.
+
+See Websites > STEP File Viewers to view STEP files with non-tessellated geometry."
+    .tnb select .tnb.status
+  }
     
   $Help add command -label "Finite Element Model" -command {
 outputMsg "\nFinite Element Model -------------------------------------------------------" blue
 outputMsg "An AP209 finite element model can be viewed in a web browser (Options tab).  Nodes, mesh, and
-elements are displayed which can be toggled on and off in the viewer.  Internal faces for solid
-elements are not displayed.  The elements can be made transparent although it might not look correct.
+elements are shown and can be toggled on and off in the viewer.  Internal faces for solid elements
+are not shown.  Elements can be made transparent although it might not look correct.
 
-For very large finite element models, there might be insufficient memory to process all of the
-elements.
+For very large AP209 files, there might be insufficient memory to process all of the elements.
 
 All AP209 entities are always processed unless a User-defined list is used.  For large AP209 files,
 deselect Inverse Relationships.  To only view the finite element model, select None in the Process
@@ -1291,6 +1317,9 @@ might appear that say 'Unable to alloc xxx bytes'.  See the Help > Crash Recover
   $Help add command -label "About" -command {
     outputMsg "\nSTEP File Analyzer ---------------------------------------------------------" blue
     outputMsg "Version:  [getVersion]"
+    set ver "32-bit"
+    foreach f [info loaded] {if {[string first "x86_64" $f] != -1} {set ver "64-bit"}}
+    outputMsg "Tcl:      [info patchlevel] $ver"
     outputMsg "Updated:  [string trim [clock format $progtime -format "%e %b %Y"]]"
     if {"$nistVersion"} {
       outputMsg "Contact:  Robert Lipman, robert.lipman@nist.gov"
@@ -1303,17 +1332,15 @@ might appear that say 'Unable to alloc xxx bytes'.  See the Help > Crash Recover
     if {$opt(XL_ROWLIM) == 100003} {
       outputMsg "\nDebug Messages below" red
       foreach id [lsort [array names env]] {outputMsg "$id   $env($id)"}
-      outputMsg \nUSERPROFILE-$env(USERPROFILE)
-      catch {outputMsg registry_personal-[registry get {HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\User Shell Folders} {Personal}]}
-      catch {outputMsg registry_desktop-[registry get {HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\User Shell Folders} {Desktop}]}
-      outputMsg \ndrive-$drive\nmyhome-$myhome\nmydocs-$mydocs\nmytemp-$mytemp
-      catch {outputMsg mydesk-$mydesk}
-      catch {outputMsg mymenu-$mymenu}
-      outputMsg programfiles-$programfiles\npf64-$pf64
-      outputMsg os-$tcl_platform(os)-$tcl_platform(osVersion)
-      outputMsg [::twapi::get_os_description]
-      outputMsg [::twapi::get_os_version]
-      outputMsg [package versions tcom]
+      outputMsg "\nUSERPROFILE $env(USERPROFILE)"
+      catch {outputMsg "REGISTRY_PERSONAL [registry get {HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\User Shell Folders} {Personal}]"}
+      catch {outputMsg "REGISTRY_DESKTOP [registry get {HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\User Shell Folders} {Desktop}]"}
+      outputMsg "\nDRIVE $drive\nMYHOME $myhome\nMYDOCS $mydocs\nMYTEMP $mytemp"
+      catch {outputMsg "MYDESK $mydesk"}
+      catch {outputMsg "MYMENU $mymenu"}
+      outputMsg "PF32 $pf32\nPF64 $pf64"
+      outputMsg "\n$tcl_platform(os) $tcl_platform(osVersion)"
+      outputMsg "twapi [package versions twapi]"
       outputMsg "Debug Messages above" red
     }
     .tnb select .tnb.status
@@ -1340,8 +1367,8 @@ proc guiWebsitesMenu {} {
   global Websites
 
   $Websites add command -label "STEP File Analyzer"                        -command {openURL https://www.nist.gov/services-resources/software/step-file-analyzer}
+  $Websites add command -label "Journal of NIST Research"                  -command {openURL https://dx.doi.org/10.6028/jres.122.016}
   $Websites add command -label "Conformance Checking of PMI in STEP Files" -command {openURL https://www.nist.gov/publications/conformance-checking-pmi-representation-cad-model-step-data-exchange-files}
-  $Websites add command -label "Journal of NIST Research citation"         -command {openURL https://www.nist.gov/publications/step-file-analyzer-software}
   $Websites add command -label "MBE PMI Validation Testing (free CAD models and STEP files)" -command {openURL https://www.nist.gov/el/systems-integration-division-73400/mbe-pmi-validation-and-conformance-testing}
   $Websites add command -label "Enabling the Digital Thread for Smart Manufacturing"         -command {openURL https://www.nist.gov/el/systems-integration-division-73400/enabling-digital-thread-smart-manufacturing}
   $Websites add command -label "Source code on GitHub"                     -command {openURL https://github.com/usnistgov/SFA}
@@ -1362,7 +1389,7 @@ proc guiWebsitesMenu {} {
   
   $Websites add separator
   $Websites add command -label "PDES, Inc."   -command {openURL https://pdesinc.org/}
-  $Websites add command -label "ProSTEP iViP" -command {openURL http://www.prostep.org/en/projects.html}
+  $Websites add command -label "ProSTEP iViP" -command {openURL http://www.prostep.org/en/projects/}
   $Websites add command -label "AFNeT"        -command {openURL http://afnet.fr/dotank/sps/}
   $Websites add command -label "LOTAR"        -command {openURL http://www.lotar-international.org/}
 }
@@ -1381,6 +1408,11 @@ domain.  This software is an experimental system.  NIST assumes no responsibilit
 its use by other parties, and makes no guarantees, expressed or implied, about its quality,
 reliability, or any other characteristic.
 
+The Examples menu of this software provides links to several sources of STEP files.  This software
+and others might indicate that there are certain types errors in some of the STEP files.  NIST
+assumes no responsibility whatsoever for the use of the STEP files by other parties, and makes no
+guarantees, expressed or implied, about their quality, reliability, or any other characteristic.
+
 Any mention of commercial products or references to web pages in this software is for information
 purposes only; it does not imply recommendation or endorsement by NIST.  For any of the web links
 in this software, NIST does not necessarily endorse the views expressed, or concur with the facts
@@ -1390,6 +1422,8 @@ This software uses Microsoft Excel and IFCsvr that are covered by their own EULA
     .tnb select .tnb.status
 
 set txt "This software was developed at the National Institute of Standards and Technology by employees of the Federal Government in the course of their official duties. Pursuant to Title 17 Section 105 of the United States Code this software is not subject to copyright protection and is in the public domain.  This software is an experimental system.  NIST assumes no responsibility whatsoever for its use by other parties, and makes no guarantees, expressed or implied, about its quality, reliability, or any other characteristic.
+
+The Examples menu of this software provides links to several sources of STEP files.  This software and others might indicate that there are certain types errors in some of the STEP files.  NIST assumes no responsibility whatsoever for the use of the STEP files by other parties, and makes no guarantees, expressed or implied, about their quality, reliability, or any other characteristic.
 
 Any mention of commercial products or references to web pages in this software is for information purposes only; it does not imply recommendation or endorsement by NIST.  For any of the web links in this software, NIST does not necessarily endorse the views expressed, or concur with the facts presented on those web sites.
 

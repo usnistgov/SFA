@@ -483,6 +483,7 @@ proc initDataInverses {} {
   lappend inverses [list referenced_modified_datum referenced_datum used_in]
   lappend inverses [list representation_relationship rep_1 rep_2]
   lappend inverses [list representation_relationship rep_2 rep_1]
+  lappend inverses [list representation_relationship_with_transformation transformation_operator used_in]
   lappend inverses [list representation_relationship_with_transformation rep_1 rep_2]
   lappend inverses [list representation_relationship_with_transformation rep_2 rep_1]
   lappend inverses [list representation_relationship_with_transformation_and_shape_representation_relationship rep_1 rep_2]

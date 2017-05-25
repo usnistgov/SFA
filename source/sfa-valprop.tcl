@@ -92,7 +92,7 @@ proc valPropStart {objDesign} {
   if {[info exists pdheading]} {unset pdheading}
   if {[info exists ent]}       {unset ent}
 
-  outputMsg " Adding Properties to property_definition worksheet" green
+  outputMsg " Adding Properties to property_definition worksheet" blue
 
   if {$opt(DEBUG1)} {outputMsg \n}
   set entLevel 0

@@ -276,7 +276,6 @@ proc getEntity {objEntity checkInverse} {
             ::tcom::foreach val [$objAttribute Value] {
               append cellval([$val Type]) "[$val P21ID] "
             }
-
           } emsg]} {
             foreach val [$objAttribute Value] {
               if {[string first "handle" $val] != -1} {
@@ -519,13 +518,11 @@ proc getEntityCSV {objEntity} {
         catch {foreach idx [array names cellval] {unset cellval($idx)}}
         catch {unset cellparam}
 
+# collect the reference id's (P21ID) for the Type of entity in the SET or LIST
         if {[catch {
           ::tcom::foreach val [$objAttribute Value] {
-
-# collect the reference id's (P21ID) for the Type of entity in the SET or LIST
             append cellval([$val Type]) "[$val P21ID] "
           }
-
         } emsg]} {
           foreach val [$objAttribute Value] {
             if {[string first "handle" $val] != -1} {

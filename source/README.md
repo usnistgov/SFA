@@ -7,7 +7,7 @@
 - sfa-data.tcl - set lots of variables
 - sfa-dimtol.tcl - process dimensional tolerances
 - sfa-ent.tcl - write STEP entity to worksheet or CSV file
-- sfa-fea.tcl - visualize AP209 files
+- sfa-fea.tcl - process AP209 files
 - sfa-gen.tcl - generate a spreadsheet
 - sfa-geotol.tcl- process geometric tolerances
 - sfa-grafpmi.tcl - process graphical PMI
@@ -17,13 +17,12 @@
 - sfa-multi.tcl - process multiple STEP files
 - sfa-proc.tcl - more utility procedures
 - sfa-step.tcl - utility procedures
+- sfa-tess.tcl - process tessellated geometry
 - sfa-valprop.tcl - process validation properties
 
 - tclIndex - required Tcl code that lists all procedures in each Tcl file
 
 - sfa-files.txt - freewrap input file that lists all of the above files
-
-- nist_ctc_02_asme1_ap242-1.stp - STEP file from the [NIST MBE PMI Validation and Conformance Testing project](https://www.nist.gov/el/systems-integration-division-73400/mbe-pmi-validation-and-conformance-testing)
 
 ## Contact
 

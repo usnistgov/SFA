@@ -4,20 +4,21 @@ global entCategory entColorIndex badAttributes roseLogical
 global aoEntTypes gpmiTypes spmiEntTypes dimSizeNames tolNames tzfNames dimModNames pmiModifiers pmiModifiersRP pmiUnicode
 global spmiTypes recPracNames modelPictures schemaLinks modelURLs legendColor
 global ap203all ap214all ap242all
-global feaIndex
+global feaIndex cadApps
 
 set roseLogical(0) "FALSE"
 set roseLogical(1) "TRUE"
 set roseLogical(2) "UNKNOWN"
 
-# -----------------------------------------------------------------------------------------------------
-
+# names of CAx-IF Recommended Practices
+set recPracNames(model)    "Model Styling and Organization"
 set recPracNames(pmi242)   "Representation and Presentation of PMI (AP242)"
 set recPracNames(pmi203)   "PMI Polyline Presentation (AP203/AP214)"
 set recPracNames(valprop)  "Geometric and Assembly Validation Properties"
 set recPracNames(tessgeom) "3D Tessellated Geometry"
 set recPracNames(uda)      "User Defined Attributes"
 
+# links to schema documentation
 set schemaLinks(AP203)   "https://www.cax-if.org/documents/AP203e2_html/AP203e2.htm"
 set schemaLinks(AP203e1) "http://web.archive.org/web/20160322005246/www.steptools.com/support/stdev_docs/express/ap203/html/index.html"
 set schemaLinks(AP209)   "https://www.cax-if.org/documents/AP209_HTML/AP209ed2_mim_lf_v1.46.htm"
@@ -28,6 +29,22 @@ set schemaLinks(AP238)   "http://web.archive.org/web/20160322005246/www.steptool
 set schemaLinks(AP239)   "http://web.archive.org/web/20160322005246/www.steptools.com/support/stdev_docs/express/ap239/html/index.html"
 set schemaLinks(AP242)   "https://www.cax-if.org/documents/AP242/AP242_mim_lf_1.36.htm"
 set schemaLinks(CIS/2)   "http://web.archive.org/web/20160322005246/www.steptools.com/support/stdev_docs/express/cis/html/index.html"
+  
+# all app names that might appear in header section
+set cadApps {"3D_Evolution" ACIS "Alias - OpenModel" "Alias AutoStudio" "Alias OpenModel" "Alias Studio" Alibre AutoCAD "Autodesk Inventor" \
+  CADDS CADfix CADIF CATIA "CATIA V4" "CATIA V5" "CATIA V6" "CATIA Version 5" CgiStepCamp CoreTechnologie Creo "CV - CADDS 5" \
+  DATAKIT Datakit "Datakit CrossCad" DATAVISION Elysium EXPRESSO FEMAP FiberSim HiCAD IDA-STEP "I-DEAS" "Implementor Forum Team" "ITI TranscenData" \
+  "jt_step translator" Kubotek "Kubotek KeyCreator" "Mechanical Desktop" "Mentor Graphics" NX "OneSpace Designer" "Open CASCADE" \
+  Parasolid Patran PlanetCAD PolyTrans "PRO/ENGINEER" Siemens "SIEMENS PLM Software NX 10.0" "SIEMENS PLM Software NX 11.0" \
+  "SIEMENS PLM Software NX 7.0" "SIEMENS PLM Software NX 7.5" "SIEMENS PLM Software NX 8.0" "SIEMENS PLM Software NX 8.5" \
+  "SIEMENS PLM Software NX 9.0" "SIEMENS PLM Software NX" "Solid Edge" SolidEdge "ST-ACIS" "STEP Caselib" \
+  "STEP-NC Explorer" "STEP-NC Maker" "T3D tool generator" THEOREM Theorem "THEOREM SOLUTIONS" "Theorem Solutions" "T-Systems" \
+  "UGS - NX" Unigraphics CoCreate Adobe Elysium ASFALIS CAPVIDIA 3DTransVidia MBDVidia NAFEMS COM209 CADCAM-E 3DEXPERIENCE ECCO SimDM \
+  SDS/2 Tekla Revit RISA SAP2000 ETABS SmartPlant CADWorx "Advance Steel" ProSteel STAAD RAM Cype Parabuild RFEM RSTAB BuiltWorks EDMsix \
+  "3D Reviewer" "3D Converter" HOOPS MicroStation SolidWorks Solidworks SOLIDWORKS "SOLIDWORKS MBD"}
+
+# sort cadApps by string length
+set cadApps [sortlength2 $cadApps]
 
 # list of annotation occurrence entities, *order is important*
 set aoEntTypes [list \
@@ -134,6 +151,7 @@ set pmiModifiersArray(average_rank_order_size,5.3)          "(SA)"
 set pmiModifiersArray(basic,6.9.7)                          "\[BASIC\]"
 set pmiModifiersArray(between,6.4.3)                        "\u2194"
 set pmiModifiersArray(circumference_diameter_calculated_size,5.3) "(CC)"
+set pmiModifiersArray(common_tolerance,5.3)                 "CT"
 set pmiModifiersArray(common_zone,6.9.3)                    "CZ"
 set pmiModifiersArray(conical_taper)                        "\u2332"
 set pmiModifiersArray(contacting_feature,6.9.7)             "CF"
@@ -151,7 +169,9 @@ set pmiModifiersArray(depth)                                "\u21A7"
 set pmiModifiersArray(dimension_origin)                     "\u2331"
 set pmiModifiersArray(distance_variable,6.9.7)              "DV"
 set pmiModifiersArray(each_radial_element,6.9.3)            "ERE"
-set pmiModifiersArray(free_state,5.3-6.9.3)                 "\u24BB"
+set pmiModifiersArray(envelope_requirement,5.2.1)           "\u24BA"
+set pmiModifiersArray(free_state_condition,5.3)             "\u24BB"
+set pmiModifiersArray(free_state,6.9.3)                     "\u24BB"
 set pmiModifiersArray(hole_thread)                          ""
 set pmiModifiersArray(independency,5.2.1)                   "\u24BE"
 set pmiModifiersArray(least_material_condition)             "\u24C1"
@@ -167,7 +187,7 @@ set pmiModifiersArray(maximum_material_requirement,6.9.3-6.9.7) "\u24C2"
 set pmiModifiersArray(maximum_rank_order_size,5.3)          "(SX)"
 set pmiModifiersArray(median_rank_order_size,5.3)           "(SM)"
 set pmiModifiersArray(mid_range_rank_order_size,5.3)        "(SD)"
-set pmiModifiersArray(minimum_inscribed_association_criteria,5.3) "(GN)"
+set pmiModifiersArray(minimum_circumscribed_association_criteria,5.3) "(GN)"
 set pmiModifiersArray(minimum_rank_order_size,5.3)          "(SN)"
 set pmiModifiersArray(minor_diameter,6.9.3)                 "LD"
 set pmiModifiersArray(not_convex,6.9.3)                     "NC"
@@ -216,7 +236,6 @@ foreach item [lsort [array names pmiModifiers]] {
   set idx [lindex [split $item ","] 0]
   if {[lsearch $pmfirst $idx] == -1} {lappend spmiTypes $item}
 }
-#foreach item [array names pmiModifiers] {lappend spmiTypes $item}
 
 # -----------------------------------------------------------------------------------------------------
 # pmiUnicode are the symbols associated with tolerances and a few others

@@ -10,19 +10,14 @@
 # some notice that they are derived from it, and any modified versions bear some notice that they 
 # have been modified. 
 
-# ----------------------------------------------------------------------------------------------
-# The STEP File Analyzer can only be built with Tcl 8.5.15 or earlier
-# More recent versions are incompatibile with the IFCsvr toolkit that is used to read STEP files
-# ----------------------------------------------------------------------------------------------
-
-# This is the main routine for the STEP File Analyzer
+# The STEP File Analyzer can only be built with Tcl 8.5.15 32-bit
 
 global env tcl_platform
 
 set wdir [file dirname [info script]]
 set auto_path [linsert $auto_path 0 $wdir]
 
-# for freeWrap the following lappend commands add package locations to auto_path, must be before package commands
+# lappend commands add package locations to auto_path, must be before package commands
 lappend auto_path C:/Tcl/lib/teapot/package/win32-ix86/lib/tcom3.9
 lappend auto_path C:/Tcl/lib/teapot/package/win32-ix86/lib/twapi3.0.32
 lappend auto_path C:/Tcl/lib/teapot/package/win32-ix86/lib/Tclx8.4
@@ -52,7 +47,7 @@ foreach item $auto_path {if {[string first "STEP-File-Analyzer" $item] != -1} {s
 
 # initialize variables
 foreach id {XL_OPEN XL_KEEPOPEN XL_LINK1 XL_FPREC XL_SORT \
-            VALPROP PMIGRF PMISEM VIZPMI VIZFEA INVERSE DEBUG1 DEBUG2 \
+            VALPROP PMIGRF PMISEM VIZPMI VIZFEA VIZTES INVERSE DEBUG1 \
             PR_STEP_AP242 PR_USER PR_STEP_KINE PR_STEP_COMP PR_STEP_COMM PR_STEP_GEOM PR_STEP_QUAN \
             PR_STEP_FEAT PR_STEP_PRES PR_STEP_TOLR PR_STEP_REPR PR_STEP_CPNT PR_STEP_SHAP} {set opt($id) 1}
 
@@ -63,7 +58,6 @@ set opt(VIZFEA) 1
 
 set opt(CRASH) 0
 set opt(DEBUG1) 0
-set opt(DEBUG2) 0
 set opt(DEBUGINV) 0
 set opt(DISPGUIDE1) 1
 set opt(FIRSTTIME) 1
@@ -90,8 +84,8 @@ set pointLimit 2
 set sfaVersion 0
 set upgrade 0
 set userXLSFile ""
-set x3domFileName ""
-set x3domStartFile 1
+set x3dFileName ""
+set x3dStartFile 1
 
 set developer 0
 if {$env(USERNAME) == "lipman"} {set developer 1}
@@ -106,13 +100,11 @@ set userWriteDir $mydocs
 set writeDir $userWriteDir
 
 # set program files
-set programfiles "C:/Program Files"
-set pf64 ""
-if {[info exists env(ProgramFiles)]} {set programfiles $env(ProgramFiles)}
+set pf32 "C:\Program Files (x86)"
+if {[info exists env(ProgramFiles)]}  {set pf32 $env(ProgramFiles)}
+if {[string first "x86" $pf32] == -1} {append pf32 " (x86)"}
+set pf64 "C:\Program Files"
 if {[info exists env(ProgramW6432)]} {set pf64 $env(ProgramW6432)}
-
-# default installation directory for IFCsvr toolkit
-set ifcsvrdir [file join $programfiles IFCsvrR300 dll]
 
 # -----------------------------------------------------------------------------------------------------
 # initialize data
@@ -249,11 +241,13 @@ proc whatsNew {} {
   if {$sfaVersion > 0 && $sfaVersion < [getVersion]} {outputMsg "\nThe previous version of the STEP File Analyzer was: $sfaVersion" red}
 
 outputMsg "\nWhat's New (Version: [getVersion]  Updated: [string trim [clock format $progtime -format "%e %b %Y"]])" blue
-outputMsg "- Visualization of AP209 finite element models (Options tab, Help > Finite Element Model)
-- Examples menu
-- Improved reporting of PMI Annotation Saved Views and related recommended practices
-- Improved visualization of PMI Annotations (Options tab)
+outputMsg "- Visualization of tessellated part geometry (Help > Tessellated Part Geometry)
+- Support for tessellated geometry in PMI Annotations (Options tab)
+- Improved association of geometric tolerances with dimensions and datum features
+- Support for STEP Part 21 Edition 3 files
+- Visualization of AP209 finite element models (Options tab, Help > Finite Element Model)
 - Automated checking of PMI Annotations in the NIST CAD models (Help > NIST CAD Models)
+- Examples menu
 - Bug fixes and minor improvements"
 
   .tnb select .tnb.status
@@ -368,7 +362,8 @@ if {$opt(DISPGUIDE1)} {
 
 #-------------------------------------------------------------------------------
 # install IFCsvr
-installIFCsvr
+set ifcsvrDir [file join $pf32 IFCsvrR300 dll]
+if {![file exists [file join $ifcsvrDir IFCsvrR300.dll]]} {installIFCsvr} 
 
 focus .
 
@@ -439,12 +434,3 @@ if {$opt(writeDirType) == 1} {
 # set window minimum size
 update idletasks
 wm minsize . [winfo reqwidth .] [expr {int([winfo reqheight .]*1.05)}]
-
-# DEBUG
-
-#set allents {}
-#foreach item [array names entCategory] {set allents [concat $allents $entCategory($item)]}
-#set allents [lrmdups $allents]
-#compareLists "203/214/242 vs allents" [lrmdups [concat $ap203all $ap214all $ap242all]] $allents
-#set allents [lrmdups [concat $ap203all $ap214all]]
-#foreach item [array names entCategory] {compareLists $item $allents $entCategory($item)}

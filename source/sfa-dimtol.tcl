@@ -11,6 +11,7 @@ proc spmiDimtolStart {objDesign entType} {
   set dim_loc_dir   [list directed_dimensional_location name]
   set dim_loc_wdf   [list dimensional_location_with_datum_feature name]
   set ang_loc       [list angular_location name]
+  set ang_loc1      [list angular_location_and_directed_dimensional_location name]
   set ang_size      [list angular_size applies_to name]
 
   set dir           [list direction direction_ratios]
@@ -33,13 +34,16 @@ proc spmiDimtolStart {objDesign entType} {
   set descript_rep    [list descriptive_representation_item name description]
   set compound_rep    [list compound_representation_item item_element $descript_rep]
   
-  set PMIP(dimensional_characteristic_representation) [list dimensional_characteristic_representation dimension $dim_size $dim_size_wdf $dim_size_wdf1 $dim_loc $dim_loc_wdf $dim_loc_dir $ang_loc $ang_size representation \
-                                                        [list shape_dimension_representation name items \
-                                                          $length_measure1 $length_measure2 $length_measure3 \
-                                                          $angle_measure1 $angle_measure2 $angle_measure3 \
-                                                          $value_range $measure_rep $descript_rep $compound_rep \
-                                                          $a2p3d \
-                                                      ]]
+  set PMIP(dimensional_characteristic_representation) \
+    [list dimensional_characteristic_representation \
+      dimension $dim_size $dim_size_wdf $dim_size_wdf1 $dim_loc $dim_loc_wdf $dim_loc_dir $ang_loc $ang_loc1 $ang_size \
+      representation [list shape_dimension_representation name \
+        items $length_measure1 $length_measure2 $length_measure3 \
+        $angle_measure1 $angle_measure2 $angle_measure3 \
+        $value_range $measure_rep $descript_rep $compound_rep \
+        $a2p3d \
+      ]
+    ]  
    
   if {![info exists PMIP($entType)]} {return}
 
@@ -52,7 +56,7 @@ proc spmiDimtolStart {objDesign entType} {
   catch {unset pmiHeading}
   catch {unset ent}
 
-  outputMsg " Adding PMI Representation" green
+  outputMsg " Adding PMI Representation" blue
   
   if {[string first "AP203" $stepAP] == 0 || $stepAP == "AP214"} {
     errorMsg "Syntax Error: There is no Recommended Practice for PMI Representation in $stepAP files.  Use AP242 for PMI Representation."
@@ -94,9 +98,9 @@ proc spmiDimtolStart {objDesign entType} {
 
 proc spmiDimtolReport {objEntity} {
   global assocGeom badAttributes cells col dim dimBasic dimModNames dimOrient dimReference dimrep dimrepID
-  global dimSizeNames dimtolEnt dimval draftModelCameras dt dtpmivalprop entLevel ent entAttrList entlevel2
+  global dimSizeNames dimtolEnt dimtolEntType dimtolGeom dimval draftModelCameras dt dtpmivalprop entLevel ent entAttrList entCount entlevel2
   global incrcol lastAttr lastEnt nistName opt pmiCol pmiColumns pmiHeading pmiModifiers pmiStartCol
-  global pmiUnicode prefix recPracNames savedModifier spmiEnts spmiID spmiIDRow spmiRow spmiTypesPerFile syntaxErr tolStandard
+  global pmiUnicode prefix radian recPracNames savedModifier spmiEnts spmiID spmiIDRow spmiRow spmiTypesPerFile syntaxErr tolStandard
 
   if {$opt(DEBUG1)} {outputMsg "spmiDimtolReport" red}
 
@@ -172,7 +176,7 @@ proc spmiDimtolReport {objEntity} {
           if {$objNodeType == 18 || $objNodeType == 19} {
             if {[catch {
               if {$idx != -1} {
-                if {$opt(DEBUG1)} {outputMsg "$ind   ATR $entLevel $objName - $objValue ($objNodeType, $objSize, $objAttrType)"}
+                if {$opt(DEBUG1)} {outputMsg "$ind   ATR $entLevel $objName - $objValue ($objNodeType-[$objAttribute AggNodeType], $objSize, $objAttrType)"}
                 set lastAttr $objName
       
                 if {[info exists cells($dt)]} {
@@ -209,10 +213,6 @@ proc spmiDimtolReport {objEntity} {
 # get name
                         } elseif {[$attr Name] == "name"} {
                           set dim(name) [$attr Value]
-                          #if {$dim(name) == ""} {
-                          #  errorMsg "Syntax Error: Missing 'length/angle name' for a 'length/angle'"
-                          #  set invalid 1
-                          #}
 
 # get qualifier (in the form of NR2 x.y from ASN.1, ISO 6093), format dimension
                         } elseif {[$attr Name] == "qualifiers"} {
@@ -332,8 +332,10 @@ proc spmiDimtolReport {objEntity} {
 
 # add degree symbol for an angle
                         set dim(angle) 0
-                        if {[lindex $entlevel2 1] == "angular_location"} {
-                          append dimrep($dimrepID) $pmiUnicode(degree)
+                        if {[string first "angular_" [lindex $entlevel2 1]] != -1} {
+                          if {[string index $dimrep($dimrepID) end] != $pmiUnicode(degree) && !$radian} {
+                            append dimrep($dimrepID) $pmiUnicode(degree)
+                          }
                           set dim(angle) 1
                         } 
                       }
@@ -409,7 +411,7 @@ proc spmiDimtolReport {objEntity} {
 # nodeType = 20
           } elseif {$objNodeType == 20} {
             if {$idx != -1} {
-              if {$opt(DEBUG1)} {outputMsg "$ind   ATR $entLevel $objName - $objValue ($objNodeType, $objSize, $objAttrType)"}
+              if {$opt(DEBUG1)} {outputMsg "$ind   ATR $entLevel $objName - $objValue ($objNodeType-[$objAttribute AggNodeType], $objSize, $objAttrType)"}
 
 # get number of dimensions
               if {$objType == "shape_dimension_representation" && $objName == "items"} {
@@ -518,7 +520,7 @@ proc spmiDimtolReport {objEntity} {
                         }
                       }
                     }
-                    "angular_location name" {
+                    "angular_location* name" {
 # angular_location.name, add nothing to dimrep as there is no symbol associated with the location                    
                       set ok 1
                       set col($dt) $pmiStartCol($dt)
@@ -531,8 +533,11 @@ proc spmiDimtolReport {objEntity} {
 
                       set item "angular location"
                       lappend spmiTypesPerFile $item
+                      
+                      set radian 0
+                      if {![info exists entCount(conversion_based_unit_and_plane_angle_unit)]} {set radian 1}
                     }
-                    "angular_size name" {
+                    "angular_size* name" {
 # angular_location.name, add nothing to dimrep as there is no symbol associated with the location                    
                       set ok 1
                       set col($dt) $pmiStartCol($dt)
@@ -545,6 +550,9 @@ proc spmiDimtolReport {objEntity} {
 
                       set item "angular size"
                       lappend spmiTypesPerFile $item
+                      
+                      set radian 0
+                      if {![info exists entCount(conversion_based_unit_and_plane_angle_unit)]} {set radian 1}
                     }
                     "shape_dimension_representation name" {
 # shape_dimension.name, look for independency or envelope requirement per the RP, Sec 5.2.1                    
@@ -553,7 +561,11 @@ proc spmiDimtolReport {objEntity} {
                         set ok 1
                         set col($dt) [expr {$pmiStartCol($dt)+1}]
                         set colName "representation name[format "%c" 10](Sec. 5.2.1)"
-                        if {$ov != "independency" && $ov != "envelope requirement"} {
+                        if {$ov == "independency" || $ov == "envelope requirement"} {
+                          regsub -all " " $ov "_" ov1
+                          append savedModifier $pmiModifiers($ov1)
+                          lappend spmiTypesPerFile $ov
+                        } else {
                           errorMsg "Syntax Error: Invalid 'name' attribute ($ov) on [lindex $ent1 0].\n[string repeat " " 14]\($recPracNames(pmi242), Sec. 5.2.1, Table 5)"
                           lappend syntaxErr([lindex [split $ent1 " "] 0]) [list $objID [lindex [split $ent1 " "] 1]]
                           set invalid 1
@@ -622,14 +634,17 @@ proc spmiDimtolReport {objEntity} {
                             set spmiTypesPerFile [lreplace $spmiTypesPerFile $pos $pos]
                           } elseif {$ov == "square" || $ov == "counterbore" || $ov == "countersink" || $ov == "depth"} {
                             set dimrep($dimrepID) "$pmiModifiers($ov)$dimrep($dimrepID)"
+# suffix, append to savedModifier
                           } else {
-                            if {[string length $dimrep($dimrepID)] > 1 || [string is integer $dimrep($dimrepID)]} {
-                              append dimrep($dimrepID) " $pmiModifiers($ov)"
-                            } else {
-                              set savedModifier $pmiModifiers($ov)
-                            }
+                            append savedModifier $pmiModifiers($ov)
+                            #if {[string length $dimrep($dimrepID)] > 1 || [string is integer $dimrep($dimrepID)]} {
+                            #  append dimrep($dimrepID) " $pmiModifiers($ov)"
+                            #} else {
+                            #  append savedModifier $pmiModifiers($ov)
+                            #}
                           }
                           lappend spmiTypesPerFile $ov
+# bad dimension modifier
                         } else {
                           lappend syntaxErr([lindex [split $ent1 " "] 0]) [list $objID [lindex [split $ent1 " "] 1]]
                           set invalid 1
@@ -752,12 +767,14 @@ proc spmiDimtolReport {objEntity} {
   if {$entLevel == 0} {
     
 # associated geometry (5.1.5), find link between dimtol and geometry through geometric_item_specific_usage (gisu)
-# dimtolEnt is either dimensional_location, angular_location, or dimensional_size
+# dimtolEnt is either dimensional_location, angular_location, dimensional_size, or angular_size
     if {[catch {
       if {[info exists dimtolEnt]} {
+        set dimtolType [$dimtolEnt Type]
+        set dimtolID   [$dimtolEnt P21ID]
         
 # dimensional_size
-        if {[string first "dimensional_size" [$dimtolEnt Type]] != -1} {
+        if {[string first "_size" $dimtolType] != -1} {
           ::tcom::foreach dimtolAtt [$dimtolEnt Attributes] {
             if {[$dimtolAtt Name] == "applies_to"} {
               set val [$dimtolAtt Value]
@@ -766,7 +783,6 @@ proc spmiDimtolReport {objEntity} {
 # directly to GISA
               if {$val != ""} {
                 getAssocGeom $val 1
-                
 
 # through SAR(s) to GISU
                 if {[llength [array names assocGeom]] == 0} {
@@ -797,7 +813,8 @@ proc spmiDimtolReport {objEntity} {
 
 # report associated geometry
       if {[info exists assocGeom]} {
-        set str [reportAssocGeom [$dimtolEnt Type]]
+        set str [reportAssocGeom $dimtolType]
+        set dimtolGeomEnts ""
         
         if {$str != "" && [info exists spmiIDRow($dt,$spmiID)]} {
           if {![info exists pmiColumns(ch)]} {set pmiColumns(ch) [expr {$pmiStartCol($dt)+12}]}
@@ -808,9 +825,21 @@ proc spmiDimtolReport {objEntity} {
             $cells($dt) Item 3 $c $colName
             set pmiHeading($pmiColumns(ch)) 1
             set pmiCol [expr {max($pmiColumns(ch),$pmiCol)}]
-            addCellComment $dt 3 $c "The Associated Geometry is the link between the dimensional tolerance and shape aspect, advanced face, and geometric entities through shape_aspect_relationship and geometric_item_specific_usage."
+            #addCellComment $dt 3 $c "The Associated Geometry is the link between the dimensional tolerance and shape aspect, advanced face, and geometric entities through shape_aspect_relationship and geometric_item_specific_usage."
           }
           $cells($dt) Item $r $pmiColumns(ch) [string trim $str]
+
+          foreach item [split $str "\n"] {
+            if {[string first "shape_aspect" $item] == -1 && \
+                [string first "advanced_face" $item] == -1 && \
+                [string first "centre_of_symmetry" $item] == -1 && \
+                [string first "datum_feature" $item] == -1} {lappend nstr $item}
+          }
+          if {[info exists nstr]} {
+            set dimtolGeomEnts [join [lsort $nstr]]
+            set dimtolEntType($dimtolGeomEnts) "$dimtolType $dimtolID"
+            #outputMsg "[$dimtolEnt Type] [$dimtolEnt P21ID] $dimtolGeomEnts" green
+          }
         }
       }
     } emsg]} {
@@ -942,7 +971,7 @@ proc spmiDimtolReport {objEntity} {
 
 # rewrite dimrep
                 set dimrep($dimrepID) "$dmval $pmiUnicode(plusminus) $pmval(1)"
-                if {[info exists dim(angle)]} {if {$dim(angle)} {append dimrep($dimrepID) $pmiUnicode(degree)}}
+                if {[info exists dim(angle)] && !$radian} {if {$dim(angle)} {append dimrep($dimrepID) $pmiUnicode(degree)}}
                 if {[llength $sdimrep] > 1} {append dimrep($dimrepID) "  [lrange $sdimrep 1 end]"}
                 lappend spmiTypesPerFile "bilateral tolerance"
 
@@ -954,7 +983,7 @@ proc spmiDimtolReport {objEntity} {
                   if {$dim(unit) == "INCH"} {
 
 # get precision of +- and compare to dimension                
-                    set pmprec [expr max([getPrecision $pmval(0)],[getPrecision $pmval(1)])]
+                    set pmprec [expr {max([getPrecision $pmval(0)],[getPrecision $pmval(1)])}]
                     if {$pmprec > $dim(prec,$dimrepID)} {set dim(prec,$dimrepID) $pmprec}
                     if {$dim(prec,$dimrepID) > $dim(prec,max) && $dim(prec,$dimrepID) < 6} {set dim(prec,max) $dim(prec,$dimrepID)}
 
@@ -1003,7 +1032,7 @@ proc spmiDimtolReport {objEntity} {
                   } elseif {$dim(unit) == "MM"} {
 
 # get precision of +                
-                    set pmprec [expr max([getPrecision $pmval(0)],[getPrecision $pmval(1)])]
+                    set pmprec [expr {max([getPrecision $pmval(0)],[getPrecision $pmval(1)])}]
 
 # fix 0.
                     if {$pmval(1) >= 0 && $pmval(0) <= 0} {
@@ -1097,13 +1126,29 @@ proc spmiDimtolReport {objEntity} {
           unset dimOrient
         }
         
-# saved modifier
+# saved modifiers to append to dimension
         if {[info exist savedModifier]} {
           append dr " $savedModifier"
           unset savedModifier
         }
-        
+
+# write dimension to spreadsheet        
         $cells($dt) Item $r $pmiColumns(dmrp) $dr
+        
+# save dimension with associated geometry
+        if {$dimtolGeomEnts != ""} {
+          if {[string first "'" $dr] == 0} {set dr [string range $dr 1 end]}
+          if {[info exists dimtolGeom($dimtolGeomEnts)]} {
+            if {[lsearch $dimtolGeom($dimtolGeomEnts) $dr] == -1} {
+              lappend dimtolGeom($dimtolGeomEnts) $dr
+            }
+          } else {
+            lappend dimtolGeom($dimtolGeomEnts) $dr
+          }
+          if {[llength $dimtolGeom($dimtolGeomEnts)] > 1} {
+            errorMsg "Multiple dimensions $dimtolGeom($dimtolGeomEnts) associated with the same geometry\n $dimtolGeomEnts"
+          }
+        }
       }
     } emsg]} {
       errorMsg "ERROR adding Dimensional Tolerance: $emsg"

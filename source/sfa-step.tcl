@@ -1,8 +1,7 @@
 #-------------------------------------------------------------------------------
 # version number
-
 proc getVersion {} {
-  set app_version 2.10
+  set app_version 2.21
   return $app_version
 }
 
@@ -36,25 +35,8 @@ proc getAssocGeom {entDef {dt 0}} {
       }
       
 # find AF for SA with GISU or IIRU
-      foreach usage {geometric_item_specific_usage item_identified_representation_usage} {
-        set e1s [$entDef GetUsedIn [string trim $usage] [string trim definition]]
-        ::tcom::foreach e1 $e1s {
-          ::tcom::foreach a1 [$e1 Attributes] {
-            if {[$a1 Name] == "identified_item"} {
-              if {[catch {
-                set type [appendAssocGeom [$a1 Value] B]
-                if {$type == "advanced_face"} {getFaceGeom [$a1 Value] B}
-              } emsg1]} {
-                ::tcom::foreach e2 [$a1 Value] {
-                  set type [appendAssocGeom $e2 C]
-                  if {$type == "advanced_face"} {getFaceGeom $e2 C}
-                }
-              }
-            }
-          }
-        }
-      }
-      
+      getAssocGeomFace $entDef
+    
 # look at composite_shape_aspect to find SAs
     } else {
       #outputMsg " $entDefType [$entDef P21ID]" red
@@ -67,7 +49,8 @@ proc getAssocGeom {entDef {dt 0}} {
             if {$type == "advanced_face"} {getFaceGeom [$a0 Value] E}
 
             set a0val {}
-            if {[[$a0 Value] Type] == "composite_shape_aspect"} {
+            set e1 [$a0 Value]
+            if {[[$a0 Value] Type] == "composite_shape_aspect" || [[$a0 Value] Type] == "composite_group_shape_aspect"} {
               set e1s [[$a0 Value] GetUsedIn [string trim shape_aspect_relationship] [string trim relating_shape_aspect]]
               ::tcom::foreach e1 $e1s {
                 ::tcom::foreach a1 [$e1 Attributes] {
@@ -81,18 +64,8 @@ proc getAssocGeom {entDef {dt 0}} {
               lappend a0val [$a0 Value]
             }
 
-# find AF for SA with GISU
-            foreach val $a0val {
-              set e1s [$val GetUsedIn [string trim geometric_item_specific_usage] [string trim definition]]
-              ::tcom::foreach e1 $e1s {
-                ::tcom::foreach a1 [$e1 Attributes] {
-                  if {[$a1 Name] == "identified_item"} {
-                    set type [appendAssocGeom [$a1 Value] G]
-                    if {$type == "advanced_face"} {getFaceGeom [$a1 Value] G}
-                  }
-                }
-              }
-            }
+# find AF for SA with GISU or IIRU
+            foreach val $a0val {getAssocGeomFace $val}
           }
         }
       }
@@ -112,6 +85,28 @@ proc getAssocGeom {entDef {dt 0}} {
     }
   } emsg]} {
     errorMsg "ERROR adding Associated Geometry: $emsg"
+  }
+}
+
+# -------------------------------------------------------------------------------
+proc getAssocGeomFace {entDef} {
+  foreach usage {geometric_item_specific_usage item_identified_representation_usage} {
+    set e1s [$entDef GetUsedIn [string trim $usage] [string trim definition]]
+    ::tcom::foreach e1 $e1s {
+      ::tcom::foreach a1 [$e1 Attributes] {
+        if {[$a1 Name] == "identified_item"} {
+          if {[catch {
+            set type [appendAssocGeom [$a1 Value] B]
+            if {$type == "advanced_face"} {getFaceGeom [$a1 Value] B}
+          } emsg1]} {
+            ::tcom::foreach e2 [$a1 Value] {
+              set type [appendAssocGeom $e2 C]
+              if {$type == "advanced_face"} {getFaceGeom $e2 C}
+            }
+          }
+        }
+      }
+    }
   }
 }
 
@@ -155,6 +150,7 @@ proc getFaceGeom {a0 {id ""}} {
 # -------------------------------------------------------------------------------
 proc reportAssocGeom {entType {dimtol 1}} {
   global assocGeom recPracNames
+  #outputMsg "reportAssocGeom $entType $dimtol" red
   
   set str ""
   foreach item [array names assocGeom] {
@@ -171,7 +167,7 @@ proc reportAssocGeom {entType {dimtol 1}} {
     }
   }
   if {[string length $str] == 0 && $dimtol} {
-    errorMsg "Syntax Error: Associated Geometry not found for '[formatComplexEnt $entType]'.  Check GISU or IIRU 'definition' attribute.\n[string repeat " " 14]\($recPracNames(pmi242), Sec. 5.1, Figs. 5, 6, 12)"
+    errorMsg "Syntax Error: Associated Geometry not found for '[formatComplexEnt $entType]'.\n[string repeat " " 14]Check GISU or IIRU 'definition' attribute or shape_aspect_relationship 'relating_shape_aspect' attribute.\n[string repeat " " 14]\($recPracNames(pmi242), Sec. 5.1, Figs. 5, 6, 12)"
   }
   foreach item [array names assocGeom] {
     if {[string first "shape_aspect" $item] != -1 || [string first "centre" $item] != -1 || [string first "datum_feature" $item] != -1} {
@@ -222,7 +218,7 @@ proc spmiSummary {} {
     set anchor [$worksheet($spmiSumName) Range C1]
     [$worksheet($spmiSumName) Hyperlinks] Add $anchor [join "https://www.cax-if.org/joint_testing_info.html#recpracs"] [join ""] [join "Link to CAx-IF Recommended Practices"]
     
-    outputMsg " Adding PMI Representation Summary worksheet" green
+    outputMsg " Adding PMI Representation Summary worksheet" blue
 
 # add pictures
     pmiAddModelPictures $spmiSumName
@@ -687,7 +683,7 @@ proc spmiGetPMI {} {
       set fname [file nativename [file join $mytemp $fn]]
 
       if {[file exists $fname]} {
-        outputMsg "Reading Expected PMI Representation Coverage" blue
+        outputMsg "Reading Expected PMI Representation Coverage"
         set f [open $fname r]
         set r 0
         while {[gets $f line] >= 0} {
@@ -719,7 +715,7 @@ proc spmiGetPMI {} {
       set fname [file nativename [file join $mytemp $fn]]
 
       if {[file exists $fname]} {
-        outputMsg "Reading Expected PMI for: $nistName (See Help > NIST CAD Models)\n" blue
+        outputMsg "Reading Expected PMI for: $nistName (See Help > NIST CAD Models)\n"
         set pid1 [twapi::get_process_ids -name "EXCEL.EXE"]
         set excel2 [::tcom::ref createobject Excel.Application]
         set pid2 [lindex [intersect3 $pid1 [twapi::get_process_ids -name "EXCEL.EXE"]] 2]
@@ -927,7 +923,7 @@ proc pmiFormatColumns {str} {
     set str "pmi242"
     if {$stepAP == "AP203"} {set str "pmi203"}
     $cells($thisEntType) Item 2 1 "See CAx-IF Rec. Prac. for $recPracNames($str)"
-    if {$thisEntType != "dimensional_characteristic_representation"} {
+    if {$thisEntType != "dimensional_characteristic_representation"  && $thisEntType != "datum_reference"} {
       set range [$worksheet($thisEntType) Range A2:D2]
     } else {
       set range [$worksheet($thisEntType) Range A2:C2]
@@ -1014,11 +1010,10 @@ proc setEntsToProcess {entType objDesign} {
         $entType == "presentation_style_assignment" || \
         $entType == "property_definition" || \
         $entType == "representation_relationship" || \
-        $entType == "tessellated_geometric_set" || \
         $entType == "view_volume"} {
       set ok 1
     }
-    foreach ent {"annotation" "draughting" "_presentation" "camera" "constructive_geometry"} {
+    foreach ent {"annotation" "draughting" "_presentation" "camera" "constructive_geometry" "tessellated_geometric_set"} {
       if {[string first $ent $entType] != -1} {set ok 1}
     }
     if {!$ok} {if {[string first "representation" $entType] == -1 && [string first "presentation_" $entType] != -1} {set ok 1}}
@@ -1049,6 +1044,11 @@ proc setEntsToProcess {entType objDesign} {
     if {$entType == "axis2_placement_3d" && [$objDesign CountEntities "placed_datum_target_feature"] > 0} {set ok 1}
   }
 
+# for tessellated geometry
+  if {$opt(VIZTES) && $ok == 0} {
+    if {[string first "tessellated" $entType] != -1} {set ok 1}
+  }
+
   #outputMsg "$ok  $entType"
   return $ok
 }
@@ -1058,7 +1058,7 @@ proc setEntsToProcess {entType objDesign} {
 proc checkForReports {objDesign entType} {
   global cells skipEntities gpmiEnts opt pmiColumns savedViewCol spmiEnts
   
-# check for validation properties, call valProp
+# check for validation properties, call valPropStart
   if {$entType == "property_definition_representation"} {
     if {[catch {
       if {[info exists opt(VALPROP)]} {
@@ -1074,14 +1074,13 @@ proc checkForReports {objDesign entType} {
       errorMsg "ERROR adding Validation Properties to '$entType'\n  $emsg"
     }
 
-# check for PMI Presentation, call pmiProp
+# check for PMI Presentation, call gpmiAnnotation
   } elseif {$gpmiEnts($entType)} {
     if {[catch {
       if {[info exists opt(PMIGRF)]} {
         if {$opt(PMIGRF)} {
           if {[info exists cells($entType)]} {
             gpmiAnnotation $objDesign $entType
-            set ok 0
           }
           catch {unset savedViewCol}
           catch {unset pmiColumns}
@@ -1089,6 +1088,18 @@ proc checkForReports {objDesign entType} {
       }
     } emsg]} {
       errorMsg "ERROR adding PMI Presentation to '$entType'\n  $emsg"
+    }
+  
+# tessellated part geometry is also processed in gpmiAnnotation (for now)
+  } elseif {$entType == "tessellated_solid" || $entType == "tessellated_shell"} {
+    if {[catch {
+      if {[info exists opt(VIZTES)]} {
+        if {$opt(VIZTES)} {
+          gpmiAnnotation $objDesign $entType
+        }
+      }
+    } emsg]} {
+      errorMsg "ERROR adding Tessellated Part Geometry\n  $emsg"
     }
 
 # check for Semantic PMI, call spmiDimtolStart or spmiGeotolStart
@@ -1102,7 +1113,6 @@ proc checkForReports {objDesign entType} {
             } else {
               spmiGeotolStart $objDesign $entType
             }
-            set ok 0
           }
         }
       }
@@ -1251,6 +1261,80 @@ proc getSchemaFromFile {fname {msg 0}} {
   }
   close $stepfile
   return $schema
+}
+
+#-------------------------------------------------------------------------------
+proc checkP21e3 {fname} {
+  global p21e3Section
+  
+  set p21e3Section {}
+  set p21e3 0
+  set nline 0
+  set f1 [open $fname r]
+      
+# check for part 21 edition 3 file
+  while {[gets $f1 line] != -1} {
+    if {[string first "DATA\;" $line] == 0} {
+      set nname $fname
+      break
+    } elseif {[string first "4\;1" $line] != -1 || \
+              [string first "ANCHOR\;" $line] == 0 || \
+              [string first "REFERENCE\;" $line] == 0 || \
+              [string first "SIGNATURE\;" $line] == 0} {
+      set p21e3 1
+      break
+    }
+  }
+  close $f1
+  
+# part 21 edition 3 file
+  if {$p21e3} {
+
+# new file name
+    set nname "[file rootname $fname]-NOE3[file extension $fname]"
+    catch {file delete -force $nname}
+    set f2 [open $nname w]
+
+# read file
+    set write 1
+    set data 0
+    set sects {}
+    
+    set f1 [open $fname r]
+    while {[gets $f1 line] != -1} {
+      if {!$data} {
+        if {[string first "DATA\;" $line] == 0} {
+          set write 1
+          set data 1
+          regsub -all " " [join $sects] " and " sects
+          errorMsg "The STEP file uses $sects section(s) from Edition 3 of Part 21."
+          errorMsg " A new file ([file tail $nname]) without the those sections\n will be written and processed instead of ([file tail $fname])"
+          
+# check for part 21 edition 3 content
+        } elseif {[string first "ANCHOR\;" $line] == 0 || \
+                  [string first "REFERENCE\;" $line] == 0 || \
+                  [string first "SIGNATURE\;" $line] == 0} {
+          set write 0
+          lappend sects [string range $line 0 end-1]
+        }
+  
+# write new file w/o part 21 edition 3 content
+        if {$write} {
+          puts $f2 $line
+        } else {
+          lappend p21e3Section [string range $line 0 end-1]
+        }
+
+# in DATA section
+      } else {
+        puts $f2 $line
+      }
+    }
+    close $f1
+    close $f2
+    
+  }
+  return $nname
 }
 
 # -------------------------------------------------------------------------------

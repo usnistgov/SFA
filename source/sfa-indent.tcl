@@ -220,8 +220,8 @@ proc indentFile {ifile} {
   }
   
   .tnb select .tnb.status
-  outputMsg "Indenting: [truncFileName [file nativename $ifile] 1] ([expr {[file size $ifile]/1024}] Kb)" blue
-  outputMsg "Pass 1 of 2"
+  outputMsg "Indenting: [truncFileName [file nativename $ifile] 1] ([expr {[file size $ifile]/1024}] Kb)"
+  outputMsg " Pass 1 of 2"
   set indentPass 1
   set indentReadFile [open $ifile r]
 
@@ -261,7 +261,7 @@ proc indentFile {ifile} {
   }
   close $indentReadFile
 
-  outputMsg "Pass 2 of 2"
+  outputMsg " Pass 2 of 2"
   set indentPass 2
   set indentReadFile [open $ifile r]
 
@@ -293,10 +293,12 @@ proc indentFile {ifile} {
   
   set fs [expr {[file size $indentFileName]/1024}]
   if {$editorCmd != "" && $fs < 30000} {
-    outputMsg "Opening indented STEP file: [truncFileName [file nativename $indentFileName] 1] ($fs Kb)" blue
+    outputMsg "Opening Indented STEP file:"
+    outputMsg " [truncFileName [file nativename $indentFileName] 1] ($fs Kb)" blue
     exec $editorCmd $indentFileName &
   } else {
-    outputMsg "Indented STEP file written: [truncFileName [file nativename $indentFileName] 1] ($fs Kb)" blue
+    outputMsg "Indented STEP file written:"
+    outputMsg " [truncFileName [file nativename $indentFileName] 1] ($fs Kb)" blue
   }
 }
 

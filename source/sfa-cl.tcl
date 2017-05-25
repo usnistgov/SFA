@@ -10,10 +10,7 @@
 # some notice that they are derived from it, and any modified versions bear some notice that they 
 # have been modified. 
 
-# ----------------------------------------------------------------------------------------------
-# The STEP File Analyzer can only be built with Tcl 8.5.15 or earlier
-# More recent versions are incompatibile with the IFCsvr toolkit that is used to read STEP files
-# ----------------------------------------------------------------------------------------------
+# The STEP File Analyzer can only be built with Tcl 8.5.* 32-bit
 
 # This is the main routine for the STEP File Analyzer command-line version
 
@@ -41,12 +38,11 @@ set nistVersion 0
 foreach item $auto_path {if {[string first "STEP-File-Analyzer" $item] != -1} {set nistVersion 1}}
 
 foreach id {XL_OPEN XL_KEEPOPEN XL_LINK1 XL_FPREC XL_SORT \
-            VALPROP PMIGRF PMISEM VIZPMI VIZFEA INVERSE DEBUG1 DEBUG2 \
+            VALPROP PMIGRF PMISEM VIZPMI VIZFEA VIZTES INVERSE DEBUG1 \
             PR_STEP_AP242 PR_USER PR_STEP_KINE PR_STEP_COMP PR_STEP_COMM PR_STEP_GEOM PR_STEP_QUAN \
             PR_STEP_FEAT PR_STEP_PRES PR_STEP_TOLR PR_STEP_REPR PR_STEP_CPNT PR_STEP_SHAP} {set opt($id) 1}
 
 set opt(DEBUG1) 0
-set opt(DEBUG2) 0
 set opt(DEBUGINV) 0
 set opt(VIZPMI) 0
 set opt(VIZFEA) 0
@@ -71,8 +67,8 @@ set pointLimit 2
 set sfaVersion 0
 set upgrade 0
 set userXLSFile ""
-set x3domFileName ""
-set x3domStartFile 1
+set x3dFileName ""
+set x3dStartFile 1
 
 set developer 0
 if {$env(USERNAME) == "lipman"} {set developer 1}
@@ -87,13 +83,14 @@ set userWriteDir $mydocs
 set writeDir $userWriteDir
 
 # set program files
-set programfiles "C:/Program Files"
-set pf64 ""
-if {[info exists env(ProgramFiles)]} {set programfiles $env(ProgramFiles)}
+set pf32 "C:\Program Files (x86)"
+if {[info exists env(ProgramFiles)]}  {set pf32 $env(ProgramFiles)}
+if {[string first "x86" $pf32] == -1} {append pf32 " (x86)"}
+set pf64 "C:\Program Files"
 if {[info exists env(ProgramW6432)]} {set pf64 $env(ProgramW6432)}
 
 # default installation directory for IFCsvr toolkit
-set ifcsvrdir [file join $programfiles IFCsvrR300 dll]
+set ifcsvrDir [file join $pf32 IFCsvrR300 dll]
 
 # -----------------------------------------------------------------------------------------------------
 # initialize data
@@ -149,7 +146,7 @@ puts "$str\STEP File Analyzer (v[getVersion] - Updated: [string trim [clock form
 #-------------------------------------------------------------------------------
 
 # check for IFCsvr
-if {![file exists [file join $programfiles IFCsvrR300 dll IFCsvrR300.dll]]} {
+if {![file exists [file join $pf32 IFCsvrR300 dll IFCsvrR300.dll]]} {
   puts "\n*** RUN THE GUI VERSION FIRST BEFORE RUNNING THE COMMAND-LINE VERSION ***\n*** IFCsvr needs to be installed ***"
   exit
 } 
@@ -213,4 +210,3 @@ if {[file exists $localName]} {
 } else {
   outputMsg "File not found: [truncFileName $localName]"
 }
-

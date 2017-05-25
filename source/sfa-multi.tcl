@@ -49,7 +49,7 @@ proc openMultiFile {{ask 1}} {
       }
       if {$choice == "yes"} {
         set recurse 1
-        outputMsg "Searching subdirectories ..." blue
+        outputMsg "Searching subdirectories ..."
       }
 
 # find all files in directory and subdirectories
@@ -85,7 +85,7 @@ proc openMultiFile {{ask 1}} {
     }
 
     if {$lenfilelist > 0} {
-      if {$ask != 2} {outputMsg "($lenfilelist) STEP files found" green}
+      if {$ask != 2} {outputMsg "($lenfilelist) STEP files found" blue}
       set askstr "Spreadsheets"
       if {$opt(XLSCSV) == "CSV"} {set askstr "CSV files"}
 
@@ -112,7 +112,7 @@ proc openMultiFile {{ask 1}} {
         set fileDir $multiFileDir
         if {$lenfilelist > 1 && $opt(XLSCSV) == "Excel"} {
           if {[catch {
-            outputMsg "Starting File Summary spreadsheet" blue
+            outputMsg "\nStarting File Summary spreadsheet" blue
             set pid2 [twapi::get_process_ids -name "EXCEL.EXE"]
             set excel1 [::tcom::ref createobject Excel.Application]
             set pidExcel1 [lindex [intersect3 $pid2 [twapi::get_process_ids -name "EXCEL.EXE"]] 2]
@@ -557,7 +557,8 @@ proc openMultiFile {{ask 1}} {
 
 # save spreadsheet
             outputMsg " "
-            outputMsg "Saving File Summary Spreadsheet as:\n [truncFileName $aname 1]" blue
+            outputMsg "Saving File Summary Spreadsheet as:"
+            outputMsg " [truncFileName $aname 1]" blue
             $workbook1 SaveAs $aname
             set lastXLS1 $aname
 
@@ -575,7 +576,7 @@ proc openMultiFile {{ask 1}} {
 
 # open spreadsheet
           openXLS $aname 0 1
-          if {$opt(XL_LINK1)} {outputMsg " Click on the Links in Row 3 to access individual spreadsheets.\n" green}
+          if {$opt(XL_LINK1)} {outputMsg " Click on the Links in Row 3 to access individual spreadsheets.\n" blue}
         
 # unset some variables for the multi-file summary 
           foreach var {excel1 worksheets1 worksheet1 cells1 row1 col1} {if {[info exists $var]} {unset $var}}

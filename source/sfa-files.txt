@@ -12,5 +12,6 @@ sfa-inv.tcl
 sfa-multi.tcl
 sfa-proc.tcl
 sfa-step.tcl
+sfa-tess.tcl
 sfa-valprop.tcl
 tclIndex
