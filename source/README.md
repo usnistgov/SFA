@@ -10,7 +10,7 @@
 - sfa-fea.tcl - process AP209 files
 - sfa-gen.tcl - generate a spreadsheet
 - sfa-geotol.tcl- process geometric tolerances
-- sfa-grafpmi.tcl - process graphical PMI
+- sfa-grafpmi.tcl - process graphical PMI and tessellated geometry
 - sfa-gui.tcl - generate user interface
 - sfa-indent.tcl - indents STEP file
 - sfa-inv.tcl - process inverse relationships
