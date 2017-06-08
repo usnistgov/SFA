@@ -8,6 +8,7 @@ proc openMultiFile {{ask 1}} {
   global coverageSTEP gpmiTypes developer nistVersion
   global sempmi_totals pmi_totals gpmiTypesInvalid col_ca pmi_rows
   global excel1 worksheets1 worksheet1 cells1 row1 col1 nfile coverageStyle
+  global sempmi_coverage pmi_coverage
   
   set maxfiles 1000
   if {$developer} {set maxfiles 10000}
@@ -466,13 +467,11 @@ proc openMultiFile {{ask 1}} {
 
 # also for PMI coverage analysis worksheets
                   catch {
-                    global sempmi_coverage
-                    set range [$worksheet1($sempmi_coverage) Range [cellRange 3 $nf1] [cellRange 125 $nf1]]
+                    set range [$worksheet1($sempmi_coverage) Range [cellRange 3 $nf1] [cellRange 130 $nf1]]
                     set borders [$range Borders]
                     [$borders Item [expr -4152]] Weight [expr 2]
                   }
                   catch {
-                    global pmi_coverage pmi_rows
                     set range [$worksheet1($pmi_coverage) Range [cellRange 3 $nf1] [cellRange $pmi_rows $nf1]]
                     set borders [$range Borders]
                     [$borders Item [expr -4152]] Weight [expr 2]
@@ -498,7 +497,7 @@ proc openMultiFile {{ask 1}} {
 
 # freeze panes
             [$worksheet1($sum) Range "B[expr {$startrow+1}]"] Select
-            [$excel1 ActiveWindow] FreezePanes [expr 1]
+            catch {[$excel1 ActiveWindow] FreezePanes [expr 1]}
             [$worksheet1($sum) Range "A1"] Select
             catch {[$worksheet1($sum) PageSetup] PrintGridlines [expr 1]}
 

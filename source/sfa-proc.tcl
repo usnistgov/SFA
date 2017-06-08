@@ -1,6 +1,6 @@
 #-------------------------------------------------------------------------------
 proc checkValues {} {
-  global opt buttons appNames appName developer pf32 userEntityList
+  global opt buttons appNames appName developer userEntityList
   global edmWriteToFile edmWhereRules eeWriteToFile
 
   if {[info exists buttons(appCombo)]} {
@@ -717,12 +717,13 @@ proc getOpenPrograms {} {
   global dispApps dispCmds dispCmd appNames appName env pf32 pf64
   global drive edmexe editorCmd developer myhome
 
-# Including any of the CAD viewers and checkers below does not imply a recommendation or
+# Including any of the CAD viewers and software below does not imply a recommendation or
 # endorsement of them by NIST https://www.nist.gov/disclaimer
 # For more STEP viewers, go to https://www.cax-if.org/step_viewers.html
   
-  set pflist [list $pf32]
-  if {$pf64 != ""} {lappend pflist $pf64}
+  regsub {\\} $pf32 "/" p32
+  regsub {\\} $pf64 "/" p64
+  set pflist [list $p32 $p64]
   set lastver 0
 
 # Jotne EDM Model Checker
@@ -730,112 +731,106 @@ proc getOpenPrograms {} {
     set edmexe  ""
     set edms [glob -nocomplain -directory [file join $drive edm] -join edm* bin Edms.exe]
     foreach match $edms {
-      #set vernum [string range [lindex [split $match "/"] 2] 3 11]
-      #set name "EDM Model Checker $vernum"
       set name "EDM Model Checker"
       set edmexe $match
       set dispApps($edmexe) $name
     }
   }
 
-  if {[info exists pf32]} {
-    foreach pf $pflist {
-
 # STEP Tools apps
-      if {[file isdirectory [file join $pf "STEP Tools"]]} {
-        set applist [list \
-          [list stepbrws.exe "STEP File Browser"] \
-          [list stview.exe "STEP Viewer"] \
-          [list stpcheckgui.exe "STEP Check and Browse"] \
-          [list stepcleangui.exe "STEP File Cleaner"] \
-          [list ap203checkgui.exe "STEP AP203 Conformance Checker"] \
-          [list ap209checkgui.exe "STEP AP209 Conformance Checker"] \
-          [list ap214checkgui.exe "STEP AP214 Conformance Checker"] \
-          [list apconformgui.exe "STEP AP Conformance Checker"] \
-        ]
-        foreach app $applist {
-          set stmatch ""
-          foreach match [glob -nocomplain -directory $pf -join "STEP Tools" "ST-Developer*" bin [lindex $app 0]] {
-            if {$stmatch == ""} {
-              set stmatch $match
-              set lastver [lindex [split [file nativename $match] [file separator]] 3]
-            } else {
-              set ver [lindex [split [file nativename $match] [file separator]] 3]
-              if {$ver > $lastver} {set stmatch $match}
-            }
+  foreach pf $pflist {
+    if {[file isdirectory [file join $pf "STEP Tools"]]} {
+      set applist [list \
+        [list stepbrws.exe "STEP File Browser"] \
+        [list stview.exe "STEP Viewer"] \
+        [list stpcheckgui.exe "STEP Check and Browse"] \
+        [list stepcleangui.exe "STEP File Cleaner"] \
+        [list ap203checkgui.exe "STEP AP203 Conformance Checker"] \
+        [list ap209checkgui.exe "STEP AP209 Conformance Checker"] \
+        [list ap214checkgui.exe "STEP AP214 Conformance Checker"] \
+        [list apconformgui.exe "STEP AP Conformance Checker"] \
+      ]
+      foreach app $applist {
+        set stmatch ""
+        foreach match [glob -nocomplain -directory $pf -join "STEP Tools" "ST-Developer*" bin [lindex $app 0]] {
+          if {$stmatch == ""} {
+            set stmatch $match
+            set lastver [lindex [split [file nativename $match] [file separator]] 3]
+          } else {
+            set ver [lindex [split [file nativename $match] [file separator]] 3]
+            if {$ver > $lastver} {set stmatch $match}
           }
-          if {$stmatch != ""} {
-            if {![info exists dispApps($stmatch)]} {
-              #set vn [lindex [lindex [split [file nativename $stmatch] [file separator]] 3] 1]
-              set dispApps($stmatch) [lindex $app 1]
-            }
+        }
+        if {$stmatch != ""} {
+          if {![info exists dispApps($stmatch)]} {
+            set dispApps($stmatch) [lindex $app 1]
+            outputMsg here
           }
         }
       }
+    }
 
 # other STEP file apps
-      set applist [list \
-        [list {*}[glob -nocomplain -directory [file join $pf Materialise] -join "Magics *" Magics.exe] Magics] \
-        [list {*}[glob -nocomplain -directory [file join $pf Actify SpinFire] -join "*" SpinFire.exe] SpinFire] \
-        [list {*}[glob -nocomplain -directory [file join $pf] -join "3D-Tool V*" 3D-Tool.exe] 3D-Tool] \
-        [list {*}[glob -nocomplain -directory [file join $pf] -join "VariCADViewer *" bin varicad-x64.exe] "VariCAD Viewer"] \
-        [list {*}[glob -nocomplain -directory [file join $pf "Stratasys Direct Manufacturing"] -join "SolidView Pro RP *" bin SldView.exe] SolidView] \
-        [list {*}[glob -nocomplain -directory [file join $pf "TransMagic Inc"] -join "TransMagic *" System code bin TransMagic.exe] TransMagic] \
-        [list {*}[glob -nocomplain -directory [file join $pf CADSoftTools] -join "ABViewer*" ABViewer.exe] ABViewer] \
-        [list {*}[glob -nocomplain -directory [file join $pf "Soft Gold"] -join "ABViewer*" ABViewer.exe] ABViewer] \
-        [list {*}[glob -nocomplain -directory [file join $pf Autodesk] -join "Navisworks Manage*" roamer.exe] "Navisworks Manage"] \
-      ]
-      foreach app $applist {
-        if {[llength $app] == 2} {
-          set match [join [lindex $app 0]]
-          if {$match != "" && ![info exists dispApps($match)]} {
-            set dispApps($match) [lindex $app 1]
-          }
+    set applist [list \
+      [list {*}[glob -nocomplain -directory [file join $pf Actify SpinFire] -join "*" SpinFire.exe] SpinFire] \
+      [list {*}[glob -nocomplain -directory [file join $pf] -join "3D-Tool V*" 3D-Tool.exe] 3D-Tool] \
+      [list {*}[glob -nocomplain -directory [file join $pf] -join "VariCADViewer *" bin varicad-x64.exe] "VariCAD Viewer"] \
+      [list {*}[glob -nocomplain -directory [file join $pf "Stratasys Direct Manufacturing"] -join "SolidView Pro RP *" bin SldView.exe] SolidView] \
+      [list {*}[glob -nocomplain -directory [file join $pf "TransMagic Inc"] -join "TransMagic *" System code bin TransMagic.exe] TransMagic] \
+      [list {*}[glob -nocomplain -directory [file join $pf CADSoftTools] -join "ABViewer*" ABViewer.exe] ABViewer] \
+      [list {*}[glob -nocomplain -directory [file join $pf "Soft Gold"] -join "ABViewer*" ABViewer.exe] ABViewer] \
+      [list {*}[glob -nocomplain -directory [file join $pf Autodesk] -join "Navisworks Manage*" roamer.exe] "Navisworks Manage"] \
+    ]
+    foreach app $applist {
+      if {[llength $app] == 2} {
+        set match [join [lindex $app 0]]
+        if {$match != "" && ![info exists dispApps($match)]} {
+          set dispApps($match) [lindex $app 1]
         }
       }
-      
-      set applist [list \
-        [list [file join $pf "STEP Tools" "STEP-NC Machine" STEPNCExplorer.exe] "STEP-NC Machine"] \
-        [list [file join $pf "STEP Tools" "STEP-NC Machine" STEPNCExplorer_x86.exe] "STEP-NC Machine"] \
-        [list [file join $pf "STEP Tools" "STEP-NC Machine Personal Edition" STEPNCExplorer.exe] "STEP-NC Machine"] \
-        [list [file join $pf "STEP Tools" "STEP-NC Machine Personal Edition" STEPNCExplorer_x86.exe] "STEP-NC Machine"] \
-        [list [file join $pf Glovius Glovius glovius.exe] Glovius] \
-        [list [file join $pf "CAD Exchanger" bin Exchanger.exe] "CAD Exchanger"] \
-        [list [file join $pf "CAD Assistant" CADAssistant.exe] "CAD Assistant"] \
-        [list [file join $pf "3DJuump X64" 3DJuump.exe] "3DJuump"] \
-        [list [file join $pf STPViewer STPViewer.exe] "STP Viewer"] \
-        [list [file join $pf CadFaster QuickStep QuickStep.exe] QuickStep] \
-        [list [file join $pf Kisters 3DViewStation 3DViewStation.exe] 3DViewStation] \
-        [list [file join $pf IFCBrowser IfcQuickBrowser.exe] IfcQuickBrowser] \
-        [list [file join $pf "Tekla BIMsight" BIMsight.exe] "Tekla BIMsight"] \
-      ]
-      foreach app $applist {
-        if {[file exists [lindex $app 0]]} {
-          set name [lindex $app 1]
-          set dispApps([lindex $app 0]) $name
-        }
+    }
+    
+    set applist [list \
+      [list [file join $pf "STEP Tools" "STEP-NC Machine" STEPNCExplorer.exe] "STEP-NC Machine"] \
+      [list [file join $pf "STEP Tools" "STEP-NC Machine" STEPNCExplorer_x86.exe] "STEP-NC Machine"] \
+      [list [file join $pf "STEP Tools" "STEP-NC Machine Personal Edition" STEPNCExplorer.exe] "STEP-NC Machine"] \
+      [list [file join $pf "STEP Tools" "STEP-NC Machine Personal Edition" STEPNCExplorer_x86.exe] "STEP-NC Machine"] \
+      [list [file join $pf Glovius Glovius glovius.exe] Glovius] \
+      [list [file join $pf "CAD Exchanger" bin Exchanger.exe] "CAD Exchanger"] \
+      [list [file join $pf "CAD Assistant" CADAssistant.exe] "CAD Assistant"] \
+      [list [file join $pf "3DJuump X64" 3DJuump.exe] "3DJuump"] \
+      [list [file join $pf STPViewer STPViewer.exe] "STP Viewer"] \
+      [list [file join $pf CadFaster QuickStep QuickStep.exe] QuickStep] \
+      [list [file join $pf Kisters 3DViewStation 3DViewStation.exe] 3DViewStation] \
+      [list [file join $pf IFCBrowser IfcQuickBrowser.exe] IfcQuickBrowser] \
+      [list [file join $pf "Tekla BIMsight" BIMsight.exe] "Tekla BIMsight"] \
+    ]
+    foreach app $applist {
+      if {[file exists [lindex $app 0]]} {
+        set name [lindex $app 1]
+        set dispApps([lindex $app 0]) $name
       }
+    }
 
 # Tetra4D in Adobe Acrobat
-      for {set i 40} {$i > 9} {incr i -1} {
-        if {$i > 11} {
-          set j "20$i"
-        } else {
-          set j "$i.0"
-        }        
-        foreach match [glob -nocomplain -directory $pf -join Adobe "Acrobat $j" Acrobat Acrobat.exe] {
-          if {[file exists [file join $pf Adobe "Acrobat $j" Acrobat plug_ins 3DPDFConverter 3DPDFConverter.exe]]} {
-            if {![info exists dispApps($match)]} {
-              set name "Tetra4D Converter"
-              set dispApps($match) $name
-            }
+    for {set i 40} {$i > 9} {incr i -1} {
+      if {$i > 11} {
+        set j "20$i"
+      } else {
+        set j "$i.0"
+      }        
+      foreach match [glob -nocomplain -directory $pf -join Adobe "Acrobat $j" Acrobat Acrobat.exe] {
+        if {[file exists [file join $pf Adobe "Acrobat $j" Acrobat plug_ins 3DPDFConverter 3DPDFConverter.exe]]} {
+          if {![info exists dispApps($match)]} {
+            set name "Tetra4D Converter"
+            set dispApps($match) $name
           }
         }
-        set match [file join $pf Adobe "Acrobat $j" Acrobat plug_ins 3DPDFConverter 3DReviewer.exe]
-        if {![info exists dispApps($match)]} {
-          set name "Tetra4D Reviewer"
-          set dispApps($match) $name
-        }
+      }
+      set match [file join $pf Adobe "Acrobat $j" Acrobat plug_ins 3DPDFConverter 3DReviewer.exe]
+      if {![info exists dispApps($match)]} {
+        set name "Tetra4D Reviewer"
+        set dispApps($match) $name
       }
     }
   }
@@ -1512,7 +1507,7 @@ proc installIFCsvr {} {
   outputMsg $msg red
   if {[file exists $ifcsvrInst]} {
     set msg "The IFCsvr Toolkit needs to be installed to read and process STEP files."
-    append msg "\n\nAfter clicking OK the IFCsvr Toolkit installation will start.\nUse the default installation folder for IFCsvr.\nPlease wait for the installation process to complete before generating a spreadsheet."
+    append msg "\n\nAfter clicking OK the IFCsvr Toolkit installation will start.  Use the default installation folder for IFCsvr.  Please wait for the installation process to complete before generating a spreadsheet."
     append msg "\n\nSee Help > Supported STEP APs to see which type of STEP files are supported."
     set choice [tk_messageBox -type ok -message $msg -icon info -title "Install IFCsvr"]
     set msg "\nPlease wait for the installation process to complete before generating a spreadsheet.\n"

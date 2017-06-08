@@ -10,7 +10,10 @@
 # some notice that they are derived from it, and any modified versions bear some notice that they 
 # have been modified. 
 
-# The STEP File Analyzer can only be built with Tcl 8.5.15 32-bit
+# ----------------------------------------------------------------------------------------------
+# The STEP File Analyzer can only be built with Tcl 8.5.15 or earlier
+# More recent versions are incompatibile with the IFCsvr toolkit that is used to read STEP files
+# ----------------------------------------------------------------------------------------------
 
 global env tcl_platform
 
@@ -195,11 +198,11 @@ if {[info exists userEntityFile]} {
 }
 if {[string index $opt(XL_ROWLIM) end] == 1} {set opt(XL_ROWLIM) [expr {$opt(XL_ROWLIM)+2}]}
 
-#-------------------------------------------------------------------------------
+# -------------------------------------------------------------------------------
 # get programs that can open STEP files
 getOpenPrograms
 
-#-------------------------------------------------------------------------------
+# -------------------------------------------------------------------------------
 # user interface
 guiStartWindow
 
@@ -235,6 +238,7 @@ foreach item {sfa sfa-data sfa-dimtol sfa-ent sfa-gen sfa-geotol sfa-grafpmi sfa
   if {$mtime > $progtime} {set progtime $mtime}
 }
 
+# -------------------------------------------------------------------------------
 proc whatsNew {} {
   global progtime sfaVersion
   
@@ -254,6 +258,7 @@ outputMsg "- Visualization of tessellated part geometry (Help > Tessellated Part
   update idletasks
 }
 
+# -------------------------------------------------------------------------------
 # Help and Websites menu
 guiHelpMenu
 guiWebsitesMenu
@@ -428,6 +433,11 @@ if {$opt(writeDirType) == 1} {
 } elseif {$opt(writeDirType) == 2} {
   outputMsg " "
   errorMsg "Spreadsheets will be written to a user-defined directory (Spreadsheet tab)"
+  .tnb select .tnb.status
+}
+if {$opt(XLSCSV) != "Excel" && $developer} {
+  outputMsg " "
+  errorMsg "CSV files will be written (Options tab)"
   .tnb select .tnb.status
 }
 

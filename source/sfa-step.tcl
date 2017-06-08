@@ -1,7 +1,7 @@
 #-------------------------------------------------------------------------------
 # version number
 proc getVersion {} {
-  set app_version 2.21
+  set app_version 2.22
   return $app_version
 }
 
@@ -787,7 +787,7 @@ proc pmiAddModelPictures {ent} {
               [$worksheet($ent) Range "C4"] Select            
             }
           }
-          [$excel ActiveWindow] FreezePanes [expr 1]
+          catch {[$excel ActiveWindow] FreezePanes [expr 1]}
 
 # link to test model drawings (doesn't always work)
           if {[string first "nist_" $fl] == 0 && $nlink < 2} {
@@ -1307,8 +1307,7 @@ proc checkP21e3 {fname} {
           set write 1
           set data 1
           regsub -all " " [join $sects] " and " sects
-          errorMsg "The STEP file uses $sects section(s) from Edition 3 of Part 21."
-          errorMsg " A new file ([file tail $nname]) without the those sections\n will be written and processed instead of ([file tail $fname])"
+          errorMsg "The STEP file uses $sects section(s) from Edition 3 of Part 21.\n A new file ([file tail $nname]) without the those sections\n will be written and processed instead of ([file tail $fname])."
           
 # check for part 21 edition 3 content
         } elseif {[string first "ANCHOR\;" $line] == 0 || \
@@ -1332,7 +1331,6 @@ proc checkP21e3 {fname} {
     }
     close $f1
     close $f2
-    
   }
   return $nname
 }

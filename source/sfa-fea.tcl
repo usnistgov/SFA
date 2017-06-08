@@ -137,7 +137,7 @@ proc feaModel {objDesign entType} {
           set mem [expr {[lindex [twapi::get_process_info $sfaPID -pagefilebytes] 1]/1048576}]
           if {$mem > 1780} {
             errorMsg "Insufficient memory to process all of the elements"
-            lappend x3dMsg "Some elements were not processed"
+            lappend x3dMsg "Some elements were not processed."
             update idletasks
             break
           }
@@ -258,7 +258,7 @@ proc feaModel {objDesign entType} {
 
 # messages
   if {[info exists feaTypes]} {
-    foreach item [array names feaTypes] {lappend x3dMsg "$feaTypes($item) - $item"}
+    foreach item [array names feaTypes] {lappend x3dMsg "$feaTypes($item) - [string tolower $item]"}
   }
 }
 
@@ -523,8 +523,8 @@ proc feaGetNodes {objDesign} {
   puts $x3dFile "   '></Coordinate></PointSet></Shape>"
   puts $x3dFile "</Switch>"
 
-  lappend x3dMsg "$entCount(node) - Nodes"
-  if {[info exists entCount(dummy_node)]} {lappend x3dMsg "$entCount(dummy_node) - Dummy Node"}
+  lappend x3dMsg "$entCount(node) - nodes"
+  if {[info exists entCount(dummy_node)]} {lappend x3dMsg "$entCount(dummy_node) - dummy node"}
 }
 
 # -------------------------------------------------------------------------------

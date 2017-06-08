@@ -3,6 +3,11 @@ proc spmiGeotolStart {objDesign entType} {
   global spmiEntity spmiRow spmiTypesPerFile stepAP tolNames
 
   if {$opt(DEBUG1)} {outputMsg "START spmiGeotolStart $entType" red}
+  
+  set len1 [list length_measure_with_unit value_component]
+  set len2 [list length_measure_with_unit_and_measure_representation_item value_component]
+  set len3 [list length_measure_with_unit_and_measure_representation_item_and_qualified_representation_item value_component]
+  set len4 [list plane_angle_measure_with_unit value_component]
 
   set dtm [list datum identification]
   set cdt [list common_datum identification]
@@ -10,14 +15,10 @@ proc spmiGeotolStart {objDesign entType} {
   set df2 [list composite_shape_aspect_and_datum_feature name]
   set df3 [list composite_group_shape_aspect_and_datum_feature name]
   set dr  [list datum_reference precedence referenced_datum $dtm $cdt]
-  set dre [list datum_reference_element base $dtm modifiers]
-  set drc [list datum_reference_compartment base $dtm $dre modifiers [list datum_reference_modifier_with_value modifier_type modifier_value]]
+  set drm [list datum_reference_modifier_with_value modifier_type modifier_value $len1 $len2 $len3]
+  set dre [list datum_reference_element base $dtm modifiers $drm]
+  set drc [list datum_reference_compartment base $dtm $dre modifiers $drm]
   set rmd [list referenced_modified_datum referenced_datum $dtm modifier]
-  
-  set len1 [list length_measure_with_unit value_component]
-  set len2 [list length_measure_with_unit_and_measure_representation_item value_component]
-  set len3 [list length_measure_with_unit_and_measure_representation_item_and_qualified_representation_item value_component]
-  set len4 [list plane_angle_measure_with_unit value_component]
  
   set PMIP(datum_feature)                                  $df1
   set PMIP(composite_shape_aspect_and_datum_feature)       $df2
@@ -118,7 +119,7 @@ proc spmiGeotolReport {objEntity} {
   global entLevel ent entAttrList entCount gt gtEntity incrcol lastAttr lastEnt
   global objID opt pmiCol pmiHeading pmiModifiers pmiStartCol pmiUnicode ptz recPracNames
   global spmiEnts spmiID spmiIDRow spmiRow spmiTypesPerFile stepAP syntaxErr
-  global tol_dimprec tol_dimrep tolNames tolval tzf1 tzfNames worksheet
+  global tol_dimprec tol_dimrep tolNames tolval tzf1 tzfNames worksheet datumModValue
 
   if {$opt(DEBUG1)} {outputMsg "spmiGeotolReport" red}
    
@@ -247,6 +248,16 @@ proc spmiGeotolReport {objEntity} {
                     }
                   }
                   "length_measure_with_unit* value_component" {
+
+# datum reference modifier (not commonly used)                  
+                    if {[info exists datumModValue]} {
+                      if {$datumModValue != ""} {
+                        set val [trimNum $objValue 3]
+                        if {[string index $val end] == "."} {set val [string range $val 0 end-1]}
+                        append datumModValue $val
+                      }
+                    }
+
 # get tolerance zone form, usually 'cylindrical or circular', 'spherical'
                     set tzf  ""
                     set tzf1 ""
@@ -399,7 +410,6 @@ proc spmiGeotolReport {objEntity} {
 
 # value in spreadsheet
                   set val [[$cells($gt) Item $r $c] Value]
-                  #outputMsg "$val / $objValue" red
                   if {$val == ""} {
                     $cells($gt) Item $r $c $objValue
                     if {$gt == "datum_system"} {
@@ -469,16 +479,18 @@ proc spmiGeotolReport {objEntity} {
                   "datum_reference_element modifiers" -
                   "*geometric_tolerance_with_modifiers* modifiers" -
                   "*geometric_tolerance_with_maximum_tolerance* modifiers" {
+
 # get text modifiers
-                    if {[string first "handle" $objValue] == -1} {
-                      set modlim 5
-                      if {$objSize > $modlim} {
-                        errorMsg "Possible Syntax Error: More than $modlim Modifiers"
-                        lappend syntaxErr([lindex [split $ent1 " "] 0]) [list [$gtEntity P21ID] [lindex [split $ent1 " "] 1]]
-                      }
-                      set col($gt) $pmiStartCol($gt)
-                      set nval ""
-                      foreach val $objValue {
+                    set modlim 5
+                    if {$objSize > $modlim} {
+                      errorMsg "Possible Syntax Error: More than $modlim Modifiers"
+                      lappend syntaxErr([lindex [split $ent1 " "] 0]) [list [$gtEntity P21ID] [lindex [split $ent1 " "] 1]]
+                    }
+                    set col($gt) $pmiStartCol($gt)
+                    set nval ""
+                    set datumModValue ""
+                    foreach val $objValue {
+                      if {[string first "handle" $val] == -1} {
                         if {[info exists pmiModifiers($val)]} {
                           if {[string first "degree_of_freedom_constraint" $val] != -1} {
                             lappend dofModifier $pmiModifiers($val)
@@ -501,15 +513,32 @@ proc spmiGeotolReport {objEntity} {
                           errorMsg "Possible Syntax Error: Unexpected DRF Modifier"
                           lappend syntaxErr([lindex [split $ent1 " "] 0]) [list [$gtEntity P21ID] [lindex [split $ent1 " "] 1]]
                         }
+
+# reference to datum_reference_modifier_with_value
+                      } else {
+                        set datumModValue "\["
+                        lappend spmiTypesPerFile "datum with modifiers (6.9.7)"
+                        if {[catch {
+                          ::tcom::foreach val1 $val {spmiGeotolReport $val1}
+                        } emsg2]} {
+                          foreach val2 $val {spmiGeotolReport $val2}
+                        }
+                        append datumModValue "\]"
+                        set ok 1
                       }
-                      if {[info exists dofModifier]} {
-                        set dofModifier [join [lsort $dofModifier] ","]
-                        set dofModifier " \[$dofModifier\]"
-                        append nval $dofModifier
-                        unset dofModifier
-                      }
-                      set objValue $nval
                     }
+
+# DOF modifier
+                    if {[info exists dofModifier]} {
+                      set dofModifier [join [lsort $dofModifier] ","]
+                      set dofModifier " \[$dofModifier\]"
+                      append nval $dofModifier
+                      unset dofModifier
+                    }
+                    set objValue $nval
+
+# add datum_reference_modifier_with_value                  
+                    append objValue $datumModValue
                   }
                 }
 
@@ -565,11 +594,6 @@ proc spmiGeotolReport {objEntity} {
               } emsg]} {
                 foreach val4 $objValue {spmiGeotolReport $val4}
               }
-              #if {[$objAttribute AggNodeType] != 18} {
-              #  foreach val4 $objValue {spmiGeotolReport $val4}
-              #} else {
-              #  ::tcom::foreach val3 $objValue {spmiGeotolReport $val3}
-              #}
             }
           } emsg3]} {
             errorMsg "ERROR processing Geotol ($objNodeType $ent2)\n $emsg3"
@@ -928,6 +952,18 @@ proc spmiGeotolReport {objEntity} {
                       errorMsg "Syntax Error: Invalid 'area_type' attribute ($objValue) on geometric_tolerance_with_defined_area_unit.\n[string repeat " " 14]\($recPracNames(pmi242), Sec. 6.9.6)"
                     }
                   }
+                  "datum_reference_modifier_with_value modifier_type" {
+                    if {$objValue == "circular_or_cylindrical"} {
+                      append datumModValue $pmiUnicode(diameter)
+                    } elseif {$objValue == "spherical"} {
+                      append datumModValue "S"
+                      append datumModValue $pmiUnicode(diameter)
+                    } elseif {$objValue == "projected"} {
+                      append datumModValue "\u24C5"
+                    } elseif {$objValue != "distance"} {
+                      errorMsg "Syntax Error: Unexpected 'modifier_type' on 'datum_reference_modifier_with_value'\n[string repeat " " 14]\($recPracNames(pmi242), Sec. 6.9.7)"
+                    }
+                  }
                 }
   
 # value in spreadsheet
@@ -1130,7 +1166,7 @@ proc spmiGeotolReport {objEntity} {
       }
     
 # add dimensional tolerance
-      if {[info exists tol_dimrep] && [string first "datum_feature" $gt] != 0} {
+      if {[info exists tol_dimrep] && [string first "tolerance" $gt] != -1} {
         set c [string index [cellRange 1 $col($gt)] 0]
         set r $spmiIDRow($gt,$spmiID)
         set val [[$cells($gt) Item $r $c] Value]
@@ -1174,7 +1210,6 @@ proc spmiGeotolReport {objEntity} {
             }
           }
         }
-
         $cells($gt) Item $r $c "$tol_dimrep[format "%c" 10]$val"
         unset tol_dimrep
       }
@@ -1368,12 +1403,6 @@ proc spmiCoverageWrite {{fn ""} {sum ""} {multi 1}} {
       }
       if {$multi} {unset entCount(datum)}
     }
-    #if {[info exists entCount(placed_datum_target_feature)]} {
-    #  for {set i 0} {$i < $entCount(placed_datum_target_feature)} {incr i} {
-    #    lappend spmiTypesPerFile1 "placed datum target (6.6)"
-    #  }
-    #  if {$multi} {unset entCount(placed_datum_target_feature)}
-    #}
 
 # add number of pmi types
     if {[info exists spmiTypesPerFile] || [info exists spmiTypesPerFile1]} {
@@ -1383,10 +1412,17 @@ proc spmiCoverageWrite {{fn ""} {sum ""} {multi 1}} {
         } else {
           set val [[$cells($sempmi_coverage) Item $r 1] Value]
         }
+
         if {[info exists spmiTypesPerFile]} {
           foreach idx $spmiTypesPerFile {
-            if {([string first $idx $val] == 0 && [string first "statistical_tolerance" $val] == -1) || \
-                $idx == [lindex [split $val " "] 0]} {
+            set ok 0
+            if {$idx != "line" && $idx != "point" && $idx != "free_state"} {
+              if {([string first $idx $val] == 0 && [string first "statistical_tolerance" $val] == -1) || \
+                  $idx == [lindex [split $val " "] 0]} {set ok 1}
+            } else {
+              if {[string first "$idx  " $val] == 0} {set ok 1}
+            }
+            if {$ok} {
 
 # get current value
               if {$multi} {
@@ -1416,7 +1452,7 @@ proc spmiCoverageWrite {{fn ""} {sum ""} {multi 1}} {
           }
         }
 
-# exact match
+# exact match (only datum)
         if {[info exists spmiTypesPerFile1]} {
           foreach idx $spmiTypesPerFile1 {
             if {$idx == $val} {
@@ -1580,7 +1616,7 @@ proc spmiCoverageFormat {sum {multi 1}} {
     return
   }
 
-# total PMI
+# total PMI, multiple files
   if {[catch {
     set i1 1
     if {$multi} {
@@ -1612,8 +1648,8 @@ proc spmiCoverageFormat {sum {multi 1}} {
     }
  
 # horizontal break lines
-    set idx1 [list 20 41 54 60 80]
-    if {!$multi} {set idx1 [list 3 4 20 41 54 60 80]}
+    set idx1 [list 20 42 55 61 80]
+    if {!$multi} {set idx1 [list 3 4 20 42 55 61 80]}
     for {set r 200} {$r >= [lindex $idx1 end]} {incr r -1} {
       if {$multi} {
         set val [[$cells1($sempmi_coverage) Item $r 1] Value]
@@ -1656,7 +1692,7 @@ proc spmiCoverageFormat {sum {multi 1}} {
       
       [$worksheet1($sempmi_coverage) Rows] AutoFit
       [$worksheet1($sempmi_coverage) Range "B4"] Select
-      [$excel1 ActiveWindow] FreezePanes [expr 1]
+      catch {[$excel1 ActiveWindow] FreezePanes [expr 1]}
       [$worksheet1($sempmi_coverage) Range "A1"] Select
       catch {[$worksheet1($sempmi_coverage) PageSetup] PrintGridlines [expr 1]}
 

@@ -124,7 +124,7 @@ set spmiTypes $tolNames
 
 foreach item [list \
   "composite tolerance (6.9.9)" "dimensional location (5.1.1)" "dimensional size (5.1.5)" "angular location (5.1.2)" "angular size (5.1.6)" \
-  "bilateral tolerance (5.2.3)" "non-bilateral tolerance (5.2.3)" "value range (5.2.4)" "diameter \u2205 (5.1.5)" \
+  "directed dimension (5.1.1)" "bilateral tolerance (5.2.3)" "non-bilateral tolerance (5.2.3)" "value range (5.2.4)" "diameter \u2205 (5.1.5)" \
   "radius R (5.1.5)" "spherical diameter S\u2205 (5.1.5)" "spherical radius SR (5.1.5)" "controlled radius CR (5.3)" "square \u25A1 (5.3)" \
   "basic dimension (5.3)" "reference dimension (5.3)" "type qualifier (5.2.2)" "tolerance class (5.2.5)" \
   "oriented dimensional location (5.1.3)" "derived shapes dimensional location (5.1.4)" "location with path (5.1.7)" "decimal places (5.4)" \
@@ -166,7 +166,7 @@ set pmiModifiersArray(degree_of_freedom_constraint_x,6.9.7) "x"
 set pmiModifiersArray(degree_of_freedom_constraint_y,6.9.7) "y"
 set pmiModifiersArray(degree_of_freedom_constraint_z,6.9.7) "z"
 set pmiModifiersArray(depth)                                "\u21A7"
-set pmiModifiersArray(dimension_origin)                     "\u2331"
+set pmiModifiersArray(directed_dimension)                   "\u2331"
 set pmiModifiersArray(distance_variable,6.9.7)              "DV"
 set pmiModifiersArray(each_radial_element,6.9.3)            "ERE"
 set pmiModifiersArray(envelope_requirement,5.2.1)           "\u24BA"
@@ -222,7 +222,7 @@ foreach item [array names pmiModifiersArray] {
 # pmfirst are things in the NIST models
 set pmfirst [list maximum_material_requirement least_material_requirement unequally_disposed projected free_state tangent_plane \
              statistical statistical_tolerance \
-             all_around separate_requirement simultaneous_requirement dimension_origin between \
+             all_around separate_requirement simultaneous_requirement between \
              counterbore depth hole_thread countersink \
              slope conical_taper arc_length]
 

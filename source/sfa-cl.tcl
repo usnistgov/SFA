@@ -10,7 +10,10 @@
 # some notice that they are derived from it, and any modified versions bear some notice that they 
 # have been modified. 
 
-# The STEP File Analyzer can only be built with Tcl 8.5.* 32-bit
+# ----------------------------------------------------------------------------------------------
+# The STEP File Analyzer can only be built with Tcl 8.5.15 or earlier
+# More recent versions are incompatibile with the IFCsvr toolkit that is used to read STEP files
+# ----------------------------------------------------------------------------------------------
 
 # This is the main routine for the STEP File Analyzer command-line version
 

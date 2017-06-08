@@ -404,32 +404,6 @@ proc guiProcessAndReports {} {
   }
   pack $foptd1 -side top -anchor w -pady 0 -padx 0 -fill y
   
-  #set foptd2 [frame $foptd.2 -bd 0]
-  #foreach item {{" PMI Presentation (Graphical PMI)" opt(PMIGRF)}} {
-  #  regsub -all {[\(\)]} [lindex $item 1] "" idx
-  #  set buttons($idx) [ttk::checkbutton $foptd2.$cb -text [lindex $item 0] \
-  #    -variable [lindex $item 1] -command {
-  #      #if {$opt(PMIGRF)} {set opt(INVERSE) 1}
-  #      checkValues
-  #  }]
-  #  pack $buttons($idx) -side left -anchor w -padx 5 -pady 0 -ipady 0
-  #  incr cb
-  #}
-  #pack $foptd2 -side top -anchor w -pady 0 -padx 0 -fill y
-  
-  #set foptd4 [frame $foptd.4 -bd 0]
-  #foreach item {{" Validation Properties" opt(VALPROP)}} {
-  #  regsub -all {[\(\)]} [lindex $item 1] "" idx
-  #  set buttons($idx) [ttk::checkbutton $foptd4.$cb -text [lindex $item 0] \
-  #    -variable [lindex $item 1] -command {
-  #      #if {$opt(VALPROP)} {set opt(INVERSE) 1}
-  #      checkValues
-  #  }]
-  #  pack $buttons($idx) -side left -anchor w -padx 5 -pady 0 -ipady 0
-  #  incr cb
-  #}
-  #pack $foptd4 -side top -anchor w -pady 0 -padx 0 -fill y
-  
   pack $foptd -side left -anchor w -pady {5 2} -padx 10 -fill both -expand true
   catch {
     tooltip::tooltip $buttons(optPMISEM)  "See Help > PMI Representation"

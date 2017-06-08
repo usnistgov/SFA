@@ -6,7 +6,7 @@ proc genExcel {{numFile 0}} {
   global developer dim entCategories entCategory entColorIndex entCount entityCount entsIgnored env errmsg
   global excel excelVersion excelYear extXLS fcsv feaElemTypes File fileEntity skipEntities skipPerm gpmiTypesPerFile idxColor ifcsvrDir inverses
   global lastXLS lenfilelist localName localNameList multiFile multiFileDir mytemp nistName nistVersion nprogEnts nshape
-  global opt p21e3 p21e3Section pmiCol pmiMaster pf32 recPracNames row rowmax sheetLast spmiEntity spmiSumName spmiSumRow spmiTypesPerFile startrow stepAP
+  global opt p21e3 p21e3Section pmiCol pmiMaster recPracNames row rowmax sheetLast spmiEntity spmiSumName spmiSumRow spmiTypesPerFile startrow stepAP
   global thisEntType tlast tolStandard totalEntity userEntityFile userEntityList userXLSFile
   global workbook workbooks worksheet worksheet1 worksheets writeDir wsCount
   global x3dColor x3dCoord x3dFile x3dFileName x3dStartFile x3dIndex x3dMax x3dMin
@@ -30,7 +30,6 @@ proc genExcel {{numFile 0}} {
 
 # check if IFCsvr is installed
   if {![file exists [file join $ifcsvrDir IFCsvrR300.dll]]} {
-    outputMsg install
     $buttons(genExcel) configure -state disable
     installIFCsvr
     return
@@ -800,7 +799,7 @@ proc genExcel {{numFile 0}} {
 
 # freeze panes (must be before adding color and hyperlinks below)
     [$worksheet($sum) Range "A[expr {$sumHeaderRow+3}]"] Select
-    [$excel ActiveWindow] FreezePanes [expr 1]
+    catch {[$excel ActiveWindow] FreezePanes [expr 1]}
     [$worksheet($sum) Range "A1"] Select
   
 # add Summary color and hyperlinks
@@ -941,7 +940,7 @@ proc genExcel {{numFile 0}} {
     if {$ok} {
       openXLS $xlFileName
     } elseif {!$opt(XL_OPEN) && $numFile == 0} {
-      outputMsg " Use F2 to open the Spreadsheet" blue
+      outputMsg " Use F2 to open the Spreadsheet (see Spreadsheet tab)" red
     }
 
 # open directory of CSV files
@@ -1612,7 +1611,7 @@ proc formatWorksheets {sheetSort sumRow inverseEnts} {
 
 # freeze panes
       [$worksheet($thisEntType) Range "B4"] Select
-      [$excel ActiveWindow] FreezePanes [expr 1]
+      catch {[$excel ActiveWindow] FreezePanes [expr 1]}
       
 # set A4 as default cell
       [$worksheet($thisEntType) Range "A4"] Select

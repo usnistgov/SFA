@@ -758,10 +758,10 @@ proc gpmiAnnotationReport {objEntity objDesign} {
                           }
                       
 # write tessellated face or line
+                          if {![info exists shapeRepName]} {set shapeRepName $x3dIndexType}
                           if {$np == 0} {
-                            if {![info exists shapeRepName]} {set shapeRepName "shape"}
                             puts $x3dFile "<Shape DEF='$shapeRepName$objID'>\n <Appearance><Material diffuseColor='$x3dColor' $emit $spec></Material></Appearance>"
-                            puts $x3dFile " <Indexed$x3dIndexType\Set $solid DEF='index$objID' coordIndex='[string trim $x3dIndex]'>"
+                            puts $x3dFile " <Indexed$x3dIndexType\Set $solid coordIndex='[string trim $x3dIndex]'>"
                             if {[lsearch $tessCoordID $tessIndexCoord($objID)] == -1} { 
                               lappend tessCoordID $tessIndexCoord($objID)
                               puts $x3dFile "  <Coordinate DEF='coord$tessIndexCoord($objID)' point='[string trim $x3dCoord]'></Coordinate>"
@@ -1036,9 +1036,7 @@ proc gpmiAnnotationReport {objEntity objDesign} {
 
 # moved (start shape node if not tessellated)
                       if {$ao == "annotation_fill_area_occurrence"} {errorMsg "PMI annotations with filled characters are not filled."}
-                      if {[string first "tessellated" $ao] == -1} {
-                        set x3dShape 1
-                      }
+                      if {[string first "tessellated" $ao] == -1} {set x3dShape 1}
                       update idletasks
                     }               
 
@@ -1079,7 +1077,7 @@ proc gpmiAnnotationReport {objEntity objDesign} {
             }
           } emsg3]} {
             errorMsg "ERROR processing PMI Presentation ($objNodeType $ent2): $emsg3"
-            set entLevel 1
+            set entLevel 2
           }
         }
       }
@@ -1614,10 +1612,10 @@ proc x3dViewpoints {} {
   if {$delt(z) > $maxxyz} {set maxxyz $delt(z)}
 
   set cor "centerOfRotation='$xyzcen(x) $xyzcen(y) $xyzcen(z)'"
-  puts $x3dFile "\n<Viewpoint $cor position='$xyzcen(x) [trimNum [expr {0. - ($xyzcen(y) + 1.4*$maxxyz)}]] $xyzcen(z)' orientation='1 0 0 1.5708' description='Front'></Viewpoint>"
+  puts $x3dFile "\n<Viewpoint $cor position='$xyzcen(x) [trimNum [expr {0. - ($xyzcen(y) + 1.4*$maxxyz)}]] $xyzcen(z)' orientation='1 0 0 1.5708' description='Perspective'></Viewpoint>"
 
   set fov [trimNum [expr {$delt(z)*0.5 + $delt(y)*0.5}]]
-  puts $x3dFile "<OrthoViewpoint fieldOfView='\[-$fov,-$fov,$fov,$fov\]' $cor position='$xyzcen(x) [trimNum [expr {0. - ($xyzcen(y) + 1.4*$maxxyz)}]] $xyzcen(z)' orientation='1 0 0 1.5708' description='Ortho'></OrthoViewpoint>"  
+  puts $x3dFile "<OrthoViewpoint fieldOfView='\[-$fov,-$fov,$fov,$fov\]' $cor position='$xyzcen(x) [trimNum [expr {0. - ($xyzcen(y) + 1.4*$maxxyz)}]] $xyzcen(z)' orientation='1 0 0 1.5708' description='Orthographic'></OrthoViewpoint>"  
 
   puts $x3dFile "<NavigationInfo type='\"EXAMINE\" \"ANY\"'></NavigationInfo>"
   if {[string first "AP209" $stepAP] == -1} {
@@ -1625,17 +1623,18 @@ proc x3dViewpoints {} {
   } else {
     puts $x3dFile "<Background skyColor='1 1 1'></Background>"
   }
-  puts $x3dFile "</Scene></X3D>\n\n</td></tr></table>\n<p>"
+  puts $x3dFile "</Scene></X3D>\n</td>"
   
 # extra text messages
   if {[info exists x3dMsg]} {
     if {[llength $x3dMsg] > 0} {
-      puts $x3dFile "<ul>"
+      puts $x3dFile "\n<td valign='top'><ul>"
       foreach item $x3dMsg {puts $x3dFile "<li>$item"}
-      puts $x3dFile "</ul>"
+      puts $x3dFile "</ul>\n</td>"
       unset x3dMsg
     }
   }
+  puts $x3dFile "</tr></table>\n<p>"
                           
   set str "NIST "
   set url "https://www.nist.gov/services-resources/software/step-file-analyzer"
@@ -1749,7 +1748,7 @@ proc gpmiCoverageWrite {{fn ""} {sum ""} {multi 1}} {
 # add invalid pmi types to column A
 # need to fix when there are invalid types, but a subsequent file does not if processing multiple files
     set r1 [expr {[llength $gpmiTypes]+4}]
-    if {![info exists pmi_rows]} {set pmi_rows 33}
+    if {![info exists pmi_rows]} {set pmi_rows 34}
     set ok 1
     if {[info exists gpmiTypesInvalid]} {
       #outputMsg "gpmiTypesInvalid  $multi  $gpmiTypesInvalid" red
@@ -1866,8 +1865,8 @@ proc gpmiCoverageFormat {{sum ""} {multi 1}} {
     }
  
 # horizontal break lines
-    set idx1 [list 21 28 30 34]
-    if {!$multi} {set idx1 [list 3 4 21 28 30 34]}
+    set idx1 [list 21 28 30 35]
+    if {!$multi} {set idx1 [list 3 4 21 28 30 35]}
     for {set r 100} {$r >= 34} {incr r -1} {
       if {$multi} {
         set val [[$cells1($pmi_coverage) Item $r 1] Value]
@@ -1906,7 +1905,7 @@ proc gpmiCoverageFormat {{sum ""} {multi 1}} {
   
       [$worksheet1($pmi_coverage) Rows] AutoFit
       [$worksheet1($pmi_coverage) Range "B4"] Select
-      [$excel1 ActiveWindow] FreezePanes [expr 1]
+      catch {[$excel1 ActiveWindow] FreezePanes [expr 1]}
       [$worksheet1($pmi_coverage) Range "A1"] Select
       catch {[$worksheet1($pmi_coverage) PageSetup] PrintGridlines [expr 1]}
 
