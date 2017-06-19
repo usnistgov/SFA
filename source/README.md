@@ -11,6 +11,7 @@
 - sfa-gen.tcl - generate a spreadsheet
 - sfa-geotol.tcl- process geometric tolerances
 - sfa-grafpmi.tcl - process graphical PMI and tessellated geometry
+- sfa-grafx3d.tcl - X3D graphics
 - sfa-gui.tcl - generate user interface
 - sfa-indent.tcl - indents STEP file
 - sfa-inv.tcl - process inverse relationships

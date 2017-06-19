@@ -6,6 +6,7 @@ sfa-fea.tcl
 sfa-gen.tcl
 sfa-geotol.tcl
 sfa-grafpmi.tcl
+sfa-grafx3d.tcl
 sfa-gui.tcl
 sfa-indent.tcl
 sfa-inv.tcl
