@@ -3,14 +3,15 @@
 proc genExcel {{numFile 0}} {
   global allEntity ap203all ap214all ap242all badAttributes buttons
   global cells cells1 col col1 comma count coverageLegend readPMI noPSA csvdirnam csvfile
-  global developer dim entCategories entCategory entColorIndex entCount entityCount entsIgnored env errmsg
+  global developer dim dimRepeatDiv entCategories entCategory entColorIndex entCount entityCount entsIgnored env errmsg
   global excel excelVersion excelYear extXLS fcsv feaElemTypes File fileEntity skipEntities skipPerm gpmiTypesPerFile idxColor ifcsvrDir inverses
   global lastXLS lenfilelist localName localNameList multiFile multiFileDir mytemp nistName nistVersion nprogEnts nshape
-  global opt p21e3 p21e3Section pmiCol pmiMaster recPracNames row rowmax sheetLast spmiEntity spmiSumName spmiSumRow spmiTypesPerFile startrow stepAP
+  global opt p21e3 p21e3Section pmiCol pmiMaster recPracNames row rowmax savedViewName savedViewNames sheetLast spmiEntity spmiSumName spmiSumRow spmiTypesPerFile startrow stepAP
   global thisEntType tlast tolStandard totalEntity userEntityFile userEntityList userXLSFile
   global workbook workbooks worksheet worksheet1 worksheets writeDir wsCount
   global x3dColor x3dCoord x3dFile x3dFileName x3dStartFile x3dIndex x3dMax x3dMin
   global xlFileName xlFileNames
+  global objDesign
   
   if {[info exists errmsg]} {set errmsg ""}
   #outputMsg "genExcel" red
@@ -347,7 +348,7 @@ proc genExcel {{numFile 0}} {
   
 # -------------------------------------------------------------------------------------------------
 # add header worksheet, for CSV files create directory and header file
-  addHeaderWorksheet $objDesign $numFile $fname
+  addHeaderWorksheet $numFile $fname
 
 # -------------------------------------------------------------------------------------------------
 # set Excel spreadsheet name, delete file if already exists
@@ -460,7 +461,7 @@ proc genExcel {{numFile 0}} {
       if {$opt(PR_USER) && [lsearch $userEntityList $entType] != -1} {set ok 1}
       
 # STEP entities that are translated depending on the options
-      set ok1 [setEntsToProcess $entType $objDesign]
+      set ok1 [setEntsToProcess $entType]
       if {$ok == 0} {set ok $ok1}
       
 # entities in unsupported APs that are not AP203, AP214, AP242 - if not using a user-defined list
@@ -558,36 +559,38 @@ proc genExcel {{numFile 0}} {
   set entsToProcess [lsort $entsToProcess]
   
 # for STEP process datum* and dimensional* entities before specific *_tolerance entities
-  if {[info exists entCount(angularity_tolerance)] || \
-      [info exists entCount(circular_runout_tolerance)] || \
-      [info exists entCount(coaxiality_tolerance)] || \
-      [info exists entCount(concentricity_tolerance)] || \
-      [info exists entCount(cylindricity_tolerance)]} {
-    set entsToProcessTmp(0) {}
-    set entsToProcessTmp(1) {}
-    set entsToProcessDatum {}
-    set itmp 0
-    for {set i 0} {$i < [llength $entsToProcess]} {incr i} {
-      set str1 [lindex $entsToProcess $i]
-      set tc [string range [lindex $entsToProcess $i] 0 1]
-      if {$tc == $entColorIndex(PR_STEP_TOLR)} {set itmp 1}
-      if {[string first $entColorIndex(PR_STEP_TOLR) $str1] == 0 && ([string first "datum" $str1] == 2 || [string first "dimensional" $str1] == 2)} {
-        lappend entsToProcessDatum $str1
-      } else {
-        lappend entsToProcessTmp($itmp) $str1
+  if {$opt(PMISEM)} {
+    if {[info exists entCount(angularity_tolerance)] || \
+        [info exists entCount(circular_runout_tolerance)] || \
+        [info exists entCount(coaxiality_tolerance)] || \
+        [info exists entCount(concentricity_tolerance)] || \
+        [info exists entCount(cylindricity_tolerance)]} {
+      set entsToProcessTmp(0) {}
+      set entsToProcessTmp(1) {}
+      set entsToProcessDatum {}
+      set itmp 0
+      for {set i 0} {$i < [llength $entsToProcess]} {incr i} {
+        set str1 [lindex $entsToProcess $i]
+        set tc [string range [lindex $entsToProcess $i] 0 1]
+        if {$tc == $entColorIndex(PR_STEP_TOLR)} {set itmp 1}
+        if {[string first $entColorIndex(PR_STEP_TOLR) $str1] == 0 && ([string first "datum" $str1] == 2 || [string first "dimensional" $str1] == 2)} {
+          lappend entsToProcessDatum $str1
+        } else {
+          lappend entsToProcessTmp($itmp) $str1
+        }
+      }
+      if {$itmp && [llength $entsToProcessDatum] > 0} {
+        set entsToProcess [concat $entsToProcessTmp(0) $entsToProcessDatum $entsToProcessTmp(1)]
       }
     }
-    if {$itmp && [llength $entsToProcessDatum] > 0} {
-      set entsToProcess [concat $entsToProcessTmp(0) $entsToProcessDatum $entsToProcessTmp(1)]
-    }
-  }
 
 # move dimensional_characteristic_representation to the beginning  
-  if {[info exists entCount(dimensional_characteristic_representation)]} {
-    set dcr "37dimensional_characteristic_representation"
-    set c1 [lsearch $entsToProcess $dcr]
-    set entsToProcess [lreplace $entsToProcess $c1 $c1]
-    set entsToProcess [linsert $entsToProcess 0 $dcr]
+    if {[info exists entCount(dimensional_characteristic_representation)]} {
+      set dcr "$entColorIndex(PR_STEP_TOLR)\dimensional_characteristic_representation"
+      set c1 [lsearch $entsToProcess $dcr]
+      set entsToProcess [lreplace $entsToProcess $c1 $c1]
+      set entsToProcess [linsert $entsToProcess 0 $dcr]
+    }
   }
   
 # then strip off the color index
@@ -643,17 +646,19 @@ proc genExcel {{numFile 0}} {
   if {[catch {
 
 # initialize variables
+    set coverageLegend 0
+    set idxColor 0
     set inverseEnts {}
     set lastEnt ""
     set nprogEnts 0
-    set wsCount 0
-    set stat 1
-    set spmiEntity {}
-    set ntable 0
-    set spmiSumRow 1
-    set idxColor 0
-    set coverageLegend 0
     set nshape 0
+    set ntable 0
+    set savedViewName {}
+    set savedViewNames {}
+    set spmiEntity {}
+    set spmiSumRow 1
+    set stat 1
+    set wsCount 0
     foreach f {elements mesh meshIndex faceIndex} {
       catch {file delete -force [file join $mytemp $f.txt]}
     }
@@ -661,10 +666,11 @@ proc genExcel {{numFile 0}} {
     if {[info exists dim]} {unset dim}
     set dim(prec,max) 0
     set dim(unit) ""
+    set dimRepeatDiv 2
     #set dim(name) ""
     
 # find camera models used in draughting model items and annotation_occurrence used in property_definition and datums
-    if {$opt(PMIGRF)} {pmiGetCamerasAndProperties $objDesign}
+    if {$opt(PMIGRF)} {pmiGetCamerasAndProperties}
 
     if {[llength $entsToProcess] == 0} {
       errorMsg "No STEP entities were found to Process as selected in the Options tab."
@@ -744,7 +750,7 @@ proc genExcel {{numFile 0}} {
       if {$opt(XLSCSV) == "CSV"} {catch {close $fcsv}}
       
 # check for reports (validation properties, PMI presentation and representation, tessellated geometry, AP209)
-      checkForReports $objDesign $entType
+      checkForReports $entType
     }
 
   } emsg2]} {
@@ -843,7 +849,7 @@ proc genExcel {{numFile 0}} {
   
 # add ANCHOR and other sections from Part 21 Edition 3
   if {[info exists p21e3Section]} {
-    if {[llength $p21e3Section] > 0} {addP21e3Section $objDesign}
+    if {[llength $p21e3Section] > 0} {addP21e3Section}
   }    
 # -------------------------------------------------------------------------------------------------
 # select the first tab
@@ -975,13 +981,15 @@ proc genExcel {{numFile 0}} {
   global heading invGroup nrep numx3dPID pmiColumns pmiStartCol 
   global propDefID propDefIDRow propDefName propDefOK propDefRow syntaxErr
   global shapeRepName tessRepo tessPlacement dimtolGeom dimtolEntID datumGeom datumSymbol
+  global savedViewFileName savedViewFile
 
   foreach var {cells colColor invCol count currx3dPID dimrep dimrepID entName entsIgnored \
               gpmiID gpmiIDRow gpmiOK gpmiRow heading invGroup nrep numx3dPID \
               pmiCol pmiColumns pmiStartCol pmivalprop propDefID propDefIDRow propDefName propDefOK propDefRow \
               syntaxErr workbook workbooks worksheet worksheets \
               x3dCoord x3dFile x3dFileName x3dStartFile x3dIndex x3dMax x3dMin \
-              shapeRepName tessRepo tessPlacement dimtolGeom dimtolEntID datumGeom datumSymbol} {
+              shapeRepName tessRepo tessPlacement dimtolGeom dimtolEntID datumGeom datumSymbol\
+              savedViewNames savedViewFileName savedViewFile} {
     if {[info exists $var]} {unset $var}
   }
   if {!$multiFile} {
@@ -992,7 +1000,8 @@ proc genExcel {{numFile 0}} {
 }
   
 # -------------------------------------------------------------------------------------------------
-proc addHeaderWorksheet {objDesign numFile fname} {
+proc addHeaderWorksheet {numFile fname} {
+  global objDesign
   global excel worksheets worksheet cells row timeStamp noPSA fileSchema cadApps cadSystem opt localName p21e3
   global excel1 worksheet1 cells1 col1
   global csvdirnam
@@ -1569,7 +1578,7 @@ proc sumAddColorLinks {sum sumHeaderRow sumLinks sheetSort sumRow} {
 #-------------------------------------------------------------------------------------------------
 # format worksheets
 proc formatWorksheets {sheetSort sumRow inverseEnts} {
-  global buttons worksheet excel cells opt count entCount col row rowmax xlFileName thisEntType schemaLinks stepAP syntaxErr
+  global buttons worksheet worksheets excel cells opt count entCount col row rowmax xlFileName thisEntType schemaLinks stepAP syntaxErr
   global gpmiEnts spmiEnts nprogEnts excelVersion
   
   outputMsg "Formatting Worksheets"
@@ -1577,6 +1586,7 @@ proc formatWorksheets {sheetSort sumRow inverseEnts} {
   if {[info exists buttons]} {$buttons(pgb) configure -maximum [llength $sheetSort]}
   set nprogEnts 0
   set nsort 0
+
   foreach thisEntType $sheetSort {
     #getTiming "START FORMATTING $thisEntType"
     incr nprogEnts
@@ -1586,6 +1596,57 @@ proc formatWorksheets {sheetSort sumRow inverseEnts} {
       $worksheet($thisEntType) Activate
       [$excel ActiveWindow] ScrollRow [expr 1]
 
+# move some worksheets to the correct position, originally moved to process semantic PMI data in the necessary order
+      set moveWS 0
+      if {$opt(PMISEM)} {
+        foreach item {angularity_tolerance circular_runout_tolerance coaxiality_tolerance \
+                      concentricity_tolerance cylindricity_tolerance dimensional_characteristic_representation} {
+          if {[info exists entCount($item)] && $item == $thisEntType} {set moveWS 1}
+        }
+      }
+      
+      if {$moveWS} {
+        if {[string first "dimensional_characteristic_repr" $thisEntType] == 0} {
+          set n 0
+          set p1 0
+          set p2 1000
+          foreach item {dimensional_characteristic_repr dimensional_location dimensional_size} {
+            incr n
+            for {set i 1} {$i <= [$worksheets Count]} {incr i} {
+              if {$item == [[$worksheets Item [expr $i]] Name]} {
+                if {$n == 1} {
+                  set p1 $i
+                } else {
+                  set p2 [expr {min($p2,$i)}]
+                }
+              }
+            }
+          }
+          if {$p1 != 0 && $p2 != 1000} {[$worksheets Item [expr $p1]] -namedarg Move Before [$worksheets Item [expr $p2]]}
+        }
+
+        foreach item {angularity_tolerance circular_runout_tolerance coaxiality_tolerance concentricity_tolerance cylindricity_tolerance} {
+          if {$item == $thisEntType} {
+            set n 0
+            set p1 0
+            set p2 1000
+            foreach ent [list $item datum] {
+              incr n
+              for {set i 1} {$i <= [$worksheets Count]} {incr i} {
+                if {$ent == [[$worksheets Item [expr $i]] Name]} {
+                  if {$n == 1} {
+                    set p1 $i
+                  } else {
+                    set p2 [expr {min($p2,$i)}]
+                  }
+                }
+              }
+            }
+            if {$p1 != 0 && $p2 != 1000} {[$worksheets Item [expr $p1]] -namedarg Move Before [$worksheets Item [expr $p2]]}
+          }
+        }
+      }
+      
 # find extent of columns
       set rancol $col($thisEntType)
       for {set i 1} {$i < 10} {incr i} {
@@ -1715,7 +1776,8 @@ proc formatWorksheets {sheetSort sumRow inverseEnts} {
 }
 
 # -------------------------------------------------------------------------------------------------
-proc addP21e3Section {objDesign} {
+proc addP21e3Section {} {
+  global objDesign
   global p21e3Section worksheets
   
   foreach line $p21e3Section {

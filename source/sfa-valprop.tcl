@@ -1,4 +1,5 @@
-proc valPropStart {objDesign} {
+proc valPropStart {} {
+  global objDesign
   global cells col entLevel ent entAttrList ncartpt opt pd pdcol pdheading propDefRow valPropLink valPropNames 
   
 # CAx-IF RP Geometric and Assembly Validation Properties, section 8

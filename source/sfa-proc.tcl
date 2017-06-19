@@ -1429,7 +1429,7 @@ proc copyRoseFiles {} {
             file copy -force $fn $f2
             if {$developer} {outputMsg "Copying ROSE file: $fn1" red}
           } emsg]} {
-            errorMsg "ERROR copying STEP schema files (*.rose) to $ifcsvrDir"
+            #errorMsg "ERROR copying STEP schema files (*.rose) to $ifcsvrDir"
             .tnb select .tnb.status
           }
           if {![file exists [file join $ifcsvrDir $fn1]]} {
@@ -1445,9 +1445,13 @@ proc copyRoseFiles {} {
 
 # error copying files
       if {!$ok} {
-        errorMsg "STEP schema files (*.rose) could not be copied to IFCsvr/dll directory"
-        errorMsg "Check if any STEP APs are supported at Help > Supported STEP APs"
-        errorMsg "If none are supported, then before continuing,\n copy the *.rose file(s) in $mytemp\n to $ifcsvrDir\nThis might require administrator privileges."
+        if {[info exists env(APPDATA)]} {
+          set appData [string range $env(APPDATA) 0 [string last "\\" $env(APPDATA)]-1]
+          set virtualDir [file join $appData Local VirtualStore "Program Files (x86)" IFCsvrR300 dll]
+        } else {
+          set virtualDir [file join C:/ Users $env(USERNAME) AppData Local VirtualStore "Program Files (x86)" IFCsvrR300 dll]
+        }
+        errorMsg "STEP schema files (*.rose) could not be copied to the IFCsvr/dll directory\n\nCheck if any STEP APs are supported at Help > Supported STEP APs\n\nIf none, other than IFC2X3 is supported, then before continuing,\n copy the *.rose files FROM  $mytemp\n OR  $virtualDir\n TO  $ifcsvrDir\n\nThis might require administrator privileges."
         .tnb select .tnb.status
       }
     }
@@ -1478,7 +1482,7 @@ proc copyRoseFiles {} {
                 file copy -force $fn $f2
                 if {$developer} {outputMsg "Copying STEP Tools ROSE file: $fn1" red}
               } emsg]} {
-                errorMsg "ERROR copying STEP schema files (*.rose) from STEP Tools to $ifcsvrDir"
+                #errorMsg "ERROR copying STEP schema files (*.rose) from STEP Tools to $ifcsvrDir"
                 .tnb select .tnb.status
               }
             }

@@ -60,12 +60,13 @@ set auto_index(gpmiAnnotationReport) [list source [file join $dir sfa-grafpmi.tc
 set auto_index(gpmiCoverageFormat) [list source [file join $dir sfa-grafpmi.tcl]]
 set auto_index(gpmiCoverageStart) [list source [file join $dir sfa-grafpmi.tcl]]
 set auto_index(gpmiCoverageWrite) [list source [file join $dir sfa-grafpmi.tcl]]
-set auto_index(gpmiSetColor) [list source [file join $dir sfa-grafpmi.tcl]]
-set auto_index(gpmiVRMLViewpoints) [list source [file join $dir sfa-grafpmi.tcl]]
-set auto_index(openX3DOM) [list source [file join $dir sfa-grafpmi.tcl]]
 set auto_index(pmiGetCamerasAndProperties) [list source [file join $dir sfa-grafpmi.tcl]]
-set auto_index(x3dViewpoints) [list source [file join $dir sfa-grafpmi.tcl]]
-set auto_index(x3dShape) [list source [file join $dir sfa-grafpmi.tcl]]
+
+set auto_index(gpmiSetColor) [list source [file join $dir sfa-grafx3d.tcl]]
+set auto_index(getSavedViewName) [list source [file join $dir sfa-grafx3d.tcl]]
+set auto_index(x3dViewpoints) [list source [file join $dir sfa-grafx3d.tcl]]
+set auto_index(x3dShape) [list source [file join $dir sfa-grafx3d.tcl]]
+set auto_index(openX3DOM) [list source [file join $dir sfa-grafx3d.tcl]]
 
 set auto_index(valPropFormat) [list source [file join $dir sfa-valprop.tcl]]
 set auto_index(valPropReport) [list source [file join $dir sfa-valprop.tcl]]

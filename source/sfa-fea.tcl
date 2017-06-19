@@ -1,7 +1,8 @@
-proc feaModel {objDesign entType} {
+proc feaModel {entType} {
+  global objDesign
   global ent entAttrList entCount entLevel opt rowmax nprogEnts count localName mytemp sfaPID
   global x3dFile x3dMin x3dMax x3dMsg x3dStartFile x3dFileName
-  global feaType feaTypes feaElemTypes feaFaces nodeArr nfeaElem feaFile feaFileName feaFaceList feaFaceOrig
+  global feaType feaTypes feaElemTypes nfeaElem feaFile feaFileName feaFaceList feaFaceOrig
 
   if {$opt(DEBUG1)} {outputMsg "START feaModel $entType\n" red}
 
@@ -20,23 +21,6 @@ proc feaModel {objDesign entType} {
   set entLevel 0
   set entAttrList {}
   setEntAttrList $FEA($entType)
-  
-# check number of elements to see if faces will be shown
-  set feaFaces(2D) 1
-  set feaFaces(3D) 1
-
-  #if {$entType == "surface_3d_element_representation"} {
-  #  if {$entCount(surface_3d_element_representation) > 2000000} {
-  #    set feaFaces(2D) 0
-  #    errorMsg "Too many 'surface_3d_element_representation' elements ($entCount(surface_3d_element_representation)) to show faces"
-  #  }
-  #}
-  #if {$entType == "volume_3d_element_representation"} {
-  #  if {$entCount(volume_3d_element_representation) > 400000} {
-  #    set feaFaces(3D) 0
-  #    errorMsg "Too many 'volume_3d_element_representation' elements ($entCount(volume_3d_element_representation)) to show faces"
-  #  }
-  #}
   catch {unset feaTypes}
 
 # ---------- 
@@ -97,7 +81,7 @@ proc feaModel {objDesign entType} {
     puts $x3dFile "\n<X3D id='someUniqueId' showStat='false' showLog='false' x='0px' y='0px' width='$width\px' height='$height\px'>\n<Scene DEF='scene'>"
 
 # nodes    
-    feaGetNodes $objDesign
+    feaGetNodes
     outputMsg " Writing FEM to: [truncFileName [file nativename $x3dFileName]]" blue
 
 # coordinate axes    
@@ -135,7 +119,7 @@ proc feaModel {objDesign entType} {
         if {[expr {$nfeaElem%2000}] == 0} {
           if {$nfeaElem > 0} {outputMsg "  $nfeaElem"}
           set mem [expr {[lindex [twapi::get_process_info $sfaPID -pagefilebytes] 1]/1048576}]
-          if {$mem > 1780} {
+          if {$mem > 1700} {
             errorMsg "Insufficient memory to process all of the elements"
             lappend x3dMsg "Some elements were not processed."
             update idletasks
@@ -266,7 +250,7 @@ proc feaModel {objDesign entType} {
 proc feaElements {objEntity} {
   global badAttributes ent entAttrList entCount entLevel localName nistVersion opt
   global x3dFile x3dFileName x3dStartFile feaMeshIndex feaFaceIndex x3dMsg
-  global idx feaIndex feaType feaTypes firstID nnode nnodes feaFaces nodeID nodeArr nfeaElem feaFile feaFaceList
+  global idx feaIndex feaType feaTypes firstID nnode nnodes nodeID nodeArr nfeaElem feaFile feaFaceList
 
 # entLevel is very important, keeps track level of entity in hierarchy
   incr entLevel
@@ -386,10 +370,10 @@ proc feaElements {objEntity} {
 # mesh
                         foreach id $feaIndex($feaType,$nnodes,line) {append feaMeshIndex "$idx($id) "}
 # 2D faces
-                        if {$feaFaces(2D) && $feaType == "surface_3d"} {
+                        if {$feaType == "surface_3d"} {
                           foreach id $feaIndex($feaType,$nnodes,surf) {append feaFaceIndex "$idx($id) "}
 # 3D faces
-                        } elseif {$feaFaces(3D) && $feaType == "volume_3d"} {
+                        } elseif {$feaType == "volume_3d"} {
 # write faces                          
                           if {[info exist feaIndex($feaType,$nnodes,face)]} {
                             set j 0
@@ -428,7 +412,7 @@ proc feaElements {objEntity} {
                     }
                     
 # write index to file
-                    if {$feaMeshIndex  != ""} {puts $feaFile(meshIndex) $feaMeshIndex}
+                    if {$feaMeshIndex != ""} {puts $feaFile(meshIndex) $feaMeshIndex}
                     if {$feaFaceIndex != ""} {puts $feaFile(faceIndex) $feaFaceIndex}
                   }
                 }
@@ -449,9 +433,9 @@ proc feaElements {objEntity} {
 # sort face list
 proc feaFaceSort {face} {
   global feaFaceOrig
-  set saveFace $face
   
 # simple sort for 3 noded faces
+  set saveFace $face
   if {[llength $face] == 3} {
     set face [lsort $face]
 
@@ -481,7 +465,8 @@ proc feaFaceSort {face} {
 
 # -------------------------------------------------------------------------------
 # get and write nodes
-proc feaGetNodes {objDesign} {
+proc feaGetNodes {} {
+  global objDesign
   global entCount nodeArr x3dMax x3dMin x3dFile x3dMsg
   catch {unset nodeArr}
 
@@ -545,7 +530,7 @@ proc feaWriteIndex {idx x3d} {
 proc feaSwitch {type} {
   global x3dFile
   
-  puts $x3dFile "<script>\nfunction tog$type\(choice){"
-  puts $x3dFile " if (!document.getElementById('sw$type').checked) {\n  document.getElementById('sw$type').setAttribute('whichChoice', -1);\n } else {\n  document.getElementById('sw$type').setAttribute('whichChoice', 0);\n }"
-  puts $x3dFile " document.getElementById('sw$type').checked = !document.getElementById('sw$type').checked;\n}\n</script>"
+  puts $x3dFile "<script>function tog$type\(choice){"
+  puts $x3dFile " if (!document.getElementById('sw$type').checked) {document.getElementById('sw$type').setAttribute('whichChoice', -1);} else {document.getElementById('sw$type').setAttribute('whichChoice', 0);}"
+  puts $x3dFile " document.getElementById('sw$type').checked = !document.getElementById('sw$type').checked;}</script>"
 }

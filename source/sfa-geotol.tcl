@@ -1,4 +1,5 @@
-proc spmiGeotolStart {objDesign entType} {
+proc spmiGeotolStart {entType} {
+  global objDesign
   global cells col entLevel ent entAttrList gt lastEnt opt pmiCol pmiHeading pmiStartCol
   global spmiEntity spmiRow spmiTypesPerFile stepAP tolNames
 
@@ -1543,29 +1544,36 @@ proc spmiCoverageWrite {{fn ""} {sum ""} {multi 1}} {
                   [[$worksheet($sempmi_coverage) Range B$r] Interior] Color $legendColor(gray)
                   set coverageLegend 1
                   lappend coverageStyle "$r $nf gray"
-# too few - red or magenta
+
+# too few - yellow or red (was red or magenta)
                 } elseif {$tval < $ci} {
                   set str "'$tval/$ci"
                   $cells($sempmi_coverage) Item $r 2 $str
                   [$worksheet($sempmi_coverage) Range B$r] HorizontalAlignment [expr -4108]
                   set coverageLegend 1
                   if {$tval == 0} {
-                    [[$worksheet($sempmi_coverage) Range B$r] Interior] Color $legendColor(magenta)
-                    lappend coverageStyle "$r $nf magenta $str"
+                    set clr "red"
                   } else {
-                    [[$worksheet($sempmi_coverage) Range B$r] Interior] Color $legendColor(red)
-                    lappend coverageStyle "$r $nf red $str"
+                    set clr "yellow"
                   }
-# too many - yellow
+                  [[$worksheet($sempmi_coverage) Range B$r] Interior] Color $legendColor($clr)
+                  lappend coverageStyle "$r $nf $clr $str"
+
+# too many - cyan or magenta (was yellow)
                 } elseif {$tval > $ci && $tval != 0} {
                   set ci1 $coverage($item)
-                  if {$ci1 == ""} {set ci1 0}
+                  set clr "cyan"
+                  if {$ci1 == ""} {
+                    set ci1 0
+                    set clr "magenta"
+                  }
                   set str "'$tval/[expr {int($ci1)}]"
                   $cells($sempmi_coverage) Item $r 2 $str
-                  [[$worksheet($sempmi_coverage) Range B$r] Interior] Color $legendColor(yellow)
+                  [[$worksheet($sempmi_coverage) Range B$r] Interior] Color $legendColor($clr)
                   [$worksheet($sempmi_coverage) Range B$r] NumberFormat "@"
                   set coverageLegend 1
-                  lappend coverageStyle "$r $nf yellow $str"
+                  lappend coverageStyle "$r $nf $clr $str"
+
 # just right - green
                 } elseif {$tval != 0} {
                   [[$worksheet($sempmi_coverage) Range B$r] Interior] Color $legendColor(green)
@@ -1748,9 +1756,10 @@ proc spmiCoverageLegend {multi {row 3}} {
   set legend {{"Values as Compared to NIST Test Case Drawing" ""} \
               {"See Help > NIST CAD Models" ""} \
               {"Match" "green"} \
-              {"More than expected" "yellow"} \
-              {"Less than expected" "red"} \
-              {"None found" "magenta"} \
+              {"More than expected" "cyan"} \
+              {"Less than expected" "yellow"} \
+              {"None (0/n)" "red"} \
+              {"Unexpected (n/0)" "magenta"} \
               {"Not in CAx-IF Recommended Practice" "gray"}}
   foreach item $legend {
     set str [lindex $item 0]

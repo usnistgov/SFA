@@ -52,6 +52,7 @@ set opt(VIZFEA) 0
 set opt(PR_STEP_CPNT) 0
 set opt(PR_STEP_GEOM)  0
 set opt(PR_USER) 0
+set opt(INVERSE) 0
 set opt(XL_ROWLIM) 10000000
 set opt(XL_SORT) 0
 set opt(writeDirType) 0

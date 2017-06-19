@@ -176,7 +176,8 @@ proc tessReadGeometry {} {
 }
 
 # -------------------------------------------------------------------------------
-proc tessSetColor {tsID objDesign} {
+proc tessSetColor {tsID} {
+  global objDesign
   global tessColor x3dColor entCount recPracNames
 
   set ok 0
@@ -261,7 +262,8 @@ proc tessSetColor {tsID objDesign} {
 }
 
 # -------------------------------------------------------------------------------
-proc tessSetPlacement {tsID objDesign} {
+proc tessSetPlacement {tsID} {
+  global objDesign
   global tessPlacement tessRepo x3dMsg shapeRepName
   
   if {[catch {

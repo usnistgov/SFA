@@ -817,7 +817,7 @@ proc guiSpreadsheet {} {
 #-------------------------------------------------------------------------------
 # help menu
 proc guiHelpMenu {} {
-  global Examples Help opt nistVersion mytemp pf32 excelYear ifcsvrDir
+  global Examples Help opt nistVersion mytemp pf32 excelYear ifcsvrDir developer
 
   $Help add command -label "User's Guide (pdf)" -command {showUsersGuide}
   $Help add command -label "What's New" -command {whatsNew}
@@ -830,6 +830,16 @@ proc guiHelpMenu {} {
       set url "http://ciks.cbt.nist.gov/cgi-bin/ctv/sfa_upgrade.cgi?version=[getVersion]&auto=-$lastupgrade"
       if {[info exists excelYear]} {if {$excelYear != ""} {append url "&yr=[expr {$excelYear-2000}]"}}
       openURL $url
+    }
+    if {$developer} {
+      $Help add command -label "Check for Update (new)" -command {
+        .tnb select .tnb.status
+        set lastupgrade [expr {round(([clock seconds] - $upgrade)/86400.)}]
+        outputMsg "The last check for an update was $lastupgrade days ago." red
+        set url "http://concrete.el.nist.gov/cgi-bin/ctv/sfa_upgrade.cgi?version=[getVersion]&auto=-$lastupgrade"
+        if {[info exists excelYear]} {if {$excelYear != ""} {append url "&yr=[expr {$excelYear-2000}]"}}
+        openURL $url
+      }
     }
   }
 
@@ -1076,15 +1086,16 @@ the Annotation_*_occurrence row if PMI Presentation is reported.
 Some syntax errors related to PMI Presentation are also reported in the Status tab and the
 relevant worksheet cells.  Syntax errors are highlighted in red.
 
-Presentation Style, Saved Views, Validation Properties, Associated Geometry, and Associated
-Representation are also reported.
+Presentation Style, Saved Views, Validation Properties, Annotation Plane, Associated Geometry, and
+Associated Representation are also reported.
 
 A PMI Presentation Coverage Analysis worksheet is generated.  See Help > PMI Coverage Analysis.
 
 PMI Presentation annotations can be viewed in a web browser.  The visualization is only of the
-graphical PMI, not the model geometry.  The graphical PMI file is named mystepfile_x3dom.html
-The color of the annotations can be modified.  Filled characters are not filled.  Saved Views
-are ignored.  See Examples > Graphical PMI Viewer
+graphical PMI, not the model geometry, except for tessellated part geometry.  Polylines, lines,
+circles, and tessellated geometry are supported for visualization.  The graphical PMI file is
+named mystepfile_x3dom.html  The color of the annotations can be modified.  Filled characters are
+not filled.  See Examples > Graphical PMI Viewer
 
 PMI Presentation is defined by the CAx-IF Recommended Practices for:
   Representation and Presentation of Product Manufacturing Information (AP242)
@@ -1134,10 +1145,9 @@ match to a PMI annotation.  Cyan is a partial match.  Yellow is a possible match
 these matches are also partial matches.  Red is no match.  For partial and possible matches, the
 best Similar PMI match is shown.  Missing PMI annotations are also shown.
 
-Trailing and leading zeros and feature counts, e.g., '2X' are ignored when matching a PMI
-annotation.  Matches also only consider the current capabilities of PMI annotations in STEP AP242
-and CAx-IF Recommended Practices.  For example, PMI annotations for holes such as counterbore,
-countersink, and depth are ignored.
+Trailing and leading zeros are ignored when matching a PMI annotation.  Matches also only consider
+the current capabilities of PMI annotations in STEP AP242 and CAx-IF Recommended Practices.  For
+example, PMI annotations for holes such as counterbore, countersink, and depth are ignored.
 
 Some causes of partial and possible matches are missing associations from a geometric tolerance
 to a dimensional tolerance or datum feature, missing modifiers, and missing diameter dimensions.
@@ -1149,9 +1159,11 @@ expected results were determined by manually counting the number of PMI elements
 Counting of some modifiers, e.g. maximum material condition, does not differentiate whether they
 appear in the tolerance zone definition or datum reference frame.
 
-Green is a match to the expected number of STEP PMI elements.  Yellow means that more were
-found.  Red means that less were found.  A magneta cell means that none of an expected PMI element
-were found in the STEP file.
+- A green cell is a match to the expected number of PMI elements.
+- Cyan means that more were found than expected.
+- Yellow means that less were found than expected.
+- Red means that none of an expected PMI element were found
+  or that PMI elements were found when none were expected.
 
 Gray means that a PMI element is in a test case definition but there is no CAx-IF Recommended
 Practice to model it.  For example, there is no recommended practice for hole depth,
@@ -1383,8 +1395,8 @@ its use by other parties, and makes no guarantees, expressed or implied, about i
 reliability, or any other characteristic.
 
 The Examples menu of this software provides links to several sources of STEP files.  This software
-and others might indicate that there are certain types errors in some of the STEP files.  NIST
-assumes no responsibility whatsoever for the use of the STEP files by other parties, and makes no
+and other software might indicate that there are errors in some of the STEP files.  NIST assumes
+no responsibility whatsoever for the use of the STEP files by other parties, and makes no
 guarantees, expressed or implied, about their quality, reliability, or any other characteristic.
 
 Any mention of commercial products or references to web pages in this software is for information
@@ -1392,12 +1404,13 @@ purposes only; it does not imply recommendation or endorsement by NIST.  For any
 in this software, NIST does not necessarily endorse the views expressed, or concur with the facts
 presented on those web sites.
 
-This software uses Microsoft Excel and IFCsvr that are covered by their own EULAs."
+This software uses Microsoft Excel and IFCsvr that are covered by their own End-User License
+Agreements."
     .tnb select .tnb.status
 
 set txt "This software was developed at the National Institute of Standards and Technology by employees of the Federal Government in the course of their official duties. Pursuant to Title 17 Section 105 of the United States Code this software is not subject to copyright protection and is in the public domain.  This software is an experimental system.  NIST assumes no responsibility whatsoever for its use by other parties, and makes no guarantees, expressed or implied, about its quality, reliability, or any other characteristic.
 
-The Examples menu of this software provides links to several sources of STEP files.  This software and others might indicate that there are certain types errors in some of the STEP files.  NIST assumes no responsibility whatsoever for the use of the STEP files by other parties, and makes no guarantees, expressed or implied, about their quality, reliability, or any other characteristic.
+The Examples menu of this software provides links to several sources of STEP files.  This software and other software might indicate that there are errors in some of the STEP files.  NIST assumes no responsibility whatsoever for the use of the STEP files by other parties, and makes no guarantees, expressed or implied, about their quality, reliability, or any other characteristic.
 
 Any mention of commercial products or references to web pages in this software is for information purposes only; it does not imply recommendation or endorsement by NIST.  For any of the web links in this software, NIST does not necessarily endorse the views expressed, or concur with the facts presented on those web sites.
 

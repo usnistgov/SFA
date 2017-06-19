@@ -1,4 +1,5 @@
-proc spmiDimtolStart {objDesign entType} {
+proc spmiDimtolStart {entType} {
+  global objDesign
   global cells col dt entLevel ent entAttrList lastEnt opt pmiCol pmiHeading pmiStartCol spmiRow stepAP 
 
   if {$opt(DEBUG1)} {outputMsg "START spmiDimtolStart $entType" red}
@@ -98,7 +99,7 @@ proc spmiDimtolStart {objDesign entType} {
 # -------------------------------------------------------------------------------
 
 proc spmiDimtolReport {objEntity} {
-  global assocGeom badAttributes cells col developer dim dimBasic dimDirected dimModNames dimOrient dimReference dimrep dimrepID
+  global assocGeom badAttributes cells col developer dim dimBasic dimRepeat dimDirected dimModNames dimOrient dimReference dimrep dimrepID
   global dimSizeNames dimtolEnt dimtolEntType dimtolGeom dimval draftModelCameras dt dtpmivalprop entLevel ent entAttrList entCount entlevel2
   global incrcol lastAttr lastEnt nistName opt pmiCol pmiColumns pmiHeading pmiModifiers pmiStartCol
   global pmiUnicode prefix angDegree recPracNames savedModifier spmiEnts spmiID spmiIDRow spmiRow spmiTypesPerFile syntaxErr tolStandard
@@ -420,7 +421,10 @@ proc spmiDimtolReport {objEntity} {
             if {$objType == "shape_dimension_representation" && $objName == "items"} {
               set dim(num) $objSize
               set dim(idx) 0
-              if {$objSize == 0} {errorMsg "Syntax Error: Missing 'items' attribute on shape_dimension_representation"}
+              if {$objSize == 0} {
+                errorMsg "Syntax Error: Missing reference to dimension ('items' attribute) on shape_dimension_representation"
+                lappend syntaxErr([lindex [split $ent1 " "] 0]) [list $objID [lindex [split $ent1 " "] 1]]
+              }
             }
             
 # no values to get from this nodetype, but get the entities that are referred to
@@ -1133,8 +1137,16 @@ proc spmiDimtolReport {objEntity} {
         
 # oriented
         if {[info exist dimOrient]} {
-          append dr " (oriented)"
+          append dr "[format "%c" 10](oriented)"
           unset dimOrient
+        }
+        
+# dimension count
+        if {[info exists dimRepeat]} {
+          if {$dimRepeat != ""} {
+            if {[string index $dr 0] == "'"} {set dr [string range $dr 1 end]}
+            set dr "$dimRepeat\X $dr"
+          }
         }
 
 # write dimension to spreadsheet

@@ -64,6 +64,7 @@ set opt(DEBUG1) 0
 set opt(DEBUGINV) 0
 set opt(DISPGUIDE1) 1
 set opt(FIRSTTIME) 1
+set opt(INVERSE) 0
 set opt(gpmiColor) 2
 set opt(indentGeometry) 0
 set opt(indentStyledItem) 0
@@ -245,13 +246,12 @@ proc whatsNew {} {
   if {$sfaVersion > 0 && $sfaVersion < [getVersion]} {outputMsg "\nThe previous version of the STEP File Analyzer was: $sfaVersion" red}
 
 outputMsg "\nWhat's New (Version: [getVersion]  Updated: [string trim [clock format $progtime -format "%e %b %Y"]])" blue
-outputMsg "- Visualization of tessellated part geometry (Help > Tessellated Part Geometry)
-- Support for tessellated geometry in PMI Annotations (Options tab)
+outputMsg "- Support for repetitive dimensions (experimental)
+- Improve color-coding for PMI representation coverage for NIST CAD models (Help > NIST CAD models)
+- Visualization of tessellated part geometry and tessellated PMI (Help > Tessellated Part Geometry, Options tab)
 - Improved association of geometric tolerances with dimensions and datum features
 - Support for STEP Part 21 Edition 3 files
 - Visualization of AP209 finite element models (Options tab, Help > Finite Element Model)
-- Automated checking of PMI Annotations in the NIST CAD models (Help > NIST CAD Models)
-- Examples menu
 - Bug fixes and minor improvements"
 
   .tnb select .tnb.status

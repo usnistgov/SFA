@@ -1,7 +1,7 @@
 #-------------------------------------------------------------------------------
 # version number
 proc getVersion {} {
-  set app_version 2.22
+  set app_version 2.25
   return $app_version
 }
 
@@ -148,27 +148,53 @@ proc getFaceGeom {a0 {id ""}} {
 }
 
 # -------------------------------------------------------------------------------
-proc reportAssocGeom {entType {dimtol 1}} {
-  global assocGeom recPracNames
-  #outputMsg "reportAssocGeom $entType $dimtol" red
+proc reportAssocGeom {entType} {
+  global assocGeom recPracNames dimRepeat dimRepeatDiv
+  #outputMsg "reportAssocGeom $entType" red
   
   set str ""
+  set dimRepeat ""
+  set dimtol 0
+  if {[string first "dimensional_" $entType] != -1 || [string first "angular_" $entType] != -1} {set dimtol 1}
+  
+# geometric entities
   foreach item [array names assocGeom] {
     if {[string first "shape_aspect" $item] == -1 && [string first "centre" $item] == -1 && \
         [string first "datum" $item] == -1 && [string first "draughting_callout" $item] == -1 && $item != "advanced_face"} {
       if {[string length $str] > 0} {append str [format "%c" 10]}
       append str "([llength $assocGeom($item)]) $item [lsort -integer $assocGeom($item)]"
+
+# dimension count, e.g. 4X
+      if {[string first "dimensional_size" $entType] != -1} {
+        if {$item == "cylindrical_surface"} {
+          set dc [llength $assocGeom($item)]
+          if {$dc == 1} {set dimRepeatDiv 1}
+          if {$dimRepeatDiv == 1} {
+            if {$dc > 1} {set dimRepeat $dc}
+          } else {
+            if {[expr {$dc%2}] == 0} {
+              if {$dc > 3} {set dimRepeat [expr {$dc/2}]}
+            } else {
+              if {$dc > 1} {set dimRepeat $dc}
+            }
+          }
+        }
+      }
     }
   }
+
+# advanced face
   foreach item [array names assocGeom] {
     if {$item == "advanced_face"} {
       if {[string length $str] > 0} {append str [format "%c" 10]}
-      append str "([llength $assocGeom($item)]) $item [lsort -integer $assocGeom($item)]"
+      append str "([llength $assocGeom(advanced_face)]) $item [lsort -integer $assocGeom(advanced_face)]"
     }
   }
   if {[string length $str] == 0 && $dimtol} {
     errorMsg "Syntax Error: Associated Geometry not found for '[formatComplexEnt $entType]'.\n[string repeat " " 14]Check GISU or IIRU 'definition' attribute or shape_aspect_relationship 'relating_shape_aspect' attribute.\n[string repeat " " 14]\($recPracNames(pmi242), Sec. 5.1, Figs. 5, 6, 12)"
   }
+
+# shape aspect
   foreach item [array names assocGeom] {
     if {[string first "shape_aspect" $item] != -1 || [string first "centre" $item] != -1 || [string first "datum_feature" $item] != -1} {
       if {[string length $str] > 0} {append str [format "%c" 10]}
@@ -798,7 +824,7 @@ proc pmiAddModelPictures {ent} {
                 set range [$worksheet($ent) Range E3:M3]
                 $range MergeCells [expr 1]
                 set range [$worksheet($ent) Range "E3"]
-                [$worksheet($ent) Hyperlinks] Add $range [join "https://www.nist.gov/sites/default/files/documents/2016/09/08/$item"] [join ""] [join "Link to Test Case Drawing (PDF)"]
+                [$worksheet($ent) Hyperlinks] Add $range [join "https://s3.amazonaws.com/nist-el/mfg_digitalthread/$item"] [join ""] [join "Link to Test Case Drawing (PDF)"]
                 incr nlink
               }
             }
@@ -969,7 +995,8 @@ proc gpmiCheckEnt {ent} {
  
 # -------------------------------------------------------------------------------
 # which STEP entities are processed depending on options
-proc setEntsToProcess {entType objDesign} {
+proc setEntsToProcess {entType} {
+  global objDesign
   global opt gpmiEnts spmiEnts
   
   set ok 0
@@ -1055,7 +1082,8 @@ proc setEntsToProcess {entType objDesign} {
 
 # -------------------------------------------------------------------------------
 # check for all types of reports
-proc checkForReports {objDesign entType} {
+proc checkForReports {entType} {
+  global objDesign
   global cells skipEntities gpmiEnts opt pmiColumns savedViewCol spmiEnts
   
 # check for validation properties, call valPropStart
@@ -1065,7 +1093,7 @@ proc checkForReports {objDesign entType} {
         if {$opt(VALPROP)} {
           if {[lsearch $skipEntities "representation"] == -1} {
             if {[info exists cells(property_definition)]} {
-              valPropStart $objDesign
+              valPropStart
             }
           }
         }
@@ -1080,7 +1108,7 @@ proc checkForReports {objDesign entType} {
       if {[info exists opt(PMIGRF)]} {
         if {$opt(PMIGRF)} {
           if {[info exists cells($entType)]} {
-            gpmiAnnotation $objDesign $entType
+            gpmiAnnotation $entType
           }
           catch {unset savedViewCol}
           catch {unset pmiColumns}
@@ -1095,7 +1123,7 @@ proc checkForReports {objDesign entType} {
     if {[catch {
       if {[info exists opt(VIZTES)]} {
         if {$opt(VIZTES)} {
-          gpmiAnnotation $objDesign $entType
+          gpmiAnnotation $entType
         }
       }
     } emsg]} {
@@ -1109,9 +1137,9 @@ proc checkForReports {objDesign entType} {
         if {$opt(PMISEM)} {
           if {[info exists cells($entType)]} {
             if {$entType == "dimensional_characteristic_representation"} {
-              spmiDimtolStart $objDesign $entType
+              spmiDimtolStart $entType
             } else {
-              spmiGeotolStart $objDesign $entType
+              spmiGeotolStart $entType
             }
           }
         }
@@ -1127,7 +1155,7 @@ proc checkForReports {objDesign entType} {
     if {[catch {
       if {[info exists opt(VIZFEA)]} {
         if {$opt(VIZFEA)} {
-          feaModel $objDesign $entType
+          feaModel $entType
         }
       }
     } emsg]} {
