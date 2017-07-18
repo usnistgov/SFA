@@ -537,7 +537,7 @@ proc gpmiCoverageStart {{multi 1}} {
 # write PMI coverage analysis worksheet
 proc gpmiCoverageWrite {{fn ""} {sum ""} {multi 1}} {
   global cells cells1 col1 gpmiTypes gpmiTypesInvalid gpmiTypesPerFile pmi_coverage pmi_rows pmi_totals
-  global worksheet worksheet1
+  global worksheet worksheet1 legendColor
   #outputMsg "gpmiCoverageWrite $multi" red
 
   if {[catch {
@@ -565,10 +565,10 @@ proc gpmiCoverageWrite {{fn ""} {sum ""} {multi 1}} {
           foreach idx $gpmiTypesInvalid {
             if {$multi} {
               $cells1($pmi_coverage) Item $r1 1 $idx
-              [$worksheet1($pmi_coverage) Range [cellRange $r1 1] [cellRange $r1 1]] Style "Bad"
+              [[$worksheet1($pmi_coverage) Range [cellRange $r1 1] [cellRange $r1 1]] Interior] Color $legendColor(red)
             } else {
               $cells($pmi_coverage) Item $r1 1 $idx
-              [$worksheet($pmi_coverage) Range [cellRange $r1 1] [cellRange $r1 1]] Style "Bad"
+              [[$worksheet($pmi_coverage) Range [cellRange $r1 1] [cellRange $r1 1]] Interior] Color $legendColor(red)
             }
             if {$r1 > $pmi_rows} {set pmi_rows $r1}
             incr r1
@@ -580,10 +580,10 @@ proc gpmiCoverageWrite {{fn ""} {sum ""} {multi 1}} {
               incr r1
               if {$multi} {
                 $cells1($pmi_coverage) Item $r1 1 $idx
-                [$worksheet1($pmi_coverage) Range [cellRange $r1 1] [cellRange $r1 1]] Style "Bad"
+                [[$worksheet1($pmi_coverage) Range [cellRange $r1 1] [cellRange $r1 1]] Interior] Color $legendColor(red)
               } else {
                 $cells($pmi_coverage) Item $r1 1 $idx
-                [$worksheet($pmi_coverage) Range [cellRange $r1 1] [cellRange $r1 1]] Style "Bad"
+                [[$worksheet($pmi_coverage) Range [cellRange $r1 1] [cellRange $r1 1]] Interior] Color $legendColor(red)
               }
               set val $idx
               if {$r1 > $pmi_rows} {set pmi_rows $r1}

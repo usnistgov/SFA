@@ -1219,7 +1219,7 @@ proc colorBadCells {ent} {
   
   if {$stepAP == ""} {return}
       
-# color "Bad" (red) for syntax errors
+# color red for syntax errors
   set lastr 4
   set rmax [expr {$count($ent)+3}]
   

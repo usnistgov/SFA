@@ -1035,7 +1035,7 @@ proc genExcel {{numFile 0}} {
 proc addHeaderWorksheet {numFile fname} {
   global objDesign
   global excel worksheets worksheet cells row timeStamp noPSA fileSchema cadApps cadSystem opt localName p21e3
-  global excel1 worksheet1 cells1 col1
+  global excel1 worksheet1 cells1 col1 legendColor
   global csvdirnam
    
   if {[catch {
@@ -1101,7 +1101,7 @@ proc addHeaderWorksheet {numFile fname} {
         outputMsg "$attr:  $sn" blue
         if {[string range $sn end-3 end] == "_MIM"} {
           errorMsg "Syntax Error: Schema name should end with _MIM_LF"
-          if {$opt(XLSCSV) == "Excel"} {[$worksheet($hdr) Range B11] Style "Bad"}
+          if {$opt(XLSCSV) == "Excel"} {[[$worksheet($hdr) Range B11] Interior] Color $legendColor(red)}
        }
 
         set fileSchema  [string toupper [string range $objAttr 0 5]]
@@ -1151,7 +1151,7 @@ proc addHeaderWorksheet {numFile fname} {
         if {$attr == "FileImplementationLevel"} {
           if {[string first "\;" $objAttr] == -1} {
             errorMsg "Syntax Error: Implementation Level is usually '2\;1'"
-            if {$opt(XLSCSV) == "Excel"} {[$worksheet($hdr) Range B4] Style "Bad"}
+            if {$opt(XLSCSV) == "Excel"} {[[$worksheet($hdr) Range B4] Interior] Color $legendColor(red)}
           } elseif {$objAttr == "4\;1"} {
             set p21e3 1
           }
@@ -1167,7 +1167,7 @@ proc addHeaderWorksheet {numFile fname} {
         if {$attr == "FileTimeStamp"} {
           if {([string first "-" $objAttr] == -1 || [string length $objAttr] < 17) && $objAttr != ""} {
             errorMsg "Syntax Error: Wrong format for FileTimeStamp"            
-            if {$opt(XLSCSV) == "Excel"} {[$worksheet($hdr) Range B5] Style "Bad"}
+            if {$opt(XLSCSV) == "Excel"} {[[$worksheet($hdr) Range B5] Interior] Color $legendColor(red)}
           }
           if {$numFile != 0 && [info exists cells1(Summary)] && $opt(XLSCSV) == "Excel"} {
             set timeStamp $objAttr
@@ -1776,7 +1776,7 @@ proc formatWorksheets {sheetSort sumRow inverseEnts} {
       }
       #getTiming " check column width"
       
-# color "Bad" (red) for syntax errors
+# color red for syntax errors
       if {[info exists syntaxErr($thisEntType)]} {colorBadCells $thisEntType}
       #getTiming " color bad syntax"
   
@@ -1810,7 +1810,7 @@ proc formatWorksheets {sheetSort sumRow inverseEnts} {
 # -------------------------------------------------------------------------------------------------
 proc addP21e3Section {} {
   global objDesign
-  global p21e3Section worksheets
+  global p21e3Section worksheets legendColor
   
   foreach line $p21e3Section {
     if {$line == "ANCHOR" || $line == "REFERENCE" || $line == "SIGNATURE"} {
@@ -1845,7 +1845,7 @@ proc addP21e3Section {} {
           set badEnt 1
         }
         if {$badEnt} {
-          [$worksheet($sect) Range [cellRange $r 1] [cellRange $r 1]] Style "Bad"
+          [[$worksheet($sect) Range [cellRange $r 1] [cellRange $r 1]] Interior] Color $legendColor(red)
           errorMsg "Syntax Error: Bad format for entity ID in ANCHOR section."
         }
       }
