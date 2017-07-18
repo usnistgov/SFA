@@ -58,7 +58,7 @@ proc spmiDimtolStart {entType} {
   catch {unset pmiHeading}
   catch {unset ent}
 
-  outputMsg " Adding PMI Representation" blue
+  outputMsg " Adding PMI Representation Report" blue
   
   if {[string first "AP203" $stepAP] == 0 || $stepAP == "AP214"} {
     errorMsg "Syntax Error: There is no Recommended Practice for PMI Representation in $stepAP files.  Use AP242 for PMI Representation."
@@ -81,7 +81,7 @@ proc spmiDimtolStart {entType} {
 # process all, call spmiDimtolReport
   ::tcom::foreach objEntity [$objDesign FindObjects [join $startent]] {
     if {[$objEntity Type] == $startent} {
-      if {$n < 10000000} {
+      if {$n < 1048576} {
         if {[expr {$n%2000}] == 0} {
           if {$n > 0} {outputMsg "  $n"}
           update idletasks
@@ -379,10 +379,8 @@ proc spmiDimtolReport {objEntity} {
                     set emsg "Syntax Error: Dimension value incorrectly specified with '[lindex [split $ent1 " "] 0]' instead of 'length_measure_with_unit'."
                     append emsg "\n[string repeat " " 14]\($recPracNames(pmi242), Sec. 5.2.1)"
                     errorMsg $emsg
-                    errorMsg "The dimension value will NOT be reported on the 'dimensional_characteristic_representation' worksheet."
                   } elseif {$dte == "ang" && [string first "plane_angle" $ent1] == -1} {
                     errorMsg "Syntax Error: Angle value incorrectly specified with '[lindex [split $ent1 " "] 0]' instead of 'plane_angle_measure_with_unit'."
-                    errorMsg "The angle value will NOT be reported on the 'dimensional_characteristic_representation' worksheet."
                   }
                 }
               }

@@ -1,3 +1,111 @@
+proc tessPart {entType} {
+  global objDesign
+  global ao entLevel ent entAttrList opt tessCoordID
+
+  if {$opt(DEBUG1)} {outputMsg "START tessPart $entType" red}
+  set msg " Adding Tessellated Part Visualization"
+  if {$opt(XLSCSV) == "None"} {append msg " ($entType)"}
+  outputMsg $msg green
+
+# faces
+  set triangulated_face          [list triangulated_face name]
+  set triangulated_surface_set   [list triangulated_surface_set name]
+  set complex_triangulated_face  [list complex_triangulated_face name]
+  set complex_triangulated_surface_set [list complex_triangulated_surface_set name]
+  set PMIP(tessellated_solid) [list tessellated_solid name items \
+    $triangulated_face $complex_triangulated_face $complex_triangulated_surface_set $triangulated_surface_set]
+  set PMIP(tessellated_shell) [list tessellated_shell name items \
+    $triangulated_face $complex_triangulated_face $complex_triangulated_surface_set $triangulated_surface_set]
+   
+# initialize
+  set ao $entType
+  set entAttrList {}
+  set tessCoordID {}
+  if {[info exists ent]} {unset ent}
+  set entLevel 0
+  setEntAttrList $PMIP($ao)
+  if {$opt(DEBUG1)} {outputMsg "entattrlist $entAttrList"}
+
+# process entities, call tessPartGeometry
+  ::tcom::foreach objEntity [$objDesign FindObjects [join $entType]] {
+    if {[$objEntity Type] == $entType} {tessPartGeometry $objEntity}
+  }
+}
+
+# -------------------------------------------------------------------------------
+proc tessPartGeometry {objEntity} {
+  global ao badAttributes entLevel ent entAttrList objEntity1 opt tessCoord tessIndex tessIndexCoord x3dStartFile
+
+  incr entLevel
+  set ind [string repeat " " [expr {4*($entLevel-1)}]]
+
+  if {[string first "handle" $objEntity] != -1} {
+    set objType [$objEntity Type]
+    set objID   [$objEntity P21ID]
+    set objAttributes [$objEntity Attributes]
+    set ent($entLevel) $objType
+    if {$entLevel == 1} {set objEntity1 $objEntity}
+
+    if {$opt(DEBUG1)} {outputMsg "$ind ENT $entLevel #$objID=$objType (ATR=[$objAttributes Count])" blue}
+
+    ::tcom::foreach objAttribute $objAttributes {
+      set objName  [$objAttribute Name]
+      set ent1 "$ent($entLevel) $objName"
+
+# look for entities with bad attributes that cause a crash
+      set okattr 1
+      if {[info exists badAttributes($objType)]} {foreach ba $badAttributes($objType) {if {$ba == $objName} {set okattr 0}}}
+
+      if {$okattr} {
+        set objValue    [$objAttribute Value]
+        set objNodeType [$objAttribute NodeType]
+        set objSize     [$objAttribute Size]
+        set objAttrType [$objAttribute Type]
+        set idx [lsearch $entAttrList $ent1]
+
+        if {$objNodeType == 20} {
+          if {$idx != -1} {
+            if {$opt(DEBUG1)} {outputMsg "$ind   ATR $entLevel $objName - $objValue ($objNodeType, $objSize, $objAttrType)"}
+            ::tcom::foreach val1 $objValue {tessPartGeometry $val1}
+          }
+        } elseif {$objNodeType == 5} {
+          if {[catch {
+            if {$idx != -1} {
+              if {$opt(DEBUG1)} {outputMsg "$ind   ATR $entLevel $objName - $objValue ($objNodeType, $objAttrType)  ($ent1)"}
+    
+# get values for these entity and attribute pairs
+              switch -glob $ent1 {
+                "tessellated_shell name" -
+                "tessellated_solid name" {
+# start X3DOM file, read tessellated geometry
+                  if {$x3dStartFile} {x3dFileStart}
+                }
+                "*triangulated_face name" -
+                "*triangulated_surface_set name" -
+                "tessellated_curve_set name" {
+# write tessellated coords and index for part geometry
+                  if {$ao == "tessellated_solid" || $ao == "tessellated_shell"} {
+                    if {[info exists tessIndex($objID)] && [info exists tessCoord($tessIndexCoord($objID))]} {
+                      x3dTessGeom $objID $objEntity1 $ent1
+                    } else {
+                      errorMsg "Missing tessellated coordinates and index for $objID"
+                    }
+                  }
+                }
+              }
+            }
+          } emsg3]} {
+            errorMsg "ERROR processing Tessellated Part Geometry: $emsg3"
+            set entLevel 2
+          }
+        }
+      }
+    }
+  }
+  incr entLevel -1
+}
+
+# -------------------------------------------------------------------------------
 proc tessReadGeometry {} {
   global entCount localName tessCoord tessIndex tessIndexCoord developer x3dMin x3dMax x3dMsg
   
@@ -5,11 +113,12 @@ proc tessReadGeometry {} {
   set ncl  0
   set ntc  0
   set ntc1 0
-  foreach ent {tessellated_curve_set complex_triangulated_surface_set \
+  foreach ent {tessellated_curve_set \
+              complex_triangulated_surface_set triangulated_surface_set \
               complex_triangulated_face triangulated_face} {
     if {[info exists entCount($ent)]} {set ntc1 [expr {$ntc1+$entCount($ent)}]}
   }
-  outputMsg " Reading tessellated geometry" blue
+  outputMsg " Reading tessellated geometry" green
   
 # read step
   while {[gets $tg line] >= 0} {
@@ -17,6 +126,7 @@ proc tessReadGeometry {} {
         [string first "TESSELLATED_CURVE_SET" $line] != -1 || \
         [string first "TRIANGULATED_FACE" $line] != -1 || \
         [string first "COMPLEX_TRIANGULATED_FACE" $line] != -1 || \
+        [string first "TRIANGULATED_SURFACE_SET" $line] != -1 || \
         [string first "COMPLEX_TRIANGULATED_SURFACE_SET" $line] != -1} {
 
 # get rest of entity if one multiple lines
@@ -59,11 +169,12 @@ proc tessReadGeometry {} {
         } else {
           set msg "Syntax Error: #$id=COORDINATES_LIST has zero coordinates"
           errorMsg $msg
+          set msg "<i>#$id=COORDINATES_LIST has no coordinates</i>"
           if {[lsearch $x3dMsg $msg] == -1} {lappend x3dMsg $msg}
         }
         incr ncl
 
-# tessellated_curve_set, complex_triangulated_surface_set, complex_triangulated_face
+# tessellated_curve_set, *triangulated_surface_set, *triangulated_face
       } elseif {[string first "TESSELLATED_CURVE_SET" $line] != -1 || [string first "TRIANGULATED" $line] != -1} {
         set complex 0
         if {[string first "COMPLEX" $line] != -1} {set complex 1}
@@ -95,7 +206,7 @@ proc tessReadGeometry {} {
           set tessIndex($id) ""
           foreach j [split $line " "] {if {$j != ""} {append tessIndex($id) "[expr {$j-1}] "}}
 
-# complex triangulated surface set, complex triangulated face, triangulated face
+# *triangulated surface set, *triangulated face
         } else {
           set line [string range $line [string first "((" $line]+2 end-1]
           set line [string trim [string range $line [string first "((" $line] end]]
@@ -173,6 +284,33 @@ proc tessReadGeometry {} {
       return
     }
   }
+}
+
+# -------------------------------------------------------------------------------
+proc tessCountColors {} {
+  global objDesign
+  global entCount
+
+# count unique colors in colour_rgb and draughting_pre_defined_colour
+  set colors {}
+  if {[catch {
+    if {[info exists entCount(colour_rgb)]} {
+      ::tcom::foreach e0 [$objDesign FindObjects [string trim colour_rgb]] {
+        set a0 [$e0 Attributes]
+        set color "[[$a0 Item 2] Value] [[$a0 Item 3] Value] [[$a0 Item 4] Value]"
+        if {[lsearch $colors $color] == -1} {lappend colors $color}
+      }
+    }
+    if {[info exists entCount(draughting_pre_defined_colour)]} {
+      ::tcom::foreach e0 [$objDesign FindObjects [string trim draughting_pre_defined_colour]] {
+        set color [[[$e0 Attributes] Item 1] Value]
+        if {[lsearch $colors $color] == -1} {lappend colors $color}
+      }
+    }
+  } emsg]} {
+    errorMsg " ERROR counting unique colors: $emsg"
+  }
+  return [llength $colors]
 }
 
 # -------------------------------------------------------------------------------
@@ -264,21 +402,28 @@ proc tessSetColor {tsID} {
 # -------------------------------------------------------------------------------
 proc tessSetPlacement {tsID} {
   global objDesign
-  global tessPlacement tessRepo x3dMsg shapeRepName
+  global tessPlacement tessRepo shapeRepName
   
   if {[catch {
     set tessRepo 0
     catch {unset tessPlacement}
     set debug 0
     
+# tessellated_shape_representation
     ::tcom::foreach e0 [$objDesign FindObjects [string trim tessellated_shape_representation]] {
+
+# get TSR.items
       set a0 [[$e0 Attributes] Item 2]
 
+# for each entity in TSR.items
       ::tcom::foreach e1 [$a0 Value] {
+        
+# compare entity ID to tessellated_solid ID        
         if {[$e1 P21ID] == $tsID} {
           if {$debug} {errorMsg "\n[$e1 Type] [$e1 P21ID] ([$a0 Name])" red}
 
-          foreach repSRR {rep_1 rep_2} {
+          #foreach repSRR {rep_1 rep_2} 
+          foreach repSRR {rep_1} {
             set e2s [$e0 GetUsedIn [string trim shape_representation_relationship] [string trim $repSRR]]
 
             ::tcom::foreach e2 $e2s {
@@ -294,8 +439,7 @@ proc tessSetPlacement {tsID} {
               }
 
               set shapeRepName [string trim [[[$e3 Attributes] Item 1] Value]]
-                if {$shapeRepName != ""} {
-                #if {[lsearch $x3dMsg $shapeRepName] == -1} {lappend x3dMsg $shapeRepName}
+              if {$shapeRepName != ""} {
                 if {$debug} {errorMsg "  $shapeRepName" blue}
               } else {
                 unset shapeRepName
@@ -321,7 +465,6 @@ proc tessSetPlacement {tsID} {
                 }
               }
               
-              
               foreach repRRWT {rep_1 rep_2} {
                 set e4s [$e3 GetUsedIn [string trim representation_relationship_with_transformation_and_shape_representation_relationship] [string trim $repRRWT]]
                 ::tcom::foreach e4 $e4s {
@@ -333,6 +476,7 @@ proc tessSetPlacement {tsID} {
                   set e6 [$a5 Value]
                   if {$debug} {errorMsg "     [$e6 Type] [$e6 P21ID] ([$a5 Name])" red}
 
+# a2p3d origin
                   set a6 [[$e6 Attributes] Item 2]
                   set e7 [$a6 Value]
                   set val ""
@@ -340,11 +484,13 @@ proc tessSetPlacement {tsID} {
                   lappend tessPlacement(origin) [string trim $val]
                   if {$debug} {errorMsg "      [$e7 Type] [$e7 P21ID] ([$a6 Name]) [string trim $val]" red}
 
+# a2p3d axis
                   set a6 [[$e6 Attributes] Item 3]
                   set e7 [$a6 Value]
                   lappend tessPlacement(axis) [[[$e7 Attributes] Item 2] Value]
                   if {$debug} {errorMsg "      [$e7 Type] [$e7 P21ID] ([$a6 Name]) [[[$e7 Attributes] Item 2] Value]" red}
 
+# a2p3d reference direction
                   set a6 [[$e6 Attributes] Item 4]
                   set e7 [$a6 Value]
                   lappend tessPlacement(refdir) [[[$e7 Attributes] Item 2] Value]
@@ -358,23 +504,19 @@ proc tessSetPlacement {tsID} {
       }
     }
   } emsg]} {
-    errorMsg " Error getting tessellated geometry placement: $emsg"
+    errorMsg " ERROR getting tessellated geometry placement: $emsg"
   }
 }
 
-
 # -------------------------------------------------------------------------------
 # generate x3d rotation from axis2_placement_3d
-proc x3dRotation {{axis {0 0 1}} {refdir {1 0 0}}} {
+proc x3dRotation {{a {0 0 1}} {r {1 0 0}}} {
   
 # convert from geometry coordinate system to x3dom coordinate, Zv = -Yc, Yv = Zc
-  set y [lindex $axis 1]
-  lset axis 1 [lindex $axis 2]
-  lset axis 2 [expr {-$y}]
-
-  set y [lindex $refdir 1]
-  lset refdir 1 [lindex $refdir 2]
-  lset refdir 2 [expr {-$y}]
+  set axis   [list [lindex $a 0] [lindex $a 2] [expr {0.-[lindex $a 1]}]]
+  set refdir [list [lindex $r 0] [lindex $r 2] [expr {0.-[lindex $r 1]}]]
+  #set axis $a
+  #set refdir $r
     
 # construct rotation matrix u, must normalize to use with quaternion
   set u2 [vecnorm $axis]
@@ -382,7 +524,7 @@ proc x3dRotation {{axis {0 0 1}} {refdir {1 0 0}}} {
   set u3 [vecnorm [veccross $u1 $u2]]
 
 # extract quaternion
-  if { [lindex $u1 0] >= 0.0} {
+  if {[lindex $u1 0] >= 0.0} {
     set tmp [expr {[lindex $u2 1] + [lindex $u3 2]}]
     if {$tmp >=  0.0} {
       set q(0) [expr {[lindex $u1 0] + $tmp + 1.}]
@@ -426,15 +568,16 @@ proc x3dRotation {{axis {0 0 1}} {refdir {1 0 0}}} {
     set axm 0.
     foreach i {0 1 2} {
       set i1 [expr {$i+1}]
-      set ax [trimNum [expr {-$q($i1) / $sina}] 5]
+      set ax [expr {-$q($i1) / $sina}]
       lset rotation_changed $i $ax
       set axa [expr {abs($ax)}]
       if {$axa > $axm} {set axm $axa}
     }
     if {$axm > 0. && $axm < 1.} {
-      foreach i {0 1 2} {lset rotation_changed $i [trimNum [expr {[lindex $rotation_changed $i]/$axm}] 5]}
+      foreach i {0 1 2} {lset rotation_changed $i [expr {[lindex $rotation_changed $i]/$axm}]}
     }
-    lset rotation_changed 3 [trimNum $angle 5]
+    lset rotation_changed 3 $angle
+    foreach i {0 1 2 3} {lset rotation_changed $i [trimNum [lindex $rotation_changed $i] 4]}
   }
   return $rotation_changed  
 }

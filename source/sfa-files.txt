@@ -1,4 +1,5 @@
 sfa.tcl
+sfa-coverage.tcl
 sfa-data.tcl
 sfa-dimtol.tcl
 sfa-ent.tcl

@@ -27,8 +27,9 @@ proc feaModel {entType} {
 # start X3DOM file                
   if {$x3dStartFile} {
     set x3dStartFile 0
-    set x3dFileName [file rootname $localName]_x3dom.html
-    catch {file delete -force $x3dFileName}
+    catch {file delete -force -- "[file rootname $localName]_x3dom.html"}
+    set x3dFileName [file rootname $localName]-x3dom.html
+    catch {file delete -force -- $x3dFileName}
     set x3dFile [open $x3dFileName w]
     puts $x3dFile "<!DOCTYPE html>\n<html>\n<head>\n<title>[file tail $localName] | STEP AP209 Finite Element Model</title>\n<base target=\"_blank\">\n<meta http-equiv='Content-Type' content='text/html;charset=utf-8'/>\n<link rel='stylesheet' type='text/css' href='https://www.x3dom.org/x3dom/release/x3dom.css'/>\n<script type='text/javascript' src='https://www.x3dom.org/x3dom/release/x3dom.js'></script>"
 
@@ -53,36 +54,20 @@ proc feaModel {entType} {
     puts $x3dFile "</head>"
 
     puts $x3dFile "\n<body><font face=\"arial\">\n<h3>STEP AP209 Finite Element Model:  [file tail $localName]</h3>"
-    puts $x3dFile "<ul><li><a href=\"https://www.x3dom.org/documentation/interaction/\">Use the mouse</a> to rotate, pan, zoom.  Use 'a' to show all.  Left double-click to recenter."
-    puts $x3dFile "<li>Use Page Down to switch between perspective and orthographic views."
-    puts $x3dFile "</ul>"
-
-# node, element checkboxes
-    puts $x3dFile "<input type='checkbox' checked onclick='togNodes(this.value)'/>Nodes&nbsp;&nbsp;"
-    if {[info exists entCount(surface_3d_element_representation)] || \
-        [info exists entCount(volume_3d_element_representation)]}  {puts $x3dFile "<input type='checkbox' checked onclick='togMesh(this.value)'/>Mesh&nbsp;&nbsp;"}
-    if {[info exists entCount(curve_3d_element_representation)]}   {puts $x3dFile "<input type='checkbox' checked onclick='tog1DElements(this.value)'/>1D Elements&nbsp;&nbsp;"}
-    if {[info exists entCount(surface_3d_element_representation)]} {puts $x3dFile "<input type='checkbox' checked onclick='tog2DElements(this.value)'/>2D Elements&nbsp;&nbsp;"}
-    if {[info exists entCount(volume_3d_element_representation)]}  {puts $x3dFile "<input type='checkbox' checked onclick='tog3DElements(this.value)'/>3D Elements&nbsp;&nbsp;"}
-
-# transparency slider
-    if {[info exists entCount(surface_3d_element_representation)] || [info exists entCount(volume_3d_element_representation)]} {
-      puts $x3dFile "<input style='width:80px' type='range' min='0' max='0.8' step='0.2' value='0' onchange='matTrans(this.value)'/>Transparency (might not appear correct)"
-    }
     puts $x3dFile "<table><tr><td>"
     
 # x3d window size
     set height 800
     set width [expr {int($height*1.5)}]
     catch {
-      set height [expr {int([winfo screenheight .]*0.7)}]
+      set height [expr {int([winfo screenheight .]*0.75)}]
       set width [expr {int($height*[winfo screenwidth .]/[winfo screenheight .])}]
     }
     puts $x3dFile "\n<X3D id='someUniqueId' showStat='false' showLog='false' x='0px' y='0px' width='$width\px' height='$height\px'>\n<Scene DEF='scene'>"
 
 # nodes    
     feaGetNodes
-    outputMsg " Writing FEM to: [truncFileName [file nativename $x3dFileName]]" blue
+    outputMsg " Writing FEM to: [truncFileName [file nativename $x3dFileName]]" green
 
 # coordinate axes    
     foreach xyz {x y z} {
@@ -111,6 +96,9 @@ proc feaModel {entType} {
   set nfeaElem 0
   catch {unset feaFaceList}
   catch {unset feaFaceOrig}
+
+  set memlim 1700
+  if {$opt(XLSCSV) != "Excel"} {set memlim 1800}
   
   set startent [lindex $FEA($entType) 0]
   ::tcom::foreach objEntity [$objDesign FindObjects [join $startent]] {
@@ -119,15 +107,15 @@ proc feaModel {entType} {
         if {[expr {$nfeaElem%2000}] == 0} {
           if {$nfeaElem > 0} {outputMsg "  $nfeaElem"}
           set mem [expr {[lindex [twapi::get_process_info $sfaPID -pagefilebytes] 1]/1048576}]
-          if {$mem > 1700} {
+          if {$mem > $memlim} {
             errorMsg "Insufficient memory to process all of the elements"
-            lappend x3dMsg "Some elements were not processed."
+            lappend x3dMsg "<i>Some elements were not processed.</i>"
             update idletasks
             break
           }
           update idletasks
         }
-        if {$nfeaElem > $rowmax} {incr nprogEnts}
+        if {$nfeaElem > $rowmax && $opt(XLSCSV) != "None"} {incr nprogEnts}
         feaElements $objEntity
         if {$opt(DEBUG1)} {outputMsg \n}
       }
@@ -235,7 +223,7 @@ proc feaModel {entType} {
       catch {close $feaFileName($f)}
       catch {file delete -force $feaFileName($f)}
     }
-    outputMsg " Finished writing FEM" blue
+    outputMsg " Finished writing FEM" green
     catch {unset feaFaceList}
     catch {unset feaFaceOrig}
   }  
@@ -402,7 +390,7 @@ proc feaElements {objEntity} {
                         append feaMeshIndex  "$firstID -1 "
                         if {$nnodes > 4} {
                           errorMsg "Unexpected number of nodes ($nnodes) for a $feaType element"
-                          lappend x3dMsg "Unexpected number of nodes ($nnodes) for a $feaType element.  Faces not shown."
+                          lappend x3dMsg "<i>Faces not shown for a $feaType element with an unexpected number of nodes ($nnodes).</i>"
                         }
                       }
                       unset idx
@@ -471,7 +459,7 @@ proc feaGetNodes {} {
   catch {unset nodeArr}
 
   set nodeIndex -1
-  outputMsg " Reading nodes ($entCount(node))" blue
+  outputMsg " Reading nodes ($entCount(node))" green
 
 # start node output
   puts $x3dFile "\n<Switch whichChoice='0' id='swNodes'>"

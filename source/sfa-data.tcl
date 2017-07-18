@@ -5,6 +5,7 @@ global aoEntTypes gpmiTypes spmiEntTypes dimSizeNames tolNames tzfNames dimModNa
 global spmiTypes recPracNames modelPictures schemaLinks modelURLs legendColor
 global ap203all ap214all ap242all
 global feaIndex cadApps
+global tcl_platform
 
 set roseLogical(0) "FALSE"
 set roseLogical(1) "TRUE"
@@ -115,7 +116,7 @@ set gpmiTypes [list \
   "roundness" "straightness" "symmetry" "total runout" "general tolerance" "linear dimension" \
   "radial dimension" "diameter dimension" "angular dimension" "ordinate dimension" "curve dimension" \
   "general dimension" "datum" "datum target" "note" "label" "surface roughness" "weld symbol" \
-  "general note"]
+  "general note" "over riding style set"]
 
 # -----------------------------------------------------------------------------------------------------
 # Semantic PMI types for coverage analysis, order is important
@@ -212,6 +213,21 @@ set pmiModifiersArray(translation,6.9.7)                    "\u25B7"
 set pmiModifiersArray(two_point_size,5.3)                   "(LP)"
 set pmiModifiersArray(unequally_disposed,6.9.4)             "\u24CA"
 set pmiModifiersArray(volume_diameter_calculated_size,5.3)  "(CV)"
+
+#if {$tcl_platform(osVersion) >= 6.2} {
+#  set pmiModifiersArray(envelope_requirement,5.2.1)           "(E)"
+#  set pmiModifiersArray(free_state_condition,5.3)             "(F)"
+#  set pmiModifiersArray(free_state,6.9.3)                     "(F)"
+#  set pmiModifiersArray(independency,5.2.1)                   "(I)"
+#  set pmiModifiersArray(least_material_condition)             "(L)"
+#  set pmiModifiersArray(least_material_requirement,6.9.3-6.9.7) "(L)"
+#  set pmiModifiersArray(maximum_material_condition)           "(M)"
+#  set pmiModifiersArray(maximum_material_requirement,6.9.3-6.9.7) "(M)"
+#  set pmiModifiersArray(projected,6.9.2.2)                    "(P)"
+#  set pmiModifiersArray(unequally_disposed,6.9.4)             "(U)"
+#  set pmiModifiersArray(reciprocity_requirement,6.9.3)        "(R)"
+#  set pmiModifiersArray(regardless_of_feature_size)           "(S)" 
+#}
 
 foreach item [array names pmiModifiersArray] {
   set ids [split $item ","]

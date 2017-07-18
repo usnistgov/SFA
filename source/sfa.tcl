@@ -17,7 +17,8 @@
 
 global env tcl_platform
 
-set wdir [file dirname [info script]]
+set scriptName [info script]
+set wdir [file dirname $scriptName]
 set auto_path [linsert $auto_path 0 $wdir]
 
 # lappend commands add package locations to auto_path, must be before package commands
@@ -63,6 +64,7 @@ set opt(CRASH) 0
 set opt(DEBUG1) 0
 set opt(DEBUGINV) 0
 set opt(DISPGUIDE1) 1
+set opt(XLSBUG) 3
 set opt(FIRSTTIME) 1
 set opt(INVERSE) 0
 set opt(gpmiColor) 2
@@ -70,7 +72,7 @@ set opt(indentGeometry) 0
 set opt(indentStyledItem) 0
 set opt(writeDirType) 0
 set opt(XL_KEEPOPEN) 0
-set opt(XL_ROWLIM) 10000000
+set opt(XL_ROWLIM) 1048576
 set opt(XL_SORT) 0
 set opt(XLSCSV) Excel
 
@@ -83,6 +85,7 @@ set eeWriteToFile  0
 set excelYear ""
 set lastXLS  ""
 set lastXLS1 ""
+set lastX3DOM ""
 set openFileList {}
 set pointLimit 2
 set sfaVersion 0
@@ -197,7 +200,8 @@ if {[info exists userEntityFile]} {
     set opt(PR_USER) 0
   }
 }
-if {[string index $opt(XL_ROWLIM) end] == 1} {set opt(XL_ROWLIM) [expr {$opt(XL_ROWLIM)+2}]}
+if {$opt(XL_ROWLIM) < 103 || ([string range $opt(XL_ROWLIM) end-1 end] != "03" && \
+   [string range $opt(XL_ROWLIM) end-1 end] != "76" && [string range $opt(XL_ROWLIM) end-1 end] != "36")} {set opt(XL_ROWLIM) 103}
 
 # -------------------------------------------------------------------------------
 # get programs that can open STEP files
@@ -233,8 +237,7 @@ guiFileMenu
 
 # What's New
 set progtime 0
-foreach item {sfa sfa-data sfa-dimtol sfa-ent sfa-gen sfa-geotol sfa-grafpmi sfa-gui sfa-indent sfa-inv sfa-multi sfa-proc sfa-step sfa-valprop} {
-  set fname [file join $wdir $item.tcl]
+foreach fname [glob -nocomplain -directory $wdir *.tcl] {
   set mtime [file mtime $fname]
   if {$mtime > $progtime} {set progtime $mtime}
 }
@@ -246,12 +249,11 @@ proc whatsNew {} {
   if {$sfaVersion > 0 && $sfaVersion < [getVersion]} {outputMsg "\nThe previous version of the STEP File Analyzer was: $sfaVersion" red}
 
 outputMsg "\nWhat's New (Version: [getVersion]  Updated: [string trim [clock format $progtime -format "%e %b %Y"]])" blue
-outputMsg "- Support for repetitive dimensions (experimental)
-- Improve color-coding for PMI representation coverage for NIST CAD models (Help > NIST CAD models)
-- Visualization of tessellated part geometry and tessellated PMI (Help > Tessellated Part Geometry, Options tab)
+outputMsg "- New Output Format to generate any Visualization without a spreadsheet (Options tab)
+- Support for repetitive dimensions (experimental)
+- Improved color-coding for PMI Representation Coverage for NIST CAD models (Help > NIST CAD models)
+- Visualization of tessellated part geometry, tessellated PMI, AP209 finite element models (Options tab)
 - Improved association of geometric tolerances with dimensions and datum features
-- Support for STEP Part 21 Edition 3 files
-- Visualization of AP209 finite element models (Options tab, Help > Finite Element Model)
 - Bug fixes and minor improvements"
 
   .tnb select .tnb.status
@@ -316,15 +318,23 @@ if {$opt(FIRSTTIME)} {
 # what's new message
 } elseif {$sfaVersion < [getVersion]} {
   whatsNew
-  if {$sfaVersion < 1.60} {
-    errorMsg "- Version 3 of the User's Guide is now available"
+  if {$sfaVersion < [getVersionUG]} {
+    errorMsg "- A new version of the User's Guide is now available"
     showUsersGuide
+  }
+  if {$sfaVersion < 2.30} {
+    errorMsg "- The command-line version has been renamed: sfa-cl.exe  The old version STEP-File-Analyzer-CL.exe can be deleted."
   }
   set sfaVersion [getVersion]
   saveState
   set copyrose 1
   setShortcuts
+
+} elseif {$sfaVersion > [getVersion]} {
+  set sfaVersion [getVersion]
+  saveState
 }
+  
 
 if {$developer} {set copyrose 1}
 
@@ -345,7 +355,7 @@ if {$nistVersion} {
       set choice [tk_messageBox -type yesno -default yes -title "Check for Update" \
         -message "Do you want to check for a newer version of the STEP File Analyzer?\n \nThe last check for an update was $lastupgrade days ago.\n \nYou can always check for an update with Help > Check for Update" -icon question]
       if {$choice == "yes"} {
-        set url "http://ciks.cbt.nist.gov/cgi-bin/ctv/sfa_upgrade.cgi?version=[getVersion]&auto=$lastupgrade"
+        set url "https://concrete.nist.gov/cgi-bin/ctv/sfa_upgrade.cgi?version=[getVersion]&auto=$lastupgrade"
         if {[info exists excelYear]} {if {$excelYear != ""} {append url "&yr=[expr {$excelYear-2000}]"}}
         openURL $url
       }
@@ -435,9 +445,15 @@ if {$opt(writeDirType) == 1} {
   errorMsg "Spreadsheets will be written to a user-defined directory (Spreadsheet tab)"
   .tnb select .tnb.status
 }
-if {$opt(XLSCSV) != "Excel" && $developer} {
+
+# warn about output type
+if {$opt(XLSCSV) == "CSV"} {
   outputMsg " "
-  errorMsg "CSV files will be written (Options tab)"
+  errorMsg "CSV files will be generated (Options tab)"
+  .tnb select .tnb.status
+} elseif {$opt(XLSCSV) == "None"} {
+  outputMsg " "
+  errorMsg "No spreadsheet will be generated, only visualizations (Options tab)"
   .tnb select .tnb.status
 }
 

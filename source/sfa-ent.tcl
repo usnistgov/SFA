@@ -14,10 +14,14 @@ proc getEntity {objEntity checkInverse} {
 # -------------------------------------------------------------------------------------------------
 # open worksheet for each entity if it does not already exist
   if {![info exists worksheet($thisEntType)]} {
-    set msg "[formatComplexEnt $thisEntType] ($entCount($thisEntType))"
+    set msg "[formatComplexEnt $thisEntType] ("
+    set rm [expr {$rowmax-3}]
+    if {$entCount($thisEntType) > $rm} {append msg "$rm of "}
+    append msg "$entCount($thisEntType))"
     outputMsg $msg
     
-    if {$entCount($thisEntType) > 50000 && $rowmax > 50010} {errorMsg " Number of entities > 50000.  Consider using the Maximum Rows option." red}
+    if {$entCount($thisEntType) > $rm} {errorMsg " Maximum Rows exceeded ($rm)" red}
+    if {$entCount($thisEntType) > 10000 && $rm > 10000} {errorMsg " Number of entities > 10000.  Consider using the Maximum Rows option." red}
 
     set wsCount [$worksheets Count]
     if {$wsCount < 1} {
@@ -77,7 +81,6 @@ proc getEntity {objEntity checkInverse} {
 # entity worksheet already open
   } else {
     incr row($thisEntType)
-    if {$row($thisEntType) > $rowmax} {outputMsg " Maximum Rows exceeded ([expr {$rowmax-3}])" red}
     set heading($thisEntType) 0
   }
 
@@ -315,15 +318,13 @@ proc getEntity {objEntity checkInverse} {
 # report inverses    
     if {$invLen > 0} {invReport}
 
-# rows exceeded
+# rows exceeded, return of 0 will break the loop to process an entity type
   } else {
     return 0
   }  
 
 # clean up variables to hopefully release some memory
-  foreach var {objAttributes attrName refEntity refType} {
-    if {[info exists $var]} {unset $var}
-  }
+  foreach var {objAttributes attrName refEntity refType} {if {[info exists $var]} {unset $var}}
   update idletasks
   return 1
 }
@@ -348,7 +349,7 @@ proc setIDRow {entType p21id} {
 # -------------------------------------------------------------------------------------------------
 # read entity and write to CSV file
 proc getEntityCSV {objEntity} {
-  global badAttributes count csvdirnam csvfile csvstr entCount fcsv skipEntities skipPerm localName roseLogical thisEntType 
+  global badAttributes count csvdirnam csvfile csvstr entCount fcsv skipEntities skipPerm localName roseLogical thisEntType rowmax row
   
 # get entity type
   set thisEntType [$objEntity Type]
@@ -356,8 +357,14 @@ proc getEntityCSV {objEntity} {
 # -------------------------------------------------------------------------------------------------
 # csv file for each entity if it does not already exist
   if {![info exists csvfile($thisEntType)]} {
-    set msg "[formatComplexEnt $thisEntType] ($entCount($thisEntType))"
+    set msg "[formatComplexEnt $thisEntType] ("
+    set rm [expr {$rowmax-3}]
+    if {$entCount($thisEntType) > $rm} {append msg "$rm of "}
+    append msg "$entCount($thisEntType))"
     outputMsg $msg
+    
+    if {$entCount($thisEntType) > $rm} {errorMsg " Maximum Rows exceeded ($rm)" red}
+    if {$entCount($thisEntType) > 10000 && $rm > 10000} {errorMsg " Number of entities > 10000.  Consider using the Maximum Rows option." red}
 
 # open csv file
     set csvfile($thisEntType) 1
@@ -373,6 +380,7 @@ proc getEntityCSV {objEntity} {
     unset csvstr
 
     set count($thisEntType) 0
+    set row($thisEntType) 4
 
 # file of entities not to process
     set cfile [file rootname $localName]
@@ -386,98 +394,165 @@ proc getEntityCSV {objEntity} {
       errorMsg "ERROR processing 'skip' file: $emsg"
     }
     update idletasks
+
+# CSV file already open
+  } else {
+    incr row($thisEntType)
   }
 
 # -------------------------------------------------------------------------------------------------
 # start filling in the cells
-  incr count($thisEntType)
+
+# if less than max allowed rows
+  update idletasks
+  if {$row($thisEntType) <= $rowmax} {
+    incr count($thisEntType)
   
 # show progress with > 50000 entities
-  if {$entCount($thisEntType) >= 50000} {
-    set c1 [expr {$count($thisEntType)%20000}]
-    if {$c1 == 0} {
-      outputMsg " $count($thisEntType) of $entCount($thisEntType) processed"
-      update idletasks
+    if {$entCount($thisEntType) >= 50000} {
+      set c1 [expr {$count($thisEntType)%20000}]
+      if {$c1 == 0} {
+        outputMsg " $count($thisEntType) of $entCount($thisEntType) processed"
+        update idletasks
+      }
     }
-  }
 
 # entity ID
-  set p21id [$objEntity P21ID]
+    set p21id [$objEntity P21ID]
 
 # -------------------------------------------------------------------------------------------------
 # for all attributes of the entity
-  set nattr 0
-  set csvstr $p21id
-  set objAttributes [$objEntity Attributes]
-  ::tcom::foreach objAttribute $objAttributes {
-    set attrName [$objAttribute Name]
-    #outputMsg "$p21id $attrName [$objAttribute NodeType]" red
-
-    if {[catch {
-      if {![info exists badAttributes($thisEntType)]} {
-        set objValue [$objAttribute Value]
+    set nattr 0
+    set csvstr $p21id
+    set objAttributes [$objEntity Attributes]
+    ::tcom::foreach objAttribute $objAttributes {
+      set attrName [$objAttribute Name]
+      #outputMsg "$p21id $attrName [$objAttribute NodeType]" red
+  
+      if {[catch {
+        if {![info exists badAttributes($thisEntType)]} {
+          set objValue [$objAttribute Value]
 
 # look for bad attributes that cause a crash
-      } else {
-        set ok 1
-        foreach ba $badAttributes($thisEntType) {if {$ba == $attrName} {set ok 0}}
-        if {$ok} {
-          set objValue [$objAttribute Value]
         } else {
-          set objValue "???"
-          errorMsg " Skipping '$attrName' attribute on [formatComplexEnt $thisEntType] - '???' will appear in the CSV file for this attribute" red
+          set ok 1
+          foreach ba $badAttributes($thisEntType) {if {$ba == $attrName} {set ok 0}}
+          if {$ok} {
+            set objValue [$objAttribute Value]
+          } else {
+            set objValue "???"
+            errorMsg " Skipping '$attrName' attribute on [formatComplexEnt $thisEntType] - '???' will appear in the CSV file for this attribute" red
+          }
         }
-      }
 
 # error getting attribute value
-    } emsgv]} {
-      set msg "ERROR processing #[$objEntity P21ID]=[$objEntity Type] '$attrName' attribute: $emsgv"
-      if {[string first "datum_reference_compartment 'modifiers' attribute" $msg] != -1 || \
-          [string first "datum_reference_element 'modifiers' attribute" $msg] != -1 || \
-          [string first "annotation_plane 'elements' attribute" $msg] != -1} {
-        errorMsg "Syntax Error: On '[$objEntity Type]' entities change the '$attrName' attribute with\n '()' to '$' where applicable.  The attribute is an OPTIONAL SET\[1:?\] and '()' is not valid."
+      } emsgv]} {
+        set msg "ERROR processing #[$objEntity P21ID]=[$objEntity Type] '$attrName' attribute: $emsgv"
+        if {[string first "datum_reference_compartment 'modifiers' attribute" $msg] != -1 || \
+            [string first "datum_reference_element 'modifiers' attribute" $msg] != -1 || \
+            [string first "annotation_plane 'elements' attribute" $msg] != -1} {
+          errorMsg "Syntax Error: On '[$objEntity Type]' entities change the '$attrName' attribute with\n '()' to '$' where applicable.  The attribute is an OPTIONAL SET\[1:?\] and '()' is not valid."
+        }
+        errorMsg $msg
+        set objValue ""
+        catch {raise .}
       }
-      errorMsg $msg
-      set objValue ""
-      catch {raise .}
-    }
-
-    incr nattr
+  
+      incr nattr
 
 # -------------------------------------------------------------------------------------------------
 # not a handle, just a single value
-    if {[string first "handle" $objValue] == -1} {
-      set ov $objValue
+      if {[string first "handle" $objValue] == -1} {
+        set ov $objValue
   
 # if value is a boolean, substitute string roseLogical
-      if {([$objAttribute Type] == "RoseBoolean" || [$objAttribute Type] == "RoseLogical") && [info exists roseLogical($ov)]} {set ov $roseLogical($ov)}
-
-      append csvstr ",$ov"
+        if {([$objAttribute Type] == "RoseBoolean" || [$objAttribute Type] == "RoseLogical") && [info exists roseLogical($ov)]} {set ov $roseLogical($ov)}
+  
+        append csvstr ",$ov"
 
 # -------------------------------------------------------------------------------------------------
 # if attribute is reference to another entity
-    } else {
+      } else {
       
 # node type 18=ENTITY, 19=SELECT TYPE  (node type is 20 for SET or LIST is processed below)
-      if {[$objAttribute NodeType] == 18 || [$objAttribute NodeType] == 19} {
-        set refEntity [$objAttribute Value]
+        if {[$objAttribute NodeType] == 18 || [$objAttribute NodeType] == 19} {
+          set refEntity [$objAttribute Value]
 
 # get refType, however, sometimes this is not a single reference, but rather a list
 #  which causes an error and it has to be processed like a list below
-        if {[catch {
-          set refType [$refEntity Type]
-          set valnotlist 1
-        } emsg2]} {
+          if {[catch {
+            set refType [$refEntity Type]
+            set valnotlist 1
+          } emsg2]} {
 
 # process like a list which is very unusual
-          catch {foreach idx [array names cellval] {unset cellval($idx)}}
-          ::tcom::foreach val $refEntity {
-            append cellval([$val Type]) "[$val P21ID] "
+            catch {foreach idx [array names cellval] {unset cellval($idx)}}
+            ::tcom::foreach val $refEntity {
+              append cellval([$val Type]) "[$val P21ID] "
+            }
+            set str ""
+            set size 0
+            catch {set size [array size cellval]}
+  
+            if {$size > 0} {
+              foreach idx [lsort [array names cellval]] {
+                set ncell [expr {[llength [split $cellval($idx) " "]] - 1}]
+                if {$ncell > 1 || $size > 1} {
+                  if {$ncell < 30} {
+                    append str "($ncell) [formatComplexEnt $idx 1] $cellval($idx)  "
+                  } else {
+                    append str "($ncell) [formatComplexEnt $idx 1]  "
+                  }
+                } else {
+                  append str "(1) [formatComplexEnt $idx 1] $cellval($idx)  "
+                }
+              }
+            }
+            append csvstr ",$str"
+            set valnotlist 0
           }
+
+# value is not a list which is the most common
+          if {$valnotlist} {
+            set str "[formatComplexEnt $refType 1] [$refEntity P21ID]"
+
+# for length measure (and other measures), add the actual measure value
+            if {[string first "measure_with_unit" $refType] != -1} {
+              ::tcom::foreach refAttribute [$refEntity Attributes] {
+                if {[$refAttribute Name] == "value_component"} {set str "[$refAttribute Value] ($str)"}
+              }
+            }
+            append csvstr ",$str"
+          }
+
+# -------------------------------------------------------------------------------------------------
+# node type 20=AGGREGATE (ENTITIES), usually SET or LIST, try as a tcom list or regular list (SELECT type)
+        } elseif {[$objAttribute NodeType] == 20} {
+          catch {foreach idx [array names cellval] {unset cellval($idx)}}
+          catch {unset cellparam}
+
+# collect the reference id's (P21ID) for the Type of entity in the SET or LIST
+          if {[catch {
+            ::tcom::foreach val [$objAttribute Value] {
+              append cellval([$val Type]) "[$val P21ID] "
+            }
+          } emsg]} {
+            foreach val [$objAttribute Value] {
+              if {[string first "handle" $val] != -1} {
+                append cellval([$val Type]) "[$val P21ID] "
+              } else {
+                append cellparam "$val "
+              }
+            }
+          }
+
+# -------------------------------------------------------------------------------------------------
+# format cell values for the SET or LIST
           set str ""
           set size 0
           catch {set size [array size cellval]}
-
+  
+          if {[info exists cellparam]} {append str "$cellparam "}
           if {$size > 0} {
             foreach idx [lsort [array names cellval]] {
               set ncell [expr {[llength [split $cellval($idx) " "]] - 1}]
@@ -492,76 +567,22 @@ proc getEntityCSV {objEntity} {
               }
             }
           }
-          append csvstr ",$str"
-          set valnotlist 0
+          append csvstr ",[string trim $str]"
         }
-
-# value is not a list which is the most common
-        if {$valnotlist} {
-          set str "[formatComplexEnt $refType 1] [$refEntity P21ID]"
-
-# for length measure (and other measures), add the actual measure value
-          if {[string first "measure_with_unit" $refType] != -1} {
-            ::tcom::foreach refAttribute [$refEntity Attributes] {
-              if {[$refAttribute Name] == "value_component"} {set str "[$refAttribute Value] ($str)"}
-            }
-          }
-          append csvstr ",$str"
-        }
-
-# -------------------------------------------------------------------------------------------------
-# node type 20=AGGREGATE (ENTITIES), usually SET or LIST, try as a tcom list or regular list (SELECT type)
-      } elseif {[$objAttribute NodeType] == 20} {
-        catch {foreach idx [array names cellval] {unset cellval($idx)}}
-        catch {unset cellparam}
-
-# collect the reference id's (P21ID) for the Type of entity in the SET or LIST
-        if {[catch {
-          ::tcom::foreach val [$objAttribute Value] {
-            append cellval([$val Type]) "[$val P21ID] "
-          }
-        } emsg]} {
-          foreach val [$objAttribute Value] {
-            if {[string first "handle" $val] != -1} {
-              append cellval([$val Type]) "[$val P21ID] "
-            } else {
-              append cellparam "$val "
-            }
-          }
-        }
-
-# -------------------------------------------------------------------------------------------------
-# format cell values for the SET or LIST
-        set str ""
-        set size 0
-        catch {set size [array size cellval]}
-
-        if {[info exists cellparam]} {append str "$cellparam "}
-        if {$size > 0} {
-          foreach idx [lsort [array names cellval]] {
-            set ncell [expr {[llength [split $cellval($idx) " "]] - 1}]
-            if {$ncell > 1 || $size > 1} {
-              if {$ncell < 30} {
-                append str "($ncell) [formatComplexEnt $idx 1] $cellval($idx)  "
-              } else {
-                append str "($ncell) [formatComplexEnt $idx 1]  "
-              }
-            } else {
-              append str "(1) [formatComplexEnt $idx 1] $cellval($idx)  "
-            }
-          }
-        }
-        append csvstr ",[string trim $str]"
       }
     }
-  }
-  #outputMsg "$fcsv $csvstr"
+    #outputMsg "$fcsv $csvstr"
 
 # write to CSV file
-  if {[catch {
-    puts $fcsv $csvstr
-  } emsg]} {
-    errorMsg "Error writing to CSV file for: $thisEntType"
+    if {[catch {
+      puts $fcsv $csvstr
+    } emsg]} {
+      errorMsg "Error writing to CSV file for: $thisEntType"
+    }
+
+# rows exceeded, return of 0 will break the loop to process an entity type
+  } else {
+    return 0
   }
 
 # -------------------------------------------------------------------------------------------------

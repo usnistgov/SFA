@@ -1,6 +1,6 @@
 proc valPropStart {} {
   global objDesign
-  global cells col entLevel ent entAttrList ncartpt opt pd pdcol pdheading propDefRow valPropLink valPropNames 
+  global cells col entLevel ent entAttrList ncartpt opt pd pdcol pdheading propDefRow valPropLink valPropNames rowmax
   
 # CAx-IF RP Geometric and Assembly Validation Properties, section 8
   set valPropNames(geometric_validation_property) [list \
@@ -46,13 +46,14 @@ proc valPropStart {} {
     [list "number of segments" [list "number of segments"]] \
     [list "surface area" [list "tessellated surface area"]]]
 
-# composite recommended practice
+# composite recommended practice (new vp in the last line)
   set valPropNames(composite_validation_property) [list \
     [list "" [list "number of composite tables" "number of composite materials per part" "number of composite materials per part" \
       "number of orientations per part" "number of plies per part" "number of plies per laminate table" \
       "number of composite sequences per laminate table" "number of composite materials per laminate table" \
       "number of composite orientations per laminate table" "ordered sequences per laminate table" \
-      "notational centroid" "number of ply pieces per ply"]]]
+      "notational centroid" "number of ply pieces per ply" \
+      "number of tables" "number of sequences" "number of plies" "number of materials" "number of orientations" "sum of all ply surfaces areas" "centre point of all plies"]]]
 
   set derived_unit_element [list derived_unit_element unit \
     [list conversion_based_unit_and_length_unit dimensions name conversion_factor] \
@@ -108,7 +109,7 @@ proc valPropStart {} {
   ::tcom::foreach objEntity [$objDesign FindObjects [join $startent]] {
     set ncartpt 0
     if {[$objEntity Type] == $startent} {
-      if {$n < 10000000} {
+      if {$n < $rowmax} {
         if {[expr {$n%2000}] == 0} {
           if {$n > 0} {outputMsg "  $n"}
           update idletasks
@@ -606,7 +607,7 @@ proc valPropFormat {} {
     #if {[llength $propDefRow] == 0 && $stepAP != ""} {
     #  outputMsg " No Validation Properties found as defined by\n  CAx-IF Recommended Practice for $recPracNames(valprop)" red
     #}
-    outputMsg " Formatting Properties on: property_definition" blue
+    outputMsg " Formatting: property_definition" blue
   
 # delete unused columns
     set delcol 0
@@ -695,8 +696,8 @@ proc valPropFormat {} {
     }
     
 # bottom bold line
-    set range [$worksheet($thisEntType) Range [cellRange $row($thisEntType) 5] [cellRange $r2 $col($thisEntType)]]
-    catch {[[$range Borders] Item [expr 9]] Weight [expr -4138]}
+    #set range [$worksheet($thisEntType) Range [cellRange $row($thisEntType) 5] [cellRange $row($thisEntType) $col($thisEntType)]]
+    #[[$range Borders] Item [expr 9]] Weight [expr -4138]
     
 # fix column widths
     set colrange [[[$worksheet($thisEntType) UsedRange] Columns] Count]

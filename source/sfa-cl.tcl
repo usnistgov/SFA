@@ -19,7 +19,8 @@
 
 global env
 
-set wdir [file dirname [info script]]
+set scriptName [info script]
+set wdir [file dirname $scriptName]
 set auto_path [linsert $auto_path 0 $wdir]
 
 # for freeWrap the following lappend commands add package locations to auto_path, must be before package commands
@@ -53,7 +54,7 @@ set opt(PR_STEP_CPNT) 0
 set opt(PR_STEP_GEOM)  0
 set opt(PR_USER) 0
 set opt(INVERSE) 0
-set opt(XL_ROWLIM) 10000000
+set opt(XL_ROWLIM) 1048576
 set opt(XL_SORT) 0
 set opt(writeDirType) 0
 set opt(XL_KEEPOPEN) 0
@@ -66,6 +67,7 @@ set excelYear ""
 set firsttime 1
 set lastXLS  ""
 set lastXLS1 ""
+set lastX3DOM ""
 set openFileList {}
 set pointLimit 2
 set sfaVersion 0
@@ -136,8 +138,7 @@ if {[info exists userEntityFile]} {
 #-------------------------------------------------------------------------------
 # start 
 set progtime 0
-foreach item {sfa-cl sfa-data sfa-dimtol sfa-ent sfa-gen sfa-geotol sfa-grafpmi sfa-proc sfa-step sfa-valprop} {
-  set fname [file join $wdir $item.tcl]
+foreach fname [glob -nocomplain -directory $wdir *.tcl] {
   set mtime [file mtime $fname]
   if {$mtime > $progtime} {set progtime $mtime}
 }
@@ -166,6 +167,7 @@ if {$argc == 0 || ($argc == 1 && ($arg == "help" || $arg == "-help" || $arg == "
   }
   puts "\nWhere options include:\n"
   puts "  csv       Generate CSV files"                                                                                        
+  puts "  viz       Generate only Visualizations and no spreadsheet or CSV files"                                                                                        
   puts "  noopen    Do not open spreadsheet after it has been generated"                                                                                        
 
   puts "\nOptions last used in the GUI version are used in this program."
@@ -192,17 +194,14 @@ for {set i 1} {$i <= 100} {incr i} {
   set arg [string tolower [lindex $argv $i]]
   if {$arg != ""} {
     lappend larg $arg
-    if {[string first "noopen" $arg] == 0} {set opt(XL_OPEN) 0}                              
-    if {[string first "csv"    $arg] == 0} {set opt(XLSCSV) "CSV"}                              
+    if {[string first "no" $arg] == 0} {set opt(XL_OPEN) 0}                              
+    if {[string first "cs" $arg] == 0} {set opt(XLSCSV) "CSV"}                              
+    if {[string first "vi" $arg] == 0} {set opt(XLSCSV) "None"}                              
   }
 }
 
 # options used from GUI version
-puts "\nOptions last used in the GUI version are being used.  Some of them are:"
-if {$opt(PMISEM)}  {puts " PMI Representation Report"}
-if {$opt(PMIGRF)}  {puts " PMI Presentation Report"}
-if {$opt(VALPROP)} {puts " Validation Properties Report"}
-if {$opt(INVERSE)} {puts " Inverse Relationships"}
+puts " Options last used in the GUI version are being used.\n"
 
 set localName [lindex $argv 0]
 if {[string first ":" $localName] == -1} {set localName [file join [pwd] $localName]}

@@ -1,9 +1,7 @@
 #-------------------------------------------------------------------------------
-# version number
-proc getVersion {} {
-  set app_version 2.25
-  return $app_version
-}
+# version numbers
+proc getVersion {}   {return 2.30}
+proc getVersionUG {} {return 1.60}
 
 # -------------------------------------------------------------------------------
 # dt = 1 for dimtol
@@ -692,6 +690,7 @@ proc spmiGetPMI {} {
   global wdir mytemp spmiCoverages pmiMaster nistName nistVersion
 
   if {[catch {
+    set lf 1
     if {![info exists spmiCoverages]} {
       
 # first mount NIST zip file with images and expected PMI
@@ -709,7 +708,8 @@ proc spmiGetPMI {} {
       set fname [file nativename [file join $mytemp $fn]]
 
       if {[file exists $fname]} {
-        outputMsg "Reading Expected PMI Representation Coverage"
+        outputMsg "\nReading Expected PMI Representation Coverage"
+        set lf 0
         set f [open $fname r]
         set r 0
         while {[gets $f line] >= 0} {
@@ -741,7 +741,8 @@ proc spmiGetPMI {} {
       set fname [file nativename [file join $mytemp $fn]]
 
       if {[file exists $fname]} {
-        outputMsg "Reading Expected PMI for: $nistName (See Help > NIST CAD Models)\n"
+        if {$lf} {outputMsg " "}
+        outputMsg "Reading Expected PMI for: $nistName (See Help > NIST CAD Models)" blue
         set pid1 [twapi::get_process_ids -name "EXCEL.EXE"]
         set excel2 [::tcom::ref createobject Excel.Application]
         set pid2 [lindex [intersect3 $pid1 [twapi::get_process_ids -name "EXCEL.EXE"]] 2]
@@ -866,7 +867,7 @@ proc pmiFormatColumns {str} {
     set c3 $col($thisEntType)
     
 # PMI heading
-    outputMsg " Formatting $str on: [formatComplexEnt $thisEntType]" blue
+    outputMsg " Formatting: [formatComplexEnt $thisEntType]" blue
     $cells($thisEntType) Item 2 $c2 $str
     set range [$worksheet($thisEntType) Range [cellRange 2 $c2]]
     $range HorizontalAlignment [expr -4108]
@@ -1022,8 +1023,8 @@ proc setEntsToProcess {entType} {
     }
   }
 
-# for PMI (graphical) presentation
-  if {$opt(PMIGRF) && $ok == 0} {
+# for PMI (graphical) presentation report and viz
+  if {($opt(PMIGRF) || $opt(VIZPMI)) && $ok == 0} {
     set ok [gpmiCheckEnt $entType]
     set gpmiEnts($entType) $ok
     if {$entType == "advanced_face" || \
@@ -1086,15 +1087,13 @@ proc checkForReports {entType} {
   global objDesign
   global cells skipEntities gpmiEnts opt pmiColumns savedViewCol spmiEnts
   
-# check for validation properties, call valPropStart
+# check for validation properties report, call valPropStart
   if {$entType == "property_definition_representation"} {
     if {[catch {
       if {[info exists opt(VALPROP)]} {
         if {$opt(VALPROP)} {
           if {[lsearch $skipEntities "representation"] == -1} {
-            if {[info exists cells(property_definition)]} {
-              valPropStart
-            }
+            if {[info exists cells(property_definition)]} {valPropStart}
           }
         }
       }
@@ -1102,35 +1101,30 @@ proc checkForReports {entType} {
       errorMsg "ERROR adding Validation Properties to '$entType'\n  $emsg"
     }
 
-# check for PMI Presentation, call gpmiAnnotation
+# check for PMI Presentation report or viz graphical PMI, call gpmiAnnotation
   } elseif {$gpmiEnts($entType)} {
     if {[catch {
-      if {[info exists opt(PMIGRF)]} {
-        if {$opt(PMIGRF)} {
-          if {[info exists cells($entType)]} {
-            gpmiAnnotation $entType
-          }
-          catch {unset savedViewCol}
-          catch {unset pmiColumns}
-        }
+      set ok 0
+      if {[info exists opt(PMIGRF)]} {if {$opt(PMIGRF)} {set ok 1}}
+      if {[info exists opt(VIZPMI)]} {if {$opt(VIZPMI)} {set ok 1}}
+      if {$ok} {
+        if {[info exists cells($entType)] || $opt(VIZPMI)} {gpmiAnnotation $entType}
+        catch {unset savedViewCol}
+        catch {unset pmiColumns}
       }
     } emsg]} {
       errorMsg "ERROR adding PMI Presentation to '$entType'\n  $emsg"
     }
   
-# tessellated part geometry is also processed in gpmiAnnotation (for now)
+# viz tessellated part geometry, call tessPart
   } elseif {$entType == "tessellated_solid" || $entType == "tessellated_shell"} {
     if {[catch {
-      if {[info exists opt(VIZTES)]} {
-        if {$opt(VIZTES)} {
-          gpmiAnnotation $entType
-        }
-      }
+      if {[info exists opt(VIZTES)]} {if {$opt(VIZTES)} {tessPart $entType}}
     } emsg]} {
       errorMsg "ERROR adding Tessellated Part Geometry\n  $emsg"
     }
 
-# check for Semantic PMI, call spmiDimtolStart or spmiGeotolStart
+# check for Semantic PMI report, call spmiDimtolStart or spmiGeotolStart
   } elseif {$spmiEnts($entType)} {
     if {[catch {
       if {[info exists opt(PMISEM)]} {
@@ -1153,11 +1147,7 @@ proc checkForReports {entType} {
             $entType == "surface_3d_element_representation" || \
             $entType == "volume_3d_element_representation"} {
     if {[catch {
-      if {[info exists opt(VIZFEA)]} {
-        if {$opt(VIZFEA)} {
-          feaModel $entType
-        }
-      }
+      if {[info exists opt(VIZFEA)]} {if {$opt(VIZFEA)} {feaModel $entType}}
     } emsg]} {
       errorMsg "ERROR adding Analysis Model to '$entType'\n  $emsg"
     }

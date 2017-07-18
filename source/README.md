@@ -4,6 +4,7 @@
 
 - sfa.tcl - main program
 - sfa-cl.tcl - main program for command-line version
+- sfa-coverage.tcl - coverage analysis
 - sfa-data.tcl - set lots of variables
 - sfa-dimtol.tcl - process dimensional tolerances
 - sfa-ent.tcl - write STEP entity to worksheet or CSV file
@@ -11,7 +12,7 @@
 - sfa-gen.tcl - generate a spreadsheet
 - sfa-geotol.tcl- process geometric tolerances
 - sfa-grafpmi.tcl - process graphical PMI and tessellated geometry
-- sfa-grafx3d.tcl - X3D graphics
+- sfa-grafx3d.tcl - X3DOM graphics
 - sfa-gui.tcl - generate user interface
 - sfa-indent.tcl - indents STEP file
 - sfa-inv.tcl - process inverse relationships
