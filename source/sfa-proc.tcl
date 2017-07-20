@@ -2,11 +2,14 @@
 proc checkValues {} {
   global opt buttons appNames appName developer userEntityList
   global edmWriteToFile edmWhereRules eeWriteToFile
+  
+  set butNormal {}
+  set butDisabled {}
 
   if {[info exists buttons(appCombo)]} {
     set ic [lsearch $appNames $appName]
     if {$ic < 0} {set ic 0}
-    $buttons(appCombo) current $ic
+    catch {$buttons(appCombo) current $ic}
 
 # Jotne EDM Model Checker
     if {$developer} {
@@ -41,6 +44,7 @@ proc checkValues {} {
     }
   }
 
+# CSV files
   if {$opt(XLSCSV) == "CSV"} {
     set opt(INVERSE) 0
     set opt(PMIGRF)  0
@@ -48,140 +52,118 @@ proc checkValues {} {
     set opt(VALPROP) 0
     set opt(writeDirType) 0
     set opt(XL_OPEN) 1
-    $buttons(genExcel)   configure -text "Generate CSV Files"
-    $buttons(optINVERSE) configure -state disabled
-    $buttons(optPMIGRF)  configure -state disabled
-    $buttons(optPMISEM)  configure -state disabled
-    $buttons(optVALPROP) configure -state disabled
-    $buttons(optXL_FPREC)    configure -state disabled
-    $buttons(optXL_KEEPOPEN) configure -state disabled
-    $buttons(optXL_LINK1)    configure -state disabled
-    $buttons(optXL_SORT)     configure -state disabled
+    foreach item [array names opt] {
+      if {[string first "PR_STEP" $item] == 0} {
+        lappend butNormal "opt$item"
+      }
+    }
+    foreach b {optINVERSE optPMIGRF optPMISEM optVALPROP optXL_FPREC optXL_KEEPOPEN optXL_LINK1 optXL_SORT} {lappend butDisabled $b}
+    catch {$buttons(genExcel) configure -text "Generate CSV Files"}
+
+# spreadsheets
   } elseif {$opt(XLSCSV) == "Excel"} {
-    $buttons(genExcel)   configure -text "Generate Spreadsheet"
-    $buttons(optINVERSE) configure -state normal
-    $buttons(optPMIGRF)  configure -state normal
-    $buttons(optPMISEM)  configure -state normal
-    $buttons(optVALPROP) configure -state normal
-    $buttons(optXL_FPREC)    configure -state normal
-    $buttons(optXL_KEEPOPEN) configure -state normal
-    $buttons(optXL_LINK1)    configure -state normal
-    $buttons(optXL_SORT)     configure -state normal
+    foreach item [array names opt] {
+      if {[string first "PR_STEP" $item] == 0} {
+        lappend butNormal "opt$item"
+      }
+    }
+    foreach b {optINVERSE optPMIGRF optPMISEM optVALPROP optXL_FPREC optXL_KEEPOPEN optXL_LINK1 optXL_SORT} {lappend butNormal $b}
+    catch {$buttons(genExcel) configure -text "Generate Spreadsheet"}
+
+# viz only
   } elseif {$opt(XLSCSV) == "None"} {
-    $buttons(genExcel) configure -text "Generate Visualization"
-    foreach item [array names opt] {if {[string first "PR_STEP" $item] == 0} {set opt($item) 0}}
+    foreach item [array names opt] {
+      if {[string first "PR_STEP" $item] == 0} {
+        set opt($item) 0
+        lappend butDisabled "opt$item"
+      }
+    }
+    set opt(INVERSE) 0
     set opt(PR_USER) 0
     set opt(VIZFEA) 1
     set opt(VIZPMI) 1
     set opt(VIZTES) 1
-    set opt(PMIGRF)  0
-    set opt(PMISEM)  0
-    set opt(VALPROP) 0
-    $buttons(optPMIGRF)  configure -state disabled
-    $buttons(optPMISEM)  configure -state disabled
-    $buttons(optVALPROP) configure -state disabled
+    foreach b {optPMIGRF optPMISEM optVALPROP optPR_USER optINVERSE} {
+      set opt([string range $b 3 end]) 0
+      lappend butDisabled $b
+    }
+    catch {$buttons(genExcel) configure -text "Generate Visualization"}
   }
   
 # STEP related
   if {$opt(PMIGRF)} {
     if {$opt(XLSCSV) != "None"} {
-      set opt(PR_STEP_AP242) 1
-      set opt(PR_STEP_PRES) 1
-      set opt(PR_STEP_SHAP) 1
-      $buttons(optPR_STEP_AP242) configure -state disabled
-      $buttons(optPR_STEP_PRES) configure -state disabled
-      $buttons(optPR_STEP_SHAP) configure -state disabled
+      foreach b {optPR_STEP_AP242 optPR_STEP_PRES optPR_STEP_SHAP} {
+        set opt([string range $b 3 end]) 1
+        lappend butDisabled $b
+      }
     }
   } else {
-    $buttons(optPR_STEP_PRES) configure -state normal
-    if {!$opt(VALPROP)} {$buttons(optPR_STEP_QUAN) configure -state normal}
-    if {!$opt(PMISEM)}  {
-      $buttons(optPR_STEP_AP242) configure -state normal
-      $buttons(optPR_STEP_COMM) configure -state normal
-      $buttons(optPR_STEP_SHAP) configure -state normal
-    }
+    lappend butNormal optPR_STEP_PRES
+    if {!$opt(VALPROP)} {lappend butNormal optPR_STEP_QUAN}
+    if {!$opt(PMISEM)}  {foreach b {optPR_STEP_AP242 optPR_STEP_COMM optPR_STEP_SHAP} {lappend butNormal $b}}
   }
 
   if {$opt(VALPROP)} {
     set opt(PR_STEP_QUAN) 1
-    $buttons(optPR_STEP_QUAN) configure -state disabled
-  } else {
-    if {!$opt(PMIGRF)} {$buttons(optPR_STEP_QUAN) configure -state normal}
+    lappend butDisabled optPR_STEP_QUAN
+  } elseif {!$opt(PMIGRF)} {
+    lappend butNormal optPR_STEP_QUAN
   }
 
   if {$opt(VIZPMI)} {
-    $buttons(gpmiColor0) configure -state normal
-    $buttons(gpmiColor1) configure -state normal
-    $buttons(gpmiColor2) configure -state normal
-    $buttons(linecolor)  configure -state normal
+    foreach b {gpmiColor0 gpmiColor1 gpmiColor2 linecolor} {lappend butNormal $b}
     if {$opt(XLSCSV) != "None"} {
       set opt(PR_STEP_PRES) 1
-      $buttons(optPR_STEP_PRES) configure -state disabled
+      lappend butDisabled optPR_STEP_PRES
     }
   } else {
-    $buttons(gpmiColor0) configure -state disabled
-    $buttons(gpmiColor1) configure -state disabled
-    $buttons(gpmiColor2) configure -state disabled
-    $buttons(linecolor)  configure -state disabled
+    foreach b {gpmiColor0 gpmiColor1 gpmiColor2 linecolor} {lappend butDisabled $b}
   }
 
   if {$opt(PMISEM)} {
-    set opt(PR_STEP_AP242) 1
-    set opt(PR_STEP_REPR) 1
-    set opt(PR_STEP_SHAP) 1
-    set opt(PR_STEP_TOLR) 1
-    $buttons(optPR_STEP_AP242) configure -state disabled
-    $buttons(optPR_STEP_REPR) configure -state disabled
-    $buttons(optPR_STEP_SHAP) configure -state disabled
-    $buttons(optPR_STEP_TOLR) configure -state disabled
+    foreach b {optPR_STEP_AP242 optPR_STEP_REPR optPR_STEP_SHAP optPR_STEP_TOLR} {
+      set opt([string range $b 3 end]) 1
+      lappend butDisabled $b
+    }
   } else {
-    $buttons(optPR_STEP_REPR) configure -state normal
-    $buttons(optPR_STEP_TOLR) configure -state normal
+    foreach b {optPR_STEP_REPR optPR_STEP_TOLR} {lappend butNormal $b}
     if {!$opt(PMIGRF)} {
-      if {!$opt(VALPROP)} {$buttons(optPR_STEP_QUAN) configure -state normal}
-      $buttons(optPR_STEP_AP242) configure -state normal
-      $buttons(optPR_STEP_COMM) configure -state normal
-      $buttons(optPR_STEP_SHAP) configure -state normal
+      if {!$opt(VALPROP)} {lappend butNormal optPR_STEP_QUAN}
+      foreach b {optPR_STEP_AP242 optPR_STEP_COMM optPR_STEP_SHAP} {lappend butNormal $b}
     }
   }
 
   if {$opt(VIZTES)} {
     if {$opt(XLSCSV) != "None"} {
       set opt(PR_STEP_REPR) 1
-      $buttons(optPR_STEP_REPR) configure -state disabled
+      lappend butDisabled optPR_STEP_REPR
     }
   } else {
-    if {!$opt(PMISEM) && !$opt(PMIGRF)} {$buttons(optPR_STEP_COMM) configure -state normal}
-    if {!$opt(PMISEM)} {$buttons(optPR_STEP_REPR) configure -state normal}
+    catch {
+      if {!$opt(PMISEM) && !$opt(PMIGRF)} {lappend butNormal optPR_STEP_COMM}
+      if {!$opt(PMISEM)} {lappend butNormal optPR_STEP_REPR}
+    }
   }
   
 # user-defined entity list
   if {[info exists opt(PR_USER)]} {
     if {$opt(PR_USER)} {
-      $buttons(userentity)     configure -state normal
-      $buttons(userentityopen) configure -state normal
+      foreach b {userentity userentityopen} {lappend butNormal $b}
     } else {
-      $buttons(userentity)     configure -state disabled
-      $buttons(userentityopen) configure -state disabled
+      foreach b {userentity userentityopen} {lappend butDisabled $b}
       set userEntityList {}
     }
   }
   
   if {$opt(writeDirType) == 0} {
-    $buttons(userdir)    configure -state disabled
-    $buttons(userentry)  configure -state disabled
-    $buttons(userentry1) configure -state disabled
-    $buttons(userfile)   configure -state disabled
+    foreach b {userdir userentry userentry1 userfile} {lappend butDisabled $b}
   } elseif {$opt(writeDirType) == 1} {
-    $buttons(userdir)    configure -state disabled
-    $buttons(userentry)  configure -state disabled
-    $buttons(userentry1) configure -state normal
-    $buttons(userfile)   configure -state normal
+    foreach b {userdir userentry}   {lappend butDisabled $b}
+    foreach b {userentry1 userfile} {lappend butNormal   $b}
   } elseif {$opt(writeDirType) == 2} {
-    $buttons(userdir)    configure -state normal
-    $buttons(userentry)  configure -state normal
-    $buttons(userentry1) configure -state disabled
-    $buttons(userfile)   configure -state disabled
+    foreach b {userdir userentry}   {lappend butNormal   $b}
+    foreach b {userentry1 userfile} {lappend butDisabled $b}
   }
 
 # make sure there is some entity type to process
@@ -192,6 +174,10 @@ proc checkValues {} {
     }
   }
   if {$nopt == 0 && !$opt(VIZFEA)} {set opt(PR_STEP_COMM) 1}
+  
+# configure buttons
+  if {[llength $butNormal]   > 0} {foreach but $butNormal   {catch {$buttons($but) configure -state normal}}}
+  if {[llength $butDisabled] > 0} {foreach but $butDisabled {catch {$buttons($but) configure -state disabled}}}
 }
 
 # -------------------------------------------------------------------------------------------------

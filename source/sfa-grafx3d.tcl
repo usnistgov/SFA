@@ -254,12 +254,12 @@ proc x3dPolylinePMI {} {
 }
 
 # -------------------------------------------------------------------------------
-# write saved view geometry, set viewpoints, add navigation and background color, and close X3DOM file
+# write PMI saved view geometry, set viewpoints, add navigation and background color, and close X3DOM file
 proc x3dFileEnd {} {
   global modelURLs nistName opt stepAP x3dMax x3dMin x3dFile x3dMsg stepAP entCount nistVersion numTessColor
   global savedViewButtons savedViewFileName savedViewFile savedViewNames
   
-# write any saved view geometry for multiple saved views
+# write any PMI saved view geometry for multiple saved views
   set savedViewButtons {}
   if {[llength $savedViewNames] > 0} {
     foreach svn $savedViewNames {
@@ -273,6 +273,7 @@ proc x3dFileEnd {} {
         close $f
         unset savedViewFile($svn)
       }
+      catch {file delete -force $savedViewFileName($svn)}
     }
   }
 

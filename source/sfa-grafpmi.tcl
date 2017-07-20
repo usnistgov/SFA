@@ -803,7 +803,7 @@ proc gpmiAnnotationReport {objEntity} {
                       set invalid 1
                       lappend syntaxErr([lindex [split $ent1 " "] 0]) [list $objID [lindex [split $ent1 " "] 1]]
                     } elseif {[lsearch $gpmiTypes $ov] == -1} {
-                      set msg "Syntax Error: Invalid 'name' attribute ($ov) on [formatComplexEnt [lindex $ent1 0]].\n[string repeat " " 14]"
+                      set msg "Syntax Error: 'name' attribute ($ov) on [formatComplexEnt [lindex $ent1 0]] is not recommended.\n[string repeat " " 14]"
                       if {$stepAP == "AP242"} {
                         append msg "($recPracNames(pmi242), Sec. 8.4, Table 14)"
                       } else {
@@ -1267,7 +1267,7 @@ proc gpmiAnnotationReport {objEntity} {
 proc pmiGetCamerasAndProperties {} {
   global objDesign
   global draftModelCameras draftModelCameraNames gpmiValProp syntaxErr propDefIDS stepAP recPracNames entCount
-  global opt savedViewNames savedViewFile savedViewFileName mytemp
+  global opt savedViewNames savedViewFile savedViewFileName mytemp savedViewName
 
   #outputMsg getCameras blue
   catch {unset draftModelCameras}
@@ -1367,6 +1367,7 @@ proc pmiGetCamerasAndProperties {} {
 
 # keep track of saved views for graphic PMI
             if {$opt(VIZPMI)} {
+              lappend savedViewName $draftModelCameraNames([$entDraughtingModel P21ID])
               if {[lsearch $savedViewNames $name] == -1} {
                 lappend savedViewNames $name
                 set savedViewFileName($name) [file join $mytemp $name.txt]

@@ -11,7 +11,7 @@ proc genExcel {{numFile 0}} {
   global thisEntType tlast tolNames tolStandard totalEntity userEntityFile userEntityList userXLSFile virtualDir
   global workbook workbooks worksheet worksheet1 worksheets writeDir wsCount
   global x3dColor x3dColors x3dCoord x3dFile x3dFileName x3dStartFile x3dIndex x3dMax x3dMin
-  global xlFileName xlFileNames tcl_platform
+  global xlFileName xlFileNames
   global objDesign
   
   if {[info exists errmsg]} {set errmsg ""}
@@ -289,12 +289,6 @@ proc genExcel {{numFile 0}} {
       }
       if {$excelVersion >= 2000 && $excelVersion < 2100} {set excelYear $excelVersion}
       if {$excelYear < 2007} {errorMsg " Some spreadsheet features are not available with older versions of Excel."}
-      
-      if {$tcl_platform(osVersion) >= 6.2 && $excelYear == 2016 && $opt(XLSBUG) > 0 && $opt(PMISEM) && $opt(XLSCSV) == "Excel"} {
-        errorMsg "Excel $excelYear might not display some GD&T symbols and modifiers correctly for the PMI Representation report.\nThe symbols and modifiers will appear a question mark inside a square."
-        outputMsg " "
-        incr opt(XLSBUG) -1
-      }
   
 # turning off ScreenUpdating saves A LOT of time
       if {$opt(XL_KEEPOPEN) && $numFile == 0} {
@@ -699,10 +693,10 @@ proc genExcel {{numFile 0}} {
     #set dim(name) ""
     
 # find camera models used in draughting model items and annotation_occurrence used in property_definition and datums
-    if {$opt(PMIGRF)} {pmiGetCamerasAndProperties}
+    if {$opt(PMIGRF) || $opt(VIZPMI)} {pmiGetCamerasAndProperties}
 
     if {[llength $entsToProcess] == 0} {
-      errorMsg "No STEP entities were found to Process as selected in the Options tab."
+      errorMsg "No entities are selected to Process (Options tab)."
       break
     }
     set tlast [clock clicks -milliseconds]

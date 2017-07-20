@@ -904,6 +904,8 @@ proc guiHelpMenu {} {
       set url "https://concrete.nist.gov/cgi-bin/ctv/sfa_upgrade.cgi?version=[getVersion]&auto=-$lastupgrade"
       if {[info exists excelYear]} {if {$excelYear != ""} {append url "&yr=[expr {$excelYear-2000}]"}}
       openURL $url
+      set upgrade [clock seconds]
+      saveState
     }
   }
 

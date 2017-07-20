@@ -38,8 +38,8 @@ catch {
   package require vfs::zip
 }
 
-set nistVersion 0
-foreach item $auto_path {if {[string first "STEP-File-Analyzer" $item] != -1} {set nistVersion 1}}
+set nistVersion 1
+#foreach item $auto_path {if {[string first "sfa-cl" $item] != -1} {set nistVersion 1}}
 
 foreach id {XL_OPEN XL_KEEPOPEN XL_LINK1 XL_FPREC XL_SORT \
             VALPROP PMIGRF PMISEM VIZPMI VIZFEA VIZTES INVERSE DEBUG1 \
@@ -144,9 +144,7 @@ foreach fname [glob -nocomplain -directory $wdir *.tcl] {
 }
 
 puts "\n--------------------------------------------------------------------------------"
-set str ""
-if {$nistVersion} {set str "NIST "}
-puts "$str\STEP File Analyzer (v[getVersion] - Updated: [string trim [clock format $progtime -format "%e %b %Y"]])"
+puts "NIST STEP File Analyzer (v[getVersion] - Updated: [string trim [clock format $progtime -format "%e %b %Y"]])"
 
 #-------------------------------------------------------------------------------
 
@@ -160,11 +158,7 @@ if {![file exists [file join $pf32 IFCsvrR300 dll IFCsvrR300.dll]]} {
 
 if {$argc == 1} {set arg [string tolower [lindex $argv 0]]}
 if {$argc == 0 || ($argc == 1 && ($arg == "help" || $arg == "-help" || $arg == "-h" || $arg == "-v"))} {
-  if {$nistVersion} {
-    puts "\nUsage: STEP-File-Analyzer-CL.exe myfile.stp \[options ...\]"
-  } else {
-    puts "\nUsage: sfa-cl.exe myfile.stp \[options ...\]"
-  }
+  puts "\nUsage: sfa-cl.exe myfile.stp \[options ...\]"
   puts "\nWhere options include:\n"
   puts "  csv       Generate CSV files"                                                                                        
   puts "  viz       Generate only Visualizations and no spreadsheet or CSV files"                                                                                        
@@ -172,8 +166,7 @@ if {$argc == 0 || ($argc == 1 && ($arg == "help" || $arg == "-help" || $arg == "
 
   puts "\nOptions last used in the GUI version are used in this program."
 
-if {$nistVersion} { 
-puts "\n\nDisclaimers:
+  puts "\n\nDisclaimers:
    
 This software was developed at the National Institute of Standards and Technology
 by employees of the Federal Government in the course of their official duties.  
@@ -184,8 +177,9 @@ other parties, and makes no guarantees, expressed or implied, about its quality,
 reliability, or any other characteristic.
 
 This software uses Microsoft Excel and IFCsvr which are covered by their own
-EULAs (End-User License Agreements)."
-}
+EULAs (End-User License Agreements).
+
+See the NIST Disclaimer at: https://www.nist.gov/disclaimer"
   exit
 }
 

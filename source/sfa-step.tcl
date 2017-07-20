@@ -1,6 +1,6 @@
 #-------------------------------------------------------------------------------
 # version numbers
-proc getVersion {}   {return 2.30}
+proc getVersion {}   {return 2.32}
 proc getVersionUG {} {return 1.60}
 
 # -------------------------------------------------------------------------------
@@ -840,7 +840,7 @@ proc pmiAddModelPictures {ent} {
  
 # -------------------------------------------------------------------------------
 proc pmiFormatColumns {str} {
-  global cells col excelVersion gpmiRow invGroup opt pmiStartCol recPracNames row spmiRow stepAP thisEntType worksheet
+  global cells col excelVersion gpmiRow invGroup opt pmiStartCol recPracNames row spmiRow stepAP thisEntType worksheet tcl_platform excelYear
 		
   if {![info exists pmiStartCol($thisEntType)]} {
     return
@@ -884,6 +884,10 @@ proc pmiFormatColumns {str} {
       set rs $gpmiRow($thisEntType)
     } elseif {[string first "PMI Representation" $str] != -1} {
       set rs $spmiRow($thisEntType)
+      if {$tcl_platform(osVersion) >= 6.2 && $excelYear == 2016 && $opt(XLSBUG1) > 0 && ![file exists [file nativename C:/Windows/Fonts/ARIALUNI.TTF]]} {
+        errorMsg "Excel $excelYear might not display some GD&T symbols correctly in PMI Representation reports.\n The symbols will appear as question mark inside a square.  The likely cause is a missing\n font 'Arial Unicode MS' found in the font file 'ARIALUNI.TTF'."
+        incr opt(XLSBUG1) -1
+      }
     }
     foreach r $rs {
       set r [expr {$r-2}]
