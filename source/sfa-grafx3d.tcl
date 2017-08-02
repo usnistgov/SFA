@@ -1,6 +1,6 @@
 # start x3dom file for PMI annotations                        
 proc x3dFileStart {} {
-  global ao entCount localName opt savedViewNames x3dFile x3dFileName x3dStartFile numTessColor
+  global ao entCount localName opt savedViewNames x3dFile x3dFileName x3dStartFile numTessColor x3dMin x3dMax
   
   set x3dStartFile 0
   catch {file delete -force -- "[file rootname $localName]_x3dom.html"}
@@ -18,7 +18,10 @@ proc x3dFileStart {} {
     set title "Tessellated Part Geometry"
   }
   
-  puts $x3dFile "<!DOCTYPE html>\n<html>\n<head>\n<title>[file tail $localName] | $title</title>\n<base target=\"_blank\">\n<meta http-equiv='Content-Type' content='text/html;charset=utf-8'/>\n<link rel='stylesheet' type='text/css' href='https://www.x3dom.org/x3dom/release/x3dom.css'/>\n<script type='text/javascript' src='https://www.x3dom.org/x3dom/release/x3dom.js'></script>"
+  puts $x3dFile "<!DOCTYPE html>\n<html>\n<head>\n<title>[file tail $localName] | $title</title>\n<base target=\"_blank\">\n<meta http-equiv='Content-Type' content='text/html;charset=utf-8'/>"
+  puts $x3dFile "<link rel='stylesheet' type='text/css' href='https://www.x3dom.org/x3dom/release/x3dom.css'/>\n<script type='text/javascript' src='https://www.x3dom.org/x3dom/release/x3dom.js'></script>\n"
+
+# toggle switches
   if {[llength $savedViewNames] > 0} {foreach svn $savedViewNames {feaSwitch $svn}}
 
 # transparency script
@@ -35,14 +38,14 @@ proc x3dFileStart {} {
     }
   }
 
-  puts $x3dFile "</head>\n<body><font face=\"arial\">\n<h3>$title:  [file tail $localName]</h3>"
+  puts $x3dFile "</head>\n\n<body><font face=\"arial\">\n<h3>$title:  [file tail $localName]</h3>"
   puts $x3dFile "<ul><li>Only $title is shown.  Boundary representation (b-rep) part geometry can be viewed with <a href=\"https://www.cax-if.org/step_viewers.html\">STEP file viewers</a>."
   if {[string first "Tessellated" $title] != -1 && [info exist entCount(next_assembly_usage_occurrence)]} {
     puts $x3dFile "<li>Parts in an assembly might have the wrong position and orientation or be missing."
   }
-  if {[string first "Graphical" $title] != -1 && [info exist entCount(tessellated_annotation_occurrence)] && [info exist entCount(repositioned_tessellated_item_and_tessellated_geometric_set)]} {
-    puts $x3dFile "<li>PMI annotations might have the wrong position and orientation. (repositioned_tessellated_item)"
-  }
+  #if {[string first "Graphical" $title] != -1 && [info exist entCount(tessellated_annotation_occurrence)] && [info exist entCount(repositioned_tessellated_item_and_tessellated_geometric_set)]} {
+  #  puts $x3dFile "<li>PMI annotations might have the wrong position and orientation. (repositioned_tessellated_item)"
+  #}
   puts $x3dFile "</ul>\n<table><tr><td>"
 
 # x3d window size
@@ -60,6 +63,21 @@ proc x3dFileStart {} {
     tessReadGeometry
   }
   outputMsg " Writing Visualization to: [truncFileName [file nativename $x3dFileName]]" green
+
+# coordinate min, max, center
+  if {$x3dMax(x) != -1.e10} {
+    foreach xyz {x y z} {
+      set delt($xyz) [expr {$x3dMax($xyz)-$x3dMin($xyz)}]
+      set xyzcen($xyz) [format "%.4f" [expr {0.5*$delt($xyz) + $x3dMin($xyz)}]]
+    }
+    set maxxyz $delt(x)
+    if {$delt(y) > $maxxyz} {set maxxyz $delt(y)}
+    if {$delt(z) > $maxxyz} {set maxxyz $delt(z)}
+
+# coordinate axes    
+    set asize [trimNum [expr {$maxxyz*0.05}]]
+    x3dCoordAxes $asize
+  }
   update idletasks
 }
 
@@ -86,6 +104,7 @@ proc x3dTessGeom {objID objEntity1 ent1} {
 # tessellated part geometry
     if {$ao == "tessellated_solid" || $ao == "tessellated_shell"} {
       set tsID [$objEntity1 P21ID]
+      set tessRepo 0
 
 # set color
       set x3dColor ".7 .7 .7"
@@ -93,7 +112,7 @@ proc x3dTessGeom {objID objEntity1 ent1} {
       set spec "specularColor='.5 .5 .5'"
       set emit ""
 
-# set placement for tessellated part geometry (axis and ref_direction)
+# set placement for tessellated part geometry in assemblies (axis and ref_direction)
       if {[info exists entCount(item_defined_transformation)]} {tessSetPlacement $tsID}
     }
   }
@@ -116,12 +135,15 @@ proc x3dTessGeom {objID objEntity1 ent1} {
     }
   }
 
+# loop over list of files from above
   foreach f $flist {
     for {set np 0} {$np < $nplace} {incr np} {
-      if {[info exists tessPlacement(origin)]} {
+
+# translation and rotation (sometimes PMI and usually assemblies)
+      if {$tessRepo && [info exists tessPlacement(origin)]} {
         puts $f "<Transform translation='[lindex $tessPlacement(origin) $np]' rotation='[x3dRotation [lindex $tessPlacement(axis) $np] [lindex $tessPlacement(refdir) $np]]'>"
         set endTransform "</Transform>"
-        #errorMsg "$np [lindex $tessPlacement(origin) $np]"
+        #errorMsg "$np / [lindex $tessPlacement(origin) $np] / [lindex $tessPlacement(axis) $np] / [lindex $tessPlacement(refdir) $np] / [x3dRotation [lindex $tessPlacement(axis) $np] [lindex $tessPlacement(refdir) $np]] / $ao"
       }
 
 # write tessellated face or line
@@ -254,9 +276,29 @@ proc x3dPolylinePMI {} {
 }
 
 # -------------------------------------------------------------------------------
+# write coordinate axes
+proc x3dCoordAxes {size} {
+  global x3dFile x3dAxes
+  
+# axes
+  if {$x3dAxes} {
+    puts $x3dFile "\n<Shape id='x_axis'><Appearance><Material emissiveColor='1 0 0'></Material></Appearance><IndexedLineSet coordIndex='0 1 -1'><Coordinate point='0. 0. 0. $size 0. 0.'></Coordinate></IndexedLineSet></Shape>"
+    puts $x3dFile "<Shape id='y_axis'><Appearance><Material emissiveColor='0 .5 0'></Material></Appearance><IndexedLineSet coordIndex='0 1 -1'><Coordinate point='0. 0. 0. 0. $size 0.'></Coordinate></IndexedLineSet></Shape>"
+    puts $x3dFile "<Shape id='z_axis'><Appearance><Material emissiveColor='0 0 1'></Material></Appearance><IndexedLineSet coordIndex='0 1 -1'><Coordinate point='0. 0. 0. 0. 0. $size'></Coordinate></IndexedLineSet></Shape>"
+
+# xyz labels
+    set tsize [trimNum [expr {$size*0.33}]]
+    puts $x3dFile "<Transform translation='$size 0. 0.' scale='$tsize $tsize $tsize'><Billboard axisOfRotation='0 0 0'><Shape><Appearance><Material diffuseColor='1 0 0'></Material></Appearance><Text string='\"X\"'><FontStyle family='\"SANS\"'></FontStyle></Text></Shape></Billboard></Transform>"
+    puts $x3dFile "<Transform translation='0. $size 0.' scale='$tsize $tsize $tsize'><Billboard axisOfRotation='0 0 0'><Shape><Appearance><Material diffuseColor='0 .5 0'></Material></Appearance><Text string='\"Y\"'><FontStyle family='\"SANS\"'></FontStyle></Text></Shape></Billboard></Transform>"
+    puts $x3dFile "<Transform translation='0. 0. $size' scale='$tsize $tsize $tsize'><Billboard axisOfRotation='0 0 0'><Shape><Appearance><Material diffuseColor='0 0 1'></Material></Appearance><Text string='\"Z\"'><FontStyle family='\"SANS\"'></FontStyle></Text></Shape></Billboard></Transform>\n"
+    set x3dAxes 0
+  }
+}
+
+# -------------------------------------------------------------------------------
 # write PMI saved view geometry, set viewpoints, add navigation and background color, and close X3DOM file
 proc x3dFileEnd {} {
-  global modelURLs nistName opt stepAP x3dMax x3dMin x3dFile x3dMsg stepAP entCount nistVersion numTessColor
+  global modelURLs nistName opt stepAP x3dAxes x3dMax x3dMin x3dFile x3dMsg stepAP entCount nistVersion numTessColor
   global savedViewButtons savedViewFileName savedViewFile savedViewNames
   
 # write any PMI saved view geometry for multiple saved views
@@ -277,7 +319,7 @@ proc x3dFileEnd {} {
     }
   }
 
-# coordinate axes    
+# coordinate min, max, center    
   foreach xyz {x y z} {
     set delt($xyz) [expr {$x3dMax($xyz)-$x3dMin($xyz)}]
     set xyzcen($xyz) [trimNum [format "%.4f" [expr {0.5*$delt($xyz) + $x3dMin($xyz)}]]]
@@ -285,12 +327,13 @@ proc x3dFileEnd {} {
   set maxxyz $delt(x)
   if {$delt(y) > $maxxyz} {set maxxyz $delt(y)}
   if {$delt(z) > $maxxyz} {set maxxyz $delt(z)}
-  set asize [trimNum [expr {$maxxyz/30.}]]
 
-  puts $x3dFile "\n<Shape><Appearance><Material emissiveColor='1 0 0'></Material></Appearance><IndexedLineSet coordIndex='0 1 -1'><Coordinate point='0. 0. 0. $asize 0. 0.'></Coordinate></IndexedLineSet></Shape>"
-  puts $x3dFile "<Shape><Appearance><Material emissiveColor='0 1 0'></Material></Appearance><IndexedLineSet coordIndex='0 1 -1'><Coordinate point='0. 0. 0. 0. $asize 0.'></Coordinate></IndexedLineSet></Shape>"
-  puts $x3dFile "<Shape><Appearance><Material emissiveColor='0 0 1'></Material></Appearance><IndexedLineSet coordIndex='0 1 -1'><Coordinate point='0. 0. 0. 0. 0. $asize'></Coordinate></IndexedLineSet></Shape>"
-  
+# coordinate axes, if not already written
+  if {$x3dAxes} {
+    set asize [trimNum [expr {$maxxyz*0.05}]]
+    x3dCoordAxes $asize
+  }
+
 # viewpoints
   set cor "centerOfRotation='$xyzcen(x) $xyzcen(y) $xyzcen(z)'"
   puts $x3dFile "\n<Viewpoint $cor position='$xyzcen(x) [trimNum [expr {0. - ($xyzcen(y) + 1.4*$maxxyz)}]] $xyzcen(z)' orientation='1 0 0 1.5708' description='Perspective'></Viewpoint>"
@@ -304,7 +347,7 @@ proc x3dFileEnd {} {
   } else {
     puts $x3dFile "<Background skyColor='1 1 1'></Background>"
   }
-  puts $x3dFile "</Scene></X3D>\n</td><td valign='top'>"
+  puts $x3dFile "</Scene></X3D>\n\n</td><td valign='top'>"
 
 # for NIST model - link to drawing 
   if {$nistName != ""} {
@@ -315,13 +358,13 @@ proc x3dFileEnd {} {
 
 # for PMI annotations - checkboxes for toggling saved view graphics
   if {$opt(VIZPMI) && [llength $savedViewButtons] > 0} {
-    puts $x3dFile "Saved View PMI"
+    puts $x3dFile "\nSaved View PMI"
     foreach svn [lsort $savedViewButtons] {puts $x3dFile "<br><input type='checkbox' checked onclick='tog$svn\(this.value)'/>$svn"}
   }
 
 # for FEM - node, element checkboxes
   if {$opt(VIZFEA) && [string first "AP209" $stepAP] == 0} {
-    puts $x3dFile "<input type='checkbox' checked onclick='togNodes(this.value)'/>Nodes<br>"
+    puts $x3dFile "\n<input type='checkbox' checked onclick='togNodes(this.value)'/>Nodes<br>"
     if {[info exists entCount(surface_3d_element_representation)] || \
         [info exists entCount(volume_3d_element_representation)]}  {puts $x3dFile "<input type='checkbox' checked onclick='togMesh(this.value)'/>Mesh<br>"}
     if {[info exists entCount(curve_3d_element_representation)]}   {puts $x3dFile "<input type='checkbox' checked onclick='tog1DElements(this.value)'/>1D Elements<br>"}
@@ -330,28 +373,28 @@ proc x3dFileEnd {} {
 
 # transparency slider
     if {[info exists entCount(surface_3d_element_representation)] || [info exists entCount(volume_3d_element_representation)]} {
-      puts $x3dFile "<p>Transparency (approximate)<br>"
+      puts $x3dFile "\n<p>Transparency (approximate)<br>"
       puts $x3dFile "<input style='width:80px' type='range' min='0' max='0.8' step='0.2' value='0' onchange='matTrans(this.value)'/>"
     }
 
 # different transparency slider
   } elseif {$numTessColor > 0} {
-    puts $x3dFile "<p>Transparency (approximate)<br>"
+    puts $x3dFile "\n<p>Transparency (approximate)<br>"
     puts $x3dFile "<input style='width:80px' type='range' min='0' max='1' step='0.25' value='0' onchange='matTrans(this.value)'/>"
   }
   
 # extra text messages
   if {[info exists x3dMsg]} {
     if {[llength $x3dMsg] > 0} {
-      puts $x3dFile "<ul style=\"padding-left:20px\">"
+      puts $x3dFile "\n<ul style=\"padding-left:20px\">"
       foreach item $x3dMsg {puts $x3dFile "<li>$item"}
       puts $x3dFile "</ul>"
       unset x3dMsg
     }
   }
-  puts $x3dFile "<p><ul style=\"padding-left:20px\">"
+  puts $x3dFile "\n<p><ul style=\"padding-left:20px\">"
   puts $x3dFile "<li><a href=\"https://www.x3dom.org/documentation/interaction/\">Use the mouse</a> to rotate, pan, zoom.<li>Use 'a' or 'r' to show all.<li>Left double-click to recenter.<li>Use Page Up to switch between perspective and orthographic views.<p>"
-  puts $x3dFile "</ul></td></tr></table>\n<p>"
+  puts $x3dFile "</ul></td></tr></table>"
                           
   set str "NIST "
   set url "https://www.nist.gov/services-resources/software/step-file-analyzer"
@@ -359,7 +402,7 @@ proc x3dFileEnd {} {
     set str ""
     set url "https://github.com/usnistgov/SFA"
   }
-  puts $x3dFile "Generated by the <a href=\"$url\">$str\STEP File Analyzer (v[getVersion])</a> and rendered with <a href=\"https://www.x3dom.org/\">X3DOM</a>."
+  puts $x3dFile "\n<p>Generated by the <a href=\"$url\">$str\STEP File Analyzer (v[getVersion])</a> and rendered with <a href=\"https://www.x3dom.org/\">X3DOM</a>."
   puts $x3dFile "[clock format [clock seconds]]"
 
   puts $x3dFile "</font></body></html>"
@@ -408,7 +451,7 @@ proc openX3DOM {{fn ""}} {
     if {$ok} {
       set fn $x3dFileName
     } else {
-      if {$opt(XLSCSV) == "None"} {errorMsg "Nothing to visualize in the STEP file."}
+      if {$opt(XLSCSV) == "None"} {errorMsg " There is nothing to Visualize (Options tab)."}
       return
     }
   }

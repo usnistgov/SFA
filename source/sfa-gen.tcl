@@ -5,12 +5,12 @@ proc genExcel {{numFile 0}} {
   global cells cells1 col col1 comma count coverageLegend readPMI noPSA csvdirnam csvfile
   global developer dim dimRepeatDiv editorCmd entCategories entCategory entColorIndex entCount entityCount entsIgnored env errmsg
   global excel excelVersion excelYear extXLS fcsv feaElemTypes File fileEntity skipEntities skipPerm gpmiTypesPerFile idxColor ifcsvrDir inverses
-  global lastXLS lenfilelist localName localNameList multiFile multiFileDir mytemp nistName nistVersion nprogEnts nshape
+  global lastXLS lenfilelist localName localNameList multiFile multiFileDir mytemp nistName nistVersion nprogBarEnts nshape
   global opt p21e3 p21e3Section pmiCol pmiMaster recPracNames row rowmax
   global savedViewButtons savedViewName savedViewNames scriptName sheetLast spmiEntity spmiSumName spmiSumRow spmiTypesPerFile startrow stepAP
   global thisEntType tlast tolNames tolStandard totalEntity userEntityFile userEntityList userXLSFile virtualDir
   global workbook workbooks worksheet worksheet1 worksheets writeDir wsCount
-  global x3dColor x3dColors x3dCoord x3dFile x3dFileName x3dStartFile x3dIndex x3dMax x3dMin
+  global x3dAxes x3dColor x3dColors x3dCoord x3dFile x3dFileName x3dStartFile x3dIndex x3dMax x3dMin
   global xlFileName xlFileNames
   global objDesign
   
@@ -20,6 +20,7 @@ proc genExcel {{numFile 0}} {
 # initialize for X3DOM geometry
   if {$opt(VIZPMI) || $opt(VIZFEA) || $opt(VIZTES)} {
     set x3dStartFile 1
+    set x3dAxes 1
     set x3dFileName ""
     set x3dColor ""
     set x3dColors {}
@@ -68,7 +69,7 @@ proc genExcel {{numFile 0}} {
 # -------------------------------------------------------------------------------------------------
 # open STEP file
   if {[catch {
-    set nprogEnts 0
+    set nprogBarEnts 0
     outputMsg "\nOpening STEP file"
     set fname $localName  
 
@@ -393,7 +394,6 @@ proc genExcel {{numFile 0}} {
     if {[file exists $xlFileName]} {
       if {[catch {
         file delete -force $xlFileName
-        #errorMsg "\nDeleting existing Spreadsheet: [truncFileName $xlFileName]" red
       } emsg]} {
         if {[string length $xlsmsg] > 0} {append xlsmsg "\n"}
         append xlsmsg "ERROR deleting existing Spreadsheet: [truncFileName $xlFileName]"
@@ -617,8 +617,17 @@ proc genExcel {{numFile 0}} {
     lset entsToProcess $i [string range [lindex $entsToProcess $i] 2 end]
   }
 
-# max progress bar - number of entities  
-  if {[info exists buttons]} {$buttons(pgb) configure -maximum $numEnts}
+# max progress bar - number of entities or finite elements 
+  if {[info exists buttons]} {
+    $buttons(pgb) configure -maximum $numEnts
+    if {[string first "AP209" $stepAP] == 0 && $opt(XLSCSV) == "None"} {
+      set n 0
+      foreach elem {curve_3d_element_representation surface_3d_element_representation volume_3d_element_representation} {
+        if {[info exists entCount($elem)]} {incr n $entCount($elem)}
+      }
+      $buttons(pgb) configure -maximum $n
+    }
+  }
       
 # check for ISO/ASME standards on product_definition_formation, document, product
   set tolStandard(type) ""
@@ -672,7 +681,7 @@ proc genExcel {{numFile 0}} {
     set idxColor 0
     set inverseEnts {}
     set lastEnt ""
-    set nprogEnts 0
+    set nprogBarEnts 0
     set nshape 0
     set ntable 0
     set savedViewName {}
@@ -696,7 +705,11 @@ proc genExcel {{numFile 0}} {
     if {$opt(PMIGRF) || $opt(VIZPMI)} {pmiGetCamerasAndProperties}
 
     if {[llength $entsToProcess] == 0} {
-      errorMsg "No entities are selected to Process (Options tab)."
+      if {$opt(XLSCSV) != "None"} {
+        errorMsg " No entities are selected to Process (Options tab)."
+      } else {
+        errorMsg " There is nothing to Visualize (Options tab)."
+      }
       break
     }
     set tlast [clock clicks -milliseconds]
@@ -717,8 +730,8 @@ proc genExcel {{numFile 0}} {
 # process the entity type
         ::tcom::foreach objEntity [$objDesign FindObjects [join $entType]] {
           if {$entType == [$objEntity Type]} {
-            incr nprogEnts
-            if {[expr {$nprogEnts%1000}] == 0} {update idletasks}
+            incr nprogBarEnts
+            if {[expr {$nprogBarEnts%1000}] == 0} {update}
   
             if {[catch {
               if {$opt(XLSCSV) == "Excel"} {
@@ -743,7 +756,7 @@ proc genExcel {{numFile 0}} {
                     incr nerr1
                     if {$nerr1 > 20} {
                       errorMsg "Processing of $entType entities has stopped" red
-                      set nprogEnts [expr {$nprogEnts + $entCount($thisEntType) - $count($thisEntType)}]
+                      set nprogBarEnts [expr {$nprogBarEnts + $entCount($thisEntType) - $count($thisEntType)}]
                       break
                     }
   
@@ -762,10 +775,9 @@ proc genExcel {{numFile 0}} {
           
 # max rows exceeded          
             if {$stat != 1} {
-              #set n $nprogEnts
               set ok 1
               if {[string first "element_representation" $thisEntType] != -1 && $opt(VIZFEA)} {set ok 0}
-              if {$ok} {set nprogEnts [expr {$nprogEnts + $entCount($thisEntType) - $count($thisEntType)}]}
+              if {$ok} {set nprogBarEnts [expr {$nprogBarEnts + $entCount($thisEntType) - $count($thisEntType)}]}
               break
             }
           }
@@ -874,9 +886,9 @@ proc genExcel {{numFile 0}} {
     }
   
 # add ANCHOR and other sections from Part 21 Edition 3
-  if {[info exists p21e3Section]} {
-    if {[llength $p21e3Section] > 0} {addP21e3Section}
-  }    
+    if {[info exists p21e3Section]} {
+      if {[llength $p21e3Section] > 0} {addP21e3Section}
+    }    
 # -------------------------------------------------------------------------------------------------
 # select the first tab
     [$worksheets Item [expr 1]] Select
@@ -902,6 +914,7 @@ proc genExcel {{numFile 0}} {
   set proctime [expr {($cc - $lasttime)/1000}]
   if {$proctime <= 60} {set proctime [expr {(($cc - $lasttime)/100)/10.}]}
   outputMsg "Processing time: $proctime seconds"
+  update
 
 # -------------------------------------------------------------------------------------------------
 # save spreadsheet
@@ -915,9 +928,14 @@ proc genExcel {{numFile 0}} {
         regsub -all {\]} $xlFileName ")" xlFileName
         errorMsg "In the spreadsheet file name, the characters \'\[\' and \'\]\' have been\n substituted by \'\(\' and \'\)\'"
       }
+
       outputMsg "Saving Spreadsheet as:"
       outputMsg " [truncFileName $xlFileName 1]" blue
-      $workbook SaveAs $xlFileName
+      if {[catch {
+        $workbook SaveAs $xlFileName
+      } emsg1]} {
+        errorMsg "ERROR Saving Spreadsheet: $emsg1"
+      }
       set lastXLS $xlFileName
       lappend xlFileNames $xlFileName
   
@@ -925,13 +943,9 @@ proc genExcel {{numFile 0}} {
 
 # close Excel
       $excel Quit
-      if {[info exists excel]} {unset excel}
       set openxl 1
-      if {[llength $pidExcel] == 1} {
-        catch {twapi::end_process $pidExcel -force}
-      } else {
-        errorMsg " Excel might not have been closed" red
-      }
+      catch {unset excel}
+      catch {if {[llength $pidExcel] == 1} {twapi::end_process $pidExcel -force}}
       #getTiming "save done"
 
 # add Link(n) text to multi file summary
@@ -950,10 +964,7 @@ proc genExcel {{numFile 0}} {
 
 # errors
     } emsg]} {
-      errorMsg "ERROR saving Spreadsheet: $emsg"
-      if {[string first "The file or path name not found" $emsg] == -1} {
-        errorMsg "The current version of the Spreadsheet needs to be closed before processing the STEP file again."
-      }
+      errorMsg "ERROR: $emsg"
       catch {raise .}
       set openxl 0
     }
@@ -1033,12 +1044,6 @@ proc addHeaderWorksheet {numFile fname} {
   global csvdirnam
    
   if {[catch {
-    if {$opt(XLSCSV) == "Excel"} {
-      outputMsg "Generating Header worksheet" blue
-    } elseif {$opt(XLSCSV) == "CSV"} {
-      outputMsg "Generating Header CSV file" blue
-    }
-
     set cadSystem ""
     set timeStamp ""
     set noPSA 0
@@ -1046,6 +1051,7 @@ proc addHeaderWorksheet {numFile fname} {
 
     set hdr "Header"
     if {$opt(XLSCSV) == "Excel"} { 
+      outputMsg "Generating Header worksheet" blue
       set worksheet($hdr) [$worksheets Item [expr 1]]
       $worksheet($hdr) Activate
       $worksheet($hdr) Name $hdr
@@ -1053,6 +1059,7 @@ proc addHeaderWorksheet {numFile fname} {
 
 # create directory for CSV files
     } elseif {$opt(XLSCSV) == "CSV"} {
+      outputMsg "Generating Header CSV file" blue
       foreach var {csvdirnam csvfname fcsv} {catch {unset $var}}
       set csvdirnam "[file join [file dirname $localName] [file rootname [file tail $localName]]]-sfa-csv"
       file mkdir $csvdirnam
@@ -1605,17 +1612,17 @@ proc sumAddColorLinks {sum sumHeaderRow sumLinks sheetSort sumRow} {
 # format worksheets
 proc formatWorksheets {sheetSort sumRow inverseEnts} {
   global buttons worksheet worksheets excel cells opt count entCount col row rowmax xlFileName thisEntType schemaLinks stepAP syntaxErr
-  global gpmiEnts spmiEnts nprogEnts excelVersion
+  global gpmiEnts spmiEnts nprogBarEnts excelVersion
   
   outputMsg "Formatting Worksheets"
 
   if {[info exists buttons]} {$buttons(pgb) configure -maximum [llength $sheetSort]}
-  set nprogEnts 0
+  set nprogBarEnts 0
   set nsort 0
 
   foreach thisEntType $sheetSort {
     #getTiming "START FORMATTING $thisEntType"
-    incr nprogEnts
+    incr nprogBarEnts
     update idletasks
     
     if {[catch {

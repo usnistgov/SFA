@@ -1,6 +1,6 @@
 #-------------------------------------------------------------------------------
 proc checkValues {} {
-  global opt buttons appNames appName developer userEntityList
+  global opt buttons appNames appName developer userEntityList allNone
   global edmWriteToFile edmWhereRules eeWriteToFile
   
   set butNormal {}
@@ -53,21 +53,21 @@ proc checkValues {} {
     set opt(writeDirType) 0
     set opt(XL_OPEN) 1
     foreach item [array names opt] {
-      if {[string first "PR_STEP" $item] == 0} {
-        lappend butNormal "opt$item"
-      }
+      if {[string first "PR_STEP" $item] == 0} {lappend butNormal "opt$item"}
     }
-    foreach b {optINVERSE optPMIGRF optPMISEM optVALPROP optXL_FPREC optXL_KEEPOPEN optXL_LINK1 optXL_SORT} {lappend butDisabled $b}
+    foreach b {optINVERSE optPMIGRF optPMISEM optVALPROP optXL_FPREC optXL_KEEPOPEN optXL_LINK1 optXL_SORT allNone2} {lappend butDisabled $b}
+    foreach b {optVIZFEA optVIZPMI optVIZTES} {lappend butNormal $b}
+    foreach b {allNone0 allNone1 allNone3 optPR_USER} {lappend butNormal $b}
     catch {$buttons(genExcel) configure -text "Generate CSV Files"}
 
 # spreadsheets
   } elseif {$opt(XLSCSV) == "Excel"} {
     foreach item [array names opt] {
-      if {[string first "PR_STEP" $item] == 0} {
-        lappend butNormal "opt$item"
-      }
+      if {[string first "PR_STEP" $item] == 0} {lappend butNormal "opt$item"}
     }
     foreach b {optINVERSE optPMIGRF optPMISEM optVALPROP optXL_FPREC optXL_KEEPOPEN optXL_LINK1 optXL_SORT} {lappend butNormal $b}
+    foreach b {optVIZFEA optVIZPMI optVIZTES} {lappend butNormal $b}
+    foreach b {allNone0 allNone1 allNone2 allNone3 optPR_USER} {lappend butNormal $b}
     catch {$buttons(genExcel) configure -text "Generate Spreadsheet"}
 
 # viz only
@@ -80,17 +80,24 @@ proc checkValues {} {
     }
     set opt(INVERSE) 0
     set opt(PR_USER) 0
-    set opt(VIZFEA) 1
-    set opt(VIZPMI) 1
-    set opt(VIZTES) 1
     foreach b {optPMIGRF optPMISEM optVALPROP optPR_USER optINVERSE} {
       set opt([string range $b 3 end]) 0
       lappend butDisabled $b
     }
+    #foreach b {optVIZFEA optVIZPMI optVIZTES} {lappend butDisabled $b}
+    foreach b {allNone0 allNone1 allNone2 allNone3} {lappend butDisabled $b}
+    foreach b {userentity userentityopen} {lappend butDisabled $b}
+    set userEntityList {}
     catch {$buttons(genExcel) configure -text "Generate Visualization"}
+    set allNone -1
+    if {$opt(VIZFEA) == 0 && $opt(VIZPMI) == 0 && $opt(VIZTES) == 0} {
+      set opt(VIZFEA) 1
+      set opt(VIZPMI) 1
+      set opt(VIZTES) 1
+    }
   }
   
-# STEP related
+# graphical PMI report
   if {$opt(PMIGRF)} {
     if {$opt(XLSCSV) != "None"} {
       foreach b {optPR_STEP_AP242 optPR_STEP_PRES optPR_STEP_SHAP} {
@@ -104,6 +111,7 @@ proc checkValues {} {
     if {!$opt(PMISEM)}  {foreach b {optPR_STEP_AP242 optPR_STEP_COMM optPR_STEP_SHAP} {lappend butNormal $b}}
   }
 
+# validation properties
   if {$opt(VALPROP)} {
     set opt(PR_STEP_QUAN) 1
     lappend butDisabled optPR_STEP_QUAN
@@ -111,6 +119,7 @@ proc checkValues {} {
     lappend butNormal optPR_STEP_QUAN
   }
 
+# graphical PMI visualization
   if {$opt(VIZPMI)} {
     foreach b {gpmiColor0 gpmiColor1 gpmiColor2 linecolor} {lappend butNormal $b}
     if {$opt(XLSCSV) != "None"} {
@@ -121,6 +130,7 @@ proc checkValues {} {
     foreach b {gpmiColor0 gpmiColor1 gpmiColor2 linecolor} {lappend butDisabled $b}
   }
 
+# semantic PMI report
   if {$opt(PMISEM)} {
     foreach b {optPR_STEP_AP242 optPR_STEP_REPR optPR_STEP_SHAP optPR_STEP_TOLR} {
       set opt([string range $b 3 end]) 1
@@ -134,6 +144,7 @@ proc checkValues {} {
     }
   }
 
+# tessellated geometry visualization
   if {$opt(VIZTES)} {
     if {$opt(XLSCSV) != "None"} {
       set opt(PR_STEP_REPR) 1
@@ -147,13 +158,11 @@ proc checkValues {} {
   }
   
 # user-defined entity list
-  if {[info exists opt(PR_USER)]} {
-    if {$opt(PR_USER)} {
-      foreach b {userentity userentityopen} {lappend butNormal $b}
-    } else {
-      foreach b {userentity userentityopen} {lappend butDisabled $b}
-      set userEntityList {}
-    }
+  if {$opt(PR_USER)} {
+    foreach b {userentity userentityopen} {lappend butNormal $b}
+  } else {
+    foreach b {userentity userentityopen} {lappend butDisabled $b}
+    set userEntityList {}
   }
   
   if {$opt(writeDirType) == 0} {
@@ -173,11 +182,35 @@ proc checkValues {} {
       incr nopt $opt($idx)
     }
   }
-  if {$nopt == 0 && !$opt(VIZFEA)} {set opt(PR_STEP_COMM) 1}
+  if {$nopt == 0 && !$opt(VIZFEA) && $opt(XLSCSV) != "None"} {set opt(PR_STEP_COMM) 1}
   
 # configure buttons
   if {[llength $butNormal]   > 0} {foreach but $butNormal   {catch {$buttons($but) configure -state normal}}}
   if {[llength $butDisabled] > 0} {foreach but $butDisabled {catch {$buttons($but) configure -state disabled}}}
+    
+# configure all, none, for buttons
+  if {[info exists allNone]} {
+    if {($allNone == 2 && ($opt(PMISEM) != 1 || $opt(PMIGRF) != 1 || $opt(VALPROP) != 1)) ||
+        ($allNone == 3 && ($opt(VIZPMI) != 1 || $opt(VIZTES) != 1 || $opt(VIZFEA)  != 1))} {
+      set allNone -1
+    } elseif {$allNone == 0} {
+      foreach item [array names opt] {
+        if {[string first "PR_STEP" $item] == 0} {
+          if {$item != "PR_STEP_GEOM" && $item != "PR_STEP_CPNT" && $item != "PR_STEP_COMP" && $item != "PR_STEP_KINE"} {
+            if {$opt($item) == 0} {set allNone -1}
+          }
+        }
+      }
+    } elseif {$allNone == 1} {
+      foreach item [array names opt] {
+        if {[string first "PR_STEP" $item] == 0} {
+          if {$item != "PR_STEP_COMM"} {
+            if {$opt($item) == 1} {set allNone -1}
+          }
+        }
+      }
+    }
+  }
 }
 
 # -------------------------------------------------------------------------------------------------
@@ -1302,7 +1335,7 @@ proc outputMsg {msg {color "black"}} {
 
   if {[info exists outputWin]} {
     $outputWin issue "$msg " $color
-    update 
+    update idletasks
   } else {
     puts $msg
   }
@@ -1335,7 +1368,7 @@ proc errorMsg {msg {color ""}} {
       } else {
         $outputWin issue "$msg " $color
       }
-      update 
+      update idletasks
     }
     return 1
   } else {

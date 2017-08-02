@@ -3,7 +3,7 @@
 proc openMultiFile {{ask 1}} {
   global fileList opt localName localNameList buttons fileDir fileDir1 lastXLS1
   global allEntity fileEntity totalEntity writeDir startrow
-  global xlFileNames nprogFile extXLS mydocs entCategory
+  global xlFileNames nprogBarFiles extXLS mydocs entCategory
   global lenfilelist multiFileDir
   global coverageSTEP gpmiTypes developer nistVersion
   global sempmi_totals pmi_totals gpmiTypesInvalid col_ca pmi_rows
@@ -52,6 +52,7 @@ proc openMultiFile {{ask 1}} {
       if {$choice == "yes"} {
         set recurse 1
         outputMsg "Searching subdirectories ..."
+        update
       }
 
 # find all files in directory and subdirectories
@@ -107,7 +108,7 @@ proc openMultiFile {{ask 1}} {
         checkValues
 
         if {$opt(writeDirType) == 1} {
-          errorMsg "Multiple spreadsheets cannot be written to a user-defined file name and will\n be written to the same directory as the STEP file."
+          errorMsg "Multiple spreadsheets cannot be written to a user-defined file name and will\n be written to the same directory as the STEP files."
           set opt(writeDirType) 0
         }
 
@@ -246,7 +247,7 @@ proc openMultiFile {{ask 1}} {
         set gpmiTypesInvalid {}
         set sum "Summary"
 
-        set nprogFile 0
+        set nprogBarFiles 0
         pack $buttons(pgb1) -side top -padx 10 -pady {5 0} -expand true -fill x
         $buttons(pgb1) configure -maximum $lenfilelist
 
@@ -294,7 +295,7 @@ proc openMultiFile {{ask 1}} {
 
 # done adding coverage analysis results
 # -------------------------------------------------------------------------
-          incr nprogFile
+          incr nprogBarFiles
         }
           
 # -------------------------------------------------------------------------------------------------
@@ -565,13 +566,15 @@ proc openMultiFile {{ask 1}} {
             outputMsg " "
             outputMsg "Saving File Summary Spreadsheet as:"
             outputMsg " [truncFileName $aname 1]" blue
+            update
             $workbook1 SaveAs $aname
             set lastXLS1 $aname
 
 # close Excel
             #outputMsg "Closing Excel" green
             $excel1 Quit
-            #if {[info exists excel1]} {unset excel1}
+            update idletasks
+            catch {unset excel1}
             if {[llength $pidExcel1] == 1} {catch {twapi::end_process $pidExcel1 -force}}
 
 # errors

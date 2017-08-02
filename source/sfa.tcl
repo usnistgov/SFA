@@ -64,7 +64,7 @@ set opt(CRASH) 0
 set opt(DEBUG1) 0
 set opt(DEBUGINV) 0
 set opt(DISPGUIDE1) 1
-set opt(XLSBUG1) 20
+set opt(XLSBUG1) 30
 set opt(FIRSTTIME) 1
 set opt(INVERSE) 0
 set opt(gpmiColor) 2
@@ -257,7 +257,7 @@ outputMsg "- New Output Format to generate any Visualization without a spreadshe
 - Bug fixes and minor improvements"
 
   .tnb select .tnb.status
-  update idletasks
+  update
 }
 
 # -------------------------------------------------------------------------------

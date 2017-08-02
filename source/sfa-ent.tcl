@@ -20,7 +20,7 @@ proc getEntity {objEntity checkInverse} {
     append msg "$entCount($thisEntType))"
     outputMsg $msg
     
-    if {$entCount($thisEntType) > $rm} {errorMsg " Maximum Rows exceeded ($rm)" red}
+    if {$entCount($thisEntType) > $rm} {errorMsg " Maximum Rows ($rm) exceeded (see Spreadsheet tab)" red}
     if {$entCount($thisEntType) > 10000 && $rm > 10000} {errorMsg " Number of entities > 10000.  Consider using the Maximum Rows option." red}
 
     set wsCount [$worksheets Count]
@@ -363,7 +363,7 @@ proc getEntityCSV {objEntity} {
     append msg "$entCount($thisEntType))"
     outputMsg $msg
     
-    if {$entCount($thisEntType) > $rm} {errorMsg " Maximum Rows exceeded ($rm)" red}
+    if {$entCount($thisEntType) > $rm} {errorMsg " Maximum Rows ($rm) exceeded (see Spreadsheet tab)" red}
     if {$entCount($thisEntType) > 10000 && $rm > 10000} {errorMsg " Number of entities > 10000.  Consider using the Maximum Rows option." red}
 
 # open csv file

@@ -84,7 +84,7 @@ proc spmiDimtolStart {entType} {
       if {$n < 1048576} {
         if {[expr {$n%2000}] == 0} {
           if {$n > 0} {outputMsg "  $n"}
-          update idletasks
+          update
         }
         spmiDimtolReport $objEntity
         if {$opt(DEBUG1)} {outputMsg \n}

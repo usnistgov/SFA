@@ -1,6 +1,6 @@
 #-------------------------------------------------------------------------------
 # version numbers
-proc getVersion {}   {return 2.32}
+proc getVersion {}   {return 2.34}
 proc getVersionUG {} {return 1.60}
 
 # -------------------------------------------------------------------------------
@@ -761,6 +761,7 @@ proc spmiGetPMI {} {
     
         $workbooks2 Close
         $excel2 Quit
+        update idletasks
         catch {unset excel2}
         after 100
         for {set i 0} {$i < 20} {incr i} {catch {twapi::end_process $pid2 -force}}
@@ -884,9 +885,11 @@ proc pmiFormatColumns {str} {
       set rs $gpmiRow($thisEntType)
     } elseif {[string first "PMI Representation" $str] != -1} {
       set rs $spmiRow($thisEntType)
-      if {$tcl_platform(osVersion) >= 6.2 && $excelYear == 2016 && $opt(XLSBUG1) > 0 && ![file exists [file nativename C:/Windows/Fonts/ARIALUNI.TTF]]} {
-        errorMsg "Excel $excelYear might not display some GD&T symbols correctly in PMI Representation reports.\n The symbols will appear as question mark inside a square.  The likely cause is a missing\n font 'Arial Unicode MS' found in the font file 'ARIALUNI.TTF'."
+      if {$opt(XLSBUG1) > 0 && ![file exists [file nativename C:/Windows/Fonts/ARIALUNI.TTF]]} {
+        errorMsg "Excel might not display some GD&T symbols correctly in PMI Representation reports.  The missing\n symbols will appear as question mark inside a square.  The likely cause is a missing font\n 'Arial Unicode MS' from the font file 'ARIALUNI.TTF'."
         incr opt(XLSBUG1) -1
+      } elseif {$opt(XLSBUG1) < 30 && [file exists [file nativename C:/Windows/Fonts/ARIALUNI.TTF]]} {
+        set opt(XLSBUG1) 30
       }
     }
     foreach r $rs {
@@ -951,10 +954,10 @@ proc pmiFormatColumns {str} {
     [$worksheet($thisEntType) Rows] AutoFit
     
 # link to RP
-    set str "pmi242"
-    if {$stepAP == "AP203"} {set str "pmi203"}
-    $cells($thisEntType) Item 2 1 "See CAx-IF Rec. Prac. for $recPracNames($str)"
-    if {$thisEntType != "dimensional_characteristic_representation"  && $thisEntType != "datum_reference"} {
+    set str1 "pmi242"
+    if {$stepAP == "AP203"} {set str1 "pmi203"}
+    $cells($thisEntType) Item 2 1 "See CAx-IF Rec. Prac. for $recPracNames($str1)"
+    if {$thisEntType != "dimensional_characteristic_representation" && $thisEntType != "datum_reference"} {
       set range [$worksheet($thisEntType) Range A2:D2]
     } else {
       set range [$worksheet($thisEntType) Range A2:C2]

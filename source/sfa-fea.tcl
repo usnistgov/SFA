@@ -1,6 +1,6 @@
 proc feaModel {entType} {
   global objDesign
-  global ent entAttrList entCount entLevel opt rowmax nprogEnts count localName mytemp sfaPID
+  global ent entAttrList entCount entLevel opt rowmax nprogBarEnts count localName mytemp sfaPID
   global x3dFile x3dMin x3dMax x3dMsg x3dStartFile x3dFileName
   global feaType feaTypes feaElemTypes nfeaElem feaFile feaFileName feaFaceList feaFaceOrig
 
@@ -31,7 +31,8 @@ proc feaModel {entType} {
     set x3dFileName [file rootname $localName]-x3dom.html
     catch {file delete -force -- $x3dFileName}
     set x3dFile [open $x3dFileName w]
-    puts $x3dFile "<!DOCTYPE html>\n<html>\n<head>\n<title>[file tail $localName] | STEP AP209 Finite Element Model</title>\n<base target=\"_blank\">\n<meta http-equiv='Content-Type' content='text/html;charset=utf-8'/>\n<link rel='stylesheet' type='text/css' href='https://www.x3dom.org/x3dom/release/x3dom.css'/>\n<script type='text/javascript' src='https://www.x3dom.org/x3dom/release/x3dom.js'></script>"
+    puts $x3dFile "<!DOCTYPE html>\n<html>\n<head>\n<title>[file tail $localName] | STEP AP209 Finite Element Model</title>\n<base target=\"_blank\">\n<meta http-equiv='Content-Type' content='text/html;charset=utf-8'/>"
+    puts $x3dFile "<link rel='stylesheet' type='text/css' href='https://www.x3dom.org/x3dom/release/x3dom.css'/>\n<script type='text/javascript' src='https://www.x3dom.org/x3dom/release/x3dom.js'></script>\n"
 
 # node, element checkbox script
     feaSwitch Nodes
@@ -69,7 +70,7 @@ proc feaModel {entType} {
     feaGetNodes
     outputMsg " Writing FEM to: [truncFileName [file nativename $x3dFileName]]" green
 
-# coordinate axes    
+# coordinate min, max, center  
     foreach xyz {x y z} {
       set delt($xyz) [expr {$x3dMax($xyz)-$x3dMin($xyz)}]
       set xyzcen($xyz) [format "%.4f" [expr {0.5*$delt($xyz) + $x3dMin($xyz)}]]
@@ -77,12 +78,10 @@ proc feaModel {entType} {
     set maxxyz $delt(x)
     if {$delt(y) > $maxxyz} {set maxxyz $delt(y)}
     if {$delt(z) > $maxxyz} {set maxxyz $delt(z)}
-    set asize [trimNum [expr {$maxxyz/30.}]]
 
-    puts $x3dFile "\n<Shape><Appearance><Material emissiveColor='1 0 0'></Material></Appearance><IndexedLineSet coordIndex='0 1 -1'><Coordinate point='0. 0. 0. $asize 0. 0.'></Coordinate></IndexedLineSet></Shape>"
-    puts $x3dFile "<Shape><Appearance><Material emissiveColor='0 1 0'></Material></Appearance><IndexedLineSet coordIndex='0 1 -1'><Coordinate point='0. 0. 0. 0. $asize 0.'></Coordinate></IndexedLineSet></Shape>"
-    puts $x3dFile "<Shape><Appearance><Material emissiveColor='0 0 1'></Material></Appearance><IndexedLineSet coordIndex='0 1 -1'><Coordinate point='0. 0. 0. 0. 0. $asize'></Coordinate></IndexedLineSet></Shape>"
-    update idletasks
+# coordinate axes    
+    set asize [trimNum [expr {$maxxyz*0.05}]]
+    x3dCoordAxes $asize
   }
 
 # create temp files so that large models can be processed
@@ -97,31 +96,34 @@ proc feaModel {entType} {
   catch {unset feaFaceList}
   catch {unset feaFaceOrig}
 
-  set memlim 1700
-  if {$opt(XLSCSV) != "Excel"} {set memlim 1800}
-  
   set startent [lindex $FEA($entType) 0]
   ::tcom::foreach objEntity [$objDesign FindObjects [join $startent]] {
     if {[$objEntity Type] == $startent} {
+      if {$opt(XLSCSV) == "None"} {incr nprogBarEnts}
+      
       if {$nfeaElem < 10000000} {
         if {[expr {$nfeaElem%2000}] == 0} {
-          if {$nfeaElem > 0} {outputMsg "  $nfeaElem"}
+
+# check memory and gracefully exit
           set mem [expr {[lindex [twapi::get_process_info $sfaPID -pagefilebytes] 1]/1048576}]
-          if {$mem > $memlim} {
+          if {$mem > 1700} {
             errorMsg "Insufficient memory to process all of the elements"
             lappend x3dMsg "<i>Some elements were not processed.</i>"
             update idletasks
             break
           }
-          update idletasks
+          update
         }
-        if {$nfeaElem > $rowmax && $opt(XLSCSV) != "None"} {incr nprogEnts}
+        if {$nfeaElem > $rowmax && $opt(XLSCSV) != "None"} {incr nprogBarEnts}
+
+# process the entity
         feaElements $objEntity
         if {$opt(DEBUG1)} {outputMsg \n}
       }
       incr nfeaElem
     }
   }
+  update idletasks
 
 # ----------  
 # 1D elements, get from mesh
@@ -485,9 +487,10 @@ proc feaGetNodes {} {
         if {$coord($xyz) > $x3dMax($xyz)} {set x3dMax($xyz) $coord($xyz)}
         if {$coord($xyz) < $x3dMin($xyz)} {set x3dMin($xyz) $coord($xyz)}
       }
+
       if {[expr {$nodeIndex%50000}] == 0} {
         if {$nodeIndex > 0} {outputMsg "  $nodeIndex"}
-        update idletasks
+        update
       }
     }
   }

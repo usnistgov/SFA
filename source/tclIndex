@@ -66,6 +66,7 @@ set auto_index(spmiCoverageWrite) [list source [file join $dir sfa-coverage.tcl]
 
 set auto_index(getSavedViewName) [list source [file join $dir sfa-grafx3d.tcl]]
 set auto_index(openX3DOM) [list source [file join $dir sfa-grafx3d.tcl]]
+set auto_index(x3dCoordAxes) [list source [file join $dir sfa-grafx3d.tcl]]
 set auto_index(x3dFileEnd) [list source [file join $dir sfa-grafx3d.tcl]]
 set auto_index(x3dFileStart) [list source [file join $dir sfa-grafx3d.tcl]]
 set auto_index(x3dPolylinePMI) [list source [file join $dir sfa-grafx3d.tcl]]

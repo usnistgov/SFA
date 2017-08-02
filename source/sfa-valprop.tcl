@@ -112,7 +112,7 @@ proc valPropStart {} {
       if {$n < $rowmax} {
         if {[expr {$n%2000}] == 0} {
           if {$n > 0} {outputMsg "  $n"}
-          update idletasks
+          update
         }
         valPropReport $objEntity
         if {$opt(DEBUG1)} {outputMsg \n}

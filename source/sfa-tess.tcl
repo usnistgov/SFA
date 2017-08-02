@@ -170,6 +170,7 @@ proc tessReadGeometry {} {
           set msg "Syntax Error: #$id=COORDINATES_LIST has zero coordinates"
           errorMsg $msg
           set msg "<i>#$id=COORDINATES_LIST has no coordinates</i>"
+          if {![info exists x3dMsg]} {set x3dMsg {}}
           if {[lsearch $x3dMsg $msg] == -1} {lappend x3dMsg $msg}
         }
         incr ncl
@@ -392,7 +393,7 @@ proc tessSetColor {tsID} {
     } emsg]} {
       errorMsg " Error setting tessellated geometry color, using gray"
       set tessColor($tsID) $x3dColor
-      update idletasks
+      update
     }
   } else {
     errorMsg "Syntax Error: No 'styled_item' found to assign color to tessellated geometry (using gray)\n[string repeat " " 14]($recPracNames(model), Sec. 4.2.2, Fig. 2)"
@@ -422,8 +423,8 @@ proc tessSetPlacement {tsID} {
         if {[$e1 P21ID] == $tsID} {
           if {$debug} {errorMsg "\n[$e1 Type] [$e1 P21ID] ([$a0 Name])" red}
 
-          #foreach repSRR {rep_1 rep_2} 
-          foreach repSRR {rep_1} {
+          #foreach repSRR {rep_2}
+          foreach repSRR {rep_1 rep_2} {
             set e2s [$e0 GetUsedIn [string trim shape_representation_relationship] [string trim $repSRR]]
 
             ::tcom::foreach e2 $e2s {
@@ -480,8 +481,18 @@ proc tessSetPlacement {tsID} {
                   set a6 [[$e6 Attributes] Item 2]
                   set e7 [$a6 Value]
                   set val ""
-                  foreach n [[[$e7 Attributes] Item 2] Value] {append val "[trimNum $n 5] "}
+                  #set i 0
+                  foreach n [[[$e7 Attributes] Item 2] Value] {
+                    append val "[trimNum $n 5] "
+                    #switch $i {
+                    #  0 {set x $n}
+                    #  1 {set z [expr {0.-$n}]}
+                    #  2 {set y $n}
+                    #}
+                    #incr i
+                  }
                   lappend tessPlacement(origin) [string trim $val]
+                  #lappend tessPlacement(origin) "[trimNum $x 5] [trimNum $y 5] [trimNum $z 5]"
                   if {$debug} {errorMsg "      [$e7 Type] [$e7 P21ID] ([$a6 Name]) [string trim $val]" red}
 
 # a2p3d axis
@@ -511,17 +522,21 @@ proc tessSetPlacement {tsID} {
 # -------------------------------------------------------------------------------
 # generate x3d rotation from axis2_placement_3d
 proc x3dRotation {{a {0 0 1}} {r {1 0 0}}} {
+
+  set axis $a
+  set refdir $r
   
 # convert from geometry coordinate system to x3dom coordinate, Zv = -Yc, Yv = Zc
-  set axis   [list [lindex $a 0] [lindex $a 2] [expr {0.-[lindex $a 1]}]]
-  set refdir [list [lindex $r 0] [lindex $r 2] [expr {0.-[lindex $r 1]}]]
-  #set axis $a
-  #set refdir $r
+  #set axis   [list [lindex $a 0] [lindex $a 2] [expr {0.-[lindex $a 1]}]]
+  #set refdir [list [lindex $r 0] [lindex $r 2] [expr {0.-[lindex $r 1]}]]
     
 # construct rotation matrix u, must normalize to use with quaternion
-  set u2 [vecnorm $axis]
-  set u1 [vecnorm [vecsub $refdir [vecmult $u2 [vecdot $refdir $u2]]]]
-  set u3 [vecnorm [veccross $u1 $u2]]
+  set u3 [vecnorm $axis]
+  set u1 [vecnorm [vecsub $refdir [vecmult $u3 [vecdot $refdir $u3]]]]
+  set u2 [vecnorm [veccross $u3 $u1]]
+  #set u2 [vecnorm $axis]
+  #set u1 [vecnorm [vecsub $refdir [vecmult $u2 [vecdot $refdir $u2]]]]
+  #set u3 [vecnorm [veccross $u1 $u2]]
 
 # extract quaternion
   if {[lindex $u1 0] >= 0.0} {

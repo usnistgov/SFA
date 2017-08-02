@@ -538,7 +538,7 @@ proc gpmiCoverageStart {{multi 1}} {
 proc gpmiCoverageWrite {{fn ""} {sum ""} {multi 1}} {
   global cells cells1 col1 gpmiTypes gpmiTypesInvalid gpmiTypesPerFile pmi_coverage pmi_rows pmi_totals
   global worksheet worksheet1 legendColor
-  #outputMsg "gpmiCoverageWrite $multi" red
+  #outputMsg "gpmiCoverageWrite $multi " red
 
   if {[catch {
     if {$multi} {
@@ -645,7 +645,7 @@ proc gpmiCoverageWrite {{fn ""} {sum ""} {multi 1}} {
 # format PMI coverage analysis worksheet, also PMI totals
 proc gpmiCoverageFormat {{sum ""} {multi 1}} {
   global cells cells1 col1 excel excel1 gpmiTypes lenfilelist localName opt
-  global pmi_coverage pmi_rows pmi_totals recPracNames worksheet worksheet1
+  global pmi_coverage pmi_rows pmi_totals recPracNames stepAP worksheet worksheet1
   #outputMsg "gpmiCoverageFormat $multi" red
 
 # delete worksheet if no graphical PMI
@@ -692,6 +692,10 @@ proc gpmiCoverageFormat {{sum ""} {multi 1}} {
       catch {[[$range Borders] Item [expr 8]] Weight [expr 2]}
     }
 
+# rec prac
+    set rp "$recPracNames(pmi242), Sec. 8.4, Table 14"
+    if {$stepAP == "AP203"} {set rp "$recPracNames(pmi203), Sec. 4.3, Table 1"}
+    
 # vertical line(s)
     if {$multi} {
       set range [$worksheet1($pmi_coverage) Range [cellRange 1 $col1($pmi_coverage)] [cellRange [expr {[lindex $idx1 end]-1}] $col1($pmi_coverage)]]
@@ -702,7 +706,7 @@ proc gpmiCoverageFormat {{sum ""} {multi 1}} {
       $range RowHeight 300
       [$worksheet1($pmi_coverage) Columns] AutoFit
       
-      $cells1($pmi_coverage) Item [expr {$pmi_rows+2}] 1 "Presentation Names defined in $recPracNames(pmi242), Sec. 8.4, Table 14"
+      $cells1($pmi_coverage) Item [expr {$pmi_rows+2}] 1 "Presentation Names defined in $rp"
       set anchor [$worksheet1($pmi_coverage) Range [cellRange [expr {$pmi_rows+2}] 1]]
       [$worksheet1($pmi_coverage) Hyperlinks] Add $anchor [join "https://www.cax-if.org/joint_testing_info.html#recpracs"] [join ""] [join "Link to CAx-IF Recommended Practices"]
   
@@ -721,7 +725,7 @@ proc gpmiCoverageFormat {{sum ""} {multi 1}} {
       }
       [$worksheet($pmi_coverage) Columns] AutoFit        
       
-      catch {$cells($pmi_coverage) Item 1 5 "Presentation Names defined in $recPracNames(pmi242), Sec. 8.4, Table 14"}
+      catch {$cells($pmi_coverage) Item 1 5 "Presentation Names defined in $rp"}
       set range [$worksheet($pmi_coverage) Range E1:O1]
       $range MergeCells [expr 1]
       set anchor [$worksheet($pmi_coverage) Range E1]

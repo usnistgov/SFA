@@ -141,7 +141,7 @@ proc gpmiAnnotation {entType} {
       if {$n < 10000000} {
         if {[expr {$n%2000}] == 0} {
           if {$n > 0} {outputMsg "  $n"}
-          update idletasks
+          update
         }
         gpmiAnnotationReport $objEntity
         if {$opt(DEBUG1)} {outputMsg \n}
@@ -348,12 +348,12 @@ proc gpmiAnnotationReport {objEntity} {
                 "cartesian_point coordinates" {
                   set coord "[trimNum [lindex $objValue 0]] [trimNum [lindex $objValue 1]] [trimNum [lindex $objValue 2]]"
 
-# save origin for tessellated placement
+# save origin for tessellated placement, convert Z = -Y, Y = Z
                   if {[info exists tessRepo]} {
                     if {$tessRepo} {lappend tessPlacement(origin) $coord}
                   }
 
-# placeholder origin and anchor
+# placeholder origin and anchor, convert as above?
                   if {[string first "placeholder" $ao] != -1} {
                     incr placeNCP
                     if {$placeNCP == 1} {
@@ -846,7 +846,7 @@ proc gpmiAnnotationReport {objEntity} {
 # moved (start shape node if not tessellated)
                     if {$ao == "annotation_fill_area_occurrence"} {errorMsg "PMI annotations with filled characters are not filled."}
                     if {[string first "tessellated" $ao] == -1} {set x3dShape 1}
-                    update idletasks
+                    update
                   }               
 
 # value in spreadsheet  

@@ -92,7 +92,7 @@ proc guiStartWindow {} {
 # buttons and progress bar
 
 proc guiButtons {} {
-  global buttons wdir nprogEnts nprogFile ftrans mytemp opt nistVersion
+  global buttons wdir nprogBarEnts nprogBarFiles ftrans mytemp opt nistVersion
   
   set ftrans [frame .ftrans1 -bd 2 -background "#F0F0F0"]
   set butstr "Spreadsheet"
@@ -129,12 +129,12 @@ proc guiButtons {} {
 
 # progress bars
   set fbar [frame .fbar -bd 2 -background "#F0F0F0"]
-  set nprogEnts 0
-  set buttons(pgb) [ttk::progressbar $fbar.pgb -mode determinate -variable nprogEnts]
+  set nprogBarEnts 0
+  set buttons(pgb) [ttk::progressbar $fbar.pgb -mode determinate -variable nprogBarEnts]
   pack $fbar.pgb -side top -padx 10 -fill x
 
-  set nprogFile 0
-  set buttons(pgb1) [ttk::progressbar $fbar.pgb1 -mode determinate -variable nprogFile]
+  set nprogBarFiles 0
+  set buttons(pgb1) [ttk::progressbar $fbar.pgb1 -mode determinate -variable nprogBarFiles]
   pack forget $buttons(pgb1)
   pack $fbar -side bottom -padx 10 -pady {0 10} -fill x
   
@@ -253,7 +253,7 @@ proc guiFileMenu {} {
 #-------------------------------------------------------------------------------
 # options tab, process and report
 proc guiProcessAndReports {} {
-  global fopt fopta nb opt cb buttons entCategory developer
+  global fopt fopta nb opt cb buttons entCategory developer allNone
 
   set cb 0
   set wopt [ttk::panedwindow $nb.options -orient horizontal]
@@ -345,7 +345,7 @@ proc guiProcessAndReports {} {
   set fopta4 [frame $fopta.4 -bd 0]
   set anbut [list {"All" 0} {"None" 1} {"For Reports" 2} {"For Visualizations" 3}]
   foreach item $anbut {
-    set bn "anbut[lindex $item 1]"            
+    set bn "allNone[lindex $item 1]"            
     set buttons($bn) [ttk::radiobutton $fopta4.$cb -variable allNone -text [lindex $item 0] -value [lindex $item 1] \
       -command {
         if {$allNone == 0} {
@@ -380,9 +380,10 @@ proc guiProcessAndReports {} {
     incr cb
   }
   catch {
-    tooltip::tooltip $buttons(anbut0) "Selects all of the Reports and the required entities for the reports"
-    tooltip::tooltip $buttons(anbut1) "Selects all Entity types except Geometry and Coordinates"
-    tooltip::tooltip $buttons(anbut2) "Deselects Reports and all Entity types expect Common"
+    tooltip::tooltip $buttons(allNone0) "Selects many Entity types"
+    tooltip::tooltip $buttons(allNone1) "Deselects most Entity types, Reports, and Visualizations"
+    tooltip::tooltip $buttons(allNone2) "Selects all Reports and associated entities"
+    tooltip::tooltip $buttons(allNone3) "Selects all Visualizations and associated entities"
   }
 
   pack $fopta4 -side left -anchor w -pady 0 -padx 0 -fill y
@@ -457,9 +458,9 @@ proc guiProcessAndReports {} {
   pack $foptv -side left -anchor w -pady {5 2} -padx 10 -fill both -expand true
   pack $foptrv -side top -anchor w -pady 0 -fill x
   catch {
-    tooltip::tooltip $buttons(optVIZPMI) "This feature is still be developed.\nPMI annotations might have the wrong position and orientation.\n\nSee Help > PMI Presentation\nSee Examples > Graphical PMI Viewer\n\nVisualizations can be generated without generating a spreadsheet\nor CSV files.  See the Output Format options below."
+    tooltip::tooltip $buttons(optVIZPMI) "See Help > PMI Presentation\nSee Examples > Graphical PMI Viewer\n\nVisualizations can be generated without generating a spreadsheet\nor CSV files.  See the Output Format options below."
     tooltip::tooltip $buttons(optVIZFEA) "See Help > Finite Element Model\nSee Examples > AP209 FEM Viewer\n\nVisualizations can be generated without generating a spreadsheet\nor CSV files.  See the Output Format options below."
-    tooltip::tooltip $buttons(optVIZTES) "This feature is still be developed.\n\nParts modeled with tessellated geometry can be viewed in a web browser (Options tab).\nTessellated geometry is supported by AP242 and is supplementary to boundary representation (b-rep) geometry.\n\nParts in an assembly might have the wrong position and orientation or be missing.\n\nSee Help > Tessellated Part Geometry\nSee Examples > Tessellated Part Viewer\n\nVisualizations can be generated without generating a spreadsheet\nor CSV files.  See the Output Format options below."
+    tooltip::tooltip $buttons(optVIZTES) "This feature is still be developed\nParts in an assembly might have the wrong position and orientation or be missing.\n\nParts modeled with tessellated geometry is supported by AP242 and is supplementary\nto boundary representation (b-rep) geometry.\n\nSee Help > Tessellated Part Geometry\nSee Examples > Tessellated Part Viewer\n\nVisualizations can be generated without generating a spreadsheet\nor CSV files.  See the Output Format options below."
   }
 }
 
@@ -676,7 +677,12 @@ proc guiOpenSTEPFile {} {
 
   set foptk [ttk::labelframe $fopt.k -text " Output Format "]
   foreach item {{" Excel" Excel} {" CSV" CSV} {" Visualization Only (no spreadsheet)" None}} {
-    pack [ttk::radiobutton $foptk.$cb -variable opt(XLSCSV) -text [lindex $item 0] -value [lindex $item 1] -command {checkValues}] -side left -anchor n -padx 5 -pady 0 -ipady 0
+    pack [ttk::radiobutton $foptk.$cb -variable opt(XLSCSV) -text [lindex $item 0] -value [lindex $item 1] -command {
+      set opt(VIZFEA) 1
+      set opt(VIZPMI) 1
+      set opt(VIZTES) 1
+      checkValues
+    }] -side left -anchor n -padx 5 -pady 0 -ipady 0
     incr cb
   }
   pack $foptk -side top -anchor w -pady {5 2} -padx 10 -fill both
@@ -730,12 +736,12 @@ proc guiSpreadsheet {} {
     incr cb
   }
   pack $fxlsb -side top -anchor w -pady 5 -padx 10 -fill both
-  set msg "This option will limit the number of rows (entities) written to any one worksheet or CSV file.\nThe Maximum rows ([lindex [lindex $rlimit end] 1]) depends on the version of Excel.\n\nFor large STEP files, setting a low maximum can speed up processing at the expense\nof not processing all of the entities.  This is useful when processing Geometry entities.\n\nSyntax errors related to the Reports might be missed if some entities are not processed due\nto a small value for maximum rows."
+  set msg "This option will limit the number of rows (entities) written to any one worksheet or CSV file.\nThe Maximum rows ([lindex [lindex $rlimit end] 1]) depends on the version of Excel.\n\nFor large STEP files, setting a low maximum can speed up processing at the expense\nof not processing all of the entities.  This is useful when processing Geometry entities.\n\nSyntax errors related to the Reports might be missed if some entities are not processed due\nto a small value for maximum rows.\n\nMaximum rows does not affect generating any visualization."
   catch {tooltip::tooltip $fxlsb $msg}
 
   set fxlsc [ttk::labelframe $fxls.c -text " Excel Options "]
   foreach item {{" Open spreadsheet after it has been generated" opt(XL_OPEN)} \
-                {" Keep spreadsheet open while it is being generated (slow)" opt(XL_KEEPOPEN)} \
+                {" Keep spreadsheet open while it is being generated (not recommended)" opt(XL_KEEPOPEN)} \
                 {" Create links to STEP files and spreadsheets with multiple files" opt(XL_LINK1)}} {
     regsub -all {[\(\)]} [lindex $item 1] "" idx
     set buttons($idx) [ttk::checkbutton $fxlsc.$cb -text [lindex $item 0] \
@@ -1097,8 +1103,6 @@ graphical PMI, not the model geometry, except for tessellated part geometry.  Po
 circles, and tessellated geometry are supported for visualization.  The color of the annotations
 can be modified.  Filled characters are not filled.  PMI associated with Saved Views can be
 switched on and off.
-
-PMI annotations might have the wrong position and orientation.
 
 The graphical PMI file is written to a file named mystepfile-x3dom.html
 See Examples > Graphical PMI Viewer
