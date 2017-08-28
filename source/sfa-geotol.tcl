@@ -409,12 +409,13 @@ proc spmiGeotolReport {objEntity} {
 
 # column name
                   if {![info exists pmiHeading($col($gt))]} {
-                    $cells($gt) Item 3 $c $colName
+                    if {[info exists colName]} {
+                      $cells($gt) Item 3 $c $colName
+                    } else {
+                      errorMsg "Syntax Error on [formatComplexEnt $gt]"
+                    }
                     set pmiHeading($col($gt)) 1
                     set pmiCol [expr {max($col($gt),$pmiCol)}]
-                    #if {[string first "GD&T" $colName] == 0} {
-                    #  addCellComment $gt 3 $c "If toleranced_shape_aspect does not directly refer to a dimension or datum feature, then the association between the geometric tolerance and dimensional tolerance or datum feature is found by looking for a common shape_aspect or geometric item.\n\nAssociated PMI Presentation is on annotation_occurrence worksheets."
-                    #}
                   }
 
 # keep track of rows with PMI properties
@@ -561,7 +562,11 @@ proc spmiGeotolReport {objEntity} {
 
 # column name
                   if {![info exists pmiHeading($col($gt))]} {
-                    $cells($gt) Item 3 $c $colName
+                    if {[info exists colName]} {
+                      $cells($gt) Item 3 $c $colName
+                    } else {
+                      errorMsg "Syntax Error on [formatComplexEnt $gt]"
+                    }
                     set pmiHeading($col($gt)) 1
                     set pmiCol [expr {max($col($gt),$pmiCol)}]
                   }
@@ -727,13 +732,28 @@ proc spmiGeotolReport {objEntity} {
                     catch {unset datumTargetGeom}
                     set datumTargetType $ov
                     set oktarget 1
-                    if {[$gtEntity Type] == "placed_datum_target_feature"} {
-                      if {$ov != "point" && $ov != "line" && $ov != "rectangle" && $ov != "circle" && $ov != "circular curve"} {
-                        set oktarget 0
-                      } else {
-                        lappend spmiTypesPerFile "$ov placed datum target (6.6)"
+# check target type
+                    set ok 1
+                    if {$ov == "point" || $ov == "line" || $ov == "rectangle" || $ov == "circle" || $ov == "circular curve"} {
+                      lappend spmiTypesPerFile "$ov placed datum target (6.6)"
+                      if {[$gtEntity Type] != "placed_datum_target_feature" } {
+                        errorMsg "Syntax Error: Target description '$ov' is only valid for placed_datum_target_feature, not [$gtEntity Type].\n[string repeat " " 14]\($recPracNames(pmi242), Sec. 6.6.1, Figure 38, Table 9)"
+                        set ok 0
                       }
+                    } elseif {$ov == "curve" || $ov == "area"} {
+                      lappend spmiTypesPerFile "$ov datum target (6.6)"
+                      if {[$gtEntity Type] != "datum_target" } {
+                        errorMsg "Syntax Error: Target description '$ov' is only valid for datum_target, not [$gtEntity Type].\n[string repeat " " 14]\($recPracNames(pmi242), Sec. 6.6.1, Figure 39, Table 9)"
+                        set ok 0
+                      }
+                    } else {
+                      errorMsg "Syntax Error: Invalid 'description' ($ov) on [$gtEntity Type].\n[string repeat " " 14]\($recPracNames(pmi242), Sec. 6.6.1, Table 9)"
+                      set ok 0
+                    }
+                    if {!$ok} {lappend syntaxErr([lindex [split $ent1 " "] 0]) [list $objID [lindex [split $ent1 " "] 1]]}
+                    
 # placed datum target feature geometry
+                    if {[$gtEntity Type] == "placed_datum_target_feature"} {
                       set e0s [$gtEntity GetUsedIn [string trim feature_for_datum_target_relationship] [string trim related_shape_aspect]]
                       ::tcom::foreach e0 $e0s {
                         ::tcom::foreach a0 [$e0 Attributes] {
@@ -760,13 +780,9 @@ proc spmiGeotolReport {objEntity} {
                       } else {
                         #errorMsg "Syntax Error: Missing target geometry for [$gtEntity Type].\n[string repeat " " 14]\($recPracNames(pmi242), Sec. 6.6.2)"
                       }
-                    } else {
-                      if {$ov != "area" && $ov != "curve"} {
-                        set oktarget 0
-                      } else {
-                        lappend spmiTypesPerFile "$ov datum target (6.6)"
-                      }
+
 # datum target feature geometry
+                    } else {
                       set e1s [$gtEntity GetUsedIn [string trim geometric_item_specific_usage] [string trim definition]]
                       ::tcom::foreach e1 $e1s {
                         ::tcom::foreach a1 [$e1 Attributes] {
@@ -781,13 +797,9 @@ proc spmiGeotolReport {objEntity} {
                         set col($gt) [expr {$pmiStartCol($gt)+2}]
                         set colName "Target Geometry[format "%c" 10](Sec. 6.6.1)"
                         set objValue $datumTargetGeom
-                      } else {
+                      } elseif {$ov != "curve" && $ov != "area"} {
                         errorMsg "Syntax Error: Missing target geometry for [$gtEntity Type].\n[string repeat " " 14]\($recPracNames(pmi242), Sec. 6.6.1)"
                       }
-                    }
-                    if {!$oktarget} {
-                      errorMsg "Syntax Error: Invalid 'description' ($ov) on [$gtEntity Type].\n[string repeat " " 14]\($recPracNames(pmi242), Sec. 6.6.1)"
-                      lappend syntaxErr([lindex [split $ent1 " "] 0]) [list $objID [lindex [split $ent1 " "] 1]]
                     }
                   }
                   "placed_datum_target_feature target_id" -
@@ -912,10 +924,9 @@ proc spmiGeotolReport {objEntity} {
                           }
                         }
                       }
-#
 # missing target representation
                       if {[string first "." $datumTargetRep] == -1} {
-                        errorMsg "Syntax Error: Missing target representation for '$datumTargetType' datum target.\n[string repeat " " 14]\($recPracNames(pmi242), Sec. 6.6.1)"
+                        errorMsg "Syntax Error: Missing target representation for '$datumTargetType' on [$gtEntity Type].\n[string repeat " " 14]\($recPracNames(pmi242), Sec. 6.6.1, Figure 38)"
                         set invalid 1
                       }
                     }
@@ -1242,6 +1253,16 @@ proc spmiGeotolReport {objEntity} {
           set val [[$cells($gt) Item $r $c] Value]
           $cells($gt) Item $r $c "$val[format "%c" 10]$tzf1"
           unset tzf1
+        }
+      }
+
+# fix sep reqt
+      catch {
+        set val [[$cells($gt) Item $r $c] Value]
+        set c1 [string first "SEP REQT" $val]
+        if {$c1 != -1} {
+          set val [string range $val 0 $c1-1][string range $val $c1+9 end]
+          $cells($gt) Item $r $c "$val[format "%c" 10]SEP REQT"
         }
       }
  

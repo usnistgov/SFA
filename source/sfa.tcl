@@ -249,7 +249,8 @@ proc whatsNew {} {
   if {$sfaVersion > 0 && $sfaVersion < [getVersion]} {outputMsg "\nThe previous version of the STEP File Analyzer was: $sfaVersion" red}
 
 outputMsg "\nWhat's New (Version: [getVersion]  Updated: [string trim [clock format $progtime -format "%e %b %Y"]])" blue
-outputMsg "- New Output Format to generate any Visualization without a spreadsheet (Options tab)
+outputMsg "- PMI Saved View viewpoints
+- New Output Format to generate any Visualization without a spreadsheet (Options tab)
 - Support for repetitive dimensions (experimental)
 - Improved color-coding for PMI Representation Coverage for NIST CAD models (Help > NIST CAD models)
 - Visualization of tessellated part geometry, tessellated PMI, AP209 finite element models (Options tab)
@@ -257,7 +258,7 @@ outputMsg "- New Output Format to generate any Visualization without a spreadshe
 - Bug fixes and minor improvements"
 
   .tnb select .tnb.status
-  update
+  update idletasks
 }
 
 # -------------------------------------------------------------------------------
@@ -335,7 +336,6 @@ if {$opt(FIRSTTIME)} {
   saveState
 }
   
-
 if {$developer} {set copyrose 1}
 
 #-------------------------------------------------------------------------------

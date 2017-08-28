@@ -19,10 +19,7 @@ proc x3dFileStart {} {
   }
   
   puts $x3dFile "<!DOCTYPE html>\n<html>\n<head>\n<title>[file tail $localName] | $title</title>\n<base target=\"_blank\">\n<meta http-equiv='Content-Type' content='text/html;charset=utf-8'/>"
-  puts $x3dFile "<link rel='stylesheet' type='text/css' href='https://www.x3dom.org/x3dom/release/x3dom.css'/>\n<script type='text/javascript' src='https://www.x3dom.org/x3dom/release/x3dom.js'></script>\n"
-
-# toggle switches
-  if {[llength $savedViewNames] > 0} {foreach svn $savedViewNames {feaSwitch $svn}}
+  puts $x3dFile "<link rel='stylesheet' type='text/css' href='https://www.x3dom.org/x3dom/release/x3dom.css'/>\n<script type='text/javascript' src='https://www.x3dom.org/x3dom/release/x3dom.js'></script>\n</head>"
 
 # transparency script
   set numTessColor 0
@@ -38,14 +35,11 @@ proc x3dFileStart {} {
     }
   }
 
-  puts $x3dFile "</head>\n\n<body><font face=\"arial\">\n<h3>$title:  [file tail $localName]</h3>"
+  puts $x3dFile "\n<body><font face=\"arial\">\n<h3>$title:  [file tail $localName]</h3>"
   puts $x3dFile "<ul><li>Only $title is shown.  Boundary representation (b-rep) part geometry can be viewed with <a href=\"https://www.cax-if.org/step_viewers.html\">STEP file viewers</a>."
   if {[string first "Tessellated" $title] != -1 && [info exist entCount(next_assembly_usage_occurrence)]} {
     puts $x3dFile "<li>Parts in an assembly might have the wrong position and orientation or be missing."
   }
-  #if {[string first "Graphical" $title] != -1 && [info exist entCount(tessellated_annotation_occurrence)] && [info exist entCount(repositioned_tessellated_item_and_tessellated_geometric_set)]} {
-  #  puts $x3dFile "<li>PMI annotations might have the wrong position and orientation. (repositioned_tessellated_item)"
-  #}
   puts $x3dFile "</ul>\n<table><tr><td>"
 
 # x3d window size
@@ -299,7 +293,7 @@ proc x3dCoordAxes {size} {
 # write PMI saved view geometry, set viewpoints, add navigation and background color, and close X3DOM file
 proc x3dFileEnd {} {
   global modelURLs nistName opt stepAP x3dAxes x3dMax x3dMin x3dFile x3dMsg stepAP entCount nistVersion numTessColor
-  global savedViewButtons savedViewFileName savedViewFile savedViewNames
+  global savedViewButtons savedViewFileName savedViewFile savedViewNames savedViewpoint
   
 # write any PMI saved view geometry for multiple saved views
   set savedViewButtons {}
@@ -334,14 +328,27 @@ proc x3dFileEnd {} {
     x3dCoordAxes $asize
   }
 
-# viewpoints
+# default and saved viewpoints
   set cor "centerOfRotation='$xyzcen(x) $xyzcen(y) $xyzcen(z)'"
-  puts $x3dFile "\n<Viewpoint $cor position='$xyzcen(x) [trimNum [expr {0. - ($xyzcen(y) + 1.4*$maxxyz)}]] $xyzcen(z)' orientation='1 0 0 1.5708' description='Perspective'></Viewpoint>"
-
   set fov [trimNum [expr {$delt(z)*0.5 + $delt(y)*0.5}]]
-  puts $x3dFile "<OrthoViewpoint fieldOfView='\[-$fov,-$fov,$fov,$fov\]' $cor position='$xyzcen(x) [trimNum [expr {0. - ($xyzcen(y) + 1.4*$maxxyz)}]] $xyzcen(z)' orientation='1 0 0 1.5708' description='Orthographic'></OrthoViewpoint>"  
+  set psy [trimNum [expr {0. - ($xyzcen(y) + 1.4*$maxxyz)}]]
 
-  puts $x3dFile "<NavigationInfo type='\"EXAMINE\" \"ANY\"'></NavigationInfo>"
+  puts $x3dFile "\n<Viewpoint id='Front' position='$xyzcen(x) $psy $xyzcen(z)' orientation='1 0 0 1.5708' $cor></Viewpoint>"
+  if {[llength $savedViewNames] > 0} {
+    foreach svn $savedViewNames {
+      if {[info exists savedViewpoint($svn)] && [lsearch $savedViewButtons $svn] != -1} {
+        puts $x3dFile "<Transform translation='[lindex $savedViewpoint($svn) 0]'><Viewpoint id='$svn' position='[lindex $savedViewpoint($svn) 0]' orientation='[lindex $savedViewpoint($svn) 1]' $cor></Viewpoint></Transform>"  
+        #set px [trimNum [expr {[lindex [lindex $savedViewpoint($svn) 0] 0]+$xyzcen(x)}]]
+        #set py [trimNum [expr {[lindex [lindex $savedViewpoint($svn) 0] 1]+$psy}]]
+        #set pz [trimNum [expr {[lindex [lindex $savedViewpoint($svn) 0] 2]+$xyzcen(z)}]]
+        #puts $x3dFile "<OrthoViewpoint description='$svn' position='$px $py $pz' orientation='[lindex $savedViewpoint($svn) 1]' $cor fieldOfView='\[-$fov,-$fov,$fov,$fov\]'></OrthoViewpoint>"  
+      }
+    }
+  }
+  puts $x3dFile "<OrthoViewpoint id='Ortho' position='$xyzcen(x) $psy $xyzcen(z)' orientation='1 0 0 1.5708' $cor fieldOfView='\[-$fov,-$fov,$fov,$fov\]'></OrthoViewpoint>"  
+
+# navigation, background color
+  puts $x3dFile "\n<NavigationInfo type='\"EXAMINE\" \"ANY\"'></NavigationInfo>"
   if {[string first "AP209" $stepAP] == -1} {
     puts $x3dFile "<Background skyColor='.8 .8 .8'></Background>"
   } else {
@@ -359,7 +366,8 @@ proc x3dFileEnd {} {
 # for PMI annotations - checkboxes for toggling saved view graphics
   if {$opt(VIZPMI) && [llength $savedViewButtons] > 0} {
     puts $x3dFile "\nSaved View PMI"
-    foreach svn [lsort $savedViewButtons] {puts $x3dFile "<br><input type='checkbox' checked onclick='tog$svn\(this.value)'/>$svn"}
+    foreach svn $savedViewButtons {puts $x3dFile "<br><input type='checkbox' checked onclick='tog$svn\(this.value)'/>$svn"}
+    puts $x3dFile "<p>Selecting a Saved View changes the viewpoint or Page Up for the next viewpoint.  Zoom and pan to view all PMI."
   }
 
 # for FEM - node, element checkboxes
@@ -393,8 +401,14 @@ proc x3dFileEnd {} {
     }
   }
   puts $x3dFile "\n<p><ul style=\"padding-left:20px\">"
-  puts $x3dFile "<li><a href=\"https://www.x3dom.org/documentation/interaction/\">Use the mouse</a> to rotate, pan, zoom.<li>Use 'a' or 'r' to show all.<li>Left double-click to recenter.<li>Use Page Up to switch between perspective and orthographic views.<p>"
+  puts $x3dFile "<li><a href=\"https://www.x3dom.org/documentation/interaction/\">Use the mouse</a> in 'Examine Mode' to rotate, pan, zoom.<li>Use Page Up to switch between views.<p>"
   puts $x3dFile "</ul></td></tr></table>"
+
+# toggle switches for PMI views
+  if {[llength $savedViewButtons] > 0} {
+    puts $x3dFile " "
+    foreach svn $savedViewButtons {x3dSwitchScript $svn 1}
+  }
                           
   set str "NIST "
   set url "https://www.nist.gov/services-resources/software/step-file-analyzer"
@@ -495,4 +509,19 @@ proc getSavedViewName {objEntity} {
     }
   }
   return $savedViewName
+}
+
+# -------------------------------------------------------------------------------
+# script for switch node
+proc x3dSwitchScript {type {vp 0}} {
+  global x3dFile
+  
+  puts $x3dFile "<script>function tog$type\(choice){"
+  puts $x3dFile " if (!document.getElementById('sw$type').checked) {"
+  puts $x3dFile "  document.getElementById('sw$type').setAttribute('whichChoice', -1);"
+  puts $x3dFile " } else {"
+  puts $x3dFile "  document.getElementById('sw$type').setAttribute('whichChoice', 0);"
+  if {$vp} {puts $x3dFile "  document.getElementById('$type').setAttribute('set_bind','true');"}
+  puts $x3dFile " }"
+  puts $x3dFile " document.getElementById('sw$type').checked = !document.getElementById('sw$type').checked;\n}</script>"
 }

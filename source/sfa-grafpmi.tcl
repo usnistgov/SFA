@@ -165,7 +165,6 @@ proc gpmiAnnotationReport {objEntity} {
   global x3dColor x3dCoord x3dFile x3dFileName x3dStartFile x3dIndex x3dPoint x3dPID x3dShape x3dMsg x3dIndexType x3dMax x3dMin
   global tessCoord tessIndex tessIndexCoord tessRepo tessPlacement gpmiPlacement placeNCP placeOrigin placeAnchor
   global savedViewName
-  
   #outputMsg "gpmiAnnotationReport" red
 
 # entLevel is very important, keeps track level of entity in hierarchy
@@ -185,12 +184,11 @@ proc gpmiAnnotationReport {objEntity} {
     if {$entLevel == 1} {set objEntity1 $objEntity}
 
     if {$opt(DEBUG1) && $geomType != "polyline"} {outputMsg "$ind ENT $entLevel #$objID=$objType (ATR=[$objAttributes Count])" blue}
-    #if {$entLevel == 1} {outputMsg "#$objID=$objType" blue}
 
-# check if there are rows with ao
+# check if there are rows with ao for a report and not visualize
     if {$gpmiEnts($objType)} {
       set gpmiID $objID
-      if {![info exists gpmiIDRow($ao,$gpmiID)] && $opt(PMIGRF)} {
+      if {![info exists gpmiIDRow($ao,$gpmiID)] && $opt(PMIGRF) && !$opt(VIZPMI)} {
         incr entLevel -1
         return
       }
@@ -258,7 +256,7 @@ proc gpmiAnnotationReport {objEntity} {
                       append msg "($recPracNames(pmi203), Sec. 4.1.1, 4.1.2)"
                     }
                     errorMsg $msg
-                    set msg "<i>Some annotation line segments may be missing.</i>"
+                    set msg "Some annotation line segments may be missing."
                     if {[lsearch $x3dMsg $msg] == -1} {lappend x3dMsg $msg}
                   }
                 }
@@ -272,7 +270,8 @@ proc gpmiAnnotationReport {objEntity} {
 
               set colName "value"
   
-              if {$ok && [info exists gpmiID] && $opt(PMIGRF)} {
+              #if {$ok && [info exists gpmiID] && $opt(PMIGRF)} 
+              if {$ok && [info exists gpmiIDRow($ao,$gpmiID)] && $opt(PMIGRF)} {
                 set c [string index [cellRange 1 $col($ao)] 0]
                 set r $gpmiIDRow($ao,$gpmiID)
 
@@ -346,7 +345,8 @@ proc gpmiAnnotationReport {objEntity} {
               set ok 0
               switch -glob $ent1 {
                 "cartesian_point coordinates" {
-                  set coord "[trimNum [lindex $objValue 0]] [trimNum [lindex $objValue 1]] [trimNum [lindex $objValue 2]]"
+                  set coord [vectrim $objValue]
+                  #set coord "[trimNum [lindex $objValue 0]] [trimNum [lindex $objValue 1]] [trimNum [lindex $objValue 2]]"
 
 # save origin for tessellated placement, convert Z = -Y, Y = Z
                   if {[info exists tessRepo]} {
@@ -459,7 +459,7 @@ proc gpmiAnnotationReport {objEntity} {
               }
 
 # value in spreadsheet
-              if {$ok && [info exists gpmiID] && $opt(XLSCSV) == "Excel" && $opt(PMIGRF)} {
+              if {$ok && [info exists gpmiIDRow($ao,$gpmiID)] && $opt(XLSCSV) == "Excel" && $opt(PMIGRF)} {
                 set c [string index [cellRange 1 $col($ao)] 0]
                 set r $gpmiIDRow($ao,$gpmiID)
 
@@ -592,7 +592,7 @@ proc gpmiAnnotationReport {objEntity} {
                         set x3dPoint(x) [lindex $circleCenter 0]
                       } else {
                         errorMsg " PMI annotation circle orientation ($dirRatio(x), $dirRatio(y), $dirRatio(z)) is ignored."
-                        set msg "<i>Complex circle orientation is ignored.</i>"
+                        set msg "Complex circle orientation is ignored."
                         if {[lsearch $x3dMsg $msg] == -1} {lappend x3dMsg $msg}
                         set x3dPoint(x) [expr {$objValue*cos($angle)+[lindex $circleCenter 0]}]
                         set x3dPoint(y) [expr {-1.*$objValue*sin($angle)+[lindex $circleCenter 1]}]
@@ -618,7 +618,7 @@ proc gpmiAnnotationReport {objEntity} {
                     }
                   }
                   errorMsg " Trimmed circles in PMI annotations might have the wrong orientation."
-                  set msg "<i>Trimmed circles might have the wrong orientation.</i>"
+                  set msg "Trimmed circles might have the wrong orientation."
                   if {[lsearch $x3dMsg $msg] == -1} {lappend x3dMsg $msg}
                 }
                 "cartesian_point name" {
@@ -653,7 +653,7 @@ proc gpmiAnnotationReport {objEntity} {
                 "*tessellated_annotation_occurrence* name" {
                   set aoname $objValue
                   if {[string first "fill" $ent1] != -1} {
-                    set msg "<i>Filled characters are not filled.</i>"
+                    set msg "Filled characters are not filled."
                     if {[lsearch $x3dMsg $msg] == -1} {lappend x3dMsg $msg}
                   }
                   if {[string first "placeholder" $ent1] != -1} {set placeNCP 0}
@@ -701,15 +701,13 @@ proc gpmiAnnotationReport {objEntity} {
                     if {$opt(gpmiColor) == 0} {append x3dColor " $objValue"}
                     if {$opt(PMIGRF)} {
                       set ok 1
-                      if {$opt(PMIGRF)} {
-                        set col($ao) [expr {$pmiStartCol($ao)+3}]
-                        if {$stepAP == "AP242"} {
-                          set colName "color[format "%c" 10](Sec. 8.5)"
-                        } else {
-                          set colName "color[format "%c" 10](Sec. 4.4)"
-                        }
-                        set pmiCol [expr {max($col($ao),$pmiCol)}]
+                      set col($ao) [expr {$pmiStartCol($ao)+3}]
+                      if {$stepAP == "AP242"} {
+                        set colName "color[format "%c" 10](Sec. 8.5)"
+                      } else {
+                        set colName "color[format "%c" 10](Sec. 4.4)"
                       }
+                      set pmiCol [expr {max($col($ao),$pmiCol)}]
                     }
                   }
                 }
@@ -758,7 +756,7 @@ proc gpmiAnnotationReport {objEntity} {
 
 # value in spreadsheet
               if {$ok} {
-                if {[info exists gpmiID] && [string first "occurrence" $ao] != -1 && $opt(PMIGRF)} {
+                if {[info exists gpmiIDRow($ao,$gpmiID)] && [string first "occurrence" $ao] != -1 && $opt(PMIGRF)} {
                   set c [string index [cellRange 1 $col($ao)] 0]
                   set r $gpmiIDRow($ao,$gpmiID)
 
@@ -788,31 +786,21 @@ proc gpmiAnnotationReport {objEntity} {
 # look for invalid 'name' values                  
                   set invalid 0
                   if {[string first "occurrence" $ao] != -1} {
-                    if {$ov == ""} {
-                      set msg "Syntax Error: Missing 'name' attribute on [formatComplexEnt [lindex $ent1 0]].\n[string repeat " " 14]"
+                    if {$ov == "" || [lsearch $gpmiTypes $ov] == -1} {
+                      if {$ov == ""} {
+                        set msg "Syntax Error: Missing 'name' attribute on [formatComplexEnt [lindex $ent1 0]]."
+                        set ov "(blank)"
+                      } else {
+                        set msg "Syntax Error: 'name' attribute ($ov) on [formatComplexEnt [lindex $ent1 0]] is not recommended."
+                      }
+                      append msg "\n[string repeat " " 14]"
                       if {$stepAP == "AP242"} {
                         append msg "($recPracNames(pmi242), Sec. 8.4, Table 14)"
                       } else {
                         append msg "($recPracNames(pmi203), Sec. 4.3, Table 1)"
                       }
                       errorMsg $msg
-                      set ov "(blank)"
-                      if {[info exists gpmiTypesInvalid]} {
-                        if {[lsearch $gpmiTypesInvalid $ov] == -1} {lappend gpmiTypesInvalid $ov}
-                      }
-                      set invalid 1
-                      lappend syntaxErr([lindex [split $ent1 " "] 0]) [list $objID [lindex [split $ent1 " "] 1]]
-                    } elseif {[lsearch $gpmiTypes $ov] == -1} {
-                      set msg "Syntax Error: 'name' attribute ($ov) on [formatComplexEnt [lindex $ent1 0]] is not recommended.\n[string repeat " " 14]"
-                      if {$stepAP == "AP242"} {
-                        append msg "($recPracNames(pmi242), Sec. 8.4, Table 14)"
-                      } else {
-                        append msg "($recPracNames(pmi203), Sec. 4.3, Table 1)"
-                      }
-                      errorMsg $msg
-                      if {[info exists gpmiTypesInvalid]} {
-                        if {[lsearch $gpmiTypesInvalid $ov] == -1} {lappend gpmiTypesInvalid $ov}
-                      }
+                      if {[info exists gpmiTypesInvalid]} {if {[lsearch $gpmiTypesInvalid $ov] == -1} {lappend gpmiTypesInvalid $ov}}
                       set invalid 1
                       lappend syntaxErr([lindex [split $ent1 " "] 0]) [list $objID [lindex [split $ent1 " "] 1]]
                     }
@@ -850,7 +838,7 @@ proc gpmiAnnotationReport {objEntity} {
                   }               
 
 # value in spreadsheet  
-                  if {[info exists gpmiID] && [string first "occurrence" $ao] != -1 && $opt(PMIGRF)} {
+                  if {[info exists gpmiIDRow($ao,$gpmiID)] && [string first "occurrence" $ao] != -1 && $opt(PMIGRF)} {
                     set val [[$cells($ao) Item $r $c] Value]
                     if {$invalid} {lappend syntaxErr($ao) [list $r $col($ao)]}
   
@@ -870,7 +858,7 @@ proc gpmiAnnotationReport {objEntity} {
                   incr currx3dPID
 
 # cell value for presentation style or color
-                } elseif {$opt(PMIGRF)} {
+                } elseif {[info exists gpmiIDRow($ao,$gpmiID)] && $opt(PMIGRF)} {
                   if {$colName != "colour"} {
                     $cells($ao) Item $r $c "$ent($entLevel) $objID"
                   } else {
@@ -894,7 +882,7 @@ proc gpmiAnnotationReport {objEntity} {
   incr entLevel -1
   
 # write a few more things at the end of processing an annotation_occurrence entity
-  if {$entLevel == 0 && $opt(PMIGRF)} {
+  if {$entLevel == 0 && $opt(PMIGRF) && [info exists gpmiIDRow($ao,$gpmiID)]} {
 
 # associated geometry, (1) find link between annotation_occurrence and a geometric item through
 # draughting_model_item_association or draughting_callout and geometric_item_specific_usage
@@ -1066,8 +1054,10 @@ proc gpmiAnnotationReport {objEntity} {
     } emsg]} {
       errorMsg "ERROR reporting Associated Geometry and Representation: $emsg"
     }
-
+  }
+    
 # report camera models associated with the annotation_occurrence through draughting_model
+  if {$entLevel == 0 && (($opt(PMIGRF) && [info exists gpmiIDRow($ao,$gpmiID)]) || ($opt(VIZPMI) && !$opt(PMIGRF)))} {
     if {[catch {
       set savedViews ""
       set savedViewName {}
@@ -1098,25 +1088,27 @@ proc gpmiAnnotationReport {objEntity} {
               lappend savedViewName $draftModelCameraNames([$entDraughtingModel P21ID])
               #errorMsg "  Adding Saved Views" green
 
-              if {$stepAP == "AP242"} {
-                set colName "Saved Views[format "%c" 10](Sec. 9.4)"
-              } else {
-                set colName "Saved Views[format "%c" 10](Sec. 5.4)"
+              if {$opt(PMIGRF)} {
+                if {$stepAP == "AP242"} {
+                  set colName "Saved Views[format "%c" 10](Sec. 9.4)"
+                } else {
+                  set colName "Saved Views[format "%c" 10](Sec. 5.4)"
+                }
+                if {![info exists savedViewCol]} {set savedViewCol [getNextUnusedColumn $ao 3]}
+                set c [string index [cellRange 1 $savedViewCol] 0]
+                set r $gpmiIDRow($ao,$gpmiID)
+                if {![info exists pmiHeading($savedViewCol)]} {
+                  $cells($ao) Item 3 $c $colName
+                  set pmiHeading($savedViewCol) 1
+                  set pmiCol [expr {max($savedViewCol,$pmiCol)}]
+                }
+  
+                set str "($nsv) camera_model_d3 [string trim $savedViews]"
+                if {$nsv == 1} {set str "camera_model_d3 [string trim $savedViews]"}
+                $cells($ao) Item $r $c $str
+                if {[string first "()" $savedViews] != -1} {lappend syntaxErr($ao) [list $r $savedViewCol]}
+                if {[lsearch $gpmiRow($ao) $r] == -1} {lappend gpmiRow($ao) $r}
               }
-              if {![info exists savedViewCol]} {set savedViewCol [getNextUnusedColumn $ao 3]}
-              set c [string index [cellRange 1 $savedViewCol] 0]
-              set r $gpmiIDRow($ao,$gpmiID)
-              if {![info exists pmiHeading($savedViewCol)]} {
-                $cells($ao) Item 3 $c $colName
-                set pmiHeading($savedViewCol) 1
-                set pmiCol [expr {max($savedViewCol,$pmiCol)}]
-              }
-
-              set str "($nsv) camera_model_d3 [string trim $savedViews]"
-              if {$nsv == 1} {set str "camera_model_d3 [string trim $savedViews]"}
-              $cells($ao) Item $r $c $str
-              if {[string first "()" $savedViews] != -1} {lappend syntaxErr($ao) [list $r $savedViewCol]}
-              if {[lsearch $gpmiRow($ao) $r] == -1} {lappend gpmiRow($ao) $r}
               
 # check for a mapped_item in draughting_model.items, do not check style_item (see old code)
               set attrsDraughtingModel [$entDraughtingModel Attributes]
@@ -1202,8 +1194,10 @@ proc gpmiAnnotationReport {objEntity} {
     } emsg]} {
       errorMsg "ERROR adding Saved Views: $emsg"
     }
-
+  }
+  
 # check if there are PMI validation properties (propDefIDS) associated with the annotation_occurrence
+  if {$entLevel == 0 && $opt(PMIGRF) && [info exists gpmiIDRow($ao,$gpmiID)]} {
     if {[catch {
       if {[info exists propDefIDS]} {
       
@@ -1267,16 +1261,20 @@ proc gpmiAnnotationReport {objEntity} {
 proc pmiGetCamerasAndProperties {} {
   global objDesign
   global draftModelCameras draftModelCameraNames gpmiValProp syntaxErr propDefIDS stepAP recPracNames entCount
-  global opt savedViewNames savedViewFile savedViewFileName mytemp savedViewName
+  global opt savedViewNames savedViewFile savedViewFileName mytemp savedViewName savedViewpoint
 
   #outputMsg getCameras blue
   catch {unset draftModelCameras}
   catch {unset draftModelCameraNames}
   if {[catch {
+
+# camera list
     set cmlist {}
     foreach cms [list camera_model_d3 camera_model_d3_multi_clipping] {
       if {[info exists entCount($cms)]} {if {$entCount($cms) > 0} {lappend cmlist $cms}}
     }
+
+# draughting model list
     set dmlist {}
     foreach dms [list draughting_model characterized_object_and_draughting_model characterized_representation_and_draughting_model characterized_representation_and_draughting_model_and_representation] {
       if {[info exists entCount($dms)]} {if {$entCount($dms) > 0} {lappend dmlist $dms}}
@@ -1324,6 +1322,13 @@ proc pmiGetCamerasAndProperties {} {
               set nameCameraModel [$attrCameraModel Name]
               if {$nameCameraModel == "name"} {
                 set name [$attrCameraModel Value]
+
+# clean up the camera name
+                regsub -all " " [string trim $name] "_" name1  
+                regsub -all {\(} [string trim $name1] "_" name1 
+                regsub -all {\)} [string trim $name1] "" name1  
+                regsub -all {:~$%&*<>?/+\|\"\#\\\{\}} [string trim $name1] "_" name1
+                
                 if {$name == ""} {
                   set msg "Syntax Error: For Saved Views, missing required 'name' attribute on $cm\n[string repeat " " 14]"
                   if {$stepAP == "AP242"} {
@@ -1334,19 +1339,25 @@ proc pmiGetCamerasAndProperties {} {
                   errorMsg $msg
                   lappend syntaxErr($cm) [list [$entCameraModel P21ID] name]
                 }
+
+# get axis2_placement_3d for camera viewpoint
               } elseif {$nameCameraModel == "view_reference_system"} {
-                #set a2p3d [$attrCameraModel Value]
-                #set a6 [[$a2p3d Attributes] Item 3]
-                #set e7 [$a6 Value]
-                #set axis [[[$e7 Attributes] Item 2] Value]
-                #
-                #set a7 [[$a2p3d Attributes] Item 4]
-                #set e8 [$a7 Value]
-                #set refdir [[[$e8 Attributes] Item 2] Value]
-                #outputMsg "[x3dRotation $axis $refdir] / $axis / $refdir / $name"
+                catch {unset savedViewpoint($name1)}
+                if {[catch {
+                  set a2p3d [[$attrCameraModel Value] Attributes]
+                  set origin [[[[[$a2p3d Item 2] Value] Attributes] Item 2] Value]
+                  set axis   [[[[[$a2p3d Item 3] Value] Attributes] Item 2] Value]
+                  set refdir [[[[[$a2p3d Item 4] Value] Attributes] Item 2] Value]
+                  lappend savedViewpoint($name1) [vectrim $origin]
+                  lappend savedViewpoint($name1) [x3dRotation $axis $refdir]
+                } emsg]} {
+                  errorMsg "ERROR getting Saved View viewpoint: $emsg"
+                  catch {raise .}
+                }
               }
             }
 
+# cameras associated with draughting models
             set str "[$entCameraModel P21ID] ($name)  "
             set id [$entDraughtingModel P21ID]
             if {![info exists draftModelCameras($id)]} {
@@ -1354,26 +1365,21 @@ proc pmiGetCamerasAndProperties {} {
             } elseif {[string first $str $draftModelCameras($id)] == -1} {
               append draftModelCameras($id) "[$entCameraModel P21ID] ($name)  "
             }
-
-            regsub -all " " [string trim $name] "_" name  
-            regsub -all {\(} [string trim $name] "_" name  
-            regsub -all {\)} [string trim $name] "" name  
-            regsub -all {:~$%&*<>?/+\|\"\#\\\{\}} [string trim $name] "_" name  
             if {![info exists draftModelCameraNames($id)]} {
-              set draftModelCameraNames($id) $name
+              set draftModelCameraNames($id) $name1
             } elseif {[string first $name $draftModelCameraNames($id)] == -1} {
-              append draftModelCameraNames($id) " $name"
+              append draftModelCameraNames($id) " $name1"
             }
 
 # keep track of saved views for graphic PMI
             if {$opt(VIZPMI)} {
               lappend savedViewName $draftModelCameraNames([$entDraughtingModel P21ID])
-              if {[lsearch $savedViewNames $name] == -1} {
-                lappend savedViewNames $name
-                set savedViewFileName($name) [file join $mytemp $name.txt]
-                catch {file delete -force $savedViewFileName($name)}
-                set savedViewFile($name) [open $savedViewFileName($name) w]
-                #outputMsg "camera name $name" green
+              if {[lsearch $savedViewNames $name1] == -1} {
+                lappend savedViewNames $name1
+                set savedViewFileName($name1) [file join $mytemp $name1.txt]
+                catch {file delete -force $savedViewFileName($name1)}
+                set savedViewFile($name1) [open $savedViewFileName($name1) w]
+                #outputMsg "camera name $name1" green
               }
             }
           }

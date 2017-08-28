@@ -169,7 +169,7 @@ proc tessReadGeometry {} {
         } else {
           set msg "Syntax Error: #$id=COORDINATES_LIST has zero coordinates"
           errorMsg $msg
-          set msg "<i>#$id=COORDINATES_LIST has no coordinates</i>"
+          set msg "#$id=COORDINATES_LIST has no coordinates"
           if {![info exists x3dMsg]} {set x3dMsg {}}
           if {[lsearch $x3dMsg $msg] == -1} {lappend x3dMsg $msg}
         }
@@ -484,15 +484,8 @@ proc tessSetPlacement {tsID} {
                   #set i 0
                   foreach n [[[$e7 Attributes] Item 2] Value] {
                     append val "[trimNum $n 5] "
-                    #switch $i {
-                    #  0 {set x $n}
-                    #  1 {set z [expr {0.-$n}]}
-                    #  2 {set y $n}
-                    #}
-                    #incr i
                   }
                   lappend tessPlacement(origin) [string trim $val]
-                  #lappend tessPlacement(origin) "[trimNum $x 5] [trimNum $y 5] [trimNum $z 5]"
                   if {$debug} {errorMsg "      [$e7 Type] [$e7 P21ID] ([$a6 Name]) [string trim $val]" red}
 
 # a2p3d axis
@@ -521,22 +514,12 @@ proc tessSetPlacement {tsID} {
 
 # -------------------------------------------------------------------------------
 # generate x3d rotation from axis2_placement_3d
-proc x3dRotation {{a {0 0 1}} {r {1 0 0}}} {
-
-  set axis $a
-  set refdir $r
-  
-# convert from geometry coordinate system to x3dom coordinate, Zv = -Yc, Yv = Zc
-  #set axis   [list [lindex $a 0] [lindex $a 2] [expr {0.-[lindex $a 1]}]]
-  #set refdir [list [lindex $r 0] [lindex $r 2] [expr {0.-[lindex $r 1]}]]
+proc x3dRotation {axis refdir} {
     
 # construct rotation matrix u, must normalize to use with quaternion
   set u3 [vecnorm $axis]
   set u1 [vecnorm [vecsub $refdir [vecmult $u3 [vecdot $refdir $u3]]]]
   set u2 [vecnorm [veccross $u3 $u1]]
-  #set u2 [vecnorm $axis]
-  #set u1 [vecnorm [vecsub $refdir [vecmult $u2 [vecdot $refdir $u2]]]]
-  #set u3 [vecnorm [veccross $u1 $u2]]
 
 # extract quaternion
   if {[lindex $u1 0] >= 0.0} {
@@ -575,7 +558,7 @@ proc x3dRotation {{a {0 0 1}} {r {1 0 0}}} {
     foreach i {0 1 2 3} {set q($i) 0.}
   }
 
-# convert from quaterion to rotation
+# convert from quaterion to x3d rotation
   set rotation_changed {0 1 0 0}
   set angle [expr {acos($q(0))*2.0}]
   if {$angle != 0.} {
@@ -615,6 +598,24 @@ proc vecmult {v1 v2} {
 proc vecsub {v1 v2} {
   foreach c1 $v1 c2 $v2 {lappend v3 [expr {$c1-$c2}]}
   return $v3
+}
+
+# add - add one vector to another
+proc vecadd {v1 v2} {
+  foreach c1 $v1 c2 $v2 {lappend v3 [expr {$c1+$c2}]}
+  return $v3
+}
+
+# scale - multiply vector by scalar
+proc vecscale {v1 scalar} {
+  foreach c1 $v1 {lappend v2 [expr {$c1*$scalar}]}
+  return $v2
+}
+
+# trim - truncate values in a vector
+proc vectrim {v1} {
+  foreach c1 $v1 {lappend v2 [trimNum $c1]}
+  return $v2
 }
 
 # cross - cross product between two 3d-vectors

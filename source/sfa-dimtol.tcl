@@ -138,13 +138,11 @@ proc spmiDimtolReport {objEntity} {
       catch {unset entlevel2}
       catch {unset assocGeom}
     } elseif {$entLevel == 2} {
-      if {![info exists entlevel2]} {
-        set entlevel2 [list $objID $objType]
-      }
+      if {![info exists entlevel2]} {set entlevel2 [list $objID $objType]}
     }
 
 # check if there are rows with dt
-    if {$spmiEnts($objType) && [string first "datum_feature" $objType] == -1} {
+    if {$spmiEnts($objType) && [string first "datum_feature" $objType] == -1 && [string first "datum_target" $objType] == -1} {
       set spmiID $objID
       #outputMsg "set spmiID $spmiID [info exists spmiIDRow($dt,$spmiID)]" green
       if {![info exists spmiIDRow($dt,$spmiID)]} {
@@ -746,7 +744,7 @@ proc spmiDimtolReport {objEntity} {
                     set pmiCol [expr {max($col($dt),$pmiCol)}]
                   } else {
                     errorMsg "ERROR processing Dimensional Tolerance"
-                    #outputMsg "$dt $spmiID [info exists spmiIDRow($dt,$spmiID)]" red
+                    outputMsg "$dt $spmiID [info exists spmiIDRow($dt,$spmiID)]" red
                   }
                 }
               }
@@ -1152,7 +1150,10 @@ proc spmiDimtolReport {objEntity} {
         
 # save dimension with associated geometry
         if {$dimtolGeomEnts != ""} {
+          #regsub -all [format "%c" 10] $dr " " dr
+          #for {set i 0} {$i < 10} {incr i} {regsub -all "  " $dr " " dr}
           if {[string first "'" $dr] == 0} {set dr [string range $dr 1 end]}
+            
           if {[info exists dimtolGeom($dimtolGeomEnts)]} {
             if {[lsearch $dimtolGeom($dimtolGeomEnts) $dr] == -1} {
               lappend dimtolGeom($dimtolGeomEnts) $dr

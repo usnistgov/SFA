@@ -1,7 +1,7 @@
 #-------------------------------------------------------------------------------
-# version numbers
-proc getVersion {}   {return 2.34}
-proc getVersionUG {} {return 1.60}
+# version numbers, software and user's guide
+proc getVersion {}   {return 2.36}
+proc getVersionUG {} {return 2.35}
 
 # -------------------------------------------------------------------------------
 # dt = 1 for dimtol
@@ -9,14 +9,14 @@ proc getAssocGeom {entDef {dt 0}} {
   global assocGeom entCount recPracNames
   
   set entDefType [$entDef Type]
-  #outputMsg "getGeom $entDefType [$entDef P21ID]" green
+  #outputMsg " getGeom $entDefType [$entDef P21ID]" blue
 
   if {[catch {
     if {$entDefType == "shape_aspect" || \
       ([string first "datum" $entDefType] != -1 && [string first "_and_" $entDefType] == -1)} {
 
 # add shape_aspect to AG for dimtol
-      if {$dt && ($entDefType == "shape_aspect" || $entDefType == "datum_feature")} {
+      if {$dt && ($entDefType == "shape_aspect" || $entDefType == "datum_feature" || [string first "datum_target" $entDefType] != -1)} {
         set type [appendAssocGeom $entDef A]
       }
 
@@ -88,6 +88,8 @@ proc getAssocGeom {entDef {dt 0}} {
 
 # -------------------------------------------------------------------------------
 proc getAssocGeomFace {entDef} {
+
+# look at GISU and IIRU for geometry associated with shape_aspect
   foreach usage {geometric_item_specific_usage item_identified_representation_usage} {
     set e1s [$entDef GetUsedIn [string trim $usage] [string trim definition]]
     ::tcom::foreach e1 $e1s {
@@ -114,7 +116,7 @@ proc appendAssocGeom {ent {id ""}} {
   
   set p21id [$ent P21ID]
   set type  [$ent Type]
-  #outputMsg " $type $p21id $id"
+  #outputMsg " appendAssocGeom $type $p21id $id" red
   
   if {[string first "annotation" $type] == -1} {
     if {![info exists assocGeom($type)]} {
@@ -189,7 +191,7 @@ proc reportAssocGeom {entType} {
     }
   }
   if {[string length $str] == 0 && $dimtol} {
-    errorMsg "Syntax Error: Associated Geometry not found for '[formatComplexEnt $entType]'.\n[string repeat " " 14]Check GISU or IIRU 'definition' attribute or shape_aspect_relationship 'relating_shape_aspect' attribute.\n[string repeat " " 14]\($recPracNames(pmi242), Sec. 5.1, Figs. 5, 6, 12)"
+    errorMsg "Syntax Error: Associated Geometry not found for a '[formatComplexEnt $entType]'.\n[string repeat " " 14]Check GISU or IIRU 'definition' attribute or shape_aspect_relationship 'relating_shape_aspect' attribute.\n[string repeat " " 14]\($recPracNames(pmi242), Sec. 5.1, Figs. 5, 6, 12)"
   }
 
 # shape aspect
@@ -317,6 +319,10 @@ proc spmiSummary {} {
 
 # remove (oriented)
             set c1 [string first "(oriented)" $val]
+            if {$c1 > 0} {set val [string range $val 0 $c1-2]}
+
+# remove (TZF: ...)
+            set c1 [string first "(TZF:" $val]
             if {$c1 > 0} {set val [string range $val 0 $c1-2]}
 
 # remove zeros from val
@@ -539,7 +545,7 @@ proc spmiSummary {} {
           $hlink Add $anchor $xlFileName "$hlsheet!A1" "Go to $thisEntType"
           incr spmiSumRow
         } else {
-          errorMsg "Cannot find PMI on $thisEntType for PMI Representation Summary worksheet"
+          errorMsg "Cannot find PMI on [formatComplexEnt $thisEntType] for PMI Representation Summary worksheet"
         }
       }
     }
@@ -886,7 +892,7 @@ proc pmiFormatColumns {str} {
     } elseif {[string first "PMI Representation" $str] != -1} {
       set rs $spmiRow($thisEntType)
       if {$opt(XLSBUG1) > 0 && ![file exists [file nativename C:/Windows/Fonts/ARIALUNI.TTF]]} {
-        errorMsg "Excel might not display some GD&T symbols correctly in PMI Representation reports.  The missing\n symbols will appear as question mark inside a square.  The likely cause is a missing font\n 'Arial Unicode MS' from the font file 'ARIALUNI.TTF'."
+        errorMsg "Excel $excelYear might not display some GD&T symbols correctly in PMI Representation reports.  The missing\n symbols will appear as question mark inside a square.  The likely cause is a missing font\n 'Arial Unicode MS' from the font file 'ARIALUNI.TTF'."
         incr opt(XLSBUG1) -1
       } elseif {$opt(XLSBUG1) < 30 && [file exists [file nativename C:/Windows/Fonts/ARIALUNI.TTF]]} {
         set opt(XLSBUG1) 30

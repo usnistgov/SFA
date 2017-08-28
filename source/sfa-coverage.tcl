@@ -553,6 +553,7 @@ proc gpmiCoverageWrite {{fn ""} {sum ""} {multi 1}} {
     set r1 [expr {[llength $gpmiTypes]+4}]
     if {![info exists pmi_rows]} {set pmi_rows 35}
     set ok 1
+
     if {[info exists gpmiTypesInvalid]} {
       #outputMsg "gpmiTypesInvalid  $multi  $gpmiTypesInvalid" red
       while {$ok} {
@@ -597,7 +598,7 @@ proc gpmiCoverageWrite {{fn ""} {sum ""} {multi 1}} {
 # add numbers
     if {[info exists gpmiTypesPerFile]} {
       set gpmiTypesPerFile [lrmdups $gpmiTypesPerFile]
-      for {set r 4} {$r <= 100} {incr r} {
+      for {set r 4} {$r <= $pmi_rows} {incr r} {
         if {$multi} {
           set val [[$cells1($pmi_coverage) Item $r 1] Value]
         } else {

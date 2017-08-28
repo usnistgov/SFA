@@ -1072,7 +1072,10 @@ proc addFileToMenu {} {
 proc openXLS {filename {check 0} {multiFile 0}} {
   global pf64 buttons
 
-  if {[info exists buttons]} {.tnb select .tnb.status}
+  if {[info exists buttons]} {
+    .tnb select .tnb.status
+    update idletasks
+  }
 
   if {[file exists $filename]} {
 

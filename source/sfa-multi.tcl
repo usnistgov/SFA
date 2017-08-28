@@ -250,6 +250,7 @@ proc openMultiFile {{ask 1}} {
         set nprogBarFiles 0
         pack $buttons(pgb1) -side top -padx 10 -pady {5 0} -expand true -fill x
         $buttons(pgb1) configure -maximum $lenfilelist
+        update
 
 # start loop
         foreach file1 $fileList {

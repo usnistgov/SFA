@@ -35,12 +35,12 @@ proc feaModel {entType} {
     puts $x3dFile "<link rel='stylesheet' type='text/css' href='https://www.x3dom.org/x3dom/release/x3dom.css'/>\n<script type='text/javascript' src='https://www.x3dom.org/x3dom/release/x3dom.js'></script>\n"
 
 # node, element checkbox script
-    feaSwitch Nodes
+    x3dSwitchScript Nodes
     if {[info exists entCount(surface_3d_element_representation)] || \
-        [info exists entCount(volume_3d_element_representation)]}  {feaSwitch Mesh}
-    if {[info exists entCount(curve_3d_element_representation)]}   {feaSwitch 1DElements}
-    if {[info exists entCount(surface_3d_element_representation)]} {feaSwitch 2DElements}
-    if {[info exists entCount(volume_3d_element_representation)]}  {feaSwitch 3DElements}
+        [info exists entCount(volume_3d_element_representation)]}  {x3dSwitchScript Mesh}
+    if {[info exists entCount(curve_3d_element_representation)]}   {x3dSwitchScript 1DElements}
+    if {[info exists entCount(surface_3d_element_representation)]} {x3dSwitchScript 2DElements}
+    if {[info exists entCount(volume_3d_element_representation)]}  {x3dSwitchScript 3DElements}
 
 # transparency script
     if {[info exists entCount(surface_3d_element_representation)] || [info exists entCount(volume_3d_element_representation)]} {
@@ -108,7 +108,7 @@ proc feaModel {entType} {
           set mem [expr {[lindex [twapi::get_process_info $sfaPID -pagefilebytes] 1]/1048576}]
           if {$mem > 1700} {
             errorMsg "Insufficient memory to process all of the elements"
-            lappend x3dMsg "<i>Some elements were not processed.</i>"
+            lappend x3dMsg "Some elements were not processed."
             update idletasks
             break
           }
@@ -392,7 +392,7 @@ proc feaElements {objEntity} {
                         append feaMeshIndex  "$firstID -1 "
                         if {$nnodes > 4} {
                           errorMsg "Unexpected number of nodes ($nnodes) for a $feaType element"
-                          lappend x3dMsg "<i>Faces not shown for a $feaType element with an unexpected number of nodes ($nnodes).</i>"
+                          lappend x3dMsg "Faces not shown for a $feaType element with an unexpected number of nodes ($nnodes)."
                         }
                       }
                       unset idx
@@ -514,14 +514,4 @@ proc feaWriteIndex {idx x3d} {
     close $feaFile($idx)
     catch {file delete -force $feaFileName($idx)}
   }
-}
-
-# -------------------------------------------------------------------------------
-# script for switch node
-proc feaSwitch {type} {
-  global x3dFile
-  
-  puts $x3dFile "<script>function tog$type\(choice){"
-  puts $x3dFile " if (!document.getElementById('sw$type').checked) {document.getElementById('sw$type').setAttribute('whichChoice', -1);} else {document.getElementById('sw$type').setAttribute('whichChoice', 0);}"
-  puts $x3dFile " document.getElementById('sw$type').checked = !document.getElementById('sw$type').checked;}</script>"
 }

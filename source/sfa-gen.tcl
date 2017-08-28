@@ -4,7 +4,7 @@ proc genExcel {{numFile 0}} {
   global allEntity ap203all ap214all ap242all badAttributes buttons
   global cells cells1 col col1 comma count coverageLegend readPMI noPSA csvdirnam csvfile
   global developer dim dimRepeatDiv editorCmd entCategories entCategory entColorIndex entCount entityCount entsIgnored env errmsg
-  global excel excelVersion excelYear extXLS fcsv feaElemTypes File fileEntity skipEntities skipPerm gpmiTypesPerFile idxColor ifcsvrDir inverses
+  global excel excelVersion excelYear extXLS fcsv feaElemTypes File fileEntity skipEntities skipPerm gpmiTypesInvalid gpmiTypesPerFile idxColor ifcsvrDir inverses
   global lastXLS lenfilelist localName localNameList multiFile multiFileDir mytemp nistName nistVersion nprogBarEnts nshape
   global opt p21e3 p21e3Section pmiCol pmiMaster recPracNames row rowmax
   global savedViewButtons savedViewName savedViewNames scriptName sheetLast spmiEntity spmiSumName spmiSumRow spmiTypesPerFile startrow stepAP
@@ -674,10 +674,11 @@ proc genExcel {{numFile 0}} {
   } elseif {$opt(XLSCSV) == "None"} {
     outputMsg "Generating Visualization"
   }
-  if {[catch {
-
+  
 # initialize variables
+  if {[catch {
     set coverageLegend 0
+    set gpmiTypesInvalid {}
     set idxColor 0
     set inverseEnts {}
     set lastEnt ""
@@ -914,7 +915,7 @@ proc genExcel {{numFile 0}} {
   set proctime [expr {($cc - $lasttime)/1000}]
   if {$proctime <= 60} {set proctime [expr {(($cc - $lasttime)/100)/10.}]}
   outputMsg "Processing time: $proctime seconds"
-  update
+  update idletasks
 
 # -------------------------------------------------------------------------------------------------
 # save spreadsheet
@@ -1823,7 +1824,7 @@ proc addP21e3Section {} {
       $worksheet($sect) Name $sect
       set cells($sect) [$worksheet($sect) Cells]
       set r 0
-      outputMsg " Adding $line worksheet"
+      outputMsg " Adding $line worksheet" green
     }
 
     incr r
@@ -1831,6 +1832,9 @@ proc addP21e3Section {} {
 
     if {$sect == "ANCHOR"} {
       if {$r == 1} {$cells($sect) Item $r 2 "Entity"}
+      set c2 [string first ";" $line]
+      if {$c2 != -1} {set line [string range $line 0 $c2-1]}
+
       set c1 [string first "\#" $line]
       if {$c1 != -1} {
         set badEnt 0

@@ -66,6 +66,7 @@ proc guiStartWindow {} {
   bind . <Control-q> {exit}
 
   bind . <Key-F1> {
+    .tnb select .tnb.status
     set localName [getFirstFile]
     if {$localName != ""} {
       set localNameList [list $localName]
@@ -73,15 +74,15 @@ proc guiStartWindow {} {
     }
   }
 
-  bind . <Key-F2> {if {$lastXLS   != ""} {set lastXLS [openXLS $lastXLS 1]}}
+  bind . <Key-F2> {if {$lastXLS   != ""} {set lastXLS  [openXLS $lastXLS  1]}}
   bind . <Key-F3> {if {$lastXLS1  != ""} {set lastXLS1 [openXLS $lastXLS1 1]}}
   bind . <Key-F7> {if {$lastX3DOM != ""} {openX3DOM $lastX3DOM}}
 
   bind . <MouseWheel> {[$fout.text component text] yview scroll [expr {-%D/30}] units}
   bind . <Up>     {[$fout.text component text] yview scroll -1 units}
   bind . <Down>   {[$fout.text component text] yview scroll  1 units}
-  #bind . <Left>   {[$fout.text component text] xview scroll -1 units}
-  #bind . <Right>  {[$fout.text component text] xview scroll  1 units}
+  bind . <Left>   {[$fout.text component text] xview scroll -10 units}
+  bind . <Right>  {[$fout.text component text] xview scroll  10 units}
   bind . <Prior>  {[$fout.text component text] yview scroll -30 units}
   bind . <Next>   {[$fout.text component text] yview scroll  30 units}
   bind . <Home>   {[$fout.text component text] yview scroll -100000 units}
@@ -736,7 +737,7 @@ proc guiSpreadsheet {} {
     incr cb
   }
   pack $fxlsb -side top -anchor w -pady 5 -padx 10 -fill both
-  set msg "This option will limit the number of rows (entities) written to any one worksheet or CSV file.\nThe Maximum rows ([lindex [lindex $rlimit end] 1]) depends on the version of Excel.\n\nFor large STEP files, setting a low maximum can speed up processing at the expense\nof not processing all of the entities.  This is useful when processing Geometry entities.\n\nSyntax errors related to the Reports might be missed if some entities are not processed due\nto a small value for maximum rows.\n\nMaximum rows does not affect generating any visualization."
+  set msg "This option will limit the number of rows (entities) written to any one worksheet or CSV file.\nThe Maximum rows ([lindex [lindex $rlimit end] 1]) depends on the version of Excel.\n\nFor large STEP files, setting a low maximum can speed up processing at the expense\nof not processing all of the entities.  This is useful when processing Geometry entities.\n\nSyntax Errors might be missed if some entities are not processed due to a small maximum rows.\n\nMaximum rows does not affect generating any visualization."
   catch {tooltip::tooltip $fxlsb $msg}
 
   set fxlsc [ttk::labelframe $fxls.c -text " Excel Options "]
@@ -1369,7 +1370,7 @@ proc guiWebsitesMenu {} {
   global Websites
 
   $Websites add command -label "STEP File Analyzer"                        -command {openURL https://www.nist.gov/services-resources/software/step-file-analyzer}
-  $Websites add command -label "Journal of NIST Research"                  -command {openURL https://dx.doi.org/10.6028/jres.122.016}
+  $Websites add command -label "Journal of NIST Research"                  -command {openURL https://doi.org/10.6028/jres.122.016}
   $Websites add command -label "Conformance Checking of PMI in STEP Files" -command {openURL https://www.nist.gov/publications/conformance-checking-pmi-representation-cad-model-step-data-exchange-files}
   $Websites add command -label "MBE PMI Validation Testing (free CAD models and STEP files)" -command {openURL https://www.nist.gov/el/systems-integration-division-73400/mbe-pmi-validation-and-conformance-testing}
   $Websites add command -label "Enabling the Digital Thread for Smart Manufacturing"         -command {openURL https://www.nist.gov/el/systems-integration-division-73400/enabling-digital-thread-smart-manufacturing}
@@ -1465,11 +1466,12 @@ proc showUsersGuide {} {
   if {[file exists $ugName]} {
     exec {*}[auto_execok start] "" $ugName
   } else {
-    openURL http://dx.doi.org/10.6028/NIST.IR.8122
+    openURL https://doi.org/10.6028/NIST.AMS.200-4
   }
   
   if {[getVersion] > [getVersionUG]} {
-    errorMsg "The User's Guide is based on version [getVersionUG] of the STEP File Analyzer.\n New features are documented in the Help menu."
+    errorMsg "The User's Guide is based on version [getVersionUG] of the STEP File Analyzer."
+    #errorMsg "The User's Guide is based on version [getVersionUG] of the STEP File Analyzer.\n New features are documented in the Help menu."
     outputMsg " "
     .tnb select .tnb.status
   }
