@@ -251,10 +251,9 @@ proc whatsNew {} {
 outputMsg "\nWhat's New (Version: [getVersion]  Updated: [string trim [clock format $progtime -format "%e %b %Y"]])" blue
 outputMsg "- PMI Saved View viewpoints
 - New Output Format to generate any Visualization without a spreadsheet (Options tab)
-- Support for repetitive dimensions (experimental)
-- Improved color-coding for PMI Representation Coverage for NIST CAD models (Help > NIST CAD models)
+- Support for repetitive hole dimensions
 - Visualization of tessellated part geometry, tessellated PMI, AP209 finite element models (Options tab)
-- Improved association of geometric tolerances with dimensions and datum features
+- Improved color-coding for PMI Representation Coverage for NIST CAD models (Help > NIST CAD models)
 - Bug fixes and minor improvements"
 
   .tnb select .tnb.status

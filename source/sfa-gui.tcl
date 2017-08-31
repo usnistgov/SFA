@@ -924,15 +924,14 @@ worksheet or CSV file is generated for each entity type in the STEP file.  Each 
 file lists every entity instance and its attributes.  The types of entities that are Processed
 can be selected in the Options tab.  Other options are available that add to or modify the
 information written to the spreadsheet or CSV files.
+
+Spreadsheets or CSV files can be selected in the Options tab.  CSV files are automatically
+generated if Excel is not installed.  To generate a spreadsheet or CSV files, select a STEP file
+from the File menu above and click the Generate button below.  Existing spreadsheets or CSV files
+are always overwritten.
   
 For spreadsheets, a Summary worksheet shows the Count of each entity.  Links on the Summary and
 entity worksheets can be used to navigate to other worksheets.
-
-Spreadsheets or CSV files can be selected in the Options tab.  CSV files are automatically
-generated if Excel is not installed.
-  
-To generate a spreadsheet or CSV files, select a STEP file from the File menu above and click
-the Generate button below.  Existing spreadsheets or CSV files are always overwritten.
 
 Visualizations can also be generated with or without generating a spreadsheet or CSV files.
 
@@ -987,7 +986,7 @@ limits for Excel."
   $Help add command -label "Open STEP File in Apps" -command {
 outputMsg "\nOpen STEP File in Apps -----------------------------------------------------" blue
 outputMsg "STEP files can be opened in other applications.  If applications are installed in their default
-location, then the pull-down menu in the Options tab will contain applications that can open a
+directory, then the pull-down menu in the Options tab will contain applications that can open a
 STEP file such as STEP viewers, browsers, and conformance checkers.
 
 The 'Indent STEP File (for debugging)' option rearranges and indents the entities to show the
@@ -1011,7 +1010,7 @@ be processed.
 When processing multiple STEP files, a File Summary spreadsheet is generated in addition to
 individual spreadsheets for each file.  The File Summary spreadsheet shows the entity count and
 totals for all STEP files. The File Summary spreadsheet also links to the individual spreadsheets
-and the STEP file.
+and STEP files.
 
 If only the File Summary spreadsheet is needed, it can be generated faster by turning off
 Processing of most of the entity types and options in the Options tab.
@@ -1026,10 +1025,9 @@ worksheets are also generated."
 # validation properties, PMI presentation, conformance checking help
   $Help add command -label "PMI Representation (Semantic PMI)" -command {
 outputMsg "\nPMI Representation ---------------------------------------------------------" blue
-
-outputMsg "PMI Representation (aka Semantic PMI) includes all information necessary to represent geometric
-and dimensional tolerances (GD&T) without any graphical presentation elements.  PMI Representation
-is associated with CAD model geometry and is computer-interpretable to facilitate automated
+outputMsg "PMI Representation (Semantic PMI) includes all information necessary to represent geometric and
+dimensional tolerances (GD&T) without any graphical presentation elements.  PMI Representation is
+associated with CAD model geometry and is computer-interpretable to facilitate automated
 consumption by downstream applications for manufacturing, measurement, inspection, and other
 processes.  PMI Representation is found mainly in AP242 files.
 
@@ -1048,7 +1046,6 @@ in each CAD model.  See Help > NIST CAD Models.
 Dimensional Tolerances are reported on the dimensional_characteristic_representation worksheet.
 The dimension name, representation name, length/angle, length/angle name, and plus minus bounds
 are reported.  The relevant section in the Recommended Practice is shown in the column headings.
-The resulting Dimensional Tolerance is reported in the last column.
 
 Datum Features are reported on datum_* entities.  Datum_system will show the complete Datum
 Reference Frame.  Datum Targets are reported on placed_datum_target_feature.
@@ -1081,7 +1078,7 @@ Go to Websites > Recommended Practices to access documentation."
   
   $Help add command -label "PMI Presentation (Graphical PMI)" -command {
 outputMsg "\nPMI Presentation -----------------------------------------------------------" blue
-outputMsg "PMI Presentation (aka Graphical PMI) consists of geometric elements such as lines and arcs
+outputMsg "PMI Presentation (Graphical PMI) consists of geometric elements such as lines and arcs
 preserving the exact appearance (color, shape, positioning) of the geometric and dimensional
 tolerance (GD&T) annotations.  PMI Presentation is not intended to be computer-interpretable and
 does not carry any representation information, although it can be linked to its corresponding PMI
@@ -1133,9 +1130,9 @@ the PMI Representation Coverage Analysis worksheet is color-coded by the expecte
 elements in each CAD model.  See Help > NIST CAD Models.
 
 PMI Presentation Coverage Analysis (graphical PMI) counts the occurrences of a name attribute
-defined in the CAx-IF Recommended Practice for PMI Representation and Presentation of PMI (AP242),
-section 8.4, table 14.  The name attribute is associated with the graphic elements used to draw a
-PMI annotation."
+defined in the CAx-IF Recommended Practice for PMI Representation and Presentation of PMI (AP242)
+or PMI Polyline Presentation (AP203/AP242).  The name attribute is associated with the graphic
+elements used to draw a PMI annotation."
     .tnb select .tnb.status
   }
 
@@ -1152,18 +1149,16 @@ See Websites > MBE PMI Validation Testing
 
 * PMI Representation Summary *
 This worksheet is color-coded by the expected PMI annotations in a test case drawing.
-
 - Green is a match to a PMI annotation.
 - Cyan is a partial match.
 - Yellow is a possible match, although some of these matches are also partial matches.
 - Red is no match.
-
 For partial and possible matches, the best Similar PMI match is shown.  Missing PMI annotations
 are also shown.
 
 Trailing and leading zeros are ignored when matching a PMI annotation.  Matches also only consider
 the current capabilities of PMI annotations in STEP AP242 and CAx-IF Recommended Practices.  For
-example, PMI annotations for holes such as counterbore, countersink, and depth are ignored.
+example, PMI annotations for hole features such as counterbore, countersink, and depth are ignored.
 
 Some causes of partial and possible matches are missing associations from a geometric tolerance
 to a dimensional tolerance or datum feature, missing modifiers, and missing diameter dimensions.
@@ -1174,7 +1169,6 @@ This worksheet is color-coded by the expected number of PMI elements in a test c
 expected results were determined by manually counting the number of PMI elements in each drawing.
 Counting of some modifiers, e.g. maximum material condition, does not differentiate whether they
 appear in the tolerance zone definition or datum reference frame.
-
 - A green cell is a match to the expected number of PMI elements.
 - Cyan means that more were found than expected.
 - Yellow means that less were found than expected.
@@ -1191,7 +1185,6 @@ those PMI elements.
 * Missing PMI *
 Missing PMI annotations on the Summary worksheet or PMI elements on the Coverage worksheet might
 mean that the CAD system or translator:
-
 - did not or cannot correctly create in the CAD model a PMI annotation defined in a NIST test case
 - did not follow CAx-IF Recommended Practices for PMI (See Websites > Recommended Practices)
 - has not implemented exporting a PMI element to a STEP file
@@ -1335,8 +1328,13 @@ might appear that say 'Unable to alloc xxx bytes'.  See the Help > Crash Recover
         }
       }
       catch {outputMsg "REGISTRY_PERSONAL [registry get {HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\User Shell Folders} {Personal}]"}
-      catch {outputMsg "REGISTRY_DESKTOP [registry get {HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\User Shell Folders} {Desktop}]"}
-      outputMsg "\nDRIVE $drive\nMYHOME $myhome\nMYDOCS $mydocs\nMYTEMP $mytemp"
+      catch {outputMsg "REGISTRY_DESKTOP  [registry get {HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\User Shell Folders} {Desktop}]"}
+      catch {outputMsg "REGISTRY_PROGRAMS [registry get {HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\User Shell Folders} {Programs}]"}
+      catch {outputMsg "REGISTRY_APPDATA  [registry get {HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\User Shell Folders} {Local AppData}]"}
+      catch {outputMsg "DRIVE $drive"}
+      catch {outputMsg "MYHOME $myhome"}
+      catch {outputMsg "MYDOCS $mydocs"}
+      catch {outputMsg "MYTEMP $mytemp"}
       catch {outputMsg "MYDESK $mydesk"}
       catch {outputMsg "MYMENU $mymenu"}
       catch {outputMsg "virtualDir $virtualDir"}
@@ -1469,9 +1467,8 @@ proc showUsersGuide {} {
     openURL https://doi.org/10.6028/NIST.AMS.200-4
   }
   
-  if {[getVersion] > [getVersionUG]} {
-    errorMsg "The User's Guide is based on version [getVersionUG] of the STEP File Analyzer."
-    #errorMsg "The User's Guide is based on version [getVersionUG] of the STEP File Analyzer.\n New features are documented in the Help menu."
+  if {[getVersion] > [expr {[getVersionUG]+0.5}]} {
+    errorMsg "The User's Guide is based on version [getVersionUG] of the STEP File Analyzer.\n New features are documented in the Help menu."
     outputMsg " "
     .tnb select .tnb.status
   }

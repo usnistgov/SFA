@@ -1,6 +1,6 @@
 proc spmiDimtolStart {entType} {
   global objDesign
-  global cells col dt entLevel ent entAttrList lastEnt opt pmiCol pmiHeading pmiStartCol spmiRow stepAP 
+  global cells col dt entLevel ent entAttrList lastEnt opt pmiCol pmiHeading pmiStartCol spmiRow stepAP
 
   if {$opt(DEBUG1)} {outputMsg "START spmiDimtolStart $entType" red}
 
@@ -103,6 +103,7 @@ proc spmiDimtolReport {objEntity} {
   global dimSizeNames dimtolEnt dimtolEntType dimtolGeom dimval draftModelCameras dt dtpmivalprop entLevel ent entAttrList entCount entlevel2
   global incrcol lastAttr lastEnt nistName opt pmiCol pmiColumns pmiHeading pmiModifiers pmiStartCol
   global pmiUnicode prefix angDegree recPracNames savedModifier spmiEnts spmiID spmiIDRow spmiRow spmiTypesPerFile syntaxErr tolStandard
+  global numDSnames
 
   if {$opt(DEBUG1)} {outputMsg "spmiDimtolReport" red}
 
@@ -137,6 +138,7 @@ proc spmiDimtolReport {objEntity} {
       catch {unset dimtolEnt}
       catch {unset entlevel2}
       catch {unset assocGeom}
+      set numDSnames 0
     } elseif {$entLevel == 2} {
       if {![info exists entlevel2]} {set entlevel2 [list $objID $objType]}
     }
@@ -450,6 +452,7 @@ proc spmiDimtolReport {objEntity} {
                 switch -glob $ent1 {
                   "*dimensional_size* name" {
 # dimensional_size.name, from the name add symbol to dimrep for spherical, radius, diameter or thickness
+                    set okname 0
                     set ok 1
                     set col($dt) $pmiStartCol($dt)
                     set colName "dimension name[format "%c" 10](Sec. 5.1.1, 5.1.5)"
@@ -463,32 +466,42 @@ proc spmiDimtolReport {objEntity} {
                     set d1 ""
                     if {[info exists dimrep($dimrepID)]} {set d1 [string index $dimrep($dimrepID) 0]}
                       
-                    if {[string first "spher" $ov] != -1} {
+                    if {$ov == "spherical"} {
                       append dimrep($dimrepID) "S"
                       append item "spherical "
                     }
-                    if {[string first "diamet" $ov] != -1 && $d1 != $pmiUnicode(diameter)} {
+                    if {$ov == "diameter" && $d1 != $pmiUnicode(diameter)} {
                       append dimrep($dimrepID) $pmiUnicode(diameter)
                       append item "diameter"
                     }
-                    if {[string first "radi" $ov] != -1} {
+                    if {$ov == "radius"} {
                       append dimrep($dimrepID) "R"
                       append item "radius"
                     }
-                    if {[string first "thickness" $ov] != -1} {
+                    if {$ov == "thickness"} {
                       append dimrep($dimrepID) $pmiUnicode(thickness)
                       append item "thickness"
                     }
-                    if {[string first "square" $ov] != -1} {
+                    if {$ov == "square"} {
                       append dimrep($dimrepID) $pmiUnicode(square)
                       append item "square"
                     }
                     set dim(symbol) $dimrep($dimrepID)
-                    lappend spmiTypesPerFile "dimensional size"
-                    lappend spmiTypesPerFile $ov
+                    if {$entLevel == 2} {
+                      incr numDSnames
+                      set okname 1
+                      if {[string first "dimensional_size_with" $ent1] != -1 && $numDSnames == 1} {
+                        set okname 0
+                        set ok 0
+                      }
+                      if {$okname} {
+                        lappend spmiTypesPerFile "dimensional size"
+                        lappend spmiTypesPerFile $ov
+                      }
+                    }
 
 # syntax check for correct dimensional_size.name attribute (dimSizeNames) from the RP                  
-                    if {$ent1 == "dimensional_size name"} {
+                    if {$okname} {
                       if {$ov == ""} {
                         errorMsg "Syntax Error: Missing 'name' attribute on [lindex $ent1 0].\n[string repeat " " 14]\($recPracNames(pmi242), Sec. 5.1.5, Table 4)"
                         set ov "(blank)"
@@ -744,7 +757,7 @@ proc spmiDimtolReport {objEntity} {
                     set pmiCol [expr {max($col($dt),$pmiCol)}]
                   } else {
                     errorMsg "ERROR processing Dimensional Tolerance"
-                    outputMsg "$dt $spmiID [info exists spmiIDRow($dt,$spmiID)]" red
+                    #outputMsg "$dt $spmiID [info exists spmiIDRow($dt,$spmiID)]" red
                   }
                 }
               }

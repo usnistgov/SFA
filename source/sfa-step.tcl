@@ -1,7 +1,7 @@
 #-------------------------------------------------------------------------------
 # version numbers, software and user's guide
-proc getVersion {}   {return 2.36}
-proc getVersionUG {} {return 2.35}
+proc getVersion {}   {return 2.38}
+proc getVersionUG {} {return 2.34}
 
 # -------------------------------------------------------------------------------
 # dt = 1 for dimtol
@@ -208,7 +208,7 @@ proc reportAssocGeom {entType} {
 # Semantic PMI summary worksheet
 proc spmiSummary {} {
   global cells entName excelVersion localName row sheetLast spmiSumName spmiSumRow thisEntType worksheet worksheets xlFileName
-  global nistName pmiExpected wdir mytemp legendColor pmiUnicode pmiFound pmiModifiers pmiActual recPracNames tolNames pmiType valType
+  global nistName pmiExpected pmiExpectedNX wdir mytemp legendColor pmiUnicode pmiFound pmiModifiers pmiActual recPracNames tolNames pmiType valType
   global nsimilar pmiMaster
   
 # first time through, start worksheet
@@ -254,6 +254,7 @@ proc spmiSummary {} {
     set nsimilar 0
     if {[info exists pmiMaster($nistName)]} {
       catch {unset pmiExpected($nistName)}
+      catch {unset pmiExpectedNX($nistName)}
       
 # read master PMI values, remove leading and trailing zeros, other stuff, add to pmiExpected
       foreach item $pmiMaster($nistName) {
@@ -262,6 +263,16 @@ proc spmiSummary {} {
         set pmi [string range $item $c1+1 end]
         set newpmi [pmiRemoveZeros $pmi]
         lappend pmiExpected($nistName) $newpmi
+        
+# look for 'nX' in expected
+        set c1 [string first "X" $newpmi]
+        if {$c1 < 3} {
+          set newpminx [string range $newpmi $c1+1 end]
+          lappend pmiExpectedNX($nistName) [string trim $newpminx]
+        } else {
+          lappend pmiExpectedNX($nistName) $newpmi
+        }
+        
         if {[string first "tolerance" $typ] != -1} {
           foreach nam $tolNames {if {[string first $nam $typ] != -1} {set pmiType($newpmi) $nam}}
         } else {
@@ -269,6 +280,7 @@ proc spmiSummary {} {
         }
         set pmiActual($newpmi) $pmi
       }
+      #for {set i 0} {$i < [llength $pmiExpected($nistName)]} {incr i} {outputMsg "$i / [lindex $pmiExpected($nistName) $i] / [lindex $pmiExpectedNX($nistName) $i]"}
     }
     set pmiFound {}
   }
@@ -326,9 +338,7 @@ proc spmiSummary {} {
             if {$c1 > 0} {set val [string range $val 0 $c1-2]}
 
 # remove zeros from val
-            #outputMsg $val red
             set val [pmiRemoveZeros $val]
-             #outputMsg $val green
             if {[string first "tolerance" $entstr] != -1} {
               foreach nam $tolNames {if {[string first $nam $entstr] != -1} {set valType($val) $nam}}
             } else {
@@ -344,7 +354,8 @@ proc spmiSummary {} {
             if {$pmiMatch != -1} {
               #outputMsg "$pmiMatch $val"
               [[$worksheet($spmiSumName) Range C$spmiSumRow] Interior] Color $legendColor(green)
-              set pmiExpected($nistName) [lreplace $pmiExpected($nistName) $pmiMatch $pmiMatch]
+              set pmiExpected($nistName)   [lreplace $pmiExpected($nistName)   $pmiMatch $pmiMatch]
+              set pmiExpectedNX($nistName) [lreplace $pmiExpectedNX($nistName) $pmiMatch $pmiMatch]
               lappend pmiFound $val
 
 # not found
@@ -360,9 +371,24 @@ proc spmiSummary {} {
                 if {$val == $pmi && $pmiMatch != 1} {
                   set pmiMatch 1
                   set pos [lsearch $pmiExpected($nistName) $pmi]
-                  set pmiExpected($nistName) [lreplace $pmiExpected($nistName) $pos $pos]
+                  set pmiExpected($nistName)   [lreplace $pmiExpected($nistName)   $pos $pos]
+                  set pmiExpectedNX($nistName) [lreplace $pmiExpectedNX($nistName) $pos $pos]
                   lappend pmiFound $pmi
                   #outputMsg "$val\n $pmiMatch $valType($val)" blue
+                }
+              }
+              
+# try match to expected without 'nX'              
+              if {$pmiMatch == 0} {
+                set pmiMatchNX [lsearch $pmiExpectedNX($nistName) $val]
+                if {$pmiMatchNX != -1} {
+                  #outputMsg "$val\n $pmiMatchNX $valType($val)" green
+                  set pmiMatch 0.95
+                  set pmiSim $pmiMatch
+                  set pmiSimilar $pmiActual([lindex $pmiExpected($nistName) $pmiMatchNX])
+                  set pmiExpected($nistName)   [lreplace $pmiExpected($nistName)   $pmiMatchNX $pmiMatchNX]
+                  set pmiExpectedNX($nistName) [lreplace $pmiExpectedNX($nistName) $pmiMatchNX $pmiMatchNX]
+                  set pf $val
                 }
               }
 

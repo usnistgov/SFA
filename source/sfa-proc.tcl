@@ -1678,7 +1678,7 @@ proc setHomeDir {} {
   }
   set myhome $drive
 
-# set based on USERPROFILE and registry entries
+# set mydocs, mydesk, mymenu based on USERPROFILE and registry entries
   if {[info exists env(USERPROFILE)]} {
     set myhome $env(USERPROFILE)
     catch {
@@ -1694,31 +1694,35 @@ proc setHomeDir {} {
       if {[string first "%USERPROFILE%" $reg_menu] == 0} {regsub "%USERPROFILE%" $reg_menu $env(USERPROFILE) mymenu}
     }
     
-# windows 7 or greater    
+# set mytemp - windows 7 or greater    
     if {$tcl_platform(osVersion) >= 6.0} {
       set reg_temp [registry get {HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\User Shell Folders} {Local AppData}]
-      if {[string first "%USERPROFILE%" $reg_menu] == 0} {regsub "%USERPROFILE%" $reg_temp $env(USERPROFILE) mytemp}
-      set mytemp [file join $mytemp Temp]
-      if {[string first $env(USERNAME) $mytemp] == -1} {
-        unset mytemp
-      } else {
-        if {[file exists [file join $mytemp NIST]]} {catch {file delete -force [file join $mytemp NIST]}}
-        set mytemp [file nativename [file join $mytemp SFA]]
-        if {![file exists $mytemp]} {file mkdir $mytemp}
-      }
-
-# windows xp
-    } else {
-      catch {
-        set reg_temp [registry get {HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\User Shell Folders} {Local Settings}]
-        if {[string first "%USERPROFILE%" $reg_menu] == 0} {regsub "%USERPROFILE%" $reg_temp $env(USERPROFILE) mytemp}
+      if {[string first "%USERPROFILE%" $reg_menu] == 0} {
+        regsub "%USERPROFILE%" $reg_temp $env(USERPROFILE) mytemp
         set mytemp [file join $mytemp Temp]
         if {[string first $env(USERNAME) $mytemp] == -1} {
           unset mytemp
         } else {
           if {[file exists [file join $mytemp NIST]]} {catch {file delete -force [file join $mytemp NIST]}}
-          set mytemp [file join $mytemp SFA]
+          set mytemp [file nativename [file join $mytemp SFA]]
           if {![file exists $mytemp]} {file mkdir $mytemp}
+        }
+      }
+
+# set mytemp - windows xp
+    } else {
+      catch {
+        set reg_temp [registry get {HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\User Shell Folders} {Local Settings}]
+        if {[string first "%USERPROFILE%" $reg_menu] == 0} {
+          regsub "%USERPROFILE%" $reg_temp $env(USERPROFILE) mytemp
+          set mytemp [file join $mytemp Temp]
+          if {[string first $env(USERNAME) $mytemp] == -1} {
+            unset mytemp
+          } else {
+            if {[file exists [file join $mytemp NIST]]} {catch {file delete -force [file join $mytemp NIST]}}
+            set mytemp [file join $mytemp SFA]
+            if {![file exists $mytemp]} {file mkdir $mytemp}
+          }
         }
       }
     }
@@ -1744,11 +1748,11 @@ proc setHomeDir {} {
     set desk [file join $mydesk $desk]
     if {[file exists $desk]} {if {[file isdirectory $desk]} {set mydesk $desk}}
   }
-  
+
   if {![info exists mytemp]} {
     set mytemp $myhome
-    set temp [file join AppData Local Temp]
-    if {$tcl_platform(osVersion) < 6.0} {set temp [file join "Local Settings" Temp]}
+    set temp [file join AppData Local Temp SFA]
+    if {$tcl_platform(osVersion) < 6.0} {set temp [file join "Local Settings" Temp SFA]}
     set temp [file join $mytemp $temp]
     if {[file exists $temp]} {if {[file isdirectory $temp]} {set mytemp $temp}}
   }
