@@ -832,7 +832,7 @@ proc gpmiAnnotationReport {objEntity} {
                     if {$x3dStartFile} {x3dFileStart}
 
 # moved (start shape node if not tessellated)
-                    if {$ao == "annotation_fill_area_occurrence"} {errorMsg "PMI annotations with filled characters are not filled."}
+                    if {$ao == "annotation_fill_area_occurrence"} {errorMsg " PMI annotations with filled characters are not filled."}
                     if {[string first "tessellated" $ao] == -1} {set x3dShape 1}
                     update
                   }               
@@ -1367,13 +1367,14 @@ proc pmiGetCamerasAndProperties {} {
             }
             if {![info exists draftModelCameraNames($id)]} {
               set draftModelCameraNames($id) $name1
-            } elseif {[string first $name $draftModelCameraNames($id)] == -1} {
+            } elseif {[string first $name $draftModelCameraNames($id)] == -1 && [string first $name1 $draftModelCameraNames($id)] == -1} {
               append draftModelCameraNames($id) " $name1"
             }
 
 # keep track of saved views for graphic PMI
             if {$opt(VIZPMI)} {
-              lappend savedViewName $draftModelCameraNames([$entDraughtingModel P21ID])
+              set dmcn $draftModelCameraNames([$entDraughtingModel P21ID])
+              if {[lsearch $savedViewName $dmcn] == -1} {lappend savedViewName $dmcn}
               if {[lsearch $savedViewNames $name1] == -1} {
                 lappend savedViewNames $name1
                 set savedViewFileName($name1) [file join $mytemp $name1.txt]

@@ -116,7 +116,7 @@ proc spmiGeotolStart {entType} {
 proc spmiGeotolReport {objEntity} {
   global all_around all_over assocGeom ATR badAttributes between cells col
   global datsys datumCompartment datumFeature datumSymbol datumSystem developer
-  global dim dimrep datumEntType datumGeom dimtolEntType dimtolGeom
+  global dim dimrep datumEntType datumGeom datumTargetType dimtolEntType dimtolGeom
   global entLevel ent entAttrList entCount gt gtEntity incrcol lastAttr lastEnt
   global objID opt pmiCol pmiHeading pmiModifiers pmiStartCol pmiUnicode ptz recPracNames
   global spmiEnts spmiID spmiIDRow spmiRow spmiTypesPerFile stepAP syntaxErr
@@ -250,6 +250,32 @@ proc spmiGeotolReport {objEntity} {
                       }
                     }
                   }
+                  "*_tolerance* magnitude" {
+# check for missing magnitude and possibly non-uniform tolerance zone
+                    if {$objValue == ""} {
+                      set nonUniform 0
+                      set e0s [$gtEntity GetUsedIn [string trim tolerance_zone] [string trim defining_tolerance]]
+                      ::tcom::foreach e0 $e0s {
+                        set e1s [$e0 GetUsedIn [string trim non_uniform_zone_definition] [string trim zone]]
+                        ::tcom::foreach e1 $e1s {
+                          set tol [$gtEntity Type]
+                          set c1 [string first "_tolerance" $tol]
+                          set tname [string range $tol 0 $c1-1]
+                          if {[info exists pmiUnicode($tname)]} {set tname $pmiUnicode($tname)}
+                          set objValue "$tname | NON-UNIFORM"
+                          lappend spmiTypesPerFile "non-uniform tolerance zone"
+                          set colName "GD&T[format "%c" 10]Annotation"
+                          set col($gt) $pmiStartCol($gt)
+                          set ok 1
+                          set nonUniform 1
+                        }
+                      }
+                      if {!$nonUniform} {
+                        errorMsg "Syntax Error: Missing tolerance magnitude on '[formatComplexEnt [$gtEntity Type]]'"
+                        lappend syntaxErr([lindex [split $ent1 " "] 0]) [list [$gtEntity P21ID] [lindex [split $ent1 " "] 1]]
+                      }
+                    }
+                  }
                   "length_measure_with_unit* value_component" {
 
 # datum reference modifier (not commonly used)                  
@@ -331,10 +357,6 @@ proc spmiGeotolReport {objEntity} {
                           }
                         }
                       }
-
-# get non-uniform tolerance zone
-                      set objPZDEntities [$objGuiEntity GetUsedIn [string trim non_uniform_zone_definition] [string trim zone]]
-                      ::tcom::foreach objPZDEntity $objPZDEntities {set ptz "NON-UNIFORM"}
                     }
                     
                     set col($gt) $pmiStartCol($gt)
@@ -358,17 +380,11 @@ proc spmiGeotolReport {objEntity} {
                           set tolval $objValue
                           set objValue "$tname | $tzf$objValue"
 
-# add projected or non-uniform tolerance zone magnitude value
+# add projected zone magnitude value
                           if {$ptz != ""} {
-                            if {$ptz != "NON-UNIFORM"} {
-                              set idx "projected"
-                              append objValue " $pmiModifiers($idx) $ptz"
-                              lappend spmiTypesPerFile $idx
-                            } else {
-                              set objValue "[string range $objValue 0 [string first "|" $objValue]] $ptz"
-                              set idx "non-uniform tolerance zone"
-                              lappend spmiTypesPerFile $idx
-                            }
+                            set idx "projected"
+                            append objValue " $pmiModifiers($idx) $ptz"
+                            lappend spmiTypesPerFile $idx
                           }
                         }
                       }
@@ -383,12 +399,16 @@ proc spmiGeotolReport {objEntity} {
 # get unit-basis tolerance value (6.9.6)
                     } elseif {$ATR(1) == "unit_size"} {
                       set ok 1
+                      if {[string range $objValue end-1 end] == ".0"} {set objValue [string range $objValue 0 end-2]}
                       set objValue " / $objValue"
+                      #outputMsg $objValue
                       set idx "unit-basis tolerance"
                       lappend spmiTypesPerFile $idx
                     } elseif {$ATR(1) == "second_unit_size"} {
                       set ok 1
-                      set objValue "X $objValue"
+                      if {[string range $objValue end-1 end] == ".0"} {set objValue [string range $objValue 0 end-2]}
+                      set objValue "X$objValue"
+                      #outputMsg $objValue
 
 # get maximum tolerance value (6.9.5)
                     } elseif {$ATR(1) == "maximum_upper_tolerance"} {
@@ -423,6 +443,8 @@ proc spmiGeotolReport {objEntity} {
 
 # value in spreadsheet
                   set val [[$cells($gt) Item $r $c] Value]
+                  #outputMsg "$val" green
+                  #outputMsg " $objValue" red
                   if {$val == ""} {
                     $cells($gt) Item $r $c $objValue
                     if {$gt == "datum_system"} {
@@ -430,15 +452,20 @@ proc spmiGeotolReport {objEntity} {
                       set datumSystem($idx) $objValue
                     }
                   } else {
+
+# all around
                     if {[info exists all_around]} {
                       $cells($gt) Item $r $c  "$pmiModifiers(all_around) | $val"
                       unset all_around
+# unit-basis rectangle
                     } elseif {[string first "X" $objValue] == 0} {
                       if {[string first "/ $pmiUnicode(diameter)" $val] == -1} {
-                        $cells($gt) Item $r $c "[string range $val 0 [string first "X" $val]-2] $objValue"
+                        set c1 [string first "rect" $val]
+                        if {$c1 != -1} {set val [string range $val 0 $c1-1]}
+                        $cells($gt) Item $r $c "$val$objValue"
                       }
+# unequally disposed
                     } elseif {[string first $pmiModifiers(unequally_disposed) $objValue] == -1 && $ATR(1) != "unit_size"} {
-                      #$cells($gt) Item $r $c "$val | $objValue"
                       if {[string first "handle" $objValue] == -1} {$cells($gt) Item $r $c "$val | $objValue"}
                     } else {
                       $cells($gt) Item $r $c "$val$objValue"
@@ -575,6 +602,7 @@ proc spmiGeotolReport {objEntity} {
                   if {[lsearch $spmiRow($gt) $r] == -1} {lappend spmiRow($gt) $r}
                   if {$invalid} {lappend syntaxErr($gt) [list $r $col($gt)]}
   
+# write tolerance with modifier
                   set ov $objValue 
                   set val [[$cells($gt) Item $r $c] Value]
                   #outputMsg "$r / $c / $ov / $val" green
@@ -835,11 +863,16 @@ proc spmiGeotolReport {objEntity} {
                     set ok 1
                     set col($gt) $pmiStartCol($gt)
                     set colName "Datum Target[format "%c" 10](Sec. 6.6)"
-                    set objValue "$datumTarget ($datumTargetType)"
+                    if {$datumTargetType != "circle" && $datumTargetType != "rectangle"} {
+                      set objValue "$datumTarget ($datumTargetType)"
+                    } else {
+                      set objValue "$datumTarget"
+                    }
                     #lappend spmiTypesPerFile "datum target"
 
 # datum target shape representation (Section 6.6.1)
                     set datumTargetRep ""
+                    set ndtv 0
                     if {[$gtEntity Type] == "placed_datum_target_feature"} {
                       set nval 0
                       set e1s [$objEntity GetUsedIn [string trim property_definition] [string trim definition]]
@@ -878,11 +911,14 @@ proc spmiGeotolReport {objEntity} {
                                           }
                                         }
 # datum target dimensions - length_measure
-                                      } elseif {[$e4 Type] == "length_measure_with_unit_and_measure_representation_item"} {
+                                      } elseif {[string first "length_measure_with_unit_and_measure_representation_item" [$e4 Type]] != -1} {
                                         ::tcom::foreach a4 [$e4 Attributes] {
                                           if {[$a4 Name] == "name"} {
                                             set datumTargetName [$a4 Value]
+                                            regsub -all "  " $datumTargetName " " datumTargetName
                                             append datumTargetRep "[format "%c" 10]$datumTargetName   $datumTargetValue"
+
+# bad target attributes
                                             if {$datumTargetType == "line" && $datumTargetName != "target length"} {
                                               errorMsg "Syntax Error: Invalid 'name' ($datumTargetName) on length_measure for a datum target (must be 'target length' for a '$datumTargetType' target)\n[string repeat " " 14]\($recPracNames(pmi242), Sec. 6.6.1)"
                                             } elseif {$datumTargetType == "circle" && $datumTargetName != "target diameter"} {
@@ -891,7 +927,25 @@ proc spmiGeotolReport {objEntity} {
                                               errorMsg "Syntax Error: Invalid 'name' ($datumTargetName) on length_measure for a datum target (must be 'target length' or 'target width' for a '$datumTargetType' target)\n[string repeat " " 14]\($recPracNames(pmi242), Sec. 6.6.1)"
                                             } elseif {$datumTargetType == "point"} {
                                               errorMsg "Syntax Error: No length_measure attribute on shape_representation_with_parameters is required for a 'point' datum target\n[string repeat " " 14]\($recPracNames(pmi242), Sec. 6.6.1)"
+
+# add target dimensions to PMI for circle and rectangle
+                                            } else {
+                                              set dtv $datumTargetValue
+                                              if {[string range $dtv end-1 end] == ".0"} {set dtv [string range $dtv 0 end-2]}
+                                              if {$datumTargetType == "circle"} {
+                                                set objValue $pmiUnicode(diameter)$dtv[format "%c" 10]$objValue
+                                              } elseif {$datumTargetType == "rectangle"} {
+                                                incr ndtv
+                                                if {$ndtv == 1} {
+                                                  set dtv1 "$dtv\x"
+                                                } elseif {$ndtv == 2} {
+                                                  append dtv1 $dtv
+                                                  set objValue $dtv1[format "%c" 10]$objValue
+                                                }
+                                              }
                                             }
+
+# bad size
                                           } elseif {[$a4 Name] == "value_component"} {
                                             set datumTargetValue [$a4 Value]
                                             if {$datumTargetValue <= 0. && $datumTargetType != "point"} {
@@ -914,7 +968,7 @@ proc spmiGeotolReport {objEntity} {
                                         lappend spmiTypesPerFile "movable datum target"
                                         append objValue " (movable)"
                                       } else {
-                                        errorMsg "Syntax Error: Invalid 'item' ([$e4 Type]) on shape_representation_with_parameters for a datum target\n[string repeat " " 14]\($recPracNames(pmi242), Sec. 6.6)"
+                                        errorMsg "Syntax Error: Invalid 'item' ([formatComplexEnt [$e4 Type]]) on shape_representation_with_parameters for a datum target\n[string repeat " " 14]\($recPracNames(pmi242), Sec. 6.6)"
                                       }
                                     }
                                   }
@@ -1057,7 +1111,7 @@ proc spmiGeotolReport {objEntity} {
 # area_type for defined area unit
                     } elseif {$ov == "square" || $ov == "rectangular"} {
                       set c1 [string last " " $val]
-                      set nval "$val X[string range $val $c1 end]"
+                      set nval "$val X [string range $val $c1 end]"
                       $cells($gt) Item $r $c $nval
                     } elseif {$ov == "circular"} {
                       regsub -all "/ " $val "/ $pmiUnicode(diameter)" nval
@@ -1244,6 +1298,44 @@ proc spmiGeotolReport {objEntity} {
           $cells($gt) Item $r $c "$val [format "%c" 10]   \u25BD[format "%c" 10]   \u23B9[format "%c" 10]   \[$datumSymbol($geotolGeomEnts)\]"
         }
       }
+
+# fix position of some modifiers to be under or over the FCF
+      catch {
+        set val [[$cells($gt) Item $r $c] Value]
+        foreach mod {"ACS" "ALS"} {
+          set c1 [string first $mod $val]
+          if {$c1 != -1} {
+            set val [string range $val 0 $c1-1][string range $val $c1+3 end]
+            $cells($gt) Item $r $c "$mod[format "%c" 10]$val"
+          }
+        }
+      }
+      catch {
+        set val [[$cells($gt) Item $r $c] Value]
+        foreach mod {"LE" "MD" "LD" "PD"} {
+          set c1 [string first $mod $val]
+          if {$c1 != -1} {
+            set val [string range $val 0 $c1-1][string range $val $c1+2 end]
+            $cells($gt) Item $r $c "$val[format "%c" 10]$mod"
+          }
+        }
+      }
+      catch {
+        set val [[$cells($gt) Item $r $c] Value]
+        set c1 [string first "ERE" $val]
+        if {$c1 != -1} {
+          set val [string range $val 0 $c1-1][string range $val $c1+3 end]
+          $cells($gt) Item $r $c "$val[format "%c" 10]EACH RADIAL ELEMENT"
+        }
+      }
+      catch {
+        set val [[$cells($gt) Item $r $c] Value]
+        set c1 [string first "SEP REQT" $val]
+        if {$c1 != -1} {
+          set val [string range $val 0 $c1-1][string range $val $c1+9 end]
+          $cells($gt) Item $r $c "$val[format "%c" 10]SEP REQT"
+        }
+      }
         
 # add TZF (tzf1) for those that are wrong or do not have a symbol associated with them
       if {[info exists tzf1]} {
@@ -1253,16 +1345,6 @@ proc spmiGeotolReport {objEntity} {
           set val [[$cells($gt) Item $r $c] Value]
           $cells($gt) Item $r $c "$val[format "%c" 10]$tzf1"
           unset tzf1
-        }
-      }
-
-# fix sep reqt
-      catch {
-        set val [[$cells($gt) Item $r $c] Value]
-        set c1 [string first "SEP REQT" $val]
-        if {$c1 != -1} {
-          set val [string range $val 0 $c1-1][string range $val $c1+9 end]
-          $cells($gt) Item $r $c "$val[format "%c" 10]SEP REQT"
         }
       }
  

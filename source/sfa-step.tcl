@@ -1,6 +1,6 @@
 #-------------------------------------------------------------------------------
 # version numbers, software and user's guide
-proc getVersion {}   {return 2.38}
+proc getVersion {}   {return 2.40}
 proc getVersionUG {} {return 2.34}
 
 # -------------------------------------------------------------------------------
@@ -9,14 +9,15 @@ proc getAssocGeom {entDef {dt 0}} {
   global assocGeom entCount recPracNames
   
   set entDefType [$entDef Type]
-  #outputMsg " getGeom $entDefType [$entDef P21ID]" blue
+  #outputMsg "getGeom $dt $entDefType [$entDef P21ID]" blue
 
   if {[catch {
-    if {$entDefType == "shape_aspect" || \
+    if {$entDefType == "shape_aspect" || $entDefType == "centre_of_symmetry" || \
       ([string first "datum" $entDefType] != -1 && [string first "_and_" $entDefType] == -1)} {
 
 # add shape_aspect to AG for dimtol
-      if {$dt && ($entDefType == "shape_aspect" || $entDefType == "datum_feature" || [string first "datum_target" $entDefType] != -1)} {
+      if {$dt && ($entDefType == "shape_aspect" || $entDefType == "centre_of_symmetry" || $entDefType == "datum_feature" || \
+                  [string first "datum_target" $entDefType] != -1)} {
         set type [appendAssocGeom $entDef A]
       }
 
@@ -209,7 +210,7 @@ proc reportAssocGeom {entType} {
 proc spmiSummary {} {
   global cells entName excelVersion localName row sheetLast spmiSumName spmiSumRow thisEntType worksheet worksheets xlFileName
   global nistName pmiExpected pmiExpectedNX wdir mytemp legendColor pmiUnicode pmiFound pmiModifiers pmiActual recPracNames tolNames pmiType valType
-  global nsimilar pmiMaster
+  global nsimilar pmiMaster allPMI
   
 # first time through, start worksheet
   if {$spmiSumRow == 1} {
@@ -242,7 +243,7 @@ proc spmiSummary {} {
     set range [$worksheet($spmiSumName) Range C1:K1]
     $range MergeCells [expr 1]
     set anchor [$worksheet($spmiSumName) Range C1]
-    [$worksheet($spmiSumName) Hyperlinks] Add $anchor [join "https://www.cax-if.org/joint_testing_info.html#recpracs"] [join ""] [join "Link to CAx-IF Recommended Practices"]
+    [$worksheet($spmiSumName) Hyperlinks] Add $anchor [join "http://www.cax-if.org/joint_testing_info.html#recpracs"] [join ""] [join "Link to CAx-IF Recommended Practices"]
     
     outputMsg " Adding PMI Representation Summary worksheet" blue
 
@@ -283,6 +284,8 @@ proc spmiSummary {} {
       #for {set i 0} {$i < [llength $pmiExpected($nistName)]} {incr i} {outputMsg "$i / [lindex $pmiExpected($nistName) $i] / [lindex $pmiExpectedNX($nistName) $i]"}
     }
     set pmiFound {}
+    set allPMI ""
+    set checkPMImods 0
   }
  
 # add to PMI summary worksheet
@@ -316,8 +319,13 @@ proc spmiSummary {} {
           $cells($spmiSumName) Item $spmiSumRow 2 $entstr
 
           set val [[$cells($thisEntType) Item $i $pmiCol] Value]
+          set c1 [string first "(TZF:" $val]
+          if {$c1 != -1} {set val [string range $val 0 $c1-2]}
           $cells($spmiSumName) Item $spmiSumRow 3 "'$val"
           set cellval $val
+
+# allPMI used to count some modifiers for coverage analysis          
+          if {[string first "tolerance" $thisEntType] != -1} {append allPMI $val}
 
 # check actual vs. expected PMI for NIST files
           if {[info exists pmiExpected($nistName)]} {
@@ -331,10 +339,6 @@ proc spmiSummary {} {
 
 # remove (oriented)
             set c1 [string first "(oriented)" $val]
-            if {$c1 > 0} {set val [string range $val 0 $c1-2]}
-
-# remove (TZF: ...)
-            set c1 [string first "(TZF:" $val]
             if {$c1 > 0} {set val [string range $val 0 $c1-2]}
 
 # remove zeros from val
@@ -571,7 +575,7 @@ proc spmiSummary {} {
           $hlink Add $anchor $xlFileName "$hlsheet!A1" "Go to $thisEntType"
           incr spmiSumRow
         } else {
-          errorMsg "Cannot find PMI on [formatComplexEnt $thisEntType] for PMI Representation Summary worksheet"
+          errorMsg "Missing PMI on [formatComplexEnt $thisEntType]"
         }
       }
     }
@@ -996,7 +1000,7 @@ proc pmiFormatColumns {str} {
     }
     $range MergeCells [expr 1]
     set anchor [$worksheet($thisEntType) Range A2]
-    [$worksheet($thisEntType) Hyperlinks] Add $anchor [join "https://www.cax-if.org/joint_testing_info.html#recpracs"] [join ""] [join "Link to CAx-IF Recommended Practices"]
+    [$worksheet($thisEntType) Hyperlinks] Add $anchor [join "http://www.cax-if.org/joint_testing_info.html#recpracs"] [join ""] [join "Link to CAx-IF Recommended Practices"]
   }
 }
 

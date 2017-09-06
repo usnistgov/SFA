@@ -1348,7 +1348,7 @@ might appear that say 'Unable to alloc xxx bytes'.  See the Help > Crash Recover
 
 # examples menu  
   $Examples add command -label "Sample STEP Files (zip)" -command {openURL https://s3.amazonaws.com/nist-el/mfg_digitalthread/NIST_CTC_STEP_PMI.zip}
-  $Examples add command -label "STEP File Library"       -command {openURL https://www.cax-if.org/library/}
+  $Examples add command -label "STEP File Library"       -command {openURL http://www.cax-if.org/library/}
   $Examples add command -label "AP203e2 Archive"         -command {openURL http://web.archive.org/web/20160812122922/http://www.steptools.com/support/stdev_docs/stpfiles/ap203e2/index.html}
   $Examples add command -label "AP203 Archive"           -command {openURL http://web.archive.org/web/20160812122922/http://www.steptools.com/support/stdev_docs/stpfiles/ap203/index.html}
   $Examples add command -label "AP214 Archive"           -command {openURL http://web.archive.org/web/20160903141712/http://www.steptools.com/support/stdev_docs/stpfiles/ap214/index.html}
@@ -1375,18 +1375,18 @@ proc guiWebsitesMenu {} {
   $Websites add command -label "Source code on GitHub"                     -command {openURL https://github.com/usnistgov/SFA}
   
   $Websites add separator
-  $Websites add command -label "CAx Implementor Forum (CAx-IF)" -command {openURL https://www.cax-if.org}
-  $Websites add command -label "Implementation Coverage"        -command {openURL https://www.cax-if.org/vendor_info.php}
-  $Websites add command -label "STEP File Viewers"              -command {openURL https://www.cax-if.org/step_viewers.html}
-  $Websites add command -label "Recommended Practices"          -command {openURL https://www.cax-if.org/joint_testing_info.html#recpracs}
-  $Websites add command -label "CAx-IF (alternate website)"     -command {openURL https://www.cax-if.de}
+  $Websites add command -label "CAx Implementor Forum (CAx-IF)" -command {openURL http://www.cax-if.org}
+  $Websites add command -label "Implementation Coverage"        -command {openURL http://www.cax-if.org/vendor_info.php}
+  $Websites add command -label "STEP File Viewers"              -command {openURL http://www.cax-if.org/step_viewers.html}
+  $Websites add command -label "Recommended Practices"          -command {openURL http://www.cax-if.org/joint_testing_info.html#recpracs}
+  $Websites add command -label "CAx-IF (alternate website)"     -command {openURL http://www.cax-if.de}
   
   $Websites add separator
   $Websites add command -label "AP242 Project"   -command {openURL http://www.ap242.org}
   $Websites add command -label "AP209 Project"   -command {openURL http://www.ap209.org}
   $Websites add command -label "AP238 Project"   -command {openURL http://www.ap238.org}
   $Websites add command -label "AP239 Project"   -command {openURL http://www.ap239.org}
-  $Websites add command -label "EXPRESS Schemas"      -command {openURL https://www.cax-if.org/joint_testing_info.html#schemas}
+  $Websites add command -label "EXPRESS Schemas"      -command {openURL http://www.cax-if.org/joint_testing_info.html#schemas}
   $Websites add command -label "More EXPRESS Schemas" -command {openURL http://web.archive.org/web/20160322005246/www.steptools.com/support/stdev_docs/express/}
   
   $Websites add separator

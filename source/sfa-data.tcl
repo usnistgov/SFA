@@ -20,15 +20,15 @@ set recPracNames(tessgeom) "3D Tessellated Geometry"
 set recPracNames(uda)      "User Defined Attributes"
 
 # links to schema documentation
-set schemaLinks(AP203)   "https://www.cax-if.org/documents/AP203e2_html/AP203e2.htm"
+set schemaLinks(AP203)   "http://www.cax-if.org/documents/AP203e2_html/AP203e2.htm"
 set schemaLinks(AP203e1) "http://web.archive.org/web/20160322005246/www.steptools.com/support/stdev_docs/express/ap203/html/index.html"
-set schemaLinks(AP209)   "https://www.cax-if.org/documents/AP209_HTML/AP209ed2_mim_lf_v1.46.htm"
+set schemaLinks(AP209)   "http://www.cax-if.org/documents/AP209_HTML/AP209ed2_mim_lf_v1.46.htm"
 set schemaLinks(AP209e1) "http://web.archive.org/web/20160322005246/www.steptools.com/support/stdev_docs/express/ap209/index.html"
 set schemaLinks(AP210)   "http://web.archive.org/web/20160322005246/www.steptools.com/support/stdev_docs/express/ap210/html/index.html"
-set schemaLinks(AP214)   "https://www.cax-if.org/documents/AP214E3/AP214_e3.htm"
+set schemaLinks(AP214)   "http://www.cax-if.org/documents/AP214E3/AP214_e3.htm"
 set schemaLinks(AP238)   "http://web.archive.org/web/20160322005246/www.steptools.com/support/stdev_docs/express/ap238/html/index.html"
 set schemaLinks(AP239)   "http://web.archive.org/web/20160322005246/www.steptools.com/support/stdev_docs/express/ap239/html/index.html"
-set schemaLinks(AP242)   "https://www.cax-if.org/documents/AP242/AP242_mim_lf_1.36.htm"
+set schemaLinks(AP242)   "http://www.cax-if.org/documents/AP242/AP242_mim_lf_1.36.htm"
 set schemaLinks(CIS/2)   "http://web.archive.org/web/20160322005246/www.steptools.com/support/stdev_docs/express/cis/html/index.html"
   
 # all app names that might appear in header section
@@ -214,28 +214,13 @@ set pmiModifiersArray(two_point_size,5.3)                   "(LP)"
 set pmiModifiersArray(unequally_disposed,6.9.4)             "\u24CA"
 set pmiModifiersArray(volume_diameter_calculated_size,5.3)  "(CV)"
 
-#if {$tcl_platform(osVersion) >= 6.2} {
-#  set pmiModifiersArray(envelope_requirement,5.2.1)           "(E)"
-#  set pmiModifiersArray(free_state_condition,5.3)             "(F)"
-#  set pmiModifiersArray(free_state,6.9.3)                     "(F)"
-#  set pmiModifiersArray(independency,5.2.1)                   "(I)"
-#  set pmiModifiersArray(least_material_condition)             "(L)"
-#  set pmiModifiersArray(least_material_requirement,6.9.3-6.9.7) "(L)"
-#  set pmiModifiersArray(maximum_material_condition)           "(M)"
-#  set pmiModifiersArray(maximum_material_requirement,6.9.3-6.9.7) "(M)"
-#  set pmiModifiersArray(projected,6.9.2.2)                    "(P)"
-#  set pmiModifiersArray(unequally_disposed,6.9.4)             "(U)"
-#  set pmiModifiersArray(reciprocity_requirement,6.9.3)        "(R)"
-#  set pmiModifiersArray(regardless_of_feature_size)           "(S)" 
-#}
-
 foreach item [array names pmiModifiersArray] {
   set ids [split $item ","]
   set pmiModifiers([lindex $ids 0]) $pmiModifiersArray($item)
   if {[llength $ids] > 1} {set pmiModifiersRP([lindex $ids 0]) [lindex $ids 1]}
 }
 
-# pmfirst are things in the NIST models
+# pmfirst are features in the NIST models
 set pmfirst [list maximum_material_requirement least_material_requirement unequally_disposed projected free_state tangent_plane \
              statistical statistical_tolerance \
              all_around separate_requirement simultaneous_requirement between \
@@ -279,7 +264,8 @@ set idx "spherical diameter"
 set pmiUnicode($idx)             "S\u2205"
 set idx "spherical radius"
 set pmiUnicode($idx)             "SR"
-set pmiUnicode(straightness)     "-"
+set pmiUnicode(straightness)     "\u2212"
+#set pmiUnicode(straightness)     "-"
 set pmiUnicode(square)           "\u25A1"
 set pmiUnicode(surface_profile)  "\u2313"
 set pmiUnicode(symmetry)         "\u232F"

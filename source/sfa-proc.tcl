@@ -750,7 +750,7 @@ proc getOpenPrograms {} {
 
 # Including any of the CAD viewers and software below does not imply a recommendation or
 # endorsement of them by NIST https://www.nist.gov/disclaimer
-# For more STEP viewers, go to https://www.cax-if.org/step_viewers.html
+# For more STEP viewers, go to http://www.cax-if.org/step_viewers.html
   
   regsub {\\} $pf32 "/" p32
   regsub {\\} $pf64 "/" p64
@@ -1698,23 +1698,23 @@ proc setHomeDir {} {
     if {$tcl_platform(osVersion) >= 6.0} {
       set reg_temp [registry get {HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\User Shell Folders} {Local AppData}]
       if {[string first "%USERPROFILE%" $reg_menu] == 0} {
-        regsub "%USERPROFILE%" $reg_temp $env(USERPROFILE) mytemp
-        set mytemp [file join $mytemp Temp]
-        if {[string first $env(USERNAME) $mytemp] == -1} {
-          unset mytemp
-        } else {
-          if {[file exists [file join $mytemp NIST]]} {catch {file delete -force [file join $mytemp NIST]}}
-          set mytemp [file nativename [file join $mytemp SFA]]
-          if {![file exists $mytemp]} {file mkdir $mytemp}
+        if {[regsub "%USERPROFILE%" $reg_temp $env(USERPROFILE) mytemp]} {
+          set mytemp [file join $mytemp Temp]
+          if {[string first $env(USERNAME) $mytemp] == -1} {
+            unset mytemp
+          } else {
+            if {[file exists [file join $mytemp NIST]]} {catch {file delete -force [file join $mytemp NIST]}}
+            set mytemp [file nativename [file join $mytemp SFA]]
+            if {![file exists $mytemp]} {file mkdir $mytemp}
+          }
         }
       }
 
 # set mytemp - windows xp
     } else {
-      catch {
-        set reg_temp [registry get {HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\User Shell Folders} {Local Settings}]
-        if {[string first "%USERPROFILE%" $reg_menu] == 0} {
-          regsub "%USERPROFILE%" $reg_temp $env(USERPROFILE) mytemp
+      set reg_temp [registry get {HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\User Shell Folders} {Local Settings}]
+      if {[string first "%USERPROFILE%" $reg_menu] == 0} {
+        if {[regsub "%USERPROFILE%" $reg_temp $env(USERPROFILE) mytemp]} {
           set mytemp [file join $mytemp Temp]
           if {[string first $env(USERNAME) $mytemp] == -1} {
             unset mytemp

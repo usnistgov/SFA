@@ -12,9 +12,10 @@ proc spmiDimtolStart {entType} {
   set dim_loc       [list dimensional_location name]
   set dim_loc_dir   [list directed_dimensional_location name]
   set dim_loc_wdf   [list dimensional_location_with_datum_feature name]
-  set ang_loc       [list angular_location name]
-  set ang_loc1      [list angular_location_and_directed_dimensional_location name]
-  set ang_size      [list angular_size applies_to name]
+  set ang_loc       [list angular_location name angle_selection]
+  set ang_loc1      [list angular_location_and_directed_dimensional_location name angle_selection]
+  set ang_size      [list angular_size applies_to name angle_selection]
+  set ang_size1     [list angular_size_and_dimensional_size_with_datum_feature applies_to name angle_selection]
 
   set dir           [list direction direction_ratios]
   set a2p3d         [list axis2_placement_3d name axis $dir ref_direction $dir]
@@ -38,7 +39,7 @@ proc spmiDimtolStart {entType} {
   
   set PMIP(dimensional_characteristic_representation) \
     [list dimensional_characteristic_representation \
-      dimension $dim_size $dim_size_wdf $dim_size_wdf1 $dim_size_wdf2 $dim_loc $dim_loc_wdf $dim_loc_dir $ang_loc $ang_loc1 $ang_size \
+      dimension $dim_size $dim_size_wdf $dim_size_wdf1 $dim_size_wdf2 $dim_loc $dim_loc_wdf $dim_loc_dir $ang_loc $ang_loc1 $ang_size $ang_size1 \
       representation [list shape_dimension_representation name \
         items $length_measure1 $length_measure2 $length_measure3 \
         $angle_measure1 $angle_measure2 $angle_measure3 \
@@ -420,7 +421,7 @@ proc spmiDimtolReport {objEntity} {
               set dim(num) $objSize
               set dim(idx) 0
               if {$objSize == 0} {
-                errorMsg "Syntax Error: Missing reference to dimension ('items' attribute) on shape_dimension_representation"
+                errorMsg "Syntax Error: Missing reference to dimension for shape_dimension_representation.items"
                 lappend syntaxErr([lindex [split $ent1 " "] 0]) [list $objID [lindex [split $ent1 " "] 1]]
               }
             }
@@ -428,6 +429,14 @@ proc spmiDimtolReport {objEntity} {
 # no values to get from this nodetype, but get the entities that are referred to
             if {$follow} {
               if {[catch {
+                set ok 0
+                ::tcom::foreach val1 $objValue {
+                  if {[string first "length" [$val1 Type]] != -1 || [string first "angle" [$val1 Type]] != -1} {set ok 1}
+                }
+                if {!$ok} {
+                  errorMsg "Syntax Error: Missing reference to length or angle for shape_dimension_representation.items"
+                  lappend syntaxErr([lindex [split $ent1 " "] 0]) [list $objID [lindex [split $ent1 " "] 1]]
+                }
                 ::tcom::foreach val1 $objValue {spmiDimtolReport $val1}
               } emsg]} {
                 foreach val2 $objValue {spmiDimtolReport $val2}
@@ -450,6 +459,37 @@ proc spmiDimtolReport {objEntity} {
 
 # get values for these entity and attribute pairs
                 switch -glob $ent1 {
+                  "angular_location* name" -
+                  "angular_size* name" {
+# angular_location/size.name, add nothing to dimrep as there is no symbol associated with the location                    
+                    set ok 1
+                    set col($dt) $pmiStartCol($dt)
+                    set colName "dimension name[format "%c" 10](Sec. 5.1.1, 5.1.5)"
+                    set dimtolEnt $objEntity
+  
+                    set dimrepID $objID
+                    set dimrep($dimrepID) ""
+                    set dim(symbol) ""
+                    if {[string first "directed" $ent1] != -1} {set dimDirected 1}
+
+                    if {[string first "angular_location" $ent1] != -1} {
+                      set item "angular location"
+                    } else {
+                      set item "angular size"
+                    }
+                    lappend spmiTypesPerFile $item
+                    
+                    set angDegree 1
+                    if {![info exists entCount(conversion_based_unit_and_plane_angle_unit)]} {set angDegree 0}
+                  }
+                  "angular_location* angle_selection" -
+                  "angular_size* angle_selection" {
+# check angle selection values                    
+                    if {$ov != "equal" && $ov != "large" && $ov != "small"} {
+                      errorMsg "Syntax Error: Invalid 'angle_selection' attribute ($ov) on [formatComplexEnt [lindex $ent1 0]].\n[string repeat " " 14]\($recPracNames(pmi242), Sec. 5.1.2, 5.1.6)"
+                      lappend syntaxErr([lindex [split $ent1 " "] 0]) [list $objID [lindex [split $ent1 " "] 1]]
+                    }
+                  }
                   "*dimensional_size* name" {
 # dimensional_size.name, from the name add symbol to dimrep for spherical, radius, diameter or thickness
                     set okname 0
@@ -503,12 +543,12 @@ proc spmiDimtolReport {objEntity} {
 # syntax check for correct dimensional_size.name attribute (dimSizeNames) from the RP                  
                     if {$okname} {
                       if {$ov == ""} {
-                        errorMsg "Syntax Error: Missing 'name' attribute on [lindex $ent1 0].\n[string repeat " " 14]\($recPracNames(pmi242), Sec. 5.1.5, Table 4)"
+                        errorMsg "Syntax Error: Missing 'name' attribute on [formatComplexEnt [lindex $ent1 0]].\n[string repeat " " 14]\($recPracNames(pmi242), Sec. 5.1.5, Table 4)"
                         set ov "(blank)"
                         lappend syntaxErr([lindex [split $ent1 " "] 0]) [list $objID [lindex [split $ent1 " "] 1]]
                         set invalid 1
                       } elseif {[lsearch $dimSizeNames $ov] == -1} {
-                        errorMsg "Syntax Error: Invalid 'name' attribute ($ov) on [lindex $ent1 0].\n[string repeat " " 14]\($recPracNames(pmi242), Sec. 5.1.5, Table 4)"
+                        errorMsg "Syntax Error: Invalid 'name' attribute ($ov) on [formatComplexEnt [lindex $ent1 0]].\n[string repeat " " 14]\($recPracNames(pmi242), Sec. 5.1.5, Table 4)"
                         lappend syntaxErr([lindex [split $ent1 " "] 0]) [list $objID [lindex [split $ent1 " "] 1]]
                         set invalid 1
                       }
@@ -544,29 +584,6 @@ proc spmiDimtolReport {objEntity} {
                         set invalid 1
                       }
                     }
-                  }
-                  "angular_location* name" -
-                  "angular_size* name" {
-# angular_location/size.name, add nothing to dimrep as there is no symbol associated with the location                    
-                    set ok 1
-                    set col($dt) $pmiStartCol($dt)
-                    set colName "dimension name[format "%c" 10](Sec. 5.1.1, 5.1.5)"
-                    set dimtolEnt $objEntity
-  
-                    set dimrepID $objID
-                    set dimrep($dimrepID) ""
-                    set dim(symbol) ""
-                    if {[string first "directed" $ent1] != -1} {set dimDirected 1}
-
-                    if {[string first "angular_location" $ent1] != -1} {
-                      set item "angular location"
-                    } else {
-                      set item "angular size"
-                    }
-                    lappend spmiTypesPerFile $item
-                    
-                    set angDegree 1
-                    if {![info exists entCount(conversion_based_unit_and_plane_angle_unit)]} {set angDegree 0}
                   }
                   "shape_dimension_representation name" {
 # shape_dimension.name, look for independency or envelope requirement per the RP, Sec 5.2.1                    
@@ -858,11 +875,13 @@ proc spmiDimtolReport {objEntity} {
 # plus minus tolerance on dimtolEnt
     if {[catch {
       if {[info exists dimtolEnt]} {
-        #outputMsg [$dimtolEnt Type]
+        #outputMsg [$dimtolEnt Type] blue
         set objGuiEntities [$dimtolEnt GetUsedIn [string trim plus_minus_tolerance] [string trim toleranced_dimension]]
         set plusminus ""
         set colName ""
+        set npm 0
         ::tcom::foreach objGuiEntity $objGuiEntities {
+          incr npm
           #outputMsg "[$objGuiEntity Type] [$objGuiEntity P21ID]"
           ::tcom::foreach attrPMT [$objGuiEntity Attributes] {
 
@@ -877,15 +896,16 @@ proc spmiDimtolReport {objEntity} {
 # +- range lower/upper bound on tolerance_value
                 ::tcom::foreach subAttr [$subEntity Attributes] {
                   if {[string first "bound" [$subAttr Name]] != -1} {
-                    #outputMsg "[$subAttr Name] [$subAttr Value]"
+                    #outputMsg " [$subAttr Name] [$subAttr Value]"
                     ::tcom::foreach measureAttr [[$subAttr Value] Attributes] {
                       if {[$measureAttr Name] == "value_component"} {
-                        #outputMsg "[$measureAttr Name] [$measureAttr Type] [$measureAttr Value]"
+                        #outputMsg "  [$measureAttr Name] [$measureAttr Type] [$measureAttr Value]"
                         append plusminus "[$measureAttr Value] "
                       }
                     } 
                   }
                 }
+                if {$npm > 1} {errorMsg "Syntax Error: Multiple plus-minus tolerance values ($plusminus) for a single dimension."}
 
 # tolerance class on limits_and_fits
               } elseif {$subType == "limits_and_fits"} {
@@ -1163,10 +1183,7 @@ proc spmiDimtolReport {objEntity} {
         
 # save dimension with associated geometry
         if {$dimtolGeomEnts != ""} {
-          #regsub -all [format "%c" 10] $dr " " dr
-          #for {set i 0} {$i < 10} {incr i} {regsub -all "  " $dr " " dr}
           if {[string first "'" $dr] == 0} {set dr [string range $dr 1 end]}
-            
           if {[info exists dimtolGeom($dimtolGeomEnts)]} {
             if {[lsearch $dimtolGeom($dimtolGeomEnts) $dr] == -1} {
               lappend dimtolGeom($dimtolGeomEnts) $dr
@@ -1174,11 +1191,23 @@ proc spmiDimtolReport {objEntity} {
           } else {
             lappend dimtolGeom($dimtolGeomEnts) $dr
           }
+
+# multiple dimensions for same geometry
           if {[llength $dimtolGeom($dimtolGeomEnts)] > 1} {
-            errorMsg "Multiple dimensions $dimtolGeom($dimtolGeomEnts) associated with the same geometry\n $dimtolGeomEnts"
+            set dtg {}
+            foreach item $dimtolGeom($dimtolGeomEnts) {
+              regsub -all [format "%c" 10] $item " " tmp
+              for {set i 0} {$i < 10} {incr i} {regsub -all "  " $tmp " " tmp}
+              lappend dtg $tmp
+            }
+            errorMsg "Multiple dimensions $dtg associated with the same geometry\n $dimtolGeomEnts"
           }
         }
       }
+
+# unset variables
+      foreach var {dimBasic dimReference savedModifier dimDirected dimOrient} {if {[info exists $var]} {unset $var}}
+
     } emsg]} {
       errorMsg "ERROR adding Dimensional Tolerance: $emsg"
     }

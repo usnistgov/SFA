@@ -638,12 +638,12 @@ proc genExcel {{numFile 0}} {
       ::tcom::foreach attr [$thisEnt Attributes] {
         if {[$attr Name] == "id"} {
           set val [$attr Value]
-          if {([string first "ISO" $val] != -1 || [string first "ASME" $val] != -1) && [string first "NIST" [string toupper $val]] == -1} {
-            if {[string first "ISO" $val] != -1} {
+          if {([string first "ISO" $val] == 0 || [string first "ASME" $val] == 0) && [string first "NIST" [string toupper $val]] == -1} {
+            if {[string first "ISO" $val] == 0} {
               set tolStandard(type) "ISO"
               if {[string first "1101" $val] != "" || [string first "16792" $val] != ""} {if {[string first $val $tolStandard(num)] == -1} {append tolStandard(num) "$val    "}}
             }
-            if {[string first "ASME" $val] != -1 && [string first "NIST" [string toupper $val]] == -1} {
+            if {[string first "ASME" $val] == 0 && [string first "NIST" [string toupper $val]] == -1} {
               set tolStandard(type) "ASME"
               if {[string first "Y14." $val] != ""} {if {[string first $val $tolStandard(num)] == -1} {append tolStandard(num) "$val    "}}
             }

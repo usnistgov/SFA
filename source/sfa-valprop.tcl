@@ -729,7 +729,7 @@ proc valPropFormat {} {
       set range [$worksheet($thisEntType) Range A2:D2]
       $range MergeCells [expr 1]
       set anchor [$worksheet($thisEntType) Range A2]
-      [$worksheet($thisEntType) Hyperlinks] Add $anchor [join "https://www.cax-if.org/joint_testing_info.html#recpracs"] [join ""] [join "Link to CAx-IF Recommended Practices"]    
+      [$worksheet($thisEntType) Hyperlinks] Add $anchor [join "http://www.cax-if.org/joint_testing_info.html#recpracs"] [join ""] [join "Link to CAx-IF Recommended Practices"]    
     }
   }
 }

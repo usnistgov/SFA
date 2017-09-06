@@ -74,7 +74,7 @@ proc spmiCoverageStart {{multi 1}} {
 # write semantic PMI coverage analysis worksheet
 proc spmiCoverageWrite {{fn ""} {sum ""} {multi 1}} {
   global cells cells1 col1 coverageLegend coverageStyle entCount fileList legendColor nfile nistName 
-  global sempmi_coverage sempmi_totals spmiCoverages spmiTypes spmiTypesPerFile worksheet worksheet1
+  global sempmi_coverage sempmi_totals spmiCoverages spmiTypes spmiTypesPerFile checkPMImods worksheet worksheet1 allPMI pmiModifiers
   #outputMsg "spmiCoverageWrite $multi" red
 
   if {[catch {
@@ -90,6 +90,19 @@ proc spmiCoverageWrite {{fn ""} {sum ""} {multi 1}} {
         lappend spmiTypesPerFile1 "datum (6.5)"
       }
       if {$multi} {unset entCount(datum)}
+    }
+    
+# check for some modifiers and count from allPMI
+    if {[info exists allPMI]} {
+      if {[string length $allPMI] > 0} {
+        set mods [list maximum_material_requirement least_material_requirement free_state tangent_plane]
+        foreach mod $mods {set numMods($mod) 0}
+        for {set i 0} {$i < [string length $allPMI]} {incr i} {
+          foreach mod $mods {
+            if {[string index $allPMI $i] == $pmiModifiers($mod)} {incr numMods($mod)}
+          }
+        }
+      }
     }
 
 # add number of pmi types
@@ -126,6 +139,11 @@ proc spmiCoverageWrite {{fn ""} {sum ""} {multi 1}} {
                 set npmi [expr {int($npmi)+1}]
               }
 
+# use other count of some modifiers
+              if {[info exists allPMI]} {
+                if {[string length $allPMI] > 0} {foreach mod $mods {if {$idx == $mod} {set npmi $numMods($mod)}}}
+              }
+              
 # write npmi
               if {$multi} {
                 $cells1($sempmi_coverage) Item $r $col1($sum) $npmi
@@ -381,7 +399,7 @@ proc spmiCoverageFormat {sum {multi 1}} {
 
       $cells1($sempmi_coverage) Item [expr {[lindex $idx1 end]+1}] 1 "Section Numbers refer to the CAx-IF Recommended Practice for $recPracNames(pmi242)"
       set anchor [$worksheet1($sempmi_coverage) Range [cellRange [expr {[lindex $idx1 end]+1}] 1]]
-      [$worksheet1($sempmi_coverage) Hyperlinks] Add $anchor [join "https://www.cax-if.org/joint_testing_info.html#recpracs"] [join ""] [join "Link to CAx-IF Recommended Practices"]
+      [$worksheet1($sempmi_coverage) Hyperlinks] Add $anchor [join "http://www.cax-if.org/joint_testing_info.html#recpracs"] [join ""] [join "Link to CAx-IF Recommended Practices"]
       
       if {[info exists coverageStyle]} {spmiCoverageLegend $multi [expr {[lindex $idx1 end]+3}]}
       
@@ -406,7 +424,7 @@ proc spmiCoverageFormat {sum {multi 1}} {
       set range [$worksheet($sempmi_coverage) Range D1:N1]
       $range MergeCells [expr 1]
       set anchor [$worksheet($sempmi_coverage) Range D1]
-      [$worksheet($sempmi_coverage) Hyperlinks] Add $anchor [join "https://www.cax-if.org/joint_testing_info.html#recpracs"] [join ""] [join "Link to CAx-IF Recommended Practices"]
+      [$worksheet($sempmi_coverage) Hyperlinks] Add $anchor [join "http://www.cax-if.org/joint_testing_info.html#recpracs"] [join ""] [join "Link to CAx-IF Recommended Practices"]
 
       [$worksheet($sempmi_coverage) Range "A1"] Select
       catch {[$worksheet($sempmi_coverage) PageSetup] PrintGridlines [expr 1]}
@@ -709,7 +727,7 @@ proc gpmiCoverageFormat {{sum ""} {multi 1}} {
       
       $cells1($pmi_coverage) Item [expr {$pmi_rows+2}] 1 "Presentation Names defined in $rp"
       set anchor [$worksheet1($pmi_coverage) Range [cellRange [expr {$pmi_rows+2}] 1]]
-      [$worksheet1($pmi_coverage) Hyperlinks] Add $anchor [join "https://www.cax-if.org/joint_testing_info.html#recpracs"] [join ""] [join "Link to CAx-IF Recommended Practices"]
+      [$worksheet1($pmi_coverage) Hyperlinks] Add $anchor [join "http://www.cax-if.org/joint_testing_info.html#recpracs"] [join ""] [join "Link to CAx-IF Recommended Practices"]
   
       [$worksheet1($pmi_coverage) Rows] AutoFit
       [$worksheet1($pmi_coverage) Range "B4"] Select
@@ -730,7 +748,7 @@ proc gpmiCoverageFormat {{sum ""} {multi 1}} {
       set range [$worksheet($pmi_coverage) Range E1:O1]
       $range MergeCells [expr 1]
       set anchor [$worksheet($pmi_coverage) Range E1]
-      [$worksheet($pmi_coverage) Hyperlinks] Add $anchor [join "https://www.cax-if.org/joint_testing_info.html#recpracs"] [join ""] [join "Link to CAx-IF Recommended Practices"]
+      [$worksheet($pmi_coverage) Hyperlinks] Add $anchor [join "http://www.cax-if.org/joint_testing_info.html#recpracs"] [join ""] [join "Link to CAx-IF Recommended Practices"]
       
       [$worksheet($pmi_coverage) Range "A1"] Select
       catch {[$worksheet($pmi_coverage) PageSetup] PrintGridlines [expr 1]}
