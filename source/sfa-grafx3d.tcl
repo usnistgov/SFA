@@ -292,7 +292,7 @@ proc x3dCoordAxes {size} {
 # -------------------------------------------------------------------------------
 # write PMI saved view geometry, set viewpoints, add navigation and background color, and close X3DOM file
 proc x3dFileEnd {} {
-  global modelURLs nistName opt stepAP x3dAxes x3dMax x3dMin x3dFile x3dMsg stepAP entCount nistVersion numTessColor
+  global ao modelURLs nistName opt stepAP x3dAxes x3dMax x3dMin x3dFile x3dMsg stepAP entCount nistVersion numTessColor
   global savedViewButtons savedViewFileName savedViewFile savedViewNames savedViewpoint
   
 # write any PMI saved view geometry for multiple saved views
@@ -367,7 +367,7 @@ proc x3dFileEnd {} {
   if {$opt(VIZPMI) && [llength $savedViewButtons] > 0} {
     puts $x3dFile "\nSaved View PMI"
     foreach svn $savedViewButtons {puts $x3dFile "<br><input type='checkbox' checked onclick='tog$svn\(this.value)'/>$svn"}
-    puts $x3dFile "<p>Selecting a Saved View changes the viewpoint or Page Up for the next viewpoint.  Zoom and pan to view all PMI."
+    puts $x3dFile "<p>Selecting a Saved View above changes the viewpoint or use Page Up for the next viewpoint.  Zoom and pan to view all PMI."
   }
 
 # for FEM - node, element checkboxes
@@ -402,6 +402,9 @@ proc x3dFileEnd {} {
   }
   puts $x3dFile "\n<p><ul style=\"padding-left:20px\">"
   puts $x3dFile "<li><a href=\"https://www.x3dom.org/documentation/interaction/\">Use the mouse</a> in 'Examine Mode' to rotate, pan, zoom.<li>Use Page Up to switch between views.<p>"
+  if {[info exists ao]} {
+    if {$opt(VIZPMI) && [string first "occurrence" $ao] != -1} {puts $x3dFile "<li>Some Graphical PMI might not have equivalent Semantic PMI in the STEP file."}
+  }
   puts $x3dFile "</ul></td></tr></table>"
 
 # toggle switches for PMI views
@@ -465,7 +468,7 @@ proc openX3DOM {{fn ""}} {
     if {$ok} {
       set fn $x3dFileName
     } else {
-      if {$opt(XLSCSV) == "None"} {errorMsg " There is nothing to Visualize (Options tab)."}
+      if {$opt(XLSCSV) == "None"} {errorMsg "There is nothing to Visualize in the $stepAP file (Options tab)."}
       return
     }
   }

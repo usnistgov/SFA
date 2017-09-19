@@ -8,7 +8,7 @@ proc openMultiFile {{ask 1}} {
   global coverageSTEP gpmiTypes developer nistVersion
   global sempmi_totals pmi_totals gpmiTypesInvalid col_ca pmi_rows
   global excel1 worksheets1 worksheet1 cells1 row1 col1 nfile coverageStyle
-  global sempmi_coverage pmi_coverage
+  global sempmi_coverage pmi_coverage useXL xlFormat
   
   set maxfiles 1000
   if {$developer} {set maxfiles 10000}
@@ -114,9 +114,8 @@ proc openMultiFile {{ask 1}} {
 
 # start Excel for summary of all files
         set fileDir $multiFileDir
-        if {$lenfilelist > 1 && $opt(XLSCSV) == "Excel"} {
+        if {$lenfilelist > 1 && $useXL && $opt(XLSCSV) != "None"} {
           if {[catch {
-            outputMsg "\nStarting File Summary spreadsheet" blue
             set pid2 [twapi::get_process_ids -name "EXCEL.EXE"]
             set excel1 [::tcom::ref createobject Excel.Application]
             set pidExcel1 [lindex [intersect3 $pid2 [twapi::get_process_ids -name "EXCEL.EXE"]] 2]
@@ -143,92 +142,101 @@ proc openMultiFile {{ask 1}} {
     
 # errors
           } emsg]} {
-            errorMsg "ERROR connecting to Excel: $emsg"
+            set useXL 0
+            if {$opt(XLSCSV) == "Excel"} {
+              errorMsg "Excel is not installed or cannot start Excel: $emsg\n CSV files will be generated instead of a spreadsheet.  See the Output Format option.  Some options are disabled."
+              set opt(XLSCSV) "CSV"
+              catch {raise .}
+            }
+            checkValues
           }
 
 # start summary/analysis spreadsheet
-          if {[catch {
-            set workbooks1  [$excel1 Workbooks]
-            set workbook1   [$workbooks1 Add]
-            set worksheets1 [$workbook1 Worksheets]
+          if {$useXL} {
+            if {[catch {
+              outputMsg "\nStarting File Summary spreadsheet" blue
+              set workbooks1  [$excel1 Workbooks]
+              set workbook1   [$workbooks1 Add]
+              set worksheets1 [$workbook1 Worksheets]
 
 # determine how many worksheets to add for coverage analysis
-            set n1 1
-            set coverageSTEP 0
-            if {$opt(PMIGRF) || $opt(PMISEM)} {
-              set coverageSTEP 1
-              if {$opt(PMIGRF) && $opt(PMISEM)} {
-                set n1 3
-              } else {
-                set n1 2
-              }
+              set n1 1
+              set coverageSTEP 0
+              if {$opt(PMIGRF) || $opt(PMISEM)} {
+                set coverageSTEP 1
+                if {$opt(PMIGRF) && $opt(PMISEM)} {
+                  set n1 3
+                } else {
+                  set n1 2
+                }
 # make sure there are at least 3 worksheets
-              if {[$worksheets1 Count] < 3} {$worksheets1 Add; $worksheets1 Add}
-            }
+                if {[$worksheets1 Count] < 3} {$worksheets1 Add; $worksheets1 Add}
+              }
 
 # delete 0, 1, or 2 worksheets (0 or 1 for STEP CA)
-            catch {$excel1 DisplayAlerts False}
-            set sheetCount [$worksheets1 Count]
-            for {set n $sheetCount} {$n > $n1} {incr n -1} {[$worksheets1 Item [expr $n]] Delete}
-            catch {$excel1 DisplayAlerts True}
+              catch {$excel1 DisplayAlerts False}
+              set sheetCount [$worksheets1 Count]
+              for {set n $sheetCount} {$n > $n1} {incr n -1} {[$worksheets1 Item [expr $n]] Delete}
+              catch {$excel1 DisplayAlerts True}
 
 # start STEP coverage analysis worksheet
-            #if {$coverageSTEP} {
-            #  if {$opt(PMISEM)} {spmiCoverageStart}
-            #  if {$opt(PMIGRF)} {gpmiCoverageStart}
-            #}
+              #if {$coverageSTEP} {
+              #  if {$opt(PMISEM)} {spmiCoverageStart}
+              #  if {$opt(PMIGRF)} {gpmiCoverageStart}
+              #}
             
 # done starting coverage analysis worksheets
 # -------------------------------------------------------------------------
 
 # start file summary worksheet
-            set sum "Summary"
-            set worksheet1($sum) [$worksheets1 Item [expr 1]]
-            $worksheet1($sum) Activate
-            $worksheet1($sum) Name "File Summary"
-            set cells1($sum) [$worksheet1($sum) Cells]
-            $cells1($sum) Item 1 1 "STEP Directory"
-            set range [$worksheet1($sum) Range [cellRange 1 2]]
-            $cells1($sum) Item 1 2 "[file nativename $multiFileDir]"
+              set sum "Summary"
+              set worksheet1($sum) [$worksheets1 Item [expr 1]]
+              $worksheet1($sum) Activate
+              $worksheet1($sum) Name "File Summary"
+              set cells1($sum) [$worksheet1($sum) Cells]
+              $cells1($sum) Item 1 1 "STEP Directory"
+              set range [$worksheet1($sum) Range [cellRange 1 2]]
+              $cells1($sum) Item 1 2 "[file nativename $multiFileDir]"
             
 # set startrow
-            set startrow 9
-            $cells1($sum) Item $startrow 1 "Entity"
-            set range [$worksheet1($sum) Range "B1:K1"]
-            [$range Font] Bold [expr 1]
-            $range MergeCells [expr 1]
-            set col1($sum) 1
+              set startrow 9
+              $cells1($sum) Item $startrow 1 "Entity"
+              set range [$worksheet1($sum) Range "B1:K1"]
+              [$range Font] Bold [expr 1]
+              $range MergeCells [expr 1]
+              set col1($sum) 1
 
 # orientation for file info
-            set range [$worksheet1($sum) Range "5:$startrow"]
-            $range VerticalAlignment [expr -4107]
-            $range HorizontalAlignment [expr -4108]
+              set range [$worksheet1($sum) Range "5:$startrow"]
+              $range VerticalAlignment [expr -4107]
+              $range HorizontalAlignment [expr -4108]
 
 # vertical orientation for file name
-            set range [$worksheet1($sum) Range "4:4"]
-            $range Orientation [expr 90]
-            $range HorizontalAlignment [expr -4108]
-
-            if {!$coverageSTEP} {
-              [$excel1 ActiveWindow] TabRatio [expr 0.3]
-            } else {
-              [$excel1 ActiveWindow] TabRatio [expr 0.6]
-            }
+              set range [$worksheet1($sum) Range "4:4"]
+              $range Orientation [expr 90]
+              $range HorizontalAlignment [expr -4108]
+  
+              if {!$coverageSTEP} {
+                [$excel1 ActiveWindow] TabRatio [expr 0.3]
+              } else {
+                [$excel1 ActiveWindow] TabRatio [expr 0.6]
+              }
 
 # start STEP coverage analysis worksheet
-            if {$coverageSTEP} {
-              if {$opt(PMISEM)} {spmiCoverageStart}
-              if {$opt(PMIGRF)} {gpmiCoverageStart}
-            }
-            $worksheet1($sum) Activate
+              if {$coverageSTEP} {
+                if {$opt(PMISEM)} {spmiCoverageStart}
+                if {$opt(PMIGRF)} {gpmiCoverageStart}
+              }
+              $worksheet1($sum) Activate
             
 # errors
-          } emsg]} {
-            errorMsg "ERROR opening Excel workbooks and worksheets for file summary: $emsg"
-            catch {raise .}
+            } emsg]} {
+              errorMsg "ERROR opening Excel workbooks and worksheets for file summary: $emsg"
+              catch {raise .}
+            }
+          } elseif {$useXL && $opt(XLSCSV) != "None"} {
+            errorMsg "For only one STEP file, no File Summary spreadsheet is generated."
           }
-        } elseif {$opt(XLSCSV) == "Excel"} {
-          errorMsg "For only one STEP file, no File Summary spreadsheet is generated."
         }
 
 # -------------------------------------------------------------------------------------------------
@@ -277,7 +285,7 @@ proc openMultiFile {{ask 1}} {
           }
 
 # set fn from file name (file1), change \ to linefeed
-          if {$lenfilelist > 1 && $opt(XLSCSV) == "Excel"} {
+          if {$lenfilelist > 1 && $useXL && $opt(XLSCSV) != "None"} {
             set fn [string range [file nativename [truncFileName $file1]] $dlen end]
             regsub -all {\\} $fn [format "%c" 10] fn
             incr col1($sum)
@@ -301,7 +309,7 @@ proc openMultiFile {{ask 1}} {
           
 # -------------------------------------------------------------------------------------------------
 # file summary ws, entity names
-        if {$lenfilelist > 1 && $opt(XLSCSV) == "Excel"} {
+        if {$lenfilelist > 1 && $useXL && $opt(XLSCSV) != "None"} {
           #getTiming "start multi summary"
           catch {$excel1 ScreenUpdating 0}
           #outputMsg "\nWriting File Summary information"
@@ -533,7 +541,7 @@ proc openMultiFile {{ask 1}} {
           set ptime "[trimNum [expr {double($ptime)/3600.}] 1 1] hours"
         }
         set msg "\n($nfile) "
-        if {$opt(XLSCSV) == "Excel"} {
+        if {$useXL} {
           append msg "Spreadsheets"
         } elseif {$opt(XLSCSV) == "CSV"} {
           append msg "CSV files"
@@ -546,7 +554,7 @@ proc openMultiFile {{ask 1}} {
 
 # -------------------------------------------------------------------------------------------------
 # save spreadsheet
-        if {$lenfilelist > 1 && $opt(XLSCSV) == "Excel"} {
+        if {$lenfilelist > 1 && $useXL  && $opt(XLSCSV) != "None"} {
           if {[catch {
 
 # set file name for analysis spreadsheet
@@ -568,7 +576,9 @@ proc openMultiFile {{ask 1}} {
             outputMsg "Saving File Summary Spreadsheet as:"
             outputMsg " [truncFileName $aname 1]" blue
             update
-            $workbook1 SaveAs $aname
+            catch {$excel1 DisplayAlerts False}
+            $workbook1 -namedarg SaveAs Filename [file rootname $aname] FileFormat $xlFormat
+            catch {$excel1 DisplayAlerts True}
             set lastXLS1 $aname
 
 # close Excel

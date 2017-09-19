@@ -263,7 +263,7 @@ proc guiProcessAndReports {} {
   
   set fopta [ttk::labelframe $fopt.a -text " Process "]
   
-  # option to process user-defined entities
+# option to process user-defined entities
   guiUserDefinedEntities
   
   set fopta1 [frame $fopta.1 -bd 0]
@@ -677,17 +677,14 @@ proc guiOpenSTEPFile {} {
   pack $foptf -side top -anchor w -pady {5 2} -padx 10 -fill both
 
   set foptk [ttk::labelframe $fopt.k -text " Output Format "]
-  foreach item {{" Excel" Excel} {" CSV" CSV} {" Visualization Only (no spreadsheet)" None}} {
+  foreach item {{" Spreadsheet" Excel} {" CSV Files" CSV} {" Visualization Only" None}} {
     pack [ttk::radiobutton $foptk.$cb -variable opt(XLSCSV) -text [lindex $item 0] -value [lindex $item 1] -command {
-      set opt(VIZFEA) 1
-      set opt(VIZPMI) 1
-      set opt(VIZTES) 1
       checkValues
     }] -side left -anchor n -padx 5 -pady 0 -ipady 0
     incr cb
   }
   pack $foptk -side top -anchor w -pady {5 2} -padx 10 -fill both
-  catch {tooltip::tooltip $foptk "Microsoft Excel is required to generate spreadsheets.\nCSV files will be generated if Excel is not installed.\n\nOne CSV file is generated for each entity type.  For CSV files, \noptions for Reports and Inverse Relationships are disabled.\n\nVisualization Only does not generate spreadsheets or CSV files.\nAll options in Process, Report, and Visualize are disabled."}
+  catch {tooltip::tooltip $foptk "If Excel is installed, then spreadsheets and CSV files can be generated.\nIf CSV Files is selected, the spreadsheet is also saved.\n\nIf Excel is not installed, only CSV files can be generated.\nOptions for Reports and Inverse Relationships are disabled.\n\nVisualization Only does not generate any spreadsheets or CSV files.\nAll options except Visualize are disabled."}
 }
 
 #-------------------------------------------------------------------------------
@@ -1100,7 +1097,7 @@ PMI Presentation annotations can be viewed in a web browser.  The visualization 
 graphical PMI, not the model geometry, except for tessellated part geometry.  Polylines, lines,
 circles, and tessellated geometry are supported for visualization.  The color of the annotations
 can be modified.  Filled characters are not filled.  PMI associated with Saved Views can be
-switched on and off.
+switched on and off.  Some Graphical PMI might not have equivalent Semantic PMI in the STEP file.
 
 The graphical PMI file is written to a file named mystepfile-x3dom.html
 See Examples > Graphical PMI Viewer

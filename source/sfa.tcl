@@ -45,10 +45,22 @@ catch {
   package require tooltip
 }
 
+# -----------------------------------------------------------------------------------------------------
+# set drive, myhome, mydocs, mydesk
+setHomeDir
+
+# set program files
+set pf32 "C:\Program Files (x86)"
+if {[info exists env(ProgramFiles)]}  {set pf32 $env(ProgramFiles)}
+if {[string first "x86" $pf32] == -1} {append pf32 " (x86)"}
+set pf64 "C:\Program Files"
+if {[info exists env(ProgramW6432)]} {set pf64 $env(ProgramW6432)}
+
 # detect if NIST version
 set nistVersion 0
 foreach item $auto_path {if {[string first "STEP-File-Analyzer" $item] != -1} {set nistVersion 1}}
 
+# -----------------------------------------------------------------------------------------------------
 # initialize variables
 foreach id {XL_OPEN XL_KEEPOPEN XL_LINK1 XL_FPREC XL_SORT \
             VALPROP PMIGRF PMISEM VIZPMI VIZFEA VIZTES INVERSE DEBUG1 \
@@ -64,16 +76,16 @@ set opt(CRASH) 0
 set opt(DEBUG1) 0
 set opt(DEBUGINV) 0
 set opt(DISPGUIDE1) 1
-set opt(XLSBUG1) 30
 set opt(FIRSTTIME) 1
-set opt(INVERSE) 0
 set opt(gpmiColor) 2
 set opt(indentGeometry) 0
 set opt(indentStyledItem) 0
+set opt(INVERSE) 0
 set opt(writeDirType) 0
 set opt(XL_KEEPOPEN) 0
 set opt(XL_ROWLIM) 1048576
 set opt(XL_SORT) 0
+set opt(XLSBUG1) 30
 set opt(XLSCSV) Excel
 
 set coverageSTEP 0
@@ -83,9 +95,9 @@ set edmWhereRules 0
 set edmWriteToFile 0
 set eeWriteToFile  0
 set excelYear ""
+set lastX3DOM ""
 set lastXLS  ""
 set lastXLS1 ""
-set lastX3DOM ""
 set openFileList {}
 set pointLimit 2
 set sfaVersion 0
@@ -94,99 +106,76 @@ set userXLSFile ""
 set x3dFileName ""
 set x3dStartFile 1
 
-set developer 0
-if {$env(USERNAME) == "lipman"} {set developer 1}
-
-# -----------------------------------------------------------------------------------------------------
-# set drive, myhome, mydocs, mydesk
-setHomeDir
-
 set fileDir  $mydocs
 set fileDir1 $mydocs
 set userWriteDir $mydocs
 set writeDir $userWriteDir
 
-# set program files
-set pf32 "C:\Program Files (x86)"
-if {[info exists env(ProgramFiles)]}  {set pf32 $env(ProgramFiles)}
-if {[string first "x86" $pf32] == -1} {append pf32 " (x86)"}
-set pf64 "C:\Program Files"
-if {[info exists env(ProgramW6432)]} {set pf64 $env(ProgramW6432)}
+set developer 0
+if {$env(USERNAME) == "lipman"} {set developer 1}
 
-# -----------------------------------------------------------------------------------------------------
 # initialize data
 initData
 initDataInverses
 
-# set options file name
-set optionsFile1 [file nativename [file join $fileDir STEP_Excel_options.dat]]
-set optionsFile2 [file nativename [file join $fileDir STEP-File-Analyzer-options.dat]]
-
-if {(![file exists $optionsFile1] && ![file exists $optionsFile2]) || \
-     [file exists $optionsFile2]} {
-  set optionsFile $optionsFile2
-} else {
-  catch {
-    file copy -force $optionsFile1 $optionsFile2
-    file delete -force $optionsFile1
-    set optionsFile $optionsFile2
-  } optionserr
-}
-
+# -----------------------------------------------------------------------------------------------------
 # check for options file and read
-set optionserr ""
+set optionsFile [file nativename [file join $fileDir STEP-File-Analyzer-options.dat]]
 if {[file exists $optionsFile]} {
-  catch {source $optionsFile} optionserr
-  if {[string first "+" $optionserr] == 0} {set optionserr ""}
+  if {[catch {
+    source $optionsFile
 
-# check for old variable names
-  if {[info exists opt(PMIVRML)]}  {set opt(VIZPMI) $opt(PMIVRML)}
-  if {[info exists opt(PMIPROP)]}  {set opt(PMIGRF) $opt(PMIPROP)}
-  if {[info exists opt(SEMPROP)]}  {set opt(PMISEM) $opt(SEMPROP)}
-  if {[info exists opt(GENX3DOM)]} {set opt(VIZPMI) $opt(GENX3DOM)}
-  if {[info exists opt(VIZ209)]}   {set opt(VIZFEA) $opt(VIZ209)}
-
-  if {[info exists opt(ROWLIM)]} {set opt(XL_ROWLIM) $opt(ROWLIM)}
-  if {[info exists opt(SORT)]}   {set opt(XL_SORT)   $opt(SORT)}
-
-  if {[info exists opt(PR_STEP_GEO)]}    {set opt(PR_STEP_GEOM) $opt(PR_STEP_GEO)}
-  if {[info exists opt(PR_STEP_REP)]}    {set opt(PR_STEP_REPR) $opt(PR_STEP_REP)}
-  if {[info exists opt(PR_STEP_ASPECT)]} {set opt(PR_STEP_SHAP) $opt(PR_STEP_ASPECT)}
-  if {[info exists opt(PR_STEP_OTHER)]}  {set opt(PR_STEP_COMM) $opt(PR_STEP_OTHER)}
-
-  if {[info exists opt(PR_STEP_AP203)]} {set opt(PR_STEP_COMM) 1}
-  if {[info exists opt(PR_STEP_AP209)]} {set opt(PR_STEP_COMM) 1}
-  if {[info exists opt(PR_STEP_AP210)]} {set opt(PR_STEP_COMM) 1}
-  if {[info exists opt(PR_STEP_AP214)]} {set opt(PR_STEP_COMM) 1}
-
-  if {[info exists opt(PR_STEP_AP242_KINE)]} {set opt(PR_STEP_KINE) 1}
-  if {[info exists opt(PR_STEP_AP242_QUAL)]} {set opt(PR_STEP_AP242) 1}
-  if {[info exists opt(PR_STEP_AP242_CONS)]} {set opt(PR_STEP_AP242) 1}
-  if {[info exists opt(PR_STEP_AP242_MATH)]} {set opt(PR_STEP_AP242) 1}
-  if {[info exists opt(PR_STEP_AP242_GEOM)]} {set opt(PR_STEP_AP242) 1}
-  if {[info exists opt(PR_STEP_AP242_OTHER)]} {set opt(PR_STEP_AP242) 1}
+# check and reset old variable names
+    if {[info exists opt(PMIVRML)]}  {set opt(VIZPMI) $opt(PMIVRML)}
+    if {[info exists opt(PMIPROP)]}  {set opt(PMIGRF) $opt(PMIPROP)}
+    if {[info exists opt(SEMPROP)]}  {set opt(PMISEM) $opt(SEMPROP)}
+    if {[info exists opt(GENX3DOM)]} {set opt(VIZPMI) $opt(GENX3DOM)}
+    if {[info exists opt(VIZ209)]}   {set opt(VIZFEA) $opt(VIZ209)}
+  
+    if {[info exists opt(ROWLIM)]} {set opt(XL_ROWLIM) $opt(ROWLIM)}
+    if {[info exists opt(SORT)]}   {set opt(XL_SORT)   $opt(SORT)}
+  
+    if {[info exists opt(PR_STEP_GEO)]}    {set opt(PR_STEP_GEOM) $opt(PR_STEP_GEO)}
+    if {[info exists opt(PR_STEP_REP)]}    {set opt(PR_STEP_REPR) $opt(PR_STEP_REP)}
+    if {[info exists opt(PR_STEP_ASPECT)]} {set opt(PR_STEP_SHAP) $opt(PR_STEP_ASPECT)}
+    if {[info exists opt(PR_STEP_OTHER)]}  {set opt(PR_STEP_COMM) $opt(PR_STEP_OTHER)}
+  
+    if {[info exists opt(PR_STEP_AP203)]} {set opt(PR_STEP_COMM) 1}
+    if {[info exists opt(PR_STEP_AP209)]} {set opt(PR_STEP_COMM) 1}
+    if {[info exists opt(PR_STEP_AP210)]} {set opt(PR_STEP_COMM) 1}
+    if {[info exists opt(PR_STEP_AP214)]} {set opt(PR_STEP_COMM) 1}
+  
+    if {[info exists opt(PR_STEP_AP242_KINE)]} {set opt(PR_STEP_KINE) 1}
+    if {[info exists opt(PR_STEP_AP242_QUAL)]} {set opt(PR_STEP_AP242) 1}
+    if {[info exists opt(PR_STEP_AP242_CONS)]} {set opt(PR_STEP_AP242) 1}
+    if {[info exists opt(PR_STEP_AP242_MATH)]} {set opt(PR_STEP_AP242) 1}
+    if {[info exists opt(PR_STEP_AP242_GEOM)]} {set opt(PR_STEP_AP242) 1}
+    if {[info exists opt(PR_STEP_AP242_OTHER)]} {set opt(PR_STEP_AP242) 1}
 
 # unset old variable names
-  if {[info exists verite]} {set sfaVersion $verite; unset verite}
-  if {[info exists indentStyledItem]} {set opt(indentStyledItem) $indentStyledItem; unset indentStyledItem}
-  if {[info exists indentGeometry]}   {set opt(indentGeometry)   $indentGeometry;   unset indentGeometry}
-  if {[info exists writeDirType]}     {set opt(writeDirType)     $writeDirType;     unset writeDirType}
-
-  if {[info exists gpmiColor]} {set opt(gpmiColor) $gpmiColor; unset gpmiColor}
-  if {[info exists row_limit]} {set opt(XL_ROWLIM) $row_limit; unset row_limit}
-  if {[info exists firsttime]} {set opt(FIRSTTIME) $firsttime; unset firsttime}
-  if {[info exists ncrash]}    {set opt(CRASH)     $ncrash;    unset ncrash}
-
-  if {[info exists flag(CRASH)]}      {set opt(CRASH)      $flag(CRASH);      unset flag(CRASH)}
-  if {[info exists flag(FIRSTTIME)]}  {set opt(FIRSTTIME)  $flag(FIRSTTIME);  unset flag(FIRSTTIME)}
-  if {[info exists flag(DISPGUIDE1)]} {set opt(DISPGUIDE1) $flag(DISPGUIDE1); unset flag(DISPGUIDE1)}
-
-  foreach item {PR_STEP_BAD PR_STEP_UNIT PR_TYPE XL_XLSX COUNT EX_A2P3D FN_APPEND XL_LINK2 XL_LINK3 XL_ORIENT \
-                XL_SCROLL PMIVRML PMIPROP SEMPROP PMIP EX_ANAL EX_ARBP EX_LP VPDBG \
-                PR_STEP_AP242_QUAL PR_STEP_AP242_CONS PR_STEP_AP242_MATH PR_STEP_AP242_KINE PR_STEP_AP242_OTHER PR_STEP_AP242_GEOM \
-                PR_STEP_AP209 PR_STEP_AP210 PR_STEP_AP238 PR_STEP_AP239 PR_STEP_AP203 PR_STEP_AP214 PR_STEP_OTHER \
-                PR_STEP_GEO PR_STEP_REP PR_STEP_ASPECT ROWLIM SORT GENX3DOM VIZ209 feaNodeType XLSBUG} {
-    catch {unset opt($item)}
+    if {[info exists verite]} {set sfaVersion $verite; unset verite}
+    if {[info exists indentStyledItem]} {set opt(indentStyledItem) $indentStyledItem; unset indentStyledItem}
+    if {[info exists indentGeometry]}   {set opt(indentGeometry)   $indentGeometry;   unset indentGeometry}
+    if {[info exists writeDirType]}     {set opt(writeDirType)     $writeDirType;     unset writeDirType}
+  
+    if {[info exists gpmiColor]} {set opt(gpmiColor) $gpmiColor; unset gpmiColor}
+    if {[info exists row_limit]} {set opt(XL_ROWLIM) $row_limit; unset row_limit}
+    if {[info exists firsttime]} {set opt(FIRSTTIME) $firsttime; unset firsttime}
+    if {[info exists ncrash]}    {set opt(CRASH)     $ncrash;    unset ncrash}
+  
+    if {[info exists flag(CRASH)]}      {set opt(CRASH)      $flag(CRASH);      unset flag(CRASH)}
+    if {[info exists flag(FIRSTTIME)]}  {set opt(FIRSTTIME)  $flag(FIRSTTIME);  unset flag(FIRSTTIME)}
+    if {[info exists flag(DISPGUIDE1)]} {set opt(DISPGUIDE1) $flag(DISPGUIDE1); unset flag(DISPGUIDE1)}
+  
+    foreach item {PR_STEP_BAD PR_STEP_UNIT PR_TYPE XL_XLSX COUNT EX_A2P3D FN_APPEND XL_LINK2 XL_LINK3 XL_ORIENT \
+                  XL_SCROLL PMIVRML PMIPROP SEMPROP PMIP EX_ANAL EX_ARBP EX_LP VPDBG \
+                  PR_STEP_AP242_QUAL PR_STEP_AP242_CONS PR_STEP_AP242_MATH PR_STEP_AP242_KINE PR_STEP_AP242_OTHER PR_STEP_AP242_GEOM \
+                  PR_STEP_AP209 PR_STEP_AP210 PR_STEP_AP238 PR_STEP_AP239 PR_STEP_AP203 PR_STEP_AP214 PR_STEP_OTHER \
+                  PR_STEP_GEO PR_STEP_REP PR_STEP_ASPECT ROWLIM SORT GENX3DOM VIZ209 feaNodeType XLSBUG} {
+      catch {unset opt($item)}
+    }
+  } emsg]} {
+    set endMsg "Error reading options file: [truncFileName $optionsFile]\n $emsg\nFix or delete the file."
   }
 }
 
@@ -249,10 +238,10 @@ proc whatsNew {} {
   if {$sfaVersion > 0 && $sfaVersion < [getVersion]} {outputMsg "\nThe previous version of the STEP File Analyzer was: $sfaVersion" red}
 
 outputMsg "\nWhat's New (Version: [getVersion]  Updated: [string trim [clock format $progtime -format "%e %b %Y"]])" blue
-outputMsg "- PMI Saved View viewpoints (experimental)
-- New Output Format to generate any Visualization without a spreadsheet (Options tab)
+outputMsg "- Improved CSV file output
+- PMI Saved View viewpoints (experimental)
 - Support for repetitive hole dimensions
-- Visualization of tessellated part geometry, tessellated PMI, AP209 finite element models (Options tab)
+- New Output Format to generate Visualizations without a spreadsheet (Options tab)
 - Improved color-coding for PMI Representation Coverage for NIST CAD models (Help > NIST CAD models)
 - Bug fixes and minor improvements"
 
@@ -376,6 +365,7 @@ if {$opt(DISPGUIDE1)} {
 
 #-------------------------------------------------------------------------------
 # install IFCsvr
+set sfaType "GUI"
 set ifcsvrDir [file join $pf32 IFCsvrR300 dll]
 if {![file exists [file join $ifcsvrDir IFCsvrR300.dll]]} {installIFCsvr} 
 
@@ -405,13 +395,6 @@ if {$argv != ""} {
 
 set writeDir $userWriteDir
 checkValues
-
-# problem reading options file
-if {[string length $optionserr] > 5} {
-  errorMsg "ERROR reading options file: $optionsFile\n $optionserr"
-  errorMsg "Some previously saved options might be lost."
-  .tnb select .tnb.status
-}
 
 # other STEP File Analyzers already running
 set pid2 [twapi::get_process_ids -name "STEP-File-Analyzer.exe"]
@@ -456,6 +439,13 @@ if {$opt(XLSCSV) == "CSV"} {
   .tnb select .tnb.status
 }
 
+# error messages from before GUI was available
+if {[info exists endMsg]} {
+  outputMsg " "
+  errorMsg $endMsg
+  .tnb select .tnb.status
+}
+  
 # set window minimum size
 update idletasks
 wm minsize . [winfo reqwidth .] [expr {int([winfo reqheight .]*1.05)}]

@@ -1,6 +1,6 @@
 #-------------------------------------------------------------------------------
 proc checkValues {} {
-  global opt buttons appNames appName developer userEntityList allNone
+  global opt buttons appNames appName developer userEntityList allNone useXL
   global edmWriteToFile edmWhereRules eeWriteToFile
   
   set butNormal {}
@@ -44,8 +44,18 @@ proc checkValues {} {
     }
   }
 
-# CSV files
-  if {$opt(XLSCSV) == "CSV"} {
+# configure Excel, CSV, Viz only, Excel or not
+  if {$opt(XLSCSV) == "Excel"} {
+    catch {$buttons(genExcel) configure -text "Generate Spreadsheet"}
+  } elseif {$opt(XLSCSV) == "CSV"} {
+    catch {$buttons(genExcel) configure -text "Generate CSV Files"}
+  } elseif {$opt(XLSCSV) == "None"} {
+    catch {$buttons(genExcel) configure -text "Generate Visualization"}
+  }
+  if {![info exists useXL]} {set useXL 1}
+
+# no Excel
+  if {!$useXL} {
     set opt(INVERSE) 0
     set opt(PMIGRF)  0
     set opt(PMISEM)  0
@@ -58,20 +68,19 @@ proc checkValues {} {
     foreach b {optINVERSE optPMIGRF optPMISEM optVALPROP optXL_FPREC optXL_KEEPOPEN optXL_LINK1 optXL_SORT allNone2} {lappend butDisabled $b}
     foreach b {optVIZFEA optVIZPMI optVIZTES} {lappend butNormal $b}
     foreach b {allNone0 allNone1 allNone3 optPR_USER} {lappend butNormal $b}
-    catch {$buttons(genExcel) configure -text "Generate CSV Files"}
 
-# spreadsheets
-  } elseif {$opt(XLSCSV) == "Excel"} {
+# Excel
+  } else {
     foreach item [array names opt] {
       if {[string first "PR_STEP" $item] == 0} {lappend butNormal "opt$item"}
     }
     foreach b {optINVERSE optPMIGRF optPMISEM optVALPROP optXL_FPREC optXL_KEEPOPEN optXL_LINK1 optXL_SORT} {lappend butNormal $b}
     foreach b {optVIZFEA optVIZPMI optVIZTES} {lappend butNormal $b}
     foreach b {allNone0 allNone1 allNone2 allNone3 optPR_USER} {lappend butNormal $b}
-    catch {$buttons(genExcel) configure -text "Generate Spreadsheet"}
+  }
 
 # viz only
-  } elseif {$opt(XLSCSV) == "None"} {
+  if {$opt(XLSCSV) == "None"} {
     foreach item [array names opt] {
       if {[string first "PR_STEP" $item] == 0} {
         set opt($item) 0
@@ -84,11 +93,9 @@ proc checkValues {} {
       set opt([string range $b 3 end]) 0
       lappend butDisabled $b
     }
-    #foreach b {optVIZFEA optVIZPMI optVIZTES} {lappend butDisabled $b}
     foreach b {allNone0 allNone1 allNone2 allNone3} {lappend butDisabled $b}
     foreach b {userentity userentityopen} {lappend butDisabled $b}
     set userEntityList {}
-    catch {$buttons(genExcel) configure -text "Generate Visualization"}
     set allNone -1
     if {$opt(VIZFEA) == 0 && $opt(VIZPMI) == 0 && $opt(VIZTES) == 0} {
       set opt(VIZFEA) 1

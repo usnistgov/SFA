@@ -3,7 +3,7 @@
 proc getEntity {objEntity checkInverse} {
   global attrType badAttributes cells col count developer entCount entName excelVersion
   global skipEntities skipPerm heading invMsg invVals localName opt roseLogical row rowmax sheetLast
-  global thisEntType worksheet worksheets wsCount
+  global thisEntType worksheet worksheets wsCount wsNames
   
 # get entity type
   set thisEntType [$objEntity Type]
@@ -41,6 +41,7 @@ proc getEntity {objEntity checkInverse} {
       }
       errorMsg " Worksheet names are truncated to the first 31 characters" red
     }
+    set wsNames($name) $thisEntType
     set ws_name($thisEntType) [$worksheet($thisEntType) Name $name]
     set cells($thisEntType)   [$worksheet($thisEntType) Cells]
     set heading($thisEntType) 1

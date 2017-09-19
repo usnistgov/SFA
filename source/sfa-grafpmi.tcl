@@ -1,7 +1,7 @@
 proc gpmiAnnotation {entType} {
   global objDesign
   global ao aoEntTypes cells col entLevel ent entAttrList gpmiRow nindex opt pmiCol pmiHeading pmiStartCol
-  global recPracNames stepAP syntaxErr x3dShape x3dMsg
+  global recPracNames stepAP syntaxErr x3dShape x3dMsg useXL
   global geomType tessCoordID
 
   if {$opt(DEBUG1)} {outputMsg "START gpmiAnnotation $entType" red}
@@ -133,7 +133,7 @@ proc gpmiAnnotation {entType} {
   set entLevel 0
   
 # get next unused column by checking if there is a colName
-  if {$opt(XLSCSV) == "Excel"} {set pmiStartCol($ao) [getNextUnusedColumn $startent 3]}
+  if {$useXL} {set pmiStartCol($ao) [getNextUnusedColumn $startent 3]}
 
 # process all annotation_occurrence entities, call gpmiAnnotationReport
   ::tcom::foreach objEntity [$objDesign FindObjects [join $startent]] {
@@ -163,7 +163,7 @@ proc gpmiAnnotationReport {objEntity} {
   global iCompCurve iCompCurveSeg incrcol iPolyline localName nindex nistVersion nshape numCompCurve numCompCurveSeg numPolyline numx3dPID
   global objEntity1 opt pmiCol pmiColumns pmiHeading pmiStartCol pointLimit prefix propDefIDS recPracNames savedViewCol stepAP syntaxErr 
   global x3dColor x3dCoord x3dFile x3dFileName x3dStartFile x3dIndex x3dPoint x3dPID x3dShape x3dMsg x3dIndexType x3dMax x3dMin
-  global tessCoord tessIndex tessIndexCoord tessRepo tessPlacement gpmiPlacement placeNCP placeOrigin placeAnchor
+  global tessCoord tessIndex tessIndexCoord tessRepo tessPlacement gpmiPlacement placeNCP placeOrigin placeAnchor useXL
   global savedViewName
   #outputMsg "gpmiAnnotationReport" red
 
@@ -459,7 +459,7 @@ proc gpmiAnnotationReport {objEntity} {
               }
 
 # value in spreadsheet
-              if {$ok && [info exists gpmiIDRow($ao,$gpmiID)] && $opt(XLSCSV) == "Excel" && $opt(PMIGRF)} {
+              if {$ok && $useXL && [info exists gpmiIDRow($ao,$gpmiID)] && $opt(PMIGRF)} {
                 set c [string index [cellRange 1 $col($ao)] 0]
                 set r $gpmiIDRow($ao,$gpmiID)
 
@@ -1347,11 +1347,15 @@ proc pmiGetCamerasAndProperties {} {
                   set a2p3d [[$attrCameraModel Value] Attributes]
                   set origin [[[[[$a2p3d Item 2] Value] Attributes] Item 2] Value]
                   set axis   [[[[[$a2p3d Item 3] Value] Attributes] Item 2] Value]
-                  set refdir [[[[[$a2p3d Item 4] Value] Attributes] Item 2] Value]
+                  ::tcom::foreach attr $a2p3d {
+                    if {[$attr Name] == "ref_direction"} {
+                      set refdir [[[[$attr Value] Attributes] Item 2] Value]
+                    }
+                  }
                   lappend savedViewpoint($name1) [vectrim $origin]
                   lappend savedViewpoint($name1) [x3dRotation $axis $refdir]
                 } emsg]} {
-                  errorMsg "ERROR getting Saved View viewpoint: $emsg"
+                  errorMsg "ERROR getting Saved View position and orientation: $emsg"
                   catch {raise .}
                 }
               }

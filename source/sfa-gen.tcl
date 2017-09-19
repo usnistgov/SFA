@@ -2,16 +2,16 @@
 
 proc genExcel {{numFile 0}} {
   global allEntity ap203all ap214all ap242all badAttributes buttons
-  global cells cells1 col col1 comma count coverageLegend readPMI noPSA csvdirnam csvfile
+  global cells cells1 col col1 comma count coverageLegend readPMI csvdirnam csvfile
   global developer dim dimRepeatDiv editorCmd entCategories entCategory entColorIndex entCount entityCount entsIgnored env errmsg
   global excel excelVersion excelYear extXLS fcsv feaElemTypes File fileEntity skipEntities skipPerm gpmiTypesInvalid gpmiTypesPerFile idxColor ifcsvrDir inverses
   global lastXLS lenfilelist localName localNameList multiFile multiFileDir mytemp nistName nistVersion nprogBarEnts nshape
   global opt p21e3 p21e3Section pmiCol pmiMaster recPracNames row rowmax
   global savedViewButtons savedViewName savedViewNames scriptName sheetLast spmiEntity spmiSumName spmiSumRow spmiTypesPerFile startrow stepAP
-  global thisEntType tlast tolNames tolStandard totalEntity userEntityFile userEntityList userXLSFile virtualDir
-  global workbook workbooks worksheet worksheet1 worksheets writeDir wsCount
+  global thisEntType tlast tolNames tolStandard totalEntity userEntityFile userEntityList userXLSFile useXL virtualDir
+  global workbook workbooks worksheet worksheet1 worksheets writeDir wsCount wsNames
   global x3dAxes x3dColor x3dColors x3dCoord x3dFile x3dFileName x3dStartFile x3dIndex x3dMax x3dMin
-  global xlFileName xlFileNames
+  global xlFileName xlFileNames xlFormat
   global objDesign
   
   if {[info exists errmsg]} {set errmsg ""}
@@ -262,36 +262,51 @@ proc genExcel {{numFile 0}} {
 # -------------------------------------------------------------------------------------------------
 # connect to Excel
   set comma 0
-  if {$opt(XLSCSV) == "Excel"} {
+  set useXL 1
+  if {$opt(XLSCSV) != "None"} {
     if {[catch {
       set pid1 [checkForExcel $multiFile]
       set excel [::tcom::ref createobject Excel.Application]
       set pidExcel [lindex [intersect3 $pid1 [twapi::get_process_ids -name "EXCEL.EXE"]] 2]
       [$excel ErrorCheckingOptions] TextDate False
-      
+  
+# version and year
       set excelVersion [expr {int([$excel Version])}]
-      set extXLS "xlsx"
-      set rowmax [expr {2**20}]
-      $excel DefaultSaveFormat [expr 51]
-      if {$excelVersion < 12} {
-        set extXLS "xls"
-        set rowmax [expr {2**16}]
-        $excel DefaultSaveFormat [expr 56]
-      }
       set excelYear ""
       switch $excelVersion {
+        7  {set excelYear 1995}
+        8  {set excelYear 1997}
         9  {set excelYear 2000}
         10 {set excelYear 2002}
         11 {set excelYear 2003}
         12 {set excelYear 2007}
-        14 {set excelYear 2010}
-        15 {set excelYear 2013}
-        16 {set excelYear 2016}
+        default {
+          if {$excelVersion < 100} {
+            set excelYear [expr {2010+3*($excelVersion-14)}]
+          } else {
+            set excelYear $excelVersion
+          }
+        }
       }
-      if {$excelVersion >= 2000 && $excelVersion < 2100} {set excelYear $excelVersion}
-      if {$excelYear < 2007} {errorMsg " Some spreadsheet features are not available with older versions of Excel."}
+
+# file format, max rows
+      set extXLS "xlsx"
+      set xlFormat [expr 51]
+      set rowmax [expr {2**20}]
+
+# older Excel
+      if {$excelVersion < 12} {
+        set extXLS "xls"
+        set xlFormat [expr 56]
+        set rowmax [expr {2**16}]
+        errorMsg "Some spreadsheet features used by the STEP File Analyzer are not compatible with Excel $excelYear."
+      }
   
-# turning off ScreenUpdating saves A LOT of time
+# generate with Excel but save as CSV
+      set saveCSV 0
+      if {$opt(XLSCSV) == "CSV"} {set saveCSV 1}
+
+# turning off ScreenUpdating, saves A LOT of time
       if {$opt(XL_KEEPOPEN) && $numFile == 0} {
         $excel Visible 1
       } else {
@@ -301,24 +316,31 @@ proc genExcel {{numFile 0}} {
       
       set rowmax [expr {$rowmax-2}]
       if {$opt(XL_ROWLIM) < $rowmax} {set rowmax $opt(XL_ROWLIM)}
-      
-# error with Excel, use CSV instead
+    
+# no Excel, use CSV instead
     } emsg]} {
-      errorMsg "ERROR connecting to Excel: $emsg"
-      errorMsg "The STEP File will be written to CSV files.  See the setting on the Options tab."
-      set opt(XLSCSV) "CSV"
+      set useXL 0
+      if {$opt(XLSCSV) == "Excel"} {
+        errorMsg "Excel is not installed or cannot start Excel: $emsg\n CSV files will be generated instead of a spreadsheet.  See the Output Format option.  Some options are disabled."
+        set opt(XLSCSV) "CSV"
+        catch {raise .}
+      }
       checkValues
-      tk_messageBox -type ok -icon error -title "ERROR connecting to Excel" -message "Cannot connect to Excel or Excel is not installed.\nThe STEP file will be written to CSV files.\nSee the setting on the Options tab."
-      catch {raise .}
     }
+
+# visualization only
+  } else {
+    set useXL 0
+  }
 
 # -------------------------------------------------------------------------------------------------
 # start worksheets
+  if {$useXL} {
     if {[catch {
       set workbooks  [$excel Workbooks]
       set workbook   [$workbooks Add]
       set worksheets [$workbook Worksheets]
-    
+  
 # delete all but one worksheet
       catch {$excel DisplayAlerts False}
       set sheetCount [$worksheets Count]
@@ -338,7 +360,7 @@ proc genExcel {{numFile 0}} {
         set comma 1
         errorMsg "Using comma \",\" as the decimal separator for numbers" red
       }
-    
+  
 # print errors
     } emsg]} {
       errorMsg "ERROR opening Excel workbooks and worksheets: $emsg"
@@ -346,7 +368,7 @@ proc genExcel {{numFile 0}} {
       return 0
     }
 
-# CSV files
+# CSV files or viz only
   } else {
     set rowmax [expr {2**20}]
     if {$opt(XL_ROWLIM) < $rowmax} {set rowmax $opt(XL_ROWLIM)}
@@ -360,7 +382,7 @@ proc genExcel {{numFile 0}} {
 # set Excel spreadsheet name, delete file if already exists
 
 # user-defined file name
-  if {$opt(XLSCSV) == "Excel"} {
+  if {$useXL} {
     set xlsmsg ""
     if {$opt(writeDirType) == 1} {
       if {$userXLSFile != ""} {
@@ -506,7 +528,6 @@ proc genExcel {{numFile 0}} {
 # check for entities that cause crashes
       set noSkip 1
       if {[info exists skipEntities]} {if {[lsearch $skipEntities $entType] != -1} {set noSkip 0}}
-      if {$entType == "presentation_style_assignment" && $noPSA == 1} {set noSkip 0}
 
 # add to list of entities to process (entsToProcess), uses color index to set the order
       if {([lsearch $entCategories $entType_1] != -1 || $ok)} {
@@ -514,7 +535,7 @@ proc genExcel {{numFile 0}} {
           lappend entsToProcess "[setColorIndex $entType]$entType"
           incr numEnts $entCount($entType)
         } else {
-          if {$entType != "presentation_style_assignment" || $noPSA == 0} {lappend fixlist $entType}
+          lappend fixlist $entType
           lappend entsToIgnore $entType
           set entsIgnored($entType) $entCount($entType)
         }
@@ -523,7 +544,7 @@ proc genExcel {{numFile 0}} {
           lappend entsToProcess "[setColorIndex $entType]$entType"
           incr numEnts $entCount($entType)
         } else {
-          if {$entType != "presentation_style_assignment" || $noPSA == 0} {lappend fixlist $entType}
+          lappend fixlist $entType
           lappend entsToIgnore $entType
           set entsIgnored($entType) $entCount($entType)
         }
@@ -537,8 +558,7 @@ proc genExcel {{numFile 0}} {
 # open expected PMI worksheet (once) if PMI representation and correct file name
   if {$opt(PMISEM) && $stepAP == "AP242" && $nistName != ""} {
     set tols $tolNames
-    concat $tols [list dimensional_characteristic_representation datum datum_feature datum_reference_compartment datum_reference_element datum_system \
-      placed_datum_target_feature]
+    concat $tols [list dimensional_characteristic_representation datum datum_feature datum_reference_compartment datum_reference_element datum_system placed_datum_target_feature]
     set ok 0
     foreach tol $tols {if {[info exist entCount($tol)]} {set ok 1; break}}
     if {$ok && ![info exists pmiMaster($nistName)]} {spmiGetPMI}
@@ -564,11 +584,13 @@ proc genExcel {{numFile 0}} {
       foreach item $fixlist {if {[lsearch $skipPerm $item] == -1} {set ok 1}}
     }
     if {$ok && $opt(XLSCSV) != "None"} {
-      if {$opt(XLSCSV) == "Excel"} {
-        errorMsg "Worksheets will NOT be generated for entities listed in\n [truncFileName [file nativename $cfile]]:"
-      } elseif {$opt(XLSCSV) == "CSV"} {
-        errorMsg "CSV files will NOT be generated for entities listed in\n [truncFileName [file nativename $cfile]]:"
+      if {$useXL} {
+        set msg "Worksheets"
+      } else {
+        set msg "CSV files"
       }
+      append msg " will NOT be generated for entities listed in\n [truncFileName [file nativename $cfile]]:"
+      errorMsg $msg
       foreach item [lsort $fixlist] {outputMsg "  $item" red}
       errorMsg " See Help > Crash Recovery"
     }
@@ -667,7 +689,7 @@ proc genExcel {{numFile 0}} {
 # -------------------------------------------------------------------------------------------------
 # generate worksheet for each entity
   outputMsg " "
-  if {$opt(XLSCSV) == "Excel"} {
+  if {$useXL} {
     outputMsg "Generating STEP Entity worksheets" blue
   } elseif {$opt(XLSCSV) == "CSV"} {
     outputMsg "Generating STEP Entity CSV files" blue
@@ -735,7 +757,7 @@ proc genExcel {{numFile 0}} {
             if {[expr {$nprogBarEnts%1000}] == 0} {update}
   
             if {[catch {
-              if {$opt(XLSCSV) == "Excel"} {
+              if {$useXL} {
                 set stat [getEntity $objEntity $checkInv]
               } else {
                 set stat [getEntityCSV $objEntity]
@@ -785,7 +807,7 @@ proc genExcel {{numFile 0}} {
         }
 
 # close CSV file
-        if {$opt(XLSCSV) == "CSV"} {catch {close $fcsv}}
+        if {!$useXL} {catch {close $fcsv}}
       }
       
 # check for reports (validation properties, PMI presentation and representation, tessellated geometry, AP209)
@@ -832,7 +854,7 @@ proc genExcel {{numFile 0}} {
 
 # -------------------------------------------------------------------------------------------------
 # add summary worksheet
-  if {$opt(XLSCSV) == "Excel"} {
+  if {$useXL} {
     set tmp [sumAddWorksheet] 
     set sumLinks  [lindex $tmp 0]
     set sheetSort [lindex $tmp 1]
@@ -919,7 +941,8 @@ proc genExcel {{numFile 0}} {
 
 # -------------------------------------------------------------------------------------------------
 # save spreadsheet
-  if {$opt(XLSCSV) == "Excel"} {
+  set csvOpenDir 0
+  if {$useXL} {
     if {[catch {
       #getTiming "save spreadsheet"
       outputMsg " "
@@ -930,15 +953,53 @@ proc genExcel {{numFile 0}} {
         errorMsg "In the spreadsheet file name, the characters \'\[\' and \'\]\' have been\n substituted by \'\(\' and \'\)\'"
       }
 
+# always save as spreadsheet
       outputMsg "Saving Spreadsheet as:"
       outputMsg " [truncFileName $xlFileName 1]" blue
       if {[catch {
-        $workbook SaveAs $xlFileName
+        catch {$excel DisplayAlerts False}
+        $workbook -namedarg SaveAs Filename [file rootname $xlFileName] FileFormat $xlFormat
+        catch {$excel DisplayAlerts True}
+        set lastXLS $xlFileName
+        lappend xlFileNames $xlFileName
       } emsg1]} {
         errorMsg "ERROR Saving Spreadsheet: $emsg1"
       }
-      set lastXLS $xlFileName
-      lappend xlFileNames $xlFileName
+
+# save worksheets as CSV files
+      if {$saveCSV} {
+        if {[catch {
+          set csvdirnam "[file join [file dirname $localName] [file rootname [file tail $localName]]]-sfa-csv"
+          file mkdir $csvdirnam
+          outputMsg "Saving Spreadsheet as multiple CSV files to:"
+          outputMsg " [truncFileName [file nativename $csvdirnam]]" blue
+          set csvFormat [expr 6]
+          if {$excelYear >= 2016} {set csvFormat [expr 62]}
+          
+          set nprogBarEnts 0
+          for {set i 1} {$i <= [$worksheets Count]} {incr i} {
+            set ws [$worksheets Item [expr $i]]
+            set wsn [$ws Name]
+            if {[info exists wsNames($wsn)]} {
+              set wsname $wsNames($wsn)
+            } else {
+              set wsname $wsn
+            }
+            $worksheet($wsname) Activate
+            regsub -all " " $wsname "-" wsname
+            set csvfname [file nativename [file join $csvdirnam $wsname.csv]]
+            if {[file exists $csvfname]} {file delete -force $csvfname}
+            if {[string first "PMI-Representation" $csvfname] != -1 && $excelYear < 2016} {
+              errorMsg "PMI symbols written to CSV files will look correct only with Excel 2016 or newer." red
+            }
+            $workbook -namedarg SaveAs Filename [file rootname $csvfname] FileFormat $csvFormat
+            incr nprogBarEnts
+            update
+          }
+        } emsg2]} {
+          errorMsg "ERROR Saving CSV files: $emsg2"
+        }
+      }
   
       catch {$excel ScreenUpdating 1}
 
@@ -971,7 +1032,7 @@ proc genExcel {{numFile 0}} {
     }
     
 # -------------------------------------------------------------------------------------------------
-# open spreadsheet
+# open spreadsheet or directory of CSV files
     set ok 0
     if {$openxl && $opt(XL_OPEN)} {
       if {$numFile == 0} {
@@ -981,17 +1042,28 @@ proc genExcel {{numFile 0}} {
       }
     }
 
-    if {$ok} {
-      openXLS $xlFileName
-    } elseif {!$opt(XL_OPEN) && $numFile == 0 && [string first "STEP-File-Analyzer.exe" $scriptName] != -1} {
-      outputMsg " Use F2 to open the Spreadsheet (see Spreadsheet tab)" red
+# open spreadsheet
+    if {$useXL} {
+      if {$ok} {
+        openXLS $xlFileName
+      } elseif {!$opt(XL_OPEN) && $numFile == 0 && [string first "STEP-File-Analyzer.exe" $scriptName] != -1} {
+        outputMsg " Use F2 to open the Spreadsheet (see Spreadsheet tab)" red
+      }
     }
 
+# CSV files generated too
+    if {$saveCSV} {set csvOpenDir 1}
+
 # open directory of CSV files
-  } elseif {$opt(XLSCSV) == "CSV"} {
+  } elseif {$opt(XLSCSV) != "None"} {
+    set csvOpenDir 1
     unset csvfile
     outputMsg "\nCSV files written to:"
-    outputMsg " [file nativename $csvdirnam]" blue
+    outputMsg " [truncFileName [file nativename $csvdirnam]]" blue
+  }
+  
+# open directory of CSV files
+  if {$csvOpenDir} {
     set ok 0
     if {$opt(XL_OPEN)} {
       if {$numFile == 0} {
@@ -1000,7 +1072,16 @@ proc genExcel {{numFile 0}} {
         if {$lenfilelist == 1} {set ok 1}
       }
     }
-    if {$ok} {exec {*}[auto_execok start] [file nativename $csvdirnam]}
+    if {$ok} {
+      set dir [file nativename $csvdirnam]
+      if {[string first " " $dir] == -1} {
+        outputMsg "Opening CSV file directory"
+        exec {*}[auto_execok start] $dir
+      } else {
+        exec C:/Windows/explorer.exe $dir &
+      }
+      
+    }
   }
 
 # -------------------------------------------------------------------------------------------------
@@ -1040,18 +1121,17 @@ proc genExcel {{numFile 0}} {
 # -------------------------------------------------------------------------------------------------
 proc addHeaderWorksheet {numFile fname} {
   global objDesign
-  global excel worksheets worksheet cells row timeStamp noPSA fileSchema cadApps cadSystem opt localName p21e3
+  global excel worksheets worksheet cells row timeStamp fileSchema cadApps cadSystem opt localName p21e3
   global excel1 worksheet1 cells1 col1 legendColor
-  global csvdirnam
+  global csvdirnam useXL
    
   if {[catch {
     set cadSystem ""
     set timeStamp ""
-    set noPSA 0
     set p21e3 0
 
     set hdr "Header"
-    if {$opt(XLSCSV) == "Excel"} { 
+    if {$useXL} { 
       outputMsg "Generating Header worksheet" blue
       set worksheet($hdr) [$worksheets Item [expr 1]]
       $worksheet($hdr) Activate
@@ -1059,7 +1139,7 @@ proc addHeaderWorksheet {numFile fname} {
       set cells($hdr) [$worksheet($hdr) Cells]
 
 # create directory for CSV files
-    } elseif {$opt(XLSCSV) == "CSV"} {
+    } elseif {$opt(XLSCSV) != "None"} {
       outputMsg "Generating Header CSV file" blue
       foreach var {csvdirnam csvfname fcsv} {catch {unset $var}}
       set csvdirnam "[file join [file dirname $localName] [file rootname [file tail $localName]]]-sfa-csv"
@@ -1074,18 +1154,18 @@ proc addHeaderWorksheet {numFile fname} {
     foreach attr {Name FileDirectory FileDescription FileImplementationLevel FileTimeStamp FileAuthor \
                   FileOrganization FilePreprocessorVersion FileOriginatingSystem FileAuthorisation SchemaName} {
       incr row($hdr)
-      if {$opt(XLSCSV) == "Excel"} { 
+      if {$useXL} { 
         $cells($hdr) Item $row($hdr) 1 $attr
-      } elseif {$opt(XLSCSV) == "CSV"} {
+      } elseif {$opt(XLSCSV) != "None"} {
         set csvstr $attr
       }
       set objAttr [string trim [join [$objDesign $attr]]]
 
 # FileDirectory
       if {$attr == "FileDirectory"} {
-        if {$opt(XLSCSV) == "Excel"} { 
+        if {$useXL} { 
           $cells($hdr) Item $row($hdr) 2 [$objDesign $attr]
-        } elseif {$opt(XLSCSV) == "CSV"} {
+        } elseif {$opt(XLSCSV) != "None"} {
           append csvstr ",[$objDesign $attr]"
           puts $fcsv $csvstr
         }
@@ -1094,16 +1174,16 @@ proc addHeaderWorksheet {numFile fname} {
 # SchemaName
       } elseif {$attr == "SchemaName"} {
         set sn [getSchemaFromFile $fname]
-        if {$opt(XLSCSV) == "Excel"} { 
+        if {$useXL} { 
           $cells($hdr) Item $row($hdr) 2 $sn
-        } elseif {$opt(XLSCSV) == "CSV"} {
+        } elseif {$opt(XLSCSV) != "None"} {
           append csvstr ",$sn"
           puts $fcsv $csvstr
         }
         outputMsg "$attr:  $sn" blue
         if {[string range $sn end-3 end] == "_MIM"} {
           errorMsg "Syntax Error: Schema name should end with _MIM_LF"
-          if {$opt(XLSCSV) == "Excel"} {[[$worksheet($hdr) Range B11] Interior] Color $legendColor(red)}
+          if {$useXL} {[[$worksheet($hdr) Range B11] Interior] Color $legendColor(red)}
        }
 
         set fileSchema  [string toupper [string range $objAttr 0 5]]
@@ -1122,28 +1202,28 @@ proc addHeaderWorksheet {numFile fname} {
           set str2 ""
           foreach item [$objDesign $attr] {
             append str1 "[string trim $item], "
-            if {$opt(XLSCSV) == "Excel"} { 
+            if {$useXL} { 
               append str2 "[string trim $item][format "%c" 10]"
-            } elseif {$opt(XLSCSV) == "CSV"} {
+            } elseif {$opt(XLSCSV) != "None"} {
               append str2 ",[string trim $item]"
             }
           }
           outputMsg [string range $str1 0 end-2]
-          if {$opt(XLSCSV) == "Excel"} { 
+          if {$useXL} { 
             $cells($hdr) Item $row($hdr) 2 "'[string trim $str2]"
             set range [$worksheet($hdr) Range "$row($hdr):$row($hdr)"]
             $range VerticalAlignment [expr -4108]
-          } elseif {$opt(XLSCSV) == "CSV"} {
+          } elseif {$opt(XLSCSV) != "None"} {
             append csvstr [string trim $str2]
             puts $fcsv $csvstr
           }
         } else {
           outputMsg "$attr:  $objAttr"
-          if {$opt(XLSCSV) == "Excel"} { 
+          if {$useXL} { 
             $cells($hdr) Item $row($hdr) 2 "'$objAttr"
             set range [$worksheet($hdr) Range "$row($hdr):$row($hdr)"]
             $range VerticalAlignment [expr -4108]
-          } elseif {$opt(XLSCSV) == "CSV"} {
+          } elseif {$opt(XLSCSV) != "None"} {
             append csvstr ",$objAttr"
             puts $fcsv $csvstr
           }
@@ -1153,25 +1233,19 @@ proc addHeaderWorksheet {numFile fname} {
         if {$attr == "FileImplementationLevel"} {
           if {[string first "\;" $objAttr] == -1} {
             errorMsg "Syntax Error: Implementation Level is usually '2\;1'"
-            if {$opt(XLSCSV) == "Excel"} {[[$worksheet($hdr) Range B4] Interior] Color $legendColor(red)}
+            if {$useXL} {[[$worksheet($hdr) Range B4] Interior] Color $legendColor(red)}
           } elseif {$objAttr == "4\;1"} {
             set p21e3 1
           }
-        }
-
-# check for Creo or Inventor to prevent presentation_style_assignment being processed
-        if {$attr == "FileOriginatingSystem"} {
-          if {[string first "PRO/ENGINEER" $objAttr] != -1 || [string first "CREO PARAMETRIC" $objAttr] != -1 || \
-              [string first "Inventor" $objAttr] != -1} {set noPSA 1}
         }
 
 # check and add time stamp to multi file summary
         if {$attr == "FileTimeStamp"} {
           if {([string first "-" $objAttr] == -1 || [string length $objAttr] < 17) && $objAttr != ""} {
             errorMsg "Syntax Error: Wrong format for FileTimeStamp"            
-            if {$opt(XLSCSV) == "Excel"} {[[$worksheet($hdr) Range B5] Interior] Color $legendColor(red)}
+            if {$useXL} {[[$worksheet($hdr) Range B5] Interior] Color $legendColor(red)}
           }
-          if {$numFile != 0 && [info exists cells1(Summary)] && $opt(XLSCSV) == "Excel"} {
+          if {$numFile != 0 && [info exists cells1(Summary)] && $useXL} {
             set timeStamp $objAttr
             set colsum [expr {$col1(Summary)+1}]
             set range [$worksheet1(Summary) Range [cellRange 5 $colsum]]
@@ -1181,7 +1255,7 @@ proc addHeaderWorksheet {numFile fname} {
       }
     }
 
-    if {$opt(XLSCSV) == "Excel"} { 
+    if {$useXL} { 
       [[$worksheet($hdr) Range "A:A"] Font] Bold [expr 1]
       [$worksheet($hdr) Columns] AutoFit
       [$worksheet($hdr) Rows] AutoFit
@@ -1204,7 +1278,6 @@ proc addHeaderWorksheet {numFile fname} {
         }
       }
     }
-
 
 # set the application from various file attributes, cadApps is a list of all application names defined above, take the first one that matches
     set ok 0
@@ -1251,7 +1324,7 @@ proc addHeaderWorksheet {numFile fname} {
     }
     
 # add app2 to multiple file summary worksheet    
-    if {$numFile != 0 && $opt(XLSCSV) == "Excel" && [info exists cells1(Summary)]} {
+    if {$numFile != 0 && $useXL && [info exists cells1(Summary)]} {
       if {$ok == 0} {set app2 [setCAXIFvendor]}
       set colsum [expr {$col1(Summary)+1}]
       if {$colsum > 16} {[$excel1 ActiveWindow] ScrollColumn [expr {$colsum-16}]}
@@ -1261,7 +1334,7 @@ proc addHeaderWorksheet {numFile fname} {
     if {$cadSystem == ""} {set cadSystem [setCAXIFvendor]}
 
 # close csv file
-    if {$opt(XLSCSV) == "CSV"} {close $fcsv} 
+    if {!$useXL && $opt(XLSCSV) != "None"} {close $fcsv} 
 
   } emsg]} {
     errorMsg "ERROR adding Header worksheet: $emsg"
