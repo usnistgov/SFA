@@ -210,97 +210,42 @@ proc getEntity {objEntity checkInverse} {
             $cells($thisEntType) Item $row($thisEntType) $col($thisEntType) "'$ov"
           }
         }
-
-# -------------------------------------------------------------------------------------------------
-# if attribute is reference to another entity
-      } else {
         
+# -------------------------------------------------------------------------------------------------
 # node type 18=ENTITY, 19=SELECT TYPE  (node type is 20 for SET or LIST is processed below)
-        if {[$objAttribute NodeType] == 18 || [$objAttribute NodeType] == 19} {
-          set refEntity [$objAttribute Value]
+      } elseif {[$objAttribute NodeType] == 18 || [$objAttribute NodeType] == 19} {
+        set refEntity [$objAttribute Value]
 
 # get refType, however, sometimes this is not a single reference, but rather a list
 #  which causes an error and it has to be processed like a list below
-          if {[catch {
-            set refType [$refEntity Type]
-            set valnotlist 1
-          } emsg2]} {
+        if {[catch {
+          set refType [$refEntity Type]
+          set valnotlist 1
+        } emsg2]} {
 
 # process like a list which is very unusual
-            #if {$developer} {errorMsg " Attribute reference is a List: $emsg2"}
-            catch {foreach idx [array names cellval] {unset cellval($idx)}}
-            ::tcom::foreach val $refEntity {
-              append cellval([$val Type]) "[$val P21ID] "
-            }
-            set str ""
-            set size 0
-            catch {set size [array size cellval]}
-
-            if {$size > 0} {
-              foreach idx [lsort [array names cellval]] {
-                set ncell [expr {[llength [split $cellval($idx) " "]] - 1}]
-                if {$ncell > 1 || $size > 1} {
-                  if {$ncell < 30} {
-                    append str "($ncell) [formatComplexEnt $idx 1] $cellval($idx)  "
-                  } else {
-                    append str "($ncell) [formatComplexEnt $idx 1]  "
-                  }
-                } else {
-                  append str "(1) [formatComplexEnt $idx 1] $cellval($idx)  "
-                }
-              }
-            }
-            $cells($thisEntType) Item $row($thisEntType) $col($thisEntType) [string trim $str]
-            set valnotlist 0
-          }
-
-# value is not a list which is the most common
-          if {$valnotlist} {
-            set str "[formatComplexEnt $refType 1] [$refEntity P21ID]"
-
-# for length measure (and other measures), add the actual measure value
-            if {[string first "measure_with_unit" $refType] != -1} {
-              ::tcom::foreach refAttribute [$refEntity Attributes] {
-                if {[$refAttribute Name] == "value_component"} {set str "[$refAttribute Value] ($str)"}
-              }
-            }
-
-            $cells($thisEntType) Item $row($thisEntType) $col($thisEntType) $str
-          }
-
-# -------------------------------------------------------------------------------------------------
-# node type 20=AGGREGATE (ENTITIES), usually SET or LIST, try as a tcom list or regular list (SELECT type)
-        } elseif {[$objAttribute NodeType] == 20} {
+          #if {$developer} {errorMsg " Attribute reference is a List: $emsg2"}
           catch {foreach idx [array names cellval] {unset cellval($idx)}}
-          catch {unset cellparam}
-
-# collect the reference id's (P21ID) for the Type of entity in the SET or LIST
-          if {[catch {
-            ::tcom::foreach val [$objAttribute Value] {
-              append cellval([$val Type]) "[$val P21ID] "
-            }
-          } emsg]} {
-            foreach val [$objAttribute Value] {
-              if {[string first "handle" $val] != -1} {
-                append cellval([$val Type]) "[$val P21ID] "
-              } else {
-                append cellparam "$val "
-              }
-            }
+          ::tcom::foreach val $refEntity {
+            append cellval([$val Type]) "[$val P21ID] "
           }
-
-# -------------------------------------------------------------------------------------------------
-# format cell values for the SET or LIST
           set str ""
           set size 0
           catch {set size [array size cellval]}
 
-          if {[info exists cellparam]} {append str "$cellparam "}
           if {$size > 0} {
             foreach idx [lsort [array names cellval]] {
               set ncell [expr {[llength [split $cellval($idx) " "]] - 1}]
               if {$ncell > 1 || $size > 1} {
-                if {$ncell < 30} {
+                set ok 1
+                if {$ncell > 100 && ([string first "styled_item" $idx] != -1 || [string first "triangulated" $idx] != -1 || \
+                                     [string first "connecting_edge" $idx] != -1 || [string first "3d_element_representation" $idx] != -1 || \
+                                     $idx == "node" || $idx == "cartesian_point" || $idx == "advanced_face")} {
+                  set ok 0
+                } elseif {$ncell > 500} {
+                  set ok 0
+                }
+                if {$ok} {
                   append str "($ncell) [formatComplexEnt $idx 1] $cellval($idx)  "
                 } else {
                   append str "($ncell) [formatComplexEnt $idx 1]  "
@@ -311,7 +256,75 @@ proc getEntity {objEntity checkInverse} {
             }
           }
           $cells($thisEntType) Item $row($thisEntType) $col($thisEntType) [string trim $str]
+          set valnotlist 0
         }
+
+# value is not a list which is the most common
+        if {$valnotlist} {
+          set str "[formatComplexEnt $refType 1] [$refEntity P21ID]"
+
+# for length measure (and other measures), add the actual measure value
+          if {[string first "measure_with_unit" $refType] != -1} {
+            ::tcom::foreach refAttribute [$refEntity Attributes] {
+              if {[$refAttribute Name] == "value_component"} {set str "[$refAttribute Value] ($str)"}
+            }
+          }
+          $cells($thisEntType) Item $row($thisEntType) $col($thisEntType) $str
+        }
+
+# -------------------------------------------------------------------------------------------------
+# node type 20=AGGREGATE (ENTITIES), usually SET or LIST, try as a tcom list or regular list (SELECT type)
+      } elseif {[$objAttribute NodeType] == 20} {
+        catch {foreach idx [array names cellval] {unset cellval($idx)}}
+        catch {unset cellparam}
+
+# collect the reference id's (P21ID) for the Type of entity in the SET or LIST
+        if {[catch {
+          ::tcom::foreach val [$objAttribute Value] {
+            append cellval([$val Type]) "[$val P21ID] "
+          }
+        } emsg]} {
+          foreach val [$objAttribute Value] {
+            if {[string first "handle" $val] != -1} {
+              append cellval([$val Type]) "[$val P21ID] "
+            } else {
+              append cellparam "$val "
+            }
+          }
+        }
+
+# -------------------------------------------------------------------------------------------------
+# format cell values for the SET or LIST
+        set str ""
+        set size 0
+        catch {set size [array size cellval]}
+
+        if {[info exists cellparam]} {append str "$cellparam "}
+        if {$size > 0} {
+          foreach idx [lsort [array names cellval]] {
+            set ncell [expr {[llength [split $cellval($idx) " "]] - 1}]
+            if {$ncell > 1 || $size > 1} {
+              set ok 1
+              if {$ncell > 100 && ([string first "styled_item" $idx] != -1 || [string first "triangulated" $idx] != -1 || \
+                                   [string first "connecting_edge" $idx] != -1 || [string first "3d_element_representation" $idx] != -1 || \
+                                   $idx == "node" || $idx == "cartesian_point" || $idx == "advanced_face")} {
+                set ok 0
+                #outputMsg "($ncell) [formatComplexEnt $idx 1]  B" green
+              } elseif {$ncell > 500} {
+                set ok 0
+                #outputMsg "($ncell) [formatComplexEnt $idx 1]  B" blue
+              }
+              if {$ok} {
+                append str "($ncell) [formatComplexEnt $idx 1] $cellval($idx)  "
+              } else {
+                append str "($ncell) [formatComplexEnt $idx 1]  "
+              }
+            } else {
+              append str "(1) [formatComplexEnt $idx 1] $cellval($idx)  "
+            }
+          }
+        }
+        $cells($thisEntType) Item $row($thisEntType) $col($thisEntType) [string trim $str]
       }
     }
 
@@ -472,93 +485,39 @@ proc getEntityCSV {objEntity} {
         append csvstr ",$ov"
 
 # -------------------------------------------------------------------------------------------------
-# if attribute is reference to another entity
-      } else {
-      
 # node type 18=ENTITY, 19=SELECT TYPE  (node type is 20 for SET or LIST is processed below)
-        if {[$objAttribute NodeType] == 18 || [$objAttribute NodeType] == 19} {
-          set refEntity [$objAttribute Value]
+      } elseif {[$objAttribute NodeType] == 18 || [$objAttribute NodeType] == 19} {
+        set refEntity [$objAttribute Value]
 
 # get refType, however, sometimes this is not a single reference, but rather a list
 #  which causes an error and it has to be processed like a list below
-          if {[catch {
-            set refType [$refEntity Type]
-            set valnotlist 1
-          } emsg2]} {
+        if {[catch {
+          set refType [$refEntity Type]
+          set valnotlist 1
+        } emsg2]} {
 
 # process like a list which is very unusual
-            catch {foreach idx [array names cellval] {unset cellval($idx)}}
-            ::tcom::foreach val $refEntity {
-              append cellval([$val Type]) "[$val P21ID] "
-            }
-            set str ""
-            set size 0
-            catch {set size [array size cellval]}
-  
-            if {$size > 0} {
-              foreach idx [lsort [array names cellval]] {
-                set ncell [expr {[llength [split $cellval($idx) " "]] - 1}]
-                if {$ncell > 1 || $size > 1} {
-                  if {$ncell < 30} {
-                    append str "($ncell) [formatComplexEnt $idx 1] $cellval($idx)  "
-                  } else {
-                    append str "($ncell) [formatComplexEnt $idx 1]  "
-                  }
-                } else {
-                  append str "(1) [formatComplexEnt $idx 1] $cellval($idx)  "
-                }
-              }
-            }
-            append csvstr ",$str"
-            set valnotlist 0
-          }
-
-# value is not a list which is the most common
-          if {$valnotlist} {
-            set str "[formatComplexEnt $refType 1] [$refEntity P21ID]"
-
-# for length measure (and other measures), add the actual measure value
-            if {[string first "measure_with_unit" $refType] != -1} {
-              ::tcom::foreach refAttribute [$refEntity Attributes] {
-                if {[$refAttribute Name] == "value_component"} {set str "[$refAttribute Value] ($str)"}
-              }
-            }
-            append csvstr ",$str"
-          }
-
-# -------------------------------------------------------------------------------------------------
-# node type 20=AGGREGATE (ENTITIES), usually SET or LIST, try as a tcom list or regular list (SELECT type)
-        } elseif {[$objAttribute NodeType] == 20} {
           catch {foreach idx [array names cellval] {unset cellval($idx)}}
-          catch {unset cellparam}
-
-# collect the reference id's (P21ID) for the Type of entity in the SET or LIST
-          if {[catch {
-            ::tcom::foreach val [$objAttribute Value] {
-              append cellval([$val Type]) "[$val P21ID] "
-            }
-          } emsg]} {
-            foreach val [$objAttribute Value] {
-              if {[string first "handle" $val] != -1} {
-                append cellval([$val Type]) "[$val P21ID] "
-              } else {
-                append cellparam "$val "
-              }
-            }
+          ::tcom::foreach val $refEntity {
+            append cellval([$val Type]) "[$val P21ID] "
           }
-
-# -------------------------------------------------------------------------------------------------
-# format cell values for the SET or LIST
           set str ""
           set size 0
           catch {set size [array size cellval]}
-  
-          if {[info exists cellparam]} {append str "$cellparam "}
+
           if {$size > 0} {
             foreach idx [lsort [array names cellval]] {
               set ncell [expr {[llength [split $cellval($idx) " "]] - 1}]
               if {$ncell > 1 || $size > 1} {
-                if {$ncell < 30} {
+                set ok 1
+                if {$ncell > 100 && ([string first "styled_item" $idx] != -1 || [string first "triangulated" $idx] != -1 || \
+                                     [string first "connecting_edge" $idx] != -1 || [string first "3d_element_representation" $idx] != -1 || \
+                                     $idx == "node" || $idx == "cartesian_point" || $idx == "advanced_face")} {
+                  set ok 0
+                } elseif {$ncell > 500} {
+                  set ok 0
+                }
+                if {$ok} {
                   append str "($ncell) [formatComplexEnt $idx 1] $cellval($idx)  "
                 } else {
                   append str "($ncell) [formatComplexEnt $idx 1]  "
@@ -568,8 +527,74 @@ proc getEntityCSV {objEntity} {
               }
             }
           }
-          append csvstr ",[string trim $str]"
+          append csvstr ",$str"
+          set valnotlist 0
         }
+
+# value is not a list which is the most common
+        if {$valnotlist} {
+          set str "[formatComplexEnt $refType 1] [$refEntity P21ID]"
+
+# for length measure (and other measures), add the actual measure value
+          if {[string first "measure_with_unit" $refType] != -1} {
+            ::tcom::foreach refAttribute [$refEntity Attributes] {
+              if {[$refAttribute Name] == "value_component"} {set str "[$refAttribute Value] ($str)"}
+            }
+          }
+          append csvstr ",$str"
+        }
+
+# -------------------------------------------------------------------------------------------------
+# node type 20=AGGREGATE (ENTITIES), usually SET or LIST, try as a tcom list or regular list (SELECT type)
+      } elseif {[$objAttribute NodeType] == 20} {
+        catch {foreach idx [array names cellval] {unset cellval($idx)}}
+        catch {unset cellparam}
+
+# collect the reference id's (P21ID) for the Type of entity in the SET or LIST
+        if {[catch {
+          ::tcom::foreach val [$objAttribute Value] {
+            append cellval([$val Type]) "[$val P21ID] "
+          }
+        } emsg]} {
+          foreach val [$objAttribute Value] {
+            if {[string first "handle" $val] != -1} {
+              append cellval([$val Type]) "[$val P21ID] "
+            } else {
+              append cellparam "$val "
+            }
+          }
+        }
+
+# -------------------------------------------------------------------------------------------------
+# format cell values for the SET or LIST
+        set str ""
+        set size 0
+        catch {set size [array size cellval]}
+
+        if {[info exists cellparam]} {append str "$cellparam "}
+        if {$size > 0} {
+          foreach idx [lsort [array names cellval]] {
+            set ncell [expr {[llength [split $cellval($idx) " "]] - 1}]
+            if {$ncell > 1 || $size > 1} {
+              set ok 1
+              if {$ncell > 100 && ([string first "styled_item" $idx] != -1 || [string first "triangulated" $idx] != -1 || \
+                                   [string first "connecting_edge" $idx] != -1 || [string first "3d_element_representation" $idx] != -1 || \
+                                   $idx == "node" || $idx == "cartesian_point" || $idx == "advanced_face")} {
+                set ok 0
+              } elseif {$ncell > 500} {
+                set ok 0
+              }
+              if {$ok} {
+                append str "($ncell) [formatComplexEnt $idx 1] $cellval($idx)  "
+              } else {
+                append str "($ncell) [formatComplexEnt $idx 1]  "
+              }
+            } else {
+              append str "(1) [formatComplexEnt $idx 1] $cellval($idx)  "
+            }
+          }
+        }
+        append csvstr ",[string trim $str]"
       }
     }
     #outputMsg "$fcsv $csvstr"

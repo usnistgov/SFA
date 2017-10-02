@@ -6,6 +6,7 @@ proc genExcel {{numFile 0}} {
   global developer dim dimRepeatDiv editorCmd entCategories entCategory entColorIndex entCount entityCount entsIgnored env errmsg
   global excel excelVersion excelYear extXLS fcsv feaElemTypes File fileEntity skipEntities skipPerm gpmiTypesInvalid gpmiTypesPerFile idxColor ifcsvrDir inverses
   global lastXLS lenfilelist localName localNameList multiFile multiFileDir mytemp nistName nistVersion nprogBarEnts nshape
+  global ofExcel ofCSV
   global opt p21e3 p21e3Section pmiCol pmiMaster recPracNames row rowmax
   global savedViewButtons savedViewName savedViewNames scriptName sheetLast spmiEntity spmiSumName spmiSumRow spmiTypesPerFile startrow stepAP
   global thisEntType tlast tolNames tolStandard totalEntity userEntityFile userEntityList userXLSFile useXL virtualDir
@@ -34,7 +35,7 @@ proc genExcel {{numFile 0}} {
 
 # check if IFCsvr is installed
   if {![file exists [file join $ifcsvrDir IFCsvrR300.dll]]} {
-    $buttons(genExcel) configure -state disable
+    if {[info exists buttons]} {$buttons(genExcel) configure -state disable}
     installIFCsvr
     return
   } 
@@ -57,11 +58,13 @@ proc genExcel {{numFile 0}} {
 # -------------------------------------------------------------------------------------------------
 # connect to IFCsvr
   if {[catch {
+    if {![info exists buttons]} {outputMsg "\n*** Begin ST-Developer messages"}
     set objIFCsvr [::tcom::ref createobject IFCsvr.R300]
+    if {![info exists buttons]} {outputMsg "*** End ST-Developer messages"}
     
 # print errors
   } emsg]} {
-    errorMsg "\nERROR connecting to IFCsvr: $emsg"
+    errorMsg "\nERROR connecting to the IFCsvr software that is used to read STEP files: $emsg"
     catch {raise .}
     return 0
   }
@@ -70,8 +73,17 @@ proc genExcel {{numFile 0}} {
 # open STEP file
   if {[catch {
     set nprogBarEnts 0
-    outputMsg "\nOpening STEP file"
     set fname $localName  
+    
+# for STEP, get AP number, i.e. AP203   
+    set stepAP [getStepAP $fname]
+    set str "STEP"
+    if {[string first "AP" $stepAP] == 0} {
+      set str "STEP [string range $stepAP 0 4]"
+    } elseif {$stepAP != ""} {
+      set str $stepAP
+    }
+    outputMsg "\nOpening $str file"
 
 # check for Part 21 edition 3 files and strip out sections
     set fname [checkP21e3 $fname]
@@ -96,16 +108,15 @@ proc genExcel {{numFile 0}} {
       if {$opt(XL_LINK1)} {[$worksheet1(Summary) Hyperlinks] Add $range [join $fname] [join ""] [join "Link to STEP file"]}
     }
 
-# open file
+# open file with IFCsvr
+    if {![info exists buttons]} {outputMsg "\n*** Begin ST-Developer messages"}
     set objDesign [$objIFCsvr OpenDesign [file nativename $fname]]
+    if {![info exists buttons]} {outputMsg "*** End ST-Developer messages\n"}
 
 # count entities
     set entityCount [$objDesign CountEntities "*"]
     outputMsg " $entityCount entities\n"
-    if {$entityCount == 0} {errorMsg "There are no entities in the STEP file"}
-    
-# for STEP, get AP number, i.e. AP203   
-    set stepAP [getStepAP $fname]
+    if {$entityCount == 0} {errorMsg "There are no entities in the STEP file."}
 
 # add AP, file size, entity count to multi file summary
     if {$numFile != 0 && [info exists cells1(Summary)]} {
@@ -274,14 +285,12 @@ proc genExcel {{numFile 0}} {
       set excelVersion [expr {int([$excel Version])}]
       set excelYear ""
       switch $excelVersion {
-        7  {set excelYear 1995}
-        8  {set excelYear 1997}
         9  {set excelYear 2000}
         10 {set excelYear 2002}
         11 {set excelYear 2003}
         12 {set excelYear 2007}
         default {
-          if {$excelVersion < 100} {
+          if {$excelVersion > 8 && $excelVersion < 50} {
             set excelYear [expr {2010+3*($excelVersion-14)}]
           } else {
             set excelYear $excelVersion
@@ -304,7 +313,12 @@ proc genExcel {{numFile 0}} {
   
 # generate with Excel but save as CSV
       set saveCSV 0
-      if {$opt(XLSCSV) == "CSV"} {set saveCSV 1}
+      if {$opt(XLSCSV) == "CSV"} {
+        set saveCSV 1
+        catch {$buttons(ofExcel) configure -state disabled}
+      } else {
+        catch {$buttons(ofExcel) configure -state normal}
+      }
 
 # turning off ScreenUpdating, saves A LOT of time
       if {$opt(XL_KEEPOPEN) && $numFile == 0} {
@@ -326,6 +340,9 @@ proc genExcel {{numFile 0}} {
         catch {raise .}
       }
       checkValues
+      set ofExcel 0
+      set ofCSV 1
+      catch {$buttons(ofExcel) configure -state disabled}
     }
 
 # visualization only
@@ -493,7 +510,7 @@ proc genExcel {{numFile 0}} {
       
 # entities in unsupported APs that are not AP203, AP214, AP242 - if not using a user-defined list
       if {!$opt(PR_USER)} {
-        if {[string first "AP203" $stepAP] == -1 && $stepAP != "AP214" && $stepAP != "AP242"} {
+        if {[string first "AP203" $stepAP] == -1 && [string first "AP214" $stepAP] == -1 && $stepAP != "AP242"} {
           set et $entType
           set c1 [string first "_and_" $et]
           if {$c1 != -1} {set et [string range $et 0 $c1-1]}
@@ -1184,9 +1201,10 @@ proc addHeaderWorksheet {numFile fname} {
         if {[string range $sn end-3 end] == "_MIM"} {
           errorMsg "Syntax Error: Schema name should end with _MIM_LF"
           if {$useXL} {[[$worksheet($hdr) Range B11] Interior] Color $legendColor(red)}
-       }
+        }
+        if {[string first "AUTOMOTIVE_DESIGN_CC2" $sn] == 0} {errorMsg "This file uses an older version of STEP AP214 that might cause problems."}
 
-        set fileSchema  [string toupper [string range $objAttr 0 5]]
+        set fileSchema [string toupper [string range $objAttr 0 5]]
         if {[string first "IFC" $fileSchema] == 0} {
           errorMsg "Use the IFC File Analyzer with IFC files."
           after 1000
@@ -1347,7 +1365,7 @@ proc addHeaderWorksheet {numFile fname} {
 proc sumAddWorksheet {} {
   global worksheet cells sum sheetSort sheetLast col worksheets row entCategory opt entsIgnored excel
   global x3dFileName spmiEntity entCount gpmiEnts spmiEnts nistVersion
-  global propDefRow stepAP
+  global propDefRow
 
   outputMsg "\nGenerating Summary worksheet" blue
   set sum "Summary"

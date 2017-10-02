@@ -36,7 +36,7 @@ proc x3dFileStart {} {
   }
 
   puts $x3dFile "\n<body><font face=\"arial\">\n<h3>$title:  [file tail $localName]</h3>"
-  puts $x3dFile "<ul><li>Only $title is shown.  Boundary representation (b-rep) part geometry can be viewed with <a href=\"http://www.cax-if.org/step_viewers.html\">STEP file viewers</a>."
+  puts $x3dFile "<ul><li>Only $title is shown.  Boundary representation (b-rep) part geometry can be viewed with <a href=\"https://www.cax-if.org/step_viewers.html\">STEP file viewers</a>."
   if {[string first "Tessellated" $title] != -1 && [info exist entCount(next_assembly_usage_occurrence)]} {
     puts $x3dFile "<li>Parts in an assembly might have the wrong position and orientation or be missing."
   }

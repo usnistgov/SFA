@@ -155,8 +155,7 @@ proc guiStatusTab {} {
   $nb add $wout -text " Status " -padding 2
   set fout [frame $wout.fout -bd 2 -relief sunken -background "#E0DFE3"]
 
-  set outputWin [iwidgets::messagebox $fout.text -maxlines 500000 \
-    -hscrollmode dynamic -vscrollmode dynamic -background white]
+  set outputWin [iwidgets::messagebox $fout.text -maxlines 500000 -hscrollmode dynamic -vscrollmode dynamic -background white]
   pack $fout.text -side top -fill both -expand true
   pack $fout -side top -fill both -expand true
 
@@ -260,7 +259,6 @@ proc guiProcessAndReports {} {
   set wopt [ttk::panedwindow $nb.options -orient horizontal]
   $nb add $wopt -text " Options " -padding 2
   set fopt [frame $wopt.fopt -bd 2 -relief sunken]
-  
   set fopta [ttk::labelframe $fopt.a -text " Process "]
   
 # option to process user-defined entities
@@ -272,10 +270,7 @@ proc guiProcessAndReports {} {
                 {" Representation" opt(PR_STEP_REPR)} \
                 {" Tolerance"      opt(PR_STEP_TOLR)}} {
     regsub -all {[\(\)]} [lindex $item 1] "" idx
-    set buttons($idx) [ttk::checkbutton $fopta1.$cb -text [lindex $item 0] \
-      -variable [lindex $item 1] -command {
-      checkValues
-    }]
+    set buttons($idx) [ttk::checkbutton $fopta1.$cb -text [lindex $item 0] -variable [lindex $item 1] -command {checkValues}]
     pack $buttons($idx) -side top -anchor w -padx 5 -pady 0 -ipady 0
     incr cb
     set tt [string range $idx 3 end]
@@ -297,10 +292,7 @@ proc guiProcessAndReports {} {
                 {" Geometry"     opt(PR_STEP_GEOM)} \
                 {" Coordinates"  opt(PR_STEP_CPNT)}} {
     regsub -all {[\(\)]} [lindex $item 1] "" idx
-    set buttons($idx) [ttk::checkbutton $fopta2.$cb -text [lindex $item 0] \
-      -variable [lindex $item 1] -command {
-      checkValues
-    }]
+    set buttons($idx) [ttk::checkbutton $fopta2.$cb -text [lindex $item 0] -variable [lindex $item 1] -command {checkValues}]
     pack $buttons($idx) -side top -anchor w -padx 5 -pady 0 -ipady 0
     incr cb
     set tt [string range $idx 3 end]
@@ -324,8 +316,7 @@ proc guiProcessAndReports {} {
                 {" Composites" opt(PR_STEP_COMP)} \
                 {" Kinematics" opt(PR_STEP_KINE)}} {
     regsub -all {[\(\)]} [lindex $item 1] "" idx
-    set buttons($idx) [ttk::checkbutton $fopta3.$cb -text [lindex $item 0] \
-      -variable [lindex $item 1] -command {checkValues}]
+    set buttons($idx) [ttk::checkbutton $fopta3.$cb -text [lindex $item 0] -variable [lindex $item 1] -command {checkValues}]
     pack $buttons($idx) -side top -anchor w -padx 5 -pady 0 -ipady 0
     incr cb
     set tt [string range $idx 3 end]
@@ -336,7 +327,7 @@ proc guiProcessAndReports {} {
         set ttmsg [guiToolTip $ttmsg $tt]
       } elseif {$tt == "PR_STEP_AP242"} {
         append ttmsg "\n\nThese entities are new in AP242 and not found in AP203 or AP214.\nOther new AP242 entities are also found in the Tolerance, Shape Aspect,\nComposites, and Kinematics categories."
-        append ttmsg "\n\nSee Websites > STEP AP242 Project and EXPRESS Schemas"
+        append ttmsg "\n\nSee Websites > AP242 Project and EXPRESS Schemas"
       }
       catch {tooltip::tooltip $buttons($idx) $ttmsg}
     }
@@ -386,30 +377,24 @@ proc guiProcessAndReports {} {
     tooltip::tooltip $buttons(allNone2) "Selects all Reports and associated entities"
     tooltip::tooltip $buttons(allNone3) "Selects all Visualizations and associated entities"
   }
-
   pack $fopta4 -side left -anchor w -pady 0 -padx 0 -fill y
-  
   pack $fopta -side top -anchor w -pady {5 2} -padx 10 -fill both
   
 #-------------------------------------------------------------------------------
 # report
   set foptrv [frame $fopt.rv -bd 0]
-
   set foptd [ttk::labelframe $foptrv.1 -text " Report "]
+
   set foptd1 [frame $foptd.1 -bd 0]
   foreach item {{" PMI Representation (Semantic PMI)" opt(PMISEM)} \
                 {" PMI Presentation (Graphical PMI)"  opt(PMIGRF)} \
                 {" Validation Properties"             opt(VALPROP)}} {
   regsub -all {[\(\)]} [lindex $item 1] "" idx
-    set buttons($idx) [ttk::checkbutton $foptd1.$cb -text [lindex $item 0] \
-      -variable [lindex $item 1] -command {
-        checkValues
-    }]
+    set buttons($idx) [ttk::checkbutton $foptd1.$cb -text [lindex $item 0] -variable [lindex $item 1] -command {checkValues}]
     pack $buttons($idx) -side top -anchor w -padx 5 -pady 0 -ipady 0
     incr cb
   }
   pack $foptd1 -side top -anchor w -pady 0 -padx 0 -fill y
-  
   pack $foptd -side left -anchor w -pady {5 2} -padx 10 -fill both -expand true
   catch {
     tooltip::tooltip $buttons(optPMISEM)  "See Help > PMI Representation"
@@ -422,10 +407,7 @@ proc guiProcessAndReports {} {
   set foptv3 [frame $foptv.3 -bd 0]
   foreach item {{" Graphical PMI" opt(VIZPMI)}} {
     regsub -all {[\(\)]} [lindex $item 1] "" idx
-    set buttons($idx) [ttk::checkbutton $foptv3.$cb -text [lindex $item 0] \
-      -variable [lindex $item 1] -command {
-      checkValues
-    }]
+    set buttons($idx) [ttk::checkbutton $foptv3.$cb -text [lindex $item 0] -variable [lindex $item 1] -command {checkValues}]
     pack $buttons($idx) -side left -anchor w -padx 5 -pady 0 -ipady 0
     incr cb
   }
@@ -447,10 +429,7 @@ proc guiProcessAndReports {} {
   foreach item {{" Tessellated Part Geometry"  opt(VIZTES)} \
                 {" AP209 Finite Element Model" opt(VIZFEA)}} {
     regsub -all {[\(\)]} [lindex $item 1] "" idx
-    set buttons($idx) [ttk::checkbutton $foptv5.$cb -text [lindex $item 0] \
-      -variable [lindex $item 1] -command {
-        checkValues
-    }]
+    set buttons($idx) [ttk::checkbutton $foptv5.$cb -text [lindex $item 0] -variable [lindex $item 1] -command {checkValues}]
     pack $buttons($idx) -side top -anchor w -padx 5 -pady 0 -ipady 0
     incr cb
   }
@@ -473,8 +452,7 @@ proc guiUserDefinedEntities {} {
   set fopta6 [frame $fopta.6 -bd 0]
   foreach item {{" User-Defined List: " opt(PR_USER)}} {
     regsub -all {[\(\)]} [lindex $item 1] "" idx
-    set buttons($idx) [ttk::checkbutton $fopta6.$cb -text [lindex $item 0] \
-      -variable [lindex $item 1] -command {checkValues}]
+    set buttons($idx) [ttk::checkbutton $fopta6.$cb -text [lindex $item 0] -variable [lindex $item 1] -command {checkValues}]
     pack $buttons($idx) -side left -anchor w -padx 5 -pady 0 -ipady 0
     incr cb
   }
@@ -526,10 +504,7 @@ proc guiInverse {} {
   set txt " Show Inverses and Backwards References (Used In) for PMI, Shape Aspect, Representation, Analysis, and more"
 
   regsub -all {[\(\)]} opt(INVERSE) "" idx
-  set buttons($idx) [ttk::checkbutton $foptc.$cb -text $txt \
-    -variable opt(INVERSE) -command {
-      checkValues
-    }]
+  set buttons($idx) [ttk::checkbutton $foptc.$cb -text $txt -variable opt(INVERSE) -command {checkValues}]
   pack $buttons($idx) -side left -anchor w -padx 5 -pady 0 -ipady 0
   incr cb
 
@@ -556,10 +531,10 @@ proc guiInverse {} {
 }
 
 #-------------------------------------------------------------------------------
-# open STEP file
+# open STEP file and output format
 proc guiOpenSTEPFile {} {
   global buttons cb fopt appNames developer dispCmds appName dispApps foptf
-  global edmWriteToFile edmWhereRules eeWriteToFile
+  global edmWriteToFile edmWhereRules eeWriteToFile useXL
   
   set foptf [ttk::labelframe $fopt.f -text " Open STEP File in "]
 
@@ -580,7 +555,6 @@ proc guiOpenSTEPFile {} {
         }
       }
     }
-
 # STEP Tools
     catch {
       if {[string first "Conformance Checker" $appName] != -1} {
@@ -589,7 +563,7 @@ proc guiOpenSTEPFile {} {
         pack forget $buttons(eeWriteToFile)
       }
     }
-
+# indent file
     catch {
       if {$appName == "Indent STEP File (for debugging)"} {
         pack $buttons(indentStyledItem) -side left -anchor w -padx 5
@@ -634,15 +608,13 @@ proc guiOpenSTEPFile {} {
       if {[string first "EDM Model Checker" $item] == 0} {
         foreach item {{" Write results to file" edmWriteToFile}} {
           regsub -all {[\(\)]} [lindex $item 1] "" idx
-          set buttons($idx) [ttk::checkbutton $foptf.$cb -text [lindex $item 0] \
-            -variable [lindex $item 1] -command {checkValues}]
+          set buttons($idx) [ttk::checkbutton $foptf.$cb -text [lindex $item 0] -variable [lindex $item 1] -command {checkValues}]
           pack forget $buttons($idx)
           incr cb
         }
         foreach item {{" Check rules" edmWhereRules}} {
           regsub -all {[\(\)]} [lindex $item 1] "" idx
-          set buttons($idx) [ttk::checkbutton $foptf.$cb -text [lindex $item 0] \
-            -variable [lindex $item 1] -command {checkValues}]
+          set buttons($idx) [ttk::checkbutton $foptf.$cb -text [lindex $item 0] -variable [lindex $item 1] -command {checkValues}]
           pack forget $buttons($idx)
           incr cb
         }
@@ -654,8 +626,7 @@ proc guiOpenSTEPFile {} {
   if {[lsearch -glob $appNames "*Conformance Checker*"] != -1} {
     foreach item {{" Write results to file" eeWriteToFile}} {
       regsub -all {[\(\)]} [lindex $item 1] "" idx
-      set buttons($idx) [ttk::checkbutton $foptf.$cb -text [lindex $item 0] \
-        -variable [lindex $item 1] -command {checkValues}]
+      set buttons($idx) [ttk::checkbutton $foptf.$cb -text [lindex $item 0] -variable [lindex $item 1] -command {checkValues}]
       pack forget $buttons($idx)
       incr cb
     }
@@ -666,8 +637,7 @@ proc guiOpenSTEPFile {} {
     foreach item {{" Include Styled_item" indentStyledItem} \
                   {" Include Geometry" indentGeometry}} {
       regsub -all {[\(\)]} [lindex $item 1] "" idx
-      set buttons($idx) [ttk::checkbutton $foptf.$cb -text [lindex $item 0] \
-        -variable opt([lindex $item 1]) -command {checkValues}]
+      set buttons($idx) [ttk::checkbutton $foptf.$cb -text [lindex $item 0] -variable opt([lindex $item 1]) -command {checkValues}]
       pack forget $buttons($idx)
       incr cb
     }
@@ -676,15 +646,61 @@ proc guiOpenSTEPFile {} {
   catch {tooltip::tooltip $foptf "This option is a convenient way to open a STEP file in other applications.\nThe pull-down menu will contain some applications that can open a STEP file\nsuch as STEP viewers, browsers, and conformance checkers, only if they are\ninstalled in their default location.\n\nSee Websites > STEP File Viewers  and  Help > NIST Disclaimer\n\nThe 'Indent STEP File (for debugging)' option rearranges and indents the\nentities to show the hierarchy of information in a STEP file.  The 'indented'\nfile (.txt) is written to the same directory as the STEP file or to the same\nuser-defined directory specified in the Spreadsheet tab.  Including Geometry\nor Styled_item can make the 'indented' file very large.\n\nThe 'Default STEP Viewer' option will open the STEP file in whatever\napplication is associated with STEP (.stp) files."}
   pack $foptf -side top -anchor w -pady {5 2} -padx 10 -fill both
 
+# output format, checkbuttons are used for pseudo-radiobuttons
   set foptk [ttk::labelframe $fopt.k -text " Output Format "]
-  foreach item {{" Spreadsheet" Excel} {" CSV Files" CSV} {" Visualization Only" None}} {
-    pack [ttk::radiobutton $foptk.$cb -variable opt(XLSCSV) -text [lindex $item 0] -value [lindex $item 1] -command {
+  foreach item {{" Spreadsheet" ofExcel} \
+                {" CSV Files" ofCSV} \
+                {" Visualization Only" ofNone}} {
+    regsub -all {[\(\)]} [lindex $item 1] "" idx
+    set buttons($idx) [ttk::checkbutton $foptk.$cb -text [lindex $item 0] -variable [lindex $item 1] -command {
+      if {![info exists useXL]} {set useXL 1}
+      if {$ofNone && $opt(XLSCSV) != "None"} {
+        set ofExcel 0
+        set ofCSV 0
+        set opt(XLSCSV) "None"
+        if {$useXL} {$buttons(ofExcel) configure -state normal}
+      }
+      if {$ofExcel && $opt(XLSCSV) != "Excel"} {
+        set ofNone 0
+        if {$useXL} {
+          set ofCSV 0
+          set opt(XLSCSV) "Excel"
+        } else {
+          set ofExcel 0
+          set ofCSV 1
+          set opt(XLSCSV) "CSV"
+        }
+      }
+      if {$ofCSV} {
+        if {$useXL} {
+          set ofExcel 1
+          $buttons(ofExcel) configure -state disabled
+        }
+        if {$opt(XLSCSV) != "CSV"} {
+          set ofNone 0
+          set opt(XLSCSV) "CSV"
+        }
+      } else {
+        $buttons(ofExcel) configure -state normal
+      }
+      if {!$ofExcel && !$ofCSV && !$ofNone} {
+        if {$useXL} {
+          set ofExcel 1
+          set opt(XLSCSV) "Excel"
+          $buttons(ofExcel) configure -state normal
+        } else {
+          set ofCSV 1
+          set opt(XLSCSV) "CSV"
+          $buttons(ofExcel) configure -state disabled
+        }
+      }
       checkValues
-    }] -side left -anchor n -padx 5 -pady 0 -ipady 0
+    }]
+    pack $buttons($idx) -side left -anchor w -padx 2 -pady 0 -ipady 0
     incr cb
   }
   pack $foptk -side top -anchor w -pady {5 2} -padx 10 -fill both
-  catch {tooltip::tooltip $foptk "If Excel is installed, then spreadsheets and CSV files can be generated.\nIf CSV Files is selected, the spreadsheet is also saved.\n\nIf Excel is not installed, only CSV files can be generated.\nOptions for Reports and Inverse Relationships are disabled.\n\nVisualization Only does not generate any spreadsheets or CSV files.\nAll options except Visualize are disabled."}
+  catch {tooltip::tooltip $foptk "If Excel is installed, then Spreadsheets and CSV files can be generated.\nIf CSV Files is selected, the Spreadsheet is also generated.\n\nIf Excel is not installed, only CSV files can be generated.\nOptions for Reports and Inverse Relationships are disabled.\n\nVisualization Only does not generate any Spreadsheets or CSV files.\nAll options except Visualize are disabled."}
 }
 
 #-------------------------------------------------------------------------------
@@ -700,8 +716,7 @@ proc guiSpreadsheet {} {
   set fxlsz [ttk::labelframe $fxls.z -text " Tables "]
   foreach item {{" Generate Tables for Sorting and Filtering" opt(XL_SORT)}} {
     regsub -all {[\(\)]} [lindex $item 1] "" idx
-    set buttons($idx) [ttk::checkbutton $fxlsz.$cb -text [lindex $item 0] \
-      -variable [lindex $item 1]]
+    set buttons($idx) [ttk::checkbutton $fxlsz.$cb -text [lindex $item 0] -variable [lindex $item 1]]
     pack $buttons($idx) -side top -anchor w -padx 5 -pady 0 -ipady 0
     incr cb
   }
@@ -712,8 +727,7 @@ proc guiSpreadsheet {} {
   set fxlsa [ttk::labelframe $fxls.a -text " Number Format "]
   foreach item {{" Do not round Real Numbers" opt(XL_FPREC)}} {
     regsub -all {[\(\)]} [lindex $item 1] "" idx
-    set buttons($idx) [ttk::checkbutton $fxlsa.$cb -text [lindex $item 0] \
-      -variable [lindex $item 1]]
+    set buttons($idx) [ttk::checkbutton $fxlsa.$cb -text [lindex $item 0] -variable [lindex $item 1]]
     pack $buttons($idx) -side top -anchor w -padx 5 -pady 0 -ipady 0
     incr cb
   }
@@ -742,23 +756,19 @@ proc guiSpreadsheet {} {
                 {" Keep spreadsheet open while it is being generated (not recommended)" opt(XL_KEEPOPEN)} \
                 {" Create links to STEP files and spreadsheets with multiple files" opt(XL_LINK1)}} {
     regsub -all {[\(\)]} [lindex $item 1] "" idx
-    set buttons($idx) [ttk::checkbutton $fxlsc.$cb -text [lindex $item 0] \
-      -variable [lindex $item 1] -command {checkValues}]
+    set buttons($idx) [ttk::checkbutton $fxlsc.$cb -text [lindex $item 0] -variable [lindex $item 1] -command {checkValues}]
     pack $buttons($idx) -side top -anchor w -padx 5 -pady 0 -ipady 0
     incr cb
   }
   pack $fxlsc -side top -anchor w -pady {5 2} -padx 10 -fill both
 
   set fxlsd [ttk::labelframe $fxls.d -text " Write Spreadsheet to "]
-  set buttons(fileDir) [ttk::radiobutton $fxlsd.$cb \
-    -text " Same directory as the STEP file" \
-    -variable opt(writeDirType) -value 0 -command checkValues]
+  set buttons(fileDir) [ttk::radiobutton $fxlsd.$cb -text " Same directory as the STEP file" -variable opt(writeDirType) -value 0 -command checkValues]
   pack $fxlsd.$cb -side top -anchor w -padx 5 -pady 2
   incr cb
 
   set fxls1 [frame $fxlsd.1]
-  ttk::radiobutton $fxls1.$cb -text " User-defined directory:  " \
-    -variable opt(writeDirType) -value 2 -command {
+  ttk::radiobutton $fxls1.$cb -text " User-defined directory:  " -variable opt(writeDirType) -value 2 -command {
     checkValues
     if {[file exists $userWriteDir] && [file isdirectory $userWriteDir]} {
       set writeDir $userWriteDir
@@ -786,8 +796,7 @@ proc guiSpreadsheet {} {
   pack $fxls1 -side top -anchor w
 
   set fxls2 [frame $fxlsd.2]
-  ttk::radiobutton $fxls2.$cb -text " User-defined file name:  " \
-    -variable opt(writeDirType) -value 1 -command {
+  ttk::radiobutton $fxls2.$cb -text " User-defined file name:  " -variable opt(writeDirType) -value 1 -command {
     checkValues
     focus $buttons(userfile)
   }
@@ -848,10 +857,10 @@ proc guiHelpMenu {} {
       set schema [file rootname [file tail $match]]
       if {[string first "header_section" $schema] == -1 && [string first "keystone" $schema] == -1 && \
           [string range $schema end-2 end] != "mim"} {
-        if {[string first "automotive_design" $schema] == 0} {
-          lappend schemas "AP214 - $schema"
+        if {$schema == "automotive_design"} {
+          lappend schemas "AP214e3 - $schema"
     
-        } elseif {[string first "ap203" $schema] == 0 || [string first "configuration_control_3d_design_ed2" $schema] == 0} {
+        } elseif {[string first "ap203" $schema] == 0} {
           lappend schemas "AP203e2 - $schema"
         } elseif {[string first "config_control_design" $schema] == 0} {
           lappend schemas "AP203e1 - $schema"
@@ -1345,7 +1354,7 @@ might appear that say 'Unable to alloc xxx bytes'.  See the Help > Crash Recover
 
 # examples menu  
   $Examples add command -label "Sample STEP Files (zip)" -command {openURL https://s3.amazonaws.com/nist-el/mfg_digitalthread/NIST_CTC_STEP_PMI.zip}
-  $Examples add command -label "STEP File Library"       -command {openURL http://www.cax-if.org/library/}
+  $Examples add command -label "STEP File Library"       -command {openURL https://www.cax-if.org/library/}
   $Examples add command -label "AP203e2 Archive"         -command {openURL http://web.archive.org/web/20160812122922/http://www.steptools.com/support/stdev_docs/stpfiles/ap203e2/index.html}
   $Examples add command -label "AP203 Archive"           -command {openURL http://web.archive.org/web/20160812122922/http://www.steptools.com/support/stdev_docs/stpfiles/ap203/index.html}
   $Examples add command -label "AP214 Archive"           -command {openURL http://web.archive.org/web/20160903141712/http://www.steptools.com/support/stdev_docs/stpfiles/ap214/index.html}
@@ -1372,22 +1381,22 @@ proc guiWebsitesMenu {} {
   $Websites add command -label "Source code on GitHub"                     -command {openURL https://github.com/usnistgov/SFA}
   
   $Websites add separator
-  $Websites add command -label "CAx Implementor Forum (CAx-IF)" -command {openURL http://www.cax-if.org}
-  $Websites add command -label "Implementation Coverage"        -command {openURL http://www.cax-if.org/vendor_info.php}
-  $Websites add command -label "STEP File Viewers"              -command {openURL http://www.cax-if.org/step_viewers.html}
-  $Websites add command -label "Recommended Practices"          -command {openURL http://www.cax-if.org/joint_testing_info.html#recpracs}
-  $Websites add command -label "CAx-IF (alternate website)"     -command {openURL http://www.cax-if.de}
+  $Websites add command -label "CAx Implementor Forum (CAx-IF)" -command {openURL https://www.cax-if.org}
+  $Websites add command -label "Implementation Coverage"        -command {openURL https://www.cax-if.org/vendor_info.php}
+  $Websites add command -label "STEP File Viewers"              -command {openURL https://www.cax-if.org/step_viewers.html}
+  $Websites add command -label "Recommended Practices"          -command {openURL https://www.cax-if.org/joint_testing_info.html#recpracs}
+  $Websites add command -label "CAx-IF (alternate website)"     -command {openURL https://www.cax-if.de}
   
   $Websites add separator
   $Websites add command -label "AP242 Project"   -command {openURL http://www.ap242.org}
   $Websites add command -label "AP209 Project"   -command {openURL http://www.ap209.org}
   $Websites add command -label "AP238 Project"   -command {openURL http://www.ap238.org}
   $Websites add command -label "AP239 Project"   -command {openURL http://www.ap239.org}
-  $Websites add command -label "EXPRESS Schemas"      -command {openURL http://www.cax-if.org/joint_testing_info.html#schemas}
+  $Websites add command -label "EXPRESS Schemas"      -command {openURL https://www.cax-if.org/joint_testing_info.html#schemas}
   $Websites add command -label "More EXPRESS Schemas" -command {openURL http://web.archive.org/web/20160322005246/www.steptools.com/support/stdev_docs/express/}
   
   $Websites add separator
-  $Websites add command -label "PDES, Inc."   -command {openURL https://pdesinc.org}
+  $Websites add command -label "PDES, Inc."   -command {openURL http://pdesinc.org}
   $Websites add command -label "prostep ivip" -command {openURL http://www.prostep.org/en/projects/}
   $Websites add command -label "AFNeT"        -command {openURL http://afnet.fr/dotank/sps/}
   $Websites add command -label "LOTAR"        -command {openURL http://www.lotar-international.org}

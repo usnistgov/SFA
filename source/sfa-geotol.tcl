@@ -72,7 +72,7 @@ proc spmiGeotolStart {entType} {
   outputMsg " Adding PMI Representation Report" blue
   lappend spmiEntity $entType
   
-  if {[string first "AP203" $stepAP] == 0 || $stepAP == "AP214"} {
+  if {[string first "AP203" $stepAP] == 0 || [string first "AP214" $stepAP] == 0} {
     errorMsg "Syntax Error: There is no Recommended Practice for PMI Representation in $stepAP files.  Use AP242 for PMI Representation."
   }
 

@@ -57,10 +57,15 @@ if {$argc == 0 || ($argc == 1 && ($arg == "help" || $arg == "-help" || $arg == "
   puts "\nOptional command line settings:"
   puts "  csv     Generate CSV files"                                                                                        
   puts "  viz     Generate only Visualizations and no spreadsheet or CSV files"                                                                                        
-  puts "  noopen  Do not open spreadsheet after it has been generated"
+  puts "  noopen  Do not open the spreadsheet after it has been generated"
   puts "  file    Name of custom options file, e.g., C:/mydir/myoptions.dat"
+  puts "          This file should be similar to STEP-File-Analyzer-options.dat"
+  puts "          in your home directory."
+  puts "
+If not already installed, the IFCsvr toolkit (used to read STEP files) and STEP
+schema files will be installed the first time this program is run.
 
-  puts "\nDisclaimers:
+Disclaimers:
 
 This software was developed at the National Institute of Standards and Technology
 by employees of the Federal Government in the course of their official duties.  
@@ -105,11 +110,7 @@ set remoteName $localName
 # check for IFCsvr toolkit
 set sfaType "CL"
 set ifcsvrDir [file join $pf32 IFCsvrR300 dll]
-if {![file exists [file join $ifcsvrDir IFCsvrR300.dll]]} {
-  installIFCsvr
-  #puts "\n*** The IFCsvr toolkit needs to be installed before processing any STEP files.\n*** Run the GUI version once before running the command-line version."
-  #exit
-} 
+if {![file exists [file join $ifcsvrDir IFCsvrR300.dll]]} {installIFCsvr} 
 
 # -----------------------------------------------------------------------------------------------------
 # initialize variables
@@ -165,6 +166,7 @@ initDataInverses
 
 # -----------------------------------------------------------------------------------------------------
 # check for custom options file
+set optionsFile [file nativename [file join $fileDir STEP-File-Analyzer-options.dat]]
 set customFile ""
 for {set i 1} {$i <= 10} {incr i} {
   set arg [lindex $argv $i]
@@ -172,17 +174,11 @@ for {set i 1} {$i <= 10} {incr i} {
     set customFile [file nativename $arg]
     puts "\n*** Using custom options file: [truncFileName $customFile]"
     append endMsg "\nA custom options file was used: [truncFileName $customFile]"
+    set optionsFile $customFile
   }
 }
 
-# set options file name
-if {$customFile == ""} {
-  set optionsFile [file nativename [file join $fileDir STEP-File-Analyzer-options.dat]]
-} else {
-  set optionsFile $customFile
-}
-
-# check for options file and read
+# check for options file and read (source)
 if {[file exists $optionsFile]} {
   if {[catch {
     source $optionsFile
@@ -222,7 +218,6 @@ if {$opt(FIRSTTIME) || $sfaVersion < [getVersion]} {
   set copyrose 1
   saveState
 }
-set copyrose 1
 if {$copyrose} {copyRoseFiles}
 
 # -----------------------------------------------------------------------------------------------------

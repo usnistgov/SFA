@@ -104,7 +104,7 @@ proc gpmiAnnotation {entType} {
     }
   }
 
-  if {[string first "AP203" $stepAP] == 0 || $stepAP == "AP214"} {
+  if {[string first "AP203" $stepAP] == 0 || [string first "AP214" $stepAP] == 0} {
     if {[string first "annotation_curve_occurrence" $ao] != -1} {
       errorMsg "Syntax Error: Using 'annotation_curve_occurrence' with $stepAP is not valid for PMI Presentation.\n[string repeat " " 14]\($recPracNames(pmi203), Sec. 4.1.1)"
       lappend syntaxErr($ao) [list 1 1]
@@ -1176,12 +1176,12 @@ proc gpmiAnnotationReport {objEntity} {
 
 # missing MDADR or RR
         set relTypes [list representation_relationship]
-        if {$stepAP != "AP214"} {lappend relTypes mechanical_design_and_draughting_relationship}
+        if {[string first "AP214" $stepAP] == -1} {lappend relTypes mechanical_design_and_draughting_relationship}
         set relType ""
         foreach item $relTypes {if {[info exists entCount($item)]} {if {$entCount($item) > 0} {set relType $item}}}
         if {$relType == ""} {
           set str "mechanical_design_and_draughting_relationship"
-          if {$stepAP == "AP214"} {set str "representation_relationship"}
+          if {[string first "AP214" $stepAP] == 0} {set str "representation_relationship"}
           set msg "Syntax Error: For Saved Views, missing '$str' to relate 'draughting_model'\n[string repeat " " 14]"
           if {$stepAP == "AP242"} {
             append msg "($recPracNames(pmi242), Sec. 9.4.4 Note 1, Fig. 93)"

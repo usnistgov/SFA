@@ -365,9 +365,11 @@ proc openFile {{openName ""}} {
     set fileDir [file dirname [lindex $localNameList 0]]
 
     outputMsg "\nReady to process [llength $localNameList] STEP files" blue
-    $buttons(genExcel) configure -state normal
-    if {[info exists buttons(appOpen)]} {$buttons(appOpen) configure -state normal}
-    focus $buttons(genExcel)
+    if {[info exists buttons]} {
+      $buttons(genExcel) configure -state normal
+      if {[info exists buttons(appOpen)]} {$buttons(appOpen) configure -state normal}
+      focus $buttons(genExcel)
+    }
 
 # single file selected
   } elseif {[file exists $localName]} {
@@ -379,16 +381,18 @@ proc openFile {{openName ""}} {
     set fileDir [file dirname $localName]
     if {[string first "z" [string tolower [file extension $localName]]] == -1} {
       outputMsg "\nReady to process: [file tail $localName] ([expr {[file size $localName]/1024}] Kb)" blue
-      $buttons(genExcel) configure -state normal
-      if {[info exists buttons(appOpen)]} {$buttons(appOpen) configure -state normal}
-      focus $buttons(genExcel)
+      if {[info exists buttons]} {
+        $buttons(genExcel) configure -state normal
+        if {[info exists buttons(appOpen)]} {$buttons(appOpen) configure -state normal}
+        focus $buttons(genExcel)
+      }
     }
   
 # not found
   } else {
     if {$localName != ""} {errorMsg "File not found: [truncFileName [file nativename $localName]]"}
   }
-  .tnb select .tnb.status
+  catch {.tnb select .tnb.status}
 }
 
 #-------------------------------------------------------------------------------
@@ -757,7 +761,7 @@ proc getOpenPrograms {} {
 
 # Including any of the CAD viewers and software below does not imply a recommendation or
 # endorsement of them by NIST https://www.nist.gov/disclaimer
-# For more STEP viewers, go to http://www.cax-if.org/step_viewers.html
+# For more STEP viewers, go to https://www.cax-if.org/step_viewers.html
   
   regsub {\\} $pf32 "/" p32
   regsub {\\} $pf64 "/" p64
@@ -1468,12 +1472,12 @@ proc copyRoseFiles {} {
 
 # copy files
         if {$okcopy} {
-          .tnb select .tnb.status
+          catch {.tnb select .tnb.status}
           if {[catch {
             file copy -force $fn $f2
-            errorMsg "Installing STEP schema files (*.rose) to the IFCsvr/dll directory" red
+            errorMsg "\nCopying STEP schema files (*.rose) to the IFCsvr/dll directory" red
           } emsg]} {
-            errorMsg "ERROR installing STEP schema files (*.rose) to $ifcsvrDir: $emsg"
+            errorMsg "ERROR copying STEP schema files (*.rose) to $ifcsvrDir: $emsg"
           }
           if {![file exists [file join $ifcsvrDir $fn1]]} {
             set ok 0
@@ -1484,10 +1488,10 @@ proc copyRoseFiles {} {
 
 # error copying files
       if {!$ok} {
-        .tnb select .tnb.status
+        catch {.tnb select .tnb.status}
         update idletasks
         errorMsg "STEP schema files (*.rose) could not be installed to the IFCsvr/dll directory."
-        outputMsg "Copy the *.rose files in  $mytemp\n to  [file nativename $ifcsvrDir]"
+        outputMsg "Copy the *.rose files in $mytemp\n to [file nativename $ifcsvrDir]"
         outputMsg "You should copy the files with Administrator Privileges, if possible.\nIf there are problems copying the *.rose files, email the Contact (Help > About)."
         after 1000
         errorMsg "Opening folder: $mytemp"
@@ -1517,7 +1521,7 @@ proc copyRoseFiles {} {
               set okcopy 1
             }
             if {$okcopy} {
-              .tnb select .tnb.status
+              catch {.tnb select .tnb.status}
               catch {
                 file copy -force $fn $f2
                 errorMsg "Installing STEP Tools ROSE files to IFCsvr/dll directory" red
@@ -1537,20 +1541,20 @@ proc copyRoseFiles {} {
 #-------------------------------------------------------------------------------
 # install IFCsvr
 proc installIFCsvr {} {
-  global wdir mydocs mytemp ifcsvrDir nistVersion
+  global wdir mydocs mytemp ifcsvrDir nistVersion buttons
 
   set ifcsvr     "ifcsvrr300_setup_1008_en.msi"
   set ifcsvrInst [file join $wdir schemas $ifcsvr]
 
 # install if not already installed
-  .tnb select .tnb.status
-  set msg "The IFCsvr Toolkit needs to be installed to read and process STEP files."
+  if {[info exists buttons]} {.tnb select .tnb.status}
+  set msg "\nThe IFCsvr Toolkit needs to be installed to read and process STEP files."
   append msg "\n You might need administrator privileges to install the toolkit."
   append msg "\n Antivirus software might respond that there is an issue with the toolkit.  The toolkit is safe to install."
   append msg "\n Use the default installation folder for toolkit."
-  append msg "\n If necessary to reinstall the toolkit, go to  $mytemp  and run the installation file  ifcsvrr300_setup_1008.en.msi"
+  append msg "\n If necessary to reinstall the toolkit, go to $mytemp and run the installation file: ifcsvrr300_setup_1008.en.msi"
   outputMsg $msg red
-  if {[file exists $ifcsvrInst]} {
+  if {[file exists $ifcsvrInst] && [info exists buttons]} {
     set msg "The IFCsvr Toolkit needs to be installed to read and process STEP files.  After clicking OK the IFCsvr Toolkit installation will start."
     append msg "\n\nYou might need administrator privileges to install the toolkit.  Antivirus software might respond that there is an issue with the toolkit.  The toolkit is safe to install."
     append msg "\n\nUse the default installation folder for toolkit.  Please wait for the installation process to complete before generating a spreadsheet."
@@ -1558,6 +1562,8 @@ proc installIFCsvr {} {
     set choice [tk_messageBox -type ok -message $msg -icon info -title "Install IFCsvr"]
     set msg "\nPlease wait for the installation process to complete before generating a spreadsheet.\n"
     outputMsg $msg red
+  } elseif {![info exists buttons]} {
+    outputMsg "\nRerun this program after the installation process has completed to process a STEP file.\n"
   }
 
 # try copying installation file to several locations
@@ -1586,7 +1592,7 @@ proc installIFCsvr {} {
     exec {*}[auto_execok start] "" $ifcsvrMsi
   } else {
     if {[file exists $ifcsvrInst]} {errorMsg "The IFCsvr Toolkit cannot be automatically installed."}
-    .tnb select .tnb.status
+    catch {.tnb select .tnb.status}
     update idletasks
     if {$nistVersion} {
       outputMsg "To manually install the IFCsvr Toolkit:"

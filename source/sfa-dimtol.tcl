@@ -61,7 +61,7 @@ proc spmiDimtolStart {entType} {
 
   outputMsg " Adding PMI Representation Report" blue
   
-  if {[string first "AP203" $stepAP] == 0 || $stepAP == "AP214"} {
+  if {[string first "AP203" $stepAP] == 0 || [string first "AP214" $stepAP] == 0} {
     errorMsg "Syntax Error: There is no Recommended Practice for PMI Representation in $stepAP files.  Use AP242 for PMI Representation."
   }
 
@@ -491,7 +491,7 @@ proc spmiDimtolReport {objEntity} {
                     }
                   }
                   "*dimensional_size* name" {
-# dimensional_size.name, from the name add symbol to dimrep for spherical, radius, diameter or thickness
+# dimensional_size.name, from the name add symbol to dimrep for spherical, radius, diameter or thickness  (Section 5.1.5, Table 4)
                     set okname 0
                     set ok 1
                     set col($dt) $pmiStartCol($dt)
@@ -506,15 +506,15 @@ proc spmiDimtolReport {objEntity} {
                     set d1 ""
                     if {[info exists dimrep($dimrepID)]} {set d1 [string index $dimrep($dimrepID) 0]}
                       
-                    if {$ov == "spherical"} {
+                    if {[string first "spherical" $ov] != -1} {
                       append dimrep($dimrepID) "S"
                       append item "spherical "
                     }
-                    if {$ov == "diameter" && $d1 != $pmiUnicode(diameter)} {
+                    if {[string first "diameter" $ov] != -1 && $d1 != $pmiUnicode(diameter)} {
                       append dimrep($dimrepID) $pmiUnicode(diameter)
                       append item "diameter"
                     }
-                    if {$ov == "radius"} {
+                    if {[string first "radius" $ov] != -1} {
                       append dimrep($dimrepID) "R"
                       append item "radius"
                     }
@@ -522,10 +522,7 @@ proc spmiDimtolReport {objEntity} {
                       append dimrep($dimrepID) $pmiUnicode(thickness)
                       append item "thickness"
                     }
-                    if {$ov == "square"} {
-                      append dimrep($dimrepID) $pmiUnicode(square)
-                      append item "square"
-                    }
+
                     set dim(symbol) $dimrep($dimrepID)
                     if {$entLevel == 2} {
                       incr numDSnames

@@ -1,6 +1,6 @@
 #-------------------------------------------------------------------------------
 # version numbers, software and user's guide
-proc getVersion {}   {return 2.42}
+proc getVersion {}   {return 2.45}
 proc getVersionUG {} {return 2.34}
 
 # -------------------------------------------------------------------------------
@@ -243,7 +243,7 @@ proc spmiSummary {} {
     set range [$worksheet($spmiSumName) Range C1:K1]
     $range MergeCells [expr 1]
     set anchor [$worksheet($spmiSumName) Range C1]
-    [$worksheet($spmiSumName) Hyperlinks] Add $anchor [join "http://www.cax-if.org/joint_testing_info.html#recpracs"] [join ""] [join "Link to CAx-IF Recommended Practices"]
+    [$worksheet($spmiSumName) Hyperlinks] Add $anchor [join "https://www.cax-if.org/joint_testing_info.html#recpracs"] [join ""] [join "Link to CAx-IF Recommended Practices"]
     
     outputMsg " Adding PMI Representation Summary worksheet" blue
 
@@ -991,7 +991,7 @@ proc pmiFormatColumns {str} {
     
 # link to RP
     set str1 "pmi242"
-    if {$stepAP == "AP203"} {set str1 "pmi203"}
+    if {[string first "AP203" $stepAP] == 0} {set str1 "pmi203"}
     $cells($thisEntType) Item 2 1 "See CAx-IF Rec. Prac. for $recPracNames($str1)"
     if {$thisEntType != "dimensional_characteristic_representation" && $thisEntType != "datum_reference"} {
       set range [$worksheet($thisEntType) Range A2:D2]
@@ -1000,7 +1000,7 @@ proc pmiFormatColumns {str} {
     }
     $range MergeCells [expr 1]
     set anchor [$worksheet($thisEntType) Range A2]
-    [$worksheet($thisEntType) Hyperlinks] Add $anchor [join "http://www.cax-if.org/joint_testing_info.html#recpracs"] [join ""] [join "Link to CAx-IF Recommended Practices"]
+    [$worksheet($thisEntType) Hyperlinks] Add $anchor [join "https://www.cax-if.org/joint_testing_info.html#recpracs"] [join ""] [join "Link to CAx-IF Recommended Practices"]
   }
 }
 
@@ -1237,23 +1237,29 @@ proc getStepAP {fname} {
   
   set fs [getSchemaFromFile $fname]
   set fileSchema1 [string toupper $fs]
-  #if {$fs != $fileSchema1} {errorMsg "File schema name '$fs' should be uppercase."}
   
   set ap ""
   foreach aps {AP203 AP209 AP210 AP238 AP239 AP242} {if {[string first $aps $fs] != -1} {set ap $aps}}
 
   if {$ap == ""} {
-    if {[string first "CONFIGURATION_CONTROL_3D_DESIGN" $fileSchema1] != -1}  {set ap AP203e1}
+    if {[string first "CONFIGURATION_CONTROL_3D_DESIGN" $fileSchema1] != -1}     {set ap AP203e1}
     if {[string first "CONFIGURATION_CONTROL_3D_DESIGN_ED2" $fileSchema1] != -1} {set ap AP203}
-    if {[string first "CONFIG_CONTROL" $fileSchema1] != -1}                   {set ap AP203e1}
-    if {[string first "CCD_CLA_GVP_AST" $fileSchema1] != -1}                  {set ap AP203e1}
-    if {[string first "STRUCTURAL_ANALYSIS_DESIGN" $fileSchema1] != -1}       {set ap AP209e1}
-    if {[string first "AUTOMOTIVE_DESIGN" $fileSchema1] != -1}                {set ap AP214}
-    if {[string first "INTEGRATED_CNC_SCHEMA" $fileSchema1] != -1}            {set ap AP238}
-    if {[string first "STRUCTURAL_FRAME_SCHEMA" $fileSchema1] != -1}          {set ap CIS/2}
+    if {[string first "CONFIG_CONTROL" $fileSchema1] != -1}                      {set ap AP203e1}
+    if {[string first "CCD_CLA_GVP_AST" $fileSchema1] != -1}                     {set ap AP203e1}
+
+    if {[string first "STRUCTURAL_ANALYSIS_DESIGN" $fileSchema1] != -1} {set ap AP209e1}
+    if {[string first "INTEGRATED_CNC_SCHEMA" $fileSchema1] != -1}      {set ap AP238}
+
+    if {[string first "AUTOMOTIVE_DESIGN_CC2" $fileSchema1] != -1} {
+      set ap AP214
+    } elseif {[string first "AUTOMOTIVE_DESIGN" $fileSchema1] != -1} {
+      set ap AP214e3
+    }
+
+    if {[string first "STRUCTURAL_FRAME_SCHEMA" $fileSchema1] != -1} {set ap CIS/2}
+    if {[string first "IFC" $fileSchema1] != -1} {set ap $fileSchema1}
   }
-  set stepAP $ap
-  return $stepAP
+  return $ap
 }
 
 #-------------------------------------------------------------------------------

@@ -119,7 +119,7 @@ initData
 initDataInverses
 
 # -----------------------------------------------------------------------------------------------------
-# check for options file and read
+# check for options file and read (source)
 set optionsFile [file nativename [file join $fileDir STEP-File-Analyzer-options.dat]]
 if {[file exists $optionsFile]} {
   if {[catch {
@@ -179,7 +179,7 @@ if {[file exists $optionsFile]} {
   }
 }
 
-# adjust some variables
+# check some directory variables
 if {[info exists userWriteDir]} {if {![file exists $userWriteDir]} {set userWriteDir $mydocs}}
 if {[info exists fileDir]}      {if {![file exists $fileDir]}      {set fileDir      $mydocs}}
 if {[info exists fileDir1]}     {if {![file exists $fileDir1]}     {set fileDir1     $mydocs}}
@@ -189,8 +189,21 @@ if {[info exists userEntityFile]} {
     set opt(PR_USER) 0
   }
 }
+
+# fix row limit
 if {$opt(XL_ROWLIM) < 103 || ([string range $opt(XL_ROWLIM) end-1 end] != "03" && \
    [string range $opt(XL_ROWLIM) end-1 end] != "76" && [string range $opt(XL_ROWLIM) end-1 end] != "36")} {set opt(XL_ROWLIM) 103}
+
+# for output format buttons
+set ofExcel 0
+set ofCSV 0
+set ofNone 0
+switch $opt(XLSCSV) {
+  Excel   {set ofExcel 1}
+  CSV     {set ofExcel 1; set ofCSV 1}
+  None    {set ofNone 1}
+  default {set ofExcel 1}
+}
 
 # -------------------------------------------------------------------------------
 # get programs that can open STEP files
@@ -267,7 +280,7 @@ guiProcessAndReports
 # inverse relationships
 guiInverse
 
-# open option
+# open option, output format
 guiOpenSTEPFile
 pack $fopt -side top -fill both -expand true -anchor nw
 

@@ -604,9 +604,6 @@ proc valPropFormat {} {
   global cells col excelVersion propDefRow recPracNames row stepAP thisEntType worksheet valPropLink
 
   if {[info exists cells($thisEntType)] && $col($thisEntType) > 4} {
-    #if {[llength $propDefRow] == 0 && $stepAP != ""} {
-    #  outputMsg " No Validation Properties found as defined by\n  CAx-IF Recommended Practice for $recPracNames(valprop)" red
-    #}
     outputMsg " Formatting: property_definition" blue
   
 # delete unused columns
@@ -729,7 +726,7 @@ proc valPropFormat {} {
       set range [$worksheet($thisEntType) Range A2:D2]
       $range MergeCells [expr 1]
       set anchor [$worksheet($thisEntType) Range A2]
-      [$worksheet($thisEntType) Hyperlinks] Add $anchor [join "http://www.cax-if.org/joint_testing_info.html#recpracs"] [join ""] [join "Link to CAx-IF Recommended Practices"]    
+      [$worksheet($thisEntType) Hyperlinks] Add $anchor [join "https://www.cax-if.org/joint_testing_info.html#recpracs"] [join ""] [join "Link to CAx-IF Recommended Practices"]    
     }
   }
 }
