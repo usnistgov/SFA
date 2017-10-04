@@ -1,6 +1,6 @@
 #-------------------------------------------------------------------------------
 # version numbers, software and user's guide
-proc getVersion {}   {return 2.45}
+proc getVersion {}   {return 2.46}
 proc getVersionUG {} {return 2.34}
 
 # -------------------------------------------------------------------------------

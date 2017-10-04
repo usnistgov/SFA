@@ -139,7 +139,7 @@ proc checkValues {} {
 
 # semantic PMI report
   if {$opt(PMISEM)} {
-    foreach b {optPR_STEP_AP242 optPR_STEP_REPR optPR_STEP_SHAP optPR_STEP_TOLR} {
+    foreach b {optPR_STEP_AP242 optPR_STEP_REPR optPR_STEP_SHAP optPR_STEP_TOLR optPR_STEP_QUAN} {
       set opt([string range $b 3 end]) 1
       lappend butDisabled $b
     }

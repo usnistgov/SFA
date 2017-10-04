@@ -21,19 +21,25 @@ set scriptName [info script]
 set wdir [file dirname $scriptName]
 set auto_path [linsert $auto_path 0 $wdir]
 
+# for building your own version, uncomment and modify C:/Tcl/lib/teapot directory if necessary
 # lappend commands add package locations to auto_path, must be before package commands
-lappend auto_path C:/Tcl/lib/teapot/package/win32-ix86/lib/tcom3.9
-lappend auto_path C:/Tcl/lib/teapot/package/win32-ix86/lib/twapi3.0.32
-lappend auto_path C:/Tcl/lib/teapot/package/win32-ix86/lib/Tclx8.4
-lappend auto_path C:/Tcl/lib/teapot/package/win32-ix86/lib/Itk3.4
-lappend auto_path C:/Tcl/lib/teapot/package/win32-ix86/lib/Itcl3.4
-lappend auto_path C:/Tcl/lib/teapot/package/tcl/lib/Iwidgets4.0.2
+#lappend auto_path C:/Tcl/lib/teapot/package/win32-ix86/lib/tcom3.9
+#lappend auto_path C:/Tcl/lib/teapot/package/win32-ix86/lib/twapi3.0.32
+#lappend auto_path C:/Tcl/lib/teapot/package/win32-ix86/lib/Tclx8.4
+#lappend auto_path C:/Tcl/lib/teapot/package/win32-ix86/lib/Itk3.4
+#lappend auto_path C:/Tcl/lib/teapot/package/win32-ix86/lib/Itcl3.4
+#lappend auto_path C:/Tcl/lib/teapot/package/tcl/lib/Iwidgets4.0.2
 
-# Tcl packages
-package require tcom
-package require twapi
-package require Tclx
-package require Iwidgets 4.0.2
+# Tcl packages, check if they will load
+if {[catch {
+  package require tcom
+  package require twapi
+  package require Tclx
+  package require Iwidgets 4.0.2
+} emsg]} {
+  set choice [tk_messageBox -type ok -icon error -title "ERROR loading required packages" -message "There might be a problem running the STEP File Analyzer from a directory with accented, non-English, or symbol characters in the pathname.\n\nRun the software from a directory without any of the special characters in the pathname.\n\nPlease contact Robert Lipman (robert.lipman@nist.gov) for other problems."]
+  exit
+}
 
 catch {
   lappend auto_path C:/Tcl/lib/teapot/package/win32-ix86/lib/vfs1.4.2

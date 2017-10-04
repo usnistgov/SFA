@@ -244,7 +244,7 @@ proc genExcel {{numFile 0}} {
     getSchemaFromFile $fname 1
 
     if {!$p21e3} {
-      errorMsg "Possible causes of the ERROR:\n- Syntax errors in the STEP file\n- STEP schema is not supported, see Help > Supported STEP APs\n- Multiple schemas are used\n- Wrong file extension, should be '.stp'\n- File is not an ISO 10303 Part 21 STEP file" red
+      errorMsg "Possible causes of the ERROR:\n- Syntax errors in the STEP file\n- STEP schema is not supported, see Help > Supported STEP APs\n- Wrong file extension, should be '.stp', '.step', '.p21', '.stpZ', or '.ifc'\n- File or directory name contains accented, non-English, or symbol characters\n- Multiple schemas are used\n- File is not an ISO 10303 Part 21 STEP file" red
     
 # part 21 edition 3
     } else {
@@ -1202,7 +1202,7 @@ proc addHeaderWorksheet {numFile fname} {
           errorMsg "Syntax Error: Schema name should end with _MIM_LF"
           if {$useXL} {[[$worksheet($hdr) Range B11] Interior] Color $legendColor(red)}
         }
-        if {[string first "AUTOMOTIVE_DESIGN_CC2" $sn] == 0} {errorMsg "This file uses an older version of STEP AP214 that might cause problems."}
+        if {[string first "AUTOMOTIVE_DESIGN_CC2" $sn] == 0} {errorMsg "This file uses an older version of STEP AP214.  See Help > Supported STEP APs"}
 
         set fileSchema [string toupper [string range $objAttr 0 5]]
         if {[string first "IFC" $fileSchema] == 0} {

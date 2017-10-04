@@ -120,7 +120,7 @@ proc spmiGeotolReport {objEntity} {
   global entLevel ent entAttrList entCount gt gtEntity incrcol lastAttr lastEnt
   global objID opt pmiCol pmiHeading pmiModifiers pmiStartCol pmiUnicode ptz recPracNames
   global spmiEnts spmiID spmiIDRow spmiRow spmiTypesPerFile stepAP syntaxErr
-  global tol_dimprec tol_dimrep tolNames tolval tzf1 tzfNames worksheet datumModValue
+  global tol_dimprec tol_dimrep tolNames tolStandard tolval tzf1 tzfNames worksheet datumModValue
 
   if {$opt(DEBUG1)} {outputMsg "spmiGeotolReport" red}
    
@@ -251,8 +251,16 @@ proc spmiGeotolReport {objEntity} {
                     }
                   }
                   "*_tolerance* magnitude" {
+# check that the tolerance magnitude is a length_measure_with_unit
+                    if {$objValue != ""} {
+                      set magType [$objValue Type]
+                      if {[string first "length_measure_with_unit" $magType] == -1 || ([string first "length_measure_with_unit" $magType] != [string last "length_measure_with_unit" $magType])} {
+                        errorMsg "Syntax Error: Wrong type of tolerance value on [formatComplexEnt [$gtEntity Type]]: [formatComplexEnt $magType]\n[string repeat " " 14]\($recPracNames(pmi242), Sec. 6.9.1, Figure 43)"
+                        lappend syntaxErr([lindex [split $ent1 " "] 0]) [list [$gtEntity P21ID] [lindex [split $ent1 " "] 1]]
+                      }
+
 # check for missing magnitude and possibly non-uniform tolerance zone
-                    if {$objValue == ""} {
+                    } else {
                       set nonUniform 0
                       set e0s [$gtEntity GetUsedIn [string trim tolerance_zone] [string trim defining_tolerance]]
                       ::tcom::foreach e0 $e0s {
@@ -271,7 +279,7 @@ proc spmiGeotolReport {objEntity} {
                         }
                       }
                       if {!$nonUniform} {
-                        errorMsg "Syntax Error: Missing tolerance magnitude on '[formatComplexEnt [$gtEntity Type]]'"
+                        errorMsg "Syntax Error: Missing tolerance value on [formatComplexEnt [$gtEntity Type]]\n[string repeat " " 14]\($recPracNames(pmi242), Sec. 6.9.1, Figure 43)"
                         lappend syntaxErr([lindex [split $ent1 " "] 0]) [list [$gtEntity P21ID] [lindex [split $ent1 " "] 1]]
                       }
                     }
@@ -312,7 +320,7 @@ proc spmiGeotolReport {objEntity} {
 # invalid tzf
                               } else {
                                 if {$tzfName != "" && [string tolower $tzfName] != "unknown"} {
-                                  errorMsg "Syntax Error: Invalid 'tolerance_zone_form.name' attribute ($tzfName) for a tolerance.\n[string repeat " " 14]\($recPracNames(pmi242), Sec. 6.9.2, Tables 11, 12)"
+                                  errorMsg "Syntax Error: Invalid 'tolerance_zone_form.name' attribute ($tzfName) on [formatComplexEnt [$gtEntity Type]]\n[string repeat " " 14]\($recPracNames(pmi242), Sec. 6.9.2, Tables 11, 12)"
                                 }
                                 lappend syntaxErr(tolerance_zone_form) [list [[$attrTZ Value] P21ID] "name"]
                                 set tzf1 "(Invalid TZF: $tzfName)"
@@ -393,7 +401,11 @@ proc spmiGeotolReport {objEntity} {
                     } elseif {$ATR(1) == "displacement" && [string first "unequally_disposed" $gt] != -1} {
                       set ok 1
                       set idx "unequally_disposed"
-                      set objValue " $pmiModifiers($idx) $objValue"
+                      if {$tolStandard(type) != "ISO"} {
+                        set objValue " $pmiModifiers($idx) $objValue"
+                      } else {
+                        set objValue " UZ\[$objValue\]"
+                      }
                       lappend spmiTypesPerFile $idx
 
 # get unit-basis tolerance value (6.9.6)
@@ -401,14 +413,12 @@ proc spmiGeotolReport {objEntity} {
                       set ok 1
                       if {[string range $objValue end-1 end] == ".0"} {set objValue [string range $objValue 0 end-2]}
                       set objValue " / $objValue"
-                      #outputMsg $objValue
                       set idx "unit-basis tolerance"
                       lappend spmiTypesPerFile $idx
                     } elseif {$ATR(1) == "second_unit_size"} {
                       set ok 1
                       if {[string range $objValue end-1 end] == ".0"} {set objValue [string range $objValue 0 end-2]}
                       set objValue "X$objValue"
-                      #outputMsg $objValue
 
 # get maximum tolerance value (6.9.5)
                     } elseif {$ATR(1) == "maximum_upper_tolerance"} {
@@ -460,12 +470,14 @@ proc spmiGeotolReport {objEntity} {
 # unit-basis rectangle
                     } elseif {[string first "X" $objValue] == 0} {
                       if {[string first "/ $pmiUnicode(diameter)" $val] == -1} {
-                        set c1 [string first "rect" $val]
+                        set c1 [string first "X" $val]
+                        if {$c1 != -1} {set val [string range $val 0 $c1-2]}
+                        set c1 [string first "rectangular" $val]
                         if {$c1 != -1} {set val [string range $val 0 $c1-1]}
                         $cells($gt) Item $r $c "$val$objValue"
                       }
 # unequally disposed
-                    } elseif {[string first $pmiModifiers(unequally_disposed) $objValue] == -1 && $ATR(1) != "unit_size"} {
+                    } elseif {[string first $pmiModifiers(unequally_disposed) $objValue] == -1 && [string first "UZ" $objValue] == -1 && $ATR(1) != "unit_size"} {
                       if {[string first "handle" $objValue] == -1} {$cells($gt) Item $r $c "$val | $objValue"}
                     } else {
                       $cells($gt) Item $r $c "$val$objValue"
@@ -1111,7 +1123,7 @@ proc spmiGeotolReport {objEntity} {
 # area_type for defined area unit
                     } elseif {$ov == "square" || $ov == "rectangular"} {
                       set c1 [string last " " $val]
-                      set nval "$val X [string range $val $c1 end]"
+                      set nval "$val X [string range $val $c1+1 end]"
                       $cells($gt) Item $r $c $nval
                     } elseif {$ov == "circular"} {
                       regsub -all "/ " $val "/ $pmiUnicode(diameter)" nval

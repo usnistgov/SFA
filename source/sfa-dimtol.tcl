@@ -421,7 +421,7 @@ proc spmiDimtolReport {objEntity} {
               set dim(num) $objSize
               set dim(idx) 0
               if {$objSize == 0} {
-                errorMsg "Syntax Error: Missing reference to dimension for shape_dimension_representation.items"
+                errorMsg "Syntax Error: Missing reference to dimension for shape_dimension_representation.items\n[string repeat " " 14]\($recPracNames(pmi242), Sec. 5.2.1, Figure 15)"
                 lappend syntaxErr([lindex [split $ent1 " "] 0]) [list $objID [lindex [split $ent1 " "] 1]]
               }
             }
@@ -434,7 +434,7 @@ proc spmiDimtolReport {objEntity} {
                   if {[string first "length" [$val1 Type]] != -1 || [string first "angle" [$val1 Type]] != -1} {set ok 1}
                 }
                 if {!$ok} {
-                  errorMsg "Syntax Error: Missing reference to length or angle for shape_dimension_representation.items"
+                  errorMsg "Syntax Error: Missing reference to dimension length or angle measure for shape_dimension_representation.items\n[string repeat " " 14]\($recPracNames(pmi242), Sec. 5.2.1, Figure 15)"
                   lappend syntaxErr([lindex [split $ent1 " "] 0]) [list $objID [lindex [split $ent1 " "] 1]]
                 }
                 ::tcom::foreach val1 $objValue {spmiDimtolReport $val1}
@@ -507,16 +507,22 @@ proc spmiDimtolReport {objEntity} {
                     if {[info exists dimrep($dimrepID)]} {set d1 [string index $dimrep($dimrepID) 0]}
                       
                     if {[string first "spherical" $ov] != -1} {
-                      append dimrep($dimrepID) "S"
-                      append item "spherical "
+                      if {[string index $dimrep($dimrepID) 0] != "S"} {
+                        append dimrep($dimrepID) "S"
+                        append item "spherical "
+                      }
                     }
                     if {[string first "diameter" $ov] != -1 && $d1 != $pmiUnicode(diameter)} {
-                      append dimrep($dimrepID) $pmiUnicode(diameter)
-                      append item "diameter"
+                      if {[string first $pmiUnicode(diameter) $dimrep($dimrepID)] == -1} {
+                        append dimrep($dimrepID) $pmiUnicode(diameter)
+                        append item "diameter"
+                      }
                     }
                     if {[string first "radius" $ov] != -1} {
-                      append dimrep($dimrepID) "R"
-                      append item "radius"
+                      if {[string first "R" $dimrep($dimrepID)] == -1} {
+                        append dimrep($dimrepID) "R"
+                        append item "radius"
+                      }
                     }
                     if {$ov == "thickness"} {
                       append dimrep($dimrepID) $pmiUnicode(thickness)

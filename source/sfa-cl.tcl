@@ -24,14 +24,19 @@ set wdir [file dirname $scriptName]
 set auto_path [linsert $auto_path 0 $wdir]
 
 # for freeWrap the following lappend commands add package locations to auto_path, must be before package commands
-lappend auto_path C:/Tcl/lib/teapot/package/win32-ix86/lib/tcom3.9
-lappend auto_path C:/Tcl/lib/teapot/package/win32-ix86/lib/twapi3.0.32
-lappend auto_path C:/Tcl/lib/teapot/package/win32-ix86/lib/Tclx8.4
+#lappend auto_path C:/Tcl/lib/teapot/package/win32-ix86/lib/tcom3.9
+#lappend auto_path C:/Tcl/lib/teapot/package/win32-ix86/lib/twapi3.0.32
+#lappend auto_path C:/Tcl/lib/teapot/package/win32-ix86/lib/Tclx8.4
 
-# Tcl packages
-package require tcom
-package require twapi
-package require Tclx
+# Tcl packages, check if they will load
+if {[catch {
+  package require tcom
+  package require twapi
+  package require Tclx
+} emsg]} {
+  puts "\nERROR loading required packages.\n\nThere might be a problem running the STEP File Analyzer from a directory with\naccented, non-English, or symbol characters in the pathname.  Run the software\nfrom a directory without any special characters in the pathname.\n\nPlease contact Robert Lipman (robert.lipman@nist.gov) for other problems."
+  exit
+}
 
 catch {
   lappend auto_path C:/Tcl/lib/teapot/package/win32-ix86/lib/vfs1.4.2
@@ -53,7 +58,7 @@ puts "NIST STEP File Analyzer (v[getVersion] - Updated: [string trim [clock form
 if {$argc == 1} {set arg [string tolower [lindex $argv 0]]}
 if {$argc == 0 || ($argc == 1 && ($arg == "help" || $arg == "-help" || $arg == "-h" || $arg == "-v"))} {
   puts "\nUsage: sfa-cl.exe myfile.stp \[csv\] \[viz\] \[noopen\] \[file\]"
-  puts "\n  If myfile.stp has spaces, put quotes around the file name, e.g., \"my file.stp\"."
+  puts "\n  If myfile.stp has spaces, put quotes around the file name, e.g., \"C:/mydir/my file.stp\"."
   puts "\nOptional command line settings:"
   puts "  csv     Generate CSV files"                                                                                        
   puts "  viz     Generate only Visualizations and no spreadsheet or CSV files"                                                                                        
