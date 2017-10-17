@@ -604,7 +604,7 @@ proc valPropFormat {} {
   global cells col excelVersion propDefRow recPracNames row stepAP thisEntType worksheet valPropLink
 
   if {[info exists cells($thisEntType)] && $col($thisEntType) > 4} {
-    outputMsg " Formatting: property_definition" blue
+    outputMsg " property_definition"
   
 # delete unused columns
     set delcol 0

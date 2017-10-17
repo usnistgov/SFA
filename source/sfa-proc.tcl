@@ -400,7 +400,7 @@ proc unzipFile {} {
   global localName wdir mytemp
 
   if {[catch {
-    outputMsg " Unzipping: [file tail $localName] ([expr {[file size $localName]/1024}] Kb)" blue
+    outputMsg "\nUnzipping: [file tail $localName] ([expr {[file size $localName]/1024}] Kb)"
 
 # copy gunzip to TEMP
     if {[file exists [file join $wdir schemas gunzip.exe]]} {file copy -force [file join $wdir schemas gunzip.exe] $mytemp}
@@ -418,7 +418,7 @@ proc unzipFile {} {
       set c1 [string first "%" $gz]
       set ftmp [string range $gz $c1+2 end]
 
-# unzip
+# unzip to a tmp file
       if {[file tail $ftmp] != [file tail $fzip]} {outputMsg " Extracting: [file tail $ftmp]" blue}
       exec $gunzip -Nf $fzip
 
@@ -427,10 +427,8 @@ proc unzipFile {} {
       set ok 0
       if {[file exists $fstp]} {
         if {[file mtime $localName] != [file mtime $fstp]} {
-          outputMsg " Overwriting existing STEP file: [truncFileName [file nativename $fstp]]" red
+          outputMsg " Overwriting existing unzipped STEP file: [truncFileName [file nativename $fstp]]" red
           set ok 1
-        } else {
-          outputMsg "  File already extracted" red
         }
       } else {
         set ok 1
@@ -1238,12 +1236,12 @@ proc cellRange {r c} {
 }
 
 #-------------------------------------------------------------------------------
-proc addCellComment {ent r c text} {
+proc addCellComment {ent r c text {w 300} {h 70}} {
   global worksheet
   set comment [[$worksheet($ent) Range [cellRange $r $c]] AddComment]
   $comment Text $text
-  [$comment Shape] Width  [expr double(250)]
-  [$comment Shape] Height [expr double(100)]
+  [$comment Shape] Width  [expr double($w)]
+  [$comment Shape] Height [expr double($h)]
 }
 
 #-------------------------------------------------------------------------------

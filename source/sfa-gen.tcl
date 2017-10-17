@@ -695,8 +695,8 @@ proc genExcel {{numFile 0}} {
     }
   }
   if {[llength $stds] > 0} {
-    outputMsg "\nStandards:"
-    foreach std $stds {outputMsg " $std" blue}
+    outputMsg "\nStandards:" blue
+    foreach std $stds {outputMsg " $std"}
   }
   if {$tolStandard(type) == "ISO"} {
     set fn [string toupper [file tail $localName]]
@@ -1288,9 +1288,9 @@ proc addHeaderWorksheet {numFile fname} {
       if {$c1 != -1} {lappend caxifrp [string trim [string range $fd $c1+20 end]]}
     }
     if {[llength $caxifrp] > 0} {
-      outputMsg "\nCAx-IF Recommended Practices: (www.cax-if.org/joint_testing_info.html#recpracs)"
+      outputMsg "\nCAx-IF Recommended Practices: (www.cax-if.org/joint_testing_info.html#recpracs)" blue
       foreach item $caxifrp {
-        outputMsg " $item" blue
+        outputMsg " $item"
         if {[string first "AP242" $fileSchema] == -1 && [string first "Tessellated" $item] != -1} {
           errorMsg "  Error: Recommended Practices related to 'Tessellated' only apply to AP242 files."
         }
@@ -1317,7 +1317,7 @@ proc addHeaderWorksheet {numFile fname} {
             if {$app == "UGS - NX"}                {set app1 "UGS-NX"}
             if {$app == "Unigraphics"}             {set app1 "Siemens NX"}
             if {$app == "UNIGRAPHICS"}             {set app1 "Unigraphics"}
-            if {$app == "3DEXPERIENCE"}            {set app1 "CATIA"}
+            if {$app == "3DEXPERIENCE"}            {set app1 "3D Experience"}
             if {$app == "SOLIDWORKS MBD"}          {set app1 "Solidworks MBD"}
             if {[string first "CATIA Version"           $app] == 0} {set app1 "CATIA V[string range $app 14 end]"}
             if {[string first "SIEMENS PLM Software NX" $app] == 0} {set app1 "Siemens NX[string range $app 23 end]"}
@@ -1706,7 +1706,7 @@ proc formatWorksheets {sheetSort sumRow inverseEnts} {
   global buttons worksheet worksheets excel cells opt count entCount col row rowmax xlFileName thisEntType schemaLinks stepAP syntaxErr
   global gpmiEnts spmiEnts nprogBarEnts excelVersion
   
-  outputMsg "Formatting Worksheets"
+  outputMsg "Formatting Worksheets" blue
 
   if {[info exists buttons]} {$buttons(pgb) configure -maximum [llength $sheetSort]}
   set nprogBarEnts 0

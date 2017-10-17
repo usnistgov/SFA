@@ -292,7 +292,7 @@ proc x3dCoordAxes {size} {
 # -------------------------------------------------------------------------------
 # write PMI saved view geometry, set viewpoints, add navigation and background color, and close X3DOM file
 proc x3dFileEnd {} {
-  global ao modelURLs nistName opt stepAP x3dAxes x3dMax x3dMin x3dFile x3dMsg stepAP entCount nistVersion numTessColor
+  global ao modelURLs nistName opt stepAP x3dAxes x3dMax x3dMin x3dFile x3dMsg stepAP entCount nistVersion numSavedViews numTessColor
   global savedViewButtons savedViewFileName savedViewFile savedViewNames savedViewpoint
   
 # write any PMI saved view geometry for multiple saved views
@@ -364,10 +364,27 @@ proc x3dFileEnd {} {
   }
 
 # for PMI annotations - checkboxes for toggling saved view graphics
+  set svmsg {}
+  if {[info exists numSavedViews($nistName)]} {
+    if {$opt(VIZPMI) && $nistName != "" && [llength $savedViewButtons] != $numSavedViews($nistName)} {
+      lappend svmsg "Expecting $numSavedViews($nistName) Graphical PMI Saved Views in the NIST Test Case, found [llength $savedViewButtons]."
+    }
+  }
   if {$opt(VIZPMI) && [llength $savedViewButtons] > 0} {
     puts $x3dFile "\nSaved View PMI"
-    foreach svn $savedViewButtons {puts $x3dFile "<br><input type='checkbox' checked onclick='tog$svn\(this.value)'/>$svn"}
+    set ok 1
+    foreach svn $savedViewButtons {
+      puts $x3dFile "<br><input type='checkbox' checked onclick='tog$svn\(this.value)'/>$svn"
+      if {[string first "MBD" [string toupper $svn]] == -1 && $nistName != ""} {set ok 0}
+    }
+    if {!$ok} {
+      lappend svmsg "Some Graphical PMI Saved View names are not defined in the NIST Test Case."
+    }
     puts $x3dFile "<p>Selecting a Saved View above changes the viewpoint or use Page Up for the next viewpoint.  Zoom and pan to view all PMI."
+  }
+  if {[llength $svmsg] > 0} {
+    outputMsg " "
+    foreach msg $svmsg {errorMsg $msg}
   }
 
 # for FEM - node, element checkboxes
@@ -403,7 +420,7 @@ proc x3dFileEnd {} {
   puts $x3dFile "\n<p><ul style=\"padding-left:20px\">"
   puts $x3dFile "<li><a href=\"https://www.x3dom.org/documentation/interaction/\">Use the mouse</a> in 'Examine Mode' to rotate, pan, zoom.<li>Use Page Up to switch between views.<p>"
   if {[info exists ao]} {
-    if {$opt(VIZPMI) && [string first "occurrence" $ao] != -1} {puts $x3dFile "<li>Some Graphical PMI might not have equivalent Semantic PMI in the STEP file."}
+    if {$opt(VIZPMI) && [string first "occurrence" $ao] != -1 && [string first "AP209" $stepAP] == -1} {puts $x3dFile "<li>Some Graphical PMI might not have equivalent Semantic PMI in the STEP file."}
   }
   puts $x3dFile "</ul></td></tr></table>"
 

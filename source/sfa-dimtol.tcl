@@ -100,11 +100,11 @@ proc spmiDimtolStart {entType} {
 # -------------------------------------------------------------------------------
 
 proc spmiDimtolReport {objEntity} {
-  global assocGeom badAttributes cells col developer dim dimBasic dimRepeat dimDirected dimModNames dimOrient dimReference dimrep dimrepID
+  global assocGeom badAttributes cells col developer dim dimBasic dimRepeat dimDirected dimName dimModNames dimOrient dimReference dimrep dimrepID
   global dimSizeNames dimtolEnt dimtolEntType dimtolGeom dimval draftModelCameras dt dtpmivalprop entLevel ent entAttrList entCount entlevel2
   global incrcol lastAttr lastEnt nistName opt pmiCol pmiColumns pmiHeading pmiModifiers pmiStartCol
   global pmiUnicode prefix angDegree recPracNames savedModifier spmiEnts spmiID spmiIDRow spmiRow spmiTypesPerFile syntaxErr tolStandard
-  global numDSnames
+  global numDSnames dimtolComment
 
   if {$opt(DEBUG1)} {outputMsg "spmiDimtolReport" red}
 
@@ -112,26 +112,20 @@ proc spmiDimtolReport {objEntity} {
   incr entLevel
   set ind [string repeat " " [expr {4*($entLevel-1)}]]
   
-  if {[string first "handle" $objEntity] == -1} {
-    #if {$objEntity != ""} {outputMsg "$ind $objEntity"}
-    #outputMsg "  $objEntity" red
-  } else {
-    #outputMsg "  [$objEntity Type]" red
+  if {[string first "handle" $objEntity] != -1} {
     set objType [$objEntity Type]
     set objID   [$objEntity P21ID]
     set objAttributes [$objEntity Attributes]
     set ent($entLevel) $objType
 
-    if {$opt(DEBUG1) && $objType != "cartesian_point"} {outputMsg "$ind ENT $entLevel #$objID=$objType (ATR=[$objAttributes Count])" blue}
+    #outputMsg "  [$objEntity Type]" red
     #if {$entLevel == 1} {outputMsg "#$objID=$objType" blue}
+    if {$opt(DEBUG1) && $objType != "cartesian_point"} {outputMsg "$ind ENT $entLevel #$objID=$objType (ATR=[$objAttributes Count])" blue}
 
 # do not follow referred entity when the entity refers to itself, results in infinite loop, unusual case with dimensional_*_and_datum_feature
     set follow 1
     if {[info exists lastEnt]} {
-      if {$lastEnt == "$objID $objType"} {
-        #if {$developer} {errorMsg "Attribute '[formatComplexEnt $objType].$lastAttr' refers to itself.\n $recPracNames(pmi242), Sec. 6.5, Figure 37"}
-        set follow 0
-      }
+      if {$lastEnt == "$objID $objType"} {set follow 0}
     }
     set lastEnt "$objID $objType"
     
@@ -147,7 +141,6 @@ proc spmiDimtolReport {objEntity} {
 # check if there are rows with dt
     if {$spmiEnts($objType) && [string first "datum_feature" $objType] == -1 && [string first "datum_target" $objType] == -1} {
       set spmiID $objID
-      #outputMsg "set spmiID $spmiID [info exists spmiIDRow($dt,$spmiID)]" green
       if {![info exists spmiIDRow($dt,$spmiID)]} {
         incr entLevel -1
         return
@@ -253,8 +246,6 @@ proc spmiDimtolReport {objEntity} {
                               if {$dimtmp == 0 && $objValue != 0} {
                                 errorMsg "Syntax Error: value_format_type_qualifier ([$attr1 Value]) too small for: $objValue\n[string repeat " " 14]\($recPracNames(pmi242), Sec. 5.4)"
                               }
-                              #set dimval $dimtmp
-                              #set objValue $dimtmp
                             }
                           }
                         }
@@ -470,6 +461,7 @@ proc spmiDimtolReport {objEntity} {
                     set dimrepID $objID
                     set dimrep($dimrepID) ""
                     set dim(symbol) ""
+                    set dimName $ov
                     if {[string first "directed" $ent1] != -1} {set dimDirected 1}
 
                     if {[string first "angular_location" $ent1] != -1} {
@@ -502,6 +494,7 @@ proc spmiDimtolReport {objEntity} {
                     if {![info exists dimrep($dimrepID)]} {set dimrep($dimrepID) ""}
                     set item ""
                     set dim(symbol) ""
+                    set dimName $ov
                     
                     set d1 ""
                     if {[info exists dimrep($dimrepID)]} {set d1 [string index $dimrep($dimrepID) 0]}
@@ -568,6 +561,7 @@ proc spmiDimtolReport {objEntity} {
                     set dimrepID $objID
                     set dim(symbol) ""
                     set dimrep($dimrepID) ""
+                    set dimName $ov
                     if {[string first "directed" $ent1] != -1} {
                       set dimDirected 1
                       lappend spmiTypesPerFile "directed dimension"
@@ -854,9 +848,29 @@ proc spmiDimtolReport {objEntity} {
             $cells($dt) Item 3 $c $colName
             set pmiHeading($pmiColumns(ch)) 1
             set pmiCol [expr {max($pmiColumns(ch),$pmiCol)}]
-            #addCellComment $dt 3 $c "The Associated Geometry is the link between the dimensional tolerance and shape aspect, advanced face, and geometric entities through shape_aspect_relationship and geometric_item_specific_usage."
           }
           $cells($dt) Item $r $pmiColumns(ch) [string trim $str]
+          
+# check for unexpected associated geometry for diameters and radius
+          if {[info exists dimName]} {
+            if {[string first "diameter" $dimName] != -1 || [string first "radius" $dimName] != -1} {
+              set badGeom {}
+              set okSurf 0
+              foreach item {"plane" "edge_curve" "manifold_solid_brep"} {
+                if {[string first $item $str] != -1} {lappend badGeom [list $dimName $item]}
+                if {[string first "surface" $str] != -1} {set okSurf 1}
+              }
+              foreach item $badGeom {
+                if {$okSurf} {
+                  errorMsg "Associated Geometry for a '[lindex $item 0]' dimension also refers to a '[lindex $item 1]'.\n [string totitle $dimName] dimensions are assumed to be associated only with curved surfaces."
+                  addCellComment $dt $r $pmiColumns(ch) "[string totitle $dimName] dimension (column E) also refers to a '[lindex $item 1]'." 150 50
+                } else {
+                  errorMsg "Associated Geometry for a '[lindex $item 0]' dimension is only a '[lindex $item 1]'.\n [string totitle $dimName] dimensions are assumed to be associated with curved surfaces."
+                  addCellComment $dt $r $pmiColumns(ch) "[string totitle $dimName] dimension (column E) is assumed to be associated with curved surfaces and not a '[lindex $item 1]'." 180 50
+                }
+              }
+            }
+          }
 
           foreach item [split $str "\n"] {
             if {[string first "shape_aspect" $item] == -1 && \
@@ -867,7 +881,6 @@ proc spmiDimtolReport {objEntity} {
           if {[info exists nstr]} {
             set dimtolGeomEnts [join [lsort $nstr]]
             set dimtolEntType($dimtolGeomEnts) "$dimtolType $dimtolID"
-            #outputMsg "[$dimtolEnt Type] [$dimtolEnt P21ID] $dimtolGeomEnts" green
           }
         }
       }
@@ -992,7 +1005,7 @@ proc spmiDimtolReport {objEntity} {
 # add trailing zeros to dimension
                     set pmprec [getPrecision $pmval(1)]
                     set n0 [expr {$pmprec-$dim(prec,$dimrepID)}]
-                    if {$n0 > 0} {
+                    if {$n0 > 0 && ![info exists dim(qual)]} {
                       if {[string first "." $dmval] == -1} {append dmval "."}
                       append dmval [string repeat "0" $n0]
                       set dim(prec,$dimrepID) $pmprec
@@ -1111,6 +1124,7 @@ proc spmiDimtolReport {objEntity} {
     
 # report complete dimension representation (dimrep)
     if {[catch {
+      set cellComment ""
       if {[info exists dimrep] && [info exists spmiIDRow($dt,$spmiID)]} {
         if {![info exists pmiColumns(dmrp)]} {set pmiColumns(dmrp) 4}
         set c [string index [cellRange 1 $pmiColumns(dmrp)] 0]
@@ -1120,6 +1134,7 @@ proc spmiDimtolReport {objEntity} {
           $cells($dt) Item 3 $c $colName
           set pmiHeading($pmiColumns(dmrp)) 1
           set pmiCol [expr {max($pmiColumns(dmrp),$pmiCol)}]
+          set dimtolComment "Repetitive Dimensions (e.g., 4X) are shown for diameters and radii.  They are computed based on the number of cylindrical, spherical, and toroidal surfaces associated with a dimension (see Associated Geometry column to the right) and, depending on the CAD system, might be off by a factor of two, have the wrong value, or be missing."
         }
         
 # add brackets or parentheses for basic or reference dimensions
@@ -1165,24 +1180,32 @@ proc spmiDimtolReport {objEntity} {
         if {[info exist dimDirected]} {
           append dr "[format "%c" 10](directed)"
           unset dimDirected
+          set cellComment "For the definition of a 'directed' dimension, see the CAx-IF Recommended Practice for $recPracNames(pmi242), Sec. 5.1.1, 5.1.7"
         }
         
 # oriented
         if {[info exist dimOrient]} {
           append dr "[format "%c" 10](oriented)"
           unset dimOrient
+          set cellComment "For the definition of an 'oriented' dimension, see the CAx-IF Recommended Practice for $recPracNames(pmi242), Sec. 5.1.3"
         }
         
 # dimension count
         if {[info exists dimRepeat]} {
-          if {$dimRepeat != ""} {
+          if {$dimRepeat > 1} {
             if {[string index $dr 0] == "'"} {set dr [string range $dr 1 end]}
             set dr "$dimRepeat\X $dr"
+            set dimRepeat ""
+            if {$dimtolComment != ""} {
+              addCellComment $dt 3 $c $dimtolComment
+              set dimtolComment ""
+            }
           }
         }
 
 # write dimension to spreadsheet
         $cells($dt) Item $r $pmiColumns(dmrp) $dr
+        if {$cellComment != ""} {addCellComment $dt $r $pmiColumns(dmrp) $cellComment}
         
 # save dimension with associated geometry
         if {$dimtolGeomEnts != ""} {

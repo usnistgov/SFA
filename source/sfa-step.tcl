@@ -1,6 +1,6 @@
 #-------------------------------------------------------------------------------
 # version numbers, software and user's guide
-proc getVersion {}   {return 2.46}
+proc getVersion {}   {return 2.50}
 proc getVersionUG {} {return 2.34}
 
 # -------------------------------------------------------------------------------
@@ -154,7 +154,7 @@ proc reportAssocGeom {entType} {
   #outputMsg "reportAssocGeom $entType" red
   
   set str ""
-  set dimRepeat ""
+  set dimRepeat 0
   set dimtol 0
   if {[string first "dimensional_" $entType] != -1 || [string first "angular_" $entType] != -1} {set dimtol 1}
   
@@ -166,17 +166,20 @@ proc reportAssocGeom {entType} {
       append str "([llength $assocGeom($item)]) $item [lsort -integer $assocGeom($item)]"
 
 # dimension count, e.g. 4X
-      if {[string first "dimensional_size" $entType] != -1} {
-        if {$item == "cylindrical_surface"} {
+      if {[string first "_size" $entType] != -1 || [string first "angular_location" $entType] != -1} {
+        if {$item == "cylindrical_surface" || $item == "spherical_surface" || $item == "toroidal_surface" || $item == "conical_surface"} {
+
+# set divider based on cylinders, assume two half cylinders, but if odd number of cylinders, then one complete cylinder
           set dc [llength $assocGeom($item)]
           if {$dc == 1} {set dimRepeatDiv 1}
+
           if {$dimRepeatDiv == 1} {
-            if {$dc > 1} {set dimRepeat $dc}
+            if {$dc > 1} {incr dimRepeat $dc}
           } else {
             if {[expr {$dc%2}] == 0} {
-              if {$dc > 3} {set dimRepeat [expr {$dc/2}]}
+              if {$dc > 3} {incr dimRepeat [expr {$dc/2}]}
             } else {
-              if {$dc > 1} {set dimRepeat $dc}
+              if {$dc > 1} {incr dimRepeat $dc}
             }
           }
         }
@@ -230,6 +233,12 @@ proc spmiSummary {} {
     $cells($spmiSumName) Item $spmiSumRow 1 "ID"
     $cells($spmiSumName) Item $spmiSumRow 2 "Entity"
     $cells($spmiSumName) Item $spmiSumRow 3 "PMI Representation"
+    
+    set comment "PMI Representation is collected from the datum systems, dimensions, tolerances, and datum target entities in column B"
+    if {$nistName != ""} {append comment " and is color-coded by the expected PMI in the NIST test case drawing to the right.  The color-coding is explained at the bottom of the column.  Determining if the PMI is Partial and Possible match and corresponding Similar PMI depends on leading and trailing zeros, number precision, associated datum features and dimensions, and repetitive dimensions."}
+    append comment "."
+    addCellComment $spmiSumName $spmiSumRow 3 $comment 300 100
+    
     set range [$worksheet($spmiSumName) Range [cellRange 1 1] [cellRange 3 3]]
     [$range Font] Bold [expr 1]
     set range [$worksheet($spmiSumName) Range [cellRange 3 1] [cellRange 3 3]]
@@ -339,6 +348,10 @@ proc spmiSummary {} {
 
 # remove (oriented)
             set c1 [string first "(oriented)" $val]
+            if {$c1 > 0} {set val [string range $val 0 $c1-2]}
+
+# remove between
+            set c1 [string first $pmiModifiers(between) $val]
             if {$c1 > 0} {set val [string range $val 0 $c1-2]}
 
 # remove zeros from val
@@ -542,6 +555,7 @@ proc spmiSummary {} {
                   if {$nsimilar == 1} {
                     [$worksheet($spmiSumName) Range [cellRange -1 4]] ColumnWidth [expr 48]
                     $cells($spmiSumName) Item 3 4 "Similar PMI"
+                    addCellComment $spmiSumName 3 4 "Similar PMI is the best match of the PMI Representation in column C, for Partial or Possible matches (blue and yellow), to the expected PMI in the NIST test case drawing to the right."
                     set range [$worksheet($spmiSumName) Range D3]
                     [$range Font] Bold [expr 1]
                     if {$excelVersion >= 12} {
@@ -778,7 +792,7 @@ proc spmiGetPMI {} {
 
       if {[file exists $fname]} {
         if {$lf} {outputMsg " "}
-        outputMsg "Reading Expected PMI for: $nistName (See Help > NIST CAD Models)" blue
+        outputMsg "Reading Expected PMI for: $nistName (See Help > NIST CAD Models)"
         set pid1 [twapi::get_process_ids -name "EXCEL.EXE"]
         set excel2 [::tcom::ref createobject Excel.Application]
         set pid2 [lindex [intersect3 $pid1 [twapi::get_process_ids -name "EXCEL.EXE"]] 2]
@@ -904,7 +918,7 @@ proc pmiFormatColumns {str} {
     set c3 $col($thisEntType)
     
 # PMI heading
-    outputMsg " Formatting: [formatComplexEnt $thisEntType]" blue
+    outputMsg " [formatComplexEnt $thisEntType]"
     $cells($thisEntType) Item 2 $c2 $str
     set range [$worksheet($thisEntType) Range [cellRange 2 $c2]]
     $range HorizontalAlignment [expr -4108]
@@ -922,7 +936,7 @@ proc pmiFormatColumns {str} {
     } elseif {[string first "PMI Representation" $str] != -1} {
       set rs $spmiRow($thisEntType)
       if {$opt(XLSBUG1) > 0 && ![file exists [file nativename C:/Windows/Fonts/ARIALUNI.TTF]]} {
-        errorMsg "Excel $excelYear might not display some GD&T symbols correctly in PMI Representation reports.  The missing\n symbols will appear as question mark inside a square.  The likely cause is a missing font\n 'Arial Unicode MS' from the font file 'ARIALUNI.TTF'."
+        errorMsg "Excel $excelYear might not show some GD&T symbols correctly in PMI Representation reports.  The missing\n symbols will appear as question mark inside a square.  The likely cause is a missing font\n 'Arial Unicode MS' from the font file 'ARIALUNI.TTF'."
         incr opt(XLSBUG1) -1
       } elseif {$opt(XLSBUG1) < 30 && [file exists [file nativename C:/Windows/Fonts/ARIALUNI.TTF]]} {
         set opt(XLSBUG1) 30

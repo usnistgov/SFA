@@ -128,9 +128,7 @@ proc spmiGeotolReport {objEntity} {
   incr entLevel
   set ind [string repeat " " [expr {4*($entLevel-1)}]]
 
-  if {[string first "handle" $objEntity] == -1} {
-    #if {$objEntity != ""} {outputMsg "$ind $objEntity" red}
-  } else {
+  if {[string first "handle" $objEntity] != -1} {
     set objType [$objEntity Type]
     set objID   [$objEntity P21ID]
     set objAttributes [$objEntity Attributes]
@@ -412,13 +410,15 @@ proc spmiGeotolReport {objEntity} {
                     } elseif {$ATR(1) == "unit_size"} {
                       set ok 1
                       if {[string range $objValue end-1 end] == ".0"} {set objValue [string range $objValue 0 end-2]}
+                      if {$objValue == 0.} {errorMsg "Syntax Error: Unit-basis = 0 for [formatComplexEnt $gt]\n[string repeat " " 14]\($recPracNames(pmi242), Sec. 6.9.6)"}
                       set objValue " / $objValue"
                       set idx "unit-basis tolerance"
                       lappend spmiTypesPerFile $idx
                     } elseif {$ATR(1) == "second_unit_size"} {
                       set ok 1
                       if {[string range $objValue end-1 end] == ".0"} {set objValue [string range $objValue 0 end-2]}
-                      set objValue "X$objValue"
+                      if {$objValue == 0.} {errorMsg "Syntax Error: Unit-basis = 0 for [formatComplexEnt $gt]\n[string repeat " " 14]\($recPracNames(pmi242), Sec. 6.9.6)"}
+                      set objValue "X $objValue"
 
 # get maximum tolerance value (6.9.5)
                     } elseif {$ATR(1) == "maximum_upper_tolerance"} {
@@ -441,6 +441,9 @@ proc spmiGeotolReport {objEntity} {
                   if {![info exists pmiHeading($col($gt))]} {
                     if {[info exists colName]} {
                       $cells($gt) Item 3 $c $colName
+                      if {[string first "GD&T" $colName] != -1} {
+                        addCellComment $gt 3 $c "Showing the corresponding Dimension and Datum Feature with these Geometric Tolerances depends on all three referring to the same Associated Geometry.  See the Toleranced Geometry column to the right and the Associated Geometry columns on the 'dimensional_characteristic_representation' (DCR) and 'datum_feature' worksheets.  See the DCR worksheet for an explanation of Repetitive Dimensions." 250 120
+                      }
                     } else {
                       errorMsg "Syntax Error on [formatComplexEnt $gt]"
                     }
@@ -453,8 +456,6 @@ proc spmiGeotolReport {objEntity} {
 
 # value in spreadsheet
                   set val [[$cells($gt) Item $r $c] Value]
-                  #outputMsg "$val" green
-                  #outputMsg " $objValue" red
                   if {$val == ""} {
                     $cells($gt) Item $r $c $objValue
                     if {$gt == "datum_system"} {
@@ -470,15 +471,15 @@ proc spmiGeotolReport {objEntity} {
 # unit-basis rectangle
                     } elseif {[string first "X" $objValue] == 0} {
                       if {[string first "/ $pmiUnicode(diameter)" $val] == -1} {
-                        set c1 [string first "X" $val]
-                        if {$c1 != -1} {set val [string range $val 0 $c1-2]}
-                        set c1 [string first "rectangular" $val]
-                        if {$c1 != -1} {set val [string range $val 0 $c1-1]}
-                        $cells($gt) Item $r $c "$val$objValue"
+                        #set c1 [string first "X" $val]
+                        #if {$c1 != -1} {set val [string range $val 0 $c1-2]}
+                        $cells($gt) Item $r $c "$val $objValue"
                       }
 # unequally disposed
                     } elseif {[string first $pmiModifiers(unequally_disposed) $objValue] == -1 && [string first "UZ" $objValue] == -1 && $ATR(1) != "unit_size"} {
                       if {[string first "handle" $objValue] == -1} {$cells($gt) Item $r $c "$val | $objValue"}
+
+# all others
                     } else {
                       $cells($gt) Item $r $c "$val$objValue"
                     }
@@ -623,7 +624,6 @@ proc spmiGeotolReport {objEntity} {
                     if {$gt == "datum_reference_compartment"} {
                       set idx [string trim [expr {int([[$cells($gt) Item $r 1] Value])}]]
                       set datumCompartment($idx) $ov
-                      #outputMsg "DRC  $idx  $nval" blue
                     }
                   } else {
                     if {[string first "modifiers" $ent1] != -1} {
@@ -632,7 +632,6 @@ proc spmiGeotolReport {objEntity} {
                       if {$gt == "datum_reference_compartment"} {
                         set idx [string trim [expr {int([[$cells($gt) Item $r 1] Value])}]]
                         set datumCompartment($idx) $nval
-                        #outputMsg "DRC  $idx  $nval" red
                       }
                     } else {
                       $cells($gt) Item $r $c "$val[format "%c" 10]$ov"
@@ -911,7 +910,7 @@ proc spmiGeotolReport {objEntity} {
                                             set e5 [$a4 Value]
                                             ::tcom::foreach a5 [$e5 Attributes] {
                                               if {[$a5 Name] == "coordinates"} {
-                                                append datumTargetRep "coordinates "
+                                                append datumTargetRep "[format "%c" 10]coordinates "
                                                 foreach item [split [$a5 Value] " "] {
                                                   set val [string trimright [format "%.4f" $item] "0"]
                                                   if {$val == "-0."} {set val 0.}
@@ -946,6 +945,10 @@ proc spmiGeotolReport {objEntity} {
                                               if {[string range $dtv end-1 end] == ".0"} {set dtv [string range $dtv 0 end-2]}
                                               if {$datumTargetType == "circle"} {
                                                 set objValue $pmiUnicode(diameter)$dtv[format "%c" 10]$objValue
+                                              } elseif {$datumTargetType == "line"} {
+                                                set objValue "$objValue[format "%c" 10](L = [trimNum $dtv])"
+                                              } elseif {$datumTargetType == "circular curve"} {
+                                                set objValue "$objValue[format "%c" 10](D = [trimNum $dtv])"
                                               } elseif {$datumTargetType == "rectangle"} {
                                                 incr ndtv
                                                 if {$ndtv == 1} {
@@ -1120,15 +1123,15 @@ proc spmiGeotolReport {objEntity} {
                     } elseif {[string first "modifier" $ent1] != -1} {
                       set nval $val$ov
                       $cells($gt) Item $r $c $nval
-# area_type for defined area unit
-                    } elseif {$ov == "square" || $ov == "rectangular"} {
+# area_type for defined area unit, rectangular is handled above
+                    } elseif {$ov == "square"} {
                       set c1 [string last " " $val]
                       set nval "$val X [string range $val $c1+1 end]"
                       $cells($gt) Item $r $c $nval
                     } elseif {$ov == "circular"} {
                       regsub -all "/ " $val "/ $pmiUnicode(diameter)" nval
                       $cells($gt) Item $r $c $nval
-                    } else {
+                    } elseif {$ov != "rectangular"} {
                       $cells($gt) Item $r $c "$val[format "%c" 10]$ov"
                     }
                   }
@@ -1147,7 +1150,7 @@ proc spmiGeotolReport {objEntity} {
                           set pmiCol [expr {max($col($gt),$pmiCol)}]
                         }
                       }
-                      $cells($gt) Item $r $c $datumTargetRep
+                      $cells($gt) Item $r $c [string trim $datumTargetRep]
                     }
                   }
                 }
@@ -1251,7 +1254,20 @@ proc spmiGeotolReport {objEntity} {
               [string first "datum_feature" $item] == -1} {lappend geotolGeomEnts $item}
         }
         set geotolGeomEnts [join [lsort $geotolGeomEnts]]
-        if {[info exists dimtolGeom($geotolGeomEnts)]} {set tol_dimrep [lindex $dimtolGeom($geotolGeomEnts) 0]}
+
+# exact match
+        if {[info exists dimtolGeom($geotolGeomEnts)]} {
+          set tol_dimrep [lindex $dimtolGeom($geotolGeomEnts) 0]
+
+# partial match
+        } else {
+          foreach item [array names dimtolGeom] {
+            if {[string first $geotolGeomEnts $item] != -1 && [string first "surface" $geotolGeomEnts] != -1} {
+              set tol_dimrep [lindex $dimtolGeom($item) 0]
+              break
+            }
+          }
+        }
       }
     
 # add dimensional tolerance
@@ -1429,6 +1445,11 @@ proc spmiGeotolReport {objEntity} {
         }
         $cells($gt) Item $r $c [string trim $geotolGeom]
         if {[lsearch $spmiRow($gt) $r] == -1} {lappend spmiRow($gt) $r}
+
+        if {[string first "manifold_solid_brep" $geotolGeom] != -1 && [string first "surface" $gt] == -1} {
+          errorMsg "Toleranced Geometry for a [formatComplexEnt $gt]\n contains a 'manifold_solid_brep'."
+          addCellComment $gt $r $c "Toleranced Geometry contains a 'manifold_solid_brep'" 150 30
+        }
       }
     }
   }

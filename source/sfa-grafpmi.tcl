@@ -657,7 +657,12 @@ proc gpmiAnnotationReport {objEntity} {
                     if {[lsearch $x3dMsg $msg] == -1} {lappend x3dMsg $msg}
                   }
                   if {[string first "placeholder" $ent1] != -1} {set placeNCP 0}
-                }
+                  if {[string first "tessellated" $ent1] != -1} {
+                    if {[info exist entCount(annotation_curve_occurrence)] || [info exists entCount(annotation_curve_occurrence_and_geometric_representation_item]} {
+                      errorMsg "Syntax Error: Using both 'annotation_curve_occurrence' and 'tessellated_annotation_occurrence' is not recommended.\n[string repeat " " 14]($recPracNames(pmi242), Sec. 8.3, Important Note)"
+                    }
+                  }
+                } 
                 "*triangulated_face name" -
                 "*triangulated_surface_set name" -
                 "tessellated_curve_set name" {

@@ -4,8 +4,7 @@ global entCategory entColorIndex badAttributes roseLogical
 global aoEntTypes gpmiTypes spmiEntTypes dimSizeNames tolNames tzfNames dimModNames pmiModifiers pmiModifiersRP pmiUnicode
 global spmiTypes recPracNames modelPictures schemaLinks modelURLs legendColor
 global ap203all ap214all ap242all
-global feaIndex cadApps
-global tcl_platform
+global feaIndex cadApps numSavedViews
 
 set roseLogical(0) "FALSE"
 set roseLogical(1) "TRUE"
@@ -355,6 +354,19 @@ set modelURLs [list nist_ctc_01_asme1_rd.pdf \
                     nist_ftc_09_asme1_rd.pdf \
                     nist_ftc_10_asme1_rb.pdf \
                     nist_ftc_11_asme1_rb.pdf]
+
+set numSavedViews(nist_ctc_01) 1
+set numSavedViews(nist_ctc_02) 3
+set numSavedViews(nist_ctc_03) 1
+set numSavedViews(nist_ctc_04) 1
+set numSavedViews(nist_ctc_05) 2
+set numSavedViews(nist_ftc_06) 3
+set numSavedViews(nist_ftc_07) 4
+set numSavedViews(nist_ftc_08) 4
+set numSavedViews(nist_ftc_09) 4
+set numSavedViews(nist_ftc_10) 5
+set numSavedViews(nist_ftc_11) 2
+
 
 # -----------------------------------------------------------------------------------------------------
 # AP209 element index based on ISO 10303 Part 104 ordering

@@ -1,7 +1,7 @@
 # read entity and write to spreadsheet
 
 proc getEntity {objEntity checkInverse} {
-  global attrType badAttributes cells col count developer entCount entName excelVersion
+  global attrType badAttributes cells col count developer entComment entCount entName excelVersion
   global skipEntities skipPerm heading invMsg invVals localName opt roseLogical row rowmax sheetLast
   global thisEntType worksheet worksheets wsCount wsNames
   
@@ -165,24 +165,9 @@ proc getEntity {objEntity checkInverse} {
 # -------------------------------------------------------------------------------------------------
 # headings in first row only for first instance of an entity
       if {$heading($thisEntType) != 0} {
-        set ihead 1
-        if {$ihead} {
-          $cells($thisEntType) Item 3 [incr heading($thisEntType)] $attrName
-          set attrType($heading($thisEntType)) [$objAttribute Type]
-          if {[$objAttribute Type] == "STR" || [$objAttribute Type] == "RoseBoolean" || [$objAttribute Type] == "RoseLogical"} {
-            #outputMsg "  $attrName  [$objAttribute Type]"  
-            set letters ABCDEFGHIJKLMNOPQRSTUVWXYZ
-            set c $heading($thisEntType)
-            set inc [expr {int(double($c-1.)/26.)}]
-            if {$inc == 0} {
-              set c [string index $letters [expr {$c-1}]]
-            } else {
-              set c [string index $letters [expr {$inc-1}]][string index $letters [expr {$c-$inc*26-1}]]
-            }
-            #set range [$worksheet($thisEntType) Range "$c:$c"]
-            #[$range Columns] NumberFormat "@"
-          } 
-        }
+        $cells($thisEntType) Item 3 [incr heading($thisEntType)] $attrName
+        set attrType($heading($thisEntType)) [$objAttribute Type]
+        set entComment($attrName) 1
       }
 
 # -------------------------------------------------------------------------------------------------
@@ -217,18 +202,14 @@ proc getEntity {objEntity checkInverse} {
         set refEntity [$objAttribute Value]
 
 # get refType, however, sometimes this is not a single reference, but rather a list
-#  which causes an error and it has to be processed like a list below
         if {[catch {
           set refType [$refEntity Type]
           set valnotlist 1
         } emsg2]} {
 
-# process like a list which is very unusual
-          #if {$developer} {errorMsg " Attribute reference is a List: $emsg2"}
+# process like a list
           catch {foreach idx [array names cellval] {unset cellval($idx)}}
-          ::tcom::foreach val $refEntity {
-            append cellval([$val Type]) "[$val P21ID] "
-          }
+          ::tcom::foreach val $refEntity {append cellval([$val Type]) "[$val P21ID] "}
           set str ""
           set size 0
           catch {set size [array size cellval]}
@@ -264,12 +245,20 @@ proc getEntity {objEntity checkInverse} {
           set str "[formatComplexEnt $refType 1] [$refEntity P21ID]"
 
 # for length measure (and other measures), add the actual measure value
+          set cellComment 0
           if {[string first "measure_with_unit" $refType] != -1} {
             ::tcom::foreach refAttribute [$refEntity Attributes] {
-              if {[$refAttribute Name] == "value_component"} {set str "[$refAttribute Value] ($str)"}
+              if {[$refAttribute Name] == "value_component"} {
+                set str "[$refAttribute Value] ($str)"
+                set cellComment 1
+              }
             }
           }
           $cells($thisEntType) Item $row($thisEntType) $col($thisEntType) $str
+          if {$cellComment && $entComment($attrName)} {
+            addCellComment $thisEntType 3 $col($thisEntType) "Corresponding length and angle value(s) are also shown." 150 30
+            set entComment($attrName) 0
+          }
         }
 
 # -------------------------------------------------------------------------------------------------
@@ -277,16 +266,28 @@ proc getEntity {objEntity checkInverse} {
       } elseif {[$objAttribute NodeType] == 20} {
         catch {foreach idx [array names cellval] {unset cellval($idx)}}
         catch {unset cellparam}
+        set valMeasure {}
 
 # collect the reference id's (P21ID) for the Type of entity in the SET or LIST
         if {[catch {
           ::tcom::foreach val [$objAttribute Value] {
-            append cellval([$val Type]) "[$val P21ID] "
+            set valType [$val Type]
+            append cellval($valType) "[$val P21ID] "
+
+# check for length or plane measures
+            if {[string first "measure_with_unit" $valType] != -1} {
+              if {[string first "length" $valType] != -1 || [string first "plane" $valType] != -1} {
+                ::tcom::foreach refAttribute [$val Attributes] {
+                  if {[$refAttribute Name] == "value_component"} {lappend valMeasure [$refAttribute Value]}
+                }
+              }
+            }
           }
         } emsg]} {
           foreach val [$objAttribute Value] {
             if {[string first "handle" $val] != -1} {
-              append cellval([$val Type]) "[$val P21ID] "
+              set valType [$val Type]
+              append cellval($valType) "[$val P21ID] "
             } else {
               append cellparam "$val "
             }
@@ -299,6 +300,9 @@ proc getEntity {objEntity checkInverse} {
         set size 0
         catch {set size [array size cellval]}
 
+        set strMeasure ""
+        if {[llength $valMeasure] > 0 && [llength $valMeasure] < 5} {set strMeasure "[join $valMeasure] "}
+
         if {[info exists cellparam]} {append str "$cellparam "}
         if {$size > 0} {
           foreach idx [lsort [array names cellval]] {
@@ -309,22 +313,24 @@ proc getEntity {objEntity checkInverse} {
                                    [string first "connecting_edge" $idx] != -1 || [string first "3d_element_representation" $idx] != -1 || \
                                    $idx == "node" || $idx == "cartesian_point" || $idx == "advanced_face")} {
                 set ok 0
-                #outputMsg "($ncell) [formatComplexEnt $idx 1]  B" green
               } elseif {$ncell > 500} {
                 set ok 0
-                #outputMsg "($ncell) [formatComplexEnt $idx 1]  B" blue
               }
               if {$ok} {
-                append str "($ncell) [formatComplexEnt $idx 1] $cellval($idx)  "
+                append str "$strMeasure\($ncell) [formatComplexEnt $idx 1] $cellval($idx)  "
               } else {
                 append str "($ncell) [formatComplexEnt $idx 1]  "
               }
             } else {
-              append str "(1) [formatComplexEnt $idx 1] $cellval($idx)  "
+              append str "$strMeasure\(1) [formatComplexEnt $idx 1] $cellval($idx)  "
             }
           }
         }
         $cells($thisEntType) Item $row($thisEntType) $col($thisEntType) [string trim $str]
+        if {$strMeasure != "" && $entComment($attrName)} {
+          addCellComment $thisEntType 3 $col($thisEntType) "Corresponding length and angle value(s) are also shown." 150 30
+          set entComment($attrName) 0
+        }
       }
     }
 

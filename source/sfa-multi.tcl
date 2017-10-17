@@ -179,15 +179,7 @@ proc openMultiFile {{ask 1}} {
               for {set n $sheetCount} {$n > $n1} {incr n -1} {[$worksheets1 Item [expr $n]] Delete}
               catch {$excel1 DisplayAlerts True}
 
-# start STEP coverage analysis worksheet
-              #if {$coverageSTEP} {
-              #  if {$opt(PMISEM)} {spmiCoverageStart}
-              #  if {$opt(PMIGRF)} {gpmiCoverageStart}
-              #}
-            
-# done starting coverage analysis worksheets
 # -------------------------------------------------------------------------
-
 # start file summary worksheet
               set sum "Summary"
               set worksheet1($sum) [$worksheets1 Item [expr 1]]
@@ -260,20 +252,19 @@ proc openMultiFile {{ask 1}} {
         $buttons(pgb1) configure -maximum $lenfilelist
         update
 
-# start loop
+# start loop over multiple files
         foreach file1 $fileList {
           incr nfile
-
-# process the file
           set stat($nfile) 0
           set localName $file1
-
-# check for zipped file
-          if {[string first ".stpz" [string tolower $localName]] != -1} {unzipFile}  
 
           outputMsg "\n-------------------------------------------------------------------------------"
           outputMsg "($nfile of $lenfilelist) Ready to process: [file tail $file1] ([expr {[file size $file1]/1024}] Kb)" blue
 
+# check for zipped file
+          if {[string first ".stpz" [string tolower $localName]] != -1} {unzipFile}  
+
+# process the file
           if {[catch {
             set stat($nfile) [genExcel $nfile]
 
@@ -549,7 +540,7 @@ proc openMultiFile {{ask 1}} {
           append msg "Visualizations"
         }
         append msg " Generated in $ptime"
-        outputMsg $msg blue
+        outputMsg $msg green
         outputMsg "-------------------------------------------------------------------------------"
 
 # -------------------------------------------------------------------------------------------------

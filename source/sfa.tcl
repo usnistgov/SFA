@@ -257,11 +257,12 @@ proc whatsNew {} {
   if {$sfaVersion > 0 && $sfaVersion < [getVersion]} {outputMsg "\nThe previous version of the STEP File Analyzer was: $sfaVersion" red}
 
 outputMsg "\nWhat's New (Version: [getVersion]  Updated: [string trim [clock format $progtime -format "%e %b %Y"]])" blue
-outputMsg "- Improved CSV file output
-- PMI Saved View viewpoints (experimental)
-- Support for repetitive hole dimensions
-- New Output Format to generate Visualizations without a spreadsheet (Options tab)
+outputMsg "- Detect unexpected Associated Geometry for hole and radius dimensions
+- Support for repetitive hole and radius dimensions, e.g, '4X' R10.5
 - Improved color-coding for PMI Representation Coverage for NIST CAD models (Help > NIST CAD models)
+- PMI Saved View viewpoints (experimental)
+- Improved CSV file output
+- New Output Format to generate Visualizations without a spreadsheet (Options tab)
 - Bug fixes and minor improvements"
 
   .tnb select .tnb.status
