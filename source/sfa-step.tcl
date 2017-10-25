@@ -1,12 +1,12 @@
 #-------------------------------------------------------------------------------
 # version numbers, software and user's guide
-proc getVersion {}   {return 2.50}
+proc getVersion {}   {return 2.55}
 proc getVersionUG {} {return 2.34}
 
 # -------------------------------------------------------------------------------
 # dt = 1 for dimtol
 proc getAssocGeom {entDef {dt 0}} {
-  global assocGeom entCount recPracNames
+  global assocGeom entCount gtEntity recPracNames syntaxErr
   
   set entDefType [$entDef Type]
   #outputMsg "getGeom $dt $entDefType [$entDef P21ID]" blue
@@ -72,11 +72,15 @@ proc getAssocGeom {entDef {dt 0}} {
 # check all around
       if {$entDefType == "all_around_shape_aspect"} {
         if {[llength $assocGeom($type)] == 1} {
-          #outputMsg " assocGeom $type $assocGeom($type) [llength $assocGeom($type)]" blue
+          #outputMsg " assocGeom $type $assocGeom($type) [llength $assocGeom($type)]" green
           if {$type == "advanced_face"} {
-            errorMsg "Syntax Error: For All Around tolerance, 'shape_aspect relationship' relates '$entDefType' to only one 'shape_aspect'.\n[string repeat " " 14]\($recPracNames(pmi242), Sec. 6.4, Fig. 31)"
+            set msg "Syntax Error: For All Around tolerance, 'shape_aspect relationship' entity relates '$entDefType' to only one 'shape_aspect'.\n[string repeat " " 14]\($recPracNames(pmi242), Sec. 6.4, Fig. 31)"
+            errorMsg $msg
+            if {[info exists gtEntity]} {lappend syntaxErr([$gtEntity Type]) [list [$gtEntity P21ID] "toleranced_shape_aspect" $msg]}
           } elseif {$type == $entDefType} {
-            errorMsg "Syntax Error: For All Around tolerance, missing 'shape_aspect relationship' relating '$entDefType' to 'shape_aspect'.\n[string repeat " " 14]\($recPracNames(pmi242), Sec. 6.4, Fig. 31)"
+            set msg "Syntax Error: For All Around tolerance, missing 'shape_aspect relationship' entity relating '$entDefType' to 'shape_aspect'.\n[string repeat " " 14]\($recPracNames(pmi242), Sec. 6.4, Fig. 31)"
+            errorMsg $msg
+            if {[info exists gtEntity]} {lappend syntaxErr([$gtEntity Type]) [list [$gtEntity P21ID] "toleranced_shape_aspect" $msg]}
             unset assocGeom($type)
           }
         }
@@ -149,8 +153,8 @@ proc getFaceGeom {a0 {id ""}} {
 }
 
 # -------------------------------------------------------------------------------
-proc reportAssocGeom {entType} {
-  global assocGeom recPracNames dimRepeat dimRepeatDiv
+proc reportAssocGeom {entType {row ""}} {
+  global assocGeom recPracNames dimRepeat dimRepeatDiv syntaxErr
   #outputMsg "reportAssocGeom $entType" red
   
   set str ""
@@ -195,7 +199,9 @@ proc reportAssocGeom {entType} {
     }
   }
   if {[string length $str] == 0 && $dimtol} {
-    errorMsg "Syntax Error: Associated Geometry not found for a '[formatComplexEnt $entType]'.\n[string repeat " " 14]Check GISU or IIRU 'definition' attribute or shape_aspect_relationship 'relating_shape_aspect' attribute.\n[string repeat " " 14]\($recPracNames(pmi242), Sec. 5.1, Figs. 5, 6, 12)"
+    set msg "Syntax Error: Associated Geometry not found for a '[formatComplexEnt $entType]'.\n[string repeat " " 14]Check GISU or IIRU 'definition' attribute or shape_aspect_relationship 'relating_shape_aspect' attribute.\n[string repeat " " 14]\($recPracNames(pmi242), Sec. 5.1, Figs. 5, 6, 12)"
+    errorMsg $msg
+    if {$row != ""} {lappend syntaxErr(dimensional_characteristic_representation) [list "-$row" "Associated Geometry" $msg]}
   }
 
 # shape aspect
@@ -792,7 +798,7 @@ proc spmiGetPMI {} {
 
       if {[file exists $fname]} {
         if {$lf} {outputMsg " "}
-        outputMsg "Reading Expected PMI for: $nistName (See Help > NIST CAD Models)"
+        outputMsg "Reading Expected PMI for: $nistName (See Help > NIST CAD Models)" blue
         set pid1 [twapi::get_process_ids -name "EXCEL.EXE"]
         set excel2 [::tcom::ref createobject Excel.Application]
         set pid2 [lindex [intersect3 $pid1 [twapi::get_process_ids -name "EXCEL.EXE"]] 2]

@@ -8,13 +8,14 @@
 # 
 # This software can be redistributed and/or modified freely provided that any derivative works bear 
 # some notice that they are derived from it, and any modified versions bear some notice that they 
-# have been modified. 
+# have been modified.
+
+# The latest version of the source code is available at: https://github.com/usnistgov/SFA
 
 # ----------------------------------------------------------------------------------------------
 # The STEP File Analyzer can only be built with Tcl 8.5.15 or earlier
 # More recent versions are incompatibile with the IFCsvr toolkit that is used to read STEP files
 # ----------------------------------------------------------------------------------------------
-
 # This is the main routine for the STEP File Analyzer command-line version
 
 global env
@@ -34,7 +35,10 @@ if {[catch {
   package require twapi
   package require Tclx
 } emsg]} {
-  puts "\nERROR loading required packages.\n\nThere might be a problem running the STEP File Analyzer from a directory with\naccented, non-English, or symbol characters in the pathname.  Run the software\nfrom a directory without any special characters in the pathname.\n\nPlease contact Robert Lipman (robert.lipman@nist.gov) for other problems."
+  set dir $wdir
+  set c1 [string first [file tail [info nameofexecutable]] $dir]
+  if {$c1 != -1} {set dir [string range $dir 0 $c1-1]}
+  puts "\nERROR: $emsg\n\nThere might be a problem running this program from a directory with accented, non-English, or symbol characters in the pathname.\n\n[file nativename $dir]\n\nRun the software from a directory without any special characters in the pathname.\n\nPlease contact Robert Lipman (robert.lipman@nist.gov) for other problems."
   exit
 }
 
@@ -119,7 +123,7 @@ if {![file exists [file join $ifcsvrDir IFCsvrR300.dll]]} {installIFCsvr}
 
 # -----------------------------------------------------------------------------------------------------
 # initialize variables
-foreach id {XL_OPEN XL_KEEPOPEN XL_LINK1 XL_FPREC XL_SORT \
+foreach id {XL_OPEN XL_KEEPOPEN XL_LINK1 XL_FPREC XL_SORT LOGFILE \
             VALPROP PMIGRF PMISEM VIZPMI VIZFEA VIZTES INVERSE DEBUG1 \
             PR_STEP_AP242 PR_USER PR_STEP_KINE PR_STEP_COMP PR_STEP_COMM PR_STEP_GEOM PR_STEP_QUAN \
             PR_STEP_FEAT PR_STEP_PRES PR_STEP_TOLR PR_STEP_REPR PR_STEP_CPNT PR_STEP_SHAP} {set opt($id) 1}

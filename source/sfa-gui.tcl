@@ -397,9 +397,9 @@ proc guiProcessAndReports {} {
   pack $foptd1 -side top -anchor w -pady 0 -padx 0 -fill y
   pack $foptd -side left -anchor w -pady {5 2} -padx 10 -fill both -expand true
   catch {
-    tooltip::tooltip $buttons(optPMISEM)  "See Help > PMI Representation"
-    tooltip::tooltip $buttons(optPMIGRF)  "See Help > PMI Presentation\nSee Examples > Graphical PMI Viewer"
-    tooltip::tooltip $buttons(optVALPROP) "See Help > Validation Properties"
+    tooltip::tooltip $buttons(optPMISEM)  "PMI Representation information is shown on dimension, tolerance, datum target, and datum entities.\n\nSee Help > PMI Representation\nSee Help > Syntax Errors\nSee Examples > Spreadsheet and Sample STEP Files\nSee Websites > AP242 Project"
+    tooltip::tooltip $buttons(optPMIGRF)  "PMI Presentation information is shown on 'annotation occurrence' entities.\nGraphical PMI can also be Visualized.\n\nSee Help > PMI Presentation\nSee Help > Syntax Errors\nSee Examples > Spreadsheet and Sample STEP Files\nSee Examples > Graphical PMI Viewer"
+    tooltip::tooltip $buttons(optVALPROP) "Validation Properties are shown on the 'property_definition' entity.\n\nSee Help > Validation Properties\nSee Help > Syntax Errors\nSee Examples > Spreadsheet"
   }
   
 # visualize
@@ -438,9 +438,9 @@ proc guiProcessAndReports {} {
   pack $foptv -side left -anchor w -pady {5 2} -padx 10 -fill both -expand true
   pack $foptrv -side top -anchor w -pady 0 -fill x
   catch {
-    tooltip::tooltip $buttons(optVIZPMI) "See Help > PMI Presentation\nSee Examples > Graphical PMI Viewer\n\nVisualizations can be generated without generating a spreadsheet\nor CSV files.  See the Output Format options below."
-    tooltip::tooltip $buttons(optVIZFEA) "See Help > Finite Element Model\nSee Examples > AP209 FEM Viewer\n\nVisualizations can be generated without generating a spreadsheet\nor CSV files.  See the Output Format options below."
-    tooltip::tooltip $buttons(optVIZTES) "This feature is still be developed\nParts in an assembly might have the wrong position and orientation or be missing.\n\nParts modeled with tessellated geometry is supported by AP242 and is supplementary\nto boundary representation (b-rep) geometry.\n\nSee Help > Tessellated Part Geometry\nSee Examples > Tessellated Part Viewer\n\nVisualizations can be generated without generating a spreadsheet\nor CSV files.  See the Output Format options below."
+    tooltip::tooltip $buttons(optVIZPMI) "See Help > PMI Presentation\nSee Examples > Graphical PMI Viewer\n\nVisualizations can be generated without generating a spreadsheet\nor CSV files.  See the Output Format option below."
+    tooltip::tooltip $buttons(optVIZFEA) "See Help > Finite Element Model\nSee Examples > AP209 FEM Viewer\n\nVisualizations can be generated without generating a spreadsheet\nor CSV files.  See the Output Format option below."
+    tooltip::tooltip $buttons(optVIZTES) "This feature is still be developed\nParts in an assembly might have the wrong position and orientation or be missing.\n\nParts modeled with tessellated geometry is supported by AP242 and is supplementary\nto boundary representation (b-rep) geometry.\n\nSee Help > Tessellated Part Geometry\nSee Examples > Tessellated Part Viewer\n\nVisualizations can be generated without generating a spreadsheet or CSV files.\nSee the Output Format option below."
   }
 }
 
@@ -534,7 +534,7 @@ proc guiInverse {} {
 # open STEP file and output format
 proc guiOpenSTEPFile {} {
   global buttons cb fopt appNames developer dispCmds appName dispApps foptf
-  global edmWriteToFile edmWhereRules eeWriteToFile useXL
+  global edmWriteToFile edmWhereRules eeWriteToFile useXL xlInstalled
   
   set foptf [ttk::labelframe $fopt.f -text " Open STEP File in "]
 
@@ -654,11 +654,17 @@ proc guiOpenSTEPFile {} {
     regsub -all {[\(\)]} [lindex $item 1] "" idx
     set buttons($idx) [ttk::checkbutton $foptk.$cb -text [lindex $item 0] -variable [lindex $item 1] -command {
       if {![info exists useXL]} {set useXL 1}
+      if {[info exists xlInstalled]} {
+        if {!$xlInstalled} {set useXL 0}
+      } else {
+        set xlInstalled 1
+      }
+
       if {$ofNone && $opt(XLSCSV) != "None"} {
         set ofExcel 0
         set ofCSV 0
         set opt(XLSCSV) "None"
-        if {$useXL} {$buttons(ofExcel) configure -state normal}
+        if {$useXL && $xlInstalled} {$buttons(ofExcel) configure -state normal}
       }
       if {$ofExcel && $opt(XLSCSV) != "Excel"} {
         set ofNone 0
@@ -680,7 +686,7 @@ proc guiOpenSTEPFile {} {
           set ofNone 0
           set opt(XLSCSV) "CSV"
         }
-      } else {
+      } elseif {$xlInstalled} {
         $buttons(ofExcel) configure -state normal
       }
       if {!$ofExcel && !$ofCSV && !$ofNone} {
@@ -696,11 +702,20 @@ proc guiOpenSTEPFile {} {
       }
       checkValues
     }]
-    pack $buttons($idx) -side left -anchor w -padx 2 -pady 0 -ipady 0
+    pack $buttons($idx) -side left -anchor w -padx 5 -pady 0 -ipady 0
     incr cb
   }
   pack $foptk -side top -anchor w -pady {5 2} -padx 10 -fill both
-  catch {tooltip::tooltip $foptk "If Excel is installed, then Spreadsheets and CSV files can be generated.\nIf CSV Files is selected, the Spreadsheet is also generated.\n\nIf Excel is not installed, only CSV files can be generated.\nOptions for Reports and Inverse Relationships are disabled.\n\nVisualization Only does not generate any Spreadsheets or CSV files.\nAll options except Visualize are disabled."}
+  catch {tooltip::tooltip $foptk "If Excel is installed, then Spreadsheets and CSV files can be generated.\nIf CSV Files is selected, the Spreadsheet is also generated.\n\nIf Excel is not installed, only CSV files can be generated.\nOptions for Reports and Inverse Relationships are disabled.\n\nCSV files do not contain any cell colors, comments, or links.\nGD&T symbols will look correct only with Excel 2016 or newer.\n\nVisualization Only does not generate any Spreadsheets or CSV files.\nAll options except Visualize are disabled."}
+
+# log file
+  set foptm [ttk::labelframe $fopt.m -text " Log File "]
+  set txt " Generate a log file of the text in the Status tab"
+  regsub -all {[\(\)]} opt(LOGFILE) "" idx
+  set buttons($idx) [ttk::checkbutton $foptm.$cb -text $txt -variable opt(LOGFILE)]
+  pack $buttons($idx) -side left -anchor w -padx 5 -pady 0 -ipady 0
+  pack $foptm -side top -anchor w -pady {5 2} -padx 10 -fill both
+  catch {tooltip::tooltip $buttons(optLOGFILE)  "See Help > Syntax Errors"}
 }
 
 #-------------------------------------------------------------------------------
@@ -1072,7 +1087,7 @@ Datum Feature as two separate annotations with leader lines attached to the same
 
 Some syntax errors that indicate non-conformance to a CAx-IF Recommended Practices related to PMI
 Representation are also reported in the Status tab and the relevant worksheet cells.  Syntax
-errors are highlighted in red.
+errors are highlighted in red.  See Help > Syntax Errors.
 
 A PMI Representation Coverage Analysis worksheet is generated.  See Help > PMI Coverage Analysis.
 
@@ -1095,7 +1110,7 @@ yellow and green, on Annotation_*_occurrence worksheets.  The Summary worksheet 
 the Annotation_*_occurrence row if PMI Presentation is reported.
 
 Some syntax errors related to PMI Presentation are also reported in the Status tab and the
-relevant worksheet cells.  Syntax errors are highlighted in red.
+relevant worksheet cells.  Syntax errors are highlighted in red.  See Help > Syntax Errors.
 
 Presentation Style, Saved Views, Validation Properties, Annotation Plane, Associated Geometry, and
 Associated Representation are also reported.
@@ -1210,7 +1225,7 @@ Property_definition worksheet.  The worksheet can also be sorted and filtered.
 Other properties and User-Defined Attributes are also reported.
 
 Syntax errors related to validation property attribute values are also reported in the Status tab
-and the relevant worksheet cells.  Syntax errors are highlighted in red.
+and the relevant worksheet cells.  Syntax errors are highlighted in red.  See Help > Syntax Errors.
 
 Clicking on the plus '+' symbols above the columns will show other columns that contain the entity
 ID and attribute name of the validation property value.  All of the other columns can be shown or
@@ -1219,6 +1234,28 @@ hidden by clicking the '1' or '2' in the upper right corner of the spreadsheet.
 The Summary worksheet will indicate on the property_definition entity if properties are reported.
 
 Validation properties are defined by the CAx-IF.
+Go to Websites > Recommended Practices to access documentation."
+    .tnb select .tnb.status
+  }
+    
+  $Help add command -label "Syntax Errors" -command {
+outputMsg "\nSyntax Errors --------------------------------------------------------------" blue
+outputMsg "Syntax Error information and other errors can be used to debug a STEP file.  Syntax Errors are
+generated when Reports related to Semantic PMI, Graphical PMI, and Validation Properties are
+selected.  Syntax Errors and some other errors are shown in the Status tab and highlighted in
+red or yellow.  Syntax Errors are related to CAx-IF Recommended Practices and usually refer to a
+specific section, figure, or table in a Recommended Practice.
+
+Most entity types that have Syntax Errors or some other errors are highlighted in gray in
+column A on the File Summary worksheet.  A comment indicating that there are errors is shown with a
+small red triangle in the upper right corner of the cell.
+
+On an entity worksheet, most Syntax Errors are highlighted in red and have a cell comment with the
+text of the Syntax Error that was displayed in the Status tab.
+
+All text in the Status tab can be written to a Log File when a STEP file is processed (Options tab).
+In a log file, all error and warning messages are highlighted by ***.
+
 Go to Websites > Recommended Practices to access documentation."
     .tnb select .tnb.status
   }

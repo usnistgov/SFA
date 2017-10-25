@@ -3,16 +3,16 @@
 proc genExcel {{numFile 0}} {
   global allEntity ap203all ap214all ap242all badAttributes buttons
   global cells cells1 col col1 comma count coverageLegend readPMI csvdirnam csvfile
-  global developer dim dimRepeatDiv editorCmd entCategories entCategory entColorIndex entCount entityCount entsIgnored env errmsg
+  global developer dim dimRepeatDiv editorCmd entCategories entCategory entColorIndex entCount entityCount entsIgnored entsWithErrors env errmsg
   global excel excelVersion excelYear extXLS fcsv feaElemTypes File fileEntity skipEntities skipPerm gpmiTypesInvalid gpmiTypesPerFile idxColor ifcsvrDir inverses
-  global lastXLS lenfilelist localName localNameList multiFile multiFileDir mytemp nistName nistVersion nprogBarEnts nshape
+  global lastXLS lenfilelist localName localNameList logFile multiFile multiFileDir mytemp nistName nistVersion nprogBarEnts nshape
   global ofExcel ofCSV
   global opt p21e3 p21e3Section pmiCol pmiMaster recPracNames row rowmax
   global savedViewButtons savedViewName savedViewNames scriptName sheetLast spmiEntity spmiSumName spmiSumRow spmiTypesPerFile startrow stepAP
   global thisEntType tlast tolNames tolStandard totalEntity userEntityFile userEntityList userXLSFile useXL virtualDir
   global workbook workbooks worksheet worksheet1 worksheets writeDir wsCount wsNames
   global x3dAxes x3dColor x3dColors x3dCoord x3dFile x3dFileName x3dStartFile x3dIndex x3dMax x3dMin
-  global xlFileName xlFileNames xlFormat
+  global xlFileName xlFileNames xlFormat xlInstalled
   global objDesign
   
   if {[info exists errmsg]} {set errmsg ""}
@@ -162,6 +162,13 @@ proc genExcel {{numFile 0}} {
         errorMsg "File of entities to skip '[file tail $cfile1]' renamed to '[file tail $cfile]'."
       }
     }
+    
+# open log file
+    if {$opt(LOGFILE)} {
+      set lfile [file rootname $fname]
+      append lfile "-sfa.log"
+      set logFile [open $lfile w]
+    }
 
 # check if a file generated from a NIST test case is being processed
     set nistName ""
@@ -274,6 +281,7 @@ proc genExcel {{numFile 0}} {
 # connect to Excel
   set comma 0
   set useXL 1
+  set xlInstalled 1
   if {$opt(XLSCSV) != "None"} {
     if {[catch {
       set pid1 [checkForExcel $multiFile]
@@ -334,6 +342,7 @@ proc genExcel {{numFile 0}} {
 # no Excel, use CSV instead
     } emsg]} {
       set useXL 0
+      set xlInstalled 0
       if {$opt(XLSCSV) == "Excel"} {
         errorMsg "Excel is not installed or cannot start Excel: $emsg\n CSV files will be generated instead of a spreadsheet.  See the Output Format option.  Some options are disabled."
         set opt(XLSCSV) "CSV"
@@ -717,6 +726,7 @@ proc genExcel {{numFile 0}} {
 # initialize variables
   if {[catch {
     set coverageLegend 0
+    set entsWithErrors {}
     set gpmiTypesInvalid {}
     set idxColor 0
     set inverseEnts {}
@@ -885,15 +895,15 @@ proc genExcel {{numFile 0}} {
     [$worksheet($sum) Range "A[expr {$sumHeaderRow+3}]"] Select
     catch {[$excel ActiveWindow] FreezePanes [expr 1]}
     [$worksheet($sum) Range "A1"] Select
-  
-# add Summary color and hyperlinks
-    sumAddColorLinks $sum $sumHeaderRow $sumLinks $sheetSort $sumRow
-    #getTiming "done generating summary worksheet"
 
 # -------------------------------------------------------------------------------------------------
 # format cells on each entity worksheets
     formatWorksheets $sheetSort $sumRow $inverseEnts
     #getTiming "done formatting spreadsheets"
+  
+# add Summary color and hyperlinks
+    sumAddColorLinks $sum $sumHeaderRow $sumLinks $sheetSort $sumRow
+    #getTiming "done generating summary worksheet"
   
 # -------------------------------------------------------------------------------------------------
 # add PMI Rep. Coverage Analysis worksheet for a single file
@@ -1017,6 +1027,15 @@ proc genExcel {{numFile 0}} {
           errorMsg "ERROR Saving CSV files: $emsg2"
         }
       }
+      
+# close log file
+      if {[info exists logFile]} {
+        outputMsg "Saving Log file as:"
+        outputMsg " [truncFileName [file nativename $lfile]]" blue
+        close $logFile
+        unset logFile
+        unset lfile
+      }
   
       catch {$excel ScreenUpdating 1}
 
@@ -1079,6 +1098,8 @@ proc genExcel {{numFile 0}} {
     outputMsg " [truncFileName [file nativename $csvdirnam]]" blue
   }
   
+  if {$opt(XLSCSV) == "None"} {set useXL 1}  
+  
 # open directory of CSV files
   if {$csvOpenDir} {
     set ok 0
@@ -1139,7 +1160,7 @@ proc genExcel {{numFile 0}} {
 proc addHeaderWorksheet {numFile fname} {
   global objDesign
   global excel worksheets worksheet cells row timeStamp fileSchema cadApps cadSystem opt localName p21e3
-  global excel1 worksheet1 cells1 col1 legendColor
+  global excel1 worksheet1 cells1 col1 legendColor syntaxErr
   global csvdirnam useXL
    
   if {[catch {
@@ -1202,7 +1223,9 @@ proc addHeaderWorksheet {numFile fname} {
           errorMsg "Syntax Error: Schema name should end with _MIM_LF"
           if {$useXL} {[[$worksheet($hdr) Range B11] Interior] Color $legendColor(red)}
         }
-        if {[string first "AUTOMOTIVE_DESIGN_CC2" $sn] == 0} {errorMsg "This file uses an older version of STEP AP214.  See Help > Supported STEP APs"}
+        if {[string first "AUTOMOTIVE_DESIGN_CC2" $sn] == 0} {
+          errorMsg "This file uses an older version of STEP AP214.  See Help > Supported STEP APs"
+        }
 
         set fileSchema [string toupper [string range $objAttr 0 5]]
         if {[string first "IFC" $fileSchema] == 0} {
@@ -1624,7 +1647,7 @@ proc sumAddFileName {sum sumLinks} {
 #-------------------------------------------------------------------------------------------------
 # add file name and other info to top of Summary
 proc sumAddColorLinks {sum sumHeaderRow sumLinks sheetSort sumRow} {
-  global worksheet cells row excel entName xlFileName col entsIgnored
+  global worksheet cells row excel entName xlFileName col entsIgnored entsWithErrors
 
   if {[catch {
     #outputMsg " Adding links on Summary to Entity worksheets"
@@ -1649,10 +1672,23 @@ proc sumAddColorLinks {sum sumHeaderRow sumLinks sheetSort sumRow} {
       }
       $sumLinks Add $anchor $xlFileName "$hlsheet!A4" "Go to $ent"
 
-# color entities on summary
+# color cells
       set cidx [setColorIndex $ent]
       if {$cidx > 0} {
-        [$anchor Interior] ColorIndex [expr $cidx]
+
+# color entities on summary if no errors or warnings and add comment that there are CAx-IF RP errors    
+        if {[lsearch $entsWithErrors [formatComplexEnt $ent]] == -1} {
+          [$anchor Interior] ColorIndex [expr $cidx]
+
+# color entities on summary gray and add comment that there are CAx-IF RP errors    
+        } else {
+          [$anchor Interior] ColorIndex [expr 15]
+          if {$ent != "dimensional_characteristic_representation"} {
+            addCellComment $sum $sumRow 1 "There are errors or warnings for this entity based on CAx-IF Recommended Practices.  See Help > Syntax Errors." 250 40
+          } else {
+            addCellComment $sum $sumRow 1 "There are errors or warnings for this entity based on CAx-IF Recommended Practices.  Check for cell comments in the Associated Geometry column.  See Help > Syntax Errors." 250 60
+          }
+        }
         catch {
           [[$anchor Borders] Item [expr 8]] Weight [expr 1]
           [[$anchor Borders] Item [expr 9]] Weight [expr 1]

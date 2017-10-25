@@ -364,7 +364,7 @@ proc openFile {{openName ""}} {
   if {[llength $localNameList] > 1} {
     set fileDir [file dirname [lindex $localNameList 0]]
 
-    outputMsg "\nReady to process [llength $localNameList] STEP files" blue
+    outputMsg "\nReady to process [llength $localNameList] STEP files" green
     if {[info exists buttons]} {
       $buttons(genExcel) configure -state normal
       if {[info exists buttons(appOpen)]} {$buttons(appOpen) configure -state normal}
@@ -1238,75 +1238,101 @@ proc cellRange {r c} {
 #-------------------------------------------------------------------------------
 proc addCellComment {ent r c text {w 300} {h 70}} {
   global worksheet
-  set comment [[$worksheet($ent) Range [cellRange $r $c]] AddComment]
-  $comment Text $text
-  [$comment Shape] Width  [expr double($w)]
-  [$comment Shape] Height [expr double($h)]
+  #outputMsg "addCellComment $ent $r $c" green
+
+  if {[catch {
+    regsub -all \n $text " " text
+    while {[string first "  " $text] != -1} {regsub -all "  " $text " " text}
+    if {[string first "Syntax" $text] == 0} {set text "[string range $text 14 end]  See Websites > Recommended Practices or the link in row 2."}
+      
+    set comment [[$worksheet($ent) Range [cellRange $r $c]] AddComment]
+    $comment Text $text
+    [$comment Shape] Width  [expr double($w)]
+    [$comment Shape] Height [expr double($h)]
+
+# error      
+  } emsg]} {
+    if {[string first "Unknown error" $emsg] == -1} {errorMsg "ERROR adding Cell Comment: $emsg\n  $ent"}
+  }
 }
 
 #-------------------------------------------------------------------------------
+# color bad cells red, add cell comment with message
 proc colorBadCells {ent} {
-  global excelVersion syntaxErr count cells worksheet stepAP legendColor
+  global excelVersion syntaxErr count cells worksheet stepAP legendColor entsWithErrors
   
-  if {$stepAP == ""} {return}
+  if {$stepAP == "" || $excelVersion < 12} {return}
       
 # color red for syntax errors
   set lastr 4
   set rmax [expr {$count($ent)+3}]
+  set okcomment 0
   
-  if {$excelVersion >= 12} {
-    set syntaxErr($ent) [lsort [lrmdups $syntaxErr($ent)]]
-    for {set n 0} {$n < [llength $syntaxErr($ent)]} {incr n} {
-      if {[catch {
-        set err [lindex $syntaxErr($ent) $n]
+  set syntaxErr($ent) [lsort [lrmdups $syntaxErr($ent)]]
+  for {set n 0} {$n < [llength $syntaxErr($ent)]} {incr n} {
+    if {[catch {
+      set err [lindex $syntaxErr($ent) $n]
 
 # get row and column number
-        set r [lindex $err 0]
-        set c [lindex $err 1]
+      set r [lindex $err 0]
+      set c [lindex $err 1]
+      
+# get message for cell comment
+      set msg ""
+      set msg [lindex $err 2]
+      #outputMsg "syntaxErr $ent $r $c $msg" red
 
 # row and column are integers
-        if {[string is integer $c]} {
-          if {$r <= $rmax} {
-            [[$worksheet($ent) Range [cellRange $r $c] [cellRange $r $c]] Interior] Color $legendColor(red)
-          }
+      if {[string is integer $c]} {
+        if {$r <= $rmax} {
+          [[$worksheet($ent) Range [cellRange $r $c] [cellRange $r $c]] Interior] Color $legendColor(red)
+          set okcomment 1
+        }
 
 # values are entity ID or row number (row) and attribute name (column)
-        } else {
-          #outputMsg "\n$ent / $r / $c / [string is integer $c]" red
-          if {![info exists nc($c)]} { 
-            for {set i 2} {$i < 30} {incr i} {
-              set val [[$cells($ent) Item 3 $i] Value]
-              if {$val == $c} {
-                set nc($c) $i
-                break
-              }
-            }
-          }
-          
-          if {[info exists nc($c)]} {
-            set c $nc($c)
-          
-# entity ID
-            if {$r > 0} {
-              for {set i $lastr} {$i <= $rmax} {incr i} {
-                set val [[$cells($ent) Item $i 1] Value]
-                if {$val == $r} {
-                  set r $i
-                  set lastr [expr {$r+1}]
-                  [[$worksheet($ent) Range [cellRange $r $c] [cellRange $r $c]] Interior] Color $legendColor(red)
-                  break
-                }              
-              }
-            } else {
-              set r [expr {abs($r)}]
-              [[$worksheet($ent) Range [cellRange $r $c] [cellRange $r $c]] Interior] Color $legendColor(red)
+      } else {
+        #outputMsg "$ent / $r / $c / [string is integer $c]" red
+        if {![info exists nc($c)]} { 
+          for {set i 2} {$i < 30} {incr i} {
+            set val [[$cells($ent) Item 3 $i] Value]
+            if {[string first $c $val] == 0} {
+              set nc($c) $i
+              break
             }
           }
         }
-      } emsg]} {
-        errorMsg "ERROR setting cell color (red) for errors: $emsg\n  $ent"
-        catch {raise .}
+        
+        if {[info exists nc($c)]} {
+          set c $nc($c)
+        
+# entity ID
+          if {$r > 0} {
+            for {set i $lastr} {$i <= $rmax} {incr i} {
+              set val [[$cells($ent) Item $i 1] Value]
+              if {$val == $r} {
+                set r $i
+                #set lastr [expr {$r+1}]
+                [[$worksheet($ent) Range [cellRange $r $c] [cellRange $r $c]] Interior] Color $legendColor(red)
+                set okcomment 1
+                break
+              }              
+            }
+          } else {
+            set r [expr {abs($r)}]
+            [[$worksheet($ent) Range [cellRange $r $c] [cellRange $r $c]] Interior] Color $legendColor(red)
+            set okcomment 1
+          }
+        }
       }
+      
+# add cell comment
+      if {$msg != "" && $okcomment} {if {$r <= $rmax} {addCellComment $ent $r $c $msg}}
+      if {$okcomment} {lappend entsWithErrors [formatComplexEnt $ent]}
+
+# error      
+    } emsg]} {
+      errorMsg "ERROR setting cell color (red) or comment: $emsg\n  $ent"
+      catch {raise .}
     }
   }
 }
@@ -1343,7 +1369,7 @@ proc trimNum {num {prec 3} {checkcomma 0}} {
 
 #-------------------------------------------------------------------------------
 proc outputMsg {msg {color "black"}} {
-  global outputWin
+  global outputWin opt logFile
 
   if {[info exists outputWin]} {
     $outputWin issue "$msg " $color
@@ -1351,11 +1377,12 @@ proc outputMsg {msg {color "black"}} {
   } else {
     puts $msg
   }
+  if {$opt(LOGFILE) && [info exists logFile]} {puts $logFile $msg}
 }
 
 #-------------------------------------------------------------------------------
 proc errorMsg {msg {color ""}} {
-  global errmsg outputWin stepAP
+  global errmsg outputWin stepAP opt logFile
 
   if {![info exists errmsg]} {set errmsg ""}
   
@@ -1370,17 +1397,24 @@ proc errorMsg {msg {color ""}} {
     if {[info exists outputWin]} {
       if {$color == ""} {
         if {[string first "syntax error" [string tolower $msg]] != -1} {
-          if {$stepAP != ""} {$outputWin issue "$msg " syntax}
+          if {$stepAP != ""} {
+            $outputWin issue "$msg " syntax
+            if {$opt(LOGFILE) && [info exists logFile]} {puts $logFile "*** $msg"}
+          }
         } else {
           set ilevel ""
           catch {set ilevel "  \[[lindex [info level [expr {[info level]-1}]] 0]\]"}
           if {$ilevel == "  \[errorMsg\]"} {set ilevel ""}
           $outputWin issue "$msg$ilevel " error
+          if {$opt(LOGFILE) && [info exists logFile]} {puts $logFile "*** $msg$ilevel"}
         }
       } else {
         $outputWin issue "$msg " $color
+        if {$opt(LOGFILE) && [info exists logFile]} {puts $logFile "*** $msg"}
       }
       update idletasks
+    } else {
+      if {$opt(LOGFILE) && [info exists logFile]} {puts $logFile "*** $msg"}
     }
     return 1
   } else {

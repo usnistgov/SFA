@@ -377,7 +377,7 @@ proc x3dFileEnd {} {
       puts $x3dFile "<br><input type='checkbox' checked onclick='tog$svn\(this.value)'/>$svn"
       if {[string first "MBD" [string toupper $svn]] == -1 && $nistName != ""} {set ok 0}
     }
-    if {!$ok} {
+    if {!$ok && [info exists numSavedViews($nistName)]} {
       lappend svmsg "Some Graphical PMI Saved View names are not defined in the NIST Test Case."
     }
     puts $x3dFile "<p>Selecting a Saved View above changes the viewpoint or use Page Up for the next viewpoint.  Zoom and pan to view all PMI."

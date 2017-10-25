@@ -1,6 +1,6 @@
 proc gpmiAnnotation {entType} {
   global objDesign
-  global ao aoEntTypes cells col entLevel ent entAttrList gpmiRow nindex opt pmiCol pmiHeading pmiStartCol
+  global ao aoEntTypes cells col entLevel ent entAttrList gpmiRow gtEntity nindex opt pmiCol pmiHeading pmiStartCol
   global recPracNames stepAP syntaxErr x3dShape x3dMsg useXL
   global geomType tessCoordID
 
@@ -74,6 +74,7 @@ proc gpmiAnnotation {entType} {
   set gpmiRow($ao) {}
   set geomType ""
   set tessCoordID {}
+  catch {unset gtEntity}
   if {![info exists x3dMsg]} {set x3dMsg {}}
 
   if {[info exist pmiHeading]} {unset pmiHeading}
@@ -91,23 +92,27 @@ proc gpmiAnnotation {entType} {
     set c1 [string first "_and_characterized_object" $ao]
     set c2 [string first "characterized_object_and_" $ao]
     if {$c1 != -1} {
-      errorMsg "Syntax Error: Using 'characterized_object' with '[string range $ao 0 $c1-1]' is not valid for PMI Presentation.\n[string repeat " " 14]\($recPracNames(pmi242), Sec. 10.2, 10.3)"
-      lappend syntaxErr($ao) [list 1 1]
+      set msg "Syntax Error: Using 'characterized_object' with '[string range $ao 0 $c1-1]' is not valid for PMI Presentation.\n[string repeat " " 14]\($recPracNames(pmi242), Sec. 10.2, 10.3)"
+      errorMsg $msg
+      lappend syntaxErr($ao) [list 1 1 $msg]
     } elseif {$c2 != -1} {
-      errorMsg "Syntax Error: Using 'characterized_object' with '[string range $ao 25 end]' is not valid for PMI Presentation.\n[string repeat " " 14]\($recPracNames(pmi242), Sec. 10.2, 10.3)"
-      lappend syntaxErr($ao) [list 1 1]
+      set msg "Syntax Error: Using 'characterized_object' with '[string range $ao 25 end]' is not valid for PMI Presentation.\n[string repeat " " 14]\($recPracNames(pmi242), Sec. 10.2, 10.3)"
+      errorMsg $msg
+      lappend syntaxErr($ao) [list 1 1 $msg]
     }
   
     if {[string first "annotation_occurrence" $ao] != -1 && [string first "tessellated" $ao] == -1 && [string first "draughting_annotation_occurrence" $ao] == -1} {
-      errorMsg "Syntax Error: Using 'annotation_occurrence' with $stepAP is not valid for PMI Presentation.\n[string repeat " " 14]\($recPracNames(pmi242), Sec. 8.1.1)"
-      lappend syntaxErr($ao) [list 1 1]
+      set msg "Syntax Error: Using 'annotation_occurrence' with $stepAP is not valid for PMI Presentation.\n[string repeat " " 14]\($recPracNames(pmi242), Sec. 8.1.1)"
+      errorMsg $msg
+      lappend syntaxErr($ao) [list 1 1 $msg]
     }
   }
 
   if {[string first "AP203" $stepAP] == 0 || [string first "AP214" $stepAP] == 0} {
     if {[string first "annotation_curve_occurrence" $ao] != -1} {
-      errorMsg "Syntax Error: Using 'annotation_curve_occurrence' with $stepAP is not valid for PMI Presentation.\n[string repeat " " 14]\($recPracNames(pmi203), Sec. 4.1.1)"
-      lappend syntaxErr($ao) [list 1 1]
+      set msg "Syntax Error: Using 'annotation_curve_occurrence' with $stepAP is not valid for PMI Presentation.\n[string repeat " " 14]\($recPracNames(pmi203), Sec. 4.1.1)"
+      errorMsg $msg
+      lappend syntaxErr($ao) [list 1 1 $msg]
     }
   }
   
@@ -119,7 +124,7 @@ proc gpmiAnnotation {entType} {
       append msg "($recPracNames(pmi203), Sec. 4.1)"
     }
     errorMsg $msg
-    lappend syntaxErr($ao) [list 1 1]
+    lappend syntaxErr($ao) [list 1 1 $msg]
   }
 
   if {$opt(DEBUG1)} {outputMsg \n}
@@ -159,7 +164,7 @@ proc gpmiAnnotation {entType} {
 proc gpmiAnnotationReport {objEntity} {
   global objDesign
   global ao aoname assocGeom badAttributes boxSize cells circleCenter col currx3dPID curveTrim developer dirRatio dirType draftModelCameras draftModelCameraNames
-  global entCount entLevel ent entAttrList entCount geomType gpmiEnts gpmiID gpmiIDRow gpmiRow gpmiTypes gpmiTypesInvalid gpmiTypesPerFile gpmiValProp
+  global entCount entLevel ent entAttrList entCount entsWithErrors geomType gpmiEnts gpmiID gpmiIDRow gpmiRow gpmiTypes gpmiTypesInvalid gpmiTypesPerFile gpmiValProp
   global iCompCurve iCompCurveSeg incrcol iPolyline localName nindex nistVersion nshape numCompCurve numCompCurveSeg numPolyline numx3dPID
   global objEntity1 opt pmiCol pmiColumns pmiHeading pmiStartCol pointLimit prefix propDefIDS recPracNames savedViewCol stepAP syntaxErr 
   global x3dColor x3dCoord x3dFile x3dFileName x3dStartFile x3dIndex x3dPoint x3dPID x3dShape x3dMsg x3dIndexType x3dMax x3dMin
@@ -173,10 +178,7 @@ proc gpmiAnnotationReport {objEntity} {
 
   set maxcp $pointLimit
 
-  if {[string first "handle" $objEntity] == -1} {
-    #if {$objEntity != ""} {outputMsg "$ind $objEntity"}
-    #outputMsg "  $objEntity" red
-  } else {
+  if {[string first "handle" $objEntity] != -1} {
     set objType [$objEntity Type]
     set objID   [$objEntity P21ID]
     set objAttributes [$objEntity Attributes]
@@ -208,14 +210,14 @@ proc gpmiAnnotationReport {objEntity} {
       if {$entLevel == 2 && \
           $objType != "geometric_curve_set" && $objType != "annotation_fill_area" && $objType != "presentation_style_assignment" && \
           $objType != "geometric_set" && [string first "tessellated_geometric_set" $objType] == -1} {
-        set msg "Syntax Error: '$objType' is not allowed as an 'item' attribute of: $ao\n[string repeat " " 14]"
+        set msg "Syntax Error: '$objType' is not allowed as an 'item' attribute of: [formatComplexEnt $ao]\n[string repeat " " 14]"
         if {$stepAP == "AP242"} {
           append msg "($recPracNames(pmi242), Sec. 8.1.1, 8.1.2, 8.2)"
         } else {
           append msg "($recPracNames(pmi203), Sec. 4.1.1, 4.1.2)"
         }
         errorMsg $msg
-        lappend syntaxErr($ao) [list $gpmiID item]
+        lappend syntaxErr($ao) [list $gpmiID item $msg]
       }
     }
 
@@ -478,7 +480,9 @@ proc gpmiAnnotationReport {objEntity} {
                   ::tcom::foreach val [$objAttribute Value] {
                     append cellval([$val Type]) "[$val P21ID] "
                     if {$ent1 == "tessellated_geometric_set children" && [$val Type] != "tessellated_curve_set" && [$val Type] != "complex_triangulated_surface_set"} {
-                      errorMsg "Syntax Error: Invalid '[$val Type]' attribute for tessellated_geometric_set.children\n[string repeat " " 14]\($recPracNames(pmi242), Sec. 8.2)"
+                      set msg "Syntax Error: Invalid '[$val Type]' attribute for tessellated_geometric_set.children\n[string repeat " " 14]\($recPracNames(pmi242), Sec. 8.2)"
+                      errorMsg $msg
+                      lappend syntaxErr(tessellated_geometric_set) [list "-$r" children $msg]
                     }
                   }
                 } emsg]} {
@@ -492,6 +496,7 @@ proc gpmiAnnotationReport {objEntity} {
                         append msg "($recPracNames(pmi203), Sec. 4.1.1, 4.1.2)"
                       }
                       errorMsg $msg
+                      lappend syntaxErr(tessellated_geometric_set) [list "-$r" children $msg]
                     }
                   }
                 }
@@ -658,8 +663,15 @@ proc gpmiAnnotationReport {objEntity} {
                   }
                   if {[string first "placeholder" $ent1] != -1} {set placeNCP 0}
                   if {[string first "tessellated" $ent1] != -1} {
-                    if {[info exist entCount(annotation_curve_occurrence)] || [info exists entCount(annotation_curve_occurrence_and_geometric_representation_item]} {
-                      errorMsg "Syntax Error: Using both 'annotation_curve_occurrence' and 'tessellated_annotation_occurrence' is not recommended.\n[string repeat " " 14]($recPracNames(pmi242), Sec. 8.3, Important Note)"
+                    set ok 1
+                    foreach ann [list annotation_curve_occurrence_and_geometric_representation_item annotation_curve_occurrence] {
+                      if {[info exist entCount($ann)] && $ok} {
+                        set msg "Syntax Error: Using both '[formatComplexEnt $ann]' and 'tessellated_annotation_occurrence' is not recommended.\n[string repeat " " 14]($recPracNames(pmi242), Sec. 8.3, Important Note)"
+                        errorMsg $msg
+                        addCellComment $ann 1 1 $msg
+                        lappend syntaxErr($ann) [list 1 1 $msg]
+                        set ok 0
+                      }
                     }
                   }
                 } 
@@ -789,7 +801,7 @@ proc gpmiAnnotationReport {objEntity} {
                   set ov $objValue
 
 # look for invalid 'name' values                  
-                  set invalid 0
+                  set invalid ""
                   if {[string first "occurrence" $ao] != -1} {
                     if {$ov == "" || [lsearch $gpmiTypes $ov] == -1} {
                       if {$ov == ""} {
@@ -806,8 +818,8 @@ proc gpmiAnnotationReport {objEntity} {
                       }
                       errorMsg $msg
                       if {[info exists gpmiTypesInvalid]} {if {[lsearch $gpmiTypesInvalid $ov] == -1} {lappend gpmiTypesInvalid $ov}}
-                      set invalid 1
-                      lappend syntaxErr([lindex [split $ent1 " "] 0]) [list $objID [lindex [split $ent1 " "] 1]]
+                      set invalid $msg
+                      lappend syntaxErr([lindex [split $ent1 " "] 0]) [list $objID [lindex [split $ent1 " "] 1] $msg]
                     }
                   }
                   
@@ -845,7 +857,7 @@ proc gpmiAnnotationReport {objEntity} {
 # value in spreadsheet  
                   if {[info exists gpmiIDRow($ao,$gpmiID)] && [string first "occurrence" $ao] != -1 && $opt(PMIGRF)} {
                     set val [[$cells($ao) Item $r $c] Value]
-                    if {$invalid} {lappend syntaxErr($ao) [list $r $col($ao)]}
+                    if {$invalid != ""} {lappend syntaxErr($ao) [list $r $col($ao) $invalid]}
   
                     if {$val == ""} {
                       $cells($ao) Item $r $c $ov
@@ -945,20 +957,23 @@ proc gpmiAnnotationReport {objEntity} {
                 #outputMsg "   $dmiaDefType [$dmiaDef P21ID]  $attrName" red
               }
             } else {
-              set msg "Syntax Error: Missing 'definition' attribute on \#[$objGuiEntity P21ID]=draughting_model_item_association\n[string repeat " " 14]"
+              set msg "Syntax Error: Missing 'definition' attribute on draughting_model_item_association\n[string repeat " " 14]"
               if {$stepAP == "AP242"} {
                 append msg "($recPracNames(pmi242), Sec. 9.3.1, Fig. 76)"
               } else {
                 append msg "($recPracNames(pmi203), Sec. 5.3.1, Fig. 12)"
               }
               errorMsg $msg
+              lappend syntaxErr([$objGuiEntity Type]) [list [$objGuiEntity P21ID] "definition" $msg]
             }
           } elseif {[$attrDMIA Name] == "used_representation"} {
             set dmiaDef [$attrDMIA Value]
             if {[string first "handle" $dmiaDef] != -1} {
               set dmiaDefType [$dmiaDef Type]
               if {[string first "draughting_model" $dmiaDefType] == -1} {
-                errorMsg "Syntax Error: Invalid 'used_representation' attribute ($dmiaDefType) on draughting_model_item_association"
+                set msg "Syntax Error: Invalid 'used_representation' attribute ($dmiaDefType) on draughting_model_item_association.\n[string repeat " " 14]\($recPracNames(pmi242), Sec. 7.3)"
+                errorMsg $msg
+                lappend syntaxErr([$objGuiEntity Type]) [list [$objGuiEntity P21ID] "used_representation" $msg]
               }
             }
           }
@@ -1111,7 +1126,7 @@ proc gpmiAnnotationReport {objEntity} {
                 set str "($nsv) camera_model_d3 [string trim $savedViews]"
                 if {$nsv == 1} {set str "camera_model_d3 [string trim $savedViews]"}
                 $cells($ao) Item $r $c $str
-                if {[string first "()" $savedViews] != -1} {lappend syntaxErr($ao) [list $r $savedViewCol]}
+                if {[string first "()" $savedViews] != -1} {lappend syntaxErr($ao) [list $r $savedViewCol "Saved view name is blank"]}
                 if {[lsearch $gpmiRow($ao) $r] == -1} {lappend gpmiRow($ao) $r}
               }
               
@@ -1138,7 +1153,7 @@ proc gpmiAnnotationReport {objEntity} {
                         append msg "($recPracNames(pmi203), Sec. 5.4.2, Fig. 14)"
                       }
                       errorMsg $msg
-                      lappend syntaxErr([$entDraughtingModel Type]) [list [$entDraughtingModel P21ID] items]
+                      lappend syntaxErr([$entDraughtingModel Type]) [list [$entDraughtingModel P21ID] items $msg]
                     }
                   }
                 }
@@ -1160,7 +1175,7 @@ proc gpmiAnnotationReport {objEntity} {
                     errorMsg $msg
                     set rep2Ents [$entDraughtingModel GetUsedIn [string trim $relType] [string trim rep_2]]
                     ::tcom::foreach rep2Ent $rep2Ents {set mdadrID [$rep2Ent P21ID]}
-                    lappend syntaxErr($relType) [list $mdadrID rep_2]
+                    lappend syntaxErr($relType) [list $mdadrID rep_2 $msg]
                   }
                   if {$relType == "representation_relationship"} {
                     set msg "For Saved Views, recommend using 'mechanical_design_and_draughting_relationship' instead of 'representation_relationship'\n  to relate draughting models "
@@ -1170,6 +1185,7 @@ proc gpmiAnnotationReport {objEntity} {
                       append msg "($recPracNames(pmi203), Sec. 5.4.4 Note 2)"
                     }
                     errorMsg $msg
+                    lappend syntaxErr(representation_relationship) [list 1 1 $msg]
                   }
                 }
               }
@@ -1316,7 +1332,7 @@ proc pmiGetCamerasAndProperties {} {
                       append msg "($recPracNames(pmi203), Sec. 5.4.2)"
                     }
                     errorMsg $msg
-                    lappend syntaxErr($dm) [list [$entDraughtingModel P21ID] name]
+                    lappend syntaxErr($dm) [list [$entDraughtingModel P21ID] name $msg]
                   }
                 }
               }
@@ -1342,7 +1358,7 @@ proc pmiGetCamerasAndProperties {} {
                     append msg "($recPracNames(pmi203), Sec. 5.4.2.1, Fig. 14)"
                   }
                   errorMsg $msg
-                  lappend syntaxErr($cm) [list [$entCameraModel P21ID] name]
+                  lappend syntaxErr($cm) [list [$entCameraModel P21ID] name $msg]
                 }
 
 # get axis2_placement_3d for camera viewpoint

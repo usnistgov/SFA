@@ -10,10 +10,13 @@
 # some notice that they are derived from it, and any modified versions bear some notice that they 
 # have been modified. 
 
+# The latest version of the source code is available at: https://github.com/usnistgov/SFA
+
 # ----------------------------------------------------------------------------------------------
 # The STEP File Analyzer can only be built with Tcl 8.5.15 or earlier
 # More recent versions are incompatibile with the IFCsvr toolkit that is used to read STEP files
 # ----------------------------------------------------------------------------------------------
+# This is the main routine for the STEP File Analyzer GUI version
 
 global env tcl_platform
 
@@ -37,7 +40,10 @@ if {[catch {
   package require Tclx
   package require Iwidgets 4.0.2
 } emsg]} {
-  set choice [tk_messageBox -type ok -icon error -title "ERROR loading required packages" -message "There might be a problem running the STEP File Analyzer from a directory with accented, non-English, or symbol characters in the pathname.\n\nRun the software from a directory without any of the special characters in the pathname.\n\nPlease contact Robert Lipman (robert.lipman@nist.gov) for other problems."]
+  set dir $wdir
+  set c1 [string first [file tail [info nameofexecutable]] $dir]
+  if {$c1 != -1} {set dir [string range $dir 0 $c1-1]}
+  set choice [tk_messageBox -type ok -icon error -title "ERROR" -message "ERROR: $emsg\n\nThere might be a problem running this program from a directory with accented, non-English, or symbol characters in the pathname.\n\n[file nativename $dir]\n\nRun the software from a directory without any of the special characters in the pathname.\n\nPlease contact Robert Lipman (robert.lipman@nist.gov) for other problems."]
   exit
 }
 
@@ -68,15 +74,10 @@ foreach item $auto_path {if {[string first "STEP-File-Analyzer" $item] != -1} {s
 
 # -----------------------------------------------------------------------------------------------------
 # initialize variables
-foreach id {XL_OPEN XL_KEEPOPEN XL_LINK1 XL_FPREC XL_SORT \
+foreach id {XL_OPEN XL_KEEPOPEN XL_LINK1 XL_FPREC XL_SORT LOGFILE \
             VALPROP PMIGRF PMISEM VIZPMI VIZFEA VIZTES INVERSE DEBUG1 \
             PR_STEP_AP242 PR_USER PR_STEP_KINE PR_STEP_COMP PR_STEP_COMM PR_STEP_GEOM PR_STEP_QUAN \
             PR_STEP_FEAT PR_STEP_PRES PR_STEP_TOLR PR_STEP_REPR PR_STEP_CPNT PR_STEP_SHAP} {set opt($id) 1}
-
-set opt(PR_STEP_CPNT) 0
-set opt(PR_STEP_GEOM)  0
-set opt(PR_USER) 0
-set opt(VIZFEA) 1
 
 set opt(CRASH) 0
 set opt(DEBUG1) 0
@@ -87,6 +88,10 @@ set opt(gpmiColor) 2
 set opt(indentGeometry) 0
 set opt(indentStyledItem) 0
 set opt(INVERSE) 0
+set opt(PR_STEP_CPNT) 0
+set opt(PR_STEP_GEOM)  0
+set opt(PR_USER) 0
+set opt(VIZFEA) 1
 set opt(writeDirType) 0
 set opt(XL_KEEPOPEN) 0
 set opt(XL_ROWLIM) 1048576
@@ -257,12 +262,12 @@ proc whatsNew {} {
   if {$sfaVersion > 0 && $sfaVersion < [getVersion]} {outputMsg "\nThe previous version of the STEP File Analyzer was: $sfaVersion" red}
 
 outputMsg "\nWhat's New (Version: [getVersion]  Updated: [string trim [clock format $progtime -format "%e %b %Y"]])" blue
-outputMsg "- Detect unexpected Associated Geometry for hole and radius dimensions
+outputMsg "- Explanation of Report errors (Help > Syntax Errors)
+- Generate log file (Options tab)
+- Detect unexpected Associated Geometry for hole and radius dimensions
 - Support for repetitive hole and radius dimensions, e.g, '4X' R10.5
 - Improved color-coding for PMI Representation Coverage for NIST CAD models (Help > NIST CAD models)
 - PMI Saved View viewpoints (experimental)
-- Improved CSV file output
-- New Output Format to generate Visualizations without a spreadsheet (Options tab)
 - Bug fixes and minor improvements"
 
   .tnb select .tnb.status

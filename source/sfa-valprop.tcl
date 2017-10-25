@@ -200,8 +200,9 @@ proc valPropReport {objEntity} {
               "descriptive_representation_item description"   {set ok 1; set col($pd) 9}
               "property_definition definition" {
                 if {[string length $objValue] == 0} {
-                  errorMsg "Syntax Error: Missing 'definition' attribute on property_definition.\n[string repeat " " 14]\($recPracNames(valprop), Sec. 4)"
-                  lappend syntaxErr(property_definition) [list $propDefIDRow($propDefID) 4]
+                  set msg "Syntax Error: Missing 'definition' attribute on property_definition.\n[string repeat " " 14]\($recPracNames(valprop), Sec. 4)"
+                  errorMsg $msg
+                  lappend syntaxErr(property_definition) [list $propDefIDRow($propDefID) 4 $msg]
                 }
               }
             }
@@ -356,7 +357,7 @@ proc valPropReport {objEntity} {
           if {[info exists cells($pd)]} {
             set ok 0
             set colName ""
-            set invalid 0
+            set invalid ""
 
 # get values for these entity and attribute pairs
             switch -glob $ent1 {
@@ -382,9 +383,10 @@ proc valPropReport {objEntity} {
                   if {[string first "geometric" $objValue] != 0 && [string first "assembly" $objValue] != 0 && \
                       [string first "pmi" $objValue] != 0 && [string first "tessellated" $objValue] != 0 && \
                       [string first "attribute" $objValue] != 0} {
-                    errorMsg "Possible Syntax Error: Unexpected Validation Property '$objValue'"
-                    set invalid 1
-                    lappend syntaxErr([lindex [split $ent1 " "] 0]) [list $objID [lindex [split $ent1 " "] 1]]
+                    set msg "Possible Syntax Error: Unexpected Validation Property '$objValue'"
+                    errorMsg $msg
+                    set invalid $msg
+                    lappend syntaxErr([lindex [split $ent1 " "] 0]) [list $objID [lindex [split $ent1 " "] 1] $msg]
                   }
                   set valPropLink 1
                 }
@@ -433,8 +435,8 @@ proc valPropReport {objEntity} {
                         append emsg "($recPracNames(uda), Sec. 8)"
                       }
                       errorMsg $emsg
-                      set invalid 1
-                      lappend syntaxErr([lindex [split $ent1 " "] 0]) [list $objID [lindex [split $ent1 " "] 1]]
+                      set invalid $emsg
+                      lappend syntaxErr([lindex [split $ent1 " "] 0]) [list $objID [lindex [split $ent1 " "] 1] $emsg]
                     }
                   }
                 }
@@ -502,8 +504,8 @@ proc valPropReport {objEntity} {
                         append emsg "($recPracNames(uda), Sec. 8)"
                       }
                       errorMsg $emsg
-                      set invalid 1
-                      lappend syntaxErr([lindex [split $ent1 " "] 0]) [list $objID [lindex [split $ent1 " "] 1]]
+                      set invalid $emsg
+                      lappend syntaxErr([lindex [split $ent1 " "] 0]) [list $objID [lindex [split $ent1 " "] 1] $emsg]
                     }
                   }
                 }
@@ -527,7 +529,7 @@ proc valPropReport {objEntity} {
 
               set val [[$cells($pd) Item $r $c] Value]
               if {$val == " "} {set val ""}
-              if {$invalid} {lappend syntaxErr($pd) [list $r $col($pd)]}
+              if {$invalid != ""} {lappend syntaxErr($pd) [list $r $col($pd) $invalid]}
 
               if {$val == ""} {
                 $cells($pd) Item $r $c $objValue

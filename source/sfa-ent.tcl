@@ -3,7 +3,7 @@
 proc getEntity {objEntity checkInverse} {
   global attrType badAttributes cells col count developer entComment entCount entName excelVersion
   global skipEntities skipPerm heading invMsg invVals localName opt roseLogical row rowmax sheetLast
-  global thisEntType worksheet worksheets wsCount wsNames
+  global thisEntType worksheet worksheets wsCount wsNames syntaxErr
   
 # get entity type
   set thisEntType [$objEntity Type]
@@ -153,7 +153,9 @@ proc getEntity {objEntity checkInverse} {
         if {[string first "datum_reference_compartment 'modifiers' attribute" $msg] != -1 || \
             [string first "datum_reference_element 'modifiers' attribute" $msg] != -1 || \
             [string first "annotation_plane 'elements' attribute" $msg] != -1} {
-          errorMsg "Syntax Error: On '[$objEntity Type]' entities change the '$attrName' attribute with\n '()' to '$' where applicable.  The attribute is an OPTIONAL SET\[1:?\] and '()' is not valid."
+          set msg "Syntax Error: On '[$objEntity Type]' entities change the '$attrName' attribute with\n '()' to '$' where applicable.  The attribute is an OPTIONAL SET\[1:?\] and '()' is not valid."
+          errorMsg $msg
+          lappend syntaxErr([$objEntity Type]) [list -$row($thisEntType) $attrName $msg]
         }
         errorMsg $msg
         set objValue ""
@@ -256,7 +258,7 @@ proc getEntity {objEntity checkInverse} {
           }
           $cells($thisEntType) Item $row($thisEntType) $col($thisEntType) $str
           if {$cellComment && $entComment($attrName)} {
-            addCellComment $thisEntType 3 $col($thisEntType) "Corresponding length and angle value(s) are also shown." 150 30
+            addCellComment $thisEntType 3 $col($thisEntType) "Corresponding length and angle measures are also shown." 150 30
             set entComment($attrName) 0
           }
         }
