@@ -1,6 +1,6 @@
 #-------------------------------------------------------------------------------
 # version numbers, software and user's guide
-proc getVersion {}   {return 2.55}
+proc getVersion {}   {return 2.56}
 proc getVersionUG {} {return 2.34}
 
 # -------------------------------------------------------------------------------
@@ -1423,66 +1423,10 @@ proc checkP21e3 {fname} {
 }
 
 # -------------------------------------------------------------------------------
-# CAx-IF vendor abbrevitations
+# CAx-IF vendor abbrevitations, allVendor defined in sfa-data.tcl
 
 proc setCAXIFvendor {} {
-  global localName
-  
-  set vendor(3de) "CT 3D Evolution"
-  set vendor(3DE) "CT 3D Evolution"
-  set vendor(a3) "Acrobat 3D"
-  set vendor(a5) "Acrobat 3D (CATIA V5)"
-  set vendor(ac) "AutoCAD"
-  set vendor(al) "AliasStudio"
-  set vendor(ap) "Acrobat 3D (Pro/E)"
-  set vendor(au) "Acrobat 3D (NX)"
-  set vendor(c3e) "CATIA"
-  set vendor(c4) "CATIA V4"
-  set vendor(c5) "CATIA V5"
-  set vendor(c6) "CATIA V6"
-  set vendor(cg) "CgiStepCamp"
-  set vendor(cm) "PTC CoCreate"
-  set vendor(cr) "Creo"
-  set vendor(dc) "Datakit CrossCad"
-  set vendor(d5) "Datakit CrossCad (CATIA V5)"
-  set vendor(dp) "Datakit CrossCad (Creo)"
-  set vendor(du) "Datakit CrossCad (NX)"
-  set vendor(dw) "Datakit CrossCad (SolidWorks)"
-  set vendor(ec) "Elysium"
-  set vendor(fs) "Vistagy FiberSim"
-  set vendor(h3) "HOOPS 3D Exchange"
-  set vendor(h5) "HOOPS 3D (CATIA V5)"
-  set vendor(hp) "HOOPS 3D (Creo)"
-  set vendor(hu) "HOOPS 3D (NX)"
-  set vendor(i4) "ITI CADifx (CATIA V4)"
-  set vendor(i5) "ITI CADfix (CATIA V5)"
-  set vendor(id) "NX I-DEAS"
-  set vendor(if) "ITI CADfix"
-  set vendor(ii) "ITI CADfix (Inventor)"
-  set vendor(in) "Autodesk Inventor"
-  set vendor(ip) "ITI CADfix (Creo)"
-  set vendor(iu) "ITI CADfix (NX)"
-  set vendor(iw) "ITI CADfix (SolidWorks)"
-  set vendor(kc) "Kubotek KeyCreator"
-  set vendor(kr) "Kubotek REALyze"
-  set vendor(lk) "LKSoft IDA-STEP"
-  set vendor(nx) "Siemens NX"
-  set vendor(oc) "Datakit CrossCad (OpenCascade)"
-  set vendor(pc) "PTC CADDS"
-  set vendor(pe) "Pro/E"
-  set vendor(s4) "T-Systems COM/STEP (CATIA V4)"
-  set vendor(s5) "T-Systems COM/FOX (CATIA V5)"
-  set vendor(se) "SolidEdge"
-  set vendor(sw) "SolidWorks"
-  set vendor(t3d) "TechSoft3D"
-  set vendor(t4) "Theorem Cadverter (CATIA V4)"
-  set vendor(t5) "Theorem Cadverter (CATIA V5)"
-  set vendor(tc) "Theorem Cadverter (CADDS)"
-  set vendor(tp) "Theorem Cadverter (Creo)"
-  set vendor(ts) "Theorem Cadverter (I-DEAS)"
-  set vendor(tu) "Theorem Cadverter (NX)"
-  set vendor(tx) "Theorem Cadverter"
-  set vendor(ug) "Unigraphics"
+  global localName allVendor
   
   set fn [file tail $localName]
   set chars [list "-" "_" "."]
@@ -1490,13 +1434,13 @@ proc setCAXIFvendor {} {
     set c1 [string first $char $fn]
     if {$c1 != -1} {
       set c2 [expr {$c1+1}]
-      foreach idx [lsort [array names vendor]] {
+      foreach idx [lsort [array names allVendor]] {
         if {[string first $idx [string range $fn $c2 end]] == 0} {
           set c3 [expr {$c1+3}]
           set c4 [expr {$c1+4}]
           foreach char1 $chars {
             if {[string index $fn $c3] == $char1 || [string index $fn $c4] == $char1} {
-              return $vendor($idx)
+              return $allVendor($idx)
             }
           }
         }

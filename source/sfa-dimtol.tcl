@@ -682,7 +682,6 @@ proc spmiDimtolReport {objEntity} {
                       if {[lsearch $dimModNames $ov] != -1} {
                         regsub -all " " $ov "_" ov
 # controlled radius and square are prefixes, instead of the default suffix
-# counterbore, countersink, depth are experimental
                         if {$ov == "controlled_radius"} {
                           if {[string index $dimrep($dimrepID) 0] == "R"} {
                             set dimrep($dimrepID) "C$dimrep($dimrepID)"
@@ -692,7 +691,7 @@ proc spmiDimtolReport {objEntity} {
                           set ov "controlled radius"
                           set pos [lsearch $spmiTypesPerFile "radius"]
                           set spmiTypesPerFile [lreplace $spmiTypesPerFile $pos $pos]
-                        } elseif {$ov == "square" || $ov == "counterbore" || $ov == "countersink" || $ov == "depth"} {
+                        } elseif {$ov == "square"} {
                           set dimrep($dimrepID) "$pmiModifiers($ov)$dimrep($dimrepID)"
 # suffix, append to savedModifier
                         } else {

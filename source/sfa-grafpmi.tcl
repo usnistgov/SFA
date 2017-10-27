@@ -206,11 +206,11 @@ proc gpmiAnnotationReport {objEntity} {
       incr iCompCurveSeg
     }
     
-    if {[string first "occurrence" $ao] != -1}  {
+    if {[string first "occurrence" $ao] != -1 && $objType != $ao}  {
       if {$entLevel == 2 && \
           $objType != "geometric_curve_set" && $objType != "annotation_fill_area" && $objType != "presentation_style_assignment" && \
           $objType != "geometric_set" && [string first "tessellated_geometric_set" $objType] == -1} {
-        set msg "Syntax Error: '$objType' is not allowed as an 'item' attribute of: [formatComplexEnt $ao]\n[string repeat " " 14]"
+        set msg "Syntax Error: '[formatComplexEnt $objType]' is not allowed as an 'item' attribute of: [formatComplexEnt $ao]\n[string repeat " " 14]"
         if {$stepAP == "AP242"} {
           append msg "($recPracNames(pmi242), Sec. 8.1.1, 8.1.2, 8.2)"
         } else {
@@ -661,7 +661,11 @@ proc gpmiAnnotationReport {objEntity} {
                     set msg "Filled characters are not filled."
                     if {[lsearch $x3dMsg $msg] == -1} {lappend x3dMsg $msg}
                   }
-                  if {[string first "placeholder" $ent1] != -1} {set placeNCP 0}
+                  if {[string first "placeholder" $ent1] != -1} {
+                    set placeNCP 0
+                    set msg "Annotation placeholder leaders lines might not have the correct anchor points."
+                    if {[lsearch $x3dMsg $msg] == -1} {lappend x3dMsg $msg}
+                  }
                   if {[string first "tessellated" $ent1] != -1} {
                     set ok 1
                     foreach ann [list annotation_curve_occurrence_and_geometric_representation_item annotation_curve_occurrence] {
@@ -1126,7 +1130,16 @@ proc gpmiAnnotationReport {objEntity} {
                 set str "($nsv) camera_model_d3 [string trim $savedViews]"
                 if {$nsv == 1} {set str "camera_model_d3 [string trim $savedViews]"}
                 $cells($ao) Item $r $c $str
-                if {[string first "()" $savedViews] != -1} {lappend syntaxErr($ao) [list $r $savedViewCol "Saved view name is blank"]}
+                if {[string first "()" $savedViews] != -1} {
+                  set msg "Syntax Error: For Saved Views, missing required 'name' attribute on camera_model_d3\n[string repeat " " 14]"
+                  if {$stepAP == "AP242"} {
+                    append msg "($recPracNames(pmi242), Sec. 9.4.2.1, Fig. 86)"
+                  } else {
+                    append msg "($recPracNames(pmi203), Sec. 5.4.2.1, Fig. 14)"
+                  }
+                  lappend syntaxErr($ao) [list $r $savedViewCol $msg]
+                  errorMsg $msg
+                }
                 if {[lsearch $gpmiRow($ao) $r] == -1} {lappend gpmiRow($ao) $r}
               }
               

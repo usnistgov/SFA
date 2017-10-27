@@ -465,7 +465,7 @@ proc spmiGeotolReport {objEntity} {
                     if {[info exists colName]} {
                       $cells($gt) Item 3 $c $colName
                       if {[string first "GD&T" $colName] != -1} {
-                        addCellComment $gt 3 $c "Associating the corresponding Dimension and Datum Feature with a Geometric Tolerance depends on all three referring to the same Associated Geometry.  See the Toleranced Geometry column to the right and the Associated Geometry columns on the 'dimensional_characteristic_representation' (DCR) and 'datum_feature' worksheets.  See the DCR worksheet for an explanation of Repetitive Dimensions." 250 120
+                        addCellComment $gt 3 $c "The Geometric Tolerances below might be associated their corresponding Dimensions and Datum Features.  It depends on any of the three referring to the same Associated Geometry.  See the Toleranced Geometry column to the right and the Associated Geometry columns on the 'dimensional_characteristic_representation' (DCR) and 'datum_feature' worksheets.  See the DCR worksheet for an explanation of Repetitive Dimensions." 250 120
                       }
                     } else {
                       errorMsg "Syntax Error on [formatComplexEnt $gt]"

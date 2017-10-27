@@ -4,7 +4,7 @@ global entCategory entColorIndex badAttributes roseLogical
 global aoEntTypes gpmiTypes spmiEntTypes dimSizeNames tolNames tzfNames dimModNames pmiModifiers pmiModifiersRP pmiUnicode
 global spmiTypes recPracNames modelPictures schemaLinks modelURLs legendColor
 global ap203all ap214all ap242all
-global feaIndex cadApps numSavedViews
+global feaIndex cadApps allVendor numSavedViews
 
 set roseLogical(0) "FALSE"
 set roseLogical(1) "TRUE"
@@ -39,9 +39,65 @@ set cadApps {"3D_Evolution" ACIS "Alias - OpenModel" "Alias AutoStudio" "Alias O
   "SIEMENS PLM Software NX 7.0" "SIEMENS PLM Software NX 7.5" "SIEMENS PLM Software NX 8.0" "SIEMENS PLM Software NX 8.5" \
   "SIEMENS PLM Software NX 9.0" "SIEMENS PLM Software NX" "Solid Edge" SolidEdge "ST-ACIS" "STEP Caselib" \
   "STEP-NC Explorer" "STEP-NC Maker" "T3D tool generator" THEOREM Theorem "THEOREM SOLUTIONS" "Theorem Solutions" "T-Systems" \
-  "UGS - NX" Unigraphics CoCreate Adobe Elysium ASFALIS CAPVIDIA 3DTransVidia MBDVidia NAFEMS COM209 CADCAM-E 3DEXPERIENCE ECCO SimDM \
-  SDS/2 Tekla Revit RISA SAP2000 ETABS SmartPlant CADWorx "Advance Steel" ProSteel STAAD RAM Cype Parabuild RFEM RSTAB BuiltWorks EDMsix \
-  "3D Reviewer" "3D Converter" HOOPS MicroStation SolidWorks Solidworks SOLIDWORKS "SOLIDWORKS MBD"}
+  "UGS - NX" "UGS-NX" Unigraphics CoCreate Adobe Elysium ASFALIS CAPVIDIA 3DTransVidia MBDVidia NAFEMS COM209 CADCAM-E 3DEXPERIENCE ECCO SimDM \
+  SDS/2 Tekla Revit RISA SAP2000 ETABS SmartPlant CADWorx "Advance Steel" ProSteel STAAD RAM Cype Parabuild RFEM RSTAB BuiltWorks EDMsix Mastercam \
+  "3D Reviewer" "3D Converter" "HOOPS Exchange" HOOPS MicroStation SolidWorks Solidworks SOLIDWORKS "SOLIDWORKS MBD" ASCON PSStep Anark XStep "STEP-NC Maker"}
+  
+set allVendor(3de) "3D_Evolution"
+set allVendor(3DE) "3D_Evolution"
+set allVendor(a3) "Acrobat_3D"
+set allVendor(a5) "Acrobat_3D (CATIA_V5)"
+set allVendor(ac) "AutoCAD"
+set allVendor(al) "AliasStudio"
+set allVendor(ap) "Acrobat_3D (Pro/E)"
+set allVendor(au) "Acrobat_3D (NX)"
+set allVendor(c3e) "CATIA"
+set allVendor(c4) "CATIA V4"
+set allVendor(c5) "CATIA V5"
+set allVendor(c6) "CATIA V6"
+set allVendor(cg) "CgiStepCamp"
+set allVendor(cm) "PTC CoCreate"
+set allVendor(cr) "Creo"
+set allVendor(dc) "Datakit CrossCad"
+set allVendor(d5) "Datakit CrossCad (CATIA_V5)"
+set allVendor(dp) "Datakit CrossCad (Creo)"
+set allVendor(du) "Datakit CrossCad (NX)"
+set allVendor(dw) "Datakit CrossCad (SolidWorks)"
+set allVendor(ec) "Elysium"
+set allVendor(fs) "Vistagy FiberSim"
+set allVendor(h3) "HOOPS 3D Exchange"
+set allVendor(h5) "HOOPS 3D (CATIA_V5)"
+set allVendor(hp) "HOOPS 3D (Creo)"
+set allVendor(hu) "HOOPS 3D (NX)"
+set allVendor(i4) "ITI CADifx (CATIA_V4)"
+set allVendor(i5) "ITI CADfix (CATIA_V5)"
+set allVendor(id) "I-DEAS"
+set allVendor(if) "ITI CADfix"
+set allVendor(ii) "ITI CADfix (Inventor)"
+set allVendor(in) "Autodesk Inventor"
+set allVendor(ip) "ITI CADfix (Creo)"
+set allVendor(iu) "ITI CADfix (NX)"
+set allVendor(iw) "ITI CADfix (SolidWorks)"
+set allVendor(kc) "Kubotek KeyCreator"
+set allVendor(kr) "Kubotek REALyze"
+set allVendor(lk) "LKSoft IDA-STEP"
+set allVendor(nx) "Siemens NX"
+set allVendor(oc) "Datakit CrossCad (OpenCascade)"
+set allVendor(pc) "PTC CADDS"
+set allVendor(pe) "Pro/E"
+set allVendor(s4) "T-Systems COM/STEP (CATIA_V4)"
+set allVendor(s5) "T-Systems COM/FOX (CATIA_V5)"
+set allVendor(se) "SolidEdge"
+set allVendor(sw) "SolidWorks"
+set allVendor(t3d) "TechSoft3D"
+set allVendor(t4) "Theorem Cadverter (CATIA_V4)"
+set allVendor(t5) "Theorem Cadverter (CATIA_V5)"
+set allVendor(tc) "Theorem Cadverter (CADDS)"
+set allVendor(tp) "Theorem Cadverter (Creo)"
+set allVendor(ts) "Theorem Cadverter (I-DEAS)"
+set allVendor(tu) "Theorem Cadverter (NX)"
+set allVendor(tx) "Theorem Cadverter"
+set allVendor(ug) "Unigraphics"
 
 # sort cadApps by string length
 set cadApps [sortlength2 $cadApps]
@@ -88,10 +144,6 @@ set dimModNames [list \
   "mid range rank order size" "minimum circumscribed association criteria" "minimum rank order size" \
   "range rank order size" "specific fixed cross section" "square" "statistical" \
   "two point size" "volume diameter calculated size"]
-# experimental dimension modifiers
-lappend dimModNames "counterbore"
-lappend dimModNames "countersink"
-lappend dimModNames "depth"
 
 # -----------------------------------------------------------------------------------------------------
 # tolerance entity names (Section 6.8, Table 10)

@@ -239,8 +239,8 @@ proc x3dPolylinePMI {} {
           if {$x3dColor != ""} {
             puts $f "<Shape>\n <Appearance><Material diffuseColor='$x3dColor' emissiveColor='$x3dColor'></Material></Appearance>"
           } elseif {[string first "annotation_occurrence" $ao] == 0 || [string first "annotation_fill_area_occurrence" $ao] == 0} {
-            puts $f "<Shape>\n <Appearance><Material diffuseColor='1 0.5 0' emissiveColor='1 0.5 0'></Material></Appearance>"
-            errorMsg "Syntax Error: Color not specified for PMI Presentation (using orange)"
+            puts $f "<Shape>\n <Appearance><Material diffuseColor='0 1 0' emissiveColor='0 1 0'></Material></Appearance>"
+            errorMsg "Syntax Error: Color not specified for PMI Presentation (using green)"
           }
 
 # index and coordinates

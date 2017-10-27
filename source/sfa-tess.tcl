@@ -391,7 +391,7 @@ proc tessSetColor {tsID} {
         }
       }
     } emsg]} {
-      errorMsg " Error setting tessellated geometry color, using gray"
+      errorMsg " ERROR setting tessellated geometry color, using gray"
       set tessColor($tsID) $x3dColor
       update
     }

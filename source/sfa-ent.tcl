@@ -149,7 +149,9 @@ proc getEntity {objEntity checkInverse} {
 
 # error getting attribute value
       } emsgv]} {
-        set msg "ERROR processing #[$objEntity P21ID]=[$objEntity Type] '$attrName' attribute: $emsgv"
+        set msg "ERROR processing [$objEntity Type] '$attrName' attribute: $emsgv"
+        errorMsg $msg
+        lappend syntaxErr([$objEntity Type]) [list -$row($thisEntType) $attrName $msg]
         if {[string first "datum_reference_compartment 'modifiers' attribute" $msg] != -1 || \
             [string first "datum_reference_element 'modifiers' attribute" $msg] != -1 || \
             [string first "annotation_plane 'elements' attribute" $msg] != -1} {
@@ -157,7 +159,6 @@ proc getEntity {objEntity checkInverse} {
           errorMsg $msg
           lappend syntaxErr([$objEntity Type]) [list -$row($thisEntType) $attrName $msg]
         }
-        errorMsg $msg
         set objValue ""
         catch {raise .}
       }

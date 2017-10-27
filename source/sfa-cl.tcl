@@ -24,6 +24,17 @@ set scriptName [info script]
 set wdir [file dirname $scriptName]
 set auto_path [linsert $auto_path 0 $wdir]
 
+#-------------------------------------------------------------------------------
+# start 
+set progtime 0
+foreach fname [glob -nocomplain -directory $wdir *.tcl] {
+  set mtime [file mtime $fname]
+  if {$mtime > $progtime} {set progtime $mtime}
+}
+
+puts "\n--------------------------------------------------------------------------------"
+puts "NIST STEP File Analyzer (v[getVersion] - Updated: [string trim [clock format $progtime -format "%e %b %Y"]])"
+
 # for freeWrap the following lappend commands add package locations to auto_path, must be before package commands
 #lappend auto_path C:/Tcl/lib/teapot/package/win32-ix86/lib/tcom3.9
 #lappend auto_path C:/Tcl/lib/teapot/package/win32-ix86/lib/twapi3.0.32
@@ -46,17 +57,6 @@ catch {
   lappend auto_path C:/Tcl/lib/teapot/package/win32-ix86/lib/vfs1.4.2
   package require vfs::zip
 }
-
-#-------------------------------------------------------------------------------
-# start 
-set progtime 0
-foreach fname [glob -nocomplain -directory $wdir *.tcl] {
-  set mtime [file mtime $fname]
-  if {$mtime > $progtime} {set progtime $mtime}
-}
-
-puts "\n--------------------------------------------------------------------------------"
-puts "NIST STEP File Analyzer (v[getVersion] - Updated: [string trim [clock format $progtime -format "%e %b %Y"]])"
 
 # no arguments, no file, print help, and exit
 if {$argc == 1} {set arg [string tolower [lindex $argv 0]]}

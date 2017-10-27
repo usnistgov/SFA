@@ -985,7 +985,8 @@ proc genExcel {{numFile 0}} {
       outputMsg " [truncFileName $xlFileName 1]" blue
       if {[catch {
         catch {$excel DisplayAlerts False}
-        $workbook -namedarg SaveAs Filename [file rootname $xlFileName] FileFormat $xlFormat
+        $workbook -namedarg SaveAs Filename $xlFileName FileFormat $xlFormat
+        #$workbook -namedarg SaveAs Filename [file rootname $xlFileName] FileFormat $xlFormat
         catch {$excel DisplayAlerts True}
         set lastXLS $xlFileName
         lappend xlFileNames $xlFileName
@@ -1320,7 +1321,7 @@ proc addHeaderWorksheet {numFile fname} {
       }
     }
 
-# set the application from various file attributes, cadApps is a list of all application names defined above, take the first one that matches
+# set the application from various file attributes, cadApps is a list of all apps defined in sfa-data.tcl, take the first one that matches
     set ok 0
     foreach attr {FileOriginatingSystem FilePreprocessorVersion FileDescription FileAuthorisation FileOrganization} {
       foreach app $cadApps {
@@ -1330,22 +1331,27 @@ proc addHeaderWorksheet {numFile fname} {
 
 # for multiple files, modify the app string to fit in file summary worksheet
           if {$numFile != 0 && [info exists cells1(Summary)]} {
-            if {$app == "3D_Evolution"}            {set app1 "CT 3D Evolution"}
-            if {$app == "CoreTechnologie"}         {set app1 "CT 3D Evolution"}
-            if {$app == "DATAKIT"}                 {set app1 "Datakit"}
-            if {$app == "Implementor Forum Team"}  {set app1 "CAx-IF"}
-            if {$app == "jt_step translator"}      {set app1 "Siemens NX"}
-            if {$app == "PRO/ENGINEER"}            {set app1 "Creo"}
-            if {$app == "SIEMENS PLM Software NX"} {set app1 "Siemens NX"}
+            if {$app == "3D_Evolution"}           {set app1 "CT 3D_Evolution"}
+            if {$app == "CoreTechnologie"}        {set app1 "CT 3D_Evolution"}
+            if {$app == "DATAKIT"}                {set app1 "Datakit"}
+            if {$app == "Implementor Forum Team"} {set app1 "CAx-IF"}
+            if {$app == "PRO/ENGINEER"}           {set app1 "Pro/E"}
+            if {$app == "SOLIDWORKS MBD"}         {set app1 "Solidworks MBD"}
+            if {$app == "3D Reviewer"}            {set app1 "TechSoft3D 3D_Reviewer"}
+
             if {$app == "UGS - NX"}                {set app1 "UGS-NX"}
-            if {$app == "Unigraphics"}             {set app1 "Siemens NX"}
             if {$app == "UNIGRAPHICS"}             {set app1 "Unigraphics"}
-            if {$app == "3DEXPERIENCE"}            {set app1 "3D Experience"}
-            if {$app == "SOLIDWORKS MBD"}          {set app1 "Solidworks MBD"}
-            if {[string first "CATIA Version"           $app] == 0} {set app1 "CATIA V[string range $app 14 end]"}
-            if {[string first "SIEMENS PLM Software NX" $app] == 0} {set app1 "Siemens NX[string range $app 23 end]"}
-            if {[string first "THEOREM"    [$objDesign FilePreprocessorVersion]] != -1} {set app1 "Theorem"}
-            if {[string first "T-Systems"  [$objDesign FilePreprocessorVersion]] != -1} {set app1 "T-Systems"}
+            if {$app == "jt_step translator"}      {set app1 "Siemens NX"}
+            if {$app == "SIEMENS PLM Software NX"} {set app1 "Siemens NX"}
+            if {[string first "SIEMENS PLM Software NX" $app] == 0} {set app1 "Siemens NX_[string range $app 24 end]"}
+
+            if {[string first "CATIA Version" $app] == 0} {set app1 "CATIA V[string range $app 14 end]"}
+            if {$app == "3D EXPERIENCE"} {set app1 "3D Experience"}
+            if {[string first "CATIA V5" [$objDesign FileDescription]] != -1} {set app1 "CATIA V5"}
+            if {[string first "CATIA V6" [$objDesign FileDescription]] != -1} {set app1 "CATIA V6"}
+ 
+            if {[string first "THEOREM"   [$objDesign FilePreprocessorVersion]] != -1} {set app1 "Theorem"}
+            if {[string first "T-Systems" [$objDesign FilePreprocessorVersion]] != -1} {set app1 "T-Systems"}
 
 # set caxifVendor based on CAx-IF vendor notation used in testing rounds, use for app if appropriate
             set caxifVendor [setCAXIFvendor]

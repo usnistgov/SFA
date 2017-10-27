@@ -1507,7 +1507,7 @@ proc copyRoseFiles {} {
           catch {.tnb select .tnb.status}
           if {[catch {
             file copy -force $fn $f2
-            errorMsg "\nCopying STEP schema files (*.rose) to the IFCsvr/dll directory" red
+            errorMsg "\nCopying new STEP schema file(s) (*.rose) to the IFCsvr/dll directory" red
           } emsg]} {
             errorMsg "ERROR copying STEP schema files (*.rose) to $ifcsvrDir: $emsg"
           }

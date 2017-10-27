@@ -297,13 +297,35 @@ proc openMultiFile {{ask 1}} {
 # -------------------------------------------------------------------------
           incr nprogBarFiles
         }
+        
+# -------------------------------------------------------------------------------------------------
+# time to generate spreadsheets
+        set ptime [expr {([clock clicks -milliseconds] - $lasttime1)/1000}]
+        if {$ptime < 120} {
+          set ptime "$ptime seconds"
+        } elseif {$ptime < 3600} {
+          set ptime "[trimNum [expr {double($ptime)/60.}] 1 1] minutes"
+        } else {
+          set ptime "[trimNum [expr {double($ptime)/3600.}] 1 1] hours"
+        }
+        set msg "\n($nfile) "
+        if {$useXL} {
+          append msg "Spreadsheets"
+        } elseif {$opt(XLSCSV) == "CSV"} {
+          append msg "CSV files"
+        } elseif {$opt(XLSCSV) == "None"} {
+          append msg "Visualizations"
+        }
+        append msg " Generated in $ptime"
+        outputMsg $msg green
+        outputMsg "-------------------------------------------------------------------------------"
           
 # -------------------------------------------------------------------------------------------------
 # file summary ws, entity names
         if {$lenfilelist > 1 && $useXL && $opt(XLSCSV) != "None"} {
           #getTiming "start multi summary"
           catch {$excel1 ScreenUpdating 0}
-          #outputMsg "\nWriting File Summary information"
+          outputMsg "\nWriting File Summary information" blue
           if {[catch {
             [$excel1 ActiveWindow] ScrollColumn [expr 1]
             set wid 2
@@ -520,28 +542,6 @@ proc openMultiFile {{ask 1}} {
           #getTiming "done multi summary"
           catch {$excel1 ScreenUpdating 1}
         }
-        
-# -------------------------------------------------------------------------------------------------
-# time to generate spreadsheets
-        set ptime [expr {([clock clicks -milliseconds] - $lasttime1)/1000}]
-        if {$ptime < 120} {
-          set ptime "$ptime seconds"
-        } elseif {$ptime < 3600} {
-          set ptime "[trimNum [expr {double($ptime)/60.}] 1 1] minutes"
-        } else {
-          set ptime "[trimNum [expr {double($ptime)/3600.}] 1 1] hours"
-        }
-        set msg "\n($nfile) "
-        if {$useXL} {
-          append msg "Spreadsheets"
-        } elseif {$opt(XLSCSV) == "CSV"} {
-          append msg "CSV files"
-        } elseif {$opt(XLSCSV) == "None"} {
-          append msg "Visualizations"
-        }
-        append msg " Generated in $ptime"
-        outputMsg $msg green
-        outputMsg "-------------------------------------------------------------------------------"
 
 # -------------------------------------------------------------------------------------------------
 # save spreadsheet
@@ -563,7 +563,6 @@ proc openMultiFile {{ask 1}} {
             catch {file delete -force $aname}
 
 # save spreadsheet
-            outputMsg " "
             outputMsg "Saving File Summary Spreadsheet as:"
             outputMsg " [truncFileName $aname 1]" blue
             update
