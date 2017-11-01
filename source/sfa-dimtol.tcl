@@ -384,12 +384,12 @@ proc spmiDimtolReport {objEntity} {
                 } elseif {[string first "value_component" $ent1] != -1} {
                   set dte [string range [$dimtolEnt Type] 0 2]
                   if {$dte == "dim" && [string first "length" $ent1] == -1} {
-                    set emsg "Syntax Error: Dimension value incorrectly specified with '[lindex [split $ent1 " "] 0]' instead of 'length_measure_with_unit'."
-                    append emsg "\n[string repeat " " 14]\($recPracNames(pmi242), Sec. 5.2.1)"
-                    errorMsg $emsg
+                    set msg "Syntax Error: Dimension value incorrectly specified with '[formatComplexEnt [lindex [split $ent1 " "] 0]]' instead of 'length_measure_with_unit'."
+                    append msg "\n[string repeat " " 14]\($recPracNames(pmi242), Sec. 5.2.1)"
+                    errorMsg $msg
                     lappend syntaxErr(dimensional_characteristic_representation) [list "-$r" "length/angle" $msg]
                   } elseif {$dte == "ang" && [string first "plane_angle" $ent1] == -1} {
-                    errorMsg "Syntax Error: Angle value incorrectly specified with '[lindex [split $ent1 " "] 0]' instead of 'plane_angle_measure_with_unit'."
+                    set msg "Syntax Error: Angle value incorrectly specified with '[formatComplexEnt [lindex [split $ent1 " "] 0]]' instead of 'plane_angle_measure_with_unit'."
                     lappend syntaxErr(dimensional_characteristic_representation) [list "-$r" "length/angle" $msg]
                   }
                 }

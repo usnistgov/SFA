@@ -279,7 +279,7 @@ proc guiProcessAndReports {} {
       if {$tt != "PR_STEP_COMM"} {
         set ttmsg [guiToolTip $ttmsg $tt 120]
       } else {
-        append ttmsg "All AP-specific entities from APs other than AP203, AP214, and AP242\nare always processed, including AP209, AP210, AP238, and AP239."
+        append ttmsg "All AP-specific entities from APs other than AP203, AP214, and AP242\nare always processed, including AP209, AP210, AP238, and AP239.\n\nSee Help > User's Guide (section 4.4.2)"
       }
       catch {tooltip::tooltip $buttons($idx) $ttmsg}
     }
@@ -372,10 +372,10 @@ proc guiProcessAndReports {} {
     incr cb
   }
   catch {
-    tooltip::tooltip $buttons(allNone0) "Selects many Entity types"
-    tooltip::tooltip $buttons(allNone1) "Deselects most Entity types, Reports, and Visualizations"
-    tooltip::tooltip $buttons(allNone2) "Selects all Reports and associated entities"
-    tooltip::tooltip $buttons(allNone3) "Selects all Visualizations and associated entities"
+    tooltip::tooltip $buttons(allNone0) "Selects many Entity types\nSee Help > User's Guide (section 4.4.2)"
+    tooltip::tooltip $buttons(allNone1) "Deselects most Entity types, Reports, and Visualizations\nSee Help > User's Guide (section 4.4.2)"
+    tooltip::tooltip $buttons(allNone2) "Selects all Reports and associated entities\nSee Help > User's Guide (section 5)"
+    tooltip::tooltip $buttons(allNone3) "Selects all Visualizations and associated entities\nSee Help > User's Guide (section 6)"
   }
   pack $fopta4 -side left -anchor w -pady 0 -padx 0 -fill y
   pack $fopta -side top -anchor w -pady {5 2} -padx 10 -fill both
@@ -397,9 +397,9 @@ proc guiProcessAndReports {} {
   pack $foptd1 -side top -anchor w -pady 0 -padx 0 -fill y
   pack $foptd -side left -anchor w -pady {5 2} -padx 10 -fill both -expand true
   catch {
-    tooltip::tooltip $buttons(optPMISEM)  "PMI Representation information is shown on dimension, tolerance, datum target, and datum entities.\n\nSee Help > PMI Representation\nSee Help > Syntax Errors\nSee Examples > Spreadsheet and Sample STEP Files\nSee Websites > AP242 Project"
-    tooltip::tooltip $buttons(optPMIGRF)  "PMI Presentation information is shown on 'annotation occurrence' entities.\nGraphical PMI can also be Visualized.\n\nSee Help > PMI Presentation\nSee Help > Syntax Errors\nSee Examples > Spreadsheet and Sample STEP Files\nSee Examples > Graphical PMI Viewer"
-    tooltip::tooltip $buttons(optVALPROP) "Validation Properties are shown on the 'property_definition' entity.\n\nSee Help > Validation Properties\nSee Help > Syntax Errors\nSee Examples > Spreadsheet"
+    tooltip::tooltip $buttons(optPMISEM)  "PMI Representation information is shown on dimension, tolerance, datum target, and datum entities.\nSemantic PMI is found mainly in STEP AP242 files.\n\nSee Help > PMI Representation\nSee Help > User's Guide (section 5.1)\nSee Help > Syntax Errors\nSee Examples > Spreadsheet and Sample STEP Files\nSee Websites > AP242 Project"
+    tooltip::tooltip $buttons(optPMIGRF)  "PMI Presentation information is shown on 'annotation occurrence' entities.\nGraphical PMI can also be Visualized.\n\nSee Help > PMI Presentation\nSee Help > User's Guide (section 5.2)\nSee Help > Syntax Errors\nSee Examples > Spreadsheet and Sample STEP Files\nSee Examples > Graphical PMI Viewer"
+    tooltip::tooltip $buttons(optVALPROP) "Validation Properties and other properties are shown on the 'property_definition' entity.\n\nSee Help > Validation Properties\nSee Help > User's Guide (section 5.3)\nSee Help > Syntax Errors\nSee Examples > Spreadsheet"
   }
   
 # visualize
@@ -438,9 +438,9 @@ proc guiProcessAndReports {} {
   pack $foptv -side left -anchor w -pady {5 2} -padx 10 -fill both -expand true
   pack $foptrv -side top -anchor w -pady 0 -fill x
   catch {
-    tooltip::tooltip $buttons(optVIZPMI) "See Help > PMI Presentation\nSee Examples > Graphical PMI Viewer\n\nVisualizations can be generated without generating a spreadsheet\nor CSV files.  See the Output Format option below."
-    tooltip::tooltip $buttons(optVIZFEA) "See Help > Finite Element Model\nSee Examples > AP209 FEM Viewer\n\nVisualizations can be generated without generating a spreadsheet\nor CSV files.  See the Output Format option below."
-    tooltip::tooltip $buttons(optVIZTES) "This feature is still be developed\nParts in an assembly might have the wrong position and orientation or be missing.\n\nParts modeled with tessellated geometry is supported by AP242 and is supplementary\nto boundary representation (b-rep) geometry.\n\nSee Help > Tessellated Part Geometry\nSee Examples > Tessellated Part Viewer\n\nVisualizations can be generated without generating a spreadsheet or CSV files.\nSee the Output Format option below."
+    tooltip::tooltip $buttons(optVIZPMI) "See Help > PMI Presentation\nSee Help > User's Guide (section 6.1.1)\nSee Examples > Graphical PMI Viewer\n\nVisualizations can be generated without generating a spreadsheet\nor CSV files.  See the Output Format option below."
+    tooltip::tooltip $buttons(optVIZFEA) "See Help > Finite Element Model\nSee Help > User's Guide (section 6.1.3)\nSee Examples > AP209 FEM Viewer\n\nVisualizations can be generated without generating a spreadsheet\nor CSV files.  See the Output Format option below."
+    tooltip::tooltip $buttons(optVIZTES) "This feature is still be developed.\nParts in an assembly might have the wrong position and orientation or be missing.\n\nParts modeled with tessellated geometry is supported by AP242 and is supplementary\nto boundary representation (b-rep) geometry.\n\nSee Help > Tessellated Part Geometry\nSee Help > User's Guide (section 6.1.2)\nSee Examples > Tessellated Part Viewer\n\nVisualizations can be generated without generating a spreadsheet or CSV files.\nSee the Output Format option below."
   }
 }
 
@@ -509,7 +509,7 @@ proc guiInverse {} {
   incr cb
 
   pack $foptc -side top -anchor w -pady {5 2} -padx 10 -fill both
-  set ttmsg "Inverse Relationships and Backwards References (Used In) are reported for some attributes for the following entities.\nInverse or Used In values are shown in additional columns highlighted in light blue and purple.\n\n"
+  set ttmsg "Inverse Relationships and Backwards References (Used In) are reported for some attributes for the following entities.\nInverse or Used In values are shown in additional columns highlighted in light blue and purple.\n\nSee Help > User's Guide (section 4.4.5)\n\n"
   set lent ""
   set ttlen 0
   if {[info exists inverses]} {
@@ -706,7 +706,7 @@ proc guiOpenSTEPFile {} {
     incr cb
   }
   pack $foptk -side top -anchor w -pady {5 2} -padx 10 -fill both
-  catch {tooltip::tooltip $foptk "If Excel is installed, then Spreadsheets and CSV files can be generated.\nIf CSV Files is selected, the Spreadsheet is also generated.\n\nIf Excel is not installed, only CSV files can be generated.\nOptions for Reports and Inverse Relationships are disabled.\n\nCSV files do not contain any cell colors, comments, or links.\nGD&T symbols will look correct only with Excel 2016 or newer.\n\nVisualization Only does not generate any Spreadsheets or CSV files.\nAll options except Visualize are disabled."}
+  catch {tooltip::tooltip $foptk "If Excel is installed, then Spreadsheets and CSV files can be generated.\nIf CSV Files is selected, the Spreadsheet is also generated.\n\nIf Excel is not installed, only CSV files can be generated.\nOptions for Reports and Inverse Relationships are disabled.\n\nCSV files do not contain any cell colors, comments, or links.\nGD&T symbols will look correct only with Excel 2016 or newer.\n\nVisualization Only does not generate any Spreadsheets or CSV files.\nAll options except Visualize are disabled.\n\nSee Help > User's Guide (section 4.4.1)"}
 
 # log file
   set foptm [ttk::labelframe $fopt.m -text " Log File "]
@@ -736,7 +736,7 @@ proc guiSpreadsheet {} {
     incr cb
   }
   pack $fxlsz -side top -anchor w -pady {5 2} -padx 10 -fill both
-  set msg "Worksheets can be sorted by column values.\nThe worksheet with Properties is always sorted."
+  set msg "Worksheets can be sorted by column values.\nThe worksheet with Properties is always sorted.\n\nSee Help > User's Guide (section 4.5.1)"
   catch {tooltip::tooltip $fxlsz $msg}
 
   set fxlsa [ttk::labelframe $fxls.a -text " Number Format "]
@@ -747,7 +747,7 @@ proc guiSpreadsheet {} {
     incr cb
   }
   pack $fxlsa -side top -anchor w -pady {5 2} -padx 10 -fill both
-  set msg "Excel rounds real numbers if there are more than 11 characters in the number string.  For example,\nthe number 0.12499999999999997 in the STEP file will be shown as 0.125  However, double\nclicking in a cell with a rounded number will show all of the digits.\n\nThis option will show most real numbers exactly as they appear in the STEP file.  This applies\nonly to single real numbers.  Lists of real numbers, such as cartesian point coordinates, are\nalways shown exactly as they appear in the STEP file."
+  set msg "Excel rounds real numbers if there are more than 11 characters in the number string.  For example,\nthe number 0.12499999999999997 in the STEP file will be shown as 0.125  However, double\nclicking in a cell with a rounded number will show all of the digits.\n\nThis option will show most real numbers exactly as they appear in the STEP file.  This applies\nonly to single real numbers.  Lists of real numbers, such as cartesian point coordinates, are\nalways shown exactly as they appear in the STEP file.\n\nSee Help > User's Guide (section 4.5.2)"
   catch {tooltip::tooltip $fxlsa $msg}
   
   set fxlsb [ttk::labelframe $fxls.b -text " Maximum Rows for any worksheet"]
@@ -763,7 +763,7 @@ proc guiSpreadsheet {} {
     incr cb
   }
   pack $fxlsb -side top -anchor w -pady 5 -padx 10 -fill both
-  set msg "This option will limit the number of rows (entities) written to any one worksheet or CSV file.\nThe Maximum rows ([lindex [lindex $rlimit end] 1]) depends on the version of Excel.\n\nFor large STEP files, setting a low maximum can speed up processing at the expense\nof not processing all of the entities.  This is useful when processing Geometry entities.\n\nSyntax Errors might be missed if some entities are not processed due to a small maximum rows.\n\nMaximum rows does not affect generating any visualization."
+  set msg "This option will limit the number of rows (entities) written to any one worksheet or CSV file.\nThe Maximum rows ([lindex [lindex $rlimit end] 1]) depends on the version of Excel.\n\nFor large STEP files, setting a low maximum can speed up processing at the expense\nof not processing all of the entities.  This is useful when processing Geometry entities.\n\nSyntax Errors might be missed if some entities are not processed due to a small maximum rows.\n\nMaximum rows does not affect generating any visualization.\n\nSee Help > User's Guide (section 4.5.3)"
   catch {tooltip::tooltip $fxlsb $msg}
 
   set fxlsc [ttk::labelframe $fxls.c -text " Excel Options "]
@@ -970,7 +970,9 @@ Use F6 and F5 to change the font size.  Right-click to save the text."
 # options help
   $Help add command -label "Options" -command {
 outputMsg "\nOptions --------------------------------------------------------------------" blue
-outputMsg "Process: Select which types of entities are processed.  The tooltip help lists all the entities
+outputMsg "See Help > User's Guide (sections 4.4, 4.5, 5, and 6)
+
+Process: Select which types of entities are processed.  The tooltip help lists all the entities
 associated with that type.  Selectively process only the entities or visualizations relevant to
 your analysis.  Entity types and visualizations can also be selected with the All, None, For
 Reports, and For Visualizations buttons.
@@ -1010,6 +1012,8 @@ outputMsg "STEP files can be opened in other applications.  If applications are 
 directory, then the pull-down menu in the Options tab will contain applications that can open a
 STEP file such as STEP viewers, browsers, and conformance checkers.
 
+See Help > User's Guide (section 4.4.6)
+
 The 'Indent STEP File (for debugging)' option rearranges and indents the entities to show the
 hierarchy of information in a STEP file.  The 'indented' file (.txt) is written to the same
 directory as the STEP file or to the same user-defined directory specified in the Spreadsheet
@@ -1027,6 +1031,8 @@ outputMsg "Multiple STEP files can be selected in the Open File(s) dialog by hol
 shift key when selecting files or an entire directory of STEP files can be selected with 'Open
 Multiple STEP Files in a Directory'.  Files in subdirectories of the selected directory can also
 be processed.
+
+See Help > User's Guide (section 8)
 
 When processing multiple STEP files, a File Summary spreadsheet is generated in addition to
 individual spreadsheets for each file.  The File Summary spreadsheet shows the entity count and
@@ -1051,6 +1057,8 @@ dimensional tolerances (GD&T) without any graphical presentation elements.  PMI 
 associated with CAD model geometry and is computer-interpretable to facilitate automated
 consumption by downstream applications for manufacturing, measurement, inspection, and other
 processes.  PMI Representation is found mainly in AP242 files.
+
+See Help > User's Guide (section 5.1)
 
 Worksheets with PMI Representation show a visual recreation of the representation for Dimensional
 Tolerances, Geometric Tolerances, and Datum Features.  The results are in columns, highlighted in
@@ -1105,6 +1113,8 @@ tolerance (GD&T) annotations.  PMI Presentation is not intended to be computer-i
 does not carry any representation information, although it can be linked to its corresponding PMI
 Representation.
 
+See Help > User's Guide (sections 5.2 and 6.1.1)
+
 Geometric entities used for PMI Presentation annotations are reported in columns, highlighted in
 yellow and green, on Annotation_*_occurrence worksheets.  The Summary worksheet will indicate on
 the Annotation_*_occurrence row if PMI Presentation is reported.
@@ -1137,7 +1147,9 @@ Go to Websites > Recommended Practices to access documentation."
   $Help add command -label "PMI Coverage Analysis" -command {
 outputMsg "\nPMI Coverage Analysis ------------------------------------------------------" blue
 outputMsg "PMI Coverage Analysis worksheets are generated when processing single or multiple files and when
-reports for PMI Representation or Presentation are selected.  
+reports for PMI Representation or Presentation are selected.
+
+See Help > User's Guide (sections 5.1.6 and 5.2.1)
 
 PMI Representation Coverage Analysis (semantic PMI) counts the number of PMI elements found in a
 STEP file for tolerances, dimensions, datums, modifiers, and CAx-IF Recommended Practices for PMI
@@ -1166,6 +1178,7 @@ Representation Coverage and Summary worksheets are color-coded by the expected P
 test case.  The color-coding only works if the STEP file name can be recognized as having been
 generated from one of the NIST CAD models.
 
+See Help > User's Guide (section 7)
 See Websites > MBE PMI Validation Testing
 
 * PMI Representation Summary *
@@ -1222,6 +1235,8 @@ outputMsg "Geometric, assembly, PMI, annotation, attribute, and tessellated vali
 reported.  The property values are reported in columns highlighted in yellow and green on the
 Property_definition worksheet.  The worksheet can also be sorted and filtered.
 
+See Help > User's Guide (section 5.3)
+
 Other properties and User-Defined Attributes are also reported.
 
 Syntax errors related to validation property attribute values are also reported in the Status tab
@@ -1234,7 +1249,7 @@ hidden by clicking the '1' or '2' in the upper right corner of the spreadsheet.
 The Summary worksheet will indicate on the property_definition entity if properties are reported.
 
 Validation properties are defined by the CAx-IF.
-Go to Websites > Recommended Practices to access documentation."
+See Websites > Recommended Practices to access documentation."
     .tnb select .tnb.status
   }
     
@@ -1244,7 +1259,13 @@ outputMsg "Syntax Error information and other errors can be used to debug a STEP
 generated when Reports related to Semantic PMI, Graphical PMI, and Validation Properties are
 selected.  Syntax Errors and some other errors are shown in the Status tab and highlighted in
 red or yellow.  Syntax Errors are related to CAx-IF Recommended Practices and usually refer to a
-specific section, figure, or table in a Recommended Practice.
+specific section, figure, or table in a Recommended Practice.  Some references to section, figure,
+and table numbers in a recommended practice might be to a newer version of a recommended practice
+that has not been released to the public.  Specific section, figure, and table numbers might be
+wrong relative to the publicly available recommended practice.
+
+See Help > User's Guide (section 5.4)
+See Websites > Recommended Practices
 
 Most entity types that have Syntax Errors or some other errors are highlighted in gray in
 column A on the File Summary worksheet.  A comment indicating that there are errors is shown with a
@@ -1254,9 +1275,7 @@ On an entity worksheet, most Syntax Errors are highlighted in red and have a cel
 text of the Syntax Error that was displayed in the Status tab.
 
 All text in the Status tab can be written to a Log File when a STEP file is processed (Options tab).
-In a log file, all error and warning messages are highlighted by ***.
-
-Go to Websites > Recommended Practices to access documentation."
+In a log file, error messages are highlighted by ***."
     .tnb select .tnb.status
   }
 
@@ -1271,6 +1290,7 @@ geometry is supported by AP242 and is supplementary to boundary representation (
 
 Parts in an assembly might have the wrong position and orientation or be missing.
 
+See Help > User's Guide (section 6.1.2)
 See Examples > Tessellated Part Viewer
 See Websites > STEP File Viewers to view STEP files with non-tessellated geometry."
     .tnb select .tnb.status
@@ -1293,7 +1313,9 @@ to the spreadsheet select Coordinates in the Options tab.
 For large AP209 files, there might be insufficient memory to process all of the elements.  Deselect
 Inverse Relationships and/or set the output format to CSV.  
 
-See Websites > STEP AP209 Project and Examples > AP209 FEM Viewer"
+See Help > User's Guide (section 6.1.3)
+See Examples > AP209 FEM Viewer
+See Websites > STEP AP209 Project"
     .tnb select .tnb.status
   }
 
@@ -1306,13 +1328,15 @@ processing of entities has started.  Popup dialogs might appear that say \"Runti
 \"ActiveState Basekit has stopped working\".  A crash might also be caused by a very large STEP
 file.  See Help > Large STEP Files.
 
+See Help > User's Guide (sections 2.4 and 9)
+
 A crash is most likely due to syntax errors in the STEP file or sometimes due to limitations of
 the toolkit used to read STEP files.  To see which type of entity caused the error, check the
 Status tab to see which type of entity was last processed.
 
 Workarounds for this problem:
 
-- The program keeps track of the last entity type processed when it crashed.  Simply restart the
+- This program keeps track of the last entity type processed when it crashed.  Simply restart the
 STEP File Analyzer and hit F1 to process the last STEP file or F4 if processing multiple files.
 The type of entity that caused the crash will be skipped.  The list of bad entity types that will
 not be processed is stored in a file myfile-skip.dat.

@@ -259,7 +259,7 @@ proc getEntity {objEntity checkInverse} {
           }
           $cells($thisEntType) Item $row($thisEntType) $col($thisEntType) $str
           if {$cellComment && $entComment($attrName)} {
-            addCellComment $thisEntType 3 $col($thisEntType) "Corresponding length and angle measures are also shown." 150 30
+            addCellComment $thisEntType 3 $col($thisEntType) "The value of length and angle measures is also shown." 150 30
             set entComment($attrName) 0
           }
         }
@@ -331,7 +331,7 @@ proc getEntity {objEntity checkInverse} {
         }
         $cells($thisEntType) Item $row($thisEntType) $col($thisEntType) [string trim $str]
         if {$strMeasure != "" && $entComment($attrName)} {
-          addCellComment $thisEntType 3 $col($thisEntType) "Corresponding length and angle value(s) are also shown." 150 30
+          addCellComment $thisEntType 3 $col($thisEntType) "The value of length and angle measures is also shown." 150 30
           set entComment($attrName) 0
         }
       }

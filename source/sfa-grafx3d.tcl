@@ -382,7 +382,7 @@ proc x3dFileEnd {} {
     }
     puts $x3dFile "<p>Selecting a Saved View above changes the viewpoint or use Page Up for the next viewpoint.  Zoom and pan to view all PMI."
   }
-  if {[llength $svmsg] > 0} {
+  if {[llength $svmsg] > 0 && [string first "AP209" $stepAP] == -1} {
     outputMsg " "
     foreach msg $svmsg {errorMsg $msg}
   }

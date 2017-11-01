@@ -1384,6 +1384,9 @@ proc outputMsg {msg {color "black"}} {
 proc errorMsg {msg {color ""}} {
   global errmsg outputWin stepAP opt logFile
 
+  set oklog 0
+  set logmsg ""
+  if {$opt(LOGFILE) && [info exists logFile]} {set oklog 1}
   if {![info exists errmsg]} {set errmsg ""}
   
   if {[string first $msg $errmsg] == -1} {
@@ -1399,22 +1402,33 @@ proc errorMsg {msg {color ""}} {
         if {[string first "syntax error" [string tolower $msg]] != -1} {
           if {$stepAP != ""} {
             $outputWin issue "$msg " syntax
-            if {$opt(LOGFILE) && [info exists logFile]} {puts $logFile "*** $msg"}
+            if {$oklog} {set logmsg "*** $msg"}
           }
         } else {
           set ilevel ""
           catch {set ilevel "  \[[lindex [info level [expr {[info level]-1}]] 0]\]"}
           if {$ilevel == "  \[errorMsg\]"} {set ilevel ""}
           $outputWin issue "$msg$ilevel " error
-          if {$opt(LOGFILE) && [info exists logFile]} {puts $logFile "*** $msg$ilevel"}
+          if {$oklog} {set logmsg "*** $msg$ilevel"}
         }
       } else {
         $outputWin issue "$msg " $color
-        if {$opt(LOGFILE) && [info exists logFile]} {puts $logFile "*** $msg"}
+        if {$oklog} {set logmsg "$msg"}
       }
       update idletasks
     } else {
-      if {$opt(LOGFILE) && [info exists logFile]} {puts $logFile "*** $msg"}
+      if {$oklog} {set logmsg "$msg"}
+    }
+
+    if {$logmsg != ""} {
+      if {[string first "*" $logmsg] == -1} {
+        puts $logFile $logmsg
+      } else {
+        set newmsg [split [string range $logmsg 4 end] "\n"]
+        set logmsg ""
+        foreach str $newmsg {append logmsg "\n*** $str"}
+        puts $logFile [string range $logmsg 1 end]
+      }
     }
     return 1
   } else {
