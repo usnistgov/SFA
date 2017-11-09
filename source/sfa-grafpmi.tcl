@@ -46,7 +46,7 @@ proc gpmiAnnotation {entType} {
   set PMIP(annotation_fill_area_occurrence)   [list annotation_fill_area_occurrence name styles $fill_style item $annotation_fill_area]
   set PMIP(draughting_annotation_occurrence)  [list draughting_annotation_occurrence name styles $curve_style item $geometric_curve_set]
   set PMIP(draughting_annotation_occurrence_and_geometric_representation_item) [list draughting_annotation_occurrence_and_geometric_representation_item name styles $curve_style item $geometric_curve_set]
-  set PMIP(tessellated_annotation_occurrence) [list tessellated_annotation_occurrence name styles $curve_style item $tessellated_geometric_set $repo_tessellated_geometric_set]
+  set PMIP(tessellated_annotation_occurrence) [list tessellated_annotation_occurrence name styles $curve_style $fill_style item $tessellated_geometric_set $repo_tessellated_geometric_set]
 
 # annotation placeholder
   set planar_box    [list planar_box size_in_x size_in_y placement $a2p3d]

@@ -24,7 +24,7 @@ set scriptName [info script]
 set wdir [file dirname $scriptName]
 set auto_path [linsert $auto_path 0 $wdir]
 
-# for building your own version, uncomment and modify C:/Tcl/lib/teapot directory if necessary
+# for building your own version without Tcl Dev Kit, uncomment and modify C:/Tcl/lib/teapot directory if necessary
 # lappend commands add package locations to auto_path, must be before package commands
 #lappend auto_path C:/Tcl/lib/teapot/package/win32-ix86/lib/tcom3.9
 #lappend auto_path C:/Tcl/lib/teapot/package/win32-ix86/lib/twapi3.0.32
@@ -48,12 +48,12 @@ if {[catch {
 }
 
 catch {
-  lappend auto_path C:/Tcl/lib/teapot/package/win32-ix86/lib/vfs1.4.2
+  #lappend auto_path C:/Tcl/lib/teapot/package/win32-ix86/lib/vfs1.4.2
   package require vfs::zip
 }
 
 catch {
-  lappend auto_path C:/Tcl/lib/teapot/package/tcl/lib/tooltip1.4.4
+  #lappend auto_path C:/Tcl/lib/teapot/package/tcl/lib/tooltip1.4.4
   package require tooltip
 }
 
@@ -189,6 +189,7 @@ if {[file exists $optionsFile]} {
     set endMsg "Error reading options file: [truncFileName $optionsFile]\n $emsg\nFix or delete the file."
   }
 }
+set opt(XL_KEEPOPEN) 0
 
 # check some directory variables
 if {[info exists userWriteDir]} {if {![file exists $userWriteDir]} {set userWriteDir $mydocs}}

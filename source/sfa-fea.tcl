@@ -1,6 +1,6 @@
 proc feaModel {entType} {
   global objDesign
-  global ent entAttrList entCount entLevel opt rowmax nprogBarEnts count localName mytemp sfaPID
+  global ent entAttrList entCount entLevel opt rowmax nprogBarEnts count localName mytemp sfaPID cadSystem
   global x3dFile x3dMin x3dMax x3dMsg x3dStartFile x3dFileName
   global feaType feaTypes feaElemTypes nfeaElem feaFile feaFileName feaFaceList feaFaceOrig
 
@@ -54,7 +54,9 @@ proc feaModel {entType} {
     }
     puts $x3dFile "</head>"
 
-    puts $x3dFile "\n<body><font face=\"arial\">\n<h3>STEP AP209 Finite Element Model:  [file tail $localName]</h3>"
+    set name [file tail $localName]
+    if {$cadSystem != ""} {append name "  ($cadSystem)"}
+    puts $x3dFile "\n<body><font face=\"arial\">\n<h3>STEP AP209 Finite Element Model:  $name</h3>"
     puts $x3dFile "<table><tr><td>"
     
 # x3d window size

@@ -639,8 +639,6 @@ proc runOpenProgram {} {
       puts $scriptFile "Database>Open([file nativename [file join $edmDir Db]], ap203e2, ap203e2, \"$edmDBopen\")"
     } elseif {[string first "AP242_MANAGED_MODEL_BASED_3D_ENGINEERING_MIM_LF" $fschema] == 0} {
       puts $scriptFile "Database>Open([file nativename [file join $edmDir Db]], ap242, ap242, \"$edmDBopen\")"
-    } elseif {[string first "AM_AP242_MANAGED_MODEL_BASED_3D_ENGINEERING_MIM_LF" $fschema] == 0} {
-      puts $scriptFile "Database>Open([file nativename [file join $edmDir Db]], ap242_am, ap242_am, \"$edmDBopen\")"
     } elseif {[string first "AP209_MULTIDISCIPLINARY_ANALYSIS_AND_DESIGN_MIM_LF" $fschema] == 0} {
       puts $scriptFile "Database>Open([file nativename [file join $edmDir Db]], ap209, ap209, \"$edmDBopen\")"
     } else {
@@ -1240,6 +1238,8 @@ proc addCellComment {ent r c text {w 300} {h 70}} {
   global worksheet
   #outputMsg "addCellComment $ent $r $c" green
 
+  if {![info exists worksheet($ent)]} {return}
+  
   if {[catch {
     regsub -all \n $text " " text
     while {[string first "  " $text] != -1} {regsub -all "  " $text " " text}
@@ -1510,7 +1510,7 @@ proc copyRoseFiles {} {
 
 # developer schemas
         set devfile 0
-        if {[string first "am_ap242" $fn] != -1} {set devfile 1}
+        #if {[string first "am_ap242" $fn] != -1} {set devfile 1}
         if {$developer == 0 && $devfile} {
           set okcopy 0
           if {[file exists $f2]} {catch {file delete -force $f2}}

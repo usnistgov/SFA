@@ -1,6 +1,6 @@
 # start x3dom file for PMI annotations                        
 proc x3dFileStart {} {
-  global ao entCount localName opt savedViewNames x3dFile x3dFileName x3dStartFile numTessColor x3dMin x3dMax
+  global ao entCount localName opt savedViewNames x3dFile x3dFileName x3dStartFile numTessColor x3dMin x3dMax cadSystem
   
   set x3dStartFile 0
   catch {file delete -force -- "[file rootname $localName]_x3dom.html"}
@@ -35,7 +35,9 @@ proc x3dFileStart {} {
     }
   }
 
-  puts $x3dFile "\n<body><font face=\"arial\">\n<h3>$title:  [file tail $localName]</h3>"
+  set name [file tail $localName]
+  if {$cadSystem != ""} {append name "  ($cadSystem)"}
+  puts $x3dFile "\n<body><font face=\"arial\">\n<h3>$title:  $name</h3>"
   puts $x3dFile "<ul><li>Only $title is shown.  Boundary representation (b-rep) part geometry can be viewed with <a href=\"https://www.cax-if.org/step_viewers.html\">STEP file viewers</a>."
   if {[string first "Tessellated" $title] != -1 && [info exist entCount(next_assembly_usage_occurrence)]} {
     puts $x3dFile "<li>Parts in an assembly might have the wrong position and orientation or be missing."
@@ -78,13 +80,18 @@ proc x3dFileStart {} {
 # -------------------------------------------------------------------------------
 # write tessellated geometry for annotations and parts
 proc x3dTessGeom {objID objEntity1 ent1} {
-  global ao draftModelCameras entCount nshape shapeRepName savedViewFile tessIndex tessIndexCoord tessCoord tessCoordID
+  global ao draftModelCameras entCount nshape recPracNames shapeRepName savedViewFile tessIndex tessIndexCoord tessCoord tessCoordID
   global tessPlacement tessRepo x3dColor x3dCoord x3dIndex x3dFile x3dColors x3dMsg
   
   set x3dIndex $tessIndex($objID)
   set x3dCoord $tessCoord($tessIndexCoord($objID))
 
-  if {$x3dColor == ""} {set x3dColor "1 1 0"}
+  if {$x3dColor == ""} {
+    set x3dColor "0 0 0"
+    if {[string first "annotation" [$objEntity1 Type]] != -1} {
+      errorMsg "Syntax Error: PMI Presentation color not found for [formatComplexEnt [$objEntity1 Type]] (using black)\n[string repeat " " 14]\($recPracNames(pmi242), Sec. 8.4, Figure 75)"
+    }
+  }
   set x3dIndexType "Line"
   set solid ""
   set emit "emissiveColor='$x3dColor'"
@@ -100,7 +107,7 @@ proc x3dTessGeom {objID objEntity1 ent1} {
       set tsID [$objEntity1 P21ID]
       set tessRepo 0
 
-# set color
+# set color, default gray
       set x3dColor ".7 .7 .7"
       tessSetColor $tsID
       set spec "specularColor='.5 .5 .5'"
@@ -215,7 +222,7 @@ proc x3dTessGeom {objID objEntity1 ent1} {
 # write geometry for polyline annotations
 proc x3dPolylinePMI {} {
   global ao x3dCoord x3dShape x3dIndex x3dIndexType x3dFile x3dColor gpmiPlacement placeOrigin placeAnchor boxSize
-  global savedViewName savedViewFile
+  global savedViewName savedViewFile recPracNames
 
   if {[catch {
     if {[info exists x3dCoord] || $x3dShape} {
@@ -238,9 +245,9 @@ proc x3dPolylinePMI {} {
 # start shape
           if {$x3dColor != ""} {
             puts $f "<Shape>\n <Appearance><Material diffuseColor='$x3dColor' emissiveColor='$x3dColor'></Material></Appearance>"
-          } elseif {[string first "annotation_occurrence" $ao] == 0 || [string first "annotation_fill_area_occurrence" $ao] == 0} {
-            puts $f "<Shape>\n <Appearance><Material diffuseColor='0 1 0' emissiveColor='0 1 0'></Material></Appearance>"
-            errorMsg "Syntax Error: Color not specified for PMI Presentation (using green)"
+          } else {
+            puts $f "<Shape>\n <Appearance><Material diffuseColor='0 0 0' emissiveColor='0 0 0'></Material></Appearance>"
+            errorMsg "Syntax Error: PMI Presentation color not found for [formatComplexEnt $ao] (using black)\n[string repeat " " 14]\($recPracNames(pmi242), Sec. 8.4, Figure 75)"
           }
 
 # index and coordinates
@@ -359,7 +366,7 @@ proc x3dFileEnd {} {
 # for NIST model - link to drawing 
   if {$nistName != ""} {
     foreach item $modelURLs {
-      if {[string first $nistName $item] == 0} {puts $x3dFile "<a href=\"https://s3.amazonaws.com/nist-el/mfg_digitalthread/$item\">Test Case Drawing</a><p>"}
+      if {[string first $nistName $item] == 0} {puts $x3dFile "<a href=\"https://s3.amazonaws.com/nist-el/mfg_digitalthread/$item\">NIST Test Case Drawing</a><p>"}
     }
   }
 
@@ -367,7 +374,7 @@ proc x3dFileEnd {} {
   set svmsg {}
   if {[info exists numSavedViews($nistName)]} {
     if {$opt(VIZPMI) && $nistName != "" && [llength $savedViewButtons] != $numSavedViews($nistName)} {
-      lappend svmsg "Expecting $numSavedViews($nistName) Graphical PMI Saved Views in the NIST Test Case, found [llength $savedViewButtons]."
+      lappend svmsg "For the NIST test case, expecting $numSavedViews($nistName) Graphical PMI Saved Views, found [llength $savedViewButtons]."
     }
   }
   if {$opt(VIZPMI) && [llength $savedViewButtons] > 0} {
@@ -378,14 +385,11 @@ proc x3dFileEnd {} {
       if {[string first "MBD" [string toupper $svn]] == -1 && $nistName != ""} {set ok 0}
     }
     if {!$ok && [info exists numSavedViews($nistName)]} {
-      lappend svmsg "Some Graphical PMI Saved View names are not defined in the NIST Test Case."
+      lappend svmsg "For the NIST test case, some expected Graphical PMI Saved View names (MBD*) were not found."
     }
     puts $x3dFile "<p>Selecting a Saved View above changes the viewpoint or use Page Up for the next viewpoint.  Zoom and pan to view all PMI."
   }
-  if {[llength $svmsg] > 0 && [string first "AP209" $stepAP] == -1} {
-    outputMsg " "
-    foreach msg $svmsg {errorMsg $msg}
-  }
+  if {[llength $svmsg] > 0 && [string first "AP209" $stepAP] == -1} {foreach msg $svmsg {errorMsg $msg}}
 
 # for FEM - node, element checkboxes
   if {$opt(VIZFEA) && [string first "AP209" $stepAP] == 0} {
@@ -452,8 +456,10 @@ proc x3dFileEnd {} {
 proc x3dSetColor {type} {
   global idxColor
 
+# black
   if {$type == 1} {return "0 0 0"}
 
+# random
   if {$type == 2} {
     incr idxColor
     switch $idxColor {

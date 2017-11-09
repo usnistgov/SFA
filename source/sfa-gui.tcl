@@ -767,9 +767,10 @@ proc guiSpreadsheet {} {
   catch {tooltip::tooltip $fxlsb $msg}
 
   set fxlsc [ttk::labelframe $fxls.c -text " Excel Options "]
-  foreach item {{" Open spreadsheet after it has been generated" opt(XL_OPEN)} \
-                {" Keep spreadsheet open while it is being generated (not recommended)" opt(XL_KEEPOPEN)} \
-                {" Create links to STEP files and spreadsheets with multiple files" opt(XL_LINK1)}} {
+  set items [list {" Open spreadsheet after it has been generated" opt(XL_OPEN)} \
+                  {" On File Summary worksheet, create links to STEP files and spreadsheets (see File > Open Multiple ...)" opt(XL_LINK1)}]
+  #if {$developer} {lappend items {" Keep spreadsheet open while it is being generated (not recommended)" opt(XL_KEEPOPEN)}}
+  foreach item $items {
     regsub -all {[\(\)]} [lindex $item 1] "" idx
     set buttons($idx) [ttk::checkbutton $fxlsc.$cb -text [lindex $item 0] -variable [lindex $item 1] -command {checkValues}]
     pack $buttons($idx) -side top -anchor w -padx 5 -pady 0 -ipady 0
@@ -1446,6 +1447,7 @@ proc guiWebsitesMenu {} {
   $Websites add command -label "Implementation Coverage"        -command {openURL https://www.cax-if.org/vendor_info.php}
   $Websites add command -label "STEP File Viewers"              -command {openURL https://www.cax-if.org/step_viewers.html}
   $Websites add command -label "Recommended Practices"          -command {openURL https://www.cax-if.org/joint_testing_info.html#recpracs}
+  $Websites add command -label "CAE Testing"                    -command {openURL https://www.cax-if.org/joint_testing_info.html#cae_rounds}
   $Websites add command -label "CAx-IF (alternate website)"     -command {openURL https://www.cax-if.de}
   
   $Websites add separator
@@ -1461,6 +1463,7 @@ proc guiWebsitesMenu {} {
   $Websites add command -label "prostep ivip" -command {openURL http://www.prostep.org/en/projects/}
   $Websites add command -label "AFNeT"        -command {openURL http://afnet.fr/dotank/sps/}
   $Websites add command -label "LOTAR"        -command {openURL http://www.lotar-international.org}
+  #$Websites add command -label "PDM-IF"       -command {openURL http://www.pdm-if.org/}
 }
 
 #-------------------------------------------------------------------------------

@@ -252,7 +252,7 @@ proc genExcel {{numFile 0}} {
     getSchemaFromFile $fname 1
 
     if {!$p21e3} {
-      errorMsg "Possible causes of the ERROR:\n- Syntax errors in the STEP file\n- STEP schema is not supported, see Help > Supported STEP APs\n- Wrong file extension, should be '.stp', '.step', '.p21', '.stpZ', or '.ifc'\n- File or directory name contains accented, non-English, or symbol characters\n- Multiple schemas are used\n- File is not an ISO 10303 Part 21 STEP file" red
+      errorMsg "Possible causes of the ERROR:\n- Syntax errors in the STEP file\n- STEP schema is not supported, see Help > Supported STEP APs\n- File or directory name contains accented, non-English, or symbol characters\n- File extension is not '.stp', '.step', '.p21', '.stpZ', or '.ifc'\n- Multiple schemas are used\n- File is not an ISO 10303 Part 21 STEP file" red
     
 # part 21 edition 3
     } else {
@@ -265,8 +265,10 @@ proc genExcel {{numFile 0}} {
     }
     
 # open STEP file in editor
-    errorMsg "Opening STEP file in editor"
-    exec $editorCmd $localName &
+    if {[info exists editorCmd]} {
+      errorMsg "Opening file in editor"
+      exec $editorCmd $localName &
+    }
 
     if {[info exists errmsg]} {unset errmsg}
     catch {
@@ -479,7 +481,7 @@ proc genExcel {{numFile 0}} {
     set fileUserEnt [open $userEntityFile r]
     while {[gets $fileUserEnt line] != -1} {
       set line [split [string trim $line] " "]
-      foreach ent $line {lappend userEntityList $ent}
+      foreach ent $line {lappend userEntityList [string tolower $ent]}
     }
     close $fileUserEnt
     if {[llength $userEntityList] == 0} {
@@ -1324,6 +1326,7 @@ proc addHeaderWorksheet {numFile fname} {
 
 # set the application from various file attributes, cadApps is a list of all apps defined in sfa-data.tcl, take the first one that matches
     set ok 0
+    set app2 ""
     foreach attr {FileOriginatingSystem FilePreprocessorVersion FileDescription FileAuthorisation FileOrganization} {
       foreach app $cadApps {
         set app1 $app
@@ -1331,44 +1334,46 @@ proc addHeaderWorksheet {numFile fname} {
           set cadSystem [join [$objDesign $attr]]
 
 # for multiple files, modify the app string to fit in file summary worksheet
-          if {$numFile != 0 && [info exists cells1(Summary)]} {
-            if {$app == "3D_Evolution"}           {set app1 "CT 3D_Evolution"}
-            if {$app == "CoreTechnologie"}        {set app1 "CT 3D_Evolution"}
-            if {$app == "DATAKIT"}                {set app1 "Datakit"}
-            if {$app == "Implementor Forum Team"} {set app1 "CAx-IF"}
-            if {$app == "PRO/ENGINEER"}           {set app1 "Pro/E"}
-            if {$app == "SOLIDWORKS"}             {set app1 "SolidWorks"}
-            if {$app == "SOLIDWORKS MBD"}         {set app1 "SolidWorks MBD"}
-            if {$app == "3D Reviewer"}            {set app1 "TechSoft3D 3D_Reviewer"}
+          if {$app == "3D_Evolution"}           {set app1 "CT 3D_Evolution"}
+          if {$app == "CoreTechnologie"}        {set app1 "CT 3D_Evolution"}
+          if {$app == "DATAKIT"}                {set app1 "Datakit"}
+          if {$app == "EDMsix"}                 {set app1 "Jotne EDMsix"}
+          if {$app == "Implementor Forum Team"} {set app1 "CAx-IF"}
+          if {$app == "PRO/ENGINEER"}           {set app1 "Pro/E"}
+          if {$app == "SOLIDWORKS"}             {set app1 "SolidWorks"}
+          if {$app == "SOLIDWORKS MBD"}         {set app1 "SolidWorks MBD"}
+          if {$app == "3D Reviewer"}            {set app1 "TechSoft3D 3D_Reviewer"}
 
-            if {$app == "UGS - NX"}                {set app1 "UGS-NX"}
-            if {$app == "UNIGRAPHICS"}             {set app1 "Unigraphics"}
-            if {$app == "jt_step translator"}      {set app1 "Siemens NX"}
-            if {$app == "SIEMENS PLM Software NX"} {set app1 "Siemens NX"}
-            if {[string first "SIEMENS PLM Software NX" $app] == 0} {set app1 "Siemens NX_[string range $app 24 end]"}
+          if {$app == "UGS - NX"}                {set app1 "UGS-NX"}
+          if {$app == "UNIGRAPHICS"}             {set app1 "Unigraphics"}
+          if {$app == "jt_step translator"}      {set app1 "Siemens NX"}
+          if {$app == "SIEMENS PLM Software NX"} {set app1 "Siemens NX"}
+          if {[string first "SIEMENS PLM Software NX" $app] == 0} {set app1 "Siemens NX_[string range $app 24 end]"}
 
-            if {[string first "CATIA Version" $app] == 0} {set app1 "CATIA V[string range $app 14 end]"}
-            if {$app == "3D EXPERIENCE"} {set app1 "3D Experience"}
-            if {[string first "CATIA V5" [$objDesign FileDescription]] != -1} {set app1 "CATIA V5"}
-            if {[string first "CATIA V6" [$objDesign FileDescription]] != -1} {set app1 "CATIA V6"}
- 
-            if {[string first "FreeCAD"   [$objDesign FileOriginatingSystem]] != -1}   {set app1 "FreeCAD"}
-            if {[string first "THEOREM"   [$objDesign FilePreprocessorVersion]] != -1} {set app1 "Theorem"}
-            if {[string first "T-Systems" [$objDesign FilePreprocessorVersion]] != -1} {set app1 "T-Systems"}
+          if {[string first "CATIA Version" $app] == 0}      {set app1 "CATIA V[string range $app 14 end]"}
+          if {$app == "3D EXPERIENCE"} {set app1 "3D Experience"}
+          if {[string first "CATIA V5" [$objDesign FileDescription]] != -1} {set app1 "CATIA V5"}
+          if {[string first "CATIA V6" [$objDesign FileDescription]] != -1} {set app1 "CATIA V6"}
+
+          if {[string first "CATIA SOLUTIONS V4" [$objDesign FileOriginatingSystem]] != -1} {set app1 "CATIA V4"}
+          if {[string first "Autodesk Inventor"  [$objDesign FileOriginatingSystem]] != -1} {set app1 [$objDesign FileOriginatingSystem]}
+          if {[string first "FreeCAD"            [$objDesign FileOriginatingSystem]] != -1} {set app1 "FreeCAD"}
+
+          if {[string first "THEOREM"   [$objDesign FilePreprocessorVersion]] != -1} {set app1 "Theorem"}
+          if {[string first "T-Systems" [$objDesign FilePreprocessorVersion]] != -1} {set app1 "T-Systems"}
 
 # set caxifVendor based on CAx-IF vendor notation used in testing rounds, use for app if appropriate
-            set caxifVendor [setCAXIFvendor]
-            if {$caxifVendor != ""} {
-              if {[string first [lindex [split $caxifVendor " "] 0] $app1] != -1} {
-                if {[string length $caxifVendor] > [string length $app1]} {set app1 $caxifVendor}
-              } elseif {[string first [lindex [split $app1 " "] 0] $caxifVendor] != -1} {
-                if {[string length $caxifVendor] < [string length $app1]} {set app1 "$app1 ($caxifVendor)"}
-              }
+          set caxifVendor [setCAXIFvendor]
+          if {$caxifVendor != ""} {
+            if {[string first [lindex [split $caxifVendor " "] 0] $app1] != -1} {
+              if {[string length $caxifVendor] > [string length $app1]} {set app1 $caxifVendor}
+            } elseif {[string first [lindex [split $app1 " "] 0] $caxifVendor] != -1} {
+              if {[string length $caxifVendor] < [string length $app1]} {set app1 "$app1 ($caxifVendor)"}
             }
-            set ok 1
-            set app2 $app1
-            break
           }
+          set ok 1
+          set app2 $app1
+          break
         }
       }
     }
@@ -1381,6 +1386,7 @@ proc addHeaderWorksheet {numFile fname} {
       regsub -all " " $app2 [format "%c" 10] app2
       $cells1(Summary) Item 6 $colsum [string trim $app2]
     }
+    set cadSystem $app2
     if {$cadSystem == ""} {set cadSystem [setCAXIFvendor]}
 
 # close csv file

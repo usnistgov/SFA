@@ -309,14 +309,14 @@ proc openMultiFile {{ask 1}} {
           set ptime "[trimNum [expr {double($ptime)/3600.}] 1 1] hours"
         }
         set msg "\n($nfile) "
-        if {$useXL} {
+        if {$opt(XLSCSV) == "None"} {
+          append msg "Visualizations"
+        } elseif {$useXL} {
           append msg "Spreadsheets"
         } elseif {$opt(XLSCSV) == "CSV"} {
           append msg "CSV files"
-        } elseif {$opt(XLSCSV) == "None"} {
-          append msg "Visualizations"
         }
-        append msg " Generated in $ptime"
+        append msg " generated in $ptime"
         outputMsg $msg green
         outputMsg "-------------------------------------------------------------------------------"
           
@@ -551,11 +551,10 @@ proc openMultiFile {{ask 1}} {
 # set file name for analysis spreadsheet
             set enddir [lindex [split $multiFileDir "/"] end]
             regsub -all " " $enddir "_" enddir
-            set pt STEP
-            set aname [file nativename [file join $multiFileDir $enddir\_$pt\_Summary_$lenfilelist.$extXLS]]
+            set aname [file nativename [file join $multiFileDir SFA-Summary-$enddir-$lenfilelist.$extXLS]]
             if {[string length $aname] > 218} {
               errorMsg "Pathname of Spreadsheet file is too long for Excel ([string length $aname])"
-              set aname [file nativename [file join $writeDir $enddir\_$pt\_Summary_$lenfilelist.$extXLS]]
+              set aname [file nativename [file join $writeDir SFA-Summary-$enddir-$lenfilelist.$extXLS]]
               if {[string length $aname] < 219} {
                 errorMsg "Spreadsheet file written to User-defined directory (Spreadsheet tab)"
               }

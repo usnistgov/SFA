@@ -208,6 +208,7 @@ if {[info exists userEntityFile]} {
     set opt(PR_USER) 0
   }
 }
+set opt(XL_KEEPOPEN) 0
 
 # get command line options
 for {set i 1} {$i <= 10} {incr i} {
