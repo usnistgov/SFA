@@ -136,34 +136,7 @@ if {[file exists $optionsFile]} {
   if {[catch {
     source $optionsFile
 
-# check and reset old variable names
-    if {[info exists opt(PMIVRML)]}  {set opt(VIZPMI) $opt(PMIVRML)}
-    if {[info exists opt(PMIPROP)]}  {set opt(PMIGRF) $opt(PMIPROP)}
-    if {[info exists opt(SEMPROP)]}  {set opt(PMISEM) $opt(SEMPROP)}
-    if {[info exists opt(GENX3DOM)]} {set opt(VIZPMI) $opt(GENX3DOM)}
-    if {[info exists opt(VIZ209)]}   {set opt(VIZFEA) $opt(VIZ209)}
-  
-    if {[info exists opt(ROWLIM)]} {set opt(XL_ROWLIM) $opt(ROWLIM)}
-    if {[info exists opt(SORT)]}   {set opt(XL_SORT)   $opt(SORT)}
-  
-    if {[info exists opt(PR_STEP_GEO)]}    {set opt(PR_STEP_GEOM) $opt(PR_STEP_GEO)}
-    if {[info exists opt(PR_STEP_REP)]}    {set opt(PR_STEP_REPR) $opt(PR_STEP_REP)}
-    if {[info exists opt(PR_STEP_ASPECT)]} {set opt(PR_STEP_SHAP) $opt(PR_STEP_ASPECT)}
-    if {[info exists opt(PR_STEP_OTHER)]}  {set opt(PR_STEP_COMM) $opt(PR_STEP_OTHER)}
-  
-    if {[info exists opt(PR_STEP_AP203)]} {set opt(PR_STEP_COMM) 1}
-    if {[info exists opt(PR_STEP_AP209)]} {set opt(PR_STEP_COMM) 1}
-    if {[info exists opt(PR_STEP_AP210)]} {set opt(PR_STEP_COMM) 1}
-    if {[info exists opt(PR_STEP_AP214)]} {set opt(PR_STEP_COMM) 1}
-  
-    if {[info exists opt(PR_STEP_AP242_KINE)]} {set opt(PR_STEP_KINE) 1}
-    if {[info exists opt(PR_STEP_AP242_QUAL)]} {set opt(PR_STEP_AP242) 1}
-    if {[info exists opt(PR_STEP_AP242_CONS)]} {set opt(PR_STEP_AP242) 1}
-    if {[info exists opt(PR_STEP_AP242_MATH)]} {set opt(PR_STEP_AP242) 1}
-    if {[info exists opt(PR_STEP_AP242_GEOM)]} {set opt(PR_STEP_AP242) 1}
-    if {[info exists opt(PR_STEP_AP242_OTHER)]} {set opt(PR_STEP_AP242) 1}
-
-# unset old variable names
+# unset old variable names from the options file
     if {[info exists verite]} {set sfaVersion $verite; unset verite}
     if {[info exists indentStyledItem]} {set opt(indentStyledItem) $indentStyledItem; unset indentStyledItem}
     if {[info exists indentGeometry]}   {set opt(indentGeometry)   $indentGeometry;   unset indentGeometry}
@@ -271,6 +244,10 @@ outputMsg "- Explanation of Report errors (Help > Syntax Errors)
 - PMI Saved View viewpoints (experimental)
 - Bug fixes and minor improvements"
 
+if {$sfaVersion <= 2.60} {
+  outputMsg "\nRenamed output files:\n Spreadsheets from  myfile_stp.xlsx  to  myfile-sfa.xlsx\n Visualizations from  myfile-x3dom.html  to  myfile-sfa.html" red
+}
+
   .tnb select .tnb.status
   update idletasks
 }
@@ -327,7 +304,7 @@ if {$opt(FIRSTTIME)} {
   setShortcuts
   
   outputMsg " "
-  errorMsg "Use F6 and F5 to change the font size.  Right-click to save the text."
+  errorMsg "Use F6 and F5 to change the font size."
   saveState
 
 # what's new message

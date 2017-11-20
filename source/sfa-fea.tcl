@@ -28,7 +28,8 @@ proc feaModel {entType} {
   if {$x3dStartFile} {
     set x3dStartFile 0
     catch {file delete -force -- "[file rootname $localName]_x3dom.html"}
-    set x3dFileName [file rootname $localName]-x3dom.html
+    catch {file delete -force -- "[file rootname $localName]-x3dom.html"}
+    set x3dFileName [file rootname $localName]-sfa.html
     catch {file delete -force -- $x3dFileName}
     set x3dFile [open $x3dFileName w]
     puts $x3dFile "<!DOCTYPE html>\n<html>\n<head>\n<title>[file tail $localName] | STEP AP209 Finite Element Model</title>\n<base target=\"_blank\">\n<meta http-equiv='Content-Type' content='text/html;charset=utf-8'/>"

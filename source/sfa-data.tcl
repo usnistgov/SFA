@@ -503,7 +503,7 @@ tessellated_curve_set tessellated_edge tessellated_face tessellated_geometric_se
 tessellated_shell tessellated_solid tessellated_structured_item tessellated_surface_set tessellated_vertex tessellated_wire \
 toroidal_surface torus triangulated_face triangulated_surface_set trimmed_curve \
 uniform_curve uniform_surface vector vertex vertex_loop vertex_point \
-cartesian_11 curve_11 cylindrical_11 polar_11 user_defined_11 point_array cylindrical_point spherical_point polar_point \
+point_array cylindrical_point spherical_point polar_point point_and_vector \
 ]]
 
 # STEP cartesian point, etc.
@@ -600,6 +600,7 @@ laminate_table min_and_major_ply_orientation_basis part_laminate_table percentag
 percentage_laminate_table percentage_ply_definition ply_laminate_definition ply_laminate_sequence_definition \
 ply_laminate_table smeared_material_definition thickness_laminate_definition thickness_laminate_table zone_structural_makeup \
 draped_orientation_angle laid_orientation_angle ply_angle_representation ply_orientation_angle reinforcement_orientation_basis \
+cartesian_11 curve_11 cylindrical_11 polar_11 user_defined_11 \
 ]]
 
 # -----------------------------------------------------------------------------------------------------
@@ -901,7 +902,7 @@ organizational_project_role \
 package_product_concept_feature partial_document_with_structured_text_representation_assignment path_shape_representation \
 pattern_offset_membership pattern_omit_membership person person_and_organization person_and_organization_address \
 person_and_organization_assignment person_and_organization_role personal_address physical_breakdown_context physical_element_usage \
-physically_modelled_product_definition picture_representation plus_expression point_and_vector point_path polar_complex_number_literal \
+physically_modelled_product_definition picture_representation plus_expression point_path polar_complex_number_literal \
 positioned_sketch power_expression pre_defined_presentation_style pre_defined_tile presented_item procedural_representation \
 procedural_representation_sequence procedural_shape_representation procedural_shape_representation_sequence process_operation \
 process_plan process_product_association process_property_association product product_category product_category_relationship \

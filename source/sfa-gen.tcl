@@ -424,24 +424,28 @@ proc genExcel {{numFile 0}} {
     
 # same directory as file
     if {$opt(writeDirType) == 0} {
-      set xlFileName "[file nativename [file join [file dirname $fname] [file rootname [file tail $fname]]]]_stp.$extXLS"
+      set xlFileName "[file nativename [file join [file dirname $fname] [file rootname [file tail $fname]]]]-sfa.$extXLS"
+      set xlFileNameOld "[file nativename [file join [file dirname $fname] [file rootname [file tail $fname]]]]_stp.$extXLS"
   
 # user-defined directory
     } elseif {$opt(writeDirType) == 2} {
-      set xlFileName "[file nativename [file join $writeDir [file rootname [file tail $fname]]]]_stp.$extXLS"
+      set xlFileName "[file nativename [file join $writeDir [file rootname [file tail $fname]]]]-sfa.$extXLS"
+      set xlFileNameOld "[file nativename [file join $writeDir [file rootname [file tail $fname]]]]_stp.$extXLS"
     }
     
 # file name too long
     if {[string length $xlFileName] > 218} {
       if {[string length $xlsmsg] > 0} {append xlsmsg "\n\n"}
       append xlsmsg "Pathname of Spreadsheet file is too long for Excel ([string length $xlFileName])"
-      set xlFileName "[file nativename [file join $writeDir [file rootname [file tail $fname]]]]_stp.$extXLS"
+      set xlFileName "[file nativename [file join $writeDir [file rootname [file tail $fname]]]]-sfa.$extXLS"
+      set xlFileNameOld "[file nativename [file join $writeDir [file rootname [file tail $fname]]]]_stp.$extXLS"
       if {[string length $xlFileName] < 219} {
         append xlsmsg "\nSpreadsheet file written to User-defined directory (Spreadsheet tab)"
       }
     }
   
 # delete existing file
+    if {[file exists $xlFileNameOld]} {catch {file delete -force $xlFileNameOld}}
     if {[file exists $xlFileName]} {
       if {[catch {
         file delete -force $xlFileName
@@ -989,7 +993,6 @@ proc genExcel {{numFile 0}} {
       if {[catch {
         catch {$excel DisplayAlerts False}
         $workbook -namedarg SaveAs Filename $xlFileName FileFormat $xlFormat
-        #$workbook -namedarg SaveAs Filename [file rootname $xlFileName] FileFormat $xlFormat
         catch {$excel DisplayAlerts True}
         set lastXLS $xlFileName
         lappend xlFileNames $xlFileName
@@ -1348,7 +1351,6 @@ proc addHeaderWorksheet {numFile fname} {
           if {$app == "UNIGRAPHICS"}             {set app1 "Unigraphics"}
           if {$app == "jt_step translator"}      {set app1 "Siemens NX"}
           if {$app == "SIEMENS PLM Software NX"} {set app1 "Siemens NX"}
-          if {[string first "SIEMENS PLM Software NX" $app] == 0} {set app1 "Siemens NX_[string range $app 24 end]"}
 
           if {[string first "CATIA Version" $app] == 0}      {set app1 "CATIA V[string range $app 14 end]"}
           if {$app == "3D EXPERIENCE"} {set app1 "3D Experience"}
@@ -1358,6 +1360,7 @@ proc addHeaderWorksheet {numFile fname} {
           if {[string first "CATIA SOLUTIONS V4" [$objDesign FileOriginatingSystem]] != -1} {set app1 "CATIA V4"}
           if {[string first "Autodesk Inventor"  [$objDesign FileOriginatingSystem]] != -1} {set app1 [$objDesign FileOriginatingSystem]}
           if {[string first "FreeCAD"            [$objDesign FileOriginatingSystem]] != -1} {set app1 "FreeCAD"}
+          if {[string first "SIEMENS PLM Software NX" [$objDesign FileOriginatingSystem]] == 0} {set app1 "Siemens NX_[string range [$objDesign FileOriginatingSystem] 24 end]"}
 
           if {[string first "THEOREM"   [$objDesign FilePreprocessorVersion]] != -1} {set app1 "Theorem"}
           if {[string first "T-Systems" [$objDesign FilePreprocessorVersion]] != -1} {set app1 "T-Systems"}
@@ -1452,7 +1455,7 @@ proc sumAddWorksheet {} {
       if {$ok} {
         $cells($sum) Item $sumRow 1 $entType
         
-# for STEP add [Properties], [PMI Presentation], [PMI Representation] text string and link to X3DOM file    
+# for STEP add [Properties], [PMI Presentation], [PMI Representation] text string
         set okao 0
         if {$entType == "property_definition" && $col($entType) > 4 && $opt(VALPROP)} {
           $cells($sum) Item $sumRow 1 "property_definition  \[Properties\]"
@@ -1474,7 +1477,7 @@ proc sumAddWorksheet {} {
         set entType_multiline "($entType_multiline)"
         $cells($sum) Item $sumRow 1 $entType_multiline
 
-# for STEP add [Properties] or [PMI Presentation] text string and link to X3DOM file    
+# for STEP add [Properties] or [PMI Presentation] text string
         set okao 0
         if {[string first "annotation" $entType] != -1} {
           if {$gpmiEnts($entType) && $col($entType) > 7} {set okao 1}

@@ -203,7 +203,7 @@ proc checkValues {} {
     } elseif {$allNone == 0} {
       foreach item [array names opt] {
         if {[string first "PR_STEP" $item] == 0} {
-          if {$item != "PR_STEP_GEOM" && $item != "PR_STEP_CPNT" && $item != "PR_STEP_COMP" && $item != "PR_STEP_KINE"} {
+          if {$item != "PR_STEP_GEOM" && $item != "PR_STEP_CPNT"} {
             if {$opt($item) == 0} {set allNone -1}
           }
         }
@@ -1103,7 +1103,7 @@ proc openXLS {filename {check 0} {multiFile 0}} {
     
 # open spreadsheet in Excel, works even if Excel not already started above although slower
     if {[catch {
-      outputMsg "\nOpening Spreadsheet: [file tail $filename]  ([expr {[file size $filename]/1024}] Kb)"
+      outputMsg "\nOpening Spreadsheet: [file tail $filename]"
       exec {*}[auto_execok start] "" $filename
 
 # errors
@@ -1520,8 +1520,9 @@ proc copyRoseFiles {} {
         if {$okcopy} {
           catch {.tnb select .tnb.status}
           if {[catch {
+            errorMsg "\nInstalling new or updated STEP schema files (Help > Supported STEP APs)" red
+            outputMsg " [string toupper [file rootname $fn1]]"
             file copy -force $fn $f2
-            errorMsg "\nCopying new STEP schema file(s) (*.rose) to the IFCsvr/dll directory" red
           } emsg]} {
             errorMsg "ERROR copying STEP schema files (*.rose) to $ifcsvrDir: $emsg"
           }
@@ -1536,7 +1537,7 @@ proc copyRoseFiles {} {
       if {!$ok} {
         catch {.tnb select .tnb.status}
         update idletasks
-        errorMsg "STEP schema files (*.rose) could not be installed to the IFCsvr/dll directory."
+        errorMsg "STEP schema files (*.rose) could not be copied to the IFCsvr/dll directory."
         outputMsg "Copy the *.rose files in $mytemp\n to [file nativename $ifcsvrDir]"
         outputMsg "You should copy the files with Administrator Privileges, if possible.\nIf there are problems copying the *.rose files, email the Contact (Help > About)."
         after 1000
@@ -1557,8 +1558,7 @@ proc copyRoseFiles {} {
           set fn1 [file tail $fn]
           if {[string first "_EXP" $fn1] == -1 && ([string first "ap" $fn1] == 0 || [string first "auto" $fn1] == 0 || [string first "building" $fn1] == 0 || \
               [string first "cast" $fn1] == 0 || [string first "config" $fn1] == 0 || [string first "integrated" $fn1] == 0 || [string first "plant" $fn1] == 0 || \
-              [string first "ship" $fn1] == 0 || [string first "structural" $fn1] == 0 || [string first "feature" $fn1] == 0 || [string first "furniture" $fn1] == 0 || \
-              [string first "engineering" $fn1] == 0 || [string first "technical" $fn1] == 0)} {
+              [string first "structural" $fn1] == 0 || [string first "feature" $fn1] == 0 || [string first "engineering" $fn1] == 0 || [string first "technical" $fn1] == 0)} {
             set f2 [file join $ifcsvrDir $fn1]
             set okcopy 0
             if {![file exists $f2]} {
@@ -1570,7 +1570,7 @@ proc copyRoseFiles {} {
               catch {.tnb select .tnb.status}
               catch {
                 file copy -force $fn $f2
-                errorMsg "Installing STEP Tools ROSE files to IFCsvr/dll directory" red
+                errorMsg "Installing STEP schema files from STEP Tools (Help > Supported STEP APs)" red
               }
             }
           }

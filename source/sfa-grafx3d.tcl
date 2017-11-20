@@ -4,7 +4,8 @@ proc x3dFileStart {} {
   
   set x3dStartFile 0
   catch {file delete -force -- "[file rootname $localName]_x3dom.html"}
-  set x3dFileName [file rootname $localName]-x3dom.html
+  catch {file delete -force -- "[file rootname $localName]-x3dom.html"}
+  set x3dFileName [file rootname $localName]-sfa.html
   catch {file delete -force -- $x3dFileName}
   set x3dFile [open $x3dFileName w]
 
@@ -356,11 +357,7 @@ proc x3dFileEnd {} {
 
 # navigation, background color
   puts $x3dFile "\n<NavigationInfo type='\"EXAMINE\" \"ANY\"'></NavigationInfo>"
-  if {[string first "AP209" $stepAP] == -1} {
-    puts $x3dFile "<Background skyColor='.8 .8 .8'></Background>"
-  } else {
-    puts $x3dFile "<Background skyColor='1 1 1'></Background>"
-  }
+  puts $x3dFile "<Background id='BG' skyColor='.8 .8 .8'></Background>"
   puts $x3dFile "</Scene></X3D>\n\n</td><td valign='top'>"
 
 # for NIST model - link to drawing 
@@ -387,7 +384,7 @@ proc x3dFileEnd {} {
     if {!$ok && [info exists numSavedViews($nistName)]} {
       lappend svmsg "For the NIST test case, some expected Graphical PMI Saved View names (MBD*) were not found."
     }
-    puts $x3dFile "<p>Selecting a Saved View above changes the viewpoint or use Page Up for the next viewpoint.  Zoom and pan to view all PMI."
+    puts $x3dFile "<p>Selecting a Saved View above changes the viewpoint or use Page Up for the next viewpoint.  Zoom and pan to view all PMI.<hr><p>"
   }
   if {[llength $svmsg] > 0 && [string first "AP209" $stepAP] == -1} {foreach msg $svmsg {errorMsg $msg}}
 
@@ -399,17 +396,6 @@ proc x3dFileEnd {} {
     if {[info exists entCount(curve_3d_element_representation)]}   {puts $x3dFile "<input type='checkbox' checked onclick='tog1DElements(this.value)'/>1D Elements<br>"}
     if {[info exists entCount(surface_3d_element_representation)]} {puts $x3dFile "<input type='checkbox' checked onclick='tog2DElements(this.value)'/>2D Elements<br>"}
     if {[info exists entCount(volume_3d_element_representation)]}  {puts $x3dFile "<input type='checkbox' checked onclick='tog3DElements(this.value)'/>3D Elements<br>"}
-
-# transparency slider
-    if {[info exists entCount(surface_3d_element_representation)] || [info exists entCount(volume_3d_element_representation)]} {
-      puts $x3dFile "\n<p>Transparency (approximate)<br>"
-      puts $x3dFile "<input style='width:80px' type='range' min='0' max='0.8' step='0.2' value='0' onchange='matTrans(this.value)'/>"
-    }
-
-# different transparency slider
-  } elseif {$numTessColor > 0} {
-    puts $x3dFile "\n<p>Transparency (approximate)<br>"
-    puts $x3dFile "<input style='width:80px' type='range' min='0' max='1' step='0.25' value='0' onchange='matTrans(this.value)'/>"
   }
   
 # extra text messages
@@ -417,18 +403,37 @@ proc x3dFileEnd {} {
     if {[llength $x3dMsg] > 0} {
       puts $x3dFile "\n<ul style=\"padding-left:20px\">"
       foreach item $x3dMsg {puts $x3dFile "<li>$item"}
-      puts $x3dFile "</ul>"
+      puts $x3dFile "</ul><hr><p>"
       unset x3dMsg
     }
   }
-  puts $x3dFile "\n<p><ul style=\"padding-left:20px\">"
+  puts $x3dFile "\n<ul style=\"padding-left:20px\">"
   puts $x3dFile "<li><a href=\"https://www.x3dom.org/documentation/interaction/\">Use the mouse</a> in 'Examine Mode' to rotate, pan, zoom.<li>Use Page Up to switch between views.<p>"
   if {[info exists ao]} {
     if {$opt(VIZPMI) && [string first "occurrence" $ao] != -1 && [string first "AP209" $stepAP] == -1} {puts $x3dFile "<li>Some Graphical PMI might not have equivalent Semantic PMI in the STEP file."}
   }
-  puts $x3dFile "</ul></td></tr></table>"
+  puts $x3dFile "</ul>"
+  
+# background color buttons and function
+  puts $x3dFile "<p><hr><p>Background Color"
+  puts $x3dFile "<br><input type='radio' name='bgcolor' value='1 1 1' onclick='BGcolor(this.value)'/>White"
+  puts $x3dFile "<br><input type='radio' name='bgcolor' value='.8 .8 .8' checked onclick='BGcolor(this.value)'/>Gray"
+  puts $x3dFile "<br><input type='radio' name='bgcolor' value='0 0 0' onclick='BGcolor(this.value)'/>Black"
+  puts $x3dFile "\n<script>function BGcolor(color){document.getElementById('BG').setAttribute('skyColor', color);}</script>"
 
-# toggle switches for PMI views
+# transparency slider
+  if {$opt(VIZFEA) && [string first "AP209" $stepAP] == 0} {
+    if {[info exists entCount(surface_3d_element_representation)] || [info exists entCount(volume_3d_element_representation)]} {
+      puts $x3dFile "\n<p>Transparency<br>(approximate)<br>"
+      puts $x3dFile "<input style='width:80px' type='range' min='0' max='0.8' step='0.2' value='0' onchange='matTrans(this.value)'/>"
+    }
+  } elseif {$numTessColor > 0} {
+    puts $x3dFile "\n<p>Transparency<br>(approximate)<br>"
+    puts $x3dFile "<input style='width:80px' type='range' min='0' max='1' step='0.25' value='0' onchange='matTrans(this.value)'/>"
+  }
+  puts $x3dFile "</td></tr></table>"
+
+# functions for PMI view toggle switches
   if {[llength $savedViewButtons] > 0} {
     puts $x3dFile " "
     foreach svn $savedViewButtons {x3dSwitchScript $svn 1}
@@ -440,7 +445,7 @@ proc x3dFileEnd {} {
     set str ""
     set url "https://github.com/usnistgov/SFA"
   }
-  puts $x3dFile "\n<p>Generated by the <a href=\"$url\">$str\STEP File Analyzer (v[getVersion])</a> and rendered with <a href=\"https://www.x3dom.org/\">X3DOM</a>."
+  puts $x3dFile "\n<p>Generated by the <a href=\"$url\">$str\STEP File Analyzer (v[getVersion])</a> and displayed with <a href=\"https://www.x3dom.org/\">X3DOM</a>."
   puts $x3dFile "[clock format [clock seconds]]"
 
   puts $x3dFile "</font></body></html>"
@@ -499,7 +504,7 @@ proc openX3DOM {{fn ""}} {
   if {![info exists multiFile]} {set multiFile 0}
 
   if {(($opt(VIZPMI) || $opt(VIZFEA) || $opt(VIZTES)) && $fn != "" && $multiFile == 0) || $f7} {
-    outputMsg "\nOpening Visualization in the default Web Browser" green
+    outputMsg "\nOpening Visualization in the default Web Browser: [file tail $fn]" green
     catch {.tnb select .tnb.status}
     set lastX3DOM $fn
     if {[catch {

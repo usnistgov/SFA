@@ -175,48 +175,35 @@ proc guiStatusTab {} {
     }
     if {[string first "Courier" $statusFont] != -1} {
       regsub "Courier" $statusFont "Consolas" statusFont
+      regsub "120" $statusFont "140" statusFont
       saveState
     }
   }
   
   if {[info exists statusFont]} {
-    foreach typ {black red green magenta cyan blue error syntax} {
-      $outputWin type configure $typ -font $statusFont
-    }
+    foreach typ {black red green magenta cyan blue error syntax} {$outputWin type configure $typ -font $statusFont}
   }
   
   bind . <Key-F6> {
     set statusFont [$outputWin type cget black -font]
     for {set i 210} {$i >= 100} {incr i -10} {regsub -all $i $statusFont [expr {$i+10}] statusFont}
-    foreach typ {black red green magenta cyan blue error syntax} {
-      $outputWin type configure $typ -font $statusFont
-    }
-    #if {$developer} {outputMsg $statusFont}
+    foreach typ {black red green magenta cyan blue error syntax} {$outputWin type configure $typ -font $statusFont}
   }
   bind . <Control-KeyPress-=> {
     set statusFont [$outputWin type cget black -font]
     for {set i 210} {$i >= 100} {incr i -10} {regsub -all $i $statusFont [expr {$i+10}] statusFont}
-    foreach typ {black red green magenta cyan blue error syntax} {
-      $outputWin type configure $typ -font $statusFont
-    }
-    #if {$developer} {outputMsg $statusFont}
+    foreach typ {black red green magenta cyan blue error syntax} {$outputWin type configure $typ -font $statusFont}
   }
   
   bind . <Key-F5> {
     set statusFont [$outputWin type cget black -font]
     for {set i 110} {$i <= 220} {incr i 10} {regsub -all $i $statusFont [expr {$i-10}] statusFont}
-    foreach typ {black red green magenta cyan blue error syntax} {
-      $outputWin type configure $typ -font $statusFont
-    }
-    #if {$developer} {outputMsg $statusFont}
+    foreach typ {black red green magenta cyan blue error syntax} {$outputWin type configure $typ -font $statusFont}
   }
   bind . <Control-KeyPress--> {
     set statusFont [$outputWin type cget black -font]
     for {set i 110} {$i <= 220} {incr i 10} {regsub -all $i $statusFont [expr {$i-10}] statusFont}
-    foreach typ {black red green magenta cyan blue error syntax} {
-      $outputWin type configure $typ -font $statusFont
-    }
-    #if {$developer} {outputMsg $statusFont}
+    foreach typ {black red green magenta cyan blue error syntax} {$outputWin type configure $typ -font $statusFont}
   }
 }
 
@@ -299,9 +286,7 @@ proc guiProcessAndReports {} {
     if {[info exists entCategory($tt)]} {
       set ttmsg "[string trim [lindex $item 0]] entities ([llength $entCategory($tt)])"
       if {$tt == "PR_STEP_GEOM"} {
-        append ttmsg "  These entities are found in most APs.\nAP242, AP209, and AP210 also support tessellated geometry.\nSee Help > Supported STEP APs and Websites > EXPRESS Schemas\n\nFor large STEP files, this option can slow down the processing of the file and increase the size of the spreadsheet.\nUse Maximum Rows options to speed up the processing of these entities.\n\n"
-      } elseif {$tt == "PR_STEP_CPNT"} {
-        append ttmsg "\n\nFor large STEP files, this option can slow down the processing of the file and increase the size of the spreadsheet.\nUse Maximum Rows options to speed up the processing of these entities.\n\n"
+        append ttmsg "  These entities are found in most APs.\n\nAP242, AP209, and AP210 also support tessellated geometry.\nSee Help > Supported STEP APs and Websites > EXPRESS Schemas\n\n"
       } else {
         append ttmsg "  These entities are found in most APs.\nSee Help > Supported STEP APs and Websites > EXPRESS Schemas\n\n"
       }
@@ -341,19 +326,12 @@ proc guiProcessAndReports {} {
     set buttons($bn) [ttk::radiobutton $fopta4.$cb -variable allNone -text [lindex $item 0] -value [lindex $item 1] \
       -command {
         if {$allNone == 0} {
-          foreach item [array names opt] {if {[string first "PR_STEP" $item] == 0} {set opt($item) 1}}
-          set opt(PR_STEP_COMP) 0
-          set opt(PR_STEP_KINE) 0
+          foreach item [array names opt] {
+            if {[string first "PR_STEP" $item] == 0 && $item != "PR_STEP_GEOM" && $item != "PR_STEP_CPNT"} {set opt($item) 1}
+          }
         } elseif {$allNone == 1} {
           foreach item [array names opt] {if {[string first "PR_STEP" $item] == 0} {set opt($item) 0}}
-          set opt(VIZFEA) 0
-          set opt(VIZPMI) 0
-          set opt(VIZTES) 0
-          set opt(PMISEM) 0
-          set opt(PMIGRF) 0
-          set opt(VALPROP) 0
-          set opt(INVERSE) 0
-          set opt(PR_USER) 0
+          foreach item [list VIZFEA VIZPMI VIZTES PMISEM PMIGRF VALPROP INVERSE PR_USER] {set opt($item) 0}
           set opt(PR_STEP_COMM) 1
         } elseif {$allNone == 2} {
           set opt(PMISEM) 1
@@ -364,15 +342,13 @@ proc guiProcessAndReports {} {
           set opt(VIZTES) 1
           set opt(VIZPMI) 1
         }
-        set opt(PR_STEP_GEOM) 0
-        set opt(PR_STEP_CPNT) 0
         checkValues
       }]
     pack $buttons($bn) -side top -anchor w -padx 5 -pady 0 -ipady 0
     incr cb
   }
   catch {
-    tooltip::tooltip $buttons(allNone0) "Selects many Entity types\nSee Help > User's Guide (section 4.4.2)"
+    tooltip::tooltip $buttons(allNone0) "Selects most Entity types\nSee Help > User's Guide (section 4.4.2)"
     tooltip::tooltip $buttons(allNone1) "Deselects most Entity types, Reports, and Visualizations\nSee Help > User's Guide (section 4.4.2)"
     tooltip::tooltip $buttons(allNone2) "Selects all Reports and associated entities\nSee Help > User's Guide (section 5)"
     tooltip::tooltip $buttons(allNone3) "Selects all Visualizations and associated entities\nSee Help > User's Guide (section 6)"
@@ -441,6 +417,7 @@ proc guiProcessAndReports {} {
     tooltip::tooltip $buttons(optVIZPMI) "See Help > PMI Presentation\nSee Help > User's Guide (section 6.1.1)\nSee Examples > Graphical PMI Viewer\n\nVisualizations can be generated without generating a spreadsheet\nor CSV files.  See the Output Format option below."
     tooltip::tooltip $buttons(optVIZFEA) "See Help > Finite Element Model\nSee Help > User's Guide (section 6.1.3)\nSee Examples > AP209 FEM Viewer\n\nVisualizations can be generated without generating a spreadsheet\nor CSV files.  See the Output Format option below."
     tooltip::tooltip $buttons(optVIZTES) "This feature is still be developed.\nParts in an assembly might have the wrong position and orientation or be missing.\n\nParts modeled with tessellated geometry is supported by AP242 and is supplementary\nto boundary representation (b-rep) geometry.\n\nSee Help > Tessellated Part Geometry\nSee Help > User's Guide (section 6.1.2)\nSee Examples > Tessellated Part Viewer\n\nVisualizations can be generated without generating a spreadsheet or CSV files.\nSee the Output Format option below."
+    tooltip::tooltip $buttons(linecolor) "For Random PMI colors, each 'annotation occurrence' is assigned a different color."
   }
 }
 
@@ -920,7 +897,7 @@ proc guiHelpMenu {} {
     }
     
     if {$nschema == 0} {errorMsg "No Supported STEP APs were found.\nThere was a problem copying STEP schema files (*.rose) to the IFCsvr/dll directory."}
-    if {"$nistVersion"} {outputMsg "\nTo enable other STEP APs, contact the developer (Help > About)"}
+    if {"$nistVersion"} {outputMsg "\nTo enable other STEP APs, contact the developer (Help > About).\nSee Websites > More EXPRESS Schemas"}
 
     .tnb select .tnb.status
   }
@@ -941,11 +918,11 @@ proc guiHelpMenu {} {
   $Help add separator
   $Help add command -label "Overview" -command {
 outputMsg "\nOverview -------------------------------------------------------------------" blue
-outputMsg "The STEP File Analyzer reads a STEP file and generates an Excel spreadsheet or CSV files.  One
-worksheet or CSV file is generated for each entity type in the STEP file.  Each worksheet or CSV
-file lists every entity instance and its attributes.  The types of entities that are Processed
-can be selected in the Options tab.  Other options are available that add to or modify the
-information written to the spreadsheet or CSV files.
+outputMsg "The STEP File Analyzer (SFA) reads a STEP file and generates an Excel spreadsheet or CSV files.
+One worksheet or CSV file is generated for each entity type in the STEP file.  Each worksheet
+or CSV file lists every entity instance and its attributes.  The types of entities that are
+Processed can be selected in the Options tab.  Other options are available that add to or modify
+the information written to the spreadsheet or CSV files.
 
 Spreadsheets or CSV files can be selected in the Options tab.  CSV files are automatically
 generated if Excel is not installed.  To generate a spreadsheet or CSV files, select a STEP file
@@ -964,7 +941,7 @@ spreadsheet is also generated.
 Tooltip help is available for the selections in the tabs.  Hold the mouse over text in the tabs
 until a tooltip appears.
 
-Use F6 and F5 to change the font size.  Right-click to save the text."
+Use F6 and F5 to change the font size."
     .tnb select .tnb.status
   }
 
@@ -1134,7 +1111,7 @@ circles, and tessellated geometry are supported for visualization.  The color of
 can be modified.  Filled characters are not filled.  PMI associated with Saved Views can be
 switched on and off.  Some Graphical PMI might not have equivalent Semantic PMI in the STEP file.
 
-The graphical PMI file is written to a file named mystepfile-x3dom.html
+The graphical PMI file is written to a file named myfile-sfa.html
 See Examples > Graphical PMI Viewer
 
 PMI Presentation is defined by the CAx-IF Recommended Practices for:
@@ -1463,7 +1440,6 @@ proc guiWebsitesMenu {} {
   $Websites add command -label "prostep ivip" -command {openURL http://www.prostep.org/en/projects/}
   $Websites add command -label "AFNeT"        -command {openURL http://afnet.fr/dotank/sps/}
   $Websites add command -label "LOTAR"        -command {openURL http://www.lotar-international.org}
-  #$Websites add command -label "PDM-IF"       -command {openURL http://www.pdm-if.org/}
 }
 
 #-------------------------------------------------------------------------------

@@ -370,6 +370,7 @@ proc invSetCheck {entType} {
       [string first "datum"         $entType] != -1 || \
       [string first "dimension"     $entType] != -1 || \
       [string first "document"      $entType] != -1 || \
+      [string first "extension"     $entType] != -1 || \
       [string first "hole"          $entType] != -1 || \
       [string first "item_"         $entType] != -1 || \
       [string first "kinematic"     $entType] != -1 || \
@@ -490,8 +491,11 @@ proc initDataInverses {} {
   lappend inverses [list representation_relationship_with_transformation_and_shape_representation_relationship rep_2 rep_1]
 
   lappend inverses [list shape_aspect of_shape used_in]
+  lappend inverses [list extension of_shape used_in]
   lappend inverses [list shape_aspect_relationship related_shape_aspect relating_shape_aspect]
   lappend inverses [list shape_aspect_relationship relating_shape_aspect related_shape_aspect]
+  lappend inverses [list shape_aspect_deriving_relationship related_shape_aspect relating_shape_aspect]
+  lappend inverses [list shape_aspect_deriving_relationship relating_shape_aspect related_shape_aspect]
   lappend inverses [list shape_definition_representation definition used_in]
   lappend inverses [list shape_definition_representation used_representation used_in]
   lappend inverses [list shape_representation context_of_items used_in]
