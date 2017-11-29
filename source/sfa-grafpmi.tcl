@@ -1,7 +1,7 @@
 proc gpmiAnnotation {entType} {
   global objDesign
   global ao aoEntTypes cells col entLevel ent entAttrList gpmiRow gtEntity nindex opt pmiCol pmiHeading pmiStartCol
-  global recPracNames stepAP syntaxErr x3dShape x3dMsg useXL
+  global recPracNames stepAP syntaxErr x3dShape x3dMsg useXL 
   global geomType tessCoordID
 
   if {$opt(DEBUG1)} {outputMsg "START gpmiAnnotation $entType" red}
@@ -663,8 +663,8 @@ proc gpmiAnnotationReport {objEntity} {
                   }
                   if {[string first "placeholder" $ent1] != -1} {
                     set placeNCP 0
-                    set msg "Annotation placeholder leaders lines might not have the correct anchor points."
-                    if {[lsearch $x3dMsg $msg] == -1} {lappend x3dMsg $msg}
+                    #set msg "Annotation placeholder leaders lines might not have the correct anchor points."
+                    #if {[lsearch $x3dMsg $msg] == -1} {lappend x3dMsg $msg}
                   }
                   if {[string first "tessellated" $ent1] != -1} {
                     set ok 1
@@ -1087,6 +1087,8 @@ proc gpmiAnnotationReport {objEntity} {
       set savedViewName {}
       set nsv 0
       if {[info exists draftModelCameras]} {
+
+# get used draughting_model entities
         set dmlist {}
         foreach dms [list draughting_model characterized_object_and_draughting_model characterized_representation_and_draughting_model characterized_representation_and_draughting_model_and_representation] {
           if {[info exists entCount($dms)]} {if {$entCount($dms) > 0} {lappend dmlist $dms}}
@@ -1103,7 +1105,7 @@ proc gpmiAnnotationReport {objEntity} {
       
           ::tcom::foreach entDraughtingModel $entDraughtingModels {
             if {[info exists draftModelCameras([$entDraughtingModel P21ID])]} {
-              #outputMsg "[$entDraughtingModel P21ID] [$entDraughtingModel Type]" red
+              #outputMsg "[$entDraughtingModel P21ID] [$entDraughtingModel Type]  $draftModelCameraNames([$entDraughtingModel P21ID])" green
               set str $draftModelCameras([$entDraughtingModel P21ID])
               if {[string first $str $savedViews] == -1} {
                 append savedViews $str
@@ -1146,17 +1148,17 @@ proc gpmiAnnotationReport {objEntity} {
 # check for a mapped_item in draughting_model.items, do not check style_item (see old code)
               set attrsDraughtingModel [$entDraughtingModel Attributes]
               ::tcom::foreach attrDraughtingModel $attrsDraughtingModel {
-                if {[$attrDraughtingModel Name] == "name"} {
-                  set nameDraughtingModel [$attrDraughtingModel Value]
-                }
+                if {[$attrDraughtingModel Name] == "name"} {set nameDraughtingModel [$attrDraughtingModel Value]}
                 if {[$attrDraughtingModel Name] == "items" && $nameDraughtingModel != ""} {
                   set okcm 0
                   set okmi 0
                   set oksi 0
                   ::tcom::foreach item [$attrDraughtingModel Value] {
-                    if {[$item Type] == "mapped_item"} {set okmi 1}
-                    if {[string first "camera_model_d3" [$item Type]] == 0} {set okcm 1}
+                    set itype [$item Type]
+                    if {$itype == "mapped_item"} {set okmi 1}
+                    if {[string first "camera_model_d3" $itype] == 0} {set okcm 1}
                   }
+                  
                   if {$okcm} {
                     if {$okmi == 0} {
                       set msg "Syntax Error: For Saved Views, missing required reference to 'mapped_item' on [formatComplexEnt [$entDraughtingModel Type]].items\n[string repeat " " 14]"
@@ -1295,7 +1297,7 @@ proc gpmiAnnotationReport {objEntity} {
 proc pmiGetCamerasAndProperties {} {
   global objDesign
   global draftModelCameras draftModelCameraNames gpmiValProp syntaxErr propDefIDS stepAP recPracNames entCount
-  global opt savedViewNames savedViewFile savedViewFileName mytemp savedViewName savedViewpoint
+  global opt savedViewNames savedViewFile savedViewFileName mytemp savedViewName savedViewpoint savedViewItems
 
   #outputMsg getCameras blue
   catch {unset draftModelCameras}
@@ -1310,10 +1312,10 @@ proc pmiGetCamerasAndProperties {} {
 
 # draughting model list
     set dmlist {}
-    foreach dms [list draughting_model characterized_object_and_draughting_model characterized_representation_and_draughting_model characterized_representation_and_draughting_model_and_representation] {
+    foreach dms [list characterized_object_and_draughting_model characterized_representation_and_draughting_model characterized_representation_and_draughting_model_and_representation draughting_model] {
       if {[info exists entCount($dms)]} {if {$entCount($dms) > 0} {lappend dmlist $dms}}
     }
-
+    
 # loop over camera model entities
     foreach cm $cmlist {
       ::tcom::foreach entCameraModel [$objDesign FindObjects [string trim $cm]] {
@@ -1324,6 +1326,7 @@ proc pmiGetCamerasAndProperties {} {
           set entDraughtingModels [$entCameraModel GetUsedIn [string trim $dm] [string trim items]]
           ::tcom::foreach entDraughtingModel $entDraughtingModels {
             set attrDraughtingModels [$entDraughtingModel Attributes]
+            set dmitems([$entDraughtingModel P21ID]) ""
 
 # DM name attribute
             set ok 0
@@ -1346,6 +1349,14 @@ proc pmiGetCamerasAndProperties {} {
                     }
                     errorMsg $msg
                     lappend syntaxErr($dm) [list [$entDraughtingModel P21ID] name $msg]
+                  }
+                }
+                if {$nameDraughtingModel == "items"} {
+                  ::tcom::foreach item [$attrDraughtingModel Value] {
+                    set itype [$item Type]
+                    if {$itype != "mapped_item" && [string first "camera_model_d3" $itype] == -1} {
+                      append dmitems([$entDraughtingModel P21ID]) "[$item P21ID] "
+                    }
                   }
                 }
               }
@@ -1418,7 +1429,8 @@ proc pmiGetCamerasAndProperties {} {
                 set savedViewFileName($name1) [file join $mytemp $name1.txt]
                 catch {file delete -force $savedViewFileName($name1)}
                 set savedViewFile($name1) [open $savedViewFileName($name1) w]
-                #outputMsg "camera name $name1" green
+                #outputMsg "camera name $name1 $dmcn $dmitems([$entDraughtingModel P21ID])" green
+                set savedViewItems($dmcn) $dmitems([$entDraughtingModel P21ID])
               }
             }
           }

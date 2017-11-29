@@ -390,7 +390,7 @@ proc guiProcessAndReports {} {
   pack $foptv3 -side top -anchor w -pady 0 -padx 0 -fill y  
 
   set foptv4 [frame $foptv.4 -bd 0]
-  set buttons(linecolor) [label $foptv4.l3 -text "PMI color:"]
+  set buttons(linecolor) [label $foptv4.l3 -text "PMI Color:"]
   pack $foptv4.l3 -side left -anchor w -padx 0 -pady 0 -ipady 0
   set gpmiColorVal {{"Random" 2} {"From file" 0} {"Black" 1}}
   foreach item $gpmiColorVal {
@@ -400,21 +400,31 @@ proc guiProcessAndReports {} {
     incr cb
   }
   pack $foptv4 -side top -anchor w -pady 0 -padx 25 -fill y  
-  
+
   set foptv5 [frame $foptv.5 -bd 0]
+  foreach item {{"Include Viewpoint" opt(VIZPMIVP)}} {
+    regsub -all {[\(\)]} [lindex $item 1] "" idx
+    set buttons($idx) [ttk::checkbutton $foptv5.$cb -text [lindex $item 0] -variable [lindex $item 1] -command {checkValues}]
+    pack $buttons($idx) -side top -anchor w -padx 2 -pady 0 -ipady 0
+    incr cb
+  }
+  pack $foptv5 -side top -anchor w -pady 0 -padx 25 -fill y  
+  
+  set foptv6 [frame $foptv.6 -bd 0]
   foreach item {{" Tessellated Part Geometry"  opt(VIZTES)} \
                 {" AP209 Finite Element Model" opt(VIZFEA)}} {
     regsub -all {[\(\)]} [lindex $item 1] "" idx
-    set buttons($idx) [ttk::checkbutton $foptv5.$cb -text [lindex $item 0] -variable [lindex $item 1] -command {checkValues}]
+    set buttons($idx) [ttk::checkbutton $foptv6.$cb -text [lindex $item 0] -variable [lindex $item 1] -command {checkValues}]
     pack $buttons($idx) -side top -anchor w -padx 5 -pady 0 -ipady 0
     incr cb
   }
-  pack $foptv5 -side top -anchor w -pady 0 -padx 0 -fill y
+  pack $foptv6 -side top -anchor w -pady 0 -padx 0 -fill y
 
   pack $foptv -side left -anchor w -pady {5 2} -padx 10 -fill both -expand true
   pack $foptrv -side top -anchor w -pady 0 -fill x
   catch {
     tooltip::tooltip $buttons(optVIZPMI) "See Help > PMI Presentation\nSee Help > User's Guide (section 6.1.1)\nSee Examples > Graphical PMI Viewer\n\nVisualizations can be generated without generating a spreadsheet\nor CSV files.  See the Output Format option below."
+    tooltip::tooltip $buttons(optVIZPMIVP) "PMI Viewpoints are experimental.\n\nViewpoints usually have the correct orientation but are not centered.\nUse pan and zoom to center the PMI."
     tooltip::tooltip $buttons(optVIZFEA) "See Help > Finite Element Model\nSee Help > User's Guide (section 6.1.3)\nSee Examples > AP209 FEM Viewer\n\nVisualizations can be generated without generating a spreadsheet\nor CSV files.  See the Output Format option below."
     tooltip::tooltip $buttons(optVIZTES) "This feature is still be developed.\nParts in an assembly might have the wrong position and orientation or be missing.\n\nParts modeled with tessellated geometry is supported by AP242 and is supplementary\nto boundary representation (b-rep) geometry.\n\nSee Help > Tessellated Part Geometry\nSee Help > User's Guide (section 6.1.2)\nSee Examples > Tessellated Part Viewer\n\nVisualizations can be generated without generating a spreadsheet or CSV files.\nSee the Output Format option below."
     tooltip::tooltip $buttons(linecolor) "For Random PMI colors, each 'annotation occurrence' is assigned a different color."
@@ -1279,6 +1289,10 @@ outputMsg "\nFinite Element Model ----------------------------------------------
 outputMsg "An AP209 finite element model can be viewed in a web browser (Options tab).  Nodes, mesh, and
 elements are shown and can be toggled on and off in the viewer.  Internal faces for solid elements
 are not shown.  Elements can be made transparent although it is only approximate.
+
+The location of a boundary condition is shown with a red cube.  The location of a load is shown
+with a green cone.  No information about the boundary condition DOF or load magnitude and direction
+is shown.
 
 All AP209 entities are always processed unless a User-defined list is used.
 

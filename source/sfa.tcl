@@ -75,7 +75,7 @@ foreach item $auto_path {if {[string first "STEP-File-Analyzer" $item] != -1} {s
 # -----------------------------------------------------------------------------------------------------
 # initialize variables
 foreach id {XL_OPEN XL_KEEPOPEN XL_LINK1 XL_FPREC XL_SORT LOGFILE \
-            VALPROP PMIGRF PMISEM VIZPMI VIZFEA VIZTES INVERSE DEBUG1 \
+            VALPROP PMIGRF PMISEM VIZPMI VIZFEA VIZTES VIZPMIVP INVERSE DEBUG1 \
             PR_STEP_AP242 PR_USER PR_STEP_KINE PR_STEP_COMP PR_STEP_COMM PR_STEP_GEOM PR_STEP_QUAN \
             PR_STEP_FEAT PR_STEP_PRES PR_STEP_TOLR PR_STEP_REPR PR_STEP_CPNT PR_STEP_SHAP} {set opt($id) 1}
 
@@ -91,7 +91,7 @@ set opt(INVERSE) 0
 set opt(PR_STEP_CPNT) 0
 set opt(PR_STEP_GEOM)  0
 set opt(PR_USER) 0
-set opt(VIZFEA) 1
+set opt(VIZPMIVP) 0
 set opt(writeDirType) 0
 set opt(XL_KEEPOPEN) 0
 set opt(XL_ROWLIM) 1048576
@@ -236,7 +236,8 @@ proc whatsNew {} {
   if {$sfaVersion > 0 && $sfaVersion < [getVersion]} {outputMsg "\nThe previous version of the STEP File Analyzer was: $sfaVersion" red}
 
 outputMsg "\nWhat's New (Version: [getVersion]  Updated: [string trim [clock format $progtime -format "%e %b %Y"]])" blue
-outputMsg "- Explanation of Report errors (Help > Syntax Errors)
+outputMsg "- Visualize AP209 boundary conditions and loads (experimental), See Help > Finite Element Model
+- Explanation of Report errors (Help > Syntax Errors)
 - Generate log file (Options tab)
 - Detect unexpected Associated Geometry for hole and radius dimensions
 - Support for repetitive hole and radius dimensions, e.g, '4X' R10.5

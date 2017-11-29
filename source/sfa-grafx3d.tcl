@@ -39,11 +39,11 @@ proc x3dFileStart {} {
   set name [file tail $localName]
   if {$cadSystem != ""} {append name "  ($cadSystem)"}
   puts $x3dFile "\n<body><font face=\"arial\">\n<h3>$title:  $name</h3>"
-  puts $x3dFile "<ul><li>Only $title is shown.  Boundary representation (b-rep) part geometry can be viewed with <a href=\"https://www.cax-if.org/step_viewers.html\">STEP file viewers</a>."
+  puts $x3dFile "Only $title is shown.  Boundary representation (b-rep) part geometry can be viewed with <a href=\"https://www.cax-if.org/step_viewers.html\">STEP file viewers</a>."
   if {[string first "Tessellated" $title] != -1 && [info exist entCount(next_assembly_usage_occurrence)]} {
-    puts $x3dFile "<li>Parts in an assembly might have the wrong position and orientation or be missing."
+    puts $x3dFile "<br>Parts in an assembly might have the wrong position and orientation or be missing."
   }
-  puts $x3dFile "</ul>\n<table><tr><td>"
+  puts $x3dFile "\n<p><table><tr><td>"
 
 # x3d window size
   set height 800
@@ -284,7 +284,7 @@ proc x3dCoordAxes {size} {
   
 # axes
   if {$x3dAxes} {
-    puts $x3dFile "\n<Shape id='x_axis'><Appearance><Material emissiveColor='1 0 0'></Material></Appearance><IndexedLineSet coordIndex='0 1 -1'><Coordinate point='0. 0. 0. $size 0. 0.'></Coordinate></IndexedLineSet></Shape>"
+    puts $x3dFile "\n<!-- coordinate axis -->\n<Shape id='x_axis'><Appearance><Material emissiveColor='1 0 0'></Material></Appearance><IndexedLineSet coordIndex='0 1 -1'><Coordinate point='0. 0. 0. $size 0. 0.'></Coordinate></IndexedLineSet></Shape>"
     puts $x3dFile "<Shape id='y_axis'><Appearance><Material emissiveColor='0 .5 0'></Material></Appearance><IndexedLineSet coordIndex='0 1 -1'><Coordinate point='0. 0. 0. 0. $size 0.'></Coordinate></IndexedLineSet></Shape>"
     puts $x3dFile "<Shape id='z_axis'><Appearance><Material emissiveColor='0 0 1'></Material></Appearance><IndexedLineSet coordIndex='0 1 -1'><Coordinate point='0. 0. 0. 0. 0. $size'></Coordinate></IndexedLineSet></Shape>"
 
@@ -301,21 +301,48 @@ proc x3dCoordAxes {size} {
 # write PMI saved view geometry, set viewpoints, add navigation and background color, and close X3DOM file
 proc x3dFileEnd {} {
   global ao modelURLs nistName opt stepAP x3dAxes x3dMax x3dMin x3dFile x3dMsg stepAP entCount nistVersion numSavedViews numTessColor
-  global savedViewButtons savedViewFileName savedViewFile savedViewNames savedViewpoint
+  global savedViewButtons savedViewFileName savedViewFile savedViewNames savedViewpoint feaBC feaLD savedViewItems
   
 # write any PMI saved view geometry for multiple saved views
   set savedViewButtons {}
   if {[llength $savedViewNames] > 0} {
-    foreach svn $savedViewNames {
+    for {set i 0} {$i < [llength $savedViewNames]} {incr i} {
+      set svn [lindex $savedViewNames $i]
       if {[file size $savedViewFileName($svn)] > 0} {
+        set svMap($svn) $svn
+        set svWrite 1
+        
+# check if same saved view graphics already written
+        if {[info exists savedViewItems($svn)]} {
+          #outputMsg "$svn $savedViewItems($svn)" blue
+          for {set j 0} {$j < $i} {incr j} {
+            set svn1 [lindex $savedViewNames $j]
+            if {[info exists savedViewItems($svn1)]} {
+              #outputMsg "$svn1 $savedViewItems($svn1)" green  
+              if {$savedViewItems($svn) == $savedViewItems($svn1)} {
+                set svMap($svn) $svn1
+                set svWrite 0
+                break
+              }
+            }
+          }
+        }
         lappend savedViewButtons $svn
-        close $savedViewFile($svn)
-        set f [open $savedViewFileName($svn) r]
-        puts $x3dFile "\n<Switch whichChoice='0' id='sw$svn'><Group>"
-        while {[gets $f line] >= 0} {puts $x3dFile $line}
+
+        puts $x3dFile "\n<!-- saved view $svn -->"
+        puts $x3dFile "<Switch whichChoice='0' id='sw$svn'><Group>"
+        if {$svWrite} {
+        
+# get saved view graphics from file        
+          close $savedViewFile($svn)
+          set f [open $savedViewFileName($svn) r]
+          while {[gets $f line] >= 0} {puts $x3dFile $line}
+          close $f
+          unset savedViewFile($svn)
+        } else {
+          puts $x3dFile "<!-- same as $svMap($svn) -->"
+        }
         puts $x3dFile "</Group></Switch>"
-        close $f
-        unset savedViewFile($svn)
       }
       catch {file delete -force $savedViewFileName($svn)}
     }
@@ -341,11 +368,11 @@ proc x3dFileEnd {} {
   set fov [trimNum [expr {$delt(z)*0.5 + $delt(y)*0.5}]]
   set psy [trimNum [expr {0. - ($xyzcen(y) + 1.4*$maxxyz)}]]
 
-  puts $x3dFile "\n<Viewpoint id='Front' position='$xyzcen(x) $psy $xyzcen(z)' orientation='1 0 0 1.5708' $cor></Viewpoint>"
-  if {[llength $savedViewNames] > 0} {
+  puts $x3dFile "\n<!-- viewpoints -->\n<Viewpoint id='Front' position='$xyzcen(x) $psy $xyzcen(z)' orientation='1 0 0 1.5708' $cor></Viewpoint>"
+  if {[llength $savedViewNames] > 0 && $opt(VIZPMIVP)} {
     foreach svn $savedViewNames {
       if {[info exists savedViewpoint($svn)] && [lsearch $savedViewButtons $svn] != -1} {
-        puts $x3dFile "<Transform translation='[lindex $savedViewpoint($svn) 0]'><Viewpoint id='$svn' position='[lindex $savedViewpoint($svn) 0]' orientation='[lindex $savedViewpoint($svn) 1]' $cor></Viewpoint></Transform>"  
+        puts $x3dFile "<Transform translation='[lindex $savedViewpoint($svn) 0]'><Viewpoint id='vp$svn' position='[lindex $savedViewpoint($svn) 0]' orientation='[lindex $savedViewpoint($svn) 1]' $cor></Viewpoint></Transform>"  
         #set px [trimNum [expr {[lindex [lindex $savedViewpoint($svn) 0] 0]+$xyzcen(x)}]]
         #set py [trimNum [expr {[lindex [lindex $savedViewpoint($svn) 0] 1]+$psy}]]
         #set pz [trimNum [expr {[lindex [lindex $savedViewpoint($svn) 0] 2]+$xyzcen(z)}]]
@@ -356,8 +383,10 @@ proc x3dFileEnd {} {
   puts $x3dFile "<OrthoViewpoint id='Ortho' position='$xyzcen(x) $psy $xyzcen(z)' orientation='1 0 0 1.5708' $cor fieldOfView='\[-$fov,-$fov,$fov,$fov\]'></OrthoViewpoint>"  
 
 # navigation, background color
+  set bgc ".8 .8 .8"
+  if {[string first "AP209" $stepAP] == 0} {set bgc "1 1 1"}
   puts $x3dFile "\n<NavigationInfo type='\"EXAMINE\" \"ANY\"'></NavigationInfo>"
-  puts $x3dFile "<Background id='BG' skyColor='.8 .8 .8'></Background>"
+  puts $x3dFile "<Background id='BG' skyColor='$bgc'></Background>"
   puts $x3dFile "</Scene></X3D>\n\n</td><td valign='top'>"
 
 # for NIST model - link to drawing 
@@ -384,18 +413,56 @@ proc x3dFileEnd {} {
     if {!$ok && [info exists numSavedViews($nistName)]} {
       lappend svmsg "For the NIST test case, some expected Graphical PMI Saved View names (MBD*) were not found."
     }
-    puts $x3dFile "<p>Selecting a Saved View above changes the viewpoint or use Page Up for the next viewpoint.  Zoom and pan to view all PMI.<hr><p>"
+    if {$opt(VIZPMIVP)} {
+      puts $x3dFile "<p>Selecting a Saved View above changes the viewpoint or use Page Up for the next viewpoint.  Zoom and pan to view all PMI."
+    }
+    puts $x3dFile "<hr><p>"
   }
   if {[llength $svmsg] > 0 && [string first "AP209" $stepAP] == -1} {foreach msg $svmsg {errorMsg $msg}}
 
-# for FEM - node, element checkboxes
+# FEM buttons
   if {$opt(VIZFEA) && [string first "AP209" $stepAP] == 0} {
+    
+# for FEM - node, element checkboxes
     puts $x3dFile "\n<input type='checkbox' checked onclick='togNodes(this.value)'/>Nodes<br>"
     if {[info exists entCount(surface_3d_element_representation)] || \
         [info exists entCount(volume_3d_element_representation)]}  {puts $x3dFile "<input type='checkbox' checked onclick='togMesh(this.value)'/>Mesh<br>"}
     if {[info exists entCount(curve_3d_element_representation)]}   {puts $x3dFile "<input type='checkbox' checked onclick='tog1DElements(this.value)'/>1D Elements<br>"}
     if {[info exists entCount(surface_3d_element_representation)]} {puts $x3dFile "<input type='checkbox' checked onclick='tog2DElements(this.value)'/>2D Elements<br>"}
     if {[info exists entCount(volume_3d_element_representation)]}  {puts $x3dFile "<input type='checkbox' checked onclick='tog3DElements(this.value)'/>3D Elements<br>"}
+
+# boundary and load radiobuttons
+    if {[info exists feaBC]} {
+      puts $x3dFile "\n<p>SPC\n<br><input type='radio' name='spc' id='none' value='none' checked onclick='togSPC(this.value)'/>None<br>"
+      set n 0
+      foreach spc [lsort [array names feaBC]] {
+        incr n
+        puts $x3dFile "<input type='radio' name='spc' id='SPC$n' onclick='togSPC(this.value)'/>$spc<br>"
+      }
+      puts $x3dFile "<p>"
+    }
+    if {[info exists feaLD]} {
+      puts $x3dFile "\nLoad (vectors do not point in the correct direction)\n<br><input type='radio' name='load' id='none' value='none' checked onclick='togLOAD(this.value)'/>None<br>"
+      set n 0
+      foreach load [lsort [array names feaLD]] {
+        incr n
+        puts $x3dFile "<input type='radio' name='load' id='LOAD$n' onclick='togLOAD(this.value)'/>$load<br>"
+      }
+    }
+  }
+  
+# graphical PMI message
+  if {[info exists ao]} {
+    if {$opt(VIZPMI) && [string first "occurrence" $ao] != -1 && [string first "AP209" $stepAP] == -1} {
+      set msg "Some Graphical PMI might not have equivalent Semantic PMI in the STEP file."
+      set ok 0
+      if {[info exists x3dMsg]} {if {[llength $x3dMsg] > 0} {set ok 1}}
+      if {$ok} {
+        lappend x3dMsg $msg
+      } else {
+        puts $x3dFile "<p>$msg<p><hr><p>"
+      }
+    }
   }
   
 # extra text messages
@@ -407,19 +474,20 @@ proc x3dFileEnd {} {
       unset x3dMsg
     }
   }
-  puts $x3dFile "\n<ul style=\"padding-left:20px\">"
-  puts $x3dFile "<li><a href=\"https://www.x3dom.org/documentation/interaction/\">Use the mouse</a> in 'Examine Mode' to rotate, pan, zoom.<li>Use Page Up to switch between views.<p>"
-  if {[info exists ao]} {
-    if {$opt(VIZPMI) && [string first "occurrence" $ao] != -1 && [string first "AP209" $stepAP] == -1} {puts $x3dFile "<li>Some Graphical PMI might not have equivalent Semantic PMI in the STEP file."}
-  }
-  puts $x3dFile "</ul>"
+  puts $x3dFile "<a href=\"https://www.x3dom.org/documentation/interaction/\">Use the mouse</a> in 'Examine Mode' to rotate, pan, zoom.  Use Page Up to switch between views."
   
-# background color buttons and function
-  puts $x3dFile "<p><hr><p>Background Color"
-  puts $x3dFile "<br><input type='radio' name='bgcolor' value='1 1 1' onclick='BGcolor(this.value)'/>White"
-  puts $x3dFile "<br><input type='radio' name='bgcolor' value='.8 .8 .8' checked onclick='BGcolor(this.value)'/>Gray"
+# background color buttons
+  if {[string first "AP209" $stepAP] == -1} {
+    set check1 ""
+    set check2 "checked"
+  } else {
+    set check1 "checked"
+    set check2 ""
+  }
+  puts $x3dFile "<p>Background Color"
+  puts $x3dFile "<br><input type='radio' name='bgcolor' value='1 1 1' $check1 onclick='BGcolor(this.value)'/>White"
+  puts $x3dFile "<br><input type='radio' name='bgcolor' value='.8 .8 .8' $check2 onclick='BGcolor(this.value)'/>Gray"
   puts $x3dFile "<br><input type='radio' name='bgcolor' value='0 0 0' onclick='BGcolor(this.value)'/>Black"
-  puts $x3dFile "\n<script>function BGcolor(color){document.getElementById('BG').setAttribute('skyColor', color);}</script>"
 
 # transparency slider
   if {$opt(VIZFEA) && [string first "AP209" $stepAP] == 0} {
@@ -432,11 +500,34 @@ proc x3dFileEnd {} {
     puts $x3dFile "<input style='width:80px' type='range' min='0' max='1' step='0.25' value='0' onchange='matTrans(this.value)'/>"
   }
   puts $x3dFile "</td></tr></table>"
+  
+# background function
+  puts $x3dFile "\n<script>function BGcolor(color){document.getElementById('BG').setAttribute('skyColor', color);}</script>"
 
 # functions for PMI view toggle switches
   if {[llength $savedViewButtons] > 0} {
     puts $x3dFile " "
-    foreach svn $savedViewButtons {x3dSwitchScript $svn 1}
+    foreach svn $savedViewButtons {x3dSwitchScript $svMap($svn) $svn $opt(VIZPMIVP)}
+  }
+
+# functions for boundary condition toggle switches
+  if {[info exists feaBC]} {
+    puts $x3dFile "\n<script>function togSPC(val)\{"
+    puts $x3dFile "  for(var i=1; i<=[llength [array names feaBC]]; i++) \{"
+    puts $x3dFile "    document.getElementById('spc' + i).setAttribute('whichChoice', -1);"
+    puts $x3dFile "    if(document.getElementById('SPC' + i).checked) \{document.getElementById('spc' + i).setAttribute('whichChoice', 0);\}"
+    puts $x3dFile "  \}"
+    puts $x3dFile "\}</script>"
+    unset feaBC
+  }
+  if {[info exists feaLD]} {
+    puts $x3dFile "\n<script>function togLOAD(val)\{"
+    puts $x3dFile "  for(var i=1; i<=[llength [array names feaLD]]; i++) \{"
+    puts $x3dFile "    document.getElementById('load' + i).setAttribute('whichChoice', -1);"
+    puts $x3dFile "    if(document.getElementById('LOAD' + i).checked) \{document.getElementById('load' + i).setAttribute('whichChoice', 0);\}"
+    puts $x3dFile "  \}"
+    puts $x3dFile "\}</script>"
+    unset feaLD
   }
                           
   set str "NIST "
@@ -544,15 +635,17 @@ proc getSavedViewName {objEntity} {
 
 # -------------------------------------------------------------------------------
 # script for switch node
-proc x3dSwitchScript {type {vp 0}} {
+proc x3dSwitchScript {name {name1 ""} {vp 0}} {
   global x3dFile
+
+  if {$name1 == ""} {set name1 $name}
   
-  puts $x3dFile "<script>function tog$type\(choice){"
-  puts $x3dFile " if (!document.getElementById('sw$type').checked) {"
-  puts $x3dFile "  document.getElementById('sw$type').setAttribute('whichChoice', -1);"
+  puts $x3dFile "<script>function tog$name1\(choice){"
+  puts $x3dFile " if (!document.getElementById('sw$name1').checked) {"
+  puts $x3dFile "  document.getElementById('sw$name').setAttribute('whichChoice', -1);"
   puts $x3dFile " } else {"
-  puts $x3dFile "  document.getElementById('sw$type').setAttribute('whichChoice', 0);"
-  if {$vp} {puts $x3dFile "  document.getElementById('$type').setAttribute('set_bind','true');"}
+  puts $x3dFile "  document.getElementById('sw$name').setAttribute('whichChoice', 0);"
+  if {$vp} {puts $x3dFile "  document.getElementById('vp$name1').setAttribute('set_bind','true');"}
   puts $x3dFile " }"
-  puts $x3dFile " document.getElementById('sw$type').checked = !document.getElementById('sw$type').checked;\n}</script>"
+  puts $x3dFile " document.getElementById('sw$name1').checked = !document.getElementById('sw$name1').checked;\n}</script>"
 }

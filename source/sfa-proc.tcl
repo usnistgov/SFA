@@ -128,13 +128,13 @@ proc checkValues {} {
 
 # graphical PMI visualization
   if {$opt(VIZPMI)} {
-    foreach b {gpmiColor0 gpmiColor1 gpmiColor2 linecolor} {lappend butNormal $b}
+    foreach b {gpmiColor0 gpmiColor1 gpmiColor2 linecolor optVIZPMIVP} {lappend butNormal $b}
     if {$opt(XLSCSV) != "None"} {
       set opt(PR_STEP_PRES) 1
       lappend butDisabled optPR_STEP_PRES
     }
   } else {
-    foreach b {gpmiColor0 gpmiColor1 gpmiColor2 linecolor} {lappend butDisabled $b}
+    foreach b {gpmiColor0 gpmiColor1 gpmiColor2 linecolor optVIZPMIVP} {lappend butDisabled $b}
   }
 
 # semantic PMI report
@@ -817,7 +817,6 @@ proc getOpenPrograms {} {
       [list {*}[glob -nocomplain -directory [file join $pf "TransMagic Inc"] -join "TransMagic *" System code bin TransMagic.exe] TransMagic] \
       [list {*}[glob -nocomplain -directory [file join $pf CADSoftTools] -join "ABViewer*" ABViewer.exe] ABViewer] \
       [list {*}[glob -nocomplain -directory [file join $pf "Soft Gold"] -join "ABViewer*" ABViewer.exe] ABViewer] \
-      [list {*}[glob -nocomplain -directory [file join $pf Autodesk] -join "Navisworks Manage*" roamer.exe] "Navisworks Manage"] \
     ]
     foreach app $applist {
       if {[llength $app] == 2} {
@@ -1125,12 +1124,12 @@ proc openXLS {filename {check 0} {multiFile 0}} {
 
 #-------------------------------------------------------------------------------
 proc checkForExcel {{multFile 0}} {
-  global lastXLS localName buttons
+  global lastXLS localName buttons opt
   
   set pid1 [twapi::get_process_ids -name "EXCEL.EXE"]
-  #outputMsg "checkForExcel-$pid1"
+  if {![info exists useXL]} {set useXL 1}
   
-  if {[llength $pid1] > 0} {
+  if {[llength $pid1] > 0 && $opt(XLSCSV) != "None"} {
     if {[info exists buttons]} {
       if {!$multFile} {
         set msg "There are ([llength $pid1]) instances of Excel already running.\nThe spreadsheets for the other instances might not be visible but will show up in the Windows Task Manager as EXCEL.EXE"

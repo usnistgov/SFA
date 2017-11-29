@@ -30,12 +30,12 @@ set schemaLinks(AP239)   "http://web.archive.org/web/20160322005246/www.steptool
 set schemaLinks(AP242)   "https://www.cax-if.org/documents/AP242/AP242_mim_lf_1.36.htm"
 set schemaLinks(CIS/2)   "http://web.archive.org/web/20160322005246/www.steptools.com/support/stdev_docs/express/cis/html/index.html"
   
-# all app names that might appear in header section
+# all app names for STEP and IFC software that might appear in header section
 set cadApps {"3D_Evolution" ACIS "Alias - OpenModel" "Alias AutoStudio" "Alias OpenModel" "Alias Studio" Alibre AutoCAD "Autodesk Inventor" \
   CADDS CADfix CADIF CATIA "CATIA V4" "CATIA V5" "CATIA V6" "CATIA Version 5" CgiStepCamp CoreTechnologie Creo "CV - CADDS 5" \
   DATAKIT Datakit "Datakit CrossCad" DATAVISION Elysium EXPRESSO FEMAP FiberSim HiCAD IDA-STEP "I-DEAS" "Implementor Forum Team" "ITI TranscenData" \
   "jt_step translator" Kubotek "Kubotek KeyCreator" "Mechanical Desktop" "Mentor Graphics" NX "OneSpace Designer" "Open CASCADE" \
-  Parasolid Patran PlanetCAD PolyTrans "PRO/ENGINEER" Siemens "SIEMENS PLM Software NX 10.0" "SIEMENS PLM Software NX 11.0" \
+  Parasolid Patran PlanetCAD PolyTrans "PRO/ENGINEER" Siemens "SIEMENS PLM Software NX 10.0" "SIEMENS PLM Software NX 11.0" "SIEMENS PLM Software NX 12.0" \
   "SIEMENS PLM Software NX 7.0" "SIEMENS PLM Software NX 7.5" "SIEMENS PLM Software NX 8.0" "SIEMENS PLM Software NX 8.5" \
   "SIEMENS PLM Software NX 9.0" "SIEMENS PLM Software NX" "Solid Edge" SolidEdge "ST-ACIS" "STEP Caselib" \
   "STEP-NC Explorer" "STEP-NC Maker" "T3D tool generator" THEOREM Theorem "THEOREM SOLUTIONS" "Theorem Solutions" "T-Systems" \

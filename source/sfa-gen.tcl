@@ -667,6 +667,18 @@ proc genExcel {{numFile 0}} {
     }
   }
   
+# move some AP209 entities to end
+  if {$opt(VIZFEA)} {
+    foreach ent {nodal_freedom_action_definition single_point_constraint_element_values} {
+      if {[info exists entCount($ent)]} {
+        set spc "19$ent"
+        set c1 [lsearch $entsToProcess $spc]
+        set entsToProcess [lreplace $entsToProcess $c1 $c1]
+        set entsToProcess [linsert $entsToProcess end $spc]
+      }
+    }
+  }
+  
 # then strip off the color index
   for {set i 0} {$i < [llength $entsToProcess]} {incr i} {
     lset entsToProcess $i [string range [lindex $entsToProcess $i] 2 end]
@@ -1142,13 +1154,13 @@ proc genExcel {{numFile 0}} {
 
 # clean up variables to hopefully release some memory and/or to reset them
   global colColor invCol currx3dPID dimrep dimrepID entName gpmiID gpmiIDRow gpmiRow
-  global heading invGroup nrep numx3dPID pmiColumns pmiStartCol 
+  global heading invGroup nodeArr nrep numx3dPID pmiColumns pmiStartCol 
   global propDefID propDefIDRow propDefName propDefOK propDefRow syntaxErr
   global shapeRepName tessRepo tessPlacement dimtolGeom dimtolEntID datumGeom datumSymbol
   global savedViewFileName savedViewFile
 
   foreach var {cells colColor invCol count currx3dPID dimrep dimrepID entName entsIgnored \
-              gpmiID gpmiIDRow gpmiRow heading invGroup nrep numx3dPID \
+              gpmiID gpmiIDRow gpmiRow heading invGroup nrep nodeArr numx3dPID \
               pmiCol pmiColumns pmiStartCol pmivalprop propDefID propDefIDRow propDefName propDefOK propDefRow \
               syntaxErr workbook workbooks worksheet worksheets \
               x3dCoord x3dFile x3dFileName x3dStartFile x3dIndex x3dMax x3dMin \

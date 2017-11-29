@@ -1,6 +1,6 @@
 #-------------------------------------------------------------------------------
 # version numbers, software and user's guide
-proc getVersion {}   {return 2.60}
+proc getVersion {}   {return 2.62}
 proc getVersionUG {} {return 2.34}
 
 # -------------------------------------------------------------------------------
@@ -1205,10 +1205,12 @@ proc checkForReports {entType} {
       errorMsg "ERROR adding PMI Representation to '[formatComplexEnt $entType]'\n  $emsg"
     }
 
-# check for AP209 analysis elements
-  } elseif {$entType == "curve_3d_element_representation" || \
+# check for AP209 analysis entities
+  } elseif {$entType == "curve_3d_element_representation"   || \
             $entType == "surface_3d_element_representation" || \
-            $entType == "volume_3d_element_representation"} {
+            $entType == "volume_3d_element_representation"  || \
+            $entType == "nodal_freedom_action_definition"   || \
+            $entType == "single_point_constraint_element_values"} {
     if {[catch {
       if {[info exists opt(VIZFEA)]} {if {$opt(VIZFEA)} {feaModel $entType}}
     } emsg]} {
