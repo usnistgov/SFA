@@ -963,7 +963,7 @@ proc gpmiAnnotationReport {objEntity} {
             } else {
               set msg "Syntax Error: Missing 'definition' attribute on draughting_model_item_association\n[string repeat " " 14]"
               if {$stepAP == "AP242"} {
-                append msg "($recPracNames(pmi242), Sec. 9.3.1, Fig. 76)"
+                append msg "($recPracNames(pmi242), Sec. 9.3.1, Fig. 80)"
               } else {
                 append msg "($recPracNames(pmi203), Sec. 5.3.1, Fig. 12)"
               }
@@ -999,6 +999,8 @@ proc gpmiAnnotationReport {objEntity} {
         }
         if {[info exists ents1]} {::tcom::foreach ap $ents1 {lappend aps $ap}}
       }
+      if {[llength $aps] == 0} {errorMsg "Syntax Error: Missing required usage of an 'annotation_plane'.\n[string repeat " " 14]($recPracNames(pmi242), Sec. 9.1, Fig. 77)"}
+
       foreach ap $aps {
         ::tcom::foreach attrAP [$ap Attributes] {
           if {[$attrAP Name] == "name"} {

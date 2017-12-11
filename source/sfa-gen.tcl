@@ -1154,13 +1154,13 @@ proc genExcel {{numFile 0}} {
 
 # clean up variables to hopefully release some memory and/or to reset them
   global colColor invCol currx3dPID dimrep dimrepID entName gpmiID gpmiIDRow gpmiRow
-  global heading invGroup nodeArr nrep numx3dPID pmiColumns pmiStartCol 
+  global heading invGroup feaNodes nrep numx3dPID pmiColumns pmiStartCol 
   global propDefID propDefIDRow propDefName propDefOK propDefRow syntaxErr
   global shapeRepName tessRepo tessPlacement dimtolGeom dimtolEntID datumGeom datumSymbol
   global savedViewFileName savedViewFile
 
   foreach var {cells colColor invCol count currx3dPID dimrep dimrepID entName entsIgnored \
-              gpmiID gpmiIDRow gpmiRow heading invGroup nrep nodeArr numx3dPID \
+              gpmiID gpmiIDRow gpmiRow heading invGroup nrep feaNodes numx3dPID \
               pmiCol pmiColumns pmiStartCol pmivalprop propDefID propDefIDRow propDefName propDefOK propDefRow \
               syntaxErr workbook workbooks worksheet worksheets \
               x3dCoord x3dFile x3dFileName x3dStartFile x3dIndex x3dMax x3dMin \

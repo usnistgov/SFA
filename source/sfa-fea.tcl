@@ -2,7 +2,7 @@ proc feaModel {entType} {
   global objDesign
   global ent entAttrList entCount entLevel opt rowmax nprogBarEnts count localName mytemp sfaPID cadSystem
   global x3dFile x3dMin x3dMax x3dMsg x3dStartFile x3dFileName x3dAxesSize
-  global feaType feaTypes feaElemTypes nfeaElem feaFile feaFileName feaFaceList feaFaceOrig feaBC feaLD feaMeshIndex
+  global feaType feaTypes feaElemTypes nfeaElem feaFile feaFileName feaFaceList feaFaceOrig feaBoundary feaLoad feaMeshIndex feaLoadMag
 
   if {$opt(DEBUG1)} {outputMsg "START feaModel $entType\n" red}
 
@@ -18,12 +18,20 @@ proc feaModel {entType} {
   set FEA(volume_3d_element_representation)  [list volume_3d_element_representation  name node_list $node $dummy_node element_descriptor $volume_3d_element_descriptor]
 
   set cartesian_point [list cartesian_point coordinates]
+  set node [list node name items $cartesian_point]
+  set node_group [list node_group nodes]
+  set freedom [list freedoms_list freedoms]
+  set single_point_constraint_element [list single_point_constraint_element \
+                                        required_node $node $node_group freedoms_and_values [list freedom_and_coefficient freedom a]]
+
   set FEA(single_point_constraint_element_values) [list single_point_constraint_element_values \
-                                                    defined_state [list specified_state state_id description] \
-                                                    element [list single_point_constraint_element required_node [list node name items $cartesian_point]]]
+                                                    defined_state [list specified_state state_id description] [list state state_id description] \
+                                                    element $single_point_constraint_element \
+                                                    degrees_of_freedom $freedom b]
   set FEA(nodal_freedom_action_definition) [list nodal_freedom_action_definition \
-                                              defined_state [list specified_state state_id description] \
-                                              node [list node name items $cartesian_point]]
+                                              defined_state [list specified_state state_id description] [list state state_id description] \
+                                              node $node $node_group \
+                                              degrees_of_freedom $freedom values]
   
   if {[info exists ent]} {unset ent}
   set entLevel 0
@@ -66,16 +74,17 @@ proc feaModel {entType} {
     set name [file tail $localName]
     if {$cadSystem != ""} {append name "  ($cadSystem)"}
     puts $x3dFile "\n<body><font face=\"arial\">\n<h3>STEP AP209 Finite Element Model:  $name</h3>"
-    puts $x3dFile "<table><tr><td>"
+    puts $x3dFile "\n<table><tr><td width='85%'>"
     
 # x3d window size
     set height 800
     set width [expr {int($height*1.5)}]
     catch {
-      set height [expr {int([winfo screenheight .]*0.75)}]
+      set height [expr {int([winfo screenheight .]*0.85)}]
       set width [expr {int($height*[winfo screenwidth .]/[winfo screenheight .])}]
     }
-    puts $x3dFile "\n<X3D id='someUniqueId' showStat='false' showLog='false' x='0px' y='0px' width='$width\px' height='$height\px'>\n<Scene DEF='scene'>"
+    puts $x3dFile "<X3D id='x3d' showStat='false' showLog='false' x='0px' y='0px' width='$width' height='$height'>\n<Scene DEF='scene'>"
+    #puts $x3dFile "<X3D id='someUniqueId' showStat='false' showLog='false' x='0px' y='0px' width='$width\px' height='$height\px'>\n<Scene DEF='scene'>"
 
 # nodes    
     feaGetNodes
@@ -109,9 +118,12 @@ proc feaModel {entType} {
   catch {unset feaFaceList}
   catch {unset feaFaceOrig}
 
+  set skipElements 0
   set startent [lindex $FEA($entType) 0]
+  set memMsg "<i>Some elements were not processed.</i>"
+  
   ::tcom::foreach objEntity [$objDesign FindObjects [join $startent]] {
-    if {[$objEntity Type] == $startent} {
+    if {[$objEntity Type] == $startent && (!$skipElements || [string first "element_representation" $startent] == -1)} {
       if {$opt(XLSCSV) == "None"} {incr nprogBarEnts}
       
       if {$nfeaElem < 10000000} {
@@ -120,10 +132,13 @@ proc feaModel {entType} {
 # check memory and gracefully exit
           set mem [expr {[lindex [twapi::get_process_info $sfaPID -pagefilebytes] 1]/1048576}]
           if {$mem > 1600} {
-            errorMsg "Insufficient memory to process all of the elements"
-            lappend x3dMsg "Some elements were not processed."
+            errorMsg "Insufficient memory to process all elements"
+            if {[lsearch $x3dMsg $memMsg] == -1} {
+              lappend x3dMsg $memMsg
+              set skipElements 1
+            }
             update idletasks
-            break
+            #break
           }
           update
         }
@@ -138,71 +153,81 @@ proc feaModel {entType} {
   }
   update idletasks
 
-# ----------  
+# ------------------------------------------------------------------------------------------------  
 # 1D elements, get from mesh
   if {[string first "_3d" $startent] != -1} {
-    puts $feaFile(elements) "\n<!-- $feaType elements -->"
+    puts $feaFile(elements) "\n<!-- [string toupper $feaType] ELEMENTS -->"
     if {$feaType == "curve_3d"} {
       puts $feaFile(elements) "<Switch whichChoice='0' id='sw1DElements'>"
-      puts $feaFile(elements) " <Shape><Appearance><Material emissiveColor='1 0 1'></Material></Appearance>"
+      puts $feaFile(elements) " <Shape><Appearance><Material emissiveColor='1 0 1'/></Appearance>"
       puts $feaFile(elements) "  <IndexedLineSet coordIndex='"
       feaWriteIndex meshIndex elements
-      puts $feaFile(elements) "  '><Coordinate USE='coords'></Coordinate></IndexedLineSet></Shape>"
+      puts $feaFile(elements) "  '><Coordinate USE='coords'/></IndexedLineSet></Shape>"
       puts $feaFile(elements) "</Switch>"
 
 # 2D, 3D elements
     } else {
 
 # write index file to mesh file
-      puts $feaFile(mesh) " <Shape id='$feaType'><Appearance><Material emissiveColor='0 0 0'></Material></Appearance>"
+      puts $feaFile(mesh) " <Shape id='$feaType'><Appearance><Material emissiveColor='0 0 0'/></Appearance>"
       puts $feaFile(mesh) "  <IndexedLineSet coordIndex='"
       feaWriteIndex meshIndex mesh
       puts $feaFile(mesh) "  '>"
-      puts $feaFile(mesh) "   <Coordinate USE='coords'></Coordinate></IndexedLineSet></Shape>"
+      puts $feaFile(mesh) "   <Coordinate USE='coords'/></IndexedLineSet></Shape>"
 
 # write faces index file to elements file
       if {$feaType == "surface_3d"} {
         puts $feaFile(elements) "<Switch whichChoice='0' id='sw2DElements'>"
-        puts $feaFile(elements) " <Shape><Appearance><Material id='mat2D' diffuseColor='0 1 1'></Material></Appearance>"
+        puts $feaFile(elements) " <Shape><Appearance><Material id='mat2D' diffuseColor='0 1 1'/></Appearance>"
         puts $feaFile(elements) "  <IndexedFaceSet solid='false' coordIndex='"
       } else {
         puts $feaFile(elements) "<Switch whichChoice='0' id='sw3DElements'>"      
-        puts $feaFile(elements) " <Shape><Appearance><Material id='mat3D' diffuseColor='1 1 0'></Material></Appearance>"
+        puts $feaFile(elements) " <Shape><Appearance><Material id='mat3D' diffuseColor='1 1 0'/></Appearance>"
         puts $feaFile(elements) "  <IndexedFaceSet id='faces' solid='false' coordIndex='"
       }
       if {[info exists feaFaceList]} {
+        set n 0
+        set nline ""
         foreach face [array name feaFaceList] {
 
 # add original face to file if only one sorted face, more means duplicate internal faces that can be eliminated
           if {$feaFaceList($face) == 1} {
+            incr n
+            
 # subdivide 4 noded faces
             if {[llength $face] == 4} {
-              puts $feaFile(elements) "[lindex $feaFaceOrig($face) 0] [lindex $feaFaceOrig($face) 1] [lindex $feaFaceOrig($face) 2] -1"
-              puts $feaFile(elements) "[lindex $feaFaceOrig($face) 0] [lindex $feaFaceOrig($face) 2] [lindex $feaFaceOrig($face) 3] -1"
+              append nline "[lindex $feaFaceOrig($face) 0] [lindex $feaFaceOrig($face) 1] [lindex $feaFaceOrig($face) 2] -1 "
+              append nline "[lindex $feaFaceOrig($face) 0] [lindex $feaFaceOrig($face) 2] [lindex $feaFaceOrig($face) 3] -1 "
 # subdivide 6 noded faces
             } elseif {[llength $face] == 6} {
-              puts $feaFile(elements) "[lindex $feaFaceOrig($face) 0] [lindex $feaFaceOrig($face) 1] [lindex $feaFaceOrig($face) 5] -1"
-              puts $feaFile(elements) "[lindex $feaFaceOrig($face) 1] [lindex $feaFaceOrig($face) 3] [lindex $feaFaceOrig($face) 5] -1"
-              puts $feaFile(elements) "[lindex $feaFaceOrig($face) 1] [lindex $feaFaceOrig($face) 2] [lindex $feaFaceOrig($face) 3] -1"
-              puts $feaFile(elements) "[lindex $feaFaceOrig($face) 3] [lindex $feaFaceOrig($face) 4] [lindex $feaFaceOrig($face) 5] -1"
+              append nline "[lindex $feaFaceOrig($face) 0] [lindex $feaFaceOrig($face) 1] [lindex $feaFaceOrig($face) 5] -1 "
+              append nline "[lindex $feaFaceOrig($face) 1] [lindex $feaFaceOrig($face) 3] [lindex $feaFaceOrig($face) 5] -1 "
+              append nline "[lindex $feaFaceOrig($face) 1] [lindex $feaFaceOrig($face) 2] [lindex $feaFaceOrig($face) 3] -1 "
+              append nline "[lindex $feaFaceOrig($face) 3] [lindex $feaFaceOrig($face) 4] [lindex $feaFaceOrig($face) 5] -1 "
 # subdivide 8 noded faces
             } elseif {[llength $face] == 8} {
-              puts $feaFile(elements) "[lindex $feaFaceOrig($face) 0] [lindex $feaFaceOrig($face) 1] [lindex $feaFaceOrig($face) 7] -1"
-              puts $feaFile(elements) "[lindex $feaFaceOrig($face) 1] [lindex $feaFaceOrig($face) 2] [lindex $feaFaceOrig($face) 3] -1"
-              puts $feaFile(elements) "[lindex $feaFaceOrig($face) 1] [lindex $feaFaceOrig($face) 3] [lindex $feaFaceOrig($face) 7] -1"
-              puts $feaFile(elements) "[lindex $feaFaceOrig($face) 7] [lindex $feaFaceOrig($face) 3] [lindex $feaFaceOrig($face) 5] -1"
-              puts $feaFile(elements) "[lindex $feaFaceOrig($face) 7] [lindex $feaFaceOrig($face) 5] [lindex $feaFaceOrig($face) 6] -1"
-              puts $feaFile(elements) "[lindex $feaFaceOrig($face) 3] [lindex $feaFaceOrig($face) 4] [lindex $feaFaceOrig($face) 5] -1"
+              append nline "[lindex $feaFaceOrig($face) 0] [lindex $feaFaceOrig($face) 1] [lindex $feaFaceOrig($face) 7] -1 "
+              append nline "[lindex $feaFaceOrig($face) 1] [lindex $feaFaceOrig($face) 2] [lindex $feaFaceOrig($face) 3] -1 "
+              append nline "[lindex $feaFaceOrig($face) 1] [lindex $feaFaceOrig($face) 3] [lindex $feaFaceOrig($face) 7] -1 "
+              append nline "[lindex $feaFaceOrig($face) 7] [lindex $feaFaceOrig($face) 3] [lindex $feaFaceOrig($face) 5] -1 "
+              append nline "[lindex $feaFaceOrig($face) 7] [lindex $feaFaceOrig($face) 5] [lindex $feaFaceOrig($face) 6] -1 "
+              append nline "[lindex $feaFaceOrig($face) 3] [lindex $feaFaceOrig($face) 4] [lindex $feaFaceOrig($face) 5] -1 "
 # other faces that are not subdivided (3, 4)
             } else {
-              puts $feaFile(elements) "$feaFaceOrig($face) -1"
+              append nline "$feaFaceOrig($face) -1 "
+            }
+            if {$n == 10} {
+              puts $feaFile(elements) $nline
+              set n 0
+              set nline ""
             }
           }
         }
+        if {[string length $nline] > 0} {puts $feaFile(elements) $nline}
       }
       feaWriteIndex faceIndex elements
       puts $feaFile(elements) "  '>"
-      puts $feaFile(elements) "   <Coordinate USE='coords'></Coordinate></IndexedFaceSet></Shape>"
+      puts $feaFile(elements) "   <Coordinate USE='coords'/></IndexedFaceSet></Shape>"
       puts $feaFile(elements) "</Switch>"
     }
   }
@@ -221,7 +246,7 @@ proc feaModel {entType} {
     if {[file exists $feaFileName(mesh)]} {
       close $feaFile(mesh)
       if {[file size $feaFileName(mesh)] > 0} {
-        puts $x3dFile "<!-- wireframe mesh -->\n<Switch whichChoice='0' id='swMesh'><Group>"
+        puts $x3dFile "<!-- WIREFRAME -->\n<Switch whichChoice='0' id='swMesh'><Group>"
         set feaFile(mesh) [open $feaFileName(mesh) r]
         while {[gets $feaFile(mesh) line] >= 0} {puts $x3dFile $line}
         puts $x3dFile "</Group></Switch>"
@@ -230,7 +255,7 @@ proc feaModel {entType} {
       }
     }
     
-# write all elements
+# write all elements (must be before loads and boundary conditions)
     if {[file exists $feaFileName(elements)]} {
       close $feaFile(elements)
       if {[file size $feaFileName(elements)] > 0} {
@@ -242,23 +267,85 @@ proc feaModel {entType} {
     }
 
 # write loads
-    if {[info exists feaLD] && $entType == "nodal_freedom_action_definition"} {
-      set size [trimNum [expr {$x3dAxesSize*0.15}]]
-      puts $x3dFile " "
+    if {[info exists feaLoad] && $entType == "nodal_freedom_action_definition"} {
+      set size [expr {($x3dAxesSize*0.15)/0.12}]
+      set range [expr {$feaLoadMag(max)-$feaLoadMag(min)}]
       set n 0
       set i 0
-      puts $x3dFile "<!-- loads -->"
-      foreach load [lsort [array names feaLD]] {
+      puts $x3dFile "\n<!-- LOADS -->"
+      foreach load [lsort [array names feaLoad]] {
         incr n
-        puts $x3dFile "<Switch whichChoice='-1' id='load$n'><Group>"
-        foreach bc $feaLD($load) {
-          if {$i == 0} {
-            puts $x3dFile "<Transform translation='$bc'><Group DEF='LOAD-shape'>"
-            puts $x3dFile " <Transform translation='0 [expr {2.*$size}] 0'><Shape>\n  <Appearance><Material diffuseColor='.6 .6 .6'></Material></Appearance>\n  <Cone bottomRadius='[expr {$size*0.5}]' height='[expr {$size*2.}]'>\n </Shape><\Transform>"
-            puts $x3dFile " <Shape>\n  <Appearance><Material diffuseColor='1 1 1'></Material></Appearance>\n  <IndexedLineSet coordIndex='0 1 -1'><Coordinate point='0 [expr {$size*-2.}] 0 0 -$size 0'></Coordinate></IndexedLineSet>\n </Shape>\n</Group></Transform>"
+        set choice -1
+        if {$n == 1} {set choice 0}
+        puts $x3dFile "<Switch whichChoice='$choice' id='load$n'><Group>"
+        foreach fl $feaLoad($load) {
+          set fl [split $fl ","]
+          set xyz [lindex $fl 0]
+          set mag [veclen [lindex $fl 1]]
+          set f 0.75
+          set nsize [trimNum $size]
+          if {$feaLoadMag(max) != 0} {set nsize [trimNum [expr {($mag/abs($feaLoadMag(max)))*$size}]]}
+          
+# load vector color
+          if {$range != 0} {
+            set s [expr {($mag-$feaLoadMag(min))/$range}]
+            set a [expr {(1.-$s)/.25}]
+            set x [expr {floor($a)}]
+            set y [trimNum [expr {$a-$x}]]
+            set x [expr {int($x)}]
+            switch $x {
+              0 {set r 1; set g $y; set b 0}
+              1 {set r [trimNum [expr {1.-$y}]]; set g 1; set b 0}
+              2 {set r 0; set g 1; set b $y}
+              3 {set r 0; set g [trimNum [expr {1.-$y}]]; set b 1}
+              4 {set r 0; set g 0; set b 1}
+            }
+            #set a [expr {(1.-$s)/.5}]
+            #switch $x {
+            #  0 {set r 1; set g $y; set b 0}
+            #  1 {set r [trimNum [expr {1.-$y}]]; set g 1; set b 0}
+            #  2 {set r 0; set g 1; set b 0}
+            #}
           } else {
-            puts $x3dFile "<Transform translation='$bc'><Group USE='LOAD-shape'></Group></Transform>"
+            set r 1; set g 0; set b 0
           }
+
+# load vector rotation
+          set rot "1 0 0 0"
+          set rot1 ""
+          set vec [vectrim [vecnorm [lindex $fl 1]]]
+          switch $vec {
+            "-1. 0. 0." {set rot "0 1 0 3.1416"}
+            "0. 1. 0."  {set rot "0 0 1 1.5708"}
+            "0. -1. 0." {set rot "0 0 1 -1.5708"}
+            "0. 0. 1."  {set rot "0 1 0 -1.5708"}
+            "0. 0. -1." {set rot "0 1 0 1.5708"}
+            default {
+              set lvec [split $vec " "]
+              set ang [trimNum [expr {atan2([lindex $lvec 1],[lindex $lvec 0])}]]
+              set rot "0 0 1 $ang"
+              if {[string range $vec end-2 end] != " 0."} {
+                set vec1 "[lindex $lvec 0] [lindex $lvec 1] 0"
+                set ang1 [trimNum [expr {acos([vecdot $vec $vec1] / ([veclen $vec]*[veclen $vec1]))}]]
+                set rot1 "[expr {-[lindex $lvec 1]}] [lindex $lvec 0] 0 $ang1"
+              }
+            }
+          }
+          if {$rot1 == ""} {
+            set str "<Transform translation='$xyz' rotation='$rot' "
+          } else {
+            set str "<Transform translation='$xyz' rotation='$rot1'><Transform rotation='$rot' "
+          }
+          append str "scale='$nsize $nsize $nsize'>"
+          if {$i == 0} {
+            append str "\n <Shape>\n  <Appearance><Material emissiveColor='$r $g $b'></Material></Appearance>"
+            append str "\n  <IndexedLineSet DEF='Arrow' coordIndex='0 1 -1 1 2 -1 1 3 -1 1 4 -1 1 5 -1 2 3 4 5 2 -1'><Coordinate point='-1 0 0 0 0 0 -.2 .1 0 -.2 0 .1 -.2 -.1 0 -.2 0 -.1'/></IndexedLineSet>\n </Shape>\n</Transform>"
+            if {$rot1 != ""} {append str "</Transform>"}
+          } else {
+            append str "<Shape><Appearance><Material emissiveColor='$r $g $b'></Material></Appearance><IndexedLineSet USE='Arrow'/></Shape></Transform>"
+            if {$rot1 != ""} {append str "</Transform>"} 
+          }
+          puts $x3dFile $str
           incr i
         }
         puts $x3dFile "</Group></Switch>\n"
@@ -266,20 +353,22 @@ proc feaModel {entType} {
     }
 
 # write boundary conditions
-    if {[info exists feaBC] && $entType == "single_point_constraint_element_values"} {
-      set size [trimNum [expr {$x3dAxesSize*0.2}]]
-      puts $x3dFile " "
+    if {[info exists feaBoundary] && $entType == "single_point_constraint_element_values"} {
+      set size [trimNum [expr {$x3dAxesSize*0.15}]]
       set n 0
       set i 0
-      puts $x3dFile "<!-- boundary conditions -->"
-      foreach spc [lsort [array names feaBC]] {
+      puts $x3dFile "<!-- BOUNDARY CONDITIONS -->"
+      foreach spc [lsort [array names feaBoundary]] {
         incr n
-        puts $x3dFile "<Switch whichChoice='-1' id='spc$n'><Group>"
-        foreach bc $feaBC($spc) {
+        set choice -1
+        if {$n == 1} {set choice 0}
+        puts $x3dFile "<Switch whichChoice='$choice' id='spc$n'><Group>"
+        foreach bc $feaBoundary($spc) {
           if {$i == 0} {
-            puts $x3dFile "<Transform translation='$bc'>\n <Shape DEF='SPC-shape'>\n  <Appearance><Material diffuseColor='1 0 0'></Material></Appearance>\n  <Box size='$size $size $size'>\n </Shape>\n</Transform>"
+            puts $x3dFile "<Transform translation='$bc'><Group DEF='Pinned'>\n <Transform id='bcTransform'><Shape>"
+            puts $x3dFile "  <Appearance><Material diffuseColor='1 0 0'></Material></Appearance>\n  <IndexedFaceSet coordIndex='0 1 2 -1 0 2 3 -1 0 3 4 -1 0 4 1 -1 1 4 3 2 -1'><Coordinate point='0 0 0 .1 .1 -.2 -.1 .1 -.2 -.1 -.1 -.2 .1 -.1 -.2'/></IndexedFaceSet>\n </Shape></Transform>\n</Group></Transform>"
           } else {
-            puts $x3dFile "<Transform translation='$bc'><Shape USE='SPC-shape'></Shape></Transform>"
+            puts $x3dFile "<Transform translation='$bc'><Group USE='Pinned'/></Transform>"
           }
           incr i
         }
@@ -307,11 +396,88 @@ proc feaModel {entType} {
 }
 
 # -------------------------------------------------------------------------------
+proc feaButtons {type} {
+  global x3dFile feaBoundary feaLoad feaLoadMag entCount
+    
+# node, mesh, element checkboxes
+  if {$type == 1} {
+    puts $x3dFile "\n<input type='checkbox' checked onclick='togNodes(this.value)'/>Nodes<br>"
+    if {[info exists entCount(surface_3d_element_representation)] || \
+        [info exists entCount(volume_3d_element_representation)]}  {puts $x3dFile "<input type='checkbox' checked onclick='togMesh(this.value)'/>Mesh<br>"}
+    if {[info exists entCount(curve_3d_element_representation)]}   {puts $x3dFile "<input type='checkbox' checked onclick='tog1DElements(this.value)'/>1D Elements<br>"}
+    if {[info exists entCount(surface_3d_element_representation)]} {puts $x3dFile "<input type='checkbox' checked onclick='tog2DElements(this.value)'/>2D Elements<br>"}
+    if {[info exists entCount(volume_3d_element_representation)]}  {puts $x3dFile "<input type='checkbox' checked onclick='tog3DElements(this.value)'/>3D Elements<br>"}
+
+# boundary and load radiobuttons
+    if {[info exists feaBoundary]} {
+      puts $x3dFile "\n<p>Boundary Conditions\n<br>"
+      set n 0
+      foreach spc [lsort [array names feaBoundary]] {
+        incr n
+        set checked ""
+        if {$n == 1} {set checked "checked"}
+        puts $x3dFile "<input type='checkbox' name='spc' id='SPC$n' $checked onclick='togSPC(this.value)'/>$spc<br>"
+      }
+      if {$n > 0} {puts $x3dFile "<input style='width:80px' type='range' min='0.25' max='4' step='0.25' value='1' onchange='bcScale(this.value)'/> Scale"}
+    }
+    if {[info exists feaLoad]} {
+      puts $x3dFile "\n<p>Load Range: <font color='blue'>[trimNum $feaLoadMag(min)]</font> - <font color='red'>[trimNum $feaLoadMag(max)]</font>\n<br>"
+      set n 0
+      foreach load [lsort [array names feaLoad]] {
+        incr n
+        set checked ""
+        if {$n == 1} {set checked "checked"}
+        puts $x3dFile "<input type='checkbox' name='load' id='LOAD$n' $checked onclick='togLOAD(this.value)'/>$load<br>"
+      }
+      #if {$n > 0} {puts $x3dFile "<input style='width:80px' type='range' min='0.25' max='4' step='0.25' value='1' onchange='loadScale(this.value)'/>"}
+      unset feaLoadMag
+    }
+    
+# switches
+  } elseif {$type == 2} {
+    if {[info exists feaBoundary]} {
+      puts $x3dFile "\n<script>function togSPC(val)\{"
+      puts $x3dFile "  for(var i=1; i<=[llength [array names feaBoundary]]; i++) \{"
+      puts $x3dFile "    if (!document.getElementById('SPC' + i).checked) \{"
+      puts $x3dFile "     document.getElementById('spc' + i).setAttribute('whichChoice', -1);"
+      puts $x3dFile "    \} else \{"
+      puts $x3dFile "     document.getElementById('spc' + i).setAttribute('whichChoice', 0);"
+      puts $x3dFile "    \}"
+      puts $x3dFile "  \}"
+      puts $x3dFile "\}</script>"
+      unset feaBoundary
+      puts $x3dFile "<script>function bcScale(scale)\{"
+      puts $x3dFile " nscale = new x3dom.fields.SFVec3f(scale,scale,scale);"
+      puts $x3dFile " document.getElementById('bcTransform').setFieldValue('scale', nscale);"
+      puts $x3dFile "\}</script>"
+    }
+
+# functions for load buttons
+    if {[info exists feaLoad]} {
+      puts $x3dFile "\n<script>function togLOAD(val)\{"
+      puts $x3dFile "  for(var i=1; i<=[llength [array names feaLoad]]; i++) \{"
+      puts $x3dFile "    if (!document.getElementById('LOAD' + i).checked) \{"
+      puts $x3dFile "     document.getElementById('load' + i).setAttribute('whichChoice', -1);"
+      puts $x3dFile "    \} else \{"
+      puts $x3dFile "     document.getElementById('load' + i).setAttribute('whichChoice', 0);"
+      puts $x3dFile "    \}"
+      puts $x3dFile "  \}"
+      puts $x3dFile "\}</script>"
+      unset feaLoad
+      #puts $x3dFile "<script>function loadScale(scale)\{"
+      #puts $x3dFile " nscale = new x3dom.fields.SFVec3f(scale,scale,scale);"
+      #puts $x3dFile " document.getElementById('loadTransform').setFieldValue('scale', nscale);"
+      #puts $x3dFile "\}</script>"
+    }
+  }
+}
+
+# -------------------------------------------------------------------------------
 proc feaElements {objEntity} {
   global badAttributes ent entAttrList entCount entLevel localName nistVersion opt
   global x3dFile x3dFileName x3dStartFile feaMeshIndex feaFaceIndex x3dMsg feaStateID feaEntity
-  global feaidx feaIndex feaType feaTypes firstID nnode nnodes nodeID nfeaElem feaFile feaFaceList feaBC feaLD
-  global nodeArr
+  global feaidx feaIndex feaType feaTypes firstID nnode nnodes nodeID nfeaElem feaFile feaFaceList feaBoundary feaLoad feaLoadNode feaLoadMag
+  global feaNodes feaDOFT feaDOFR
 
 # entLevel is very important, keeps track level of entity in hierarchy
   incr entLevel
@@ -365,16 +531,47 @@ proc feaElements {objEntity} {
               if {$opt(DEBUG1)} {outputMsg "$ind   ATR $entLevel $objName - $objValue ($objNodeType, $objSize, $objAttrType)"}
     
               switch -glob $ent1 {
-                "*_element_representation node_list" {set nnodes $objSize}
+                "*_element_representation node_list" {
+                  set nnodes $objSize
+                }
                 "cartesian_point coordinates" {
                   if {$feaEntity == "nodal_freedom_action_definition"} {
-                    lappend feaLD($feaStateID) [vectrim $objValue]
+                    set feaLoadNode [vectrim $objValue]
                   } elseif {$feaEntity == "single_point_constraint_element_values"} {
-                    lappend feaBC($feaStateID) [vectrim $objValue]
+                    lappend feaBoundary($feaStateID) [vectrim $objValue]
+                    #if {$feaDOFT != "" || $feaDOFR != ""} {outputMsg "T $feaDOFT  R $feaDOFR"}
+                  }
+                }
+                "nodal_freedom_action_definition values" {
+                  switch $feaDOFT {
+                    x  {set objValue "$objValue 0. 0."}
+                    xy {set objValue "$objValue 0."}
+                    xz {set objValue "[lindex $objValue 0] 0. [lindex $objValue 1]"}
+                    y  {set objValue "0. $objValue 0."}
+                    yz {set objValue "0. $objValue"}
+                    z  {set objValue "0. 0. $objValue"}
+                  }
+                  lappend feaLoad($feaStateID) "$feaLoadNode,[vectrim $objValue]"
+                  if {![info exists feaLoadMag(min)]} {set feaLoadMag(min) 1.e+10}
+                  if {![info exists feaLoadMag(max)]} {set feaLoadMag(max) -1.e+10}
+                  set mag [veclen $objValue]
+                  if {$mag < $feaLoadMag(min)} {set feaLoadMag(min) $mag}
+                  if {$mag > $feaLoadMag(max)} {set feaLoadMag(max) $mag}
+                  if {$feaDOFR != ""} {errorMsg "Moment loads are not displayed."}
+                }
+                "freedoms_list freedoms" {
+                  set feaDOFT ""
+                  set feaDOFR ""
+                  foreach dof $objValue {
+                    if {[string first "trans" $dof] != -1} {
+                      append feaDOFT [string index $dof 0]
+                    } else {
+                      append feaDOFR [string index $dof 0]
+                    }
                   }
                 }
               }
-
+ 
 # referenced entities
               if {[catch {
                 ::tcom::foreach val1 $objValue {feaElements $val1}
@@ -406,10 +603,10 @@ proc feaElements {objEntity} {
                   if {[string first "_3d" $feaEntity] != -1} {
                     if {$objType == "node"} {
                       set nodeID $objID
-                      set feaidx($nnode) $nodeArr($nodeID)
+                      set feaidx($nnode) $feaNodes($nodeID)
                       if {[info exists nnode]} {
                         incr nnode
-                        if {$nnode == 1} {set firstID $nodeArr($nodeID)}
+                        if {$nnode == 1} {set firstID $feaNodes($nodeID)}
                       }
   
 # account for dummy nodes
@@ -488,9 +685,11 @@ proc feaElements {objEntity} {
                     }
                   }
                 }
+                "state state_id" -
                 "specified_state state_id" {
                   set feaStateID $objValue
                 }
+                "state description" -
                 "specified_state description" {
                   if {$feaStateID == ""} {set feaStateID $objValue}
                 }
@@ -545,14 +744,14 @@ proc feaFaceSort {face} {
 # get and write nodes
 proc feaGetNodes {} {
   global objDesign
-  global entCount nodeArr x3dMax x3dMin x3dFile x3dMsg
-  catch {unset nodeArr}
+  global entCount feaNodes x3dMax x3dMin x3dFile x3dMsg
+  catch {unset feaNodes}
 
   set nodeIndex -1
   outputMsg " Reading nodes ($entCount(node))" green
 
 # start node output
-  puts $x3dFile "\n<!-- nodes -->\n<Switch whichChoice='0' id='swNodes'>"
+  puts $x3dFile "\n<!-- NODES -->\n<Switch whichChoice='0' id='swNodes'>"
   puts $x3dFile " <Shape><Appearance><Material emissiveColor='0 0 1'></Material></Appearance>"
   puts $x3dFile "  <PointSet><Coordinate DEF='coords' point='"
   
@@ -565,7 +764,7 @@ proc feaGetNodes {} {
     set a0 [[$e0 Attributes] Item 2]
     ::tcom::foreach e1 [$a0 Value] {
       set coordList [[[$e1 Attributes] Item 2] Value]
-      set nodeArr($p21id) [incr nodeIndex]
+      set feaNodes($p21id) [incr nodeIndex]
   
 # xyz coordinates
       set coord(x) [lindex $coordList 0]
@@ -603,7 +802,7 @@ proc feaGetNodes {} {
 
 # -------------------------------------------------------------------------------
 # write index to file
-proc feaWriteIndex {ftyp x3d} {
+proc feaWriteIndex {ftyp file} {
   global feaFile feaFileName
 
   close $feaFile($ftyp)
@@ -613,16 +812,15 @@ proc feaWriteIndex {ftyp x3d} {
     set n 0
     set nline ""
     while {[gets $feaFile($ftyp) line] >= 0} {
-      #outputMsg $line blue
       append nline "[string trim $line] "
       incr n
       if {$n == 10} {
-        puts $feaFile($x3d) $nline
+        puts $feaFile($file) $nline
         set n 0
         set nline ""
       }
     }
-    if {[string length $nline] > 0} {puts $feaFile($x3d) $nline}
+    if {[string length $nline] > 0} {puts $feaFile($file) $nline}
       
     close $feaFile($ftyp)
     catch {file delete -force $feaFileName($ftyp)}

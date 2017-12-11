@@ -800,10 +800,7 @@ proc getOpenPrograms {} {
           }
         }
         if {$stmatch != ""} {
-          if {![info exists dispApps($stmatch)]} {
-            set dispApps($stmatch) [lindex $app 1]
-            outputMsg here
-          }
+          if {![info exists dispApps($stmatch)]} {set dispApps($stmatch) [lindex $app 1]}
         }
       }
     }

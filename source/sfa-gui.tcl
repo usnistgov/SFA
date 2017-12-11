@@ -392,7 +392,7 @@ proc guiProcessAndReports {} {
   set foptv4 [frame $foptv.4 -bd 0]
   set buttons(linecolor) [label $foptv4.l3 -text "PMI Color:"]
   pack $foptv4.l3 -side left -anchor w -padx 0 -pady 0 -ipady 0
-  set gpmiColorVal {{"Random" 2} {"From file" 0} {"Black" 1}}
+  set gpmiColorVal {{"Random" 2} {"From File" 0} {"Black" 1}}
   foreach item $gpmiColorVal {
     set bn "gpmiColor[lindex $item 1]"            
     set buttons($bn) [ttk::radiobutton $foptv4.$cb -variable opt(gpmiColor) -text [lindex $item 0] -value [lindex $item 1]]
@@ -402,7 +402,7 @@ proc guiProcessAndReports {} {
   pack $foptv4 -side top -anchor w -pady 0 -padx 25 -fill y  
 
   set foptv5 [frame $foptv.5 -bd 0]
-  foreach item {{"Include Viewpoint" opt(VIZPMIVP)}} {
+  foreach item {{"Include Viewpoints" opt(VIZPMIVP)}} {
     regsub -all {[\(\)]} [lindex $item 1] "" idx
     set buttons($idx) [ttk::checkbutton $foptv5.$cb -text [lindex $item 0] -variable [lindex $item 1] -command {checkValues}]
     pack $buttons($idx) -side top -anchor w -padx 2 -pady 0 -ipady 0
@@ -750,7 +750,7 @@ proc guiSpreadsheet {} {
     incr cb
   }
   pack $fxlsb -side top -anchor w -pady 5 -padx 10 -fill both
-  set msg "This option will limit the number of rows (entities) written to any one worksheet or CSV file.\nThe Maximum rows ([lindex [lindex $rlimit end] 1]) depends on the version of Excel.\n\nFor large STEP files, setting a low maximum can speed up processing at the expense\nof not processing all of the entities.  This is useful when processing Geometry entities.\n\nSyntax Errors might be missed if some entities are not processed due to a small maximum rows.\n\nMaximum rows does not affect generating any visualization.\n\nSee Help > User's Guide (section 4.5.3)"
+  set msg "This option will limit the number of rows (entities) written to any one worksheet or CSV file.\nThe Maximum rows ([lindex [lindex $rlimit end] 1]) depends on the version of Excel.\n\nFor large STEP files, setting a low maximum can speed up processing at the expense\nof not processing all of the entities.  This is useful when processing Geometry entities.\n\nSyntax Errors might be missed if some entities are not processed due to a small maximum rows.\n\nMaximum rows does not affect generating visualizations.\n\nSee Help > User's Guide (section 4.5.3)"
   catch {tooltip::tooltip $fxlsb $msg}
 
   set fxlsc [ttk::labelframe $fxls.c -text " Excel Options "]
@@ -1286,18 +1286,14 @@ See Websites > STEP File Viewers to view STEP files with non-tessellated geometr
     
   $Help add command -label "Finite Element Model" -command {
 outputMsg "\nFinite Element Model -------------------------------------------------------" blue
-outputMsg "An AP209 finite element model can be viewed in a web browser (Options tab).  Nodes, mesh, and
-elements are shown and can be toggled on and off in the viewer.  Internal faces for solid elements
-are not shown.  Elements can be made transparent although it is only approximate.
+outputMsg "An AP209 finite element model can be viewed in a web browser (Options tab).  Nodes, mesh, elements,
+boundary conditions, and loads are shown and can be toggled on and off in the viewer.  Internal
+faces for solid elements are not shown.  Elements can be made transparent although it is only
+approximate.  All AP209 entities are always processed unless a User-defined list is used.
 
-The location of a boundary condition is shown with a red cube.  The location of a load is shown
-with a green cone.  No information about the boundary condition DOF or load magnitude and direction
+The location of a boundary condition is shown with a red pyramid.  The location of a load is shown
+with a black arrow.  No information about the boundary condition DOF or load magnitude and direction
 is shown.
-
-All AP209 entities are always processed unless a User-defined list is used.
-
-To only view the finite element model, select AP209 Finite Element Model, select None in the Process
-section, and deselect Common in the Options tab.  Then deselect Open Spreadsheet (Spreadsheet tab).
 
 Setting Maximum Rows (Spreadsheet tab) does not affect the visualization.  To write 'node' entities
 to the spreadsheet select Coordinates in the Options tab.
