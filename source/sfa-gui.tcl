@@ -550,9 +550,9 @@ proc guiOpenSTEPFile {} {
         pack forget $buttons(eeWriteToFile)
       }
     }
-# indent file
+# file tree view
     catch {
-      if {$appName == "Indent STEP File (for debugging)"} {
+      if {$appName == "Tree View (for debugging)"} {
         pack $buttons(indentStyledItem) -side left -anchor w -padx 5
         pack $buttons(indentGeometry) -side left -anchor w -padx 5
       } else {
@@ -619,8 +619,8 @@ proc guiOpenSTEPFile {} {
     }
   }
 
-# built-in file indenter
-  if {[lsearch $appNames "Indent STEP File (for debugging)"] != -1} {
+# built-in file tree view
+  if {[lsearch $appNames "Tree View (for debugging)"] != -1} {
     foreach item {{" Include Styled_item" indentStyledItem} \
                   {" Include Geometry" indentGeometry}} {
       regsub -all {[\(\)]} [lindex $item 1] "" idx
@@ -630,7 +630,7 @@ proc guiOpenSTEPFile {} {
     }
   }
   
-  catch {tooltip::tooltip $foptf "This option is a convenient way to open a STEP file in other applications.\nThe pull-down menu will contain some applications that can open a STEP file\nsuch as STEP viewers, browsers, and conformance checkers, only if they are\ninstalled in their default location.\n\nSee Websites > STEP File Viewers  and  Help > NIST Disclaimer\n\nThe 'Indent STEP File (for debugging)' option rearranges and indents the\nentities to show the hierarchy of information in a STEP file.  The 'indented'\nfile (.txt) is written to the same directory as the STEP file or to the same\nuser-defined directory specified in the Spreadsheet tab.  Including Geometry\nor Styled_item can make the 'indented' file very large.\n\nThe 'Default STEP Viewer' option will open the STEP file in whatever\napplication is associated with STEP (.stp) files."}
+  catch {tooltip::tooltip $foptf "This option is a convenient way to open a STEP file in other applications.\nThe pull-down menu will contain some applications that can open a STEP file\nsuch as STEP viewers, browsers, and conformance checkers, only if they are\ninstalled in their default location.\n\nSee Websites > STEP File Viewers  and  Help > NIST Disclaimer\n\nThe 'Tree View (for debugging)' option rearranges and indents the\nentities to show the hierarchy of information in a STEP file.  The 'tree view'\nfile (.txt) is written to the same directory as the STEP file or to the same\nuser-defined directory specified in the Spreadsheet tab.  Including Geometry\nor Styled_item can make the 'tree view' file very large.\n\nThe 'Default STEP Viewer' option will open the STEP file in whatever\napplication is associated with STEP (.stp) files."}
   pack $foptf -side top -anchor w -pady {5 2} -padx 10 -fill both
 
 # output format, checkbuttons are used for pseudo-radiobuttons
@@ -1002,8 +1002,8 @@ STEP file such as STEP viewers, browsers, and conformance checkers.
 
 See Help > User's Guide (section 4.4.6)
 
-The 'Indent STEP File (for debugging)' option rearranges and indents the entities to show the
-hierarchy of information in a STEP file.  The 'indented' file (.txt) is written to the same
+The 'Tree View (for debugging)' option rearranges and indents the entities to show the
+hierarchy of information in a STEP file.  The 'tree view' file (.txt) is written to the same
 directory as the STEP file or to the same user-defined directory specified in the Spreadsheet
 tab.  It is useful for debugging STEP files but is not recommended for large STEP files.
 
@@ -1291,9 +1291,8 @@ boundary conditions, and loads are shown and can be toggled on and off in the vi
 faces for solid elements are not shown.  Elements can be made transparent although it is only
 approximate.  All AP209 entities are always processed unless a User-defined list is used.
 
-The location of a boundary condition is shown with a red pyramid.  The location of a load is shown
-with a black arrow.  No information about the boundary condition DOF or load magnitude and direction
-is shown.
+Load vectors are scaled and colored by their magnitude.  Boundary conditions are shown with a red
+pyramid, although no information about which DOF are constrained is shown.
 
 Setting Maximum Rows (Spreadsheet tab) does not affect the visualization.  To write 'node' entities
 to the spreadsheet select Coordinates in the Options tab.
@@ -1386,6 +1385,7 @@ might appear that say 'Unable to alloc xxx bytes'.  See the Help > Crash Recover
       catch {outputMsg "REGISTRY_DESKTOP  [registry get {HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\User Shell Folders} {Desktop}]"}
       catch {outputMsg "REGISTRY_PROGRAMS [registry get {HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\User Shell Folders} {Programs}]"}
       catch {outputMsg "REGISTRY_APPDATA  [registry get {HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\User Shell Folders} {Local AppData}]"}
+      catch {outputMsg "WEB BROWSER [registry get {HKEY_CURRENT_USER\Software\Classes\http\shell\open\command} {}]"}
       catch {outputMsg "DRIVE $drive"}
       catch {outputMsg "MYHOME $myhome"}
       catch {outputMsg "MYDOCS $mydocs"}
@@ -1434,7 +1434,7 @@ proc guiWebsitesMenu {} {
   $Websites add command -label "Implementation Coverage"        -command {openURL https://www.cax-if.org/vendor_info.php}
   $Websites add command -label "STEP File Viewers"              -command {openURL https://www.cax-if.org/step_viewers.html}
   $Websites add command -label "Recommended Practices"          -command {openURL https://www.cax-if.org/joint_testing_info.html#recpracs}
-  $Websites add command -label "CAE Testing"                    -command {openURL https://www.cax-if.org/joint_testing_info.html#cae_rounds}
+  $Websites add command -label "CAE-IF (FEA testing)"           -command {openURL http://afnet.fr/dotank/sps/cae-if/}
   $Websites add command -label "CAx-IF (alternate website)"     -command {openURL https://www.cax-if.de}
   
   $Websites add separator

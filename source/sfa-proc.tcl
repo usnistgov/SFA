@@ -34,7 +34,7 @@ proc checkValues {} {
     }
     
     catch {
-      if {$appName == "Indent STEP File (for debugging)"} {
+      if {$appName == "Tree View (for debugging)"} {
         pack $buttons(indentGeometry) -side left -anchor w -padx 5
         pack $buttons(indentStyledItem) -side left -anchor w -padx 5
       } else {
@@ -549,7 +549,7 @@ proc runOpenProgram {} {
 # open file
 #  (list is programs that CANNOT start up with a file *OR* need specific commands below)
   if {[string first "Conformance"       $idisp] == -1 && \
-      [string first "Indent"            $idisp] == -1 && \
+      [string first "Tree View"         $idisp] == -1 && \
       [string first "Default"           $idisp] == -1 && \
       [string first "QuickStep"         $idisp] == -1 && \
       [string first "EDM Model Checker" $idisp] == -1} {
@@ -570,8 +570,8 @@ proc runOpenProgram {} {
       errorMsg " Go to Websites > STEP File Viewers"
     }
 
-# indent file
-  } elseif {[string first "Indent" $idisp] != -1} {
+# file tree view
+  } elseif {[string first "Tree View" $idisp] != -1} {
     indentFile $dispFile
 
 # QuickStep
@@ -880,8 +880,8 @@ proc getOpenPrograms {} {
 # default viewer
   set dispApps(Default) "Default STEP Viewer"
 
-# file indenter
-  set dispApps(Indent) "Indent STEP File (for debugging)"
+# file tree view
+  set dispApps(Indent) "Tree View (for debugging)"
 
 #-------------------------------------------------------------------------------
 # set text editor command and name

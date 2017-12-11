@@ -156,23 +156,23 @@ proc x3dTessGeom {objID objEntity1 ent1} {
           set colorID [lsearch $x3dColors $x3dColor]
           if {$colorID == -1} {
             lappend x3dColors $x3dColor
-            puts $f "<Shape DEF='$shapeRepName$objID'>\n <Appearance DEF='app[llength $x3dColors]'><Material id='mat[llength $x3dColors]' diffuseColor='$x3dColor' $spec/></Appearance>"
+            puts $f "<Shape DEF='$shapeRepName$objID'>\n <Appearance DEF='app[llength $x3dColors]'><Material id='mat[llength $x3dColors]' diffuseColor='$x3dColor' $spec></Material></Appearance>"
           } else {
             puts $f "<Shape DEF='$shapeRepName$objID'>\n <Appearance USE='app[incr colorID]'></Appearance>"
           }
         } else {
-          puts $f "<Shape DEF='$shapeRepName$objID'>\n <Appearance><Material diffuseColor='$x3dColor' $emit/></Appearance>"
+          puts $f "<Shape DEF='$shapeRepName$objID'>\n <Appearance><Material diffuseColor='$x3dColor' $emit></Material></Appearance>"
         }
         puts $f " <Indexed$x3dIndexType\Set $solid coordIndex='[string trim $x3dIndex]'>"
         if {[lsearch $tessCoordID $tessIndexCoord($objID)] == -1} { 
           lappend tessCoordID $tessIndexCoord($objID)
-          puts $f "  <Coordinate DEF='coord$tessIndexCoord($objID)' point='[string trim $x3dCoord]'/>"
+          puts $f "  <Coordinate DEF='coord$tessIndexCoord($objID)' point='[string trim $x3dCoord]'></Coordinate>"
         } else {
-          puts $f "  <Coordinate USE='coord$tessIndexCoord($objID)'/>"
+          puts $f "  <Coordinate USE='coord$tessIndexCoord($objID)'></Coordinate>"
         }
         puts $f " </Indexed$x3dIndexType\Set>\n</Shape>"
       } else {
-        puts $f " <Shape USE='$shapeRepName$objID'/>"
+        puts $f " <Shape USE='$shapeRepName$objID'></Shape>"
       }
 
 # for tessellated part geometry only, write mesh based on faces
@@ -199,11 +199,11 @@ proc x3dTessGeom {objID objEntity1 ent1} {
           
           set ecolor ""
           foreach c [split $x3dColor] {append ecolor "[expr {$c*.5}] "}
-          puts $x3dFile "<Shape DEF='Mesh$objID'>\n <Appearance><Material emissiveColor='$ecolor'/></Appearance>"
-          puts $x3dFile " <IndexedLineSet coordIndex='[string trim $x3dMesh]'>\n  <Coordinate USE='coord$tessIndexCoord($objID)'/>"
+          puts $x3dFile "<Shape DEF='Mesh$objID'>\n <Appearance><Material emissiveColor='$ecolor'></Material></Appearance>"
+          puts $x3dFile " <IndexedLineSet coordIndex='[string trim $x3dMesh]'>\n  <Coordinate USE='coord$tessIndexCoord($objID)'></Coordinate>"
           puts $x3dFile " </IndexedLineSet>\n</Shape>"
         } else {
-          puts $x3dFile " <Shape USE='Mesh$objID'/>"
+          puts $x3dFile " <Shape USE='Mesh$objID'></Shape>"
         }
       }
 
@@ -245,20 +245,20 @@ proc x3dPolylinePMI {} {
 
 # start shape
           if {$x3dColor != ""} {
-            puts $f "<Shape>\n <Appearance><Material diffuseColor='$x3dColor' emissiveColor='$x3dColor'/></Appearance>"
+            puts $f "<Shape>\n <Appearance><Material diffuseColor='$x3dColor' emissiveColor='$x3dColor'></Material></Appearance>"
           } else {
-            puts $f "<Shape>\n <Appearance><Material diffuseColor='0 0 0' emissiveColor='0 0 0'/></Appearance>"
+            puts $f "<Shape>\n <Appearance><Material diffuseColor='0 0 0' emissiveColor='0 0 0'></Material></Appearance>"
             errorMsg "Syntax Error: PMI Presentation color not found for [formatComplexEnt $ao] (using black)\n[string repeat " " 14]\($recPracNames(pmi242), Sec. 8.4, Figure 75)"
           }
 
 # index and coordinates
-          puts $f " <IndexedLineSet coordIndex='[string trim $x3dIndex]'>\n  <Coordinate point='[string trim $x3dCoord]'/>\n </IndexedLineSet>\n</Shape>"
+          puts $f " <IndexedLineSet coordIndex='[string trim $x3dIndex]'>\n  <Coordinate point='[string trim $x3dCoord]'></Coordinate>\n </IndexedLineSet>\n</Shape>"
 
 # end placeholder transform, add leader line
           if {[string first "placeholder" $ao] != -1} {
             puts $f "</Transform>"
-            puts $f "<Shape>\n <Appearance><Material emissiveColor='$x3dColor'/></Appearance>"
-            puts $f " <IndexedLineSet coordIndex='0 1 -1'>\n  <Coordinate point='$placeOrigin $placeAnchor '/>\n </IndexedLineSet>\n</Shape>"
+            puts $f "<Shape>\n <Appearance><Material emissiveColor='$x3dColor'></Material></Appearance>"
+            puts $f " <IndexedLineSet coordIndex='0 1 -1'>\n  <Coordinate point='$placeOrigin $placeAnchor '></Coordinate>\n </IndexedLineSet>\n</Shape>"
           }
     
 # end shape
@@ -284,15 +284,15 @@ proc x3dCoordAxes {size} {
   
 # axes
   if {$x3dAxes} {
-    puts $x3dFile "\n<!-- COORDINATE AXIS -->\n<Shape id='x_axis'><Appearance><Material emissiveColor='1 0 0'/></Appearance><IndexedLineSet coordIndex='0 1 -1'><Coordinate point='0. 0. 0. $size 0. 0.'/></IndexedLineSet></Shape>"
-    puts $x3dFile "<Shape id='y_axis'><Appearance><Material emissiveColor='0 .5 0'/></Appearance><IndexedLineSet coordIndex='0 1 -1'><Coordinate point='0. 0. 0. 0. $size 0.'/></IndexedLineSet></Shape>"
-    puts $x3dFile "<Shape id='z_axis'><Appearance><Material emissiveColor='0 0 1'/></Appearance><IndexedLineSet coordIndex='0 1 -1'><Coordinate point='0. 0. 0. 0. 0. $size'/></IndexedLineSet></Shape>"
+    puts $x3dFile "\n<!-- COORDINATE AXIS -->\n<Shape id='x_axis'><Appearance><Material emissiveColor='1 0 0'></Material></Appearance><IndexedLineSet coordIndex='0 1 -1'><Coordinate point='0. 0. 0. $size 0. 0.'></Coordinate></IndexedLineSet></Shape>"
+    puts $x3dFile "<Shape id='y_axis'><Appearance><Material emissiveColor='0 .5 0'></Material></Appearance><IndexedLineSet coordIndex='0 1 -1'><Coordinate point='0. 0. 0. 0. $size 0.'></Coordinate></IndexedLineSet></Shape>"
+    puts $x3dFile "<Shape id='z_axis'><Appearance><Material emissiveColor='0 0 1'></Material></Appearance><IndexedLineSet coordIndex='0 1 -1'><Coordinate point='0. 0. 0. 0. 0. $size'></Coordinate></IndexedLineSet></Shape>"
 
 # xyz labels
     set tsize [trimNum [expr {$size*0.33}]]
-    puts $x3dFile "<Transform translation='$size 0. 0.' scale='$tsize $tsize $tsize'><Billboard axisOfRotation='0 0 0'><Shape><Appearance><Material diffuseColor='1 0 0'/></Appearance><Text string='\"X\"'><FontStyle family='\"SANS\"'/></Text></Shape></Billboard></Transform>"
-    puts $x3dFile "<Transform translation='0. $size 0.' scale='$tsize $tsize $tsize'><Billboard axisOfRotation='0 0 0'><Shape><Appearance><Material diffuseColor='0 .5 0'/></Appearance><Text string='\"Y\"'><FontStyle family='\"SANS\"'/></Text></Shape></Billboard></Transform>"
-    puts $x3dFile "<Transform translation='0. 0. $size' scale='$tsize $tsize $tsize'><Billboard axisOfRotation='0 0 0'><Shape><Appearance><Material diffuseColor='0 0 1'/></Appearance><Text string='\"Z\"'><FontStyle family='\"SANS\"'/></Text></Shape></Billboard></Transform>\n"
+    puts $x3dFile "<Transform translation='$size 0. 0.' scale='$tsize $tsize $tsize'><Billboard axisOfRotation='0 0 0'><Shape><Appearance><Material diffuseColor='1 0 0'></Material></Appearance><Text string='\"X\"'><FontStyle family='\"SANS\"'></FontStyle></Text></Shape></Billboard></Transform>"
+    puts $x3dFile "<Transform translation='0. $size 0.' scale='$tsize $tsize $tsize'><Billboard axisOfRotation='0 0 0'><Shape><Appearance><Material diffuseColor='0 .5 0'></Material></Appearance><Text string='\"Y\"'><FontStyle family='\"SANS\"'></FontStyle></Text></Shape></Billboard></Transform>"
+    puts $x3dFile "<Transform translation='0. 0. $size' scale='$tsize $tsize $tsize'><Billboard axisOfRotation='0 0 0'><Shape><Appearance><Material diffuseColor='0 0 1'></Material></Appearance><Text string='\"Z\"'><FontStyle family='\"SANS\"'></FontStyle></Text></Shape></Billboard></Transform>\n"
     set x3dAxes 0
   }
 }
@@ -369,20 +369,20 @@ proc x3dFileEnd {} {
   set fov [trimNum [expr {$delt(z)*0.5 + $delt(y)*0.5}]]
   set psy [trimNum [expr {0. - ($xyzcen(y) + 1.4*$maxxyz)}]]
 
-  puts $x3dFile "<OrthoViewpoint id='Ortho' position='$xyzcen(x) $psy $xyzcen(z)' orientation='1 0 0 1.5708' $cor fieldOfView='\[-$fov,-$fov,$fov,$fov\]'/>"  
-  puts $x3dFile "<Viewpoint id='Front' position='$xyzcen(x) $psy $xyzcen(z)' orientation='1 0 0 1.5708' $cor/>"
+  puts $x3dFile "<Viewpoint id='Front' position='$xyzcen(x) $psy $xyzcen(z)' orientation='1 0 0 1.5708' $cor></Viewpoint>"
   if {[llength $savedViewNames] > 0 && $opt(VIZPMIVP)} {
     foreach svn $savedViewNames {
       if {[info exists savedViewpoint($svn)] && [lsearch $savedViewButtons $svn] != -1} {
-        puts $x3dFile "<Transform translation='[lindex $savedViewpoint($svn) 0]'><Viewpoint id='vp$svn' position='[lindex $savedViewpoint($svn) 0]' orientation='[lindex $savedViewpoint($svn) 1]' $cor/></Transform>"  
+        puts $x3dFile "<Transform translation='[lindex $savedViewpoint($svn) 0]'><Viewpoint id='vp$svn' position='[lindex $savedViewpoint($svn) 0]' orientation='[lindex $savedViewpoint($svn) 1]' $cor></Viewpoint></Transform>"  
       }
     }
   }
+  puts $x3dFile "<OrthoViewpoint id='Ortho' position='$xyzcen(x) $psy $xyzcen(z)' orientation='1 0 0 1.5708' $cor fieldOfView='\[-$fov,-$fov,$fov,$fov\]'></OrthoViewpoint>"  
 
 # navigation, background color
   set bgc ".8 .8 .8"
-  puts $x3dFile "\n<NavigationInfo type='\"EXAMINE\" \"ANY\"'/>"
-  puts $x3dFile "<Background id='BG' skyColor='$bgc'/>"
+  puts $x3dFile "\n<NavigationInfo type='\"EXAMINE\" \"ANY\"'></NavigationInfo>"
+  puts $x3dFile "<Background id='BG' skyColor='$bgc'></Background>"
   puts $x3dFile "</Scene></X3D>\n\n</td><td valign='top'>"
 
 # for NIST model - link to drawing 
@@ -410,7 +410,7 @@ proc x3dFileEnd {} {
       lappend svmsg "For the NIST test case, some expected Graphical PMI Saved View names (MBD*) were not found."
     }
     if {$opt(VIZPMIVP)} {
-      puts $x3dFile "<p>Selecting a Saved View above changes the viewpoint or use Page Up for the next viewpoint.  Zoom and pan to view all PMI."
+      puts $x3dFile "<p>Selecting a Saved View above changes the viewpoint.  Viewpoints usually have the correct orientation but are not centered.  Use pan and zoom to center the PMI."
     }
     puts $x3dFile "<hr><p>"
   }

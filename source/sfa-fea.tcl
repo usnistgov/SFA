@@ -159,30 +159,30 @@ proc feaModel {entType} {
     puts $feaFile(elements) "\n<!-- [string toupper $feaType] ELEMENTS -->"
     if {$feaType == "curve_3d"} {
       puts $feaFile(elements) "<Switch whichChoice='0' id='sw1DElements'>"
-      puts $feaFile(elements) " <Shape><Appearance><Material emissiveColor='1 0 1'/></Appearance>"
+      puts $feaFile(elements) " <Shape><Appearance><Material emissiveColor='1 0 1'></Material></Appearance>"
       puts $feaFile(elements) "  <IndexedLineSet coordIndex='"
       feaWriteIndex meshIndex elements
-      puts $feaFile(elements) "  '><Coordinate USE='coords'/></IndexedLineSet></Shape>"
+      puts $feaFile(elements) "  '><Coordinate USE='coords'></Coordinate></IndexedLineSet></Shape>"
       puts $feaFile(elements) "</Switch>"
 
 # 2D, 3D elements
     } else {
 
 # write index file to mesh file
-      puts $feaFile(mesh) " <Shape id='$feaType'><Appearance><Material emissiveColor='0 0 0'/></Appearance>"
+      puts $feaFile(mesh) " <Shape id='$feaType'><Appearance><Material emissiveColor='0 0 0'></Material></Appearance>"
       puts $feaFile(mesh) "  <IndexedLineSet coordIndex='"
       feaWriteIndex meshIndex mesh
       puts $feaFile(mesh) "  '>"
-      puts $feaFile(mesh) "   <Coordinate USE='coords'/></IndexedLineSet></Shape>"
+      puts $feaFile(mesh) "   <Coordinate USE='coords'></Coordinate></IndexedLineSet></Shape>"
 
 # write faces index file to elements file
       if {$feaType == "surface_3d"} {
         puts $feaFile(elements) "<Switch whichChoice='0' id='sw2DElements'>"
-        puts $feaFile(elements) " <Shape><Appearance><Material id='mat2D' diffuseColor='0 1 1'/></Appearance>"
+        puts $feaFile(elements) " <Shape><Appearance><Material id='mat2D' diffuseColor='0 1 1'></Material></Appearance>"
         puts $feaFile(elements) "  <IndexedFaceSet solid='false' coordIndex='"
       } else {
         puts $feaFile(elements) "<Switch whichChoice='0' id='sw3DElements'>"      
-        puts $feaFile(elements) " <Shape><Appearance><Material id='mat3D' diffuseColor='1 1 0'/></Appearance>"
+        puts $feaFile(elements) " <Shape><Appearance><Material id='mat3D' diffuseColor='1 1 0'></Material></Appearance>"
         puts $feaFile(elements) "  <IndexedFaceSet id='faces' solid='false' coordIndex='"
       }
       if {[info exists feaFaceList]} {
@@ -227,7 +227,7 @@ proc feaModel {entType} {
       }
       feaWriteIndex faceIndex elements
       puts $feaFile(elements) "  '>"
-      puts $feaFile(elements) "   <Coordinate USE='coords'/></IndexedFaceSet></Shape>"
+      puts $feaFile(elements) "   <Coordinate USE='coords'></Coordinate></IndexedFaceSet></Shape>"
       puts $feaFile(elements) "</Switch>"
     }
   }
@@ -339,10 +339,10 @@ proc feaModel {entType} {
           append str "scale='$nsize $nsize $nsize'>"
           if {$i == 0} {
             append str "\n <Shape>\n  <Appearance><Material emissiveColor='$r $g $b'></Material></Appearance>"
-            append str "\n  <IndexedLineSet DEF='Arrow' coordIndex='0 1 -1 1 2 -1 1 3 -1 1 4 -1 1 5 -1 2 3 4 5 2 -1'><Coordinate point='-1 0 0 0 0 0 -.2 .1 0 -.2 0 .1 -.2 -.1 0 -.2 0 -.1'/></IndexedLineSet>\n </Shape>\n</Transform>"
+            append str "\n  <IndexedLineSet DEF='Arrow' coordIndex='0 1 -1 1 2 -1 1 3 -1 1 4 -1 1 5 -1 2 3 4 5 2 -1'><Coordinate point='-1 0 0 0 0 0 -.2 .1 0 -.2 0 .1 -.2 -.1 0 -.2 0 -.1'></Coordinate></IndexedLineSet>\n </Shape>\n</Transform>"
             if {$rot1 != ""} {append str "</Transform>"}
           } else {
-            append str "<Shape><Appearance><Material emissiveColor='$r $g $b'></Material></Appearance><IndexedLineSet USE='Arrow'/></Shape></Transform>"
+            append str "<Shape><Appearance><Material emissiveColor='$r $g $b'></Material></Appearance><IndexedLineSet USE='Arrow'></IndexedLineSet></Shape></Transform>"
             if {$rot1 != ""} {append str "</Transform>"} 
           }
           puts $x3dFile $str
@@ -366,9 +366,9 @@ proc feaModel {entType} {
         foreach bc $feaBoundary($spc) {
           if {$i == 0} {
             puts $x3dFile "<Transform translation='$bc'><Group DEF='Pinned'>\n <Transform id='bcTransform'><Shape>"
-            puts $x3dFile "  <Appearance><Material diffuseColor='1 0 0'></Material></Appearance>\n  <IndexedFaceSet coordIndex='0 1 2 -1 0 2 3 -1 0 3 4 -1 0 4 1 -1 1 4 3 2 -1'><Coordinate point='0 0 0 .1 .1 -.2 -.1 .1 -.2 -.1 -.1 -.2 .1 -.1 -.2'/></IndexedFaceSet>\n </Shape></Transform>\n</Group></Transform>"
+            puts $x3dFile "  <Appearance><Material diffuseColor='1 0 0'></Material></Appearance>\n  <IndexedFaceSet coordIndex='0 1 2 -1 0 2 3 -1 0 3 4 -1 0 4 1 -1 1 4 3 2 -1'><Coordinate point='0 0 0 .1 .1 -.2 -.1 .1 -.2 -.1 -.1 -.2 .1 -.1 -.2'></Coordinate></IndexedFaceSet>\n </Shape></Transform>\n</Group></Transform>"
           } else {
-            puts $x3dFile "<Transform translation='$bc'><Group USE='Pinned'/></Transform>"
+            puts $x3dFile "<Transform translation='$bc'><Group USE='Pinned'></Group></Transform>"
           }
           incr i
         }
