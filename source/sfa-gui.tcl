@@ -1291,8 +1291,13 @@ boundary conditions, and loads are shown and can be toggled on and off in the vi
 faces for solid elements are not shown.  Elements can be made transparent although it is only
 approximate.  All AP209 entities are always processed unless a User-defined list is used.
 
-Load vectors are scaled and colored by their magnitude.  Boundary conditions are shown with a red
-pyramid, although no information about which DOF are constrained is shown.
+Load vectors are scaled and colored by their magnitude.  The shortest load vector is 1/10 the
+length of the longest load vector.
+
+Boundary conditions for translation DOF are shown with a red, green, or blue line along the
+X, Y, or Z axes depending on the constrained DOF.  Boundary conditions for rotation DOF are shown
+with a red, green, or blue circle around the X, Y, or Z axes depending on the constrained DOF.
+A gray sphere is used when all three rotation DOF are constrained.
 
 Setting Maximum Rows (Spreadsheet tab) does not affect the visualization.  To write 'node' entities
 to the spreadsheet select Coordinates in the Options tab.

@@ -284,7 +284,8 @@ proc x3dCoordAxes {size} {
   
 # axes
   if {$x3dAxes} {
-    puts $x3dFile "\n<!-- COORDINATE AXIS -->\n<Shape id='x_axis'><Appearance><Material emissiveColor='1 0 0'></Material></Appearance><IndexedLineSet coordIndex='0 1 -1'><Coordinate point='0. 0. 0. $size 0. 0.'></Coordinate></IndexedLineSet></Shape>"
+    puts $x3dFile "\n<!-- COORDINATE AXIS -->\n<Switch whichChoice='0' id='swAxes'><Group>"
+    puts $x3dFile "<Shape id='x_axis'><Appearance><Material emissiveColor='1 0 0'></Material></Appearance><IndexedLineSet coordIndex='0 1 -1'><Coordinate point='0. 0. 0. $size 0. 0.'></Coordinate></IndexedLineSet></Shape>"
     puts $x3dFile "<Shape id='y_axis'><Appearance><Material emissiveColor='0 .5 0'></Material></Appearance><IndexedLineSet coordIndex='0 1 -1'><Coordinate point='0. 0. 0. 0. $size 0.'></Coordinate></IndexedLineSet></Shape>"
     puts $x3dFile "<Shape id='z_axis'><Appearance><Material emissiveColor='0 0 1'></Material></Appearance><IndexedLineSet coordIndex='0 1 -1'><Coordinate point='0. 0. 0. 0. 0. $size'></Coordinate></IndexedLineSet></Shape>"
 
@@ -292,7 +293,8 @@ proc x3dCoordAxes {size} {
     set tsize [trimNum [expr {$size*0.33}]]
     puts $x3dFile "<Transform translation='$size 0. 0.' scale='$tsize $tsize $tsize'><Billboard axisOfRotation='0 0 0'><Shape><Appearance><Material diffuseColor='1 0 0'></Material></Appearance><Text string='\"X\"'><FontStyle family='\"SANS\"'></FontStyle></Text></Shape></Billboard></Transform>"
     puts $x3dFile "<Transform translation='0. $size 0.' scale='$tsize $tsize $tsize'><Billboard axisOfRotation='0 0 0'><Shape><Appearance><Material diffuseColor='0 .5 0'></Material></Appearance><Text string='\"Y\"'><FontStyle family='\"SANS\"'></FontStyle></Text></Shape></Billboard></Transform>"
-    puts $x3dFile "<Transform translation='0. 0. $size' scale='$tsize $tsize $tsize'><Billboard axisOfRotation='0 0 0'><Shape><Appearance><Material diffuseColor='0 0 1'></Material></Appearance><Text string='\"Z\"'><FontStyle family='\"SANS\"'></FontStyle></Text></Shape></Billboard></Transform>\n"
+    puts $x3dFile "<Transform translation='0. 0. $size' scale='$tsize $tsize $tsize'><Billboard axisOfRotation='0 0 0'><Shape><Appearance><Material diffuseColor='0 0 1'></Material></Appearance><Text string='\"Z\"'><FontStyle family='\"SANS\"'></FontStyle></Text></Shape></Billboard></Transform>"
+    puts $x3dFile "</Group></Switch>\n"
     set x3dAxes 0
   }
 }
@@ -449,6 +451,9 @@ proc x3dFileEnd {} {
   puts $x3dFile "<br><input type='radio' name='bgcolor' value='1 1 1' onclick='BGcolor(this.value)'/>White"
   puts $x3dFile "<br><input type='radio' name='bgcolor' value='.8 .8 .8' checked onclick='BGcolor(this.value)'/>Gray"
   puts $x3dFile "<br><input type='radio' name='bgcolor' value='0 0 0' onclick='BGcolor(this.value)'/>Black"
+  
+# axes button
+  puts $x3dFile "<p><input type='checkbox' checked onclick='togAxes(this.value)'/>Axes"
 
 # transparency slider
   if {$opt(VIZFEA) && [string first "AP209" $stepAP] == 0} {
@@ -464,6 +469,9 @@ proc x3dFileEnd {} {
   
 # background function
   puts $x3dFile "\n<script>function BGcolor(color){document.getElementById('BG').setAttribute('skyColor', color);}</script>"
+  
+# axes function
+  x3dSwitchScript Axes
 
 # functions for PMI view toggle switches
   if {[llength $savedViewButtons] > 0} {

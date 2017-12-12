@@ -236,10 +236,10 @@ proc whatsNew {} {
   if {$sfaVersion > 0 && $sfaVersion < [getVersion]} {outputMsg "\nThe previous version of the STEP File Analyzer was: $sfaVersion" red}
 
 outputMsg "\nWhat's New (Version: [getVersion]  Updated: [string trim [clock format $progtime -format "%e %b %Y"]])" blue
-outputMsg "- Explanation of Report errors (Help > Syntax Errors)
+outputMsg "- Improved visualization of AP209 boundary conditions and loads (Help > Finite Element Model)
+- Explanation of Report errors (Help > Syntax Errors)
 - Detect unexpected Associated Geometry for hole and radius dimensions
 - Support for repetitive hole and radius dimensions, e.g, '4X' R10.5
-- Visualize AP209 boundary conditions and loads (Help > Finite Element Model)
 - Improved color-coding of PMI Representation Coverage for NIST CAD models (Help > NIST CAD models)
 - Generate log file (Options tab)
 - Bug fixes and minor improvements"
