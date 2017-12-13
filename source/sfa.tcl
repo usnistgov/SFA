@@ -236,7 +236,7 @@ proc whatsNew {} {
   if {$sfaVersion > 0 && $sfaVersion < [getVersion]} {outputMsg "\nThe previous version of the STEP File Analyzer was: $sfaVersion" red}
 
 outputMsg "\nWhat's New (Version: [getVersion]  Updated: [string trim [clock format $progtime -format "%e %b %Y"]])" blue
-outputMsg "- Improved visualization of AP209 boundary conditions and loads (Help > Finite Element Model)
+outputMsg "- Improved visualization of AP209 boundary conditions and loads (Help > AP209 Finite Element Model)
 - Explanation of Report errors (Help > Syntax Errors)
 - Detect unexpected Associated Geometry for hole and radius dimensions
 - Support for repetitive hole and radius dimensions, e.g, '4X' R10.5
@@ -452,3 +452,6 @@ if {[info exists endMsg]} {
 # set window minimum size
 update idletasks
 wm minsize . [winfo reqwidth .] [expr {int([winfo reqheight .]*1.05)}]
+
+# debug
+#compareLists "AP242" $ap242all $ap242e2

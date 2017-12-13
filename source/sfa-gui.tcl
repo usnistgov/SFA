@@ -411,7 +411,7 @@ proc guiProcessAndReports {} {
   pack $foptv5 -side top -anchor w -pady 0 -padx 25 -fill y  
   
   set foptv6 [frame $foptv.6 -bd 0]
-  foreach item {{" Tessellated Part Geometry"  opt(VIZTES)} \
+  foreach item {{" AP242 Tessellated Part Geometry"  opt(VIZTES)} \
                 {" AP209 Finite Element Model" opt(VIZFEA)}} {
     regsub -all {[\(\)]} [lindex $item 1] "" idx
     set buttons($idx) [ttk::checkbutton $foptv6.$cb -text [lindex $item 0] -variable [lindex $item 1] -command {checkValues}]
@@ -425,8 +425,8 @@ proc guiProcessAndReports {} {
   catch {
     tooltip::tooltip $buttons(optVIZPMI) "See Help > PMI Presentation\nSee Help > User's Guide (section 6.1.1)\nSee Examples > Graphical PMI Viewer\n\nVisualizations can be generated without generating a spreadsheet\nor CSV files.  See the Output Format option below."
     tooltip::tooltip $buttons(optVIZPMIVP) "PMI Viewpoints are experimental.\n\nViewpoints usually have the correct orientation but are not centered.\nUse pan and zoom to center the PMI."
-    tooltip::tooltip $buttons(optVIZFEA) "See Help > Finite Element Model\nSee Help > User's Guide (section 6.1.3)\nSee Examples > AP209 FEM Viewer\n\nVisualizations can be generated without generating a spreadsheet\nor CSV files.  See the Output Format option below."
-    tooltip::tooltip $buttons(optVIZTES) "This feature is still be developed.\nParts in an assembly might have the wrong position and orientation or be missing.\n\nParts modeled with tessellated geometry is supported by AP242 and is supplementary\nto boundary representation (b-rep) geometry.\n\nSee Help > Tessellated Part Geometry\nSee Help > User's Guide (section 6.1.2)\nSee Examples > Tessellated Part Viewer\n\nVisualizations can be generated without generating a spreadsheet or CSV files.\nSee the Output Format option below."
+    tooltip::tooltip $buttons(optVIZFEA) "This feature is still be developed.\nSee Help > AP209 Finite Element Model\nSee Help > User's Guide (section 6.1.3)\nSee Examples > AP209 FEM Viewer\n\nVisualizations can be generated without generating a spreadsheet\nor CSV files.  See the Output Format option below."
+    tooltip::tooltip $buttons(optVIZTES) "This feature is still be developed.\nParts in an assembly might have the wrong position and orientation or be missing.\n\nParts modeled with tessellated geometry is supported by AP242 and is supplementary\nto boundary representation (b-rep) geometry.\n\nSee Help > AP242 Tessellated Part Geometry\nSee Help > User's Guide (section 6.1.2)\nSee Examples > AP242 Tessellated Part Viewer\n\nVisualizations can be generated without generating a spreadsheet or CSV files.\nSee the Output Format option below."
     tooltip::tooltip $buttons(linecolor) "For Random PMI colors, each 'annotation occurrence' is assigned a different color."
   }
 }
@@ -1269,8 +1269,8 @@ In a log file, error messages are highlighted by ***."
 
   $Help add separator
     
-  $Help add command -label "Tessellated Part Geometry" -command {
-outputMsg "\nTessellated Part Geometry --------------------------------------------------" blue
+  $Help add command -label "AP242 Tessellated Part Geometry" -command {
+outputMsg "\nAP242 Tessellated Part Geometry --------------------------------------------" blue
 outputMsg "This feature is still being developed.
 
 Parts modeled with tessellated geometry can be viewed in a web browser (Options tab).  Tessellated
@@ -1279,31 +1279,31 @@ geometry is supported by AP242 and is supplementary to boundary representation (
 Parts in an assembly might have the wrong position and orientation or be missing.
 
 See Help > User's Guide (section 6.1.2)
-See Examples > Tessellated Part Viewer
+See Examples > AP242 Tessellated Part Viewer
 See Websites > STEP File Viewers to view STEP files with non-tessellated geometry."
     .tnb select .tnb.status
   }
     
-  $Help add command -label "Finite Element Model" -command {
-outputMsg "\nFinite Element Model -------------------------------------------------------" blue
-outputMsg "An AP209 finite element model can be viewed in a web browser (Options tab).  Nodes, mesh, elements,
-boundary conditions, and loads are shown and can be toggled on and off in the viewer.  Internal
-faces for solid elements are not shown.  Elements can be made transparent although it is only
-approximate.  All AP209 entities are always processed unless a User-defined list is used.
+  $Help add command -label "AP209 Finite Element Model" -command {
+outputMsg "\nAP209 Finite Element Model -------------------------------------------------" blue
+outputMsg "All AP209 entities are always processed and written to a spreadsheet unless a User-defined
+list is used.  To write 'node' entities to a spreadsheet select Coordinates in the Options tab.
+
+An AP209 finite element model can be visualized in a web browser (Options tab).  Nodes, mesh,
+elements, boundary conditions, and loads are shown and can be toggled on and off in the viewer.
+Internal faces for solid elements are not shown.  Elements can be made transparent although it
+is only approximate.  The visualization of AP209 files is still in development.  
 
 Load vectors are scaled and colored by their magnitude.  The shortest load vector is 1/10 the
 length of the longest load vector.
 
 Boundary conditions for translation DOF are shown with a red, green, or blue line along the
-X, Y, or Z axes depending on the constrained DOF.  Boundary conditions for rotation DOF are shown
-with a red, green, or blue circle around the X, Y, or Z axes depending on the constrained DOF.
-A gray sphere is used when all three rotation DOF are constrained.
+X, Y, or Z axes depending on the constrained DOF.  Boundary conditions for rotation DOF are
+shown with a red, green, or blue circle around the X, Y, or Z axes depending on the constrained
+DOF.  A gray sphere is used when all three rotation DOF are constrained.
 
-Setting Maximum Rows (Spreadsheet tab) does not affect the visualization.  To write 'node' entities
-to the spreadsheet select Coordinates in the Options tab.
-
-For large AP209 files, there might be insufficient memory to process all of the elements.  Deselect
-Inverse Relationships and/or set the output format to CSV.  
+Setting Maximum Rows (Spreadsheet tab) does not affect the visualization.  For large AP209 files,
+there might be insufficient memory to process all of the elements.
 
 See Help > User's Guide (section 6.1.3)
 See Examples > AP209 FEM Viewer
@@ -1418,7 +1418,7 @@ might appear that say 'Unable to alloc xxx bytes'.  See the Help > Crash Recover
   $Examples add command -label "Spreadsheet - PMI Coverage Analysis"      -command {openURL https://s3.amazonaws.com/nist-el/mfg_digitalthread/STEP-File-Analyzer-Coverage.xlsx}
   $Examples add separator
   $Examples add command -label "Graphical PMI Viewer"    -command {openURL https://pages.nist.gov/CAD-PMI-Testing/graphical-pmi-viewer.html}
-  $Examples add command -label "Tessellated Part Viewer" -command {openURL https://pages.nist.gov/CAD-PMI-Testing/tessellated-part-geometry.html}
+  $Examples add command -label "AP242 Tessellated Part Viewer" -command {openURL https://pages.nist.gov/CAD-PMI-Testing/tessellated-part-geometry.html}
   $Examples add command -label "AP209 FEM Viewer"        -command {openURL https://pages.nist.gov/CAD-PMI-Testing/ap209-viewer.html}
 }
 

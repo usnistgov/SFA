@@ -620,11 +620,8 @@ proc feaElements {objEntity} {
                   set nnodes $objSize
                 }
                 "cartesian_point coordinates" {
-                  if {$feaEntity == "nodal_freedom_action_definition"} {
+                  if {$feaEntity == "nodal_freedom_action_definition" || $feaEntity == "single_point_constraint_element_values"} {
                     set feaLoadNode [vectrim $objValue]
-                  } elseif {$feaEntity == "single_point_constraint_element_values"} {
-                    lappend feaBoundary($feaStateID) "[vectrim $objValue],$feaDOFT,$feaDOFR"
-                    #if {$feaDOFT != "" || $feaDOFR != ""} {outputMsg "T $feaDOFT  R $feaDOFR"}
                   }
                 }
                 "nodal_freedom_action_definition values" {
@@ -654,6 +651,7 @@ proc feaElements {objEntity} {
                       append feaDOFR [string index $dof 0]
                     }
                   }
+                  if {$feaEntity == "single_point_constraint_element_values"} {lappend feaBoundary($feaStateID) "$feaLoadNode,$feaDOFT,$feaDOFR"}
                 }
                 "single_point_constraint_element_values b" {
                   set sum 0.

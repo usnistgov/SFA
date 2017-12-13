@@ -1152,12 +1152,12 @@ proc genExcel {{numFile 0}} {
   if {!$multiFile && [info exists buttons]} {$buttons(genExcel) configure -state normal}
   update idletasks
 
-# clean up variables to hopefully release some memory and/or to reset them
+# unset variables to release memory and/or to reset them
   global colColor invCol currx3dPID dimrep dimrepID entName gpmiID gpmiIDRow gpmiRow
   global heading invGroup feaNodes nrep numx3dPID pmiColumns pmiStartCol 
   global propDefID propDefIDRow propDefName propDefOK propDefRow syntaxErr
   global shapeRepName tessRepo tessPlacement dimtolGeom dimtolEntID datumGeom datumSymbol
-  global savedViewFileName savedViewFile
+  global savedViewFileName savedViewFile feaDOFT feaDOFR
 
   foreach var {cells colColor invCol count currx3dPID dimrep dimrepID entName entsIgnored \
               gpmiID gpmiIDRow gpmiRow heading invGroup nrep feaNodes numx3dPID \
@@ -1165,7 +1165,7 @@ proc genExcel {{numFile 0}} {
               syntaxErr workbook workbooks worksheet worksheets \
               x3dCoord x3dFile x3dFileName x3dStartFile x3dIndex x3dMax x3dMin \
               shapeRepName tessRepo tessPlacement dimtolGeom dimtolEntID datumGeom datumSymbol\
-              savedViewNames savedViewFileName savedViewFile x3dFileName} {
+              savedViewNames savedViewFileName savedViewFile x3dFileName feaDOFT feaDOFR} {
     if {[info exists $var]} {unset $var}
   }
   if {!$multiFile} {
