@@ -102,14 +102,13 @@ set allVendor(ug) "Unigraphics"
 # sort cadApps by string length
 set cadApps [sortlength2 $cadApps]
 
-# list of annotation occurrence entities, *order is important*
+# list of annotation occurrence entities, *order is important* (removed draughting_annotation_occurrence, not in RP)
 set aoEntTypes [list \
   tessellated_annotation_occurrence \
   annotation_placeholder_occurrence \
   annotation_fill_area_occurrence \
   annotation_curve_occurrence \
   annotation_occurrence \
-  draughting_annotation_occurrence \
 ]
 
 # list of semantic PMI entities, *order is important*, not including tolerances

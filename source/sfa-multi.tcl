@@ -304,9 +304,9 @@ proc openMultiFile {{ask 1}} {
         if {$ptime < 120} {
           set ptime "$ptime seconds"
         } elseif {$ptime < 3600} {
-          set ptime "[trimNum [expr {double($ptime)/60.}] 1 1] minutes"
+          set ptime "[trimNum [expr {double($ptime)/60.}] 1] minutes"
         } else {
-          set ptime "[trimNum [expr {double($ptime)/3600.}] 1 1] hours"
+          set ptime "[trimNum [expr {double($ptime)/3600.}] 1] hours"
         }
         set msg "\n($nfile) "
         if {$opt(XLSCSV) == "None"} {

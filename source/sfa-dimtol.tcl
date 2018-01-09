@@ -219,42 +219,59 @@ proc spmiDimtolReport {objEntity} {
                               set tmp [split [lindex [split [$attr1 Value] " "] 1] "."]
                               set prec1 [expr {abs([lindex $tmp 0])}]
                               set dim(qual) [lindex $tmp 1]
-                              if {$dim(qual) > 5} {
-                                set msg "Syntax Error: value_format_type_qualifier ([$attr1 Value]) might have too many decimal places\n[string repeat " " 14]\($recPracNames(pmi242), Sec. 5.4)"
-                                errorMsg $msg
-                                lappend syntaxErr([$ent2 Type]) [list [$ent2 P21ID] "format_type" $msg]
-                                lappend syntaxErr(dimensional_characteristic_representation) [list "-$spmiIDRow($dt,$spmiID)" "decimal places" $msg]
-                              }
-                              set objValue [string trimright [format "%.4f" $objValue] "0"]
-                              set val1 [lindex [split $objValue "."] 0]
-                              set val2 [lindex [split $objValue "."] 1]
-                              append val2 "0000"
-                              if {$prec1 != 0} {
-                                set dec [string range $val2 0 $dim(qual)-1]
-                                if {$dec != ""} {
-                                  set dimtmp "$val1.$dec"
-                                } else {
-                                  set dimtmp $val1
-                                }
-                                if {[string length $val1] > $prec1} {
-                                  set msg "Syntax Error: value_format_type_qualifier ([$attr1 Value]) too small for the length/angle: $objValue\n[string repeat " " 14]\($recPracNames(pmi242), Sec. 5.4)"
+                              
+                              if {$prec1 != 0 || $dim(qual) != 0} {
+                                if {$dim(qual) > 5} {
+                                  set msg "Syntax Error: value_format_type_qualifier ([$attr1 Value]) might have too many decimal places\n[string repeat " " 14]\($recPracNames(pmi242), Sec. 5.4)"
                                   errorMsg $msg
                                   lappend syntaxErr([$ent2 Type]) [list [$ent2 P21ID] "format_type" $msg]
                                   lappend syntaxErr(dimensional_characteristic_representation) [list "-$spmiIDRow($dt,$spmiID)" "decimal places" $msg]
                                 }
-                                if {[info exists dim(unit)]} {
-                                  if {$dim(unit) == "INCH"} {
-                                    if {$objValue < 1. && $prec1 > 0} {
-                                      set msg "Syntax Error: For INCH units and Dimensions < 1 (no leading zero), value_format_type_qualifier 'NR2 1.n' should be 'NR2 0.n'\n[string repeat " " 14]\($recPracNames(pmi242), Sec. 5.4)"
-                                      errorMsg $msg
-                                      lappend syntaxErr([$ent2 Type]) [list [$ent2 P21ID] "format_type" $msg]
-                                      lappend syntaxErr(dimensional_characteristic_representation) [list "-$spmiIDRow($dt,$spmiID)" "decimal places" $msg]
+                                set objValue [string trimright [format "%.4f" $objValue] "0"]
+                                set val1 [lindex [split $objValue "."] 0]
+                                set val2 [lindex [split $objValue "."] 1]
+                                append val2 "0000"
+                                
+# format for precision
+                                if {$prec1 != 0} {
+                                  set dec [string range $val2 0 $dim(qual)-1]
+                                  if {$dec != ""} {
+                                    set dimtmp "$val1.$dec"
+                                  } else {
+                                    set dimtmp $val1
+                                  }
+
+# problems with NR2 values relative to dimension
+                                  if {[string length $val1] > $prec1} {
+                                    set msg "Syntax Error: value_format_type_qualifier ([$attr1 Value]) too small for the length/angle: $objValue\n[string repeat " " 14]\($recPracNames(pmi242), Sec. 5.4)"
+                                    errorMsg $msg
+                                    lappend syntaxErr([$ent2 Type]) [list [$ent2 P21ID] "format_type" $msg]
+                                    lappend syntaxErr(dimensional_characteristic_representation) [list "-$spmiIDRow($dt,$spmiID)" "decimal places" $msg]
+                                  }
+                                  if {[info exists dim(unit)]} {
+                                    if {$dim(unit) == "INCH"} {
+                                      if {$objValue < 1. && $prec1 > 0} {
+                                        set msg "Syntax Error: For INCH units and Dimensions < 1 (no leading zero), value_format_type_qualifier 'NR2 1.n' should be 'NR2 0.n'\n[string repeat " " 14]\($recPracNames(pmi242), Sec. 5.4)"
+                                        errorMsg $msg
+                                        lappend syntaxErr([$ent2 Type]) [list [$ent2 P21ID] "format_type" $msg]
+                                        lappend syntaxErr(dimensional_characteristic_representation) [list "-$spmiIDRow($dt,$spmiID)" "decimal places" $msg]
+                                      }
                                     }
                                   }
+                                } else {
+                                  set dimtmp ".[string range $val2 0 $dim(qual)-1]"
                                 }
+
+# bad NR2 value
                               } else {
-                                set dimtmp ".[string range $val2 0 $dim(qual)-1]"
+                                set msg "Syntax Error: Invalid value_format_type_qualifier ([$attr1 Value])\n[string repeat " " 14]\($recPracNames(pmi242), Sec. 5.4)"
+                                errorMsg $msg
+                                lappend syntaxErr([$ent2 Type]) [list [$ent2 P21ID] "format_type" $msg]
+                                lappend syntaxErr(dimensional_characteristic_representation) [list "-$spmiIDRow($dt,$spmiID)" "decimal places" $msg]
+                                set dimtmp $objValue
                               }
+                              
+# problems with NR2 values relative to dimension
                               if {$dimtmp == 0 && $objValue != 0} {
                                 set msg "Syntax Error: value_format_type_qualifier ([$attr1 Value]) too small for the length/angle: $objValue\n[string repeat " " 14]\($recPracNames(pmi242), Sec. 5.4)"
                                 errorMsg $msg
@@ -541,7 +558,8 @@ proc spmiDimtolReport {objEntity} {
                       }
                     }
                     if {$ov == "thickness"} {
-                      append dimrep($dimrepID) $pmiUnicode(thickness)
+                      # no symbol (leader lines) for thickness
+                      #append dimrep($dimrepID) $pmiUnicode(thickness)
                       append item "thickness"
                     }
 
@@ -745,7 +763,10 @@ proc spmiDimtolReport {objEntity} {
                       set colName "oriented dimension[format "%c" 10](Sec. 5.1.3)"
                       lappend spmiTypesPerFile "oriented dimensional location"
                       if {[string first "dimensional_location" [$dimtolEnt Type]] != 0} {
-                        errorMsg "Syntax Error: Oriented Dimension Location cannot be used with [$dimtolEnt Type].\n[string repeat " " 14]\($recPracNames(pmi242), Sec. 5.1.3)"
+                        set msg "Syntax Error: Oriented Dimension Location cannot be used with [$dimtolEnt Type].\n[string repeat " " 14]\($recPracNames(pmi242), Sec. 5.1.3)"
+                        errorMsg $msg
+                        lappend syntaxErr(dimensional_characteristic_representation) [list "-$spmiIDRow($dt,$spmiID)" "oriented dimension" $msg]
+                        #set invalid 1
                       }
                     }
                   }
@@ -1029,8 +1050,14 @@ proc spmiDimtolReport {objEntity} {
 # fix trailing . and 0
                 set pmval($i) [removeTrailingZero $pmval($i)]
               }
+              
+# errors with +/- values
               if {$pmval(0) > $pmval(1)} {
-                set msg "Syntax Error: Plus-minus tolerance values for the lower ($pmval(0)) and upper ($pmval(1)) limits are reversed.\n[string repeat " " 14]\($recPracNames(pmi242), Sec. 5.2.3)"
+                set msg "Syntax Error: Plus-minus tolerance values for the lower ($pmval(0)) and upper ($pmval(1)) limits are reversed.  See tolerance_value entity.\n[string repeat " " 14]\($recPracNames(pmi242), Sec. 5.2.3)"
+                errorMsg $msg
+                lappend syntaxErr($dt) [list -$r "plus minus bounds" $msg]
+              } elseif {$pmval(0) == $pmval(1)} {
+                set msg "Syntax Error: Plus-minus tolerance values are equal ($pmval(0)).  See tolerance_value entity.\n[string repeat " " 14]\($recPracNames(pmi242), Sec. 5.2.3)"
                 errorMsg $msg
                 lappend syntaxErr($dt) [list -$r "plus minus bounds" $msg]
               }
@@ -1064,7 +1091,7 @@ proc spmiDimtolReport {objEntity} {
                 lappend spmiTypesPerFile "bilateral tolerance"
 
 # NON EQUAL values
-              } else {
+              } elseif {$pmval(0) != $pmval(1)} {
 
 # inch units
                 if {[info exists dim(unit)]} {
@@ -1147,11 +1174,6 @@ proc spmiDimtolReport {objEntity} {
                 if {$dim(angle)} {if {$angDegree} {set deg $pmiUnicode(degree)}}
                 set indent [string repeat " " [expr {3*[string length $dimrep($dimrepID)]}]]
                 append dimrep($dimrepID) "  $pmval(1)$deg[format "%c" 10]$indent$pmval(0)$deg"
-                #if {$tolStandard(type) == "ISO"} {
-                #  set dimrep($dimrepID) "'$indent$pmval(1)[format "%c" 10]$dimrep($dimrepID)  $pmval(0)"
-                #} else {
-                #  append dimrep($dimrepID) "  $pmval(1)[format "%c" 10]$indent$pmval(0)"
-                #}
                 if {[llength $sdimrep] > 1} {append dimrep($dimrepID) "  [lrange $sdimrep 1 end]"}
                 lappend spmiTypesPerFile "non-bilateral tolerance"
               }
@@ -1228,7 +1250,7 @@ proc spmiDimtolReport {objEntity} {
         if {[info exist dimOrient]} {
           append dr "[format "%c" 10](oriented)"
           unset dimOrient
-          set cellComment "For the definition of an 'oriented' dimension, see the CAx-IF Recommended Practice for $recPracNames(pmi242), Sec. 5.1.3"
+          #set cellComment "For the definition of an 'oriented' dimension, see the CAx-IF Recommended Practice for $recPracNames(pmi242), Sec. 5.1.3"
         }
         
 # dimension count

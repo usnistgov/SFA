@@ -2,7 +2,7 @@
 
 proc genExcel {{numFile 0}} {
   global allEntity ap203all ap214all ap242all badAttributes buttons
-  global cells cells1 col col1 comma count coverageLegend readPMI csvdirnam csvfile
+  global cells cells1 col col1 count coverageLegend readPMI csvdirnam csvfile
   global developer dim dimRepeatDiv editorCmd entCategories entCategory entColorIndex entCount entityCount entsIgnored entsWithErrors env errmsg
   global excel excelVersion excelYear extXLS fcsv feaElemTypes File fileEntity skipEntities skipPerm gpmiTypesInvalid gpmiTypesPerFile idxColor ifcsvrDir inverses
   global lastXLS lenfilelist localName localNameList logFile multiFile multiFileDir mytemp nistName nistVersion nprogBarEnts nshape
@@ -282,7 +282,7 @@ proc genExcel {{numFile 0}} {
 
 # -------------------------------------------------------------------------------------------------
 # connect to Excel
-  set comma 0
+  #set comma 0
   set useXL 1
   set xlInstalled 1
   if {$opt(XLSCSV) != "None"} {
@@ -382,13 +382,13 @@ proc genExcel {{numFile 0}} {
       set sheet [$worksheets Item [expr 1]]
       set cell  [$sheet Cells]
   
-      set A1 12345,67890
-      $cell Item 1 A $A1
-      set range [$sheet Range "A1"]
-      if {[$range Value] == 12345.6789} {
-        set comma 1
-        errorMsg "Using comma \",\" as the decimal separator for numbers" red
-      }
+      #set A1 12345,67890
+      #$cell Item 1 A $A1
+      #set range [$sheet Range "A1"]
+      #if {[$range Value] == 12345.6789} {
+      #  set comma 1
+      #  errorMsg "Using comma \",\" as the decimal separator for numbers" red
+      #}
   
 # print errors
     } emsg]} {

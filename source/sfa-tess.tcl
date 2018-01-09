@@ -614,7 +614,11 @@ proc vecscale {v1 scalar} {
 
 # trim - truncate values in a vector
 proc vectrim {v1} {
-  foreach c1 $v1 {lappend v2 [trimNum $c1]}
+  foreach c1 $v1 {
+    set prec 3
+    if {[expr {abs($c1)}] < 0.01} {set prec 4}
+    lappend v2 [trimNum $c1 $prec]
+  }
   return $v2
 }
 

@@ -373,8 +373,8 @@ proc guiProcessAndReports {} {
   pack $foptd1 -side top -anchor w -pady 0 -padx 0 -fill y
   pack $foptd -side left -anchor w -pady {5 2} -padx 10 -fill both -expand true
   catch {
-    tooltip::tooltip $buttons(optPMISEM)  "PMI Representation information is shown on dimension, tolerance, datum target, and datum entities.\nSemantic PMI is found mainly in STEP AP242 files.\n\nSee Help > PMI Representation\nSee Help > User's Guide (section 5.1)\nSee Help > Syntax Errors\nSee Examples > Spreadsheet and Sample STEP Files\nSee Websites > AP242 Project"
-    tooltip::tooltip $buttons(optPMIGRF)  "PMI Presentation information is shown on 'annotation occurrence' entities.\nGraphical PMI can also be Visualized.\n\nSee Help > PMI Presentation\nSee Help > User's Guide (section 5.2)\nSee Help > Syntax Errors\nSee Examples > Spreadsheet and Sample STEP Files\nSee Examples > Graphical PMI Viewer"
+    tooltip::tooltip $buttons(optPMISEM)  "PMI Representation information is shown on dimension, tolerance, datum target, and datum entities.\nSemantic PMI is found mainly in STEP AP242 files.\n\nSee Help > PMI Representation\nSee Help > User's Guide (section 5.1)\nSee Help > Syntax Errors\nSee Examples > Spreadsheet\nSee Examples > Sample STEP Files\nSee Websites > AP242 Project"
+    tooltip::tooltip $buttons(optPMIGRF)  "PMI Presentation information is shown on 'annotation occurrence' entities.\nGraphical PMI can also be Visualized.\n\nSee Help > PMI Presentation\nSee Help > User's Guide (section 5.2)\nSee Help > Syntax Errors\nSee Examples > Spreadsheet\nSee Examples > Graphical PMI Viewer\nSee Examples > Sample STEP Files"
     tooltip::tooltip $buttons(optVALPROP) "Validation Properties and other properties are shown on the 'property_definition' entity.\n\nSee Help > Validation Properties\nSee Help > User's Guide (section 5.3)\nSee Help > Syntax Errors\nSee Examples > Spreadsheet"
   }
   
@@ -423,10 +423,10 @@ proc guiProcessAndReports {} {
   pack $foptv -side left -anchor w -pady {5 2} -padx 10 -fill both -expand true
   pack $foptrv -side top -anchor w -pady 0 -fill x
   catch {
-    tooltip::tooltip $buttons(optVIZPMI) "See Help > PMI Presentation\nSee Help > User's Guide (section 6.1.1)\nSee Examples > Graphical PMI Viewer\n\nVisualizations can be generated without generating a spreadsheet\nor CSV files.  See the Output Format option below."
+    tooltip::tooltip $buttons(optVIZPMI) "See Help > PMI Presentation\nSee Help > User's Guide (section 6.1.1)\nSee Examples > Graphical PMI Viewer\nSee Examples > Sample STEP Files\n\nVisualizations can be generated without generating a spreadsheet\nor CSV files.  See the Output Format option below."
     tooltip::tooltip $buttons(optVIZPMIVP) "PMI Viewpoints are experimental.\n\nViewpoints usually have the correct orientation but are not centered.\nUse pan and zoom to center the PMI."
-    tooltip::tooltip $buttons(optVIZFEA) "This feature is still be developed.\nSee Help > AP209 Finite Element Model\nSee Help > User's Guide (section 6.1.3)\nSee Examples > AP209 FEM Viewer\n\nVisualizations can be generated without generating a spreadsheet\nor CSV files.  See the Output Format option below."
-    tooltip::tooltip $buttons(optVIZTES) "This feature is still be developed.\nParts in an assembly might have the wrong position and orientation or be missing.\n\nParts modeled with tessellated geometry is supported by AP242 and is supplementary\nto boundary representation (b-rep) geometry.\n\nSee Help > AP242 Tessellated Part Geometry\nSee Help > User's Guide (section 6.1.2)\nSee Examples > AP242 Tessellated Part Viewer\n\nVisualizations can be generated without generating a spreadsheet or CSV files.\nSee the Output Format option below."
+    tooltip::tooltip $buttons(optVIZFEA) "This feature is still being developed.\n\nSee Help > AP209 Finite Element Model\nSee Help > User's Guide (section 6.1.3)\nSee Examples > AP209 FEM Viewer\n\nVisualizations can be generated without generating a spreadsheet\nor CSV files.  See the Output Format option below."
+    tooltip::tooltip $buttons(optVIZTES) "This feature is still being developed.\nParts in an assembly might have the wrong position and orientation or be missing.\n\nParts modeled with tessellated geometry is supported by AP242 and is supplementary\nto boundary representation (b-rep) geometry.\n\nSee Help > AP242 Tessellated Part Geometry\nSee Help > User's Guide (section 6.1.2)\nSee Examples > AP242 Tessellated Part Viewer\n\nVisualizations can be generated without generating a spreadsheet or CSV files.\nSee the Output Format option below."
     tooltip::tooltip $buttons(linecolor) "For Random PMI colors, each 'annotation occurrence' is assigned a different color."
   }
 }
@@ -630,7 +630,7 @@ proc guiOpenSTEPFile {} {
     }
   }
   
-  catch {tooltip::tooltip $foptf "This option is a convenient way to open a STEP file in other applications.\nThe pull-down menu will contain some applications that can open a STEP file\nsuch as STEP viewers, browsers, and conformance checkers, only if they are\ninstalled in their default location.\n\nSee Websites > STEP File Viewers  and  Help > NIST Disclaimer\n\nThe 'Tree View (for debugging)' option rearranges and indents the\nentities to show the hierarchy of information in a STEP file.  The 'tree view'\nfile (.txt) is written to the same directory as the STEP file or to the same\nuser-defined directory specified in the Spreadsheet tab.  Including Geometry\nor Styled_item can make the 'tree view' file very large.\n\nThe 'Default STEP Viewer' option will open the STEP file in whatever\napplication is associated with STEP (.stp) files."}
+  catch {tooltip::tooltip $foptf "This option is a convenient way to open a STEP file in other applications.\nThe pull-down menu will contain some applications that can open a STEP\nfile such as STEP viewers, browsers, and conformance checkers, only if\nthey are installed in their default location.\n\nSee Websites > STEP File Viewers  and  Help > NIST Disclaimer\n\nThe 'Tree View (for debugging)' option rearranges and indents the\nentities to show the hierarchy of information in a STEP file.  The 'tree view'\nfile (myfile-sfa.txt) is written to the same directory as the STEP file or to the\nsame user-defined directory specified in the Spreadsheet tab.  Including\nGeometry or Styled_item can make the 'tree view' file very large.\n\nThe 'Default STEP Viewer' option will open the STEP file in whatever\napplication is associated with STEP (.stp) files."}
   pack $foptf -side top -anchor w -pady {5 2} -padx 10 -fill both
 
 # output format, checkbuttons are used for pseudo-radiobuttons
@@ -702,7 +702,7 @@ proc guiOpenSTEPFile {} {
   set buttons($idx) [ttk::checkbutton $foptm.$cb -text $txt -variable opt(LOGFILE)]
   pack $buttons($idx) -side left -anchor w -padx 5 -pady 0 -ipady 0
   pack $foptm -side top -anchor w -pady {5 2} -padx 10 -fill both
-  catch {tooltip::tooltip $buttons(optLOGFILE)  "See Help > Syntax Errors"}
+  catch {tooltip::tooltip $buttons(optLOGFILE)  "The log file is written to myfile-sfa.log\nSee Help > Syntax Errors"}
 }
 
 #-------------------------------------------------------------------------------
@@ -1003,8 +1003,8 @@ STEP file such as STEP viewers, browsers, and conformance checkers.
 See Help > User's Guide (section 4.4.6)
 
 The 'Tree View (for debugging)' option rearranges and indents the entities to show the
-hierarchy of information in a STEP file.  The 'tree view' file (.txt) is written to the same
-directory as the STEP file or to the same user-defined directory specified in the Spreadsheet
+hierarchy of information in a STEP file.  The 'tree view' file (myfile-sfa.txt) is written to the
+same directory as the STEP file or to the same user-defined directory specified in the Spreadsheet
 tab.  It is useful for debugging STEP files but is not recommended for large STEP files.
 
 The 'Default STEP Viewer' option will open the STEP file in whatever application is associated
@@ -1021,6 +1021,7 @@ Multiple STEP Files in a Directory'.  Files in subdirectories of the selected di
 be processed.
 
 See Help > User's Guide (section 8)
+See Examples > Spreadsheet - PMI Coverage Analysis
 
 When processing multiple STEP files, a File Summary spreadsheet is generated in addition to
 individual spreadsheets for each file.  The File Summary spreadsheet shows the entity count and
@@ -1044,9 +1045,15 @@ outputMsg "PMI Representation (Semantic PMI) includes all information necessary 
 dimensional tolerances (GD&T) without any graphical presentation elements.  PMI Representation is
 associated with CAD model geometry and is computer-interpretable to facilitate automated
 consumption by downstream applications for manufacturing, measurement, inspection, and other
-processes.  PMI Representation is found mainly in AP242 files.
+processes.
 
 See Help > User's Guide (section 5.1)
+See Examples > Sample STEP Files
+See Examples > Spreadsheet - PMI Representation
+
+PMI Representation is found mainly in AP242 files and is defined by the CAx-IF Recommended Practice
+for Representation and Presentation of Product Manufacturing Information (AP242)
+Go to Websites > Recommended Practices to access documentation.
 
 Worksheets with PMI Representation show a visual recreation of the representation for Dimensional
 Tolerances, Geometric Tolerances, and Datum Features.  The results are in columns, highlighted in
@@ -1085,11 +1092,7 @@ Some syntax errors that indicate non-conformance to a CAx-IF Recommended Practic
 Representation are also reported in the Status tab and the relevant worksheet cells.  Syntax
 errors are highlighted in red.  See Help > Syntax Errors.
 
-A PMI Representation Coverage Analysis worksheet is generated.  See Help > PMI Coverage Analysis.
-
-PMI Representation is defined by the CAx-IF Recommended Practice for:
-  Representation and Presentation of Product Manufacturing Information (AP242)
-Go to Websites > Recommended Practices to access documentation."
+A PMI Representation Coverage Analysis worksheet is generated.  See Help > PMI Coverage Analysis."
     .tnb select .tnb.status
   }
   
@@ -1102,32 +1105,35 @@ does not carry any representation information, although it can be linked to its 
 Representation.
 
 See Help > User's Guide (sections 5.2 and 6.1.1)
-
-Geometric entities used for PMI Presentation annotations are reported in columns, highlighted in
-yellow and green, on Annotation_*_occurrence worksheets.  The Summary worksheet will indicate on
-the Annotation_*_occurrence row if PMI Presentation is reported.
-
-Some syntax errors related to PMI Presentation are also reported in the Status tab and the
-relevant worksheet cells.  Syntax errors are highlighted in red.  See Help > Syntax Errors.
-
-Presentation Style, Saved Views, Validation Properties, Annotation Plane, Associated Geometry, and
-Associated Representation are also reported.
-
-A PMI Presentation Coverage Analysis worksheet is generated.  See Help > PMI Coverage Analysis.
+See Examples > Sample STEP Files
+See Examples > Spreadsheet - PMI Presentation
+See Examples > Graphical PMI Viewer
 
 PMI Presentation annotations can be viewed in a web browser.  The visualization is only of the
 graphical PMI, not the model geometry, except for tessellated part geometry.  Polylines, lines,
 circles, and tessellated geometry are supported for visualization.  The color of the annotations
 can be modified.  Filled characters are not filled.  PMI associated with Saved Views can be
 switched on and off.  Some Graphical PMI might not have equivalent Semantic PMI in the STEP file.
+The graphical PMI file is written to myfile-sfa.html
 
-The graphical PMI file is written to a file named myfile-sfa.html
-See Examples > Graphical PMI Viewer
+Graphical PMI on annotation_curve_occurrence, annotation_curve, annotation_fill_area_occurrence,
+and tessellated_annotation_occurrence entities are supported.  Geometric entities used for PMI
+Presentation annotations are reported in columns, highlighted in yellow and green, on those
+worksheets.  Presentation Style, Saved Views, Validation Properties, Annotation Plane, Associated
+Geometry, and Associated Representation are also reported.
 
-PMI Presentation is defined by the CAx-IF Recommended Practices for:
-  Representation and Presentation of Product Manufacturing Information (AP242)
-  PMI Polyline Presentation (AP203/AP242)
-Go to Websites > Recommended Practices to access documentation."
+PMI Presentation is defined by the CAx-IF Recommended Practices for Representation and Presentation
+of Product Manufacturing Information (AP242) and PMI Polyline Presentation (AP203/AP242)
+Go to Websites > Recommended Practices to access documentation.
+
+The Summary worksheet will indicate on which worksheets PMI Presentation is reported.  Some syntax
+errors related to PMI Presentation are also reported in the Status tab and the relevant worksheet
+cells.  Syntax errors are highlighted in red.  See Help > Syntax Errors.
+
+A PMI Presentation Coverage Analysis worksheet is generated.  See Help > PMI Coverage Analysis.
+
+Graphical PMI on annotation_text_occurrence and draughting_annotation_occurrence is not supported
+because there are no CAx-IF Recommended Practice for using them."
     .tnb select .tnb.status
   }
 
@@ -1138,6 +1144,7 @@ outputMsg "PMI Coverage Analysis worksheets are generated when processing single
 reports for PMI Representation or Presentation are selected.
 
 See Help > User's Guide (sections 5.1.6 and 5.2.1)
+See Examples > Spreadsheets
 
 PMI Representation Coverage Analysis (semantic PMI) counts the number of PMI elements found in a
 STEP file for tolerances, dimensions, datums, modifiers, and CAx-IF Recommended Practices for PMI
@@ -1168,6 +1175,7 @@ generated from one of the NIST CAD models.
 
 See Help > User's Guide (section 7)
 See Websites > MBE PMI Validation Testing
+See Examples > Spreadsheets
 
 * PMI Representation Summary *
 This worksheet is color-coded by the expected PMI annotations in a test case drawing.
@@ -1224,6 +1232,7 @@ reported.  The property values are reported in columns highlighted in yellow and
 Property_definition worksheet.  The worksheet can also be sorted and filtered.
 
 See Help > User's Guide (section 5.3)
+See Examples > Spreadsheet - PMI ValProps
 
 Other properties and User-Defined Attributes are also reported.
 
@@ -1236,8 +1245,8 @@ hidden by clicking the '1' or '2' in the upper right corner of the spreadsheet.
 
 The Summary worksheet will indicate on the property_definition entity if properties are reported.
 
-Validation properties are defined by the CAx-IF.
-See Websites > Recommended Practices to access documentation."
+Validation properties are defined by the CAx-IF.  See Websites > Recommended Practices to access
+documentation."
     .tnb select .tnb.status
   }
     
@@ -1263,7 +1272,7 @@ On an entity worksheet, most Syntax Errors are highlighted in red and have a cel
 text of the Syntax Error that was displayed in the Status tab.
 
 All text in the Status tab can be written to a Log File when a STEP file is processed (Options tab).
-In a log file, error messages are highlighted by ***."
+The log file is written to myfile-sfa.log.  In a log file, error messages are highlighted by ***."
     .tnb select .tnb.status
   }
 
@@ -1295,15 +1304,19 @@ Internal faces for solid elements are not shown.  Elements can be made transpare
 is only approximate.  The visualization of AP209 files is still in development.  
 
 Load vectors are scaled and colored by their magnitude.  The shortest load vector is 1/10 the
-length of the longest load vector.
+length of the longest load vector.  Forces use a single-headed arrow.  Moments use a
+double-headed arrow.
 
 Boundary conditions for translation DOF are shown with a red, green, or blue line along the
-X, Y, or Z axes depending on the constrained DOF.  Boundary conditions for rotation DOF are
-shown with a red, green, or blue circle around the X, Y, or Z axes depending on the constrained
-DOF.  A gray sphere is used when all three rotation DOF are constrained.
+X, Y, or Z axes depending on the constrained DOF.  A gray pyramid is used when all three
+translation DOF are constrained.
 
-Setting Maximum Rows (Spreadsheet tab) does not affect the visualization.  For large AP209 files,
-there might be insufficient memory to process all of the elements.
+Boundary conditions for rotation DOF are shown with a red, green, or blue circle around the
+X, Y, or Z axes depending on the constrained DOF.  A gray sphere is used when all three
+rotation DOF are constrained.
+
+Setting Maximum Rows (Spreadsheet tab) does not affect the visualization.  For large AP209
+files, there might be insufficient memory to process all of the elements.
 
 See Help > User's Guide (section 6.1.3)
 See Examples > AP209 FEM Viewer
@@ -1331,7 +1344,7 @@ Workarounds for this problem:
 - This program keeps track of the last entity type processed when it crashed.  Simply restart the
 STEP File Analyzer and hit F1 to process the last STEP file or F4 if processing multiple files.
 The type of entity that caused the crash will be skipped.  The list of bad entity types that will
-not be processed is stored in a file myfile-skip.dat.
+not be processed is stored in myfile-skip.dat.
 
 If syntax errors related to the bad entities are corrected, then delete the *-skip.dat file so
 that the corrected entities are processed.  When the STEP file is processed, the list of specific

@@ -283,7 +283,7 @@ proc spmiGeotolReport {objEntity} {
                         }
                       }
                       if {!$nonUniform} {
-                        set msg "Syntax Error: Missing tolerance value on [formatComplexEnt [$gtEntity Type]]\n[string repeat " " 14]\($recPracNames(pmi242), Sec. 6.9.1, Figure 43)"
+                        set msg "Syntax Error: Missing tolerance magnitude on [formatComplexEnt [$gtEntity Type]]\n[string repeat " " 14]\($recPracNames(pmi242), Sec. 6.9.1, Figure 43)"
                         errorMsg $msg
                         lappend syntaxErr([lindex [split $ent1 " "] 0]) [list [$gtEntity P21ID] [lindex [split $ent1 " "] 1] $msg]
                       }

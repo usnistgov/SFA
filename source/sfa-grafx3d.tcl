@@ -27,7 +27,7 @@ proc x3dFileStart {} {
   if {[string first "Tessellated" $title] != -1} {
     set numTessColor [tessCountColors]
     if {$numTessColor > 0} {
-      puts $x3dFile "<script>function matTrans(trans){"
+      puts $x3dFile "<!-- Transparency -->\n<script>function matTrans(trans){"
       for {set i 1} {$i <= $numTessColor} {incr i} {
         puts $x3dFile " document.getElementById('mat$i').setAttribute('transparency', trans);"
         puts $x3dFile " if (trans > 0) {document.getElementById('mat$i').setAttribute('solid', true);} else {document.getElementById('mat$i').setAttribute('solid', false);}"
@@ -409,7 +409,7 @@ proc x3dFileEnd {} {
       if {[string first "MBD" [string toupper $svn]] == -1 && $nistName != ""} {set ok 0}
     }
     if {!$ok && [info exists numSavedViews($nistName)]} {
-      lappend svmsg "For the NIST test case, some expected Graphical PMI Saved View names (MBD*) were not found."
+      lappend svmsg "For the NIST test case, some unexpected Graphical PMI Saved View names were found."
     }
     if {$opt(VIZPMIVP)} {
       puts $x3dFile "<p>Selecting a Saved View above changes the viewpoint.  Viewpoints usually have the correct orientation but are not centered.  Use pan and zoom to center the PMI."
@@ -447,28 +447,28 @@ proc x3dFileEnd {} {
   puts $x3dFile "<a href=\"https://www.x3dom.org/documentation/interaction/\">Use the mouse</a> in 'Examine Mode' to rotate, pan, zoom.  Use Page Up to switch between views."
   
 # background color buttons
-  puts $x3dFile "<p>Background Color"
+  puts $x3dFile "\n<!-- Background buttons -->\n<p>Background Color"
   puts $x3dFile "<br><input type='radio' name='bgcolor' value='1 1 1' onclick='BGcolor(this.value)'/>White"
   puts $x3dFile "<br><input type='radio' name='bgcolor' value='.8 .8 .8' checked onclick='BGcolor(this.value)'/>Gray"
   puts $x3dFile "<br><input type='radio' name='bgcolor' value='0 0 0' onclick='BGcolor(this.value)'/>Black"
   
 # axes button
-  puts $x3dFile "<p><input type='checkbox' checked onclick='togAxes(this.value)'/>Axes"
+  puts $x3dFile "\n<p>\n<!-- Axes button -->\n<input type='checkbox' checked onclick='togAxes(this.value)'/>Axes"
 
 # transparency slider
   if {$opt(VIZFEA) && [string first "AP209" $stepAP] == 0} {
     if {[info exists entCount(surface_3d_element_representation)] || [info exists entCount(volume_3d_element_representation)]} {
-      puts $x3dFile "\n<p>Transparency<br>(approximate)<br>"
+      puts $x3dFile "\n<!-- Transparency slider -->\n<p>Transparency<br>(approximate)<br>"
       puts $x3dFile "<input style='width:80px' type='range' min='0' max='0.8' step='0.2' value='0' onchange='matTrans(this.value)'/>"
     }
   } elseif {$numTessColor > 0} {
-    puts $x3dFile "\n<p>Transparency<br>(approximate)<br>"
+    puts $x3dFile "\n<!-- Transparency slider -->\n<p>Transparency<br>(approximate)<br>"
     puts $x3dFile "<input style='width:80px' type='range' min='0' max='1' step='0.25' value='0' onchange='matTrans(this.value)'/>"
   }
   puts $x3dFile "</td></tr></table>"
   
 # background function
-  puts $x3dFile "\n<script>function BGcolor(color){document.getElementById('BG').setAttribute('skyColor', color);}</script>"
+  puts $x3dFile "\n<!-- Background color -->\n<script>function BGcolor(color){document.getElementById('BG').setAttribute('skyColor', color);}</script>"
   
 # axes function
   x3dSwitchScript Axes
@@ -592,7 +592,7 @@ proc x3dSwitchScript {name {name1 ""} {vp 0}} {
 
   if {$name1 == ""} {set name1 $name}
   
-  puts $x3dFile "<script>function tog$name1\(choice){"
+  puts $x3dFile "<!-- $name1 switch -->\n<script>function tog$name1\(choice){"
   puts $x3dFile " if (!document.getElementById('sw$name1').checked) {"
   puts $x3dFile "  document.getElementById('sw$name').setAttribute('whichChoice', -1);"
   puts $x3dFile " } else {"

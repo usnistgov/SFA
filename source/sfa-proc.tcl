@@ -1234,7 +1234,7 @@ proc addCellComment {ent r c text {w 300} {h 70}} {
   global worksheet
   #outputMsg "addCellComment $ent $r $c" green
 
-  if {![info exists worksheet($ent)]} {return}
+  if {![info exists worksheet($ent)] || [string length $text] < 2} {return}
   
   if {[catch {
     regsub -all \n $text " " text
@@ -1334,19 +1334,23 @@ proc colorBadCells {ent} {
 }
 
 #-------------------------------------------------------------------------------
-proc trimNum {num {prec 3} {checkcomma 0}} {
+proc trimNum {num {prec 3}} {
   global unq_num comma
   
+# check for already trimmed number
   set numsav $num
   if {[info exists unq_num($numsav)]} {
     set num $unq_num($numsav)
   } else {
     if {[catch {
+      
+# format number with 'prec' 
       set form "\%."
       append form $prec
       append form "f"
       set num [format $form $num]
 
+# remove trailing zeros
       if {[string first "." $num] != -1} {
         for {set i 0} {$i < $prec} {incr i} {
           set num [string trimright $num "0"]
@@ -1357,7 +1361,11 @@ proc trimNum {num {prec 3} {checkcomma 0}} {
       errorMsg "# $errmsg ($numsav reset to 0.0)" red
       set num 0.
     }
-    if {$checkcomma && $comma} {regsub -all {\.} $num "," num}
+
+# use comma instead of period
+    #if {$checkcomma && $comma} {regsub -all {\.} $num "," num}
+
+# save the number for next occurrence
     set unq_num($numsav) $num
   }
   return $num

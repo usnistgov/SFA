@@ -44,8 +44,6 @@ proc gpmiAnnotation {entType} {
   set PMIP(annotation_curve_occurrence)       [list annotation_curve_occurrence name styles $curve_style item $geometric_curve_set]
   set PMIP(annotation_curve_occurrence_and_geometric_representation_item) [list annotation_curve_occurrence_and_geometric_representation_item name styles $curve_style item $geometric_curve_set]
   set PMIP(annotation_fill_area_occurrence)   [list annotation_fill_area_occurrence name styles $fill_style item $annotation_fill_area]
-  set PMIP(draughting_annotation_occurrence)  [list draughting_annotation_occurrence name styles $curve_style item $geometric_curve_set]
-  set PMIP(draughting_annotation_occurrence_and_geometric_representation_item) [list draughting_annotation_occurrence_and_geometric_representation_item name styles $curve_style item $geometric_curve_set]
   set PMIP(tessellated_annotation_occurrence) [list tessellated_annotation_occurrence name styles $curve_style $fill_style item $tessellated_geometric_set $repo_tessellated_geometric_set]
 
 # annotation placeholder
@@ -654,7 +652,7 @@ proc gpmiAnnotationReport {objEntity} {
                 "annotation_curve_occurrence* name" -
                 "annotation_fill_area_occurrence* name" -
                 "annotation_placeholder_occurrence* name" -
-                "*annotation_occurrence* name" -
+                "annotation_occurrence* name" -
                 "*tessellated_annotation_occurrence* name" {
                   set aoname $objValue
                   if {[string first "fill" $ent1] != -1} {
@@ -999,7 +997,11 @@ proc gpmiAnnotationReport {objEntity} {
         }
         if {[info exists ents1]} {::tcom::foreach ap $ents1 {lappend aps $ap}}
       }
-      if {[llength $aps] == 0} {errorMsg "Syntax Error: Missing required usage of an 'annotation_plane'.\n[string repeat " " 14]($recPracNames(pmi242), Sec. 9.1, Fig. 77)"}
+      if {[llength $aps] == 0} {
+        set msg "Syntax Error: Missing required usage of an 'annotation_plane' on [formatComplexEnt $ao].\n[string repeat " " 14]($recPracNames(pmi242), Sec. 9.1, Fig. 77)"
+        errorMsg $msg
+        lappend syntaxErr($ao) [list $objID "plane" $msg]
+      }
 
       foreach ap $aps {
         ::tcom::foreach attrAP [$ap Attributes] {
@@ -1311,10 +1313,20 @@ proc pmiGetCamerasAndProperties {} {
     foreach cms [list camera_model_d3 camera_model_d3_multi_clipping] {
       if {[info exists entCount($cms)]} {if {$entCount($cms) > 0} {lappend cmlist $cms}}
     }
+    if {[info exists entCount(camera_model_d2)]} {
+      set msg "Syntax Error: For Saved Views, 'camera_model_d2' is not allowed.\n[string repeat " " 14]"
+      if {$stepAP == "AP242"} {
+        append msg "($recPracNames(pmi242), Sec. 9.4.2)"
+      } else {
+        append msg "($recPracNames(pmi203), Sec. 5.4.2)"
+      }
+      errorMsg $msg
+    }
 
 # draughting model list
     set dmlist {}
-    foreach dms [list characterized_object_and_draughting_model characterized_representation_and_draughting_model characterized_representation_and_draughting_model_and_representation draughting_model] {
+    foreach dms [list characterized_object_and_draughting_model characterized_representation_and_draughting_model \
+                      characterized_representation_and_draughting_model_and_representation draughting_model] {
       if {[info exists entCount($dms)]} {if {$entCount($dms) > 0} {lappend dmlist $dms}}
     }
     
@@ -1432,7 +1444,7 @@ proc pmiGetCamerasAndProperties {} {
                 catch {file delete -force $savedViewFileName($name1)}
                 set savedViewFile($name1) [open $savedViewFileName($name1) w]
                 #outputMsg "camera name $name1 $dmcn $dmitems([$entDraughtingModel P21ID])" green
-                set savedViewItems($dmcn) $dmitems([$entDraughtingModel P21ID])
+                if {[string length $dmitems([$entDraughtingModel P21ID])] > 0} {set savedViewItems($dmcn) $dmitems([$entDraughtingModel P21ID])}
               }
             }
           }
