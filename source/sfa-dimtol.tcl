@@ -77,7 +77,7 @@ proc spmiDimtolStart {entType} {
   set entLevel 0
   
 # get next unused column by checking if there is a colName
-  set pmiStartCol($dt) [expr {[getNextUnusedColumn $startent 3]+1}]
+  set pmiStartCol($dt) [expr {[getNextUnusedColumn $startent]+1}]
   #outputMsg pmiStartCol$pmiStartCol($dt)
 
 # process all, call spmiDimtolReport

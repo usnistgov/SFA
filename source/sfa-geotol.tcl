@@ -87,7 +87,7 @@ proc spmiGeotolStart {entType} {
   set entLevel 0
   
 # get next unused column by checking if there is a colName
-  set pmiStartCol($gt) [getNextUnusedColumn $startent 3]
+  set pmiStartCol($gt) [getNextUnusedColumn $startent]
   
 # process all entities, call spmiGeotolReport
   ::tcom::foreach objEntity [$objDesign FindObjects [join $startent]] {

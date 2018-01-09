@@ -1172,9 +1172,9 @@ proc checkForExcel {{multFile 0}} {
 
 #-------------------------------------------------------------------------------
 # get next unused column
-proc getNextUnusedColumn {ent r} {
+proc getNextUnusedColumn {ent} {
   global worksheet
-  return [expr {[[[$worksheet($ent) UsedRange] Columns] Count]} + 1]
+  return [expr {[[[$worksheet($ent) UsedRange] Columns] Count] + 1}]
 }
 
 # -------------------------------------------------------------------------------

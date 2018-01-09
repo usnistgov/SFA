@@ -136,7 +136,7 @@ proc gpmiAnnotation {entType} {
   set entLevel 0
   
 # get next unused column by checking if there is a colName
-  if {$useXL} {set pmiStartCol($ao) [getNextUnusedColumn $startent 3]}
+  if {$useXL} {set pmiStartCol($ao) [getNextUnusedColumn $startent]}
 
 # process all annotation_occurrence entities, call gpmiAnnotationReport
   ::tcom::foreach objEntity [$objDesign FindObjects [join $startent]] {
@@ -1009,7 +1009,7 @@ proc gpmiAnnotationReport {objEntity} {
             set str "[$ap Type] [$ap P21ID]"
             set nam [$attrAP Value]
             if {$nam != ""} {append str "[format "%c" 10]($nam)"}
-            if {![info exists pmiColumns(aplane)]} {set pmiColumns(aplane) [getNextUnusedColumn $ao 3]}
+            if {![info exists pmiColumns(aplane)]} {set pmiColumns(aplane) [getNextUnusedColumn $ao]}
             if {$stepAP == "AP242"} {
               set colName "plane[format "%c" 10](Sec. 9.1)"
             } else {
@@ -1036,7 +1036,7 @@ proc gpmiAnnotationReport {objEntity} {
         set str [reportAssocGeom $ao]
         if {$str != ""  } {
           #outputMsg "  Adding Associated Geometry" green
-          if {![info exists pmiColumns(ageom)]} {set pmiColumns(ageom) [getNextUnusedColumn $ao 3]}
+          if {![info exists pmiColumns(ageom)]} {set pmiColumns(ageom) [getNextUnusedColumn $ao]}
           if {$stepAP == "AP242"} {
             set colName "Associated Geometry[format "%c" 10](Sec. 9.3.1)"
           } else {
@@ -1066,7 +1066,7 @@ proc gpmiAnnotationReport {objEntity} {
         if {$nspmi == 1} {set str [string range $str 4 end]}
         if {$str != ""} {
           #errorMsg "  Adding Associated Representation" green
-          if {![info exists pmiColumns(spmi)]} {set pmiColumns(spmi) [getNextUnusedColumn $ao 3]}
+          if {![info exists pmiColumns(spmi)]} {set pmiColumns(spmi) [getNextUnusedColumn $ao]}
           set colName "Associated Representation[format "%c" 10](Sec. 7.3)"
           set c [string index [cellRange 1 $pmiColumns(spmi)] 0]
           set r $gpmiIDRow($ao,$gpmiID)
@@ -1124,7 +1124,7 @@ proc gpmiAnnotationReport {objEntity} {
                 } else {
                   set colName "Saved Views[format "%c" 10](Sec. 5.4)"
                 }
-                if {![info exists savedViewCol]} {set savedViewCol [getNextUnusedColumn $ao 3]}
+                if {![info exists savedViewCol]} {set savedViewCol [getNextUnusedColumn $ao]}
                 set c [string index [cellRange 1 $savedViewCol] 0]
                 set r $gpmiIDRow($ao,$gpmiID)
                 if {![info exists pmiHeading($savedViewCol)]} {
@@ -1273,7 +1273,7 @@ proc gpmiAnnotationReport {objEntity} {
 
 # add valprop info to spreadsheet
       if {[info exists gpmiValProp($objID)]} {
-        if {![info exists pmiColumns(vp)]} {set pmiColumns(vp) [getNextUnusedColumn $ao 3]}
+        if {![info exists pmiColumns(vp)]} {set pmiColumns(vp) [getNextUnusedColumn $ao]}
         if {$stepAP == "AP242"} {
           set colName "Validation Properties[format "%c" 10](Sec. 10.3)"
         } else {
