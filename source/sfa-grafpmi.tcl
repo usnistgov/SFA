@@ -1,7 +1,7 @@
 proc gpmiAnnotation {entType} {
   global objDesign
   global ao aoEntTypes cells col entLevel ent entAttrList gpmiRow gtEntity nindex opt pmiCol pmiHeading pmiStartCol
-  global recPracNames stepAP syntaxErr x3dShape x3dMsg useXL 
+  global recPracNames stepAP syntaxErr x3dShape x3dMsg useXL
   global geomType tessCoordID
 
   if {$opt(DEBUG1)} {outputMsg "START gpmiAnnotation $entType" red}
@@ -954,7 +954,7 @@ proc gpmiAnnotationReport {objEntity} {
 # look at shape_aspect or datums to find associated geometry
               } elseif {[string first "shape_aspect" $dmiaDefType] != -1 || [string first "datum" $dmiaDefType] != -1} {
                 #outputMsg "   $dmiaDefType [$dmiaDef P21ID]  $attrName" blue
-                getAssocGeom $dmiaDef 1
+                getAssocGeom $dmiaDef 1 $ao
               } else {
                 #outputMsg "   $dmiaDefType [$dmiaDef P21ID]  $attrName" red
               }
@@ -998,7 +998,7 @@ proc gpmiAnnotationReport {objEntity} {
         if {[info exists ents1]} {::tcom::foreach ap $ents1 {lappend aps $ap}}
       }
       if {[llength $aps] == 0} {
-        set msg "Syntax Error: Missing required usage of an 'annotation_plane' on [formatComplexEnt $ao].\n[string repeat " " 14]($recPracNames(pmi242), Sec. 9.1, Fig. 77)"
+        set msg "Syntax Error: Missing required 'annotation_plane'.\n[string repeat " " 14]($recPracNames(pmi242), Sec. 9.1, Fig. 77)"
         errorMsg $msg
         lappend syntaxErr($ao) [list $objID "plane" $msg]
       }
@@ -1033,7 +1033,7 @@ proc gpmiAnnotationReport {objEntity} {
 # report associated geometry
     if {[catch {
       if {[info exists assocGeom]} {
-        set str [reportAssocGeom $ao]
+        set str [reportAssocGeom $ao $gpmiIDRow($ao,$gpmiID)]
         if {$str != ""  } {
           #outputMsg "  Adding Associated Geometry" green
           if {![info exists pmiColumns(ageom)]} {set pmiColumns(ageom) [getNextUnusedColumn $ao]}
@@ -1084,7 +1084,7 @@ proc gpmiAnnotationReport {objEntity} {
     }
   }
     
-# report camera models associated with the annotation_occurrence through draughting_model
+# report camera models associated with the annotation occurrence through draughting_model
   if {$entLevel == 0 && (($opt(PMIGRF) && [info exists gpmiIDRow($ao,$gpmiID)]) || ($opt(VIZPMI) && !$opt(PMIGRF)))} {
     if {[catch {
       set savedViews ""
@@ -1104,9 +1104,26 @@ proc gpmiAnnotationReport {objEntity} {
           set entDraughtingCallouts [$objEntity GetUsedIn [string trim draughting_callout] [string trim contents]]
           ::tcom::foreach entDraughtingCallout $entDraughtingCallouts {
             set entDraughtingModels [$entDraughtingCallout GetUsedIn [string trim $dm] [string trim items]]
-            #outputMsg [$entDraughtingCallout P21ID][$entDraughtingCallout Type] green
+            #outputMsg [$entDraughtingCallout P21ID][$entDraughtingCallout Type] blue
           }
       
+# check if there are any entDraughtingModel, if none then there are no camera models for the annotation
+          if {$opt(PMIGRF)} {
+            set okdm 0
+            ::tcom::foreach entDraughtingModel $entDraughtingModels {set okdm 1}
+            if {!$okdm} {
+              set msg "Syntax Error: Missing Camera Model for a Saved View.  Check draughting_model.items for correct draughting_callout.\n[string repeat " " 14]"
+              if {$stepAP == "AP242"} {
+                append msg "($recPracNames(pmi242), Sec. 9.4.2.1, Fig. 86)"
+              } else {
+                append msg "($recPracNames(pmi203), Sec. 5.4.2, Fig. 14)"
+              }
+              errorMsg $msg
+              lappend syntaxErr($ao) [list $objID "Saved Views" $msg]
+            }
+          }
+
+# get save view names
           ::tcom::foreach entDraughtingModel $entDraughtingModels {
             if {[info exists draftModelCameras([$entDraughtingModel P21ID])]} {
               #outputMsg "[$entDraughtingModel P21ID] [$entDraughtingModel Type]  $draftModelCameraNames([$entDraughtingModel P21ID])" green
@@ -1303,157 +1320,167 @@ proc pmiGetCamerasAndProperties {} {
   global draftModelCameras draftModelCameraNames gpmiValProp syntaxErr propDefIDS stepAP recPracNames entCount
   global opt savedViewNames savedViewFile savedViewFileName mytemp savedViewName savedViewpoint savedViewItems
 
-  #outputMsg getCameras blue
+  set aolist {}
+  foreach ao [list annotation_occurrence annotation_curve_occurrence annotation_curve_occurrence_and_geometric_representation_item \
+                annotation_fill_area_occurrence tessellated_annotation_occurrence annotation_placeholder_occurrence] {
+    if {[info exists entCount($ao)]} {if {$entCount($ao) > 0} {lappend aolist $ao}}
+  }
+  
   catch {unset draftModelCameras}
   catch {unset draftModelCameraNames}
-  if {[catch {
-
-# camera list
-    set cmlist {}
-    foreach cms [list camera_model_d3 camera_model_d3_multi_clipping] {
-      if {[info exists entCount($cms)]} {if {$entCount($cms) > 0} {lappend cmlist $cms}}
-    }
-    if {[info exists entCount(camera_model_d2)]} {
-      set msg "Syntax Error: For Saved Views, 'camera_model_d2' is not allowed.\n[string repeat " " 14]"
-      if {$stepAP == "AP242"} {
-        append msg "($recPracNames(pmi242), Sec. 9.4.2)"
-      } else {
-        append msg "($recPracNames(pmi203), Sec. 5.4.2)"
-      }
-      errorMsg $msg
-    }
-
-# draughting model list
-    set dmlist {}
-    foreach dms [list characterized_object_and_draughting_model characterized_representation_and_draughting_model \
-                      characterized_representation_and_draughting_model_and_representation draughting_model] {
-      if {[info exists entCount($dms)]} {if {$entCount($dms) > 0} {lappend dmlist $dms}}
-    }
-    
-# loop over camera model entities
-    foreach cm $cmlist {
-      ::tcom::foreach entCameraModel [$objDesign FindObjects [string trim $cm]] {
-        set attrCameraModels [$entCameraModel Attributes]
+  if {[llength $aolist] > 0} {
+    #outputMsg getCameras blue
+    if {[catch {
   
+# camera list
+      set cmlist {}
+      foreach cms [list camera_model_d3 camera_model_d3_multi_clipping] {
+        if {[info exists entCount($cms)]} {if {$entCount($cms) > 0} {lappend cmlist $cms}}
+      }
+      if {[info exists entCount(camera_model_d2)]} {
+        set msg "Syntax Error: For Saved Views, 'camera_model_d2' is not allowed.\n[string repeat " " 14]"
+        if {$stepAP == "AP242"} {
+          append msg "($recPracNames(pmi242), Sec. 9.4.2)"
+        } else {
+          append msg "($recPracNames(pmi203), Sec. 5.4.2)"
+        }
+        errorMsg $msg
+      }
+  
+# draughting model list
+      set dmlist {}
+      foreach dms [list characterized_object_and_draughting_model characterized_representation_and_draughting_model \
+                        characterized_representation_and_draughting_model_and_representation draughting_model] {
+        if {[info exists entCount($dms)]} {if {$entCount($dms) > 0} {lappend dmlist $dms}}
+      }
+      
+# loop over camera model entities
+      foreach cm $cmlist {
+        ::tcom::foreach entCameraModel [$objDesign FindObjects [string trim $cm]] {
+          set attrCameraModels [$entCameraModel Attributes]
+    
 # loop over draughting model entities
-        foreach dm $dmlist {
-          set entDraughtingModels [$entCameraModel GetUsedIn [string trim $dm] [string trim items]]
-          ::tcom::foreach entDraughtingModel $entDraughtingModels {
-            set attrDraughtingModels [$entDraughtingModel Attributes]
-            set dmitems([$entDraughtingModel P21ID]) ""
-
+          foreach dm $dmlist {
+            set entDraughtingModels [$entCameraModel GetUsedIn [string trim $dm] [string trim items]]
+            ::tcom::foreach entDraughtingModel $entDraughtingModels {
+              set attrDraughtingModels [$entDraughtingModel Attributes]
+              set dmitems([$entDraughtingModel P21ID]) ""
+  
 # DM name attribute
-            set ok 0
-            if {[llength $dmlist] == 1 || [string first "characterized" $dm] != -1} {set ok 1}
-            if {$ok} {
-              set nattr 0
-              set iattr 1
-              if {[string first "object" $dm] != -1} {set iattr 3}
-              ::tcom::foreach attrDraughtingModel $attrDraughtingModels {
-                incr nattr
-                set nameDraughtingModel [$attrDraughtingModel Name]
-                if {$nameDraughtingModel == "name" && $nattr == $iattr} {
-                  set name [$attrDraughtingModel Value]
+              set ok 0
+              if {[llength $dmlist] == 1 || [string first "characterized" $dm] != -1} {set ok 1}
+              if {$ok} {
+                set nattr 0
+                set iattr 1
+                if {[string first "object" $dm] != -1} {set iattr 3}
+                ::tcom::foreach attrDraughtingModel $attrDraughtingModels {
+                  incr nattr
+                  set nameDraughtingModel [$attrDraughtingModel Name]
+                  if {$nameDraughtingModel == "name" && $nattr == $iattr} {
+                    set name [$attrDraughtingModel Value]
+                    if {$name == ""} {
+                      set msg "Syntax Error: For Saved Views, missing required 'name' attribute on [formatComplexEnt $dm]\n[string repeat " " 14]"
+                      if {$stepAP == "AP242"} {
+                        append msg "($recPracNames(pmi242), Sec. 9.4.2)"
+                      } else {
+                        append msg "($recPracNames(pmi203), Sec. 5.4.2)"
+                      }
+                      errorMsg $msg
+                      lappend syntaxErr($dm) [list [$entDraughtingModel P21ID] name $msg]
+                    }
+                  }
+                  if {$nameDraughtingModel == "items"} {
+                    ::tcom::foreach item [$attrDraughtingModel Value] {
+                      set itype [$item Type]
+                      if {$itype != "mapped_item" && [string first "camera_model_d3" $itype] == -1} {
+                        append dmitems([$entDraughtingModel P21ID]) "[$item P21ID] "
+                      }
+                    }
+                  }
+                }
+              }
+  
+# CM name attribute
+              ::tcom::foreach attrCameraModel $attrCameraModels {
+                set nameCameraModel [$attrCameraModel Name]
+                if {$nameCameraModel == "name"} {
+                  set name [$attrCameraModel Value]
+  
+# clean up the camera name
+                  regsub -all " " [string trim $name] "_" name1  
+                  regsub -all {\(} [string trim $name1] "_" name1 
+                  regsub -all {\)} [string trim $name1] "" name1  
+                  regsub -all {:~$%&*<>?/+\|\"\#\\\{\}} [string trim $name1] "_" name1
+                  
                   if {$name == ""} {
-                    set msg "Syntax Error: For Saved Views, missing required 'name' attribute on [formatComplexEnt $dm]\n[string repeat " " 14]"
+                    set msg "Syntax Error: For Saved Views, missing required 'name' attribute on $cm\n[string repeat " " 14]"
                     if {$stepAP == "AP242"} {
-                      append msg "($recPracNames(pmi242), Sec. 9.4.2)"
+                      append msg "($recPracNames(pmi242), Sec. 9.4.2.1, Fig. 86)"
                     } else {
-                      append msg "($recPracNames(pmi203), Sec. 5.4.2)"
+                      append msg "($recPracNames(pmi203), Sec. 5.4.2.1, Fig. 14)"
                     }
                     errorMsg $msg
-                    lappend syntaxErr($dm) [list [$entDraughtingModel P21ID] name $msg]
+                    lappend syntaxErr($cm) [list [$entCameraModel P21ID] name $msg]
                   }
-                }
-                if {$nameDraughtingModel == "items"} {
-                  ::tcom::foreach item [$attrDraughtingModel Value] {
-                    set itype [$item Type]
-                    if {$itype != "mapped_item" && [string first "camera_model_d3" $itype] == -1} {
-                      append dmitems([$entDraughtingModel P21ID]) "[$item P21ID] "
-                    }
-                  }
-                }
-              }
-            }
-
-# CM name attribute
-            ::tcom::foreach attrCameraModel $attrCameraModels {
-              set nameCameraModel [$attrCameraModel Name]
-              if {$nameCameraModel == "name"} {
-                set name [$attrCameraModel Value]
-
-# clean up the camera name
-                regsub -all " " [string trim $name] "_" name1  
-                regsub -all {\(} [string trim $name1] "_" name1 
-                regsub -all {\)} [string trim $name1] "" name1  
-                regsub -all {:~$%&*<>?/+\|\"\#\\\{\}} [string trim $name1] "_" name1
-                
-                if {$name == ""} {
-                  set msg "Syntax Error: For Saved Views, missing required 'name' attribute on $cm\n[string repeat " " 14]"
-                  if {$stepAP == "AP242"} {
-                    append msg "($recPracNames(pmi242), Sec. 9.4.2.1, Fig. 86)"
-                  } else {
-                    append msg "($recPracNames(pmi203), Sec. 5.4.2.1, Fig. 14)"
-                  }
-                  errorMsg $msg
-                  lappend syntaxErr($cm) [list [$entCameraModel P21ID] name $msg]
-                }
-
+  
 # get axis2_placement_3d for camera viewpoint
-              } elseif {$nameCameraModel == "view_reference_system"} {
-                catch {unset savedViewpoint($name1)}
-                if {[catch {
-                  set a2p3d [[$attrCameraModel Value] Attributes]
-                  set origin [[[[[$a2p3d Item 2] Value] Attributes] Item 2] Value]
-                  set axis   [[[[[$a2p3d Item 3] Value] Attributes] Item 2] Value]
-                  ::tcom::foreach attr $a2p3d {
-                    if {[$attr Name] == "ref_direction"} {
-                      set refdir [[[[$attr Value] Attributes] Item 2] Value]
+                } elseif {$nameCameraModel == "view_reference_system"} {
+                  catch {unset savedViewpoint($name1)}
+                  if {[catch {
+                    set a2p3d [[$attrCameraModel Value] Attributes]
+                    set origin [[[[[$a2p3d Item 2] Value] Attributes] Item 2] Value]
+                    set axis   [[[[[$a2p3d Item 3] Value] Attributes] Item 2] Value]
+                    ::tcom::foreach attr $a2p3d {
+                      if {[$attr Name] == "ref_direction"} {
+                        set refdir [[[[$attr Value] Attributes] Item 2] Value]
+                      }
                     }
+                    lappend savedViewpoint($name1) [vectrim $origin]
+                    lappend savedViewpoint($name1) [x3dRotation $axis $refdir]
+                  } emsg]} {
+                    errorMsg "ERROR getting Saved View position and orientation: $emsg"
+                    catch {raise .}
                   }
-                  lappend savedViewpoint($name1) [vectrim $origin]
-                  lappend savedViewpoint($name1) [x3dRotation $axis $refdir]
-                } emsg]} {
-                  errorMsg "ERROR getting Saved View position and orientation: $emsg"
-                  catch {raise .}
                 }
               }
-            }
-
+  
 # cameras associated with draughting models
-            set str "[$entCameraModel P21ID] ($name)  "
-            set id [$entDraughtingModel P21ID]
-            if {![info exists draftModelCameras($id)]} {
-              set draftModelCameras($id) $str
-            } elseif {[string first $str $draftModelCameras($id)] == -1} {
-              append draftModelCameras($id) "[$entCameraModel P21ID] ($name)  "
-            }
-            if {![info exists draftModelCameraNames($id)]} {
-              set draftModelCameraNames($id) $name1
-            } elseif {[string first $name $draftModelCameraNames($id)] == -1 && [string first $name1 $draftModelCameraNames($id)] == -1} {
-              append draftModelCameraNames($id) " $name1"
-            }
-
+              set str "[$entCameraModel P21ID] ($name)  "
+              set id [$entDraughtingModel P21ID]
+              if {![info exists draftModelCameras($id)]} {
+                set draftModelCameras($id) $str
+              } elseif {[string first $str $draftModelCameras($id)] == -1} {
+                append draftModelCameras($id) "[$entCameraModel P21ID] ($name)  "
+              }
+              if {![info exists draftModelCameraNames($id)]} {
+                set draftModelCameraNames($id) $name1
+              } elseif {[string first $name $draftModelCameraNames($id)] == -1 && [string first $name1 $draftModelCameraNames($id)] == -1} {
+                append draftModelCameraNames($id) " $name1"
+              }
+  
 # keep track of saved views for graphic PMI
-            if {$opt(VIZPMI)} {
-              set dmcn $draftModelCameraNames([$entDraughtingModel P21ID])
-              if {[lsearch $savedViewName $dmcn] == -1} {lappend savedViewName $dmcn}
-              if {[lsearch $savedViewNames $name1] == -1} {
-                lappend savedViewNames $name1
-                set savedViewFileName($name1) [file join $mytemp $name1.txt]
-                catch {file delete -force $savedViewFileName($name1)}
-                set savedViewFile($name1) [open $savedViewFileName($name1) w]
-                #outputMsg "camera name $name1 $dmcn $dmitems([$entDraughtingModel P21ID])" green
-                if {[string length $dmitems([$entDraughtingModel P21ID])] > 0} {set savedViewItems($dmcn) $dmitems([$entDraughtingModel P21ID])}
+              if {$opt(VIZPMI)} {
+                set dmcn $draftModelCameraNames([$entDraughtingModel P21ID])
+                if {[lsearch $savedViewName $dmcn] == -1} {lappend savedViewName $dmcn}
+                if {[lsearch $savedViewNames $name1] == -1} {
+                  lappend savedViewNames $name1
+                  set savedViewFileName($name1) [file join $mytemp $name1.txt]
+                  catch {file delete -force $savedViewFileName($name1)}
+                  set savedViewFile($name1) [open $savedViewFileName($name1) w]
+                  #outputMsg "camera name $name1 $dmcn $dmitems([$entDraughtingModel P21ID])" green
+                  if {[string length $dmitems([$entDraughtingModel P21ID])] > 0} {set savedViewItems($dmcn) $dmitems([$entDraughtingModel P21ID])}
+                }
               }
             }
           }
         }
       }
+    } emsg]} {
+      errorMsg "ERROR getting Camera Models: $emsg"
+      catch {raise .}
     }
-  } emsg]} {
-    errorMsg "ERROR getting Camera Models: $emsg"
-    catch {raise .}
+  } elseif {[info exists entCount(annotation_text_occurrence)]} {
+    errorMsg "Using 'annotation_text_occurrence' is not valid for PMI Presentation.\n ($recPracNames(pmi242), Sec. 1)"
   }
   
 # get pmi validation properties so that they can be annotation_occurrence

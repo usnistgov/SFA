@@ -27,7 +27,7 @@ proc x3dFileStart {} {
   if {[string first "Tessellated" $title] != -1} {
     set numTessColor [tessCountColors]
     if {$numTessColor > 0} {
-      puts $x3dFile "<!-- Transparency -->\n<script>function matTrans(trans){"
+      puts $x3dFile "\n<!-- TRANSPARENCY slider -->\n<script>function matTrans(trans){"
       for {set i 1} {$i <= $numTessColor} {incr i} {
         puts $x3dFile " document.getElementById('mat$i').setAttribute('transparency', trans);"
         puts $x3dFile " if (trans > 0) {document.getElementById('mat$i').setAttribute('solid', true);} else {document.getElementById('mat$i').setAttribute('solid', false);}"
@@ -43,7 +43,7 @@ proc x3dFileStart {} {
   if {[string first "Tessellated" $title] != -1 && [info exist entCount(next_assembly_usage_occurrence)]} {
     puts $x3dFile "<br>Parts in an assembly might have the wrong position and orientation or be missing."
   }
-  puts $x3dFile "\n<p><table><tr><td width='85%'>"
+  puts $x3dFile "\n<p><table><tr><td valign='top' width='85%'>"
 
 # x3d window size
   set height 800
@@ -90,7 +90,7 @@ proc x3dTessGeom {objID objEntity1 ent1} {
   if {$x3dColor == ""} {
     set x3dColor "0 0 0"
     if {[string first "annotation" [$objEntity1 Type]] != -1} {
-      errorMsg "Syntax Error: PMI Presentation color not found for [formatComplexEnt [$objEntity1 Type]] (using black)\n[string repeat " " 14]\($recPracNames(pmi242), Sec. 8.4, Figure 75)"
+      errorMsg "Syntax Error: Missing PMI Presentation color (using black).\n[string repeat " " 14]\($recPracNames(pmi242), Sec. 8.4, Figure 75)"
     }
   }
   set x3dIndexType "Line"
@@ -248,7 +248,7 @@ proc x3dPolylinePMI {} {
             puts $f "<Shape>\n <Appearance><Material diffuseColor='$x3dColor' emissiveColor='$x3dColor'></Material></Appearance>"
           } else {
             puts $f "<Shape>\n <Appearance><Material diffuseColor='0 0 0' emissiveColor='0 0 0'></Material></Appearance>"
-            errorMsg "Syntax Error: PMI Presentation color not found for [formatComplexEnt $ao] (using black)\n[string repeat " " 14]\($recPracNames(pmi242), Sec. 8.4, Figure 75)"
+            errorMsg "Syntax Error: Missing PMI Presentation color for [formatComplexEnt $ao] (using black)\n[string repeat " " 14]\($recPracNames(pmi242), Sec. 8.4, Figure 75)"
           }
 
 # index and coordinates
@@ -345,6 +345,8 @@ proc x3dFileEnd {} {
           puts $x3dFile "<!-- SAME AS $svMap($svn) -->"
         }
         puts $x3dFile "</Group></Switch>"
+      } else {
+        close $savedViewFile($svn)
       }
       catch {file delete -force $savedViewFileName($svn)}
     }
@@ -383,6 +385,7 @@ proc x3dFileEnd {} {
 
 # navigation, background color
   set bgc ".8 .8 .8"
+  if {[string first "AP209" $stepAP] != -1} {set bgc "1. 1. 1."}
   puts $x3dFile "\n<NavigationInfo type='\"EXAMINE\" \"ANY\"'></NavigationInfo>"
   puts $x3dFile "<Background id='BG' skyColor='$bgc'></Background>"
   puts $x3dFile "</Scene></X3D>\n\n</td><td valign='top'>"
@@ -402,7 +405,7 @@ proc x3dFileEnd {} {
     }
   }
   if {$opt(VIZPMI) && [llength $savedViewButtons] > 0} {
-    puts $x3dFile "\nSaved View PMI"
+    puts $x3dFile "\n<!-- Saved View buttons -->\nSaved View PMI"
     set ok 1
     foreach svn $savedViewButtons {
       puts $x3dFile "<br><input type='checkbox' checked onclick='tog$svn\(this.value)'/>$svn"
@@ -436,9 +439,10 @@ proc x3dFileEnd {} {
   }
   
 # extra text messages
+  puts $x3dFile "\n<!-- Messages -->"
   if {[info exists x3dMsg]} {
     if {[llength $x3dMsg] > 0} {
-      puts $x3dFile "\n<ul style=\"padding-left:20px\">"
+      puts $x3dFile "<ul style=\"padding-left:20px\">"
       foreach item $x3dMsg {puts $x3dFile "<li>$item"}
       puts $x3dFile "</ul><hr><p>"
       unset x3dMsg
@@ -447,13 +451,19 @@ proc x3dFileEnd {} {
   puts $x3dFile "<a href=\"https://www.x3dom.org/documentation/interaction/\">Use the mouse</a> in 'Examine Mode' to rotate, pan, zoom.  Use Page Up to switch between views."
   
 # background color buttons
-  puts $x3dFile "\n<!-- Background buttons -->\n<p>Background Color"
-  puts $x3dFile "<br><input type='radio' name='bgcolor' value='1 1 1' onclick='BGcolor(this.value)'/>White"
-  puts $x3dFile "<br><input type='radio' name='bgcolor' value='.8 .8 .8' checked onclick='BGcolor(this.value)'/>Gray"
-  puts $x3dFile "<br><input type='radio' name='bgcolor' value='0 0 0' onclick='BGcolor(this.value)'/>Black"
+  puts $x3dFile "\n<!-- Background buttons -->\n<p>Background Color<br>"
+  set check1 ""
+  set check2 "checked"
+  if {[string first "AP209" $stepAP] != -1} {
+    set check2 ""
+    set check1 "checked"
+  }
+  puts $x3dFile "<input type='radio' name='bgcolor' value='1 1 1' $check1 onclick='BGcolor(this.value)'/>White<br>"
+  puts $x3dFile "<input type='radio' name='bgcolor' value='.8 .8 .8' $check2 onclick='BGcolor(this.value)'/>Gray<br>"
+  puts $x3dFile "<input type='radio' name='bgcolor' value='0 0 0' onclick='BGcolor(this.value)'/>Black"
   
 # axes button
-  puts $x3dFile "\n<p>\n<!-- Axes button -->\n<input type='checkbox' checked onclick='togAxes(this.value)'/>Axes"
+  puts $x3dFile "\n<!-- Axes button -->\n<p><input type='checkbox' checked onclick='togAxes(this.value)'/>Axes"
 
 # transparency slider
   if {$opt(VIZFEA) && [string first "AP209" $stepAP] == 0} {
@@ -529,7 +539,7 @@ proc x3dSetColor {type} {
 # -------------------------------------------------------------------------------------------------
 # open X3DOM file 
 proc openX3DOM {{fn ""}} {
-  global opt x3dFileName multiFile stepAP lastX3DOM
+  global opt x3dFileName multiFile stepAP lastX3DOM entCount recPracNames
   
   set f7 1  
   if {$fn == ""} {
@@ -592,7 +602,7 @@ proc x3dSwitchScript {name {name1 ""} {vp 0}} {
 
   if {$name1 == ""} {set name1 $name}
   
-  puts $x3dFile "<!-- $name1 switch -->\n<script>function tog$name1\(choice){"
+  puts $x3dFile "\n<!-- [string toupper $name1] switch -->\n<script>function tog$name1\(choice){"
   puts $x3dFile " if (!document.getElementById('sw$name1').checked) {"
   puts $x3dFile "  document.getElementById('sw$name').setAttribute('whichChoice', -1);"
   puts $x3dFile " } else {"

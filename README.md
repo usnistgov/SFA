@@ -1,6 +1,6 @@
 # STEP File Analyzer
 
-The following are instructions for building the [STEP File Analyzer](https://www.nist.gov/services-resources/software/step-file-analyzer) (SFA).  The SFA reads an ISO 10303 Part 21 STEP file and generates a spreadsheet.  More information, sample spreadsheets, and documentation about the SFA is available on the website including the [STEP File Analyzer User's Guide](https://www.nist.gov/publications/step-file-analyzer-users-guide-version-3).
+The following are instructions for building the [STEP File Analyzer](https://www.nist.gov/services-resources/software/step-file-analyzer) (SFA).  The SFA reads an ISO 10303 Part 21 STEP file and generates a spreadsheet.  More information, sample spreadsheets, and documentation about the SFA is available on the website including the [STEP File Analyzer User's Guide](https://www.nist.gov/publications/step-file-analyzer-users-guide-version-4).
 
 ## Prerequisites
 

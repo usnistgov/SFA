@@ -923,10 +923,10 @@ proc spmiDimtolReport {objEntity} {
               foreach item $badGeom {
                 if {$okSurf} {
                   errorMsg "Associated Geometry for a '[lindex $item 0]' dimension also refers to a '[lindex $item 1]'.\n [string totitle $dimName] dimensions are assumed to be associated only with curved surfaces."
-                  addCellComment $dt $r $pmiColumns(ch) "[string totitle $dimName] dimension (column E) also refers to a '[lindex $item 1]'." 200 50
+                  addCellComment $dt $r $pmiColumns(ch) "[string totitle $dimName] dimension (column E) also refers to a '[lindex $item 1]'."
                 } else {
                   errorMsg "Associated Geometry for a '[lindex $item 0]' dimension is only a '[lindex $item 1]'.\n [string totitle $dimName] dimensions are assumed to be associated with curved surfaces."
-                  addCellComment $dt $r $pmiColumns(ch) "[string totitle $dimName] dimension (column E) is assumed to be associated with curved surfaces and not a '[lindex $item 1]'." 200 50
+                  addCellComment $dt $r $pmiColumns(ch) "[string totitle $dimName] dimension (column E) is assumed to be associated with curved surfaces and not a '[lindex $item 1]'."
                 }
                 lappend entsWithErrors "dimensional_characteristic_representation"
               }
@@ -1291,7 +1291,7 @@ proc spmiDimtolReport {objEntity} {
               lappend dtg $tmp
             }
             errorMsg "Multiple dimensions $dtg associated with the same geometry\n $dimtolGeomEnts"
-            addCellComment $dt $r $pmiColumns(ch) "Multiple dimensions are associated with the same geometry.  The identical information in this cell should appear in another Associated Geometry cell above."
+            addCellComment $dt $r $pmiColumns(ch) "Multiple dimensions are associated with the same geometry.  The identical information in this cell should appear in another Associated Geometry cell above." 350 150
             lappend entsWithErrors "dimensional_characteristic_representation"
           }
         }

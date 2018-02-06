@@ -465,7 +465,7 @@ proc spmiGeotolReport {objEntity} {
                     if {[info exists colName]} {
                       $cells($gt) Item 3 $c $colName
                       if {[string first "GD&T" $colName] != -1} {
-                        addCellComment $gt 3 $c "The Geometric Tolerances below might be shown with their corresponding Dimensions and Datum Features.  It depends on any of the three referring to the same Associated Geometry.  See the Toleranced Geometry column to the right and the Associated Geometry columns on the 'dimensional_characteristic_representation' (DCR) and 'datum_feature' worksheets.  See the DCR worksheet for an explanation of Repetitive Dimensions." 250 120
+                        addCellComment $gt 3 $c "The Geometric Tolerances below might be shown with their corresponding Dimensions and Datum Features.  It depends on any of the three referring to the same Associated Geometry.  See the Toleranced Geometry column to the right and the Associated Geometry columns on the 'dimensional_characteristic_representation' (DCR) and 'datum_feature' worksheets.  See the DCR worksheet for an explanation of Repetitive Dimensions."
                       }
                     } else {
                       errorMsg "Syntax Error on [formatComplexEnt $gt]"
@@ -757,7 +757,11 @@ proc spmiGeotolReport {objEntity} {
 # get datum feature, associated geometry, and symbol
                     if {[string first "datum_feature" [$gtEntity Type]] != -1} {
                       getAssocGeom $gtEntity
-                      set datumGeom [reportAssocGeom [$gtEntity Type]]
+                      if {[info exists spmiIDRow($gt,$spmiID)]} {
+                        set datumGeom [reportAssocGeom [$gtEntity Type] $spmiIDRow($gt,$spmiID)]
+                      } else {
+                        set datumGeom [reportAssocGeom [$gtEntity Type]]
+                      }
                       set datumGeomEnts ""
                       foreach item [split $datumGeom "\n"] {
                         if {[string first "shape_aspect" $item] == -1 && \
@@ -766,7 +770,7 @@ proc spmiGeotolReport {objEntity} {
                             [string first "datum_feature" $item] == -1} {lappend datumGeomEnts $item}
                       }
                       set datumGeomEnts [join [lsort $datumGeomEnts]]
-                      set datumEntType($datumGeomEnts) "[$gtEntity Type] [$gtEntity P21ID]"
+                      set datumEntType($datumGeomEnts) "[formatComplexEnt [$gtEntity Type]] [$gtEntity P21ID]"
                       #outputMsg $datumGeom green
                       
                       set e1s [$gtEntity GetUsedIn [string trim shape_aspect_relationship] [string trim relating_shape_aspect]]
@@ -780,6 +784,12 @@ proc spmiGeotolReport {objEntity} {
                             }
                           }
                         }
+                      }
+                      if {[info exists datumSymbol($datumGeomEnts)]} {
+                        set ok 1
+                        set objValue $datumSymbol($datumGeomEnts)
+                        set col($gt) $pmiStartCol($gt)
+                        set colName "Datum[format "%c" 10](Sec. 6.5)"
                       }
                     }
                   }
@@ -1283,7 +1293,12 @@ proc spmiGeotolReport {objEntity} {
 # get dimensional tolerance by checking dimtols for the same associated geometry
       if {[info exists assocGeom]} {
         catch {unset tol_dimrep}
-        set geotolGeom [reportAssocGeom $gt]
+        if {[info exists spmiIDRow($gt,$spmiID)]} {
+          set geotolGeom [reportAssocGeom $gt $spmiIDRow($gt,$spmiID)]
+        } else {
+          set geotolGeom [reportAssocGeom $gt]
+        }
+
         set geotolGeomEnts ""
         foreach item [split $geotolGeom "\n"] {
           if {[string first "shape_aspect" $item] == -1 && \
@@ -1432,9 +1447,7 @@ proc spmiGeotolReport {objEntity} {
     }
     
 # associated dimensional tolerance for geometric tolerances
-    if {[info exists geotolGeomEnts] && [string first "datum_feature" $gt] != 0} {
-      #outputMsg $geotolGeomEnts green
-      #outputMsg [info exists dimtolEntType($geotolGeomEnts)] red
+    if {[info exists geotolGeomEnts] && [string first "datum_feature" $gt] == -1} {
       if {[info exists dimtolEntType($geotolGeomEnts)]} {
         set c1 [expr {$col($gt)+1}]
         set c [string index [cellRange 1 $c1] 0]
@@ -1450,7 +1463,7 @@ proc spmiGeotolReport {objEntity} {
     }
     
 # datum feature entity
-    if {[info exists geotolGeomEnts] && [string first "datum_feature" $gt] != 0} {
+    if {[info exists geotolGeomEnts] && [string first "datum_feature" $gt] == -1} {
       if {[info exists datumEntType($geotolGeomEnts)]} {
         set c1 [expr {$col($gt)+2}]
         set c [string index [cellRange 1 $c1] 0]
@@ -1489,6 +1502,12 @@ proc spmiGeotolReport {objEntity} {
           addCellComment $gt $r $c "Toleranced Geometry contains a 'manifold_solid_brep'" 150 30
         }
       }
+
+# missing toleranced geometry
+    } elseif {[string first "_tolerance" $gt] != -1} {
+      set msg "Syntax Error: Missing Toleranced Geometry.  Check GISU or IIRU 'definition' attribute or shape_aspect_relationship 'relating_shape_aspect' attribute.\n[string repeat " " 14]\($recPracNames(pmi242), Sec. 6.9.2)"
+      errorMsg $msg
+      lappend syntaxErr($gt) [list "-$spmiIDRow($gt,$spmiID)" "Toleranced Geometry" $msg]
     }
   }
 

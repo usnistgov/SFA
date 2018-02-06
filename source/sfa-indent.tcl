@@ -229,6 +229,7 @@ proc indentFile {ifile} {
 # same directory as file
   if {$opt(writeDirType) != 2} {
     set indentFileName [file rootname $ifile]
+
 # user-defined directory
   } else {
     set indentFileName [file join $writeDir [file rootname [file tail $ifile]]]

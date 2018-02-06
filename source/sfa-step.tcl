@@ -1,22 +1,22 @@
 #-------------------------------------------------------------------------------
 # version numbers, software and user's guide
-proc getVersion {}   {return 2.66}
+proc getVersion {}   {return 2.70}
 proc getVersionUG {} {return 2.34}
 
 # -------------------------------------------------------------------------------
-# dt = 1 for dimtol
-proc getAssocGeom {entDef {dt 0}} {
+# tolType = 1 for non-geometric tolerance (dimension, datum target, annotations)
+proc getAssocGeom {entDef {tolType 0} {tolName ""}} {
   global assocGeom entCount gtEntity recPracNames syntaxErr
   
   set entDefType [$entDef Type]
-  #outputMsg "getGeom $dt $entDefType [$entDef P21ID]" blue
+  #outputMsg "getAssocGeom $tolType $entDefType [$entDef P21ID]" blue
 
   if {[catch {
-    if {$entDefType == "shape_aspect" || $entDefType == "centre_of_symmetry" || \
+    if {$entDefType == "shape_aspect" || $entDefType == "all_around_shape_aspect" || $entDefType == "centre_of_symmetry" || \
       ([string first "datum" $entDefType] != -1 && [string first "_and_" $entDefType] == -1)} {
 
 # add shape_aspect to AG for dimtol
-      if {$dt && ($entDefType == "shape_aspect" || $entDefType == "centre_of_symmetry" || $entDefType == "datum_feature" || \
+      if {$tolType && ($entDefType == "shape_aspect" || $entDefType == "centre_of_symmetry" || $entDefType == "datum_feature" || \
                   [string first "datum_target" $entDefType] != -1)} {
         set type [appendAssocGeom $entDef A]
       }
@@ -35,54 +35,64 @@ proc getAssocGeom {entDef {dt 0}} {
       
 # find AF for SA with GISU or IIRU
       getAssocGeomFace $entDef
-    
-# look at composite_shape_aspect to find SAs
-    } else {
-      #outputMsg " $entDefType [$entDef P21ID]" red
-      set type [appendAssocGeom $entDef D]
-      set e0s [$entDef GetUsedIn [string trim shape_aspect_relationship] [string trim relating_shape_aspect]]
-      ::tcom::foreach e0 $e0s {
-        ::tcom::foreach a0 [$e0 Attributes] {
-          if {[$a0 Name] == "related_shape_aspect"} {
-            set type [appendAssocGeom [$a0 Value] E]
-            if {$type == "advanced_face"} {getFaceGeom [$a0 Value] E}
-
-            set a0val {}
-            set e1 [$a0 Value]
-            if {[[$a0 Value] Type] == "composite_shape_aspect" || [[$a0 Value] Type] == "composite_group_shape_aspect"} {
-              set e1s [[$a0 Value] GetUsedIn [string trim shape_aspect_relationship] [string trim relating_shape_aspect]]
-              ::tcom::foreach e1 $e1s {
-                ::tcom::foreach a1 [$e1 Attributes] {
-                  if {[$a1 Name] == "related_shape_aspect"} {
-                    lappend a0val [$a1 Value]
-                    set type [appendAssocGeom [$a1 Value] F]
-                  }
-                }
-              }
-            } else {
-              lappend a0val [$a0 Value]
-            }
-
-# find AF for SA with GISU or IIRU
-            foreach val $a0val {getAssocGeomFace $val}
+      
+# check all around      
+      if {$entDefType == "all_around_shape_aspect" && [string first "annotation" $tolName] == -1} {
+        if {[info exists assocGeom(advanced_face)]} {
+          if {[llength $assocGeom(advanced_face)] == 1} {
+            set msg "Syntax Error: For All Around tolerance, GISU relates '$entDefType' to only one 'advanced_face'.\n[string repeat " " 14]\($recPracNames(pmi242), Sec. 6.4, Fig. 31)"
+            errorMsg $msg
+            if {[info exists gtEntity]} {lappend syntaxErr([$gtEntity Type]) [list [$gtEntity P21ID] "toleranced_shape_aspect" $msg]}
           }
         }
       }
-      
-# check all around
-      if {$entDefType == "all_around_shape_aspect"} {
-        if {[llength $assocGeom($type)] == 1} {
-          #outputMsg " assocGeom $type $assocGeom($type) [llength $assocGeom($type)]" green
-          if {$type == "advanced_face"} {
-            set msg "Syntax Error: For All Around tolerance, 'shape_aspect relationship' entity relates '$entDefType' to only one 'shape_aspect'.\n[string repeat " " 14]\($recPracNames(pmi242), Sec. 6.4, Fig. 31)"
-            errorMsg $msg
-            if {[info exists gtEntity]} {lappend syntaxErr([$gtEntity Type]) [list [$gtEntity P21ID] "toleranced_shape_aspect" $msg]}
-          } elseif {$type == $entDefType} {
-            set msg "Syntax Error: For All Around tolerance, missing 'shape_aspect relationship' entity relating '$entDefType' to 'shape_aspect'.\n[string repeat " " 14]\($recPracNames(pmi242), Sec. 6.4, Fig. 31)"
-            errorMsg $msg
-            if {[info exists gtEntity]} {lappend syntaxErr([$gtEntity Type]) [list [$gtEntity P21ID] "toleranced_shape_aspect" $msg]}
-            unset assocGeom($type)
+    }
+    
+# look at SAR with CSA, CGSA, AASA, COS to find SAs, possibly nested
+    #outputMsg " $entDefType [$entDef P21ID]" red
+    set type [appendAssocGeom $entDef D]
+    set e0s [$entDef GetUsedIn [string trim shape_aspect_relationship] [string trim relating_shape_aspect]]
+    ::tcom::foreach e0 $e0s {
+      ::tcom::foreach a0 [$e0 Attributes] {
+        if {[$a0 Name] == "related_shape_aspect"} {
+          set type [appendAssocGeom [$a0 Value] E]
+          if {$type == "advanced_face"} {getFaceGeom [$a0 Value] E}
+
+          set a0val {}
+          set e1 [$a0 Value]
+          if {[[$a0 Value] Type] == "composite_shape_aspect" || [[$a0 Value] Type] == "composite_group_shape_aspect"} {
+            set e1s [[$a0 Value] GetUsedIn [string trim shape_aspect_relationship] [string trim relating_shape_aspect]]
+            ::tcom::foreach e1 $e1s {
+              ::tcom::foreach a1 [$e1 Attributes] {
+                if {[$a1 Name] == "related_shape_aspect"} {
+                  lappend a0val [$a1 Value]
+                  set type [appendAssocGeom [$a1 Value] F]
+                }
+              }
+            }
+          } else {
+            lappend a0val [$a0 Value]
           }
+
+# find AF for SA with GISU or IIRU
+          foreach val $a0val {getAssocGeomFace $val}
+        }
+      }
+    }
+    
+# check all around
+    if {$entDefType == "all_around_shape_aspect" && [string first "annotation" $tolName] == -1} {
+      if {[llength $assocGeom($type)] == 1} {
+        #outputMsg " assocGeom $type $assocGeom($type) [llength $assocGeom($type)]" green
+        if {$type == "advanced_face"} {
+          set msg "Syntax Error: For All Around tolerance, 'shape_aspect relationship' entity relates '$entDefType' to only one 'advanced_face'.\n[string repeat " " 14]\($recPracNames(pmi242), Sec. 6.4, Fig. 31)"
+          errorMsg $msg
+          if {[info exists gtEntity]} {lappend syntaxErr([$gtEntity Type]) [list [$gtEntity P21ID] "toleranced_shape_aspect" $msg]}
+        } elseif {$type == $entDefType} {
+          set msg "Syntax Error: For All Around tolerance, missing 'shape_aspect relationship' entity relating '$entDefType' to 'advanced_face'.\n[string repeat " " 14]\($recPracNames(pmi242), Sec. 6.4, Fig. 31)"
+          errorMsg $msg
+          if {[info exists gtEntity]} {lappend syntaxErr([$gtEntity Type]) [list [$gtEntity P21ID] "toleranced_shape_aspect" $msg]}
+          unset assocGeom($type)
         }
       }
     }
@@ -93,7 +103,8 @@ proc getAssocGeom {entDef {dt 0}} {
 
 # -------------------------------------------------------------------------------
 proc getAssocGeomFace {entDef} {
-
+  #outputMsg "getAssocGeomFace [$entDef Type]" green
+  
 # look at GISU and IIRU for geometry associated with shape_aspect
   foreach usage {geometric_item_specific_usage item_identified_representation_usage} {
     set e1s [$entDef GetUsedIn [string trim $usage] [string trim definition]]
@@ -123,7 +134,7 @@ proc appendAssocGeom {ent {id ""}} {
   set type  [$ent Type]
   #outputMsg " appendAssocGeom $type $p21id $id" red
   
-  if {[string first "annotation" $type] == -1} {
+  if {[string first "annotation" $type] == -1 && [string first "callout" $type] == -1} {
     if {![info exists assocGeom($type)]} {
       lappend assocGeom($type) $p21id
     } elseif {[lsearch $assocGeom($type) $p21id] == -1} {
@@ -165,9 +176,9 @@ proc reportAssocGeom {entType {row ""}} {
 # geometric entities
   foreach item [array names assocGeom] {
     if {[string first "shape_aspect" $item] == -1 && [string first "centre" $item] == -1 && \
-        [string first "datum" $item] == -1 && [string first "draughting_callout" $item] == -1 && $item != "advanced_face"} {
+        [string first "datum" $item] == -1 && [string first "_callout" $item] == -1 && $item != "advanced_face"} {
       if {[string length $str] > 0} {append str [format "%c" 10]}
-      append str "([llength $assocGeom($item)]) $item [lsort -integer $assocGeom($item)]"
+      append str "([llength $assocGeom($item)]) [formatComplexEnt $item] [lsort -integer $assocGeom($item)]"
 
 # dimension count, e.g. 4X
       if {[string first "_size" $entType] != -1 || [string first "angular_location" $entType] != -1} {
@@ -198,17 +209,32 @@ proc reportAssocGeom {entType {row ""}} {
       append str "([llength $assocGeom(advanced_face)]) $item [lsort -integer $assocGeom(advanced_face)]"
     }
   }
-  if {[string length $str] == 0 && $dimtol} {
-    set msg "Syntax Error: Associated Geometry not found for a '[formatComplexEnt $entType]'.\n[string repeat " " 14]Check GISU or IIRU 'definition' attribute or shape_aspect_relationship 'relating_shape_aspect' attribute.\n[string repeat " " 14]\($recPracNames(pmi242), Sec. 5.1, Figs. 5, 6, 12)"
+  
+# missing geometry  
+  if {[string length $str] == 0} {
+    if {$dimtol || [string first "occurrence" $entType] != -1} {
+      set str1 "Sec. 5.1, Figs. 5, 6, 12"
+      set str2 "Associated"
+    } else {
+      set str1 "Sec. 6.5, Fig. 35"
+      set str2 "Toleranced"
+    }
+    set msg "Syntax Error: Missing $str2 Geometry.  Check GISU or IIRU 'definition' attribute or shape_aspect_relationship 'relating_shape_aspect' attribute."
+    if {[string first "occurrence" $entType] != -1} {append msg "\n[string repeat " " 14]$str2 Geometry is not needed for notes, title blocks, etc."}
+    append msg "\n[string repeat " " 14]\($recPracNames(pmi242), $str1)"
     errorMsg $msg
-    if {$row != ""} {lappend syntaxErr(dimensional_characteristic_representation) [list "-$row" "Associated Geometry" $msg]}
+    if {$row != ""} {
+      set idx $entType
+      if {$dimtol} {set idx "dimensional_characteristic_representation"}
+      lappend syntaxErr($idx) [list "-$row" "$str2 Geometry" $msg]
+    }
   }
 
 # shape aspect
   foreach item [array names assocGeom] {
     if {[string first "shape_aspect" $item] != -1 || [string first "centre" $item] != -1 || [string first "datum_feature" $item] != -1} {
       if {[string length $str] > 0} {append str [format "%c" 10]}
-      append str "([llength $assocGeom($item)]) $item [lsort -integer $assocGeom($item)]"
+      append str "([llength $assocGeom($item)]) [formatComplexEnt $item] [lsort -integer $assocGeom($item)]"
     }
   }
   return $str
@@ -241,9 +267,9 @@ proc spmiSummary {} {
     $cells($spmiSumName) Item $spmiSumRow 3 "PMI Representation"
     
     set comment "PMI Representation is collected from the datum systems, dimensions, tolerances, and datum target entities in column B"
-    if {$nistName != ""} {append comment " and is color-coded by the expected PMI in the NIST test case drawing to the right.  The color-coding is explained at the bottom of the column.  Determining if the PMI is Partial and Possible match and corresponding Similar PMI depends on leading and trailing zeros, number precision, associated datum features and dimensions, and repetitive dimensions."}
+    if {$nistName != ""} {append comment " and is color-coded by the expected PMI in the NIST test case drawing to the right.  The color-coding is explained at the bottom of the column.  Determining if the PMI is Partial and Possible match and corresponding Similar PMI depends on leading and trailing zeros, number precision, associated datum features and dimensions, and repetitive dimensions"}
     append comment "."
-    addCellComment $spmiSumName $spmiSumRow 3 $comment 300 100
+    addCellComment $spmiSumName $spmiSumRow 3 $comment
     
     set range [$worksheet($spmiSumName) Range [cellRange 1 1] [cellRange 3 3]]
     [$range Font] Bold [expr 1]
@@ -342,6 +368,7 @@ proc spmiSummary {} {
 # allPMI used to count some modifiers for coverage analysis          
           if {[string first "tolerance" $thisEntType] != -1} {append allPMI $val}
 
+# -------------------------------------------------------------------------------
 # check actual vs. expected PMI for NIST files
           if {[info exists pmiExpected($nistName)]} {
 
@@ -368,9 +395,10 @@ proc spmiSummary {} {
               set valType($val) $entstr
             }
 
+# -------------------------------------------------------------------------------
 # search for PMI in pmiExpected list
             set pmiMatch [lsearch $pmiExpected($nistName) $val]
-            #outputMsg "$val\n $pmiMatch $valType($val)" green
+            #outputMsg "$val  $pmiMatch $valType($val)" blue
             #outputMsg $pmiExpected($nistName)
 
 # found in list, remove from pmiExpected
@@ -381,6 +409,7 @@ proc spmiSummary {} {
               set pmiExpectedNX($nistName) [lreplace $pmiExpectedNX($nistName) $pmiMatch $pmiMatch]
               lappend pmiFound $val
 
+# -------------------------------------------------------------------------------
 # not found
             } else {
               set pmiMatch 0
@@ -401,6 +430,7 @@ proc spmiSummary {} {
                 }
               }
               
+# -------------------------------------------------------------------------------
 # try match to expected without 'nX'              
               if {$pmiMatch == 0} {
                 set pmiMatchNX [lsearch $pmiExpectedNX($nistName) $val]
@@ -415,6 +445,7 @@ proc spmiSummary {} {
                 }
               }
 
+# -------------------------------------------------------------------------------
 # no match yet
               if {$pmiMatch == 0} {
                 foreach pmi $pmiExpected($nistName) {
@@ -430,6 +461,7 @@ proc spmiSummary {} {
                           [string first "$pmiUnicode(plusminus)" $val] == 0} {set ok 0}
                     }
 
+# -------------------------------------------------------------------------------
 # do similarity match
                     if {$ok} {
                       set pmiSim 0
@@ -454,11 +486,17 @@ proc spmiSummary {} {
                       } elseif {[string first "tolerance" $valType($val)] != -1} {
                         if {[string first $val $pmi] != -1 || [string first $pmi $val] != -1} {
                           set pmiSim 0.95
-                          #outputMsg "$val $pmiSim cc"
+                          #outputMsg "$val / $pmi / $pmiSim cc" green
                         } else {
                           set tol $pmiUnicode([string range $valType($val) 0 [string last "_" $valType($val)]-1])
                           set pmiSim [stringSimilarity $val $pmi]
-                          #outputMsg "$val $pmiSim dd"
+
+# make sure datum features are the same, deduct from pmiSim if not
+                          if {[string index $val end] == "\]" && [string index $pmi end] == "\]"} {
+                            if {[string index $val end-1] != [string index $pmi end-1]} {set pmiSim [expr {$pmiSim-0.025}]}
+                          }
+                          #outputMsg "$val / $pmi / $pmiSim dd" green
+
                           if {$pmiSim < 0.9} {
                             set sval [split $val $tol]
                             if {[string length [lindex $sval 0]] > 0} {
@@ -481,6 +519,7 @@ proc spmiSummary {} {
                             $valType($val) == "flatness_tolerance"} {set pmiSim 0.6}
                       }
                     
+# -------------------------------------------------------------------------------
 # keep best match
                       if {$pmiSim > $pmiMatch} {
                         #outputMsg "$pmiSim / $val / $pmi / [string first $val $pmi]" red
@@ -536,6 +575,7 @@ proc spmiSummary {} {
                 }
               }
 
+# -------------------------------------------------------------------------------
 # perfect match, green
               if {$pmiMatch == 1} {
                 [[$worksheet($spmiSumName) Range C$spmiSumRow] Interior] Color $legendColor(green) 
@@ -561,7 +601,7 @@ proc spmiSummary {} {
                   if {$nsimilar == 1} {
                     [$worksheet($spmiSumName) Range [cellRange -1 4]] ColumnWidth [expr 48]
                     $cells($spmiSumName) Item 3 4 "Similar PMI"
-                    addCellComment $spmiSumName 3 4 "Similar PMI is the best match of the PMI Representation in column C, for Partial or Possible matches (blue and yellow), to the expected PMI in the NIST test case drawing to the right."
+                    addCellComment $spmiSumName 3 4 "Similar PMI is the best match of the PMI Representation in column C, for Partial or Possible matches (blue and yellow), to the expected PMI in the NIST test case drawing to the right." 300 50
                     set range [$worksheet($spmiSumName) Range D3]
                     [$range Font] Bold [expr 1]
                     if {$excelVersion >= 12} {
@@ -583,7 +623,9 @@ proc spmiSummary {} {
               [[[$worksheet($spmiSumName) Range C$spmiSumRow] Borders] Item [expr 9]] Weight [expr 1]
             }
           }
+# done checking actual vs. expected PMI
 
+# -------------------------------------------------------------------------------
 # link back to worksheets
           set anchor [$worksheet($spmiSumName) Range "B$spmiSumRow"]
           set hlsheet $thisEntType
@@ -994,7 +1036,7 @@ proc pmiFormatColumns {str} {
       }
     }
 
-# group columns for inverses
+# group columns
     if {$c1 > 2} {
       set range [$worksheet($thisEntType) Range [cellRange 1 2] [cellRange [expr {$row($thisEntType)+2}] $c1]]
       [$range Columns] Group

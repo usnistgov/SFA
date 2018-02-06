@@ -1241,21 +1241,21 @@ proc addHeaderWorksheet {numFile fname} {
           puts $fcsv $csvstr
         }
         outputMsg "$attr:  $sn" blue
-        if {[string range $sn end-3 end] == "_MIM"} {
-          errorMsg "Syntax Error: Schema name should end with _MIM_LF"
+        if {[string first "_MIM" $sn] != -1 && [string first "_MIM_LF" $sn] == -1} {
+          errorMsg " SchemaName (FILE_SCHEMA) should end with '_MIM_LF', see Header worksheet"
           if {$useXL} {[[$worksheet($hdr) Range B11] Interior] Color $legendColor(red)}
         }
         if {[string first "AUTOMOTIVE_DESIGN_CC2" $sn] == 0} {
-          errorMsg "This file uses an older version of STEP AP214.  See Help > Supported STEP APs"
+          errorMsg " This file uses an older version of STEP AP214.  See Help > Supported STEP APs"
         }
 
         set fileSchema [string toupper [string range $objAttr 0 5]]
         if {[string first "IFC" $fileSchema] == 0} {
-          errorMsg "Use the IFC File Analyzer with IFC files."
+          errorMsg " Use the IFC File Analyzer with IFC files."
           after 1000
           openURL https://www.nist.gov/services-resources/software/ifc-file-analyzer
         } elseif {$objAttr == "STRUCTURAL_FRAME_SCHEMA"} {
-          errorMsg "This is a CIS/2 file that can be visualized with SteelVis.\n https://www.nist.gov/services-resources/software/steelvis-aka-cis2-viewer"
+          errorMsg " This is a CIS/2 file that can be visualized with SteelVis.\n https://www.nist.gov/services-resources/software/steelvis-aka-cis2-viewer"
         }
 
 # other File attributes
@@ -1295,7 +1295,7 @@ proc addHeaderWorksheet {numFile fname} {
 # check implementation level        
         if {$attr == "FileImplementationLevel"} {
           if {[string first "\;" $objAttr] == -1} {
-            errorMsg "Syntax Error: Implementation Level is usually '2\;1'"
+            errorMsg "FileImplementationLevel is usually '2\;1', see Header worksheet"
             if {$useXL} {[[$worksheet($hdr) Range B4] Interior] Color $legendColor(red)}
           } elseif {$objAttr == "4\;1"} {
             set p21e3 1
@@ -1304,8 +1304,8 @@ proc addHeaderWorksheet {numFile fname} {
 
 # check and add time stamp to multi file summary
         if {$attr == "FileTimeStamp"} {
-          if {([string first "-" $objAttr] == -1 || [string length $objAttr] < 17) && $objAttr != ""} {
-            errorMsg "Syntax Error: Wrong format for FileTimeStamp"            
+          if {([string first "-" $objAttr] == -1 || [string length $objAttr] < 17 || [string length $objAttr] > 25) && $objAttr != ""} {
+            errorMsg "FileTimeStamp has the wrong format, see Header worksheet"            
             if {$useXL} {[[$worksheet($hdr) Range B5] Interior] Color $legendColor(red)}
           }
           if {$numFile != 0 && [info exists cells1(Summary)] && $useXL} {
@@ -1717,9 +1717,9 @@ proc sumAddColorLinks {sum sumHeaderRow sumLinks sheetSort sumRow} {
         } else {
           [$anchor Interior] ColorIndex [expr 15]
           if {$ent != "dimensional_characteristic_representation"} {
-            addCellComment $sum $sumRow 1 "There are errors or warnings for this entity based on CAx-IF Recommended Practices.  See Help > Syntax Errors." 250 40
+            addCellComment $sum $sumRow 1 "There are errors or warnings for this entity based on CAx-IF Recommended Practices.  See Help > Syntax Errors." 300 25
           } else {
-            addCellComment $sum $sumRow 1 "There are errors or warnings for this entity based on CAx-IF Recommended Practices.  Check for cell comments in the Associated Geometry column.  See Help > Syntax Errors." 250 60
+            addCellComment $sum $sumRow 1 "There are errors or warnings for this entity based on CAx-IF Recommended Practices.  Check for cell comments in the Associated Geometry column.  See Help > Syntax Errors." 300 50
           }
         }
         catch {
@@ -1783,6 +1783,7 @@ proc formatWorksheets {sheetSort sumRow inverseEnts} {
 
   foreach thisEntType $sheetSort {
     #getTiming "START FORMATTING $thisEntType"
+    #outputMsg $thisEntType
     incr nprogBarEnts
     update idletasks
     

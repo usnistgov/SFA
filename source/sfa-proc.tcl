@@ -137,6 +137,13 @@ proc checkValues {} {
     foreach b {gpmiColor0 gpmiColor1 gpmiColor2 linecolor optVIZPMIVP} {lappend butDisabled $b}
   }
 
+# FEM visualization
+  if {$opt(VIZFEA)} {
+    foreach b {optVIZFEALVS} {lappend butNormal $b}
+  } else {
+    foreach b {optVIZFEALVS} {lappend butDisabled $b}
+  }
+
 # semantic PMI report
   if {$opt(PMISEM)} {
     foreach b {optPR_STEP_AP242 optPR_STEP_REPR optPR_STEP_SHAP optPR_STEP_TOLR optPR_STEP_QUAN} {
@@ -1230,9 +1237,9 @@ proc cellRange {r c} {
 }
 
 #-------------------------------------------------------------------------------
-proc addCellComment {ent r c text {w 300} {h 70}} {
+proc addCellComment {ent r c text {w 300} {h 100}} {
   global worksheet
-  #outputMsg "addCellComment $ent $r $c" green
+  #outputMsg "addCellComment $ent $r $c $w $h" green
 
   if {![info exists worksheet($ent)] || [string length $text] < 2} {return}
   
@@ -1264,10 +1271,9 @@ proc colorBadCells {ent} {
   set rmax [expr {$count($ent)+3}]
   set okcomment 0
   
-  set syntaxErr($ent) [lsort [lrmdups $syntaxErr($ent)]]
-  for {set n 0} {$n < [llength $syntaxErr($ent)]} {incr n} {
+  set syntaxErr($ent) [lsort -integer -index 0 [lrmdups $syntaxErr($ent)]]
+  foreach err $syntaxErr($ent) {
     if {[catch {
-      set err [lindex $syntaxErr($ent) $n]
 
 # get row and column number
       set r [lindex $err 0]
@@ -1288,6 +1294,8 @@ proc colorBadCells {ent} {
 # values are entity ID or row number (row) and attribute name (column)
       } else {
         #outputMsg "$ent / $r / $c / [string is integer $c]" red
+
+# find column based on heading text
         if {![info exists nc($c)]} { 
           for {set i 2} {$i < 30} {incr i} {
             set val [[$cells($ent) Item 3 $i] Value]
@@ -1307,12 +1315,14 @@ proc colorBadCells {ent} {
               set val [[$cells($ent) Item $i 1] Value]
               if {$val == $r} {
                 set r $i
-                #set lastr [expr {$r+1}]
+                set lastr [expr {$r+1}]
                 [[$worksheet($ent) Range [cellRange $r $c] [cellRange $r $c]] Interior] Color $legendColor(red)
                 set okcomment 1
                 break
               }              
             }
+
+# row number
           } else {
             set r [expr {abs($r)}]
             [[$worksheet($ent) Range [cellRange $r $c] [cellRange $r $c]] Interior] Color $legendColor(red)

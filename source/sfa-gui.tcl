@@ -264,9 +264,9 @@ proc guiProcessAndReports {} {
     if {[info exists entCategory($tt)]} {
       set ttmsg "[string trim [lindex $item 0]] entities ([llength $entCategory($tt)])  These entities are found in most APs.\nSee Help > Supported STEP APs and Websites > EXPRESS Schemas\n\n"
       if {$tt != "PR_STEP_COMM"} {
-        set ttmsg [guiToolTip $ttmsg $tt 120]
+        set ttmsg [guiToolTip $ttmsg $tt]
       } else {
-        append ttmsg "All AP-specific entities from APs other than AP203, AP214, and AP242\nare always processed, including AP209, AP210, AP238, and AP239.\n\nSee Help > User's Guide (section 4.4.2)"
+        append ttmsg "All AP-specific entities from APs other than AP203, AP214, and AP242\nare always processed, including AP209, AP210, AP238, and AP239.\n\nThe entity categories are used to group and color-code the entities\non the File Summary worksheet.\n\nSee Help > User's Guide (section 4.4.2)"
       }
       catch {tooltip::tooltip $buttons($idx) $ttmsg}
     }
@@ -286,11 +286,11 @@ proc guiProcessAndReports {} {
     if {[info exists entCategory($tt)]} {
       set ttmsg "[string trim [lindex $item 0]] entities ([llength $entCategory($tt)])"
       if {$tt == "PR_STEP_GEOM"} {
-        append ttmsg "  These entities are found in most APs.\n\nAP242, AP209, and AP210 also support tessellated geometry.\nSee Help > Supported STEP APs and Websites > EXPRESS Schemas\n\n"
+        append ttmsg "  These entities are found in most APs.  Some entities are found only in AP242.\nSee Help > Supported STEP APs and Websites > EXPRESS Schemas\n\n"
       } else {
         append ttmsg "  These entities are found in most APs.\nSee Help > Supported STEP APs and Websites > EXPRESS Schemas\n\n"
       }
-      set ttmsg [guiToolTip $ttmsg $tt 120]
+      set ttmsg [guiToolTip $ttmsg $tt]
       catch {tooltip::tooltip $buttons($idx) $ttmsg}
     }
   }
@@ -311,7 +311,7 @@ proc guiProcessAndReports {} {
         append ttmsg "  These entities are found in some APs.\nSee Help > Supported STEP APs and Websites > EXPRESS Schemas\n\n"
         set ttmsg [guiToolTip $ttmsg $tt]
       } elseif {$tt == "PR_STEP_AP242"} {
-        append ttmsg "\n\nThese entities are new in AP242 and not found in AP203 or AP214.\nOther new AP242 entities are also found in the Tolerance, Shape Aspect,\nComposites, and Kinematics categories."
+        append ttmsg "\n\nThese entities are specific to AP242 and not found in AP203 or AP214.\nSome AP242 entities are also found in other categories."
         append ttmsg "\n\nSee Websites > AP242 Project and EXPRESS Schemas"
       }
       catch {tooltip::tooltip $buttons($idx) $ttmsg}
@@ -387,6 +387,12 @@ proc guiProcessAndReports {} {
     pack $buttons($idx) -side left -anchor w -padx 5 -pady 0 -ipady 0
     incr cb
   }
+  foreach item {{"Include Viewpoints" opt(VIZPMIVP)}} {
+    regsub -all {[\(\)]} [lindex $item 1] "" idx
+    set buttons($idx) [ttk::checkbutton $foptv3.$cb -text [lindex $item 0] -variable [lindex $item 1] -command {checkValues}]
+    pack $buttons($idx) -side left -anchor w -padx 8 -pady 0 -ipady 0
+    incr cb
+  }
   pack $foptv3 -side top -anchor w -pady 0 -padx 0 -fill y  
 
   set foptv4 [frame $foptv.4 -bd 0]
@@ -400,25 +406,30 @@ proc guiProcessAndReports {} {
     incr cb
   }
   pack $foptv4 -side top -anchor w -pady 0 -padx 25 -fill y  
-
-  set foptv5 [frame $foptv.5 -bd 0]
-  foreach item {{"Include Viewpoints" opt(VIZPMIVP)}} {
-    regsub -all {[\(\)]} [lindex $item 1] "" idx
-    set buttons($idx) [ttk::checkbutton $foptv5.$cb -text [lindex $item 0] -variable [lindex $item 1] -command {checkValues}]
-    pack $buttons($idx) -side top -anchor w -padx 2 -pady 0 -ipady 0
-    incr cb
-  }
-  pack $foptv5 -side top -anchor w -pady 0 -padx 25 -fill y  
   
   set foptv6 [frame $foptv.6 -bd 0]
-  foreach item {{" AP242 Tessellated Part Geometry"  opt(VIZTES)} \
-                {" AP209 Finite Element Model" opt(VIZFEA)}} {
+  foreach item {{" AP242 Tessellated Part Geometry" opt(VIZTES)}} {
     regsub -all {[\(\)]} [lindex $item 1] "" idx
     set buttons($idx) [ttk::checkbutton $foptv6.$cb -text [lindex $item 0] -variable [lindex $item 1] -command {checkValues}]
     pack $buttons($idx) -side top -anchor w -padx 5 -pady 0 -ipady 0
     incr cb
   }
   pack $foptv6 -side top -anchor w -pady 0 -padx 0 -fill y
+  
+  set foptv7 [frame $foptv.7 -bd 0]
+  foreach item {{" AP209 Finite Element Model" opt(VIZFEA)}} {
+    regsub -all {[\(\)]} [lindex $item 1] "" idx
+    set buttons($idx) [ttk::checkbutton $foptv7.$cb -text [lindex $item 0] -variable [lindex $item 1] -command {checkValues}]
+    pack $buttons($idx) -side left -anchor w -padx 5 -pady 0 -ipady 0
+    incr cb
+  }
+  foreach item {{"Scale load vectors" opt(VIZFEALVS)}} {
+    regsub -all {[\(\)]} [lindex $item 1] "" idx
+    set buttons($idx) [ttk::checkbutton $foptv7.$cb -text [lindex $item 0] -variable [lindex $item 1] -command {checkValues}]
+    pack $buttons($idx) -side left -anchor w -padx 8 -pady 0 -ipady 0
+    incr cb
+  }
+  pack $foptv7 -side top -anchor w -pady 0 -padx 0 -fill y
 
   pack $foptv -side left -anchor w -pady {5 2} -padx 10 -fill both -expand true
   pack $foptrv -side top -anchor w -pady 0 -fill x
@@ -426,6 +437,7 @@ proc guiProcessAndReports {} {
     tooltip::tooltip $buttons(optVIZPMI) "See Help > PMI Presentation\nSee Help > User's Guide (section 6.1.1)\nSee Examples > Graphical PMI Viewer\nSee Examples > Sample STEP Files\n\nVisualizations can be generated without generating a spreadsheet\nor CSV files.  See the Output Format option below."
     tooltip::tooltip $buttons(optVIZPMIVP) "PMI Viewpoints are experimental.\n\nViewpoints usually have the correct orientation but are not centered.\nUse pan and zoom to center the PMI."
     tooltip::tooltip $buttons(optVIZFEA) "This feature is still being developed.\n\nSee Help > AP209 Finite Element Model\nSee Help > User's Guide (section 6.1.3)\nSee Examples > AP209 FEM Viewer\n\nVisualizations can be generated without generating a spreadsheet\nor CSV files.  See the Output Format option below."
+    tooltip::tooltip $buttons(optVIZFEALVS) "Load vectors can by scaled by the load magnitude.\nLoad vectors are always colored by the load magnitude."
     tooltip::tooltip $buttons(optVIZTES) "This feature is still being developed.\nParts in an assembly might have the wrong position and orientation or be missing.\n\nParts modeled with tessellated geometry is supported by AP242 and is supplementary\nto boundary representation (b-rep) geometry.\n\nSee Help > AP242 Tessellated Part Geometry\nSee Help > User's Guide (section 6.1.2)\nSee Examples > AP242 Tessellated Part Viewer\n\nVisualizations can be generated without generating a spreadsheet or CSV files.\nSee the Output Format option below."
     tooltip::tooltip $buttons(linecolor) "For Random PMI colors, each 'annotation occurrence' is assigned a different color."
   }
@@ -873,12 +885,21 @@ proc guiHelpMenu {} {
         } elseif {[string first "ap209_multidisciplinary" $schema] == 0} {
           lappend schemas "AP209e2 - $schema"
     
-        } elseif {[string first "integrated" $schema] == 0} {
-          lappend schemas "AP238 - $schema"
-        } elseif {[string first "engineering_properties" $schema] == 0} {
-          lappend schemas "AP235 - $schema"
+        } elseif {[string first "cast_parts" $schema] == 0} {
+          lappend schemas "AP223 - $schema"
         } elseif {[string first "feature_based" $schema] == 0} {
           lappend schemas "AP224 - $schema"
+        } elseif {[string first "building_design" $schema] == 0} {
+          lappend schemas "AP225 - $schema"
+        } elseif {[string first "plant_spatial" $schema] == 0} {
+          lappend schemas "AP227 - $schema"
+        } elseif {[string first "technical_data" $schema] == 0} {
+          lappend schemas "AP232 - $schema"
+        } elseif {[string first "engineering_properties" $schema] == 0} {
+          lappend schemas "AP235 - $schema"
+        } elseif {[string first "integrated_cnc" $schema] == 0} {
+          lappend schemas "AP238 - $schema"
+
         } elseif {[string first "structural_frame" $schema] == 0} {
           lappend schemas "CIS/2 - $schema"
         } elseif {[string first "ap" $schema] == 0} {
@@ -1303,24 +1324,25 @@ elements, boundary conditions, and loads are shown and can be toggled on and off
 Internal faces for solid elements are not shown.  Elements can be made transparent although it
 is only approximate.  The visualization of AP209 files is still in development.  
 
-Load vectors are scaled and colored by their magnitude.  The shortest load vector is 1/10 the
-length of the longest load vector.  Forces use a single-headed arrow.  Moments use a
-double-headed arrow.
+Load vectors are colored by their magnitude.  Load vectors can be scaled by their magnitude.
+Forces use a single-headed arrow.  Moments use a double-headed arrow.
 
 Boundary conditions for translation DOF are shown with a red, green, or blue line along the
-X, Y, or Z axes depending on the constrained DOF.  A gray pyramid is used when all three
-translation DOF are constrained.
+X, Y, or Z axes depending on the constrained DOF.  Boundary conditions for rotation DOF are
+shown with a red, green, or blue circle around the X, Y, or Z axes depending on the
+constrained DOF.  
 
-Boundary conditions for rotation DOF are shown with a red, green, or blue circle around the
-X, Y, or Z axes depending on the constrained DOF.  A gray sphere is used when all three
-rotation DOF are constrained.
+A gray box is used when all six DOF are constrained.  A gray pyramid is used when all three
+translation DOF are constrained.  A gray sphere is used when all three rotation DOF are
+constrained.
 
 Setting Maximum Rows (Spreadsheet tab) does not affect the visualization.  For large AP209
-files, there might be insufficient memory to process all of the elements.
+files, there might be insufficient memory to process all of the elements, loads, and
+boundary conditions.
 
 See Help > User's Guide (section 6.1.3)
 See Examples > AP209 FEM Viewer
-See Websites > STEP AP209 Project"
+See Websites > AP209 Project"
     .tnb select .tnb.status
   }
 
@@ -1555,7 +1577,7 @@ proc guiToolTip {ttmsg tt {ttlim 120}} {
   set ttlen 0
   set lchar ""
   set r1 0
-  if {$tt == "PR_STEP_COMM"} {set ttlim 160}
+  if {$tt == "PR_STEP_PRES" || $tt == "PR_STEP_GEOM" || $tt == "PR_STEP_KINE"} {set ttlim 160}
 
   foreach item [lsort $entCategory($tt)] {
     if {[string range $item 0 $r1] != $lchar && $lchar != ""} {
