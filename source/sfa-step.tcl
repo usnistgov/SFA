@@ -1,6 +1,6 @@
 #-------------------------------------------------------------------------------
 # version numbers, software and user's guide
-proc getVersion {}   {return 2.70}
+proc getVersion {}   {return 2.80}
 proc getVersionUG {} {return 2.34}
 
 # -------------------------------------------------------------------------------
@@ -165,7 +165,7 @@ proc getFaceGeom {a0 {id ""}} {
 
 # -------------------------------------------------------------------------------
 proc reportAssocGeom {entType {row ""}} {
-  global assocGeom recPracNames dimRepeat dimRepeatDiv syntaxErr
+  global assocGeom recPracNames dimRepeat dimRepeatDiv syntaxErr cells
   #outputMsg "reportAssocGeom $entType" red
   
   set str ""
@@ -219,14 +219,21 @@ proc reportAssocGeom {entType {row ""}} {
       set str1 "Sec. 6.5, Fig. 35"
       set str2 "Toleranced"
     }
-    set msg "Syntax Error: Missing $str2 Geometry.  Check GISU or IIRU 'definition' attribute or shape_aspect_relationship 'relating_shape_aspect' attribute."
-    if {[string first "occurrence" $entType] != -1} {append msg "\n[string repeat " " 14]$str2 Geometry is not needed for notes, title blocks, etc."}
-    append msg "\n[string repeat " " 14]\($recPracNames(pmi242), $str1)"
-    errorMsg $msg
-    if {$row != ""} {
-      set idx $entType
-      if {$dimtol} {set idx "dimensional_characteristic_representation"}
-      lappend syntaxErr($idx) [list "-$row" "$str2 Geometry" $msg]
+
+    set ok 1
+    if {[string first "occurrence" $entType] != -1} {
+      set val [[$cells($entType) Item $row 5] Value]
+      foreach str3 {note title block} {if {[string first $str3 $val] != -1} {set ok 0}}
+    }
+    if {$ok} {
+      set msg "Syntax Error: Missing $str2 Geometry.  Check GISU or IIRU 'definition' attribute or shape_aspect_relationship 'relating_shape_aspect' attribute."
+      append msg "\n[string repeat " " 14]\($recPracNames(pmi242), $str1)"
+      errorMsg $msg
+      if {$row != ""} {
+        set idx $entType
+        if {$dimtol} {set idx "dimensional_characteristic_representation"}
+        lappend syntaxErr($idx) [list "-$row" "$str2 Geometry" $msg]
+      }
     }
   }
 
@@ -235,6 +242,11 @@ proc reportAssocGeom {entType {row ""}} {
     if {[string first "shape_aspect" $item] != -1 || [string first "centre" $item] != -1 || [string first "datum_feature" $item] != -1} {
       if {[string length $str] > 0} {append str [format "%c" 10]}
       append str "([llength $assocGeom($item)]) [formatComplexEnt $item] [lsort -integer $assocGeom($item)]"
+      if {[string first "tolerance" $entType] != -1 && $item == "datum_feature" && [llength $assocGeom($item)] > 1} {
+        set msg "Associated Geometry has multiple ([llength $assocGeom($item)]) $item for a [formatComplexEnt $entType]."
+        errorMsg $msg
+        #if {$row != ""} {lappend syntaxErr($entType) [list "-$row" "Toleranced Geometry" $msg]}
+      }
     }
   }
   return $str
@@ -266,10 +278,14 @@ proc spmiSummary {} {
     $cells($spmiSumName) Item $spmiSumRow 2 "Entity"
     $cells($spmiSumName) Item $spmiSumRow 3 "PMI Representation"
     
-    set comment "PMI Representation is collected from the datum systems, dimensions, tolerances, and datum target entities in column B"
-    if {$nistName != ""} {append comment " and is color-coded by the expected PMI in the NIST test case drawing to the right.  The color-coding is explained at the bottom of the column.  Determining if the PMI is Partial and Possible match and corresponding Similar PMI depends on leading and trailing zeros, number precision, associated datum features and dimensions, and repetitive dimensions"}
+    set h 30
+    set comment "PMI Representation is collected here from the datum systems, dimensions, tolerances, and datum target entities in column B"
+    if {$nistName != ""} {
+      append comment " ***** It is color-coded by the expected PMI in the NIST test case drawing to the right.  The color-coding is explained at the bottom of the column.  Determining if the PMI is Partial and Possible match and corresponding Similar PMI depends on leading and trailing zeros, number precision, associated datum features and dimensions, and repetitive dimensions. ***** See Help > User's Guide (section 7)"
+      set h 120
+    }
     append comment "."
-    addCellComment $spmiSumName $spmiSumRow 3 $comment
+    addCellComment $spmiSumName $spmiSumRow 3 $comment 300 $h
     
     set range [$worksheet($spmiSumName) Range [cellRange 1 1] [cellRange 3 3]]
     [$range Font] Bold [expr 1]
@@ -491,9 +507,13 @@ proc spmiSummary {} {
                           set tol $pmiUnicode([string range $valType($val) 0 [string last "_" $valType($val)]-1])
                           set pmiSim [stringSimilarity $val $pmi]
 
-# make sure datum features are the same, deduct from pmiSim if not
+# make sure tolerance datum features are the same
                           if {[string index $val end] == "\]" && [string index $pmi end] == "\]"} {
-                            if {[string index $val end-1] != [string index $pmi end-1]} {set pmiSim [expr {$pmiSim-0.025}]}
+                            if {[string index $val end-1] != [string index $pmi end-1]} {
+                              set pmiSim [expr {$pmiSim-0.025}]
+                            } else {
+                              set pmiSim [expr {$pmiSim+0.025}]
+                            }
                           }
                           #outputMsg "$val / $pmi / $pmiSim dd" green
 
@@ -515,8 +535,7 @@ proc spmiSummary {} {
                       }
   
                       if {$pmiSim < 0.6} {
-                        if {[string first $val $pmi] != -1 || [string first $pmi $val] != -1 || \
-                            $valType($val) == "flatness_tolerance"} {set pmiSim 0.6}
+                        if {[string first $val $pmi] != -1 || [string first $pmi $val] != -1 || $valType($val) == "flatness_tolerance"} {set pmiSim 0.6}
                       }
                     
 # -------------------------------------------------------------------------------
@@ -939,7 +958,7 @@ proc pmiAddModelPictures {ent} {
  
 # -------------------------------------------------------------------------------
 proc pmiFormatColumns {str} {
-  global cells col excelVersion gpmiRow invGroup opt pmiStartCol recPracNames row spmiRow stepAP thisEntType worksheet tcl_platform excelYear
+  global cells col excelVersion gpmiRow invGroup opt pmiStartCol recPracNames row spmiRow stepAP thisEntType worksheet tcl_platform
 		
   if {![info exists pmiStartCol($thisEntType)]} {
     return
@@ -984,7 +1003,7 @@ proc pmiFormatColumns {str} {
     } elseif {[string first "PMI Representation" $str] != -1} {
       set rs $spmiRow($thisEntType)
       if {$opt(XLSBUG1) > 0 && ![file exists [file nativename C:/Windows/Fonts/ARIALUNI.TTF]]} {
-        errorMsg "Excel $excelYear might not show some GD&T symbols correctly in PMI Representation reports.  The missing\n symbols will appear as question mark inside a square.  The likely cause is a missing font\n 'Arial Unicode MS' from the font file 'ARIALUNI.TTF'."
+        errorMsg "Excel might not show some GD&T symbols correctly in PMI Representation reports.  The missing\n symbols will appear as question mark inside a square.  The likely cause is a missing font\n 'Arial Unicode MS' from the font file 'ARIALUNI.TTF'."
         incr opt(XLSBUG1) -1
       } elseif {$opt(XLSBUG1) < 30 && [file exists [file nativename C:/Windows/Fonts/ARIALUNI.TTF]]} {
         set opt(XLSBUG1) 30
@@ -1178,9 +1197,7 @@ proc setEntsToProcess {entType} {
   }
 
 # for tessellated geometry
-  if {$opt(VIZTES) && $ok == 0} {
-    if {[string first "tessellated" $entType] != -1} {set ok 1}
-  }
+  if {$opt(VIZTPG) && $ok == 0} {if {[string first "tessellated" $entType] != -1} {set ok 1}}
 
   #outputMsg "$ok  $entType"
   return $ok
@@ -1222,9 +1239,9 @@ proc checkForReports {entType} {
     }
   
 # viz tessellated part geometry, call tessPart
-  } elseif {$entType == "tessellated_solid" || $entType == "tessellated_shell"} {
+  } elseif {$entType == "tessellated_solid" || $entType == "tessellated_shell" || $entType == "tessellated_wire"} {
     if {[catch {
-      if {[info exists opt(VIZTES)]} {if {$opt(VIZTES)} {tessPart $entType}}
+      if {[info exists opt(VIZTPG)]} {if {$opt(VIZTPG)} {tessPart $entType}}
     } emsg]} {
       errorMsg "ERROR adding Tessellated Part Geometry\n  $emsg"
     }
@@ -1363,7 +1380,7 @@ proc getSchemaFromFile {fname {msg 0}} {
 
 # check for CIS/2 or IFC files
         if {[string first "STRUCTURAL_FRAME_SCHEMA" $fsline] != -1} {
-          errorMsg "Use SteelVis to visualize the CIS/2 file.\n https://www.nist.gov/services-resources/software/steelvis-aka-cis2-viewer"
+          errorMsg "Use SteelVis to visualize the CIS/2 file.  https://go.usa.gov/s8fm"
         } elseif {[string first "IFC" $fsline] != -1} {
           errorMsg "Use the IFC File Analyzer with IFC files."
           after 1000

@@ -4,6 +4,7 @@ proc getEntity {objEntity checkInverse} {
   global attrType badAttributes cells col count developer entComment entCount entName excelVersion
   global skipEntities skipPerm heading invMsg invVals localName opt roseLogical row rowmax sheetLast
   global thisEntType worksheet worksheets wsCount wsNames syntaxErr
+  global coordinatesList lineStrips normals triangles
   
 # get entity type
   set thisEntType [$objEntity Type]
@@ -138,8 +139,17 @@ proc getEntity {objEntity checkInverse} {
           } else {
             set objValue "???"
             if {[llength $badAttributes($thisEntType)] == 1} {
-              errorMsg " Skipping attribute '$attrName' on [formatComplexEnt $thisEntType] - '???' will appear in spreadsheet for this attribute" red
+              set ok1 0
+              switch -- $attrName {
+                position_coords {if {[info exists coordinatesList($p21id)]} {set objValue $coordinatesList($p21id); set ok1 1}}
+                line_strips     {if {[info exists lineStrips($p21id)]}      {set objValue $lineStrips($p21id); set ok1 1}}
+              }
+              if {!$ok1} {errorMsg " Skipping attribute '$attrName' on [formatComplexEnt $thisEntType] - '???' will appear in spreadsheet for this attribute" red}
             } else {
+              #switch -- $attrName {
+              #  normals    {if {[info exists normals($p21id)]}   {set objValue $normals($p21id); set ok1 1}}
+              #  triangles  {if {[info exists triangles($p21id)]} {set objValue $triangles($p21id); set ok1 1}}
+              #}
               set str $badAttributes($thisEntType)
               regsub -all " " $str "' '" str
               errorMsg " Skipping attributes '$str' on [formatComplexEnt $thisEntType]\n '???' will appear in spreadsheet for these attributes" red
@@ -259,7 +269,7 @@ proc getEntity {objEntity checkInverse} {
           }
           $cells($thisEntType) Item $row($thisEntType) $col($thisEntType) $str
           if {$cellComment && $entComment($attrName)} {
-            addCellComment $thisEntType 3 $col($thisEntType) "The values of length and angle measures are also shown." 150 30
+            addCellComment $thisEntType 3 $col($thisEntType) "The values of *_measure_with_unit are also shown." 200 30
             set entComment($attrName) 0
           }
         }
@@ -331,7 +341,7 @@ proc getEntity {objEntity checkInverse} {
         }
         $cells($thisEntType) Item $row($thisEntType) $col($thisEntType) [string trim $str]
         if {$strMeasure != "" && $entComment($attrName)} {
-          addCellComment $thisEntType 3 $col($thisEntType) "The values of length and angle measures are also shown." 150 30
+          addCellComment $thisEntType 3 $col($thisEntType) "The values of *_measure_with_unit are also shown." 200 30
           set entComment($attrName) 0
         }
       }

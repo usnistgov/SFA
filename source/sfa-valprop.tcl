@@ -198,7 +198,16 @@ proc valPropReport {objEntity} {
 
 # get values for these entity and attribute pairs
             switch -glob $ent1 {
-              "*measure_representation_item* value_component" -
+              "*measure_representation_item* value_component" {
+                set ok 1
+                set col($pd) 9
+                if {$objValue <= 0.} {
+                  if {[string first "length" $valName] != -1 || [string first "area" $valName] != -1 || \
+                      [string first "volume" $valName] != -1 || [string first "number of" $valName] != -1} {
+                    errorMsg " Validation property '$valName' = $objValue"
+                  }
+                }
+              }
               "value_representation_item value_component"     -
               "descriptive_representation_item description"   {set ok 1; set col($pd) 9}
               "property_definition definition" {
@@ -266,6 +275,7 @@ proc valPropReport {objEntity} {
             switch -glob $ent1 {
               "cartesian_point coordinates" -
               "direction direction_ratios"  {set ok 1; set col($pd) 9; set colName "value"}
+              
               "representation items" -
               "shape_representation_with_parameters items" {set nrep 0; set maxrep $objSize}
             }
@@ -364,18 +374,29 @@ proc valPropReport {objEntity} {
 
 # get values for these entity and attribute pairs
             switch -glob $ent1 {
-              "descriptive_representation_item description" -
-              "*_representation_item the_value"       {set ok 1; set col($pd) 9;  set colName "value"}
+              "*_representation_item the_value" {
+                set ok 1
+                set col($pd) 9
+                set colName "value"
+                if {$objValue <= 0.} {
+                  if {[string first "length" $valName] != -1 || [string first "area" $valName] != -1 || \
+                      [string first "volume" $valName] != -1 || [string first "number of" $valName] != -1} {
+                    errorMsg " Validation property '$valName' = $objValue"
+                  }
+                }
+              }
+              
+              "descriptive_representation_item description" {set ok 1; set col($pd) 9; set colName "value"}
 
               "conversion_based_unit_and_*_unit name" {set ok 1; set col($pd) 11; set colName "units"}
 
-              "*_unit_and_si_unit name"               -
-              "si_unit_and_*_unit name"               {set ok 1; set col($pd) 11; set colName "units"; set objValue "$prefix$objValue"}
+              "*_unit_and_si_unit name" -
+              "si_unit_and_*_unit name" {set ok 1; set col($pd) 11; set colName "units"; set objValue "$prefix$objValue"}
 
-              "derived_unit_element exponent"         {set ok 1; set col($pd) 13; set colName "exponent"}
+              "derived_unit_element exponent" {set ok 1; set col($pd) 13; set colName "exponent"}
 
-              "*_unit_and_si_unit prefix"             -
-              "si_unit_and_*_unit prefix"             {set ok 0; set prefix $objValue}
+              "*_unit_and_si_unit prefix" -
+              "si_unit_and_*_unit prefix" {set ok 0; set prefix $objValue}
 
               "property_definition name" {
                 set ok 0

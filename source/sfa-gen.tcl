@@ -1,15 +1,15 @@
 # generate an Excel spreadsheet from a STEP file
 
 proc genExcel {{numFile 0}} {
-  global allEntity ap203all ap214all ap242all badAttributes buttons
+  global allEntity allVendor aoEntTypes ap203all ap214all ap242all badAttributes buttons
   global cells cells1 col col1 count coverageLegend readPMI csvdirnam csvfile
   global developer dim dimRepeatDiv editorCmd entCategories entCategory entColorIndex entCount entityCount entsIgnored entsWithErrors env errmsg
-  global excel excelVersion excelYear extXLS fcsv feaElemTypes File fileEntity skipEntities skipPerm gpmiTypesInvalid gpmiTypesPerFile idxColor ifcsvrDir inverses
+  global excel excelVersion extXLS fcsv feaElemTypes File fileEntity skipEntities skipPerm gpmiTypesInvalid gpmiTypesPerFile idxColor ifcsvrDir inverses
   global lastXLS lenfilelist localName localNameList logFile multiFile multiFileDir mytemp nistName nistVersion nprogBarEnts nshape
   global ofExcel ofCSV
   global opt p21e3 p21e3Section pmiCol pmiMaster recPracNames row rowmax
   global savedViewButtons savedViewName savedViewNames scriptName sheetLast spmiEntity spmiSumName spmiSumRow spmiTypesPerFile startrow stepAP
-  global thisEntType tlast tolNames tolStandard totalEntity userEntityFile userEntityList userXLSFile useXL virtualDir
+  global thisEntType tlast tolNames tolStandard totalEntity userEntityFile userEntityList userXLSFile useXL virtualDir viz
   global workbook workbooks worksheet worksheet1 worksheets writeDir wsCount wsNames
   global x3dAxes x3dColor x3dColors x3dCoord x3dFile x3dFileName x3dStartFile x3dIndex x3dMax x3dMin
   global xlFileName xlFileNames xlFormat xlInstalled
@@ -19,7 +19,7 @@ proc genExcel {{numFile 0}} {
   #outputMsg "genExcel" red
 
 # initialize for X3DOM geometry
-  if {$opt(VIZPMI) || $opt(VIZFEA) || $opt(VIZTES)} {
+  if {$opt(VIZPMI) || $opt(VIZTPG) ||$opt(VIZFEA)} {
     set x3dStartFile 1
     set x3dAxes 1
     set x3dFileName ""
@@ -172,83 +172,8 @@ proc genExcel {{numFile 0}} {
     }
 
 # check if a file generated from a NIST test case is being processed
-    set nistName ""
-    set ftail [string tolower [file tail $localName]]
-    set ctcftc 0
-    set filePrefix [list sp4_ sp5_ sp6_ sp7_ tgp1_ tgp2_ tgp3_ tgp4_ tp3_ tp4_ tp5_ tp6_ lsp_ lpp_ ltg_ ltp_]
+    set nistName [getNISTName]
 
-    set ok  0
-    set ok1 0
-    foreach prefix $filePrefix {
-      if {[string first $prefix $ftail] == 0 || [string first "nist" $ftail] != -1 || \
-          [string first "ctc" $ftail] != -1 || [string first "ftc" $ftail] != -1} {
-        set tmp "nist_"
-        foreach item {ctc ftc} {
-          if {[string first $item $ftail] != -1} {
-            append tmp "$item\_"
-            set ctcftc 1
-          }
-        }
-
-# find nist_ctc_01 directly        
-        if {$ctcftc} {
-          for {set i 1} {$i <= 11} {incr i} {
-            set i1 $i
-            if {$i < 10} {set i1 "0$i"}
-            set tmp1 "$tmp$i1"
-            if {[string first $tmp1 $ftail] != -1 && !$ok1} {
-              set nistName $tmp1
-              #outputMsg $nistName blue
-              set ok1 1
-            }
-          }
-        }
-
-# find the number in the string            
-        if {!$ok1} {
-          for {set i 1} {$i <= 11} {incr i} {
-            if {!$ok} {
-              set i1 $i
-              if {$i < 10} {set i1 "0$i"}
-              set c {""}
-              #outputMsg "$i1  [string first $i1 $ftail]  [string last $i1 $ftail]" blue
-              if {[string first $i1 $ftail] != [string last $i1 $ftail]} {set c {"_" "-"}}
-              foreach c1 $c {
-                for {set j 0} {$j < 2} {incr j} {
-                  if {$j == 0} {set i2 "$c1$i1"}
-                  if {$j == 1} {set i2 "$i1$c1"}
-                  #outputMsg "[string first $i2 $ftail]  $i2  $ftail" green
-                  if {[string first $i2 $ftail] != -1 && !$ok} {
-                    if {$ctcftc} {
-                      append tmp $i1
-                    } elseif {$i <= 5} {
-                      append tmp "ctc_$i1"
-                    } else {
-                      append tmp "ftc_$i1"
-                    }
-                    set nistName $tmp
-                    set ok 1
-                    #outputMsg $nistName red
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
-    }
-    
-# other files
-    if {!$ok} {
-      if {[string first "332211_qif_bracket" $ftail] != -1} {set nistName "332211_qif_bracket_revh"}
-      if {[string first "sp3" $ftail] == 0} {
-        if {[string first "1101"  $ftail] != -1} {set nistName "sp3-1101"}
-        if {[string first "16792" $ftail] != -1} {set nistName "sp3-16792"}
-        if {[string first "box"   $ftail] != -1} {set nistName "sp3-box"}
-      }
-    }
-    if {$developer && [string first "step-file-analyzer" $ftail] == 0} {set nistName "nist_ctc_01"}
-    
 # error opening file, report the schema
   } emsg]} {
     errorMsg "ERROR opening STEP file"
@@ -285,7 +210,6 @@ proc genExcel {{numFile 0}} {
 
 # -------------------------------------------------------------------------------------------------
 # connect to Excel
-  #set comma 0
   set useXL 1
   set xlInstalled 1
   if {$opt(XLSCSV) != "None"} {
@@ -294,23 +218,7 @@ proc genExcel {{numFile 0}} {
       set excel [::tcom::ref createobject Excel.Application]
       set pidExcel [lindex [intersect3 $pid1 [twapi::get_process_ids -name "EXCEL.EXE"]] 2]
       [$excel ErrorCheckingOptions] TextDate False
-  
-# version and year
       set excelVersion [expr {int([$excel Version])}]
-      set excelYear ""
-      switch $excelVersion {
-        9  {set excelYear 2000}
-        10 {set excelYear 2002}
-        11 {set excelYear 2003}
-        12 {set excelYear 2007}
-        default {
-          if {$excelVersion > 8 && $excelVersion < 50} {
-            set excelYear [expr {2010+3*($excelVersion-14)}]
-          } else {
-            set excelYear $excelVersion
-          }
-        }
-      }
 
 # file format, max rows
       set extXLS "xlsx"
@@ -322,7 +230,7 @@ proc genExcel {{numFile 0}} {
         set extXLS "xls"
         set xlFormat [expr 56]
         set rowmax [expr {2**16}]
-        errorMsg "Some spreadsheet features used by the STEP File Analyzer are not compatible with Excel $excelYear."
+        errorMsg "Some spreadsheet features used by the STEP File Analyzer are not compatible with this older version of Excel."
       }
   
 # generate with Excel but save as CSV
@@ -380,18 +288,6 @@ proc genExcel {{numFile 0}} {
       set sheetLast [$worksheets Item [$worksheets Count]]
       catch {$excel DisplayAlerts True}
       [$excel ActiveWindow] TabRatio [expr 0.7]
-
-# determine decimal separator
-      set sheet [$worksheets Item [expr 1]]
-      set cell  [$sheet Cells]
-  
-      #set A1 12345,67890
-      #$cell Item 1 A $A1
-      #set range [$sheet Range "A1"]
-      #if {[$range Value] == 12345.6789} {
-      #  set comma 1
-      #  errorMsg "Using comma \",\" as the decimal separator for numbers" red
-      #}
   
 # print errors
     } emsg]} {
@@ -591,6 +487,12 @@ proc genExcel {{numFile 0}} {
     }
   }
     
+# check if there is anything visualization
+  foreach typ {PMI TPG FEA} {set viz($typ) 0}
+  if {$opt(VIZPMI)} {foreach ao $aoEntTypes {if {[info exists entCount($ao)]} {set viz(PMI) 1}}}
+  if {$opt(VIZTPG)} {if {[info exists entCount(tessellated_solid)] || [info exists entCount(tessellated_shell)]} {set viz(TPG) 1}}
+  if {$opt(VIZFEA) && [string first "AP209" $stepAP] == 0} {set viz(FEA) 1}
+    
 # open expected PMI worksheet (once) if PMI representation and correct file name
   if {$opt(PMISEM) && $stepAP == "AP242" && $nistName != ""} {
     set tols $tolNames
@@ -671,7 +573,7 @@ proc genExcel {{numFile 0}} {
   }
   
 # move some AP209 entities to end
-  if {$opt(VIZFEA)} {
+  if {$viz(FEA)} {
     foreach ent {nodal_freedom_action_definition single_point_constraint_element_values} {
       if {[info exists entCount($ent)]} {
         set spc "19$ent"
@@ -763,19 +665,19 @@ proc genExcel {{numFile 0}} {
     set spmiSumRow 1
     set stat 1
     set wsCount 0
-    foreach f {elements mesh meshIndex faceIndex} {
-      catch {file delete -force [file join $mytemp $f.txt]}
-    }
+    foreach f {elements mesh meshIndex faceIndex} {catch {file delete -force [file join $mytemp $f.txt]}}
 
     if {[info exists dim]} {unset dim}
     set dim(prec,max) 0
     set dim(unit) ""
+    set dim(unitOK) 1
     set dimRepeatDiv 2
-    #set dim(name) ""
     
 # find camera models used in draughting model items and annotation_occurrence used in property_definition and datums
-    if {$opt(PMIGRF) || $opt(VIZPMI)} {pmiGetCamerasAndProperties}
+    if {$opt(PMIGRF) || $viz(PMI)} {pmiGetCamerasAndProperties}
+    #foreach typ {PMI TPG FEM} {outputMsg "$typ $viz($typ)" red}
 
+# no entities to process
     if {[llength $entsToProcess] == 0} {
       if {$opt(XLSCSV) != "None"} {
         errorMsg " No entities are selected to Process (Options tab)."
@@ -859,7 +761,7 @@ proc genExcel {{numFile 0}} {
         if {!$useXL} {catch {close $fcsv}}
       }
       
-# check for reports (validation properties, PMI presentation and representation, tessellated geometry, AP209)
+# check for reports (validation properties, PMI presentation and representation, tessellated geometry, AP209 FEM)
       checkForReports $entType
     }
 
@@ -899,7 +801,7 @@ proc genExcel {{numFile 0}} {
 
 # -------------------------------------------------------------------------------------------------
 # set viewpoints and close X3DOM geometry file 
-  if {($opt(VIZPMI) || $opt(VIZFEA) || $opt(VIZTES)) && $x3dFileName != ""} {x3dFileEnd}
+  if {($viz(PMI) || $viz(FEA) || $viz(TPG)) && $x3dFileName != ""} {x3dFileEnd}
 
 # -------------------------------------------------------------------------------------------------
 # add summary worksheet
@@ -1023,7 +925,7 @@ proc genExcel {{numFile 0}} {
           outputMsg "Saving Spreadsheet as multiple CSV files to:"
           outputMsg " [truncFileName [file nativename $csvdirnam]]" blue
           set csvFormat [expr 6]
-          if {$excelYear >= 2016} {set csvFormat [expr 62]}
+          if {$excelVersion > 15} {set csvFormat [expr 62]}
           
           set nprogBarEnts 0
           for {set i 1} {$i <= [$worksheets Count]} {incr i} {
@@ -1038,7 +940,7 @@ proc genExcel {{numFile 0}} {
             regsub -all " " $wsname "-" wsname
             set csvfname [file nativename [file join $csvdirnam $wsname.csv]]
             if {[file exists $csvfname]} {file delete -force $csvfname}
-            if {[string first "PMI-Representation" $csvfname] != -1 && $excelYear < 2016} {
+            if {[string first "PMI-Representation" $csvfname] != -1 && $excelVersion < 16} {
               errorMsg "PMI symbols written to CSV files will look correct only with Excel 2016 or newer." red
             }
             $workbook -namedarg SaveAs Filename [file rootname $csvfname] FileFormat $csvFormat
@@ -1160,7 +1062,8 @@ proc genExcel {{numFile 0}} {
   global heading invGroup feaNodes nrep numx3dPID pmiColumns pmiStartCol 
   global propDefID propDefIDRow propDefName propDefOK propDefRow syntaxErr
   global shapeRepName tessRepo tessPlacement dimtolGeom dimtolEntID datumGeom datumSymbol
-  global savedViewFileName savedViewFile feaDOFT feaDOFR
+  global savedViewFileName savedViewFile feaDOFT feaDOFR savedsavedViewNames
+  global coordinatesList lineStrips
 
   foreach var {cells colColor invCol count currx3dPID dimrep dimrepID entName entsIgnored \
               gpmiID gpmiIDRow gpmiRow heading invGroup nrep feaNodes numx3dPID \
@@ -1168,7 +1071,8 @@ proc genExcel {{numFile 0}} {
               syntaxErr workbook workbooks worksheet worksheets \
               x3dCoord x3dFile x3dFileName x3dStartFile x3dIndex x3dMax x3dMin \
               shapeRepName tessRepo tessPlacement dimtolGeom dimtolEntID datumGeom datumSymbol\
-              savedViewNames savedViewFileName savedViewFile x3dFileName feaDOFT feaDOFR} {
+              savedViewNames savedViewFileName savedViewFile x3dFileName feaDOFT feaDOFR \
+              savedsavedViewNames coordinatesList lineStrips} {
     if {[info exists $var]} {unset $var}
   }
   if {!$multiFile} {
@@ -1242,20 +1146,20 @@ proc addHeaderWorksheet {numFile fname} {
         }
         outputMsg "$attr:  $sn" blue
         if {[string first "_MIM" $sn] != -1 && [string first "_MIM_LF" $sn] == -1} {
-          errorMsg " SchemaName (FILE_SCHEMA) should end with '_MIM_LF', see Header worksheet"
+          errorMsg "SchemaName (FILE_SCHEMA) should end with '_MIM_LF', see Header worksheet"
           if {$useXL} {[[$worksheet($hdr) Range B11] Interior] Color $legendColor(red)}
         }
         if {[string first "AUTOMOTIVE_DESIGN_CC2" $sn] == 0} {
-          errorMsg " This file uses an older version of STEP AP214.  See Help > Supported STEP APs"
+          errorMsg "This file uses an older version of STEP AP214.  See Help > Supported STEP APs"
         }
 
         set fileSchema [string toupper [string range $objAttr 0 5]]
         if {[string first "IFC" $fileSchema] == 0} {
-          errorMsg " Use the IFC File Analyzer with IFC files."
+          errorMsg "Use the IFC File Analyzer with IFC files."
           after 1000
           openURL https://www.nist.gov/services-resources/software/ifc-file-analyzer
         } elseif {$objAttr == "STRUCTURAL_FRAME_SCHEMA"} {
-          errorMsg " This is a CIS/2 file that can be visualized with SteelVis.\n https://www.nist.gov/services-resources/software/steelvis-aka-cis2-viewer"
+          errorMsg "Use SteelVis to visualize the CIS/2 file.  https://go.usa.gov/s8fm"
         }
 
 # other File attributes
@@ -1367,17 +1271,15 @@ proc addHeaderWorksheet {numFile fname} {
           if {$app == "jt_step translator"}      {set app1 "Siemens NX"}
           if {$app == "SIEMENS PLM Software NX"} {set app1 "Siemens NX"}
 
-          if {[string first "CATIA Version" $app] == 0}      {set app1 "CATIA V[string range $app 14 end]"}
+          if {[string first "CATIA Version" $app] == 0} {set app1 "CATIA V[string range $app 14 end]"}
           if {$app == "3D EXPERIENCE"} {set app1 "3D Experience"}
-          if {[string first "CATIA V5" [$objDesign FileDescription]] != -1} {set app1 "CATIA V5"}
-          if {[string first "CATIA V6" [$objDesign FileDescription]] != -1} {set app1 "CATIA V6"}
 
           if {[string first "CATIA SOLUTIONS V4" [$objDesign FileOriginatingSystem]] != -1} {set app1 "CATIA V4"}
           if {[string first "Autodesk Inventor"  [$objDesign FileOriginatingSystem]] != -1} {set app1 [$objDesign FileOriginatingSystem]}
           if {[string first "FreeCAD"            [$objDesign FileOriginatingSystem]] != -1} {set app1 "FreeCAD"}
           if {[string first "SIEMENS PLM Software NX" [$objDesign FileOriginatingSystem]] == 0} {set app1 "Siemens NX_[string range [$objDesign FileOriginatingSystem] 24 end]"}
 
-          if {[string first "THEOREM"   [$objDesign FilePreprocessorVersion]] != -1} {set app1 "Theorem"}
+          if {[string first "THEOREM"   [$objDesign FilePreprocessorVersion]] != -1} {set app1 "Theorem Solutions"}
           if {[string first "T-Systems" [$objDesign FilePreprocessorVersion]] != -1} {set app1 "T-Systems"}
 
 # set caxifVendor based on CAx-IF vendor notation used in testing rounds, use for app if appropriate
@@ -1783,7 +1685,6 @@ proc formatWorksheets {sheetSort sumRow inverseEnts} {
 
   foreach thisEntType $sheetSort {
     #getTiming "START FORMATTING $thisEntType"
-    #outputMsg $thisEntType
     incr nprogBarEnts
     update idletasks
     

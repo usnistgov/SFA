@@ -75,7 +75,8 @@ foreach item $auto_path {if {[string first "STEP-File-Analyzer" $item] != -1} {s
 # -----------------------------------------------------------------------------------------------------
 # initialize variables
 foreach id {XL_OPEN XL_KEEPOPEN XL_LINK1 XL_FPREC XL_SORT LOGFILE \
-            VALPROP PMIGRF PMISEM VIZPMI VIZFEA VIZTES VIZPMIVP VIZFEALVS INVERSE DEBUG1 \
+            VALPROP PMIGRF PMISEM INVERSE DEBUG1 \
+            VIZPMIVIZTPG VIZTPGMSH VIZPMIVP VIZFEA VIZFEABC VIZFEALV VIZFEALVS \
             PR_STEP_AP242 PR_USER PR_STEP_KINE PR_STEP_COMP PR_STEP_COMM PR_STEP_GEOM PR_STEP_QUAN \
             PR_STEP_FEAT PR_STEP_PRES PR_STEP_TOLR PR_STEP_REPR PR_STEP_CPNT PR_STEP_SHAP} {set opt($id) 1}
 
@@ -93,6 +94,7 @@ set opt(PR_STEP_GEOM)  0
 set opt(PR_USER) 0
 set opt(VIZFEALVS) 0
 set opt(VIZPMIVP) 0
+set opt(VIZTPGMSH) 0
 set opt(writeDirType) 0
 set opt(XL_KEEPOPEN) 0
 set opt(XL_ROWLIM) 1048576
@@ -106,7 +108,7 @@ set dispCmds {}
 set edmWhereRules 0
 set edmWriteToFile 0
 set eeWriteToFile  0
-set excelYear ""
+set excelVersion 12
 set lastX3DOM ""
 set lastXLS  ""
 set lastXLS1 ""
@@ -138,6 +140,9 @@ if {[file exists $optionsFile]} {
     source $optionsFile
 
 # rename and unset old variable names from old options file
+    if {[info exists opt(VIZTES)]}    {set opt(VIZTPG)    $opt(VIZTES);    unset opt(VIZTES)}
+    if {[info exists opt(VIZTESMSH)]} {set opt(VIZTPGMSH) $opt(VIZTESMSH); unset opt(VIZTESMSH)}
+
     if {[info exists verite]} {set sfaVersion $verite; unset verite}
     if {[info exists indentStyledItem]} {set opt(indentStyledItem) $indentStyledItem; unset indentStyledItem}
     if {[info exists indentGeometry]}   {set opt(indentGeometry)   $indentGeometry;   unset indentGeometry}
@@ -237,7 +242,9 @@ proc whatsNew {} {
   if {$sfaVersion > 0 && $sfaVersion < [getVersion]} {outputMsg "\nThe previous version of the STEP File Analyzer was: $sfaVersion" red}
 
 outputMsg "\nWhat's New (Version: [getVersion]  Updated: [string trim [clock format $progtime -format "%e %b %Y"]])" blue
-outputMsg "- Improved reporting of Associated Geometry
+outputMsg "- Visualization of supplemental geometry (Help > Supplemental Geometry)
+- Improved reporting of invalid Dimension decimal places and Validation Property values
+- Improved reporting of Associated Geometry
 - Improved visualization of AP209 boundary conditions and loads (Help > AP209 Finite Element Model)
 - Explanation of Report errors (Help > Syntax Errors)
 - Support for repetitive hole and radius dimensions, e.g, '4X' R10.5
@@ -347,7 +354,6 @@ if {$nistVersion} {
         -message "Do you want to check for a newer version of the STEP File Analyzer?\n \nThe last check for an update was $lastupgrade days ago.\n \nYou can always check for an update with Help > Check for Update" -icon question]
       if {$choice == "yes"} {
         set url "https://concrete.nist.gov/cgi-bin/ctv/sfa_upgrade.cgi?version=[getVersion]&auto=$lastupgrade"
-        if {[info exists excelYear]} {if {$excelYear != ""} {append url "&yr=[expr {$excelYear-2000}]"}}
         openURL $url
       }
       set upgrade [clock seconds]

@@ -279,8 +279,6 @@ proc invFormat {rancol} {
   
   set igrp1 2
   set igrp2 100
-  #set igrp1 100
-  #set igrp2 0
   set i1 [expr {$rancol+1}]
     
 # fix column widths
@@ -308,14 +306,11 @@ proc invFormat {rancol} {
       } else {
         [$range Interior] Color [expr 16768477]
       }
-      #if {$i < $igrp1} {set igrp1 $i}
-      #if {$i > $igrp2} {set igrp2 $i}
+
       if {$excelVersion >= 12} {
         set range [$worksheet($thisEntType) Range [cellRange 4 $i] [cellRange $r1 $i]]
         for {set k 7} {$k <= 12} {incr k} {
-          if {$k != 9} {
-            catch {[[$range Borders] Item [expr $k]] Weight [expr 1]}
-          }
+          if {$k != 9} {catch {[[$range Borders] Item [expr $k]] Weight [expr 1]}}
         }
         set range [$worksheet($thisEntType) Range [cellRange 3 $i] [cellRange 3 $i]]
         catch {
@@ -382,6 +377,7 @@ proc invSetCheck {entType} {
       [string first "resource"      $entType] != -1 || \
       [string first "shape"         $entType] != -1 || \
       [string first "symmetry"      $entType] != -1 || \
+      [string first "tessellated"   $entType] != -1 || \
       [string first "draughting_model"    $entType] != -1 || \
       [string first "draughting_callout"  $entType] != -1 || \
       [string first "instanced_feature"   $entType] != -1 || \
@@ -427,6 +423,7 @@ proc initDataInverses {} {
   lappend inverses [list characterized_item_within_representation rep used_in]
   lappend inverses [list component_path_shape_aspect location used_in]
   lappend inverses [list component_path_shape_aspect component_shape_aspect used_in]
+  lappend inverses [list constructive_geometry_representation items used_in]
   lappend inverses [list context_dependent_shape_representation representation_relation used_in]
   lappend inverses [list context_dependent_shape_representation represented_product_relation used_in]
 
@@ -501,6 +498,8 @@ proc initDataInverses {} {
   lappend inverses [list shape_representation context_of_items used_in]
 
   lappend inverses [list tessellated_annotation_occurrence item used_in]
+  lappend inverses [list tessellated_geometric_set children used_in]
+  lappend inverses [list tessellated_wire items used_in]
 
 # tolerance related
   lappend inverses [list datum_reference referenced_datum used_in]
@@ -664,14 +663,12 @@ proc initDataInverses {} {
   lappend inverses [list machining_toolpath_sequence_relationship related_method relating_method]
 
 # new AM entities
-  if {$developer} {
-    lappend inverses [list additive_manufacturing_build_plate_relationship relating_product_definition related_product_definition]
-    lappend inverses [list additive_manufacturing_build_plate_relationship related_product_definition relating_product_definition]
-    lappend inverses [list additive_manufacturing_setup_support_relationship relating_product_definition related_product_definition]
-    lappend inverses [list additive_manufacturing_setup_support_relationship related_product_definition relating_product_definition]
-    lappend inverses [list additive_manufacturing_setup_workpiece_relationship relating_product_definition related_product_definition]
-    lappend inverses [list additive_manufacturing_setup_workpiece_relationship related_product_definition relating_product_definition]
-  }
+  lappend inverses [list additive_manufacturing_build_plate_relationship relating_product_definition related_product_definition]
+  lappend inverses [list additive_manufacturing_build_plate_relationship related_product_definition relating_product_definition]
+  lappend inverses [list additive_manufacturing_setup_support_relationship relating_product_definition related_product_definition]
+  lappend inverses [list additive_manufacturing_setup_support_relationship related_product_definition relating_product_definition]
+  lappend inverses [list additive_manufacturing_setup_workpiece_relationship relating_product_definition related_product_definition]
+  lappend inverses [list additive_manufacturing_setup_workpiece_relationship related_product_definition relating_product_definition]
 }
 
 # -------------------------------------------------------------------------------

@@ -124,7 +124,8 @@ if {![file exists [file join $ifcsvrDir IFCsvrR300.dll]]} {installIFCsvr}
 # -----------------------------------------------------------------------------------------------------
 # initialize variables
 foreach id {XL_OPEN XL_KEEPOPEN XL_LINK1 XL_FPREC XL_SORT LOGFILE \
-            VALPROP PMIGRF PMISEM VIZPMI VIZFEA VIZTES VIZPMIVP VIZFEALVS INVERSE DEBUG1 \
+            VALPROP PMIGRF PMISEM INVERSE DEBUG1 \
+            VIZPMIVIZTPG VIZTPGMSH VIZPMIVP VIZFEA VIZFEABC VIZFEALV VIZFEALVS \
             PR_STEP_AP242 PR_USER PR_STEP_KINE PR_STEP_COMP PR_STEP_COMM PR_STEP_GEOM PR_STEP_QUAN \
             PR_STEP_FEAT PR_STEP_PRES PR_STEP_TOLR PR_STEP_REPR PR_STEP_CPNT PR_STEP_SHAP} {set opt($id) 1}
 
@@ -140,6 +141,7 @@ set opt(VIZFEA) 0
 set opt(VIZPMI) 0
 set opt(VIZFEALVS) 0
 set opt(VIZPMIVP) 0
+set opt(VIZTPGMSH) 0
 set opt(writeDirType) 0
 set opt(XL_KEEPOPEN) 0
 set opt(XL_ROWLIM) 1048576
@@ -150,8 +152,8 @@ set opt(XLSCSV) Excel
 set coverageSTEP 0
 set dispCmd ""
 set dispCmds {}
-set excelYear ""
 set firsttime 1
+set excelVersion 12
 set lastX3DOM ""
 set lastXLS  ""
 set lastXLS1 ""

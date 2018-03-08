@@ -1,10 +1,13 @@
 proc initData {} {
 
-global entCategory entColorIndex badAttributes roseLogical
+global entCategory entColorIndex badAttributes roseLogical defaultColor
 global aoEntTypes gpmiTypes spmiEntTypes dimSizeNames tolNames tzfNames dimModNames pmiModifiers pmiModifiersRP pmiUnicode
 global spmiTypes recPracNames modelPictures schemaLinks modelURLs legendColor
 global ap203all ap214all ap242all ap242e2
 global feaIndex cadApps allVendor numSavedViews
+
+set defaultColor [list "0.818 0.512 0.266" brown]
+#set defaultColor [list "0.639 0.4 0.208" brown]
 
 set roseLogical(0) "FALSE"
 set roseLogical(1) "TRUE"
@@ -43,60 +46,74 @@ set cadApps {"3D_Evolution" ACIS "Alias - OpenModel" "Alias AutoStudio" "Alias O
   SDS/2 Tekla Revit RISA SAP2000 ETABS SmartPlant CADWorx "Advance Steel" ProSteel STAAD RAM Cype Parabuild RFEM RSTAB BuiltWorks EDMsix Mastercam \
   "3D Reviewer" "3D Converter" "HOOPS Exchange" HOOPS MicroStation SolidWorks Solidworks SOLIDWORKS "SOLIDWORKS MBD" ASCON PSStep Anark XStep "STEP-NC Maker"}
   
-set allVendor(3de) "3D_Evolution"
 set allVendor(3DE) "3D_Evolution"
+set allVendor(3de) "3D_Evolution"
 set allVendor(a3) "Acrobat_3D"
 set allVendor(a5) "Acrobat_3D (CATIA_V5)"
 set allVendor(ac) "AutoCAD"
-set allVendor(al) "AliasStudio"
+set allVendor(al) "Autodesk AliasStudio"
 set allVendor(ap) "Acrobat_3D (Pro/E)"
 set allVendor(au) "Acrobat_3D (NX)"
-set allVendor(c3e) "CATIA"
+set allVendor(c3e) "3D Experience"
 set allVendor(c4) "CATIA V4"
 set allVendor(c5) "CATIA V5"
 set allVendor(c6) "CATIA V6"
 set allVendor(cg) "CgiStepCamp"
-set allVendor(cm) "PTC CoCreate"
-set allVendor(cr) "Creo"
-set allVendor(dc) "Datakit CrossCad"
+set allVendor(cm) "PTC CoCreate Modeling"
+set allVendor(cr) "PTC Creo"
 set allVendor(d5) "Datakit CrossCad (CATIA_V5)"
-set allVendor(dp) "Datakit CrossCad (Creo)"
-set allVendor(du) "Datakit CrossCad (NX)"
+set allVendor(dc) "Datakit CrossCad"
+set allVendor(di) "Datakit CrossCad (Inventor)"
+set allVendor(do) "Datakit CrossCad (Creo)"
+set allVendor(dp) "Datakit CrossCad (PRO/E)"
 set allVendor(dw) "Datakit CrossCad (SolidWorks)"
-set allVendor(ec) "Elysium"
+set allVendor(dx) "Datakit CrossCad (NX)"
+set allVendor(eb) "Electric Boat"
+set allVendor(ec) "Elysium CadDoctor"
+set allVendor(e5) "Elysium Asfalis (CATIA_V5)"
+set allVendor(ei) "Elysium Asfalis (Inventor)"
+set allVendor(eo) "Elysium Asfalis (Creo)"
+set allVendor(ew) "Elysium Asfalis (SolidWorks)"
+set allVendor(ex) "Elysium Asfalis (NX)"
 set allVendor(fs) "Vistagy FiberSim"
 set allVendor(h3) "HOOPS 3D Exchange"
 set allVendor(h5) "HOOPS 3D (CATIA_V5)"
-set allVendor(hp) "HOOPS 3D (Creo)"
-set allVendor(hu) "HOOPS 3D (NX)"
+set allVendor(hc) "HOOPS 3D (Creo)"
+set allVendor(hx) "HOOPS 3D (NX)"
 set allVendor(i4) "ITI CADifx (CATIA_V4)"
 set allVendor(i5) "ITI CADfix (CATIA_V5)"
-set allVendor(id) "I-DEAS"
+set allVendor(ic) "ITI CADfix (Creo)"
+set allVendor(id) "NX I-DEAS"
 set allVendor(if) "ITI CADfix"
-set allVendor(ii) "ITI CADfix (Inventor)"
 set allVendor(in) "Autodesk Inventor"
-set allVendor(ip) "ITI CADfix (Creo)"
-set allVendor(iu) "ITI CADfix (NX)"
+set allVendor(iq) "ITI CADfix"
 set allVendor(iw) "ITI CADfix (SolidWorks)"
+set allVendor(ix) "ITI CADfix (NX)"
+set allVendor(jn) "Jotne EPM NASTRAN"
+set allVendor(jo) "Jotne EPM openSimDM"
 set allVendor(kc) "Kubotek KeyCreator"
 set allVendor(kr) "Kubotek REALyze"
 set allVendor(lk) "LKSoft IDA-STEP"
+set allVendor(mp) "MSC Patran"
+set allVendor(nas) "NASTRAN"
 set allVendor(nx) "Siemens NX"
 set allVendor(oc) "Datakit CrossCad (OpenCascade)"
 set allVendor(pc) "PTC CADDS"
-set allVendor(pe) "Pro/E"
+set allVendor(pe) "PTC Pro/E"
 set allVendor(s4) "T-Systems COM/STEP (CATIA_V4)"
 set allVendor(s5) "T-Systems COM/FOX (CATIA_V5)"
 set allVendor(se) "SolidEdge"
+set allVendor(sp) "Spatial ACIS"
 set allVendor(sw) "SolidWorks"
 set allVendor(t3d) "TechSoft3D"
 set allVendor(t4) "Theorem Cadverter (CATIA_V4)"
 set allVendor(t5) "Theorem Cadverter (CATIA_V5)"
 set allVendor(tc) "Theorem Cadverter (CADDS)"
-set allVendor(tp) "Theorem Cadverter (Creo)"
+set allVendor(td) "Theorem Solutions (CATIA_AP209)"
+set allVendor(to) "Theorem Cadverter (Creo)"
+set allVendor(tp) "Theorem Cadverter (PRO/E)"
 set allVendor(ts) "Theorem Cadverter (I-DEAS)"
-set allVendor(tu) "Theorem Cadverter (NX)"
-set allVendor(tx) "Theorem Cadverter"
+set allVendor(tx) "Theorem Cadverter (NX)"
 set allVendor(ug) "Unigraphics"
 
 # sort cadApps by string length
@@ -183,7 +200,7 @@ foreach item [list \
   "point placed datum target (6.6)" "line placed datum target (6.6)" "rectangle placed datum target (6.6)" "circle placed datum target (6.6)" \
   "circular curve placed datum target (6.6)" \
   "curve datum target (6.6)" "area datum target (6.6)" "placed datum target geometry (6.6.2)" "movable datum target (6.6.3)" \
-  "tolerance zone diameter (6.9.2)" "tolerance zone spherical diameter (6.9.2)" "affected plane tolerance zone (6.9.2.1)" \
+  "tolerance zone diameter (6.9.2)" "tolerance zone spherical diameter (6.9.2)" "tolerance zone other (6.9.2, Table 12)" "affected plane tolerance zone (6.9.2.1)" \
   "non-uniform tolerance zone (6.9.2.3)" "tolerance with max value (6.9.5)" "unit-basis tolerance (6.9.6)"] {lappend spmiTypes $item}
 
   #"stacked tolerance" "feature count 'nX'" "curve length" "placed datum target (6.6)" "dimension modifier (5.3)" "thickness"
@@ -709,7 +726,7 @@ geometric_representation_context geometric_representation_item geometrically_bou
 geometrically_bounded_surface_shape_representation geometrically_bounded_wireframe_shape_representation \
 hardness_representation \
 item_defined_transformation \
-manifold_subsurface_shape_representation manifold_surface_shape_representation material_property_representation \
+manifold_subsurface_shape_representation manifold_surface_shape_representation mapped_item material_property_representation \
 material_property externally_defined_general_property \
 mechanical_design_geometric_presentation_representation moments_of_inertia_representation \
 non_manifold_surface_shape_representation null_representation_item \
@@ -902,7 +919,7 @@ known_source \
 language language_assignment length_function light_source light_source_ambient light_source_directional light_source_positional light_source_spot \
 like_expression literal_conjunction literal_disjunction literal_number local_time locator log_function \
 log10_function log2_function logical_literal lot_effectivity \
-make_from_usage_option mapped_item material_designation material_designation_characterization maximum_function mechanical_context \
+make_from_usage_option material_designation material_designation_characterization maximum_function mechanical_context \
 mechanical_design_geometric_presentation_area mechanical_design_presentation_representation_with_draughting \
 mechanical_design_shaded_presentation_area mechanical_design_shaded_presentation_representation minimum_function minus_expression \
 minus_function mod_expression modified_pattern modified_solid modified_solid_with_placed_configuration motion_link_relationship \

@@ -121,7 +121,7 @@ proc guiButtons {} {
       $l3 config -image [image create photo -file [file join $wdir images nist.gif]]
       pack $l3 -side right -padx 10
       bind $l3 <ButtonRelease-1> {openURL https://www.nist.gov}
-      tooltip::tooltip $l3 "Click here"
+      tooltip::tooltip $l3 "Click here to learn more about NIST"
     }
     catch {[file copy -force [file join $wdir images NIST.ico] [file join $mytemp NIST.ico]]}
   }
@@ -266,7 +266,7 @@ proc guiProcessAndReports {} {
       if {$tt != "PR_STEP_COMM"} {
         set ttmsg [guiToolTip $ttmsg $tt]
       } else {
-        append ttmsg "All AP-specific entities from APs other than AP203, AP214, and AP242\nare always processed, including AP209, AP210, AP238, and AP239.\n\nThe entity categories are used to group and color-code the entities\non the File Summary worksheet.\n\nSee Help > User's Guide (section 4.4.2)"
+        append ttmsg "All AP-specific entities from APs other than AP203, AP214, and AP242\nare always processed, including AP209, AP210, AP238, and AP239.\n\nThe entity categories are used to group and color-code entities on the\nFile Summary worksheet.\n\nSee Help > User's Guide (section 4.4.2)"
       }
       catch {tooltip::tooltip $buttons($idx) $ttmsg}
     }
@@ -331,7 +331,7 @@ proc guiProcessAndReports {} {
           }
         } elseif {$allNone == 1} {
           foreach item [array names opt] {if {[string first "PR_STEP" $item] == 0} {set opt($item) 0}}
-          foreach item [list VIZFEA VIZPMI VIZTES PMISEM PMIGRF VALPROP INVERSE PR_USER] {set opt($item) 0}
+          foreach item [list VIZFEA VIZPMI VIZTPG PMISEM PMIGRF VALPROP INVERSE PR_USER] {set opt($item) 0}
           set opt(PR_STEP_COMM) 1
         } elseif {$allNone == 2} {
           set opt(PMISEM) 1
@@ -339,7 +339,7 @@ proc guiProcessAndReports {} {
           set opt(VALPROP) 1
         } elseif {$allNone == 3} {
           set opt(VIZFEA) 1
-          set opt(VIZTES) 1
+          set opt(VIZTPG) 1
           set opt(VIZPMI) 1
         }
         checkValues
@@ -373,9 +373,9 @@ proc guiProcessAndReports {} {
   pack $foptd1 -side top -anchor w -pady 0 -padx 0 -fill y
   pack $foptd -side left -anchor w -pady {5 2} -padx 10 -fill both -expand true
   catch {
-    tooltip::tooltip $buttons(optPMISEM)  "PMI Representation information is shown on dimension, tolerance, datum target, and datum entities.\nSemantic PMI is found mainly in STEP AP242 files.\n\nSee Help > PMI Representation\nSee Help > User's Guide (section 5.1)\nSee Help > Syntax Errors\nSee Examples > Spreadsheet\nSee Examples > Sample STEP Files\nSee Websites > AP242 Project"
-    tooltip::tooltip $buttons(optPMIGRF)  "PMI Presentation information is shown on 'annotation occurrence' entities.\nGraphical PMI can also be Visualized.\n\nSee Help > PMI Presentation\nSee Help > User's Guide (section 5.2)\nSee Help > Syntax Errors\nSee Examples > Spreadsheet\nSee Examples > Graphical PMI Viewer\nSee Examples > Sample STEP Files"
-    tooltip::tooltip $buttons(optVALPROP) "Validation Properties and other properties are shown on the 'property_definition' entity.\n\nSee Help > Validation Properties\nSee Help > User's Guide (section 5.3)\nSee Help > Syntax Errors\nSee Examples > Spreadsheet"
+    tooltip::tooltip $buttons(optPMISEM)  "PMI Representation information is shown on dimension,\ntolerance, datum target, and datum entities.\nSemantic PMI is found mainly in STEP AP242 files.\n\nSee Help > PMI Representation\nSee Help > User's Guide (section 5.1)\nSee Help > Syntax Errors\nSee Examples > Spreadsheet\nSee Examples > Sample STEP Files\nSee Websites > AP242 Project"
+    tooltip::tooltip $buttons(optPMIGRF)  "PMI Presentation information is shown on\n'annotation occurrence' entities.\nGraphical PMI can also be Visualized.\n\nSee Help > PMI Presentation\nSee Help > User's Guide (section 5.2)\nSee Help > Syntax Errors\nSee Examples > Spreadsheet\nSee Examples > Graphical PMI Viewer\nSee Examples > Sample STEP Files"
+    tooltip::tooltip $buttons(optVALPROP) "Validation Properties and other properties are\nshown on the 'property_definition' entity.\n\nSee Help > Validation Properties\nSee Help > User's Guide (section 5.3)\nSee Help > Syntax Errors\nSee Examples > Spreadsheet"
   }
   
 # visualize
@@ -408,10 +408,16 @@ proc guiProcessAndReports {} {
   pack $foptv4 -side top -anchor w -pady 0 -padx 25 -fill y  
   
   set foptv6 [frame $foptv.6 -bd 0]
-  foreach item {{" AP242 Tessellated Part Geometry" opt(VIZTES)}} {
+  foreach item {{" AP242 Tessellated Part Geometry" opt(VIZTPG)}} {
     regsub -all {[\(\)]} [lindex $item 1] "" idx
     set buttons($idx) [ttk::checkbutton $foptv6.$cb -text [lindex $item 0] -variable [lindex $item 1] -command {checkValues}]
-    pack $buttons($idx) -side top -anchor w -padx 5 -pady 0 -ipady 0
+    pack $buttons($idx) -side left -anchor w -padx 5 -pady 0 -ipady 0
+    incr cb
+  }
+  foreach item {{"Include Wireframe" opt(VIZTPGMSH)}} {
+    regsub -all {[\(\)]} [lindex $item 1] "" idx
+    set buttons($idx) [ttk::checkbutton $foptv6.$cb -text [lindex $item 0] -variable [lindex $item 1] -command {checkValues}]
+    pack $buttons($idx) -side left -anchor w -padx 8 -pady 0 -ipady 0
     incr cb
   }
   pack $foptv6 -side top -anchor w -pady 0 -padx 0 -fill y
@@ -423,22 +429,31 @@ proc guiProcessAndReports {} {
     pack $buttons($idx) -side left -anchor w -padx 5 -pady 0 -ipady 0
     incr cb
   }
-  foreach item {{"Scale load vectors" opt(VIZFEALVS)}} {
+  pack $foptv7 -side top -anchor w -pady 0 -padx 0 -fill y
+
+  set foptv8 [frame $foptv.8 -bd 0]
+  set buttons(showfea) [label $foptv8.l3 -text "Show:"]
+  pack $foptv8.l3 -side left -anchor w -padx 0 -pady 0 -ipady 0
+  foreach item {{" Boundary conditions" opt(VIZFEABC)} \
+                {" Loads"  opt(VIZFEALV)} \
+                { "Scale load vectors" opt(VIZFEALVS)}} {
     regsub -all {[\(\)]} [lindex $item 1] "" idx
-    set buttons($idx) [ttk::checkbutton $foptv7.$cb -text [lindex $item 0] -variable [lindex $item 1] -command {checkValues}]
-    pack $buttons($idx) -side left -anchor w -padx 8 -pady 0 -ipady 0
+    set buttons($idx) [ttk::checkbutton $foptv8.$cb -text [lindex $item 0] -variable [lindex $item 1] -command {checkValues}]
+    pack $buttons($idx) -side left -anchor w -padx 2 -pady 0 -ipady 0
     incr cb
   }
-  pack $foptv7 -side top -anchor w -pady 0 -padx 0 -fill y
+
+  pack $foptv8 -side top -anchor w -pady 0 -padx 25 -fill y
 
   pack $foptv -side left -anchor w -pady {5 2} -padx 10 -fill both -expand true
   pack $foptrv -side top -anchor w -pady 0 -fill x
   catch {
-    tooltip::tooltip $buttons(optVIZPMI) "See Help > PMI Presentation\nSee Help > User's Guide (section 6.1.1)\nSee Examples > Graphical PMI Viewer\nSee Examples > Sample STEP Files\n\nVisualizations can be generated without generating a spreadsheet\nor CSV files.  See the Output Format option below."
+    tooltip::tooltip $buttons(optVIZPMI) "Graphical PMI is supported in AP242, AP203, and AP214 files.\n\nSee Help > PMI Presentation\nSee Help > User's Guide (section 6.1.1)\nSee Examples > Graphical PMI Viewer\nSee Examples > Sample STEP Files\n\nVisualizations can be generated without generating a spreadsheet\nor CSV files.  See the Output Format option below."
     tooltip::tooltip $buttons(optVIZPMIVP) "PMI Viewpoints are experimental.\n\nViewpoints usually have the correct orientation but are not centered.\nUse pan and zoom to center the PMI."
-    tooltip::tooltip $buttons(optVIZFEA) "This feature is still being developed.\n\nSee Help > AP209 Finite Element Model\nSee Help > User's Guide (section 6.1.3)\nSee Examples > AP209 FEM Viewer\n\nVisualizations can be generated without generating a spreadsheet\nor CSV files.  See the Output Format option below."
+    tooltip::tooltip $buttons(optVIZFEA) "FEM nodes, elements, boundary conditions, and loads are visualized.\n\nSee Help > AP209 Finite Element Model\nSee Help > User's Guide (section 6.1.3)\nSee Examples > AP209 FEM Viewer\n\nVisualizations can be generated without generating a spreadsheet\nor CSV files.  See the Output Format option below.\n\nVisualizations are displayed in web browsers that are not optimized for large models."
     tooltip::tooltip $buttons(optVIZFEALVS) "Load vectors can by scaled by the load magnitude.\nLoad vectors are always colored by the load magnitude."
-    tooltip::tooltip $buttons(optVIZTES) "This feature is still being developed.\nParts in an assembly might have the wrong position and orientation or be missing.\n\nParts modeled with tessellated geometry is supported by AP242 and is supplementary\nto boundary representation (b-rep) geometry.\n\nSee Help > AP242 Tessellated Part Geometry\nSee Help > User's Guide (section 6.1.2)\nSee Examples > AP242 Tessellated Part Viewer\n\nVisualizations can be generated without generating a spreadsheet or CSV files.\nSee the Output Format option below."
+    tooltip::tooltip $buttons(optVIZTPG) "This feature is in development.\nParts in an assembly might have the wrong position and orientation or be missing.\n\nTessellated geometry is in addition to boundary representation (b-rep) geometry\nwhich is not displayed.  Supplemental geometry and tessellated edges (lines) are also\nshown.  Faces in a tessellated shell are outlined in black.\n\nSee Help > AP242 Tessellated Part Geometry\nSee Help > Supplemental Geometry\nSee Help > User's Guide (section 6.1.2)\nSee Examples > AP242 Tessellated Part Viewer\n\nVisualizations can be generated without generating a spreadsheet or CSV files.\nSee the Output Format option below.\n\nVisualizations are displayed in web browsers that are not optimized for large models."
+    tooltip::tooltip $buttons(optVIZTPGMSH) "Show a tessellation wireframe mesh based on the tessellated\nfaces or surfaces.  Not recommended for very large models."
     tooltip::tooltip $buttons(linecolor) "For Random PMI colors, each 'annotation occurrence' is assigned a different color."
   }
 }
@@ -721,7 +736,7 @@ proc guiOpenSTEPFile {} {
 # spreadsheet tab
 proc guiSpreadsheet {} {
   global buttons cb env extXLS fileDir fxls mydocs nb opt developer
-  global userWriteDir userXLSFile writeDir excelYear
+  global userWriteDir userXLSFile writeDir excelVersion
   
   set wxls [ttk::panedwindow $nb.xls -orient horizontal]
   $nb add $wxls -text " Spreadsheet " -padding 2
@@ -750,11 +765,9 @@ proc guiSpreadsheet {} {
   catch {tooltip::tooltip $fxlsa $msg}
   
   set fxlsb [ttk::labelframe $fxls.b -text " Maximum Rows for any worksheet"]
-  set rlimit {{" 100" 103} {" 500" 503} {" 1000" 1003} {" 5000" 5003} {" 10000" 10003} {" 50000" 50003}}
-  if {$excelYear == "" || $excelYear >= 2007} {
-    lappend rlimit {" 100000" 100003}
-    lappend rlimit {" Maximum" 1048576}
-  } else {
+  set rlimit {{" 100" 103} {" 500" 503} {" 1000" 1003} {" 5000" 5003} {" 10000" 10003} {" 50000" 50003} {" 100000" 100003} {" Maximum" 1048576}}
+  if {$excelVersion < 12} {
+    set rlimit [lrange $rlimit 0 5]
     lappend rlimit {" Maximum" 65536}
   }
   foreach item $rlimit {
@@ -855,7 +868,7 @@ proc guiSpreadsheet {} {
 #-------------------------------------------------------------------------------
 # help menu
 proc guiHelpMenu {} {
-  global Examples Help opt nistVersion mytemp pf32 excelYear ifcsvrDir developer virtualDir
+  global Examples Help opt nistVersion mytemp pf32 ifcsvrDir developer virtualDir
 
   $Help add command -label "User's Guide (pdf)" -command {showUsersGuide}
   $Help add command -label "What's New" -command {whatsNew}
@@ -928,7 +941,7 @@ proc guiHelpMenu {} {
     }
     
     if {$nschema == 0} {errorMsg "No Supported STEP APs were found.\nThere was a problem copying STEP schema files (*.rose) to the IFCsvr/dll directory."}
-    if {"$nistVersion"} {outputMsg "\nTo enable other STEP APs, contact the developer (Help > About).\nSee Websites > More EXPRESS Schemas"}
+    outputMsg "\nSee Websites > EXPRESS Schemas and More EXPRESS Schemas"
 
     .tnb select .tnb.status
   }
@@ -939,7 +952,6 @@ proc guiHelpMenu {} {
       set lastupgrade [expr {round(([clock seconds] - $upgrade)/86400.)}]
       outputMsg "The last check for an update was $lastupgrade days ago." red
       set url "https://concrete.nist.gov/cgi-bin/ctv/sfa_upgrade.cgi?version=[getVersion]&auto=-$lastupgrade"
-      if {[info exists excelYear]} {if {$excelYear != ""} {append url "&yr=[expr {$excelYear-2000}]"}}
       openURL $url
       set upgrade [clock seconds]
       saveState
@@ -1125,17 +1137,10 @@ tolerance (GD&T) annotations.  PMI Presentation is not intended to be computer-i
 does not carry any representation information, although it can be linked to its corresponding PMI
 Representation.
 
-See Help > User's Guide (sections 5.2 and 6.1.1)
+See Help > User's Guide (sections 5.2)
+See Help > Graphical PMI
 See Examples > Sample STEP Files
 See Examples > Spreadsheet - PMI Presentation
-See Examples > Graphical PMI Viewer
-
-PMI Presentation annotations can be viewed in a web browser.  The visualization is only of the
-graphical PMI, not the model geometry, except for tessellated part geometry.  Polylines, lines,
-circles, and tessellated geometry are supported for visualization.  The color of the annotations
-can be modified.  Filled characters are not filled.  PMI associated with Saved Views can be
-switched on and off.  Some Graphical PMI might not have equivalent Semantic PMI in the STEP file.
-The graphical PMI file is written to myfile-sfa.html
 
 Graphical PMI on annotation_curve_occurrence, annotation_curve, annotation_fill_area_occurrence,
 and tessellated_annotation_occurrence entities are supported.  Geometric entities used for PMI
@@ -1299,6 +1304,38 @@ The log file is written to myfile-sfa.log.  In a log file, error messages are hi
 
   $Help add separator
     
+  $Help add command -label "Graphical PMI" -command {
+outputMsg "\nGraphical PMI --------------------------------------------------------------" blue
+outputMsg "Graphical PMI (PMI Presentation) annotations can be viewed in a web browser.  The visualization
+is only of the graphical PMI, not the model geometry, except for tessellated part geometry.
+Polylines, lines, circles, and tessellated geometry are supported for visualization.  The color
+of the annotations can be modified.  Filled characters are not filled.  PMI associated with
+Saved Views can be switched on and off.  Some Graphical PMI might not have equivalent Semantic PMI
+in the STEP file.  The graphical PMI file is written to myfile-sfa.html
+
+See Help > User's Guide (sections 6.1.1)
+See Help > PMI Presentation
+See Examples > Sample STEP Files
+See Examples > Graphical PMI Viewer"
+    .tnb select .tnb.status
+  }
+    
+  $Help add command -label "Supplemental Geometry" -command {
+outputMsg "\nSupplemental Geometry ------------------------------------------------------" blue
+outputMsg "Supplemental geometry is only shown if Graphical PMI or AP242 Tessellated Part Geometry are also
+visualized.  Supplemental geometry is not associated with Saved Views.
+
+The following types of supplemental geometry and associated text are shown.
+- Coordinate System: red, green, blue axes
+- Plane: yellow square with diagonal
+- Line/Circle: purple or black line/circle
+- Point: black dot
+- Tessellated Surface: faces outlined in black
+
+Lines and circles that are trimmed by cartesian_point will not be trimmed."
+    .tnb select .tnb.status
+  }
+    
   $Help add command -label "AP242 Tessellated Part Geometry" -command {
 outputMsg "\nAP242 Tessellated Part Geometry --------------------------------------------" blue
 outputMsg "This feature is still being developed.
@@ -1307,6 +1344,10 @@ Parts modeled with tessellated geometry can be viewed in a web browser (Options 
 geometry is supported by AP242 and is supplementary to boundary representation (b-rep) geometry.
 
 Parts in an assembly might have the wrong position and orientation or be missing.
+
+Faces in a tessellated shell are outlined in black.  Lines generated from tessellated edges are
+also shown.  A wireframe mesh, outlining the facets of the tessellated surfaces can also be shown.
+If both are present, tessellated edges might be obscured by the wireframe mesh.
 
 See Help > User's Guide (section 6.1.2)
 See Examples > AP242 Tessellated Part Viewer
@@ -1403,12 +1444,16 @@ might appear that say 'Unable to alloc xxx bytes'.  See the Help > Crash Recover
   }
   $Help add command -label "About" -command {
     outputMsg "\nSTEP File Analyzer ---------------------------------------------------------" blue
-    set ver "32-bit"
-    foreach f [info loaded] {if {[string first "x86_64" $f] != -1} {set ver "64-bit"}}
-    outputMsg "Version:  [getVersion]\nTcl:      [info patchlevel] $ver"
-    if {$developer} {outputMsg "Updated:  [string trim [clock format $progtime -format "%e %b %Y"]]"}
+    outputMsg "Version:  [getVersion]"
+    outputMsg "Updated:  [string trim [clock format $progtime -format "%e %b %Y"]]"
+    #if {$developer} {
+    #  set ver "32-bit"
+    #  foreach f [info loaded] {if {[string first "x86_64" $f] != -1} {set ver "64-bit"}}
+    #  outputMsg "Tcl:      [info patchlevel] $ver"
+    #}
     if {"$nistVersion"} {
       outputMsg "Contact:  Robert Lipman, robert.lipman@nist.gov\n\nThe STEP File Analyzer was first released in April 2012 and is developed at\nNIST in the Systems Integration Division of the Engineering Laboratory."
+      outputMsg "\nSee Help > Disclaimer and NIST Disclaimer"
     } else {
       outputMsg "\nThis version was built from the NIST STEP File Analyzer source\ncode available on GitHub.  https://github.com/usnistgov/SFA"
     }
@@ -1517,7 +1562,7 @@ in this software, NIST does not necessarily endorse the views expressed, or conc
 presented on those web sites.
 
 This software uses Microsoft Excel and IFCsvr that are covered by their own End-User License
-Agreements."
+Agreements.  See Help > NIST Disclaimer"
     .tnb select .tnb.status
 
 set txt "This software was developed at the National Institute of Standards and Technology by employees of the Federal Government in the course of their official duties. Pursuant to Title 17 Section 105 of the United States Code this software is not subject to copyright protection and is in the public domain.  This software is an experimental system.  NIST assumes no responsibility whatsoever for its use by other parties, and makes no guarantees, expressed or implied, about its quality, reliability, or any other characteristic.
@@ -1526,7 +1571,7 @@ The Examples menu of this software provides links to several sources of STEP fil
 
 Any mention of commercial products or references to web pages in this software is for information purposes only; it does not imply recommendation or endorsement by NIST.  For any of the web links in this software, NIST does not necessarily endorse the views expressed, or concur with the facts presented on those web sites.
 
-This software uses Microsoft Excel and IFCsvr that are covered by their own End-User License Agreements."
+This software uses Microsoft Excel and IFCsvr that are covered by their own End-User License Agreements.  See Help > NIST Disclaimer"
   
     tk_messageBox -type ok -icon info -title "Disclaimers for STEP File Analyzer" -message $txt
   }
@@ -1563,7 +1608,7 @@ proc showUsersGuide {} {
     openURL https://doi.org/10.6028/NIST.AMS.200-4
   }
   
-  if {[getVersion] > [expr {[getVersionUG]+0.5}]} {
+  if {[getVersion] > [expr {[getVersionUG]+0.4}]} {
     errorMsg "The User's Guide is based on version [getVersionUG] of the STEP File Analyzer.\n New features are documented in the Help menu."
     outputMsg " "
     .tnb select .tnb.status

@@ -66,7 +66,7 @@ proc checkValues {} {
       if {[string first "PR_STEP" $item] == 0} {lappend butNormal "opt$item"}
     }
     foreach b {optINVERSE optPMIGRF optPMISEM optVALPROP optXL_FPREC optXL_KEEPOPEN optXL_LINK1 optXL_SORT allNone2} {lappend butDisabled $b}
-    foreach b {optVIZFEA optVIZPMI optVIZTES} {lappend butNormal $b}
+    foreach b {optVIZFEA optVIZPMI optVIZTPG} {lappend butNormal $b}
     foreach b {allNone0 allNone1 allNone3 optPR_USER} {lappend butNormal $b}
 
 # Excel
@@ -75,7 +75,7 @@ proc checkValues {} {
       if {[string first "PR_STEP" $item] == 0} {lappend butNormal "opt$item"}
     }
     foreach b {optINVERSE optPMIGRF optPMISEM optVALPROP optXL_FPREC optXL_KEEPOPEN optXL_LINK1 optXL_SORT} {lappend butNormal $b}
-    foreach b {optVIZFEA optVIZPMI optVIZTES} {lappend butNormal $b}
+    foreach b {optVIZFEA optVIZPMI optVIZTPG} {lappend butNormal $b}
     foreach b {allNone0 allNone1 allNone2 allNone3 optPR_USER} {lappend butNormal $b}
   }
 
@@ -97,11 +97,13 @@ proc checkValues {} {
     foreach b {userentity userentityopen} {lappend butDisabled $b}
     set userEntityList {}
     set allNone -1
-    if {$opt(VIZFEA) == 0 && $opt(VIZPMI) == 0 && $opt(VIZTES) == 0} {
+    if {$opt(VIZFEA) == 0 && $opt(VIZPMI) == 0 && $opt(VIZTPG) == 0} {
       set opt(VIZFEA) 1
       set opt(VIZPMI) 1
-      set opt(VIZTES) 1
+      set opt(VIZTPG) 1
     }
+  } else {
+    set opt(PR_STEP_FEAT) 1
   }
   
 # graphical PMI report
@@ -139,9 +141,14 @@ proc checkValues {} {
 
 # FEM visualization
   if {$opt(VIZFEA)} {
-    foreach b {optVIZFEALVS} {lappend butNormal $b}
+    foreach b {optVIZFEABC optVIZFEALV showfea} {lappend butNormal $b}
+    if {$opt(VIZFEALV)} {
+      foreach b {optVIZFEALVS} {lappend butNormal $b}
+    } else {
+      foreach b {optVIZFEALVS} {lappend butDisabled $b}
+    }
   } else {
-    foreach b {optVIZFEALVS} {lappend butDisabled $b}
+    foreach b {optVIZFEABC optVIZFEALV optVIZFEALVS showfea} {lappend butDisabled $b}
   }
 
 # semantic PMI report
@@ -159,16 +166,18 @@ proc checkValues {} {
   }
 
 # tessellated geometry visualization
-  if {$opt(VIZTES)} {
+  if {$opt(VIZTPG)} {
     if {$opt(XLSCSV) != "None"} {
-      set opt(PR_STEP_REPR) 1
-      lappend butDisabled optPR_STEP_REPR
+      set opt(PR_STEP_PRES) 1
+      lappend butDisabled optPR_STEP_PRES
     }
+    foreach b {optVIZTPGMSH} {lappend butNormal $b}
   } else {
     catch {
       if {!$opt(PMISEM) && !$opt(PMIGRF)} {lappend butNormal optPR_STEP_COMM}
-      if {!$opt(PMISEM)} {lappend butNormal optPR_STEP_REPR}
+      if {!$opt(PMISEM)} {lappend butNormal optPR_STEP_PRES}
     }
+    foreach b {optVIZTPGMSH} {lappend butDisabled $b}
   }
   
 # user-defined entity list
@@ -205,7 +214,7 @@ proc checkValues {} {
 # configure all, none, for buttons
   if {[info exists allNone]} {
     if {($allNone == 2 && ($opt(PMISEM) != 1 || $opt(PMIGRF) != 1 || $opt(VALPROP) != 1)) ||
-        ($allNone == 3 && ($opt(VIZPMI) != 1 || $opt(VIZTES) != 1 || $opt(VIZFEA)  != 1))} {
+        ($allNone == 3 && ($opt(VIZPMI) != 1 || $opt(VIZTPG) != 1 || $opt(VIZFEA)  != 1))} {
       set allNone -1
     } elseif {$allNone == 0} {
       foreach item [array names opt] {
@@ -225,6 +234,102 @@ proc checkValues {} {
       }
     }
   }
+}
+
+# -------------------------------------------------------------------------------------------------
+proc getNISTName {} {
+  global developer localName
+  
+  set nistName ""
+  set filePrefix {}
+  foreach fp [list sp4 sp5 sp6 sp7 tgp1 tgp2 tgp3 tgp4 tgp5 tp3 tp4 tp5 tp6 lsp lpp ltg ltp] {
+    lappend filePrefix "$fp\_"
+    lappend filePrefix "$fp\-"
+  }
+  set ftail [string tolower [file tail $localName]]
+  set c 3
+  if {[string first "tgp" $ftail] == 0} {set c 4}
+  foreach str {asme1 ap203 ap214 ap242 c3e} {regsub $str $ftail "" ftail}
+
+  set ctcftc 0
+  set ok  0
+  set ok1 0
+  
+  if {[lsearch $filePrefix [string range $ftail 0 $c]] != -1 || [string first "nist" $ftail] != -1 || \
+      [string first "ctc" $ftail] != -1 || [string first "ftc" $ftail] != -1} {
+    if {[lsearch $filePrefix [string range $ftail 0 $c]] != -1} {set ftail [string range $ftail $c+1 end]}
+
+    set tmp "nist_"
+    foreach item {ctc ftc} {
+      if {[string first $item $ftail] != -1} {
+        append tmp "$item\_"
+        set ctcftc 1
+      }
+    }
+
+# find nist_ctc_01 directly        
+    if {$ctcftc} {
+      foreach zero {"0" ""} {
+        for {set i 1} {$i <= 11} {incr i} {
+          set i1 $i
+          if {$i < 10} {set i1 "$zero$i"}
+          set tmp1 "$tmp$i1"
+          if {[string first $tmp1 $ftail] != -1 && !$ok1} {
+            set nistName $tmp1
+            #outputMsg $nistName green
+            set ok1 1
+          }
+        }
+      }
+    }
+
+# find the number in the string            
+    if {!$ok1} {
+      foreach zero {"0" ""} {
+        for {set i 1} {$i <= 11} {incr i} {
+          if {!$ok} {
+            set i1 $i
+            if {$i < 10} {set i1 "$zero$i"; set k "0$i"}
+            set c {""}
+            #outputMsg "$i1  [string first $i1 $ftail]  [string last $i1 $ftail]" blue
+            if {[string first $i1 $ftail] != [string last $i1 $ftail]} {set c {"_" "-"}}
+            foreach c1 $c {
+              for {set j 0} {$j < 2} {incr j} {
+                if {$j == 0} {set i2 "$c1$i1"}
+                if {$j == 1} {set i2 "$i1$c1"}
+                #outputMsg "[string first $i2 $ftail]  $i2  $ftail" green
+                if {[string first $i2 $ftail] != -1 && !$ok} {
+                  if {$ctcftc} {
+                    append tmp $k
+                  } elseif {$i <= 5} {
+                    append tmp "ctc_$k"
+                  } else {
+                    append tmp "ftc_$k"
+                  }
+                  set nistName $tmp
+                  set ok 1
+                  #outputMsg $nistName red
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+  
+# other files
+  if {!$ok} {
+    if {[string first "332211_qif_bracket" $ftail] != -1} {set nistName "332211_qif_bracket_revh"}
+    if {[string first "sp3" $ftail] == 0} {
+      if {[string first "1101"  $ftail] != -1} {set nistName "sp3-1101"}
+      if {[string first "16792" $ftail] != -1} {set nistName "sp3-16792"}
+      if {[string first "box"   $ftail] != -1} {set nistName "sp3-box"}
+    }
+  }
+  if {$developer && [string first "step-file-analyzer" $ftail] == 0} {set nistName "nist_ctc_01"}
+  
+  return $nistName
 }
 
 # -------------------------------------------------------------------------------------------------
@@ -458,7 +563,7 @@ proc unzipFile {} {
 proc saveState {} {
   global optionsFile fileDir openFileList opt userWriteDir dispCmd dispCmds
   global lastXLS lastXLS1 lastX3DOM userXLSFile fileDir1 mydocs sfaVersion upgrade
-  global excelYear userEntityFile buttons statusFont
+  global userEntityFile buttons statusFont excelVersion
 
   if {![info exists buttons]} {return}
   
@@ -470,7 +575,7 @@ proc saveState {} {
     set fileOptions [open $optionsFile w]
     puts $fileOptions "# Options file for the STEP File Analyzer v[getVersion] ([string trim [clock format [clock seconds]]])\n#\n# DO NOT EDIT OR DELETE FROM USER HOME DIRECTORY $mydocs\n# DOING SO WILL CORRUPT THE CURRENT SETTINGS OR CAUSE ERRORS IN THE SOFTWARE\n#"
     set varlist [list fileDir fileDir1 userWriteDir userEntityFile openFileList dispCmd dispCmds lastXLS lastXLS1 lastX3DOM \
-                      userXLSFile statusFont upgrade sfaVersion excelYear]
+                      userXLSFile statusFont upgrade sfaVersion excelVersion]
 
     foreach var $varlist {
       if {[info exists $var]} {
@@ -1352,6 +1457,8 @@ proc trimNum {num {prec 3}} {
   if {[info exists unq_num($numsav)]} {
     set num $unq_num($numsav)
   } else {
+    
+# trim number    
     if {[catch {
       
 # format number with 'prec' 
@@ -1371,9 +1478,6 @@ proc trimNum {num {prec 3}} {
       errorMsg "# $errmsg ($numsav reset to 0.0)" red
       set num 0.
     }
-
-# use comma instead of period
-    #if {$checkcomma && $comma} {regsub -all {\.} $num "," num}
 
 # save the number for next occurrence
     set unq_num($numsav) $num

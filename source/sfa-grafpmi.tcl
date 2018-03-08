@@ -34,7 +34,11 @@ proc gpmiAnnotation {entType} {
 # curve and fill style
   set colour      [list colour_rgb name red green blue]
   set curve_style [list presentation_style_assignment styles [list curve_style name curve_colour $colour [list draughting_pre_defined_colour name]]]
-  set fill_style  [list presentation_style_assignment styles [list surface_style_usage style [list surface_side_style styles [list surface_style_fill_area fill_area [list fill_area_style name fill_styles [list fill_area_style_colour fill_colour $colour [list draughting_pre_defined_colour name]]]]]]]
+  set fill_style  [list presentation_style_assignment styles [list surface_style_usage style \
+                                                               [list surface_side_style styles \
+                                                                 [list surface_style_fill_area fill_area \
+                                                                   [list fill_area_style name fill_styles \
+                                                                     [list fill_area_style_colour fill_colour $colour [list draughting_pre_defined_colour name]]]]]]]
 
   set geometric_curve_set  [list geometric_curve_set name elements $polyline $circle $trimmed_curve $composite_curve]
   set annotation_fill_area [list annotation_fill_area name boundaries $polyline $circle $trimmed_curve]
@@ -161,7 +165,8 @@ proc gpmiAnnotation {entType} {
 # -------------------------------------------------------------------------------
 proc gpmiAnnotationReport {objEntity} {
   global objDesign
-  global ao aoname assocGeom badAttributes boxSize cells circleCenter col currx3dPID curveTrim developer dirRatio dirType draftModelCameras draftModelCameraNames
+  global ao aoname assocGeom badAttributes boxSize cells circleCenter col currx3dPID curveTrim
+  global defaultColor developer dirRatio dirType draftModelCameras draftModelCameraNames
   global entCount entLevel ent entAttrList entCount entsWithErrors geomType gpmiEnts gpmiID gpmiIDRow gpmiRow gpmiTypes gpmiTypesInvalid gpmiTypesPerFile gpmiValProp
   global iCompCurve iCompCurveSeg incrcol iPolyline localName nindex nistVersion nshape numCompCurve numCompCurveSeg numPolyline numx3dPID
   global objEntity1 opt pmiCol pmiColumns pmiHeading pmiStartCol pointLimit prefix propDefIDS recPracNames savedViewCol stepAP syntaxErr 
@@ -742,8 +747,8 @@ proc gpmiAnnotationReport {objEntity} {
                       blue    {set x3dColor "0 0 1"}
                       magenta {set x3dColor "1 0 1"}
                       default {
-                        set x3dColor ".7 .7 .7"
-                        errorMsg "Syntax Error: Unknown draughting_pre_defined_colour name '$objValue' (using gray)\n[string repeat " " 14]($recPracNames(model), Sec. 4.2.3, Table 2)"
+                        set x3dColor [lindex $defaultColor 0]
+                        errorMsg "Syntax Error: Unexpected draughting_pre_defined_colour name '$objValue' (using [lindex $defaultColor 1])\n[string repeat " " 14]($recPracNames(model), Sec. 4.2.3, Table 2)"
                       }
                     }
 
@@ -1214,7 +1219,7 @@ proc gpmiAnnotationReport {objEntity} {
                     lappend syntaxErr($relType) [list $mdadrID rep_2 $msg]
                   }
                   if {$relType == "representation_relationship"} {
-                    set msg "For Saved Views, recommend using 'mechanical_design_and_draughting_relationship' instead of 'representation_relationship'\n  to relate draughting models "
+                    set msg "For Saved Views, use 'mechanical_design_and_draughting_relationship' instead of 'representation_relationship'\n  to relate draughting models "
                     if {$stepAP == "AP242"} {
                       append msg "($recPracNames(pmi242), Sec. 9.4.4 Note 2)"
                     } else {

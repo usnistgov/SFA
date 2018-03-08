@@ -316,7 +316,7 @@ proc spmiCoverageWrite {{fn ""} {sum ""} {multi 1}} {
 # -------------------------------------------------------------------------------
 # format semantic PMI coverage analysis worksheet, also PMI totals
 proc spmiCoverageFormat {sum {multi 1}} {
-  global cells cells1 col1 coverageLegend coverageStyle excel1 lenfilelist localName opt excelVersion
+  global cells cells1 col1 coverageLegend coverageStyle excel1 lenfilelist localName opt
   global pmiModifiers pmiUnicode recPracNames sempmi_coverage sempmi_totals spmiTypes worksheet worksheet1 
 
   #outputMsg "spmiCoverageFormat $multi" red
@@ -361,8 +361,8 @@ proc spmiCoverageFormat {sum {multi 1}} {
     }
  
 # horizontal break lines
-    set idx1 [list 20 42 55 61 80]
-    if {!$multi} {set idx1 [list 3 4 20 42 55 61 80]}
+    set idx1 [list 20 42 55 62 81]
+    if {!$multi} {set idx1 [list 3 4 20 42 55 62 81]}
     for {set r 200} {$r >= [lindex $idx1 end]} {incr r -1} {
       if {$multi} {
         set val [[$cells1($sempmi_coverage) Item $r 1] Value]

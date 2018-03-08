@@ -116,10 +116,10 @@ proc spmiGeotolReport {objEntity} {
   global all_around all_over assocGeom ATR badAttributes between cells col
   global datsys datumCompartment datumFeature datumSymbol datumSystem developer
   global dim dimrep datumEntType datumGeom datumTargetType dimtolEntType dimtolGeom
-  global entLevel ent entAttrList entCount gt gtEntity incrcol lastAttr lastEnt
+  global entLevel ent entAttrList entCount gt gtEntity incrcol lastAttr lastEnt nistName
   global objID opt pmiCol pmiHeading pmiModifiers pmiStartCol pmiUnicode ptz recPracNames
   global spmiEnts spmiID spmiIDRow spmiRow spmiTypesPerFile stepAP syntaxErr
-  global tol_dimprec tol_dimrep tolNames tolStandard tolval tzf1 tzfNames worksheet datumModValue
+  global tolNames tolStandard tolval tzf1 tzfNames worksheet datumModValue
 
   if {$opt(DEBUG1)} {outputMsg "spmiGeotolReport" red}
    
@@ -315,11 +315,16 @@ proc spmiGeotolReport {objEntity} {
                                 set tzfName1 $tzfName
                                 if {$tzfName1 == "spherical"} {set tzfName1 "spherical diameter"}
 
-# tzf symbol or text if no symbol
+# tzf symbol 
                                 if {[info exists pmiUnicode($tzfName1)]} {
                                   set tzf $pmiUnicode($tzfName1)
+
+# no tzf symbol
                                 } else {
                                   set tzf1 "(TZF: $tzfName)"
+                                  set msg "The tolerance_zone_form.name '$tzfName' from Table 12 is not commonly used."
+                                  if {[string first "within" $tzfName] != -1} {append msg "\n Use 'cylindrical or circular' from Table 11."}
+                                  errorMsg $msg
                                 }
 
 # invalid tzf
@@ -338,6 +343,8 @@ proc spmiGeotolReport {objEntity} {
                                 lappend spmiTypesPerFile "tolerance zone diameter"
                               } elseif {$tzfName == "spherical"} {
                                 lappend spmiTypesPerFile "tolerance zone spherical diameter"
+                              } else {
+                                lappend spmiTypesPerFile "tolerance zone other"
                               }
 
 # only these tolerances allow a tolerance zone form for diameters
@@ -398,6 +405,7 @@ proc spmiGeotolReport {objEntity} {
 
 # truncate tolerance zone magnitude value
                           if {[getPrecision $objValue] > 6} {set objValue [string trimright [format "%.6f" $objValue] "0"]}
+                          if {$objValue == 0.} {set objValue 0}
                           set tolval $objValue
                           set objValue "$tname | $tzf$objValue"
 
@@ -465,7 +473,13 @@ proc spmiGeotolReport {objEntity} {
                     if {[info exists colName]} {
                       $cells($gt) Item 3 $c $colName
                       if {[string first "GD&T" $colName] != -1} {
-                        addCellComment $gt 3 $c "The Geometric Tolerances below might be shown with their corresponding Dimensions and Datum Features.  It depends on any of the three referring to the same Associated Geometry.  See the Toleranced Geometry column to the right and the Associated Geometry columns on the 'dimensional_characteristic_representation' (DCR) and 'datum_feature' worksheets.  See the DCR worksheet for an explanation of Repetitive Dimensions."
+                        set comment "See Help > User's Guide (section 5.1.4) for an explanation of how the annotations below are constructed."
+                        append comment " ***** The geometric tolerance might be shown with associated dimensions (above) and datum features (below).  That depends on any of the two referring to the same Associated Geometry as the Toleranced Geometry in the column to the right.  See the Associated Geometry columns on the 'dimensional_characteristic_representation' (DCR) and 'datum_feature' worksheets to see if they match the Toleranced Geometry."
+                        append comment " ***** See the DCR worksheet for an explanation of Repetitive Dimensions."
+                        if {$nistName != ""} {
+                          append comment " ***** See the PMI Representation Summary worksheet to see how the GD&T Annotation below compares to the expected PMI."
+                        }
+                        addCellComment $gt 3 $c $comment 400 350
                       }
                     } else {
                       errorMsg "Syntax Error on [formatComplexEnt $gt]"
@@ -1292,7 +1306,7 @@ proc spmiGeotolReport {objEntity} {
     
 # get dimensional tolerance by checking dimtols for the same associated geometry
       if {[info exists assocGeom]} {
-        catch {unset tol_dimrep}
+        catch {unset tolDimrep}
         if {[info exists spmiIDRow($gt,$spmiID)]} {
           set geotolGeom [reportAssocGeom $gt $spmiIDRow($gt,$spmiID)]
         } else {
@@ -1310,13 +1324,14 @@ proc spmiGeotolReport {objEntity} {
 
 # exact match
         if {[info exists dimtolGeom($geotolGeomEnts)]} {
-          set tol_dimrep [lindex $dimtolGeom($geotolGeomEnts) 0]
+          set tolDimrep [lindex $dimtolGeom($geotolGeomEnts) 0]
+          set tolDimprec [getPrecision $tolDimrep]
 
 # partial match
         } else {
           foreach item [array names dimtolGeom] {
             if {[string first $geotolGeomEnts $item] != -1 && [string first "surface" $geotolGeomEnts] != -1} {
-              set tol_dimrep [lindex $dimtolGeom($item) 0]
+              set tolDimrep [lindex $dimtolGeom($item) 0]
               break
             }
           }
@@ -1324,41 +1339,47 @@ proc spmiGeotolReport {objEntity} {
       }
     
 # add dimensional tolerance
-      if {[info exists tol_dimrep] && [string first "tolerance" $gt] != -1} {
+      if {[info exists tolDimrep] && [string first "tolerance" $gt] != -1} {
         set c [string index [cellRange 1 $col($gt)] 0]
         set r $spmiIDRow($gt,$spmiID)
         set val [[$cells($gt) Item $r $c] Value]
 
-# format tolerance like dimension
-        if {[info exists dim(unit)]} {
+# modify tolerance zone to the same precision as the dimension
+        if {[info exists dim(unit)] && $dim(unitOK)} {
           if {$dim(unit) == "INCH"} {
-            if {[info exists tol_dimprec]} {
+            if {[info exists tolDimprec]} {
               set ntol $tolval
               set tolprec [getPrecision $ntol]
-              set n0 [expr {$tol_dimprec-$tolprec}]
+              if {$tolprec > 3} {set tolprec 3}
+              if {$tolDimprec > 3} {set tolDimprec 3}
+              set n0 [expr {$tolDimprec-$tolprec}]
+
+# add trailing zeros
               if {$n0 > 0} {
                 if {[string first "." $ntol] == -1} {append ntol "."}
                 append ntol [string repeat "0" $n0]
-              } elseif {$n0 < 0} {
+
+# truncate
+              } elseif {$n0 < 0 && $n0 > -3 && $tolprec > 3} {
                 set form "%."
-                append form $tol_dimprec
+                append form $tolDimprec
                 append form f
                 set ntol [format $form $ntol]
               }
               regsub $tolval $val $ntol val
           
-# format projected tolerance like dimension
+# modify projected tolerance zone to dimension precision
               if {[info exists ptz]} {
                 if {$ptz != "" && $ptz > 0. && $ptz != "NON-UNIFORM"} {
                   set ntol $ptz
                   set tolprec [getPrecision $ntol]
-                  set n0 [expr {$tol_dimprec-$tolprec}]
+                  set n0 [expr {$tolDimprec-$tolprec}]
                   if {$n0 > 0} {
                     if {[string first "." $ntol] == -1} {append ntol "."}
                     append ntol [string repeat "0" $n0]
-                  } elseif {$n0 < 0} {
+                  } elseif {$n0 < 0 && $n0 > -3 && $tolprec > 3} {
                     set form "%."
-                    append form $tol_dimprec
+                    append form $tolDimprec
                     append form f
                     set ntol [format $form $ntol]
                   }
@@ -1368,8 +1389,8 @@ proc spmiGeotolReport {objEntity} {
             }
           }
         }
-        $cells($gt) Item $r $c "$tol_dimrep[format "%c" 10]$val"
-        unset tol_dimrep
+        $cells($gt) Item $r $c "$tolDimrep[format "%c" 10]$val"
+        unset tolDimrep
       }
 
 # add datum feature with a triangle and line
@@ -1420,7 +1441,7 @@ proc spmiGeotolReport {objEntity} {
         
 # add TZF (tzf1) for those that are wrong or do not have a symbol associated with them
       if {[info exists tzf1]} {
-        if {$tzf1 != "" && [string first "unknown" [string tolower $tzf1]] == -1} {
+        if {$tzf1 != ""} {
           set c [string index [cellRange 1 $col($gt)] 0]
           set r $spmiIDRow($gt,$spmiID)
           set val [[$cells($gt) Item $r $c] Value]
