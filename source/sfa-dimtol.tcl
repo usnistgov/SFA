@@ -728,6 +728,8 @@ proc spmiDimtolReport {objEntity} {
                           set dimrep($dimrepID) "$pmiModifiers($ov)$dimrep($dimrepID)"
 # suffix, append to savedModifier
                         } else {
+                          outputMsg $ov red
+                          if {$ov == "statistical"} {set ov "statistical_dimension"}
                           append savedModifier $pmiModifiers($ov)
                         }
                         lappend spmiTypesPerFile $ov
@@ -937,11 +939,11 @@ proc spmiDimtolReport {objEntity} {
               }
               foreach item $badGeom {
                 if {$okSurf} {
-                  errorMsg "Associated Geometry for a '[lindex $item 0]' dimension also refers to a '[lindex $item 1]'.\n [string totitle $dimName] dimensions are assumed to be associated only with curved surfaces."
-                  addCellComment $dt $r $pmiColumns(ch) "[string totitle $dimName] dimension (column E) also refers to a '[lindex $item 1]'." 200 40
+                  errorMsg "Associated Geometry for a '[lindex $item 0]' dimension also refers to '[lindex $item 1]'.  Check that this is the intended association."
+                  addCellComment $dt $r $pmiColumns(ch) "[string totitle $dimName] dimension (column E) also refers to '[lindex $item 1]'.  Check that this is the intended association." 250 50
                 } else {
-                  errorMsg "Associated Geometry for a '[lindex $item 0]' dimension is only a '[lindex $item 1]'.\n [string totitle $dimName] dimensions are assumed to be associated with curved surfaces."
-                  addCellComment $dt $r $pmiColumns(ch) "[string totitle $dimName] dimension (column E) is assumed to be associated with curved surfaces and not a '[lindex $item 1]'." 200 50
+                  errorMsg "Associated Geometry for a '[lindex $item 0]' dimension is only a '[lindex $item 1]'.  Check that this is the intended association."
+                  addCellComment $dt $r $pmiColumns(ch) "[string totitle $dimName] dimension (column E) is not associated with curved surfaces.  Check that this is the intended association." 250 50
                 }
                 lappend entsWithErrors "dimensional_characteristic_representation"
               }

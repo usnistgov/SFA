@@ -1256,8 +1256,8 @@ proc addHeaderWorksheet {numFile fname} {
           set cadSystem [join [$objDesign $attr]]
 
 # for multiple files, modify the app string to fit in file summary worksheet
-          if {$app == "3D_Evolution"}           {set app1 "CT 3D_Evolution"}
-          if {$app == "CoreTechnologie"}        {set app1 "CT 3D_Evolution"}
+          if {$app == "3D Evolution"}           {set app1 "CT 3D Evolution"}
+          if {$app == "CoreTechnologie"}        {set app1 "CT 3D Evolution"}
           if {$app == "DATAKIT"}                {set app1 "Datakit"}
           if {$app == "EDMsix"}                 {set app1 "Jotne EDMsix"}
           if {$app == "Implementor Forum Team"} {set app1 "CAx-IF"}
@@ -1273,6 +1273,7 @@ proc addHeaderWorksheet {numFile fname} {
 
           if {[string first "CATIA Version" $app] == 0} {set app1 "CATIA V[string range $app 14 end]"}
           if {$app == "3D EXPERIENCE"} {set app1 "3D Experience"}
+          if {$app == "3DEXPERIENCE"}  {set app1 "3D Experience"}
 
           if {[string first "CATIA SOLUTIONS V4" [$objDesign FileOriginatingSystem]] != -1} {set app1 "CATIA V4"}
           if {[string first "Autodesk Inventor"  [$objDesign FileOriginatingSystem]] != -1} {set app1 [$objDesign FileOriginatingSystem]}

@@ -323,7 +323,7 @@ proc spmiGeotolReport {objEntity} {
                                 } else {
                                   set tzf1 "(TZF: $tzfName)"
                                   set msg "The tolerance_zone_form.name '$tzfName' from Table 12 is not commonly used."
-                                  if {[string first "within" $tzfName] != -1} {append msg "\n Use 'cylindrical or circular' from Table 11."}
+                                  #if {[string first "within" $tzfName] != -1} {append msg "\n Use 'cylindrical or circular' from Table 11."}
                                   errorMsg $msg
                                 }
 
@@ -1293,6 +1293,7 @@ proc spmiGeotolReport {objEntity} {
             } elseif {[$a1 Name] == "relating_geometric_tolerance"} {
               #$cells($gt) Item $r $c "$val[format "%c" 10](composite with [[$a1 Value] P21ID])"
               set compositeID [[$a1 Value] P21ID]
+              outputMsg $compositeID red
               lappend spmiTypesPerFile "composite tolerance"
             }
           }

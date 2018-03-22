@@ -76,7 +76,7 @@ foreach item $auto_path {if {[string first "STEP-File-Analyzer" $item] != -1} {s
 # initialize variables
 foreach id {XL_OPEN XL_KEEPOPEN XL_LINK1 XL_FPREC XL_SORT LOGFILE \
             VALPROP PMIGRF PMISEM INVERSE DEBUG1 \
-            VIZPMIVIZTPG VIZTPGMSH VIZPMIVP VIZFEA VIZFEABC VIZFEALV VIZFEALVS \
+            VIZPMI VIZTPG VIZTPGMSH VIZPMIVP VIZFEA VIZFEABC VIZFEALV VIZFEALVS \
             PR_STEP_AP242 PR_USER PR_STEP_KINE PR_STEP_COMP PR_STEP_COMM PR_STEP_GEOM PR_STEP_QUAN \
             PR_STEP_FEAT PR_STEP_PRES PR_STEP_TOLR PR_STEP_REPR PR_STEP_CPNT PR_STEP_SHAP} {set opt($id) 1}
 
@@ -242,13 +242,13 @@ proc whatsNew {} {
   if {$sfaVersion > 0 && $sfaVersion < [getVersion]} {outputMsg "\nThe previous version of the STEP File Analyzer was: $sfaVersion" red}
 
 outputMsg "\nWhat's New (Version: [getVersion]  Updated: [string trim [clock format $progtime -format "%e %b %Y"]])" blue
-outputMsg "- Visualization of supplemental geometry (Help > Supplemental Geometry)
-- Improved reporting of invalid Dimension decimal places and Validation Property values
-- Improved reporting of Associated Geometry
+outputMsg "- Support for AP242 Edition 2 DIS (Draft International Standard)
+- Visualization of supplemental geometry (Help > Supplemental Geometry)
 - Improved visualization of AP209 boundary conditions and loads (Help > AP209 Finite Element Model)
+- Improved reporting of Associated Geometry
+- Improved reporting of invalid Dimension decimal places and Validation Property values = 0
 - Explanation of Report errors (Help > Syntax Errors)
 - Support for repetitive hole and radius dimensions, e.g, '4X' R10.5
-- Detect unexpected Associated Geometry for hole and radius dimensions
 - Bug fixes and minor improvements"
 
 if {$sfaVersion <= 2.60} {
@@ -460,7 +460,8 @@ update idletasks
 wm minsize . [winfo reqwidth .] [expr {int([winfo reqheight .]*1.05)}]
 
 # debug
-#compareLists "AP242" $ap242all $ap242e2
+#compareLists "AP242" $ap242all $ap242e1
 #set apcat {}
 #foreach idx [array names entCategory] {set apcat [concat $apcat $entCategory($idx)]}
 #compareLists "cat" $apcat [lrmdups [concat $ap203all $ap214all $ap242all]]
+#foreach idx [array names entCategory] {if {[llength $entCategory($idx)] != [llength [lrmdups $entCategory($idx)]]} {outputMsg $idx}}

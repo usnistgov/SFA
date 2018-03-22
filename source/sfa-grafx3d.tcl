@@ -202,7 +202,10 @@ proc x3dTessGeom {objID objEntity1 ent1} {
 # write mesh
             set ecolor ""
             foreach c [split $x3dColor] {append ecolor "[expr {$c*.5}] "}
-            if {$ao == "tessellated_shell"} {set ecolor "0 0 0"}
+            if {$ao == "tessellated_shell"} {
+              set ecolor "0 0 0"
+              errorMsg " Triangular faces in 'tessellated_shell' are outlined in black."
+            }
             puts $f "<Shape DEF='mesh$objID'><Appearance><Material emissiveColor='$ecolor'></Material></Appearance>"
             puts $f " <IndexedLineSet coordIndex='[string trim $x3dMesh]'><Coordinate USE='coord$tessIndexCoord($objID)'></Coordinate></IndexedLineSet></Shape>"
           } else {
@@ -347,7 +350,7 @@ proc x3dFileEnd {} {
 
 # navigation, background color
   set bgc "1 1 1"
-  if {$viz(PMI) || $viz(SMG)} {set bgc ".8 .8 .85"}
+  if {$viz(PMI)} {set bgc ".8 .8 .85"}
   puts $x3dFile "\n<!-- BACKGROUND -->"
   puts $x3dFile "<Background id='BG' skyColor='$bgc'></Background>"
   puts $x3dFile "<NavigationInfo type='\"EXAMINE\" \"ANY\"'></NavigationInfo>"
@@ -546,17 +549,25 @@ proc x3dSuppGeom {maxxyz} {
                 puts $x3dFile " <Group USE='sgAxes'>"
               }
               set nsize [expr {$tsize*1.5}]
-              if {$name != ""} {puts $x3dFile " <Transform scale='$nsize $nsize $nsize'><Billboard axisOfRotation='0 0 0'><Shape><Appearance><Material diffuseColor='0 0 0'></Material></Appearance><Text string='\"$name\"'><FontStyle family='\"SANS\"'></FontStyle></Text></Shape></Billboard></Transform>"}
+              if {$name != ""} {puts $x3dFile " <Transform scale='$nsize $nsize $nsize'><Billboard axisOfRotation='0 0 0'><Shape><Appearance><Material diffuseColor='0 0 0'></Material></Appearance><Text string='\"$name\"'><FontStyle family='\"SANS\"' justify='\"BEGIN\"'></FontStyle></Text></Shape></Billboard></Transform>"}
 
 # plane
             } elseif {$ename == "plane" || $ename == "circle"} {
+              
+# check if plane is bounded
+              set bnds [$e2 GetUsedIn [string trim advanced_face] [string trim faced_geometry]]
+              set bound 0
+              ::tcom::foreach bnd $bnds {set bound 1}
+
+              set nsize [expr {$size*2.}]
               if {!$defPlane} {
-                puts $x3dFile " <Shape DEF='sgPlane'><Appearance><Material emissiveColor='1 1 0'></Material></Appearance><IndexedLineSet coordIndex='0 1 2 3 0 -1 0 2 -1'><Coordinate point='-$size -$size 0. $size -$size 0. $size $size 0. -$size $size 0.'></Coordinate></IndexedLineSet></Shape>"
+                if {$bound} {errorMsg " Bounding edges for supplemental geometry bounded planes are ignored."}
+                puts $x3dFile " <Shape DEF='sgPlane'><Appearance><Material emissiveColor='0 0 1'></Material></Appearance><IndexedLineSet coordIndex='0 1 2 3 0 -1'><Coordinate point='-$nsize -$nsize 0. $nsize -$nsize 0. $nsize $nsize 0. -$nsize $nsize 0.'></Coordinate></IndexedLineSet></Shape>"
                 set defPlane 1
               } else {
                 puts $x3dFile " <Shape USE='sgPlane'>"
               }
-              if {$name != ""} {puts $x3dFile " <Transform translation='-$size -$size 0.' scale='$tsize $tsize $tsize'><Billboard axisOfRotation='0 0 0'><Shape><Appearance><Material diffuseColor='1 1 0'></Material></Appearance><Text string='\"$name\"'><FontStyle family='\"SANS\"'></FontStyle></Text></Shape></Billboard></Transform>"}
+              if {$name != ""} {puts $x3dFile " <Transform translation='-$nsize -$nsize 0.' scale='$tsize $tsize $tsize'><Billboard axisOfRotation='0 0 0'><Shape><Appearance><Material diffuseColor='0 0 1'></Material></Appearance><Text string='\"$name\"'><FontStyle family='\"SANS\"' justify='\"BEGIN\"'></FontStyle></Text></Shape></Billboard></Transform>"}
             }
             puts $x3dFile "</Transform>"
             set viz(SMG) 1
@@ -593,6 +604,7 @@ proc x3dSuppGeom {maxxyz} {
 
 # line        
             if {[$e3 Type] == "line"} {
+              
               set e4 [[[$e3 Attributes] Item 2] Value]
               set coord1 [vectrim [[[$e4 Attributes] Item 2] Value]]
               set e5 [[[$e3 Attributes] Item 3] Value]
@@ -602,10 +614,12 @@ proc x3dSuppGeom {maxxyz} {
               set coord2 [vectrim [vecscale $dir $mag]]
               if {[info exists trim(2)]} {if {[string first "handle" $trim(2)] == -1} {set coord2 [vectrim [vecscale $dir [expr {$trim(2)*$mag}]]]}}
               
-              set nsize [expr {$tsize*0.5}]
               puts $x3dFile "<Transform translation='$coord1'>"
               puts $x3dFile " <Shape><Appearance><Material emissiveColor='1 0 1'></Material></Appearance><IndexedLineSet coordIndex='0 1 -1'><Coordinate point='0. 0. 0. $coord2'></Coordinate></IndexedLineSet></Shape>"
-              if {$name != ""} {puts $x3dFile " <Transform scale='$nsize $nsize $nsize'><Billboard axisOfRotation='0 0 0'><Shape><Appearance><Material diffuseColor='1 0 1'></Material></Appearance><Text string='\"$name\"'><FontStyle family='\"SANS\"'></FontStyle></Text></Shape></Billboard></Transform>"}
+              if {$name != ""} {
+                set nsize [expr {$tsize*0.5}]
+                puts $x3dFile " <Transform scale='$nsize $nsize $nsize'><Billboard axisOfRotation='0 0 0'><Shape><Appearance><Material diffuseColor='1 0 1'></Material></Appearance><Text string='\"$name\"'><FontStyle family='\"SANS\"' justify='\"BEGIN\"'></FontStyle></Text></Shape></Billboard></Transform>"
+              }
               puts $x3dFile "</Transform>"
               set viz(SMG) 1
 
@@ -652,7 +666,7 @@ proc x3dSuppGeom {maxxyz} {
               }
   
               puts $x3dFile " <Shape><Appearance><Material emissiveColor='1 0 1'></Material></Appearance><IndexedLineSet coordIndex='$index'><Coordinate point='$coord'></Coordinate></IndexedLineSet></Shape>"
-              if {$name != ""} {puts $x3dFile " <Transform translation='$coord1' scale='$tsize $tsize $tsize'><Billboard axisOfRotation='0 0 0'><Shape><Appearance><Material diffuseColor='1 0 1'></Material></Appearance><Text string='\"$name\"'><FontStyle family='\"SANS\"'></FontStyle></Text></Shape></Billboard></Transform>"}
+              if {$name != ""} {puts $x3dFile " <Transform translation='$coord1' scale='$tsize $tsize $tsize'><Billboard axisOfRotation='0 0 0'><Shape><Appearance><Material diffuseColor='1 0 1'></Material></Appearance><Text string='\"$name\"'><FontStyle family='\"SANS\"' justify='\"BEGIN\"'></FontStyle></Text></Shape></Billboard></Transform>"}
               puts $x3dFile "</Transform>"
               set viz(SMG) 1
 
@@ -666,10 +680,13 @@ proc x3dSuppGeom {maxxyz} {
           cartesian_point {
             set name [[[$e2 Attributes] Item 1] Value]
             set coord1 [[[$e2 Attributes] Item 2] Value]
-            set nsize [expr {$tsize*0.5}]
+            set nsize [expr {$tsize*0.1}]
             puts $x3dFile "<Transform translation='$coord1'>"
-            puts $x3dFile " <Shape><Appearance><Material emissiveColor='0 0 0'></Material></Appearance><PointSet><Coordinate point='0 0 0'></Coordinate></IndexedLineSet></Shape>"
-            if {$name != ""} {puts $x3dFile " <Transform scale='$nsize $nsize $nsize'><Billboard axisOfRotation='0 0 0'><Shape><Appearance><Material diffuseColor='0 0 0'></Material></Appearance><Text string='\"$name\"'><FontStyle family='\"SANS\"'></FontStyle></Text></Shape></Billboard></Transform>"}
+            puts $x3dFile "  <Shape><Appearance><Material emissiveColor='0 0 0'></Material></Appearance><IndexedLineSet coordIndex='0 1 -1 2 3 -1 4 5 -1'><Coordinate point='$nsize 0. 0. -$nsize 0. 0. 0. $nsize 0. 0. -$nsize 0. 0. 0. $nsize 0. 0. -$nsize'></Coordinate></IndexedLineSet></Shape>"
+            if {$name != ""} {
+              set nsize [expr {$tsize*0.25}]
+              puts $x3dFile " <Transform scale='$nsize $nsize $nsize'><Billboard axisOfRotation='0 0 0'><Shape><Appearance><Material diffuseColor='0 0 0'></Material></Appearance><Text string='\"$name\"'><FontStyle family='\"SANS\"' justify='\"BEGIN\"'></FontStyle></Text></Shape></Billboard></Transform>"
+            }
             puts $x3dFile "</Transform>"
           }
           

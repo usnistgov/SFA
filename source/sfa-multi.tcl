@@ -492,7 +492,7 @@ proc openMultiFile {{ask 1}} {
 
 # also for PMI coverage analysis worksheets
                   catch {
-                    set range [$worksheet1($sempmi_coverage) Range [cellRange 3 $nf1] [cellRange 130 $nf1]]
+                    set range [$worksheet1($sempmi_coverage) Range [cellRange 3 $nf1] [cellRange 131 $nf1]]
                     set borders [$range Borders]
                     [$borders Item [expr -4152]] Weight [expr 2]
                   }

@@ -1,6 +1,6 @@
 #-------------------------------------------------------------------------------
 # version numbers, software and user's guide
-proc getVersion {}   {return 2.80}
+proc getVersion {}   {return 2.82}
 proc getVersionUG {} {return 2.34}
 
 # -------------------------------------------------------------------------------
@@ -376,8 +376,17 @@ proc spmiSummary {} {
           $cells($spmiSumName) Item $spmiSumRow 2 $entstr
 
           set val [[$cells($thisEntType) Item $i $pmiCol] Value]
+
+# remove (TZF: ...)
           set c1 [string first "(TZF:" $val]
-          if {$c1 != -1} {set val [string range $val 0 $c1-2]}
+          if {$c1 != -1} {
+            set c2 [string first ")" $val]
+            if {$c2 > $c1} {
+              set val [string range $val 0 $c1-2][string range $val $c2+1 end]
+            } else {
+              set val [string range $val 0 $c1-2]
+            }
+          }
           $cells($spmiSumName) Item $spmiSumRow 3 "'$val"
           set cellval $val
 

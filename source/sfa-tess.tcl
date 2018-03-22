@@ -32,11 +32,13 @@ proc tessPart {entType} {
   if {$opt(DEBUG1)} {outputMsg "entattrlist $entAttrList"}
   
 # open file for tessellated parts
-  if {([info exist entCount(tessellated_solid)] || [info exist entCount(tessellated_wire)]) && ![info exists tessPartFileName]} {
-    if {$entCount(tessellated_solid) > 0 || $entCount(tessellated_wire) > 0} {
-      set tessPartFileName [file join $mytemp tessPart.txt]
-      catch {file delete -force -- $tessPartFileName}
-      set tessPartFile [open $tessPartFileName w]
+  foreach tess {tessellated_solid tessellated_shell tessellated_wire} {
+    if {[info exist entCount($tess)] && ![info exists tessPartFileName]} {
+      if {$entCount($tess) > 0} {
+        set tessPartFileName [file join $mytemp tessPart.txt]
+        catch {file delete -force -- $tessPartFileName}
+        set tessPartFile [open $tessPartFileName w]
+      }
     }
   }
   
@@ -412,36 +414,9 @@ proc tessReadGeometry {} {
 }
 
 # -------------------------------------------------------------------------------
-proc tessCountColors {} {
-  global objDesign
-  global entCount
-
-# count unique colors in colour_rgb and draughting_pre_defined_colour
-  set colors {}
-  if {[catch {
-    if {[info exists entCount(colour_rgb)]} {
-      ::tcom::foreach e0 [$objDesign FindObjects [string trim colour_rgb]] {
-        set a0 [$e0 Attributes]
-        set color "[[$a0 Item 2] Value] [[$a0 Item 3] Value] [[$a0 Item 4] Value]"
-        if {[lsearch $colors $color] == -1} {lappend colors $color}
-      }
-    }
-    if {[info exists entCount(draughting_pre_defined_colour)]} {
-      ::tcom::foreach e0 [$objDesign FindObjects [string trim draughting_pre_defined_colour]] {
-        set color [[[$e0 Attributes] Item 1] Value]
-        if {[lsearch $colors $color] == -1} {lappend colors $color}
-      }
-    }
-  } emsg]} {
-    errorMsg " ERROR counting unique colors: $emsg"
-  }
-  return [llength $colors]
-}
-
-# -------------------------------------------------------------------------------
 proc tessSetColor {objEntity tsID} {
   global tessColor x3dColor entCount recPracNames defaultColor
-  #outputMsg "tessSetColor [$objEntity Type] $tsID" red
+  #outputMsg "tessSetColor [$objEntity Type] [$objEntity P21ID] ($tsID)" red
 
   set ok  0
   set ok1 1
@@ -454,9 +429,11 @@ proc tessSetColor {objEntity tsID} {
 # get color from styled_item
   } elseif {$ok} {
     if {[catch {
+      set debug 0
       
-# get styled_item.item for tessellated_solid/shell
+# get styled_item.item for tessellated_solid/shell or triangulated faces
       ::tcom::foreach e0 [$objEntity GetUsedIn [string trim styled_item] [string trim item]] {
+        if {$debug} {errorMsg "[$e0 Type] [$e0 P21ID]" green}
         set ok1 0
         
 # styled_item.styles
@@ -464,14 +441,17 @@ proc tessSetColor {objEntity tsID} {
 # presentation_style.styles
         ::tcom::foreach e2 [$a1 Value] {
           set a2 [[$e2 Attributes] Item 1]
+          if {$debug} {errorMsg " [$e2 Type] [$e2 P21ID]" red}
 
           set e3 [$a2 Value]
           set a3 [[$e3 Attributes] Item 2]
+          if {$debug} {errorMsg "  [$e3 Type] [$e3 P21ID]" red}
 # surface side style
           set e4 [$a3 Value]
           set a4s [[$e4 Attributes] Item 2]
 # surface style fill area
           foreach e5 [$a4s Value] {
+            if {$debug} {errorMsg "   [$e5 Type] [$e5 P21ID]" red}
             if {[$e5 Type] == "surface_style_fill_area"} {
               set a5 [[$e5 Attributes] Item 1]
 # fill area style
@@ -517,17 +497,59 @@ proc tessSetColor {objEntity tsID} {
           }
         }
       }
+      
+# tessellated_solid and _shell not found in styled_item.item, try the first item of TS, usually a face      
       if {$ok1} {
-        errorMsg "Syntax Error: Expecting '[$objEntity Type]' in 'styled_item.item' for tessellated geometry color (using [lindex $defaultColor 1])\n[string repeat " " 14]($recPracNames(model), Sec. 4.2.2, Fig. 2)"
-        set tessColor($tsID) [lindex $defaultColor 0]
+        if {[string first "tessellated" [$objEntity Type]] == 0} {set missingStyledItem [$objEntity Type]}
+        set n 0
+        catch {
+          ::tcom::foreach e1 [[[$objEntity Attributes] Item 2] Value] {
+            incr n
+            if {$n == 1} {tessSetColor $e1 $tsID}
+          }
+        }
       }
     } emsg]} {
-      errorMsg " ERROR setting tessellated geometry color, using [lindex $defaultColor 1]\n $emsg"
+      errorMsg " ERROR setting Tessellated Geometry Color for [$objEntity Type] (using [lindex $defaultColor 1])\n $emsg"
       set tessColor($tsID) [lindex $defaultColor 0]
     }
   } else {
     errorMsg "Syntax Error: No 'styled_item' found for tessellated geometry color (using [lindex $defaultColor 1])\n[string repeat " " 14]($recPracNames(model), Sec. 4.2.2, Fig. 2)"
   }
+  
+# color not found in styled_item.item
+  if {![info exists tessColor($tsID)]} {
+    if {[info exists missingStyledItem]} {
+      errorMsg " For tessellated geometry color, '$missingStyledItem' was not found in 'styled_item.item' (using [lindex $defaultColor 1])"
+    }
+  }
+}
+
+# -------------------------------------------------------------------------------
+proc tessCountColors {} {
+  global objDesign
+  global entCount
+
+# count unique colors in colour_rgb and draughting_pre_defined_colour
+  set colors {}
+  if {[catch {
+    if {[info exists entCount(colour_rgb)]} {
+      ::tcom::foreach e0 [$objDesign FindObjects [string trim colour_rgb]] {
+        set a0 [$e0 Attributes]
+        set color "[[$a0 Item 2] Value] [[$a0 Item 3] Value] [[$a0 Item 4] Value]"
+        if {[lsearch $colors $color] == -1} {lappend colors $color}
+      }
+    }
+    if {[info exists entCount(draughting_pre_defined_colour)]} {
+      ::tcom::foreach e0 [$objDesign FindObjects [string trim draughting_pre_defined_colour]] {
+        set color [[[$e0 Attributes] Item 1] Value]
+        if {[lsearch $colors $color] == -1} {lappend colors $color}
+      }
+    }
+  } emsg]} {
+    errorMsg " ERROR counting unique colors: $emsg"
+  }
+  return [llength $colors]
 }
 
 # -------------------------------------------------------------------------------

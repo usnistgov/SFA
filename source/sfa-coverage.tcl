@@ -86,9 +86,7 @@ proc spmiCoverageWrite {{fn ""} {sum ""} {multi 1}} {
     }
     
     if {[info exists entCount(datum)]} {
-      for {set i 0} {$i < $entCount(datum)} {incr i} {
-        lappend spmiTypesPerFile1 "datum (6.5)"
-      }
+      for {set i 0} {$i < $entCount(datum)} {incr i} {lappend spmiTypesPerFile1 "datum (6.5)"}
       if {$multi} {unset entCount(datum)}
     }
     
@@ -107,7 +105,7 @@ proc spmiCoverageWrite {{fn ""} {sum ""} {multi 1}} {
 
 # add number of pmi types
     if {[info exists spmiTypesPerFile] || [info exists spmiTypesPerFile1]} {
-      for {set r 4} {$r <= 130} {incr r} {
+      for {set r 4} {$r <= 134} {incr r} {
         if {$multi} {
           set val [[$cells1($sempmi_coverage) Item $r 1] Value]
         } else {
@@ -117,8 +115,8 @@ proc spmiCoverageWrite {{fn ""} {sum ""} {multi 1}} {
         if {[info exists spmiTypesPerFile]} {
           foreach idx $spmiTypesPerFile {
             set ok 0
-            if {$idx != "line" && $idx != "point" && $idx != "free_state"} {
-              if {([string first $idx $val] == 0 && [string first "statistical_tolerance" $val] == -1) || \
+            if {$idx != "line" && $idx != "point"} {
+              if {([string first $idx $val] == 0 && [string first "free_state_condition" $val] == -1) || \
                   $idx == [lindex [split $val " "] 0]} {set ok 1}
             } else {
               if {[string first "$idx  " $val] == 0} {set ok 1}
@@ -218,9 +216,8 @@ proc spmiCoverageWrite {{fn ""} {sum ""} {multi 1}} {
             if {[string first $item $ttyp] == 0} {
               set ok 0
 
-# these words appear in other PMI elements and need to be handled separately, e.g. statistical is also in statistical_tolerance
-              if {$item != "datum" && $item != "line" && $item != "spherical" && \
-                  $item != "statistical" && $item != "basic" && $item != "point"} {
+# these words appear in other PMI elements and need to be handled separately
+              if {$item != "datum" && $item != "line" && $item != "spherical" && $item != "basic" && $item != "point"} {
                 set ok 1
 
 # special cases
@@ -361,8 +358,8 @@ proc spmiCoverageFormat {sum {multi 1}} {
     }
  
 # horizontal break lines
-    set idx1 [list 20 42 55 62 81]
-    if {!$multi} {set idx1 [list 3 4 20 42 55 62 81]}
+    set idx1 [list 19 35 42 58 62 71 81]
+    if {!$multi} {set idx1 [concat [list 3 4] $idx1]}
     for {set r 200} {$r >= [lindex $idx1 end]} {incr r -1} {
       if {$multi} {
         set val [[$cells1($sempmi_coverage) Item $r 1] Value]
@@ -465,7 +462,8 @@ proc spmiCoverageLegend {multi {row 3}} {
               {"Less than expected" "yellow"} \
               {"None (0/n)" "red"} \
               {"Unexpected (n/0)" "magenta"} \
-              {"Not in CAx-IF Recommended Practice" "gray"}}
+              {"Not in CAx-IF Recommended Practice" "gray"} \
+              {"There might ambiguity in assigning colors for dimensions."}}
   foreach item $legend {
     set str [lindex $item 0]
     $cl Item $r $c $str

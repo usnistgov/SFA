@@ -1003,7 +1003,7 @@ proc gpmiAnnotationReport {objEntity} {
         if {[info exists ents1]} {::tcom::foreach ap $ents1 {lappend aps $ap}}
       }
       if {[llength $aps] == 0} {
-        set msg "Syntax Error: Missing required 'annotation_plane'.\n[string repeat " " 14]($recPracNames(pmi242), Sec. 9.1, Fig. 77)"
+        set msg "Syntax Error: Annotation missing a required 'annotation_plane'.\n[string repeat " " 14]($recPracNames(pmi242), Sec. 9.1, Fig. 77)"
         errorMsg $msg
         lappend syntaxErr($ao) [list $objID "plane" $msg]
       }
@@ -1117,7 +1117,7 @@ proc gpmiAnnotationReport {objEntity} {
             set okdm 0
             ::tcom::foreach entDraughtingModel $entDraughtingModels {set okdm 1}
             if {!$okdm} {
-              set msg "Syntax Error: Missing Camera Model for a Saved View.  Check draughting_model.items for correct draughting_callout.\n[string repeat " " 14]"
+              set msg "Syntax Error: Annotation not in a Saved View.  Check draughting_model.items for missing draughting_callout related to annotation.\n[string repeat " " 14]"
               if {$stepAP == "AP242"} {
                 append msg "($recPracNames(pmi242), Sec. 9.4.2.1, Fig. 86)"
               } else {

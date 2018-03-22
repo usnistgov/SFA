@@ -262,7 +262,9 @@ proc guiProcessAndReports {} {
     incr cb
     set tt [string range $idx 3 end]
     if {[info exists entCategory($tt)]} {
-      set ttmsg "[string trim [lindex $item 0]] entities ([llength $entCategory($tt)])  These entities are found in most APs.\nSee Help > Supported STEP APs and Websites > EXPRESS Schemas\n\n"
+      set ttmsg "[string trim [lindex $item 0]] entities ([llength $entCategory($tt)])  These entities are found in most APs."
+      if {$tt == "PR_STEP_TOLR"} {append ttmsg "  Some entities are specific to AP242."}
+      append ttmsg "\nSee Help > Supported STEP APs and Websites > EXPRESS Schemas\n\n"
       if {$tt != "PR_STEP_COMM"} {
         set ttmsg [guiToolTip $ttmsg $tt]
       } else {
@@ -286,7 +288,7 @@ proc guiProcessAndReports {} {
     if {[info exists entCategory($tt)]} {
       set ttmsg "[string trim [lindex $item 0]] entities ([llength $entCategory($tt)])"
       if {$tt == "PR_STEP_GEOM"} {
-        append ttmsg "  These entities are found in most APs.  Some entities are found only in AP242.\nSee Help > Supported STEP APs and Websites > EXPRESS Schemas\n\n"
+        append ttmsg "  These entities are found in most APs.  Some entities are specific to AP242.\nSee Help > Supported STEP APs and Websites > EXPRESS Schemas\n\n"
       } else {
         append ttmsg "  These entities are found in most APs.\nSee Help > Supported STEP APs and Websites > EXPRESS Schemas\n\n"
       }
@@ -374,7 +376,7 @@ proc guiProcessAndReports {} {
   pack $foptd -side left -anchor w -pady {5 2} -padx 10 -fill both -expand true
   catch {
     tooltip::tooltip $buttons(optPMISEM)  "PMI Representation information is shown on dimension,\ntolerance, datum target, and datum entities.\nSemantic PMI is found mainly in STEP AP242 files.\n\nSee Help > PMI Representation\nSee Help > User's Guide (section 5.1)\nSee Help > Syntax Errors\nSee Examples > Spreadsheet\nSee Examples > Sample STEP Files\nSee Websites > AP242 Project"
-    tooltip::tooltip $buttons(optPMIGRF)  "PMI Presentation information is shown on\n'annotation occurrence' entities.\nGraphical PMI can also be Visualized.\n\nSee Help > PMI Presentation\nSee Help > User's Guide (section 5.2)\nSee Help > Syntax Errors\nSee Examples > Spreadsheet\nSee Examples > Graphical PMI Viewer\nSee Examples > Sample STEP Files"
+    tooltip::tooltip $buttons(optPMIGRF)  "PMI Presentation information is shown on\n'annotation occurrence' entities.\nGraphical PMI can also be Visualized.\n\nSee Help > PMI Presentation\nSee Help > User's Guide (section 5.2)\nSee Help > Syntax Errors\nSee Examples > Spreadsheet\nSee Examples > AP242 Tessellated Part with PMI\nSee Examples > Sample STEP Files"
     tooltip::tooltip $buttons(optVALPROP) "Validation Properties and other properties are\nshown on the 'property_definition' entity.\n\nSee Help > Validation Properties\nSee Help > User's Guide (section 5.3)\nSee Help > Syntax Errors\nSee Examples > Spreadsheet"
   }
   
@@ -448,11 +450,11 @@ proc guiProcessAndReports {} {
   pack $foptv -side left -anchor w -pady {5 2} -padx 10 -fill both -expand true
   pack $foptrv -side top -anchor w -pady 0 -fill x
   catch {
-    tooltip::tooltip $buttons(optVIZPMI) "Graphical PMI is supported in AP242, AP203, and AP214 files.\n\nSee Help > PMI Presentation\nSee Help > User's Guide (section 6.1.1)\nSee Examples > Graphical PMI Viewer\nSee Examples > Sample STEP Files\n\nVisualizations can be generated without generating a spreadsheet\nor CSV files.  See the Output Format option below."
+    tooltip::tooltip $buttons(optVIZPMI) "Graphical PMI is supported in AP242, AP203, and AP214 files.\n\nSee Help > PMI Presentation\nSee Help > User's Guide (section 6.1.1)\nSee Examples > AP242 Tessellated Part with PMI\nSee Examples > Sample STEP Files\n\nVisualizations can be generated without generating a spreadsheet\nor CSV files.  See the Output Format option below."
     tooltip::tooltip $buttons(optVIZPMIVP) "PMI Viewpoints are experimental.\n\nViewpoints usually have the correct orientation but are not centered.\nUse pan and zoom to center the PMI."
-    tooltip::tooltip $buttons(optVIZFEA) "FEM nodes, elements, boundary conditions, and loads are visualized.\n\nSee Help > AP209 Finite Element Model\nSee Help > User's Guide (section 6.1.3)\nSee Examples > AP209 FEM Viewer\n\nVisualizations can be generated without generating a spreadsheet\nor CSV files.  See the Output Format option below.\n\nVisualizations are displayed in web browsers that are not optimized for large models."
+    tooltip::tooltip $buttons(optVIZFEA) "FEM nodes, elements, boundary conditions, and loads are visualized.\n\nSee Help > AP209 Finite Element Model\nSee Help > User's Guide (section 6.1.3)\nSee Examples > AP209 Finite Element Model\n\nVisualizations can be generated without generating a spreadsheet\nor CSV files.  See the Output Format option below.\n\nVisualizations are displayed in web browsers that are not optimized for large models."
     tooltip::tooltip $buttons(optVIZFEALVS) "Load vectors can by scaled by the load magnitude.\nLoad vectors are always colored by the load magnitude."
-    tooltip::tooltip $buttons(optVIZTPG) "This feature is in development.\nParts in an assembly might have the wrong position and orientation or be missing.\n\nTessellated geometry is in addition to boundary representation (b-rep) geometry\nwhich is not displayed.  Supplemental geometry and tessellated edges (lines) are also\nshown.  Faces in a tessellated shell are outlined in black.\n\nSee Help > AP242 Tessellated Part Geometry\nSee Help > Supplemental Geometry\nSee Help > User's Guide (section 6.1.2)\nSee Examples > AP242 Tessellated Part Viewer\n\nVisualizations can be generated without generating a spreadsheet or CSV files.\nSee the Output Format option below.\n\nVisualizations are displayed in web browsers that are not optimized for large models."
+    tooltip::tooltip $buttons(optVIZTPG) "This feature is in development.\nParts in an assembly might have the wrong position and orientation or be missing.\n\nTessellated geometry is in addition to boundary representation (b-rep) geometry\nwhich is not displayed.  Supplemental geometry and tessellated edges (lines) are also\nshown.  Faces in a tessellated shell are outlined in black.\n\nSee Help > AP242 Tessellated Part Geometry\nSee Help > Supplemental Geometry\nSee Help > User's Guide (section 6.1.2)\nSee Examples > AP242 Tessellated Part with PMI\n\nVisualizations can be generated without generating a spreadsheet or CSV files.\nSee the Output Format option below.\n\nVisualizations are displayed in web browsers that are not optimized for large models."
     tooltip::tooltip $buttons(optVIZTPGMSH) "Show a tessellation wireframe mesh based on the tessellated\nfaces or surfaces.  Not recommended for very large models."
     tooltip::tooltip $buttons(linecolor) "For Random PMI colors, each 'annotation occurrence' is assigned a different color."
   }
@@ -1316,7 +1318,7 @@ in the STEP file.  The graphical PMI file is written to myfile-sfa.html
 See Help > User's Guide (sections 6.1.1)
 See Help > PMI Presentation
 See Examples > Sample STEP Files
-See Examples > Graphical PMI Viewer"
+See Examples > AP242 Tessellated Part with PMI"
     .tnb select .tnb.status
   }
     
@@ -1327,12 +1329,13 @@ visualized.  Supplemental geometry is not associated with Saved Views.
 
 The following types of supplemental geometry and associated text are shown.
 - Coordinate System: red, green, blue axes
-- Plane: yellow square with diagonal
+- Plane: blue square
 - Line/Circle: purple or black line/circle
-- Point: black dot
+- Point: black cross
 - Tessellated Surface: faces outlined in black
 
-Lines and circles that are trimmed by cartesian_point will not be trimmed."
+Lines and circles that are trimmed by cartesian_point will not be trimmed.  Bounding edges for
+planes are ignored.  All bounded and unbounded planes are displayed with a fixed size."
     .tnb select .tnb.status
   }
     
@@ -1347,10 +1350,11 @@ Parts in an assembly might have the wrong position and orientation or be missing
 
 Faces in a tessellated shell are outlined in black.  Lines generated from tessellated edges are
 also shown.  A wireframe mesh, outlining the facets of the tessellated surfaces can also be shown.
-If both are present, tessellated edges might be obscured by the wireframe mesh.
+If both are present, tessellated edges might be obscured by the wireframe mesh.  Brown is used as
+the color assigned to tessellated solids, shells, or faces that do not have colors assigned to them.
 
 See Help > User's Guide (section 6.1.2)
-See Examples > AP242 Tessellated Part Viewer
+See Examples > AP242 Tessellated Part with PMI
 See Websites > STEP File Viewers to view STEP files with non-tessellated geometry."
     .tnb select .tnb.status
   }
@@ -1382,7 +1386,7 @@ files, there might be insufficient memory to process all of the elements, loads,
 boundary conditions.
 
 See Help > User's Guide (section 6.1.3)
-See Examples > AP209 FEM Viewer
+See Examples > AP209 Finite Element Model
 See Websites > AP209 Project"
     .tnb select .tnb.status
   }
@@ -1497,9 +1501,9 @@ might appear that say 'Unable to alloc xxx bytes'.  See the Help > Crash Recover
   $Examples add command -label "Spreadsheet - PMI Presentation, ValProps" -command {openURL https://s3.amazonaws.com/nist-el/mfg_digitalthread/STEP-File-Analyzer_stp.xlsx}
   $Examples add command -label "Spreadsheet - PMI Coverage Analysis"      -command {openURL https://s3.amazonaws.com/nist-el/mfg_digitalthread/STEP-File-Analyzer-Coverage.xlsx}
   $Examples add separator
-  $Examples add command -label "Graphical PMI Viewer"    -command {openURL https://pages.nist.gov/CAD-PMI-Testing/graphical-pmi-viewer.html}
-  $Examples add command -label "AP242 Tessellated Part Viewer" -command {openURL https://pages.nist.gov/CAD-PMI-Testing/tessellated-part-geometry.html}
-  $Examples add command -label "AP209 FEM Viewer"        -command {openURL https://pages.nist.gov/CAD-PMI-Testing/ap209-viewer.html}
+  $Examples add command -label "AP242 Tessellated Part with PMI" -command {openURL https://pages.nist.gov/CAD-PMI-Testing/tessellated-part-geometry.html}
+  $Examples add command -label "AP209 Finite Element Model"      -command {openURL https://pages.nist.gov/CAD-PMI-Testing/ap209-viewer.html}
+  #$Examples add command -label "Graphical PMI Viewer"            -command {openURL https://pages.nist.gov/CAD-PMI-Testing/graphical-pmi-viewer.html}
 }
 
 #-------------------------------------------------------------------------------
