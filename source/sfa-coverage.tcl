@@ -90,6 +90,13 @@ proc spmiCoverageWrite {{fn ""} {sum ""} {multi 1}} {
       if {$multi} {unset entCount(datum)}
     }
     
+    foreach ent [list derived_shape_aspect centre_of_symmetry apex geometric_alignment perpendicular_to extension tangent parallel_offset] {
+      if {[info exists entCount($ent)]} {
+        for {set i 0} {$i < $entCount($ent)} {incr i} {lappend spmiTypesPerFile1 "derived shapes dimensional location (5.1.4)"}
+        if {$multi} {unset entCount($ent)}
+      }
+    }
+    
 # check for some modifiers and count from allPMI
     if {[info exists allPMI]} {
       if {[string length $allPMI] > 0} {

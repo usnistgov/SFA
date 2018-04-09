@@ -13,10 +13,10 @@
 # The latest version of the source code is available at: https://github.com/usnistgov/SFA
 
 # ----------------------------------------------------------------------------------------------
-# The STEP File Analyzer can only be built with Tcl 8.5.15 or earlier
+# The STEP File Analyzer and Viewer can only be built with Tcl 8.5.15 or earlier
 # More recent versions are incompatibile with the IFCsvr toolkit that is used to read STEP files
 # ----------------------------------------------------------------------------------------------
-# This is the main routine for the STEP File Analyzer command-line version
+# This is the main routine for the STEP File Analyzer and Viewer command-line version
 
 global env
 
@@ -33,7 +33,7 @@ foreach fname [glob -nocomplain -directory $wdir *.tcl] {
 }
 
 puts "\n--------------------------------------------------------------------------------"
-puts "NIST STEP File Analyzer (v[getVersion] - Updated: [string trim [clock format $progtime -format "%e %b %Y"]])"
+puts "NIST STEP File Analyzer and Viewer (v[getVersion] - Updated: [string trim [clock format $progtime -format "%e %b %Y"]])"
 
 # for freeWrap the following lappend commands add package locations to auto_path, must be before package commands
 #lappend auto_path C:/Tcl/lib/teapot/package/win32-ix86/lib/tcom3.9
@@ -125,7 +125,7 @@ if {![file exists [file join $ifcsvrDir IFCsvrR300.dll]]} {installIFCsvr}
 # initialize variables
 foreach id {XL_OPEN XL_KEEPOPEN XL_LINK1 XL_FPREC XL_SORT LOGFILE \
             VALPROP PMIGRF PMISEM INVERSE DEBUG1 \
-            VIZPMI VIZTPG VIZTPGMSH VIZPMIVP VIZFEA VIZFEABC VIZFEALV VIZFEALVS \
+            VIZPMI VIZTPG VIZTPGMSH VIZPMIVP VIZFEA VIZFEABC VIZFEALV VIZFEALVS VIZBRP \
             PR_STEP_AP242 PR_USER PR_STEP_KINE PR_STEP_COMP PR_STEP_COMM PR_STEP_GEOM PR_STEP_QUAN \
             PR_STEP_FEAT PR_STEP_PRES PR_STEP_TOLR PR_STEP_REPR PR_STEP_CPNT PR_STEP_SHAP} {set opt($id) 1}
 
@@ -139,6 +139,7 @@ set opt(PR_STEP_GEOM)  0
 set opt(PR_USER) 0
 set opt(VIZFEA) 0
 set opt(VIZPMI) 0
+set opt(VIZBRP) 0
 set opt(VIZFEALVS) 0
 set opt(VIZPMIVP) 0
 set opt(VIZTPGMSH) 0

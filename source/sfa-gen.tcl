@@ -9,9 +9,9 @@ proc genExcel {{numFile 0}} {
   global ofExcel ofCSV
   global opt p21e3 p21e3Section pmiCol pmiMaster recPracNames row rowmax
   global savedViewButtons savedViewName savedViewNames scriptName sheetLast spmiEntity spmiSumName spmiSumRow spmiTypesPerFile startrow stepAP
-  global thisEntType tlast tolNames tolStandard totalEntity userEntityFile userEntityList userXLSFile useXL virtualDir viz
+  global tessColor thisEntType tlast tolNames tolStandard totalEntity userEntityFile userEntityList userXLSFile useXL virtualDir viz
   global workbook workbooks worksheet worksheet1 worksheets writeDir wsCount wsNames
-  global x3dAxes x3dColor x3dColors x3dCoord x3dFile x3dFileName x3dStartFile x3dIndex x3dMax x3dMin
+  global x3dAxes x3dColor x3dColors x3dCoord x3dFile x3dFileName x3dStartFile x3dIndex x3dMax x3dMin x3dMsg
   global xlFileName xlFileNames xlFormat xlInstalled
   global objDesign
   
@@ -31,6 +31,7 @@ proc genExcel {{numFile 0}} {
     set x3dMin(x)  1.e10
     set x3dMin(y)  1.e10
     set x3dMin(z)  1.e10
+    catch {unset tessColor}
   }
 
 # check if IFCsvr is installed
@@ -168,7 +169,7 @@ proc genExcel {{numFile 0}} {
       set lfile [file rootname $fname]
       append lfile "-sfa.log"
       set logFile [open $lfile w]
-      puts $logFile "NIST STEP File Analyzer (v[getVersion])  [clock format [clock seconds]]\n"
+      puts $logFile "NIST STEP File Analyzer and Viewer (v[getVersion])  [clock format [clock seconds]]\n"
     }
 
 # check if a file generated from a NIST test case is being processed
@@ -185,11 +186,11 @@ proc genExcel {{numFile 0}} {
 # part 21 edition 3
     } else {
       outputMsg " "
-      errorMsg "The STEP file uses Edition 3 of Part 21 and cannot be processed by the STEP File Analyzer.\n Edit the STEP file to delete the Edition 3 content such as the ANCHOR, REFERENCE, and SIGNATURE sections."
+      errorMsg "The STEP file uses Edition 3 of Part 21 and cannot be processed by the STEP File Analyzer and Viewer.\n Edit the STEP file to delete the Edition 3 content such as the ANCHOR, REFERENCE, and SIGNATURE sections."
     }
     if {!$nistVersion} {
       outputMsg " "
-      errorMsg "You must process at least one STEP file with the NIST version of the STEP File Analyzer\n before using a user-built version."
+      errorMsg "You must process at least one STEP file with the NIST version of the STEP File Analyzer and Viewer\n before using a user-built version."
     }
     
 # open STEP file in editor
@@ -230,7 +231,7 @@ proc genExcel {{numFile 0}} {
         set extXLS "xls"
         set xlFormat [expr 56]
         set rowmax [expr {2**16}]
-        errorMsg "Some spreadsheet features used by the STEP File Analyzer are not compatible with this older version of Excel."
+        errorMsg "Some spreadsheet features used by the STEP File Analyzer and Viewer are not compatible with this older version of Excel."
       }
   
 # generate with Excel but save as CSV
@@ -665,6 +666,7 @@ proc genExcel {{numFile 0}} {
     set spmiSumRow 1
     set stat 1
     set wsCount 0
+    set x3dMsg {}
     foreach f {elements mesh meshIndex faceIndex} {catch {file delete -force [file join $mytemp $f.txt]}}
 
     if {[info exists dim]} {unset dim}
@@ -675,7 +677,6 @@ proc genExcel {{numFile 0}} {
     
 # find camera models used in draughting model items and annotation_occurrence used in property_definition and datums
     if {$opt(PMIGRF) || $viz(PMI)} {pmiGetCamerasAndProperties}
-    #foreach typ {PMI TPG FEM} {outputMsg "$typ $viz($typ)" red}
 
 # no entities to process
     if {[llength $entsToProcess] == 0} {
@@ -872,7 +873,6 @@ proc genExcel {{numFile 0}} {
 # -------------------------------------------------------------------------------------------------
 # quit IFCsvr, but not sure how to do it properly
   if {[catch {
-    #outputMsg "\nClosing IFCsvr" green
     $objDesign Delete
     unset objDesign
     unset objIFCsvr
@@ -1159,7 +1159,7 @@ proc addHeaderWorksheet {numFile fname} {
           after 1000
           openURL https://www.nist.gov/services-resources/software/ifc-file-analyzer
         } elseif {$objAttr == "STRUCTURAL_FRAME_SCHEMA"} {
-          errorMsg "Use SteelVis to visualize the CIS/2 file.  https://go.usa.gov/s8fm"
+          errorMsg "Use SteelVis to view the CIS/2 file.  https://go.usa.gov/s8fm"
         }
 
 # other File attributes
@@ -1449,9 +1449,9 @@ proc sumAddWorksheet {} {
       set str ""
       set url "https://github.com/usnistgov/SFA"
     }
-    $cells($sum) Item [expr {$row($sum)+2}] 1 "$str\STEP File Analyzer (v[getVersion])"
+    $cells($sum) Item [expr {$row($sum)+2}] 1 "$str\STEP File Analyzer and Viewer (v[getVersion])"
     set anchor [$worksheet($sum) Range [cellRange [expr {$row($sum)+2}] 1]]
-    [$worksheet($sum) Hyperlinks] Add $anchor [join $url] [join ""] [join "Link to $str\STEP File Analyzer"]
+    [$worksheet($sum) Hyperlinks] Add $anchor [join $url] [join ""] [join "Link to $str\STEP File Analyzer and Viewer"]
     $cells($sum) Item [expr {$row($sum)+3}] 1 "[clock format [clock seconds]]"
 
 # print errors

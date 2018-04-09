@@ -13,10 +13,10 @@
 # The latest version of the source code is available at: https://github.com/usnistgov/SFA
 
 # ----------------------------------------------------------------------------------------------
-# The STEP File Analyzer can only be built with Tcl 8.5.15 or earlier
+# The STEP File Analyzer and Viewer can only be built with Tcl 8.5.15 or earlier
 # More recent versions are incompatibile with the IFCsvr toolkit that is used to read STEP files
 # ----------------------------------------------------------------------------------------------
-# This is the main routine for the STEP File Analyzer GUI version
+# This is the main routine for the STEP File Analyzer and Viewer GUI version
 
 global env tcl_platform
 
@@ -76,7 +76,7 @@ foreach item $auto_path {if {[string first "STEP-File-Analyzer" $item] != -1} {s
 # initialize variables
 foreach id {XL_OPEN XL_KEEPOPEN XL_LINK1 XL_FPREC XL_SORT LOGFILE \
             VALPROP PMIGRF PMISEM INVERSE DEBUG1 \
-            VIZPMI VIZTPG VIZTPGMSH VIZPMIVP VIZFEA VIZFEABC VIZFEALV VIZFEALVS \
+            VIZPMI VIZTPG VIZTPGMSH VIZPMIVP VIZFEA VIZFEABC VIZFEALV VIZFEALVS VIZBRP \
             PR_STEP_AP242 PR_USER PR_STEP_KINE PR_STEP_COMP PR_STEP_COMM PR_STEP_GEOM PR_STEP_QUAN \
             PR_STEP_FEAT PR_STEP_PRES PR_STEP_TOLR PR_STEP_REPR PR_STEP_CPNT PR_STEP_SHAP} {set opt($id) 1}
 
@@ -239,17 +239,18 @@ foreach fname [glob -nocomplain -directory $wdir *.tcl] {
 proc whatsNew {} {
   global progtime sfaVersion
   
-  if {$sfaVersion > 0 && $sfaVersion < [getVersion]} {outputMsg "\nThe previous version of the STEP File Analyzer was: $sfaVersion" red}
+  if {$sfaVersion > 0 && $sfaVersion < [getVersion]} {outputMsg "\nThe previous version of the STEP File Analyzer and Viewer was: $sfaVersion" red}
 
 outputMsg "\nWhat's New (Version: [getVersion]  Updated: [string trim [clock format $progtime -format "%e %b %Y"]])" blue
-outputMsg "- Support for AP242 Edition 2 DIS (Draft International Standard)
+outputMsg "- Visualization of boundary representation (b-rep) geometry (Options tab > Visualize)
 - Visualization of supplemental geometry (Help > Supplemental Geometry)
 - Improved visualization of AP209 boundary conditions and loads (Help > AP209 Finite Element Model)
 - Improved reporting of Associated Geometry
 - Improved reporting of invalid Dimension decimal places and Validation Property values = 0
 - Explanation of Report errors (Help > Syntax Errors)
 - Support for repetitive hole and radius dimensions, e.g, '4X' R10.5
-- Bug fixes and minor improvements"
+- Bug fixes and minor improvements
+- Support for AP242 Edition 2 DIS (Draft International Standard)"
 
 if {$sfaVersion <= 2.60} {
   outputMsg "\nRenamed output files:\n Spreadsheets from  myfile_stp.xlsx  to  myfile-sfa.xlsx\n Visualizations from  myfile-x3dom.html  to  myfile-sfa.html" red
@@ -351,7 +352,7 @@ if {$nistVersion} {
     set lastupgrade [expr {round(([clock seconds] - $upgrade)/86400.)}]
     if {$lastupgrade > 30} {
       set choice [tk_messageBox -type yesno -default yes -title "Check for Update" \
-        -message "Do you want to check for a newer version of the STEP File Analyzer?\n \nThe last check for an update was $lastupgrade days ago.\n \nYou can always check for an update with Help > Check for Update" -icon question]
+        -message "Do you want to check for a newer version of the STEP File Analyzer and Viewer?\n \nThe last check for an update was $lastupgrade days ago.\n \nYou can always check for an update with Help > Check for Update" -icon question]
       if {$choice == "yes"} {
         set url "https://concrete.nist.gov/cgi-bin/ctv/sfa_upgrade.cgi?version=[getVersion]&auto=$lastupgrade"
         openURL $url
@@ -405,19 +406,19 @@ if {$argv != ""} {
 set writeDir $userWriteDir
 checkValues
 
-# other STEP File Analyzers already running
+# other STEP File Analyzer and Viewers already running
 set pid2 [twapi::get_process_ids -name "STEP-File-Analyzer.exe"]
 set pid2 [concat $pid2 [twapi::get_process_ids -name "sfa.exe"]]
 
 if {[llength $pid2] > 1} {
-  set msg "There are ([expr {[llength $pid2]-1}]) other instances of the STEP File Analyzer already running.\nThe windows for the other instances might not be visible but will show up in the Windows Task Manager as STEP-File-Analyzer.exe"
-  append msg "\n\nDo you want to close the other instances of the STEP File Analyzer?"
-  set choice [tk_messageBox -type yesno -default yes -message $msg -icon question -title "Close the other STEP File Analyzer?"]
+  set msg "There are ([expr {[llength $pid2]-1}]) other instances of the STEP File Analyzer and Viewer already running.\nThe windows for the other instances might not be visible but will show up in the Windows Task Manager as STEP-File-Analyzer.exe"
+  append msg "\n\nDo you want to close the other instances of the STEP File Analyzer and Viewer?"
+  set choice [tk_messageBox -type yesno -default yes -message $msg -icon question -title "Close the other STEP File Analyzer and Viewer?"]
   if {$choice == "yes"} {
     foreach pid $pid2 {
       if {$pid != [pid]} {catch {twapi::end_process $pid -force}}
     }
-    outputMsg "Other STEP File Analyzers closed" red
+    outputMsg "Other STEP File Analyzer and Viewers closed" red
     .tnb select .tnb.status
   }
 }

@@ -4,7 +4,7 @@
 proc guiStartWindow {} {
   global winpos wingeo localName localNameList lastXLS lastXLS1 lastX3DOM fout
   
-  wm title . "STEP File Analyzer  (v[getVersion])"
+  wm title . "STEP File Analyzer and Viewer  (v[getVersion])"
   wm protocol . WM_DELETE_WINDOW {exit}
 
 # check that the saved window dimensions do not exceed the screen size
@@ -343,6 +343,7 @@ proc guiProcessAndReports {} {
           set opt(VIZFEA) 1
           set opt(VIZTPG) 1
           set opt(VIZPMI) 1
+          set opt(VIZBRP) 1
         }
         checkValues
       }]
@@ -444,8 +445,16 @@ proc guiProcessAndReports {} {
     pack $buttons($idx) -side left -anchor w -padx 2 -pady 0 -ipady 0
     incr cb
   }
-
   pack $foptv8 -side top -anchor w -pady 0 -padx 25 -fill y
+  
+  set foptv9 [frame $foptv.9 -bd 0]
+  foreach item {{" Include B-rep Part Geometry" opt(VIZBRP)}} {
+    regsub -all {[\(\)]} [lindex $item 1] "" idx
+    set buttons($idx) [ttk::checkbutton $foptv9.$cb -text [lindex $item 0] -variable [lindex $item 1] -command {checkValues}]
+    pack $buttons($idx) -side left -anchor w -padx 5 -pady 0 -ipady 0
+    incr cb
+  }
+  pack $foptv9 -side top -anchor w -pady 0 -padx 0 -fill y
 
   pack $foptv -side left -anchor w -pady {5 2} -padx 10 -fill both -expand true
   pack $foptrv -side top -anchor w -pady 0 -fill x
@@ -454,9 +463,10 @@ proc guiProcessAndReports {} {
     tooltip::tooltip $buttons(optVIZPMIVP) "PMI Viewpoints are experimental.\n\nViewpoints usually have the correct orientation but are not centered.\nUse pan and zoom to center the PMI."
     tooltip::tooltip $buttons(optVIZFEA) "FEM nodes, elements, boundary conditions, and loads are visualized.\n\nSee Help > AP209 Finite Element Model\nSee Help > User's Guide (section 6.1.3)\nSee Examples > AP209 Finite Element Model\n\nVisualizations can be generated without generating a spreadsheet\nor CSV files.  See the Output Format option below.\n\nVisualizations are displayed in web browsers that are not optimized for large models."
     tooltip::tooltip $buttons(optVIZFEALVS) "Load vectors can by scaled by the load magnitude.\nLoad vectors are always colored by the load magnitude."
-    tooltip::tooltip $buttons(optVIZTPG) "This feature is in development.\nParts in an assembly might have the wrong position and orientation or be missing.\n\nTessellated geometry is in addition to boundary representation (b-rep) geometry\nwhich is not displayed.  Supplemental geometry and tessellated edges (lines) are also\nshown.  Faces in a tessellated shell are outlined in black.\n\nSee Help > AP242 Tessellated Part Geometry\nSee Help > Supplemental Geometry\nSee Help > User's Guide (section 6.1.2)\nSee Examples > AP242 Tessellated Part with PMI\n\nVisualizations can be generated without generating a spreadsheet or CSV files.\nSee the Output Format option below.\n\nVisualizations are displayed in web browsers that are not optimized for large models."
+    tooltip::tooltip $buttons(optVIZTPG) "This feature is in development.\nParts in an assembly might have the wrong position and orientation or be missing.\n\nTessellated geometry is in addition to boundary representation (b-rep) geometry.\nSupplemental geometry and tessellated edges (lines) are also shown.\nFaces in tessellated shells are outlined in black.\n\nSee Help > AP242 Tessellated Part Geometry\nSee Help > Supplemental Geometry\nSee Help > User's Guide (section 6.1.2)\nSee Examples > AP242 Tessellated Part with PMI\n\nVisualizations can be generated without generating a spreadsheet or CSV files.\nSee the Output Format option below.\n\nVisualizations are displayed in web browsers that are not optimized for large models."
     tooltip::tooltip $buttons(optVIZTPGMSH) "Show a tessellation wireframe mesh based on the tessellated\nfaces or surfaces.  Not recommended for very large models."
     tooltip::tooltip $buttons(linecolor) "For Random PMI colors, each 'annotation occurrence' is assigned a different color."
+    tooltip::tooltip $buttons(optVIZBRP) "Boundary representation part geometry will be visualized ONLY if one of the above types of\nvisualization features is selected and is present in the STEP file.  The color of b-rep geometry\nis ignored.  B-rep geometry might also include supplemental geometry.  B-rep geometry\nvisualization is based on OpenCascade and pythonOCC.\n\nSee Websites > STEP File Viewers for other b-rep geometry viewers.\nSee Help > About\n\nVisualizations are displayed in web browsers that are not optimized for large models."
   }
 }
 
@@ -963,11 +973,12 @@ proc guiHelpMenu {} {
   $Help add separator
   $Help add command -label "Overview" -command {
 outputMsg "\nOverview -------------------------------------------------------------------" blue
-outputMsg "The STEP File Analyzer (SFA) reads a STEP file and generates an Excel spreadsheet or CSV files.
-One worksheet or CSV file is generated for each entity type in the STEP file.  Each worksheet
-or CSV file lists every entity instance and its attributes.  The types of entities that are
-Processed can be selected in the Options tab.  Other options are available that add to or modify
-the information written to the spreadsheet or CSV files.
+outputMsg "
+The STEP File Analyzer and Viewer (SFA) reads a STEP file and generates an Excel spreadsheet or
+CSV files.  One worksheet or CSV file is generated for each entity type in the STEP file.  Each
+worksheet or CSV file lists every entity instance and its attributes.  The types of entities that
+are Processed can be selected in the Options tab.  Other options are available that add to or
+modify the information written to the spreadsheet or CSV files.
 
 Spreadsheets or CSV files can be selected in the Options tab.  CSV files are automatically
 generated if Excel is not installed.  To generate a spreadsheet or CSV files, select a STEP file
@@ -1315,6 +1326,9 @@ of the annotations can be modified.  Filled characters are not filled.  PMI asso
 Saved Views can be switched on and off.  Some Graphical PMI might not have equivalent Semantic PMI
 in the STEP file.  The graphical PMI file is written to myfile-sfa.html
 
+Boundary representation (B-rep) geometry can also be visualized (Options tab).
+See Websites > STEP File Viewers for other b-rep geometry viewers.
+
 See Help > User's Guide (sections 6.1.1)
 See Help > PMI Presentation
 See Examples > Sample STEP Files
@@ -1352,6 +1366,9 @@ Faces in a tessellated shell are outlined in black.  Lines generated from tessel
 also shown.  A wireframe mesh, outlining the facets of the tessellated surfaces can also be shown.
 If both are present, tessellated edges might be obscured by the wireframe mesh.  Brown is used as
 the color assigned to tessellated solids, shells, or faces that do not have colors assigned to them.
+
+Boundary representation (B-rep) geometry can also be visualized (Options tab).
+See Websites > STEP File Viewers for other b-rep geometry viewers.
 
 See Help > User's Guide (section 6.1.2)
 See Examples > AP242 Tessellated Part with PMI
@@ -1395,10 +1412,11 @@ See Websites > AP209 Project"
 
   $Help add command -label "Crash Recovery" -command {
 outputMsg "\nCrash Recovery -------------------------------------------------------------" blue
-outputMsg "Sometimes the STEP File Analyzer will crash after a STEP file has been successfully opened and the
-processing of entities has started.  Popup dialogs might appear that say \"Runtime Error!\" or
-\"ActiveState Basekit has stopped working\".  A crash might also be caused by a very large STEP
-file.  See Help > Large STEP Files.
+outputMsg "
+Sometimes the STEP File Analyzer and Viewer will crash after a STEP file has been successfully
+opened and the processing of entities has started.  Popup dialogs might appear that say
+\"Runtime Error!\" or \"ActiveState Basekit has stopped working\".  A crash might also be caused
+by a very large STEP file.  See Help > Large STEP Files.
 
 See Help > User's Guide (sections 2.4 and 9)
 
@@ -1409,9 +1427,9 @@ Status tab to see which type of entity was last processed.
 Workarounds for this problem:
 
 - This program keeps track of the last entity type processed when it crashed.  Simply restart the
-STEP File Analyzer and hit F1 to process the last STEP file or F4 if processing multiple files.
-The type of entity that caused the crash will be skipped.  The list of bad entity types that will
-not be processed is stored in myfile-skip.dat.
+STEP File Analyzer and Viewer and hit F1 to process the last STEP file or F4 if processing multiple
+files. The type of entity that caused the crash will be skipped.  The list of bad entity types that
+will not be processed is stored in myfile-skip.dat.
 
 If syntax errors related to the bad entities are corrected, then delete the *-skip.dat file so
 that the corrected entities are processed.  When the STEP file is processed, the list of specific
@@ -1429,15 +1447,16 @@ under Process.  However, this will prevent processing of other entities that do 
 # large files help
   $Help add command -label "Large STEP Files" -command {
 outputMsg "\nLarge STEP Files -----------------------------------------------------------" blue
-outputMsg "To reduce the amount of time to process large STEP files and to reduce the size of the resulting
+outputMsg "
+To reduce the amount of time to process large STEP files and to reduce the size of the resulting
 spreadsheet, several options are available:
 - In the Process section, deselect entity types Geometry and Coordinates
 - In the Process section, select only a User-Defined List of required entities 
 - In the Spreadsheet tab, select a smaller value for the Maximum Rows
 - In the Options tab, deselect Reports and Inverse Relationships
 
-The STEP File Analyzer might also crash when processing very large STEP files.  Popup dialogs
-might appear that say 'Unable to alloc xxx bytes'.  See the Help > Crash Recovery."
+The STEP File Analyzer and Viewer might also crash when processing very large STEP files.  Popup
+dialogs might appear that say 'Unable to alloc xxx bytes'.  See the Help > Crash Recovery."
     .tnb select .tnb.status
   }
 
@@ -1447,7 +1466,7 @@ might appear that say 'Unable to alloc xxx bytes'.  See the Help > Crash Recover
     $Help add command -label "NIST Disclaimer" -command {openURL https://www.nist.gov/disclaimer}
   }
   $Help add command -label "About" -command {
-    outputMsg "\nSTEP File Analyzer ---------------------------------------------------------" blue
+    outputMsg "\nSTEP File Analyzer and Viewer ---------------------------------------------------------" blue
     outputMsg "Version:  [getVersion]"
     outputMsg "Updated:  [string trim [clock format $progtime -format "%e %b %Y"]]"
     #if {$developer} {
@@ -1456,10 +1475,15 @@ might appear that say 'Unable to alloc xxx bytes'.  See the Help > Crash Recover
     #  outputMsg "Tcl:      [info patchlevel] $ver"
     #}
     if {"$nistVersion"} {
-      outputMsg "Contact:  Robert Lipman, robert.lipman@nist.gov\n\nThe STEP File Analyzer was first released in April 2012 and is developed at\nNIST in the Systems Integration Division of the Engineering Laboratory."
+      outputMsg "Contact:  Robert Lipman, robert.lipman@nist.gov\n\nThe STEP File Analyzer and Viewer was first released in April 2012 and is developed at\nNIST in the Systems Integration Division of the Engineering Laboratory."
       outputMsg "\nSee Help > Disclaimer and NIST Disclaimer"
+      outputMsg "\nCredits"
+      outputMsg "- Generating spreadsheets:         Microsoft Excel (https://products.office.com/excel)"
+      outputMsg "- Reading and parsing STEP files:  IFCsvr (https://groups.yahoo.com/neo/groups/ifcsvr-users/info)"
+      outputMsg "- Visualization of B-rep geometry: OpenCascade (https://www.opencascade.com/) and"
+      outputMsg "                                   pythonOCC (http://www.pythonocc.org/)"
     } else {
-      outputMsg "\nThis version was built from the NIST STEP File Analyzer source\ncode available on GitHub.  https://github.com/usnistgov/SFA"
+      outputMsg "\nThis version was built from the NIST STEP File Analyzer and Viewer source\ncode available on GitHub.  https://github.com/usnistgov/SFA"
     }
   
   # debug
@@ -1511,7 +1535,7 @@ might appear that say 'Unable to alloc xxx bytes'.  See the Help > Crash Recover
 proc guiWebsitesMenu {} {
   global Websites
 
-  $Websites add command -label "STEP File Analyzer"                        -command {openURL https://www.nist.gov/services-resources/software/step-file-analyzer}
+  $Websites add command -label "STEP File Analyzer and Viewer"             -command {openURL https://www.nist.gov/services-resources/software/step-file-analyzer}
   $Websites add command -label "Journal of NIST Research"                  -command {openURL https://doi.org/10.6028/jres.122.016}
   $Websites add command -label "Conformance Checking of PMI in STEP Files" -command {openURL https://www.nist.gov/publications/conformance-checking-pmi-representation-cad-model-step-data-exchange-files}
   $Websites add command -label "MBE PMI Validation Testing (free CAD models and STEP files)" -command {openURL https://www.nist.gov/el/systems-integration-division-73400/mbe-pmi-validation-and-conformance-testing}
@@ -1577,7 +1601,7 @@ Any mention of commercial products or references to web pages in this software i
 
 This software uses Microsoft Excel and IFCsvr that are covered by their own End-User License Agreements.  See Help > NIST Disclaimer"
   
-    tk_messageBox -type ok -icon info -title "Disclaimers for STEP File Analyzer" -message $txt
+    tk_messageBox -type ok -icon info -title "Disclaimers for STEP File Analyzer and Viewer" -message $txt
   }
 }
 
@@ -1585,13 +1609,13 @@ This software uses Microsoft Excel and IFCsvr that are covered by their own End-
 # crash recovery dialog
 proc showCrashRecovery {} {
 
-set txt "Sometimes the STEP File Analyzer will crash AFTER a file has been successfully opened and the processing of entities has started.
+set txt "Sometimes the STEP File Analyzer and Viewer will crash AFTER a file has been successfully opened and the processing of entities has started.
 
 A crash is most likely due to syntax errors in the STEP file or sometimes due to limitations of the toolkit used to read STEP files.
 
-If this happens, simply restart the STEP File Analyzer and process the same STEP file again by using function key F1 or F4 if processing multiple STEP files.  Also deselect, Reports and Inverse Relationships in the Options tab.
+If this happens, simply restart the STEP File Analyzer and Viewer and process the same STEP file again by using function key F1 or F4 if processing multiple STEP files.  Also deselect, Reports and Inverse Relationships in the Options tab.
 
-The STEP File Analyzer keeps track of which entity type caused the error for a particular STEP file and won't process that type again.  The bad entities types are stored in a file *-skip.dat  If syntax errors related to the bad entities are corrected, then delete the *-skip.dat file so that the corrected entities are processed.
+The STEP File Analyzer and Viewer keeps track of which entity type caused the error for a particular STEP file and won't process that type again.  The bad entities types are stored in a file *-skip.dat  If syntax errors related to the bad entities are corrected, then delete the *-skip.dat file so that the corrected entities are processed.
 
 The software might also crash when processing very large STEP files.  In this case, deselect some entity types to process in Options tab or use a User-Defined List of entities to process.
 
@@ -1599,7 +1623,7 @@ More details about recovering from a crash are explained in the User's Guide and
 
 Please report other types of crashes to the software developer."
   
-  tk_messageBox -type ok -icon error -title "What to do if the STEP File Analyzer crashes?" -message $txt
+  tk_messageBox -type ok -icon error -title "What to do if the STEP File Analyzer and Viewer crashes?" -message $txt
 }
 
 #-------------------------------------------------------------------------------
@@ -1613,7 +1637,7 @@ proc showUsersGuide {} {
   }
   
   if {[getVersion] > [expr {[getVersionUG]+0.4}]} {
-    errorMsg "The User's Guide is based on version [getVersionUG] of the STEP File Analyzer.\n New features are documented in the Help menu."
+    errorMsg "The User's Guide is based on version [getVersionUG] of the STEP File Analyzer and Viewer.\n New features are documented in the Help menu."
     outputMsg " "
     .tnb select .tnb.status
   }

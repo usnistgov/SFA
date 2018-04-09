@@ -68,6 +68,10 @@ proc feaModel {entType} {
         puts $x3dFile " document.getElementById('mat3D').setAttribute('transparency', trans);"
         puts $x3dFile " if (trans > 0) {document.getElementById('faces').setAttribute('solid', true);} else {document.getElementById('faces').setAttribute('solid', false);}"
       }
+      if {[info exists entCount(advanced_brep_shape_representation)]}  {
+        puts $x3dFile " document.getElementById('color').setAttribute('transparency', trans);"
+        puts $x3dFile " if (trans > 0) {document.getElementById('color').setAttribute('solid', true);} else {document.getElementById('color').setAttribute('solid', false);}"
+      }
       puts $x3dFile "}\n</script>"
     }
     puts $x3dFile "</head>"

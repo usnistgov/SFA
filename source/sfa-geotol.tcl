@@ -963,6 +963,7 @@ proc spmiGeotolReport {objEntity} {
                                                   if {$val == "-0."} {set val 0.}
                                                   append datumTargetRep "  $val"
                                                 }
+                                                if {[string first "0. 0. 0." $datumTargetRep] != -1} {errorMsg "Datum target origin located at 0,0,0"}
                                                 append datumTargetRep "[format "%c" 10]   (axis2_placement_3d [$e4 P21ID])"
                                               }
                                             }
@@ -1293,7 +1294,6 @@ proc spmiGeotolReport {objEntity} {
             } elseif {[$a1 Name] == "relating_geometric_tolerance"} {
               #$cells($gt) Item $r $c "$val[format "%c" 10](composite with [[$a1 Value] P21ID])"
               set compositeID [[$a1 Value] P21ID]
-              outputMsg $compositeID red
               lappend spmiTypesPerFile "composite tolerance"
             }
           }

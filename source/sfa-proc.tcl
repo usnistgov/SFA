@@ -180,6 +180,13 @@ proc checkValues {} {
     foreach b {optVIZTPGMSH} {lappend butDisabled $b}
   }
   
+# B-rep visualization
+  if {$opt(VIZFEA) || $opt(VIZPMI) || $opt(VIZTPG)} {
+    foreach b {optVIZBRP} {lappend butNormal $b}
+  } else {
+    foreach b {optVIZBRP} {lappend butDisabled $b}
+  }
+  
 # user-defined entity list
   if {$opt(PR_USER)} {
     foreach b {userentity userentityopen} {lappend butNormal $b}
@@ -573,7 +580,7 @@ proc saveState {} {
       errorMsg "Creating options file: [truncFileName $optionsFile]"
     }
     set fileOptions [open $optionsFile w]
-    puts $fileOptions "# Options file for the STEP File Analyzer v[getVersion] ([string trim [clock format [clock seconds]]])\n#\n# DO NOT EDIT OR DELETE FROM USER HOME DIRECTORY $mydocs\n# DOING SO WILL CORRUPT THE CURRENT SETTINGS OR CAUSE ERRORS IN THE SOFTWARE\n#"
+    puts $fileOptions "# Options file for the STEP File Analyzer and Viewer v[getVersion] ([string trim [clock format [clock seconds]]])\n#\n# DO NOT EDIT OR DELETE FROM USER HOME DIRECTORY $mydocs\n# DOING SO WILL CORRUPT THE CURRENT SETTINGS OR CAUSE ERRORS IN THE SOFTWARE\n#"
     set varlist [list fileDir fileDir1 userWriteDir userEntityFile openFileList dispCmd dispCmds lastXLS lastXLS1 lastX3DOM \
                       userXLSFile statusFont upgrade sfaVersion excelVersion]
 
@@ -981,10 +988,15 @@ proc getOpenPrograms {} {
     }
   }
 
-# IDA-STEP  
+# others  
   set b1 [file join $myhome AppData Local IDA-STEP ida-step.exe]
   if {[file exists $b1]} {
     set name "IDA-STEP Viewer"
+    set dispApps($b1) $name
+  }
+  set b1 [file join $drive CCELabs EnSuite-View Bin EnSuite-View.exe]
+  if {[file exists $b1]} {
+    set name "EnSuite-View"
     set dispApps($b1) $name
   }
 
@@ -1769,10 +1781,10 @@ proc installIFCsvr {} {
       errorMsg "Opening folder: $mytemp"
       exec {*}[auto_execok start] [file nativename $mytemp]
     } else {
-      outputMsg "To install the IFCsvr Toolkit you must install the NIST version of the STEP File Analyzer."
+      outputMsg "To install the IFCsvr Toolkit you must install the NIST version of the STEP File Analyzer and Viewer."
       outputMsg "1 - Go to https://concrete.nist.gov/cgi-bin/ctv/sfa_request.cgi"
       outputMsg "2 - Fill out the form, submit it, and follow the instructions."
-      outputMsg "3 - The IFCsvr Toolkit will be installed when the NIST STEP File Analyzer is run."
+      outputMsg "3 - The IFCsvr Toolkit will be installed when the NIST STEP File Analyzer and Viewer is run."
       outputMsg "4 - Generate a spreadsheet for at least one STEP file."
       after 1000
       openURL https://concrete.nist.gov/cgi-bin/ctv/sfa_request.cgi
@@ -1787,11 +1799,11 @@ proc setShortcuts {} {
   
   set progname [info nameofexecutable]
   if {[string first "AppData/Local/Temp" $progname] != -1 || [string first ".zip" $progname] != -1} {
-    errorMsg "For the STEP File Analyzer to run properly, it is recommended that you first\n extract all of the files from the ZIP file and run the extracted executable."
+    errorMsg "For the STEP File Analyzer and Viewer to run properly, it is recommended that you first\n extract all of the files from the ZIP file and run the extracted executable."
     return
   }
 
-  set progstr "STEP File Analyzer"
+  set progstr "STEP File Analyzer and Viewer"
   if {!$nistVersion} {set progstr "SFA"}
   
   if {[info exists mydesk] || [info exists mymenu]} {

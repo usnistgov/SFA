@@ -77,7 +77,6 @@ proc gpmiAnnotation {entType} {
   set geomType ""
   set tessCoordID {}
   catch {unset gtEntity}
-  if {![info exists x3dMsg]} {set x3dMsg {}}
 
   if {[info exist pmiHeading]} {unset pmiHeading}
   if {[info exists ent]} {unset ent}
@@ -1327,14 +1326,14 @@ proc pmiGetCamerasAndProperties {} {
 
   set aolist {}
   foreach ao [list annotation_occurrence annotation_curve_occurrence annotation_curve_occurrence_and_geometric_representation_item \
-                annotation_fill_area_occurrence tessellated_annotation_occurrence annotation_placeholder_occurrence] {
+                annotation_fill_area_occurrence tessellated_annotation_occurrence annotation_placeholder_occurrence \
+                annotation_occurrence_and_characterized_object] {
     if {[info exists entCount($ao)]} {if {$entCount($ao) > 0} {lappend aolist $ao}}
   }
   
   catch {unset draftModelCameras}
   catch {unset draftModelCameraNames}
   if {[llength $aolist] > 0} {
-    #outputMsg getCameras blue
     if {[catch {
   
 # camera list
@@ -1342,6 +1341,7 @@ proc pmiGetCamerasAndProperties {} {
       foreach cms [list camera_model_d3 camera_model_d3_multi_clipping] {
         if {[info exists entCount($cms)]} {if {$entCount($cms) > 0} {lappend cmlist $cms}}
       }
+      
       if {[info exists entCount(camera_model_d2)]} {
         set msg "Syntax Error: For Saved Views, 'camera_model_d2' is not allowed.\n[string repeat " " 14]"
         if {$stepAP == "AP242"} {
@@ -1415,7 +1415,9 @@ proc pmiGetCamerasAndProperties {} {
                   regsub -all " " [string trim $name] "_" name1  
                   regsub -all {\(} [string trim $name1] "_" name1 
                   regsub -all {\)} [string trim $name1] "" name1  
-                  regsub -all {:~$%&*<>?/+\|\"\#\\\{\}} [string trim $name1] "_" name1
+                  regsub -all {:~$%&*<>?/+\|\"\#\\\{\}\-} [string trim $name1] "_" name1
+                  regsub -all {\-} $name1 "_" name1
+                  if {$name1 == ""} {set name1 "Missing_name"}
                   
                   if {$name == ""} {
                     set msg "Syntax Error: For Saved Views, missing required 'name' attribute on $cm\n[string repeat " " 14]"
@@ -1472,7 +1474,6 @@ proc pmiGetCamerasAndProperties {} {
                   set savedViewFileName($name1) [file join $mytemp $name1.txt]
                   catch {file delete -force $savedViewFileName($name1)}
                   set savedViewFile($name1) [open $savedViewFileName($name1) w]
-                  #outputMsg "camera name $name1 $dmcn $dmitems([$entDraughtingModel P21ID])" green
                   if {[string length $dmitems([$entDraughtingModel P21ID])] > 0} {set savedViewItems($dmcn) $dmitems([$entDraughtingModel P21ID])}
                 }
               }

@@ -1,6 +1,6 @@
 # start x3dom file for PMI annotations                        
 proc x3dFileStart {} {
-  global ao entCount localName opt savedViewNames x3dFile x3dFileName x3dStartFile numTessColor x3dMin x3dMax cadSystem viz
+  global ao entCount localName opt x3dFile x3dFileName x3dStartFile numTessColor x3dMin x3dMax cadSystem viz
   
   set x3dStartFile 0
   catch {file delete -force -- "[file rootname $localName]_x3dom.html"}
@@ -23,9 +23,10 @@ proc x3dFileStart {} {
   set name [file tail $localName]
   if {$cadSystem != ""} {append name "  ($cadSystem)"}
   puts $x3dFile "\n<body><font face=\"arial\">\n<h3>$title:  $name</h3>"
-  puts $x3dFile "Only $title is shown.  Boundary representation (b-rep) part geometry can be viewed with <a href=\"https://www.cax-if.org/step_viewers.html\">STEP file viewers</a>."
+  puts $x3dFile "Boundary representation (b-rep) part geometry can also be viewed with <a href=\"https://www.cax-if.org/step_viewers.html\">STEP file viewers</a>."
+  puts $x3dFile "  B-rep geometry might include supplemental geometry."
   if {$viz(PMI)} {puts $x3dFile "<br>Some Graphical PMI might not have equivalent Semantic PMI in the STEP file."}
-  if {$viz(TPG) != -1 && [info exist entCount(next_assembly_usage_occurrence)]} {
+  if {$viz(TPG) && [info exist entCount(next_assembly_usage_occurrence)]} {
     puts $x3dFile "<br>Parts in an assembly might have the wrong position and orientation or be missing."
   }
   puts $x3dFile "\n<p><table><tr><td valign='top' width='85%'>"
@@ -65,6 +66,7 @@ proc x3dFileStart {} {
 proc x3dTessGeom {objID objEntity1 ent1} {
   global ao draftModelCameras entCount nshape recPracNames shapeRepName savedViewFile tessIndex tessIndexCoord tessCoord tessCoordID
   global tessPlacement tessRepo x3dColor x3dCoord x3dIndex x3dFile x3dColors x3dMsg opt defaultColor tessPartFile tessSuppGeomFile shellSuppGeom
+  global savedViewNames savedViewFileName mytemp
   #outputMsg "x3dTessGeom $objID"
   
   set x3dIndex $tessIndex($objID)
@@ -205,6 +207,8 @@ proc x3dTessGeom {objID objEntity1 ent1} {
             if {$ao == "tessellated_shell"} {
               set ecolor "0 0 0"
               errorMsg " Triangular faces in 'tessellated_shell' are outlined in black."
+              set msg "Triangular faces in tessellated shells are outlined in black."
+              if {[lsearch $x3dMsg $msg] == -1} {lappend x3dMsg $msg}
             }
             puts $f "<Shape DEF='mesh$objID'><Appearance><Material emissiveColor='$ecolor'></Material></Appearance>"
             puts $f " <IndexedLineSet coordIndex='[string trim $x3dMesh]'><Coordinate USE='coord$tessIndexCoord($objID)'></Coordinate></IndexedLineSet></Shape>"
@@ -232,6 +236,7 @@ proc x3dFileEnd {} {
   global ao modelURLs nistName opt stepAP x3dAxes x3dMax x3dMin x3dFile x3dMsg stepAP entCount nistVersion numSavedViews numTessColor viz
   global savedViewButtons savedViewFileName savedViewFile savedViewNames savedViewpoint feaBoundary feaLoad savedViewItems feaLoadMsg feaLoadMag
   global tessEdgeFile tessEdgeFileName tessPartFile tessPartFileName tessEdgeCoordDef
+  global wdir mytemp localName
   global objDesign
 
 # coordinate min, max, center    
@@ -273,7 +278,7 @@ proc x3dFileEnd {} {
       if {[file size $savedViewFileName($svn)] > 0} {
         set svMap($svn) $svn
         set svWrite 1
-        close $savedViewFile($svn)
+        catch {close $savedViewFile($svn)}
         
 # check if same saved view graphics already written
         if {[info exists savedViewItems($svn)]} {
@@ -290,26 +295,38 @@ proc x3dFileEnd {} {
             }
           }
         }
-        lappend savedViewButtons $svn
+        
+        set svn2 $svn
+        if {$svn2 == ""} {
+          set svn2 "Missing_name"
+          set svMap($svn2) $svn2
+        }
+        lappend savedViewButtons $svn2
 
-        puts $x3dFile "\n<!-- SAVED VIEW $svn -->"
-        puts $x3dFile "<Switch whichChoice='0' id='sw$svn'><Group>"
+        puts $x3dFile "\n<!-- SAVED VIEW $svn2 -->"
+        puts $x3dFile "<Switch whichChoice='0' id='sw$svn2'><Group>"
         if {$svWrite} {
         
 # get saved view graphics from file
           set f [open $savedViewFileName($svn) r]
           while {[gets $f line] >= 0} {puts $x3dFile $line}
           close $f
-          unset savedViewFile($svn)
+          catch {unset savedViewFile($svn)}
         } else {
           puts $x3dFile "<!-- SAME AS $svMap($svn) -->"
         }
         puts $x3dFile "</Group></Switch>"
       } else {
-        close $savedViewFile($svn)
+        catch {close $savedViewFile($svn)}
       }
       catch {file delete -force -- $savedViewFileName($svn)}
     }
+  }
+  
+# coordinate axes, if not already written
+  if {$x3dAxes} {
+    set asize [trimNum [expr {$maxxyz*0.05}]]
+    x3dCoordAxes $asize
   }
 
 # write tessellated part
@@ -324,14 +341,13 @@ proc x3dFileEnd {} {
     unset tessPartFile
     unset tessPartFileName
   }
+  
+# -------------------------------------------------------------------------------
+# add b-rep geometry based on pythonOCC and OpenCascade
+  set viz(BRP) 0
+  if {([info exists entCount(advanced_brep_shape_representation)] || [info exists entCount(manifold_solid_brep)]) && $opt(VIZBRP)} {x3dBrepGeom}
 
 # -------------------------------------------------------------------------------
-# coordinate axes, if not already written
-  if {$x3dAxes} {
-    set asize [trimNum [expr {$maxxyz*0.05}]]
-    x3dCoordAxes $asize
-  }
-
 # default and saved viewpoints
   puts $x3dFile "\n<!-- VIEWPOINTS -->"
   set cor "centerOfRotation='$xyzcen(x) $xyzcen(y) $xyzcen(z)'"
@@ -363,7 +379,12 @@ proc x3dFileEnd {} {
       if {[string first $nistName $item] == 0} {puts $x3dFile "<a href=\"https://s3.amazonaws.com/nist-el/mfg_digitalthread/$item\">NIST Test Case Drawing</a><p>"}
     }
   }
-  
+    
+# BRP button
+  if {$viz(BRP)} {
+    puts $x3dFile "\n<!-- BRP button -->\n<input type='checkbox' checked onclick='togBRP(this.value)'/>B-rep Geometry<p>"
+  }
+
 # TPG button
   if {$viz(TPG) && ($viz(PMI) || $viz(SMG) || $viz(EDG))} {
     puts $x3dFile "\n<!-- TPG button -->\n<input type='checkbox' checked onclick='togTPG(this.value)'/>Tessellated Part Geometry"
@@ -387,7 +408,8 @@ proc x3dFileEnd {} {
     puts $x3dFile "\n<!-- Saved View buttons -->\nSaved View PMI"
     set ok 1
     foreach svn $savedViewButtons {
-      puts $x3dFile "<br><input type='checkbox' checked onclick='tog$svn\(this.value)'/>$svn"
+      regsub -all {\-} $svn "_" svn2
+      puts $x3dFile "<br><input type='checkbox' checked onclick='tog$svn2\(this.value)'/>$svn"
       if {[string first "MBD" [string toupper $svn]] == -1 && $nistName != ""} {set ok 0}
     }
     if {!$ok && [info exists numSavedViews($nistName)] && [llength $savedViewButtons] <= $numSavedViews($nistName)} {
@@ -427,11 +449,13 @@ proc x3dFileEnd {} {
   puts $x3dFile "<input type='radio' name='bgcolor' value='0 0 0' onclick='BGcolor(this.value)'/>Black"
   
 # axes button
-  puts $x3dFile "\n<!-- Axes button -->\n<p><input type='checkbox' checked onclick='togAxes(this.value)'/>Origin CS"
+  puts $x3dFile "\n<!-- Axes button -->\n<p><input type='checkbox' checked onclick='togAxes(this.value)'/>Origin"
 
 # transparency slider
   set max 0
   if {$viz(FEA) && ([info exists entCount(surface_3d_element_representation)] || [info exists entCount(volume_3d_element_representation)])} {
+    set max 0.9
+  } elseif {$viz(BRP)} {
     set max 0.9
   } elseif {$viz(TPG)} {
     set max 0.9
@@ -443,10 +467,13 @@ proc x3dFileEnd {} {
   }
   
 # mouse message  
-  puts $x3dFile "\n<p><a href=\"https://www.x3dom.org/documentation/interaction/\">Use the mouse</a> in 'Examine Mode' to rotate, pan, zoom.  Use Page Up to switch between views."
+  puts $x3dFile "\n<p><a href=\"https://www.x3dom.org/documentation/interaction/\">Use the mouse</a> in 'Examine Mode' to rotate, pan, zoom.  Use Page Up to switch between views.  Use 'a' to show all."
   puts $x3dFile "</td></tr></table>"
   
 # -------------------------------------------------------------------------------
+# function for BRP 
+  if {$viz(BRP)} {x3dSwitchScript BRP}
+  
 # function for TPG
   if {$viz(TPG) && ($viz(PMI) || $viz(SMG) || $viz(EDG))} {
     if {[string first "occurrence" $ao] == -1} {
@@ -462,7 +489,9 @@ proc x3dFileEnd {} {
   if {$viz(PMI)} {
     if {[llength $savedViewButtons] > 0} {
       puts $x3dFile " "
-      foreach svn $savedViewButtons {x3dSwitchScript $svMap($svn) $svn $opt(VIZPMIVP)}
+      foreach svn $savedViewButtons {
+        x3dSwitchScript $svMap($svn) $svn $opt(VIZPMIVP)
+      }
     }
   }
 
@@ -477,12 +506,15 @@ proc x3dFileEnd {} {
 
 # transparency function
   set numTessColor 0
-  set numTessColor [tessCountColors]
-  if {$numTessColor > 0} {
+  if {$viz(TPG)} {set numTessColor [tessCountColors]}
+  if {($numTessColor > 0 || $viz(BRP)) && [string first "AP209" $stepAP] == -1} {
     puts $x3dFile "\n<!-- Transparency function -->\n<script>function matTrans(trans){"
+    if {$viz(BRP)} {
+      puts $x3dFile " document.getElementById('color').setAttribute('transparency', trans);"
+      #puts $x3dFile " if (trans > 0) {document.getElementById('color').setAttribute('solid', true);} else {document.getElementById('color').setAttribute('solid', false);}"
+    }
     for {set i 1} {$i <= $numTessColor} {incr i} {
       puts $x3dFile " document.getElementById('mat$i').setAttribute('transparency', trans);"
-      puts $x3dFile " if (trans > 0) {document.getElementById('mat$i').setAttribute('solid', true);} else {document.getElementById('mat$i').setAttribute('solid', false);}"
     }
     puts $x3dFile "}\n</script>"
   }
@@ -494,7 +526,7 @@ proc x3dFileEnd {} {
     set str ""
     set url "https://github.com/usnistgov/SFA"
   }
-  puts $x3dFile "\n<p>Generated by the <a href=\"$url\">$str\STEP File Analyzer (v[getVersion])</a> and displayed with <a href=\"https://www.x3dom.org/\">X3DOM</a>."
+  puts $x3dFile "\n<p>Generated by the <a href=\"$url\">$str\STEP File Analyzer and Viewer (v[getVersion])</a> and displayed with <a href=\"https://www.x3dom.org/\">X3DOM</a>."
   puts $x3dFile "[clock format [clock seconds]]"
 
   puts $x3dFile "</font></body></html>"
@@ -503,6 +535,104 @@ proc x3dFileEnd {} {
   
   unset x3dMax
   unset x3dMin
+}
+
+# -------------------------------------------------------------------------------
+# B-rep geometry
+proc x3dBrepGeom {} {
+  global entCount opt viz mytemp wdir localName objDesign x3dFile
+
+# copy executable
+  if {[catch {
+    set stp2x3d [file join $mytemp stp2x3d.exe]
+    if {[file exists [file join $wdir stp2x3d stp2x3d.exe]]} {
+      set copy 0
+      if {![file exists $stp2x3d]} {
+        set copy 1
+      } elseif {[file mtime [file join $wdir stp2x3d stp2x3d.exe]] > [file mtime $stp2x3d]} {
+        set copy 1
+      }
+      if {$copy} {file copy -force [file join $wdir stp2x3d stp2x3d.exe] $mytemp}
+    }
+              
+# run stp2x3d    
+    if {[file exists $stp2x3d]} {
+      set stpx3dFileName [file rootname $localName].x3d
+      catch {file delete -force $stpx3dFileName}
+      outputMsg " Processing B-rep geometry.  Wait for the popup program (stp2x3d.exe) to complete, see Options tab." green
+      catch {exec $stp2x3d $localName} errs
+      #outputMsg $errs red
+      
+# done processing      
+      if {[string first "DONE!" $errs] != -1} {
+        if {[file exists $stpx3dFileName]} {
+          if {[file size $stpx3dFileName] > 0} {
+            
+# check for conversion units, mm > inch            
+            set sc 1
+            ::tcom::foreach e0 [$objDesign FindObjects [string trim advanced_brep_shape_representation]] {
+              set e1 [[[$e0 Attributes] Item 3] Value]
+              set a2 [[$e1 Attributes] Item 5]
+              foreach e3 [$a2 Value] {
+                if {[$e3 Type] == "conversion_based_unit_and_length_unit"} {
+                  set e4 [[[$e3 Attributes] Item 3] Value]
+                  set cf [[[$e4 Attributes] Item 1] Value]
+                  set sc [trimNum [expr {1./$cf}] 5]
+                }
+              }
+            }
+            if {$sc == 1 && ![info exists entCount(advanced_brep_shape_representation)]} {
+              ::tcom::foreach e0 [$objDesign FindObjects [string trim geometric_representation_context_and_global_uncertainty_assigned_context_and_global_unit_assigned_context]] {
+                set a2 [[$e0 Attributes] Item 5]
+                foreach e3 [$a2 Value] {
+                  if {[$e3 Type] == "conversion_based_unit_and_length_unit"} {
+                    set e4 [[[$e3 Attributes] Item 3] Value]
+                    set cf [[[$e4 Attributes] Item 1] Value]
+                    set sc [trimNum [expr {1./$cf}] 5]
+                  }
+                }
+              }
+            }
+            
+# integrate x3d from pythonOCC with existing x3dom file
+            puts $x3dFile "\n<!-- B-REP GEOMETRY -->\n<Switch whichChoice='0' id='swBRP'><Transform scale='$sc $sc $sc'>"
+            set stpx3dFile [open $stpx3dFileName r]
+            set write 0
+            while {[gets $stpx3dFile line] >= 0} {
+              if {[string first "<Shape" $line] != -1} {
+                set line "<Shape><Appearance>"
+                set write 1
+              }
+              if {[string first "<Coordinate" $line] != -1} {
+                set n 0
+                while {[gets $stpx3dFile nline] >= 0} {
+                  if {[string first "<Normal" $nline] != -1} {append line "\n"}
+                  append line " $nline"
+                  incr n
+                  if {[expr {$n%3000}] == 0} {append line "\n"; set n 0}
+                  if {[string first "</Normal" $nline] != -1} {break}
+                }
+              }
+              if {$write} {puts $x3dFile $line}
+              if {[string first "</Shape" $line] != -1} {set write 0}
+            }
+            close $stpx3dFile
+            puts $x3dFile "</Transform></Switch>"
+            set viz(BRP) 1
+          }
+        } else {
+          set msg " ERROR: Cannot find b-rep geometry X3D file."
+          if {[string first "." $stpx3dFileName] != [string last "." $stpx3dFileName]} {append msg "  Rename STEP file or pathname to remove '.' character."}
+          errorMsg $msg
+        }
+        catch {file delete -force -- $stpx3dFileName}
+      } else {
+        errorMsg " ERROR generating visualization of B-rep geometry"
+      }
+    }
+  } emsg]} {
+    errorMsg " ERROR adding B-rep Geometry ($emsg)"
+  }
 }
 
 # -------------------------------------------------------------------------------
@@ -515,6 +645,7 @@ proc x3dSuppGeom {maxxyz} {
   set size [trimNum [expr {$maxxyz*0.025}]]
   set tsize [trimNum [expr {$size*0.33}]]
 
+  outputMsg " Processing supplemental geometry" green
   puts $x3dFile "\n<!-- SUPPLEMENTAL GEOMETRY -->\n<Switch whichChoice='0' id='swSMG'><Group>"
   ::tcom::foreach e0 [$objDesign FindObjects [string trim constructive_geometry_representation]] {
     set a1 [[$e0 Attributes] Item 2]
@@ -720,7 +851,7 @@ proc x3dSuppGeom {maxxyz} {
 # write geometry for polyline annotations
 proc x3dPolylinePMI {} {
   global ao x3dCoord x3dShape x3dIndex x3dIndexType x3dFile x3dColor gpmiPlacement placeOrigin placeAnchor boxSize
-  global savedViewName savedViewFile recPracNames
+  global savedViewName savedViewNames savedViewFile savedViewFileName recPracNames mytemp
 
   if {[catch {
     if {[info exists x3dCoord] || $x3dShape} {
@@ -836,7 +967,7 @@ proc openX3DOM {{fn ""}} {
     if {$ok} {
       set fn $x3dFileName
     } else {
-      if {$opt(XLSCSV) == "None"} {errorMsg "There is nothing to Visualize in the $stepAP file (Options tab)."}
+      if {$opt(XLSCSV) == "None"} {errorMsg "There is nothing in the STEP $stepAP file that this software can visualize (Options tab).\n See Websites > STEP File Viewers"}
       return
     }
   }
@@ -901,6 +1032,9 @@ proc x3dSwitchScript {name {name1 ""} {vp 0}} {
   global x3dFile
 
   if {$name1 == ""} {set name1 $name}
+  regsub -all {\-} $name "_" name
+  regsub -all {\-} $name1 "_" name1
+  
   puts $x3dFile "\n<!-- [string toupper $name1] switch -->\n<script>function tog$name1\(choice){"
   puts $x3dFile " if (!document.getElementById('sw$name1').checked) {"
   puts $x3dFile "  document.getElementById('sw$name').setAttribute('whichChoice', -1);"

@@ -11,6 +11,8 @@ proc getEntity {objEntity checkInverse} {
   #if {$developer} {if {$thisEntType != $expectedEnt} {errorMsg "Mismatch: $thisEntType  $expectedEnt"}}
 
   if {[info exists invVals]} {unset invVals}
+  set cellLimit1 200
+  set cellLimit2 500
 
 # -------------------------------------------------------------------------------------------------
 # open worksheet for each entity if it does not already exist
@@ -232,11 +234,11 @@ proc getEntity {objEntity checkInverse} {
               set ncell [expr {[llength [split $cellval($idx) " "]] - 1}]
               if {$ncell > 1 || $size > 1} {
                 set ok 1
-                if {$ncell > 100 && ([string first "styled_item" $idx] != -1 || [string first "triangulated" $idx] != -1 || \
-                                     [string first "connecting_edge" $idx] != -1 || [string first "3d_element_representation" $idx] != -1 || \
-                                     $idx == "node" || $idx == "cartesian_point" || $idx == "advanced_face")} {
+                if {$ncell > $cellLimit1 && ([string first "styled_item" $idx] != -1 || [string first "triangulated" $idx] != -1 || \
+                    [string first "connecting_edge" $idx] != -1 || [string first "3d_element_representation" $idx] != -1 || \
+                    $idx == "node" || $idx == "cartesian_point" || $idx == "advanced_face")} {
                   set ok 0
-                } elseif {$ncell > 500} {
+                } elseif {$ncell > $cellLimit2} {
                   set ok 0
                 }
                 if {$ok} {
@@ -322,11 +324,11 @@ proc getEntity {objEntity checkInverse} {
             set ncell [expr {[llength [split $cellval($idx) " "]] - 1}]
             if {$ncell > 1 || $size > 1} {
               set ok 1
-              if {$ncell > 100 && ([string first "styled_item" $idx] != -1 || [string first "triangulated" $idx] != -1 || \
-                                   [string first "connecting_edge" $idx] != -1 || [string first "3d_element_representation" $idx] != -1 || \
-                                   $idx == "node" || $idx == "cartesian_point" || $idx == "advanced_face")} {
+              if {$ncell > $cellLimit1 && ([string first "styled_item" $idx] != -1 || [string first "triangulated" $idx] != -1 || \
+                  [string first "connecting_edge" $idx] != -1 || [string first "3d_element_representation" $idx] != -1 || \
+                  $idx == "node" || $idx == "cartesian_point" || $idx == "advanced_face")} {
                 set ok 0
-              } elseif {$ncell > 500} {
+              } elseif {$ncell > $cellLimit2} {
                 set ok 0
               }
               if {$ok} {
@@ -529,11 +531,11 @@ proc getEntityCSV {objEntity} {
               set ncell [expr {[llength [split $cellval($idx) " "]] - 1}]
               if {$ncell > 1 || $size > 1} {
                 set ok 1
-                if {$ncell > 100 && ([string first "styled_item" $idx] != -1 || [string first "triangulated" $idx] != -1 || \
+                if {$ncell > $cellLimit1 && ([string first "styled_item" $idx] != -1 || [string first "triangulated" $idx] != -1 || \
                                      [string first "connecting_edge" $idx] != -1 || [string first "3d_element_representation" $idx] != -1 || \
                                      $idx == "node" || $idx == "cartesian_point" || $idx == "advanced_face")} {
                   set ok 0
-                } elseif {$ncell > 500} {
+                } elseif {$ncell > $cellLimit2} {
                   set ok 0
                 }
                 if {$ok} {
@@ -596,11 +598,11 @@ proc getEntityCSV {objEntity} {
             set ncell [expr {[llength [split $cellval($idx) " "]] - 1}]
             if {$ncell > 1 || $size > 1} {
               set ok 1
-              if {$ncell > 100 && ([string first "styled_item" $idx] != -1 || [string first "triangulated" $idx] != -1 || \
+              if {$ncell > $cellLimit1 && ([string first "styled_item" $idx] != -1 || [string first "triangulated" $idx] != -1 || \
                                    [string first "connecting_edge" $idx] != -1 || [string first "3d_element_representation" $idx] != -1 || \
                                    $idx == "node" || $idx == "cartesian_point" || $idx == "advanced_face")} {
                 set ok 0
-              } elseif {$ncell > 500} {
+              } elseif {$ncell > $cellLimit2} {
                 set ok 0
               }
               if {$ok} {

@@ -1,6 +1,6 @@
 #-------------------------------------------------------------------------------
 # version numbers, software and user's guide
-proc getVersion {}   {return 2.82}
+proc getVersion {}   {return 2.90}
 proc getVersionUG {} {return 2.34}
 
 # -------------------------------------------------------------------------------
@@ -1382,7 +1382,7 @@ proc getSchemaFromFile {fname {msg 0}} {
         errorMsg "STEP file schema: [lindex [split $schema " "] 0]"
         if {[llength $sline] > 3} {
           set schema1 [lindex $sline 3]
-          errorMsg "Second STEP file schema: $schema1\n A second schema is valid but will not work with the STEP File Analyzer.\n Export the STEP file with a single schema or edit the FILE_SCHEMA to delete the second schema."
+          errorMsg "Second STEP file schema: $schema1\n A second schema is valid but will not work with the STEP File Analyzer and Viewer.\n Export the STEP file with a single schema or edit the FILE_SCHEMA to delete the second schema."
         } elseif {[string first "_MIM" $fsline] != -1 && [string first "_MIM_LF" $fsline] == -1} {
           errorMsg "The schema name should end with _MIM_LF"
         }
