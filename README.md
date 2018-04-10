@@ -1,6 +1,6 @@
 # STEP File Analyzer and Viewer
 
-The following are instructions for building the [STEP File Analyzer and Viewer](https://www.nist.gov/services-resources/software/step-file-analyzer) (SFA).  The SFA reads an ISO 10303 Part 21 STEP file and generates a spreadsheet.  More information, sample spreadsheets, and documentation about the SFA is available on the website including the [STEP File Analyzer and Viewer User's Guide](https://www.nist.gov/publications/step-file-analyzer-users-guide-version-4).
+The following are instructions for building the [STEP File Analyzer and Viewer](https://www.nist.gov/services-resources/software/step-file-analyzer) (SFA).  The SFA generates a spreadsheet and visualization from an ISO 10303 Part 21 STEP file.  More information, sample spreadsheets and visualizations, and documentation about the SFA is available on the website including the [STEP File Analyzer and Viewer User's Guide](https://www.nist.gov/publications/step-file-analyzer-users-guide-version-4).
 
 STEP files are used to represent product and manufacturing information (PMI) for data exchange and interoperability between Computer-Aided Design (CAD), Manufacturing (CAM), Analysis (CAE), and Inspection (CMM) software. STEP is also used for the long-term archiving and retrieval product data (LOTAR).
 
