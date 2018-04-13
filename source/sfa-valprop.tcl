@@ -211,10 +211,12 @@ proc valPropReport {objEntity} {
               "value_representation_item value_component"     -
               "descriptive_representation_item description"   {set ok 1; set col($pd) 9}
               "property_definition definition" {
-                if {[string length $objValue] == 0} {
-                  set msg "Syntax Error: Missing 'definition' attribute on property_definition.\n[string repeat " " 14]\($recPracNames(valprop), Sec. 4)"
-                  errorMsg $msg
-                  lappend syntaxErr(property_definition) [list $propDefIDRow($propDefID) 4 $msg]
+                if {[string first "validation_property" $propDefName] != -1} {
+                  if {[string length $objValue] == 0} {
+                    set msg "Syntax Error: Missing 'definition' attribute on property_definition.\n[string repeat " " 14]\($recPracNames(valprop), Sec. 4)"
+                    errorMsg $msg
+                    lappend syntaxErr(property_definition) [list $propDefIDRow($propDefID) 4 $msg]
+                  }
                 }
               }
             }

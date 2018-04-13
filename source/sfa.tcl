@@ -411,7 +411,7 @@ set pid2 [twapi::get_process_ids -name "STEP-File-Analyzer.exe"]
 set pid2 [concat $pid2 [twapi::get_process_ids -name "sfa.exe"]]
 
 if {[llength $pid2] > 1} {
-  set msg "There are ([expr {[llength $pid2]-1}]) other instances of the STEP File Analyzer and Viewer already running.\nThe windows for the other instances might not be visible but will show up in the Windows Task Manager as STEP-File-Analyzer.exe"
+  set msg "There are ([expr {[llength $pid2]-1}]) other instances of the STEP File Analyzer and Viewer already running.\n\nThe windows for the other instances might not be visible but will show up in the Windows Task Manager as 'ActiveState Basekit' or 'STEP-File-Analyzer.exe'"
   append msg "\n\nDo you want to close the other instances of the STEP File Analyzer and Viewer?"
   set choice [tk_messageBox -type yesno -default yes -message $msg -icon question -title "Close the other STEP File Analyzer and Viewer?"]
   if {$choice == "yes"} {

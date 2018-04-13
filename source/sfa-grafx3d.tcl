@@ -278,7 +278,7 @@ proc x3dFileEnd {} {
       if {[file size $savedViewFileName($svn)] > 0} {
         set svMap($svn) $svn
         set svWrite 1
-        catch {close $savedViewFile($svn)}
+        close $savedViewFile($svn)
         
 # check if same saved view graphics already written
         if {[info exists savedViewItems($svn)]} {
@@ -317,7 +317,7 @@ proc x3dFileEnd {} {
         }
         puts $x3dFile "</Group></Switch>"
       } else {
-        catch {close $savedViewFile($svn)}
+        close $savedViewFile($svn)
       }
       catch {file delete -force -- $savedViewFileName($svn)}
     }
@@ -345,7 +345,9 @@ proc x3dFileEnd {} {
 # -------------------------------------------------------------------------------
 # add b-rep geometry based on pythonOCC and OpenCascade
   set viz(BRP) 0
-  if {([info exists entCount(advanced_brep_shape_representation)] || [info exists entCount(manifold_solid_brep)]) && $opt(VIZBRP)} {x3dBrepGeom}
+  if {([info exists entCount(advanced_brep_shape_representation)] || \
+       [info exists entCount(manifold_surface_shape_representation)] || \
+       [info exists entCount(manifold_solid_brep)]) && $opt(VIZBRP)} {x3dBrepGeom}
 
 # -------------------------------------------------------------------------------
 # default and saved viewpoints
@@ -521,7 +523,7 @@ proc x3dFileEnd {} {
                           
 # credits
   set str "NIST "
-  set url "https://www.nist.gov/services-resources/software/step-file-analyzer"
+  set url "https://www.nist.gov/services-resources/software/step-file-analyzer-and-viewer"
   if {!$nistVersion} {
     set str ""
     set url "https://github.com/usnistgov/SFA"
@@ -559,7 +561,7 @@ proc x3dBrepGeom {} {
     if {[file exists $stp2x3d]} {
       set stpx3dFileName [file rootname $localName].x3d
       catch {file delete -force $stpx3dFileName}
-      outputMsg " Processing B-rep geometry.  Wait for the popup program (stp2x3d.exe) to complete, see Options tab." green
+      outputMsg " Processing B-rep geometry. Wait for the popup program (stp2x3d.exe) to complete. See Options tab." green
       catch {exec $stp2x3d $localName} errs
       #outputMsg $errs red
       
@@ -677,7 +679,7 @@ proc x3dSuppGeom {maxxyz} {
                 puts $x3dFile " </Group>"
                 set defAxes 1
               } else {
-                puts $x3dFile " <Group USE='sgAxes'>"
+                puts $x3dFile " <Group USE='sgAxes'></Group>"
               }
               set nsize [expr {$tsize*1.5}]
               if {$name != ""} {puts $x3dFile " <Transform scale='$nsize $nsize $nsize'><Billboard axisOfRotation='0 0 0'><Shape><Appearance><Material diffuseColor='0 0 0'></Material></Appearance><Text string='\"$name\"'><FontStyle family='\"SANS\"' justify='\"BEGIN\"'></FontStyle></Text></Shape></Billboard></Transform>"}
@@ -696,7 +698,7 @@ proc x3dSuppGeom {maxxyz} {
                 puts $x3dFile " <Shape DEF='sgPlane'><Appearance><Material emissiveColor='0 0 1'></Material></Appearance><IndexedLineSet coordIndex='0 1 2 3 0 -1'><Coordinate point='-$nsize -$nsize 0. $nsize -$nsize 0. $nsize $nsize 0. -$nsize $nsize 0.'></Coordinate></IndexedLineSet></Shape>"
                 set defPlane 1
               } else {
-                puts $x3dFile " <Shape USE='sgPlane'>"
+                puts $x3dFile " <Shape USE='sgPlane'></Shape>"
               }
               if {$name != ""} {puts $x3dFile " <Transform translation='-$nsize -$nsize 0.' scale='$tsize $tsize $tsize'><Billboard axisOfRotation='0 0 0'><Shape><Appearance><Material diffuseColor='0 0 1'></Material></Appearance><Text string='\"$name\"'><FontStyle family='\"SANS\"' justify='\"BEGIN\"'></FontStyle></Text></Shape></Billboard></Transform>"}
             }
@@ -819,6 +821,7 @@ proc x3dSuppGeom {maxxyz} {
               puts $x3dFile " <Transform scale='$nsize $nsize $nsize'><Billboard axisOfRotation='0 0 0'><Shape><Appearance><Material diffuseColor='0 0 0'></Material></Appearance><Text string='\"$name\"'><FontStyle family='\"SANS\"' justify='\"BEGIN\"'></FontStyle></Text></Shape></Billboard></Transform>"
             }
             puts $x3dFile "</Transform>"
+            set viz(SMG) 1
           }
           
           default {
@@ -967,7 +970,7 @@ proc openX3DOM {{fn ""}} {
     if {$ok} {
       set fn $x3dFileName
     } else {
-      if {$opt(XLSCSV) == "None"} {errorMsg "There is nothing in the STEP $stepAP file that this software can visualize (Options tab).\n See Websites > STEP File Viewers"}
+      if {$opt(XLSCSV) == "None"} {errorMsg "There is nothing selected to Visualize (Options tab) that is in the STEP file to display.\n See Websites > STEP File Viewers"}
       return
     }
   }

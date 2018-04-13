@@ -388,6 +388,8 @@ proc getEntityCSV {objEntity} {
   
 # get entity type
   set thisEntType [$objEntity Type]
+  set cellLimit1 500
+  set cellLimit2 1000
 
 # -------------------------------------------------------------------------------------------------
 # csv file for each entity if it does not already exist

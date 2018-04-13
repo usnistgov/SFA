@@ -377,7 +377,7 @@ proc guiProcessAndReports {} {
   pack $foptd -side left -anchor w -pady {5 2} -padx 10 -fill both -expand true
   catch {
     tooltip::tooltip $buttons(optPMISEM)  "PMI Representation information is shown on dimension,\ntolerance, datum target, and datum entities.\nSemantic PMI is found mainly in STEP AP242 files.\n\nSee Help > PMI Representation\nSee Help > User's Guide (section 5.1)\nSee Help > Syntax Errors\nSee Examples > Spreadsheet\nSee Examples > Sample STEP Files\nSee Websites > AP242 Project"
-    tooltip::tooltip $buttons(optPMIGRF)  "PMI Presentation information is shown on\n'annotation occurrence' entities.\nGraphical PMI can also be Visualized.\n\nSee Help > PMI Presentation\nSee Help > User's Guide (section 5.2)\nSee Help > Syntax Errors\nSee Examples > Spreadsheet\nSee Examples > AP242 Tessellated Part with PMI\nSee Examples > Sample STEP Files"
+    tooltip::tooltip $buttons(optPMIGRF)  "PMI Presentation information is shown on\n'annotation occurrence' entities.\nGraphical PMI can also be Visualized.\n\nSee Help > PMI Presentation\nSee Help > User's Guide (section 5.2)\nSee Help > Syntax Errors\nSee Examples > Spreadsheet\nSee Examples > Part with PMI\nSee Examples > AP242 Tessellated Part with PMI\nSee Examples > Sample STEP Files"
     tooltip::tooltip $buttons(optVALPROP) "Validation Properties and other properties are\nshown on the 'property_definition' entity.\n\nSee Help > Validation Properties\nSee Help > User's Guide (section 5.3)\nSee Help > Syntax Errors\nSee Examples > Spreadsheet"
   }
   
@@ -459,14 +459,14 @@ proc guiProcessAndReports {} {
   pack $foptv -side left -anchor w -pady {5 2} -padx 10 -fill both -expand true
   pack $foptrv -side top -anchor w -pady 0 -fill x
   catch {
-    tooltip::tooltip $buttons(optVIZPMI) "Graphical PMI is supported in AP242, AP203, and AP214 files.\n\nSee Help > PMI Presentation\nSee Help > User's Guide (section 6.1.1)\nSee Examples > AP242 Tessellated Part with PMI\nSee Examples > Sample STEP Files\n\nVisualizations can be generated without generating a spreadsheet\nor CSV files.  See the Output Format option below."
+    tooltip::tooltip $buttons(optVIZPMI) "Graphical PMI is supported in AP242, AP203, and AP214 files.\n\nSee Help > PMI Presentation\nSee Help > User's Guide (section 6.1.1)\nSee Examples > Part with PMI\nSee Examples > AP242 Tessellated Part with PMI\nSee Examples > Sample STEP Files\n\nVisualizations can be generated without generating a spreadsheet\nor CSV files.  See the Output Format option below."
     tooltip::tooltip $buttons(optVIZPMIVP) "PMI Viewpoints are experimental.\n\nViewpoints usually have the correct orientation but are not centered.\nUse pan and zoom to center the PMI."
     tooltip::tooltip $buttons(optVIZFEA) "FEM nodes, elements, boundary conditions, and loads are visualized.\n\nSee Help > AP209 Finite Element Model\nSee Help > User's Guide (section 6.1.3)\nSee Examples > AP209 Finite Element Model\n\nVisualizations can be generated without generating a spreadsheet\nor CSV files.  See the Output Format option below.\n\nVisualizations are displayed in web browsers that are not optimized for large models."
     tooltip::tooltip $buttons(optVIZFEALVS) "Load vectors can by scaled by the load magnitude.\nLoad vectors are always colored by the load magnitude."
     tooltip::tooltip $buttons(optVIZTPG) "This feature is in development.\nParts in an assembly might have the wrong position and orientation or be missing.\n\nTessellated geometry is in addition to boundary representation (b-rep) geometry.\nSupplemental geometry and tessellated edges (lines) are also shown.\nFaces in tessellated shells are outlined in black.\n\nSee Help > AP242 Tessellated Part Geometry\nSee Help > Supplemental Geometry\nSee Help > User's Guide (section 6.1.2)\nSee Examples > AP242 Tessellated Part with PMI\n\nVisualizations can be generated without generating a spreadsheet or CSV files.\nSee the Output Format option below.\n\nVisualizations are displayed in web browsers that are not optimized for large models."
     tooltip::tooltip $buttons(optVIZTPGMSH) "Show a tessellation wireframe mesh based on the tessellated\nfaces or surfaces.  Not recommended for very large models."
     tooltip::tooltip $buttons(linecolor) "For Random PMI colors, each 'annotation occurrence' is assigned a different color."
-    tooltip::tooltip $buttons(optVIZBRP) "Boundary representation part geometry will be visualized ONLY if one of the above types of\nvisualization features is selected and is present in the STEP file.  The color of b-rep geometry\nis ignored.  B-rep geometry might also include supplemental geometry.  B-rep geometry\nvisualization is based on OpenCascade and pythonOCC.\n\nSee Websites > STEP File Viewers for other b-rep geometry viewers.\nSee Help > About\n\nVisualizations are displayed in web browsers that are not optimized for large models."
+    tooltip::tooltip $buttons(optVIZBRP) "Boundary representation part geometry is visualized ONLY if one of the above types\nof visualization features is selected and is present in the STEP file.\n\nSee Help > B-rep Geometry\nSee Examples > Part with PMI\n\nVisualizations are displayed in web browsers that are not optimized for large models."
   }
 }
 
@@ -1094,8 +1094,9 @@ consumption by downstream applications for manufacturing, measurement, inspectio
 processes.
 
 See Help > User's Guide (section 5.1)
-See Examples > Sample STEP Files
+See Help > PMI Coverage Analysis
 See Examples > Spreadsheet - PMI Representation
+See Examples > Sample STEP Files
 
 PMI Representation is found mainly in AP242 files and is defined by the CAx-IF Recommended Practice
 for Representation and Presentation of Product Manufacturing Information (AP242)
@@ -1138,7 +1139,7 @@ Some syntax errors that indicate non-conformance to a CAx-IF Recommended Practic
 Representation are also reported in the Status tab and the relevant worksheet cells.  Syntax
 errors are highlighted in red.  See Help > Syntax Errors.
 
-A PMI Representation Coverage Analysis worksheet is generated.  See Help > PMI Coverage Analysis."
+A PMI Representation Coverage Analysis worksheet is generated."
     .tnb select .tnb.status
   }
   
@@ -1152,8 +1153,9 @@ Representation.
 
 See Help > User's Guide (sections 5.2)
 See Help > Graphical PMI
-See Examples > Sample STEP Files
+See Examples > Part with PMI
 See Examples > Spreadsheet - PMI Presentation
+See Examples > Sample STEP Files
 
 Graphical PMI on annotation_curve_occurrence, annotation_curve, annotation_fill_area_occurrence,
 and tessellated_annotation_occurrence entities are supported.  Geometric entities used for PMI
@@ -1182,6 +1184,7 @@ outputMsg "\nPMI Coverage Analysis ---------------------------------------------
 outputMsg "PMI Coverage Analysis worksheets are generated when processing single or multiple files and when
 reports for PMI Representation or Presentation are selected.
 
+See Help > PMI Representation
 See Help > User's Guide (sections 5.1.6 and 5.2.1)
 See Examples > Spreadsheets
 
@@ -1326,13 +1329,10 @@ of the annotations can be modified.  Filled characters are not filled.  PMI asso
 Saved Views can be switched on and off.  Some Graphical PMI might not have equivalent Semantic PMI
 in the STEP file.  The graphical PMI file is written to myfile-sfa.html
 
-Boundary representation (B-rep) geometry can also be visualized (Options tab).
-See Websites > STEP File Viewers for other b-rep geometry viewers.
-
 See Help > User's Guide (sections 6.1.1)
 See Help > PMI Presentation
-See Examples > Sample STEP Files
-See Examples > AP242 Tessellated Part with PMI"
+See Examples > Part with PMI
+See Examples > Sample STEP Files"
     .tnb select .tnb.status
   }
     
@@ -1353,6 +1353,23 @@ planes are ignored.  All bounded and unbounded planes are displayed with a fixed
     .tnb select .tnb.status
   }
     
+  $Help add command -label "B-rep Geometry" -command {
+outputMsg "\nB-rep Geometry -------------------------------------------------------------" blue
+outputMsg "
+Boundary representation (b-rep) part geometry is visualized ONLY if Graphical PMI or AP242
+Tessellated Part Geometry is visualized.  The color of b-rep geometry is ignored.  B-rep
+geometry might also include supplemental geometry.  There is no cross-highlighting between
+b-rep geometry and graphical PMI.
+
+In some cases, curved surfaces might appear jagged or incomplete.
+
+See Examples > Part with PMI
+See Websites > STEP File Viewers for other b-rep geometry viewers
+
+B-rep geometry visualization is based on OpenCascade and pythonOCC.  See Help > About"
+    .tnb select .tnb.status
+  }
+    
   $Help add command -label "AP242 Tessellated Part Geometry" -command {
 outputMsg "\nAP242 Tessellated Part Geometry --------------------------------------------" blue
 outputMsg "This feature is still being developed.
@@ -1367,12 +1384,8 @@ also shown.  A wireframe mesh, outlining the facets of the tessellated surfaces 
 If both are present, tessellated edges might be obscured by the wireframe mesh.  Brown is used as
 the color assigned to tessellated solids, shells, or faces that do not have colors assigned to them.
 
-Boundary representation (B-rep) geometry can also be visualized (Options tab).
-See Websites > STEP File Viewers for other b-rep geometry viewers.
-
 See Help > User's Guide (section 6.1.2)
-See Examples > AP242 Tessellated Part with PMI
-See Websites > STEP File Viewers to view STEP files with non-tessellated geometry."
+See Examples > AP242 Tessellated Part with PMI"
     .tnb select .tnb.status
   }
     
@@ -1525,9 +1538,9 @@ dialogs might appear that say 'Unable to alloc xxx bytes'.  See the Help > Crash
   $Examples add command -label "Spreadsheet - PMI Presentation, ValProps" -command {openURL https://s3.amazonaws.com/nist-el/mfg_digitalthread/STEP-File-Analyzer_stp.xlsx}
   $Examples add command -label "Spreadsheet - PMI Coverage Analysis"      -command {openURL https://s3.amazonaws.com/nist-el/mfg_digitalthread/STEP-File-Analyzer-Coverage.xlsx}
   $Examples add separator
+  $Examples add command -label "Part with PMI"                   -command {openURL https://pages.nist.gov/CAD-PMI-Testing/graphical-pmi-viewer.html}
   $Examples add command -label "AP242 Tessellated Part with PMI" -command {openURL https://pages.nist.gov/CAD-PMI-Testing/tessellated-part-geometry.html}
   $Examples add command -label "AP209 Finite Element Model"      -command {openURL https://pages.nist.gov/CAD-PMI-Testing/ap209-viewer.html}
-  #$Examples add command -label "Graphical PMI Viewer"            -command {openURL https://pages.nist.gov/CAD-PMI-Testing/graphical-pmi-viewer.html}
 }
 
 #-------------------------------------------------------------------------------
@@ -1535,7 +1548,7 @@ dialogs might appear that say 'Unable to alloc xxx bytes'.  See the Help > Crash
 proc guiWebsitesMenu {} {
   global Websites
 
-  $Websites add command -label "STEP File Analyzer and Viewer"             -command {openURL https://www.nist.gov/services-resources/software/step-file-analyzer}
+  $Websites add command -label "STEP File Analyzer and Viewer"             -command {openURL https://www.nist.gov/services-resources/software/step-file-analyzer-and-viewer}
   $Websites add command -label "Journal of NIST Research"                  -command {openURL https://doi.org/10.6028/jres.122.016}
   $Websites add command -label "Conformance Checking of PMI in STEP Files" -command {openURL https://www.nist.gov/publications/conformance-checking-pmi-representation-cad-model-step-data-exchange-files}
   $Websites add command -label "MBE PMI Validation Testing (free CAD models and STEP files)" -command {openURL https://www.nist.gov/el/systems-integration-division-73400/mbe-pmi-validation-and-conformance-testing}
@@ -1590,7 +1603,7 @@ in this software, NIST does not necessarily endorse the views expressed, or conc
 presented on those web sites.
 
 This software uses Microsoft Excel and IFCsvr that are covered by their own End-User License
-Agreements.  See Help > NIST Disclaimer"
+Agreements.  See Help > NIST Disclaimer.  See Help > About."
     .tnb select .tnb.status
 
 set txt "This software was developed at the National Institute of Standards and Technology by employees of the Federal Government in the course of their official duties. Pursuant to Title 17 Section 105 of the United States Code this software is not subject to copyright protection and is in the public domain.  This software is an experimental system.  NIST assumes no responsibility whatsoever for its use by other parties, and makes no guarantees, expressed or implied, about its quality, reliability, or any other characteristic.
@@ -1599,7 +1612,7 @@ The Examples menu of this software provides links to several sources of STEP fil
 
 Any mention of commercial products or references to web pages in this software is for information purposes only; it does not imply recommendation or endorsement by NIST.  For any of the web links in this software, NIST does not necessarily endorse the views expressed, or concur with the facts presented on those web sites.
 
-This software uses Microsoft Excel and IFCsvr that are covered by their own End-User License Agreements.  See Help > NIST Disclaimer"
+This software uses Microsoft Excel and IFCsvr that are covered by their own End-User License Agreements.  See Help > NIST Disclaimer.  See Help > About."
   
     tk_messageBox -type ok -icon info -title "Disclaimers for STEP File Analyzer and Viewer" -message $txt
   }

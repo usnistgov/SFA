@@ -237,16 +237,10 @@ proc feaModel {entType} {
     }
   }
 
-# check if done processing all element types
+# only write loads and BC now, elements written after
   set writeX3DOM 0
-  if {[info exists feaType]} {
-    if {$feaType == "volume_3d"} {set writeX3DOM 1}
-    if {$feaType == "surface_3d" && ![info exists entCount(volume_3d_element_representation)]} {set writeX3DOM 1}
-    if {$feaType == "curve_3d"   && ![info exists entCount(surface_3d_element_representation)] && \
-                                    ![info exists entCount(volume_3d_element_representation)]} {set writeX3DOM 1}
-  } else {
-    set writeX3DOM 1
-  }
+  if {$entType == "nodal_freedom_action_definition" || $entType == "single_point_constraint_element_values" || \
+     (![info exists entCount(nodal_freedom_action_definition)] && ![info exists entCount(single_point_constraint_element_values)])} {set writeX3DOM 1}
 
 # write mesh and elements at the end of processing an element type
   if {$writeX3DOM} {
@@ -254,27 +248,22 @@ proc feaModel {entType} {
 # write mesh
     if {[info exists feaFileName(mesh)]} {
       if {[file exists $feaFileName(mesh)]} {
-        close $feaFile(mesh)
-        if {[file size $feaFileName(mesh)] > 0} {
-          puts $x3dFile "<!-- WIREFRAME -->\n<Switch whichChoice='0' id='swMesh'><Group>"
-          set feaFile(mesh) [open $feaFileName(mesh) r]
-          while {[gets $feaFile(mesh) line] >= 0} {puts $x3dFile $line}
-          puts $x3dFile "</Group></Switch>"
-          close $feaFile(mesh)
-          unset feaMeshIndex
-        }
-      }
-    }
-    
-# write all elements (must be before loads and boundary conditions)
-    if {[info exists feaFileName(elements)]} {
-      if {[file exists $feaFileName(elements)]} {
-        close $feaFile(elements)
-        if {[file size $feaFileName(elements)] > 0} {
-          set feaFile(elements) [open $feaFileName(elements) r]
-          while {[gets $feaFile(elements) line] >= 0} {puts $x3dFile $line}
-          close $feaFile(elements)
-          outputMsg " Finished writing elements" green
+        if {[info exists feaFile(mesh)]} {
+          catch {close $feaFile(mesh)}
+          if {[file size $feaFileName(mesh)] > 0} {
+            puts $x3dFile "<!-- WIREFRAME -->\n<Switch whichChoice='0' id='swMesh'><Group>"
+            set feaFile(mesh) [open $feaFileName(mesh) r]
+            while {[gets $feaFile(mesh) line] >= 0} {puts $x3dFile $line}
+            puts $x3dFile "</Group></Switch>"
+            close $feaFile(mesh)
+            unset feaMeshIndex
+            foreach f {mesh meshIndex} {
+              if {[file exists $feaFileName($f)]} {
+                catch {close $feaFileName($f)}
+                catch {file delete -force $feaFileName($f)}
+              }
+            }
+          }
         }
       }
     }
@@ -445,7 +434,7 @@ proc feaModel {entType} {
                     set num(2) $size
                     set num(1) [expr {$size*0.5}]
                     append bctxt "\n <Group DEF='BCT$bctrn'><Transform id='BCTxyzScale'>"
-                    append bctxt "<Shape><Appearance><Material diffuseColor='.7 .7 .7'></Material></Appearance><IndexedFaceSet coordIndex='0 1 2 -1 0 2 3 -1 0 3 4 -1 0 4 1 -1 1 4 3 2 -1'><Coordinate point='0 0 0 $num(1) $num(1) -$num(2) -$num(1) $num(1) -$num(2) -$num(1) -$num(1) -$num(2) $num(1) -$num(1) -$num(2)'></IndexedFaceSet></Shape>"
+                    append bctxt "<Shape><Appearance><Material diffuseColor='.7 .7 .7'></Material></Appearance><IndexedFaceSet coordIndex='0 1 2 -1 0 2 3 -1 0 3 4 -1 0 4 1 -1 1 4 3 2 -1'><Coordinate point='0 0 0 $num(1) $num(1) -$num(2) -$num(1) $num(1) -$num(2) -$num(1) -$num(1) -$num(2) $num(1) -$num(1) -$num(2)'></Coordinate></IndexedFaceSet></Shape>"
                     append bctxt "</Transform></Group>\n"
                     incr defUSEt(xyz)
                     lappend bcScaleSwitch "BCTxyzScale"
@@ -521,17 +510,34 @@ proc feaModel {entType} {
       puts $x3dFile $bctxt
       update idletasks
     }
-    
-# close temp files
-    if {[string first "_3d" $entType] != -1} {
-      foreach f {elements mesh meshIndex faceIndex} {
-        if {[file exists $feaFileName($f)]} {
-          catch {close $feaFileName($f)}
-          catch {file delete -force $feaFileName($f)}
+     
+# write all elements, after BC and load
+    if {$entType == "single_point_constraint_element_values" || \
+       ($entType == "nodal_freedom_action_definition" && ![info exists entCount(single_point_constraint_element_values)]) || \
+       (![info exists entCount(nodal_freedom_action_definition)] && ![info exists entCount(single_point_constraint_element_values)])} {
+      if {[info exists feaFileName(elements)]} {
+        if {[file exists $feaFileName(elements)]} {
+          close $feaFile(elements)
+          if {[file size $feaFileName(elements)] > 0} {
+            set feaFile(elements) [open $feaFileName(elements) r]
+            while {[gets $feaFile(elements) line] >= 0} {puts $x3dFile $line}
+            close $feaFile(elements)
+            outputMsg " Finished writing elements" green
+          }
         }
       }
-      catch {unset feaFaceList}
-      catch {unset feaFaceOrig}
+   
+# close temp files
+      if {[string first "_3d" $entType] != -1} {
+        foreach f {elements mesh meshIndex faceIndex} {
+          if {[file exists $feaFileName($f)]} {
+            catch {close $feaFileName($f)}
+            catch {file delete -force $feaFileName($f)}
+          }
+        }
+        catch {unset feaFaceList}
+        catch {unset feaFaceOrig}
+      }
     }
   }  
 

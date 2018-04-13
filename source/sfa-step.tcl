@@ -1,6 +1,6 @@
 #-------------------------------------------------------------------------------
 # version numbers, software and user's guide
-proc getVersion {}   {return 2.90}
+proc getVersion {}   {return 2.91}
 proc getVersionUG {} {return 2.34}
 
 # -------------------------------------------------------------------------------
@@ -1282,7 +1282,7 @@ proc checkForReports {entType} {
     if {[catch {
       if {[info exists opt(VIZFEA)]} {if {$opt(VIZFEA)} {feaModel $entType}}
     } emsg]} {
-      errorMsg "ERROR adding Analysis Model to '$entType'\n  $emsg"
+      errorMsg "ERROR adding Analysis Model for '$entType'\n  $emsg"
     }
   }
 }

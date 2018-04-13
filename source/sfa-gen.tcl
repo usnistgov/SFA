@@ -1444,7 +1444,7 @@ proc sumAddWorksheet {} {
     
 # name and link to program website that generated the spreadsheet
     set str "NIST "
-    set url "https://www.nist.gov/services-resources/software/step-file-analyzer"
+    set url "https://www.nist.gov/services-resources/software/step-file-analyzer-and-viewer"
     if {!$nistVersion} {
       set str ""
       set url "https://github.com/usnistgov/SFA"
