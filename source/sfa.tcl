@@ -43,7 +43,12 @@ if {[catch {
   set dir $wdir
   set c1 [string first [file tail [info nameofexecutable]] $dir]
   if {$c1 != -1} {set dir [string range $dir 0 $c1-1]}
-  set choice [tk_messageBox -type ok -icon error -title "ERROR" -message "ERROR: $emsg\n\nThere might be a problem running this program from a directory with accented, non-English, or symbol characters in the pathname.\n\n     [file nativename $dir]\n\nRun the software from a directory without any of the special characters in the pathname.\n\nPlease contact Robert Lipman (robert.lipman@nist.gov) for other problems."]
+  if {[string first "couldn't load library" $emsg] != -1} {
+    append emsg "\n\nThere might be a problem running this software from a directory with accented, non-English, or symbol characters in the pathname."
+    append emsg "\n     [file nativename $dir]\nTry running the software from a directory without any of the special characters in the pathname."
+  }
+  append emsg "\n\nPlease contact Robert Lipman (robert.lipman@nist.gov) if you cannot run the STEP File Analyzer and Viewer."
+  set choice [tk_messageBox -type ok -icon error -title "ERROR starting the STEP File Analyzer and Viewer" -message $emsg]
   exit
 }
 
@@ -76,7 +81,7 @@ foreach item $auto_path {if {[string first "STEP-File-Analyzer" $item] != -1} {s
 # initialize variables
 foreach id {XL_OPEN XL_KEEPOPEN XL_LINK1 XL_FPREC XL_SORT LOGFILE \
             VALPROP PMIGRF PMISEM INVERSE DEBUG1 \
-            VIZPMI VIZTPG VIZTPGMSH VIZPMIVP VIZFEA VIZFEABC VIZFEALV VIZFEALVS VIZBRP \
+            VIZPMI VIZTPG VIZTPGMSH VIZPMIVP VIZFEA VIZFEABC VIZFEALV VIZFEALVS VIZFEADS VIZBRP \
             PR_STEP_AP242 PR_USER PR_STEP_KINE PR_STEP_COMP PR_STEP_COMM PR_STEP_GEOM PR_STEP_QUAN \
             PR_STEP_FEAT PR_STEP_PRES PR_STEP_TOLR PR_STEP_REPR PR_STEP_CPNT PR_STEP_SHAP} {set opt($id) 1}
 
@@ -242,13 +247,11 @@ proc whatsNew {} {
   if {$sfaVersion > 0 && $sfaVersion < [getVersion]} {outputMsg "\nThe previous version of the STEP File Analyzer and Viewer was: $sfaVersion" red}
 
 outputMsg "\nWhat's New (Version: [getVersion]  Updated: [string trim [clock format $progtime -format "%e %b %Y"]])" blue
-outputMsg "- Visualization of boundary representation (b-rep) geometry (Options tab > Visualize)
+outputMsg "- Improved visualization of AP209 displacements, boundary conditions, and loads (Help > AP209 Finite Element Model)
+- Visualization of boundary representation (b-rep) geometry (See Help > B-rep Geometry)
 - Visualization of supplemental geometry (Help > Supplemental Geometry)
-- Improved visualization of AP209 boundary conditions and loads (Help > AP209 Finite Element Model)
 - Improved reporting of Associated Geometry
-- Improved reporting of invalid Dimension decimal places and Validation Property values = 0
 - Explanation of Report errors (Help > Syntax Errors)
-- Support for repetitive hole and radius dimensions, e.g, '4X' R10.5
 - Bug fixes and minor improvements
 - Support for AP242 Edition 2 DIS (Draft International Standard)"
 

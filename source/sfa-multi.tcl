@@ -6,9 +6,9 @@ proc openMultiFile {{ask 1}} {
   global xlFileNames nprogBarFiles extXLS mydocs entCategory
   global lenfilelist multiFileDir
   global coverageSTEP gpmiTypes developer nistVersion
-  global sempmi_totals pmi_totals gpmiTypesInvalid col_ca pmi_rows
+  global sempmi_totals pmi_totals gpmiTypesInvalid col_ca pmi_rows stepAP
   global excel1 worksheets1 worksheet1 cells1 row1 col1 nfile coverageStyle
-  global sempmi_coverage pmi_coverage useXL xlFormat
+  global sempmi_coverage pmi_coverage useXL xlFormat andEntAP209
   
   set maxfiles 1000
   if {$developer} {set maxfiles 10000}
@@ -346,6 +346,7 @@ proc openMultiFile {{ask 1}} {
                 set ok 1
               } else {
                 foreach item [array names entCategory] {if {[lsearch $entCategory($item) $ent] != -1} {set ok 1}}
+                if {[string first "AP209" $stepAP] != -1} {foreach str $andEntAP209 {if {[string first $str $ent] != -1} {set ok 1}}}
               }
               if {$ok} {
                 $cells1($sum) Item [incr row1($sum)] 1 $ent

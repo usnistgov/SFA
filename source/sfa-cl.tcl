@@ -49,7 +49,9 @@ if {[catch {
   set dir $wdir
   set c1 [string first [file tail [info nameofexecutable]] $dir]
   if {$c1 != -1} {set dir [string range $dir 0 $c1-1]}
-  puts "\nERROR: $emsg\n\nThere might be a problem running this program from a directory with accented, non-English, or symbol characters in the pathname.\n\n     [file nativename $dir]\n\nRun the software from a directory without any special characters in the pathname.\n\nPlease contact Robert Lipman (robert.lipman@nist.gov) for other problems."
+  puts "\nERROR: $emsg\n\nThere might be a problem running this program from a directory with accented, non-English, or symbol characters in the pathname."
+  puts "     [file nativename $dir]\nTry running the software from a directory without any of the special characters in the pathname."
+  puts "\nPlease contact Robert Lipman (robert.lipman@nist.gov) if you cannot run the STEP File Analyzer and Viewer."
   exit
 }
 
@@ -125,7 +127,7 @@ if {![file exists [file join $ifcsvrDir IFCsvrR300.dll]]} {installIFCsvr}
 # initialize variables
 foreach id {XL_OPEN XL_KEEPOPEN XL_LINK1 XL_FPREC XL_SORT LOGFILE \
             VALPROP PMIGRF PMISEM INVERSE DEBUG1 \
-            VIZPMI VIZTPG VIZTPGMSH VIZPMIVP VIZFEA VIZFEABC VIZFEALV VIZFEALVS VIZBRP \
+            VIZPMI VIZTPG VIZTPGMSH VIZPMIVP VIZFEA VIZFEABC VIZFEALV VIZFEALVS VIZFEADS VIZBRP \
             PR_STEP_AP242 PR_USER PR_STEP_KINE PR_STEP_COMP PR_STEP_COMM PR_STEP_GEOM PR_STEP_QUAN \
             PR_STEP_FEAT PR_STEP_PRES PR_STEP_TOLR PR_STEP_REPR PR_STEP_CPNT PR_STEP_SHAP} {set opt($id) 1}
 

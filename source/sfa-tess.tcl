@@ -750,10 +750,10 @@ proc vecdot {v1 v2} {
   return $v3
 }
 
-# sub - multiply two vectors
-proc vecmult {v1 v2} {
-  foreach c1 $v1 {lappend v3 [expr {$c1*$v2}]}
-  return $v3
+# mult - multiply vector by scalar
+proc vecmult {v1 scalar} {
+  foreach c1 $v1 {lappend v2 [expr {$c1*$scalar}]}
+  return $v2
 }
 
 # sub - subtract one vector from another
@@ -768,9 +768,9 @@ proc vecadd {v1 v2} {
   return $v3
 }
 
-# scale - multiply vector by scalar
-proc vecscale {v1 scalar} {
-  foreach c1 $v1 {lappend v2 [expr {$c1*$scalar}]}
+# reverse - reverse vector direction
+proc vecrev {v1} {
+  foreach c1 $v1 {lappend v2 [expr {$c1*-1.}]}
   return $v2
 }
 

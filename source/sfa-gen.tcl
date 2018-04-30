@@ -441,14 +441,6 @@ proc genExcel {{numFile 0}} {
           }
         }
       }
-  
-# AP209 nodes
-      if {[string first "AP209" $stepAP] != -1} {
-        if {$entType == "node" && $opt(PR_STEP_CPNT) == 0 && $opt(XLSCSV) != "None"} {
-          set ok 0
-          outputMsg " For AP209 files, to write 'node' entities to the spreadsheet, select Coordinates in the Options tab" red
-        }
-      }
       
 # new AP242 entities in a ROSE file, but not yet in ap242all or any entity category, for testing new schemas
       #if {$developer} {if {$stepAP == "AP242" && [lsearch $ap242all $entType] == -1} {set ok 1}}
@@ -463,31 +455,33 @@ proc genExcel {{numFile 0}} {
       if {[info exists skipEntities]} {if {[lsearch $skipEntities $entType] != -1} {set noSkip 0}}
 
 # add to list of entities to process (entsToProcess), uses color index to set the order
+      set cidx [setColorIndex $entType]
       if {([lsearch $entCategories $entType_1] != -1 || $ok)} {
         if {$noSkip} {
-          lappend entsToProcess "[setColorIndex $entType]$entType"
+          lappend entsToProcess "$cidx$entType"
           incr numEnts $entCount($entType)
         } else {
           lappend fixlist $entType
           lappend entsToIgnore $entType
-          set entsIgnored($entType) $entCount($entType)
+          set entsIgnored($cidx$entType) $entCount($entType)
         }
       } elseif {[lsearch $entCategories $entType] != -1} {
         if {$noSkip} {
-          lappend entsToProcess "[setColorIndex $entType]$entType"
+          lappend entsToProcess "$cidx$entType"
           incr numEnts $entCount($entType)
         } else {
           lappend fixlist $entType
           lappend entsToIgnore $entType
-          set entsIgnored($entType) $entCount($entType)
+          set entsIgnored($cidx$entType) $entCount($entType)
         }
       } else {
         lappend entsToIgnore $entType
-        set entsIgnored($entType) $entCount($entType)
+        set entsIgnored($cidx$entType) $entCount($entType)
       }
     }
   }
     
+# -------------------------------------------------------------------------------------------------
 # check if there is anything visualization
   foreach typ {PMI TPG FEA} {set viz($typ) 0}
   if {$opt(VIZPMI)} {foreach ao $aoEntTypes {if {[info exists entCount($ao)]} {set viz(PMI) 1}}}
@@ -515,6 +509,7 @@ proc genExcel {{numFile 0}} {
       }
     }
   
+# -------------------------------------------------------------------------------------------------
 # list entities not processed based on fix file
   if {[llength $fixlist] > 0} {
     outputMsg " "
@@ -538,6 +533,7 @@ proc genExcel {{numFile 0}} {
 # sort entsToProcess by color index
   set entsToProcess [lsort $entsToProcess]
   
+# -------------------------------------------------------------------------------------------------
 # for STEP process datum* and dimensional* entities before specific *_tolerance entities
   if {$opt(PMISEM)} {
     if {[info exists entCount(angularity_tolerance)] || \
@@ -573,16 +569,37 @@ proc genExcel {{numFile 0}} {
     }
   }
   
-# move some AP209 entities to end
+# move some entities to end of AP209 entities
   if {$viz(FEA)} {
-    foreach ent {nodal_freedom_action_definition single_point_constraint_element_values} {
-      if {[info exists entCount($ent)]} {
-        set spc "19$ent"
-        set c1 [lsearch $entsToProcess $spc]
-        set entsToProcess [lreplace $entsToProcess $c1 $c1]
-        set entsToProcess [linsert $entsToProcess end $spc]
+    set ok  1
+    set ok1 0
+    set etp {}
+    
+# order is important, first 2 nodal loads, 3rd displacements (like a load), 4th boundary conditions
+    set ent209 [list nodal_freedom_action_definition surface_3d_element_boundary_constant_specified_surface_variable_value \
+                     nodal_freedom_values single_point_constraint_element_values]
+    #set ent209 [list element_nodal_freedom_actions] not included
+    foreach ent $entsToProcess {
+      if {$ok && [string range $ent 0 1] > 19} {
+        foreach ent1 $ent209 {
+          if {[info exists entCount($ent1)]} {
+            lappend etp "19$ent1"
+            set ok1 1
+          }
+        }
+        set ok 0
+      }
+      if {$ent != "19nodal_freedom_action_definition" && \
+          $ent != "19surface_3d_element_boundary_constant_specified_surface_variable_value" && \
+          $ent != "19nodal_freedom_values" && \
+          $ent != "19single_point_constraint_element_values"} {
+        lappend etp $ent
       }
     }
+    if {!$ok1} {
+      foreach ent1 $ent209 {if {[info exists entCount($ent1)]} {lappend etp "19$ent1"}}
+    }
+    set entsToProcess $etp
   }
   
 # then strip off the color index
@@ -590,6 +607,7 @@ proc genExcel {{numFile 0}} {
     lset entsToProcess $i [string range [lindex $entsToProcess $i] 2 end]
   }
 
+# -------------------------------------------------------------------------------------------------
 # max progress bar - number of entities or finite elements 
   if {[info exists buttons]} {
     $buttons(pgb) configure -maximum $numEnts
@@ -951,15 +969,6 @@ proc genExcel {{numFile 0}} {
           errorMsg "ERROR Saving CSV files: $emsg2"
         }
       }
-      
-# close log file
-      if {[info exists logFile]} {
-        outputMsg "Saving Log file as:"
-        outputMsg " [truncFileName [file nativename $lfile]]" blue
-        close $logFile
-        unset lfile
-        unset logFile
-      }
   
       catch {$excel ScreenUpdating 1}
 
@@ -1042,13 +1051,22 @@ proc genExcel {{numFile 0}} {
       } else {
         exec C:/Windows/explorer.exe $dir &
       }
-      
     }
   }
 
 # -------------------------------------------------------------------------------------------------
 # open X3DOM file of graphical PMI or FEM
   openX3DOM
+    
+# save log file
+  if {[info exists logFile]} {
+    update idletasks
+    outputMsg "\nSaving Log file as:"
+    outputMsg " [truncFileName [file nativename $lfile]]" blue
+    close $logFile
+    unset lfile
+    unset logFile
+  }
 
 # -------------------------------------------------------------------------------------------------
 # save state
@@ -1078,6 +1096,7 @@ proc genExcel {{numFile 0}} {
   if {!$multiFile} {
     foreach var {gpmiTypesPerFile spmiTypesPerFile} {if {[info exists $var]} {unset $var}}
   }
+  foreach f {elements mesh meshIndex faceIndex loads bcs} {catch {file delete -force [file join $mytemp $f.txt]}}
   update idletasks
   return 1
 }
@@ -1145,13 +1164,13 @@ proc addHeaderWorksheet {numFile fname} {
           puts $fcsv $csvstr
         }
         outputMsg "$attr:  $sn" blue
+
+        if {[string first "1 0 10303 442 2 1 4" $sn] != -1} {errorMsg "This file uses the new AP242 Edition 2."}
         if {[string first "_MIM" $sn] != -1 && [string first "_MIM_LF" $sn] == -1} {
           errorMsg "SchemaName (FILE_SCHEMA) should end with '_MIM_LF', see Header worksheet"
           if {$useXL} {[[$worksheet($hdr) Range B11] Interior] Color $legendColor(red)}
         }
-        if {[string first "AUTOMOTIVE_DESIGN_CC2" $sn] == 0} {
-          errorMsg "This file uses an older version of STEP AP214.  See Help > Supported STEP APs"
-        }
+        if {[string first "AUTOMOTIVE_DESIGN_CC2" $sn] == 0} {errorMsg "This file uses an older version of STEP AP214.  See Help > Supported STEP APs"}
 
         set fileSchema [string toupper [string range $objAttr 0 5]]
         if {[string first "IFC" $fileSchema] == 0} {
@@ -1324,7 +1343,7 @@ proc addHeaderWorksheet {numFile fname} {
 proc sumAddWorksheet {} {
   global worksheet cells sum sheetSort sheetLast col worksheets row entCategory opt entsIgnored excel
   global x3dFileName spmiEntity entCount gpmiEnts spmiEnts nistVersion
-  global propDefRow
+  global propDefRow stepAP andEntAP209
 
   outputMsg "\nGenerating Summary worksheet" blue
   set sum "Summary"
@@ -1365,11 +1384,18 @@ proc sumAddWorksheet {} {
 
 # check if entity is compound as opposed to an entity with '_and_'
       set ok 0
+
+# no '_and_'
       if {[string first "_and_" $entType] == -1} {
         set ok 1
+
+# check for explicit '_and_'
       } else {
         foreach item [array names entCategory] {if {[lsearch $entCategory($item) $entType] != -1} {set ok 1}}
+        if {[string first "AP209" $stepAP] != -1} {foreach str $andEntAP209 {if {[string first $str $entType] != -1} {set ok 1}}}
       }
+
+# no '_and_' or explicit '_and_'
       if {$ok} {
         $cells($sum) Item $sumRow 1 $entType
         
@@ -1418,17 +1444,18 @@ proc sumAddWorksheet {} {
     $cells($sum) Item $rowIgnored 1 "Entity types not processed ([array size entsIgnored])"
 
     foreach ent [lsort [array names entsIgnored]] {
+      set ent0 [string range $ent 2 end]
       set ok 0
       if {[string first "_and_" $ent] == -1} {
         set ok 1
       } else {
-        foreach item [array names entCategory] {if {[lsearch $entCategory($item) $ent] != -1} {set ok 1}}
+        foreach item [array names entCategory] {if {[lsearch $entCategory($item) $ent0] != -1} {set ok 1}}
       }
       if {$ok} {
-        $cells($sum) Item [incr rowIgnored] 1 $ent
+        $cells($sum) Item [incr rowIgnored] 1 $ent0
       } else {
 # '10' is the ascii character for a linefeed          
-        regsub -all "_and_" $ent ")[format "%c" 10][format "%c" 32][format "%c" 32][format "%c" 32](" ent1
+        regsub -all "_and_" $ent0 ")[format "%c" 10][format "%c" 32][format "%c" 32][format "%c" 32](" ent1
         $cells($sum) Item [incr rowIgnored] 1 "($ent1)"
         set range [$worksheet($sum) Range $rowIgnored:$rowIgnored]
         $range VerticalAlignment [expr -4108]
@@ -1659,7 +1686,7 @@ proc sumAddColorLinks {sum sumHeaderRow sumLinks sheetSort sumRow} {
       set ncol [expr {$col($sum)-1}]
 
       set range [$worksheet($sum) Range [cellRange $rowIgnored 1]]
-      set cidx [setColorIndex $ent]
+      set cidx [string range $ent 0 1]
       if {$cidx > 0} {[$range Interior] ColorIndex [expr $cidx]}      
     }
     [$worksheet($sum) Columns] AutoFit
@@ -1676,7 +1703,7 @@ proc sumAddColorLinks {sum sumHeaderRow sumLinks sheetSort sumRow} {
 # format worksheets
 proc formatWorksheets {sheetSort sumRow inverseEnts} {
   global buttons worksheet worksheets excel cells opt count entCount col row rowmax xlFileName thisEntType schemaLinks stepAP syntaxErr
-  global gpmiEnts spmiEnts nprogBarEnts excelVersion
+  global gpmiEnts spmiEnts nprogBarEnts excelVersion viz
   
   outputMsg "Formatting Worksheets" blue
 
@@ -1701,49 +1728,28 @@ proc formatWorksheets {sheetSort sumRow inverseEnts} {
           if {[info exists entCount($item)] && $item == $thisEntType} {set moveWS 1}
         }
       }
-      
-      if {$moveWS} {
-        if {[string first "dimensional_characteristic_repr" $thisEntType] == 0} {
-          set n 0
-          set p1 0
-          set p2 1000
-          foreach item {dimensional_characteristic_repr dimensional_location dimensional_size} {
-            incr n
-            for {set i 1} {$i <= [$worksheets Count]} {incr i} {
-              if {$item == [[$worksheets Item [expr $i]] Name]} {
-                if {$n == 1} {
-                  set p1 $i
-                } else {
-                  set p2 [expr {min($p2,$i)}]
-                }
-              }
-            }
-          }
-          if {$p1 != 0 && $p2 != 1000} {[$worksheets Item [expr $p1]] -namedarg Move Before [$worksheets Item [expr $p2]]}
-        }
-
-        foreach item {angularity_tolerance circular_runout_tolerance coaxiality_tolerance concentricity_tolerance cylindricity_tolerance} {
-          if {$item == $thisEntType} {
-            set n 0
-            set p1 0
-            set p2 1000
-            foreach ent [list $item datum] {
-              incr n
-              for {set i 1} {$i <= [$worksheets Count]} {incr i} {
-                if {$ent == [[$worksheets Item [expr $i]] Name]} {
-                  if {$n == 1} {
-                    set p1 $i
-                  } else {
-                    set p2 [expr {min($p2,$i)}]
-                  }
-                }
-              }
-            }
-            if {$p1 != 0 && $p2 != 1000} {[$worksheets Item [expr $p1]] -namedarg Move Before [$worksheets Item [expr $p2]]}
-          }
+      if {[string first "AP209" $stepAP] != -1 && $viz(FEA)} {
+        foreach item {nodal_freedom_action_definition nodal_freedom_values \
+                      surface_3d_element_boundary_constant_specified_surface_variable_value single_point_constraint_element_values} {
+          if {[info exists entCount($item)] && $item == $thisEntType} {set moveWS 1}
         }
       }
-      
+
+      if {$moveWS} {
+        if {[string first "dimensional_characteristic_repr" $thisEntType] == 0} {
+          moveWorksheet [list dimensional_characteristic_repr dimensional_location dimensional_size]
+        }
+        foreach item {angularity_tolerance circular_runout_tolerance coaxiality_tolerance concentricity_tolerance cylindricity_tolerance} {
+          if {$thisEntType == $item} {moveWorksheet [list $item datum]}
+        }
+
+        if {$thisEntType == "nodal_freedom_action_definition"} {moveWorksheet [list nodal_freedom_action_definition node]}
+        if {$thisEntType == "nodal_freedom_values"} {moveWorksheet [list nodal_freedom_values node]}
+        if {$thisEntType == "single_point_constraint_element_values"} {moveWorksheet [list single_point_constraint_element single_point_constraint_elemen1] After}
+        if {$thisEntType == "surface_3d_element_boundary_constant_specified_surface_variable_value"} {moveWorksheet [list surface_3d_element_boundary_con surface_3d_element_descriptor]}
+        #if {$thisEntType == "element_nodal_freedom_actions"} {moveWorksheet [list element_nodal_freedom_actions element_nodal_freedom_terms]}
+      }
+
 # find extent of columns
       set rancol $col($thisEntType)
       for {set i 1} {$i < 10} {incr i} {
@@ -1869,6 +1875,39 @@ proc formatWorksheets {sheetSort sumRow inverseEnts} {
       errorMsg "ERROR formatting Spreadsheet for: $thisEntType\n$emsg"
       catch {raise .}
     }
+  }
+}
+
+# -------------------------------------------------------------------------------------------------
+proc moveWorksheet {items {where "Before"}} {
+  global worksheets
+  
+  if {[catch {
+    set n 0
+    set p1 0
+    set p2 1000
+    foreach item $items {
+      incr n
+      for {set i 1} {$i <= [$worksheets Count]} {incr i} {
+        if {$item == [[$worksheets Item [expr $i]] Name]} {
+          if {$n == 1} {
+            set p1 $i
+          } else {
+            set p2 [expr {min($p2,$i)}]
+          }
+        }
+      }
+    }
+    
+    if {$p1 != 0 && $p2 != 1000} {
+      if {$where == "Before"} {
+        [$worksheets Item [expr $p1]] -namedarg Move Before [$worksheets Item [expr $p2]]
+      } else {
+        [$worksheets Item [expr $p2]] -namedarg Move After [$worksheets Item [expr $p1]]
+      }
+    }
+  } emsg]} {
+    errorMsg "ERROR moving worksheet: $emsg"
   }
 }
 

@@ -1,6 +1,6 @@
 #-------------------------------------------------------------------------------
 # version numbers, software and user's guide
-proc getVersion {}   {return 2.91}
+proc getVersion {}   {return 2.95}
 proc getVersionUG {} {return 2.34}
 
 # -------------------------------------------------------------------------------
@@ -1273,14 +1273,32 @@ proc checkForReports {entType} {
       errorMsg "ERROR adding PMI Representation to '[formatComplexEnt $entType]'\n  $emsg"
     }
 
-# check for AP209 analysis entities
+# check for AP209 analysis entities that contain information to be processed for visualization
   } elseif {$entType == "curve_3d_element_representation"   || \
             $entType == "surface_3d_element_representation" || \
             $entType == "volume_3d_element_representation"  || \
             $entType == "nodal_freedom_action_definition"   || \
+            $entType == "nodal_freedom_values"              || \
+            $entType == "surface_3d_element_boundary_constant_specified_surface_variable_value" || \
             $entType == "single_point_constraint_element_values"} {
     if {[catch {
-      if {[info exists opt(VIZFEA)]} {if {$opt(VIZFEA)} {feaModel $entType}}
+      if {[info exists opt(VIZFEA)]} {
+        if {$opt(VIZFEA)} {
+          if {[string first "element_representation" $entType] != -1 || \
+              ($opt(VIZFEABC) && $entType == "single_point_constraint_element_values") || \
+              ($opt(VIZFEALV) && \
+                ($entType == "nodal_freedom_action_definition" || \
+                 $entType == "surface_3d_element_boundary_constant_specified_surface_variable_value")) || \
+              ($opt(VIZFEADS) && $entType == "nodal_freedom_values")
+          } {
+            feaModel $entType
+          }
+        }
+      }
+      
+# for results at element nodes      
+      #$entType == "element_nodal_freedom_actions"
+      #($opt(VIZFEALV) && ($entType == "nodal_freedom_action_definition" || $entType == "element_nodal_freedom_actions"))
     } emsg]} {
       errorMsg "ERROR adding Analysis Model for '$entType'\n  $emsg"
     }

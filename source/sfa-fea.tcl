@@ -2,10 +2,11 @@ proc feaModel {entType} {
   global objDesign
   global ent entAttrList entCount entLevel opt rowmax nprogBarEnts count localName mytemp sfaPID cadSystem
   global x3dFile x3dMin x3dMax x3dMsg x3dStartFile x3dFileName x3dAxesSize
-  global feaType feaTypes feaElemTypes nfeaElem feaFile feaFileName feaFaceList feaFaceOrig feaBoundary feaLoad feaMeshIndex feaLoadMag
-  global bcScaleSwitch ldScaleSwitch
+  global feaType feaTypes feaElemTypes nfeaElem feaFile feaFileName feaFaceList feaFaceOrig feaBoundary feaLoad feaMeshIndex feaLoadMag feaDisp feaDispMag
+  global bcScaleSwitch ldScaleSwitch dsScaleSwitch
 
   if {$opt(DEBUG1)} {outputMsg "START feaModel $entType\n" red}
+  #outputMsg "START feaModel $entType" red
 
 # finite elements
   set node            [list node name]
@@ -22,17 +23,46 @@ proc feaModel {entType} {
   set node [list node name items $cartesian_point]
   set node_group [list node_group nodes]
   set freedom [list freedoms_list freedoms]
-  set single_point_constraint_element [list single_point_constraint_element \
-                                        required_node $node $node_group freedoms_and_values [list freedom_and_coefficient freedom a]]
+  set single_point_constraint_element \
+    [list single_point_constraint_element required_node $node $node_group freedoms_and_values [list freedom_and_coefficient freedom a]]
 
-  set FEA(single_point_constraint_element_values) [list single_point_constraint_element_values \
-                                                    defined_state [list specified_state state_id description] [list state state_id description] \
-                                                    element $single_point_constraint_element \
-                                                    degrees_of_freedom $freedom b]
-  set FEA(nodal_freedom_action_definition) [list nodal_freedom_action_definition \
-                                              defined_state [list specified_state state_id description] [list state state_id description] \
-                                              node $node $node_group \
-                                              degrees_of_freedom $freedom values]
+# boundary conditions
+  set FEA(single_point_constraint_element_values) \
+    [list single_point_constraint_element_values \
+      defined_state [list specified_state state_id description] [list state state_id description] \
+      element $single_point_constraint_element \
+      degrees_of_freedom $freedom b]
+
+# nodal loads
+  set FEA(nodal_freedom_action_definition) \
+    [list nodal_freedom_action_definition \
+      defined_state [list specified_state state_id description] [list state state_id description] \
+      node $node $node_group \
+      degrees_of_freedom $freedom values]
+  
+# element loads
+  set FEA(surface_3d_element_boundary_constant_specified_surface_variable_value) \
+    [list surface_3d_element_boundary_constant_specified_surface_variable_value \
+      defined_state [list specified_state state_id description] [list state state_id description] \
+      element [list surface_3d_element_representation node_list $node] \
+      simple_value variable element_face]
+  
+# nodal results
+  set FEA(nodal_freedom_values) \
+    [list nodal_freedom_values \
+      defined_state [list specified_state state_id description] [list calculated_state state_id description] [list state state_id description] \
+      node $node \
+      degrees_of_freedom $freedom values \
+      values]
+
+# element nodal results (disabled for now in sfa-gen.tcl, sfa-step.tcl)
+  set FEA(element_nodal_freedom_actions) \
+    [list element_nodal_freedom_actions \
+      defined_state [list specified_state state_id description] [list calculated_state state_id description] [list state state_id description] \
+      element [list curve_3d_element_representation   node_list $node $node_group] \
+              [list surface_3d_element_representation node_list $node $node_group] \
+              [list volume_3d_element_representation  node_list $node $node_group] \
+      nodal_action [list element_nodal_freedom_terms degrees_of_freedom $freedom values]]
   
   if {[info exists ent]} {unset ent}
   set entLevel 0
@@ -40,7 +70,7 @@ proc feaModel {entType} {
   setEntAttrList $FEA($entType)
   catch {unset feaTypes}
 
-# ---------- 
+# ------------------------------------------------------------------------------------------------  
 # start X3DOM file                
   if {$x3dStartFile} {
     set x3dStartFile 0
@@ -89,7 +119,6 @@ proc feaModel {entType} {
       set width [expr {int($height*[winfo screenwidth .]/[winfo screenheight .])}]
     }
     puts $x3dFile "<X3D id='x3d' showStat='false' showLog='false' x='0px' y='0px' width='$width' height='$height'>\n<Scene DEF='scene'>"
-    #puts $x3dFile "<X3D id='someUniqueId' showStat='false' showLog='false' x='0px' y='0px' width='$width\px' height='$height\px'>\n<Scene DEF='scene'>"
 
 # nodes    
     feaGetNodes
@@ -109,16 +138,16 @@ proc feaModel {entType} {
     x3dCoordAxes $x3dAxesSize
   }
 
-# create temp files so that a lot of elements can be processed
-  if {[string first "_3d" $entType] != -1} {
-    foreach f {elements mesh meshIndex faceIndex} {
+# create temp files
+  if {[string first "element_representation" $entType] != -1} {
+    foreach f {elements mesh meshIndex faceIndex loads bcs} {
       set feaFileName($f) [file join $mytemp $f.txt]
       if {![file exists $feaFileName($f)]} {set feaFile($f) [open $feaFileName($f) w]}
     }
   }
 
-# ----------  
-# process all *_element_representation entities, call feaElements  
+# ------------------------------------------------------------------------------------------------  
+# process all *_element_representation, load, and BC entities > call feaEntities  
   set nfeaElem 0
   catch {unset feaFaceList}
   catch {unset feaFaceOrig}
@@ -150,7 +179,7 @@ proc feaModel {entType} {
         if {$nfeaElem > $rowmax && $opt(XLSCSV) != "None"} {incr nprogBarEnts}
 
 # process the entity
-        feaElements $objEntity
+        feaEntities $objEntity
         if {$opt(DEBUG1)} {outputMsg \n}
       }
       incr nfeaElem
@@ -160,7 +189,7 @@ proc feaModel {entType} {
 
 # ------------------------------------------------------------------------------------------------  
 # 1D elements, get from mesh
-  if {[string first "_3d" $startent] != -1 && [info exists feaType]} {
+  if {[string first "element_representation" $entType] != -1 && [info exists feaType]} {
     puts $feaFile(elements) "\n<!-- [string toupper $feaType] ELEMENTS -->"
     if {$feaType == "curve_3d"} {
       puts $feaFile(elements) "<Switch whichChoice='0' id='sw1DElements'>"
@@ -237,16 +266,65 @@ proc feaModel {entType} {
     }
   }
 
-# only write loads and BC now, elements written after
-  set writeX3DOM 0
-  if {$entType == "nodal_freedom_action_definition" || $entType == "single_point_constraint_element_values" || \
-     (![info exists entCount(nodal_freedom_action_definition)] && ![info exists entCount(single_point_constraint_element_values)])} {set writeX3DOM 1}
+# ------------------------------------------------------------------------------------------------  
+# write loads
+  if {[info exists feaLoad] && $opt(VIZFEALV)} {
+    if {(($entType == "nodal_freedom_action_definition" && ![info exists entCount(surface_3d_element_boundary_constant_specified_surface_variable_value)]) || \
+          $entType == "surface_3d_element_boundary_constant_specified_surface_variable_value")} {
+      feaLoads $entType
+    }
+  }
 
-# write mesh and elements at the end of processing an element type
+# write displacements
+  if {[info exists feaDisp] && $opt(VIZFEADS) && $entType == "nodal_freedom_values"} {feaLoads $entType}
+
+# write boundary conditions
+  if {[info exists feaBoundary] && $opt(VIZFEABC) && $entType == "single_point_constraint_element_values"} {feaBCs $entType}
+
+# ------------------------------------------------------------------------------------------------  
+# only write everything to x3dom file at the end
+  set ecbc    0
+  set ecdisp  0
+  set ecload1 0
+  set ecload2 0
+  set ecload3 0
+  if {$opt(VIZFEABC)} {set ecbc   [info exists entCount(single_point_constraint_element_values)]}
+  if {$opt(VIZFEADS)} {set ecdisp [info exists entCount(nodal_freedom_values)]}
+  if {$opt(VIZFEALV)} {
+    #set ecload1 [info exists entCount(element_nodal_freedom_actions)]
+    set ecload2 [info exists entCount(nodal_freedom_action_definition)]
+    set ecload3 [info exists entCount(surface_3d_element_boundary_constant_specified_surface_variable_value)]
+  }
+
+# order is important  
+  set writeX3DOM 0
+  if {$entType == "single_point_constraint_element_values"} {
+    set writeX3DOM 1
+  } elseif {$entType == "nodal_freedom_values" && !$ecbc} {
+    set writeX3DOM 1
+  } elseif {$entType == "surface_3d_element_boundary_constant_specified_surface_variable_value" && !$ecbc && !$ecdisp} {
+    set writeX3DOM 1
+  } elseif {$entType == "nodal_freedom_action_definition" && !$ecbc && !$ecdisp && !$ecload3} {
+    set writeX3DOM 1
+  } elseif {$entType == "element_nodal_freedom_actions" && !$ecbc && !$ecdisp && !$ecload2 && !$ecload3} {
+    set writeX3DOM 1
+  } elseif {[string first "volume_3d_element_representation" $entType] != -1 && !$ecbc && !$ecdisp && !$ecload1 && !$ecload2 && !$ecload3} {
+    set writeX3DOM 1
+  } elseif {[string first "surface_3d_element_representation" $entType] != -1 && !$ecbc && !$ecdisp && !$ecload1 && !$ecload2 && !$ecload3 && \
+           ![info exists entCount(volume_3d_element_representation)]} {
+    set writeX3DOM 1
+  } elseif {[string first "curve_3d_element_representation" $entType] != -1 && !$ecbc && !$ecdisp && !$ecload1 && !$ecload2 && !$ecload3 && \
+           ![info exists entCount(surface_3d_element_representation)] && ![info exists entCount(volume_3d_element_representation)]} {
+    set writeX3DOM 1
+  }
+  #outputMsg "write $writeX3DOM $entType" blue
+
+# ------------------------------------------------------------------------------------------------  
+# write mesh, elements, loads, bcs after last element type is processed
   if {$writeX3DOM} {
 
-# write mesh
-    if {[info exists feaFileName(mesh)]} {
+# mesh
+    if {[info exists feaFileName(mesh)] && [info exists feaMeshIndex]} {
       if {[file exists $feaFileName(mesh)]} {
         if {[info exists feaFile(mesh)]} {
           catch {close $feaFile(mesh)}
@@ -254,292 +332,45 @@ proc feaModel {entType} {
             puts $x3dFile "<!-- WIREFRAME -->\n<Switch whichChoice='0' id='swMesh'><Group>"
             set feaFile(mesh) [open $feaFileName(mesh) r]
             while {[gets $feaFile(mesh) line] >= 0} {puts $x3dFile $line}
-            puts $x3dFile "</Group></Switch>"
+            puts $x3dFile "</Group></Switch>\n"
             close $feaFile(mesh)
-            unset feaMeshIndex
             foreach f {mesh meshIndex} {
               if {[file exists $feaFileName($f)]} {
                 catch {close $feaFileName($f)}
                 catch {file delete -force $feaFileName($f)}
               }
             }
+            unset feaMeshIndex
           }
         }
       }
     }
 
-# write loads
-    if {[info exists feaLoad] && $entType == "nodal_freedom_action_definition" && $opt(VIZFEALV)} {
-      outputMsg " Writing loads" green
-      set size [expr {($x3dAxesSize*0.15)/0.12}]
-      set range [expr {$feaLoadMag(max)-$feaLoadMag(min)}]
-      set n 0
-      catch {unset def}
-      set def(force)  -1
-      set def(moment) -1
-      set def(colorforce)  {}
-      set def(colormoment) {}
-      set ldScaleSwitch {}
-      
-      puts $x3dFile "\n<!-- LOADS -->"
-      foreach load [lsort [array names feaLoad]] {
-        incr n
-        puts $x3dFile "<Switch whichChoice='-1' id='load$n'><Group>"
-        
-        foreach fl $feaLoad($load) {
-          set fl [split $fl ","]
-          #outputMsg "$fl $load" red
-          set xyz [lindex $fl 0]
-          set mag [veclen [lindex $fl 1]]
-          set ltype [lindex $fl 2]
-          set nsize [trimNum $size]
-          
-# vector scale
-          if {$opt(VIZFEALVS)} {
-            if {$feaLoadMag(max) != 0} {
-              set nsize [trimNum [expr {($mag/abs($feaLoadMag(max)))*$size}]]
-              set nsize [trimNum [expr {$nsize*0.9+$size*0.1}]]
-            }
+# loads (displacements), bcs, elements
+    foreach f {loads bcs elements} {
+      if {[info exists feaFileName($f)]} {
+        if {[file exists $feaFileName($f)]} {
+          close $feaFile($f)
+          if {[file size $feaFileName($f)] > 0} {
+            set feaFile($f) [open $feaFileName($f) r]
+            while {[gets $feaFile($f) line] >= 0} {puts $x3dFile $line}
+            close $feaFile($f)
+            if {$f == "elements"} {outputMsg " Finished writing FEM" green}
           }
-          
-# load vector color (https://www.particleincell.com/2014/colormap/)
-          if {$range != 0} {
-            set s [expr {($mag-$feaLoadMag(min))/$range}]
-            set a [expr {(1.-$s)/.25}]
-            set x [expr {floor($a)}]
-            set y [trimNum [expr {$a-$x}]]
-            set x [expr {int($x)}]
-            switch $x {
-              0 {set r 1; set g $y; set b 0}
-              1 {set r [trimNum [expr {1.-$y}]]; set g 1; set b 0}
-              2 {set r 0; set g 1; set b $y}
-              3 {set r 0; set g [trimNum [expr {1.-$y}]]; set b 1}
-              4 {set r 0; set g 0; set b 1}
-            }
-          } else {
-            set r 1; set g 0; set b 0
-          }
-
-# load vector rotation
-          set rot "1 0 0 0"
-          set rot1 ""
-          set vec [vectrim [vecnorm [lindex $fl 1]]]
-          switch $vec {
-            "-1. 0. 0." {set rot "0 1 0 3.1416"}
-            "0. 1. 0."  {set rot "0 0 1 1.5708"}
-            "0. -1. 0." {set rot "0 0 1 -1.5708"}
-            "0. 0. 1."  {set rot "0 1 0 -1.5708"}
-            "0. 0. -1." {set rot "0 1 0 1.5708"}
-            default {
-              set lvec [split $vec " "]
-              set ang [trimNum [expr {atan2([lindex $lvec 1],[lindex $lvec 0])}]]
-              set rot "0 0 1 $ang"
-              if {[string range $vec end-2 end] != " 0."} {
-                set vec1 "[lindex $lvec 0] [lindex $lvec 1] 0"
-                set ang1 [trimNum [expr {acos([vecdot $vec $vec1] / ([veclen $vec]*[veclen $vec1]))}]]
-                set rot1 "[expr {-[lindex $lvec 1]}] [lindex $lvec 0] 0 $ang1"
-              }
-            }
-          }
-          if {$rot1 == ""} {
-            set ldtxt "<Transform translation='$xyz' rotation='$rot'"
-          } else {
-            set ldtxt "<Transform translation='$xyz' rotation='$rot1'><Transform rotation='$rot'"
-          }
-          if {$nsize != 1.} {append ldtxt " scale='$nsize $nsize $nsize'"}
-          append ldtxt ">"
-
-# tail and arrow head, double head for moment
-          if {$ltype == "force" || $ltype == "moment"} {
-            set p1 [lsearch $def(color$ltype) "$r $g $b"]
-            if {$p1 == -1} {
-              incr def($ltype)
-              set id "loadScale[string totitle $ltype]$def($ltype)"
-              append ldtxt "\n <Transform id='$id' DEF='$ltype$def($ltype)'>"
-              append ldtxt [feaArrow $r $g $b $ltype $def($ltype)]
-              append ldtxt "\n </Transform>\n</Transform>"
-              lappend ldScaleSwitch $id
-              lappend def(color$ltype) "$r $g $b"
-            } else {
-              append ldtxt "<Transform USE='$ltype$p1'></Transform></Transform>"
-            }
-          }
-          if {$rot1 != ""} {append ldtxt "</Transform>"} 
-          puts $x3dFile $ldtxt
         }
-        puts $x3dFile "</Group></Switch>\n"
-        update idletasks
       }
     }
-
-# write boundary conditions
-    if {[info exists feaBoundary] && $entType == "single_point_constraint_element_values" && $opt(VIZFEABC)} {
-      outputMsg " Writing boundary conditions" green
-      set size [trimNum [expr {$x3dAxesSize*0.3}]]
-      set crd(x) "$size 0 0"
-      set crd(y) "0 $size 0"
-      set crd(z) "0 0 $size"
-      set clr(x) "1 0 0"
-      set clr(y) "0 .5 0"
-      set clr(z) "0 0 1"
-      set defUSEt(x) 0
-      set defUSEt(y) 0
-      set defUSEt(z) 0
-      set defUSEt(xyz) 0
-      set defUSEr(x) 0
-      set defUSEr(y) 0
-      set defUSEr(z) 0
-      set defUSEr(xyz) 0
-      set bcScaleSwitch {}
-
-      set ns 24
-      set angle 0
-      set dlt [expr {6.28319/$ns}]
-      for {set i 0} {$i < $ns} {incr i} {append circleIndex "$i "}
-      append circleIndex "0 -1 "
-
-      set n 0
-      set bctxt "<!-- BOUNDARY CONDITIONS -->"
-      foreach spc [lsort [array names feaBoundary]] {
-        incr n
-        append bctxt "\n<Switch whichChoice='-1' id='spc$n'><Group>"
-        
-        foreach fbc $feaBoundary($spc) {
-          set fbc [split $fbc ","]
-          set xyz [lindex $fbc 0]
-          set bctrn [lindex $fbc 1]
-          set bcrot [lindex $fbc 2]
-          if {[string length $bctrn] > 0 || [string length $bcrot] > 0} {
-            append bctxt "\n<Transform translation='$xyz'>"
-            
-# fixed (box) all six DOF
-            if {[string length $bctrn] == 3 && [string length $bcrot] == 3} {
-              if {$defUSEt($bctrn) == 0} {
-                append bctxt "\n <Group DEF='BCfixed'><Transform id='BCfixedScale'>"
-                append bctxt "<Shape><Appearance><Material diffuseColor='.7 .7 .7'></Material></Appearance><Box size='$size $size $size'></Shape>"
-                append bctxt "</Transform></Group>\n"
-                incr defUSEt(xyz)
-                lappend bcScaleSwitch "BCfixedScale"
-              } else {
-                append bctxt "<Group USE='BCfixed'></Group>"
-              }
-            } else {
-
-# translation
-              if {[string length $bctrn] > 0} {
-                if {[string length $bctrn] == 3} {
-                
-# pinned (pyramid) all three DOF
-                  if {$defUSEt($bctrn) == 0} {
-                    set num(2) $size
-                    set num(1) [expr {$size*0.5}]
-                    append bctxt "\n <Group DEF='BCT$bctrn'><Transform id='BCTxyzScale'>"
-                    append bctxt "<Shape><Appearance><Material diffuseColor='.7 .7 .7'></Material></Appearance><IndexedFaceSet coordIndex='0 1 2 -1 0 2 3 -1 0 3 4 -1 0 4 1 -1 1 4 3 2 -1'><Coordinate point='0 0 0 $num(1) $num(1) -$num(2) -$num(1) $num(1) -$num(2) -$num(1) -$num(1) -$num(2) $num(1) -$num(1) -$num(2)'></Coordinate></IndexedFaceSet></Shape>"
-                    append bctxt "</Transform></Group>\n"
-                    incr defUSEt(xyz)
-                    lappend bcScaleSwitch "BCTxyzScale"
-                  } else {
-                    append bctxt "<Group USE='BCT$bctrn'></Group>"
-                  }
-
-# other translation DOF constraints
-                } else {
-                  for {set j 0} {$j < [string length $bctrn]} {incr j} {
-                    set t [string index $bctrn $j]
-                    if {$defUSEt($t) == 0} {
-                      append bctxt "\n <Group DEF='BCT$t'><Transform id='BCT$t\Scale'>"
-                      append bctxt "<Shape><Appearance><Material emissiveColor='$clr($t)'></Material></Appearance><IndexedLineSet coordIndex='0 1 -1'><Coordinate point='0 0 0 $crd($t)'></Coordinate></IndexedLineSet></Shape>"
-                      append bctxt "</Transform></Group>\n"
-                      incr defUSEt($t)
-                      lappend bcScaleSwitch "BCT$t\Scale"
-                    } else {
-                      append bctxt "<Group USE='BCT$t'></Group>"
-                    }
-                  }
-                }
-              }
-                      
-# rotation          
-              if {[string length $bcrot] > 0} {
-                if {[string length $bcrot] == 3} {
-
-# fixed rotation (sphere) all three DOF
-                  if {$defUSEr($bcrot) == 0} {
-                    append bctxt "\n <Group DEF='BCR$bcrot'><Transform id='BCRxyzScale'>"
-                    append bctxt "<Shape><Appearance><Material diffuseColor='.7 .7 .7'></Material></Appearance><Sphere radius='[expr {0.3*$size}]'></Sphere></Shape>"
-                    append bctxt "</Transform></Group>\n"
-                    incr defUSEr(xyz)
-                    lappend bcScaleSwitch "BCRxyzScale"
-                  } else {
-                    append bctxt "<Group USE='BCR$bcrot'></Group>"
-                  }
-
-# other rotation DOF constraints
-                } else {
-                  for {set j 0} {$j < [string length $bcrot]} {incr j} {
-                    set r [string index $bcrot $j]
-                    if {$defUSEr($r) == 0} {
-                      set circlePoints ""
-                      for {set i 0} {$i < $ns} {incr i} {
-                        set x [trimNum [expr {0.3*$size*cos($angle)}]]
-                        set y [trimNum [expr {-0.3*$size*sin($angle)}]]
-                        switch $r {
-                          x {append circlePoints "0 $x $y "}
-                          y {append circlePoints "$x 0 $y "}
-                          z {append circlePoints "$x $y 0 "}
-                        }
-                        set angle [expr {$angle+$dlt}]
-                      }
-                      append bctxt "\n <Group DEF='BCR$r'><Transform id='BCR$r\Scale'>"
-                      append bctxt "<Shape><Appearance><Material emissiveColor='$clr($r)'></Material></Appearance><IndexedLineSet coordIndex='$circleIndex'><Coordinate point='$circlePoints'></Coordinate></IndexedLineSet></Shape>"
-                      append bctxt "</Transform></Group>\n"
-                      incr defUSEr($r)
-                      lappend bcScaleSwitch "BCR$r\Scale"
-                    } else {
-                      append bctxt "<Group USE='BCR$r'></Group>"
-                    }
-                  }
-                }
-              }
-            }
-            append bctxt "</Transform>"
-          }
-        }
-        append bctxt "\n</Group></Switch>\n"
-      }
-      puts $x3dFile $bctxt
-      update idletasks
-    }
-     
-# write all elements, after BC and load
-    if {$entType == "single_point_constraint_element_values" || \
-       ($entType == "nodal_freedom_action_definition" && ![info exists entCount(single_point_constraint_element_values)]) || \
-       (![info exists entCount(nodal_freedom_action_definition)] && ![info exists entCount(single_point_constraint_element_values)])} {
-      if {[info exists feaFileName(elements)]} {
-        if {[file exists $feaFileName(elements)]} {
-          close $feaFile(elements)
-          if {[file size $feaFileName(elements)] > 0} {
-            set feaFile(elements) [open $feaFileName(elements) r]
-            while {[gets $feaFile(elements) line] >= 0} {puts $x3dFile $line}
-            close $feaFile(elements)
-            outputMsg " Finished writing elements" green
-          }
-        }
-      }
-   
+ 
 # close temp files
-      if {[string first "_3d" $entType] != -1} {
-        foreach f {elements mesh meshIndex faceIndex} {
-          if {[file exists $feaFileName($f)]} {
-            catch {close $feaFileName($f)}
-            catch {file delete -force $feaFileName($f)}
-          }
-        }
-        catch {unset feaFaceList}
-        catch {unset feaFaceOrig}
+    foreach f {elements mesh meshIndex faceIndex loads bcs} {
+      if {[file exists $feaFileName($f)]} {
+        catch {close $feaFileName($f)}
+        catch {file delete -force $feaFileName($f)}
       }
     }
-  }  
+    catch {unset feaFaceList}
+    catch {unset feaFaceOrig}
+  }
 
 # messages
   if {[info exists feaTypes]} {
@@ -548,30 +379,11 @@ proc feaModel {entType} {
 }
 
 # -------------------------------------------------------------------------------
-proc feaArrow {r g b type n} {
-  
-# tail  
-  set arrow    "\n  <Shape><Appearance><Material emissiveColor='$r $g $b'></Material></Appearance>"
-  append arrow "<IndexedLineSet coordIndex='0 1 -1'><Coordinate point='-1 0 0 0 0 0'></Coordinate></IndexedLineSet></Shape>"
-  
-# head  
-  append arrow "\n  <Shape"
-  if {$type == "moment"} {append arrow " DEF='head$n'"}
-  append arrow ">"
-  append arrow "<Appearance><Material diffuseColor='$r $g $b'></Material></Appearance>"
-  append arrow "<IndexedFaceSet coordIndex='0 1 2 -1 0 2 3 -1 0 3 4 -1 0 4 1 -1' solid='FALSE'><Coordinate point='0 0 0 -.2 .1 0 -.2 0 .1 -.2 -.1 0 -.2 0 -.1'></Coordinate></IndexedFaceSet></Shape>"
-
-# second head
-  if {$type == "moment"} {append arrow "\n  <Transform translation='-.1 0 0'><Shape USE='head$n'></Shape></Transform>"}
-  return $arrow
-}
-
-# -------------------------------------------------------------------------------
-proc feaElements {objEntity} {
+proc feaEntities {objEntity} {
   global badAttributes ent entAttrList entCount entLevel localName nistVersion opt
   global x3dFile x3dFileName x3dStartFile feaMeshIndex feaFaceIndex x3dMsg feaStateID feaEntity
   global feaidx feaIndex feaType feaTypes firstID nnode nnodes nodeID nfeaElem feaFile feaFaceList feaBoundary feaLoad feaLoadNode feaBCNode feaLoadMag
-  global feaNodes feaDOFT feaDOFR
+  global feaNodes feaDOFT feaDOFR elemNodes elemLoadVec elemLoadValue elemLoadVariable feaDisp feaDispNode feaDispMag
 
 # entLevel is very important, keeps track level of entity in hierarchy
   incr entLevel
@@ -613,13 +425,29 @@ proc feaElements {objEntity} {
               switch -glob $ent1 {
                 "freedom_and_coefficient a" {
                   if {$objValue != 1} {
-                    errorMsg "Unexpected (freedom)(coefficient) 'a' attribute not equal to 1 ($objValue)"
+                    errorMsg "Unexpected freedom_and_coefficient 'a' attribute not equal to 1 ($objValue)"
+                  }
+                }
+                "surface_3d_element_boundary_constant_specified_surface_variable_value simple_value" {
+                  if {$objValue != ""} {
+                    set elemLoadValue $objValue
+                  } else {
+                    errorMsg "Syntax Error: Missing 'simple_value' attribute on surface_3d_element_boundary_constant_specified_surface_variable_value"
+                    catch {unset elemLoadValue}
+                  }
+                }
+                "surface_3d_element_boundary_constant_specified_surface_variable_value variable" {
+                  if {$objValue != ""} {
+                    set elemLoadVariable $objValue
+                  } else {
+                    errorMsg "Syntax Error: Missing 'variable' attribute on surface_3d_element_boundary_constant_specified_surface_variable_value"
+                    catch {unset elemLoadVariable}
                   }
                 }
               }
 
 # referenced entities
-              if {[string first "handle" $objEntity] != -1} {feaElements $objValue}
+              if {[string first "handle" $objEntity] != -1} {feaEntities $objValue}
             }
           } emsg3]} {
             errorMsg "ERROR processing FEM ($objNodeType $ent2)\n $emsg3"
@@ -636,39 +464,118 @@ proc feaElements {objEntity} {
                 "*_element_representation node_list" {
                   set nnodes $objSize
                 }
+                
                 "cartesian_point coordinates" {
-                  if {$feaEntity == "nodal_freedom_action_definition"} {
+                  if {$feaEntity == "nodal_freedom_action_definition" || $feaEntity == "element_nodal_freedom_actions"} {
                     lappend feaLoadNode [vectrim $objValue]
+                  } elseif {$feaEntity == "nodal_freedom_values"} {
+                    lappend feaDispNode [vectrim $objValue]
+                  } elseif {$feaEntity == "surface_3d_element_boundary_constant_specified_surface_variable_value"} {
+                    lappend elemNodes $objValue
+                    if {($nnodes <= 6 && [llength $elemNodes] == $nnodes) || ($nnodes == 9 && [llength $elemNodes] == 8)} {
+
+# add all nodes together to get average node where load vector can be attached to
+                      set cnode {0 0 0}
+                      foreach n $elemNodes {set cnode [vecadd $cnode $n]}
+                      set cnode [vecmult $cnode [expr {1./[llength $elemNodes]}]]
+                      lappend feaLoadNode [vectrim $cnode]
+                      
+# use cross product between two 'perpendicular' edges to get load vector
+                      set v1 [vecsub [lindex $elemNodes 1] [lindex $elemNodes 0]]
+                      if {$nnodes <= 4} {
+                        set v2 [vecsub [lindex $elemNodes [expr {$nnodes-1}]] [lindex $elemNodes 0]]
+                      } elseif {$nnodes == 6} {
+                        set v2 [vecsub [lindex $elemNodes 2] [lindex $elemNodes 0]]
+                      } elseif {$nnodes == 9} {
+                        set v2 [vecsub [lindex $elemNodes 3] [lindex $elemNodes 0]]
+                      }
+                      set elemLoadVec [vectrim [vecnorm [veccross $v2 $v1]]]
+                      unset elemNodes
+                    }
                   } elseif {$feaEntity == "single_point_constraint_element_values"} {
                     lappend feaBCNode [vectrim $objValue]
                   }
                 }
+                
+                "element_nodal_freedom_terms values" -
                 "nodal_freedom_action_definition values" {
+# loads
                   set n 0
                   set feaDOF [list $feaDOFT $feaDOFR]
-                  foreach dof $feaDOF {
-                    incr n
-                    set type "force"
-                    if {$n == 2} {set type "moment"}
-                    if {$dof != ""} {
-                      switch $dof {
-                        x  {set objValue "$objValue 0. 0."}
-                        xy {set objValue "$objValue 0."}
-                        xz {set objValue "[lindex $objValue 0] 0. [lindex $objValue 1]"}
-                        y  {set objValue "0. $objValue 0."}
-                        yz {set objValue "0. $objValue"}
-                        z  {set objValue "0. 0. $objValue"}
+                  if {[string first "unspecified" $objValue] == -1} {
+                    foreach dof $feaDOF {
+                      set ov $objValue
+                      incr n
+                      switch $n {
+                        1 {
+                          set type "force"
+                          if {$feaEntity != "nodal_freedom_action_definition"} {set ov [join [lrange $objValue 0 2]]}
+                        }
+                        2 {
+                          set type "moment"
+                          if {$feaEntity != "nodal_freedom_action_definition"} {set ov [join [lrange $objValue 3 5]]}
+                        }
                       }
-                      foreach ld $feaLoadNode {lappend feaLoad($feaStateID) "$ld,[vectrim $objValue],$type"}
+                      if {$dof != ""} {
+                        switch $dof {
+                          x   {set lv "$ov 0. 0."}
+                          xy  {set lv "$ov 0."}
+                          xz  {set lv "[lindex $ov 0] 0. [lindex $ov 1]"}
+                          xyz {set lv $ov}
+                          y   {set lv "0. $ov 0."}
+                          yz  {set lv "0. $ov"}
+                          z   {set lv "0. 0. $ov"}
+                        }
+                        if {[info exists feaLoadNode]} {
+                          foreach ld $feaLoadNode {
+                            set lv [vectrim $lv]
+                            if {$lv != "0.0 0.0 0.0"} {lappend feaLoad($feaStateID) "$ld,$lv,$type"}
+                          }
+                        }
+                      }
                     }
+                    catch {unset feaLoadNode}
+                    
+                    if {![info exists feaLoadMag(min)]} {set feaLoadMag(min) 1.e+10}
+                    if {![info exists feaLoadMag(max)]} {set feaLoadMag(max) -1.e+10}
+                    set mag [veclen $objValue]
+                    if {$mag < $feaLoadMag(min)} {set feaLoadMag(min) $mag}
+                    if {$mag > $feaLoadMag(max)} {set feaLoadMag(max) $mag}
                   }
-                  unset feaLoadNode
-                  if {![info exists feaLoadMag(min)]} {set feaLoadMag(min) 1.e+10}
-                  if {![info exists feaLoadMag(max)]} {set feaLoadMag(max) -1.e+10}
-                  set mag [veclen $objValue]
-                  if {$mag < $feaLoadMag(min)} {set feaLoadMag(min) $mag}
-                  if {$mag > $feaLoadMag(max)} {set feaLoadMag(max) $mag}
                 }
+                
+                "nodal_freedom_values values" {
+# displacements
+                  if {[string first "unspecified" $objValue] == -1} {
+                    foreach dof $feaDOFT {
+                      set ov $objValue
+                      if {$dof != ""} {
+                        switch $dof {
+                          x   {set lv "$ov 0. 0."}
+                          xy  {set lv "$ov 0."}
+                          xz  {set lv "[lindex $ov 0] 0. [lindex $ov 1]"}
+                          xyz {set lv $ov}
+                          y   {set lv "0. $ov 0."}
+                          yz  {set lv "0. $ov"}
+                          z   {set lv "0. 0. $ov"}
+                        }
+                        if {[info exists feaDispNode]} {
+                          foreach ld $feaDispNode {
+                            set lv [lrange $lv 0 2]
+                            if {$lv != "0.0 0.0 0.0"} {lappend feaDisp($feaStateID) "$ld,$lv,displacement"}
+                          }
+                        }
+                      }
+                    }
+                    catch {unset feaDispNode}
+                    
+                    set feaDispMag(min) 0.
+                    if {![info exists feaDispMag(max)]} {set feaDispMag(max) -1.e+10}
+                    set mag [veclen $objValue]
+                    if {$mag > $feaDispMag(max)} {set feaDispMag(max) $mag}
+                  }
+                }
+                
                 "freedoms_list freedoms" {
                   set feaDOFT ""
                   set feaDOFR ""
@@ -697,9 +604,9 @@ proc feaElements {objEntity} {
  
 # referenced entities
               if {[catch {
-                ::tcom::foreach val1 $objValue {feaElements $val1}
+                ::tcom::foreach val1 $objValue {feaEntities $val1}
               } emsg]} {
-                foreach val2 $objValue {feaElements $val2}
+                foreach val2 $objValue {feaEntities $val2}
               }
             }
           } emsg3]} {
@@ -723,7 +630,7 @@ proc feaElements {objEntity} {
                 }
                 "*node name" {
 # node index
-                  if {[string first "_3d" $feaEntity] != -1} {
+                  if {[string first "element_representation" $feaEntity] != -1} {
                     if {$objType == "node"} {
                       set nodeID $objID
                       set feaidx($nnode) $feaNodes($nodeID)
@@ -808,13 +715,37 @@ proc feaElements {objEntity} {
                     }
                   }
                 }
+                
                 "state state_id" -
+                "calculated_state state_id" -
                 "specified_state state_id" {
+                  if {$objValue == ""} {
+                    errorMsg "Syntax Error: Missing required 'state_id' on [lindex $ent1 0]."
+                    #set objValue "[lindex $ent1 0] $objID"
+                  }
                   set feaStateID $objValue
                 }
                 "state description" -
+                "calculated_state description" -
                 "specified_state description" {
+                  #if {$objValue == ""} {errorMsg "Syntax Error: Missing required 'description' on [lindex $ent1 0]."}
                   if {$feaStateID == ""} {set feaStateID $objValue}
+                }
+                
+                "surface_3d_element_boundary_constant_specified_surface_variable_value element_face" {
+# surface load                  
+                  if {[info exists elemLoadVec] && [info exists elemLoadValue]} {
+                    set lv [vectrim [vecmult $elemLoadVec $elemLoadValue]]
+                    if {$objValue == 1} {set lv [vecrev $lv]}
+                    lappend feaLoad($feaStateID) "[join $feaLoadNode],$lv,force"
+                    
+                    if {![info exists feaLoadMag(min)]} {set feaLoadMag(min) 1.e+10}
+                    if {![info exists feaLoadMag(max)]} {set feaLoadMag(max) -1.e+10}
+                    set mag [veclen $lv]
+                    if {$mag < $feaLoadMag(min)} {set feaLoadMag(min) $mag}
+                    if {$mag > $feaLoadMag(max)} {set feaLoadMag(max) $mag}
+                  }
+                  unset feaLoadNode
                 }
               }
             }
@@ -830,8 +761,322 @@ proc feaElements {objEntity} {
 }
 
 # -------------------------------------------------------------------------------
+proc feaLoads {entType} {
+  global x3dAxesSize feaLoadMag feaDispMag feaLoad opt ldScaleSwitch dsScaleSwitch feaFile feaDisp
+  
+# initialize
+  catch {unset def}
+
+# loads
+  if {$entType != "nodal_freedom_values"} {
+    set type "loads"
+    foreach i [array names feaLoad] {set fld($i) $feaLoad($i)}
+    set magMin $feaLoadMag(min)
+    set magMax $feaLoadMag(max)
+    set def(force)  -1
+    set def(moment) -1
+    set def(colorforce)  {}
+    set def(colormoment) {}
+    set ldScaleSwitch {}
+
+# displacements
+  } else {
+    set type "displacements"
+    foreach i [array names feaDisp] {set fld($i) $feaDisp($i)}
+    set magMin $feaDispMag(min)
+    set magMax $feaDispMag(max)
+    set def(displacement) -1
+    set def(colordisplacement) {}
+    set dsScaleSwitch {}
+  }
+  outputMsg " Writing $type" green
+  
+  if {[catch {
+    set size [expr {($x3dAxesSize*0.15)/0.12}]
+    set range [expr {$magMax-$magMin}]
+    set n 0
+    
+    puts $feaFile(loads) "\n<!-- [string toupper $type] -->"
+    foreach load [lsort [array names fld]] {
+      incr n
+      puts $feaFile(loads) "<Switch whichChoice='-1' id='[string range $type 0 3]$n'><Group>"
+      
+      foreach fl $fld($load) {
+        set fl [split $fl ","]
+        set xyz [lindex $fl 0]
+        set mag [veclen [lindex $fl 1]]
+        set ltype [lindex $fl 2]
+        set nsize [trimNum $size]
+        
+# vector scale
+        if {$opt(VIZFEALVS) && $type == "loads"} {
+          if {$feaLoadMag(max) != 0} {
+            set nsize [trimNum [expr {($mag/abs($feaLoadMag(max)))*$size}]]
+            set nsize [trimNum [expr {$nsize*0.9+$size*0.1}]]
+          }
+        } elseif {$type == "displacements"} {
+          if {$feaDispMag(max) != 0} {set nsize [trimNum [expr {($mag/abs($feaDispMag(max)))*$size}] 5]}
+        }
+        
+# load vector color (https://www.particleincell.com/2014/colormap/)
+        if {$range != 0} {
+          set s [expr {($mag-$magMin)/$range}]
+          set a [expr {(1.-$s)/.25}]
+          set x [expr {floor($a)}]
+          set y [trimNum [expr {$a-$x}]]
+          set x [expr {int($x)}]
+          switch $x {
+            0 {set r 1; set g $y; set b 0}
+            1 {set r [trimNum [expr {1-$y}]]; set g 1; set b 0}
+            2 {set r 0; set g 1; set b $y}
+            3 {set r 0; set g [trimNum [expr {1-$y}]]; set b 1}
+            4 {set r 0; set g 0; set b 1}
+          }
+        } else {
+          set r 1; set g 0; set b 0
+        }
+  
+# load vector rotation
+        set rot "1 0 0 0"
+        set rot1 ""
+        set vec [vectrim [vecnorm [lindex $fl 1]]]
+        
+# default vector direction is 1 0 0
+        switch $vec {
+          "-1. 0. 0." {set rot "0 1 0 3.1416"}
+          "0. 1. 0."  {set rot "0 0 1 1.5708"}
+          "0. -1. 0." {set rot "0 0 1 -1.5708"}
+          "0. 0. 1."  {set rot "0 1 0 -1.5708"}
+          "0. 0. -1." {set rot "0 1 0 1.5708"}
+          default {
+# arbitrary rotation            
+            set lvec [split $vec " "]
+
+# rotation in xy plane
+            set ang [trimNum [expr {atan2([lindex $lvec 1],[lindex $lvec 0])}]]
+            set rot "0 0 1 $ang"
+            set vz [lindex $lvec 2]
+# rotation also in z            
+            if {$vz != 0.} {
+              set vec1 "[lindex $lvec 0] [lindex $lvec 1] 0"
+              set ang1 [trimNum [expr {acos([vecdot $vec $vec1] / ([veclen $vec]*[veclen $vec1]))}]]
+              if {$vz > 0.} {set ang1 [expr {$ang1*-1.}]}
+              set rot1 "[expr {-[lindex $lvec 1]}] [lindex $lvec 0] 0 $ang1"
+            }
+          }
+        }
+        if {$rot1 == ""} {
+          set ldtxt "<Transform translation='$xyz' rotation='$rot'"
+        } else {
+          set ldtxt "<Transform translation='$xyz' rotation='$rot1'><Transform rotation='$rot'"
+        }
+        if {$nsize != 1.} {append ldtxt " scale='$nsize $nsize $nsize'"}
+        append ldtxt ">"
+  
+# tail and arrow head, double head for moment
+        if {$ltype == "force" || $ltype == "displacement" || $ltype == "moment"} {
+          set p1 [lsearch $def(color$ltype) "$r $g $b"]
+          if {$p1 == -1} {
+            incr def($ltype)
+            set id "loadScale[string totitle $ltype]$def($ltype)"
+            append ldtxt "\n <Transform id='$id' DEF='$ltype$def($ltype)'>"
+            append ldtxt [feaArrow $r $g $b $ltype $def($ltype)]
+            append ldtxt "\n </Transform>\n</Transform>"
+            if {$ltype != "displacement"} {
+              lappend ldScaleSwitch $id
+            } else {
+              lappend dsScaleSwitch $id
+            }
+            lappend def(color$ltype) "$r $g $b"
+          } else {
+            append ldtxt "<Transform USE='$ltype$p1'></Transform></Transform>"
+          }
+        }
+        if {$rot1 != ""} {append ldtxt "</Transform>"} 
+        puts $feaFile(loads) $ldtxt
+      }
+      puts $feaFile(loads) "</Group></Switch>\n"
+      update idletasks
+    }
+  } emsg]} {
+    errorMsg "ERROR processing FEM $type: $emsg"
+  }
+}
+
+# -------------------------------------------------------------------------------
+proc feaArrow {r g b type num} {
+  set x1 -1
+  set x2 -.2
+# moment arrow is slightly different  
+  if {$type == "moment"} {
+    set x1 -1.05
+    set x2 -.19
+  }
+  
+# tail  
+  set arrow    "\n  <Shape><Appearance><Material emissiveColor='$r $g $b'></Material></Appearance>"
+  append arrow "<IndexedLineSet coordIndex='0 1 -1'><Coordinate point='$x1 0 0 0 0 0'></Coordinate></IndexedLineSet></Shape>"
+  
+# head  
+  append arrow "\n  <Shape"
+  if {$type == "moment"} {append arrow " DEF='head$num'"}
+  append arrow ">"
+  append arrow "<Appearance><Material diffuseColor='$r $g $b'></Material></Appearance>"
+  append arrow "<IndexedFaceSet coordIndex='0 1 2 -1 0 2 3 -1 0 3 4 -1 0 4 1 -1' solid='FALSE'><Coordinate point='0 0 0 $x2 .1 0 $x2 0 .1 $x2 -.1 0 $x2 0 -.1'></Coordinate></IndexedFaceSet></Shape>"
+
+# second head
+  if {$type == "moment"} {append arrow "\n  <Transform translation='-.1 0 0'><Shape USE='head$num'></Shape></Transform>"}
+  return $arrow
+}
+
+# -------------------------------------------------------------------------------
+proc feaBCs {entType} {
+  global x3dAxesSize bcScaleSwitch feaBoundary feaFile
+  
+  outputMsg " Writing boundary conditions" green
+  if {[catch {
+    set size [trimNum [expr {$x3dAxesSize*0.3}]]
+    set crd(x) "$size 0 0"
+    set crd(y) "0 $size 0"
+    set crd(z) "0 0 $size"
+    set clr(x) "1 0 0"
+    set clr(y) "0 .5 0"
+    set clr(z) "0 0 1"
+    set defUSEt(x) 0
+    set defUSEt(y) 0
+    set defUSEt(z) 0
+    set defUSEt(xyz) 0
+    set defUSEr(x) 0
+    set defUSEr(y) 0
+    set defUSEr(z) 0
+    set defUSEr(xyz) 0
+    set bcScaleSwitch {}
+  
+    set ns 24
+    set angle 0
+    set dlt [expr {6.28319/$ns}]
+    for {set i 0} {$i < $ns} {incr i} {append circleIndex "$i "}
+    append circleIndex "0 -1 "
+  
+    set n 0
+    set bctxt "<!-- BOUNDARY CONDITIONS -->"
+    foreach spc [lsort [array names feaBoundary]] {
+      incr n
+      append bctxt "\n<Switch whichChoice='-1' id='spc$n'><Group>"
+      
+      foreach fbc $feaBoundary($spc) {
+        set fbc [split $fbc ","]
+        set xyz [lindex $fbc 0]
+        set bctrn [lindex $fbc 1]
+        set bcrot [lindex $fbc 2]
+        if {[string length $bctrn] > 0 || [string length $bcrot] > 0} {
+          append bctxt "\n<Transform translation='$xyz'>"
+
+# fixed (box) all six DOF
+          if {[string length $bctrn] == 3 && [string length $bcrot] == 3} {
+            if {$defUSEt($bctrn) == 0} {
+              append bctxt "\n <Group DEF='BCfixed'><Transform id='BCfixedScale'>"
+              append bctxt "<Shape><Appearance><Material diffuseColor='.7 .7 .7'></Material></Appearance><Box size='$size $size $size'></Shape>"
+              append bctxt "</Transform></Group>\n"
+              incr defUSEt(xyz)
+              lappend bcScaleSwitch "BCfixedScale"
+            } else {
+              append bctxt "<Group USE='BCfixed'></Group>"
+            }
+          } else {
+  
+# translation
+            if {[string length $bctrn] > 0} {
+              if {[string length $bctrn] == 3} {
+
+# pinned (pyramid) all three DOF
+                if {$defUSEt($bctrn) == 0} {
+                  set num(2) $size
+                  set num(1) [expr {$size*0.5}]
+                  append bctxt "\n <Group DEF='BCT$bctrn'><Transform id='BCTxyzScale'>"
+                  append bctxt "<Shape><Appearance><Material diffuseColor='.7 .7 .7'></Material></Appearance><IndexedFaceSet coordIndex='0 1 2 -1 0 2 3 -1 0 3 4 -1 0 4 1 -1 1 4 3 2 -1'><Coordinate point='0 0 0 $num(1) $num(1) -$num(2) -$num(1) $num(1) -$num(2) -$num(1) -$num(1) -$num(2) $num(1) -$num(1) -$num(2)'></Coordinate></IndexedFaceSet></Shape>"
+                  append bctxt "</Transform></Group>\n"
+                  incr defUSEt(xyz)
+                  lappend bcScaleSwitch "BCTxyzScale"
+                } else {
+                  append bctxt "<Group USE='BCT$bctrn'></Group>"
+                }
+  
+# other translation DOF constraints
+              } else {
+                for {set j 0} {$j < [string length $bctrn]} {incr j} {
+                  set t [string index $bctrn $j]
+                  if {$defUSEt($t) == 0} {
+                    append bctxt "\n <Group DEF='BCT$t'><Transform id='BCT$t\Scale'>"
+                    append bctxt "<Shape><Appearance><Material emissiveColor='$clr($t)'></Material></Appearance><IndexedLineSet coordIndex='0 1 -1'><Coordinate point='0 0 0 $crd($t)'></Coordinate></IndexedLineSet></Shape>"
+                    append bctxt "</Transform></Group>\n"
+                    incr defUSEt($t)
+                    lappend bcScaleSwitch "BCT$t\Scale"
+                  } else {
+                    append bctxt "<Group USE='BCT$t'></Group>"
+                  }
+                }
+              }
+            }
+
+# rotation          
+            if {[string length $bcrot] > 0} {
+              if {[string length $bcrot] == 3} {
+  
+# fixed rotation (sphere) all three DOF
+                if {$defUSEr($bcrot) == 0} {
+                  append bctxt "\n <Group DEF='BCR$bcrot'><Transform id='BCRxyzScale'>"
+                  append bctxt "<Shape><Appearance><Material diffuseColor='.7 .7 .7'></Material></Appearance><Sphere radius='[expr {0.3*$size}]'></Sphere></Shape>"
+                  append bctxt "</Transform></Group>\n"
+                  incr defUSEr(xyz)
+                  lappend bcScaleSwitch "BCRxyzScale"
+                } else {
+                  append bctxt "<Group USE='BCR$bcrot'></Group>"
+                }
+  
+# other rotation DOF constraints
+              } else {
+                for {set j 0} {$j < [string length $bcrot]} {incr j} {
+                  set r [string index $bcrot $j]
+                  if {$defUSEr($r) == 0} {
+                    set circlePoints ""
+                    for {set i 0} {$i < $ns} {incr i} {
+                      set x [trimNum [expr {0.3*$size*cos($angle)}]]
+                      set y [trimNum [expr {-0.3*$size*sin($angle)}]]
+                      switch $r {
+                        x {append circlePoints "0 $x $y "}
+                        y {append circlePoints "$x 0 $y "}
+                        z {append circlePoints "$x $y 0 "}
+                      }
+                      set angle [expr {$angle+$dlt}]
+                    }
+                    append bctxt "\n <Group DEF='BCR$r'><Transform id='BCR$r\Scale'>"
+                    append bctxt "<Shape><Appearance><Material emissiveColor='$clr($r)'></Material></Appearance><IndexedLineSet coordIndex='$circleIndex'><Coordinate point='$circlePoints'></Coordinate></IndexedLineSet></Shape>"
+                    append bctxt "</Transform></Group>\n"
+                    incr defUSEr($r)
+                    lappend bcScaleSwitch "BCR$r\Scale"
+                  } else {
+                    append bctxt "<Group USE='BCR$r'></Group>"
+                  }
+                }
+              }
+            }
+          }
+          append bctxt "</Transform>"
+        }
+      }
+      append bctxt "\n</Group></Switch>\n"
+    }
+    puts $feaFile(bcs) $bctxt
+    update idletasks
+  } emsg]} {
+    errorMsg "ERROR processing FEM boundary conditions: $emsg"
+  }
+}
+
+# -------------------------------------------------------------------------------
 proc feaButtons {type} {
-  global x3dFile feaBoundary feaLoad feaLoadMag entCount bcScaleSwitch ldScaleSwitch opt
+  global x3dFile feaBoundary feaLoad feaLoadMag entCount bcScaleSwitch ldScaleSwitch opt feaDisp feaDispMag dsScaleSwitch
     
 # node, mesh, element checkboxes
   if {$type == 1} {
@@ -872,27 +1117,38 @@ proc feaButtons {type} {
       }
 
 # load color scale
-      if {$feaLoadMag(min) != $feaLoadMag(max)} {
-        puts $x3dFile "<tr><td><table border=0 cellpadding=0 cellspacing=0>"
-        puts $x3dFile "<tr><td colspan=3><img src='https://s3.amazonaws.com/nist-el/mfg_digitalthread/red-blue-scale.png' alt='Red-blue color scale' width='197' height='21'></td></tr>"
-
-        set val $feaLoadMag(min)
-        if {$val >= 100.} {set val [trimNum $val 0]} else {set val [trimNum $val]}
-        puts $x3dFile "<tr><td align='left' width='33%'><font color='blue'>$val</font></td>"
-
-        set val [expr {($feaLoadMag(min)+$feaLoadMag(max))/2.}]
-        if {$val >= 100.} {set val [trimNum $val 0]} else {set val [trimNum $val]}
-        puts $x3dFile "<td align='middle' width='34%'><font color='green'>$val</font></td>"
-
-        set val $feaLoadMag(max)
-        if {$val >= 100.} {set val [trimNum $val 0]} else {set val [trimNum $val]}
-        puts $x3dFile "<td align='right' width='33%'><font color='red'>$val</font></td></tr>"
-        puts $x3dFile "</table></td></tr>"
-      }
+      feaColorScale $feaLoadMag(min) $feaLoadMag(max)
       puts $x3dFile "</table>"
+      
+# load scale slider      
       puts $x3dFile "<input style='width:80px' type='range' min='-2' max='4' step='0.25' value='1' onchange='ldScale(this.value)'/> Scale"
     }
     catch {unset feaLoadMag}
+
+# displacements
+    if {[info exists feaDisp] && $opt(VIZFEADS)} {
+      puts $x3dFile "\n<!-- DISPLACEMENT buttons -->\n<p>"
+      set n 0
+      if {$feaDispMag(min) != $feaDispMag(max)} {
+        puts $x3dFile "<table border=0 cellpadding=0 cellspacing=0><tr><td>Displacements</td></tr>"
+      } else {
+        puts $x3dFile "<table border=0 cellpadding=0 cellspacing=0><tr><td>Load = <font color='red'>[format "%.3e" $feaDispMag(max)]</font></td></tr>"
+      }
+      
+# displacement checkboxes    
+      foreach disp [lsort [array names feaDisp]] {
+        incr n
+        puts $x3dFile "<tr><td><input type='checkbox' name='DISP' id='DISP$n' onclick='togDISPLACEMENT(this.value)'/>$disp</td></tr>"
+      }
+
+# displacement color scale
+      feaColorScale $feaDispMag(min) $feaDispMag(max)
+      puts $x3dFile "</table>"
+      
+# displacement scale slider      
+      puts $x3dFile "<input style='width:80px' type='range' min='-2' max='4' step='0.25' value='1' onchange='dsScale(this.value)'/> Scale"
+    }
+    catch {unset feaDispMag}
     
 # functions for BC switches and scale
   } elseif {$type == 2} {
@@ -936,7 +1192,58 @@ proc feaButtons {type} {
       }
       puts $x3dFile "\}</script>"
     }
+
+# functions for displacement toggle switch
+    if {[info exists feaDisp] && $opt(VIZFEADS)} {
+      puts $x3dFile "\n<!-- DISPLACEMENT switch -->\n<script>function togDISPLACEMENT(val)\{"
+      puts $x3dFile "  for(var i=1; i<=[llength [array names feaDisp]]; i++) \{"
+      puts $x3dFile "    if (!document.getElementById('DISP' + i).checked) \{"
+      puts $x3dFile "     document.getElementById('disp' + i).setAttribute('whichChoice', -1);"
+      puts $x3dFile "    \} else \{"
+      puts $x3dFile "     document.getElementById('disp' + i).setAttribute('whichChoice', 0);"
+      puts $x3dFile "    \}"
+      puts $x3dFile "  \}"
+      puts $x3dFile "\}</script>"
+      unset feaDisp
+      puts $x3dFile "\n<!-- DISPLACEMENT scale -->\n<script>function dsScale(scale)\{"
+      puts $x3dFile " if (scale < 1) {scale = 0.7 + scale*0.3;}"
+      puts $x3dFile " nscale = new x3dom.fields.SFVec3f(scale,scale,scale);"
+      foreach element $dsScaleSwitch {
+        puts $x3dFile " document.getElementById('$element').setFieldValue('scale', nscale);"
+      }
+      puts $x3dFile "\}</script>"
+    }
   }
+}
+
+# -------------------------------------------------------------------------------
+proc feaColorScale {min max} {
+  global x3dFile
+  
+  if {$min != $max} {
+    puts $x3dFile "<tr><td><table border=0 cellpadding=0 cellspacing=0>"
+    puts $x3dFile "<tr><td colspan=3><img src='https://s3.amazonaws.com/nist-el/mfg_digitalthread/red-blue-scale.png' alt='Red-blue color scale' width='197' height='21'></td></tr>"
+
+    puts $x3dFile "<tr><td align='left' width='33%'><font color='blue'>[feaColorScaleNum $min]</font></td>"
+    puts $x3dFile "<td align='middle' width='34%'><font color='green'>[feaColorScaleNum [expr {($min+$max)/2.}]]</font></td>"
+    puts $x3dFile "<td align='right' width='33%'><font color='red'>[feaColorScaleNum $max]</font></td></tr>"
+    puts $x3dFile "</table></td></tr>"
+  }
+}
+
+# -------------------------------------------------------------------------------
+proc feaColorScaleNum {num} {
+  
+  if {$num >= 100.} {
+    set num [trimNum $num 0]
+  } elseif {$num < 0.01 && $num != 0.} {
+    set num [format "%.2e" $num]
+    for {set i 0} {$i < 2} {incr i} {regsub -all {\-0} $num {-} num}
+  } else {
+    set num [trimNum $num]
+    if {[string index $num end] == "."} {set num [string range $num 0 end-1]}
+  }
+  return $num
 }
 
 # -------------------------------------------------------------------------------

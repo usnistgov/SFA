@@ -141,14 +141,14 @@ proc checkValues {} {
 
 # FEM visualization
   if {$opt(VIZFEA)} {
-    foreach b {optVIZFEABC optVIZFEALV showfea} {lappend butNormal $b}
+    foreach b {optVIZFEABC optVIZFEALV optVIZFEADS} {lappend butNormal $b}
     if {$opt(VIZFEALV)} {
       foreach b {optVIZFEALVS} {lappend butNormal $b}
     } else {
       foreach b {optVIZFEALVS} {lappend butDisabled $b}
     }
   } else {
-    foreach b {optVIZFEABC optVIZFEALV optVIZFEALVS showfea} {lappend butDisabled $b}
+    foreach b {optVIZFEABC optVIZFEALV optVIZFEALVS optVIZFEADS} {lappend butDisabled $b}
   }
 
 # semantic PMI report
@@ -212,7 +212,7 @@ proc checkValues {} {
       incr nopt $opt($idx)
     }
   }
-  if {$nopt == 0 && !$opt(VIZFEA) && $opt(XLSCSV) != "None"} {set opt(PR_STEP_COMM) 1}
+  if {$nopt == 0 && $opt(XLSCSV) != "None"} {set opt(PR_STEP_COMM) 1}
   
 # configure buttons
   if {[llength $butNormal]   > 0} {foreach but $butNormal   {catch {$buttons($but) configure -state normal}}}
@@ -234,7 +234,7 @@ proc checkValues {} {
     } elseif {$allNone == 1} {
       foreach item [array names opt] {
         if {[string first "PR_STEP" $item] == 0} {
-          if {$item != "PR_STEP_COMM"} {
+          if {$item != "PR_STEP_COMM" && $item != "PR_STEP_FEAT"} {
             if {$opt($item) == 1} {set allNone -1}
           }
         }
@@ -357,7 +357,7 @@ proc setCoordMinMax {coord} {
 # -------------------------------------------------------------------------------------------------
 # set color based on entColorIndex variable
 proc setColorIndex {ent {multi 0}} {
-  global entCategory entColorIndex stepAP
+  global entCategory entColorIndex stepAP andEntAP209
   
 # special case
   if {[string first "geometric_representation_context" $ent] != -1} {set ent "geometric_representation_context"}
@@ -413,16 +413,17 @@ proc setColorIndex {ent {multi 0}} {
       set tc $entColorIndex(PR_STEP_QUAN)
     }
 
+# fix some AP209 entities with '_and_'
+    if {[string first "AP209" $stepAP] != -1} {foreach str $andEntAP209 {if {[string first $str $ent] != -1} {set tc 19}}}
+
     #outputMsg "TC $tc"
     if {$tc < 1000} {return $tc}
   }
 
 # entity not in any category, color by AP
-  if {!$multi} {
-    if {[string first "AP209" $stepAP] != -1} {return 19} 
-    if {$stepAP == "AP210"} {return 15} 
-    if {$stepAP == "AP238"} {return 24}
-  }
+  if {[string first "AP209" $stepAP] != -1} {return 19} 
+  if {$stepAP == "AP210"} {return 15} 
+  if {$stepAP == "AP238"} {return 24}
 
 # entity from other APs (no color)
   return -2      
@@ -522,7 +523,7 @@ proc unzipFile {} {
     outputMsg "\nUnzipping: [file tail $localName] ([expr {[file size $localName]/1024}] Kb)"
 
 # copy gunzip to TEMP
-    if {[file exists [file join $wdir schemas gunzip.exe]]} {file copy -force [file join $wdir schemas gunzip.exe] $mytemp}
+    if {[file exists [file join $wdir exe gunzip.exe]]} {file copy -force [file join $wdir exe gunzip.exe] $mytemp}
 
     set gunzip [file join $mytemp gunzip.exe]
     if {[file exists $gunzip]} {
@@ -1303,7 +1304,7 @@ proc getNextUnusedColumn {ent} {
 
 # -------------------------------------------------------------------------------
 proc formatComplexEnt {str {space 0}} {
-  global entCategory opt
+  global entCategory opt stepAP andEntAP209
   
   set str1 $str
 
@@ -1314,6 +1315,9 @@ proc formatComplexEnt {str {space 0}} {
     set ok 1
     foreach cat {PR_STEP_AP242 PR_STEP_COMM PR_STEP_TOLR PR_STEP_PRES PR_STEP_KINE PR_STEP_COMP} {
       if {$opt($cat)} {if {[lsearch $entCategory($cat) $str] != -1} {set ok 0; break}}
+    }
+    if {[info exists stepAP]} {
+      if {[string first "AP209" $stepAP] != -1} {foreach str2 $andEntAP209 {if {[string first $str2 $str] != -1} {set ok 0}}}
     }
 
 # format a_and_b to (a)(b)
@@ -1638,14 +1642,6 @@ proc copyRoseFiles {} {
           set okcopy 1
         }
 
-# developer schemas
-        set devfile 0
-        #if {[string first "am_ap242" $fn] != -1} {set devfile 1}
-        if {$developer == 0 && $devfile} {
-          set okcopy 0
-          if {[file exists $f2]} {catch {file delete -force $f2}}
-        }
-
 # copy files
         if {$okcopy} {
           catch {.tnb select .tnb.status}
@@ -1654,7 +1650,8 @@ proc copyRoseFiles {} {
             outputMsg " [string toupper [file rootname $fn1]]"
             file copy -force $fn $f2
           } emsg]} {
-            errorMsg "ERROR copying STEP schema files (*.rose) to $ifcsvrDir: $emsg"
+            errorMsg "ERROR copying STEP schema files (*.rose) to $ifcsvrDir"
+            #errorMsg "ERROR copying STEP schema files (*.rose) to $ifcsvrDir: $emsg"
           }
           if {![file exists [file join $ifcsvrDir $fn1]]} {
             set ok 0
@@ -1668,10 +1665,12 @@ proc copyRoseFiles {} {
         catch {.tnb select .tnb.status}
         update idletasks
         errorMsg "STEP schema files (*.rose) could not be copied to the IFCsvr/dll directory."
-        outputMsg "Copy the *.rose files in $mytemp\n to [file nativename $ifcsvrDir]"
-        outputMsg "You should copy the files with Administrator Privileges, if possible.\nIf there are problems copying the *.rose files, email the Contact (Help > About)."
         after 1000
-        errorMsg "Opening folder: $mytemp"
+        outputMsg " "
+        errorMsg "Opening folder containing the *.rose files: $mytemp"
+        outputMsg "Copy the *.rose files in $mytemp\n to [file nativename $ifcsvrDir]" red
+        outputMsg "You should copy the files with Administrator Privileges, if possible.\nIf there are problems copying the *.rose files, email the Contact (Help > About).\nGo to Help > Supported STEP APs to see which STEP schemas are supported." red
+        after 1000
         exec {*}[auto_execok start] [file nativename $mytemp]
       }
     }
@@ -1720,7 +1719,7 @@ proc installIFCsvr {} {
   global wdir mydocs mytemp ifcsvrDir nistVersion buttons
 
   set ifcsvr     "ifcsvrr300_setup_1008_en.msi"
-  set ifcsvrInst [file join $wdir schemas $ifcsvr]
+  set ifcsvrInst [file join $wdir exe $ifcsvr]
 
 # install if not already installed
   if {[info exists buttons]} {.tnb select .tnb.status}
@@ -1803,14 +1802,21 @@ proc setShortcuts {} {
     return
   }
 
-  set progstr "STEP File Analyzer and Viewer"
+  set progstr  "STEP File Analyzer and Viewer"
+  set progstr1 "STEP File Analyzer"
   if {!$nistVersion} {set progstr "SFA"}
   
   if {[info exists mydesk] || [info exists mymenu]} {
     set ok 1
-    set app "STEP_Excel"
-    foreach scut [list "Shortcut to $app.exe.lnk" "$app.exe.lnk" "$app.lnk"] {
-      catch {if {[file exists [file join $mydesk $scut]]} {set ok 0; break}}
+    set app ""
+    foreach scut [list "Shortcut to $progstr1.exe.lnk" "$progstr1.exe.lnk" "$progstr1.lnk"] {
+      catch {
+        if {[file exists [file join $mydesk $scut]]} {
+          file delete [file join $mydesk $scut]
+          set ok 0
+        }
+        if {[file exists [file join $mymenu "$progstr1.lnk"]]} {file delete [file join $mymenu "$progstr1.lnk"]}
+      }
     }
     if {[file exists [file join $mydesk [file tail [info nameofexecutable]]]]} {set ok 0}
 
