@@ -434,6 +434,8 @@ proc initDataInverses {} {
   lappend inverses [list document_product_equivalence relating_document related_product]
 
   lappend inverses [list draughting_callout contents used_in]
+  lappend inverses [list draughting_callout_relationship related_draughting_callout relating_draughting_callout]
+  lappend inverses [list draughting_callout_relationship relating_draughting_callout related_draughting_callout]
   lappend inverses [list draughting_model items used_in]
   lappend inverses [list draughting_model_item_association definition used_in]
   lappend inverses [list draughting_model_item_association identified_item used_in]
@@ -441,6 +443,9 @@ proc initDataInverses {} {
   lappend inverses [list draughting_model_item_association_with_placeholder definition used_in]
   lappend inverses [list draughting_model_item_association_with_placeholder identified_item used_in]
   lappend inverses [list draughting_model_item_association_with_placeholder used_representation used_in]
+
+  lappend inverses [list shape_aspect_relationship related_shape_aspect relating_shape_aspect]
+  lappend inverses [list shape_aspect_relationship relating_shape_aspect related_shape_aspect]
 
   lappend inverses [list geometric_item_specific_usage definition used_in]
   lappend inverses [list geometric_item_specific_usage identified_item used_in]

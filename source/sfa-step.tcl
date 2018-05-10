@@ -1,6 +1,6 @@
 #-------------------------------------------------------------------------------
 # version numbers, software and user's guide
-proc getVersion {}   {return 2.95}
+proc getVersion {}   {return 2.96}
 proc getVersionUG {} {return 2.34}
 
 # -------------------------------------------------------------------------------
@@ -1280,6 +1280,7 @@ proc checkForReports {entType} {
             $entType == "nodal_freedom_action_definition"   || \
             $entType == "nodal_freedom_values"              || \
             $entType == "surface_3d_element_boundary_constant_specified_surface_variable_value" || \
+            $entType == "volume_3d_element_boundary_constant_specified_variable_value" || \
             $entType == "single_point_constraint_element_values"} {
     if {[catch {
       if {[info exists opt(VIZFEA)]} {
@@ -1288,7 +1289,8 @@ proc checkForReports {entType} {
               ($opt(VIZFEABC) && $entType == "single_point_constraint_element_values") || \
               ($opt(VIZFEALV) && \
                 ($entType == "nodal_freedom_action_definition" || \
-                 $entType == "surface_3d_element_boundary_constant_specified_surface_variable_value")) || \
+                 $entType == "surface_3d_element_boundary_constant_specified_surface_variable_value" || \
+                 $entType == "volume_3d_element_boundary_constant_specified_variable_value")) || \
               ($opt(VIZFEADS) && $entType == "nodal_freedom_values")
           } {
             feaModel $entType

@@ -598,8 +598,9 @@ proc gpmiAnnotationReport {objEntity} {
                         set x3dPoint(y) [expr {-1.*$objValue*sin($angle)+[lindex $circleCenter 1]}]
                         set x3dPoint(x) [lindex $circleCenter 0]
                       } else {
-                        errorMsg " PMI annotation circle orientation ($dirRatio(x), $dirRatio(y), $dirRatio(z)) is ignored."
-                        set msg "Complex circle orientation is ignored."
+                        #errorMsg " PMI annotation circle orientation ($dirRatio(x), $dirRatio(y), $dirRatio(z)) is ignored."
+                        set msg "Circles in PMI annotations might have the wrong orientation in the visualization."
+                        errorMsg " $msg"
                         if {[lsearch $x3dMsg $msg] == -1} {lappend x3dMsg $msg}
                         set x3dPoint(x) [expr {$objValue*cos($angle)+[lindex $circleCenter 0]}]
                         set x3dPoint(y) [expr {-1.*$objValue*sin($angle)+[lindex $circleCenter 1]}]
@@ -624,8 +625,8 @@ proc gpmiAnnotationReport {objEntity} {
                       set curveTrim([$a0 Name]) $val
                     }
                   }
-                  errorMsg " Trimmed circles in PMI annotations might have the wrong orientation."
-                  set msg "Trimmed circles might have the wrong orientation."
+                  set msg "Circles in PMI annotations might have the wrong orientation in the visualization."
+                  errorMsg " $msg"
                   if {[lsearch $x3dMsg $msg] == -1} {lappend x3dMsg $msg}
                 }
                 "cartesian_point name" {

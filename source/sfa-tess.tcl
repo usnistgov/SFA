@@ -770,7 +770,13 @@ proc vecadd {v1 v2} {
 
 # reverse - reverse vector direction
 proc vecrev {v1} {
-  foreach c1 $v1 {lappend v2 [expr {$c1*-1.}]}
+  foreach c1 $v1 {
+    if {$c1 != 0.} {
+      lappend v2 [expr {$c1*-1.}]
+    } else {
+      lappend v2 $c1
+    }
+  }
   return $v2
 }
 

@@ -428,7 +428,8 @@ proc guiProcessAndReports {} {
   pack $foptv6 -side top -anchor w -pady 0 -padx 0 -fill y
   
   set foptv7 [frame $foptv.7 -bd 0]
-  foreach item {{" AP209 Finite Element Model" opt(VIZFEA)}} {
+  foreach item {{" AP209 Finite Element Model" opt(VIZFEA)} \
+                {"Boundary conditions" opt(VIZFEABC)}} {
     regsub -all {[\(\)]} [lindex $item 1] "" idx
     set buttons($idx) [ttk::checkbutton $foptv7.$cb -text [lindex $item 0] -variable [lindex $item 1] -command {checkValues}]
     pack $buttons($idx) -side left -anchor w -padx 5 -pady 0 -ipady 0
@@ -437,12 +438,10 @@ proc guiProcessAndReports {} {
   pack $foptv7 -side top -anchor w -pady 0 -padx 0 -fill y
 
   set foptv8 [frame $foptv.8 -bd 0]
-  #set buttons(showfea) [label $foptv8.l3 -text "Show:"]
-  #pack $foptv8.l3 -side left -anchor w -padx 0 -pady 0 -ipady 0
-  foreach item {{"Boundary conditions" opt(VIZFEABC)} \
+  foreach item {{"Loads" opt(VIZFEALV)} \
+                {"Scale loads" opt(VIZFEALVS)} \
                 {"Displacements" opt(VIZFEADS)} \
-                {"Loads" opt(VIZFEALV)} \
-                {"Scale loads" opt(VIZFEALVS)}} {
+                {"Vector tail" opt(VIZFEADStail)}} {
     regsub -all {[\(\)]} [lindex $item 1] "" idx
     set buttons($idx) [ttk::checkbutton $foptv8.$cb -text [lindex $item 0] -variable [lindex $item 1] -command {checkValues}]
     pack $buttons($idx) -side left -anchor w -padx 2 -pady 0 -ipady 0
@@ -450,26 +449,29 @@ proc guiProcessAndReports {} {
   }
   pack $foptv8 -side top -anchor w -pady 0 -padx 25 -fill y
   
-  set foptv9 [frame $foptv.9 -bd 0]
+  set foptv20 [frame $foptv.20 -bd 0]
   foreach item {{" Include B-rep Part Geometry" opt(VIZBRP)}} {
     regsub -all {[\(\)]} [lindex $item 1] "" idx
-    set buttons($idx) [ttk::checkbutton $foptv9.$cb -text [lindex $item 0] -variable [lindex $item 1] -command {checkValues}]
+    set buttons($idx) [ttk::checkbutton $foptv20.$cb -text [lindex $item 0] -variable [lindex $item 1] -command {checkValues}]
     pack $buttons($idx) -side left -anchor w -padx 5 -pady 0 -ipady 0
     incr cb
   }
-  pack $foptv9 -side top -anchor w -pady 0 -padx 0 -fill y
+  pack $foptv20 -side top -anchor w -pady 0 -padx 0 -fill y
 
   pack $foptv -side left -anchor w -pady {5 2} -padx 10 -fill both -expand true
   pack $foptrv -side top -anchor w -pady 0 -fill x
   catch {
-    tooltip::tooltip $buttons(optVIZPMI) "Graphical PMI is supported in AP242, AP203, and AP214 files.\n\nSee Help > PMI Presentation\nSee Help > User's Guide (section 6.1.1)\nSee Examples > Part with PMI\nSee Examples > AP242 Tessellated Part with PMI\nSee Examples > Sample STEP Files\n\nVisualizations can be generated without generating a spreadsheet\nor CSV files.  See the Output Format option below."
+    tooltip::tooltip $buttons(optVIZPMI) "Graphical PMI is supported in AP242, AP203, and AP214 files.\nSupplemental geometry and tessellated edges (lines) are also shown.\n\nSee Help > PMI Presentation\nSee Help > User's Guide (section 6.1.1)\nSee Help > Supplemental Geometry\nSee Examples > Part with PMI\nSee Examples > AP242 Tessellated Part with PMI\nSee Examples > Sample STEP Files\n\nVisualizations can be generated without generating a spreadsheet\nor CSV files.  See the Output Format option below."
     tooltip::tooltip $buttons(optVIZPMIVP) "PMI Viewpoints are experimental.\n\nViewpoints usually have the correct orientation but are not centered.\nUse pan and zoom to center the PMI."
-    tooltip::tooltip $buttons(optVIZFEA) "FEM nodes, elements, boundary conditions, loads, and displacements are visualized.\n\nSee Help > AP209 Finite Element Model\nSee Help > User's Guide (section 6.1.3)\nSee Examples > AP209 Finite Element Model\n\nVisualizations can be generated without generating a spreadsheet\nor CSV files.  See the Output Format option below.\n\nVisualizations are displayed in web browsers that are not optimized for large models."
-    tooltip::tooltip $buttons(optVIZFEALVS) "Load vectors can by scaled by the load magnitude.\nLoad vectors are always colored by the load magnitude."
     tooltip::tooltip $buttons(optVIZTPG) "This feature is in development.\nParts in an assembly might have the wrong position and orientation or be missing.\n\nTessellated geometry is in addition to boundary representation (b-rep) geometry.\nSupplemental geometry and tessellated edges (lines) are also shown.\nFaces in tessellated shells are outlined in black.\n\nSee Help > AP242 Tessellated Part Geometry\nSee Help > Supplemental Geometry\nSee Help > User's Guide (section 6.1.2)\nSee Examples > AP242 Tessellated Part with PMI\n\nVisualizations can be generated without generating a spreadsheet or CSV files.\nSee the Output Format option below.\n\nVisualizations are displayed in web browsers that are not optimized for large models."
     tooltip::tooltip $buttons(optVIZTPGMSH) "Show a tessellation wireframe mesh based on the tessellated\nfaces or surfaces.  Not recommended for very large models."
-    tooltip::tooltip $buttons(linecolor) "For Random PMI colors, each 'annotation occurrence' is assigned a different color."
+    tooltip::tooltip $buttons(optVIZFEALVS) "The length of load vectors can be scaled by their magnitude.\nLoad vectors are always colored by their magnitude."
+    tooltip::tooltip $buttons(optVIZFEADStail) "The length of displacement vectors with a tail are scaled by\ntheir magnitude.  Vectors without a tail are not.\nDisplacement vectors are always colored by their magnitude.\nLoad vectors always have a tail."
     tooltip::tooltip $buttons(optVIZBRP) "Boundary representation part geometry is visualized ONLY if one of the above types\nof visualization features is selected and is present in the STEP file.\n\nSee Help > B-rep Geometry\nSee Examples > Part with PMI\nSee Websites > STEP File Viewers for other b-rep geometry viewers\n\nVisualizations are displayed in web browsers that are not optimized for large models."
+    tooltip::tooltip $foptv4 "For Random PMI colors, each 'annotation occurrence' is assigned a different color."
+    set tt "FEM nodes, elements, boundary conditions, loads, and displacements are visualized.\n\nSee Help > AP209 Finite Element Model\nSee Help > User's Guide (section 6.1.3)\nSee Examples > AP209 Finite Element Model\n\nVisualizations can be generated without generating a spreadsheet or CSV files.\nSee the Output Format option below.\n\nVisualizations are displayed in web browsers that are not optimized for large models."
+    tooltip::tooltip $foptv7 $tt
+    tooltip::tooltip $foptv8 $tt
   }
 }
 
@@ -1401,26 +1403,27 @@ list is used.
 An AP209 finite element model can be visualized in a web browser (Options tab).  Nodes, mesh,
 elements, boundary conditions, loads, and displacments are shown and can be toggled on and off
 in the viewer.  Internal faces for solid elements are not shown.  Elements can be made
-transparent although it is only approximate.  The visualization of AP209 files is still in
-development.  
+transparent although it is only approximate.
 
-Load vectors are colored by their magnitude.  Load vectors can be scaled by their magnitude.
-Forces use a single-headed arrow.  Moments use a double-headed arrow.
+Nodal loads and element surface pressures are visualized.  Load vectors are colored by their
+magnitude.  The length of load vectors can be scaled by their magnitude.  Forces use a
+single-headed arrow.  Moments use a double-headed arrow.
 
-Displacement vectors are colored and scaled by their magnitude.
+Displacement vectors are colored by their magnitude.  The length of displacement vectors can
+be scaled by their magnitude depending on if they have a tail. 
 
 Boundary conditions for translation DOF are shown with a red, green, or blue line along the
 X, Y, or Z axes depending on the constrained DOF.  Boundary conditions for rotation DOF are
 shown with a red, green, or blue circle around the X, Y, or Z axes depending on the
-constrained DOF.  
+constrained DOF.  A gray box is used when all six DOF are constrained.  A gray pyramid is used
+when all three translation DOF are constrained.  A gray sphere is used when all three rotation
+DOF are constrained.
 
-A gray box is used when all six DOF are constrained.  A gray pyramid is used when all three
-translation DOF are constrained.  A gray sphere is used when all three rotation DOF are
-constrained.
+Stresses and strains are not visualized.
 
 Setting Maximum Rows (Spreadsheet tab) does not affect the visualization.  For large AP209
-files, there might be insufficient memory to process all of the elements, loads, and
-boundary conditions.
+files, there might be insufficient memory to process all of the elements, loads, displacements,
+and boundary conditions.
 
 See Help > User's Guide (section 6.1.3)
 See Examples > AP209 Finite Element Model

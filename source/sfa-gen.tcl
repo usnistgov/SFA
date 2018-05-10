@@ -4,7 +4,7 @@ proc genExcel {{numFile 0}} {
   global allEntity allVendor aoEntTypes ap203all ap214all ap242all badAttributes buttons
   global cells cells1 col col1 count coverageLegend readPMI csvdirnam csvfile
   global developer dim dimRepeatDiv editorCmd entCategories entCategory entColorIndex entCount entityCount entsIgnored entsWithErrors env errmsg
-  global excel excelVersion extXLS fcsv feaElemTypes File fileEntity skipEntities skipPerm gpmiTypesInvalid gpmiTypesPerFile idxColor ifcsvrDir inverses
+  global excel excelVersion extXLS fcsv feaElemTypes feaLastEntity File fileEntity skipEntities skipPerm gpmiTypesInvalid gpmiTypesPerFile idxColor ifcsvrDir inverses
   global lastXLS lenfilelist localName localNameList logFile multiFile multiFileDir mytemp nistName nistVersion nprogBarEnts nshape
   global ofExcel ofCSV
   global opt p21e3 p21e3Section pmiCol pmiMaster recPracNames row rowmax
@@ -576,8 +576,11 @@ proc genExcel {{numFile 0}} {
     set etp {}
     
 # order is important, first 2 nodal loads, 3rd displacements (like a load), 4th boundary conditions
-    set ent209 [list nodal_freedom_action_definition surface_3d_element_boundary_constant_specified_surface_variable_value \
-                     nodal_freedom_values single_point_constraint_element_values]
+    set ent209 [list nodal_freedom_action_definition \
+                     surface_3d_element_boundary_constant_specified_surface_variable_value \
+                     volume_3d_element_boundary_constant_specified_variable_value \
+                     nodal_freedom_values \
+                     single_point_constraint_element_values]
     #set ent209 [list element_nodal_freedom_actions] not included
     foreach ent $entsToProcess {
       if {$ok && [string range $ent 0 1] > 19} {
@@ -591,6 +594,7 @@ proc genExcel {{numFile 0}} {
       }
       if {$ent != "19nodal_freedom_action_definition" && \
           $ent != "19surface_3d_element_boundary_constant_specified_surface_variable_value" && \
+          $ent != "19volume_3d_element_boundary_constant_specified_variable_value" && \
           $ent != "19nodal_freedom_values" && \
           $ent != "19single_point_constraint_element_values"} {
         lappend etp $ent
@@ -600,6 +604,17 @@ proc genExcel {{numFile 0}} {
       foreach ent1 $ent209 {if {[info exists entCount($ent1)]} {lappend etp "19$ent1"}}
     }
     set entsToProcess $etp
+    
+# find last entity type that will be processed, order is very important
+    set ents [list curve_3d_element_representation surface_3d_element_representation volume_3d_element_representation]
+    if {$opt(VIZFEALV)} {
+      lappend ents "nodal_freedom_action_definition"
+      lappend ents "surface_3d_element_boundary_constant_specified_surface_variable_value"
+      lappend ents "volume_3d_element_boundary_constant_specified_variable_value"
+    }
+    if {$opt(VIZFEADS)} {lappend ents "nodal_freedom_values"}
+    if {$opt(VIZFEABC)} {lappend ents "single_point_constraint_element_values"}
+    foreach ent $ents {if {[info exists entCount($ent)]} {set feaLastEntity $ent}}
   }
   
 # then strip off the color index
@@ -699,9 +714,10 @@ proc genExcel {{numFile 0}} {
 # no entities to process
     if {[llength $entsToProcess] == 0} {
       if {$opt(XLSCSV) != "None"} {
-        errorMsg " No entities are selected to Process (Options tab)."
+        errorMsg " Select some other entity types to Process in the Options tab."
+        catch {unset entsIgnored}
       } else {
-        errorMsg " There is nothing to Visualize (Options tab)."
+        errorMsg " Select an appropriate Visualization feature in the Options tab."
       }
       break
     }
@@ -1730,7 +1746,9 @@ proc formatWorksheets {sheetSort sumRow inverseEnts} {
       }
       if {[string first "AP209" $stepAP] != -1 && $viz(FEA)} {
         foreach item {nodal_freedom_action_definition nodal_freedom_values \
-                      surface_3d_element_boundary_constant_specified_surface_variable_value single_point_constraint_element_values} {
+                      surface_3d_element_boundary_constant_specified_surface_variable_value \
+                      volume_3d_element_boundary_constant_specified_variable_value \
+                      single_point_constraint_element_values} {
           if {[info exists entCount($item)] && $item == $thisEntType} {set moveWS 1}
         }
       }
@@ -1747,6 +1765,7 @@ proc formatWorksheets {sheetSort sumRow inverseEnts} {
         if {$thisEntType == "nodal_freedom_values"} {moveWorksheet [list nodal_freedom_values node]}
         if {$thisEntType == "single_point_constraint_element_values"} {moveWorksheet [list single_point_constraint_element single_point_constraint_elemen1] After}
         if {$thisEntType == "surface_3d_element_boundary_constant_specified_surface_variable_value"} {moveWorksheet [list surface_3d_element_boundary_con surface_3d_element_descriptor]}
+        if {$thisEntType == "volume_3d_element_boundary_constant_specified_variable_value"} {moveWorksheet [list volume_3d_element_boundary_cons volume_3d_element_descriptor]}
         #if {$thisEntType == "element_nodal_freedom_actions"} {moveWorksheet [list element_nodal_freedom_actions element_nodal_freedom_terms]}
       }
 

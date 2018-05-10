@@ -86,8 +86,9 @@ experimental system.  NIST assumes no responsibility whatsoever for its use by
 other parties, and makes no guarantees, expressed or implied, about its quality,
 reliability, or any other characteristic.
 
-This software uses Microsoft Excel and IFCsvr which are covered by their own
-EULAs (End-User License Agreements).
+This software uses Microsoft Excel and IFCsvr that are covered by their own
+End-User License Agreements.  The B-rep geometry viewer is based on software from
+OpenCascade and pythonOCC.
 
 See the NIST Disclaimer at: https://www.nist.gov/disclaimer"
   exit
@@ -127,7 +128,7 @@ if {![file exists [file join $ifcsvrDir IFCsvrR300.dll]]} {installIFCsvr}
 # initialize variables
 foreach id {XL_OPEN XL_KEEPOPEN XL_LINK1 XL_FPREC XL_SORT LOGFILE \
             VALPROP PMIGRF PMISEM INVERSE DEBUG1 \
-            VIZPMI VIZTPG VIZTPGMSH VIZPMIVP VIZFEA VIZFEABC VIZFEALV VIZFEALVS VIZFEADS VIZBRP \
+            VIZPMI VIZTPG VIZTPGMSH VIZPMIVP VIZFEA VIZFEABC VIZFEALV VIZFEALVS VIZFEADS VIZFEADStail VIZBRP \
             PR_STEP_AP242 PR_USER PR_STEP_KINE PR_STEP_COMP PR_STEP_COMM PR_STEP_GEOM PR_STEP_QUAN \
             PR_STEP_FEAT PR_STEP_PRES PR_STEP_TOLR PR_STEP_REPR PR_STEP_CPNT PR_STEP_SHAP} {set opt($id) 1}
 

@@ -2,7 +2,8 @@ proc feaModel {entType} {
   global objDesign
   global ent entAttrList entCount entLevel opt rowmax nprogBarEnts count localName mytemp sfaPID cadSystem
   global x3dFile x3dMin x3dMax x3dMsg x3dStartFile x3dFileName x3dAxesSize
-  global feaType feaTypes feaElemTypes nfeaElem feaFile feaFileName feaFaceList feaFaceOrig feaBoundary feaLoad feaMeshIndex feaLoadMag feaDisp feaDispMag
+  global feaType feaTypes feaElemTypes nfeaElem feaFile feaFileName feaFaceList feaFaceOrig feaBoundary feaLoad feaMeshIndex feaLoadMag \
+  global feaDisp feaDispMag feaLastEntity
   global bcScaleSwitch ldScaleSwitch dsScaleSwitch
 
   if {$opt(DEBUG1)} {outputMsg "START feaModel $entType\n" red}
@@ -26,31 +27,43 @@ proc feaModel {entType} {
   set single_point_constraint_element \
     [list single_point_constraint_element required_node $node $node_group freedoms_and_values [list freedom_and_coefficient freedom a]]
 
+  set state_id1 [list specified_state state_id description]
+  set state_id2 [list state state_id description]
+  set state_id3 [list calculated_state state_id description]
+  set surface_nodes [list surface_3d_element_representation node_list $node]
+  set volume_nodes  [list volume_3d_element_representation node_list $node]
+
 # boundary conditions
   set FEA(single_point_constraint_element_values) \
     [list single_point_constraint_element_values \
-      defined_state [list specified_state state_id description] [list state state_id description] \
+      defined_state $state_id1 $state_id2 \
       element $single_point_constraint_element \
       degrees_of_freedom $freedom b]
 
 # nodal loads
   set FEA(nodal_freedom_action_definition) \
     [list nodal_freedom_action_definition \
-      defined_state [list specified_state state_id description] [list state state_id description] \
+      defined_state $state_id1 $state_id2 \
       node $node $node_group \
       degrees_of_freedom $freedom values]
   
 # element loads
   set FEA(surface_3d_element_boundary_constant_specified_surface_variable_value) \
     [list surface_3d_element_boundary_constant_specified_surface_variable_value \
-      defined_state [list specified_state state_id description] [list state state_id description] \
-      element [list surface_3d_element_representation node_list $node] \
+      defined_state $state_id1 $state_id2 \
+      element $surface_nodes [list surface_3d_element_group elements $surface_nodes] \
+      simple_value variable element_face]
+  
+  set FEA(volume_3d_element_boundary_constant_specified_variable_value) \
+    [list volume_3d_element_boundary_constant_specified_variable_value \
+      defined_state $state_id1 $state_id2 \
+      element $volume_nodes [list volume_3d_element_group elements $volume_nodes] \
       simple_value variable element_face]
   
 # nodal results
   set FEA(nodal_freedom_values) \
     [list nodal_freedom_values \
-      defined_state [list specified_state state_id description] [list calculated_state state_id description] [list state state_id description] \
+      defined_state $state_id3 $state_id1 $state_id2 \
       node $node \
       degrees_of_freedom $freedom values \
       values]
@@ -92,7 +105,7 @@ proc feaModel {entType} {
 
 # transparency script
     if {[info exists entCount(surface_3d_element_representation)] || [info exists entCount(volume_3d_element_representation)]} {
-      puts $x3dFile "\n<!-- Transparency -->\n<script>function matTrans(trans){"
+      puts $x3dFile "\n<!-- Transparency -->\n<script>function matTrans(trans)\{"
       if {[info exists entCount(surface_3d_element_representation)]} {puts $x3dFile " document.getElementById('mat2D').setAttribute('transparency', trans);"}
       if {[info exists entCount(volume_3d_element_representation)]}  {
         puts $x3dFile " document.getElementById('mat3D').setAttribute('transparency', trans);"
@@ -102,7 +115,7 @@ proc feaModel {entType} {
         puts $x3dFile " document.getElementById('color').setAttribute('transparency', trans);"
         puts $x3dFile " if (trans > 0) {document.getElementById('color').setAttribute('solid', true);} else {document.getElementById('color').setAttribute('solid', false);}"
       }
-      puts $x3dFile "}\n</script>"
+      puts $x3dFile "\}\n</script>"
     }
     puts $x3dFile "</head>"
 
@@ -267,10 +280,16 @@ proc feaModel {entType} {
   }
 
 # ------------------------------------------------------------------------------------------------  
-# write loads
+# write loads after all load entity types are processed
+  set ecload3 0
+  set ecload4 0
   if {[info exists feaLoad] && $opt(VIZFEALV)} {
-    if {(($entType == "nodal_freedom_action_definition" && ![info exists entCount(surface_3d_element_boundary_constant_specified_surface_variable_value)]) || \
-          $entType == "surface_3d_element_boundary_constant_specified_surface_variable_value")} {
+    set ecload3 [info exists entCount(surface_3d_element_boundary_constant_specified_surface_variable_value)]
+    set ecload4 [info exists entCount(volume_3d_element_boundary_constant_specified_variable_value)]
+    
+    if {($entType == "nodal_freedom_action_definition" && !$ecload3 && !$ecload4) || \
+        ($entType == "surface_3d_element_boundary_constant_specified_surface_variable_value" && !$ecload4) || \
+         $entType == "volume_3d_element_boundary_constant_specified_variable_value"} {
       feaLoads $entType
     }
   }
@@ -282,46 +301,8 @@ proc feaModel {entType} {
   if {[info exists feaBoundary] && $opt(VIZFEABC) && $entType == "single_point_constraint_element_values"} {feaBCs $entType}
 
 # ------------------------------------------------------------------------------------------------  
-# only write everything to x3dom file at the end
-  set ecbc    0
-  set ecdisp  0
-  set ecload1 0
-  set ecload2 0
-  set ecload3 0
-  if {$opt(VIZFEABC)} {set ecbc   [info exists entCount(single_point_constraint_element_values)]}
-  if {$opt(VIZFEADS)} {set ecdisp [info exists entCount(nodal_freedom_values)]}
-  if {$opt(VIZFEALV)} {
-    #set ecload1 [info exists entCount(element_nodal_freedom_actions)]
-    set ecload2 [info exists entCount(nodal_freedom_action_definition)]
-    set ecload3 [info exists entCount(surface_3d_element_boundary_constant_specified_surface_variable_value)]
-  }
-
-# order is important  
-  set writeX3DOM 0
-  if {$entType == "single_point_constraint_element_values"} {
-    set writeX3DOM 1
-  } elseif {$entType == "nodal_freedom_values" && !$ecbc} {
-    set writeX3DOM 1
-  } elseif {$entType == "surface_3d_element_boundary_constant_specified_surface_variable_value" && !$ecbc && !$ecdisp} {
-    set writeX3DOM 1
-  } elseif {$entType == "nodal_freedom_action_definition" && !$ecbc && !$ecdisp && !$ecload3} {
-    set writeX3DOM 1
-  } elseif {$entType == "element_nodal_freedom_actions" && !$ecbc && !$ecdisp && !$ecload2 && !$ecload3} {
-    set writeX3DOM 1
-  } elseif {[string first "volume_3d_element_representation" $entType] != -1 && !$ecbc && !$ecdisp && !$ecload1 && !$ecload2 && !$ecload3} {
-    set writeX3DOM 1
-  } elseif {[string first "surface_3d_element_representation" $entType] != -1 && !$ecbc && !$ecdisp && !$ecload1 && !$ecload2 && !$ecload3 && \
-           ![info exists entCount(volume_3d_element_representation)]} {
-    set writeX3DOM 1
-  } elseif {[string first "curve_3d_element_representation" $entType] != -1 && !$ecbc && !$ecdisp && !$ecload1 && !$ecload2 && !$ecload3 && \
-           ![info exists entCount(surface_3d_element_representation)] && ![info exists entCount(volume_3d_element_representation)]} {
-    set writeX3DOM 1
-  }
-  #outputMsg "write $writeX3DOM $entType" blue
-
-# ------------------------------------------------------------------------------------------------  
 # write mesh, elements, loads, bcs after last element type is processed
-  if {$writeX3DOM} {
+  if {$entType == $feaLastEntity} {
 
 # mesh
     if {[info exists feaFileName(mesh)] && [info exists feaMeshIndex]} {
@@ -383,7 +364,8 @@ proc feaEntities {objEntity} {
   global badAttributes ent entAttrList entCount entLevel localName nistVersion opt
   global x3dFile x3dFileName x3dStartFile feaMeshIndex feaFaceIndex x3dMsg feaStateID feaEntity
   global feaidx feaIndex feaType feaTypes firstID nnode nnodes nodeID nfeaElem feaFile feaFaceList feaBoundary feaLoad feaLoadNode feaBCNode feaLoadMag
-  global feaNodes feaDOFT feaDOFR elemNodes elemLoadVec elemLoadValue elemLoadVariable feaDisp feaDispNode feaDispMag
+  global feaNodes feaDOFT feaDOFR surfaceNodes volumeNodes elemLoadVec elemLoadValue elemLoadVariable
+  global feaElemFace feaDisp feaDispNode feaDispMag elemID
 
 # entLevel is very important, keeps track level of entity in hierarchy
   incr entLevel
@@ -396,6 +378,7 @@ proc feaEntities {objEntity} {
     set objAttributes [$objEntity Attributes]
     set ent($entLevel) $objType
     if {$entLevel == 1} {set feaEntity $objType}
+    if {[string first "_3d_element_representation" $objType] != -1} {set elemID [$objEntity P21ID]}
 
     if {$opt(DEBUG1)} {outputMsg "$ind ENT $entLevel #$objID=$objType (ATR=[$objAttributes Count])" blue}
     
@@ -428,19 +411,21 @@ proc feaEntities {objEntity} {
                     errorMsg "Unexpected freedom_and_coefficient 'a' attribute not equal to 1 ($objValue)"
                   }
                 }
-                "surface_3d_element_boundary_constant_specified_surface_variable_value simple_value" {
+                "surface_3d_element_boundary_constant_specified_surface_variable_value simple_value" -
+                "volume_3d_element_boundary_constant_specified_variable_value simple_value" {
                   if {$objValue != ""} {
                     set elemLoadValue $objValue
                   } else {
-                    errorMsg "Syntax Error: Missing 'simple_value' attribute on surface_3d_element_boundary_constant_specified_surface_variable_value"
+                    errorMsg "Syntax Error: Missing 'simple_value' attribute on [lindex $ent1 0]"
                     catch {unset elemLoadValue}
                   }
                 }
-                "surface_3d_element_boundary_constant_specified_surface_variable_value variable" {
+                "surface_3d_element_boundary_constant_specified_surface_variable_value variable" -
+                "volume_3d_element_boundary_constant_specified_variable_value variable" {
                   if {$objValue != ""} {
                     set elemLoadVariable $objValue
                   } else {
-                    errorMsg "Syntax Error: Missing 'variable' attribute on surface_3d_element_boundary_constant_specified_surface_variable_value"
+                    errorMsg "Syntax Error: Missing 'variable' attribute on [lindex $ent1 0]"
                     catch {unset elemLoadVariable}
                   }
                 }
@@ -466,32 +451,45 @@ proc feaEntities {objEntity} {
                 }
                 
                 "cartesian_point coordinates" {
+# nodes for loads               
                   if {$feaEntity == "nodal_freedom_action_definition" || $feaEntity == "element_nodal_freedom_actions"} {
                     lappend feaLoadNode [vectrim $objValue]
+
+# nodes for displacements                  
                   } elseif {$feaEntity == "nodal_freedom_values"} {
                     lappend feaDispNode [vectrim $objValue]
+
+# create node for surface load on surface element
                   } elseif {$feaEntity == "surface_3d_element_boundary_constant_specified_surface_variable_value"} {
-                    lappend elemNodes $objValue
-                    if {($nnodes <= 6 && [llength $elemNodes] == $nnodes) || ($nnodes == 9 && [llength $elemNodes] == 8)} {
+                    lappend surfaceNodes $objValue
+                    if {($nnodes <= 6 && [llength $surfaceNodes] == $nnodes) || ($nnodes == 9 && [llength $surfaceNodes] == 8)} {
 
 # add all nodes together to get average node where load vector can be attached to
                       set cnode {0 0 0}
-                      foreach n $elemNodes {set cnode [vecadd $cnode $n]}
-                      set cnode [vecmult $cnode [expr {1./[llength $elemNodes]}]]
+                      foreach n $surfaceNodes {set cnode [vecadd $cnode $n]}
+                      set cnode [vecmult $cnode [expr {1./[llength $surfaceNodes]}]]
                       lappend feaLoadNode [vectrim $cnode]
                       
-# use cross product between two 'perpendicular' edges to get load vector
-                      set v1 [vecsub [lindex $elemNodes 1] [lindex $elemNodes 0]]
+# use cross product between two 'perpendicular' edges to get load vector for surface3d elements
+                      set v1 [vecsub [lindex $surfaceNodes 1] [lindex $surfaceNodes 0]]
                       if {$nnodes <= 4} {
-                        set v2 [vecsub [lindex $elemNodes [expr {$nnodes-1}]] [lindex $elemNodes 0]]
+                        set v2 [vecsub [lindex $surfaceNodes [expr {$nnodes-1}]] [lindex $surfaceNodes 0]]
                       } elseif {$nnodes == 6} {
-                        set v2 [vecsub [lindex $elemNodes 2] [lindex $elemNodes 0]]
+                        set v2 [vecsub [lindex $surfaceNodes 2] [lindex $surfaceNodes 0]]
                       } elseif {$nnodes == 9} {
-                        set v2 [vecsub [lindex $elemNodes 3] [lindex $elemNodes 0]]
+                        set v2 [vecsub [lindex $surfaceNodes 3] [lindex $surfaceNodes 0]]
+                      } elseif {$nnodes == 8 || $nnodes == 20 || $nnodes == 27} {
+                        
                       }
-                      set elemLoadVec [vectrim [vecnorm [veccross $v2 $v1]]]
-                      unset elemNodes
+                      lappend elemLoadVec [vecnorm [veccross $v1 $v2]]
+                      unset surfaceNodes
                     }
+
+# save nodes for surface load on volume element
+                  } elseif {$feaEntity == "volume_3d_element_boundary_constant_specified_variable_value"} {
+                    lappend volumeNodes($elemID) $objValue
+
+# nodes for bcs                  
                   } elseif {$feaEntity == "single_point_constraint_element_values"} {
                     lappend feaBCNode [vectrim $objValue]
                   }
@@ -719,33 +717,66 @@ proc feaEntities {objEntity} {
                 "state state_id" -
                 "calculated_state state_id" -
                 "specified_state state_id" {
-                  if {$objValue == ""} {
-                    errorMsg "Syntax Error: Missing required 'state_id' on [lindex $ent1 0]."
-                    #set objValue "[lindex $ent1 0] $objID"
-                  }
+                  if {$objValue == ""} {errorMsg "Syntax Error: Missing required 'state_id' on [lindex $ent1 0]."}
                   set feaStateID $objValue
                 }
                 "state description" -
                 "calculated_state description" -
                 "specified_state description" {
-                  #if {$objValue == ""} {errorMsg "Syntax Error: Missing required 'description' on [lindex $ent1 0]."}
                   if {$feaStateID == ""} {set feaStateID $objValue}
                 }
                 
                 "surface_3d_element_boundary_constant_specified_surface_variable_value element_face" {
-# surface load                  
+# surface load on surface element                 
                   if {[info exists elemLoadVec] && [info exists elemLoadValue]} {
-                    set lv [vectrim [vecmult $elemLoadVec $elemLoadValue]]
-                    if {$objValue == 1} {set lv [vecrev $lv]}
-                    lappend feaLoad($feaStateID) "[join $feaLoadNode],$lv,force"
-                    
-                    if {![info exists feaLoadMag(min)]} {set feaLoadMag(min) 1.e+10}
-                    if {![info exists feaLoadMag(max)]} {set feaLoadMag(max) -1.e+10}
-                    set mag [veclen $lv]
-                    if {$mag < $feaLoadMag(min)} {set feaLoadMag(min) $mag}
-                    if {$mag > $feaLoadMag(max)} {set feaLoadMag(max) $mag}
+                    set ltype "ppressure"
+                    if {$elemLoadValue < 0.} {set ltype "npressure"}
+                    if {$objValue < 1 || $objValue > 2} {errorMsg "Unexpected [lindex $ent1 0] element_face 'element_face' attribute ($objValue)"}
+                    foreach node $feaLoadNode lvec $elemLoadVec {
+                      set lv [vecmult $lvec $elemLoadValue]
+                      if {$objValue == 1} {set lv [vecrev $lv]}
+                      lappend feaLoad($feaStateID) "[join $node],$lv,$ltype"
+                      
+                      if {![info exists feaLoadMag(min)]} {set feaLoadMag(min) 1.e+10}
+                      if {![info exists feaLoadMag(max)]} {set feaLoadMag(max) -1.e+10}
+                      set mag [trimNum [veclen $lv] 5]
+                      if {$mag < $feaLoadMag(min)} {set feaLoadMag(min) $mag}
+                      if {$mag > $feaLoadMag(max)} {set feaLoadMag(max) $mag}
+                    }
                   }
                   unset feaLoadNode
+                  unset elemLoadVec
+                }
+                
+                "volume_3d_element_boundary_constant_specified_variable_value element_face" {
+# surface load on volume element face
+                  foreach id [array names volumeNodes] {
+                    set nnodes [llength $volumeNodes($id)]
+                    if {[info exists feaElemFace($nnodes,1)]} {
+
+# add all nodes together to get average node where load vector can be attached to
+                      set node {0 0 0}
+                      foreach n $feaElemFace($nnode,$objValue) {set node [vecadd $node [lindex $volumeNodes($id) $n]]}
+                      set node [vecmult $node [expr {1./4.}]]
+  
+                      set v1 [vecsub [lindex $volumeNodes($id) [lindex $feaElemFace($nnode,$objValue) 1]] [lindex $volumeNodes($id) [lindex $feaElemFace($nnode,$objValue) 0]]]
+                      set v2 [vecsub [lindex $volumeNodes($id) [lindex $feaElemFace($nnode,$objValue) 2]] [lindex $volumeNodes($id) [lindex $feaElemFace($nnode,$objValue) 0]]]
+                      
+                      set ltype "ppressure"
+                      if {$elemLoadValue < 0.} {set ltype "npressure"}
+                      set lv [vecmult [vecnorm [veccross $v2 $v1]] $elemLoadValue]
+                      lappend feaLoad($feaStateID) "[join [vectrim $node]],$lv,$ltype"
+                      
+                      if {![info exists feaLoadMag(min)]} {set feaLoadMag(min) 1.e+10}
+                      if {![info exists feaLoadMag(max)]} {set feaLoadMag(max) -1.e+10}
+                      set mag [trimNum [veclen $lv] 5]
+                      if {$mag < $feaLoadMag(min)} {set feaLoadMag(min) $mag}
+                      if {$mag > $feaLoadMag(max)} {set feaLoadMag(max) $mag}
+                    } else {
+                      errorMsg "Missing 'feaElemFace' values for $nnodes noded volume_3d elements."
+                    }
+                  }
+                  unset volumeNodes
                 }
               }
             }
@@ -773,10 +804,10 @@ proc feaLoads {entType} {
     foreach i [array names feaLoad] {set fld($i) $feaLoad($i)}
     set magMin $feaLoadMag(min)
     set magMax $feaLoadMag(max)
-    set def(force)  -1
-    set def(moment) -1
-    set def(colorforce)  {}
-    set def(colormoment) {}
+    foreach idx {force moment npressure ppressure} {
+      set def($idx) -1
+      set def(color$idx) {}
+    }
     set ldScaleSwitch {}
 
 # displacements
@@ -815,7 +846,9 @@ proc feaLoads {entType} {
             set nsize [trimNum [expr {$nsize*0.9+$size*0.1}]]
           }
         } elseif {$type == "displacements"} {
-          if {$feaDispMag(max) != 0} {set nsize [trimNum [expr {($mag/abs($feaDispMag(max)))*$size}] 5]}
+          if {$feaDispMag(max) != 0 && $opt(VIZFEADStail)} {
+            set nsize [trimNum [expr {($mag/abs($feaDispMag(max)))*$size}] 5]
+          }
         }
         
 # load vector color (https://www.particleincell.com/2014/colormap/)
@@ -837,8 +870,8 @@ proc feaLoads {entType} {
         }
   
 # load vector rotation
-        set rot "1 0 0 0"
         set rot1 ""
+        set rot "1 0 0 0"
         set vec [vectrim [vecnorm [lindex $fl 1]]]
         
 # default vector direction is 1 0 0
@@ -874,11 +907,11 @@ proc feaLoads {entType} {
         append ldtxt ">"
   
 # tail and arrow head, double head for moment
-        if {$ltype == "force" || $ltype == "displacement" || $ltype == "moment"} {
+        if {$ltype == "force" || $ltype == "displacement" || $ltype == "moment" || [string first "pressure" $ltype] != -1} {
           set p1 [lsearch $def(color$ltype) "$r $g $b"]
           if {$p1 == -1} {
             incr def($ltype)
-            set id "loadScale[string totitle $ltype]$def($ltype)"
+            set id "scale[string totitle $ltype]$def($ltype)"
             append ldtxt "\n <Transform id='$id' DEF='$ltype$def($ltype)'>"
             append ldtxt [feaArrow $r $g $b $ltype $def($ltype)]
             append ldtxt "\n </Transform>\n</Transform>"
@@ -905,27 +938,46 @@ proc feaLoads {entType} {
 
 # -------------------------------------------------------------------------------
 proc feaArrow {r g b type num} {
-  set x1 -1
-  set x2 -.2
-# moment arrow is slightly different  
-  if {$type == "moment"} {
-    set x1 -1.05
-    set x2 -.19
-  }
+  global opt
   
-# tail  
-  set arrow    "\n  <Shape><Appearance><Material emissiveColor='$r $g $b'></Material></Appearance>"
-  append arrow "<IndexedLineSet coordIndex='0 1 -1'><Coordinate point='$x1 0 0 0 0 0'></Coordinate></IndexedLineSet></Shape>"
+  set t1 -1
+  set t2 0
+  set h1 -.2
+  switch $type {
+    npressure -
+    displacement {
+      if {$opt(VIZFEADStail) || $type == "npressure"} {
+        set t1 0
+        set t2 1
+        set h1 [expr {$t2+$h1}]
+      } else {
+        set t2 .2
+        set h1 0
+      }
+    }
+    moment {
+      set t1 -1.05
+      set h1 -.19
+    }
+  }
+  set arrow \n
+  
+# tail
+  if {$opt(VIZFEADStail) || $type != "displacement"} {
+    append arrow "  <Shape><Appearance><Material emissiveColor='$r $g $b'></Material></Appearance>"
+    append arrow "<IndexedLineSet coordIndex='0 1 -1'><Coordinate point='$t1 0 0 $t2 0 0'></Coordinate></IndexedLineSet></Shape>"
+  }
   
 # head  
   append arrow "\n  <Shape"
   if {$type == "moment"} {append arrow " DEF='head$num'"}
   append arrow ">"
   append arrow "<Appearance><Material diffuseColor='$r $g $b'></Material></Appearance>"
-  append arrow "<IndexedFaceSet coordIndex='0 1 2 -1 0 2 3 -1 0 3 4 -1 0 4 1 -1' solid='FALSE'><Coordinate point='0 0 0 $x2 .1 0 $x2 0 .1 $x2 -.1 0 $x2 0 -.1'></Coordinate></IndexedFaceSet></Shape>"
+  append arrow "<IndexedFaceSet coordIndex='0 1 2 -1 0 2 3 -1 0 3 4 -1 0 4 1 -1' solid='FALSE'><Coordinate point='$t2 0 0 $h1 .1 0 $h1 0 .1 $h1 -.1 0 $h1 0 -.1'></Coordinate></IndexedFaceSet></Shape>"
 
 # second head
   if {$type == "moment"} {append arrow "\n  <Transform translation='-.1 0 0'><Shape USE='head$num'></Shape></Transform>"}
+  
   return $arrow
 }
 

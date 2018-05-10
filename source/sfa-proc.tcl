@@ -147,8 +147,13 @@ proc checkValues {} {
     } else {
       foreach b {optVIZFEALVS} {lappend butDisabled $b}
     }
+    if {$opt(VIZFEADS)} {
+      foreach b {optVIZFEADStail} {lappend butNormal $b}
+    } else {
+      foreach b {optVIZFEADStail} {lappend butDisabled $b}
+    }
   } else {
-    foreach b {optVIZFEABC optVIZFEALV optVIZFEALVS optVIZFEADS} {lappend butDisabled $b}
+    foreach b {optVIZFEABC optVIZFEALV optVIZFEALVS optVIZFEADS optVIZFEADStail} {lappend butDisabled $b}
   }
 
 # semantic PMI report

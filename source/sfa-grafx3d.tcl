@@ -23,13 +23,14 @@ proc x3dFileStart {} {
   set name [file tail $localName]
   if {$cadSystem != ""} {append name "  ($cadSystem)"}
   puts $x3dFile "\n<body><font face=\"arial\">\n<h3>$title:  $name</h3>"
+  puts $x3dFile "\n<table><tr><td valign='top' width='85%'>"
   puts $x3dFile "Boundary representation (b-rep) part geometry can also be viewed with <a href=\"https://www.cax-if.org/step_viewers.html\">STEP file viewers</a>."
   puts $x3dFile "  B-rep geometry might include supplemental geometry."
-  if {$viz(PMI)} {puts $x3dFile "<br>Some Graphical PMI might not have equivalent Semantic PMI in the STEP file."}
+  if {$viz(PMI)} {puts $x3dFile "  Some Graphical PMI might not have equivalent Semantic PMI in the STEP file."}
   if {$viz(TPG) && [info exist entCount(next_assembly_usage_occurrence)]} {
-    puts $x3dFile "<br>Parts in an assembly might have the wrong position and orientation or be missing."
+    puts $x3dFile "  Parts in an assembly might have the wrong position and orientation or be missing."
   }
-  puts $x3dFile "\n<p><table><tr><td valign='top' width='85%'>"
+  puts $x3dFile "</td><td></td><tr><td valign='top' width='85%'>"
 
 # x3d window size
   set height 800
@@ -970,7 +971,7 @@ proc openX3DOM {{fn ""}} {
     if {$ok} {
       set fn $x3dFileName
     } else {
-      if {$opt(XLSCSV) == "None"} {errorMsg "There is nothing selected to Visualize (Options tab) in the STEP file that can be displayed.\n See Help > B-rep Geometry\n See Websites > STEP File Viewers for other b-rep geometry viewers"}
+      if {$opt(XLSCSV) == "None"} {errorMsg "Select an appropriate Visualization feature in the Options tab.\n B-rep part geometry is visualized ONLY if graphical PMI or tessellated geometry are also in the STEP file.\n See Help > B-rep Geometry\n See Websites > STEP File Viewers for other b-rep geometry viewers"}
       return
     }
   }
