@@ -892,7 +892,7 @@ proc guiHelpMenu {} {
   
   $Help add command -label "Supported STEP APs" -command {
     outputMsg "\nSupported STEP APs ----------------------------------------------------------" blue
-    outputMsg "The following STEP Application Protocols (AP) and other schemas are supported by this software.\nThe name of the AP is on the FILE_SCHEMA entity in the HEADER section of a STEP file.\n"
+    outputMsg "The following STEP Application Protocols (AP) and other schemas are supported by this software.\nThe name of the AP is found on the FILE_SCHEMA entity in the HEADER section of a STEP file.\nThe 'eN' notation after an AP number below refers to the 'edition' of that AP.\n"
     
     set nschema 0
     catch {file delete -force [file join $ifcsvrDir ap214e3_2010.rose]}
@@ -1400,7 +1400,7 @@ outputMsg "\nAP209 Finite Element Model ----------------------------------------
 outputMsg "All AP209 entities are always processed and written to a spreadsheet unless a User-defined
 list is used.
 
-An AP209 finite element model can be visualized in a web browser (Options tab).  Nodes, mesh,
+The AP209 finite element model can be visualized in a web browser (Options tab).  Nodes, mesh,
 elements, boundary conditions, loads, and displacments are shown and can be toggled on and off
 in the viewer.  Internal faces for solid elements are not shown.  Elements can be made
 transparent although it is only approximate.
@@ -1410,7 +1410,8 @@ magnitude.  The length of load vectors can be scaled by their magnitude.  Forces
 single-headed arrow.  Moments use a double-headed arrow.
 
 Displacement vectors are colored by their magnitude.  The length of displacement vectors can
-be scaled by their magnitude depending on if they have a tail. 
+be scaled by their magnitude depending on if they have a tail.  The finite element mesh is not
+deformed.
 
 Boundary conditions for translation DOF are shown with a red, green, or blue line along the
 X, Y, or Z axes depending on the constrained DOF.  Boundary conditions for rotation DOF are
@@ -1419,7 +1420,7 @@ constrained DOF.  A gray box is used when all six DOF are constrained.  A gray p
 when all three translation DOF are constrained.  A gray sphere is used when all three rotation
 DOF are constrained.
 
-Stresses and strains are not visualized.
+Stresses and strains are not visualized.  Multiple coordinate systems are not considered.
 
 Setting Maximum Rows (Spreadsheet tab) does not affect the visualization.  For large AP209
 files, there might be insufficient memory to process all of the elements, loads, displacements,

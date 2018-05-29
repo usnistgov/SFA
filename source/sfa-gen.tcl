@@ -181,7 +181,7 @@ proc genExcel {{numFile 0}} {
     getSchemaFromFile $fname 1
 
     if {!$p21e3} {
-      errorMsg "Possible causes of the ERROR:\n- Syntax errors in the STEP file\n- STEP schema is not supported, see Help > Supported STEP APs\n- File or directory name contains accented, non-English, or symbol characters\n- File extension is not '.stp', '.step', '.p21', '.stpZ', or '.ifc'\n- Multiple schemas are used\n- File is not an ISO 10303 Part 21 STEP file" red
+      errorMsg "Possible causes of the ERROR:\n- STEP schema is not supported, see Help > Supported STEP APs\n- Syntax errors in the STEP file\n- File does not end with END-ISO-10303-21;\n- File is not an ISO 10303 Part 21 STEP file\n- File or directory name contains accented, non-English, or symbol characters\n- File extension is not '.stp', '.step', '.p21', '.stpZ', or '.ifc'\n- Multiple STEP schemas are used" red
     
 # part 21 edition 3
     } else {
@@ -194,8 +194,8 @@ proc genExcel {{numFile 0}} {
     }
     
 # open STEP file in editor
-    if {[info exists editorCmd]} {
-      errorMsg "Opening file in editor"
+    if {$editorCmd != ""} {
+      errorMsg "Opening STEP file in text editor"
       exec $editorCmd $localName &
     }
 
@@ -1097,7 +1097,7 @@ proc genExcel {{numFile 0}} {
   global propDefID propDefIDRow propDefName propDefOK propDefRow syntaxErr
   global shapeRepName tessRepo tessPlacement dimtolGeom dimtolEntID datumGeom datumSymbol
   global savedViewFileName savedViewFile feaDOFT feaDOFR savedsavedViewNames
-  global coordinatesList lineStrips
+  global coordinatesList lineStrips srNames
 
   foreach var {cells colColor invCol count currx3dPID dimrep dimrepID entName entsIgnored \
               gpmiID gpmiIDRow gpmiRow heading invGroup nrep feaNodes numx3dPID \
@@ -1106,7 +1106,7 @@ proc genExcel {{numFile 0}} {
               x3dCoord x3dFile x3dFileName x3dStartFile x3dIndex x3dMax x3dMin \
               shapeRepName tessRepo tessPlacement dimtolGeom dimtolEntID datumGeom datumSymbol\
               savedViewNames savedViewFileName savedViewFile x3dFileName feaDOFT feaDOFR \
-              savedsavedViewNames coordinatesList lineStrips} {
+              savedsavedViewNames coordinatesList lineStrips srNames} {
     if {[info exists $var]} {unset $var}
   }
   if {!$multiFile} {
@@ -1194,7 +1194,7 @@ proc addHeaderWorksheet {numFile fname} {
           after 1000
           openURL https://www.nist.gov/services-resources/software/ifc-file-analyzer
         } elseif {$objAttr == "STRUCTURAL_FRAME_SCHEMA"} {
-          errorMsg "Use SteelVis to view the CIS/2 file.  https://go.usa.gov/s8fm"
+          errorMsg "Use SteelVis to visualize CIS/2 files.  https://go.usa.gov/s8fm"
         }
 
 # other File attributes

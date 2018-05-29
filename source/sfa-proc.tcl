@@ -731,7 +731,7 @@ proc runOpenProgram {} {
       } else {
         if {[catch {exec $dispCmd1 $stfile >> $stlog &} err]} {outputMsg "Conformance Checker error:\n $err" red}
       }  
-      if {[string first "TextPad" $editorCmd] != -1 || [string first "Notepad++" $editorCmd] != -1} {
+      if {[string first "Notepad++" $editorCmd] != -1} {
         outputMsg "Opening log file in editor"
         exec $editorCmd $stlog &
       } else {
@@ -827,7 +827,7 @@ proc runOpenProgram {} {
 
 # if results are written to a file, open output file from the validation (edmLog) and output file if there are import errors (edmLogImport)
       if {$edmWriteToFile} {
-        if {[string first "TextPad" $editorCmd] != -1 || [string first "Notepad++" $editorCmd] != -1} {
+        if {[string first "Notepad++" $editorCmd] != -1} {
           outputMsg "Opening log file(s) in editor"
           exec $editorCmd $edmLog &
           after 1000
@@ -1018,34 +1018,15 @@ proc getOpenPrograms {} {
   set editorCmd ""
   set editorName ""
 
-# Notepad
-  if {[info exists env(windir)]} {
-    set editorCmd [file join $env(windir) Notepad.exe]
+# Notepad++ or Notepad
+  set editorCmd [file join $pf32 Notepad++ notepad++.exe]
+  if {[file exists $editorCmd]} {
+    set editorName "Notepad++"
+    set dispApps($editorCmd) $editorName
+  } elseif {[info exists env(windir)]} {
+    set editorCmd [file join $env(windir) system32 Notepad.exe]
     set editorName "Notepad"
     set dispApps($editorCmd) $editorName
-    if {![file exists $editorCmd]} {
-      set editorCmd [file join $env(windir) system32 Notepad.exe]
-      set editorName "Notepad"
-      set dispApps($editorCmd) $editorName
-    }
-  }
-
-# other text editors
-  for {set i 9} {$i > 5} {incr i -1} {
-    set editorCmd1 [file join $pf32 "TextPad $i" TextPad.exe]
-    if {[file exists $editorCmd1]} {
-      set editorName1 "TextPad $i"
-      set dispApps($editorCmd1) $editorName1
-      set editorCmd $editorCmd1
-      set editorName $editorName1
-    }
-  }
-  set editorCmd1 [file join $pf32 Notepad++ notepad++.exe]
-  if {[file exists $editorCmd1]} {
-    set editorName1 "Notepad++"
-    set dispApps($editorCmd1) $editorName1
-    set editorCmd $editorCmd1
-    set editorName $editorName1
   }
 
 #-------------------------------------------------------------------------------
@@ -1471,7 +1452,7 @@ proc colorBadCells {ent} {
 
 #-------------------------------------------------------------------------------
 proc trimNum {num {prec 3}} {
-  global unq_num comma
+  global unq_num
   
 # check for already trimmed number
   set numsav $num

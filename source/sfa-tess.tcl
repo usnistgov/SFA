@@ -528,7 +528,7 @@ proc tessSetColor {objEntity tsID} {
 # -------------------------------------------------------------------------------
 proc tessCountColors {} {
   global objDesign
-  global entCount
+  global entCount defaultColor
 
 # count unique colors in colour_rgb and draughting_pre_defined_colour
   set colors {}
@@ -548,6 +548,10 @@ proc tessCountColors {} {
     }
   } emsg]} {
     errorMsg " ERROR counting unique colors: $emsg"
+  }
+
+  if {[llength $colors] == 0 && ([info exists entCount(tessellated_solid)] || [info exists entCount(tessellated_shell)])} {
+    lappend colors [lindex $defaultColor 0]
   }
   return [llength $colors]
 }

@@ -67,7 +67,7 @@ proc x3dFileStart {} {
 proc x3dTessGeom {objID objEntity1 ent1} {
   global ao draftModelCameras entCount nshape recPracNames shapeRepName savedViewFile tessIndex tessIndexCoord tessCoord tessCoordID
   global tessPlacement tessRepo x3dColor x3dCoord x3dIndex x3dFile x3dColors x3dMsg opt defaultColor tessPartFile tessSuppGeomFile shellSuppGeom
-  global savedViewNames savedViewFileName mytemp
+  global savedViewNames savedViewFileName mytemp srNames
   #outputMsg "x3dTessGeom $objID"
   
   set x3dIndex $tessIndex($objID)
@@ -136,6 +136,17 @@ proc x3dTessGeom {objID objEntity1 ent1} {
 # loop over list of files from above
   foreach f $flist {
     for {set np 0} {$np < $nplace} {incr np} {
+      set srName ""
+      if {![info exists shapeRepName]} {
+        set shapeRepName $x3dIndexType
+        if {[info exists tsID]} {set srName "[string toupper $ao] $tsID"}
+      } elseif {$shapeRepName != "line" && $shapeRepName != "face"} {
+        set srName $shapeRepName
+      }
+      if {$srName != ""} {
+        incr srNames($srName)
+        if {$srNames($srName) == 1} {puts $f "\n<!-- $srName -->"}
+      }
 
 # translation and rotation (sometimes PMI and usually assemblies)
       if {$tessRepo && [info exists tessPlacement(origin)]} {
@@ -145,20 +156,21 @@ proc x3dTessGeom {objID objEntity1 ent1} {
       }
 
 # write tessellated face or line
-      if {![info exists shapeRepName]} {set shapeRepName $x3dIndexType}
       if {$np == 0} {
-
+        set defstr ""
+        if {$nplace > 1} {set defstr " DEF='$shapeRepName$objID'"}
+        
         if {$emit == ""} {
           set matID ""
           set colorID [lsearch $x3dColors $x3dColor]
           if {$colorID == -1} {
             lappend x3dColors $x3dColor
-            puts $f "<Shape DEF='$shapeRepName$objID'><Appearance DEF='app[llength $x3dColors]'><Material id='mat[llength $x3dColors]' diffuseColor='$x3dColor' $spec></Material></Appearance>"
+            puts $f "<Shape$defstr><Appearance DEF='app[llength $x3dColors]'><Material id='mat[llength $x3dColors]' diffuseColor='$x3dColor' $spec></Material></Appearance>"
           } else {
-            puts $f "<Shape DEF='$shapeRepName$objID'><Appearance USE='app[incr colorID]'></Appearance>"
+            puts $f "<Shape$defstr><Appearance USE='app[incr colorID]'></Appearance>"
           }
         } else {
-          puts $f "<Shape DEF='$shapeRepName$objID'><Appearance><Material diffuseColor='$x3dColor' $emit></Material></Appearance>"
+          puts $f "<Shape$defstr><Appearance><Material diffuseColor='$x3dColor' $emit></Material></Appearance>"
         }
         
         set indexedSet "<Indexed[string totitle $x3dIndexType]\Set $solid coordIndex='[string trim $x3dIndex]'>"
@@ -169,12 +181,14 @@ proc x3dTessGeom {objID objEntity1 ent1} {
         } else {
           puts $f " $indexedSet<Coordinate USE='coord$tessIndexCoord($objID)'></Coordinate></Indexed[string totitle $x3dIndexType]\Set></Shape>"
         }
+
+# reuse shape
       } else {
         puts $f "<Shape USE='$shapeRepName$objID'></Shape>"
       }
 
 # for tessellated part geometry only, write mesh based on faces
-      if {$opt(VIZTPGMSH) || $ao == "tessellated_shell"} {
+      if {$opt(VIZTPGMSH) || ($ao == "tessellated_shell" && [info exists entCount(tessellated_solid)])} {
         if {$x3dIndexType == "face" && ($ao == "tessellated_solid" || $ao == "tessellated_shell")} {
           if {$np == 0} {
             set x3dMesh ""
@@ -205,13 +219,16 @@ proc x3dTessGeom {objID objEntity1 ent1} {
 # write mesh
             set ecolor ""
             foreach c [split $x3dColor] {append ecolor "[expr {$c*.5}] "}
-            if {$ao == "tessellated_shell"} {
+            if {$ao == "tessellated_shell" && [info exists entCount(tessellated_solid)]} {
               set ecolor "0 0 0"
               errorMsg " Triangular faces in 'tessellated_shell' are outlined in black."
               set msg "Triangular faces in tessellated shells are outlined in black."
               if {[lsearch $x3dMsg $msg] == -1} {lappend x3dMsg $msg}
             }
-            puts $f "<Shape DEF='mesh$objID'><Appearance><Material emissiveColor='$ecolor'></Material></Appearance>"
+            
+            set defstr ""
+            if {$nplace > 1} {set defstr " DEF='mesh$objID'"}
+            puts $f "<Shape$defstr><Appearance><Material emissiveColor='$ecolor'></Material></Appearance>"
             puts $f " <IndexedLineSet coordIndex='[string trim $x3dMesh]'><Coordinate USE='coord$tessIndexCoord($objID)'></Coordinate></IndexedLineSet></Shape>"
           } else {
             puts $f "<Shape USE='mesh$objID'></Shape>"
@@ -389,7 +406,7 @@ proc x3dFileEnd {} {
   }
 
 # TPG button
-  if {$viz(TPG) && ($viz(PMI) || $viz(SMG) || $viz(EDG))} {
+  if {$viz(TPG) && ($viz(PMI) || $viz(SMG) || $viz(EDG) || $viz(BRP))} {
     puts $x3dFile "\n<!-- TPG button -->\n<input type='checkbox' checked onclick='togTPG(this.value)'/>Tessellated Part Geometry"
     if {$viz(EDG)} {puts $x3dFile "<!-- TED button -->\n<br><input type='checkbox' checked onclick='togTED(this.value)'/>Lines (Tessellated Edges)"}
     puts $x3dFile "<p>"
@@ -456,6 +473,7 @@ proc x3dFileEnd {} {
 
 # transparency slider
   set max 0
+  set transFunc 0
   if {$viz(FEA) && ([info exists entCount(surface_3d_element_representation)] || [info exists entCount(volume_3d_element_representation)])} {
     set max 0.9
   } elseif {$viz(BRP)} {
@@ -467,6 +485,7 @@ proc x3dFileEnd {} {
   if {$max > 0} {
     puts $x3dFile "\n<!-- Transparency slider -->\n<p>Transparency<br>(approximate)<br>"
     puts $x3dFile "<input style='width:80px' type='range' min='0' max='$max' step='0.1' value='0' onchange='matTrans(this.value)'/>"
+    set transFunc 1
   }
   
 # mouse message  
@@ -478,7 +497,7 @@ proc x3dFileEnd {} {
   if {$viz(BRP)} {x3dSwitchScript BRP}
   
 # function for TPG
-  if {$viz(TPG) && ($viz(PMI) || $viz(SMG) || $viz(EDG))} {
+  if {$viz(TPG) && ($viz(PMI) || $viz(SMG) || $viz(EDG) || $viz(BRP))} {
     if {[string first "occurrence" $ao] == -1} {
       x3dSwitchScript TPG
       if {$viz(EDG)} {x3dSwitchScript TED}
@@ -510,11 +529,10 @@ proc x3dFileEnd {} {
 # transparency function
   set numTessColor 0
   if {$viz(TPG)} {set numTessColor [tessCountColors]}
-  if {($numTessColor > 0 || $viz(BRP)) && [string first "AP209" $stepAP] == -1} {
+  if {$transFunc} {
     puts $x3dFile "\n<!-- Transparency function -->\n<script>function matTrans(trans){"
     if {$viz(BRP)} {
       puts $x3dFile " document.getElementById('color').setAttribute('transparency', trans);"
-      #puts $x3dFile " if (trans > 0) {document.getElementById('color').setAttribute('solid', true);} else {document.getElementById('color').setAttribute('solid', false);}"
     }
     for {set i 1} {$i <= $numTessColor} {incr i} {
       puts $x3dFile " document.getElementById('mat$i').setAttribute('transparency', trans);"
@@ -682,7 +700,7 @@ proc x3dSuppGeom {maxxyz} {
               } else {
                 puts $x3dFile " <Group USE='sgAxes'></Group>"
               }
-              set nsize [expr {$tsize*1.5}]
+              set nsize [trimNum [expr {$tsize*1.5}]]
               if {$name != ""} {puts $x3dFile " <Transform scale='$nsize $nsize $nsize'><Billboard axisOfRotation='0 0 0'><Shape><Appearance><Material diffuseColor='0 0 0'></Material></Appearance><Text string='\"$name\"'><FontStyle family='\"SANS\"' justify='\"BEGIN\"'></FontStyle></Text></Shape></Billboard></Transform>"}
 
 # plane
@@ -693,7 +711,7 @@ proc x3dSuppGeom {maxxyz} {
               set bound 0
               ::tcom::foreach bnd $bnds {set bound 1}
 
-              set nsize [expr {$size*2.}]
+              set nsize [trimNum [expr {$size*2.}]]
               if {!$defPlane} {
                 if {$bound} {errorMsg " Bounding edges for supplemental geometry bounded planes are ignored."}
                 puts $x3dFile " <Shape DEF='sgPlane'><Appearance><Material emissiveColor='0 0 1'></Material></Appearance><IndexedLineSet coordIndex='0 1 2 3 0 -1'><Coordinate point='-$nsize -$nsize 0. $nsize -$nsize 0. $nsize $nsize 0. -$nsize $nsize 0.'></Coordinate></IndexedLineSet></Shape>"
@@ -751,7 +769,7 @@ proc x3dSuppGeom {maxxyz} {
               puts $x3dFile "<Transform translation='$coord1'>"
               puts $x3dFile " <Shape><Appearance><Material emissiveColor='1 0 1'></Material></Appearance><IndexedLineSet coordIndex='0 1 -1'><Coordinate point='0. 0. 0. $coord2'></Coordinate></IndexedLineSet></Shape>"
               if {$name != ""} {
-                set nsize [expr {$tsize*0.5}]
+                set nsize [trimNum [expr {$tsize*0.5}]]
                 puts $x3dFile " <Transform scale='$nsize $nsize $nsize'><Billboard axisOfRotation='0 0 0'><Shape><Appearance><Material diffuseColor='1 0 1'></Material></Appearance><Text string='\"$name\"'><FontStyle family='\"SANS\"' justify='\"BEGIN\"'></FontStyle></Text></Shape></Billboard></Transform>"
               }
               puts $x3dFile "</Transform>"
@@ -814,11 +832,11 @@ proc x3dSuppGeom {maxxyz} {
           cartesian_point {
             set name [[[$e2 Attributes] Item 1] Value]
             set coord1 [[[$e2 Attributes] Item 2] Value]
-            set nsize [expr {$tsize*0.1}]
+            set nsize [trimNum [expr {$tsize*0.1}]]
             puts $x3dFile "<Transform translation='$coord1'>"
             puts $x3dFile "  <Shape><Appearance><Material emissiveColor='0 0 0'></Material></Appearance><IndexedLineSet coordIndex='0 1 -1 2 3 -1 4 5 -1'><Coordinate point='$nsize 0. 0. -$nsize 0. 0. 0. $nsize 0. 0. -$nsize 0. 0. 0. $nsize 0. 0. -$nsize'></Coordinate></IndexedLineSet></Shape>"
             if {$name != ""} {
-              set nsize [expr {$tsize*0.25}]
+              set nsize [trimNum [expr {$tsize*0.25}]]
               puts $x3dFile " <Transform scale='$nsize $nsize $nsize'><Billboard axisOfRotation='0 0 0'><Shape><Appearance><Material diffuseColor='0 0 0'></Material></Appearance><Text string='\"$name\"'><FontStyle family='\"SANS\"' justify='\"BEGIN\"'></FontStyle></Text></Shape></Billboard></Transform>"
             }
             puts $x3dFile "</Transform>"
@@ -840,9 +858,9 @@ proc x3dSuppGeom {maxxyz} {
     close $tessSuppGeomFile
     if {[file size $tessSuppGeomFileName] > 0} {
       set f [open $tessSuppGeomFileName r]
+      puts $x3dFile "<!-- TESSELLATED GEOMETRY that is SUPPLEMENTAL GEOMETRY -->"
       while {[gets $f line] >= 0} {puts $x3dFile $line}
       close $f
-      puts $x3dFile "</Group></Switch>"
     }
     catch {file delete -force -- $tessSuppGeomFileName}
     unset tessSuppGeomFile
@@ -917,15 +935,15 @@ proc x3dCoordAxes {size} {
 # axes
   if {$x3dAxes} {
     puts $x3dFile "\n<!-- COORDINATE AXIS -->\n<Switch whichChoice='0' id='swAxes'><Group>"
-    puts $x3dFile "<Shape id='x_axis'><Appearance><Material emissiveColor='1 0 0'></Material></Appearance><IndexedLineSet coordIndex='0 1 -1'><Coordinate point='0. 0. 0. $size 0. 0.'></Coordinate></IndexedLineSet></Shape>"
-    puts $x3dFile "<Shape id='y_axis'><Appearance><Material emissiveColor='0 .5 0'></Material></Appearance><IndexedLineSet coordIndex='0 1 -1'><Coordinate point='0. 0. 0. 0. $size 0.'></Coordinate></IndexedLineSet></Shape>"
-    puts $x3dFile "<Shape id='z_axis'><Appearance><Material emissiveColor='0 0 1'></Material></Appearance><IndexedLineSet coordIndex='0 1 -1'><Coordinate point='0. 0. 0. 0. 0. $size'></Coordinate></IndexedLineSet></Shape>"
+    puts $x3dFile "<Shape id='x_axis'><Appearance><Material emissiveColor='1 0 0'></Material></Appearance><IndexedLineSet coordIndex='0 1 -1'><Coordinate point='0 0 0 $size 0 0'></Coordinate></IndexedLineSet></Shape>"
+    puts $x3dFile "<Shape id='y_axis'><Appearance><Material emissiveColor='0 .5 0'></Material></Appearance><IndexedLineSet coordIndex='0 1 -1'><Coordinate point='0 0 0 0 $size 0'></Coordinate></IndexedLineSet></Shape>"
+    puts $x3dFile "<Shape id='z_axis'><Appearance><Material emissiveColor='0 0 1'></Material></Appearance><IndexedLineSet coordIndex='0 1 -1'><Coordinate point='0 0 0 0 0 $size'></Coordinate></IndexedLineSet></Shape>"
 
 # xyz labels
     set tsize [trimNum [expr {$size*0.33}]]
-    puts $x3dFile "<Transform translation='$size 0. 0.' scale='$tsize $tsize $tsize'><Billboard axisOfRotation='0 0 0'><Shape><Appearance><Material diffuseColor='1 0 0'></Material></Appearance><Text string='\"X\"'><FontStyle family='\"SANS\"'></FontStyle></Text></Shape></Billboard></Transform>"
-    puts $x3dFile "<Transform translation='0. $size 0.' scale='$tsize $tsize $tsize'><Billboard axisOfRotation='0 0 0'><Shape><Appearance><Material diffuseColor='0 .5 0'></Material></Appearance><Text string='\"Y\"'><FontStyle family='\"SANS\"'></FontStyle></Text></Shape></Billboard></Transform>"
-    puts $x3dFile "<Transform translation='0. 0. $size' scale='$tsize $tsize $tsize'><Billboard axisOfRotation='0 0 0'><Shape><Appearance><Material diffuseColor='0 0 1'></Material></Appearance><Text string='\"Z\"'><FontStyle family='\"SANS\"'></FontStyle></Text></Shape></Billboard></Transform>"
+    puts $x3dFile "<Transform translation='$size 0 0' scale='$tsize $tsize $tsize'><Billboard axisOfRotation='0 0 0'><Shape><Appearance><Material diffuseColor='1 0 0'></Material></Appearance><Text string='\"X\"'><FontStyle family='\"SANS\"'></FontStyle></Text></Shape></Billboard></Transform>"
+    puts $x3dFile "<Transform translation='0 $size 0' scale='$tsize $tsize $tsize'><Billboard axisOfRotation='0 0 0'><Shape><Appearance><Material diffuseColor='0 .5 0'></Material></Appearance><Text string='\"Y\"'><FontStyle family='\"SANS\"'></FontStyle></Text></Shape></Billboard></Transform>"
+    puts $x3dFile "<Transform translation='0 0 $size' scale='$tsize $tsize $tsize'><Billboard axisOfRotation='0 0 0'><Shape><Appearance><Material diffuseColor='0 0 1'></Material></Appearance><Text string='\"Z\"'><FontStyle family='\"SANS\"'></FontStyle></Text></Shape></Billboard></Transform>"
     puts $x3dFile "</Group></Switch>\n"
     set x3dAxes 0
   }

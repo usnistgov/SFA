@@ -239,19 +239,17 @@ proc spmiDimtolReport {objEntity} {
                                   if {[info exists dim(unit)]} {
                                     if {$dim(unit) == "INCH"} {
                                       if {$objValue < 1. && $prec1 > 0} {
-                                        set msg "value_format_type_qualifier 'NR2 $prec1.n' conflicts with INCH values < 1, using 'NR2 0.n' instead."
+                                        set msg "value_format_type_qualifier 'NR2 $prec1.n' conflicts with INCH values < 1, use 'NR2 0.n' instead."
                                         append msg "\n  See ASME Y14.5-2009, Decimal Inch Dimensioning, Sec. 1.6.2.a"
                                         errorMsg $msg
-                                        set prec1 0
+                                        #set prec1 0
                                         lappend syntaxErr(dimensional_characteristic_representation) [list "-$spmiIDRow($dt,$spmiID)" "decimal places" $msg]
-                                        #lappend syntaxErr([$ent2 Type]) [list [$ent2 P21ID] "format_type" $msg]
                                       }
                                     }
                                   } elseif {[string length $val1] > $prec1} {
                                     set msg "Syntax Error: value_format_type_qualifier ([$attr1 Value]) too small for $objValue\n[string repeat " " 14]\($recPracNames(pmi242), Sec. 5.4)"
                                     errorMsg $msg
                                     lappend syntaxErr(dimensional_characteristic_representation) [list "-$spmiIDRow($dt,$spmiID)" "decimal places" $msg]
-                                    #lappend syntaxErr([$ent2 Type]) [list [$ent2 P21ID] "format_type" $msg]
                                   }
                                 }
                                 
