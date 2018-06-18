@@ -526,10 +526,10 @@ proc x3dFileEnd {} {
 # axes function
   x3dSwitchScript Axes
 
-# transparency function
+# transparency function (function for fea in sfa-fea.tcl)
   set numTessColor 0
   if {$viz(TPG)} {set numTessColor [tessCountColors]}
-  if {$transFunc} {
+  if {$transFunc && [string first "AP209" $stepAP] == -1} {
     puts $x3dFile "\n<!-- Transparency function -->\n<script>function matTrans(trans){"
     if {$viz(BRP)} {
       puts $x3dFile " document.getElementById('color').setAttribute('transparency', trans);"
@@ -563,7 +563,7 @@ proc x3dFileEnd {} {
 proc x3dBrepGeom {} {
   global entCount opt viz mytemp wdir localName objDesign x3dFile
 
-# copy executable
+# copy stp2x3d executable to temp directory
   if {[catch {
     set stp2x3d [file join $mytemp stp2x3d.exe]
     if {[file exists [file join $wdir exe stp2x3d.exe]]} {
@@ -615,7 +615,7 @@ proc x3dBrepGeom {} {
               }
             }
             
-# integrate x3d from pythonOCC with existing x3dom file
+# integrate x3d from stp2x3d with existing x3dom file
             puts $x3dFile "\n<!-- B-REP GEOMETRY -->\n<Switch whichChoice='0' id='swBRP'><Transform scale='$sc $sc $sc'>"
             set stpx3dFile [open $stpx3dFileName r]
             set write 0
@@ -641,12 +641,29 @@ proc x3dBrepGeom {} {
             puts $x3dFile "</Transform></Switch>"
             set viz(BRP) 1
           }
+
+# no X3D output
         } else {
-          set msg " ERROR: Cannot find b-rep geometry X3D file."
-          if {[string first "." $stpx3dFileName] != [string last "." $stpx3dFileName]} {append msg "  Rename STEP file or pathname to remove '.' character."}
+          set msg " ERROR: Cannot find the X3D output of stp2x3d.exe"
+
+# check for invalid '.' in directory name
+          if {[string first "." $stpx3dFileName] != [string last "." $stpx3dFileName]} {
+            set baddir ""
+            foreach dir [lrange [split $stpx3dFileName "/"] 0 end-1] {if {[string first "." $dir] != -1} {set baddir $dir; break}}
+            if {$baddir != ""} {
+              append msg "\n  Remove the '.' character from the directory '$baddir'"
+            } else {
+              append msg "\n  Rename STEP file or directory name to remove extra '.' characters"
+            }
+            append msg " or\n  move the STEP file to a different directory and process again."
+          }
           errorMsg $msg
         }
+
+# delete X3D file
         catch {file delete -force -- $stpx3dFileName}
+
+# stp2x3d did not finish
       } else {
         errorMsg " ERROR generating visualization of B-rep geometry"
       }

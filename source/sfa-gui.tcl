@@ -1562,15 +1562,15 @@ proc guiWebsitesMenu {} {
   $Websites add command -label "STEP File Analyzer and Viewer"             -command {openURL https://www.nist.gov/services-resources/software/step-file-analyzer-and-viewer}
   $Websites add command -label "Journal of NIST Research"                  -command {openURL https://doi.org/10.6028/jres.122.016}
   $Websites add command -label "Conformance Checking of PMI in STEP Files" -command {openURL https://www.nist.gov/publications/conformance-checking-pmi-representation-cad-model-step-data-exchange-files}
-  $Websites add command -label "MBE PMI Validation Testing (free CAD models and STEP files)" -command {openURL https://www.nist.gov/el/systems-integration-division-73400/mbe-pmi-validation-and-conformance-testing}
+  $Websites add command -label "MBE PMI Validation Testing (free CAD models and STEP files)" -command {openURL https://www.nist.gov/el/systems-integration-division-73400/mbe-pmi-validation-and-conformance-testing-project/download}
   $Websites add command -label "Enabling the Digital Thread for Smart Manufacturing"         -command {openURL https://www.nist.gov/el/systems-integration-division-73400/enabling-digital-thread-smart-manufacturing}
   $Websites add command -label "Source code on GitHub"                     -command {openURL https://github.com/usnistgov/SFA}
   
   $Websites add separator
   $Websites add command -label "CAx Implementor Forum (CAx-IF)" -command {openURL https://www.cax-if.org}
-  $Websites add command -label "Implementation Coverage"        -command {openURL https://www.cax-if.org/vendor_info.php}
   $Websites add command -label "STEP File Viewers"              -command {openURL https://www.cax-if.org/step_viewers.html}
   $Websites add command -label "Recommended Practices"          -command {openURL https://www.cax-if.org/joint_testing_info.html#recpracs}
+  $Websites add command -label "Implementation Coverage"        -command {openURL https://www.cax-if.org/vendor_info.php}
   $Websites add command -label "CAE-IF (FEA testing)"           -command {openURL http://afnet.fr/dotank/sps/cae-if/}
   $Websites add command -label "CAx-IF (alternate website)"     -command {openURL https://www.cax-if.de}
   

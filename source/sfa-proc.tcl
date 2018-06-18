@@ -756,18 +756,27 @@ proc runOpenProgram {} {
     set edmDir [join [lrange $edmDir 0 [expr {$i-1}]] [file separator]]
     set edmDBopen "ACCUMULATING_COMMAND_OUTPUT,OPEN_SESSION"
     
-# open file to find STEP schema name (can't create ap214 and ap210 because the schemas won't compile in EDMS without errors)
+# open file to find STEP schema name
+    set edmPW "NIST@edm[string range $idisp end end]"
     set fschema [getSchemaFromFile $filename]
-    if {$fschema == "CONFIG_CONTROL_DESIGN"} {
-      puts $scriptFile "Database>Open([file nativename [file join $edmDir Db]], ap203, ap203, \"$edmDBopen\")"
-    } elseif {[string first "AP203_CONFIGURATION_CONTROLLED_3D_DESIGN_OF_MECHANICAL_PARTS_AND_ASSEMBLIES_MIM_LF" $fschema] == 0} {
-      puts $scriptFile "Database>Open([file nativename [file join $edmDir Db]], ap203e2, ap203e2, \"$edmDBopen\")"
-    } elseif {[string first "AP242_MANAGED_MODEL_BASED_3D_ENGINEERING_MIM_LF" $fschema] == 0} {
-      puts $scriptFile "Database>Open([file nativename [file join $edmDir Db]], ap242, ap242, \"$edmDBopen\")"
+
+    if {[string first "AP203_CONFIGURATION_CONTROLLED_3D_DESIGN_OF_MECHANICAL_PARTS_AND_ASSEMBLIES_MIM_LF" $fschema] == 0} {
+      puts $scriptFile "Database>Open([file nativename [file join $edmDir Db]], ap203, $edmPW, \"$edmDBopen\")"
+    } elseif {$fschema == "CONFIG_CONTROL_DESIGN"} {
+      puts $scriptFile "Database>Open([file nativename [file join $edmDir Db]], ap203e1, $edmPW, \"$edmDBopen\")"
     } elseif {[string first "AP209_MULTIDISCIPLINARY_ANALYSIS_AND_DESIGN_MIM_LF" $fschema] == 0} {
-      puts $scriptFile "Database>Open([file nativename [file join $edmDir Db]], ap209, ap209, \"$edmDBopen\")"
+      puts $scriptFile "Database>Open([file nativename [file join $edmDir Db]], ap209, $edmPW, \"$edmDBopen\")"
+    } elseif {$fschema == "AUTOMOTIVE_DESIGN"} {
+      puts $scriptFile "Database>Open([file nativename [file join $edmDir Db]], ap214, $edmPW, \"$edmDBopen\")"
+    } elseif {[string first "AP242_MANAGED_MODEL_BASED_3D_ENGINEERING_MIM_LF" $fschema] == 0} {
+      set ap242 "ap242"
+      if {[string first "1 0 10303 442 2 1 4" $fschema] != -1} {
+        append ap242 "e2"
+        errorMsg "This file uses the new AP242 Edition 2."
+      }
+      puts $scriptFile "Database>Open([file nativename [file join $edmDir Db]], $ap242, $edmPW, \"$edmDBopen\")"
     } else {
-      outputMsg "EDM Model Checker cannot be used with:\n $fschema" red
+      outputMsg "$idisp cannot be used with:\n $fschema" red
       set okschema 0
     }
 
@@ -822,7 +831,7 @@ proc runOpenProgram {} {
       close $scriptFile
 
 # run EDM Model Checker with the script file
-      outputMsg "Running EDM Model Checker"
+      outputMsg "Running $idisp"
       eval exec {$dispCmd} $edmScript &
 
 # if results are written to a file, open output file from the validation (edmLog) and output file if there are import errors (edmLogImport)
@@ -878,7 +887,7 @@ proc runOpenProgram {} {
 #-------------------------------------------------------------------------------
 proc getOpenPrograms {} {
   global dispApps dispCmds dispCmd appNames appName env pf32 pf64
-  global drive edmexe editorCmd developer myhome
+  global drive editorCmd developer myhome
 
 # Including any of the CAD viewers and software below does not imply a recommendation or
 # endorsement of them by NIST https://www.nist.gov/disclaimer
@@ -891,12 +900,15 @@ proc getOpenPrograms {} {
 
 # Jotne EDM Model Checker
   if {$developer} {
-    set edmexe  ""
     set edms [glob -nocomplain -directory [file join $drive edm] -join edm* bin Edms.exe]
     foreach match $edms {
       set name "EDM Model Checker"
-      set edmexe $match
-      set dispApps($edmexe) $name
+      if {[string first "edm5" $match] != -1} {
+        set num 5 
+      } elseif {[string first "edmsix" $match] != -1} {
+        set num 6
+      }
+      set dispApps($match) "$name $num"
     }
   }
 
@@ -1095,8 +1107,6 @@ proc getOpenPrograms {} {
       lappend appNames $dispApps($cmd)
     } else {
       set name [file rootname [file tail $cmd]]
-      if {$name == "Edms"} {set name "EDM Model Checker"}
-
       lappend appNames  $name
       set dispApps($cmd) $name
     }

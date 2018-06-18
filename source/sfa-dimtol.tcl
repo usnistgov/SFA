@@ -726,7 +726,6 @@ proc spmiDimtolReport {objEntity} {
                           set dimrep($dimrepID) "$pmiModifiers($ov)$dimrep($dimrepID)"
 # suffix, append to savedModifier
                         } else {
-                          outputMsg $ov red
                           if {$ov == "statistical"} {set ov "statistical_dimension"}
                           append savedModifier $pmiModifiers($ov)
                         }

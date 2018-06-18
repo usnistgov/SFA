@@ -1,6 +1,6 @@
 #-------------------------------------------------------------------------------
 # version numbers, software and user's guide
-proc getVersion {}   {return 2.97}
+proc getVersion {}   {return 2.98}
 proc getVersionUG {} {return 2.34}
 
 # -------------------------------------------------------------------------------
@@ -1012,7 +1012,7 @@ proc pmiFormatColumns {str} {
     } elseif {[string first "PMI Representation" $str] != -1} {
       set rs $spmiRow($thisEntType)
       if {$opt(XLSBUG1) > 0 && ![file exists [file nativename C:/Windows/Fonts/ARIALUNI.TTF]]} {
-        errorMsg "Excel might not show some GD&T symbols correctly in PMI Representation reports.  The missing\n symbols will appear as question mark inside a square.  The likely cause is a missing font\n 'Arial Unicode MS' from the font file 'ARIALUNI.TTF'."
+        errorMsg "Excel might not show some GD&T symbols correctly in PMI Representation reports.  The missing\nsymbols will appear as question mark inside a square.  The likely cause is a missing font\n'Arial Unicode MS' from the font file 'ARIALUNI.TTF'.  Find a copy of this font file and\ninstall it or update Excel."
         incr opt(XLSBUG1) -1
       } elseif {$opt(XLSBUG1) < 30 && [file exists [file nativename C:/Windows/Fonts/ARIALUNI.TTF]]} {
         set opt(XLSBUG1) 30
