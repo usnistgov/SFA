@@ -259,6 +259,7 @@ proc getNISTName {} {
     lappend filePrefix "$fp\-"
   }
   set ftail [string tolower [file tail $localName]]
+  set ftail1 $ftail
   set c 3
   if {[string first "tgp" $ftail] == 0} {set c 4}
   foreach str {asme1 ap203 ap214 ap242 c3e} {regsub $str $ftail "" ftail}
@@ -332,12 +333,26 @@ proc getNISTName {} {
   
 # other files
   if {!$ok} {
+    
+# CAx-IF ISO PMI models    
+    if {[string first "sp6" $ftail1] == 0} {
+      if {[string first "base"    $ftail] != -1} {set nistName "sp6-base"}
+      if {[string first "cheek"   $ftail] != -1} {set nistName "sp6-cheek"}
+      if {[string first "pole"    $ftail] != -1} {set nistName "sp6-pole"}
+      if {[string first "spindle" $ftail] != -1} {set nistName "sp6-spindle"}
+    }
+    
+# QIF bracket    
     if {[string first "332211_qif_bracket" $ftail] != -1} {set nistName "332211_qif_bracket_revh"}
+      
+# CAx-IF sp3 models      
     if {[string first "sp3" $ftail] == 0} {
       if {[string first "1101"  $ftail] != -1} {set nistName "sp3-1101"}
       if {[string first "16792" $ftail] != -1} {set nistName "sp3-16792"}
       if {[string first "box"   $ftail] != -1} {set nistName "sp3-box"}
     }
+  } else {
+    
   }
   if {$developer && [string first "step-file-analyzer" $ftail] == 0} {set nistName "nist_ctc_01"}
   
@@ -444,7 +459,7 @@ proc openURL {url} {
       exec {*}[auto_execok start] "" $url
     } emsg]} {
       if {[string first "is not recognized" $emsg] == -1} {
-        errorMsg "ERROR opening $url\n $emsg"
+        if {[string first "UNC" $emsg] == -1} {errorMsg "ERROR opening $url: $emsg"}
       }
     }
 
@@ -689,10 +704,12 @@ proc runOpenProgram {} {
 # default viewer associated with file extension
   } elseif {[string first "Default" $idisp] == 0} {
     if {[catch {
-      exec {*}[auto_execok start] "" $dispFile
+      exec {*}[auto_execok start] "" [file nativename $dispFile]
     } emsg]} {
-      errorMsg "No application is associated with STEP files."
-      errorMsg " Go to Websites > STEP File Viewers"
+      if {[string first "UNC" $emsg] == -1} {
+        errorMsg "No application is associated with STEP files."
+        errorMsg " Go to Websites > STEP File Viewers"
+      }
     }
 
 # file tree view
@@ -1016,6 +1033,12 @@ proc getOpenPrograms {} {
   if {[file exists $b1]} {
     set name "EnSuite-View"
     set dispApps($b1) $name
+  } else {
+    set b1 [file join $drive CCE EnSuite-View Bin EnSuite-View.exe]
+    if {[file exists $b1]} {
+      set name "EnSuite-View"
+      set dispApps($b1) $name
+    }
   }
 
 #-------------------------------------------------------------------------------
@@ -1221,16 +1244,18 @@ proc openXLS {filename {check 0} {multiFile 0}} {
 # open spreadsheet in Excel, works even if Excel not already started above although slower
     if {[catch {
       outputMsg "\nOpening Spreadsheet: [file tail $filename]"
-      exec {*}[auto_execok start] "" $filename
+      exec {*}[auto_execok start] "" [file nativename $filename]
 
 # errors
     } emsg]} {
-      errorMsg "ERROR opening Spreadsheet: $emsg"
-      outputMsg " "
-      set funcstr "F2"
-      if {$multiFile} {set funcstr "F3"}
-      errorMsg "Use $funcstr to open the spreadsheet or\n Go to the directory with the spreadsheet and open it."
-      catch {raise .}
+      if {[string first "UNC" $emsg] == -1} {
+        errorMsg "ERROR opening Spreadsheet: $emsg"
+        outputMsg " "
+        set funcstr "F2"
+        if {$multiFile} {set funcstr "F3"}
+        errorMsg "Use $funcstr to open the spreadsheet or\n Go to the directory with the spreadsheet and open it."
+        catch {raise .}
+      }
     }
 
   } else {
@@ -1667,7 +1692,11 @@ proc copyRoseFiles {} {
         outputMsg "Copy the *.rose files in $mytemp\n to [file nativename $ifcsvrDir]" red
         outputMsg "You should copy the files with Administrator Privileges, if possible.\nIf there are problems copying the *.rose files, email the Contact (Help > About).\nGo to Help > Supported STEP APs to see which STEP schemas are supported." red
         after 1000
-        exec {*}[auto_execok start] [file nativename $mytemp]
+        if {[catch {
+          exec {*}[auto_execok start] [file nativename $mytemp]
+        } emsg]} {
+          if {[string first "UNC" $emsg] == -1} {errorMsg "ERROR opening directory: $emsg"}
+        }
       }
     }
 
@@ -1760,7 +1789,11 @@ proc installIFCsvr {} {
 
 # ready or not to install
   if {[file exists $ifcsvrMsi]} {
-    exec {*}[auto_execok start] "" $ifcsvrMsi
+    if {[catch {
+      exec {*}[auto_execok start] "" $ifcsvrMsi
+    } emsg]} {
+      if {[string first "UNC" $emsg] == -1} {errorMsg "ERROR installing IFCsvr Toolkit: $emsg"}
+    }
   } else {
     if {[file exists $ifcsvrInst]} {errorMsg "The IFCsvr Toolkit cannot be automatically installed."}
     catch {.tnb select .tnb.status}
@@ -1774,7 +1807,11 @@ proc installIFCsvr {} {
       outputMsg "3 - If there are problems with the IFCsvr installation, email the Contact (Help > About)\n"
       after 1000
       errorMsg "Opening folder: $mytemp"
-      exec {*}[auto_execok start] [file nativename $mytemp]
+      if {[catch {
+        exec {*}[auto_execok start] [file nativename $mytemp]
+      } emsg]} {
+        if {[string first "UNC" $emsg] == -1} {errorMsg "ERROR opening directory: $emsg"}
+      }
     } else {
       outputMsg "To install the IFCsvr Toolkit you must install the NIST version of the STEP File Analyzer and Viewer."
       outputMsg "1 - Go to https://concrete.nist.gov/cgi-bin/ctv/sfa_request.cgi"

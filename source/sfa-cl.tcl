@@ -61,20 +61,20 @@ catch {
 }
 
 # no arguments, no file, print help, and exit
-if {$argc == 1} {set arg [string tolower [lindex $argv 0]]}
-if {$argc == 0 || ($argc == 1 && ($arg == "help" || $arg == "-help" || $arg == "-h" || $arg == "-v"))} {
-  puts "\nUsage: sfa-cl.exe myfile.stp \[csv\] \[viz\] \[noopen\] \[file\]"
-  puts "\n  If myfile.stp has spaces, put quotes around the file name, e.g., \"C:/mydir/my file.stp\"."
-  puts "\nOptional command line settings:"
-  puts "  csv     Generate CSV files"                                                                                        
-  puts "  viz     Generate only Visualizations and no spreadsheet or CSV files"                                                                                        
-  puts "  noopen  Do not open the spreadsheet after it has been generated"
-  puts "  file    Name of custom options file, e.g., C:/mydir/myoptions.dat"
-  puts "          This file should be similar to STEP-File-Analyzer-options.dat"
-  puts "          in your home directory."
-  puts "
-If not already installed, the IFCsvr toolkit (used to read STEP files) and STEP
-schema files will be installed the first time this program is run.
+set helpText "\nUsage: sfa-cl.exe myfile.stp \[csv\] \[viz\] \[noopen\] \[file\]
+
+Optional command line settings:
+  csv     Generate CSV files                                                                              
+  viz     Generate only Visualizations and no spreadsheet or CSV files                     
+  noopen  Do not open the spreadsheet after it has been generated
+  file    Name of custom options file, e.g., C:/mydir/myoptions.dat
+          This file should be similar to STEP-File-Analyzer-options.dat in your home directory.
+
+If 'myfile.stp' has spaces, put quotes around the file name \"C:/mydir/my file.stp\"
+
+It is recommended to run the GUI version of the software first.  If not already
+installed, the IFCsvr toolkit (used to read STEP files) and STEP schema files will
+be installed the first time this software is run.
 
 Disclaimers:
 
@@ -91,6 +91,10 @@ End-User License Agreements.  The B-rep geometry viewer is based on software fro
 OpenCascade and pythonOCC.
 
 See the NIST Disclaimer at: https://www.nist.gov/disclaimer"
+
+if {$argc == 1} {set arg [string tolower [lindex $argv 0]]}
+if {$argc == 0 || ($argc == 1 && ($arg == "help" || $arg == "-help" || $arg == "-h" || $arg == "-v"))} {
+  puts $helpText
   exit
 }
 
@@ -114,7 +118,8 @@ set localName [lindex $argv 0]
 if {[string first ":" $localName] == -1} {set localName [file join [pwd] $localName]}
 set localName [file nativename $localName]
 if {![file exists $localName]} {
-  outputMsg "\n*** STEP file not found: [truncFileName $localName]"
+  puts "\n*** STEP file not found: [truncFileName $localName]"
+  puts $helpText
   exit
 }
 set remoteName $localName
@@ -148,7 +153,7 @@ set opt(VIZPMIVP) 0
 set opt(VIZTPGMSH) 0
 set opt(writeDirType) 0
 set opt(XL_KEEPOPEN) 0
-set opt(XL_ROWLIM) 1048576
+set opt(XL_ROWLIM) 1003
 set opt(XL_SORT) 0
 set opt(XLSBUG1) 30
 set opt(XLSCSV) Excel
@@ -180,6 +185,7 @@ if {$env(USERNAME) == "lipman"} {set developer 1}
 # initialize other data
 initData
 initDataInverses
+getOpenPrograms
 
 # -----------------------------------------------------------------------------------------------------
 # check for custom options file
@@ -187,11 +193,17 @@ set optionsFile [file nativename [file join $fileDir STEP-File-Analyzer-options.
 set customFile ""
 for {set i 1} {$i <= 10} {incr i} {
   set arg [lindex $argv $i]
-  if {[file exists $arg]} {
-    set customFile [file nativename $arg]
-    puts "\n*** Using custom options file: [truncFileName $customFile]"
-    append endMsg "\nA custom options file was used: [truncFileName $customFile]"
-    set optionsFile $customFile
+  set arg1 [string tolower $arg]
+  if {$arg != "" && $arg1 != "csv" && $arg1 != "viz" && $arg1 != "noopen"} {
+    if {[file exists $arg]} {
+      set customFile [file nativename $arg]
+      puts "\n*** Using custom options file: [truncFileName $customFile]"
+      append endMsg "\nA custom options file was used: [truncFileName $customFile]"
+      set optionsFile $customFile
+    } else {
+      puts "\n*** Bad command-line argument: $arg"
+      append endMsg "Bad command-line argument: $arg"
+    }
   }
 }
 
@@ -223,8 +235,26 @@ for {set i 1} {$i <= 10} {incr i} {
   set arg [string tolower [lindex $argv $i]]
   if {$arg != ""} {
     if {[string first "noo" $arg] == 0} {set opt(XL_OPEN) 0}                              
-    if {[string first "csv" $arg] == 0} {set opt(XLSCSV) "CSV"}                              
-    if {[string first "viz" $arg] == 0} {set opt(XLSCSV) "None"}                              
+    if {[string first "csv" $arg] == 0} {
+      if {[lsearch [string tolower $argv] "viz"] == -1} {set opt(XLSCSV) "CSV"}
+    }                              
+    if {[string first "viz" $arg] == 0} {
+      set opt(XLSCSV) "None"
+      set opt(PMIGRF) 0
+      set opt(PMISEM) 0
+      set opt(VALPROP) 0
+      set opt(VIZBRP) 1
+      set opt(VIZFEA) 1
+      set opt(VIZFEABC) 1
+      set opt(VIZFEADS) 1
+      set opt(VIZFEADStail) 1
+      set opt(VIZFEALV) 1
+      set opt(VIZFEALVS) 0
+      set opt(VIZPMI) 1
+      set opt(VIZPMIVP) 0
+      set opt(VIZTPG) 1
+      set opt(VIZTPGMSH) 0
+    }                              
   }
 }
 
@@ -237,6 +267,9 @@ if {$opt(FIRSTTIME) || $sfaVersion < [getVersion]} {
   saveState
 }
 if {$copyrose} {copyRoseFiles}
+
+# set process id used to check memory usage for AP209 files
+set sfaPID [twapi::get_process_ids -name "sfa-cl.exe"]
 
 # -----------------------------------------------------------------------------------------------------
 # generate spreadsheet or CSV files

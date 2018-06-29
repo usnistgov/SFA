@@ -146,7 +146,7 @@ proc getEntity {objEntity checkInverse} {
                 position_coords {if {[info exists coordinatesList($p21id)]} {set objValue $coordinatesList($p21id); set ok1 1}}
                 line_strips     {if {[info exists lineStrips($p21id)]}      {set objValue $lineStrips($p21id); set ok1 1}}
               }
-              if {!$ok1} {errorMsg " Skipping attribute '$attrName' on [formatComplexEnt $thisEntType] - '???' will appear in spreadsheet for this attribute.  See Users's Guide section 3.3.1" red}
+              if {!$ok1} {errorMsg " Skipping attribute '$attrName' on [formatComplexEnt $thisEntType] - '???' will appear in spreadsheet for this attribute.  See User Guide section 3.3.1" red}
             } else {
               #switch -- $attrName {
               #  normals    {if {[info exists normals($p21id)]}   {set objValue $normals($p21id); set ok1 1}}
@@ -154,7 +154,7 @@ proc getEntity {objEntity checkInverse} {
               #}
               set str $badAttributes($thisEntType)
               regsub -all " " $str "' '" str
-              errorMsg " Skipping attributes '$str' on [formatComplexEnt $thisEntType]\n '???' will appear in spreadsheet for these attributes.  See Users's Guide section 3.3.1" red
+              errorMsg " Skipping attributes '$str' on [formatComplexEnt $thisEntType]\n '???' will appear in spreadsheet for these attributes.  See User Guide section 3.3.1" red
             }
           }
         }

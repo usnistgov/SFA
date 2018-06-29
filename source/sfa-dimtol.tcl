@@ -799,6 +799,10 @@ proc spmiDimtolReport {objEntity} {
                         $cells($dt) Item 3 $c $colName
                         set pmiHeading($col($dt)) 1
                         set pmiCol [expr {max($col($dt),$pmiCol)}]
+                        if {[string first "dimension name" $colName] == 0} {
+                          set comment "Section names refer to the CAx-IF Recommended Practice for Representation and Presentation of PMI (AP242)."
+                          addCellComment $dt 3 $c $comment 300 100
+                        }
                       }
                     }
 
@@ -922,6 +926,8 @@ proc spmiDimtolReport {objEntity} {
             $cells($dt) Item 3 $c $colName
             set pmiHeading($pmiColumns(ch)) 1
             set pmiCol [expr {max($pmiColumns(ch),$pmiCol)}]
+            set comment "See Help > User Guide (section 5.1.5) for an explanation of Associated Geometry."
+            addCellComment $dt 3 $c $comment 300 100
           }
           $cells($dt) Item $r $pmiColumns(ch) [string trim $str]
           
@@ -1234,7 +1240,7 @@ proc spmiDimtolReport {objEntity} {
           $cells($dt) Item 3 $c $colName
           set pmiHeading($pmiColumns(dmrp)) 1
           set pmiCol [expr {max($pmiColumns(dmrp),$pmiCol)}]
-          set comment "See Help > User's Guide (section 5.1.3) for an explanation of how the dimensions below are constructed."
+          set comment "See Help > User Guide (section 5.1.3) for an explanation of how the dimensions below are constructed."
           if {[info exists dim(unit)]} {append comment " ***** Dimension units: $dim(unit)"}
           append comment " ***** Repetitive dimensions (e.g., 4X) might be shown for diameters and radii.  They are computed based on the number of cylindrical, spherical, and toroidal surfaces associated with a dimension (see Associated Geometry column to the right) and, depending on the CAD system, might be off by a factor of two, have the wrong value, or be missing."
           if {$nistName != ""} {

@@ -181,7 +181,17 @@ proc genExcel {{numFile 0}} {
     getSchemaFromFile $fname 1
 
     if {!$p21e3} {
-      errorMsg "Possible causes of the ERROR:\n- STEP schema is not supported, see Help > Supported STEP APs\n- Syntax errors in the STEP file\n- File does not end with END-ISO-10303-21;\n- File is not an ISO 10303 Part 21 STEP file\n- File or directory name contains accented, non-English, or symbol characters\n- File extension is not '.stp', '.step', '.p21', '.stpZ', or '.ifc'\n- Multiple STEP schemas are used" red
+      set fext [string tolower [file extension $fname]]
+      if {$fext != ".stp" && $fext != ".step" && $fext != ".p21" && $fext != ".stpz" && $fext != ".ifc"} {
+        errorMsg "File extension not supported ([file extension $fname])"
+      } else {
+        set msg "Possible causes of the ERROR:"
+        append msg "\n- File or directory name contains accented, non-English, or symbol characters\n   [file nativename $fname]"
+        append msg "\n- STEP schema is not supported, see Help > Supported STEP APs"
+        append msg "\n- Syntax errors in the file\n- File does not end with END-ISO-10303-21;"
+        append msg "\n- File is not an ISO 10303 Part 21 file\n- FILE_SCHEMA contains multiple schemas"
+        errorMsg $msg red
+      }      
     
 # part 21 edition 3
     } else {
@@ -196,7 +206,7 @@ proc genExcel {{numFile 0}} {
 # open STEP file in editor
     if {$editorCmd != ""} {
       errorMsg "Opening STEP file in text editor"
-      exec $editorCmd $localName &
+      exec $editorCmd [file nativename $localName] &
     }
 
     if {[info exists errmsg]} {unset errmsg}
@@ -231,7 +241,7 @@ proc genExcel {{numFile 0}} {
         set extXLS "xls"
         set xlFormat [expr 56]
         set rowmax [expr {2**16}]
-        errorMsg "Some spreadsheet features used by the STEP File Analyzer and Viewer are not compatible with this older version of Excel."
+        errorMsg "Some spreadsheet features used by the STEP File Analyzer and\n Viewer are not compatible with this older version of Excel."
       }
   
 # generate with Excel but save as CSV
@@ -259,7 +269,7 @@ proc genExcel {{numFile 0}} {
       set useXL 0
       set xlInstalled 0
       if {$opt(XLSCSV) == "Excel"} {
-        errorMsg "Excel is not installed or cannot start Excel: $emsg\n CSV files will be generated instead of a spreadsheet.  See the Output Format option.  Some options are disabled."
+        errorMsg "Excel is not installed or cannot be started: $emsg\n CSV files will be generated instead of a spreadsheet.  See the Output Format option.  Some options are disabled."
         set opt(XLSCSV) "CSV"
         catch {raise .}
       }
@@ -956,7 +966,7 @@ proc genExcel {{numFile 0}} {
         if {[catch {
           set csvdirnam "[file join [file dirname $localName] [file rootname [file tail $localName]]]-sfa-csv"
           file mkdir $csvdirnam
-          outputMsg "Saving Spreadsheet as multiple CSV files to:"
+          outputMsg "Saving Spreadsheet as multiple CSV files to directory:"
           outputMsg " [truncFileName [file nativename $csvdirnam]]" blue
           set csvFormat [expr 6]
           if {$excelVersion > 15} {set csvFormat [expr 62]}
@@ -1063,7 +1073,11 @@ proc genExcel {{numFile 0}} {
       set dir [file nativename $csvdirnam]
       if {[string first " " $dir] == -1} {
         outputMsg "Opening CSV file directory"
-        exec {*}[auto_execok start] $dir
+        if {[catch {
+          exec {*}[auto_execok start] $dir
+        } emsg]} {
+          if {[string first "UNC" $emsg] == -1} {errorMsg "ERROR opening CSV file directory: $emsg"}
+        }
       } else {
         exec C:/Windows/explorer.exe $dir &
       }

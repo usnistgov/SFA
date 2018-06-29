@@ -177,17 +177,19 @@ proc feaModel {entType} {
         if {[expr {$nfeaElem%2000}] == 0} {
 
 # check memory and gracefully exit
-          set mem [expr {[lindex [twapi::get_process_info $sfaPID -pagefilebytes] 1]/1048576}]
-          if {$mem > 1600} {
-            errorMsg "Insufficient memory to process all elements"
-            if {[lsearch $x3dMsg $memMsg] == -1} {
-              lappend x3dMsg $memMsg
-              set skipElements 1
+          if {[info exists sfaPID]} {
+            set mem [expr {[lindex [twapi::get_process_info $sfaPID -pagefilebytes] 1]/1048576}]
+            if {$mem > 1600} {
+              errorMsg "Insufficient memory to process all elements"
+              if {[lsearch $x3dMsg $memMsg] == -1} {
+                lappend x3dMsg $memMsg
+                set skipElements 1
+              }
+              update idletasks
+              #break
             }
-            update idletasks
-            #break
+            update
           }
-          update
         }
         if {$nfeaElem > $rowmax && $opt(XLSCSV) != "None"} {incr nprogBarEnts}
 

@@ -1,7 +1,7 @@
 #-------------------------------------------------------------------------------
-# version numbers, software and user's guide
-proc getVersion {}   {return 2.98}
-proc getVersionUG {} {return 2.34}
+# version numbers, software and user guide
+proc getVersion {}   {return 3.0}
+proc getVersionUG {} {return 3.0}
 
 # -------------------------------------------------------------------------------
 # tolType = 1 for non-geometric tolerance (dimension, datum target, annotations)
@@ -281,7 +281,7 @@ proc spmiSummary {} {
     set h 30
     set comment "PMI Representation is collected here from the datum systems, dimensions, tolerances, and datum target entities in column B"
     if {$nistName != ""} {
-      append comment " ***** It is color-coded by the expected PMI in the NIST test case drawing to the right.  The color-coding is explained at the bottom of the column.  Determining if the PMI is Partial and Possible match and corresponding Similar PMI depends on leading and trailing zeros, number precision, associated datum features and dimensions, and repetitive dimensions. ***** See Help > User's Guide (section 7)"
+      append comment " ***** It is color-coded by the expected PMI in the NIST test case drawing to the right.  The color-coding is explained at the bottom of the column.  Determining if the PMI is Partial and Possible match and corresponding Similar PMI depends on leading and trailing zeros, number precision, associated datum features and dimensions, and repetitive dimensions. ***** See Help > User Guide (section 8)"
       set h 120
     }
     append comment "."
@@ -843,13 +843,19 @@ proc spmiGetPMI {} {
           set c 0
           if {$r == 0} {
             foreach colName $lline {
-              if {$colName != ""} {set i2($c) "nist_$colName"}
+              if {$colName != ""} {
+                if {[string first "ctc" $colName] == 0 || [string first "ftc" $colName] == 0} {
+                  set i2($c) "nist_$colName"
+                } else {
+                  set i2($c) "$colName"
+                }
+              }
               incr c
             }
           } else {
             set i1 [lindex $lline 0]
             foreach cval $lline {
-              if {[info exists i2($c)]} {set spmiCoverages($i1,$i2($c)) $cval}
+              if {[info exists i2($c)] && $c > 0} {set spmiCoverages($i1,$i2($c)) $cval}
               incr c
             }
           }
@@ -1402,7 +1408,8 @@ proc getSchemaFromFile {fname {msg 0}} {
         errorMsg "STEP file schema: [lindex [split $schema " "] 0]"
         if {[llength $sline] > 3} {
           set schema1 [lindex $sline 3]
-          errorMsg "Second STEP file schema: $schema1\n A second schema is valid but will not work with the STEP File Analyzer and Viewer.\n Export the STEP file with a single schema or edit the FILE_SCHEMA to delete the second schema."
+          outputMsg " "
+          errorMsg "Second STEP file schema: $schema1\n STEP files with multiple schemas cannot be read by this software.  See FILE_SCHEMA in the HEADER section."
         } elseif {[string first "_MIM" $fsline] != -1 && [string first "_MIM_LF" $fsline] == -1} {
           errorMsg "The schema name should end with _MIM_LF"
         }

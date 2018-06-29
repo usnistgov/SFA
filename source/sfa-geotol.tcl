@@ -425,7 +425,8 @@ proc spmiGeotolReport {objEntity} {
                       if {$tolStandard(type) != "ISO"} {
                         set objValue " $pmiModifiers($idx) $objValue"
                       } else {
-                        set objValue " UZ\[$objValue\]"
+                        set objValue " UZ $objValue"
+                        #set objValue " UZ\[$objValue\]"
                       }
                       lappend spmiTypesPerFile $idx
 
@@ -473,7 +474,7 @@ proc spmiGeotolReport {objEntity} {
                     if {[info exists colName]} {
                       $cells($gt) Item 3 $c $colName
                       if {[string first "GD&T" $colName] != -1} {
-                        set comment "See Help > User's Guide (section 5.1.4) for an explanation of how the annotations below are constructed."
+                        set comment "See Help > User Guide (section 5.1.4) for an explanation of how the annotations below are constructed."
                         append comment " ***** The geometric tolerance might be shown with associated dimensions (above) and datum features (below).  That depends on any of the two referring to the same Associated Geometry as the Toleranced Geometry in the column to the right.  See the Associated Geometry columns on the 'dimensional_characteristic_representation' (DCR) and 'datum_feature' worksheets to see if they match the Toleranced Geometry."
                         append comment " ***** See the DCR worksheet for an explanation of Repetitive Dimensions."
                         if {$nistName != ""} {
@@ -494,6 +495,8 @@ proc spmiGeotolReport {objEntity} {
 
 # value in spreadsheet
                   set val [[$cells($gt) Item $r $c] Value]
+                  #outputMsg "(18) $c  $r -- $objValue -- $val" green
+                  
                   if {$val == ""} {
                     $cells($gt) Item $r $c $objValue
                     if {$gt == "datum_system"} {
@@ -664,7 +667,8 @@ proc spmiGeotolReport {objEntity} {
 # write tolerance with modifier
                   set ov $objValue 
                   set val [[$cells($gt) Item $r $c] Value]
-                  #outputMsg "$r / $c / $ov / $val" green
+                  #outputMsg "(20) $c  $r -- $ov -- $val" green
+
                   if {$val == ""} {
                     $cells($gt) Item $r $c $ov
                     if {$gt == "datum_reference_compartment"} {
@@ -1104,7 +1108,7 @@ proc spmiGeotolReport {objEntity} {
                   "*geometric_tolerance_with_defined_area_unit* area_type" {
 # defined area unit, look for square, rectangle and add " X 0.whatever" to existing value
                     set ok 1
-                    if {[lsearch [list square rectangular circular] $objValue] == -1} {
+                    if {[lsearch [list square rectangular circular cylindrical spherical] $objValue] == -1} {
                       errorMsg "Syntax Error: Invalid 'area_type' attribute ($objValue) on geometric_tolerance_with_defined_area_unit.\n[string repeat " " 14]\($recPracNames(pmi242), Sec. 6.9.6)"
                     }
                   }
@@ -1143,7 +1147,7 @@ proc spmiGeotolReport {objEntity} {
   
                   set ov $objValue 
                   set val [[$cells($gt) Item $r $c] Value]
-                  #outputMsg "$r / $c / $ov / $val" green
+                  #outputMsg "(5) $c  $r -- $ov -- $val" green
                   
                   if {$val == ""} {
                     $cells($gt) Item $r $c $ov
@@ -1174,17 +1178,20 @@ proc spmiGeotolReport {objEntity} {
                     } elseif {$ent1 == "common_datum identification"} {
                       set nval "$val | $ov"
                       $cells($gt) Item $r $c $nval
+
 # insert modifier (AP203)
                     } elseif {[string first "modified_geometric_tolerance" $ent1] != -1} {
                       set sval [split $val "|"]
                       lset sval 1 "[string trimright [lindex $sval 1]]$ov "
                       set nval [join $sval "|"]
                       $cells($gt) Item $r $c $nval
+
 # append modifier
-                    } elseif {[string first "modifier" $ent1] != -1} {
+                    } elseif {[string first "modifier" $ent1] != -1 && $ov != "rectangular"} {
                       set nval $val$ov
                       $cells($gt) Item $r $c $nval
-# area_type for defined area unit, rectangular is handled above
+
+# area_type for defined area unit
                     } elseif {$ov == "square"} {
                       set c1 [string last " " $val]
                       set nval "$val X [string range $val $c1+1 end]"
@@ -1508,13 +1515,16 @@ proc spmiGeotolReport {objEntity} {
         set r $spmiIDRow($gt,$spmiID)
         if {[string first "datum_feature" [$gtEntity Type]] == -1} {
           set heading "Toleranced Geometry[format "%c" 10](column E)"
+          set comment "See Help > User Guide (section 5.1.5) for an explanation of Toleranced Geometry."
         } else {
           set heading "Associated Geometry[format "%c" 10](Sec. 6.5)"
+          set comment "See Help > User Guide (section 5.1.5) for an explanation of Associated Geometry."
         }
         if {![info exists pmiHeading($c1)]} {
           $cells($gt) Item 3 $c $heading
           set pmiHeading($c1)) 1
           set pmiCol [expr {max($c1,$pmiCol)}]
+          addCellComment $gt 3 $c $comment 300 100
         }
         $cells($gt) Item $r $c [string trim $geotolGeom]
         if {[lsearch $spmiRow($gt) $r] == -1} {lappend spmiRow($gt) $r}

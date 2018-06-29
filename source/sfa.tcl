@@ -102,7 +102,7 @@ set opt(VIZPMIVP) 0
 set opt(VIZTPGMSH) 0
 set opt(writeDirType) 0
 set opt(XL_KEEPOPEN) 0
-set opt(XL_ROWLIM) 1048576
+set opt(XL_ROWLIM) 1003
 set opt(XL_SORT) 0
 set opt(XLSBUG1) 30
 set opt(XLSCSV) Excel
@@ -307,7 +307,7 @@ if {$opt(FIRSTTIME)} {
   set opt(FIRSTTIME) 0
   
   after 1000
-  showUsersGuide
+  showUserGuide
   set opt(DISPGUIDE1) 0
   
   saveState
@@ -322,8 +322,8 @@ if {$opt(FIRSTTIME)} {
 } elseif {$sfaVersion < [getVersion]} {
   whatsNew
   if {$sfaVersion < [getVersionUG]} {
-    errorMsg "- A new version of the User's Guide is now available"
-    showUsersGuide
+    errorMsg "- A new version of the User Guide is available.\n  Sections 5.1.5, 6, 7, and 8.1 have new or updated content."
+    showUserGuide
   }
   if {$sfaVersion < 2.30} {
     errorMsg "- The command-line version has been renamed: sfa-cl.exe  The old version STEP-File-Analyzer-CL.exe can be deleted."
@@ -369,9 +369,9 @@ if {$nistVersion} {
   }
 }
 
-# open user's guide if it hasn't already
+# open user guide if it hasn't already
 if {$opt(DISPGUIDE1)} {
-  showUsersGuide
+  showUserGuide
   set opt(DISPGUIDE1) 0
   saveState
 }
@@ -425,6 +425,8 @@ if {[llength $pid2] > 1} {
     .tnb select .tnb.status
   }
 }
+
+# set process id used to check memory usage for AP209 files
 set sfaPID [twapi::get_process_ids -name "STEP-File-Analyzer.exe"]
 
 # copy schema rose files that are in the Tcl Virtual File System (VFS) or STEP Tools runtime to the IFCsvr dll directory

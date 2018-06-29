@@ -99,7 +99,7 @@ set auto_index(guiUserDefinedEntities) [list source [file join $dir sfa-gui.tcl]
 set auto_index(guiWebsitesMenu) [list source [file join $dir sfa-gui.tcl]]
 set auto_index(showCrashRecovery) [list source [file join $dir sfa-gui.tcl]]
 set auto_index(showDisclaimer) [list source [file join $dir sfa-gui.tcl]]
-set auto_index(showUsersGuide) [list source [file join $dir sfa-gui.tcl]]
+set auto_index(showUserGuide) [list source [file join $dir sfa-gui.tcl]]
 
 set auto_index(addCellComment) [list source [file join $dir sfa-proc.tcl]]
 set auto_index(addFileToMenu) [list source [file join $dir sfa-proc.tcl]]

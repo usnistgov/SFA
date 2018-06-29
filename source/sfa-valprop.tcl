@@ -46,14 +46,27 @@ proc valPropStart {} {
     [list "number of segments" [list "number of segments"]] \
     [list "surface area" [list "tessellated surface area"]]]
 
-# composite recommended practice (new vp in the last line)
+# composite recommended practice (new vp in the last 2 lines)
   set valPropNames(composite_validation_property) [list \
     [list "" [list "number of composite tables" "number of composite materials per part" "number of composite materials per part" \
       "number of orientations per part" "number of plies per part" "number of plies per laminate table" \
       "number of composite sequences per laminate table" "number of composite materials per laminate table" \
       "number of composite orientations per laminate table" "ordered sequences per laminate table" \
       "notational centroid" "number of ply pieces per ply" \
-      "number of tables" "number of sequences" "number of plies" "number of materials" "number of orientations" "sum of all ply surfaces areas" "centre point of all plies"]]]
+      "number of tables" "number of sequences" "number of plies" "number of materials" "number of orientations" \
+      "sum of all ply surfaces areas" "centre point of all plies"]]]
+
+# fea validation properties (work in progress)
+  set valPropNames(fea_validation_property) [list \
+    [list "" [list "maximum nodal displacement" "maximum nodal rotation" "maximum von mises stress" \
+      "min max volume change" "min max axial 1d internal force" "min max shear1 1d internal force" "min max shear2 1d internal force" \
+      "min max torsion 1d internal force" "min max bending1 1d internal force" "min max bending2 1d internal force" \
+      "min max membrane x 2d" "min max membrane y 2d" "min max membrane xy 2d" "min max shear x 2d" "min max shear y 2d" \
+      "min max bending x 2d" "min max bending y 2d" "min max bending xy 2d"]] \
+    [list "fixed dof number" [list "number of fixed dof"]] \
+    [list "applied moments" [list "reference point for applied moment" "resultant moment at reference point"]] \
+    [list "bounding box" [list "bounding box corner point"]] \
+    [list "centroid" [list "centre point"]]]
 
   set derived_unit_element [list derived_unit_element unit \
     [list conversion_based_unit_and_length_unit dimensions name conversion_factor] \

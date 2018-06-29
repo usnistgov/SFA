@@ -581,7 +581,7 @@ proc x3dBrepGeom {} {
       set stpx3dFileName [file rootname $localName].x3d
       catch {file delete -force $stpx3dFileName}
       outputMsg " Processing B-rep geometry. Wait for the popup program (stp2x3d.exe) to complete. See Options tab." green
-      catch {exec $stp2x3d $localName} errs
+      catch {exec $stp2x3d [file nativename $localName]} errs
       #outputMsg $errs red
       
 # done processing      
@@ -1024,9 +1024,11 @@ proc openX3DOM {{fn ""}} {
     catch {.tnb select .tnb.status}
     set lastX3DOM $fn
     if {[catch {
-      exec {*}[auto_execok start] "" $fn
+      exec {*}[auto_execok start] "" [file nativename $fn]
     } emsg]} {
-      errorMsg "No web browser is associated with HTML files.\n Open [truncFileName [file nativename $fn]] in a web browser that supports x3dom.  https://www.x3dom.org/check/\n $emsg"
+      if {[string first "UNC" $emsg] == -1} {
+        errorMsg "ERROR opening Visualization file: $emsg\n Open [truncFileName [file nativename $fn]]\n in a web browser that supports x3dom https://www.x3dom.org"
+      }
     }
     update idletasks
   }

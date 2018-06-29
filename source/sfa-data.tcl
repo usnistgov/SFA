@@ -199,7 +199,7 @@ foreach item [list \
   "unequally_disposed \u24CA (6.9.4)" "projected \u24C5 (6.9.2.2)" "free_state \u24BB (6.9.3)" "tangent_plane \u24C9 (6.9.3)" \
   "statistical_tolerance <ST> (6.9.3)" "separate_requirement SEP REQT (6.9.3)" \
   "dimensional location (5.1.1)" "dimensional size (5.1.5)" "angular location (5.1.2)" "angular size (5.1.6)" \
-  "directed dimension (5.1.1)"  "oriented dimensional location (5.1.3)" "derived shapes dimensional location (5.1.4)" \
+  "directed dimension \u2331 (5.1.1)"  "oriented dimensional location (5.1.3)" "derived shapes dimensional location (5.1.4)" \
   "bilateral tolerance (5.2.3)" "non-bilateral tolerance (5.2.3)" "value range (5.2.4)" \
   "diameter \u2205 (5.1.5)" "radius R (5.1.5)" "spherical diameter S\u2205 (5.1.5)" "spherical radius SR (5.1.5)" "controlled radius CR (5.3)" \
   "basic dimension (5.3)" "reference dimension (5.3)" "statistical_dimension <ST> (5.3)" "type qualifier (5.2.2)" "tolerance class (5.2.5)" \
@@ -239,7 +239,6 @@ set pmiModifiersArray(degree_of_freedom_constraint_x,6.9.7) "x"
 set pmiModifiersArray(degree_of_freedom_constraint_y,6.9.7) "y"
 set pmiModifiersArray(degree_of_freedom_constraint_z,6.9.7) "z"
 set pmiModifiersArray(depth)                                "\u21A7"
-set pmiModifiersArray(directed_dimension)                   "\u2331"
 set pmiModifiersArray(distance_variable,6.9.7)              "DV"
 set pmiModifiersArray(each_radial_element,6.9.3)            "ERE"
 set pmiModifiersArray(envelope_requirement,5.2.1)           "\u24BA"
@@ -285,6 +284,15 @@ set pmiModifiersArray(translation,6.9.7)                    "\u25B7"
 set pmiModifiersArray(two_point_size,5.3)                   "(LP)"
 set pmiModifiersArray(unequally_disposed,6.9.4)             "\u24CA"
 set pmiModifiersArray(volume_diameter_calculated_size,5.3)  "(CV)"
+
+# new ISO 1101 modifiers
+#set pmiModifiersArray(united_feature,6.9.3)                       "UF"
+#set pmiModifiersArray(derived_feature,6.9.3)                      "\u24B6"
+#set pmiModifiersArray(associated_minmax_feature,6.9.3)            "\u24B8"
+#set pmiModifiersArray(associated_least_square_feature,6.9.3)      "\u24BC"
+#set pmiModifiersArray(associated_minimum_inscribed_feature,6.9.3) "\u24C3"
+#set pmiModifiersArray(associated_tangent_feature,6.9.3)           "\u24C9"
+#set pmiModifiersArray(associated_maximum_inscribed_feature,6.9.3) "\u24CD"
 
 foreach item [array names pmiModifiersArray] {
   set ids [split $item ","]
