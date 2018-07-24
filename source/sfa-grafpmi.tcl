@@ -231,7 +231,6 @@ proc gpmiAnnotationReport {objEntity} {
 # look for entities with bad attributes that cause a crash
       set okattr 1
       if {[info exists badAttributes($objType)]} {foreach ba $badAttributes($objType) {if {$ba == $objName} {set okattr 0}}}
-      #outputMsg "$ent1 $okattr" blue
 
       if {$okattr} {
         set objValue    [$objAttribute Value]

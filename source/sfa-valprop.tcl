@@ -661,7 +661,7 @@ proc valPropFormat {} {
     set col($thisEntType) [expr {$col($thisEntType)-$ndelcol}]
   
 # sort
-    if {$excelVersion >= 12} {
+    if {$excelVersion > 11} {
       set ranrow $row($thisEntType)
       if {$ranrow > 8} {
         set range [$worksheet($thisEntType) Range [cellRange 3 1] [cellRange $ranrow $col($thisEntType)]]
@@ -729,13 +729,15 @@ proc valPropFormat {} {
 # left and right borders in header
     for {set i 5} {$i <= $col($thisEntType)} {incr i} {
       set range [$worksheet($thisEntType) Range [cellRange 3 $i] [cellRange 3 $i]]
-      catch {[[$range Borders] Item [expr 7]]  Weight [expr 1]}
-      catch {[[$range Borders] Item [expr 10]] Weight [expr 1]}
+      catch {
+        [[$range Borders] Item [expr 7]]  Weight [expr 1]
+        [[$range Borders] Item [expr 10]] Weight [expr 1]
+      }
     }
     
 # bottom bold line
     #set range [$worksheet($thisEntType) Range [cellRange $row($thisEntType) 5] [cellRange $row($thisEntType) $col($thisEntType)]]
-    #[[$range Borders] Item [expr 9]] Weight [expr -4138]
+    #catch {[[$range Borders] Item [expr 9]] Weight [expr -4138]}
     
 # fix column widths
     set colrange [[[$worksheet($thisEntType) UsedRange] Columns] Count]

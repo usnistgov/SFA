@@ -1,6 +1,6 @@
 #-------------------------------------------------------------------------------
 # version numbers, software and user guide
-proc getVersion {}   {return 3.0}
+proc getVersion {}   {return 3.01}
 proc getVersionUG {} {return 3.0}
 
 # -------------------------------------------------------------------------------
@@ -255,7 +255,7 @@ proc reportAssocGeom {entType {row ""}} {
 # -------------------------------------------------------------------------------
 # Semantic PMI summary worksheet
 proc spmiSummary {} {
-  global cells entName excelVersion localName row sheetLast spmiSumName spmiSumRow thisEntType worksheet worksheets xlFileName
+  global cells entName localName row sheetLast spmiSumName spmiSumRow thisEntType worksheet worksheets xlFileName
   global nistName pmiExpected pmiExpectedNX wdir mytemp legendColor pmiUnicode pmiFound pmiModifiers pmiActual recPracNames tolNames pmiType valType
   global nsimilar pmiMaster allPMI
   
@@ -290,7 +290,7 @@ proc spmiSummary {} {
     set range [$worksheet($spmiSumName) Range [cellRange 1 1] [cellRange 3 3]]
     [$range Font] Bold [expr 1]
     set range [$worksheet($spmiSumName) Range [cellRange 3 1] [cellRange 3 3]]
-    if {$excelVersion >= 12} {
+    catch {
       [[$range Borders] Item [expr 8]] Weight [expr 2]
       [[$range Borders] Item [expr 9]] Weight [expr 2]
     }
@@ -620,7 +620,7 @@ proc spmiSummary {} {
                 if {[info exists pmiSimilar] && $pmiSimilar != ""} {
                   $cells($spmiSumName) Item $spmiSumRow 4 "'$pmiSimilar"
                   [[$worksheet($spmiSumName) Range D$spmiSumRow] Interior] Color $legendColor(gray)
-                  if {$excelVersion >= 12} {
+                  catch {
                     [[[$worksheet($spmiSumName) Range D$spmiSumRow] Borders] Item [expr 8]] Weight [expr 1]
                     [[[$worksheet($spmiSumName) Range D$spmiSumRow] Borders] Item [expr 9]] Weight [expr 1]
                   }
@@ -632,7 +632,7 @@ proc spmiSummary {} {
                     addCellComment $spmiSumName 3 4 "Similar PMI is the best match of the PMI Representation in column C, for Partial or Possible matches (blue and yellow), to the expected PMI in the NIST test case drawing to the right." 300 50
                     set range [$worksheet($spmiSumName) Range D3]
                     [$range Font] Bold [expr 1]
-                    if {$excelVersion >= 12} {
+                    catch {
                       [[$range Borders] Item [expr 8]] Weight [expr 2]
                       [[$range Borders] Item [expr 9]] Weight [expr 2]
                     }
@@ -647,9 +647,7 @@ proc spmiSummary {} {
             }
 
 # border
-            if {$excelVersion >= 12} {
-              [[[$worksheet($spmiSumName) Range C$spmiSumRow] Borders] Item [expr 9]] Weight [expr 1]
-            }
+            catch {[[[$worksheet($spmiSumName) Range C$spmiSumRow] Borders] Item [expr 9]] Weight [expr 1]}
           }
 # done checking actual vs. expected PMI
 
@@ -674,7 +672,7 @@ proc spmiSummary {} {
 
 # -------------------------------------------------------------------------------
 proc spmiSummaryFormat {} {
-  global cells excelVersion legendColor pmiExpected pmiFound nistName pmiActual spmiSumRow spmiSumName pmiType worksheet
+  global cells legendColor pmiExpected pmiFound nistName pmiActual spmiSumRow spmiSumName pmiType worksheet
 
   #[$worksheet($spmiSumName) Columns] AutoFit
   #[$worksheet($spmiSumName) Rows] AutoFit
@@ -696,7 +694,7 @@ proc spmiSummaryFormat {} {
         set color [lindex $item 1]
         if {$color != ""} {[$range Interior] Color $legendColor($color)}
 
-        if {$excelVersion >= 12} {
+        catch {
           [[$range Borders] Item [expr 10]] Weight [expr 2]
           [[$range Borders] Item [expr 7]] Weight [expr 2]
           incr n
@@ -717,7 +715,7 @@ proc spmiSummaryFormat {} {
       $cells($spmiSumName) Item $r 3 "Missing PMI"
       set range [$worksheet($spmiSumName) Range [cellRange $r 2]  [cellRange $r 3]]
       [$range Font] Bold [expr 1]
-      if {$excelVersion >= 12} {
+      catch {
         [[$range Borders] Item [expr 8]] Weight [expr 2]
         [[$range Borders] Item [expr 9]] Weight [expr 2]
       }
@@ -726,7 +724,7 @@ proc spmiSummaryFormat {} {
         $cells($spmiSumName) Item $r 2 $pmiType($item)
         $cells($spmiSumName) Item $r 3 "'$pmiActual($item)"
         [[$worksheet($spmiSumName) Range [cellRange $r 3]] Interior] Color $legendColor(red)
-        if {$excelVersion >= 12} {[[[$worksheet($spmiSumName) Range [cellRange $r 3]] Borders] Item [expr 9]] Weight [expr 1]}
+        catch {[[[$worksheet($spmiSumName) Range [cellRange $r 3]] Borders] Item [expr 9]] Weight [expr 1]}
       }
     }
   }
@@ -973,7 +971,7 @@ proc pmiAddModelPictures {ent} {
  
 # -------------------------------------------------------------------------------
 proc pmiFormatColumns {str} {
-  global cells col excelVersion gpmiRow invGroup opt pmiStartCol recPracNames row spmiRow stepAP thisEntType worksheet tcl_platform
+  global cells col gpmiRow invGroup opt pmiStartCol recPracNames row spmiRow stepAP thisEntType worksheet tcl_platform
 		
   if {![info exists pmiStartCol($thisEntType)]} {
     return
@@ -1048,13 +1046,11 @@ proc pmiFormatColumns {str} {
         [$range Interior] ColorIndex [lindex [list 36 35] [expr {$j%2}]]
 
 # dotted line border
-        if {$excelVersion >= 12} {
-          if {$i == $c2 && $r2 > 3} {
-            if {$r1 < 4} {set r1 4}
-            set range [$worksheet($thisEntType) Range [cellRange $r1 $c2] [cellRange $r2 $c3]]
-            for {set k 7} {$k <= 12} {incr k} {
-              catch {if {$k != 9 || [expr {$row($thisEntType)+0}] != $r2} {[[$range Borders] Item [expr $k]] Weight [expr 1]}}
-            }
+        if {$i == $c2 && $r2 > 3} {
+          if {$r1 < 4} {set r1 4}
+          set range [$worksheet($thisEntType) Range [cellRange $r1 $c2] [cellRange $r2 $c3]]
+          for {set k 7} {$k <= 12} {incr k} {
+            catch {if {$k != 9 || [expr {$row($thisEntType)+0}] != $r2} {[[$range Borders] Item [expr $k]] Weight [expr 1]}}
           }
         }
       }

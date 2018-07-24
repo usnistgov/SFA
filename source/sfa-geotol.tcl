@@ -176,9 +176,16 @@ proc spmiGeotolReport {objEntity} {
 # look for entities with bad attributes that cause a crash
       set okattr 1
       if {[info exists badAttributes($objType)]} {foreach ba $badAttributes($objType) {if {$ba == $objName} {set okattr 0}}}
+        
+# get attribute value        
+      if {[catch {
+        set objValue [$objAttribute Value]
+      } emsg]} {
+        set okattr 0
+      }
 
+# attribute OK
       if {$okattr} {
-        set objValue    [$objAttribute Value]
         set objNodeType [$objAttribute NodeType]
         set objSize     [$objAttribute Size]
         set objAttrType [$objAttribute Type]
@@ -480,7 +487,7 @@ proc spmiGeotolReport {objEntity} {
                         if {$nistName != ""} {
                           append comment " ***** See the PMI Representation Summary worksheet to see how the GD&T Annotation below compares to the expected PMI."
                         }
-                        addCellComment $gt 3 $c $comment 400 350
+                        addCellComment $gt 3 $c $comment 400 300
                       }
                     } else {
                       errorMsg "Syntax Error on [formatComplexEnt $gt]"

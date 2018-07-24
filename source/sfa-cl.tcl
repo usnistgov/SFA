@@ -117,12 +117,16 @@ set nistVersion 1
 set localName [lindex $argv 0]
 if {[string first ":" $localName] == -1} {set localName [file join [pwd] $localName]}
 set localName [file nativename $localName]
+
+# check for zipped file
+set opt(LOGFILE) 0
+if {[string first ".stpz" [string tolower $localName]] != -1} {unzipFile}  
+
 if {![file exists $localName]} {
   puts "\n*** STEP file not found: [truncFileName $localName]"
   puts $helpText
   exit
 }
-set remoteName $localName
 
 # check for IFCsvr toolkit
 set sfaType "CL"
@@ -133,7 +137,7 @@ if {![file exists [file join $ifcsvrDir IFCsvrR300.dll]]} {installIFCsvr}
 # initialize variables
 foreach id {XL_OPEN XL_KEEPOPEN XL_LINK1 XL_FPREC XL_SORT LOGFILE \
             VALPROP PMIGRF PMISEM INVERSE DEBUG1 \
-            VIZPMI VIZTPG VIZTPGMSH VIZPMIVP VIZFEA VIZFEABC VIZFEALV VIZFEALVS VIZFEADS VIZFEADStail VIZBRP \
+            VIZPMI VIZTPG VIZTPGMSH VIZPMIVP VIZFEA VIZFEABC VIZFEALV VIZFEALVS VIZFEADS VIZFEADStail VIZBRP VIZBRPmsg \
             PR_STEP_AP242 PR_USER PR_STEP_KINE PR_STEP_COMP PR_STEP_COMM PR_STEP_GEOM PR_STEP_QUAN \
             PR_STEP_FEAT PR_STEP_PRES PR_STEP_TOLR PR_STEP_REPR PR_STEP_CPNT PR_STEP_SHAP} {set opt($id) 1}
 
@@ -152,6 +156,7 @@ set opt(VIZFEALVS) 0
 set opt(VIZPMIVP) 0
 set opt(VIZTPGMSH) 0
 set opt(writeDirType) 0
+set opt(XL_FPREC) 0
 set opt(XL_KEEPOPEN) 0
 set opt(XL_ROWLIM) 1003
 set opt(XL_SORT) 0
@@ -211,6 +216,7 @@ for {set i 1} {$i <= 10} {incr i} {
 if {[file exists $optionsFile]} {
   if {[catch {
     source $optionsFile
+    puts "Reading options file: [truncFileName $optionsFile]"
   } emsg]} {
     set msg "\nError reading options file: [truncFileName $optionsFile]\n $emsg\nFix or delete the file."
     append endMsg $msg

@@ -392,12 +392,12 @@ proc guiProcessAndReports {} {
     pack $buttons($idx) -side left -anchor w -padx 5 -pady 0 -ipady 0
     incr cb
   }
-  foreach item {{"Include Viewpoints" opt(VIZPMIVP)}} {
-    regsub -all {[\(\)]} [lindex $item 1] "" idx
-    set buttons($idx) [ttk::checkbutton $foptv3.$cb -text [lindex $item 0] -variable [lindex $item 1] -command {checkValues}]
-    pack $buttons($idx) -side left -anchor w -padx 8 -pady 0 -ipady 0
-    incr cb
-  }
+  #foreach item {{"Include Viewpoints" opt(VIZPMIVP)}} {
+  #  regsub -all {[\(\)]} [lindex $item 1] "" idx
+  #  set buttons($idx) [ttk::checkbutton $foptv3.$cb -text [lindex $item 0] -variable [lindex $item 1] -command {checkValues}]
+  #  pack $buttons($idx) -side left -anchor w -padx 8 -pady 0 -ipady 0
+  #  incr cb
+  #}
   pack $foptv3 -side top -anchor w -pady 0 -padx 0 -fill y  
 
   set foptv4 [frame $foptv.4 -bd 0]
@@ -439,7 +439,7 @@ proc guiProcessAndReports {} {
 
   set foptv8 [frame $foptv.8 -bd 0]
   foreach item {{"Loads" opt(VIZFEALV)} \
-                {"Scale loads" opt(VIZFEALVS)} \
+                {"Scale loads   " opt(VIZFEALVS)} \
                 {"Displacements" opt(VIZFEADS)} \
                 {"Vector tail" opt(VIZFEADStail)}} {
     regsub -all {[\(\)]} [lindex $item 1] "" idx
@@ -462,16 +462,16 @@ proc guiProcessAndReports {} {
   pack $foptrv -side top -anchor w -pady 0 -fill x
   catch {
     tooltip::tooltip $buttons(optVIZPMI) "Graphical PMI is supported in AP242, AP203, and AP214 files.\nSupplemental geometry and tessellated edges (lines) are also shown.\n\nSee Help > PMI Presentation\nSee Help > User Guide (section 7.1.1)\nSee Help > Supplemental Geometry\nSee Examples > Part with PMI\nSee Examples > AP242 Tessellated Part with PMI\nSee Examples > Sample STEP Files\n\nVisualizations can be generated without generating a spreadsheet\nor CSV files.  See the Output Format option below."
-    tooltip::tooltip $buttons(optVIZPMIVP) "PMI Viewpoints are experimental.\n\nViewpoints usually have the correct orientation but are not centered.\nUse pan and zoom to center the PMI."
     tooltip::tooltip $buttons(optVIZTPG) "** Parts in an assembly might have the wrong position and orientation or be missing. **\n\nTessellated geometry is in addition to boundary representation (b-rep) geometry.\nSupplemental geometry and tessellated edges (lines) are also shown.\nFaces in tessellated shells are outlined in black.\n\nSee Help > AP242 Tessellated Part Geometry\nSee Help > Supplemental Geometry\nSee Help > User Guide (section 7.1.2, 7.1.3)\nSee Examples > AP242 Tessellated Part with PMI\n\nVisualizations can be generated without generating a spreadsheet or CSV files.\nSee the Output Format option below.\n\nVisualizations are displayed in web browsers that are not optimized for large models."
     tooltip::tooltip $buttons(optVIZTPGMSH) "Show a tessellation wireframe mesh based on the tessellated\nfaces or surfaces.  Not recommended for very large models."
     tooltip::tooltip $buttons(optVIZFEALVS) "The length of load vectors can be scaled by their magnitude.\nLoad vectors are always colored by their magnitude."
     tooltip::tooltip $buttons(optVIZFEADStail) "The length of displacement vectors with a tail are scaled by\ntheir magnitude.  Vectors without a tail are not.\nDisplacement vectors are always colored by their magnitude.\nLoad vectors always have a tail."
-    tooltip::tooltip $buttons(optVIZBRP) "Boundary representation part geometry is visualized ONLY if one of the above types\nof visualization features is selected and is present in the STEP file.\n\nSee Help > B-rep Geometry\nSee Examples > Part with PMI\nSee Websites > STEP File Viewers for other b-rep geometry viewers\n\nVisualizations are displayed in web browsers that are not optimized for large models."
-    tooltip::tooltip $foptv4 "For Random PMI colors, each 'annotation occurrence' is assigned a different color."
+    tooltip::tooltip $buttons(optVIZBRP) "Boundary representation part geometry is visualized ONLY if one of the above types\nof visualization features is selected AND is present in the STEP file.\n\nSee Help > B-rep Geometry\nSee Examples > Part with PMI\nSee Websites > STEP File Viewers for other b-rep geometry viewers\n\nVisualizations are displayed in web browsers that are not optimized for large models."
+    tooltip::tooltip $foptv4 "For Random PMI colors, each 'annotation occurrence' is assigned a different color\nto help differentiate one from another."
     set tt "FEM nodes, elements, boundary conditions, loads, and displacements are visualized.\n\nSee Help > AP209 Finite Element Model\nSee Help > User Guide (section 7.1.4)\nSee Examples > AP209 Finite Element Model\n\nVisualizations can be generated without generating a spreadsheet or CSV files.\nSee the Output Format option below.\n\nVisualizations are displayed in web browsers that are not optimized for large models."
     tooltip::tooltip $foptv7 $tt
     tooltip::tooltip $foptv8 $tt
+    #tooltip::tooltip $buttons(optVIZPMIVP) "PMI Viewpoints are experimental.\n\nViewpoints usually have the correct orientation but are not centered.\nUse pan and zoom to center the PMI."
   }
 }
 
@@ -778,7 +778,7 @@ proc guiSpreadsheet {} {
     incr cb
   }
   pack $fxlsa -side top -anchor w -pady {5 2} -padx 10 -fill both
-  set msg "Excel rounds real numbers if there are more than 11 characters in the number string.  For example,\nthe number 0.12499999999999997 in the STEP file will be shown as 0.125  However, double\nclicking in a cell with a rounded number will show all of the digits.\n\nThis option will show most real numbers exactly as they appear in the STEP file.  This applies\nonly to single real numbers.  Lists of real numbers, such as cartesian point coordinates, are\nalways shown exactly as they appear in the STEP file.\n\nSee Help > User Guide (section 4.5.2)"
+  set msg "Excel rounds real numbers if there are more than 11 characters in the number string.  For example,\nthe number 0.1249999999997 in the STEP file will be shown as 0.125\n\nClicking in a cell with a rounded number will show all of the digits in the formula bar.\n\nThis option will show most real numbers exactly as they appear in the STEP file.  This applies\nonly to single real numbers.  Lists of real numbers, such as cartesian point coordinates, are\nalways shown exactly as they appear in the STEP file.\n\nSee Help > User Guide (section 4.5.2)"
   catch {tooltip::tooltip $fxlsa $msg}
   
   set fxlsb [ttk::labelframe $fxls.b -text " Maximum Rows for any worksheet"]
@@ -792,7 +792,7 @@ proc guiSpreadsheet {} {
     incr cb
   }
   pack $fxlsb -side top -anchor w -pady 5 -padx 10 -fill both
-  set msg "This option will limit the number of rows (entities) written to any one worksheet or CSV file.\nThe Maximum rows ([lindex [lindex $rlimit end] 1]) depends on the version of Excel.\n\nFor large STEP files, setting a low maximum can speed up processing at the expense\nof not processing all of the entities.  This is useful when processing Geometry entities.\n\nSyntax Errors might be missed if some entities are not processed due to a small maximum rows.\n\nMaximum rows does not affect generating visualizations.\n\nSee Help > User Guide (section 4.5.3)"
+  set msg "This option will limit the number of rows (entities) written to any one worksheet or CSV file.\nThe Maximum rows ([lindex [lindex $rlimit end] 1]) depends on the version of Excel.\n\nFor large STEP files, setting a low maximum can speed up processing at the expense\nof not processing all of the entities.  This is useful when processing Geometry entities.\n\nSyntax Errors might be missed if some entities are not processed due to a small maximum rows.\n\nMaximum rows does not affect generating Visualizations.\n\nSee Help > User Guide (section 4.5.3)"
   catch {tooltip::tooltip $fxlsb $msg}
 
   set fxlsc [ttk::labelframe $fxls.c -text " Excel Options "]
@@ -1495,19 +1495,21 @@ dialogs might appear that say 'Unable to alloc xxx bytes'.  See the Help > Crash
     outputMsg "\nSTEP File Analyzer and Viewer ---------------------------------------------------------" blue
     outputMsg "Version:  [getVersion]"
     outputMsg "Updated:  [string trim [clock format $progtime -format "%e %b %Y"]]"
-    #if {$developer} {
-    #  set ver "32-bit"
-    #  foreach f [info loaded] {if {[string first "x86_64" $f] != -1} {set ver "64-bit"}}
-    #  outputMsg "Tcl:      [info patchlevel] $ver"
-    #}
     if {"$nistVersion"} {
-      outputMsg "Contact:  Robert Lipman, robert.lipman@nist.gov\n\nThe STEP File Analyzer and Viewer was first released in April 2012 and is developed at\nNIST in the Systems Integration Division of the Engineering Laboratory."
-      outputMsg "\nSee Help > Disclaimer and NIST Disclaimer"
-      outputMsg "\nCredits"
-      outputMsg "- Generating spreadsheets:         Microsoft Excel (https://products.office.com/excel)"
-      outputMsg "- Reading and parsing STEP files:  IFCsvr (https://groups.yahoo.com/neo/groups/ifcsvr-users/info)"
-      outputMsg "- Visualization of B-rep geometry: OpenCascade (https://www.opencascade.com/) and"
-      outputMsg "                                   pythonOCC (http://www.pythonocc.org/)"
+      outputMsg "Contact:  Robert Lipman, robert.lipman@nist.gov
+
+The STEP File Analyzer and Viewer was first released in April 2012 and is developed at
+NIST in the Systems Integration Division of the Engineering Laboratory.  Click the NIST
+logo below for the NIST website.
+
+See Help > Disclaimer and NIST Disclaimer
+
+Credits
+- Generating spreadsheets:         Microsoft Excel (https://products.office.com/excel)
+- Reading and parsing STEP files:  IFCsvr (https://groups.yahoo.com/neo/groups/ifcsvr-users/info)
+- Visualization of B-rep geometry: OpenCascade (https://www.opencascade.com/) and
+                                   pythonOCC (http://www.pythonocc.org/)
+                                   See Websites > STEP to X3D Translation"
     } else {
       outputMsg "\nThis version was built from the NIST STEP File Analyzer and Viewer source\ncode available on GitHub.  https://github.com/usnistgov/SFA"
     }
@@ -1566,29 +1568,44 @@ proc guiWebsitesMenu {} {
   $Websites add command -label "Conformance Checking of PMI in STEP Files" -command {openURL https://www.nist.gov/publications/conformance-checking-pmi-representation-cad-model-step-data-exchange-files}
   $Websites add command -label "MBE PMI Validation Testing (free CAD models and STEP files)" -command {openURL https://www.nist.gov/el/systems-integration-division-73400/mbe-pmi-validation-and-conformance-testing-project/download}
   $Websites add command -label "Enabling the Digital Thread for Smart Manufacturing"         -command {openURL https://www.nist.gov/el/systems-integration-division-73400/enabling-digital-thread-smart-manufacturing}
-  $Websites add command -label "Source code on GitHub"                     -command {openURL https://github.com/usnistgov/SFA}
   
   $Websites add separator
   $Websites add command -label "CAx Implementor Forum (CAx-IF)" -command {openURL https://www.cax-if.org}
   $Websites add command -label "STEP File Viewers"              -command {openURL https://www.cax-if.org/step_viewers.html}
   $Websites add command -label "Recommended Practices"          -command {openURL https://www.cax-if.org/joint_testing_info.html#recpracs}
-  $Websites add command -label "Implementation Coverage"        -command {openURL https://www.cax-if.org/vendor_info.php}
+  $Websites add command -label "CAD Implementations"            -command {openURL https://www.cax-if.org/vendor_info.php}
   $Websites add command -label "CAE-IF (FEA testing)"           -command {openURL http://afnet.fr/dotank/sps/cae-if/}
   $Websites add command -label "CAx-IF (alternate website)"     -command {openURL https://www.cax-if.de}
   
   $Websites add separator
-  $Websites add command -label "AP242 Project"   -command {openURL http://www.ap242.org}
-  $Websites add command -label "AP209 Project"   -command {openURL http://www.ap209.org}
-  $Websites add command -label "AP238 Project"   -command {openURL http://www.ap238.org}
-  $Websites add command -label "AP239 Project"   -command {openURL http://www.ap239.org}
-  $Websites add command -label "EXPRESS Schemas"      -command {openURL https://www.cax-if.org/joint_testing_info.html#schemas}
-  $Websites add command -label "More EXPRESS Schemas" -command {openURL http://web.archive.org/web/20160322005246/www.steptools.com/support/stdev_docs/express/}
+  $Websites add command -label "AP242 Project"           -command {openURL http://www.ap242.org}
+  $Websites add command -label "AP242 Presentaton (pdf)" -command {openURL https://www.nist.gov/document-2058}
+  $Websites add command -label "AP242 Benchmark Testing" -command {openURL http://www.asd-ssg.org/step-ap242-benchmark}
   
   $Websites add separator
-  $Websites add command -label "PDES, Inc."   -command {openURL http://pdesinc.org}
-  $Websites add command -label "prostep ivip" -command {openURL http://www.prostep.org/en/projects/}
-  $Websites add command -label "AFNeT"        -command {openURL http://afnet.fr/dotank/sps/}
-  $Websites add command -label "LOTAR"        -command {openURL http://www.lotar-international.org}
+  $Websites add command -label "AP209 Project"           -command {openURL http://www.ap209.org}
+  $Websites add command -label "AP238 Project"           -command {openURL http://www.ap238.org}
+  $Websites add command -label "AP239 Project"           -command {openURL http://www.ap239.org}
+  $Websites add command -label "EXPRESS Schemas"         -command {openURL https://www.cax-if.org/joint_testing_info.html#schemas}
+  $Websites add command -label "More EXPRESS Schemas"    -command {openURL http://web.archive.org/web/20160322005246/www.steptools.com/support/stdev_docs/express/}
+  
+  $Websites add separator
+  $Websites add command -label "PDES, Inc. (U.S.)"                         -command {openURL http://pdesinc.org}
+  $Websites add command -label "prostep ivip (Germany)"                    -command {openURL https://www.prostep.org/en/projects/}
+  $Websites add command -label "AFNeT (France)"                            -command {openURL http://afnet.fr/dotank/sps/}
+  $Websites add command -label "LOTAR (LOng Term Archiving and Retrieval)" -command {openURL http://www.lotar-international.org}
+  $Websites add command -label "ASD Strategic Standardisation Group"       -command {openURL http://www.asd-ssg.org/welcome}
+  $Websites add command -label "STEP Format"                               -command {openURL https://www.loc.gov/preservation/digital/formats/fdd/fdd000448.shtml}
+  
+  $Websites add separator
+  $Websites add command -label "STEP File Analyzer and Viewer source code" -command {openURL https://github.com/usnistgov/SFA}
+  $Websites add command -label "Digital Manufacturing Certificate Toolkit" -command {openURL https://github.com/usnistgov/DT4SM/tree/master/DMC-Toolkit}
+  $Websites add command -label "STEP Tools Software"                       -command {openURL https://github.com/steptools}
+  $Websites add command -label "STEP to X3D Translation"                   -command {openURL http://www.web3d.org/wiki/index.php/STEP_X3D_Translation}
+  $Websites add command -label "OpenCascade STEP Processor"                -command {openURL https://www.opencascade.com/doc/occt-7.0.0/overview/html/occt_user_guides__step.html}
+  $Websites add command -label "STEP Class Library (STEPcode)"             -command {openURL https://www.nist.gov/services-resources/software/step-class-library-scl}
+  $Websites add command -label "Express Engine"                            -command {openURL http://exp-engine.sourceforge.net/}
+  $Websites add command -label "STEP: The Grand Experience"                -command {openURL https://www.researchgate.net/publication/273763505_STEP_The_Grand_Experience}
 }
 
 #-------------------------------------------------------------------------------

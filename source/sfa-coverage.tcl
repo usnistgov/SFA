@@ -457,9 +457,6 @@ proc spmiCoverageLegend {multi {row 3}} {
     set r $row
     set c A
   }
-
-  if {!$multi} {set e $excel}
-  if {$multi} {set e $excel1}
   
   set n 0
   set legend {{"Values as Compared to NIST Test Case Drawing" ""} \
@@ -481,7 +478,7 @@ proc spmiCoverageLegend {multi {row 3}} {
     set color [lindex $item 1]
     if {$color != ""} {[$range Interior] Color $legendColor($color)}
 
-    if {[expr {int([$e Version])}] >= 12} {
+    catch {
       [[$range Borders] Item [expr 10]] Weight [expr 2]
       [[$range Borders] Item [expr 7]] Weight [expr 2]
       incr n

@@ -28,7 +28,7 @@ proc x3dFileStart {} {
   puts $x3dFile "  B-rep geometry might include supplemental geometry."
   if {$viz(PMI)} {puts $x3dFile "  Some Graphical PMI might not have equivalent Semantic PMI in the STEP file."}
   if {$viz(TPG) && [info exist entCount(next_assembly_usage_occurrence)]} {
-    puts $x3dFile "  Parts in an assembly might have the wrong position and orientation or be missing."
+    puts $x3dFile "  ** Parts in an assembly might have the wrong position and orientation or be missing. **"
   }
   puts $x3dFile "</td><td></td><tr><td valign='top' width='85%'>"
 
@@ -996,7 +996,7 @@ proc x3dSetColor {type} {
 # -------------------------------------------------------------------------------------------------
 # open X3DOM file 
 proc openX3DOM {{fn ""}} {
-  global opt x3dFileName multiFile stepAP lastX3DOM entCount recPracNames viz
+  global opt x3dFileName multiFile lastX3DOM viz
   
   set f7 1  
   if {$fn == ""} {
@@ -1005,8 +1005,16 @@ proc openX3DOM {{fn ""}} {
     if {[info exists x3dFileName]} {if {[file exists $x3dFileName]} {set ok 1}}
     if {$ok} {
       set fn $x3dFileName
-    } else {
-      if {$opt(XLSCSV) == "None"} {errorMsg "Select an appropriate Visualization feature in the Options tab.\n B-rep part geometry is visualized ONLY if graphical PMI or tessellated geometry are also in the STEP file.\n See Help > B-rep Geometry\n See Websites > STEP File Viewers for other b-rep geometry viewers"}
+    } elseif {$opt(VIZPMI) || $opt(VIZTPG) || $opt(VIZFEA)} {
+      if {$opt(XLSCSV) == "None"} {errorMsg "There is nothing in the STEP file to view based on the Visualize selections (Options tab)."}
+      set brepMsg "Part Geometry is viewed ONLY if any of the other Visualize features (Options tab) are selected AND that feature is in the STEP file."
+      append brepMsg "\n See Websites > STEP File Viewers for other viewers"
+      append brepMsg "\n See Help > B-rep Geometry"
+      if {$opt(VIZBRP) && $opt(VIZBRPmsg) < 4} {
+        outputMsg " "
+        errorMsg $brepMsg
+        incr opt(VIZBRPmsg)
+      }
       return
     }
   }

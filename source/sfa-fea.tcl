@@ -177,7 +177,7 @@ proc feaModel {entType} {
         if {[expr {$nfeaElem%2000}] == 0} {
 
 # check memory and gracefully exit
-          if {[info exists sfaPID]} {
+          if {[info exists sfaPID] && $sfaPID != ""} {
             set mem [expr {[lindex [twapi::get_process_info $sfaPID -pagefilebytes] 1]/1048576}]
             if {$mem > 1600} {
               errorMsg "Insufficient memory to process all elements"
@@ -392,9 +392,15 @@ proc feaEntities {objEntity} {
 # look for entities with bad attributes that cause a crash
       set okattr 1
       if {[info exists badAttributes($objType)]} {foreach ba $badAttributes($objType) {if {$ba == $objName} {set okattr 0}}}
+        
+# get attribute value        
+      if {[catch {
+        set objValue [$objAttribute Value]
+      } emsg]} {
+        set okattr 0
+      }
 
       if {$okattr} {
-        set objValue    [$objAttribute Value]
         set objNodeType [$objAttribute NodeType]
         set objSize     [$objAttribute Size]
         set objAttrType [$objAttribute Type]

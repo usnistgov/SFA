@@ -1,7 +1,7 @@
 # read entity and write to spreadsheet
 
 proc getEntity {objEntity checkInverse} {
-  global attrType badAttributes cells col count developer entComment entCount entName excelVersion
+  global attrType badAttributes cells col count developer entComment entCount entName
   global skipEntities skipPerm heading invMsg invVals localName opt roseLogical row rowmax sheetLast
   global thisEntType worksheet worksheets wsCount wsNames syntaxErr
   global coordinatesList lineStrips normals triangles
@@ -59,8 +59,8 @@ proc getEntity {objEntity checkInverse} {
     set count($thisEntType) 0
     set invMsg ""
 
-# color tab
-    if {$excelVersion >= 12} {
+# color tab, not available in very old versions of Excel
+    catch {
       set cidx [setColorIndex $thisEntType]
       if {$cidx > 0} {[$worksheet($thisEntType) Tab] ColorIndex [expr $cidx]}      
     }
@@ -161,7 +161,7 @@ proc getEntity {objEntity checkInverse} {
 
 # error getting attribute value
       } emsgv]} {
-        set msg "ERROR processing [$objEntity Type] '$attrName' attribute: $emsgv"
+        set msg "ERROR processing '$attrName' attribute on '[$objEntity Type]': $emsgv"
         errorMsg $msg
         lappend syntaxErr([$objEntity Type]) [list -$row($thisEntType) $attrName $msg]
         if {[string first "datum_reference_compartment 'modifiers' attribute" $msg] != -1 || \
@@ -332,12 +332,18 @@ proc getEntity {objEntity checkInverse} {
                 set ok 0
               }
               if {$ok} {
-                append str "$strMeasure\($ncell) [formatComplexEnt $idx 1] $cellval($idx)  "
+                if {[string first "measure_with_unit" $idx] != -1} {
+                  append str "$strMeasure\($ncell) [formatComplexEnt $idx 1] $cellval($idx)  "
+                } else {
+                  append str "($ncell) [formatComplexEnt $idx 1] $cellval($idx)  "
+                }
               } else {
                 append str "($ncell) [formatComplexEnt $idx 1]  "
               }
-            } else {
+            } elseif {[string first "measure_with_unit" $idx] != -1} {
               append str "$strMeasure\(1) [formatComplexEnt $idx 1] $cellval($idx)  "
+            } else {
+              append str "(1) [formatComplexEnt $idx 1] $cellval($idx)  "
             }
           }
         }

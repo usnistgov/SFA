@@ -241,7 +241,7 @@ proc genExcel {{numFile 0}} {
         set extXLS "xls"
         set xlFormat [expr 56]
         set rowmax [expr {2**16}]
-        errorMsg "Some spreadsheet features used by the STEP File Analyzer and\n Viewer are not compatible with this older version of Excel."
+        errorMsg "Some spreadsheet features used by the STEP File Analyzer and Viewer\n are not compatible with this older version of Excel."
       }
   
 # generate with Excel but save as CSV
@@ -724,10 +724,10 @@ proc genExcel {{numFile 0}} {
 # no entities to process
     if {[llength $entsToProcess] == 0} {
       if {$opt(XLSCSV) != "None"} {
-        errorMsg " Select some other entity types to Process in the Options tab."
+        errorMsg "Select some other entity types to Process in the Options tab."
         catch {unset entsIgnored}
       } else {
-        errorMsg " Select an appropriate Visualization feature in the Options tab."
+        errorMsg "There is nothing in the STEP file to view based on the Visualize selections (Options tab)."
       }
       break
     }
@@ -1886,7 +1886,7 @@ proc formatWorksheets {sheetSort sumRow inverseEnts} {
   
 # -------------------------------------------------------------------------------------------------
 # add table for sorting and filtering
-      if {$excelVersion >= 12} {
+      if {$excelVersion > 11} {
         if {[catch {
           if {$opt(XL_SORT) && $thisEntType != "property_definition"} {
             if {$ranrow > 8} {

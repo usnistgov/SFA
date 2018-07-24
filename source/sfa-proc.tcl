@@ -565,22 +565,19 @@ proc unzipFile {} {
 # copy to new stp file
       set fstp [file join [file dirname $localName] [file tail $ftmp]]
       set ok 0
-      if {[file exists $fstp]} {
-        if {[file mtime $localName] != [file mtime $fstp]} {
-          outputMsg " Overwriting existing unzipped STEP file: [truncFileName [file nativename $fstp]]" red
-          set ok 1
-        }
-      } else {
+      if {![file exists $fstp]} {
+        set ok 1
+      } elseif {[file mtime $localName] != [file mtime $fstp]} {
+        outputMsg " Overwriting existing unzipped STEP file: [truncFileName [file nativename $fstp]]" red
         set ok 1
       }
-      if {$ok} {
-        file copy -force $ftmp $fstp
-        set localName $fstp
-      }
+      if {$ok} {file copy -force $ftmp $fstp}
+
+      set localName $fstp
       file delete $fzip
       file delete $ftmp
     } else {
-      errorMsg "ERROR: gunzip not found to unzip compressed STEP file"
+      errorMsg "ERROR: gunzip.exe not found to unzip compressed STEP file"
     }
   } emsg]} {
     errorMsg "ERROR unzipping file: $emsg"
@@ -601,7 +598,7 @@ proc saveState {} {
       errorMsg "Creating options file: [truncFileName $optionsFile]"
     }
     set fileOptions [open $optionsFile w]
-    puts $fileOptions "# Options file for the STEP File Analyzer and Viewer v[getVersion] ([string trim [clock format [clock seconds]]])\n#\n# DO NOT EDIT OR DELETE FROM USER HOME DIRECTORY $mydocs\n# DOING SO WILL CORRUPT THE CURRENT SETTINGS OR CAUSE ERRORS IN THE SOFTWARE\n#"
+    puts $fileOptions "# Options file for the NIST STEP File Analyzer and Viewer v[getVersion] ([string trim [clock format [clock seconds]]])\n#\n# DO NOT EDIT OR DELETE FROM USER HOME DIRECTORY $mydocs\n# DOING SO WILL CORRUPT THE CURRENT SETTINGS OR CAUSE ERRORS IN THE SOFTWARE\n#"
     set varlist [list fileDir fileDir1 userWriteDir userEntityFile openFileList dispCmd dispCmds lastXLS lastXLS1 lastX3DOM \
                       userXLSFile statusFont upgrade sfaVersion excelVersion]
 
@@ -1141,11 +1138,10 @@ proc getOpenPrograms {} {
 
 # -------------------------------------------------------------------------------------------------
 proc getFirstFile {} {
-  global openFileList remoteName buttons
+  global openFileList buttons
   
   set localName [lindex $openFileList 0]
   if {$localName != ""} {
-    set remoteName $localName
     outputMsg "\nReady to process: [file tail $localName] ([expr {[file size $localName]/1024}] Kb)" blue
     if {[info exists buttons(appOpen)]} {$buttons(appOpen) configure -state normal}
   }
@@ -1381,7 +1377,6 @@ proc cellRange {r c} {
 #-------------------------------------------------------------------------------
 proc addCellComment {ent r c text {w 300} {h 100}} {
   global worksheet
-  #outputMsg "addCellComment $ent $r $c $w $h" green
 
   if {![info exists worksheet($ent)] || [string length $text] < 2} {return}
   
@@ -1406,7 +1401,7 @@ proc addCellComment {ent r c text {w 300} {h 100}} {
 proc colorBadCells {ent} {
   global excelVersion syntaxErr count cells worksheet stepAP legendColor entsWithErrors
   
-  if {$stepAP == "" || $excelVersion < 12} {return}
+  if {$stepAP == "" || $excelVersion < 11} {return}
       
 # color red for syntax errors
   set lastr 4

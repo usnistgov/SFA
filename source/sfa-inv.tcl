@@ -275,7 +275,7 @@ proc invReport {} {
 # -------------------------------------------------------------------------------
 # set column color, border, group for INVERSES and Used In
 proc invFormat {rancol} {
-  global thisEntType col cells row rowmax worksheet invGroup excelVersion
+  global thisEntType col cells row rowmax worksheet invGroup
   
   set igrp1 2
   set igrp2 100
@@ -307,16 +307,14 @@ proc invFormat {rancol} {
         [$range Interior] Color [expr 16768477]
       }
 
-      if {$excelVersion >= 12} {
-        set range [$worksheet($thisEntType) Range [cellRange 4 $i] [cellRange $r1 $i]]
-        for {set k 7} {$k <= 12} {incr k} {
-          if {$k != 9} {catch {[[$range Borders] Item [expr $k]] Weight [expr 1]}}
-        }
-        set range [$worksheet($thisEntType) Range [cellRange 3 $i] [cellRange 3 $i]]
-        catch {
-          [[$range Borders] Item [expr 7]]  Weight [expr 1]
-          [[$range Borders] Item [expr 10]] Weight [expr 1]
-        }
+      set range [$worksheet($thisEntType) Range [cellRange 4 $i] [cellRange $r1 $i]]
+      for {set k 7} {$k <= 12} {incr k} {
+        if {$k != 9} {catch {[[$range Borders] Item [expr $k]] Weight [expr 1]}}
+      }
+      set range [$worksheet($thisEntType) Range [cellRange 3 $i] [cellRange 3 $i]]
+      catch {
+        [[$range Borders] Item [expr 7]]  Weight [expr 1]
+        [[$range Borders] Item [expr 10]] Weight [expr 1]
       }
     }
   }

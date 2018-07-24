@@ -81,7 +81,7 @@ foreach item $auto_path {if {[string first "STEP-File-Analyzer" $item] != -1} {s
 # initialize variables
 foreach id {XL_OPEN XL_KEEPOPEN XL_LINK1 XL_FPREC XL_SORT LOGFILE \
             VALPROP PMIGRF PMISEM INVERSE DEBUG1 \
-            VIZPMI VIZTPG VIZTPGMSH VIZPMIVP VIZFEA VIZFEABC VIZFEALV VIZFEALVS VIZFEADS VIZFEADStail VIZBRP \
+            VIZPMI VIZTPG VIZTPGMSH VIZPMIVP VIZFEA VIZFEABC VIZFEALV VIZFEALVS VIZFEADS VIZFEADStail VIZBRP VIZBRPmsg \
             PR_STEP_AP242 PR_USER PR_STEP_KINE PR_STEP_COMP PR_STEP_COMM PR_STEP_GEOM PR_STEP_QUAN \
             PR_STEP_FEAT PR_STEP_PRES PR_STEP_TOLR PR_STEP_REPR PR_STEP_CPNT PR_STEP_SHAP} {set opt($id) 1}
 
@@ -101,6 +101,7 @@ set opt(VIZFEALVS) 0
 set opt(VIZPMIVP) 0
 set opt(VIZTPGMSH) 0
 set opt(writeDirType) 0
+set opt(XL_FPREC) 0
 set opt(XL_KEEPOPEN) 0
 set opt(XL_ROWLIM) 1003
 set opt(XL_SORT) 0
@@ -247,9 +248,9 @@ proc whatsNew {} {
   if {$sfaVersion > 0 && $sfaVersion < [getVersion]} {outputMsg "\nThe previous version of the STEP File Analyzer and Viewer was: $sfaVersion" red}
 
 outputMsg "\nWhat's New (Version: [getVersion]  Updated: [string trim [clock format $progtime -format "%e %b %Y"]])" blue
-outputMsg "- Improved visualization of AP209 displacements, boundary conditions, and loads (Help > AP209 Finite Element Model)
+outputMsg "- More STEP related Websites
+- Visualization of AP209 displacements, boundary conditions, and loads (Help > AP209 Finite Element Model)
 - Visualization of boundary representation (b-rep) geometry (See Help > B-rep Geometry)
-- Visualization of supplemental geometry (Help > Supplemental Geometry)
 - Improved reporting of Associated Geometry
 - Explanation of Report errors (Help > Syntax Errors)
 - Bug fixes and minor improvements
