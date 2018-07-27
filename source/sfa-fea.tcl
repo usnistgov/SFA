@@ -137,7 +137,7 @@ proc feaModel {entType} {
     feaGetNodes
     outputMsg " Writing FEM to: [truncFileName [file nativename $x3dFileName]]" green
 
-# coordinate min, max, center  
+# coordinate min, max, center
     foreach xyz {x y z} {
       set delt($xyz) [expr {$x3dMax($xyz)-$x3dMin($xyz)}]
       set xyzcen($xyz) [format "%.4f" [expr {0.5*$delt($xyz) + $x3dMin($xyz)}]]
@@ -392,15 +392,9 @@ proc feaEntities {objEntity} {
 # look for entities with bad attributes that cause a crash
       set okattr 1
       if {[info exists badAttributes($objType)]} {foreach ba $badAttributes($objType) {if {$ba == $objName} {set okattr 0}}}
-        
-# get attribute value        
-      if {[catch {
-        set objValue [$objAttribute Value]
-      } emsg]} {
-        set okattr 0
-      }
 
       if {$okattr} {
+        set objValue    [$objAttribute Value]
         set objNodeType [$objAttribute NodeType]
         set objSize     [$objAttribute Size]
         set objAttrType [$objAttribute Type]

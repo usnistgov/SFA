@@ -54,10 +54,6 @@ proc x3dFileStart {} {
     set maxxyz $delt(x)
     if {$delt(y) > $maxxyz} {set maxxyz $delt(y)}
     if {$delt(z) > $maxxyz} {set maxxyz $delt(z)}
-
-# coordinate axes    
-    set asize [trimNum [expr {$maxxyz*0.05}]]
-    x3dCoordAxes $asize
   }
   update idletasks
 }
@@ -254,17 +250,27 @@ proc x3dFileEnd {} {
   global ao modelURLs nistName opt stepAP x3dAxes x3dMax x3dMin x3dFile x3dMsg stepAP entCount nistVersion numSavedViews numTessColor viz
   global savedViewButtons savedViewFileName savedViewFile savedViewNames savedViewpoint feaBoundary feaLoad savedViewItems feaLoadMsg feaLoadMag
   global tessEdgeFile tessEdgeFileName tessPartFile tessPartFileName tessEdgeCoordDef
-  global wdir mytemp localName
+  global wdir mytemp localName brepFile brepFileName
   global objDesign
 
-# coordinate min, max, center    
-  foreach xyz {x y z} {
-    set delt($xyz) [expr {$x3dMax($xyz)-$x3dMin($xyz)}]
-    set xyzcen($xyz) [trimNum [format "%.4f" [expr {0.5*$delt($xyz) + $x3dMin($xyz)}]]]
+# PMI is already written to file
+# generate b-rep geometry based on pythonOCC and OpenCascade
+  set viz(BRP) 0
+  if {([info exists entCount(advanced_brep_shape_representation)] || \
+       [info exists entCount(manifold_surface_shape_representation)] || \
+       [info exists entCount(manifold_solid_brep)]) && $opt(VIZBRP)} {
+    x3dBrepGeom
+  }
+  
+# coordinate min, max, center
+  foreach idx {x y z} {
+    set delt($idx) [expr {$x3dMax($idx)-$x3dMin($idx)}]
+    set xyzcen($idx) [trimNum [format "%.4f" [expr {0.5*$delt($idx) + $x3dMin($idx)}]]]
   }
   set maxxyz $delt(x)
-  if {$delt(y) > $maxxyz} {set maxxyz $delt(y)}
   if {$delt(z) > $maxxyz} {set maxxyz $delt(z)}
+  set maxxz $maxxyz
+  if {$delt(y) > $maxxyz} {set maxxyz $delt(y)}
 
 # write tessellated edges
   set viz(EDG) 0
@@ -361,28 +367,39 @@ proc x3dFileEnd {} {
   }
   
 # -------------------------------------------------------------------------------
-# add b-rep geometry based on pythonOCC and OpenCascade
-  set viz(BRP) 0
-  if {([info exists entCount(advanced_brep_shape_representation)] || \
-       [info exists entCount(manifold_surface_shape_representation)] || \
-       [info exists entCount(manifold_solid_brep)]) && $opt(VIZBRP)} {x3dBrepGeom}
+# add b-rep geometry from temp file
+  if {$viz(BRP)} {
+    if {[info exists brepFileName]} {
+      if {[file exists $brepFileName]} {
+        close $brepFile
+        if {[file size $brepFileName] > 0} {
+          set brepFile [open $brepFileName r]
+          while {[gets $brepFile line] >= 0} {puts $x3dFile $line}
+          close $brepFile
+          catch {file delete -force -- $brepFileName}
+        }
+      }
+    }
+  }
 
 # -------------------------------------------------------------------------------
 # default and saved viewpoints
   puts $x3dFile "\n<!-- VIEWPOINTS -->"
   set cor "centerOfRotation='$xyzcen(x) $xyzcen(y) $xyzcen(z)'"
-  set fov [trimNum [expr {$delt(z)*0.5 + $delt(y)*0.5}]]
-  set psy [trimNum [expr {0. - ($xyzcen(y) + 1.4*$maxxyz)}]]
+  set fov [trimNum [expr {$delt(x)*0.5 + $delt(z)*0.5}]]
+  set psy [trimNum [expr {$x3dMin(y) - 1.4*$maxxz}]]
 
   puts $x3dFile "<Viewpoint id='Front' position='$xyzcen(x) $psy $xyzcen(z)' orientation='1 0 0 1.5708' $cor></Viewpoint>"
-  if {[llength $savedViewNames] > 0 && $opt(VIZPMIVP)} {
-    foreach svn $savedViewNames {
-      if {[info exists savedViewpoint($svn)] && [lsearch $savedViewButtons $svn] != -1} {
-        puts $x3dFile "<Transform translation='[lindex $savedViewpoint($svn) 0]'><Viewpoint id='vp$svn' position='[lindex $savedViewpoint($svn) 0]' orientation='[lindex $savedViewpoint($svn) 1]' $cor></Viewpoint></Transform>"  
-      }
-    }
-  }
   puts $x3dFile "<OrthoViewpoint id='Ortho' position='$xyzcen(x) $psy $xyzcen(z)' orientation='1 0 0 1.5708' $cor fieldOfView='\[-$fov,-$fov,$fov,$fov\]'></OrthoViewpoint>"  
+
+# viewpoint orientation
+  #if {[llength $savedViewNames] > 0 && $opt(VIZPMIVP)} {
+  #  foreach svn $savedViewNames {
+  #    if {[info exists savedViewpoint($svn)] && [lsearch $savedViewButtons $svn] != -1} {
+  #      puts $x3dFile "<Transform translation='[lindex $savedViewpoint($svn) 0]'><Viewpoint id='vp$svn' position='[lindex $savedViewpoint($svn) 0]' orientation='[lindex $savedViewpoint($svn) 1]' $cor></Viewpoint></Transform>"  
+  #    }
+  #  }
+  #}
 
 # navigation, background color
   set bgc "1 1 1"
@@ -489,7 +506,7 @@ proc x3dFileEnd {} {
   }
   
 # mouse message  
-  puts $x3dFile "\n<p><a href=\"https://www.x3dom.org/documentation/interaction/\">Use the mouse</a> in 'Examine Mode' to rotate, pan, zoom.  Use Page Up to switch between views.  Use 'a' to show all."
+  puts $x3dFile "\n<p>Key 'a' to show all, 'r' to restore view, Page Up for orthographic view.  <a href=\"https://www.x3dom.org/documentation/interaction/\">Use the mouse</a> in 'Examine Mode' to rotate, pan, zoom."
   puts $x3dFile "</td></tr></table>"
   
 # -------------------------------------------------------------------------------
@@ -561,7 +578,7 @@ proc x3dFileEnd {} {
 # -------------------------------------------------------------------------------
 # B-rep geometry
 proc x3dBrepGeom {} {
-  global entCount opt viz mytemp wdir localName objDesign x3dFile
+  global entCount opt viz mytemp wdir localName objDesign x3dMin x3dMax brepFile brepFileName
 
 # copy stp2x3d executable to temp directory
   if {[catch {
@@ -615,8 +632,12 @@ proc x3dBrepGeom {} {
               }
             }
             
+# open temp file            
+            set brepFileName [file join $mytemp brep.txt]
+            if {![file exists brepFileName]} {set brepFile [open $brepFileName w]}
+            
 # integrate x3d from stp2x3d with existing x3dom file
-            puts $x3dFile "\n<!-- B-REP GEOMETRY -->\n<Switch whichChoice='0' id='swBRP'><Transform scale='$sc $sc $sc'>"
+            puts $brepFile "\n<!-- B-REP GEOMETRY -->\n<Switch whichChoice='0' id='swBRP'><Transform scale='$sc $sc $sc'>"
             set stpx3dFile [open $stpx3dFileName r]
             set write 0
             while {[gets $stpx3dFile line] >= 0} {
@@ -626,7 +647,28 @@ proc x3dBrepGeom {} {
               }
               if {[string first "<Coordinate" $line] != -1} {
                 set n 0
+
+                foreach idx {0 1 2} {
+                  set min($idx) 1.e10
+                  set max($idx) -1.e10
+                }
+                set getMinMax 1
+
                 while {[gets $stpx3dFile nline] >= 0} {
+                  if {[string first "/Coordinate" $nline] != -1} {
+                    set getMinMax 0
+                    foreach id1 {0 1 2} id2 {x y z} {
+                      set x3dMin($id2) $min($id1)
+                      set x3dMax($id2) $max($id1)
+                    }
+                  }
+                  if {$getMinMax} {
+                    foreach idx {0 1 2} {
+                      set val [expr {[lindex $nline $idx]*$sc}]
+                      if {$val < $min($idx)} {set min($idx) $val}
+                      if {$val > $max($idx)} {set max($idx) $val}
+                    }
+                  }
                   if {[string first "<Normal" $nline] != -1} {append line "\n"}
                   append line " $nline"
                   incr n
@@ -634,11 +676,11 @@ proc x3dBrepGeom {} {
                   if {[string first "</Normal" $nline] != -1} {break}
                 }
               }
-              if {$write} {puts $x3dFile $line}
+              if {$write} {puts $brepFile $line}
               if {[string first "</Shape" $line] != -1} {set write 0}
             }
             close $stpx3dFile
-            puts $x3dFile "</Transform></Switch>"
+            puts $brepFile "</Transform></Switch>"
             set viz(BRP) 1
           }
 

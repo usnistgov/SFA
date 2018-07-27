@@ -1,6 +1,6 @@
 #-------------------------------------------------------------------------------
 # version numbers, software and user guide
-proc getVersion {}   {return 3.01}
+proc getVersion {}   {return 3.02}
 proc getVersionUG {} {return 3.0}
 
 # -------------------------------------------------------------------------------
@@ -165,7 +165,7 @@ proc getFaceGeom {a0 {id ""}} {
 
 # -------------------------------------------------------------------------------
 proc reportAssocGeom {entType {row ""}} {
-  global assocGeom recPracNames dimRepeat dimRepeatDiv syntaxErr cells
+  global assocGeom recPracNames dimRepeat dimRepeatDiv syntaxErr cells opt
   #outputMsg "reportAssocGeom $entType" red
   
   set str ""
@@ -222,7 +222,15 @@ proc reportAssocGeom {entType {row ""}} {
 
     set ok 1
     if {[string first "occurrence" $entType] != -1} {
-      set val [[$cells($entType) Item $row 5] Value]
+      if {!$opt(INVERSE)} {
+        set c E
+      } else {
+        foreach c1 {H G F E} {
+          set head [[$cells($entType) Item 3 $c1] Value]
+          if {[string first "name" $head] == 0} {set c $c1; break}
+        }
+      }
+      set val [[$cells($entType) Item $row $c] Value]
       foreach str3 {note title block} {if {[string first $str3 $val] != -1} {set ok 0}}
     }
     if {$ok} {

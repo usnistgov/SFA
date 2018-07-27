@@ -25,12 +25,10 @@ proc genExcel {{numFile 0}} {
     set x3dFileName ""
     set x3dColor ""
     set x3dColors {}
-    set x3dMax(x) -1.e10
-    set x3dMax(y) -1.e10
-    set x3dMax(z) -1.e10
-    set x3dMin(x)  1.e10
-    set x3dMin(y)  1.e10
-    set x3dMin(z)  1.e10
+    foreach idx {x y z} {
+      set x3dMax($idx) -1.e10
+      set x3dMin($idx)  1.e10
+    }
     catch {unset tessColor}
   }
 
@@ -522,18 +520,22 @@ proc genExcel {{numFile 0}} {
 # -------------------------------------------------------------------------------------------------
 # list entities not processed based on fix file
   if {[llength $fixlist] > 0} {
-    outputMsg " "
     if {[file exists $cfile]} {
       set ok 0
       foreach item $fixlist {if {[lsearch $skipPerm $item] == -1} {set ok 1}}
     }
-    if {$ok && $opt(XLSCSV) != "None"} {
-      if {$useXL} {
-        set msg "Worksheets"
+    if {$ok} {
+      if {$opt(XLSCSV) != "None"} {
+        if {$useXL} {
+          set msg "Worksheets will"
+        } else {
+          set msg "CSV files will"
+        }
       } else {
-        set msg "CSV files"
+        set msg "Visualizations might"
       }
-      append msg " will NOT be generated for entities listed in\n [truncFileName [file nativename $cfile]]:"
+      append msg " NOT be generated for entities listed in\n [truncFileName [file nativename $cfile]]:"
+      outputMsg " "
       errorMsg $msg
       foreach item [lsort $fixlist] {outputMsg "  $item" red}
       errorMsg " See Help > Crash Recovery"

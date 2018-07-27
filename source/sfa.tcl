@@ -248,10 +248,10 @@ proc whatsNew {} {
   if {$sfaVersion > 0 && $sfaVersion < [getVersion]} {outputMsg "\nThe previous version of the STEP File Analyzer and Viewer was: $sfaVersion" red}
 
 outputMsg "\nWhat's New (Version: [getVersion]  Updated: [string trim [clock format $progtime -format "%e %b %Y"]])" blue
-outputMsg "- More STEP related Websites
+outputMsg "- Improved Visualization viewpoints
+- More STEP related Websites
 - Visualization of AP209 displacements, boundary conditions, and loads (Help > AP209 Finite Element Model)
 - Visualization of boundary representation (b-rep) geometry (See Help > B-rep Geometry)
-- Improved reporting of Associated Geometry
 - Explanation of Report errors (Help > Syntax Errors)
 - Bug fixes and minor improvements
 - Support for AP242 Edition 2 DIS (Draft International Standard)"

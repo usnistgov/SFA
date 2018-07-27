@@ -118,7 +118,7 @@ proc tessPartGeometry {objEntity} {
       if {[info exists badAttributes($objType)]} {foreach ba $badAttributes($objType) {if {$ba == $objName} {set okattr 0}}}
 
       if {$okattr} {
-        set objValue [$objAttribute Value]
+        set objValue    [$objAttribute Value]
         set objNodeType [$objAttribute NodeType]
         set objSize     [$objAttribute Size]
         set objAttrType [$objAttribute Type]
