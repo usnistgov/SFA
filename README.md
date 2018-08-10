@@ -2,7 +2,7 @@
 
 A pre-built Windows version of NIST STEP File Analyzer and Viewer (SFA) is available [here](https://www.nist.gov/services-resources/software/step-file-analyzer-and-viewer).  There is no Linux version.  
 
-The following are instructions for building the NIST STEP File Analyzer and Viewer from source code.  The SFA generates a spreadsheet and visualization from an ISO 10303 Part 21 STEP file.  More information, sample spreadsheets and visualizations, and documentation about the SFA is available on the website including the [STEP File Analyzer and Viewer User's Guide](https://www.nist.gov/publications/step-file-analyzer-and-viewer-and-viewer-user-guide-update-5).
+The following are instructions for building the NIST STEP File Analyzer and Viewer from source code.  The SFA generates a spreadsheet and visualization from an ISO 10303 Part 21 STEP file.  More information, sample spreadsheets and visualizations, and documentation about the SFA is available on the website including the [STEP File Analyzer and Viewer User Guide](https://www.nist.gov/publications/step-file-analyzer-and-viewer-user-guide-update-5).
 
 STEP files are used to represent product and manufacturing information (PMI) for data exchange and interoperability between Computer-Aided Design (CAD), Manufacturing (CAM), Analysis (CAE), and Inspection (CMM) software. STEP is also used for the long-term archiving and retrieval product data (LOTAR).
 
@@ -62,9 +62,9 @@ Some features are not available in the user-built version including: tooltips, u
 
 Replace the Tcl package [tcom](http://wiki.tcl.tk/1821) (COM) with the COM features in [twapi](http://twapi.magicsplat.com/).
 
-Replace the IFCsvr toolkit with [STEPcode toolkit](http://stepcode.org/) or some other toolkit.
+Replace the IFCsvr toolkit with [STEPcode toolkit](https://github.com/stepcode/stepcode) or some other toolkit.
 
-Replace the home-grown code to interact with Excel spreadsheets with [CAWT](http://www.posoft.de/html/extCawt.html).
+Replace the home-grown code to interact with Excel spreadsheets with [CAWT](http://www.cawt.tcl3d.org/).
 
 ## Contact
 
