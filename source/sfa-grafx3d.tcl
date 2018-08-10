@@ -264,6 +264,7 @@ proc x3dFileEnd {} {
   
 # coordinate min, max, center
   foreach idx {x y z} {
+    #outputMsg "$idx  $x3dMin($idx) $x3dMax($idx)" red
     set delt($idx) [expr {$x3dMax($idx)-$x3dMin($idx)}]
     set xyzcen($idx) [trimNum [format "%.4f" [expr {0.5*$delt($idx) + $x3dMin($idx)}]]]
   }
@@ -506,7 +507,7 @@ proc x3dFileEnd {} {
   }
   
 # mouse message  
-  puts $x3dFile "\n<p>Key 'a' to show all, 'r' to restore view, Page Up for orthographic view.  <a href=\"https://www.x3dom.org/documentation/interaction/\">Use the mouse</a> in 'Examine Mode' to rotate, pan, zoom."
+  puts $x3dFile "\n<p>Key 'a' to show all, 'r' to restore, Page Up for orthographic.  <a href=\"https://www.x3dom.org/documentation/interaction/\">Use the mouse</a> in 'Examine Mode' to rotate, pan, zoom."
   puts $x3dFile "</td></tr></table>"
   
 # -------------------------------------------------------------------------------

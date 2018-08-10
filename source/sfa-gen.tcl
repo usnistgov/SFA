@@ -170,7 +170,7 @@ proc genExcel {{numFile 0}} {
       puts $logFile "NIST STEP File Analyzer and Viewer (v[getVersion])  [clock format [clock seconds]]\n"
     }
 
-# check if a file generated from a NIST test case is being processed
+# check if a file generated from a NIST test case (and some other files) is being processed
     set nistName [getNISTName]
 
 # error opening file, report the schema

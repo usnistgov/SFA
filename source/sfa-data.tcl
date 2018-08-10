@@ -21,6 +21,7 @@ set recPracNames(pmi203)   "PMI Polyline Presentation (AP203/AP214)"
 set recPracNames(valprop)  "Geometric and Assembly Validation Properties"
 set recPracNames(tessgeom) "3D Tessellated Geometry"
 set recPracNames(uda)      "User Defined Attributes"
+set recPracNames(comp)     "Composite Structure Validation Properties"
 
 # links to schema documentation
 set schemaLinks(AP203)   "https://www.cax-if.org/documents/AP203e2_html/AP203e2.htm"

@@ -48,13 +48,13 @@ proc valPropStart {} {
 
 # composite recommended practice (new vp in the last 2 lines)
   set valPropNames(composite_validation_property) [list \
-    [list "" [list "number of composite tables" "number of composite materials per part" "number of composite materials per part" \
+    [list "" [list "number of composite tables" "number of composite materials per part" \
       "number of orientations per part" "number of plies per part" "number of plies per laminate table" \
       "number of composite sequences per laminate table" "number of composite materials per laminate table" \
       "number of composite orientations per laminate table" "ordered sequences per laminate table" \
       "notational centroid" "number of ply pieces per ply" \
       "number of tables" "number of sequences" "number of plies" "number of materials" "number of orientations" \
-      "sum of all ply surfaces areas" "centre point of all plies"]]]
+      "sum of all ply surfaces areas" "centre point of all plies" "number of cores"]]]
 
 # fea validation properties (work in progress)
   set valPropNames(fea_validation_property) [list \
@@ -419,10 +419,24 @@ proc valPropReport {objEntity} {
                 regsub -all " " $objValue "_" propDefName
                 
                 if {[string first "validation property" $objValue] != -1} {
-                  if {[string first "geometric" $objValue] != 0 && [string first "assembly" $objValue] != 0 && \
-                      [string first "pmi" $objValue] != 0 && [string first "tessellated" $objValue] != 0 && \
-                      [string first "attribute" $objValue] != 0} {
-                    set msg "Possible Syntax Error: Unexpected Validation Property '$objValue'"
+                  set okvp 0
+                  set vps [list "geometric" "assembly" "pmi" "tessellated" "attribute" "fea" "composite"]
+                  foreach vp $vps {if {[string first $vp $objValue] == 0} {set okvp 1}}
+                  if {!$okvp} {
+                    set okvp 0
+                    foreach vp $vps {
+                      if {[string first $vp [string tolower $objValue]] == 0} {
+                        set okvp 1
+                        set emsg "Syntax Error: Use lower case 'property_definition' attribute 'name' ($objValue)."
+                        regsub -all " " [string tolower $objValue] "_" propDefName
+                        errorMsg $emsg
+                        set invalid $emsg
+                        lappend syntaxErr([lindex [split $ent1 " "] 0]) [list $objID [lindex [split $ent1 " "] 1] $emsg]
+                      }
+                    }
+                  }
+                  if {!$okvp} {
+                    set msg "Syntax Error: Unexpected Validation Property '$objValue'"
                     errorMsg $msg
                     set invalid $msg
                     lappend syntaxErr([lindex [split $ent1 " "] 0]) [list $objID [lindex [split $ent1 " "] 1] $msg]
@@ -472,6 +486,8 @@ proc valPropReport {objEntity} {
                         append emsg "($recPracNames(tessgeom), Sec. 8.4)"
                       } elseif {$propDefName == "attribute_validation_property"} {
                         append emsg "($recPracNames(uda), Sec. 8)"
+                      } elseif {$propDefName == "composite_validation_property"} {
+                        append emsg "($recPracNames(comp), Sec. 3)"
                       }
                       errorMsg $emsg
                       set invalid $emsg
@@ -541,6 +557,8 @@ proc valPropReport {objEntity} {
                         append emsg "($recPracNames(tessgeom), Sec. 8)"
                       } elseif {$propDefName == "attribute_validation_property"} {
                         append emsg "($recPracNames(uda), Sec. 8)"
+                      } elseif {$propDefName == "composite_validation_property"} {
+                        append emsg "($recPracNames(comp), Sec. 3)"
                       }
                       errorMsg $emsg
                       set invalid $emsg

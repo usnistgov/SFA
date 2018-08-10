@@ -254,7 +254,7 @@ proc getNISTName {} {
   
   set nistName ""
   set filePrefix {}
-  foreach fp [list sp4 sp5 sp6 sp7 tgp1 tgp2 tgp3 tgp4 tgp5 tp3 tp4 tp5 tp6 lsp lpp ltg ltp] {
+  foreach fp [list sp4 sp5 sp6 sp7 sp8 tgp1 tgp2 tgp3 tgp4 tgp5 tp3 tp4 tp5 tp6 lsp lpp ltg ltp] {
     lappend filePrefix "$fp\_"
     lappend filePrefix "$fp\-"
   }
@@ -262,8 +262,32 @@ proc getNISTName {} {
   set ftail1 $ftail
   set c 3
   if {[string first "tgp" $ftail] == 0} {set c 4}
-  foreach str {asme1 ap203 ap214 ap242 c3e} {regsub $str $ftail "" ftail}
+  foreach str {asme1 ap203 ap214 ap242 242 c3e} {regsub $str $ftail "" ftail}
+  
+# first check some specific names, CAx-IF ISO PMI models    
+  if {[string first "sp" $ftail1] == 0} {
+    if {[string first "base"    $ftail] != -1} {set nistName "sp6-base"}
+    if {[string first "cheek"   $ftail] != -1} {set nistName "sp6-cheek"}
+    if {[string first "pole"    $ftail] != -1} {set nistName "sp6-pole"}
+    if {[string first "spindle" $ftail] != -1} {set nistName "sp6-spindle"}
+  }
+    
+# QIF bracket    
+  if {[string first "332211_qif_bracket" $ftail] != -1} {set nistName "332211_qif_bracket_revh"}
+      
+# CAx-IF sp3 models      
+  if {[string first "sp" $ftail] == 0} {
+    if {[string first "1101"  $ftail] != -1} {set nistName "sp3-1101"}
+    if {[string first "16792" $ftail] != -1} {set nistName "sp3-16792"}
+    if {[string first "box"   $ftail] != -1} {set nistName "sp3-box"}
+  }
 
+  if {$developer && [string first "step-file-analyzer" $ftail] == 0} {set nistName "nist_ctc_01"}
+
+# specific name found  
+  if {$nistName != ""} {return $nistName}
+
+# check for a NIST CTC or FTC
   set ctcftc 0
   set ok  0
   set ok1 0
@@ -332,29 +356,7 @@ proc getNISTName {} {
   }
   
 # other files
-  if {!$ok} {
-    
-# CAx-IF ISO PMI models    
-    if {[string first "sp6" $ftail1] == 0} {
-      if {[string first "base"    $ftail] != -1} {set nistName "sp6-base"}
-      if {[string first "cheek"   $ftail] != -1} {set nistName "sp6-cheek"}
-      if {[string first "pole"    $ftail] != -1} {set nistName "sp6-pole"}
-      if {[string first "spindle" $ftail] != -1} {set nistName "sp6-spindle"}
-    }
-    
-# QIF bracket    
-    if {[string first "332211_qif_bracket" $ftail] != -1} {set nistName "332211_qif_bracket_revh"}
-      
-# CAx-IF sp3 models      
-    if {[string first "sp3" $ftail] == 0} {
-      if {[string first "1101"  $ftail] != -1} {set nistName "sp3-1101"}
-      if {[string first "16792" $ftail] != -1} {set nistName "sp3-16792"}
-      if {[string first "box"   $ftail] != -1} {set nistName "sp3-box"}
-    }
-  } else {
-    
-  }
-  if {$developer && [string first "step-file-analyzer" $ftail] == 0} {set nistName "nist_ctc_01"}
+#  if {!$ok} {}
   
   return $nistName
 }
