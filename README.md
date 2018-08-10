@@ -1,8 +1,8 @@
 # NIST STEP File Analyzer and Viewer
 
-A pre-built Windows version of NIST STEP File Analyzer and Viewer (SFA) is available [here](https://www.nist.gov/services-resources/software/step-file-analyzer).  There is no Linux version.  
+A pre-built Windows version of NIST STEP File Analyzer and Viewer (SFA) is available [here](https://www.nist.gov/services-resources/software/step-file-analyzer-and-viewer).  There is no Linux version.  
 
-The following are instructions for building the NIST STEP File Analyzer and Viewer from source code.  The SFA generates a spreadsheet and visualization from an ISO 10303 Part 21 STEP file.  More information, sample spreadsheets and visualizations, and documentation about the SFA is available on the website including the [STEP File Analyzer and Viewer User's Guide](https://www.nist.gov/publications/step-file-analyzer-and-viewer-user-guide-update-5).
+The following are instructions for building the NIST STEP File Analyzer and Viewer from source code.  The SFA generates a spreadsheet and visualization from an ISO 10303 Part 21 STEP file.  More information, sample spreadsheets and visualizations, and documentation about the SFA is available on the website including the [STEP File Analyzer and Viewer User's Guide](https://www.nist.gov/publications/step-file-analyzer-and-viewer-and-viewer-user-guide-update-5).
 
 STEP files are used to represent product and manufacturing information (PMI) for data exchange and interoperability between Computer-Aided Design (CAD), Manufacturing (CAM), Analysis (CAE), and Inspection (CMM) software. STEP is also used for the long-term archiving and retrieval product data (LOTAR).
 
@@ -12,9 +12,9 @@ The STEP File Analyzer and Viewer can only be built and run on Windows computers
 
 **You must install and run the NIST version of the STEP File Analyzer and Viewer before running your own version.**
 
-- Go to the [STEP File Analyzer and Viewer](https://www.nist.gov/services-resources/software/step-file-analyzer) and click on the link to Download the STEP File Analyzer and Viewer
+- Go to the [STEP File Analyzer and Viewer](https://www.nist.gov/services-resources/software/step-file-analyzer-and-viewer) and click on the link to Download the STEP File Analyzer and Viewer
 - Submit the form to get a link to download sfa-n.nn.zip
-- Extract STEP-File-Analyzer.exe from the zip file and run it.  This will install the IFCsvr toolkit that is used to read STEP files.
+- Extract step-file-analyzer-and-viewer.exe from the zip file and run it.  This will install the IFCsvr toolkit that is used to read STEP files.
 - Generate a spreadsheet or CSV files for at least one STEP file.  This will install the STEP schema files for the IFCsvr toolkit.  
 
 Download the SFA files from the GitHub 'source' directory to a directory on your computer.
