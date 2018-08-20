@@ -104,8 +104,7 @@ setHomeDir
 
 # set program files
 set pf32 "C:\Program Files (x86)"
-if {[info exists env(ProgramFiles)]}  {set pf32 $env(ProgramFiles)}
-if {[string first "x86" $pf32] == -1} {append pf32 " (x86)"}
+if {[info exists env(ProgramFiles)]} {set pf32 $env(ProgramFiles)}
 set pf64 "C:\Program Files"
 if {[info exists env(ProgramW6432)]} {set pf64 $env(ProgramW6432)}
 
@@ -185,7 +184,7 @@ set userWriteDir $mydocs
 set writeDir $userWriteDir
 
 set developer 0
-if {$env(USERNAME) == "lipman"} {set developer 1}
+if {$env(USERDOMAIN) == "NIST"} {set developer 1}
 
 # initialize other data
 initData

@@ -149,7 +149,7 @@ proc guiButtons {} {
 # status tab
 
 proc guiStatusTab {} {
-  global nb wout fout outputWin statusFont tcl_platform developer
+  global nb wout fout outputWin statusFont tcl_platform
 
   set wout [ttk::panedwindow $nb.status -orient horizontal]
   $nb add $wout -text " Status " -padding 2
@@ -240,7 +240,7 @@ proc guiFileMenu {} {
 #-------------------------------------------------------------------------------
 # options tab, process and report
 proc guiProcessAndReports {} {
-  global fopt fopta nb opt cb buttons entCategory developer allNone
+  global fopt fopta nb opt cb buttons entCategory allNone
 
   set cb 0
   set wopt [ttk::panedwindow $nb.options -orient horizontal]
@@ -461,14 +461,14 @@ proc guiProcessAndReports {} {
   pack $foptv -side left -anchor w -pady {5 2} -padx 10 -fill both -expand true
   pack $foptrv -side top -anchor w -pady 0 -fill x
   catch {
-    tooltip::tooltip $buttons(optVIZPMI) "Graphical PMI is supported in AP242, AP203, and AP214 files.\nSupplemental geometry and tessellated edges (lines) are also shown.\n\nSee Help > PMI Presentation\nSee Help > User Guide (section 7.1.1)\nSee Help > Supplemental Geometry\nSee Examples > Part with PMI\nSee Examples > AP242 Tessellated Part with PMI\nSee Examples > Sample STEP Files\n\nVisualizations can be generated without generating a spreadsheet\nor CSV files.  See the Output Format option below."
-    tooltip::tooltip $buttons(optVIZTPG) "** Parts in an assembly might have the wrong position and orientation or be missing. **\n\nTessellated geometry is in addition to boundary representation (b-rep) geometry.\nSupplemental geometry and tessellated edges (lines) are also shown.\nFaces in tessellated shells are outlined in black.\n\nSee Help > AP242 Tessellated Part Geometry\nSee Help > Supplemental Geometry\nSee Help > User Guide (section 7.1.2, 7.1.3)\nSee Examples > AP242 Tessellated Part with PMI\n\nVisualizations can be generated without generating a spreadsheet or CSV files.\nSee the Output Format option below.\n\nVisualizations are displayed in web browsers that are not optimized for large models."
+    tooltip::tooltip $buttons(optVIZPMI) "Graphical PMI is supported in AP242, AP203, and AP214 files.\nSupplemental geometry and tessellated edges (lines) are also shown.\n\nSee Help > PMI Presentation\nSee Help > User Guide (section 7.1.1)\nSee Help > Supplemental Geometry\nSee Examples > Part with PMI\nSee Examples > AP242 Tessellated Part with PMI\nSee Examples > Sample STEP Files\n\nVisualizations can be generated without generating a spreadsheet\nor CSV files.  See the Output Format option below.\n\nVisualizations are displayed in web browsers that are not optimized\nfor large models.  Older versions of Internet Explorer are not supported."
+    tooltip::tooltip $buttons(optVIZTPG) "** Parts in an assembly might have the wrong position and orientation or be missing. **\n\nTessellated geometry is in addition to boundary representation (b-rep) geometry.\nSupplemental geometry and tessellated edges (lines) are also shown.\nFaces in tessellated shells are outlined in black.\n\nSee Help > AP242 Tessellated Part Geometry\nSee Help > Supplemental Geometry\nSee Help > User Guide (section 7.1.2, 7.1.3)\nSee Examples > AP242 Tessellated Part with PMI\n\nVisualizations can be generated without generating a spreadsheet or CSV files.\nSee the Output Format option below.\n\nVisualizations are displayed in web browsers that are not optimized for large models.\nOlder versions of Internet Explorer are not supported."
     tooltip::tooltip $buttons(optVIZTPGMSH) "Show a tessellation wireframe mesh based on the tessellated\nfaces or surfaces.  Not recommended for very large models."
     tooltip::tooltip $buttons(optVIZFEALVS) "The length of load vectors can be scaled by their magnitude.\nLoad vectors are always colored by their magnitude."
     tooltip::tooltip $buttons(optVIZFEADStail) "The length of displacement vectors with a tail are scaled by\ntheir magnitude.  Vectors without a tail are not.\nDisplacement vectors are always colored by their magnitude.\nLoad vectors always have a tail."
-    tooltip::tooltip $buttons(optVIZBRP) "Boundary representation part geometry is visualized ONLY if one of the above types\nof visualization features is selected AND is present in the STEP file.\n\nSee Help > B-rep Geometry\nSee Examples > Part with PMI\nSee Websites > STEP File Viewers for other b-rep geometry viewers\n\nVisualizations are displayed in web browsers that are not optimized for large models."
+    tooltip::tooltip $buttons(optVIZBRP) "Boundary representation part geometry is visualized ONLY if one of the above types\nof visualization features is selected AND is present in the STEP file.\n\nSee Help > B-rep Geometry\nSee Examples > Part with PMI\nSee Websites > STEP File Viewers for other b-rep geometry viewers\n\nVisualizations are displayed in web browsers that are not optimized for large models.\nOlder versions of Internet Explorer are not supported."
     tooltip::tooltip $foptv4 "For Random PMI colors, each 'annotation occurrence' is assigned a different color\nto help differentiate one from another."
-    set tt "FEM nodes, elements, boundary conditions, loads, and displacements are visualized.\n\nSee Help > AP209 Finite Element Model\nSee Help > User Guide (section 7.1.4)\nSee Examples > AP209 Finite Element Model\n\nVisualizations can be generated without generating a spreadsheet or CSV files.\nSee the Output Format option below.\n\nVisualizations are displayed in web browsers that are not optimized for large models."
+    set tt "FEM nodes, elements, boundary conditions, loads, and displacements are visualized.\n\nSee Help > AP209 Finite Element Model\nSee Help > User Guide (section 7.1.4)\nSee Examples > AP209 Finite Element Model\n\nVisualizations can be generated without generating a spreadsheet or CSV files.\nSee the Output Format option below.\n\nVisualizations are displayed in web browsers that are not optimized for large models.\nOlder versions of Internet Explorer are not supported."
     tooltip::tooltip $foptv7 $tt
     tooltip::tooltip $foptv8 $tt
     #tooltip::tooltip $buttons(optVIZPMIVP) "PMI Viewpoints are experimental.\n\nViewpoints usually have the correct orientation but are not centered.\nUse pan and zoom to center the PMI."
@@ -529,7 +529,7 @@ proc guiUserDefinedEntities {} {
 #-------------------------------------------------------------------------------
 # inverse relationships
 proc guiInverse {} {
-  global buttons cb fopt inverses opt developer entCategory
+  global buttons cb fopt inverses opt entCategory
   
   set foptc [ttk::labelframe $fopt.3 -text " Inverse Relationships "]
   set txt " Show Inverses and Backwards References (Used In) for PMI, Shape Aspect, Representation, Analysis, and more"
@@ -737,7 +737,7 @@ proc guiOpenSTEPFile {} {
     incr cb
   }
   pack $foptk -side top -anchor w -pady {5 2} -padx 10 -fill both
-  catch {tooltip::tooltip $foptk "If Excel is installed, then Spreadsheets and CSV files can be generated.\nIf CSV Files is selected, the Spreadsheet is also generated.\n\nIf Excel is not installed, only CSV files can be generated.\nOptions for Reports and Inverse Relationships are disabled.\n\nCSV files do not contain any cell colors, comments, or links.\nGD&T symbols will look correct only with Excel 2016 or newer.\n\nVisualization Only does not generate any Spreadsheets or CSV files.\nAll options except Visualize are disabled.\n\nSee Help > User Guide (section 4.4.1)"}
+  catch {tooltip::tooltip $foptk "If Excel is installed, then Spreadsheets and CSV files can be generated.\nIf CSV Files is selected, the Spreadsheet is also generated.\n\nIf Excel is not installed, only CSV files can be generated.\nOptions for Reports and Inverse Relationships are disabled.\n\nCSV files do not contain any cell colors, comments, or links.\nGD&T symbols will look correct only with Excel 2016 or newer.\n\nVisualization Only does not generate any Spreadsheets or CSV files.\nAll options except Visualize are disabled.\n\nVisualizations are displayed in web browsers that are not optimized\nfor large models.  Older versions of Internet Explorer are not supported.\n\nSee Help > User Guide (section 4.4.1)"}
 
 # log file
   set foptm [ttk::labelframe $fopt.m -text " Log File "]
@@ -877,6 +877,7 @@ proc guiSpreadsheet {} {
       incr cb
     }
     pack $fxlsx -side top -anchor w -pady {5 2} -padx 10 -fill both
+    catch {tooltip::tooltip $fxlsx "These features are only available on NIST computers."}
   }
 
   pack $fxls -side top -fill both -expand true -anchor nw
@@ -885,7 +886,7 @@ proc guiSpreadsheet {} {
 #-------------------------------------------------------------------------------
 # help menu
 proc guiHelpMenu {} {
-  global Examples Help opt nistVersion mytemp pf32 ifcsvrDir developer virtualDir
+  global Examples Help opt nistVersion mytemp ifcsvrDir virtualDir
 
   $Help add command -label "User Guide (pdf)" -command {showUserGuide}
   $Help add command -label "What's New" -command {whatsNew}
@@ -1371,8 +1372,9 @@ outputMsg "Supplemental geometry is only shown if Graphical PMI or AP242 Tessell
 visualized.  Supplemental geometry is not associated with Saved Views.
 
 The following types of supplemental geometry and associated text are shown.
-- Coordinate System: red, green, blue axes
-- Plane: blue square
+- Coordinate System: red, green, blue axes or by color assigned to axes
+- Plane: blue transparent outlined square
+- Cylinder: blue transparent cylinder
 - Line/Circle: purple or black line/circle
 - Point: black cross
 - Tessellated Surface: faces outlined in black
@@ -1505,39 +1507,44 @@ logo below for the NIST website.
 See Help > Disclaimer and NIST Disclaimer
 
 Credits
-- Generating spreadsheets:         Microsoft Excel (https://products.office.com/excel)
-- Reading and parsing STEP files:  IFCsvr (https://groups.yahoo.com/neo/groups/ifcsvr-users/info)
-- Visualization of B-rep geometry: OpenCascade (https://www.opencascade.com/) and
-                                   pythonOCC (http://www.pythonocc.org/)
-                                   See Websites > STEP to X3D Translation"
+- Generating spreadsheets:        Microsoft Excel (https://products.office.com/excel)
+- Reading and parsing STEP files: IFCsvr (https://groups.yahoo.com/neo/groups/ifcsvr-users/info)
+- Visualizing B-rep geometry:     OpenCascade (https://www.opencascade.com/) and
+                                  pythonOCC (http://www.pythonocc.org/)
+                                  See Websites > STEP to X3D Translation"
     } else {
       outputMsg "\nThis version was built from the NIST STEP File Analyzer and Viewer source\ncode available on GitHub.  https://github.com/usnistgov/SFA"
     }
   
   # debug
     if {$opt(XL_ROWLIM) == 100003} {
-      outputMsg "\nDebug Messages below" red
+      outputMsg " "
+      outputMsg "Environment variables" red
       foreach id [lsort [array names env]] {
-        foreach id1 [list USER APP Program EDM HOME ROSE TEMP TMP] {
-          if {[string first $id1 $id] != -1 } {outputMsg "$id   $env($id)"; break}
+        #outputMsg " $id   $env($id)" green
+        foreach id1 [list HOME Program System USER TEMP TMP ROSE EDM] {
+          if {[string first $id1 $id] == 0} {outputMsg " $id   $env($id)"; break}
         }
       }
-      catch {outputMsg "REGISTRY_PERSONAL [registry get {HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\User Shell Folders} {Personal}]"}
-      catch {outputMsg "REGISTRY_DESKTOP  [registry get {HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\User Shell Folders} {Desktop}]"}
-      catch {outputMsg "REGISTRY_PROGRAMS [registry get {HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\User Shell Folders} {Programs}]"}
-      catch {outputMsg "REGISTRY_APPDATA  [registry get {HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\User Shell Folders} {Local AppData}]"}
-      catch {outputMsg "WEB BROWSER [registry get {HKEY_CURRENT_USER\Software\Classes\http\shell\open\command} {}]"}
-      catch {outputMsg "DRIVE $drive"}
-      catch {outputMsg "MYHOME $myhome"}
-      catch {outputMsg "MYDOCS $mydocs"}
-      catch {outputMsg "MYTEMP $mytemp"}
-      catch {outputMsg "MYDESK $mydesk"}
-      catch {outputMsg "MYMENU $mymenu"}
-      catch {outputMsg "virtualDir $virtualDir"}
-      outputMsg "PF32 $pf32\nPF64 $pf64"
-      outputMsg "\n$tcl_platform(os) $tcl_platform(osVersion)"
-      outputMsg "twapi [package versions twapi]"
-      outputMsg "Debug Messages above" red
+      outputMsg "Registry values" red
+      catch {outputMsg " Personal  [registry get {HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\User Shell Folders} {Personal}]"}
+      catch {outputMsg " Desktop   [registry get {HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\User Shell Folders} {Desktop}]"}
+      catch {outputMsg " Programs  [registry get {HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\User Shell Folders} {Programs}]"}
+      catch {outputMsg " AppData   [registry get {HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\User Shell Folders} {Local AppData}]"}
+      catch {outputMsg " Browser   [registry get {HKEY_CURRENT_USER\Software\Classes\http\shell\open\command} {}]"}
+      outputMsg "SFA variables" red
+      catch {outputMsg " Drive $drive"}
+      catch {outputMsg " Home  $myhome"}
+      catch {outputMsg " Docs  $mydocs"}
+      catch {outputMsg " Temp  $mytemp"}
+      catch {outputMsg " Desk  $mydesk"}
+      catch {outputMsg " Menu  $mymenu"}
+      catch {outputMsg " ifcsvrDir   $ifcsvrDir"}
+      catch {outputMsg " virtualDir  $virtualDir"}
+      outputMsg " PF32  $pf32\n PF64  $pf64"
+      outputMsg "Tcl variables" red
+      outputMsg " $tcl_platform(os) $tcl_platform(osVersion)"
+      outputMsg " twapi [package versions twapi]"
     }
     .tnb select .tnb.status
   }
@@ -1594,7 +1601,7 @@ proc guiWebsitesMenu {} {
   $Websites add command -label "prostep ivip (Germany)"                    -command {openURL https://www.prostep.org/en/projects/}
   $Websites add command -label "AFNeT (France)"                            -command {openURL http://afnet.fr/dotank/sps/}
   $Websites add command -label "LOTAR (LOng Term Archiving and Retrieval)" -command {openURL http://www.lotar-international.org}
-  $Websites add command -label "ASD Strategic Standardisation Group"       -command {openURL http://www.asd-ssg.org/welcome}
+  $Websites add command -label "ASD Strategic Standardisation Group"       -command {openURL http://www.asd-ssg.org/}
   $Websites add command -label "STEP Format"                               -command {openURL https://www.loc.gov/preservation/digital/formats/fdd/fdd000448.shtml}
   
   $Websites add separator

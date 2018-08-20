@@ -201,7 +201,7 @@ proc tessPartGeometry {objEntity} {
 
 # -------------------------------------------------------------------------------
 proc tessReadGeometry {} {
-  global entCount localName tessCoord tessIndex tessIndexCoord developer x3dMin x3dMax opt
+  global entCount localName tessCoord tessIndex tessIndexCoord x3dMin x3dMax opt
   global coordinatesList lineStrips normals triangles
   
   set tg [open $localName r]
@@ -282,7 +282,7 @@ proc tessReadGeometry {} {
             append tessCoord($id) $tc
           }
         } else {
-          set msg "Syntax Error: COORDINATES_LIST #$id has no coordinates."
+          set msg "COORDINATES_LIST #$id has no coordinates."
           errorMsg $msg
         }
         incr ncl

@@ -365,7 +365,7 @@ proc spmiCoverageFormat {sum {multi 1}} {
     }
  
 # horizontal break lines
-    set idx1 [list 19 35 42 58 62 71 81]
+    set idx1 [list 19 35 43 59 63 72 82]
     if {!$multi} {set idx1 [concat [list 3 4] $idx1]}
     for {set r 200} {$r >= [lindex $idx1 end]} {incr r -1} {
       if {$multi} {
@@ -466,8 +466,7 @@ proc spmiCoverageLegend {multi {row 3}} {
               {"Less than expected" "yellow"} \
               {"None (0/n)" "red"} \
               {"Unexpected (n/0)" "magenta"} \
-              {"Not in CAx-IF Recommended Practice" "gray"} \
-              {"There might ambiguity in assigning colors for dimensions."}}
+              {"Not in CAx-IF Recommended Practice" "gray"}}
   foreach item $legend {
     set str [lindex $item 0]
     $cl Item $r $c $str

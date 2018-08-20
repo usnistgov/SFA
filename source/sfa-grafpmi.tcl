@@ -165,7 +165,7 @@ proc gpmiAnnotation {entType} {
 proc gpmiAnnotationReport {objEntity} {
   global objDesign
   global ao aoname assocGeom badAttributes boxSize cells circleCenter col currx3dPID curveTrim
-  global defaultColor developer dirRatio dirType draftModelCameras draftModelCameraNames
+  global defaultColor dirRatio dirType draftModelCameras draftModelCameraNames
   global entCount entLevel ent entAttrList entCount entsWithErrors geomType gpmiEnts gpmiID gpmiIDRow gpmiRow gpmiTypes gpmiTypesInvalid gpmiTypesPerFile gpmiValProp
   global iCompCurve iCompCurveSeg incrcol iPolyline localName nindex nistVersion nshape numCompCurve numCompCurveSeg numPolyline numx3dPID
   global objEntity1 opt pmiCol pmiColumns pmiHeading pmiStartCol pointLimit prefix propDefIDS recPracNames savedViewCol stepAP syntaxErr 
@@ -362,6 +362,7 @@ proc gpmiAnnotationReport {objEntity} {
                     if {$placeNCP == 1} {
                       set gpmiPlacement(origin) $coord
                       set placeOrigin $coord
+                      catch {unset placeAnchor}
                     } elseif {$placeNCP == 3} {
                       set placeAnchor $coord
                     }
@@ -423,6 +424,27 @@ proc gpmiAnnotationReport {objEntity} {
                       set colName "elements[format "%c" 10](Sec. 8.1.1)"
                     } else {
                       set colName "elements[format "%c" 10](Sec. 4.1.1)"
+                    }
+                  }
+# for placeholder viz, check for required a2p3d, cartesian_point, and optional planar_box
+                  if {$opt(VIZPMI)} {
+                    if {[string first "placeholder" $ao] != -1} {
+                      set elements {}
+                      foreach elem $objValue {
+                        set etype [$elem Type]
+                        if {[string first "handle" $etype] != -1} {set etype [[$etype Value] Type]}
+                        lappend elements $etype
+                        if {$etype != "axis2_placement_3d" && $etype != "cartesian_point" && $etype != "planar_box"} {
+                          errorMsg "Syntax Error: Unexpected '$etype' in 'geometric_set.elements' for '$ao'."
+                        }
+                      }
+                      if {[lsearch $elements "axis2_placement_3d"] == -1} {
+                        errorMsg "Syntax Error: Missing required 'axis2_placement_3d' in 'geometric_set.elements' for '$ao'."
+                      } elseif {[lsearch $elements "cartesian_point"] == -1} {
+                        errorMsg "Syntax Error: Missing required 'cartesian_point' in 'geometric_set.elements' for '$ao'."
+                      } elseif {[lsearch $elements "planar_box"] == -1} {
+                        errorMsg "Optional 'planar_box' not used for '$ao'."
+                      }
                     }
                   }
                 }
@@ -856,7 +878,7 @@ proc gpmiAnnotationReport {objEntity} {
 
 # moved (start shape node if not tessellated)
                     if {$ao == "annotation_fill_area_occurrence"} {errorMsg " PMI annotations with filled characters are not filled."}
-                    if {[string first "tessellated" $ao] == -1} {set x3dShape 1}
+                    if {[string first "tessellated" $ao] == -1 && [string first "placeholder" $ao] == -1} {set x3dShape 1}
                     update
                   }               
 

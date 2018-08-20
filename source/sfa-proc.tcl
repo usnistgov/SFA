@@ -1,6 +1,6 @@
 #-------------------------------------------------------------------------------
 proc checkValues {} {
-  global opt buttons appNames appName developer userEntityList allNone useXL
+  global opt buttons appNames appName developer userEntityList allNone useXL developer
   global edmWriteToFile edmWhereRules eeWriteToFile
   
   set butNormal {}
@@ -200,6 +200,14 @@ proc checkValues {} {
     set userEntityList {}
   }
   
+  if {$developer} {
+    if {$opt(INVERSE)} {
+      foreach b {optDEBUGINV} {lappend butNormal $b}
+    } else {
+      foreach b {optDEBUGINV} {lappend butDisabled $b}
+    }
+  }
+  
   if {$opt(writeDirType) == 0} {
     foreach b {userdir userentry userentry1 userfile} {lappend butDisabled $b}
   } elseif {$opt(writeDirType) == 1} {
@@ -264,12 +272,14 @@ proc getNISTName {} {
   if {[string first "tgp" $ftail] == 0} {set c 4}
   foreach str {asme1 ap203 ap214 ap242 242 c3e} {regsub $str $ftail "" ftail}
   
-# first check some specific names, CAx-IF ISO PMI models    
-  if {[string first "sp" $ftail1] == 0} {
-    if {[string first "base"    $ftail] != -1} {set nistName "sp6-base"}
-    if {[string first "cheek"   $ftail] != -1} {set nistName "sp6-cheek"}
-    if {[string first "pole"    $ftail] != -1} {set nistName "sp6-pole"}
-    if {[string first "spindle" $ftail] != -1} {set nistName "sp6-spindle"}
+# first check some specific names, CAx-IF ISO PMI models
+  foreach part [list base cheek pole spindle] {
+    if {[string first "sp" $ftail1] == 0} {
+      if {[string first $part $ftail] != -1} {set nistName "sp6-$part"}
+    }
+    if {[string first "$part\_r"  $ftail] == 0}      {set nistName "sp6-$part"}
+    if {[string first "_$part"    $ftail] != -1}     {set nistName "sp6-$part"}
+    if {[string first "$part.stp" $localName] != -1} {set nistName "sp6-$part"}
   }
     
 # QIF bracket    
@@ -902,8 +912,8 @@ proc runOpenProgram {} {
 
 #-------------------------------------------------------------------------------
 proc getOpenPrograms {} {
-  global dispApps dispCmds dispCmd appNames appName env pf32 pf64
-  global drive editorCmd developer myhome
+  global dispApps dispCmds dispCmd appNames appName env
+  global drive editorCmd developer myhome pf32 pf64
 
 # Including any of the CAD viewers and software below does not imply a recommendation or
 # endorsement of them by NIST https://www.nist.gov/disclaimer
@@ -911,7 +921,7 @@ proc getOpenPrograms {} {
   
   regsub {\\} $pf32 "/" p32
   regsub {\\} $pf64 "/" p64
-  set pflist [list $p32 $p64]
+  set pflist [lrmdups [list $p32 $p64]]
   set lastver 0
 
 # Jotne EDM Model Checker
@@ -1215,7 +1225,7 @@ proc addFileToMenu {} {
 #-------------------------------------------------------------------------------
 # open a spreadsheet
 proc openXLS {filename {check 0} {multiFile 0}} {
-  global pf64 buttons
+  global buttons
 
   if {[info exists buttons]} {
     .tnb select .tnb.status
@@ -1377,7 +1387,7 @@ proc cellRange {r c} {
 }
 
 #-------------------------------------------------------------------------------
-proc addCellComment {ent r c text {w 300} {h 100}} {
+proc addCellComment {ent r c text {w 300} {h 120}} {
   global worksheet
 
   if {![info exists worksheet($ent)] || [string length $text] < 2} {return}
@@ -1643,7 +1653,7 @@ proc truncFileName {fname {compact 0}} {
 # copy schema rose files that are in the Tcl Virtual File System (VFS) to the IFCsvr dll directory
 # this only works with Tcl 8.5.15 and lower
 proc copyRoseFiles {} {
-  global pf32 pf64 wdir mytemp developer env ifcsvrDir nistVersion
+  global pf32 pf64 wdir mytemp env ifcsvrDir nistVersion
 
 # rose files in SFA distribution
   if {[file exists $ifcsvrDir]} {

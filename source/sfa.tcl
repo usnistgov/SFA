@@ -66,10 +66,9 @@ catch {
 # set drive, myhome, mydocs, mydesk
 setHomeDir
 
-# set program files
+# set program files, environment variables will be in the correct language
 set pf32 "C:\Program Files (x86)"
-if {[info exists env(ProgramFiles)]}  {set pf32 $env(ProgramFiles)}
-if {[string first "x86" $pf32] == -1} {append pf32 " (x86)"}
+if {[info exists env(ProgramFiles)]} {set pf32 $env(ProgramFiles)}
 set pf64 "C:\Program Files"
 if {[info exists env(ProgramW6432)]} {set pf64 $env(ProgramW6432)}
 
@@ -132,7 +131,7 @@ set userWriteDir $mydocs
 set writeDir $userWriteDir
 
 set developer 0
-if {$env(USERNAME) == "lipman"} {set developer 1}
+if {$env(USERDOMAIN) == "NIST"} {set developer 1}
 
 # initialize data
 initData
@@ -248,9 +247,9 @@ proc whatsNew {} {
   if {$sfaVersion > 0 && $sfaVersion < [getVersion]} {outputMsg "\nThe previous version of the STEP File Analyzer and Viewer was: $sfaVersion" red}
 
 outputMsg "\nWhat's New (Version: [getVersion]  Updated: [string trim [clock format $progtime -format "%e %b %Y"]])" blue
-outputMsg "- Improved Visualization viewpoints
+outputMsg "- Improved processing of supplemental geometry and annotation placeholder
+- Improved Visualization viewpoints
 - More STEP related Websites
-- Visualization of AP209 displacements, boundary conditions, and loads (Help > AP209 Finite Element Model)
 - Visualization of boundary representation (b-rep) geometry (See Help > B-rep Geometry)
 - Explanation of Report errors (Help > Syntax Errors)
 - Bug fixes and minor improvements

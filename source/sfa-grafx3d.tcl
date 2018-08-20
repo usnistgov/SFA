@@ -264,7 +264,6 @@ proc x3dFileEnd {} {
   
 # coordinate min, max, center
   foreach idx {x y z} {
-    #outputMsg "$idx  $x3dMin($idx) $x3dMax($idx)" red
     set delt($idx) [expr {$x3dMax($idx)-$x3dMin($idx)}]
     set xyzcen($idx) [trimNum [format "%.4f" [expr {0.5*$delt($idx) + $x3dMin($idx)}]]]
   }
@@ -579,7 +578,7 @@ proc x3dFileEnd {} {
 # -------------------------------------------------------------------------------
 # B-rep geometry
 proc x3dBrepGeom {} {
-  global entCount opt viz mytemp wdir localName objDesign x3dMin x3dMax brepFile brepFileName
+  global entCount opt viz mytemp wdir localName objDesign x3dMin x3dMax brepFile brepFileName x3dMsg
 
 # copy stp2x3d executable to temp directory
   if {[catch {
@@ -648,21 +647,28 @@ proc x3dBrepGeom {} {
               }
               if {[string first "<Coordinate" $line] != -1} {
                 set n 0
-
-                foreach idx {0 1 2} {
-                  set min($idx) 1.e10
-                  set max($idx) -1.e10
-                }
+                foreach idx {0 1 2} {set min($idx) 1.e10; set max($idx) -1.e10}
                 set getMinMax 1
-
                 while {[gets $stpx3dFile nline] >= 0} {
+
+# done reading all coordinates, save min and max
                   if {[string first "/Coordinate" $nline] != -1} {
                     set getMinMax 0
+                    set ratio 0
                     foreach id1 {0 1 2} id2 {x y z} {
+                      set ratio [expr {max($ratio, $min($id1)/$x3dMin($id2), $max($id1)/$x3dMax($id2))}]
                       set x3dMin($id2) $min($id1)
                       set x3dMax($id2) $max($id1)
                     }
+                    if {$ratio > 1000.} {
+                      set msg "B-rep geometry XYZ dimensions are much greater than the dimensions of the graphical PMI."
+                      errorMsg " $msg"
+                      if {[lsearch $x3dMsg $msg] == -1} {lappend x3dMsg $msg}
+                    }
+
                   }
+
+# get xyz min and max
                   if {$getMinMax} {
                     foreach idx {0 1 2} {
                       set val [expr {[lindex $nline $idx]*$sc}]
@@ -670,6 +676,7 @@ proc x3dBrepGeom {} {
                       if {$val > $max($idx)} {set max($idx) $val}
                     }
                   }
+
                   if {[string first "<Normal" $nline] != -1} {append line "\n"}
                   append line " $nline"
                   incr n
@@ -719,10 +726,8 @@ proc x3dBrepGeom {} {
 # -------------------------------------------------------------------------------
 # supplemental geometry
 proc x3dSuppGeom {maxxyz} {
-  global x3dFile objDesign viz developer tessSuppGeomFile tessSuppGeomFileName
+  global x3dFile objDesign viz tessSuppGeomFile tessSuppGeomFileName curveTrim x3dMsg
   
-  set defAxes  0
-  set defPlane 0
   set size [trimNum [expr {$maxxyz*0.025}]]
   set tsize [trimNum [expr {$size*0.33}]]
 
@@ -730,6 +735,8 @@ proc x3dSuppGeom {maxxyz} {
   puts $x3dFile "\n<!-- SUPPLEMENTAL GEOMETRY -->\n<Switch whichChoice='0' id='swSMG'><Group>"
   ::tcom::foreach e0 [$objDesign FindObjects [string trim constructive_geometry_representation]] {
     set a1 [[$e0 Attributes] Item 2]
+    
+# process all items    
     ::tcom::foreach e2 [$a1 Value] {
       if {[catch {
         set ename [$e2 Type]
@@ -737,164 +744,152 @@ proc x3dSuppGeom {maxxyz} {
           plane -
           axis2_placement_3d {
             set name [[[$e2 Attributes] Item 1] Value]
-            
             set e3 $e2
             if {$ename == "plane"} {set e3 [[[$e2 Attributes] Item 2] Value]}
 
-# a2p3d
-            set a2p3d [x3dGetA2P3D $e3]
-            set origin [lindex $a2p3d 0]
-            set axis   [lindex $a2p3d 1]
-            set refdir [lindex $a2p3d 2]
-            puts $x3dFile "<Transform translation='$origin' rotation='[x3dRotation $axis $refdir]'>"
-          
-# axes              
             if {$ename == "axis2_placement_3d"} {
-              if {!$defAxes} {
-                puts $x3dFile " <Group DEF='sgAxes'>"
-                puts $x3dFile "  <Shape><Appearance><Material emissiveColor='1 0 0'></Material></Appearance><IndexedLineSet coordIndex='0 1 -1'><Coordinate point='0. 0. 0. $size 0. 0.'></Coordinate></IndexedLineSet></Shape>"
-                puts $x3dFile "  <Shape><Appearance><Material emissiveColor='0 .5 0'></Material></Appearance><IndexedLineSet coordIndex='0 1 -1'><Coordinate point='0. 0. 0. 0. $size 0.'></Coordinate></IndexedLineSet></Shape>"
-                puts $x3dFile "  <Shape><Appearance><Material emissiveColor='0 0 1'></Material></Appearance><IndexedLineSet coordIndex='0 1 -1'><Coordinate point='0. 0. 0. 0. 0. $size'></Coordinate></IndexedLineSet></Shape>"
-                puts $x3dFile " </Group>"
-                set defAxes 1
-              } else {
-                puts $x3dFile " <Group USE='sgAxes'></Group>"
+              set a2p3d [x3dGetA2P3D $e3]
+              set origin [lindex $a2p3d 0]
+              set axis   [lindex $a2p3d 1]
+              set refdir [lindex $a2p3d 2]
+              puts $x3dFile "<Transform translation='$origin' rotation='[x3dRotation $axis $refdir]'>"
+        
+# check for axis color        
+              set axisColor ""
+              if {[catch {
+                set e4s [$e3 GetUsedIn [string trim styled_item] [string trim item]]
+                ::tcom::foreach e4 $e4s {
+                  set e5s [[[$e4 Attributes] Item 2] Value]
+                  ::tcom::foreach e5 $e5s {
+                    set e6 [[[$e5 Attributes] Item 1] Value]
+                    set e7 [[[$e6 Attributes] Item 4] Value]
+                    set j 0
+                    ::tcom::foreach a7 [$e7 Attributes] {
+                      if {$j > 0} {append axisColor "[trimNum [$a7 Value] 3] "}
+                      incr j
+                    }
+                    set axisColor [string trim $axisColor]
+                    #outputMsg color$axisColor
+                  }
+                }
+              } emsg]} {
+                errorMsg " ERROR getting color for '$ename' supplemental geometry."
               }
+              
+              if {$axisColor == ""} {
+                puts $x3dFile " <Shape><Appearance><Material emissiveColor='1 0 0'></Material></Appearance><IndexedLineSet coordIndex='0 1 -1'><Coordinate point='0. 0. 0. $size 0. 0.'></Coordinate></IndexedLineSet></Shape>"
+                puts $x3dFile " <Shape><Appearance><Material emissiveColor='0 .5 0'></Material></Appearance><IndexedLineSet coordIndex='0 1 -1'><Coordinate point='0. 0. 0. 0. $size 0.'></Coordinate></IndexedLineSet></Shape>"
+                puts $x3dFile " <Shape><Appearance><Material emissiveColor='0 0 1'></Material></Appearance><IndexedLineSet coordIndex='0 1 -1'><Coordinate point='0. 0. 0. 0. 0. $size'></Coordinate></IndexedLineSet></Shape>"
+              } else {
+                puts $x3dFile " <Shape><Appearance><Material emissiveColor='$axisColor'></Material></Appearance><IndexedLineSet coordIndex='0 1 -1'><Coordinate point='0. 0. 0. $size 0. 0.'></Coordinate></IndexedLineSet></Shape>"
+                puts $x3dFile " <Shape><Appearance><Material emissiveColor='$axisColor'></Material></Appearance><IndexedLineSet coordIndex='0 1 -1'><Coordinate point='0. 0. 0. 0. $size 0.'></Coordinate></IndexedLineSet></Shape>"
+                puts $x3dFile " <Shape><Appearance><Material emissiveColor='$axisColor'></Material></Appearance><IndexedLineSet coordIndex='0 1 -1'><Coordinate point='0. 0. 0. 0. 0. $size'></Coordinate></IndexedLineSet></Shape>"
+                set tsize [trimNum [expr {$size*0.33}]]
+                puts $x3dFile " <Transform translation='$size 0 0' scale='$tsize $tsize $tsize'><Billboard axisOfRotation='0 0 0'><Shape><Appearance><Material diffuseColor='$axisColor'></Material></Appearance><Text string='\"X\"'><FontStyle family='\"SANS\"'></FontStyle></Text></Shape></Billboard></Transform>"
+                puts $x3dFile " <Transform translation='0 $size 0' scale='$tsize $tsize $tsize'><Billboard axisOfRotation='0 0 0'><Shape><Appearance><Material diffuseColor='$axisColor'></Material></Appearance><Text string='\"Y\"'><FontStyle family='\"SANS\"'></FontStyle></Text></Shape></Billboard></Transform>"
+                puts $x3dFile " <Transform translation='0 0 $size' scale='$tsize $tsize $tsize'><Billboard axisOfRotation='0 0 0'><Shape><Appearance><Material diffuseColor='$axisColor'></Material></Appearance><Text string='\"Z\"'><FontStyle family='\"SANS\"'></FontStyle></Text></Shape></Billboard></Transform>"
+              }
+              
               set nsize [trimNum [expr {$tsize*1.5}]]
-              if {$name != ""} {puts $x3dFile " <Transform scale='$nsize $nsize $nsize'><Billboard axisOfRotation='0 0 0'><Shape><Appearance><Material diffuseColor='0 0 0'></Material></Appearance><Text string='\"$name\"'><FontStyle family='\"SANS\"' justify='\"BEGIN\"'></FontStyle></Text></Shape></Billboard></Transform>"}
+              set tcolor "1 0 0"
+              if {$axisColor != ""} {set tcolor $axisColor}
+              if {$name != ""} {puts $x3dFile " <Transform scale='$nsize $nsize $nsize'><Billboard axisOfRotation='0 0 0'><Shape><Appearance><Material diffuseColor='$tcolor'></Material></Appearance><Text string='\"$name\"'><FontStyle family='\"SANS\"' justify='\"BEGIN\"'></FontStyle></Text></Shape></Billboard></Transform>"}
+              puts $x3dFile "</Transform>"
+              set viz(SMG) 1
 
 # plane
-            } elseif {$ename == "plane" || $ename == "circle"} {
-              
-# check if plane is bounded
-              set bnds [$e2 GetUsedIn [string trim advanced_face] [string trim faced_geometry]]
-              set bound 0
-              ::tcom::foreach bnd $bnds {set bound 1}
-
-              set nsize [trimNum [expr {$size*2.}]]
-              if {!$defPlane} {
-                if {$bound} {errorMsg " Bounding edges for supplemental geometry bounded planes are ignored."}
-                puts $x3dFile " <Shape DEF='sgPlane'><Appearance><Material emissiveColor='0 0 1'></Material></Appearance><IndexedLineSet coordIndex='0 1 2 3 0 -1'><Coordinate point='-$nsize -$nsize 0. $nsize -$nsize 0. $nsize $nsize 0. -$nsize $nsize 0.'></Coordinate></IndexedLineSet></Shape>"
-                set defPlane 1
-              } else {
-                puts $x3dFile " <Shape USE='sgPlane'></Shape>"
-              }
-              if {$name != ""} {puts $x3dFile " <Transform translation='-$nsize -$nsize 0.' scale='$tsize $tsize $tsize'><Billboard axisOfRotation='0 0 0'><Shape><Appearance><Material diffuseColor='0 0 1'></Material></Appearance><Text string='\"$name\"'><FontStyle family='\"SANS\"' justify='\"BEGIN\"'></FontStyle></Text></Shape></Billboard></Transform>"}
+            } elseif {$ename == "plane"} {
+              x3dSuppGeomPlane $e2 $size $name
             }
-            puts $x3dFile "</Transform>"
-            set viz(SMG) 1
           }
           
           trimmed_curve -
           composite_curve -
           geometric_curve_set {
-            catch {unset trim}
-# curves
-            if {$ename == "composite_curve"} {
-              set e3s [[[$e2 Attributes] Item 2] Value]
-              ::tcom::foreach e3 $e3s {set e4 [[[$e3 Attributes] Item 3] Value]}
-              set e2 $e4
-            }
 
-# trimming with values OK, cartesian_points NG
-            if {$ename == "trimmed_curve" || [$e2 Type] == "trimmed_curve"} {
-              set trim(1) [[[$e2 Attributes] Item 3] Value]
-              set trim(2) [[[$e2 Attributes] Item 4] Value]
-            }
-  
-            set name [[[$e2 Attributes] Item 1] Value]
-            set e3 [[[$e2 Attributes] Item 2] Value]
-  
-            if {[$e3 Type] == "trimmed_curve"} {
-              set name [[[$e3 Attributes] Item 1] Value]
-              set trim(1) [[[$e3 Attributes] Item 3] Value]
-              set trim(2) [[[$e3 Attributes] Item 4] Value]
-              set e4 [[[$e3 Attributes] Item 2] Value]
-              set e3 $e4
-            }
-            if {$name == "BRepFtrWithContract"} {set name ""}
+# get all trimmed curves            
+            #outputMsg "\n$ename [$e2 P21ID]" red
+            catch {unset curveTrim}
+            set trimmedCurves {}
+            if {$ename == "trimmed_curve"} {
+              lappend trimmedCurves $e2
 
-# line        
-            if {[$e3 Type] == "line"} {
-              
-              set e4 [[[$e3 Attributes] Item 2] Value]
-              set coord1 [vectrim [[[$e4 Attributes] Item 2] Value]]
-              set e5 [[[$e3 Attributes] Item 3] Value]
-              set mag [[[$e5 Attributes] Item 3] Value]
-              set e6 [[[$e5 Attributes] Item 2] Value]
-              set dir [[[$e6 Attributes] Item 2] Value]
-              set coord2 [vectrim [vecmult $dir $mag]]
-              if {[info exists trim(2)]} {if {[string first "handle" $trim(2)] == -1} {set coord2 [vectrim [vecmult $dir [expr {$trim(2)*$mag}]]]}}
-              
-              puts $x3dFile "<Transform translation='$coord1'>"
-              puts $x3dFile " <Shape><Appearance><Material emissiveColor='1 0 1'></Material></Appearance><IndexedLineSet coordIndex='0 1 -1'><Coordinate point='0. 0. 0. $coord2'></Coordinate></IndexedLineSet></Shape>"
-              if {$name != ""} {
-                set nsize [trimNum [expr {$tsize*0.5}]]
-                puts $x3dFile " <Transform scale='$nsize $nsize $nsize'><Billboard axisOfRotation='0 0 0'><Shape><Appearance><Material diffuseColor='1 0 1'></Material></Appearance><Text string='\"$name\"'><FontStyle family='\"SANS\"' justify='\"BEGIN\"'></FontStyle></Text></Shape></Billboard></Transform>"
+# composite_curve -> composite_curve_segment -> trimmed_curve
+            } elseif {$ename == "composite_curve"} {
+              ::tcom::foreach ccs [[[$e2 Attributes] Item 2] Value] {
+                lappend trimmedCurves [[[$ccs Attributes] Item 3] Value]
               }
-              puts $x3dFile "</Transform>"
-              set viz(SMG) 1
-
-# circle        
-            } elseif {[$e3 Type] == "circle"} {
-              set e4 [[[$e3 Attributes] Item 2] Value]
-              set rad [[[$e3 Attributes] Item 3] Value]
-              set a2p3d [x3dGetA2P3D $e4]
-              set origin [lindex $a2p3d 0]
-              set axis   [lindex $a2p3d 1]
-              set refdir [lindex $a2p3d 2]
-              puts $x3dFile "<Transform translation='$origin' rotation='[x3dRotation $axis $refdir]'>"
-              
-# generate circle, account for trimming
-              set ns 24
-              set angle 0
-              set dlt [expr {6.28319/$ns}]
-              set trimmed 0
-              if {[info exists trim(1)]} {
-                if {[string first "handle" $trim(1)] == -1} {
-                  set angle $trim(1)
-                  set conv 1.
-                  if {$trim(1) > 6.29 || $trim(2) > 6.29} {
-                    set conv 0.01745
-                    set angle [expr {$angle*$conv}]
-                  }
-                  set dlt [expr {$conv*($trim(2)-$trim(1))/$ns}]
-                  incr ns
-                  set trimmed 1
+            
+# geometric_curve_set -> list of trimmed_ or composite_curve -> trimmed_curve
+            } elseif {$ename == "geometric_curve_set"} {
+              set e3s [[[$e2 Attributes] Item 2] Value]
+              foreach e3 $e3s {
+                if {[$e3 Type] == "trimmed_curve"} {
+                  lappend trimmedCurves $e3
+                } elseif {[$e3 Type] == "composite_curve"} {
+                  ::tcom::foreach ccs [[[$e3 Attributes] Item 2] Value] {lappend trimmedCurves [[[$ccs Attributes] Item 3] Value]}
+                } elseif {[$e3 Type] == "line"} {
+                  x3dSuppGeomLine $e3 $tsize $name
+                } elseif {[$e3 Type] == "circle"} {
+                  x3dSuppGeomCircle $e3 $tsize $name
+                } else {
+                  set msg "Supplemental geometry for '[$e3 Type]' in 'geometric_curve_set' is not displayed."
+                  errorMsg " $msg"
+                  if {[lsearch $x3dMsg $msg] == -1} {lappend x3dMsg $msg}
                 }
               }
-              set index ""
-              for {set i 0} {$i < $ns} {incr i} {append index "$i "}
-              if {!$trimmed} {append index "0 "}
-              append index "-1"
-  
-              set coord ""
-              for {set i 0} {$i < $ns} {incr i} {
-                append coord "[trimNum [expr {$rad*cos($angle)}]] "
-                append coord "[trimNum [expr {-1.*$rad*sin($angle)}]] "
-                append coord "0 "
-                set angle [expr {$angle+$dlt}]
-                if {$i == 0} {set coord1 $coord}
-              }
-  
-              puts $x3dFile " <Shape><Appearance><Material emissiveColor='1 0 1'></Material></Appearance><IndexedLineSet coordIndex='$index'><Coordinate point='$coord'></Coordinate></IndexedLineSet></Shape>"
-              if {$name != ""} {puts $x3dFile " <Transform translation='$coord1' scale='$tsize $tsize $tsize'><Billboard axisOfRotation='0 0 0'><Shape><Appearance><Material diffuseColor='1 0 1'></Material></Appearance><Text string='\"$name\"'><FontStyle family='\"SANS\"' justify='\"BEGIN\"'></FontStyle></Text></Shape></Billboard></Transform>"}
-              puts $x3dFile "</Transform>"
-              set viz(SMG) 1
+            }
 
-# other
-            } else {
-              errorMsg " Supplemental geometry for '[$e3 Type]' is not visualized."
+# loop on trimmed curves, process lines and circles
+            foreach tc $trimmedCurves {
+            
+# trimming with values OK, cartesian_points NG
+              set curveTrim(1) [[[$tc Attributes] Item 3] Value]
+              set curveTrim(2) [[[$tc Attributes] Item 4] Value]
+  
+              set name [[[$tc Attributes] Item 1] Value]
+              set e3 [[[$tc Attributes] Item 2] Value]
+              if {$name == "BRepFtrWithContract"} {set name ""}
+            
+# line, circle
+              if {[$e3 Type] == "line"} {
+                x3dSuppGeomLine $e3 $tsize $name
+              } elseif {[$e3 Type] == "circle"} {
+                x3dSuppGeomCircle $e3 $tsize $name
+              } else {
+                set msg "Supplemental geometry for '[$e3 Type]' in 'trimmed_curve' is not displayed."
+                errorMsg " $msg"
+                if {[lsearch $x3dMsg $msg] == -1} {lappend x3dMsg $msg}
+              }
             }
           }
         
-# points
+          polyline {
+            set e2s [[[$e2 Attributes] Item 2] Value]
+            set polyline ""
+            set ncoord 0
+            ::tcom::foreach e3 $e2s {
+              append polyline "[vectrim [[[$e3 Attributes] Item 2] Value]] "
+              incr ncoord
+              if {$ncoord == 1} {set origin $polyline}
+            }
+            set index ""
+            for {set i 0} {$i < $ncoord} {incr i} {append index "$i "}
+            append index "-1"
+            puts $x3dFile " <Shape><Appearance><Material emissiveColor='1 0 1'></Material></Appearance><IndexedLineSet coordIndex='$index'><Coordinate point='$polyline'></Coordinate></IndexedLineSet></Shape>"
+            if {$name != ""} {
+              set nsize [trimNum [expr {$tsize*0.5}]]
+              puts $x3dFile " <Transform scale='$nsize $nsize $nsize' translation='$origin'><Billboard axisOfRotation='0 0 0'><Shape><Appearance><Material diffuseColor='1 0 1'></Material></Appearance><Text string='\"$name\"'><FontStyle family='\"SANS\"' justify='\"BEGIN\"'></FontStyle></Text></Shape></Billboard></Transform>"
+            }
+            set viz(SMG) 1
+          }
+        
           cartesian_point {
             set name [[[$e2 Attributes] Item 1] Value]
             set coord1 [[[$e2 Attributes] Item 2] Value]
             set nsize [trimNum [expr {$tsize*0.1}]]
             puts $x3dFile "<Transform translation='$coord1'>"
-            puts $x3dFile "  <Shape><Appearance><Material emissiveColor='0 0 0'></Material></Appearance><IndexedLineSet coordIndex='0 1 -1 2 3 -1 4 5 -1'><Coordinate point='$nsize 0. 0. -$nsize 0. 0. 0. $nsize 0. 0. -$nsize 0. 0. 0. $nsize 0. 0. -$nsize'></Coordinate></IndexedLineSet></Shape>"
+            puts $x3dFile " <Shape><Appearance><Material emissiveColor='0 0 0'></Material></Appearance><IndexedLineSet coordIndex='0 1 -1 2 3 -1 4 5 -1'><Coordinate point='$nsize 0. 0. -$nsize 0. 0. 0. $nsize 0. 0. -$nsize 0. 0. 0. $nsize 0. 0. -$nsize'></Coordinate></IndexedLineSet></Shape>"
             if {$name != ""} {
               set nsize [trimNum [expr {$tsize*0.25}]]
               puts $x3dFile " <Transform scale='$nsize $nsize $nsize'><Billboard axisOfRotation='0 0 0'><Shape><Appearance><Material diffuseColor='0 0 0'></Material></Appearance><Text string='\"$name\"'><FontStyle family='\"SANS\"' justify='\"BEGIN\"'></FontStyle></Text></Shape></Billboard></Transform>"
@@ -902,9 +897,42 @@ proc x3dSuppGeom {maxxyz} {
             puts $x3dFile "</Transform>"
             set viz(SMG) 1
           }
+        
+          cylindrical_surface {
+            x3dSuppGeomCylinder $e2 $tsize
+          }
+        
+          shell_based_surface_model {
+            set cylIDs {}
+            set e3 [lindex [[[$e2 Attributes] Item 2] Value] 0]
+            set e4s [[[$e3 Attributes] Item 2] Value]
+            ::tcom::foreach e4 $e4s {
+              set e5 [lindex [[[$e4 Attributes] Item 3] Value] 0]
+              if {[$e5 Type] == "cylindrical_surface"} {
+                if {[lsearch $cylIDs [$e5 P21ID]] == -1} {
+                  lappend cylIDs [$e5 P21ID]
+                  x3dSuppGeomCylinder $e5 $tsize
+                }
+              } elseif {[$e5 Type] == "plane"} {
+                x3dSuppGeomPlane $e5 $size
+              } else {
+                set msg "Supplemental geometry for '[$e5 Type]' in 'shell_based_surface_model' is not displayed."
+                errorMsg " $msg"
+                if {[lsearch $x3dMsg $msg] == -1} {lappend x3dMsg $msg}
+              }
+            }
+          }
           
           default {
-            if {$ename != "tessellated_shell" && $ename != "tessellated_wire"} {errorMsg " Supplemental geometry for '$ename' is not visualized."}
+            if {$ename != "tessellated_shell" && $ename != "tessellated_wire"} {
+              if {$ename != "direction"} {
+                set msg "Supplemental geometry for '$ename' is not displayed."
+                errorMsg " $msg"
+                if {[lsearch $x3dMsg $msg] == -1} {lappend x3dMsg $msg}
+              } else {
+                errorMsg "Syntax Error: '$ename' is not valid supplemental geometry."
+              }
+            }
           }
         }
       } emsg]} {
@@ -927,6 +955,141 @@ proc x3dSuppGeom {maxxyz} {
     unset tessSuppGeomFileName
   }
   puts $x3dFile "</Group></Switch>\n"
+}
+
+# -------------------------------------------------------------------------------
+# supplemental geometry for line
+proc x3dSuppGeomLine {e3 tsize {name ""}} {
+  global x3dFile viz curveTrim x3dMsg
+  
+  set e4 [[[$e3 Attributes] Item 2] Value]
+  set coord1 [vectrim [[[$e4 Attributes] Item 2] Value]]
+  set e5 [[[$e3 Attributes] Item 3] Value]
+  set mag [[[$e5 Attributes] Item 3] Value]
+  set e6 [[[$e5 Attributes] Item 2] Value]
+  set dir [[[$e6 Attributes] Item 2] Value]
+  set coord2 [vectrim [vecmult $dir $mag]]
+  if {[info exists curveTrim(2)]} {
+    if {[string first "handle" $curveTrim(2)] == -1} {
+      set coord2 [vectrim [vecmult $dir [expr {$curveTrim(2)*$mag}]]]
+    } else {
+      set msg "Supplemental geometry 'line' trimmed by 'cartesian_point' are not trimmed."
+      errorMsg " $msg"
+      if {[lsearch $x3dMsg $msg] == -1} {lappend x3dMsg $msg}
+    }
+  }
+  
+  puts $x3dFile "<Transform translation='$coord1'>"
+  puts $x3dFile " <Shape><Appearance><Material emissiveColor='1 0 1'></Material></Appearance><IndexedLineSet coordIndex='0 1 -1'><Coordinate point='0. 0. 0. $coord2'></Coordinate></IndexedLineSet></Shape>"
+  if {$name != ""} {
+    set nsize [trimNum [expr {$tsize*0.5}]]
+    puts $x3dFile " <Transform scale='$nsize $nsize $nsize'><Billboard axisOfRotation='0 0 0'><Shape><Appearance><Material diffuseColor='1 0 1'></Material></Appearance><Text string='\"$name\"'><FontStyle family='\"SANS\"' justify='\"BEGIN\"'></FontStyle></Text></Shape></Billboard></Transform>"
+  }
+  puts $x3dFile "</Transform>"
+  set viz(SMG) 1
+}
+
+# -------------------------------------------------------------------------------
+# supplemental geometry for circle
+proc x3dSuppGeomCircle {e3 tsize {name ""}} {
+  global x3dFile viz curveTrim
+  
+  set e4 [[[$e3 Attributes] Item 2] Value]
+  set rad [[[$e3 Attributes] Item 3] Value]
+  set a2p3d [x3dGetA2P3D $e4]
+  set origin [lindex $a2p3d 0]
+  set axis   [lindex $a2p3d 1]
+  set refdir [lindex $a2p3d 2]
+  puts $x3dFile "<Transform translation='$origin' rotation='[x3dRotation $axis $refdir]'>"
+
+# generate circle, account for trimming
+  set ns 24
+  set angle 0
+  set dlt [expr {6.28319/$ns}]
+  set trimmed 0
+  if {[info exists curveTrim(1)]} {
+    if {[string first "handle" $curveTrim(1)] == -1} {
+      set angle $curveTrim(1)
+      set conv 1.
+      if {$curveTrim(1) > 6.29 || $curveTrim(2) > 6.29} {
+        set conv 0.01745
+        set angle [expr {$angle*$conv}]
+      }
+      set dlt [expr {$conv*($curveTrim(2)-$curveTrim(1))/$ns}]
+      incr ns
+      set trimmed 1
+    }
+  }
+  set index ""
+  for {set i 0} {$i < $ns} {incr i} {append index "$i "}
+  if {!$trimmed} {append index "0 "}
+  append index "-1"
+
+  set coord ""
+  for {set i 0} {$i < $ns} {incr i} {
+    append coord "[trimNum [expr {$rad*cos($angle)}]] "
+    append coord "[trimNum [expr {-1.*$rad*sin($angle)}]] "
+    append coord "0 "
+    set angle [expr {$angle+$dlt}]
+    if {$i == 0} {set coord1 $coord}
+  }
+
+  puts $x3dFile " <Shape><Appearance><Material emissiveColor='1 0 1'></Material></Appearance><IndexedLineSet coordIndex='$index'><Coordinate point='$coord'></Coordinate></IndexedLineSet></Shape>"
+  if {$name != ""} {puts $x3dFile " <Transform translation='$coord1' scale='$tsize $tsize $tsize'><Billboard axisOfRotation='0 0 0'><Shape><Appearance><Material diffuseColor='1 0 1'></Material></Appearance><Text string='\"$name\"'><FontStyle family='\"SANS\"' justify='\"BEGIN\"'></FontStyle></Text></Shape></Billboard></Transform>"}
+  puts $x3dFile "</Transform>"
+  set viz(SMG) 1
+}
+
+# -------------------------------------------------------------------------------
+# supplemental geometry for plane
+proc x3dSuppGeomPlane {e2 size {name ""}} {
+  global x3dFile viz x3dMsg
+  
+# check if plane is bounded
+  set bnds [$e2 GetUsedIn [string trim advanced_face] [string trim faced_geometry]]
+  set bound 0
+  ::tcom::foreach bnd $bnds {set bound 1}
+  if {$bound} {
+    set msg "Bounding edges for supplemental geometry 'plane' are ignored."
+    errorMsg " $msg"
+    if {[lsearch $x3dMsg $msg] == -1} {lappend x3dMsg $msg}
+  }
+  
+  set e3 [[[$e2 Attributes] Item 2] Value]
+  set a2p3d [x3dGetA2P3D $e3]
+  set origin [lindex $a2p3d 0]
+  set axis   [lindex $a2p3d 1]
+  set refdir [lindex $a2p3d 2]
+  puts $x3dFile "<Transform translation='$origin' rotation='[x3dRotation $axis $refdir]'>"
+
+  set nsize [trimNum [expr {$size*2.}]]
+  set tsize [trimNum [expr {$size*0.33}]]
+  puts $x3dFile " <Shape><Appearance><Material emissiveColor='0 0 1'></Material></Appearance><IndexedLineSet coordIndex='0 1 2 3 0 -1'><Coordinate point='-$nsize -$nsize 0. $nsize -$nsize 0. $nsize $nsize 0. -$nsize $nsize 0.'></Coordinate></IndexedLineSet></Shape>"
+  puts $x3dFile " <Shape><Appearance><Material diffuseColor='0 0 1' transparency='0.9'></Material></Appearance><IndexedFaceSet solid='false' coordIndex='0 1 2 3 -1'><Coordinate point='-$nsize -$nsize 0. $nsize -$nsize 0. $nsize $nsize 0. -$nsize $nsize 0.'></Coordinate></IndexedFaceSet></Shape>"
+
+  if {$name != ""} {puts $x3dFile " <Transform translation='-$nsize -$nsize 0.' scale='$tsize $tsize $tsize'><Billboard axisOfRotation='0 0 0'><Shape><Appearance><Material diffuseColor='0 0 1'></Material></Appearance><Text string='\"$name\"'><FontStyle family='\"SANS\"' justify='\"BEGIN\"'></FontStyle></Text></Shape></Billboard></Transform>"}
+  puts $x3dFile "</Transform>"
+  set viz(SMG) 1
+}
+
+# -------------------------------------------------------------------------------
+# supplemental geometry for cylinder
+proc x3dSuppGeomCylinder {e2 tsize {name ""}} {
+  global x3dFile viz x3dMsg
+  
+  set e4 [[[$e2 Attributes] Item 2] Value]
+  set rad [[[$e2 Attributes] Item 3] Value]
+  set a2p3d [x3dGetA2P3D $e4]
+  set origin [lindex $a2p3d 0]
+  set axis   [lindex $a2p3d 1]
+  set refdir [lindex $a2p3d 2]
+  puts $x3dFile "<Transform translation='$origin' rotation='[x3dRotation $axis $refdir]'><Transform rotation='1 0 0 1.5708'>"
+  puts $x3dFile "  <Shape><Appearance><Material diffuseColor='0 0 1' transparency='0.8'></Material></Appearance><Cylinder radius='$rad' height='[expr {$tsize*10.}]' top='false' bottom='false' solid='false'></Cylinder></Shape>"
+  puts $x3dFile "</Transform></Transform>"
+  set viz(SMG) 1
+  set msg "Bounding edges for supplemental geometry 'cylindrical_surface' are ignored."
+  errorMsg " $msg"
+  if {[lsearch $x3dMsg $msg] == -1} {lappend x3dMsg $msg}
 }
 
 # -------------------------------------------------------------------------------
@@ -968,7 +1131,7 @@ proc x3dPolylinePMI {} {
           if {[string first "placeholder" $ao] != -1} {
             puts $f "</Transform>"
             puts $f "<Shape>\n <Appearance><Material emissiveColor='$x3dColor'></Material></Appearance>"
-            puts $f " <IndexedLineSet coordIndex='0 1 -1'>\n  <Coordinate point='$placeOrigin $placeAnchor '></Coordinate></IndexedLineSet>\n</Shape>"
+            puts $f " <IndexedLineSet coordIndex='0 1 -1'>\n  <Coordinate point='$placeOrigin $placeAnchor'></Coordinate></IndexedLineSet>\n</Shape>"
           }
     
 # end shape

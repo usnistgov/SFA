@@ -114,7 +114,7 @@ proc spmiGeotolStart {entType} {
 # -------------------------------------------------------------------------------
 proc spmiGeotolReport {objEntity} {
   global all_around all_over assocGeom ATR badAttributes between cells col
-  global datsys datumCompartment datumFeature datumSymbol datumSystem developer
+  global datsys datumCompartment datumFeature datumSymbol datumSystem
   global dim dimrep datumEntType datumGeom datumTargetType dimtolEntType dimtolGeom
   global entLevel ent entAttrList entCount gt gtEntity incrcol lastAttr lastEnt nistName
   global objID opt pmiCol pmiHeading pmiModifiers pmiStartCol pmiUnicode ptz recPracNames
@@ -329,9 +329,8 @@ proc spmiGeotolReport {objEntity} {
 # no tzf symbol
                                 } else {
                                   set tzf1 "(TZF: $tzfName)"
-                                  set msg "The tolerance_zone_form.name '$tzfName' from Table 12 is not commonly used."
-                                  #if {[string first "within" $tzfName] != -1} {append msg "\n Use 'cylindrical or circular' from Table 11."}
-                                  errorMsg $msg
+                                  errorMsg "The tolerance_zone_form.name '$tzfName' is not commonly used."
+                                  errorMsg " (Recommended Practice for $recPracNames(pmi242), Sec. 6.9.2, Tables 11 and 12)"
                                 }
 
 # invalid tzf

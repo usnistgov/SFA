@@ -405,7 +405,7 @@ proc invSetCheck {entType} {
 # -------------------------------------------------------------------------------
 # set inverse relationships
 proc initDataInverses {} {
-  global tolNames inverses developer
+  global tolNames inverses
   
 # when adding used_in or inverse (related, relating) relationships also add entities to check in invSetCheck above  
   set inverses {}

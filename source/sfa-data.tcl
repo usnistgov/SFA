@@ -194,12 +194,12 @@ set gpmiTypes [list \
 set spmiTypes $tolNames
 
 foreach item [list \
-  "tolerance zone diameter (6.9.2)" "tolerance zone spherical diameter (6.9.2)" "tolerance zone other (6.9.2, Table 12)" "affected plane tolerance zone (6.9.2.1)" \
-  "non-uniform tolerance zone (6.9.2.3)" "tolerance with max value (6.9.5)" "unit-basis tolerance (6.9.6)" \
+  "tolerance zone diameter (6.9.2, Table 11)" "tolerance zone spherical diameter (6.9.2, Table 11)" "tolerance zone other (6.9.2, Table 12)" \
+  "affected plane tolerance zone (6.9.2.1)" "non-uniform tolerance zone (6.9.2.3)" "tolerance with max value (6.9.5)" "unit-basis tolerance (6.9.6)" \
   "all_around \u232E (6.4.2)" "between \u2194 (6.4.3)" "composite tolerance (6.9.9)" \
   "unequally_disposed \u24CA (6.9.4)" "projected \u24C5 (6.9.2.2)" "free_state \u24BB (6.9.3)" "tangent_plane \u24C9 (6.9.3)" \
   "statistical_tolerance <ST> (6.9.3)" "separate_requirement SEP REQT (6.9.3)" \
-  "dimensional location (5.1.1)" "dimensional size (5.1.5)" "angular location (5.1.2)" "angular size (5.1.6)" \
+  "dimensions (B36+B37)" "dimensional location (5.1.1)" "dimensional size (5.1.5)" "angular location (5.1.2)" "angular size (5.1.6)" \
   "directed dimension \u2331 (5.1.1)"  "oriented dimensional location (5.1.3)" "derived shapes dimensional location (5.1.4)" \
   "bilateral tolerance (5.2.3)" "non-bilateral tolerance (5.2.3)" "value range (5.2.4)" \
   "diameter \u2205 (5.1.5)" "radius R (5.1.5)" "spherical diameter S\u2205 (5.1.5)" "spherical radius SR (5.1.5)" "controlled radius CR (5.3)" \
@@ -440,7 +440,11 @@ set modelPictures  {{sp3-1101  caxif-1101.jpg  E4 0} \
                     {nist_ftc_09 nist_ftc_09abcd.jpg E4 0} \
                     {nist_ftc_10 nist_ftc_10abc.jpg E4 0} \
                     {nist_ftc_10 nist_ftc_10de.jpg T4 20} \
-                    {nist_ftc_11 nist_ftc_11ab.jpg E4 0}}
+                    {nist_ftc_11 nist_ftc_11ab.jpg E4 0} \
+                    {sp6-base    sp6-base.jpg E4 0} \
+                    {sp6-cheek   sp6-cheek.jpg E4 0} \
+                    {sp6-pole    sp6-pole.jpg E4 0} \
+                    {sp6-spindle sp6-spindle.jpg E4 0}}
 
 set modelURLs [list nist_ctc_01_asme1_rd.pdf \
                     nist_ctc_02_asme1_rc.pdf \

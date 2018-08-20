@@ -12,6 +12,7 @@ proc spmiDimtolStart {entType} {
   set dim_loc       [list dimensional_location name]
   set dim_loc_dir   [list directed_dimensional_location name]
   set dim_loc_wdf   [list dimensional_location_with_datum_feature name]
+  set dim_loc_pth   [list dimensional_location_with_path name]
   set ang_loc       [list angular_location name angle_selection]
   set ang_loc1      [list angular_location_and_directed_dimensional_location name angle_selection]
   set ang_size      [list angular_size applies_to name angle_selection]
@@ -39,7 +40,7 @@ proc spmiDimtolStart {entType} {
   
   set PMIP(dimensional_characteristic_representation) \
     [list dimensional_characteristic_representation \
-      dimension $dim_size $dim_size_wdf $dim_size_wdf1 $dim_size_wdf2 $dim_loc $dim_loc_wdf $dim_loc_dir $ang_loc $ang_loc1 $ang_size $ang_size1 \
+      dimension $dim_size $dim_size_wdf $dim_size_wdf1 $dim_size_wdf2 $dim_loc $dim_loc_wdf $dim_loc_pth $dim_loc_dir $ang_loc $ang_loc1 $ang_size $ang_size1 \
       representation [list shape_dimension_representation name \
         items $length_measure1 $length_measure2 $length_measure3 \
         $angle_measure1 $angle_measure2 $angle_measure3 \
@@ -101,7 +102,7 @@ proc spmiDimtolStart {entType} {
 # -------------------------------------------------------------------------------
 
 proc spmiDimtolReport {objEntity} {
-  global assocGeom badAttributes cells col developer dim dimBasic dimRepeat dimDirected dimName dimModNames dimOrient dimReference dimrep dimrepID
+  global assocGeom badAttributes cells col dim dimBasic dimRepeat dimDirected dimName dimModNames dimOrient dimReference dimrep dimrepID
   global dimSizeNames dimtolEnt dimtolEntType dimtolGeom dimval draftModelCameras dt dtpmivalprop entLevel ent entAttrList entCount entlevel2 entsWithErrors
   global incrcol lastAttr lastEnt nistName opt pmiCol pmiColumns pmiHeading pmiModifiers pmiStartCol
   global pmiUnicode prefix angDegree recPracNames savedModifier spmiEnts spmiID spmiIDRow spmiRow spmiTypesPerFile syntaxErr tolStandard
@@ -593,6 +594,7 @@ proc spmiDimtolReport {objEntity} {
                       if {$okname} {
                         lappend spmiTypesPerFile "dimensional size"
                         lappend spmiTypesPerFile $ov
+                        lappend spmiTypesPerFile "dimensions"
                       }
                     }
 
@@ -629,23 +631,23 @@ proc spmiDimtolReport {objEntity} {
                       lappend spmiTypesPerFile "directed dimension"
                     }
                     lappend spmiTypesPerFile "dimensional location"
+                    lappend spmiTypesPerFile "dimensions"
 
 # syntax check for correct dimensional_location.name attribute from the RP                  
-                    if {$ent1 == "dimensional_location name"} {
-                      if {$ov == ""} {
-                        set ov "(blank)"
-                        set msg "Syntax Error: Missing 'name' attribute on [lindex $ent1 0].\n[string repeat " " 14]\($recPracNames(pmi242), Sec. 5.1.1, Tables 1 and 2)"
-                        errorMsg $msg
-                        set invalid $msg
-                        lappend syntaxErr([lindex [split $ent1 " "] 0]) [list $objID [lindex [split $ent1 " "] 1] $msg]
-                      } elseif {$ov != "curved distance" && [string first "linear distance" $ov] == -1} {
-                        set msg "Syntax Error: Invalid 'name' attribute ($ov) on [lindex $ent1 0].\n[string repeat " " 14]\($recPracNames(pmi242), Sec. 5.1.1, Tables 1 and 2)"
-                        errorMsg $msg
-                        lappend syntaxErr([lindex [split $ent1 " "] 0]) [list $objID [lindex [split $ent1 " "] 1] $msg]
-                        set invalid $msg
-                      }
+                    if {$ov == ""} {
+                      set ov "(blank)"
+                      set msg "Syntax Error: Missing 'name' attribute on [lindex $ent1 0].\n[string repeat " " 14]\($recPracNames(pmi242), Sec. 5.1.1, Tables 1 and 2)"
+                      errorMsg $msg
+                      set invalid $msg
+                      lappend syntaxErr([lindex [split $ent1 " "] 0]) [list $objID [lindex [split $ent1 " "] 1] $msg]
+                    } elseif {$ov != "curved distance" && [string first "linear distance" $ov] == -1} {
+                      set msg "Syntax Error: Invalid 'name' attribute ($ov) on [lindex $ent1 0].\n[string repeat " " 14]\($recPracNames(pmi242), Sec. 5.1.1, Tables 1 and 2)"
+                      errorMsg $msg
+                      lappend syntaxErr([lindex [split $ent1 " "] 0]) [list $objID [lindex [split $ent1 " "] 1] $msg]
+                      set invalid $msg
                     }
                   }
+                  
                   "shape_dimension_representation name" {
 # shape_dimension.name, look for independency or envelope requirement per the RP, Sec 5.2.1                    
                     set invalid ""
@@ -1325,25 +1327,27 @@ proc spmiDimtolReport {objEntity} {
         }
         
 # save dimension with associated geometry
-        if {$dimtolGeomEnts != ""} {
-          if {[string first "'" $dr] == 0} {set dr [string range $dr 1 end]}
-          if {[info exists dimtolGeom($dimtolGeomEnts)]} {
-            if {[lsearch $dimtolGeom($dimtolGeomEnts) $dr] == -1} {lappend dimtolGeom($dimtolGeomEnts) $dr}
-          } else {
-            lappend dimtolGeom($dimtolGeomEnts) $dr
-          }
-
-# multiple dimensions for same geometry
-          if {[llength $dimtolGeom($dimtolGeomEnts)] > 1} {
-            set dtg {}
-            foreach item $dimtolGeom($dimtolGeomEnts) {
-              regsub -all [format "%c" 10] $item " " tmp
-              for {set i 0} {$i < 10} {incr i} {regsub -all "  " $tmp " " tmp}
-              lappend dtg $tmp
+        if {[info exists dimtolGeomEnts]} {
+          if {$dimtolGeomEnts != ""} {
+            if {[string first "'" $dr] == 0} {set dr [string range $dr 1 end]}
+            if {[info exists dimtolGeom($dimtolGeomEnts)]} {
+              if {[lsearch $dimtolGeom($dimtolGeomEnts) $dr] == -1} {lappend dimtolGeom($dimtolGeomEnts) $dr}
+            } else {
+              lappend dimtolGeom($dimtolGeomEnts) $dr
             }
-            errorMsg "Multiple dimensions $dtg associated with the same geometry\n $dimtolGeomEnts"
-            addCellComment $dt $r $pmiColumns(ch) "Multiple dimensions are associated with the same geometry.  The identical information in this cell should appear in another Associated Geometry cell above." 300 60
-            lappend entsWithErrors "dimensional_characteristic_representation"
+  
+# multiple dimensions for same geometry
+            if {[llength $dimtolGeom($dimtolGeomEnts)] > 1} {
+              set dtg {}
+              foreach item $dimtolGeom($dimtolGeomEnts) {
+                regsub -all [format "%c" 10] $item " " tmp
+                for {set i 0} {$i < 10} {incr i} {regsub -all "  " $tmp " " tmp}
+                lappend dtg $tmp
+              }
+              errorMsg "Multiple dimensions $dtg associated with the same geometry\n $dimtolGeomEnts"
+              addCellComment $dt $r $pmiColumns(ch) "Multiple dimensions are associated with the same geometry.  The identical information in this cell should appear in another Associated Geometry cell above." 300 60
+              lappend entsWithErrors "dimensional_characteristic_representation"
+            }
           }
         }
       }
