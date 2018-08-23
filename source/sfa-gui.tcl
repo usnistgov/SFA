@@ -461,14 +461,14 @@ proc guiProcessAndReports {} {
   pack $foptv -side left -anchor w -pady {5 2} -padx 10 -fill both -expand true
   pack $foptrv -side top -anchor w -pady 0 -fill x
   catch {
-    tooltip::tooltip $buttons(optVIZPMI) "Graphical PMI is supported in AP242, AP203, and AP214 files.\nSupplemental geometry and tessellated edges (lines) are also shown.\n\nSee Help > PMI Presentation\nSee Help > User Guide (section 7.1.1)\nSee Help > Supplemental Geometry\nSee Examples > Part with PMI\nSee Examples > AP242 Tessellated Part with PMI\nSee Examples > Sample STEP Files\n\nVisualizations can be generated without generating a spreadsheet\nor CSV files.  See the Output Format option below.\n\nVisualizations are displayed in web browsers that are not optimized\nfor large models.  Older versions of Internet Explorer are not supported."
-    tooltip::tooltip $buttons(optVIZTPG) "** Parts in an assembly might have the wrong position and orientation or be missing. **\n\nTessellated geometry is in addition to boundary representation (b-rep) geometry.\nSupplemental geometry and tessellated edges (lines) are also shown.\nFaces in tessellated shells are outlined in black.\n\nSee Help > AP242 Tessellated Part Geometry\nSee Help > Supplemental Geometry\nSee Help > User Guide (section 7.1.2, 7.1.3)\nSee Examples > AP242 Tessellated Part with PMI\n\nVisualizations can be generated without generating a spreadsheet or CSV files.\nSee the Output Format option below.\n\nVisualizations are displayed in web browsers that are not optimized for large models.\nOlder versions of Internet Explorer are not supported."
+    tooltip::tooltip $buttons(optVIZPMI) "Graphical PMI is supported in AP242, AP203, and AP214 files.\nSupplemental geometry and tessellated edges (lines) are also shown.\n\nSee Help > PMI Presentation\nSee Help > User Guide (section 7.1.1)\nSee Help > Supplemental Geometry\nSee Examples > Part with PMI\nSee Examples > AP242 Tessellated Part with PMI\nSee Examples > Sample STEP Files\n\nVisualizations can be generated without generating a spreadsheet\nor CSV files.  See the Output Format option below.\n\nVisualizations are displayed in web browsers that are not optimized\nfor large models.  Older versions of web browsers are not supported."
+    tooltip::tooltip $buttons(optVIZTPG) "** Parts in an assembly might have the wrong position and orientation or be missing. **\n\nTessellated geometry is in addition to boundary representation (b-rep) geometry.\nSupplemental geometry and tessellated edges (lines) are also shown.\nFaces in tessellated shells are outlined in black.\n\nSee Help > AP242 Tessellated Part Geometry\nSee Help > Supplemental Geometry\nSee Help > User Guide (section 7.1.2, 7.1.3)\nSee Examples > AP242 Tessellated Part with PMI\n\nVisualizations can be generated without generating a spreadsheet or CSV files.\nSee the Output Format option below.\n\nVisualizations are displayed in web browsers that are not optimized for large models.\nOlder versions of web browsers are not supported."
     tooltip::tooltip $buttons(optVIZTPGMSH) "Show a tessellation wireframe mesh based on the tessellated\nfaces or surfaces.  Not recommended for very large models."
     tooltip::tooltip $buttons(optVIZFEALVS) "The length of load vectors can be scaled by their magnitude.\nLoad vectors are always colored by their magnitude."
     tooltip::tooltip $buttons(optVIZFEADStail) "The length of displacement vectors with a tail are scaled by\ntheir magnitude.  Vectors without a tail are not.\nDisplacement vectors are always colored by their magnitude.\nLoad vectors always have a tail."
-    tooltip::tooltip $buttons(optVIZBRP) "Boundary representation part geometry is visualized ONLY if one of the above types\nof visualization features is selected AND is present in the STEP file.\n\nSee Help > B-rep Geometry\nSee Examples > Part with PMI\nSee Websites > STEP File Viewers for other b-rep geometry viewers\n\nVisualizations are displayed in web browsers that are not optimized for large models.\nOlder versions of Internet Explorer are not supported."
+    tooltip::tooltip $buttons(optVIZBRP) "Boundary representation part geometry is visualized ONLY if one of the above types\nof visualization features is selected AND is present in the STEP file.\n\nSee Help > B-rep Geometry\nSee Examples > Part with PMI\nSee Websites > STEP File Viewers for other b-rep geometry viewers\n\nVisualizations are displayed in web browsers that are not optimized for large models.\nOlder versions of web browsers are not supported."
     tooltip::tooltip $foptv4 "For Random PMI colors, each 'annotation occurrence' is assigned a different color\nto help differentiate one from another."
-    set tt "FEM nodes, elements, boundary conditions, loads, and displacements are visualized.\n\nSee Help > AP209 Finite Element Model\nSee Help > User Guide (section 7.1.4)\nSee Examples > AP209 Finite Element Model\n\nVisualizations can be generated without generating a spreadsheet or CSV files.\nSee the Output Format option below.\n\nVisualizations are displayed in web browsers that are not optimized for large models.\nOlder versions of Internet Explorer are not supported."
+    set tt "FEM nodes, elements, boundary conditions, loads, and displacements are visualized.\n\nSee Help > AP209 Finite Element Model\nSee Help > User Guide (section 7.1.4)\nSee Examples > AP209 Finite Element Model\n\nVisualizations can be generated without generating a spreadsheet or CSV files.\nSee the Output Format option below.\n\nVisualizations are displayed in web browsers that are not optimized for large models.\nOlder versions of web browsers are not supported."
     tooltip::tooltip $foptv7 $tt
     tooltip::tooltip $foptv8 $tt
     #tooltip::tooltip $buttons(optVIZPMIVP) "PMI Viewpoints are experimental.\n\nViewpoints usually have the correct orientation but are not centered.\nUse pan and zoom to center the PMI."
@@ -737,7 +737,7 @@ proc guiOpenSTEPFile {} {
     incr cb
   }
   pack $foptk -side top -anchor w -pady {5 2} -padx 10 -fill both
-  catch {tooltip::tooltip $foptk "If Excel is installed, then Spreadsheets and CSV files can be generated.\nIf CSV Files is selected, the Spreadsheet is also generated.\n\nIf Excel is not installed, only CSV files can be generated.\nOptions for Reports and Inverse Relationships are disabled.\n\nCSV files do not contain any cell colors, comments, or links.\nGD&T symbols will look correct only with Excel 2016 or newer.\n\nVisualization Only does not generate any Spreadsheets or CSV files.\nAll options except Visualize are disabled.\n\nVisualizations are displayed in web browsers that are not optimized\nfor large models.  Older versions of Internet Explorer are not supported.\n\nSee Help > User Guide (section 4.4.1)"}
+  catch {tooltip::tooltip $foptk "If Excel is installed, then Spreadsheets and CSV files can be generated.\nIf CSV Files is selected, the Spreadsheet is also generated.\n\nIf Excel is not installed, only CSV files can be generated.\nOptions for Reports and Inverse Relationships are disabled.\n\nCSV files do not contain any cell colors, comments, or links.\nGD&T symbols will look correct only with Excel 2016 or newer.\n\nVisualization Only does not generate any Spreadsheets or CSV files.\nAll options except Visualize are disabled.\n\nVisualizations are displayed in web browsers that are not optimized\nfor large models.  Older versions of web browsers are not supported.\n\nSee Help > User Guide (section 4.4.1)"}
 
 # log file
   set foptm [ttk::labelframe $fopt.m -text " Log File "]
@@ -825,7 +825,7 @@ proc guiSpreadsheet {} {
     focus $buttons(userdir)
   }
   pack $fxls1.$cb -side left -anchor w -padx {5 0}
-  catch {tooltip::tooltip $fxls1.$cb "This option can be used when the directory containing the STEP file is\nprotected (read-only) and the Spreadsheet cannot be written to it."}
+  catch {tooltip::tooltip $fxls1.$cb "Use this option when the directory containing the STEP file is\nprotected (read-only) and the Spreadsheet cannot be written to it."}
   incr cb
 
   set buttons(userentry) [ttk::entry $fxls1.entry -width 38 -textvariable userWriteDir]
@@ -886,12 +886,14 @@ proc guiSpreadsheet {} {
 #-------------------------------------------------------------------------------
 # help menu
 proc guiHelpMenu {} {
-  global Examples Help opt nistVersion mytemp ifcsvrDir virtualDir
+  global Examples Help opt nistVersion mytemp ifcsvrDir virtualDir contact
 
   $Help add command -label "User Guide (pdf)" -command {showUserGuide}
   $Help add command -label "What's New" -command {whatsNew}
   
   $Help add command -label "Supported STEP APs" -command {
+    if {[llength [glob -nocomplain -directory $ifcsvrDir *.rose]] < 12} {copyRoseFiles}
+    
     outputMsg "\nSupported STEP APs ----------------------------------------------------------" blue
     outputMsg "The following STEP Application Protocols (AP) and other schemas are supported by this software.\nThe name of the AP is found on the FILE_SCHEMA entity in the HEADER section of a STEP file.\nThe 'eN' notation after an AP number below refers to the 'edition' of that AP.\n"
     
@@ -1498,7 +1500,7 @@ dialogs might appear that say 'Unable to alloc xxx bytes'.  See the Help > Crash
     outputMsg "Version:  [getVersion]"
     outputMsg "Updated:  [string trim [clock format $progtime -format "%e %b %Y"]]"
     if {"$nistVersion"} {
-      outputMsg "Contact:  Robert Lipman, robert.lipman@nist.gov
+      outputMsg "Contact:  [lindex $contact 0], [lindex $contact 1]
 
 The STEP File Analyzer and Viewer was first released in April 2012 and is developed at
 NIST in the Systems Integration Division of the Engineering Laboratory.  Click the NIST
@@ -1539,9 +1541,10 @@ Credits
       catch {outputMsg " Temp  $mytemp"}
       catch {outputMsg " Desk  $mydesk"}
       catch {outputMsg " Menu  $mymenu"}
-      catch {outputMsg " ifcsvrDir   $ifcsvrDir"}
-      catch {outputMsg " virtualDir  $virtualDir"}
-      outputMsg " PF32  $pf32\n PF64  $pf64"
+      catch {outputMsg " ifcsvrDir   [file nativename $ifcsvrDir]"}
+      if {[info exists virtualDir]} {outputMsg " virtualDir  $virtualDir"}
+      outputMsg " pf32  $pf32"
+      if {$pf64 != ""} {outputMsg " pf64  $pf64"}
       outputMsg "Tcl variables" red
       outputMsg " $tcl_platform(os) $tcl_platform(osVersion)"
       outputMsg " twapi [package versions twapi]"

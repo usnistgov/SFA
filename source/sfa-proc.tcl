@@ -82,17 +82,9 @@ proc checkValues {} {
 # viz only
   if {$opt(XLSCSV) == "None"} {
     foreach item [array names opt] {
-      if {[string first "PR_STEP" $item] == 0} {
-        set opt($item) 0
-        lappend butDisabled "opt$item"
-      }
+      if {[string first "PR_STEP" $item] == 0} {lappend butDisabled "opt$item"}
     }
-    set opt(INVERSE) 0
-    set opt(PR_USER) 0
-    foreach b {optPMIGRF optPMISEM optVALPROP optPR_USER optINVERSE} {
-      set opt([string range $b 3 end]) 0
-      lappend butDisabled $b
-    }
+    foreach b {optPMIGRF optPMISEM optVALPROP optPR_USER optINVERSE} {lappend butDisabled $b}
     foreach b {allNone0 allNone1 allNone2 allNone3} {lappend butDisabled $b}
     foreach b {userentity userentityopen} {lappend butDisabled $b}
     set userEntityList {}
@@ -920,8 +912,11 @@ proc getOpenPrograms {} {
 # For more STEP viewers, go to https://www.cax-if.org/step_viewers.html
   
   regsub {\\} $pf32 "/" p32
-  regsub {\\} $pf64 "/" p64
-  set pflist [lrmdups [list $p32 $p64]]
+  lappend pflist $p32
+  if {$pf64 != "" && $pf64 != $pf32} {
+    regsub {\\} $pf64 "/" p64
+    lappend pflist $p64
+  }
   set lastver 0
 
 # Jotne EDM Model Checker
@@ -942,14 +937,14 @@ proc getOpenPrograms {} {
   foreach pf $pflist {
     if {[file isdirectory [file join $pf "STEP Tools"]]} {
       set applist [list \
-        [list stepbrws.exe "STEP File Browser"] \
-        [list stview.exe "STEP Viewer"] \
-        [list stpcheckgui.exe "STEP Check and Browse"] \
-        [list stepcleangui.exe "STEP File Cleaner"] \
         [list ap203checkgui.exe "STEP AP203 Conformance Checker"] \
         [list ap209checkgui.exe "STEP AP209 Conformance Checker"] \
         [list ap214checkgui.exe "STEP AP214 Conformance Checker"] \
         [list apconformgui.exe "STEP AP Conformance Checker"] \
+        [list stepbrws.exe "STEP File Browser"] \
+        [list stepcleangui.exe "STEP File Cleaner"] \
+        [list stpcheckgui.exe "STEP Check and Browse"] \
+        [list stview.exe "STEP Viewer"] \
       ]
       foreach app $applist {
         set stmatch ""
@@ -970,14 +965,18 @@ proc getOpenPrograms {} {
 
 # other STEP file apps
     set applist [list \
-      [list {*}[glob -nocomplain -directory [file join $pf Actify SpinFire] -join "*" SpinFire.exe] SpinFire] \
-      [list {*}[glob -nocomplain -directory [file join $pf] -join "3D-Tool V*" 3D-Tool.exe] 3D-Tool] \
-      [list {*}[glob -nocomplain -directory [file join $pf] -join "VariCADViewer *" bin varicad-x64.exe] "VariCAD Viewer"] \
+      [list {*}[glob -nocomplain -directory [file join $pf "Soft Gold"] -join "ABViewer*" ABViewer.exe] ABViewer] \
       [list {*}[glob -nocomplain -directory [file join $pf "Stratasys Direct Manufacturing"] -join "SolidView Pro RP *" bin SldView.exe] SolidView] \
       [list {*}[glob -nocomplain -directory [file join $pf "TransMagic Inc"] -join "TransMagic *" System code bin TransMagic.exe] TransMagic] \
+      [list {*}[glob -nocomplain -directory [file join $pf Actify SpinFire] -join "*" SpinFire.exe] SpinFire] \
       [list {*}[glob -nocomplain -directory [file join $pf CADSoftTools] -join "ABViewer*" ABViewer.exe] ABViewer] \
-      [list {*}[glob -nocomplain -directory [file join $pf "Soft Gold"] -join "ABViewer*" ABViewer.exe] ABViewer] \
+      [list {*}[glob -nocomplain -directory [file join $pf] -join "3D-Tool V*" 3D-Tool.exe] 3D-Tool] \
+      [list {*}[glob -nocomplain -directory [file join $pf] -join "VariCADViewer *" bin varicad-x64.exe] "VariCAD Viewer"] \
     ]
+    if {$pf64 == ""} {
+      lappend applist [list {*}[glob -nocomplain -directory [file join $pf] -join "VariCADViewer *" bin varicad-i386.exe] "VariCAD Viewer (32-bit)"]
+    }
+
     foreach app $applist {
       if {[llength $app] == 2} {
         set match [join [lindex $app 0]]
@@ -988,19 +987,19 @@ proc getOpenPrograms {} {
     }
     
     set applist [list \
-      [list [file join $pf "STEP Tools" "STEP-NC Machine" STEPNCExplorer.exe] "STEP-NC Machine"] \
-      [list [file join $pf "STEP Tools" "STEP-NC Machine" STEPNCExplorer_x86.exe] "STEP-NC Machine"] \
+      [list [file join $pf "3DJuump X64" 3DJuump.exe] "3DJuump"] \
+      [list [file join $pf "CAD Assistant" CADAssistant.exe] "CAD Assistant"] \
+      [list [file join $pf "CAD Exchanger" bin Exchanger.exe] "CAD Exchanger"] \
       [list [file join $pf "STEP Tools" "STEP-NC Machine Personal Edition" STEPNCExplorer.exe] "STEP-NC Machine"] \
       [list [file join $pf "STEP Tools" "STEP-NC Machine Personal Edition" STEPNCExplorer_x86.exe] "STEP-NC Machine"] \
-      [list [file join $pf Glovius Glovius glovius.exe] Glovius] \
-      [list [file join $pf "CAD Exchanger" bin Exchanger.exe] "CAD Exchanger"] \
-      [list [file join $pf "CAD Assistant" CADAssistant.exe] "CAD Assistant"] \
-      [list [file join $pf "3DJuump X64" 3DJuump.exe] "3DJuump"] \
-      [list [file join $pf STPViewer STPViewer.exe] "STP Viewer"] \
-      [list [file join $pf CadFaster QuickStep QuickStep.exe] QuickStep] \
-      [list [file join $pf Kisters 3DViewStation 3DViewStation.exe] 3DViewStation] \
-      [list [file join $pf IFCBrowser IfcQuickBrowser.exe] IfcQuickBrowser] \
+      [list [file join $pf "STEP Tools" "STEP-NC Machine" STEPNCExplorer.exe] "STEP-NC Machine"] \
+      [list [file join $pf "STEP Tools" "STEP-NC Machine" STEPNCExplorer_x86.exe] "STEP-NC Machine"] \
       [list [file join $pf "Tekla BIMsight" BIMsight.exe] "Tekla BIMsight"] \
+      [list [file join $pf CadFaster QuickStep QuickStep.exe] QuickStep] \
+      [list [file join $pf Glovius Glovius glovius.exe] Glovius] \
+      [list [file join $pf IFCBrowser IfcQuickBrowser.exe] IfcQuickBrowser] \
+      [list [file join $pf Kisters 3DViewStation 3DViewStation.exe] 3DViewStation] \
+      [list [file join $pf STPViewer STPViewer.exe] "STP Viewer"] \
     ]
     foreach app $applist {
       if {[file exists [lindex $app 0]]} {
@@ -1387,7 +1386,7 @@ proc cellRange {r c} {
 }
 
 #-------------------------------------------------------------------------------
-proc addCellComment {ent r c text {w 300} {h 120}} {
+proc addCellComment {ent r c text {w 300} {h 150}} {
   global worksheet
 
   if {![info exists worksheet($ent)] || [string length $text] < 2} {return}
@@ -1547,42 +1546,58 @@ proc errorMsg {msg {color ""}} {
   global errmsg outputWin stepAP opt logFile
 
   set oklog 0
-  set logmsg ""
   if {$opt(LOGFILE) && [info exists logFile]} {set oklog 1}
-  if {![info exists errmsg]} {set errmsg ""}
   
+# check if error message has already been used
+  if {![info exists errmsg]} {set errmsg ""}
   if {[string first $msg $errmsg] == -1} {
+
+# save current message to the beginning of errmsg
     set errmsg "$msg\n$errmsg"
     
 # this fix is necessary to handle messages related to inverses
     set c1 [string first "DELETETHIS" $msg]
     if {$c1 != -1} {set msg [string range $msg 0 $c1-1]}
-    
-    puts $msg
-    if {[info exists outputWin]} {
-      if {$color == ""} {
-        if {[string first "syntax error" [string tolower $msg]] != -1} {
-          if {$stepAP != ""} {
-            $outputWin issue "$msg " syntax
-            if {$oklog} {set logmsg "*** $msg"}
-          }
-        } else {
-          set ilevel ""
-          catch {set ilevel "  \[[lindex [info level [expr {[info level]-1}]] 0]\]"}
-          if {$ilevel == "  \[errorMsg\]"} {set ilevel ""}
-          $outputWin issue "$msg$ilevel " error
-          if {$oklog} {set logmsg "*** $msg$ilevel"}
-        }
-      } else {
-        $outputWin issue "$msg " $color
-        if {$oklog} {set logmsg "$msg"}
-      }
-      update idletasks
-    } else {
-      if {$oklog} {set logmsg "$msg"}
-    }
 
-    if {$logmsg != ""} {
+# syntax error
+    if {$color == ""} {
+      if {[string first "syntax error" [string tolower $msg]] != -1} {
+        if {$stepAP != ""} {
+          set logmsg "*** $msg"
+          if {[info exists outputWin]} { 
+            $outputWin issue "$msg " syntax
+          } else {
+            puts $logmsg
+          }
+        }
+
+# regular error message, ilevel is the procedure the error was generated in
+      } else {
+        set ilevel ""
+        catch {set ilevel "  \[[lindex [info level [expr {[info level]-1}]] 0]\]"}
+        if {$ilevel == "  \[errorMsg\]"} {set ilevel ""}
+        
+        set logmsg "*** $msg$ilevel"
+        if {[info exists outputWin]} { 
+          $outputWin issue "$msg$ilevel " error
+        } else {
+          puts $logmsg
+        }
+      }
+
+# error message with color
+    } else {
+      set logmsg "*** $msg"
+      if {[info exists outputWin]} { 
+        $outputWin issue "$msg " $color
+      } else {
+        puts $logmsg
+      }
+    }
+    update idletasks
+
+# add message to logfile
+    if {$oklog && [info exists logmsg]} {
       if {[string first "*" $logmsg] == -1} {
         puts $logFile $logmsg
       } else {
@@ -1593,6 +1608,8 @@ proc errorMsg {msg {color ""}} {
       }
     }
     return 1
+
+# error message already used, do nothing
   } else {
     return 0
   }
@@ -1653,7 +1670,7 @@ proc truncFileName {fname {compact 0}} {
 # copy schema rose files that are in the Tcl Virtual File System (VFS) to the IFCsvr dll directory
 # this only works with Tcl 8.5.15 and lower
 proc copyRoseFiles {} {
-  global pf32 pf64 wdir mytemp env ifcsvrDir nistVersion
+  global pf32 pf64 wdir mytemp env ifcsvrDir nistVersion contact
 
 # rose files in SFA distribution
   if {[file exists $ifcsvrDir]} {
@@ -1697,7 +1714,7 @@ proc copyRoseFiles {} {
         outputMsg " "
         errorMsg "Opening folder containing the *.rose files: $mytemp"
         outputMsg "Copy the *.rose files in $mytemp\n to [file nativename $ifcsvrDir]" red
-        outputMsg "You should copy the files with Administrator Privileges, if possible.\nIf there are problems copying the *.rose files, email the Contact (Help > About).\nGo to Help > Supported STEP APs to see which STEP schemas are supported." red
+        outputMsg "You should copy the files with Administrator Privileges, if possible.\nIf there are problems copying the *.rose files, contact [lindex $contact 0] ([lindex $contact 1]).\nGo to Help > Supported STEP APs to see which STEP schemas are supported." red
         after 1000
         if {[catch {
           exec {*}[auto_execok start] [file nativename $mytemp]
@@ -1748,29 +1765,32 @@ proc copyRoseFiles {} {
 #-------------------------------------------------------------------------------
 # install IFCsvr
 proc installIFCsvr {} {
-  global wdir mydocs mytemp ifcsvrDir nistVersion buttons
+  global wdir mydocs mytemp ifcsvrDir nistVersion buttons contact
 
   set ifcsvr     "ifcsvrr300_setup_1008_en.msi"
   set ifcsvrInst [file join $wdir exe $ifcsvr]
 
 # install if not already installed
   if {[info exists buttons]} {.tnb select .tnb.status}
-  set msg "\nThe IFCsvr Toolkit needs to be installed to read and process STEP files."
-  append msg "\n You might need administrator privileges to install the toolkit."
-  append msg "\n Antivirus software might respond that there is an issue with the toolkit.  The toolkit is safe to install."
-  append msg "\n Use the default installation folder for toolkit."
-  append msg "\n If necessary to reinstall the toolkit, go to $mytemp and run the installation file: ifcsvrr300_setup_1008.en.msi"
-  outputMsg $msg red
+  outputMsg " "
+  errorMsg "The IFCsvr Toolkit needs to be installed to read and process STEP files (User Guide section 2.2.1)."
+  outputMsg "- You might need administrator privileges to install the toolkit.  Antivirus
+  software might respond that there is a security issue with the toolkit.  The
+  toolkit is safe to install.  Use the default installation folder for the toolkit.
+- See Help > Supported STEP APs to see which type of STEP files are supported.
+- To reinstall the toolkit, run the installation file ifcsvrr300_setup_1008.en.msi
+  in $mytemp or your home directory or the current directory.
+- If there are problems with the IFCsvr installation, contact [lindex $contact 0] ([lindex $contact 1])."
+
   if {[file exists $ifcsvrInst] && [info exists buttons]} {
-    set msg "The IFCsvr Toolkit needs to be installed to read and process STEP files.  After clicking OK the IFCsvr Toolkit installation will start."
-    append msg "\n\nYou might need administrator privileges to install the toolkit.  Antivirus software might respond that there is an issue with the toolkit.  The toolkit is safe to install."
-    append msg "\n\nUse the default installation folder for toolkit.  Please wait for the installation process to complete before generating a spreadsheet."
+    set msg "The IFCsvr Toolkit needs to be installed to read and process STEP files (User Guide section 2.2.1).  After clicking OK the IFCsvr Toolkit installation will start."
+    append msg "\n\nYou might need administrator privileges to install the toolkit.  Antivirus software might respond that there is a security issue with the toolkit.  The toolkit is safe to install.  Use the default installation folder for the toolkit."
     append msg "\n\nSee Help > Supported STEP APs to see which type of STEP files are supported."
+    append msg "\n\nIf there are problems with the IFCsvr installation, contact [lindex $contact 0] ([lindex $contact 1])."
     set choice [tk_messageBox -type ok -message $msg -icon info -title "Install IFCsvr"]
-    set msg "\nPlease wait for the installation process to complete before generating a spreadsheet.\n"
-    outputMsg $msg red
+    outputMsg "\nWait for the installation to complete before generating a spreadsheet or visualization.\n" red
   } elseif {![info exists buttons]} {
-    outputMsg "\nRerun this program after the installation process has completed to process a STEP file.\n"
+    outputMsg "\nRerun this program after the installation has completed to process a STEP file.\n"
   }
 
 # try copying installation file to several locations
@@ -1806,12 +1826,12 @@ proc installIFCsvr {} {
     catch {.tnb select .tnb.status}
     update idletasks
     if {$nistVersion} {
-      outputMsg "To manually install the IFCsvr Toolkit:"
-      outputMsg "1 - The installation file  ifcsvrr300_setup_1008.en.msi  can be found in either:"
-      outputMsg "    $mytemp  or your home directory or the current directory."
-      outputMsg "2 - Run the installer and follow the instructions.  Use the default installation folder for IFCsvr."
-      outputMsg "    You might need administrator privileges to install the toolkit."
-      outputMsg "3 - If there are problems with the IFCsvr installation, email the Contact (Help > About)\n"
+      outputMsg "To manually install the IFCsvr Toolkit:
+- The installation file ifcsvrr300_setup_1008.en.msi can be found in either:
+  $mytemp or your home directory or the current directory.
+- Run the installer and follow the instructions.  Use the default installation folder for IFCsvr.
+  You might need administrator privileges to install the toolkit.
+- If there are problems with the IFCsvr installation, contact [lindex $contact 0] ([lindex $contact 1])\n"
       after 1000
       errorMsg "Opening folder: $mytemp"
       if {[catch {
@@ -1997,12 +2017,15 @@ proc setHomeDir {} {
   set mydesk [file nativename $mydesk]
   set mytemp [file nativename $mytemp]
   set drive [string range $myhome 0 2]
-  
-  if {[info exists env(APPDATA)]} {
-    set appData [string range $env(APPDATA) 0 [string last "\\" $env(APPDATA)]-1]
-    set virtualDir [file nativename [file join $appData Local VirtualStore "Program Files (x86)" IFCsvrR300 dll]]
-  } elseif {[info exists env(USERNAME)]} {
-    set virtualDir [file nativename [file join C:/ Users $env(USERNAME) AppData Local VirtualStore "Program Files (x86)" IFCsvrR300 dll]]
+
+# virtualStore directory  
+  if {$tcl_platform(osVersion) >= 6.0} {
+    if {[info exists env(APPDATA)]} {
+      set appData [string range $env(APPDATA) 0 [string last "\\" $env(APPDATA)]-1]
+      set virtualDir [file nativename [file join $appData Local VirtualStore [string range $env(ProgramFiles) 3 end] IFCsvrR300 dll]]
+    } elseif {[info exists env(USERNAME)]} {
+      set virtualDir [file nativename [file join C:/ Users $env(USERNAME) AppData Local VirtualStore [string range $env(ProgramFiles) 3 end] IFCsvrR300 dll]]
+    }
   }
 }
 

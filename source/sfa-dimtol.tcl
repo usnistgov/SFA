@@ -13,6 +13,7 @@ proc spmiDimtolStart {entType} {
   set dim_loc_dir   [list directed_dimensional_location name]
   set dim_loc_wdf   [list dimensional_location_with_datum_feature name]
   set dim_loc_pth   [list dimensional_location_with_path name]
+  set dim_loc_pthd  [list dimensional_location_with_path_and_directed_dimensional_location name]
   set ang_loc       [list angular_location name angle_selection]
   set ang_loc1      [list angular_location_and_directed_dimensional_location name angle_selection]
   set ang_size      [list angular_size applies_to name angle_selection]
@@ -40,7 +41,7 @@ proc spmiDimtolStart {entType} {
   
   set PMIP(dimensional_characteristic_representation) \
     [list dimensional_characteristic_representation \
-      dimension $dim_size $dim_size_wdf $dim_size_wdf1 $dim_size_wdf2 $dim_loc $dim_loc_wdf $dim_loc_pth $dim_loc_dir $ang_loc $ang_loc1 $ang_size $ang_size1 \
+      dimension $dim_size $dim_size_wdf $dim_size_wdf1 $dim_size_wdf2 $dim_loc $dim_loc_wdf $dim_loc_pth $dim_loc_pthd $dim_loc_dir $ang_loc $ang_loc1 $ang_size $ang_size1 \
       representation [list shape_dimension_representation name \
         items $length_measure1 $length_measure2 $length_measure3 \
         $angle_measure1 $angle_measure2 $angle_measure3 \
@@ -614,8 +615,7 @@ proc spmiDimtolReport {objEntity} {
                       }
                     }
                   }
-                  "directed_dimensional_location* name" -
-                  "dimensional_location* name" {
+                  "*dimensional_location* name" {
 # dimensional_location.name, add nothing to dimrep as there is no symbol associated with the location                    
                     set ok 1
                     set col($dt) $pmiStartCol($dt)
@@ -1254,7 +1254,7 @@ proc spmiDimtolReport {objEntity} {
           if {$nistName != ""} {
             append comment " ***** See the PMI Representation Summary worksheet to see how the Dimensional Tolerance below compares to the expected PMI."
           }
-          addCellComment $dt 3 $c $comment 400 350
+          addCellComment $dt 3 $c $comment 400 360
         }
         
 # add brackets or parentheses for basic or reference dimensions
@@ -1307,7 +1307,7 @@ proc spmiDimtolReport {objEntity} {
         if {[info exist dimOrient]} {
           append dr "[format "%c" 10](oriented)"
           unset dimOrient
-          #set cellComment "For the definition of an 'oriented' dimension, see the CAx-IF Recommended Practice for $recPracNames(pmi242), Sec. 5.1.3"
+          set cellComment "For the definition of an 'oriented' dimension, see the CAx-IF Recommended Practice for $recPracNames(pmi242), Sec. 5.1.3"
         }
         
 # dimension count
@@ -1323,7 +1323,9 @@ proc spmiDimtolReport {objEntity} {
         $cells($dt) Item $r $pmiColumns(dmrp) $dr
         if {$cellComment != ""} {
           addCellComment $dt $r $pmiColumns(dmrp) $cellComment
-          lappend entsWithErrors "dimensional_characteristic_representation"
+          if {[string first "(directed)" $cellComment] == -1 && [string first "(oriented)" $cellComment] == -1} {
+            lappend entsWithErrors "dimensional_characteristic_representation"
+          }
         }
         
 # save dimension with associated geometry

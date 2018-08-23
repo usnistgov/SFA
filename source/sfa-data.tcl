@@ -1,3 +1,10 @@
+#-------------------------------------------------------------------------------
+# version numbers, software and user guide, contact
+proc getVersion {}   {return 3.05}
+proc getVersionUG {} {return 3.0}
+proc getContact {}   {return [list "Robert Lipman" "robert.lipman@nist.gov"]}
+
+#-------------------------------------------------------------------------------
 proc initData {} {
 
 global entCategory entColorIndex badAttributes roseLogical defaultColor

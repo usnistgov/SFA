@@ -578,7 +578,7 @@ proc x3dFileEnd {} {
 # -------------------------------------------------------------------------------
 # B-rep geometry
 proc x3dBrepGeom {} {
-  global entCount opt viz mytemp wdir localName objDesign x3dMin x3dMax brepFile brepFileName x3dMsg
+  global entCount opt viz mytemp wdir localName objDesign x3dMin x3dMax brepFile brepFileName x3dMsg sfaType
 
 # copy stp2x3d executable to temp directory
   if {[catch {
@@ -606,7 +606,7 @@ proc x3dBrepGeom {} {
         if {[file exists $stpx3dFileName]} {
           if {[file size $stpx3dFileName] > 0} {
             
-# check for conversion units, mm > inch            
+# check for conversion units, mm > inch
             set sc 1
             ::tcom::foreach e0 [$objDesign FindObjects [string trim advanced_brep_shape_representation]] {
               set e1 [[[$e0 Attributes] Item 3] Value]
@@ -656,7 +656,8 @@ proc x3dBrepGeom {} {
                     set getMinMax 0
                     set ratio 0
                     foreach id1 {0 1 2} id2 {x y z} {
-                      set ratio [expr {max($ratio, $min($id1)/$x3dMin($id2), $max($id1)/$x3dMax($id2))}]
+                      if {[expr {abs($x3dMin($id2))}] > 0.1} {set ratio [expr {max($ratio, $min($id1)/$x3dMin($id2))}]}
+                      if {[expr {abs($x3dMax($id2))}] > 0.1} {set ratio [expr {max($ratio, $max($id1)/$x3dMax($id2))}]}
                       set x3dMin($id2) $min($id1)
                       set x3dMax($id2) $max($id1)
                     }
@@ -665,7 +666,6 @@ proc x3dBrepGeom {} {
                       errorMsg " $msg"
                       if {[lsearch $x3dMsg $msg] == -1} {lappend x3dMsg $msg}
                     }
-
                   }
 
 # get xyz min and max
@@ -694,7 +694,7 @@ proc x3dBrepGeom {} {
 
 # no X3D output
         } else {
-          set msg " ERROR: Cannot find the X3D output of stp2x3d.exe"
+          set msg " ERROR: Cannot find the B-rep geometry (X3D file) output of stp2x3d.exe"
 
 # check for invalid '.' in directory name
           if {[string first "." $stpx3dFileName] != [string last "." $stpx3dFileName]} {
@@ -705,7 +705,7 @@ proc x3dBrepGeom {} {
             } else {
               append msg "\n  Rename STEP file or directory name to remove extra '.' characters"
             }
-            append msg " or\n  move the STEP file to a different directory and process again."
+            append msg " or\n  move the STEP file to a different directory and process it again."
           }
           errorMsg $msg
         }
@@ -717,6 +717,8 @@ proc x3dBrepGeom {} {
       } else {
         errorMsg " ERROR generating visualization of B-rep geometry"
       }
+    } elseif {$sfaType == "CL"} {
+      errorMsg "Run the GUI version first to visualize B-rep geometry in the command-line version."
     }
   } emsg]} {
     errorMsg " ERROR adding B-rep Geometry ($emsg)"
@@ -1204,13 +1206,18 @@ proc x3dSetColor {type} {
 proc openX3DOM {{fn ""}} {
   global opt x3dFileName multiFile lastX3DOM viz
   
+# f7 is for opening last x3dom file with function key F7
   set f7 1  
   if {$fn == ""} {
     set f7 0
     set ok 0
+
+# check that there is a file to visualize    
     if {[info exists x3dFileName]} {if {[file exists $x3dFileName]} {set ok 1}}
     if {$ok} {
       set fn $x3dFileName
+
+# no file, show message
     } elseif {$opt(VIZPMI) || $opt(VIZTPG) || $opt(VIZFEA)} {
       if {$opt(XLSCSV) == "None"} {errorMsg "There is nothing in the STEP file to view based on the Visualize selections (Options tab)."}
       set brepMsg "Part Geometry is viewed ONLY if any of the other Visualize features (Options tab) are selected AND that feature is in the STEP file."
@@ -1233,6 +1240,8 @@ proc openX3DOM {{fn ""}} {
   } elseif {($viz(PMI) || $viz(TPG) || $viz(FEA)) && $fn != "" && $multiFile == 0} {
     set open 1
   }
+
+# open file (.html) in web browser
   if {$open} {
     outputMsg "\nOpening Visualization in the default Web Browser: [file tail $fn]" green
     catch {.tnb select .tnb.status}

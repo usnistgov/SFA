@@ -23,6 +23,7 @@ global env
 set scriptName [info script]
 set wdir [file dirname $scriptName]
 set auto_path [linsert $auto_path 0 $wdir]
+set contact [getContact]
 
 #-------------------------------------------------------------------------------
 # start 
@@ -51,7 +52,7 @@ if {[catch {
   if {$c1 != -1} {set dir [string range $dir 0 $c1-1]}
   puts "\nERROR: $emsg\n\nThere might be a problem running this program from a directory with accented, non-English, or symbol characters in the pathname."
   puts "     [file nativename $dir]\nTry running the software from a directory without any of the special characters in the pathname."
-  puts "\nPlease contact Robert Lipman (robert.lipman@nist.gov) if you cannot run the STEP File Analyzer and Viewer."
+  puts "\nContact [lindex $contact 0] ([lindex $contact 1]) if you cannot run the STEP File Analyzer and Viewer."
   exit
 }
 
@@ -102,10 +103,10 @@ if {$argc == 0 || ($argc == 1 && ($arg == "help" || $arg == "-help" || $arg == "
 # set drive, myhome, mydocs, mydesk
 setHomeDir
 
-# set program files
-set pf32 "C:\Program Files (x86)"
+# set program files, environment variables will be in the correct language
+set pf32 "C:\\Program Files (x86)"
 if {[info exists env(ProgramFiles)]} {set pf32 $env(ProgramFiles)}
-set pf64 "C:\Program Files"
+set pf64 ""
 if {[info exists env(ProgramW6432)]} {set pf64 $env(ProgramW6432)}
 
 # detect if NIST version
@@ -130,7 +131,7 @@ if {![file exists $localName]} {
 # check for IFCsvr toolkit
 set sfaType "CL"
 set ifcsvrDir [file join $pf32 IFCsvrR300 dll]
-if {![file exists [file join $ifcsvrDir IFCsvrR300.dll]]} {installIFCsvr} 
+if {![file exists [file join $ifcsvrDir IFCsvrR300.dll]]} {installIFCsvr; exit} 
 
 # -----------------------------------------------------------------------------------------------------
 # initialize variables

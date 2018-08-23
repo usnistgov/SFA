@@ -23,6 +23,7 @@ global env tcl_platform
 set scriptName [info script]
 set wdir [file dirname $scriptName]
 set auto_path [linsert $auto_path 0 $wdir]
+set contact [getContact]
 
 # for building your own version without Tcl Dev Kit, uncomment and modify C:/Tcl/lib/teapot directory if necessary
 # lappend commands add package locations to auto_path, must be before package commands
@@ -47,7 +48,7 @@ if {[catch {
     append emsg "\n\nThere might be a problem running this software from a directory with accented, non-English, or symbol characters in the pathname."
     append emsg "\n     [file nativename $dir]\nTry running the software from a directory without any of the special characters in the pathname."
   }
-  append emsg "\n\nPlease contact Robert Lipman (robert.lipman@nist.gov) if you cannot run the STEP File Analyzer and Viewer."
+  append emsg "\n\nContact [lindex $contact 0] ([lindex $contact 1]) if you cannot run the STEP File Analyzer and Viewer."
   set choice [tk_messageBox -type ok -icon error -title "ERROR starting the STEP File Analyzer and Viewer" -message $emsg]
   exit
 }
@@ -67,9 +68,9 @@ catch {
 setHomeDir
 
 # set program files, environment variables will be in the correct language
-set pf32 "C:\Program Files (x86)"
+set pf32 "C:\\Program Files (x86)"
 if {[info exists env(ProgramFiles)]} {set pf32 $env(ProgramFiles)}
-set pf64 "C:\Program Files"
+set pf64 ""
 if {[info exists env(ProgramW6432)]} {set pf64 $env(ProgramW6432)}
 
 # detect if NIST version

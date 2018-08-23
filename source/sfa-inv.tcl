@@ -333,72 +333,73 @@ proc invFormat {rancol} {
 # checking an entity without inverses is costly, particularly if there are a lot of them
 proc invSetCheck {entType} {
   global opt entCategory userEntityList stepAP ap203all ap214all ap242all
-  
+
+# entities in other APs that are not in AP203, 214, 242
   set checkInv 0
-  
-# other APs  
   if {[string first "AP203" $stepAP] == -1 && [string first "AP214" $stepAP] == -1 && $stepAP != "AP242"} {
-    if {[lsearch $ap203all $entType] == -1 && \
-        [lsearch $ap214all $entType] == -1 && \
-        [lsearch $ap242all $entType] == -1} {
+    if {[lsearch $ap203all $entType] == -1 && [lsearch $ap214all $entType] == -1 && [lsearch $ap242all $entType] == -1} {
       set checkInv 1
-    }
-
-# tolerance, user-defined entities
-  } elseif {($opt(PR_STEP_TOLR)  && [lsearch $entCategory(PR_STEP_TOLR)  $entType] != -1) || \
-      ($opt(PR_USER) && [lsearch $userEntityList $entType] != -1)} {
-    set checkInv 1
-    #outputMsg "checkInv $entType" blue
-
-# other types of entities (should be more selective to make it faster)
-  } elseif { \
-      [string first "additive"      $entType] != -1 || \
-      [string first "action"        $entType] != -1 || \
-      [string first "angular"       $entType] != -1 || \
-      [string first "annotation"    $entType] != -1 || \
-      [string first "application"   $entType] != -1 || \
-      [string first "camera"        $entType] != -1 || \
-      [string first "composite"     $entType] != -1 || \
-      [string first "constructive"  $entType] != -1 || \
-      [string first "datum"         $entType] != -1 || \
-      [string first "dimension"     $entType] != -1 || \
-      [string first "document"      $entType] != -1 || \
-      [string first "extension"     $entType] != -1 || \
-      [string first "hole"          $entType] != -1 || \
-      [string first "item_"         $entType] != -1 || \
-      [string first "kinematic"     $entType] != -1 || \
-      [string first "machining"     $entType] != -1 || \
-      [string first "milling"       $entType] != -1 || \
-      [string first "process"       $entType] != -1 || \
-      [string first "product"       $entType] != -1 || \
-      [string first "representation" $entType] != -1 || \
-      [string first "resource"      $entType] != -1 || \
-      [string first "shape"         $entType] != -1 || \
-      [string first "symmetry"      $entType] != -1 || \
-      [string first "tessellated"   $entType] != -1 || \
-      [string first "draughting_model"    $entType] != -1 || \
-      [string first "draughting_callout"  $entType] != -1 || \
-      [string first "instanced_feature"   $entType] != -1 || \
-      [string first "mechanical_design"   $entType] != -1 || \
-      [string first "next_assembly"       $entType] != -1 || \
-      [string first "property_definition" $entType] != -1} {
-
-# not these specific entities
-    if {$entType != "annotation_fill_area" && \
-        $entType != "dimensional_characteristic_representation" && \
-        $entType != "draughting_model_item_association" && \
-        $entType != "draughting_pre_defined_colour" && \
-        $entType != "draughting_pre_defined_curve_font" && \
-        $entType != "geometric_item_specific_usage" && \
-        $entType != "representation_item" && \
-        $entType != "product_definition_relationship" && \
-        $entType != "property_definition_representation" && \
-        $entType != "shape_aspect_deriving_relationship" && \
-        $entType != "shape_aspect_relationship"} {
-      set checkInv 1
-      #outputMsg "checkInv $entType" green
     }
   }
+
+# tolerance, user-defined entities
+  if {!$checkInv} {
+    if {($opt(PR_STEP_TOLR)  && [lsearch $entCategory(PR_STEP_TOLR)  $entType] != -1) || \
+        ($opt(PR_USER) && [lsearch $userEntityList $entType] != -1)} {
+      set checkInv 1
+      #outputMsg "checkInv $entType" blue
+
+# other types of entities (should be more selective to make it faster)
+    } elseif { \
+        [string first "additive"      $entType] != -1 || \
+        [string first "action"        $entType] != -1 || \
+        [string first "angular"       $entType] != -1 || \
+        [string first "annotation"    $entType] != -1 || \
+        [string first "application"   $entType] != -1 || \
+        [string first "camera"        $entType] != -1 || \
+        [string first "composite"     $entType] != -1 || \
+        [string first "constructive"  $entType] != -1 || \
+        [string first "datum"         $entType] != -1 || \
+        [string first "dimension"     $entType] != -1 || \
+        [string first "document"      $entType] != -1 || \
+        [string first "extension"     $entType] != -1 || \
+        [string first "hole"          $entType] != -1 || \
+        [string first "item_"         $entType] != -1 || \
+        [string first "kinematic"     $entType] != -1 || \
+        [string first "machining"     $entType] != -1 || \
+        [string first "milling"       $entType] != -1 || \
+        [string first "process"       $entType] != -1 || \
+        [string first "product"       $entType] != -1 || \
+        [string first "representation" $entType] != -1 || \
+        [string first "resource"      $entType] != -1 || \
+        [string first "shape"         $entType] != -1 || \
+        [string first "symmetry"      $entType] != -1 || \
+        [string first "tessellated"   $entType] != -1 || \
+        [string first "draughting_model"    $entType] != -1 || \
+        [string first "draughting_callout"  $entType] != -1 || \
+        [string first "instanced_feature"   $entType] != -1 || \
+        [string first "mechanical_design"   $entType] != -1 || \
+        [string first "next_assembly"       $entType] != -1 || \
+        [string first "property_definition" $entType] != -1} {
+
+# not these specific entities
+      if {$entType != "annotation_fill_area" && \
+          $entType != "dimensional_characteristic_representation" && \
+          $entType != "draughting_model_item_association" && \
+          $entType != "draughting_pre_defined_colour" && \
+          $entType != "draughting_pre_defined_curve_font" && \
+          $entType != "geometric_item_specific_usage" && \
+          $entType != "representation_item" && \
+          $entType != "product_definition_relationship" && \
+          $entType != "property_definition_representation" && \
+          $entType != "shape_aspect_deriving_relationship" && \
+          $entType != "shape_aspect_relationship"} {
+        set checkInv 1
+        #outputMsg "checkInv $entType" green
+      }
+    }
+  }
+  #outputMsg $checkInv red
   return $checkInv
 }
 

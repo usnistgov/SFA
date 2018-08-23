@@ -81,7 +81,7 @@ proc gpmiAnnotation {entType} {
   if {[info exist pmiHeading]} {unset pmiHeading}
   if {[info exists ent]} {unset ent}
 
-  if {$opt(PMIGRF)} {outputMsg " Adding PMI Presentation Report" blue}
+  if {$opt(PMIGRF) && $opt(XLSCSV) != "None"} {outputMsg " Adding PMI Presentation Report" blue}
   if {$opt(VIZPMI)} {
     set msg " Adding PMI Presentation Visualization"
     if {$opt(XLSCSV) == "None"} {append msg " ([formatComplexEnt $entType])"}
@@ -192,7 +192,7 @@ proc gpmiAnnotationReport {objEntity} {
 # check if there are rows with ao for a report and not visualize
     if {$gpmiEnts($objType)} {
       set gpmiID $objID
-      if {![info exists gpmiIDRow($ao,$gpmiID)] && $opt(PMIGRF) && !$opt(VIZPMI)} {
+      if {![info exists gpmiIDRow($ao,$gpmiID)] && $opt(PMIGRF) && $opt(XLSCSV) != "None" && !$opt(VIZPMI)} {
         incr entLevel -1
         return
       }
@@ -273,8 +273,7 @@ proc gpmiAnnotationReport {objEntity} {
 
               set colName "value"
   
-              #if {$ok && [info exists gpmiID] && $opt(PMIGRF)} 
-              if {$ok && [info exists gpmiIDRow($ao,$gpmiID)] && $opt(PMIGRF)} {
+              if {$ok && [info exists gpmiIDRow($ao,$gpmiID)] && $opt(PMIGRF) && $opt(XLSCSV) != "None"} {
                 set c [string index [cellRange 1 $col($ao)] 0]
                 set r $gpmiIDRow($ao,$gpmiID)
 
@@ -397,7 +396,7 @@ proc gpmiAnnotationReport {objEntity} {
                 }
                 "geometric_curve_set elements" {
                   set ok 1
-                  if {$opt(PMIGRF)} {
+                  if {$opt(PMIGRF) && $opt(XLSCSV) != "None"} {
                     set col($ao) [expr {$pmiStartCol($ao)+1}]
                     if {$stepAP == "AP242"} {
                       set colName "elements[format "%c" 10](Sec. 8.1.1)"
@@ -418,7 +417,7 @@ proc gpmiAnnotationReport {objEntity} {
                 }
                 "geometric_set elements" {
                   set ok 1
-                  if {$opt(PMIGRF)} {
+                  if {$opt(PMIGRF) && $opt(XLSCSV) != "None"} {
                     set col($ao) [expr {$pmiStartCol($ao)+1}]
                     if {$stepAP == "AP242"} {
                       set colName "elements[format "%c" 10](Sec. 8.1.1)"
@@ -450,7 +449,7 @@ proc gpmiAnnotationReport {objEntity} {
                 }
                 "annotation_fill_area boundaries" {
                   set ok 1
-                  if {$opt(PMIGRF)} {
+                  if {$opt(PMIGRF) && $opt(XLSCSV) != "None"} {
                     set col($ao) [expr {$pmiStartCol($ao)+1}]
                     if {$stepAP == "AP242"} {
                       set colName "boundaries[format "%c" 10](Sec. 8.1.2)"
@@ -468,7 +467,7 @@ proc gpmiAnnotationReport {objEntity} {
                 }
                 "*tessellated_geometric_set children" {
                   set ok 1
-                  if {$opt(PMIGRF)} {
+                  if {$opt(PMIGRF) && $opt(XLSCSV) != "None"} {
                     set col($ao) [expr {$pmiStartCol($ao)+1}]
                     set colName "children[format "%c" 10](Sec. 8.2)"
                   }
@@ -484,7 +483,7 @@ proc gpmiAnnotationReport {objEntity} {
               }
 
 # value in spreadsheet
-              if {$ok && $useXL && [info exists gpmiIDRow($ao,$gpmiID)] && $opt(PMIGRF)} {
+              if {$ok && $useXL && [info exists gpmiIDRow($ao,$gpmiID)] && $opt(PMIGRF) && $opt(XLSCSV) != "None"} {
                 set c [string index [cellRange 1 $col($ao)] 0]
                 set r $gpmiIDRow($ao,$gpmiID)
 
@@ -653,7 +652,7 @@ proc gpmiAnnotationReport {objEntity} {
                 "cartesian_point name" {
                   if {$entLevel == 4} {
                     set ok 1
-                    if {$opt(PMIGRF)} {set col($ao) [expr {$pmiStartCol($ao)+2}]}
+                    if {$opt(PMIGRF) && $opt(XLSCSV) != "None"} {set col($ao) [expr {$pmiStartCol($ao)+2}]}
                   }
                 }
                 "geometric_set name" -
@@ -661,7 +660,7 @@ proc gpmiAnnotationReport {objEntity} {
                 "annotation_fill_area name" -
                 "*tessellated_geometric_set name" {
                   set ok 1
-                  if {$opt(PMIGRF)} {
+                  if {$opt(PMIGRF) && $opt(XLSCSV) != "None"} {
                     set col($ao) $pmiStartCol($ao)
                     if {$stepAP == "AP242"} {
                       set colName "name[format "%c" 10](Sec. 8.4)"
@@ -718,7 +717,7 @@ proc gpmiAnnotationReport {objEntity} {
                 "curve_style name" -
                 "fill_area_style name" {
                   set ok 1
-                  if {$opt(PMIGRF)} {
+                  if {$opt(PMIGRF) && $opt(XLSCSV) != "None"} {
                     set col($ao) [expr {$pmiStartCol($ao)+2}]
                     if {$stepAP == "AP242"} {
                       set colName "presentation style[format "%c" 10](Sec. 8.5)"
@@ -744,7 +743,7 @@ proc gpmiAnnotationReport {objEntity} {
                 "colour_rgb blue" {
                   if {$entLevel == 4 || $entLevel == 8} {
                     if {$opt(gpmiColor) == 0} {append x3dColor " $objValue"}
-                    if {$opt(PMIGRF)} {
+                    if {$opt(PMIGRF) && $opt(XLSCSV) != "None"} {
                       set ok 1
                       set col($ao) [expr {$pmiStartCol($ao)+3}]
                       if {$stepAP == "AP242"} {
@@ -774,7 +773,7 @@ proc gpmiAnnotationReport {objEntity} {
                     }
 
                     if {$opt(gpmiColor) > 0} {set x3dColor [x3dSetColor $opt(gpmiColor)]}
-                    if {$opt(PMIGRF)} {
+                    if {$opt(PMIGRF) && $opt(XLSCSV) != "None"} {
                       set ok 1
                       set col($ao) [expr {$pmiStartCol($ao)+3}]
                       if {$stepAP == "AP242"} {
@@ -801,7 +800,7 @@ proc gpmiAnnotationReport {objEntity} {
 
 # value in spreadsheet
               if {$ok} {
-                if {[info exists gpmiIDRow($ao,$gpmiID)] && [string first "occurrence" $ao] != -1 && $opt(PMIGRF)} {
+                if {[info exists gpmiIDRow($ao,$gpmiID)] && [string first "occurrence" $ao] != -1 && $opt(PMIGRF) && $opt(XLSCSV) != "None"} {
                   set c [string index [cellRange 1 $col($ao)] 0]
                   set r $gpmiIDRow($ao,$gpmiID)
 
@@ -883,7 +882,7 @@ proc gpmiAnnotationReport {objEntity} {
                   }               
 
 # value in spreadsheet  
-                  if {[info exists gpmiIDRow($ao,$gpmiID)] && [string first "occurrence" $ao] != -1 && $opt(PMIGRF)} {
+                  if {[info exists gpmiIDRow($ao,$gpmiID)] && [string first "occurrence" $ao] != -1 && $opt(PMIGRF) && $opt(XLSCSV) != "None"} {
                     set val [[$cells($ao) Item $r $c] Value]
                     if {$invalid != ""} {lappend syntaxErr($ao) [list $r $col($ao) $invalid]}
   
@@ -903,7 +902,7 @@ proc gpmiAnnotationReport {objEntity} {
                   incr currx3dPID
 
 # cell value for presentation style or color
-                } elseif {[info exists gpmiIDRow($ao,$gpmiID)] && $opt(PMIGRF)} {
+                } elseif {[info exists gpmiIDRow($ao,$gpmiID)] && $opt(PMIGRF) && $opt(XLSCSV) != "None"} {
                   if {$colName != "colour"} {
                     $cells($ao) Item $r $c "$ent($entLevel) $objID"
                   } else {
@@ -927,7 +926,7 @@ proc gpmiAnnotationReport {objEntity} {
   incr entLevel -1
   
 # write a few more things at the end of processing an annotation_occurrence entity
-  if {$entLevel == 0 && $opt(PMIGRF) && [info exists gpmiIDRow($ao,$gpmiID)]} {
+  if {$entLevel == 0 && $opt(PMIGRF) && $opt(XLSCSV) != "None" && [info exists gpmiIDRow($ao,$gpmiID)]} {
 
 # associated geometry, (1) find link between annotation_occurrence and a geometric item through
 # draughting_model_item_association or draughting_callout and geometric_item_specific_usage
@@ -1111,7 +1110,7 @@ proc gpmiAnnotationReport {objEntity} {
   }
     
 # report camera models associated with the annotation occurrence through draughting_model
-  if {$entLevel == 0 && (($opt(PMIGRF) && [info exists gpmiIDRow($ao,$gpmiID)]) || ($opt(VIZPMI) && !$opt(PMIGRF)))} {
+  if {$entLevel == 0 && (($opt(PMIGRF) && $opt(XLSCSV) != "None" && [info exists gpmiIDRow($ao,$gpmiID)]) || ($opt(VIZPMI) && !$opt(PMIGRF)))} {
     if {[catch {
       set savedViews ""
       set savedViewName {}
@@ -1134,7 +1133,7 @@ proc gpmiAnnotationReport {objEntity} {
           }
       
 # check if there are any entDraughtingModel, if none then there are no camera models for the annotation
-          if {$opt(PMIGRF)} {
+          if {$opt(PMIGRF) && $opt(XLSCSV) != "None"} {
             set okdm 0
             ::tcom::foreach entDraughtingModel $entDraughtingModels {set okdm 1}
             if {!$okdm} {
@@ -1161,7 +1160,7 @@ proc gpmiAnnotationReport {objEntity} {
               lappend savedViewName $draftModelCameraNames([$entDraughtingModel P21ID])
               #errorMsg "  Adding Saved Views" green
 
-              if {$opt(PMIGRF)} {
+              if {$opt(PMIGRF) && $opt(XLSCSV) != "None"} {
                 if {$stepAP == "AP242"} {
                   set colName "Saved Views[format "%c" 10](Sec. 9.4)"
                 } else {
@@ -1280,7 +1279,7 @@ proc gpmiAnnotationReport {objEntity} {
   }
   
 # check if there are PMI validation properties (propDefIDS) associated with the annotation_occurrence
-  if {$entLevel == 0 && $opt(PMIGRF) && [info exists gpmiIDRow($ao,$gpmiID)]} {
+  if {$entLevel == 0 && $opt(PMIGRF) && $opt(XLSCSV) != "None" && [info exists gpmiIDRow($ao,$gpmiID)]} {
     if {[catch {
       if {[info exists propDefIDS]} {
       

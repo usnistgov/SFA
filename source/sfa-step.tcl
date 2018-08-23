@@ -1,8 +1,3 @@
-#-------------------------------------------------------------------------------
-# version numbers, software and user guide
-proc getVersion {}   {return 3.04}
-proc getVersionUG {} {return 3.0}
-
 # -------------------------------------------------------------------------------
 # tolType = 1 for non-geometric tolerance (dimension, datum target, annotations)
 proc getAssocGeom {entDef {tolType 0} {tolName ""}} {
@@ -1378,6 +1373,7 @@ proc getStepAP {fname} {
 
     if {[string first "STRUCTURAL_FRAME_SCHEMA" $fileSchema1] != -1} {set ap CIS/2}
     if {[string first "IFC" $fileSchema1] != -1} {set ap $fileSchema1}
+    if {$ap == ""} {set ap $fileSchema1}
   }
   return $ap
 }

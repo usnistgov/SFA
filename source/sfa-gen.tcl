@@ -407,6 +407,7 @@ proc genExcel {{numFile 0}} {
   if {![info exists objDesign]} {return}
   catch {unset entCount}
 
+# for all entity types, check for which ones to process
   set entityTypeNames [$objDesign EntityTypeNames [expr 2]]
   foreach entType $entityTypeNames {
     set entCount($entType) [$objDesign CountEntities "$entType"]
@@ -449,6 +450,9 @@ proc genExcel {{numFile 0}} {
           }
         }
       }
+      
+# check for composite entities with "_11"
+      if {$opt(PR_STEP_COMP) && $ok == 0} {if {[string first "_11" $entType] != -1} {set ok 1}}
       
 # new AP242 entities in a ROSE file, but not yet in ap242all or any entity category, for testing new schemas
       #if {$developer} {if {$stepAP == "AP242" && [lsearch $ap242all $entType] == -1} {set ok 1}}
@@ -497,7 +501,7 @@ proc genExcel {{numFile 0}} {
   if {$opt(VIZFEA) && [string first "AP209" $stepAP] == 0} {set viz(FEA) 1}
     
 # open expected PMI worksheet (once) if PMI representation and correct file name
-  if {$opt(PMISEM) && $stepAP == "AP242" && $nistName != ""} {
+  if {$opt(PMISEM) && $stepAP == "AP242" && $nistName != "" && $opt(XLSCSV) != "None"} {
     set tols $tolNames
     concat $tols [list dimensional_characteristic_representation datum datum_feature datum_reference_compartment datum_reference_element datum_system placed_datum_target_feature]
     set ok 0
@@ -506,16 +510,16 @@ proc genExcel {{numFile 0}} {
   }
     
 # filter inverse relationships to check only by entities in file
-    if {$opt(INVERSE)} {
-      if {$entityTypeNames != ""} {
-        initDataInverses
-        set invNew {}
-        foreach item $inverses {
-          if {[lsearch $entityTypeNames [lindex $item 0]] != -1} {lappend invNew $item}
-        }
-        set inverses $invNew
+  if {$opt(INVERSE)} {
+    if {$entityTypeNames != ""} {
+      initDataInverses
+      set invNew {}
+      foreach item $inverses {
+        if {[lsearch $entityTypeNames [lindex $item 0]] != -1} {lappend invNew $item}
       }
+      set inverses $invNew
     }
+  }
   
 # -------------------------------------------------------------------------------------------------
 # list entities not processed based on fix file
@@ -581,6 +585,7 @@ proc genExcel {{numFile 0}} {
     }
   }
   
+# -------------------------------------------------------------------------------------------------
 # move some entities to end of AP209 entities
   if {$viz(FEA)} {
     set ok  1
@@ -647,6 +652,7 @@ proc genExcel {{numFile 0}} {
     }
   }
       
+# -------------------------------------------------------------------------------------------------
 # check for ISO/ASME standards on product_definition_formation, document, product
   set tolStandard(type) ""
   set tolStandard(num)  ""
@@ -894,7 +900,7 @@ proc genExcel {{numFile 0}} {
     }
   
 # add PMI Pres. Coverage Analysis worksheet for a single file
-    if {$opt(PMIGRF)} {
+    if {$opt(PMIGRF) && $opt(XLSCSV) != "None"} {
       if {[info exists gpmiTypesPerFile]} {
         set pmi_coverage "PMI Presentation Coverage"
         if {![info exists worksheet($pmi_coverage)]} {
