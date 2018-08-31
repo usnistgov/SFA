@@ -328,21 +328,21 @@ proc spmiGeotolReport {objEntity} {
 
 # no tzf symbol
                                 } else {
-                                  set tzf1 "(TZF: $tzfName)"
-                                  errorMsg "The tolerance_zone_form.name '$tzfName' is not commonly used."
-                                  errorMsg " (Recommended Practice for $recPracNames(pmi242), Sec. 6.9.2, Tables 11 and 12)"
+                                  errorMsg "The tolerance_zone_form 'name' attribute uses values from Table 12 in the Recommended Practice\n for $recPracNames(pmi242), Sec. 6.9.2."
                                 }
 
 # invalid tzf
                               } else {
                                 set msg ""
-                                if {$tzfName != "" && [string tolower $tzfName] != "unknown"} {
+                                if {$tzfName != ""} {
                                   set msg "Syntax Error: Invalid 'tolerance_zone_form.name' attribute ($tzfName) on [formatComplexEnt [$gtEntity Type]]\n[string repeat " " 14]\($recPracNames(pmi242), Sec. 6.9.2, Tables 11, 12)"
                                   errorMsg $msg
                                   set invalid $msg
                                   lappend syntaxErr(tolerance_zone_form) [list [[$attrTZ Value] P21ID] "name" $msg]
+                                  set tzf1 "(Invalid TZF: $tzfName)"
+                                } elseif {$tzfName == ""} {
+                                  erroMsg "The tolerance_zone_form 'name' attribute is blank."
                                 }
-                                set tzf1 "(Invalid TZF: $tzfName)"
                               }
 
                               if {$tzfName == "cylindrical or circular"} {
@@ -366,6 +366,15 @@ proc spmiGeotolReport {objEntity} {
                                   set msg "Syntax Error: Tolerance zones are not allowed with [formatComplexEnt $tolType]."
                                   errorMsg $msg
                                   lappend syntaxErr(tolerance_zone_form) [list [[$attrTZ Value] P21ID] "name" $msg]
+                                }
+
+# these tolerances should not use 'within a cylinder' tolerance zone form for diameters
+                              } elseif {$tzfName == "within a cylinder"} {
+                                foreach item {"position" "perpendicularity" "parallelism" "angularity" "coaxiality" "concentricity" "straightness"} {
+                                  set gtol "$item\_tolerance"
+                                  if {[string first $gtol [$gtEntity Type]] != -1} {
+                                    errorMsg "For $item tolerances, use 'cylindrical or spherical' instead of 'within a cylinder' for the tolerance_zone_form 'name' attribute\n See Recommended Practice for $recPracNames(pmi242), Sec. 6.9.2, Table 11"
+                                  }
                                 }
                               }
                             }
@@ -481,12 +490,12 @@ proc spmiGeotolReport {objEntity} {
                       $cells($gt) Item 3 $c $colName
                       if {[string first "GD&T" $colName] != -1} {
                         set comment "See Help > User Guide (section 5.1.4) for an explanation of how the annotations below are constructed."
-                        append comment " ***** The geometric tolerance might be shown with associated dimensions (above) and datum features (below).  That depends on any of the two referring to the same Associated Geometry as the Toleranced Geometry in the column to the right.  See the Associated Geometry columns on the 'dimensional_characteristic_representation' (DCR) and 'datum_feature' worksheets to see if they match the Toleranced Geometry."
-                        append comment " ***** See the DCR worksheet for an explanation of Repetitive Dimensions."
+                        append comment "\n\nThe geometric tolerance might be shown with associated dimensions (above) and datum features (below).  That depends on any of the two referring to the same Associated Geometry as the Toleranced Geometry in the column to the right.  See the Associated Geometry columns on the 'dimensional_characteristic_representation' (DCR) and 'datum_feature' worksheets to see if they match the Toleranced Geometry."
+                        append comment "\n\nSee the DCR worksheet for an explanation of Repetitive Dimensions."
                         if {$nistName != ""} {
-                          append comment " ***** See the PMI Representation Summary worksheet to see how the GD&T Annotation below compares to the expected PMI."
+                          append comment "\n\nSee the PMI Representation Summary worksheet to see how the GD&T Annotation below compares to the expected PMI."
                         }
-                        addCellComment $gt 3 $c $comment 400 300
+                        addCellComment $gt 3 $c $comment
                       }
                     } else {
                       errorMsg "Syntax Error on [formatComplexEnt $gt]"
@@ -799,11 +808,13 @@ proc spmiGeotolReport {objEntity} {
                       
                       set e1s [$gtEntity GetUsedIn [string trim shape_aspect_relationship] [string trim relating_shape_aspect]]
                       ::tcom::foreach e1 $e1s {
-                        ::tcom::foreach a1 [$e1 Attributes] {
-                          if {[$a1 Name] == "related_shape_aspect"} {
-                            ::tcom::foreach a2 [[$a1 Value] Attributes] {
-                              if {[$a2 Name] == "identification"} {
-                                set datumSymbol($datumGeomEnts) [$a2 Value]
+                        if {[string first "relationship" [$e1 Type]] != -1} {
+                          ::tcom::foreach a1 [$e1 Attributes] {
+                            if {[$a1 Name] == "related_shape_aspect"} {
+                              ::tcom::foreach a2 [[$a1 Value] Attributes] {
+                                if {[$a2 Name] == "identification"} {
+                                  set datumSymbol($datumGeomEnts) [$a2 Value]
+                                }
                               }
                             }
                           }
@@ -852,7 +863,12 @@ proc spmiGeotolReport {objEntity} {
                         errorMsg $msg
                       }
                     } else {
-                      set msg "Syntax Error: Invalid 'description' ($ov) on [$gtEntity Type].\n[string repeat " " 14]\($recPracNames(pmi242), Sec. 6.6.1, Table 9)"
+                      if {$ov != ""} {
+                        set msg "Syntax Error: Invalid 'description' ($ov) "
+                      } else {
+                        set msg "Syntax Error: Missing 'description' "
+                      }
+                      append msg "on [$gtEntity Type].\n[string repeat " " 14]\($recPracNames(pmi242), Sec. 6.6.1, Table 9)"
                       errorMsg $msg
                     }
                     if {$msg != ""} {lappend syntaxErr([lindex [split $ent1 " "] 0]) [list $objID [lindex [split $ent1 " "] 1] $msg]}
@@ -917,10 +933,12 @@ proc spmiGeotolReport {objEntity} {
                     }
                     set e1s [$objEntity GetUsedIn [string trim shape_aspect_relationship] [string trim relating_shape_aspect]]
                     ::tcom::foreach e1 $e1s {
-                      ::tcom::foreach a1 [$e1 Attributes] {
-                        if {[$a1 Name] == "related_shape_aspect"} {
-                          ::tcom::foreach a2 [[$a1 Value] Attributes] {
-                            if {[$a2 Name] == "identification"} {set datumTarget "[$a2 Value]$ov"}
+                      if {[string first "relationship" [$e1 Type]] != -1} {
+                        ::tcom::foreach a1 [$e1 Attributes] {
+                          if {[$a1 Name] == "related_shape_aspect"} {
+                            ::tcom::foreach a2 [[$a1 Value] Attributes] {
+                              if {[$a2 Name] == "identification"} {set datumTarget "[$a2 Value]$ov"}
+                            }
                           }
                         }
                       }
@@ -1530,14 +1548,14 @@ proc spmiGeotolReport {objEntity} {
           $cells($gt) Item 3 $c $heading
           set pmiHeading($c1)) 1
           set pmiCol [expr {max($c1,$pmiCol)}]
-          addCellComment $gt 3 $c $comment 300 100
+          addCellComment $gt 3 $c $comment
         }
         $cells($gt) Item $r $c [string trim $geotolGeom]
         if {[lsearch $spmiRow($gt) $r] == -1} {lappend spmiRow($gt) $r}
 
         if {[string first "manifold_solid_brep" $geotolGeom] != -1 && [string first "surface" $gt] == -1} {
           errorMsg "Toleranced Geometry for a [formatComplexEnt $gt]\n contains a 'manifold_solid_brep'."
-          addCellComment $gt $r $c "Toleranced Geometry contains a 'manifold_solid_brep'" 150 30
+          addCellComment $gt $r $c "Toleranced Geometry contains a 'manifold_solid_brep'"
         }
       }
 

@@ -710,7 +710,7 @@ proc gpmiAnnotationReport {objEntity} {
                     if {[info exists tessIndex($objID)] && [info exists tessCoord($tessIndexCoord($objID))]} {
                       x3dTessGeom $objID $objEntity1 $ent1
                     } else {
-                      errorMsg "Missing tessellated coordinates and index for $objID"
+                      errorMsg "Missing tessellated coordinates and index for \#$objID"
                     }
                   }
                 }
@@ -757,21 +757,7 @@ proc gpmiAnnotationReport {objEntity} {
                 }
                 "draughting_pre_defined_colour name" {
                   if {$entLevel == 4 || $entLevel == 8} {
-                    switch $objValue {
-                      black   {set x3dColor "0 0 0"}
-                      white   {set x3dColor "1 1 1"}
-                      red     {set x3dColor "1 0 0"}
-                      yellow  {set x3dColor "1 1 0"}
-                      green   {set x3dColor "0 1 0"}
-                      cyan    {set x3dColor "0 1 1"}
-                      blue    {set x3dColor "0 0 1"}
-                      magenta {set x3dColor "1 0 1"}
-                      default {
-                        set x3dColor [lindex $defaultColor 0]
-                        errorMsg "Syntax Error: Unexpected draughting_pre_defined_colour name '$objValue' (using [lindex $defaultColor 1])\n[string repeat " " 14]($recPracNames(model), Sec. 4.2.3, Table 2)"
-                      }
-                    }
-
+                    set x3dColor [x3dPreDefinedColor $objValue]
                     if {$opt(gpmiColor) > 0} {set x3dColor [x3dSetColor $opt(gpmiColor)]}
                     if {$opt(PMIGRF) && $opt(XLSCSV) != "None"} {
                       set ok 1
@@ -1002,6 +988,10 @@ proc gpmiAnnotationReport {objEntity} {
                 errorMsg $msg
                 lappend syntaxErr([$objGuiEntity Type]) [list [$objGuiEntity P21ID] "used_representation" $msg]
               }
+            } else {
+              set msg "Syntax Error: Missing 'used_representation' attribute on draughting_model_item_association.\n[string repeat " " 14]\($recPracNames(pmi242), Sec. 7.3)"
+              errorMsg $msg
+              lappend syntaxErr([$objGuiEntity Type]) [list [$objGuiEntity P21ID] "used_representation" $msg]
             }
           }
         }

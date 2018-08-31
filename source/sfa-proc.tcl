@@ -1386,22 +1386,37 @@ proc cellRange {r c} {
 }
 
 #-------------------------------------------------------------------------------
-proc addCellComment {ent r c text {w 300} {h 150}} {
+proc addCellComment {ent r c text} {
   global worksheet
 
   if {![info exists worksheet($ent)] || [string length $text] < 2} {return}
   
   if {[catch {
-    regsub -all \n $text " " text
+# remove extra spaces    
+    #regsub -all \n $text " " text
     while {[string first "  " $text] != -1} {regsub -all "  " $text " " text}
     if {[string first "Syntax" $text] == 0} {set text "[string range $text 14 end]  See Websites > Recommended Practices or the link in row 2."}
+    
+# add linefeeds for line length
+    set ntext ""
+    set j 0
+    for {set i 0} {$i < [string length $text]} {incr i} {
+      incr j
+      set char [string index $text $i]
+      if {($j > 50 && $char == " ") || $char == [format "%c" 10]} {
+        append ntext \n
+        set j 0
+      } else {
+        append ntext $char
+      }
+    }
       
+# add comment
     set comment [[$worksheet($ent) Range [cellRange $r $c]] AddComment]
-    $comment Text $text
-    [$comment Shape] Width  [expr double($w)]
-    [$comment Shape] Height [expr double($h)]
+    $comment Text $ntext
+    catch {[[$comment Shape] TextFrame] AutoSize [expr 1]}
 
-# error      
+# error
   } emsg]} {
     if {[string first "Unknown error" $emsg] == -1} {errorMsg "ERROR adding Cell Comment: $emsg\n  $ent"}
   }
@@ -1863,12 +1878,14 @@ proc setShortcuts {} {
   }
 
   set progstr  "STEP File Analyzer and Viewer"
-  set progstr1 "STEP File Analyzer"
   if {!$nistVersion} {set progstr "SFA"}
   
   if {[info exists mydesk] || [info exists mymenu]} {
     set ok 1
     set app ""
+    
+# delete old shortcuts    
+    set progstr1 "STEP File Analyzer"
     foreach scut [list "Shortcut to $progstr1.exe.lnk" "$progstr1.exe.lnk" "$progstr1.lnk"] {
       catch {
         if {[file exists [file join $mydesk $scut]]} {
@@ -1882,7 +1899,7 @@ proc setShortcuts {} {
 
     if {$ok} {
       set choice [tk_messageBox -type yesno -icon question -title "Shortcuts" \
-        -message "Do you want to create or overwrite a shortcut to the $progstr (v[getVersion]) in the Start Menu and an icon on the Desktop?"]
+        -message "Do you want to create or overwrite shortcuts to the $progstr (v[getVersion]) in the Start Menu and on the Desktop?"]
     } else {
       set choice [tk_messageBox -type yesno -icon question -title "Shortcuts" \
         -message "Do you want to create or overwrite a shortcut to the $progstr (v[getVersion]) in the Start Menu"]
@@ -1894,26 +1911,24 @@ proc setShortcuts {} {
         if {[info exists mymenu]} {
           if {[file exists [file join $mymenu "$progstr.lnk"]]} {outputMsg "Existing Start Menu shortcut will be overwritten" red}
           if {$nistVersion} {
-            create_shortcut [file join $mymenu "$progstr.lnk"] Description $progstr \
-              TargetPath [info nameofexecutable] IconLocation [file join $mytemp NIST.ico]
+            twapi::write_shortcut [file join $mymenu "$progstr.lnk"] -path [info nameofexecutable] -desc $progstr -iconpath [file join $mytemp NIST.ico]
           } else {
-            create_shortcut [file join $mymenu "$progstr.lnk"] Description $progstr TargetPath [info nameofexecutable]
+            twapi::write_shortcut [file join $mymenu "$progstr.lnk"] -path [info nameofexecutable] -desc $progstr
           }
-          outputMsg "Shortcut to the $progstr (v[getVersion]) created in Start Menu to [truncFileName [file nativename [info nameofexecutable]]]"
+          outputMsg " Shortcut created in Start Menu to [truncFileName [file nativename [info nameofexecutable]]]"
         }
       }
 
       if {$ok} {
         catch {
           if {[info exists mydesk]} {
-            if {[file exists [file join $mydesk "$progstr.lnk"]]} {outputMsg "Existing Desktop icon will be overwritten" red}
+            if {[file exists [file join $mydesk "$progstr.lnk"]]} {outputMsg "Existing Desktop shortcut will be overwritten" red}
             if {$nistVersion} {
-              create_shortcut [file join $mydesk "$progstr.lnk"] Description $progstr \
-                TargetPath [info nameofexecutable] IconLocation [file join $mytemp NIST.ico]
+              twapi::write_shortcut [file join $mydesk "$progstr.lnk"] -path [info nameofexecutable] -desc $progstr -iconpath [file join $mytemp NIST.ico]
             } else {
-              create_shortcut [file join $mydesk "$progstr.lnk"] Description $progstr TargetPath [info nameofexecutable]
+              twapi::write_shortcut [file join $mydesk "$progstr.lnk"] -path [info nameofexecutable] -desc $progstr
             }
-            outputMsg "Icon for the $progstr (v[getVersion]) created on Desktop to [truncFileName [file nativename [info nameofexecutable]]]"
+            outputMsg " Shortcut created on Desktop to [truncFileName [file nativename [info nameofexecutable]]]"
           }
         }
       }
@@ -1942,7 +1957,7 @@ proc setHomeDir {} {
     }
     catch {
       set reg_desktop  [registry get {HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\User Shell Folders} {Desktop}]
-      if {[string first "%USERPROFILE%" $reg_desktop]  == 0} {regsub "%USERPROFILE%" $reg_desktop  $env(USERPROFILE) mydesk}
+      if {[string first "%USERPROFILE%" $reg_desktop] == 0} {regsub "%USERPROFILE%" $reg_desktop $env(USERPROFILE) mydesk}
     }
     catch {
       set reg_menu [registry get {HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\User Shell Folders} {Programs}]
@@ -2027,72 +2042,6 @@ proc setHomeDir {} {
       set virtualDir [file nativename [file join C:/ Users $env(USERNAME) AppData Local VirtualStore [string range $env(ProgramFiles) 3 end] IFCsvrR300 dll]]
     }
   }
-}
-
-# -------------------------------------------------------------------------------
-# From http://wiki.tcl.tk/1844
-proc get_shortcut_filename {file} {
-  set dir [file nativename [file dirname $file]]
-  set tail [file nativename [file tail $file]]
-
-  if {![string match ".lnk" [string tolower [file extension $file]]]} {
-    return -code error "$file is not a valid shortcut name"
-  }
-
-  if {[string match "windows" $::tcl_platform(platform)]} {
-
-# Get Shortcut file as an object
-    set oShell [tcom::ref createobject "Shell.Application"]
-    set oFolder [$oShell NameSpace $dir]
-    set oFolderItem [$oFolder ParseName $tail]
-    
-# If its a shortcut, do modify
-    if {[$oFolderItem IsLink]} {
-      set oShellLink [$oFolderItem GetLink]
-      set path [$oShellLink Path]
-      regsub -all {\\} $path "/" path
-      return $path
-    } else {
-      if {![catch {file readlink $file} new]} {
-        set new
-      } else {
-        set file
-      }
-    }
-  } else {
-    if {![catch {file readlink $file} new]} {
-      set new
-    } else {
-      set file
-    }
-  }
-}
-
-proc create_shortcut {file args} {
-  if {![string match ".lnk" [string tolower [file extension $file]]]} {
-    append file ".lnk"
-  }
-
-  if {[string match "windows" $::tcl_platform(platform)]} {
-# Make sure filenames are in nativename format.
-    array set opts $args
-    foreach item [list IconLocation Path WorkingDirectory] {
-      if {[info exists opts($item)]} {
-        set opts($item) [file nativename $opts($item)]
-      }
-    }
-
-    set oShell [tcom::ref createobject "WScript.Shell"]
-    set oShellLink [$oShell CreateShortcut [file nativename $file]]
-    foreach {opt val} [array get opts] {
-      if {[catch {$oShellLink $opt $val} result]} {
-        return -code error "Invalid shortcut option $opt or value $value: $result"
-      }
-    }
-    $oShellLink Save
-    return 1
-  }
-  return 0
 }
 
 #-------------------------------------------------------------------------------

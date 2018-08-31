@@ -271,7 +271,7 @@ proc getEntity {objEntity checkInverse} {
           }
           $cells($thisEntType) Item $row($thisEntType) $col($thisEntType) $str
           if {$cellComment && $entComment($attrName)} {
-            addCellComment $thisEntType 3 $col($thisEntType) "The values of *_measure_with_unit are also shown." 200 30
+            addCellComment $thisEntType 3 $col($thisEntType) "The values of *_measure_with_unit are also shown."
             set entComment($attrName) 0
           }
         }
@@ -349,7 +349,7 @@ proc getEntity {objEntity checkInverse} {
         }
         $cells($thisEntType) Item $row($thisEntType) $col($thisEntType) [string trim $str]
         if {$strMeasure != "" && $entComment($attrName)} {
-          addCellComment $thisEntType 3 $col($thisEntType) "The values of *_measure_with_unit are also shown." 200 30
+          addCellComment $thisEntType 3 $col($thisEntType) "The values of *_measure_with_unit are also shown."
           set entComment($attrName) 0
         }
       }

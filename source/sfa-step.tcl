@@ -20,9 +20,11 @@ proc getAssocGeom {entDef {tolType 0} {tolName ""}} {
       if {$entDefType == "datum"} {
         set e0s [$entDef GetUsedIn [string trim shape_aspect_relationship] [string trim related_shape_aspect]]
         ::tcom::foreach e0 $e0s {
-          ::tcom::foreach a0 [$e0 Attributes] {
-            if {[$a0 Name] == "relating_shape_aspect"} {
-              if {[[$a0 Value] Type] == "datum_feature"} {set entDef [$a0 Value]}
+          if {[string first "relationship" [$e0 Type]] != -1} {
+            ::tcom::foreach a0 [$e0 Attributes] {
+              if {[$a0 Name] == "relating_shape_aspect"} {
+                if {[[$a0 Value] Type] == "datum_feature"} {set entDef [$a0 Value]}
+              }
             }
           }
         }
@@ -44,33 +46,37 @@ proc getAssocGeom {entDef {tolType 0} {tolName ""}} {
     }
     
 # look at SAR with CSA, CGSA, AASA, COS to find SAs, possibly nested
-    #outputMsg " $entDefType [$entDef P21ID]" red
+    #outputMsg " $entDefType [$entDef P21ID] D" red
     set type [appendAssocGeom $entDef D]
     set e0s [$entDef GetUsedIn [string trim shape_aspect_relationship] [string trim relating_shape_aspect]]
     ::tcom::foreach e0 $e0s {
-      ::tcom::foreach a0 [$e0 Attributes] {
-        if {[$a0 Name] == "related_shape_aspect"} {
-          set type [appendAssocGeom [$a0 Value] E]
-          if {$type == "advanced_face"} {getFaceGeom [$a0 Value] E}
-
-          set a0val {}
-          set e1 [$a0 Value]
-          if {[[$a0 Value] Type] == "composite_shape_aspect" || [[$a0 Value] Type] == "composite_group_shape_aspect"} {
-            set e1s [[$a0 Value] GetUsedIn [string trim shape_aspect_relationship] [string trim relating_shape_aspect]]
-            ::tcom::foreach e1 $e1s {
-              ::tcom::foreach a1 [$e1 Attributes] {
-                if {[$a1 Name] == "related_shape_aspect"} {
-                  lappend a0val [$a1 Value]
-                  set type [appendAssocGeom [$a1 Value] F]
+      if {[string first "relationship" [$e0 Type]] != -1} {
+        ::tcom::foreach a0 [$e0 Attributes] {
+          if {[$a0 Name] == "related_shape_aspect"} {
+            set type [appendAssocGeom [$a0 Value] E]
+            if {$type == "advanced_face"} {getFaceGeom [$a0 Value] E}
+  
+            set a0val {}
+            set e1 [$a0 Value]
+            if {[[$a0 Value] Type] == "composite_shape_aspect" || [[$a0 Value] Type] == "composite_group_shape_aspect"} {
+              set e1s [[$a0 Value] GetUsedIn [string trim shape_aspect_relationship] [string trim relating_shape_aspect]]
+              ::tcom::foreach e1 $e1s {
+                if {[string first "relationship" [$e1 Type]] != -1} {
+                  ::tcom::foreach a1 [$e1 Attributes] {
+                    if {[$a1 Name] == "related_shape_aspect"} {
+                      lappend a0val [$a1 Value]
+                      set type [appendAssocGeom [$a1 Value] F]
+                    }
+                  }
                 }
               }
+            } else {
+              lappend a0val [$a0 Value]
             }
-          } else {
-            lappend a0val [$a0 Value]
-          }
-
+  
 # find AF for SA with GISU or IIRU
-          foreach val $a0val {getAssocGeomFace $val}
+            foreach val $a0val {getAssocGeomFace $val}
+          }
         }
       }
     }
@@ -98,10 +104,16 @@ proc getAssocGeom {entDef {tolType 0} {tolName ""}} {
 
 # -------------------------------------------------------------------------------
 proc getAssocGeomFace {entDef} {
-  #outputMsg "getAssocGeomFace [$entDef Type]" green
+  global entCount
+  #outputMsg "getAssocGeomFace [$entDef Type] [$entDef P21ID]" green
   
 # look at GISU and IIRU for geometry associated with shape_aspect
-  foreach usage {geometric_item_specific_usage item_identified_representation_usage} {
+  set usages {}
+  foreach str {geometric_item_specific_usage item_identified_representation_usage} {
+    if {[info exists entCount($str)]} {if {$entCount($str) > 0} {lappend usages $str}}
+  }
+  
+  foreach usage $usages {
     set e1s [$entDef GetUsedIn [string trim $usage] [string trim definition]]
     ::tcom::foreach e1 $e1s {
       ::tcom::foreach a1 [$e1 Attributes] {
@@ -281,14 +293,12 @@ proc spmiSummary {} {
     $cells($spmiSumName) Item $spmiSumRow 2 "Entity"
     $cells($spmiSumName) Item $spmiSumRow 3 "PMI Representation"
     
-    set h 30
-    set comment "PMI Representation is collected here from the datum systems, dimensions, tolerances, and datum target entities in column B"
+    set comment "PMI Representation is collected here from the datum systems, dimensions, tolerances, and datum target entities in column B."
     if {$nistName != ""} {
-      append comment " ***** It is color-coded by the expected PMI in the NIST test case drawing to the right.  The color-coding is explained at the bottom of the column.  Determining if the PMI is Partial and Possible match and corresponding Similar PMI depends on leading and trailing zeros, number precision, associated datum features and dimensions, and repetitive dimensions. ***** See Help > User Guide (section 8)"
-      set h 120
+      append comment "\n\nIt is color-coded by the expected PMI in the NIST test case drawing to the right.  The color-coding is explained at the bottom of the column.  Determining if the PMI is Partial and Possible match and corresponding Similar PMI depends on leading and trailing zeros, number precision, associated datum features and dimensions, and repetitive dimensions.\n\nSee Help > User Guide (section 8)"
     }
     append comment "."
-    addCellComment $spmiSumName $spmiSumRow 3 $comment 300 $h
+    addCellComment $spmiSumName $spmiSumRow 3 $comment
     
     set range [$worksheet($spmiSumName) Range [cellRange 1 1] [cellRange 3 3]]
     [$range Font] Bold [expr 1]
@@ -632,7 +642,7 @@ proc spmiSummary {} {
                   if {$nsimilar == 1} {
                     [$worksheet($spmiSumName) Range [cellRange -1 4]] ColumnWidth [expr 48]
                     $cells($spmiSumName) Item 3 4 "Similar PMI"
-                    addCellComment $spmiSumName 3 4 "Similar PMI is the best match of the PMI Representation in column C, for Partial or Possible matches (blue and yellow), to the expected PMI in the NIST test case drawing to the right." 300 50
+                    addCellComment $spmiSumName 3 4 "Similar PMI is the best match of the PMI Representation in column C, for Partial or Possible matches (blue and yellow), to the expected PMI in the NIST test case drawing to the right."
                     set range [$worksheet($spmiSumName) Range D3]
                     [$range Font] Bold [expr 1]
                     catch {

@@ -502,9 +502,7 @@ proc genExcel {{numFile 0}} {
     
 # open expected PMI worksheet (once) if PMI representation and correct file name
   if {$opt(PMISEM) && $stepAP == "AP242" && $nistName != "" && $opt(XLSCSV) != "None"} {
-    set tols $tolNames
-    concat $tols [list dimensional_characteristic_representation datum datum_feature datum_reference_compartment datum_reference_element datum_system placed_datum_target_feature]
-    set ok 0
+    set tols [concat $tolNames [list dimensional_characteristic_representation datum datum_feature datum_reference_compartment datum_reference_element datum_system placed_datum_target_feature]]
     foreach tol $tols {if {[info exist entCount($tol)]} {set ok 1; break}}
     if {$ok && ![info exists pmiMaster($nistName)]} {spmiGetPMI}
   }
@@ -1685,9 +1683,9 @@ proc sumAddColorLinks {sum sumHeaderRow sumLinks sheetSort sumRow} {
         } else {
           [$anchor Interior] ColorIndex [expr 15]
           if {$ent != "dimensional_characteristic_representation"} {
-            addCellComment $sum $sumRow 1 "There are errors or warnings for this entity based on CAx-IF Recommended Practices.  See Help > Syntax Errors." 300 25
+            addCellComment $sum $sumRow 1 "There are errors or warnings for this entity based on CAx-IF Recommended Practices.  See Help > Syntax Errors."
           } else {
-            addCellComment $sum $sumRow 1 "There are errors or warnings for this entity based on CAx-IF Recommended Practices.  Check for cell comments in the Associated Geometry column.  See Help > Syntax Errors." 300 50
+            addCellComment $sum $sumRow 1 "There are errors or warnings for this entity based on CAx-IF Recommended Practices.  Check for cell comments in the Associated Geometry column.  See Help > Syntax Errors."
           }
         }
         catch {

@@ -315,7 +315,7 @@ proc guiProcessAndReports {} {
         append ttmsg "  These entities are found in some APs.\nSee Help > Supported STEP APs and Websites > EXPRESS Schemas\n\n"
         set ttmsg [guiToolTip $ttmsg $tt]
       } elseif {$tt == "PR_STEP_AP242"} {
-        append ttmsg "\n\nThese entities are specific to AP242 and not found in AP203 or AP214.\nSome entities are specific to only AP242 Edition 2.\nSome Tolereance and other AP242 entities, from either edition, are found in those categories."
+        append ttmsg "\n\nThese entities are specific to AP242 and not found in AP203 or AP214.\nSome entities are specific to only AP242 Edition 2.\nSome Tolerance and other AP242 entities, from either edition, are found in those categories."
         append ttmsg "\n\nSee Websites > AP242 Project and EXPRESS Schemas"
       }
       catch {tooltip::tooltip $buttons($idx) $ttmsg}
@@ -461,14 +461,14 @@ proc guiProcessAndReports {} {
   pack $foptv -side left -anchor w -pady {5 2} -padx 10 -fill both -expand true
   pack $foptrv -side top -anchor w -pady 0 -fill x
   catch {
-    tooltip::tooltip $buttons(optVIZPMI) "Graphical PMI is supported in AP242, AP203, and AP214 files.\nSupplemental geometry and tessellated edges (lines) are also shown.\n\nSee Help > PMI Presentation\nSee Help > User Guide (section 7.1.1)\nSee Help > Supplemental Geometry\nSee Examples > Part with PMI\nSee Examples > AP242 Tessellated Part with PMI\nSee Examples > Sample STEP Files\n\nVisualizations can be generated without generating a spreadsheet\nor CSV files.  See the Output Format option below.\n\nVisualizations are displayed in web browsers that are not optimized\nfor large models.  Older versions of web browsers are not supported."
-    tooltip::tooltip $buttons(optVIZTPG) "** Parts in an assembly might have the wrong position and orientation or be missing. **\n\nTessellated geometry is in addition to boundary representation (b-rep) geometry.\nSupplemental geometry and tessellated edges (lines) are also shown.\nFaces in tessellated shells are outlined in black.\n\nSee Help > AP242 Tessellated Part Geometry\nSee Help > Supplemental Geometry\nSee Help > User Guide (section 7.1.2, 7.1.3)\nSee Examples > AP242 Tessellated Part with PMI\n\nVisualizations can be generated without generating a spreadsheet or CSV files.\nSee the Output Format option below.\n\nVisualizations are displayed in web browsers that are not optimized for large models.\nOlder versions of web browsers are not supported."
+    tooltip::tooltip $buttons(optVIZPMI) "Graphical PMI is supported in AP242, AP203, and AP214 files.\nSupplemental geometry and tessellated edges (lines) are also shown.\n\nSee Help > PMI Presentation\nSee Help > User Guide (section 7.1.1)\nSee Help > Supplemental Geometry\nSee Examples > Part with PMI\nSee Examples > AP242 Tessellated Part with PMI\nSee Examples > Sample STEP Files\n\nVisualizations can be generated without generating a spreadsheet\nor CSV files.  See the Output Format option below.\n\nVisualizations are viewed in web browsers that are not optimized\nfor large models.  Older versions of web browsers are not supported."
+    tooltip::tooltip $buttons(optVIZTPG) "** Parts in an assembly might have the wrong position and orientation or be missing. **\n\nTessellated geometry is in addition to boundary representation (b-rep) geometry.\nSupplemental geometry and tessellated edges (lines) are also shown.\nFaces in tessellated shells are outlined in black.\n\nSee Help > AP242 Tessellated Part Geometry\nSee Help > Supplemental Geometry\nSee Help > User Guide (section 7.1.2, 7.1.3)\nSee Examples > AP242 Tessellated Part with PMI\n\nVisualizations can be generated without generating a spreadsheet or CSV files.\nSee the Output Format option below.\n\nVisualizations are viewed in web browsers that are not optimized for large models.\nOlder versions of web browsers are not supported."
     tooltip::tooltip $buttons(optVIZTPGMSH) "Show a tessellation wireframe mesh based on the tessellated\nfaces or surfaces.  Not recommended for very large models."
     tooltip::tooltip $buttons(optVIZFEALVS) "The length of load vectors can be scaled by their magnitude.\nLoad vectors are always colored by their magnitude."
     tooltip::tooltip $buttons(optVIZFEADStail) "The length of displacement vectors with a tail are scaled by\ntheir magnitude.  Vectors without a tail are not.\nDisplacement vectors are always colored by their magnitude.\nLoad vectors always have a tail."
-    tooltip::tooltip $buttons(optVIZBRP) "Boundary representation part geometry is visualized ONLY if one of the above types\nof visualization features is selected AND is present in the STEP file.\n\nSee Help > B-rep Geometry\nSee Examples > Part with PMI\nSee Websites > STEP File Viewers for other b-rep geometry viewers\n\nVisualizations are displayed in web browsers that are not optimized for large models.\nOlder versions of web browsers are not supported."
+    tooltip::tooltip $buttons(optVIZBRP) "Boundary representation part geometry is visualized ONLY if one of the above types\nof visualization features is selected AND is present in the STEP file.\n\nSee Help > B-rep Geometry\nSee Examples > Part with PMI\nSee Websites > STEP File Viewers for other b-rep geometry viewers\n\nVisualizations are viewed in web browsers that are not optimized for large models.\nOlder versions of web browsers are not supported."
     tooltip::tooltip $foptv4 "For Random PMI colors, each 'annotation occurrence' is assigned a different color\nto help differentiate one from another."
-    set tt "FEM nodes, elements, boundary conditions, loads, and displacements are visualized.\n\nSee Help > AP209 Finite Element Model\nSee Help > User Guide (section 7.1.4)\nSee Examples > AP209 Finite Element Model\n\nVisualizations can be generated without generating a spreadsheet or CSV files.\nSee the Output Format option below.\n\nVisualizations are displayed in web browsers that are not optimized for large models.\nOlder versions of web browsers are not supported."
+    set tt "FEM nodes, elements, boundary conditions, loads, and displacements are visualized.\n\nSee Help > AP209 Finite Element Model\nSee Help > User Guide (section 7.1.4)\nSee Examples > AP209 Finite Element Model\n\nVisualizations can be generated without generating a spreadsheet or CSV files.\nSee the Output Format option below.\n\nVisualizations are viewed in web browsers that are not optimized for large models.\nOlder versions of web browsers are not supported."
     tooltip::tooltip $foptv7 $tt
     tooltip::tooltip $foptv8 $tt
     #tooltip::tooltip $buttons(optVIZPMIVP) "PMI Viewpoints are experimental.\n\nViewpoints usually have the correct orientation but are not centered.\nUse pan and zoom to center the PMI."
@@ -737,7 +737,7 @@ proc guiOpenSTEPFile {} {
     incr cb
   }
   pack $foptk -side top -anchor w -pady {5 2} -padx 10 -fill both
-  catch {tooltip::tooltip $foptk "If Excel is installed, then Spreadsheets and CSV files can be generated.\nIf CSV Files is selected, the Spreadsheet is also generated.\n\nIf Excel is not installed, only CSV files can be generated.\nOptions for Reports and Inverse Relationships are disabled.\n\nCSV files do not contain any cell colors, comments, or links.\nGD&T symbols will look correct only with Excel 2016 or newer.\n\nVisualization Only does not generate any Spreadsheets or CSV files.\nAll options except Visualize are disabled.\n\nVisualizations are displayed in web browsers that are not optimized\nfor large models.  Older versions of web browsers are not supported.\n\nSee Help > User Guide (section 4.4.1)"}
+  catch {tooltip::tooltip $foptk "If Excel is installed, then Spreadsheets and CSV files can be generated.\nIf CSV Files is selected, the Spreadsheet is also generated.\n\nIf Excel is not installed, only CSV files can be generated.\nOptions for Reports and Inverse Relationships are disabled.\n\nCSV files do not contain any cell colors, comments, or links.\nGD&T symbols will look correct only with Excel 2016 or newer.\n\nVisualization Only does not generate any Spreadsheets or CSV files.\nAll options except Visualize are disabled.\n\nVisualizations are viewed in web browsers that are not optimized\nfor large models.  Older versions of web browsers are not supported.\n\nSee Help > User Guide (section 4.4.1)"}
 
 # log file
   set foptm [ttk::labelframe $fopt.m -text " Log File "]
@@ -1325,7 +1325,7 @@ column A on the File Summary worksheet.  A comment indicating that there are err
 small red triangle in the upper right corner of the cell.
 
 On an entity worksheet, most Syntax Errors are highlighted in red and have a cell comment with the
-text of the Syntax Error that was displayed in the Status tab.
+text of the Syntax Error that was shown in the Status tab.
 
 All text in the Status tab can be written to a Log File when a STEP file is processed (Options tab).
 The log file is written to myfile-sfa.log.  In a log file, error messages are highlighted by ***."
@@ -1382,7 +1382,7 @@ The following types of supplemental geometry and associated text are shown.
 - Tessellated Surface: faces outlined in black
 
 Lines and circles that are trimmed by cartesian_point will not be trimmed.  Bounding edges for
-planes are ignored.  All bounded and unbounded planes are displayed with a fixed size."
+planes are ignored.  All bounded and unbounded planes are shown with a fixed size."
     .tnb select .tnb.status
   }
     
@@ -1519,7 +1519,7 @@ Credits
     }
   
   # debug
-    if {$opt(XL_ROWLIM) == 100003} {
+    if {$opt(XL_ROWLIM) == 100003 || $env(USERDOMAIN) == "NIST"} {
       outputMsg " "
       outputMsg "Environment variables" red
       foreach id [lsort [array names env]] {

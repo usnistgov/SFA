@@ -250,7 +250,6 @@ proc spmiDimtolReport {objEntity} {
                                         set msg "value_format_type_qualifier 'NR2 $prec1.n' conflicts with INCH values < 1, use 'NR2 0.n' instead."
                                         append msg "\n  See ASME Y14.5-2009, Decimal Inch Dimensioning, Sec. 1.6.2.a"
                                         errorMsg $msg
-                                        #set prec1 0
                                         lappend syntaxErr(dimensional_characteristic_representation) [list "-$spmiIDRow($dt,$spmiID)" "decimal places" $msg]
                                       }
                                     }
@@ -258,6 +257,14 @@ proc spmiDimtolReport {objEntity} {
                                     set msg "Syntax Error: value_format_type_qualifier ([$attr1 Value]) too small for $objValue\n[string repeat " " 14]\($recPracNames(pmi242), Sec. 5.4)"
                                     errorMsg $msg
                                     lappend syntaxErr(dimensional_characteristic_representation) [list "-$spmiIDRow($dt,$spmiID)" "decimal places" $msg]
+                                  }
+                                  if {$dim(qual) == 0 && [string index $val2 0] != 0} {
+                                    regsub -all "0" $val2 "" tmp
+                                    if {$tmp != ""} {
+                                      set msg "value_format_type_qualifier 'NR2 $prec1.0' will truncate the decimal value."
+                                      errorMsg $msg
+                                      lappend syntaxErr(dimensional_characteristic_representation) [list "-$spmiIDRow($dt,$spmiID)" "decimal places" $msg]
+                                    }
                                   }
                                 }
                                 
@@ -809,7 +816,7 @@ proc spmiDimtolReport {objEntity} {
                         set pmiCol [expr {max($col($dt),$pmiCol)}]
                         if {[string first "dimension name" $colName] == 0} {
                           set comment "Section names refer to the CAx-IF Recommended Practice for Representation and Presentation of PMI (AP242)."
-                          addCellComment $dt 3 $c $comment 300 100
+                          addCellComment $dt 3 $c $comment
                         }
                       }
                     }
@@ -885,7 +892,7 @@ proc spmiDimtolReport {objEntity} {
               set val [$dimtolAtt Value]
               #outputMsg " [$dimtolAtt Name] / [$dimtolAtt Value]  [$val Type] [$val P21ID]" green
 
-# directly to GISA
+# directly to GISU
               if {$val != ""} {
                 getAssocGeom $val 1
 
@@ -893,10 +900,12 @@ proc spmiDimtolReport {objEntity} {
                 if {[llength [array names assocGeom]] == 0} {
                   set sars [$val GetUsedIn [string trim shape_aspect_relationship] [string trim relating_shape_aspect]]
                   ::tcom::foreach sar $sars {
-                    ::tcom::foreach asar [$sar Attributes] {
-                      if {[$asar Name] == "related_shape_aspect"} {
-                        set val1 [$asar Value]
-                        getAssocGeom $val1 1
+                    if {[string first "relationship" [$sar Type] != -1} {
+                      ::tcom::foreach asar [$sar Attributes] {
+                        if {[$asar Name] == "related_shape_aspect"} {
+                          set val1 [$asar Value]
+                          getAssocGeom $val1 1
+                        }
                       }
                     }
                   }
@@ -910,6 +919,7 @@ proc spmiDimtolReport {objEntity} {
           ::tcom::foreach dimtolAtt [$dimtolEnt Attributes] {
             if {[string first "relat" [$dimtolAtt Name]] != -1} {
               set val [$dimtolAtt Value]
+              #outputMsg " [$dimtolAtt Name] / [$dimtolAtt Value]  [$val Type] [$val P21ID]" green
               if {$val != ""} {getAssocGeom $val 1}
             }
           }
@@ -935,7 +945,7 @@ proc spmiDimtolReport {objEntity} {
             set pmiHeading($pmiColumns(ch)) 1
             set pmiCol [expr {max($pmiColumns(ch),$pmiCol)}]
             set comment "See Help > User Guide (section 5.1.5) for an explanation of Associated Geometry."
-            addCellComment $dt 3 $c $comment 300 100
+            addCellComment $dt 3 $c $comment
           }
           $cells($dt) Item $r $pmiColumns(ch) [string trim $str]
           
@@ -951,10 +961,10 @@ proc spmiDimtolReport {objEntity} {
               foreach item $badGeom {
                 if {$okSurf} {
                   errorMsg "Associated Geometry for a '[lindex $item 0]' dimension also refers to '[lindex $item 1]'.  Check that this is the intended association."
-                  addCellComment $dt $r $pmiColumns(ch) "[string totitle $dimName] dimension (column E) also refers to '[lindex $item 1]'.  Check that this is the intended association." 250 50
+                  addCellComment $dt $r $pmiColumns(ch) "[string totitle $dimName] dimension (column E) also refers to '[lindex $item 1]'.  Check that this is the intended association."
                 } else {
                   errorMsg "Associated Geometry for a '[lindex $item 0]' dimension is only a '[lindex $item 1]'.  Check that this is the intended association."
-                  addCellComment $dt $r $pmiColumns(ch) "[string totitle $dimName] dimension (column E) is not associated with curved surfaces.  Check that this is the intended association." 250 50
+                  addCellComment $dt $r $pmiColumns(ch) "[string totitle $dimName] dimension (column E) is not associated with curved surfaces.  Check that this is the intended association."
                 }
                 lappend entsWithErrors "dimensional_characteristic_representation"
               }
@@ -1110,9 +1120,7 @@ proc spmiDimtolReport {objEntity} {
                           set dim(prec,$dimrepID) $pmprec
                           if {$dim(prec,$dimrepID) > $dim(prec,max) && $dim(prec,$dimrepID) < 6} {set dim(prec,max) $dim(prec,$dimrepID)}
                         } else {
-                          set msg "value_format_type_qualifier 'NR2 n.$dim(prec,$dimrepID)' conflicts with the tolerance precision, should use 'NR2 n.$pmprec'"
-                          append msg "\n See ASME Y14.5-2009, Decimal Inch Dimensioning, Sec. 2.3.2.b"
-                          #append msg "\n ($recPracNames(pmi242), Sec. 5.4)"
+                          set msg "value_format_type_qualifier 'NR2 n.$dim(prec,$dimrepID)' conflicts with the tolerance precision, should use 'NR2 n.$pmprec'.  See ASME Y14.5-2009, Decimal Inch Dimensioning, Sec. 2.3.2.b"
                           errorMsg $msg
                           lappend syntaxErr(dimensional_characteristic_representation) [list "-$spmiIDRow($dt,$spmiID)" "decimal places" $msg]
                         }
@@ -1249,12 +1257,12 @@ proc spmiDimtolReport {objEntity} {
           set pmiHeading($pmiColumns(dmrp)) 1
           set pmiCol [expr {max($pmiColumns(dmrp),$pmiCol)}]
           set comment "See Help > User Guide (section 5.1.3) for an explanation of how the dimensions below are constructed."
-          if {[info exists dim(unit)]} {append comment " ***** Dimension units: $dim(unit)"}
-          append comment " ***** Repetitive dimensions (e.g., 4X) might be shown for diameters and radii.  They are computed based on the number of cylindrical, spherical, and toroidal surfaces associated with a dimension (see Associated Geometry column to the right) and, depending on the CAD system, might be off by a factor of two, have the wrong value, or be missing."
+          if {[info exists dim(unit)]} {append comment "\n\nDimension units: $dim(unit)"}
+          append comment "\n\nRepetitive dimensions (e.g., 4X) might be shown for diameters and radii.  They are computed based on the number of cylindrical, spherical, and toroidal surfaces associated with a dimension (see Associated Geometry column to the right) and, depending on the CAD system, might be off by a factor of two, have the wrong value, or be missing."
           if {$nistName != ""} {
-            append comment " ***** See the PMI Representation Summary worksheet to see how the Dimensional Tolerance below compares to the expected PMI."
+            append comment "\n\nSee the PMI Representation Summary worksheet to see how the Dimensional Tolerance below compares to the expected PMI."
           }
-          addCellComment $dt 3 $c $comment 400 360
+          addCellComment $dt 3 $c $comment
         }
         
 # add brackets or parentheses for basic or reference dimensions
@@ -1323,7 +1331,7 @@ proc spmiDimtolReport {objEntity} {
         $cells($dt) Item $r $pmiColumns(dmrp) $dr
         if {$cellComment != ""} {
           addCellComment $dt $r $pmiColumns(dmrp) $cellComment
-          if {[string first "(directed)" $cellComment] == -1 && [string first "(oriented)" $cellComment] == -1} {
+          if {[string first "'directed'" $cellComment] == -1 && [string first "'oriented'" $cellComment] == -1} {
             lappend entsWithErrors "dimensional_characteristic_representation"
           }
         }
@@ -1339,15 +1347,24 @@ proc spmiDimtolReport {objEntity} {
             }
   
 # multiple dimensions for same geometry
-            if {[llength $dimtolGeom($dimtolGeomEnts)] > 1} {
-              set dtg {}
+            set lendtg [llength $dimtolGeom($dimtolGeomEnts)]
+            if {$lendtg > 1} {
+              set dtg ""
+              set n 0
               foreach item $dimtolGeom($dimtolGeomEnts) {
                 regsub -all [format "%c" 10] $item " " tmp
                 for {set i 0} {$i < 10} {incr i} {regsub -all "  " $tmp " " tmp}
-                lappend dtg $tmp
+                incr n
+                append dtg "'$tmp'"
+                if {$n < [expr {$lendtg-1}]} {
+                  append dtg ", "
+                }
+                if {$n == [expr {$lendtg-1}]} {
+                  append dtg " and "
+                }
               }
-              errorMsg "Multiple dimensions $dtg associated with the same geometry\n $dimtolGeomEnts"
-              addCellComment $dt $r $pmiColumns(ch) "Multiple dimensions are associated with the same geometry.  The identical information in this cell should appear in another Associated Geometry cell above." 300 60
+              errorMsg "Multiple ([llength $dimtolGeom($dimtolGeomEnts)]) dimensions $dtg are associated with the same geometry. $dimtolGeomEnts"
+              addCellComment $dt $r $pmiColumns(ch) "Multiple dimensions are associated with the same geometry.  The identical information in this cell should appear in another Associated Geometry cell above."
               lappend entsWithErrors "dimensional_characteristic_representation"
             }
           }

@@ -171,7 +171,7 @@ proc tessPartGeometry {objEntity} {
                     if {[info exists tessIndex($objID)] && [info exists tessCoord($tessIndexCoord($objID))]} {
                       x3dTessGeom $objID $objEntity1 $ent1
                     } else {
-                      errorMsg "Missing tessellated coordinates and index for $objID"
+                      errorMsg "Missing tessellated coordinates and index for \#$objID"
                     }
                   }
                 }
@@ -313,14 +313,19 @@ proc tessReadGeometry {} {
           if {$opt(PR_STEP_GEOM) || $opt(PMIGRF)} {regsub -all " " [string range $line [string first "((" $line]+1 end-3] "" lineStrips($id)}
           
 # regsub is very important to distill line into something usable
-          set line [string range $line [string last "((" $line] end-1]
-          regsub -all " " $line "" line
-          regsub -all {[(),]} $line "x" line
-          regsub -all "xxx" $line " 0 " line
-          regsub -all "x" $line " " line
-
-          set tessIndex($id) ""
-          foreach j [split $line " "] {if {$j != ""} {append tessIndex($id) "[expr {$j-1}] "}}
+          set c1 [string last "((" $line]
+          if {$c1 != -1} {
+            set line [string range $line $c1 end-1]
+            regsub -all " " $line "" line
+            regsub -all {[(),]} $line "x" line
+            regsub -all "xxx" $line " 0 " line
+            regsub -all "x" $line " " line
+  
+            set tessIndex($id) ""
+            foreach j [split $line " "] {if {$j != ""} {append tessIndex($id) "[expr {$j-1}] "}}
+          } else {
+            errorMsg "ERROR reading 'line_strips' on \#$id=TESSELLATED_CURVE_SET"
+          }
 
 # *triangulated surface set, *triangulated face
         } else {
@@ -472,22 +477,7 @@ proc tessSetColor {objEntity tsID} {
                 set x3dColor [string trim $x3dColor]
                 set tessColor($tsID) $x3dColor
               } elseif {[$e8 Type] == "draughting_pre_defined_colour"} {
-                ::tcom::foreach a8 [$e8 Attributes] {
-                  switch [$a8 Value] {
-                    black   {set x3dColor "0 0 0"}
-                    white   {set x3dColor "1 1 1"}
-                    red     {set x3dColor "1 0 0"}
-                    yellow  {set x3dColor "1 1 0"}
-                    green   {set x3dColor "0 1 0"}
-                    cyan    {set x3dColor "0 1 1"}
-                    blue    {set x3dColor "0 0 1"}
-                    magenta {set x3dColor "1 0 1"}
-                    default {
-                      set x3dColor [lindex $defaultColor 0]
-                      errorMsg "Syntax Error: Unexpected draughting_pre_defined_colour name '$objValue' (using [lindex $defaultColor 1])\n[string repeat " " 14]($recPracNames(model), Sec. 4.2.3, Table 2)"
-                    }
-                  }
-                }
+                set x3dColor [x3dPreDefinedColor [[[$e8 Attributes] Item 1] Value]]
                 set tessColor($tsID) $x3dColor
               } else {
                 errorMsg "  Unexpected color type ([$e8 Type]) for $ao"
