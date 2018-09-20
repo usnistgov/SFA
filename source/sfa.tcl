@@ -90,7 +90,7 @@ set opt(DEBUG1) 0
 set opt(DEBUGINV) 0
 set opt(DISPGUIDE1) 1
 set opt(FIRSTTIME) 1
-set opt(gpmiColor) 2
+set opt(gpmiColor) 3
 set opt(indentGeometry) 0
 set opt(indentStyledItem) 0
 set opt(INVERSE) 0
@@ -248,13 +248,13 @@ proc whatsNew {} {
   if {$sfaVersion > 0 && $sfaVersion < [getVersion]} {outputMsg "\nThe previous version of the STEP File Analyzer and Viewer was: $sfaVersion" red}
 
 outputMsg "\nWhat's New (Version: [getVersion]  Updated: [string trim [clock format $progtime -format "%e %b %Y"]])" blue
-outputMsg "- Improved processing of supplemental geometry and annotation placeholder
-- Improved Visualization viewpoints
-- More STEP related Websites
+outputMsg "- Color graphical PMI by saved view
+- Improved processing of tolerance zone form, supplemental geometry, and annotation placeholder
 - Visualization of boundary representation (b-rep) geometry (See Help > B-rep Geometry)
 - Explanation of Report errors (Help > Syntax Errors)
-- Bug fixes and minor improvements
-- Support for AP242 Edition 2 DIS (Draft International Standard)"
+- Support for AP242 Edition 2 DIS (Draft International Standard)
+- More STEP related Websites
+- Bug fixes and minor improvements"
 
 if {$sfaVersion > 0 && $sfaVersion <= 2.60} {
   outputMsg "\nRenamed output files:\n Spreadsheets from  myfile_stp.xlsx  to  myfile-sfa.xlsx\n Visualizations from  myfile-x3dom.html  to  myfile-sfa.html" red

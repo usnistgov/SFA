@@ -1,6 +1,6 @@
 #-------------------------------------------------------------------------------
 # version numbers, software and user guide, contact
-proc getVersion {}   {return 3.06}
+proc getVersion {}   {return 3.07}
 proc getVersionUG {} {return 3.0}
 proc getContact {}   {return [list "Robert Lipman" "robert.lipman@nist.gov"]}
 
@@ -201,13 +201,13 @@ set gpmiTypes [list \
 set spmiTypes $tolNames
 
 foreach item [list \
-  "tolerance zone diameter (6.9.2, Table 11)" "tolerance zone spherical diameter (6.9.2, Table 11)" "tolerance zone other (6.9.2, Table 12)" \
-  "affected plane tolerance zone (6.9.2.1)" "non-uniform tolerance zone (6.9.2.3)" "tolerance with max value (6.9.5)" "unit-basis tolerance (6.9.6)" \
-  "all_around \u232E (6.4.2)" "between \u2194 (6.4.3)" "composite tolerance (6.9.9)" \
+  "tolerance zone diameter (6.9.2, Table 11)" "tolerance zone spherical diameter (6.9.2, Table 11)" "tolerance zone within a cylinder (6.9.2, Table 12)" \
+  "tolerance zone other (6.9.2, Table 12)" "affected plane tolerance zone (6.9.2.1)" "non-uniform tolerance zone (6.9.2.3)" "tolerance with max value (6.9.5)" \
+  "unit-basis tolerance (6.9.6)" "all_around \u232E (6.4.2)" "between \u2194 (6.4.3)" "composite tolerance (6.9.9)" \
   "unequally_disposed \u24CA (6.9.4)" "projected \u24C5 (6.9.2.2)" "free_state \u24BB (6.9.3)" "tangent_plane \u24C9 (6.9.3)" \
   "statistical_tolerance <ST> (6.9.3)" "separate_requirement SEP REQT (6.9.3)" \
-  "dimensions (B36+B37)" "dimensional location (5.1.1)" "dimensional size (5.1.5)" "angular location (5.1.2)" "angular size (5.1.6)" \
-  "directed dimension \u2331 (5.1.1)"  "oriented dimensional location (5.1.3)" "derived shapes dimensional location (5.1.4)" \
+  "dimensions (Row 36+37)" "dimensional location (5.1.1)" "dimensional size (5.1.5)" "angular location (5.1.2)" "angular size (5.1.6)" \
+  "directed dimension \u2331 (5.1.1)"  "oriented dimensional location (5.1.3)" "derived shapes dimensional location (5.1.4)" "repetitive dimensions 'nX' (5.1, User Guide 5.1.3)" \
   "bilateral tolerance (5.2.3)" "non-bilateral tolerance (5.2.3)" "value range (5.2.4)" \
   "diameter \u2205 (5.1.5)" "radius R (5.1.5)" "spherical diameter S\u2205 (5.1.5)" "spherical radius SR (5.1.5)" "controlled radius CR (5.3)" \
   "basic dimension (5.3)" "reference dimension (5.3)" "statistical_dimension <ST> (5.3)" "type qualifier (5.2.2)" "tolerance class (5.2.5)" \
@@ -359,6 +359,8 @@ set pmiUnicode(surface_profile)  "\u2313"
 set pmiUnicode(symmetry)         "\u232F"
 set pmiUnicode(thickness)        "\u2346\u2345"
 set pmiUnicode(total_runout)     "\u2330"
+set idx "within a cylinder"
+set pmiUnicode($idx)             "\u2205"
 
 # -----------------------------------------------------------------------------------------------------
 # colors, the number determines the order that the group of entities is processed

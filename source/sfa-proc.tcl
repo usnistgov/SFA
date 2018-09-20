@@ -122,13 +122,13 @@ proc checkValues {} {
 
 # graphical PMI visualization
   if {$opt(VIZPMI)} {
-    foreach b {gpmiColor0 gpmiColor1 gpmiColor2 linecolor optVIZPMIVP} {lappend butNormal $b}
+    foreach b {gpmiColor0 gpmiColor1 gpmiColor2 gpmiColor3 linecolor optVIZPMIVP} {lappend butNormal $b}
     if {$opt(XLSCSV) != "None"} {
       set opt(PR_STEP_PRES) 1
       lappend butDisabled optPR_STEP_PRES
     }
   } else {
-    foreach b {gpmiColor0 gpmiColor1 gpmiColor2 linecolor optVIZPMIVP} {lappend butDisabled $b}
+    foreach b {gpmiColor0 gpmiColor1 gpmiColor2 gpmiColor3 linecolor optVIZPMIVP} {lappend butDisabled $b}
   }
 
 # FEM visualization

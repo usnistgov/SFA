@@ -11,7 +11,7 @@ proc genExcel {{numFile 0}} {
   global savedViewButtons savedViewName savedViewNames scriptName sheetLast spmiEntity spmiSumName spmiSumRow spmiTypesPerFile startrow stepAP
   global tessColor thisEntType tlast tolNames tolStandard totalEntity userEntityFile userEntityList userXLSFile useXL virtualDir viz
   global workbook workbooks worksheet worksheet1 worksheets writeDir wsCount wsNames
-  global x3dAxes x3dColor x3dColors x3dCoord x3dFile x3dFileName x3dStartFile x3dIndex x3dMax x3dMin x3dMsg
+  global x3dAxes x3dColor x3dColors x3dColorFile x3dCoord x3dFile x3dFileName x3dStartFile x3dIndex x3dMax x3dMin x3dMsg
   global xlFileName xlFileNames xlFormat xlInstalled
   global objDesign
   
@@ -30,6 +30,7 @@ proc genExcel {{numFile 0}} {
       set x3dMin($idx)  1.e10
     }
     catch {unset tessColor}
+    catch {unset x3dColorFile}
   }
 
 # check if IFCsvr is installed
@@ -702,7 +703,8 @@ proc genExcel {{numFile 0}} {
     set coverageLegend 0
     set entsWithErrors {}
     set gpmiTypesInvalid {}
-    set idxColor 0
+    set idxColor(0) 0
+    set idxColor(1) 0
     set inverseEnts {}
     set lastEnt ""
     set nprogBarEnts 0
@@ -1201,13 +1203,27 @@ proc addHeaderWorksheet {numFile fname} {
         }
         outputMsg "$attr:  $sn" blue
 
-        if {[string first "1 0 10303 442 2 1 4" $sn] != -1} {errorMsg "This file uses the new AP242 Edition 2."}
+# check version of AP242        
+        if {[string first "1 0 10303 442" $sn] != -1} {
+          if {[string first "1 0 10303 442 2 1 4" $sn] != -1} {
+            errorMsg "This file uses the new AP242 Edition 2."
+          } elseif {[string first "1 0 10303 442 3 1 4" $sn] != -1} {
+            errorMsg "This file uses the new AP242 Edition 3."
+          } elseif {[string first "1 0 10303 442 1 1 4" $sn] == -1} {
+            errorMsg "This file uses an older or unknown version of AP242."
+          }
+        }
+
+# check version of AP214        
+        if {[string first "AUTOMOTIVE_DESIGN_CC2" $sn] == 0} {errorMsg "This file uses an older version of STEP AP214.  See Help > Supported STEP APs"}
+        
+# check that schema names end with _MIM_LF instead of _MIM
         if {[string first "_MIM" $sn] != -1 && [string first "_MIM_LF" $sn] == -1} {
           errorMsg "SchemaName (FILE_SCHEMA) should end with '_MIM_LF', see Header worksheet"
           if {$useXL} {[[$worksheet($hdr) Range B11] Interior] Color $legendColor(red)}
         }
-        if {[string first "AUTOMOTIVE_DESIGN_CC2" $sn] == 0} {errorMsg "This file uses an older version of STEP AP214.  See Help > Supported STEP APs"}
 
+# check for IFC or CIS/2 files
         set fileSchema [string toupper [string range $objAttr 0 5]]
         if {[string first "IFC" $fileSchema] == 0} {
           errorMsg "Use the IFC File Analyzer with IFC files."
@@ -1669,7 +1685,7 @@ proc sumAddColorLinks {sum sumHeaderRow sumLinks sheetSort sumRow} {
           if {$entName($item) == $ent} {set hlsheet $item}
         }
       }
-      $sumLinks Add $anchor $xlFileName "$hlsheet!A4" "Go to $ent"
+      $sumLinks Add $anchor $xlFileName "$hlsheet!A1" "Go to $ent"
 
 # color cells
       set cidx [setColorIndex $ent]
@@ -1816,8 +1832,8 @@ proc formatWorksheets {sheetSort sumRow inverseEnts} {
       [$worksheet($thisEntType) Range "B4"] Select
       catch {[$excel ActiveWindow] FreezePanes [expr 1]}
       
-# set A4 as default cell
-      [$worksheet($thisEntType) Range "A4"] Select
+# set A1 as default cell, was A4
+      [$worksheet($thisEntType) Range "A1"] Select
 
 # set column color, border, group for INVERSES and Used In
       if {$opt(INVERSE)} {if {[lsearch $inverseEnts $thisEntType] != -1} {invFormat $rancol}}

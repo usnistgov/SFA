@@ -104,7 +104,7 @@ proc getAssocGeom {entDef {tolType 0} {tolName ""}} {
 
 # -------------------------------------------------------------------------------
 proc getAssocGeomFace {entDef} {
-  global entCount
+  global entCount syntaxErr
   #outputMsg "getAssocGeomFace [$entDef Type] [$entDef P21ID]" green
   
 # look at GISU and IIRU for geometry associated with shape_aspect
@@ -118,14 +118,20 @@ proc getAssocGeomFace {entDef} {
     ::tcom::foreach e1 $e1s {
       ::tcom::foreach a1 [$e1 Attributes] {
         if {[$a1 Name] == "identified_item"} {
-          if {[catch {
-            set type [appendAssocGeom [$a1 Value] B]
-            if {$type == "advanced_face"} {getFaceGeom [$a1 Value] B}
-          } emsg1]} {
-            ::tcom::foreach e2 [$a1 Value] {
-              set type [appendAssocGeom $e2 C]
-              if {$type == "advanced_face"} {getFaceGeom $e2 C}
+          if {[$a1 Value] != ""} {
+            if {[catch {
+              set type [appendAssocGeom [$a1 Value] B]
+              if {$type == "advanced_face"} {getFaceGeom [$a1 Value] B}
+            } emsg1]} {
+              ::tcom::foreach e2 [$a1 Value] {
+                set type [appendAssocGeom $e2 C]
+                if {$type == "advanced_face"} {getFaceGeom $e2 C}
+              }
             }
+          } else {
+            set msg "Syntax Error: Missing 'identified_item' attribute on '$usage'."
+            errorMsg $msg
+            lappend syntaxErr($usage) [list [$e1 P21ID] "identified_item" $msg]
           }
         }
       }
@@ -187,7 +193,7 @@ proc reportAssocGeom {entType {row ""}} {
       if {[string length $str] > 0} {append str [format "%c" 10]}
       append str "([llength $assocGeom($item)]) [formatComplexEnt $item] [lsort -integer $assocGeom($item)]"
 
-# dimension count, e.g. 4X
+# repetitive hole dimension count, e.g. 4X
       if {[string first "_size" $entType] != -1 || [string first "angular_location" $entType] != -1} {
         if {$item == "cylindrical_surface" || $item == "spherical_surface" || $item == "toroidal_surface" || $item == "conical_surface"} {
 
@@ -959,6 +965,7 @@ proc pmiAddModelPictures {ent} {
             }
           }
           catch {[$excel ActiveWindow] FreezePanes [expr 1]}
+          [$worksheet($ent) Range "A1"] Select            
 
 # link to test model drawings (doesn't always work)
           if {[string first "nist_" $fl] == 0 && $nlink < 2} {

@@ -403,7 +403,7 @@ proc guiProcessAndReports {} {
   set foptv4 [frame $foptv.4 -bd 0]
   set buttons(linecolor) [label $foptv4.l3 -text "PMI Color:"]
   pack $foptv4.l3 -side left -anchor w -padx 0 -pady 0 -ipady 0
-  set gpmiColorVal {{"Random" 2} {"From File" 0} {"Black" 1}}
+  set gpmiColorVal {{"By View" 3} {"Random" 2} {"From File" 0} {"Black" 1}}
   foreach item $gpmiColorVal {
     set bn "gpmiColor[lindex $item 1]"            
     set buttons($bn) [ttk::radiobutton $foptv4.$cb -variable opt(gpmiColor) -text [lindex $item 0] -value [lindex $item 1]]
@@ -466,8 +466,8 @@ proc guiProcessAndReports {} {
     tooltip::tooltip $buttons(optVIZTPGMSH) "Show a tessellation wireframe mesh based on the tessellated\nfaces or surfaces.  Not recommended for very large models."
     tooltip::tooltip $buttons(optVIZFEALVS) "The length of load vectors can be scaled by their magnitude.\nLoad vectors are always colored by their magnitude."
     tooltip::tooltip $buttons(optVIZFEADStail) "The length of displacement vectors with a tail are scaled by\ntheir magnitude.  Vectors without a tail are not.\nDisplacement vectors are always colored by their magnitude.\nLoad vectors always have a tail."
-    tooltip::tooltip $buttons(optVIZBRP) "Boundary representation part geometry is visualized ONLY if one of the above types\nof visualization features is selected AND is present in the STEP file.\n\nSee Help > B-rep Geometry\nSee Examples > Part with PMI\nSee Websites > STEP File Viewers for other b-rep geometry viewers\n\nVisualizations are viewed in web browsers that are not optimized for large models.\nOlder versions of web browsers are not supported."
-    tooltip::tooltip $foptv4 "For Random PMI colors, each 'annotation occurrence' is assigned a different color\nto help differentiate one from another."
+    tooltip::tooltip $buttons(optVIZBRP) "Boundary representation part geometry is visualized ONLY if one of the above types\nof visualization features is selected AND is present in the STEP file.\n\nSee Help > B-rep Geometry\nSee Examples > Part with PMI\nSee Websites > STEP File Viewers for other b-rep geometry viewers\n\nSome STEP B-rep geometry cannot be viewed.\n\nVisualizations are viewed in web browsers that are not optimized for large models.\nOlder versions of web browsers are not supported."
+    tooltip::tooltip $foptv4 "For 'By View' PMI colors, each Saved View is assigned a different color.\nIf there are one or no Saved Views, then 'Random' PMI colors are used.\n\nFor 'Random' PMI colors, each 'annotation occurrence' is assigned a different color\nto help differentiate one from another."
     set tt "FEM nodes, elements, boundary conditions, loads, and displacements are visualized.\n\nSee Help > AP209 Finite Element Model\nSee Help > User Guide (section 7.1.4)\nSee Examples > AP209 Finite Element Model\n\nVisualizations can be generated without generating a spreadsheet or CSV files.\nSee the Output Format option below.\n\nVisualizations are viewed in web browsers that are not optimized for large models.\nOlder versions of web browsers are not supported."
     tooltip::tooltip $foptv7 $tt
     tooltip::tooltip $foptv8 $tt
@@ -1356,7 +1356,8 @@ outputMsg "Boundary representation (b-rep) part geometry is visualized ONLY if G
 Tessellated Part Geometry is also visualized and present in the STEP file.  The color of b-rep
 geometry is ignored.  B-rep geometry might also include supplemental geometry.
 
-In some cases, curved surfaces might appear jagged or incomplete.
+In some cases, curved surfaces might appear jagged or incomplete.  Some b-rep geometry cannot be
+viewed.
 
 See Examples > Part with PMI
 See Websites > STEP File Viewers for other b-rep geometry viewers
@@ -1382,7 +1383,7 @@ The following types of supplemental geometry and associated text are shown.
 - Tessellated Surface: faces outlined in black
 
 Lines and circles that are trimmed by cartesian_point will not be trimmed.  Bounding edges for
-planes are ignored.  All bounded and unbounded planes are shown with a fixed size."
+planes and cylinders are ignored.  All bounded and unbounded planes are shown with a fixed size."
     .tnb select .tnb.status
   }
     

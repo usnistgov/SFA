@@ -62,7 +62,7 @@ proc x3dFileStart {} {
 # write tessellated geometry for annotations and parts
 proc x3dTessGeom {objID objEntity1 ent1} {
   global ao draftModelCameras entCount nshape recPracNames shapeRepName savedViewFile tessIndex tessIndexCoord tessCoord tessCoordID
-  global tessPlacement tessRepo x3dColor x3dCoord x3dIndex x3dFile x3dColors x3dMsg opt defaultColor tessPartFile tessSuppGeomFile shellSuppGeom
+  global tessPlacement tessRepo x3dColor x3dCoord x3dIndex x3dFile x3dColors x3dColorFile x3dMsg opt defaultColor tessPartFile tessSuppGeomFile shellSuppGeom
   global savedViewNames savedViewFileName mytemp srNames
   #outputMsg "x3dTessGeom $objID"
   
@@ -131,6 +131,17 @@ proc x3dTessGeom {objID objEntity1 ent1} {
 
 # loop over list of files from above
   foreach f $flist {
+
+# multiple saved view color
+    if {[info exists savedViewName]} {
+      if {$opt(gpmiColor) == 3 && [llength $savedViewNames] > 1} {
+        if {![info exists x3dColorFile($f)]} {set x3dColorFile($f) [x3dSetColor $opt(gpmiColor) 1]}
+        set x3dColor $x3dColorFile($f)
+        set emit "emissiveColor='$x3dColor'"
+      }
+    }
+      
+# loop over placements, if any
     for {set np 0} {$np < $nplace} {incr np} {
       set srName ""
       if {![info exists shapeRepName]} {
@@ -859,10 +870,12 @@ proc x3dSuppGeom {maxxyz} {
               catch {set tmp "[$trimVal(1) Type][$trimVal(2) Type]"}
               
               foreach idx [list 1 2] {
-                if {[expr {abs($trimVal($idx))}] > 1000.} {
-                  set nval [trimNum [expr {10.*$trimVal($idx)/abs($trimVal($idx))}]]
-                  errorMsg "Trim value [trimNum $trimVal($idx)] for a 'trimmed_curve' is very large, using $nval instead."
-                  set trimVal($idx) $nval
+                if {[string first "handle" $trimVal($idx)] == -1} {
+                  if {[expr {abs($trimVal($idx))}] > 1000.} {
+                    set nval [trimNum [expr {10.*$trimVal($idx)/abs($trimVal($idx))}]]
+                    errorMsg "Trim value [trimNum $trimVal($idx)] for a 'trimmed_curve' is very large, using $nval instead."
+                    set trimVal($idx) $nval
+                  }
                 }
               }
   
@@ -1152,8 +1165,8 @@ proc x3dSuppGeomCylinder {e2 tsize {name ""}} {
     set origin [lindex $a2p3d 0]
     set axis   [lindex $a2p3d 1]
     set refdir [lindex $a2p3d 2]
-    puts $x3dFile "<Transform translation='$origin' rotation='[x3dRotation $axis $refdir]'><Transform rotation='1 0 0 1.5708'>"
-    puts $x3dFile "  <Shape><Appearance><Material diffuseColor='0 0 1' transparency='0.8'></Material></Appearance><Cylinder radius='$rad' height='[expr {$tsize*10.}]' top='false' bottom='false' solid='false'></Cylinder></Shape>"
+    puts $x3dFile "<Transform translation='$origin' rotation='[x3dRotation $axis $refdir]'><Transform rotation='1 0 0 1.5708' translation='0 0 -[trimNum [expr {$tsize*5.}]]'>"
+    puts $x3dFile "  <Shape><Appearance><Material diffuseColor='0 0 1' transparency='0.8'></Material></Appearance><Cylinder radius='$rad' height='[trimNum [expr {$tsize*10.}]]' top='false' bottom='false' solid='false'></Cylinder></Shape>"
     puts $x3dFile "</Transform></Transform>"
     set viz(SMG) 1
     set msg "Bounding edges for supplemental geometry 'cylindrical_surface' are ignored."
@@ -1169,7 +1182,7 @@ proc x3dSuppGeomCylinder {e2 tsize {name ""}} {
 # write geometry for polyline annotations
 proc x3dPolylinePMI {} {
   global ao x3dCoord x3dShape x3dIndex x3dIndexType x3dFile x3dColor gpmiPlacement placeOrigin placeAnchor boxSize
-  global savedViewName savedViewNames savedViewFile savedViewFileName recPracNames mytemp
+  global savedViewName savedViewNames savedViewFile savedViewFileName recPracNames mytemp opt x3dColorFile
 
   if {[catch {
     if {[info exists x3dCoord] || $x3dShape} {
@@ -1182,6 +1195,13 @@ proc x3dPolylinePMI {} {
       }
   
       foreach f $flist {
+    
+# multiple saved view color    
+        if {$opt(gpmiColor) == 3 && [llength $savedViewNames] > 1} {
+          if {![info exists x3dColorFile($f)]} {set x3dColorFile($f) [x3dSetColor $opt(gpmiColor) 1]}
+          set x3dColor $x3dColorFile($f)
+        }
+
         if {[string length $x3dCoord] > 0} {
 
 # placeholder transform
@@ -1247,16 +1267,16 @@ proc x3dCoordAxes {size} {
 
 # -------------------------------------------------------------------------------
 # set x3d color
-proc x3dSetColor {type} {
+proc x3dSetColor {type {mode 0}} {
   global idxColor
 
 # black
   if {$type == 1} {return "0 0 0"}
 
 # random
-  if {$type == 2} {
-    incr idxColor
-    switch -- $idxColor {
+  if {$type == 2 || $type == 3} {
+    incr idxColor($mode)
+    switch -- $idxColor($mode) {
       1 {set color "1 0 0"}
       2 {set color "1 1 0"}
       3 {set color "0 .5 0"}
@@ -1267,7 +1287,7 @@ proc x3dSetColor {type} {
       8 {set color "0 0 0"}
       9 {set color "1 1 1"}
     }
-    if {$idxColor == 9} {set idxColor 0}
+    if {$idxColor($mode) == 9} {set idxColor($mode) 0}
   }
   return $color
 } 

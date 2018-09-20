@@ -144,7 +144,7 @@ foreach id {XL_OPEN XL_KEEPOPEN XL_LINK1 XL_FPREC XL_SORT LOGFILE \
 set opt(DEBUG1) 0
 set opt(DEBUGINV) 0
 set opt(FIRSTTIME) 1
-set opt(gpmiColor) 2
+set opt(gpmiColor) 3
 set opt(INVERSE) 0
 set opt(PR_STEP_CPNT) 0
 set opt(PR_STEP_GEOM)  0

@@ -322,13 +322,18 @@ proc spmiGeotolReport {objEntity} {
                                 set tzfName1 $tzfName
                                 if {$tzfName1 == "spherical"} {set tzfName1 "spherical diameter"}
 
-# tzf symbol 
+# tzf symbol
                                 if {[info exists pmiUnicode($tzfName1)]} {
                                   set tzf $pmiUnicode($tzfName1)
 
-# no tzf symbol
+# message when 'within a cylinder' is used
+                                  if {$tzfName == "within a cylinder"} {
+                                    errorMsg "The tolerance_zone_form 'name' attribute uses 'within a cylinder' for a '$pmiUnicode(diameter)' symbol in the tolerance zone.  See the Recommended Practice for $recPracNames(pmi242), Sec. 6.9.2."
+                                  }
+
+# no tzf symbol, table 12
                                 } else {
-                                  errorMsg "The tolerance_zone_form 'name' attribute uses values from Table 12 in the Recommended Practice\n for $recPracNames(pmi242), Sec. 6.9.2."
+                                  errorMsg "The tolerance_zone_form 'name' attribute uses values from Table 12 in the Recommended Practice for $recPracNames(pmi242), Sec. 6.9.2."
                                 }
 
 # invalid tzf
@@ -341,7 +346,7 @@ proc spmiGeotolReport {objEntity} {
                                   lappend syntaxErr(tolerance_zone_form) [list [[$attrTZ Value] P21ID] "name" $msg]
                                   set tzf1 "(Invalid TZF: $tzfName)"
                                 } elseif {$tzfName == ""} {
-                                  erroMsg "The tolerance_zone_form 'name' attribute is blank."
+                                  errorMsg "The tolerance_zone_form 'name' attribute is blank."
                                 }
                               }
 
@@ -349,6 +354,8 @@ proc spmiGeotolReport {objEntity} {
                                 lappend spmiTypesPerFile "tolerance zone diameter"
                               } elseif {$tzfName == "spherical"} {
                                 lappend spmiTypesPerFile "tolerance zone spherical diameter"
+                              } elseif {$tzfName == "within a cylinder"} {
+                                lappend spmiTypesPerFile "tolerance zone $tzfName"
                               } else {
                                 lappend spmiTypesPerFile "tolerance zone other"
                               }
@@ -366,15 +373,6 @@ proc spmiGeotolReport {objEntity} {
                                   set msg "Syntax Error: Tolerance zones are not allowed with [formatComplexEnt $tolType]."
                                   errorMsg $msg
                                   lappend syntaxErr(tolerance_zone_form) [list [[$attrTZ Value] P21ID] "name" $msg]
-                                }
-
-# these tolerances should not use 'within a cylinder' tolerance zone form for diameters
-                              } elseif {$tzfName == "within a cylinder"} {
-                                foreach item {"position" "perpendicularity" "parallelism" "angularity" "coaxiality" "concentricity" "straightness"} {
-                                  set gtol "$item\_tolerance"
-                                  if {[string first $gtol [$gtEntity Type]] != -1} {
-                                    errorMsg "For $item tolerances, use 'cylindrical or spherical' instead of 'within a cylinder' for the tolerance_zone_form 'name' attribute\n See Recommended Practice for $recPracNames(pmi242), Sec. 6.9.2, Table 11"
-                                  }
                                 }
                               }
                             }
@@ -748,7 +746,7 @@ proc spmiGeotolReport {objEntity} {
                     }
                     set ov [string trim $ov]
                     if {![string is alpha $ov] || [string length $ov] != 1} {
-                      set msg "Syntax Error: Datum 'identification' attribute is not a single letter ([string trim $ov])\n[string repeat " " 14]\($recPracNames(pmi242), Sec. 6.5)"
+                      set msg "Syntax Error: Datum 'identification' attribute is not a single letter ([string trim $ov])\n[string repeat " " 14]\($recPracNames(pmi242), Sec. 6.5, 6.9.8)"
                       errorMsg $msg
                       lappend syntaxErr([lindex [split $ent1 " "] 0]) [list $objID [lindex [split $ent1 " "] 1] $msg]
                     }
