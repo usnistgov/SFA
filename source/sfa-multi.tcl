@@ -323,7 +323,6 @@ proc openMultiFile {{ask 1}} {
 # -------------------------------------------------------------------------------------------------
 # file summary ws, entity names
         if {$lenfilelist > 1 && $useXL && $opt(XLSCSV) != "None"} {
-          #getTiming "start multi summary"
           catch {$excel1 ScreenUpdating 0}
           outputMsg "\nWriting File Summary information" blue
           if {[catch {
@@ -540,7 +539,6 @@ proc openMultiFile {{ask 1}} {
             if {$opt(PMISEM)} {spmiCoverageFormat $sum}
             catch {$worksheet1($sum) Activate}
           }
-          #getTiming "done multi summary"
           catch {$excel1 ScreenUpdating 1}
         }
 

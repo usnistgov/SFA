@@ -467,7 +467,7 @@ proc guiProcessAndReports {} {
     tooltip::tooltip $buttons(optVIZFEALVS) "The length of load vectors can be scaled by their magnitude.\nLoad vectors are always colored by their magnitude."
     tooltip::tooltip $buttons(optVIZFEADStail) "The length of displacement vectors with a tail are scaled by\ntheir magnitude.  Vectors without a tail are not.\nDisplacement vectors are always colored by their magnitude.\nLoad vectors always have a tail."
     tooltip::tooltip $buttons(optVIZBRP) "Boundary representation part geometry is visualized ONLY if one of the above types\nof visualization features is selected AND is present in the STEP file.\n\nSee Help > B-rep Geometry\nSee Examples > Part with PMI\nSee Websites > STEP File Viewers for other b-rep geometry viewers\n\nSome STEP B-rep geometry cannot be viewed.\n\nVisualizations are viewed in web browsers that are not optimized for large models.\nOlder versions of web browsers are not supported."
-    tooltip::tooltip $foptv4 "For 'By View' PMI colors, each Saved View is assigned a different color.\nIf there are one or no Saved Views, then 'Random' PMI colors are used.\n\nFor 'Random' PMI colors, each 'annotation occurrence' is assigned a different color\nto help differentiate one from another."
+    tooltip::tooltip $foptv4 "For 'By View' PMI colors, each Saved View is assigned a different color.\nIf there are one or no Saved Views, then 'Random' PMI colors are used.\n\nFor 'Random' PMI colors, each 'annotation occurrence' is assigned a\ndifferent color to help differentiate one from another."
     set tt "FEM nodes, elements, boundary conditions, loads, and displacements are visualized.\n\nSee Help > AP209 Finite Element Model\nSee Help > User Guide (section 7.1.4)\nSee Examples > AP209 Finite Element Model\n\nVisualizations can be generated without generating a spreadsheet or CSV files.\nSee the Output Format option below.\n\nVisualizations are viewed in web browsers that are not optimized for large models.\nOlder versions of web browsers are not supported."
     tooltip::tooltip $foptv7 $tt
     tooltip::tooltip $foptv8 $tt
@@ -1458,7 +1458,7 @@ Status tab to see which type of entity was last processed.
 
 Workarounds for this problem:
 
-- This program keeps track of the last entity type processed when it crashed.  Simply restart the
+- This software keeps track of the last entity type processed when it crashed.  Simply restart the
 STEP File Analyzer and Viewer and hit F1 to process the last STEP file or F4 if processing multiple
 files. The type of entity that caused the crash will be skipped.  The list of bad entity types that
 will not be processed is stored in myfile-skip.dat.
@@ -1589,9 +1589,10 @@ proc guiWebsitesMenu {} {
   $Websites add command -label "CAx-IF (alternate website)"     -command {openURL https://www.cax-if.de}
   
   $Websites add separator
-  $Websites add command -label "AP242 Project"           -command {openURL http://www.ap242.org}
-  $Websites add command -label "AP242 Presentaton (pdf)" -command {openURL https://www.nist.gov/document-2058}
-  $Websites add command -label "AP242 Benchmark Testing" -command {openURL http://www.asd-ssg.org/step-ap242-benchmark}
+  $Websites add command -label "AP242 Project"            -command {openURL http://www.ap242.org}
+  $Websites add command -label "AP242 Paper"              -command {openURL https://www.nist.gov/publications/portrait-iso-step-tolerancing-standard-enabler-smart-manufacturing-systems}
+  $Websites add command -label "AP242 Presentation (pdf)" -command {openURL https://www.nist.gov/document-2058}
+  $Websites add command -label "AP242 Benchmark Testing"  -command {openURL http://www.asd-ssg.org/step-ap242-benchmark}
   
   $Websites add separator
   $Websites add command -label "AP209 Project"           -command {openURL http://www.ap209.org}

@@ -189,6 +189,7 @@ proc genExcel {{numFile 0}} {
         append msg "\n- STEP schema is not supported, see Help > Supported STEP APs"
         append msg "\n- Syntax errors in the file\n- File does not end with END-ISO-10303-21;"
         append msg "\n- File is not an ISO 10303 Part 21 file\n- FILE_SCHEMA contains multiple schemas"
+        append msg "\nTry opening the file in a different STEP viewer, see Websites > STEP File Viewers"
         errorMsg $msg red
       }      
     
@@ -740,7 +741,6 @@ proc genExcel {{numFile 0}} {
       break
     }
     set tlast [clock clicks -milliseconds]
-    #getTiming "start entity processing"
     
 # loop over list of entities in file
     foreach entType $entsToProcess {
@@ -876,11 +876,9 @@ proc genExcel {{numFile 0}} {
 # -------------------------------------------------------------------------------------------------
 # format cells on each entity worksheets
     formatWorksheets $sheetSort $sumRow $inverseEnts
-    #getTiming "done formatting spreadsheets"
   
 # add Summary color and hyperlinks
     sumAddColorLinks $sum $sumHeaderRow $sumLinks $sheetSort $sumRow
-    #getTiming "done generating summary worksheet"
   
 # -------------------------------------------------------------------------------------------------
 # add PMI Rep. Coverage Analysis worksheet for a single file
@@ -947,7 +945,6 @@ proc genExcel {{numFile 0}} {
   set csvOpenDir 0
   if {$useXL} {
     if {[catch {
-      #getTiming "save spreadsheet"
       outputMsg " "
       if {$xlsmsg != ""} {errorMsg $xlsmsg}
       if {[string first "\[" $xlFileName] != -1} {
@@ -1011,7 +1008,6 @@ proc genExcel {{numFile 0}} {
       set openxl 1
       catch {unset excel}
       catch {if {[llength $pidExcel] == 1} {twapi::end_process $pidExcel -force}}
-      #getTiming "save done"
 
 # add Link(n) text to multi file summary
       if {$numFile != 0 && [info exists cells1(Summary)]} {
@@ -1399,7 +1395,6 @@ proc sumAddWorksheet {} {
 
   outputMsg "\nGenerating Summary worksheet" blue
   set sum "Summary"
-  #getTiming "done processing entities"
 
   set sheetSort {}
   foreach entType [lsort [array names worksheet]] {
@@ -1764,7 +1759,6 @@ proc formatWorksheets {sheetSort sumRow inverseEnts} {
   set nsort 0
 
   foreach thisEntType $sheetSort {
-    #getTiming "START FORMATTING $thisEntType"
     incr nprogBarEnts
     update idletasks
     
@@ -1814,19 +1808,16 @@ proc formatWorksheets {sheetSort sumRow inverseEnts} {
           break
         }
       }
-      #getTiming " column extent"
 
 # find extent of rows
       set ranrow [expr {$row($thisEntType)+2}]
       if {$ranrow > $rowmax} {set ranrow [expr {$rowmax+2}]}
       set ranrow [expr {$ranrow-2}]
-      #getTiming " row extent"
       #outputMsg "$thisEntType  $ranrow  $rancol  $col($thisEntType)"
 
 # autoformat
       set range [$worksheet($thisEntType) Range [cellRange 3 1] [cellRange $ranrow $rancol]]
       $range AutoFormat
-      #getTiming " autoformat"
 
 # freeze panes
       [$worksheet($thisEntType) Range "B4"] Select
@@ -1837,17 +1828,14 @@ proc formatWorksheets {sheetSort sumRow inverseEnts} {
 
 # set column color, border, group for INVERSES and Used In
       if {$opt(INVERSE)} {if {[lsearch $inverseEnts $thisEntType] != -1} {invFormat $rancol}}
-      #getTiming " format inverses"
 
 # STEP Property_definition (Validation Properties)
       if {$thisEntType == "property_definition" && $opt(VALPROP)} {
         valPropFormat
-        #getTiming " format valprop"
 
 # color STEP annotation occurrence (Graphical PMI)
       } elseif {$gpmiEnts($thisEntType) && $opt(PMIGRF)} {
         pmiFormatColumns "PMI Presentation"
-        #getTiming " format gpmi"
 
 # color STEP semantic PMI
       } elseif {$spmiEnts($thisEntType) && $opt(PMISEM)} {
@@ -1855,7 +1843,6 @@ proc formatWorksheets {sheetSort sumRow inverseEnts} {
 
 # add PMI Representation Summary worksheet
         spmiSummary
-        #getTiming " format spmi"
       }
 
 # -------------------------------------------------------------------------------------------------
@@ -1881,7 +1868,6 @@ proc formatWorksheets {sheetSort sumRow inverseEnts} {
 # link back to summary
       set anchor [$worksheet($thisEntType) Range "A1"]
       $hlink Add $anchor $xlFileName "Summary!A$sumRow" "Return to Summary"
-      #getTiming " insert links in first two rows"
 
 # check width of columns, wrap text
       if {[catch {
@@ -1900,11 +1886,9 @@ proc formatWorksheets {sheetSort sumRow inverseEnts} {
         errorMsg "ERROR setting column widths: $emsg\n  $thisEntType"
         catch {raise .}
       }
-      #getTiming " check column width"
       
 # color red for syntax errors
       if {[info exists syntaxErr($thisEntType)]} {colorBadCells $thisEntType}
-      #getTiming " color bad syntax"
   
 # -------------------------------------------------------------------------------------------------
 # add table for sorting and filtering

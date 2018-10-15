@@ -101,7 +101,6 @@ proc spmiDimtolStart {entType} {
 }
 
 # -------------------------------------------------------------------------------
-
 proc spmiDimtolReport {objEntity} {
   global assocGeom badAttributes cells col dim dimBasic dimRepeat dimDirected dimName dimModNames dimOrient dimReference dimrep dimrepID
   global dimSizeNames dimtolEnt dimtolEntType dimtolGeom dimval draftModelCameras dt dtpmivalprop entLevel ent entAttrList entCount entlevel2 entsWithErrors
@@ -874,6 +873,7 @@ proc spmiDimtolReport {objEntity} {
   }
   incr entLevel -1
   
+# -------------------------------------------------------------------------------
 # write a few more things at the end of processing a semantic PMI entity
   if {$entLevel == 0} {
     
@@ -914,7 +914,7 @@ proc spmiDimtolReport {objEntity} {
           }
 
 # dimensional_location
-        } elseif {[string first "_location" [$dimtolEnt Type]] != -1} {
+        } elseif {[string first "_location" $dimtolType] != -1} {
           ::tcom::foreach dimtolAtt [$dimtolEnt Attributes] {
             if {[string first "relat" [$dimtolAtt Name]] != -1} {
               set val [$dimtolAtt Value]
@@ -986,6 +986,7 @@ proc spmiDimtolReport {objEntity} {
       errorMsg "ERROR adding Associated Geometry: $emsg"
     }
     
+# -------------------------------------------------------------------------------
 # plus minus tolerance on dimtolEnt
     if {[catch {
       if {[info exists dimtolEnt]} {
@@ -1234,6 +1235,7 @@ proc spmiDimtolReport {objEntity} {
       errorMsg "ERROR adding Plus Minus Tolerance: $emsg"
     }
     
+# -------------------------------------------------------------------------------
 # report complete dimension representation (dimrep)
     if {[catch {
       set cellComment ""
@@ -1327,6 +1329,7 @@ proc spmiDimtolReport {objEntity} {
           }
         }
         
+# -------------------------------------------------------------------------------
 # save dimension with associated geometry
         if {[info exists dimtolGeomEnts]} {
           if {$dimtolGeomEnts != ""} {

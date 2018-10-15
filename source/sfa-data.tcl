@@ -1,8 +1,31 @@
 #-------------------------------------------------------------------------------
 # version numbers, software and user guide, contact
-proc getVersion {}   {return 3.07}
+proc getVersion {}   {return 3.08}
 proc getVersionUG {} {return 3.0}
 proc getContact {}   {return [list "Robert Lipman" "robert.lipman@nist.gov"]}
+
+# -------------------------------------------------------------------------------
+proc whatsNew {} {
+  global progtime sfaVersion
+  
+  if {$sfaVersion > 0 && $sfaVersion < [getVersion]} {outputMsg "\nThe previous version of the STEP File Analyzer and Viewer was: $sfaVersion" red}
+
+outputMsg "\nWhat's New (Version: [getVersion]  Updated: [string trim [clock format $progtime -format "%e %b %Y"]])" blue
+outputMsg "- Graphical PMI colored by saved view
+- Improved processing of tolerance zone form, supplemental geometry, and annotation placeholder
+- Visualization of boundary representation (b-rep) geometry (See Help > B-rep Geometry)
+- Explanation of Report errors (Help > Syntax Errors)
+- Support for AP242 Edition 2 DIS (Draft International Standard)
+- More STEP related Websites
+- Bug fixes and minor improvements"
+
+if {$sfaVersion > 0 && $sfaVersion <= 2.60} {
+  outputMsg "\nRenamed output files:\n Spreadsheets from  myfile_stp.xlsx  to  myfile-sfa.xlsx\n Visualizations from  myfile-x3dom.html  to  myfile-sfa.html" red
+}
+
+  .tnb select .tnb.status
+  update idletasks
+}
 
 #-------------------------------------------------------------------------------
 proc initData {} {
@@ -181,7 +204,7 @@ set tolNames [list \
                    
 # tolerance zone form names (Section 6.9.2, Tables 11, 12)
 set tzfNames [list \
-  "cylindrical or circular" "spherical" "within a circle" "between two concentric circles" "between two equidistant curves" \
+  "cylindrical or circular" "spherical" "within a circle" "within a sphere" "between two concentric circles" "between two equidistant curves" \
   "within a cylinder" "between two coaxial cylinders" "between two equidistant surfaces" "non uniform" "unknown"]
 
 # -----------------------------------------------------------------------------------------------------
@@ -206,7 +229,7 @@ foreach item [list \
   "unit-basis tolerance (6.9.6)" "all_around \u232E (6.4.2)" "between \u2194 (6.4.3)" "composite tolerance (6.9.9)" \
   "unequally_disposed \u24CA (6.9.4)" "projected \u24C5 (6.9.2.2)" "free_state \u24BB (6.9.3)" "tangent_plane \u24C9 (6.9.3)" \
   "statistical_tolerance <ST> (6.9.3)" "separate_requirement SEP REQT (6.9.3)" \
-  "dimensions (Row 36+37)" "dimensional location (5.1.1)" "dimensional size (5.1.5)" "angular location (5.1.2)" "angular size (5.1.6)" \
+  "dimensions (Row 37+38)" "dimensional location (5.1.1)" "dimensional size (5.1.5)" "angular location (5.1.2)" "angular size (5.1.6)" \
   "directed dimension \u2331 (5.1.1)"  "oriented dimensional location (5.1.3)" "derived shapes dimensional location (5.1.4)" "repetitive dimensions 'nX' (5.1, User Guide 5.1.3)" \
   "bilateral tolerance (5.2.3)" "non-bilateral tolerance (5.2.3)" "value range (5.2.4)" \
   "diameter \u2205 (5.1.5)" "radius R (5.1.5)" "spherical diameter S\u2205 (5.1.5)" "spherical radius SR (5.1.5)" "controlled radius CR (5.3)" \
@@ -294,13 +317,13 @@ set pmiModifiersArray(unequally_disposed,6.9.4)             "\u24CA"
 set pmiModifiersArray(volume_diameter_calculated_size,5.3)  "(CV)"
 
 # new ISO 1101 modifiers
-#set pmiModifiersArray(united_feature,6.9.3)                       "UF"
-#set pmiModifiersArray(derived_feature,6.9.3)                      "\u24B6"
-#set pmiModifiersArray(associated_minmax_feature,6.9.3)            "\u24B8"
-#set pmiModifiersArray(associated_least_square_feature,6.9.3)      "\u24BC"
-#set pmiModifiersArray(associated_minimum_inscribed_feature,6.9.3) "\u24C3"
-#set pmiModifiersArray(associated_tangent_feature,6.9.3)           "\u24C9"
-#set pmiModifiersArray(associated_maximum_inscribed_feature,6.9.3) "\u24CD"
+set pmiModifiersArray(united_feature,6.9.3)                       "UF"
+set pmiModifiersArray(derived_feature,6.9.3)                      "\u24B6"
+set pmiModifiersArray(associated_minmax_feature,6.9.3)            "\u24B8"
+set pmiModifiersArray(associated_least_square_feature,6.9.3)      "\u24BC"
+set pmiModifiersArray(associated_minimum_inscribed_feature,6.9.3) "\u24C3"
+set pmiModifiersArray(associated_tangent_feature,6.9.3)           "\u24C9"
+set pmiModifiersArray(associated_maximum_inscribed_feature,6.9.3) "\u24CD"
 
 foreach item [array names pmiModifiersArray] {
   set ids [split $item ","]
@@ -353,14 +376,20 @@ set pmiUnicode($idx)             "S\u2205"
 set idx "spherical radius"
 set pmiUnicode($idx)             "SR"
 set pmiUnicode(straightness)     "\u2212"
-#set pmiUnicode(straightness)     "-"
 set pmiUnicode(square)           "\u25A1"
 set pmiUnicode(surface_profile)  "\u2313"
 set pmiUnicode(symmetry)         "\u232F"
 set pmiUnicode(thickness)        "\u2346\u2345"
 set pmiUnicode(total_runout)     "\u2330"
+
 set idx "within a cylinder"
 set pmiUnicode($idx)             "\u2205"
+
+set pmiUnicode(angular)          $pmiUnicode(angularity)
+set pmiUnicode(parallel)         $pmiUnicode(parallelism)
+set pmiUnicode(perpendicular)    $pmiUnicode(perpendicularity)
+set pmiUnicode(including)        $pmiUnicode(symmetry)
+
 
 # -----------------------------------------------------------------------------------------------------
 # colors, the number determines the order that the group of entities is processed

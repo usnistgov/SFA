@@ -618,7 +618,6 @@ proc gpmiAnnotationReport {objEntity} {
                         set x3dPoint(y) [expr {-1.*$objValue*sin($angle)+[lindex $circleCenter 1]}]
                         set x3dPoint(x) [lindex $circleCenter 0]
                       } else {
-                        #errorMsg " PMI annotation circle orientation ($dirRatio(x), $dirRatio(y), $dirRatio(z)) is ignored."
                         set msg "Circles in PMI annotations might have the wrong orientation in the visualization."
                         errorMsg " $msg"
                         if {[lsearch $x3dMsg $msg] == -1} {lappend x3dMsg $msg}
@@ -728,6 +727,7 @@ proc gpmiAnnotationReport {objEntity} {
                 }
                 "colour_rgb red" {
                   if {$entLevel == 4 || $entLevel == 8} {
+                    set colorRGB [trimNum $objValue]
                     if {$opt(gpmiColor) > 0} {
                       set x3dColor [x3dSetColor $opt(gpmiColor)]
                     } else {
@@ -737,11 +737,13 @@ proc gpmiAnnotationReport {objEntity} {
                 }
                 "colour_rgb green" {
                   if {$entLevel == 4 || $entLevel == 8} {
+                    append colorRGB " [trimNum $objValue]"
                     if {$opt(gpmiColor) == 0} {append x3dColor " $objValue"}
                   }
                 }
                 "colour_rgb blue" {
                   if {$entLevel == 4 || $entLevel == 8} {
+                    append colorRGB " [trimNum $objValue]"
                     if {$opt(gpmiColor) == 0} {append x3dColor " $objValue"}
                     if {$opt(PMIGRF) && $opt(XLSCSV) != "None"} {
                       set ok 1
@@ -889,13 +891,15 @@ proc gpmiAnnotationReport {objEntity} {
 
 # cell value for presentation style or color
                 } elseif {[info exists gpmiIDRow($ao,$gpmiID)] && $opt(PMIGRF) && $opt(XLSCSV) != "None"} {
-                  if {$colName != "colour"} {
-                    $cells($ao) Item $r $c "$ent($entLevel) $objID"
-                  } else {
-                    if {$ent($entLevel) == "colour_rgb"} {
-                      $cells($ao) Item $r $c "$ent($entLevel) $objID  ($x3dColor)"
+                  if {$entLevel > 1} {
+                    if {[string first "color" $colName] == -1} {
+                      $cells($ao) Item $r $c "$ent($entLevel) $objID"
                     } else {
-                      $cells($ao) Item $r $c "$ent($entLevel) $objID  ($objValue)"
+                      if {$ent($entLevel) == "colour_rgb"} {
+                        $cells($ao) Item $r $c "$ent($entLevel) $objID  ($colorRGB)"
+                      } else {
+                        $cells($ao) Item $r $c "$ent($entLevel) $objID  ($objValue)"
+                      }
                     }
                   }
                 }
@@ -940,7 +944,6 @@ proc gpmiAnnotationReport {objEntity} {
       }
       
       ::tcom::foreach objGuiEntity $objGuiEntities {
-        #outputMsg " [$objGuiEntity Type] [$objGuiEntity P21ID]  (ao [$objEntity P21ID])" red
         ::tcom::foreach attrDMIA [$objGuiEntity Attributes] {
           if {[$attrDMIA Name] == "name"} {set attrName [$attrDMIA Value]}
 
@@ -949,7 +952,6 @@ proc gpmiAnnotationReport {objEntity} {
             set dmiaDef [$attrDMIA Value]
             if {[string first "handle" $dmiaDef] != -1} {
               set dmiaDefType [$dmiaDef Type]
-              #outputMsg "  $dmiaDefType [$dmiaDef P21ID]  $attrName" green
 
 # look for link to pmi representation
               if {$attrName == "PMI representation to presentation link"} {

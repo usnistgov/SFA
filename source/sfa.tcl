@@ -242,29 +242,6 @@ foreach fname [glob -nocomplain -directory $wdir *.tcl] {
 }
 
 # -------------------------------------------------------------------------------
-proc whatsNew {} {
-  global progtime sfaVersion
-  
-  if {$sfaVersion > 0 && $sfaVersion < [getVersion]} {outputMsg "\nThe previous version of the STEP File Analyzer and Viewer was: $sfaVersion" red}
-
-outputMsg "\nWhat's New (Version: [getVersion]  Updated: [string trim [clock format $progtime -format "%e %b %Y"]])" blue
-outputMsg "- Color graphical PMI by saved view
-- Improved processing of tolerance zone form, supplemental geometry, and annotation placeholder
-- Visualization of boundary representation (b-rep) geometry (See Help > B-rep Geometry)
-- Explanation of Report errors (Help > Syntax Errors)
-- Support for AP242 Edition 2 DIS (Draft International Standard)
-- More STEP related Websites
-- Bug fixes and minor improvements"
-
-if {$sfaVersion > 0 && $sfaVersion <= 2.60} {
-  outputMsg "\nRenamed output files:\n Spreadsheets from  myfile_stp.xlsx  to  myfile-sfa.xlsx\n Visualizations from  myfile-x3dom.html  to  myfile-sfa.html" red
-}
-
-  .tnb select .tnb.status
-  update idletasks
-}
-
-# -------------------------------------------------------------------------------
 # Help and Websites menu
 guiHelpMenu
 guiWebsitesMenu

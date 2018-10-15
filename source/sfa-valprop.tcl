@@ -57,7 +57,7 @@ proc valPropStart {} {
       "sum of all ply surfaces areas" "centre point of all plies" "number of cores"]]]
 
 # fea validation properties (work in progress)
-  set valPropNames(fea_validation_property) [list \
+  set valPropNames(FEA_validation_property) [list \
     [list "" [list "maximum nodal displacement" "maximum nodal rotation" "maximum von mises stress" \
       "min max volume change" "min max axial 1d internal force" "min max shear1 1d internal force" "min max shear2 1d internal force" \
       "min max torsion 1d internal force" "min max bending1 1d internal force" "min max bending2 1d internal force" \
@@ -67,6 +67,11 @@ proc valPropStart {} {
     [list "applied moments" [list "reference point for applied moment" "resultant moment at reference point"]] \
     [list "bounding box" [list "bounding box corner point"]] \
     [list "centroid" [list "centre point"]]]
+  
+    #[list "number of nodes" [list "number of nodes"]] \
+    #[list "number of elements" [list "number of elements"]] \
+    #[list "FEA model bounding box" [list "FEA model bound box corner point"]] \
+    #[list "3D elements volume" [list "3D elements volume measure"]] \
 
   set derived_unit_element [list derived_unit_element unit \
     [list conversion_based_unit_and_length_unit dimensions name conversion_factor] \

@@ -317,12 +317,10 @@ proc x3dFileEnd {} {
         
 # check if same saved view graphics already written
         if {[info exists savedViewItems($svn)]} {
-          #outputMsg "$svn $savedViewItems($svn)" blue
           for {set j 0} {$j < $i} {incr j} {
             set svn1 [lindex $savedViewNames $j]
             if {[info exists savedViewItems($svn1)]} {
               if {$savedViewItems($svn) == $savedViewItems($svn1)} {
-                #outputMsg "$svn1 $savedViewItems($svn1)" green  
                 set svMap($svn) $svn1
                 set svWrite 0
                 break
@@ -1120,7 +1118,7 @@ proc x3dSuppGeomPlane {e2 size {name ""}} {
     set nsize [trimNum [expr {$size*2.}]]
     set tsize [trimNum [expr {$size*0.33}]]
     puts $x3dFile " <Shape><Appearance><Material emissiveColor='0 0 1'></Material></Appearance><IndexedLineSet coordIndex='0 1 2 3 0 -1'><Coordinate point='-$nsize -$nsize 0. $nsize -$nsize 0. $nsize $nsize 0. -$nsize $nsize 0.'></Coordinate></IndexedLineSet></Shape>"
-    puts $x3dFile " <Shape><Appearance><Material diffuseColor='0 0 1' transparency='0.9'></Material></Appearance><IndexedFaceSet solid='false' coordIndex='0 1 2 3 -1'><Coordinate point='-$nsize -$nsize 0. $nsize -$nsize 0. $nsize $nsize 0. -$nsize $nsize 0.'></Coordinate></IndexedFaceSet></Shape>"
+    puts $x3dFile " <Shape><Appearance><Material diffuseColor='0 0 1' transparency='0.8'></Material></Appearance><IndexedFaceSet solid='false' coordIndex='0 1 2 3 -1'><Coordinate point='-$nsize -$nsize 0. $nsize -$nsize 0. $nsize $nsize 0. -$nsize $nsize 0.'></Coordinate></IndexedFaceSet></Shape>"
   
     if {$name != ""} {puts $x3dFile " <Transform translation='-$nsize -$nsize 0.' scale='$tsize $tsize $tsize'><Billboard axisOfRotation='0 0 0'><Shape><Appearance><Material diffuseColor='0 0 1'></Material></Appearance><Text string='\"$name\"'><FontStyle family='\"SANS\"' justify='\"BEGIN\"'></FontStyle></Text></Shape></Billboard></Transform>"}
     puts $x3dFile "</Transform>"

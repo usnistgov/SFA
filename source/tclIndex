@@ -164,6 +164,7 @@ set auto_index(initData) [list source [file join $dir sfa-data.tcl]]
 set auto_index(getContact) [list source [file join $dir sfa-data.tcl]]
 set auto_index(getVersion) [list source [file join $dir sfa-data.tcl]]
 set auto_index(getVersionUG) [list source [file join $dir sfa-data.tcl]]
+set auto_index(whatsNew) [list source [file join $dir sfa-data.tcl]]
 
 set auto_index(tessCountColors) [list source [file join $dir sfa-tess.tcl]]
 set auto_index(tessPart) [list source [file join $dir sfa-tess.tcl]]

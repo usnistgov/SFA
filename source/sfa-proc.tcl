@@ -81,11 +81,12 @@ proc checkValues {} {
 
 # viz only
   if {$opt(XLSCSV) == "None"} {
+    set opt(PMIGRF) 0
     foreach item [array names opt] {
       if {[string first "PR_STEP" $item] == 0} {lappend butDisabled "opt$item"}
     }
     foreach b {optPMIGRF optPMISEM optVALPROP optPR_USER optINVERSE} {lappend butDisabled $b}
-    foreach b {allNone0 allNone1 allNone2 allNone3} {lappend butDisabled $b}
+    foreach b {allNone0 allNone1 allNone2} {lappend butDisabled $b}
     foreach b {userentity userentityopen} {lappend butDisabled $b}
     set userEntityList {}
     set allNone -1
@@ -972,6 +973,7 @@ proc getOpenPrograms {} {
       [list {*}[glob -nocomplain -directory [file join $pf CADSoftTools] -join "ABViewer*" ABViewer.exe] ABViewer] \
       [list {*}[glob -nocomplain -directory [file join $pf] -join "3D-Tool V*" 3D-Tool.exe] 3D-Tool] \
       [list {*}[glob -nocomplain -directory [file join $pf] -join "VariCADViewer *" bin varicad-x64.exe] "VariCAD Viewer"] \
+      [list {*}[glob -nocomplain -directory [file join $pf] -join ZWSOFT "CADbro *" CADbro.exe] "CADbro"] \
     ]
     if {$pf64 == ""} {
       lappend applist [list {*}[glob -nocomplain -directory [file join $pf] -join "VariCADViewer *" bin varicad-i386.exe] "VariCAD Viewer (32-bit)"]
@@ -990,6 +992,7 @@ proc getOpenPrograms {} {
       [list [file join $pf "3DJuump X64" 3DJuump.exe] "3DJuump"] \
       [list [file join $pf "CAD Assistant" CADAssistant.exe] "CAD Assistant"] \
       [list [file join $pf "CAD Exchanger" bin Exchanger.exe] "CAD Exchanger"] \
+      [list [file join $pf "SOLIDWORKS Corp" eDrawings eDrawings.exe] "eDrawings"] \
       [list [file join $pf "STEP Tools" "STEP-NC Machine Personal Edition" STEPNCExplorer.exe] "STEP-NC Machine"] \
       [list [file join $pf "STEP Tools" "STEP-NC Machine Personal Edition" STEPNCExplorer_x86.exe] "STEP-NC Machine"] \
       [list [file join $pf "STEP Tools" "STEP-NC Machine" STEPNCExplorer.exe] "STEP-NC Machine"] \

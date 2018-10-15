@@ -34,19 +34,21 @@ proc spmiGeotolStart {entType} {
   set PMIP(datum_target)                [list datum_target description target_id]
 
 # set PMIP for all *_tolerance entities (datum_system must be last)
-  foreach tol $tolNames {set PMIP($tol) [list $tol magnitude $len1 $len2 $len3 $len4\
-                                                  toleranced_shape_aspect \
-                                                    $df1 $df2 $df3 [list centre_of_symmetry_and_datum_feature name] \
-                                                    [list composite_group_shape_aspect name] [list composite_shape_aspect name] \
-                                                    [list composite_unit_shape_aspect name] [list composite_unit_shape_aspect_and_datum_feature name] \
-                                                    [list all_around_shape_aspect name] [list between_shape_aspect name] [list shape_aspect name] [list product_definition_shape name] \
-                                                  datum_system [list datum_system name] $dr $rmd \
-                                                  modifiers \
-                                                  modifier \
-                                                  displacement [list length_measure_with_unit value_component] \
-                                                  unit_size $len1 area_type second_unit_size $len1 \
-                                                  maximum_upper_tolerance $len1 \
-  ]}
+  foreach tol $tolNames {set PMIP($tol) \
+    [list $tol magnitude $len1 $len2 $len3 $len4 \
+      toleranced_shape_aspect \
+        $df1 $df2 $df3 [list centre_of_symmetry_and_datum_feature name] \
+        [list composite_group_shape_aspect name] [list composite_shape_aspect name] \
+        [list composite_unit_shape_aspect name] [list composite_unit_shape_aspect_and_datum_feature name] \
+        [list all_around_shape_aspect name] [list between_shape_aspect name] [list shape_aspect name] [list product_definition_shape name] \
+      datum_system [list datum_system name] $dr $rmd \
+      modifiers \
+      modifier \
+      displacement [list length_measure_with_unit value_component] \
+      unit_size $len1 area_type second_unit_size $len1 \
+      maximum_upper_tolerance $len1 \
+    ]
+  }
 
 # generate correct PMIP variable accounting for variations 
   if {![info exists PMIP($entType)]} {
@@ -119,7 +121,7 @@ proc spmiGeotolReport {objEntity} {
   global entLevel ent entAttrList entCount gt gtEntity incrcol lastAttr lastEnt nistName
   global objID opt pmiCol pmiHeading pmiModifiers pmiStartCol pmiUnicode ptz recPracNames
   global spmiEnts spmiID spmiIDRow spmiRow spmiTypesPerFile stepAP syntaxErr
-  global tolNames tolStandard tolval tzf1 tzfNames worksheet datumModValue
+  global tolNames tolStandard tolval tzf1 tzfNames tzWithDatum worksheet datumModValue
 
   if {$opt(DEBUG1)} {outputMsg "spmiGeotolReport" red}
    
@@ -320,15 +322,15 @@ proc spmiGeotolReport {objEntity} {
                               set tzfName [$attrTZF Value]
                               if {[lsearch $tzfNames $tzfName] != -1} {
                                 set tzfName1 $tzfName
-                                if {$tzfName1 == "spherical"} {set tzfName1 "spherical diameter"}
+                                if {$tzfName1 == "spherical" || $tzfName1 == "within a sphere"} {set tzfName1 "spherical diameter"}
 
 # tzf symbol
                                 if {[info exists pmiUnicode($tzfName1)]} {
                                   set tzf $pmiUnicode($tzfName1)
 
 # message when 'within a cylinder' is used
-                                  if {$tzfName == "within a cylinder"} {
-                                    errorMsg "The tolerance_zone_form 'name' attribute uses 'within a cylinder' for a '$pmiUnicode(diameter)' symbol in the tolerance zone.  See the Recommended Practice for $recPracNames(pmi242), Sec. 6.9.2."
+                                  if {$tzfName == "within a cylinder" || $tzfName == "within a sphere"} {
+                                    errorMsg "The tolerance_zone_form 'name' attribute uses '$tzfName' for a '$pmiUnicode(diameter)' symbol in the tolerance zone.  See the Recommended Practice for $recPracNames(pmi242), Sec. 6.9.2."
                                   }
 
 # no tzf symbol, table 12
@@ -399,6 +401,25 @@ proc spmiGeotolReport {objEntity} {
                         }
                       }
                     }
+                      
+# get directed or oriented tolerance zone
+                    foreach tz [list directed oriented] {
+                      set e0s [$gtEntity GetUsedIn [string trim $tz\_tolerance_zone] [string trim defining_tolerance]]
+                      ::tcom::foreach e0 $e0s {
+                        set ds [[[$e0 Attributes] Item 7] Value]
+                        ::tcom::foreach attr [$e0 Attributes] {if {[$attr Name] == "direction" || [$attr Name] == "orientation"} {set dir [$attr Value]}}
+                        if {$tz == "oriented"} {
+                          set e1 [[[$e0 Attributes] Item 9] Value]
+                          set angle [trimNum [[[$e1 Attributes] Item 1] Value]]
+                        }
+                        if {[info exists pmiUnicode($dir)]} {
+                          set tzWithDatum($tz) "\u25C1 $pmiUnicode($dir) | $datumSystem([$ds P21ID])"
+                          if {$tz == "oriented"} {append tzWithDatum($tz) " \u25B7 \[$angle$pmiUnicode(degree)\]"}
+                        } else {
+                          errorMsg "Syntax Error: Invalid type '$dir' for '$tz\_tolerance_zone'."
+                        }
+                      }
+                    }
                     
                     set col($gt) $pmiStartCol($gt)
 
@@ -439,11 +460,10 @@ proc spmiGeotolReport {objEntity} {
                         set objValue " $pmiModifiers($idx) $objValue"
                       } else {
                         set objValue " UZ $objValue"
-                        #set objValue " UZ\[$objValue\]"
                       }
                       lappend spmiTypesPerFile $idx
 
-# get unit basis tolerance value (6.9.6)
+# get ASME unit basis (ISO restricted area) tolerance value (6.9.6)
                     } elseif {$ATR(1) == "unit_size"} {
                       set ok 1
                       if {[string range $objValue end-1 end] == ".0"} {set objValue [string range $objValue 0 end-2]}
@@ -508,7 +528,6 @@ proc spmiGeotolReport {objEntity} {
 
 # value in spreadsheet
                   set val [[$cells($gt) Item $r $c] Value]
-                  #outputMsg "(18) $c  $r -- $objValue -- $val" green
                   
                   if {$val == ""} {
                     $cells($gt) Item $r $c $objValue
@@ -1213,7 +1232,7 @@ proc spmiGeotolReport {objEntity} {
                       set nval $val$ov
                       $cells($gt) Item $r $c $nval
 
-# area_type for defined area unit
+# area_type for defined area unit (unit basis, restricted area)
                     } elseif {$ov == "square"} {
                       set c1 [string last " " $val]
                       set nval "$val X [string range $val $c1+1 end]"
@@ -1273,7 +1292,7 @@ proc spmiGeotolReport {objEntity} {
         }
       }
 
-# add datum reference frame
+# add datum reference frame (datum_system)
       if {[info exists datsys]} {
         set c  [lindex $datsys 0]
         set r  [lindex $datsys 1]
@@ -1292,6 +1311,16 @@ proc spmiGeotolReport {objEntity} {
           #lappend syntaxErr(tolerance_zone_form) [list [[$attrTZ Value] P21ID] "name"]
         }
       }
+      
+# add directed or oriented tolerance zone
+      foreach tz [list directed oriented] {
+        if {[info exists tzWithDatum($tz)]} {
+          set val [[$cells($gt) Item $r $c] Value]
+          $cells($gt) Item $r $c "$val |  $tzWithDatum($tz)"
+          unset tzWithDatum($tz)
+        }
+      }
+
     } emsg3]} {
       errorMsg "ERROR adding Datum Feature: $emsg3"
     }
