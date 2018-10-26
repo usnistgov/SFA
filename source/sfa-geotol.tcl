@@ -406,11 +406,11 @@ proc spmiGeotolReport {objEntity} {
                     foreach tz [list directed oriented] {
                       set e0s [$gtEntity GetUsedIn [string trim $tz\_tolerance_zone] [string trim defining_tolerance]]
                       ::tcom::foreach e0 $e0s {
-                        set ds [[[$e0 Attributes] Item 7] Value]
+                        set ds [[[$e0 Attributes] Item [expr 7]] Value]
                         ::tcom::foreach attr [$e0 Attributes] {if {[$attr Name] == "direction" || [$attr Name] == "orientation"} {set dir [$attr Value]}}
                         if {$tz == "oriented"} {
-                          set e1 [[[$e0 Attributes] Item 9] Value]
-                          set angle [trimNum [[[$e1 Attributes] Item 1] Value]]
+                          set e1 [[[$e0 Attributes] Item [expr 9]] Value]
+                          set angle [trimNum [[[$e1 Attributes] Item [expr 1]] Value]]
                         }
                         if {[info exists pmiUnicode($dir)]} {
                           set tzWithDatum($tz) "\u25C1 $pmiUnicode($dir) | $datumSystem([$ds P21ID])"

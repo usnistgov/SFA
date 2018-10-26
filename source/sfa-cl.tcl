@@ -88,8 +88,8 @@ other parties, and makes no guarantees, expressed or implied, about its quality,
 reliability, or any other characteristic.
 
 This software uses Microsoft Excel and IFCsvr that are covered by their own
-End-User License Agreements.  The B-rep geometry viewer is based on software from
-OpenCascade and pythonOCC.
+End-User License Agreements.  The B-rep part geometry viewer is based on software
+from OpenCascade and pythonOCC.
 
 See the NIST Disclaimer at: https://www.nist.gov/disclaimer"
 

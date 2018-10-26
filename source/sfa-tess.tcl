@@ -93,7 +93,7 @@ proc tessPartGeometry {objEntity} {
       if {[$objEntity1 Type] == "tessellated_wire"} {
         set e0s [$objEntity1 GetUsedIn [string trim constructive_geometry_representation] [string trim items]]
         ::tcom::foreach e0 $e0s {
-          ::tcom::foreach e1 [[[$e0 Attributes] Item 2] Value] {
+          ::tcom::foreach e1 [[[$e0 Attributes] Item [expr 2]] Value] {
             if {$objID == [$e1 P21ID]} {set tessEdge $tessSuppGeomFile}
           }
         }
@@ -442,29 +442,29 @@ proc tessSetColor {objEntity tsID} {
         set ok1 0
         
 # styled_item.styles
-        set a1 [[$e0 Attributes] Item 2]
+        set a1 [[$e0 Attributes] Item [expr 2]]
 # presentation_style.styles
         ::tcom::foreach e2 [$a1 Value] {
-          set a2 [[$e2 Attributes] Item 1]
+          set a2 [[$e2 Attributes] Item [expr 1]]
           if {$debug} {errorMsg " [$e2 Type] [$e2 P21ID]" red}
 
           set e3 [$a2 Value]
-          set a3 [[$e3 Attributes] Item 2]
+          set a3 [[$e3 Attributes] Item [expr 2]]
           if {$debug} {errorMsg "  [$e3 Type] [$e3 P21ID]" red}
 # surface side style
           set e4 [$a3 Value]
-          set a4s [[$e4 Attributes] Item 2]
+          set a4s [[$e4 Attributes] Item [expr 2]]
 # surface style fill area
           foreach e5 [$a4s Value] {
             if {$debug} {errorMsg "   [$e5 Type] [$e5 P21ID]" red}
             if {[$e5 Type] == "surface_style_fill_area"} {
-              set a5 [[$e5 Attributes] Item 1]
+              set a5 [[$e5 Attributes] Item [expr 1]]
 # fill area style
               set e6 [$a5 Value]
-              set a6 [[$e6 Attributes] Item 2]
+              set a6 [[$e6 Attributes] Item [expr 2]]
 # fill area style colour
               set e7 [$a6 Value]
-              set a7 [[$e7 Attributes] Item 2]
+              set a7 [[$e7 Attributes] Item [expr 2]]
 # color
               set e8 [$a7 Value]
               if {[$e8 Type] == "colour_rgb"} {
@@ -477,7 +477,7 @@ proc tessSetColor {objEntity tsID} {
                 set x3dColor [string trim $x3dColor]
                 set tessColor($tsID) $x3dColor
               } elseif {[$e8 Type] == "draughting_pre_defined_colour"} {
-                set x3dColor [x3dPreDefinedColor [[[$e8 Attributes] Item 1] Value]]
+                set x3dColor [x3dPreDefinedColor [[[$e8 Attributes] Item [expr 1]] Value]]
                 set tessColor($tsID) $x3dColor
               } else {
                 errorMsg "  Unexpected color type ([$e8 Type]) for $ao"
@@ -493,7 +493,7 @@ proc tessSetColor {objEntity tsID} {
         if {[string first "tessellated" [$objEntity Type]] == 0} {set missingStyledItem [$objEntity Type]}
         set n 0
         catch {
-          ::tcom::foreach e1 [[[$objEntity Attributes] Item 2] Value] {
+          ::tcom::foreach e1 [[[$objEntity Attributes] Item [expr 2]] Value] {
             incr n
             if {$n == 1} {tessSetColor $e1 $tsID}
           }
@@ -532,7 +532,7 @@ proc tessCountColors {} {
     }
     if {[info exists entCount(draughting_pre_defined_colour)]} {
       ::tcom::foreach e0 [$objDesign FindObjects [string trim draughting_pre_defined_colour]] {
-        set color [[[$e0 Attributes] Item 1] Value]
+        set color [[[$e0 Attributes] Item [expr 1]] Value]
         if {[lsearch $colors $color] == -1} {lappend colors $color}
       }
     }
@@ -568,17 +568,17 @@ proc tessSetPlacement {objEntity tsID} {
 
         ::tcom::foreach e2 $e2s {
           if {$debug} {errorMsg " [$e2 Type] [$e2 P21ID]" red}
-          set a2 [[$e2 Attributes] Item 4]
+          set a2 [[$e2 Attributes] Item [expr 4]]
           set e3 [$a2 Value]
           if {$debug} {errorMsg "  [$e3 Type] [$e3 P21ID] ([$a2 Name])" red}
 
           if {[$e3 Type] != "shape_representation"} {
-            set a2 [[$e2 Attributes] Item 3]
+            set a2 [[$e2 Attributes] Item [expr 3]]
             set e3 [$a2 Value]
             if {$debug} {errorMsg "  [$e3 Type] [$e3 P21ID] ([$a2 Name])" blue}
           }
 
-          set shapeRepName [string trim [[[$e3 Attributes] Item 1] Value]]
+          set shapeRepName [string trim [[[$e3 Attributes] Item [expr 1]] Value]]
           if {$shapeRepName != ""} {
             if {$debug} {errorMsg "  $shapeRepName" blue}
           } else {
@@ -587,16 +587,16 @@ proc tessSetPlacement {objEntity tsID} {
 
           set e4s [$e3 GetUsedIn [string trim shape_definition_representation] [string trim used_representation]]
           ::tcom::foreach e4 $e4s {
-            set a4 [[$e4 Attributes] Item 1]
+            set a4 [[$e4 Attributes] Item [expr 1]]
             set e5 [$a4 Value]
             if {$debug} {errorMsg "   [$e5 Type] [$e5 P21ID] ([$a4 Name])" green}
-            set a5 [[$e5 Attributes] Item 3]
+            set a5 [[$e5 Attributes] Item [expr 3]]
             set e6 [$a5 Value]
             if {$debug} {errorMsg "    [$e6 Type] [$e6 P21ID] ([$a5 Name])" green}
             foreach rel {relating_product_defintion related_product_definition} {
               set e7s [$e6 GetUsedIn [string trim next_assembly_usage_occurrence] [string trim $rel]]
               ::tcom::foreach e7 $e7s {
-                set a7 [[$e7 Attributes] Item 5]
+                set a7 [[$e7 Attributes] Item [expr 5]]
                 set e8 [$a7 Value]
                 if {[$e8 P21ID] == [$e6 P21ID]} {
                   if {$debug} {errorMsg "     [$e7 Type] [$e7 P21ID] ([$a7 Name])" green}
@@ -609,10 +609,10 @@ proc tessSetPlacement {objEntity tsID} {
             set e4s [$e3 GetUsedIn [string trim representation_relationship_with_transformation_and_shape_representation_relationship] [string trim $repRRWT]]
             ::tcom::foreach e4 $e4s {
               if {$debug} {errorMsg "   [$e4 Type] [$e4 P21ID]" red}
-              set a4 [[$e4 Attributes] Item 5]
+              set a4 [[$e4 Attributes] Item [expr 5]]
               set e5 [$a4 Value]
               if {$debug} {errorMsg "    [$e5 Type] [$e5 P21ID] ([$a4 Name])" red}
-              set a5 [[$e5 Attributes] Item 4]
+              set a5 [[$e5 Attributes] Item [expr 4]]
               set e6 [$a5 Value]
               if {$debug} {errorMsg "     [$e6 Type] [$e6 P21ID] ([$a5 Name])" red}
 
@@ -642,26 +642,26 @@ proc x3dGetA2P3D {e0} {
   set debug 0
 
 # a2p3d origin
-  set a2 [[$e0 Attributes] Item 2]
+  set a2 [[$e0 Attributes] Item [expr 2]]
   set e2 [$a2 Value]
   if {$e2 != ""} {
-    set origin [vectrim [[[$e2 Attributes] Item 2] Value]]
+    set origin [vectrim [[[$e2 Attributes] Item [expr 2]] Value]]
     if {$debug} {errorMsg "      [$e2 Type] [$e2 P21ID] ([$a2 Name]) $origin" red}
   }
 
 # a2p3d axis
-  set a3 [[$e0 Attributes] Item 3]
+  set a3 [[$e0 Attributes] Item [expr 3]]
   set e3 [$a3 Value]
   if {$e3 != ""} {
-    set axis [[[$e3 Attributes] Item 2] Value]
+    set axis [[[$e3 Attributes] Item [expr 2]] Value]
     if {$debug} {errorMsg "      [$e3 Type] [$e3 P21ID] ([$a3 Name]) $axis" red}
   }
 
 # a2p3d reference direction
-  set a4 [[$e0 Attributes] Item 4]
+  set a4 [[$e0 Attributes] Item [expr 4]]
   set e4 [$a4 Value]
   if {$e4 != ""} {
-    set refdir [[[$e4 Attributes] Item 2] Value]
+    set refdir [[[$e4 Attributes] Item [expr 2]] Value]
     if {$debug} {errorMsg "      [$e4 Type] [$e4 P21ID] ([$a4 Name]) $refdir" red}
   }
   

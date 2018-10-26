@@ -1448,11 +1448,11 @@ proc pmiGetCamerasAndProperties {} {
                   catch {unset savedViewpoint($name1)}
                   if {[catch {
                     set a2p3d [[$attrCameraModel Value] Attributes]
-                    set origin [[[[[$a2p3d Item 2] Value] Attributes] Item 2] Value]
-                    set axis   [[[[[$a2p3d Item 3] Value] Attributes] Item 2] Value]
+                    set origin [[[[[$a2p3d Item 2] Value] Attributes] Item [expr 2]] Value]
+                    set axis   [[[[[$a2p3d Item 3] Value] Attributes] Item [expr 2]] Value]
                     ::tcom::foreach attr $a2p3d {
                       if {[$attr Name] == "ref_direction"} {
-                        set refdir [[[[$attr Value] Attributes] Item 2] Value]
+                        set refdir [[[[$attr Value] Attributes] Item [expr 2]] Value]
                       }
                     }
                     lappend savedViewpoint($name1) [vectrim $origin]

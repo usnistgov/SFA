@@ -1354,10 +1354,10 @@ proc feaGetNodes {} {
   set nline ""
   ::tcom::foreach e0 [$objDesign FindObjects [string trim node]] {
     set p21id [$e0 P21ID]
-    set a0 [[$e0 Attributes] Item 2]
+    set a0 [[$e0 Attributes] Item [expr 2]]
     
     ::tcom::foreach e1 [$a0 Value] {
-      set coordList [[[$e1 Attributes] Item 2] Value]
+      set coordList [[[$e1 Attributes] Item [expr 2]] Value]
       set feaNodes($p21id) [incr nodeIndex]
   
 # xyz coordinates

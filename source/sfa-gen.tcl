@@ -19,7 +19,7 @@ proc genExcel {{numFile 0}} {
   #outputMsg "genExcel" red
 
 # initialize for X3DOM geometry
-  if {$opt(VIZPMI) || $opt(VIZTPG) ||$opt(VIZFEA)} {
+  if {$opt(VIZPMI) || $opt(VIZTPG) ||$opt(VIZFEA) || $opt(VIZBRP)} {
     set x3dStartFile 1
     set x3dAxes 1
     set x3dFileName ""
@@ -853,8 +853,20 @@ proc genExcel {{numFile 0}} {
   }
 
 # -------------------------------------------------------------------------------------------------
-# set viewpoints and close X3DOM geometry file 
-  if {($viz(PMI) || $viz(FEA) || $viz(TPG)) && $x3dFileName != ""} {x3dFileEnd}
+# generate b-rep part geometry if no other viz exists
+  set vizbrp 0
+  if {$opt(VIZBRP) && !$viz(PMI) && !$viz(FEA) && !$viz(TPG)} {
+    if {[info exists entCount(advanced_brep_shape_representation)] || \
+        [info exists entCount(manifold_surface_shape_representation)] || \
+        [info exists entCount(manifold_solid_brep)]} {
+      x3dFileStart
+      set vizbrp 1
+      update
+    }
+  }
+  
+# generate b-rep part geom, set viewpoints, and close X3DOM geometry file 
+  if {($viz(PMI) || $viz(FEA) || $viz(TPG) || $vizbrp) && $x3dFileName != ""} {x3dFileEnd}
 
 # -------------------------------------------------------------------------------------------------
 # add summary worksheet
@@ -938,7 +950,7 @@ proc genExcel {{numFile 0}} {
   set proctime [expr {($cc - $lasttime)/1000}]
   if {$proctime <= 60} {set proctime [expr {(($cc - $lasttime)/100)/10.}]}
   outputMsg "Processing time: $proctime seconds"
-  update idletasks
+  update
 
 # -------------------------------------------------------------------------------------------------
 # save spreadsheet
@@ -1750,7 +1762,7 @@ proc sumAddColorLinks {sum sumHeaderRow sumLinks sheetSort sumRow} {
 # format worksheets
 proc formatWorksheets {sheetSort sumRow inverseEnts} {
   global buttons worksheet worksheets excel cells opt count entCount col row rowmax xlFileName thisEntType schemaLinks stepAP syntaxErr
-  global gpmiEnts spmiEnts nprogBarEnts excelVersion viz
+  global gpmiEnts spmiEnts nprogBarEnts excelVersion viz pmiStartCol
   
   outputMsg "Formatting Worksheets" blue
 
@@ -1799,21 +1811,11 @@ proc formatWorksheets {sheetSort sumRow inverseEnts} {
         #if {$thisEntType == "element_nodal_freedom_actions"} {moveWorksheet [list element_nodal_freedom_actions element_nodal_freedom_terms]}
       }
 
-# find extent of columns
-      set rancol $col($thisEntType)
-      for {set i 1} {$i < 10} {incr i} {
-        if {[[$cells($thisEntType) Item 3 [expr {$col($thisEntType)+$i}]] Value] != ""} {
-          incr rancol
-        } else {
-          break
-        }
-      }
-
-# find extent of rows
+# find extent of columns and rows
+      set rancol [[[$worksheet($thisEntType) UsedRange] Columns] Count]
       set ranrow [expr {$row($thisEntType)+2}]
       if {$ranrow > $rowmax} {set ranrow [expr {$rowmax+2}]}
       set ranrow [expr {$ranrow-2}]
-      #outputMsg "$thisEntType  $ranrow  $rancol  $col($thisEntType)"
 
 # autoformat
       set range [$worksheet($thisEntType) Range [cellRange 3 1] [cellRange $ranrow $rancol]]
@@ -1862,7 +1864,25 @@ proc formatWorksheets {sheetSort sumRow inverseEnts} {
         }
       }
       $cells($thisEntType) Item 1 1 $txt
-      set range [$worksheet($thisEntType) Range "A1:H1"]
+      
+# set range of cells to merge with A1
+      set c [[[$worksheet($thisEntType) UsedRange] Columns] Count]
+      set okinv 0
+      if {$opt(INVERSE)} {
+        for {set i 1} {$i <= $c} {incr i} {
+          set val [[$cells($thisEntType) Item 3 $i] Value]
+          if {$val == "Used In" || [string first "INV-" $val] != -1} {
+            set c [expr {$i-1}]
+            set okinv 1
+            break
+          }
+        }
+      }
+      if {!$okinv && [info exists pmiStartCol($thisEntType)]} {set c [expr {$pmiStartCol($thisEntType)-1}]}
+      if {$thisEntType == "property_definition"} {set c 4}
+      if {$c > 8} {set c 8}
+      if {$c == 1} {set c 2}
+      set range [$worksheet($thisEntType) Range [cellRange 1 1] [cellRange 1 $c]]
       $range MergeCells [expr 1]
 
 # link back to summary

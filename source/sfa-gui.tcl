@@ -385,6 +385,15 @@ proc guiProcessAndReports {} {
   
 # visualize
   set foptv [ttk::labelframe $foptrv.9 -text " Visualize "]
+  set foptv20 [frame $foptv.20 -bd 0]
+  foreach item {{" Part Geometry" opt(VIZBRP)}} {
+    regsub -all {[\(\)]} [lindex $item 1] "" idx
+    set buttons($idx) [ttk::checkbutton $foptv20.$cb -text [lindex $item 0] -variable [lindex $item 1] -command {checkValues}]
+    pack $buttons($idx) -side left -anchor w -padx 5 -pady 0 -ipady 0
+    incr cb
+  }
+  pack $foptv20 -side top -anchor w -pady 0 -padx 0 -fill y
+
   set foptv3 [frame $foptv.3 -bd 0]
   foreach item {{" Graphical PMI" opt(VIZPMI)}} {
     regsub -all {[\(\)]} [lindex $item 1] "" idx
@@ -448,25 +457,16 @@ proc guiProcessAndReports {} {
     incr cb
   }
   pack $foptv8 -side top -anchor w -pady 0 -padx 25 -fill y
-  
-  set foptv20 [frame $foptv.20 -bd 0]
-  foreach item {{" Include B-rep Part Geometry" opt(VIZBRP)}} {
-    regsub -all {[\(\)]} [lindex $item 1] "" idx
-    set buttons($idx) [ttk::checkbutton $foptv20.$cb -text [lindex $item 0] -variable [lindex $item 1] -command {checkValues}]
-    pack $buttons($idx) -side left -anchor w -padx 5 -pady 0 -ipady 0
-    incr cb
-  }
-  pack $foptv20 -side top -anchor w -pady 0 -padx 0 -fill y
 
   pack $foptv -side left -anchor w -pady {5 2} -padx 10 -fill both -expand true
   pack $foptrv -side top -anchor w -pady 0 -fill x
   catch {
     tooltip::tooltip $buttons(optVIZPMI) "Graphical PMI is supported in AP242, AP203, and AP214 files.\nSupplemental geometry and tessellated edges (lines) are also shown.\n\nSee Help > PMI Presentation\nSee Help > User Guide (section 7.1.1)\nSee Help > Supplemental Geometry\nSee Examples > Part with PMI\nSee Examples > AP242 Tessellated Part with PMI\nSee Examples > Sample STEP Files\n\nVisualizations can be generated without generating a spreadsheet\nor CSV files.  See the Output Format option below.\n\nVisualizations are viewed in web browsers that are not optimized\nfor large models.  Older versions of web browsers are not supported."
-    tooltip::tooltip $buttons(optVIZTPG) "** Parts in an assembly might have the wrong position and orientation or be missing. **\n\nTessellated geometry is in addition to boundary representation (b-rep) geometry.\nSupplemental geometry and tessellated edges (lines) are also shown.\nFaces in tessellated shells are outlined in black.\n\nSee Help > AP242 Tessellated Part Geometry\nSee Help > Supplemental Geometry\nSee Help > User Guide (section 7.1.2, 7.1.3)\nSee Examples > AP242 Tessellated Part with PMI\n\nVisualizations can be generated without generating a spreadsheet or CSV files.\nSee the Output Format option below.\n\nVisualizations are viewed in web browsers that are not optimized for large models.\nOlder versions of web browsers are not supported."
+    tooltip::tooltip $buttons(optVIZTPG) "** Parts in an assembly might have the wrong position and orientation or be missing. **\n\nTessellated geometry is in addition to part geometry.\nSupplemental geometry and tessellated edges (lines) are also shown.\nFaces in tessellated shells are outlined in black.\n\nSee Help > AP242 Tessellated Part Geometry\nSee Help > Supplemental Geometry\nSee Help > User Guide (section 7.1.2, 7.1.3)\nSee Examples > AP242 Tessellated Part with PMI\n\nVisualizations can be generated without generating a spreadsheet or CSV files.\nSee the Output Format option below.\n\nVisualizations are viewed in web browsers that are not optimized for large models.\nOlder versions of web browsers are not supported."
     tooltip::tooltip $buttons(optVIZTPGMSH) "Show a tessellation wireframe mesh based on the tessellated\nfaces or surfaces.  Not recommended for very large models."
     tooltip::tooltip $buttons(optVIZFEALVS) "The length of load vectors can be scaled by their magnitude.\nLoad vectors are always colored by their magnitude."
     tooltip::tooltip $buttons(optVIZFEADStail) "The length of displacement vectors with a tail are scaled by\ntheir magnitude.  Vectors without a tail are not.\nDisplacement vectors are always colored by their magnitude.\nLoad vectors always have a tail."
-    tooltip::tooltip $buttons(optVIZBRP) "Boundary representation part geometry is visualized ONLY if one of the above types\nof visualization features is selected AND is present in the STEP file.\n\nSee Help > B-rep Geometry\nSee Examples > Part with PMI\nSee Websites > STEP File Viewers for other b-rep geometry viewers\n\nSome STEP B-rep geometry cannot be viewed.\n\nVisualizations are viewed in web browsers that are not optimized for large models.\nOlder versions of web browsers are not supported."
+    tooltip::tooltip $buttons(optVIZBRP) "See Help > Part Geometry\nSee Examples > Part with PMI\nSee Websites > STEP File Viewers for other part geometry viewers\n\nSome STEP part geometry cannot be viewed.\n\nVisualizations are viewed in web browsers that are not optimized for large models.\nOlder versions of web browsers are not supported."
     tooltip::tooltip $foptv4 "For 'By View' PMI colors, each Saved View is assigned a different color.\nIf there are one or no Saved Views, then 'Random' PMI colors are used.\n\nFor 'Random' PMI colors, each 'annotation occurrence' is assigned a\ndifferent color to help differentiate one from another."
     set tt "FEM nodes, elements, boundary conditions, loads, and displacements are visualized.\n\nSee Help > AP209 Finite Element Model\nSee Help > User Guide (section 7.1.4)\nSee Examples > AP209 Finite Element Model\n\nVisualizations can be generated without generating a spreadsheet or CSV files.\nSee the Output Format option below.\n\nVisualizations are viewed in web browsers that are not optimized for large models.\nOlder versions of web browsers are not supported."
     tooltip::tooltip $foptv7 $tt
@@ -674,7 +674,7 @@ proc guiOpenSTEPFile {} {
     }
   }
   
-  catch {tooltip::tooltip $foptf "This option is a convenient way to open a STEP file in other applications.\nThe pull-down menu will contain some applications that can open a STEP\nfile such as STEP viewers, browsers, and conformance checkers, only if\nthey are installed in their default location.\n\nSee Websites > STEP File Viewers  and  Help > NIST Disclaimer\n\nThe 'Tree View (for debugging)' option rearranges and indents the\nentities to show the hierarchy of information in a STEP file.  The 'tree view'\nfile (myfile-sfa.txt) is written to the same directory as the STEP file or to the\nsame user-defined directory specified in the Spreadsheet tab.  Including\nGeometry or Styled_item can make the 'tree view' file very large.\n\nThe 'Default STEP Viewer' option will open the STEP file in whatever\napplication is associated with STEP (.stp) files."}
+  catch {tooltip::tooltip $foptf "This option is a convenient way to open a STEP file in other applications.\nThe pull-down menu will contain some applications that can open a STEP\nfile such as STEP viewers, browsers, and conformance checkers, only if\nthey are installed in their default location.\n\nSee Websites > STEP File Viewers  and  Help > NIST Disclaimer\n\nThe 'Tree View (for debugging)' option rearranges and indents the\nentities to show the hierarchy of information in a STEP file.  The 'tree view'\nfile (myfile-sfa.txt) is written to the same directory as the STEP file or to the\nsame user-defined directory specified in the Spreadsheet tab.  Including\nGeometry or Styled_item can make the 'tree view' file very large.  The\n'tree view' might not process /*comments*/ in a STEP file correctly.\n\nThe 'Default STEP Viewer' option will open the STEP file in whatever\napplication is associated with STEP (.stp) files."}
   pack $foptf -side top -anchor w -pady {5 2} -padx 10 -fill both
 
 # output format, checkbuttons are used for pseudo-radiobuttons
@@ -886,7 +886,7 @@ proc guiSpreadsheet {} {
 #-------------------------------------------------------------------------------
 # help menu
 proc guiHelpMenu {} {
-  global Examples Help opt nistVersion mytemp ifcsvrDir virtualDir contact
+  global Examples Help opt nistVersion mytemp ifcsvrDir virtualDir contact excelVersion
 
   $Help add command -label "User Guide (pdf)" -command {showUserGuide}
   $Help add command -label "What's New" -command {whatsNew}
@@ -1334,6 +1334,24 @@ The log file is written to myfile-sfa.log.  In a log file, error messages are hi
 
   $Help add separator
     
+  $Help add command -label "Part Geometry" -command {
+outputMsg "\nPart Geometry --------------------------------------------------------------" blue
+outputMsg "Part geometry (b-rep) is visualized in any STEP file where the geometry is modeled with
+advanced_brep_shape_representation or manifold_surface_shape_representation or manifold_solid_brep.
+
+The color of part geometry is ignored.  Part geometry might also include supplemental geometry.  In
+some cases, curved surfaces might appear jagged or incomplete.  Some part geometry cannot be viewed.
+
+See Examples > Part with PMI
+See Websites > STEP File Viewers
+
+Some other STEP file viewers cannot view PMI, tessellated part geometry, and finite element models.
+However, those viewers are usually better at viewing part geometry than this software.
+
+The part geometry visualization is based on OpenCascade and pythonOCC.  See Help > About"
+    .tnb select .tnb.status
+  }
+    
   $Help add command -label "Graphical PMI" -command {
 outputMsg "\nGraphical PMI --------------------------------------------------------------" blue
 outputMsg "Graphical PMI (PMI Presentation) annotations can be viewed in a web browser.  The visualization
@@ -1347,25 +1365,6 @@ See Help > User Guide (sections 7.1.1)
 See Help > PMI Presentation
 See Examples > Part with PMI
 See Examples > Sample STEP Files"
-    .tnb select .tnb.status
-  }
-    
-  $Help add command -label "B-rep Geometry" -command {
-outputMsg "\nB-rep Geometry -------------------------------------------------------------" blue
-outputMsg "Boundary representation (b-rep) part geometry is visualized ONLY if Graphical PMI or AP242
-Tessellated Part Geometry is also visualized and present in the STEP file.  The color of b-rep
-geometry is ignored.  B-rep geometry might also include supplemental geometry.
-
-In some cases, curved surfaces might appear jagged or incomplete.  Some b-rep geometry cannot be
-viewed.
-
-See Examples > Part with PMI
-See Websites > STEP File Viewers for other b-rep geometry viewers
-
-Some other STEP file viewers cannot view PMI, tessellated part geometry, and finite element models.
-However, those viewers are usually better at viewing b-rep geometry than this software.
-
-B-rep geometry visualization is based on OpenCascade and pythonOCC.  See Help > About"
     .tnb select .tnb.status
   }
     
@@ -1390,7 +1389,7 @@ planes and cylinders are ignored.  All bounded and unbounded planes are shown wi
   $Help add command -label "AP242 Tessellated Part Geometry" -command {
 outputMsg "\nAP242 Tessellated Part Geometry --------------------------------------------" blue
 outputMsg "Parts modeled with tessellated geometry can be viewed in a web browser (Options tab).  Tessellated
-geometry is supported by AP242 and is supplementary to boundary representation (b-rep) geometry.
+geometry is supported by AP242 and is supplementary to part geometry.
 
 ** Parts in an assembly might have the wrong position and orientation or be missing. **
 
@@ -1510,11 +1509,11 @@ logo below for the NIST website.
 See Help > Disclaimer and NIST Disclaimer
 
 Credits
-- Generating spreadsheets:        Microsoft Excel (https://products.office.com/excel)
-- Reading and parsing STEP files: IFCsvr (https://groups.yahoo.com/neo/groups/ifcsvr-users/info)
-- Visualizing B-rep geometry:     OpenCascade (https://www.opencascade.com/) and
-                                  pythonOCC (http://www.pythonocc.org/)
-                                  See Websites > STEP to X3D Translation"
+- Generating spreadsheets:         Microsoft Excel (https://products.office.com/excel)
+- Reading and parsing STEP files:  IFCsvr (https://groups.yahoo.com/neo/groups/ifcsvr-users/info)
+- Visualizing B-rep part geometry: OpenCascade (https://www.opencascade.com/) and
+                                   pythonOCC (http://www.pythonocc.org/)
+                                   See Websites > STEP to X3D Translation"
     } else {
       outputMsg "\nThis version was built from the NIST STEP File Analyzer and Viewer source\ncode available on GitHub.  https://github.com/usnistgov/SFA"
     }
@@ -1547,8 +1546,9 @@ Credits
       outputMsg " pf32  $pf32"
       if {$pf64 != ""} {outputMsg " pf64  $pf64"}
       outputMsg "Tcl variables" red
-      outputMsg " $tcl_platform(os) $tcl_platform(osVersion)"
+      outputMsg " [info patchlevel] $tcl_platform(os) $tcl_platform(osVersion)"
       outputMsg " twapi [package versions twapi]"
+      outputMsg " Excel $excelVersion"
     }
     .tnb select .tnb.status
   }
@@ -1645,7 +1645,7 @@ in this software, NIST does not necessarily endorse the views expressed, or conc
 presented on those web sites.
 
 This software uses Microsoft Excel and IFCsvr that are covered by their own End-User License
-Agreements.  The B-rep geometry viewer is based on software from OpenCascade and pythonOCC.
+Agreements.  The B-rep part geometry viewer is based on software from OpenCascade and pythonOCC.
 
 See Help > NIST Disclaimer and Help > About"
     .tnb select .tnb.status
@@ -1656,7 +1656,7 @@ The Examples menu of this software provides links to several sources of STEP fil
 
 Any mention of commercial products or references to web pages in this software is for information purposes only; it does not imply recommendation or endorsement by NIST.  For any of the web links in this software, NIST does not necessarily endorse the views expressed, or concur with the facts presented on those web sites.
 
-This software uses Microsoft Excel and IFCsvr that are covered by their own End-User License Agreements.  The B-rep geometry viewer is based on software from OpenCascade and pythonOCC.
+This software uses Microsoft Excel and IFCsvr that are covered by their own End-User License Agreements.  The B-rep part geometry viewer is based on software from OpenCascade and pythonOCC.
 
 See Help > NIST Disclaimer and Help > About"
   

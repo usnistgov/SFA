@@ -1478,8 +1478,7 @@ proc checkP21e3 {fname} {
     if {[string first "DATA\;" $line] == 0} {
       set nname $fname
       break
-    } elseif {[string first "4\;1" $line] != -1 || \
-              [string first "ANCHOR\;" $line] == 0 || \
+    } elseif {[string first "ANCHOR\;" $line] == 0 || \
               [string first "REFERENCE\;" $line] == 0 || \
               [string first "SIGNATURE\;" $line] == 0} {
       set p21e3 1

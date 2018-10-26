@@ -1,6 +1,6 @@
 #-------------------------------------------------------------------------------
 # version numbers, software and user guide, contact
-proc getVersion {}   {return 3.08}
+proc getVersion {}   {return 3.10}
 proc getVersionUG {} {return 3.0}
 proc getContact {}   {return [list "Robert Lipman" "robert.lipman@nist.gov"]}
 
@@ -11,9 +11,9 @@ proc whatsNew {} {
   if {$sfaVersion > 0 && $sfaVersion < [getVersion]} {outputMsg "\nThe previous version of the STEP File Analyzer and Viewer was: $sfaVersion" red}
 
 outputMsg "\nWhat's New (Version: [getVersion]  Updated: [string trim [clock format $progtime -format "%e %b %Y"]])" blue
-outputMsg "- Graphical PMI colored by saved view
+outputMsg "- Visualization of Part Geometry (See Help > Part Geometry)
+- Graphical PMI colored by saved view
 - Improved processing of tolerance zone form, supplemental geometry, and annotation placeholder
-- Visualization of boundary representation (b-rep) geometry (See Help > B-rep Geometry)
 - Explanation of Report errors (Help > Syntax Errors)
 - Support for AP242 Edition 2 DIS (Draft International Standard)
 - More STEP related Websites

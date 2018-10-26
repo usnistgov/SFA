@@ -90,10 +90,11 @@ proc checkValues {} {
     foreach b {userentity userentityopen} {lappend butDisabled $b}
     set userEntityList {}
     set allNone -1
-    if {$opt(VIZFEA) == 0 && $opt(VIZPMI) == 0 && $opt(VIZTPG) == 0} {
+    if {$opt(VIZFEA) == 0 && $opt(VIZPMI) == 0 && $opt(VIZTPG) == 0 && $opt(VIZBRP) == 0} {
       set opt(VIZFEA) 1
       set opt(VIZPMI) 1
       set opt(VIZTPG) 1
+      set opt(VIZBRP) 1
     }
   } else {
     set opt(PR_STEP_FEAT) 1
@@ -176,13 +177,6 @@ proc checkValues {} {
       if {!$opt(PMISEM)} {lappend butNormal optPR_STEP_PRES}
     }
     foreach b {optVIZTPGMSH} {lappend butDisabled $b}
-  }
-  
-# B-rep visualization
-  if {$opt(VIZFEA) || $opt(VIZPMI) || $opt(VIZTPG)} {
-    foreach b {optVIZBRP} {lappend butNormal $b}
-  } else {
-    foreach b {optVIZBRP} {lappend butDisabled $b}
   }
   
 # user-defined entity list
