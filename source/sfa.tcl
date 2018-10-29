@@ -428,7 +428,7 @@ if {$opt(XLSCSV) == "CSV"} {
   .tnb select .tnb.status
 } elseif {$opt(XLSCSV) == "None"} {
   outputMsg " "
-  errorMsg "No spreadsheet will be generated, only visualizations (Options tab)"
+  errorMsg "No spreadsheet will be generated, only views (Options tab)"
   .tnb select .tnb.status
 }
 

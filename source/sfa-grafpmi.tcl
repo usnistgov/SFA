@@ -81,9 +81,9 @@ proc gpmiAnnotation {entType} {
   if {[info exist pmiHeading]} {unset pmiHeading}
   if {[info exists ent]} {unset ent}
 
-  if {$opt(PMIGRF) && $opt(XLSCSV) != "None"} {outputMsg " Adding PMI Presentation Report" blue}
+  if {$opt(PMIGRF) && $opt(XLSCSV) != "None"} {outputMsg " Adding PMI Presentation Analysis" blue}
   if {$opt(VIZPMI)} {
-    set msg " Adding PMI Presentation Visualization"
+    set msg " Adding PMI Presentation View"
     if {$opt(XLSCSV) == "None"} {append msg " ([formatComplexEnt $entType])"}
     outputMsg $msg green
   }
@@ -189,7 +189,7 @@ proc gpmiAnnotationReport {objEntity} {
 
     if {$opt(DEBUG1) && $geomType != "polyline"} {outputMsg "$ind ENT $entLevel #$objID=$objType (ATR=[$objAttributes Count])" blue}
 
-# check if there are rows with ao for a report and not visualize
+# check if there are rows with ao for a report and not view
     if {$gpmiEnts($objType)} {
       set gpmiID $objID
       if {![info exists gpmiIDRow($ao,$gpmiID)] && $opt(PMIGRF) && $opt(XLSCSV) != "None" && !$opt(VIZPMI)} {
@@ -618,7 +618,7 @@ proc gpmiAnnotationReport {objEntity} {
                         set x3dPoint(y) [expr {-1.*$objValue*sin($angle)+[lindex $circleCenter 1]}]
                         set x3dPoint(x) [lindex $circleCenter 0]
                       } else {
-                        set msg "Circles in PMI annotations might have the wrong orientation in the visualization."
+                        set msg "Circles in PMI annotations might have the wrong orientation in the view."
                         errorMsg " $msg"
                         if {[lsearch $x3dMsg $msg] == -1} {lappend x3dMsg $msg}
                         set x3dPoint(x) [expr {$objValue*cos($angle)+[lindex $circleCenter 0]}]
@@ -644,7 +644,7 @@ proc gpmiAnnotationReport {objEntity} {
                       set curveTrim([$a0 Name]) $val
                     }
                   }
-                  set msg "Circles in PMI annotations might have the wrong orientation in the visualization."
+                  set msg "Circles in PMI annotations might have the wrong orientation in the view."
                   errorMsg " $msg"
                   if {[lsearch $x3dMsg $msg] == -1} {lappend x3dMsg $msg}
                 }

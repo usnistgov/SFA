@@ -279,7 +279,7 @@ proc genExcel {{numFile 0}} {
       catch {$buttons(ofExcel) configure -state disabled}
     }
 
-# visualization only
+# view only
   } else {
     set useXL 0
   }
@@ -496,7 +496,7 @@ proc genExcel {{numFile 0}} {
   }
     
 # -------------------------------------------------------------------------------------------------
-# check if there is anything visualization
+# check if there is anything to view
   foreach typ {PMI TPG FEA} {set viz($typ) 0}
   if {$opt(VIZPMI)} {foreach ao $aoEntTypes {if {[info exists entCount($ao)]} {set viz(PMI) 1}}}
   if {$opt(VIZTPG)} {if {[info exists entCount(tessellated_solid)] || [info exists entCount(tessellated_shell)]} {set viz(TPG) 1}}
@@ -536,7 +536,7 @@ proc genExcel {{numFile 0}} {
           set msg "CSV files will"
         }
       } else {
-        set msg "Visualizations might"
+        set msg "Views might"
       }
       append msg " NOT be generated for entities listed in\n [truncFileName [file nativename $cfile]]:"
       outputMsg " "
@@ -696,7 +696,7 @@ proc genExcel {{numFile 0}} {
   } elseif {$opt(XLSCSV) == "CSV"} {
     outputMsg "Generating STEP Entity CSV files" blue
   } elseif {$opt(XLSCSV) == "None"} {
-    outputMsg "Generating Visualization"
+    outputMsg "Generating View"
   }
   
 # initialize variables
@@ -736,7 +736,7 @@ proc genExcel {{numFile 0}} {
         errorMsg "Select some other entity types to Process in the Options tab."
         catch {unset entsIgnored}
       } else {
-        errorMsg "There is nothing in the STEP file to view based on the Visualize selections (Options tab)."
+        errorMsg "There is nothing in the STEP file to view based on the View selections (Options tab)."
       }
       break
     }
@@ -1238,7 +1238,7 @@ proc addHeaderWorksheet {numFile fname} {
           after 1000
           openURL https://www.nist.gov/services-resources/software/ifc-file-analyzer
         } elseif {$objAttr == "STRUCTURAL_FRAME_SCHEMA"} {
-          errorMsg "Use SteelVis to visualize CIS/2 files.  https://go.usa.gov/s8fm"
+          errorMsg "Use SteelVis to view CIS/2 files.  https://go.usa.gov/s8fm"
         }
 
 # other File attributes

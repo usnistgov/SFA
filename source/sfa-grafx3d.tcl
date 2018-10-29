@@ -27,7 +27,7 @@ proc x3dFileStart {} {
   puts $x3dFile "\n<body><font face=\"arial\">\n<h3>$title:  $name</h3>"
   puts $x3dFile "\n<table><tr><td valign='top' width='85%'>"
   puts $x3dFile "Part geometry can also be viewed with other <a href=\"https://www.cax-if.org/step_viewers.html\">STEP file viewers</a>."
-  puts $x3dFile "  Part color is ignored.  Part geometry might include supplemental geometry."
+  puts $x3dFile "  Part color is ignored."
   if {$viz(PMI)} {puts $x3dFile "  Some Graphical PMI might not have equivalent Semantic PMI in the STEP file."}
   if {$viz(TPG) && [info exist entCount(next_assembly_usage_occurrence)]} {
     puts $x3dFile "  ** Parts in an assembly might have the wrong position and orientation or be missing. **"
@@ -45,7 +45,7 @@ proc x3dFileStart {} {
   
 # read tessellated geometry separately because of IFCsvr limitations
   if {($viz(PMI) && [info exists entCount(tessellated_annotation_occurrence)]) || $viz(TPG)} {tessReadGeometry}
-  outputMsg " Writing Visualization to: [truncFileName [file nativename $x3dFileName]]" green
+  outputMsg " Writing View to: [truncFileName [file nativename $x3dFileName]]" green
 
 # coordinate min, max, center
   if {$x3dMax(x) != -1.e10} {
@@ -97,7 +97,7 @@ proc x3dTessGeom {objID objEntity1 ent1} {
 # set default color
       set x3dColor [lindex $defaultColor 0]
       set spec "specularColor='"
-      foreach c [lindex $defaultColor 0] {append spec "[trimNum [expr {$c*0.7}]] "}
+      foreach c [lindex $defaultColor 0] {append spec "[trimNum [expr {$c*0.3}]] "}
       set spec [string range $spec 0 end-1]'
       set emit ""
       tessSetColor $objEntity1 $tsID
@@ -730,10 +730,10 @@ proc x3dBrepGeom {} {
 
 # stp2x3d did not finish
       } else {
-        errorMsg " ERROR generating visualization of part geometry"
+        errorMsg " ERROR generating view of part geometry"
       }
     } elseif {$sfaType == "CL"} {
-      errorMsg "Run the GUI version first to visualize part geometry in the command-line version."
+      errorMsg "Run the GUI version first to view part geometry in the command-line version."
     }
   } emsg]} {
     errorMsg " ERROR adding Part Geometry ($emsg)"
@@ -1308,14 +1308,14 @@ proc openX3DOM {{fn ""}} {
     set f7 0
     set ok 0
 
-# check that there is a file to visualize    
+# check that there is a file to view   
     if {[info exists x3dFileName]} {if {[file exists $x3dFileName]} {set ok 1}}
     if {$ok} {
       set fn $x3dFileName
 
 # no file, show message
     } elseif {$opt(VIZPMI) || $opt(VIZTPG) || $opt(VIZFEA) || $opt(VIZBRP)} {
-      if {$opt(XLSCSV) == "None"} {errorMsg "There is nothing in the STEP file to view based on the Visualize selections (Options tab)."}
+      if {$opt(XLSCSV) == "None"} {errorMsg "There is nothing in the STEP file to view based on the View selections (Options tab)."}
       return
     }
   }
@@ -1331,14 +1331,14 @@ proc openX3DOM {{fn ""}} {
 
 # open file (.html) in web browser
   if {$open} {
-    outputMsg "\nOpening Visualization in the default Web Browser: [file tail $fn]" green
+    outputMsg "\nOpening View in the default Web Browser: [file tail $fn]" green
     catch {.tnb select .tnb.status}
     set lastX3DOM $fn
     if {[catch {
       exec {*}[auto_execok start] "" [file nativename $fn]
     } emsg]} {
       if {[string first "UNC" $emsg] == -1} {
-        errorMsg "ERROR opening Visualization file: $emsg\n Open [truncFileName [file nativename $fn]]\n in a web browser that supports x3dom https://www.x3dom.org"
+        errorMsg "ERROR opening View file: $emsg\n Open [truncFileName [file nativename $fn]]\n in a web browser that supports x3dom https://www.x3dom.org"
       }
     }
     update idletasks

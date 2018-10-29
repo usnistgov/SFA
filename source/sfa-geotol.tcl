@@ -71,7 +71,7 @@ proc spmiGeotolStart {entType} {
   if {[info exists pmiHeading]} {unset pmiHeading}
   if {[info exists ent]}        {unset ent}
 
-  outputMsg " Adding PMI Representation Report" blue
+  outputMsg " Adding PMI Representation Analysis" blue
   lappend spmiEntity $entType
   
   if {[string first "AP203" $stepAP] == 0 || [string first "AP214" $stepAP] == 0} {

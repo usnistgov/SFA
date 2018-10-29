@@ -1036,7 +1036,7 @@ proc pmiFormatColumns {str} {
     } elseif {[string first "PMI Representation" $str] != -1} {
       set rs $spmiRow($thisEntType)
       if {$opt(XLSBUG1) > 0 && ![file exists [file nativename C:/Windows/Fonts/ARIALUNI.TTF]]} {
-        errorMsg "Excel might not show some GD&T symbols correctly in PMI Representation reports.  The missing\nsymbols will appear as question mark inside a square.  The likely cause is a missing font\n'Arial Unicode MS' from the font file 'ARIALUNI.TTF'.  Find a copy of this font file and\ninstall it or update Excel."
+        errorMsg "Excel might not show some GD&T symbols correctly in PMI Representation analysis.  The missing\nsymbols will appear as question mark inside a square.  The likely cause is a missing font\n'Arial Unicode MS' from the font file 'ARIALUNI.TTF'.  Find a copy of this font file and\ninstall it or update Excel."
         incr opt(XLSBUG1) -1
       } elseif {$opt(XLSBUG1) < 30 && [file exists [file nativename C:/Windows/Fonts/ARIALUNI.TTF]]} {
         set opt(XLSBUG1) 30
@@ -1295,7 +1295,7 @@ proc checkForReports {entType} {
       errorMsg "ERROR adding PMI Representation to '[formatComplexEnt $entType]'\n  $emsg"
     }
 
-# check for AP209 analysis entities that contain information to be processed for visualization
+# check for AP209 analysis entities that contain information to be processed for view
   } elseif {$entType == "curve_3d_element_representation"   || \
             $entType == "surface_3d_element_representation" || \
             $entType == "volume_3d_element_representation"  || \
@@ -1433,7 +1433,7 @@ proc getSchemaFromFile {fname {msg 0}} {
 
 # check for CIS/2 or IFC files
         if {[string first "STRUCTURAL_FRAME_SCHEMA" $fsline] != -1} {
-          errorMsg "Use SteelVis to visualize CIS/2 files.  https://go.usa.gov/s8fm"
+          errorMsg "Use SteelVis to view CIS/2 files.  https://go.usa.gov/s8fm"
         } elseif {[string first "IFC" $fsline] != -1} {
           errorMsg "Use the IFC File Analyzer with IFC files."
           after 1000

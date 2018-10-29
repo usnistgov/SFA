@@ -91,7 +91,7 @@ proc openMultiFile {{ask 1}} {
       if {$ask != 2} {outputMsg "($lenfilelist) STEP files found" blue}
       set askstr "Spreadsheets"
       if {$opt(XLSCSV) == "CSV"}  {set askstr "CSV files"}
-      if {$opt(XLSCSV) == "None"} {set askstr "Visualizations"}
+      if {$opt(XLSCSV) == "None"} {set askstr "Views"}
 
       if {$ask != 2} {
         set choice [tk_messageBox -title "Generate $askstr?" -type yesno -default yes -message "Do you want to Generate $askstr for ($lenfilelist) STEP files ?" -icon question]
@@ -310,7 +310,7 @@ proc openMultiFile {{ask 1}} {
         }
         set msg "\n($nfile) "
         if {$opt(XLSCSV) == "None"} {
-          append msg "Visualizations"
+          append msg "Views"
         } elseif {$useXL} {
           append msg "Spreadsheets"
         } elseif {$opt(XLSCSV) == "CSV"} {

@@ -66,7 +66,7 @@ set helpText "\nUsage: sfa-cl.exe myfile.stp \[csv\] \[viz\] \[noopen\] \[file\]
 
 Optional command line settings:
   csv     Generate CSV files                                                                              
-  viz     Generate only Visualizations and no spreadsheet or CSV files                     
+  viz     Generate only Views and no spreadsheet or CSV files                     
   noopen  Do not open the spreadsheet after it has been generated
   file    Name of custom options file, e.g., C:/mydir/myoptions.dat
           This file should be similar to STEP-File-Analyzer-options.dat in your home directory.

@@ -4,7 +4,7 @@ proc tessPart {entType} {
   global tessEdgeFile tessEdgeFileName tessPartFile tessPartFileName tessSuppGeomFile tessSuppGeomFileName
 
   if {$opt(DEBUG1)} {outputMsg "START tessPart $entType" red}
-  set msg " Adding Tessellated Part Visualization"
+  set msg " Adding Tessellated Part View"
   if {$opt(XLSCSV) == "None"} {append msg " ($entType)"}
 
 # edge, faces

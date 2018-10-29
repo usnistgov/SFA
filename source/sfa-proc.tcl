@@ -50,7 +50,7 @@ proc checkValues {} {
   } elseif {$opt(XLSCSV) == "CSV"} {
     catch {$buttons(genExcel) configure -text "Generate CSV Files"}
   } elseif {$opt(XLSCSV) == "None"} {
-    catch {$buttons(genExcel) configure -text "Generate Visualization"}
+    catch {$buttons(genExcel) configure -text "Generate View"}
   }
   if {![info exists useXL]} {set useXL 1}
 
@@ -122,7 +122,7 @@ proc checkValues {} {
     lappend butNormal optPR_STEP_QUAN
   }
 
-# graphical PMI visualization
+# graphical PMI view
   if {$opt(VIZPMI)} {
     foreach b {gpmiColor0 gpmiColor1 gpmiColor2 gpmiColor3 linecolor optVIZPMIVP} {lappend butNormal $b}
     if {$opt(XLSCSV) != "None"} {
@@ -133,7 +133,7 @@ proc checkValues {} {
     foreach b {gpmiColor0 gpmiColor1 gpmiColor2 gpmiColor3 linecolor optVIZPMIVP} {lappend butDisabled $b}
   }
 
-# FEM visualization
+# FEM view
   if {$opt(VIZFEA)} {
     foreach b {optVIZFEABC optVIZFEALV optVIZFEADS} {lappend butNormal $b}
     if {$opt(VIZFEALV)} {
@@ -164,7 +164,7 @@ proc checkValues {} {
     }
   }
 
-# tessellated geometry visualization
+# tessellated geometry view
   if {$opt(VIZTPG)} {
     if {$opt(XLSCSV) != "None"} {
       set opt(PR_STEP_PRES) 1
@@ -1800,7 +1800,7 @@ proc installIFCsvr {} {
     append msg "\n\nSee Help > Supported STEP APs to see which type of STEP files are supported."
     append msg "\n\nIf there are problems with the IFCsvr installation, contact [lindex $contact 0] ([lindex $contact 1])."
     set choice [tk_messageBox -type ok -message $msg -icon info -title "Install IFCsvr"]
-    outputMsg "\nWait for the installation to complete before generating a spreadsheet or visualization.\n" red
+    outputMsg "\nWait for the installation to complete before generating a spreadsheet or view.\n" red
   } elseif {![info exists buttons]} {
     outputMsg "\nRerun this program after the installation has completed to process a STEP file.\n"
   }
