@@ -848,7 +848,7 @@ proc feaLoads {entType} {
             set nsize [trimNum [expr {$nsize*0.9+$size*0.1}]]
           }
         } elseif {$type == "displacements"} {
-          if {$feaDispMag(max) != 0 && $opt(VIZFEADStail)} {
+          if {$feaDispMag(max) != 0 && !$opt(VIZFEADSntail)} {
             set nsize [trimNum [expr {($mag/abs($feaDispMag(max)))*$size}] 5]
           }
         }
@@ -948,7 +948,7 @@ proc feaArrow {r g b type num} {
   switch $type {
     npressure -
     displacement {
-      if {$opt(VIZFEADStail) || $type == "npressure"} {
+      if {!$opt(VIZFEADSntail) || $type == "npressure"} {
         set t1 0
         set t2 1
         set h1 [expr {$t2+$h1}]
@@ -965,7 +965,7 @@ proc feaArrow {r g b type num} {
   set arrow \n
   
 # tail
-  if {$opt(VIZFEADStail) || $type != "displacement"} {
+  if {!$opt(VIZFEADSntail) || $type != "displacement"} {
     append arrow "  <Shape><Appearance><Material emissiveColor='$r $g $b'></Material></Appearance>"
     append arrow "<IndexedLineSet coordIndex='0 1 -1'><Coordinate point='$t1 0 0 $t2 0 0'></Coordinate></IndexedLineSet></Shape>"
   }

@@ -66,7 +66,8 @@ set helpText "\nUsage: sfa-cl.exe myfile.stp \[csv\] \[viz\] \[noopen\] \[file\]
 
 Optional command line settings:
   csv     Generate CSV files                                                                              
-  viz     Generate only Views and no spreadsheet or CSV files                     
+  viz     Only generate Views and no spreadsheet or CSV files
+  stats   Only report characteristics of the STEP file
   noopen  Do not open the spreadsheet after it has been generated
   file    Name of custom options file, e.g., C:/mydir/myoptions.dat
           This file should be similar to STEP-File-Analyzer-options.dat in your home directory.
@@ -134,32 +135,25 @@ set ifcsvrDir [file join $pf32 IFCsvrR300 dll]
 if {![file exists [file join $ifcsvrDir IFCsvrR300.dll]]} {installIFCsvr; exit} 
 
 # -----------------------------------------------------------------------------------------------------
-# initialize variables
-foreach id {XL_OPEN XL_KEEPOPEN XL_LINK1 XL_FPREC XL_SORT LOGFILE \
-            VALPROP PMIGRF PMISEM INVERSE DEBUG1 \
-            VIZPMI VIZTPG VIZTPGMSH VIZPMIVP VIZFEA VIZFEABC VIZFEALV VIZFEALVS VIZFEADS VIZFEADStail VIZBRP VIZBRPmsg \
-            PR_STEP_AP242 PR_USER PR_STEP_KINE PR_STEP_COMP PR_STEP_COMM PR_STEP_GEOM PR_STEP_QUAN \
-            PR_STEP_FEAT PR_STEP_PRES PR_STEP_TOLR PR_STEP_REPR PR_STEP_CPNT PR_STEP_SHAP} {set opt($id) 1}
+# initialize variables, set opt to 1
+foreach id { \
+  DISPGUIDE1 FIRSTTIME LOGFILE PMIGRF PMISEM \
+  PR_STEP_AP242 PR_STEP_COMM PR_STEP_COMP PR_STEP_FEAT PR_STEP_KINE \
+  PR_STEP_PRES PR_STEP_QUAN PR_STEP_REPR PR_STEP_SHAP PR_STEP_TOLR \
+  VALPROP VIZFEABC VIZFEADS VIZFEALV \
+  XL_LINK1 XL_OPEN \
+} {set opt($id) 1}
 
-set opt(DEBUG1) 0
-set opt(DEBUGINV) 0
-set opt(FIRSTTIME) 1
+# set opt to 0
+foreach id { \
+  CRASH DEBUG1 DEBUGINV indentGeomtry indentStyledItem INVERSE \
+  PR_STEP_CPNT PR_STEP_GEOM PR_USER VIZBRP VIZFEA VIZFEADSntail \
+  VIZFEALVS VIZPMI VIZPMIVP VIZTPG VIZTPGMSH \
+  writeDirType XL_FPREC XL_KEEPOPEN XL_SORT \
+} {set opt($id) 0}
+
 set opt(gpmiColor) 3
-set opt(INVERSE) 0
-set opt(PR_STEP_CPNT) 0
-set opt(PR_STEP_GEOM)  0
-set opt(PR_USER) 0
-set opt(VIZFEA) 0
-set opt(VIZPMI) 0
-set opt(VIZBRP) 0
-set opt(VIZFEALVS) 0
-set opt(VIZPMIVP) 0
-set opt(VIZTPGMSH) 0
-set opt(writeDirType) 0
-set opt(XL_FPREC) 0
-set opt(XL_KEEPOPEN) 0
 set opt(XL_ROWLIM) 1003
-set opt(XL_SORT) 0
 set opt(XLSBUG1) 30
 set opt(XLSCSV) Excel
 
@@ -199,7 +193,7 @@ set customFile ""
 for {set i 1} {$i <= 10} {incr i} {
   set arg [lindex $argv $i]
   set arg1 [string tolower $arg]
-  if {$arg != "" && $arg1 != "csv" && $arg1 != "viz" && $arg1 != "noopen"} {
+  if {$arg != "" && $arg1 != "csv" && $arg1 != "viz" && $arg1 != "noopen" && $arg1 != "stats"} {
     if {[file exists $arg]} {
       set customFile [file nativename $arg]
       puts "\n*** Using custom options file: [truncFileName $customFile]"
@@ -246,21 +240,10 @@ for {set i 1} {$i <= 10} {incr i} {
     }                              
     if {[string first "viz" $arg] == 0} {
       set opt(XLSCSV) "None"
-      set opt(PMIGRF) 0
-      set opt(PMISEM) 0
-      set opt(VALPROP) 0
-      set opt(VIZBRP) 1
-      set opt(VIZFEA) 1
-      set opt(VIZFEABC) 1
-      set opt(VIZFEADS) 1
-      set opt(VIZFEADStail) 1
-      set opt(VIZFEALV) 1
-      set opt(VIZFEALVS) 0
-      set opt(VIZPMI) 1
-      set opt(VIZPMIVP) 0
-      set opt(VIZTPG) 1
-      set opt(VIZTPGMSH) 0
-    }                              
+      foreach id {VIZBRP VIZFEA VIZFEABC VIZFEADS VIZFEALV VIZPMI VIZTPG} {set opt($id) 1}
+      foreach id {PMIGRF PMISEM VALPROP VIZFEADSntail VIZFEALVS VIZPMIVP VIZTPGMSH} {set opt($id) 0}
+    }
+    if {[string first "sta" $arg] == 0} {set statsOnly 1}
   }
 }
 

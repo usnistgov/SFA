@@ -208,7 +208,7 @@ proc gpmiAnnotationReport {objEntity} {
       incr iCompCurveSeg
     }
     
-    if {[string first "occurrence" $ao] != -1 && $objType != $ao}  {
+    if {[string first "occurrence" $ao] != -1 && $objType != $ao && $opt(XLSCSV) != "None"}  {
       if {$entLevel == 2 && \
           $objType != "geometric_curve_set" && $objType != "annotation_fill_area" && $objType != "presentation_style_assignment" && \
           $objType != "geometric_set" && [string first "tessellated_geometric_set" $objType] == -1} {
@@ -618,7 +618,7 @@ proc gpmiAnnotationReport {objEntity} {
                         set x3dPoint(y) [expr {-1.*$objValue*sin($angle)+[lindex $circleCenter 1]}]
                         set x3dPoint(x) [lindex $circleCenter 0]
                       } else {
-                        set msg "Circles in PMI annotations might have the wrong orientation in the view."
+                        set msg "Circles in PMI annotations might be shown with the wrong orientation."
                         errorMsg " $msg"
                         if {[lsearch $x3dMsg $msg] == -1} {lappend x3dMsg $msg}
                         set x3dPoint(x) [expr {$objValue*cos($angle)+[lindex $circleCenter 0]}]
@@ -644,7 +644,7 @@ proc gpmiAnnotationReport {objEntity} {
                       set curveTrim([$a0 Name]) $val
                     }
                   }
-                  set msg "Circles in PMI annotations might have the wrong orientation in the view."
+                  set msg "Circles in PMI annotations might be shown with the wrong orientation."
                   errorMsg " $msg"
                   if {[lsearch $x3dMsg $msg] == -1} {lappend x3dMsg $msg}
                 }
@@ -688,7 +688,7 @@ proc gpmiAnnotationReport {objEntity} {
                     #set msg "Annotation placeholder leaders lines might not have the correct anchor points."
                     #if {[lsearch $x3dMsg $msg] == -1} {lappend x3dMsg $msg}
                   }
-                  if {[string first "tessellated" $ent1] != -1} {
+                  if {[string first "tessellated" $ent1] != -1 && $opt(XLSCSV) != "None"} {
                     set ok 1
                     foreach ann [list annotation_curve_occurrence_and_geometric_representation_item annotation_curve_occurrence] {
                       if {[info exist entCount($ann)] && $ok} {
@@ -817,7 +817,7 @@ proc gpmiAnnotationReport {objEntity} {
 
 # look for invalid 'name' values                  
                   set invalid ""
-                  if {[string first "occurrence" $ao] != -1} {
+                  if {[string first "occurrence" $ao] != -1 && $opt(XLSCSV) != "None"} {
                     if {$ov == "" || [lsearch $gpmiTypes $ov] == -1} {
                       if {$ov == ""} {
                         set msg "Syntax Error: Missing 'name' attribute on [formatComplexEnt [lindex $ent1 0]]."
@@ -971,7 +971,7 @@ proc gpmiAnnotationReport {objEntity} {
               } else {
                 #outputMsg "   $dmiaDefType [$dmiaDef P21ID]  $attrName" red
               }
-            } else {
+            } elseif {$opt(XLSCSV) != "None"} {
               set msg "Syntax Error: Missing 'definition' attribute on draughting_model_item_association\n[string repeat " " 14]"
               if {$stepAP == "AP242"} {
                 append msg "($recPracNames(pmi242), Sec. 9.3.1, Fig. 80)"
@@ -1014,7 +1014,7 @@ proc gpmiAnnotationReport {objEntity} {
         }
         if {[info exists ents1]} {::tcom::foreach ap $ents1 {lappend aps $ap}}
       }
-      if {[llength $aps] == 0} {
+      if {[llength $aps] == 0 && $opt(XLSCSV) != "None"} {
         set msg "Syntax Error: Annotation missing a required 'annotation_plane'.\n[string repeat " " 14]($recPracNames(pmi242), Sec. 9.1, Fig. 77)"
         errorMsg $msg
         lappend syntaxErr($ao) [list $objID "plane" $msg]
@@ -1170,7 +1170,7 @@ proc gpmiAnnotationReport {objEntity} {
                 set str "($nsv) camera_model_d3 [string trim $savedViews]"
                 if {$nsv == 1} {set str "camera_model_d3 [string trim $savedViews]"}
                 $cells($ao) Item $r $c $str
-                if {[string first "()" $savedViews] != -1} {
+                if {[string first "()" $savedViews] != -1 && $opt(XLSCSV) != "None"} {
                   set msg "Syntax Error: For Saved Views, missing required 'name' attribute on camera_model_d3\n[string repeat " " 14]"
                   if {$stepAP == "AP242"} {
                     append msg "($recPracNames(pmi242), Sec. 9.4.2.1, Fig. 86)"
@@ -1198,7 +1198,7 @@ proc gpmiAnnotationReport {objEntity} {
                   }
                   
                   if {$okcm} {
-                    if {$okmi == 0} {
+                    if {$okmi == 0 && $opt(XLSCSV) != "None"} {
                       set msg "Syntax Error: For Saved Views, missing required reference to 'mapped_item' on [formatComplexEnt [$entDraughtingModel Type]].items\n[string repeat " " 14]"
                       if {$stepAP == "AP242"} {
                         append msg "($recPracNames(pmi242), Sec. 9.4.2.1, Fig. 86)"
@@ -1222,7 +1222,7 @@ proc gpmiAnnotationReport {objEntity} {
                   set ok 1
                   set rep1Ents [$entDraughtingModel GetUsedIn [string trim $relType] [string trim rep_1]]
                   ::tcom::foreach rep1Ent $rep1Ents {set ok 0}
-                  if {$ok} {
+                  if {$ok && $opt(XLSCSV) != "None"} {
                     set msg "Syntax Error: For Saved Views, '$relType' reference to '[formatComplexEnt [$entDraughtingModel Type]]' uses rep_2 instead of rep_1\n[string repeat " " 14]"
                     append msg "($recPracNames(pmi242), Sec. 9.4.4 Note 1, Fig. 93, Table 16)"
                     errorMsg $msg
@@ -1230,7 +1230,7 @@ proc gpmiAnnotationReport {objEntity} {
                     ::tcom::foreach rep2Ent $rep2Ents {set mdadrID [$rep2Ent P21ID]}
                     lappend syntaxErr($relType) [list $mdadrID rep_2 $msg]
                   }
-                  if {$relType == "representation_relationship"} {
+                  if {$relType == "representation_relationship" && $opt(XLSCSV) != "None"} {
                     set msg "For Saved Views, use 'mechanical_design_and_draughting_relationship' instead of 'representation_relationship'\n  to relate draughting models "
                     if {$stepAP == "AP242"} {
                       append msg "($recPracNames(pmi242), Sec. 9.4.4 Note 2)"
@@ -1253,7 +1253,7 @@ proc gpmiAnnotationReport {objEntity} {
         if {[string first "AP214" $stepAP] == -1} {lappend relTypes mechanical_design_and_draughting_relationship}
         set relType ""
         foreach item $relTypes {if {[info exists entCount($item)]} {if {$entCount($item) > 0} {set relType $item}}}
-        if {$relType == ""} {
+        if {$relType == "" && $opt(XLSCSV) != "None"} {
           set str "mechanical_design_and_draughting_relationship"
           if {[string first "AP214" $stepAP] == 0} {set str "representation_relationship"}
           set msg "Syntax Error: For Saved Views, missing '$str' to relate 'draughting_model'\n[string repeat " " 14]"

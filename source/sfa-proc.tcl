@@ -56,17 +56,13 @@ proc checkValues {} {
 
 # no Excel
   if {!$useXL} {
-    set opt(INVERSE) 0
-    set opt(PMIGRF)  0
-    set opt(PMISEM)  0
-    set opt(VALPROP) 0
-    set opt(writeDirType) 0
+    foreach item {INVERSE PMIGRF PMISEM VALPROP writeDirType} {set opt($item) 0}
     set opt(XL_OPEN) 1
     foreach item [array names opt] {
       if {[string first "PR_STEP" $item] == 0} {lappend butNormal "opt$item"}
     }
     foreach b {optINVERSE optPMIGRF optPMISEM optVALPROP optXL_FPREC optXL_KEEPOPEN optXL_LINK1 optXL_SORT allNone2} {lappend butDisabled $b}
-    foreach b {optVIZFEA optVIZPMI optVIZTPG} {lappend butNormal $b}
+    foreach b {optVIZFEA optVIZPMI optVIZTPG optVIZBRP} {lappend butNormal $b}
     foreach b {allNone0 allNone1 allNone3 optPR_USER} {lappend butNormal $b}
 
 # Excel
@@ -75,7 +71,7 @@ proc checkValues {} {
       if {[string first "PR_STEP" $item] == 0} {lappend butNormal "opt$item"}
     }
     foreach b {optINVERSE optPMIGRF optPMISEM optVALPROP optXL_FPREC optXL_KEEPOPEN optXL_LINK1 optXL_SORT} {lappend butNormal $b}
-    foreach b {optVIZFEA optVIZPMI optVIZTPG} {lappend butNormal $b}
+    foreach b {optVIZFEA optVIZPMI optVIZTPG optVIZBRP} {lappend butNormal $b}
     foreach b {allNone0 allNone1 allNone2 allNone3 optPR_USER} {lappend butNormal $b}
   }
 
@@ -89,12 +85,8 @@ proc checkValues {} {
     foreach b {allNone0 allNone1 allNone2} {lappend butDisabled $b}
     foreach b {userentity userentityopen} {lappend butDisabled $b}
     set userEntityList {}
-    set allNone -1
     if {$opt(VIZFEA) == 0 && $opt(VIZPMI) == 0 && $opt(VIZTPG) == 0 && $opt(VIZBRP) == 0} {
-      set opt(VIZFEA) 1
-      set opt(VIZPMI) 1
-      set opt(VIZTPG) 1
-      set opt(VIZBRP) 1
+      foreach item {VIZFEA VIZPMI VIZTPG VIZBRP} {set opt($item) 1}
     }
   } else {
     set opt(PR_STEP_FEAT) 1
@@ -142,12 +134,12 @@ proc checkValues {} {
       foreach b {optVIZFEALVS} {lappend butDisabled $b}
     }
     if {$opt(VIZFEADS)} {
-      foreach b {optVIZFEADStail} {lappend butNormal $b}
+      foreach b {optVIZFEADSntail} {lappend butNormal $b}
     } else {
-      foreach b {optVIZFEADStail} {lappend butDisabled $b}
+      foreach b {optVIZFEADSntail} {lappend butDisabled $b}
     }
   } else {
-    foreach b {optVIZFEABC optVIZFEALV optVIZFEALVS optVIZFEADS optVIZFEADStail} {lappend butDisabled $b}
+    foreach b {optVIZFEABC optVIZFEALV optVIZFEALVS optVIZFEADS optVIZFEADSntail} {lappend butDisabled $b}
   }
 
 # semantic PMI report
@@ -221,7 +213,7 @@ proc checkValues {} {
 # configure all, none, for buttons
   if {[info exists allNone]} {
     if {($allNone == 2 && ($opt(PMISEM) != 1 || $opt(PMIGRF) != 1 || $opt(VALPROP) != 1)) ||
-        ($allNone == 3 && ($opt(VIZPMI) != 1 || $opt(VIZTPG) != 1 || $opt(VIZFEA)  != 1))} {
+        ($allNone == 3 && ($opt(VIZPMI) != 1 || $opt(VIZTPG) != 1 || $opt(VIZFEA)  != 1 || $opt(VIZBRP) != 1))} {
       set allNone -1
     } elseif {$allNone == 0} {
       foreach item [array names opt] {

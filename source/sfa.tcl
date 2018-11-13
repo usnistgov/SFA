@@ -78,33 +78,25 @@ set nistVersion 0
 foreach item $auto_path {if {[string first "STEP-File-Analyzer" $item] != -1} {set nistVersion 1}}
 
 # -----------------------------------------------------------------------------------------------------
-# initialize variables
-foreach id {XL_OPEN XL_KEEPOPEN XL_LINK1 XL_FPREC XL_SORT LOGFILE \
-            VALPROP PMIGRF PMISEM INVERSE DEBUG1 \
-            VIZPMI VIZTPG VIZTPGMSH VIZPMIVP VIZFEA VIZFEABC VIZFEALV VIZFEALVS VIZFEADS VIZFEADStail VIZBRP \
-            PR_STEP_AP242 PR_USER PR_STEP_KINE PR_STEP_COMP PR_STEP_COMM PR_STEP_GEOM PR_STEP_QUAN \
-            PR_STEP_FEAT PR_STEP_PRES PR_STEP_TOLR PR_STEP_REPR PR_STEP_CPNT PR_STEP_SHAP} {set opt($id) 1}
+# initialize variables, set opt to 1
+foreach id { \
+  DISPGUIDE1 FIRSTTIME LOGFILE PMIGRF PMISEM \
+  PR_STEP_AP242 PR_STEP_COMM PR_STEP_COMP PR_STEP_FEAT PR_STEP_KINE \
+  PR_STEP_PRES PR_STEP_QUAN PR_STEP_REPR PR_STEP_SHAP PR_STEP_TOLR \
+  VALPROP VIZBRP VIZFEA VIZFEABC VIZFEADS \
+  VIZFEALV VIZPMI VIZTPG \
+  XL_LINK1 XL_OPEN \
+} {set opt($id) 1}
 
-set opt(CRASH) 0
-set opt(DEBUG1) 0
-set opt(DEBUGINV) 0
-set opt(DISPGUIDE1) 1
-set opt(FIRSTTIME) 1
+# set opt to 0
+foreach id { \
+  CRASH DEBUG1 DEBUGINV indentGeomtry indentStyledItem INVERSE \
+  PR_STEP_CPNT PR_STEP_GEOM PR_USER VIZFEADSntail VIZFEALVS VIZPMIVP VIZTPGMSH \
+  writeDirType XL_FPREC XL_KEEPOPEN XL_SORT \
+} {set opt($id) 0}
+
 set opt(gpmiColor) 3
-set opt(indentGeometry) 0
-set opt(indentStyledItem) 0
-set opt(INVERSE) 0
-set opt(PR_STEP_CPNT) 0
-set opt(PR_STEP_GEOM)  0
-set opt(PR_USER) 0
-set opt(VIZFEALVS) 0
-set opt(VIZPMIVP) 0
-set opt(VIZTPGMSH) 0
-set opt(writeDirType) 0
-set opt(XL_FPREC) 0
-set opt(XL_KEEPOPEN) 0
 set opt(XL_ROWLIM) 1003
-set opt(XL_SORT) 0
 set opt(XLSBUG1) 30
 set opt(XLSCSV) Excel
 
@@ -167,7 +159,7 @@ if {[file exists $optionsFile]} {
                   XL_SCROLL PMIVRML PMIPROP SEMPROP PMIP EX_ANAL EX_ARBP EX_LP VPDBG \
                   PR_STEP_AP242_QUAL PR_STEP_AP242_CONS PR_STEP_AP242_MATH PR_STEP_AP242_KINE PR_STEP_AP242_OTHER PR_STEP_AP242_GEOM \
                   PR_STEP_AP209 PR_STEP_AP210 PR_STEP_AP238 PR_STEP_AP239 PR_STEP_AP203 PR_STEP_AP214 PR_STEP_OTHER \
-                  PR_STEP_GEO PR_STEP_REP PR_STEP_ASPECT ROWLIM SORT GENX3DOM VIZ209 feaNodeType XLSBUG VIZBRPmsg} {
+                  PR_STEP_GEO PR_STEP_REP PR_STEP_ASPECT ROWLIM SORT GENX3DOM VIZ209 feaNodeType XLSBUG VIZBRPmsg VIZFEADStail} {
       catch {unset opt($item)}
     }
   } emsg]} {
@@ -428,7 +420,7 @@ if {$opt(XLSCSV) == "CSV"} {
   .tnb select .tnb.status
 } elseif {$opt(XLSCSV) == "None"} {
   outputMsg " "
-  errorMsg "No spreadsheet will be generated, only views (Options tab)"
+  errorMsg "No Spreadsheet will be generated, only Views (Options tab)"
   .tnb select .tnb.status
 }
 

@@ -1,3 +1,30 @@
+# version numbers, software and user guide, contact
+proc getVersion {}   {return 3.15}
+proc getVersionUG {} {return 3.0}
+proc getContact {}   {return [list "Robert Lipman" "robert.lipman@nist.gov"]}
+
+# -------------------------------------------------------------------------------
+proc whatsNew {} {
+  global progtime sfaVersion
+  
+  if {$sfaVersion > 0 && $sfaVersion < [getVersion]} {outputMsg "\nThe previous version of the STEP File Analyzer and Viewer was: $sfaVersion" red}
+
+outputMsg "\nWhat's New (Version: [getVersion]  Updated: [string trim [clock format $progtime -format "%e %b %Y"]])" blue
+outputMsg "- Part Geometry Viewer (See Help > View Part Geometry)
+- Graphical PMI colored by saved view
+- Improved processing of tolerance zone form, supplemental geometry, and annotation placeholder
+- Explanation of Analysis errors (Help > Syntax Errors)
+- Support for AP242 Edition 2 DIS (Draft International Standard)
+- Bug fixes and minor improvements"
+
+if {$sfaVersion > 0 && $sfaVersion <= 2.60} {
+  outputMsg "\nRenamed output files:\n Spreadsheets from  myfile_stp.xlsx  to  myfile-sfa.xlsx\n Views from  myfile-x3dom.html  to  myfile-sfa.html" red
+}
+
+  .tnb select .tnb.status
+  update idletasks
+}
+
 #-------------------------------------------------------------------------------
 # start window, bind keys
 
@@ -335,17 +362,12 @@ proc guiProcessAndReports {} {
           }
         } elseif {$allNone == 1} {
           foreach item [array names opt] {if {[string first "PR_STEP" $item] == 0} {set opt($item) 0}}
-          foreach item [list VIZFEA VIZPMI VIZTPG PMISEM PMIGRF VALPROP INVERSE PR_USER] {set opt($item) 0}
+          foreach item {VIZFEA VIZPMI VIZTPG PMISEM PMIGRF VALPROP INVERSE PR_USER} {set opt($item) 0}
           set opt(PR_STEP_COMM) 1
         } elseif {$allNone == 2} {
-          set opt(PMISEM) 1
-          set opt(PMIGRF) 1
-          set opt(VALPROP) 1
+          foreach item {PMISEM PMIGRF VALPROP} {set opt($item) 1}
         } elseif {$allNone == 3} {
-          set opt(VIZFEA) 1
-          set opt(VIZTPG) 1
-          set opt(VIZPMI) 1
-          set opt(VIZBRP) 1
+          foreach item {VIZBRP VIZFEA VIZPMI VIZTPG} {set opt($item) 1}
         }
         checkValues
       }]
@@ -353,10 +375,10 @@ proc guiProcessAndReports {} {
     incr cb
   }
   catch {
-    tooltip::tooltip $buttons(allNone0) "Selects most Entity types\nSee Help > User Guide (section 4.4.2)"
-    tooltip::tooltip $buttons(allNone1) "Deselects most Entity types, Analysis, and Views\nSee Help > User Guide (section 4.4.2)"
-    tooltip::tooltip $buttons(allNone2) "Selects all Analysis and associated entities\nSee Help > User Guide (section 5)"
-    tooltip::tooltip $buttons(allNone3) "Selects all Views and associated entities\nSee Help > User Guide (section 7)"
+    tooltip::tooltip $buttons(allNone0) "Selects most Entity types to Process\nSee Help > User Guide (section 4.4.2)"
+    tooltip::tooltip $buttons(allNone1) "Deselects most Entity types, Analyze, and View options\nSee Help > User Guide (section 4.4.2)"
+    tooltip::tooltip $buttons(allNone2) "Selects all Analyze options and associated entities\nSee Help > User Guide (section 5)"
+    tooltip::tooltip $buttons(allNone3) "Selects all View options and associated entities\nSee Help > User Guide (section 7)"
   }
   pack $fopta4 -side left -anchor w -pady 0 -padx 0 -fill y
   pack $fopta -side top -anchor w -pady {5 2} -padx 10 -fill both
@@ -364,7 +386,7 @@ proc guiProcessAndReports {} {
 #-------------------------------------------------------------------------------
 # report
   set foptrv [frame $fopt.rv -bd 0]
-  set foptd [ttk::labelframe $foptrv.1 -text " Analysis "]
+  set foptd [ttk::labelframe $foptrv.1 -text " Analyze "]
 
   set foptd1 [frame $foptd.1 -bd 0]
   foreach item {{" AP242 PMI Representation (Semantic PMI)" opt(PMISEM)} \
@@ -379,8 +401,8 @@ proc guiProcessAndReports {} {
   pack $foptd -side left -anchor w -pady {5 2} -padx 10 -fill both -expand true
   catch {
     tooltip::tooltip $buttons(optPMISEM)  "The analysis of PMI Representation information is shown on\ndimension, tolerance, datum target, and datum entities.\nSemantic PMI is found mainly in STEP AP242 files.\n\nSee Help > PMI Representation\nSee Help > User Guide (section 5.1)\nSee Help > Syntax Errors\nSee Examples > Spreadsheet\nSee Examples > Sample STEP Files\nSee Websites > AP242 Project"
-    tooltip::tooltip $buttons(optPMIGRF)  "The analysis of PMI Presentation information is\nshown on 'annotation occurrence' entities.\nGraphical PMI can also be Viewed.\n\nSee Help > PMI Presentation\nSee Help > User Guide (section 5.2)\nSee Help > Syntax Errors\nSee Examples > Spreadsheet\nSee Examples > Part with PMI\nSee Examples > AP242 Tessellated Part with PMI\nSee Examples > Sample STEP Files"
-    tooltip::tooltip $buttons(optVALPROP) "The analysis of Validation Properties and other properties\nare shown on the 'property_definition' entity.\n\nSee Help > Validation Properties\nSee Help > User Guide (section 5.3)\nSee Help > Syntax Errors\nSee Examples > Spreadsheet"
+    tooltip::tooltip $buttons(optPMIGRF)  "The analysis of PMI Presentation information is\nshown on 'annotation occurrence' entities.\nGraphical PMI can also be viewed.\n\nSee Help > PMI Presentation\nSee Help > User Guide (section 5.2)\nSee Help > Syntax Errors\nSee Examples > Spreadsheet\nSee Examples > Part with PMI\nSee Examples > AP242 Tessellated Part with PMI\nSee Examples > Sample STEP Files"
+    tooltip::tooltip $buttons(optVALPROP) "The analysis of Validation Properties and other properties\nis shown on the 'property_definition' entity.\n\nSee Help > Validation Properties\nSee Help > User Guide (section 5.3)\nSee Help > Syntax Errors\nSee Examples > Spreadsheet"
   }
   
 #-------------------------------------------------------------------------------
@@ -451,7 +473,7 @@ proc guiProcessAndReports {} {
   foreach item {{"Loads" opt(VIZFEALV)} \
                 {"Scale loads   " opt(VIZFEALVS)} \
                 {"Displacements" opt(VIZFEADS)} \
-                {"Vector tail" opt(VIZFEADStail)}} {
+                {"No vector tail" opt(VIZFEADSntail)}} {
     regsub -all {[\(\)]} [lindex $item 1] "" idx
     set buttons($idx) [ttk::checkbutton $foptv8.$cb -text [lindex $item 0] -variable [lindex $item 1] -command {checkValues}]
     pack $buttons($idx) -side left -anchor w -padx 2 -pady 0 -ipady 0
@@ -462,14 +484,14 @@ proc guiProcessAndReports {} {
   pack $foptv -side left -anchor w -pady {5 2} -padx 10 -fill both -expand true
   pack $foptrv -side top -anchor w -pady 0 -fill x
   catch {
-    tooltip::tooltip $buttons(optVIZPMI) "Graphical PMI is supported in AP242, AP203, and AP214 files.\nSupplemental geometry and tessellated edges (lines) are also shown.\n\nSee Help > PMI Presentation\nSee Help > User Guide (section 7.1.1)\nSee Help > Supplemental Geometry\nSee Examples > Part with PMI\nSee Examples > AP242 Tessellated Part with PMI\nSee Examples > Sample STEP Files\n\nViews can be generated without generating a spreadsheet\nor CSV files.  See the Output Format option below.\n\nViews are shown in web browsers that are not optimized\nfor large models.  Older versions of web browsers are not supported."
-    tooltip::tooltip $buttons(optVIZTPG) "** Parts in an assembly might have the wrong position and orientation or be missing. **\n\nTessellated geometry is in addition to part geometry.\nSupplemental geometry and tessellated edges (lines) are also shown.\nFaces in tessellated shells are outlined in black.\n\nSee Help > AP242 Tessellated Part Geometry\nSee Help > Supplemental Geometry\nSee Help > User Guide (section 7.1.2, 7.1.3)\nSee Examples > AP242 Tessellated Part with PMI\n\nViews can be generated without generating a spreadsheet or CSV files.\nSee the Output Format option below.\n\nViews are shown in web browsers that are not optimized for large models.\nOlder versions of web browsers are not supported."
+    tooltip::tooltip $buttons(optVIZBRP) "Most boundary representation (b-rep) part geometry can be shown.\nPart color is ignored.  Supplemental geometry is also shown.\n\nSee Help > View Part Geometry\nSee Help > Supplemental Geometry\nSee Examples > Part with PMI\nSee Websites > STEP File Viewers for other part geometry viewers\n\nViews can be generated without generating a spreadsheet or CSV files.\nSee the Output Format option below.\n\nViews are shown in web browsers that are not optimized for large models.\nOlder versions of web browsers are not supported."
+    tooltip::tooltip $buttons(optVIZPMI) "Graphical PMI is supported in AP242, AP203, and AP214 files.\n\nSee Help > PMI Presentation\nSee Help > User Guide (section 7.1.1)\nSee Examples > Part with PMI\nSee Examples > AP242 Tessellated Part with PMI\nSee Examples > Sample STEP Files"
+    tooltip::tooltip $buttons(optVIZTPG) "** Parts in an assembly might have the wrong\nposition and orientation or be missing. **\n\nTessellated edges (lines) are also shown.  Faces\nin tessellated shells are outlined in black.\n\nSee Help > AP242 Tessellated Part Geometry\nSee Help > User Guide (section 7.1.2, 7.1.3)\nSee Examples > AP242 Tessellated Part with PMI"
     tooltip::tooltip $buttons(optVIZTPGMSH) "Show a tessellation wireframe mesh based on the tessellated\nfaces or surfaces.  Not recommended for very large models."
     tooltip::tooltip $buttons(optVIZFEALVS) "The length of load vectors can be scaled by their magnitude.\nLoad vectors are always colored by their magnitude."
-    tooltip::tooltip $buttons(optVIZFEADStail) "The length of displacement vectors with a tail are scaled by\ntheir magnitude.  Vectors without a tail are not.\nDisplacement vectors are always colored by their magnitude.\nLoad vectors always have a tail."
-    tooltip::tooltip $buttons(optVIZBRP) "See Help > View Part Geometry\nSee Examples > Part with PMI\nSee Websites > STEP File Viewers for other part geometry viewers\n\nSome STEP part geometry cannot be viewed.\n\nViews are shown in web browsers that are not optimized for large models.\nOlder versions of web browsers are not supported."
+    tooltip::tooltip $buttons(optVIZFEADSntail) "The length of displacement vectors with a tail are scaled by\ntheir magnitude.  Vectors without a tail are not.\nDisplacement vectors are always colored by their magnitude.\nLoad vectors always have a tail."
     tooltip::tooltip $foptv4 "For 'By View' PMI colors, each Saved View is assigned a different color.\nIf there are one or no Saved Views, then 'Random' PMI colors are used.\n\nFor 'Random' PMI colors, each 'annotation occurrence' is assigned a\ndifferent color to help differentiate one from another."
-    set tt "FEM nodes, elements, boundary conditions, loads, and displacements are viewed.\n\nSee Help > AP209 Finite Element Model\nSee Help > User Guide (section 7.1.4)\nSee Examples > AP209 Finite Element Model\n\nViews can be generated without generating a spreadsheet or CSV files.\nSee the Output Format option below.\n\nViews are shown in web browsers that are not optimized for large models.\nOlder versions of web browsers are not supported."
+    set tt "FEM nodes, elements, boundary conditions,\nloads, and displacements are shown.\n\nSee Help > AP209 Finite Element Model\nSee Help > User Guide (section 7.1.4)\nSee Examples > AP209 Finite Element Model"
     tooltip::tooltip $foptv7 $tt
     tooltip::tooltip $foptv8 $tt
     #tooltip::tooltip $buttons(optVIZPMIVP) "PMI Viewpoints are experimental.\n\nViewpoints usually have the correct orientation but are not centered.\nUse pan and zoom to center the PMI."
@@ -738,7 +760,7 @@ proc guiOpenSTEPFile {} {
     incr cb
   }
   pack $foptk -side top -anchor w -pady {5 2} -padx 10 -fill both
-  catch {tooltip::tooltip $foptk "If Excel is installed, then Spreadsheets and CSV files can be generated.\nIf CSV Files is selected, the Spreadsheet is also generated.\n\nIf Excel is not installed, only CSV files can be generated.\nOptions for Analysis and Inverse Relationships are disabled.\n\nCSV files do not contain any cell colors, comments, or links.\nGD&T symbols will look correct only with Excel 2016 or newer.\n\nView Only does not generate any Spreadsheets or CSV files.\nAll options except View are disabled.\n\nViews are shown in web browsers that are not optimized for large\nmodels.  Older versions of web browsers are not supported.\n\nSee Help > User Guide (section 4.4.1)"}
+  catch {tooltip::tooltip $foptk "If Excel is installed, then Spreadsheets and CSV files can be generated.\nIf CSV Files is selected, the Spreadsheet is also generated.\n\nIf Excel is not installed, only CSV files can be generated.\nOptions for Analyze and Inverse Relationships are disabled.\n\nCSV files do not contain any cell colors, comments, or links.\nGD&T symbols will look correct only with Excel 2016 or newer.\n\nView Only does not generate any Spreadsheets or CSV files.\nAll options except View are disabled.\n\nViews are shown in web browsers that are not optimized for large\nmodels.  Older versions of web browsers are not supported.\n\nSee Help > User Guide (section 4.4.1)"}
 
 # log file
   set foptm [ttk::labelframe $fopt.m -text " Log File "]
@@ -1116,7 +1138,8 @@ highlighted in yellow and green, on the relevant worksheets.  The GD&T is recrea
 possible given the constraints of Excel.
 
 All of the visual recreation of Datum Systems, Dimensional Tolerances, and Geometric Tolerances
-that are reported on individual worksheets are collected on one PMI Representation Summary worksheet.
+that are reported on individual worksheets are collected on one PMI Representation Summary
+worksheet.
 
 If STEP files from the NIST CAD models (Websites > MBE PMI Validation Testing) are processed,
 then the PMI the visual recreation of the PMI Representation is color-coded by the expected PMI
@@ -1208,9 +1231,9 @@ the PMI Representation Coverage Analysis worksheet is color-coded by the expecte
 elements in each CAD model.  See Help > NIST CAD Models.
 
 PMI Presentation Coverage Analysis (graphical PMI) counts the occurrences of a name attribute
-defined in the CAx-IF Recommended Practice for PMI Representation and Presentation of PMI (AP242)
-or PMI Polyline Presentation (AP203/AP242).  The name attribute is associated with the graphic
-elements used to draw a PMI annotation."
+defined in the CAx-IF Recommended Practice for PMI Representation and Presentation of PMI (AP242) or
+PMI Polyline Presentation (AP203/AP242).  The name attribute is associated with the graphic elements
+used to draw a PMI annotation."
     .tnb select .tnb.status
   }
 
@@ -1219,9 +1242,9 @@ elements used to draw a PMI annotation."
 outputMsg "\nNIST CAD Models ------------------------------------------------------------" blue
 outputMsg "If a STEP file from a NIST CAD model is processed, then the PMI found in the STEP file is
 automatically checked against the expected PMI in the corresponding NIST test case.  The PMI
-Representation Coverage and Summary worksheets are color-coded by the expected PMI in each NIST
-test case.  The color-coding only works if the STEP file name can be recognized as having been
-generated from one of the NIST CAD models.
+Representation Coverage and Summary worksheets are color-coded by the expected PMI in each NIST test
+case.  The color-coding only works if the STEP file name can be recognized as having been generated
+from one of the NIST CAD models.
 
 See Help > User Guide (section 8)
 See Websites > MBE PMI Validation Testing
@@ -1233,8 +1256,8 @@ This worksheet is color-coded by the expected PMI annotations in a test case dra
 - Cyan is a partial match.
 - Yellow is a possible match.
 - Red is no match.
-For partial and possible matches, the best Similar PMI match is shown.  Missing PMI annotations
-are also shown.
+For partial and possible matches, the best Similar PMI match is shown.  Missing PMI annotations are
+also shown.
 
 Trailing and leading zeros are ignored when matching a PMI annotation.  Matches also only consider
 the current capabilities of PMI annotations in STEP AP242 and CAx-IF Recommended Practices.  For
@@ -1263,11 +1286,10 @@ appear in the tolerance zone definition or datum reference frame.
 - Magenta means that some PMI elements were found when none were expected.
 
 Gray means that a PMI element is in a test case definition but there is no CAx-IF Recommended
-Practice to model it.  For example, there is no recommended practice for hole depth,
-counterbore, and countersink.  This means that the dimensions of a hole are not associated
-with a dimension type such as diameter and radius in the STEP file although the dimension value
-is still represented semantically.  This does not affect the PMI Presentation (graphics) for
-those PMI elements.
+Practice to model it.  For example, there is no recommended practice for hole depth, counterbore,
+and countersink.  This means that the dimensions of a hole are not associated with a dimension type
+such as diameter and radius in the STEP file although the dimension value is still represented
+semantically.  This does not affect the PMI Presentation (graphics) for those PMI elements.
 
 * Missing PMI *
 Missing PMI annotations on the Summary worksheet or PMI elements on the Coverage worksheet might
@@ -1277,15 +1299,15 @@ mean that the CAD system or translator:
 - has not implemented exporting a PMI element to a STEP file
 - mapped an internal PMI element to the wrong STEP PMI element
 
-Some of the NIST test cases have complex PMI annotations that are not commonly used.  There may
-be ambiguities in counting the number of PMI elements, particularly for dimensions."
+Some of the NIST test cases have complex PMI annotations that are not commonly used.  There may be
+ambiguities in counting the number of PMI elements, particularly for dimensions."
     .tnb select .tnb.status
   }
     
   $Help add command -label "Validation Properties" -command {
 outputMsg "\nValidation Properties ------------------------------------------------------" blue
-outputMsg "Geometric, assembly, PMI, annotation, attribute, and tessellated validation properties are
-reported.  The property values are reported in columns highlighted in yellow and green on the
+outputMsg "Geometric, assembly, PMI, annotation, attribute, and tessellated validation properties are reported.
+The property values are reported in columns highlighted in yellow and green on the
 Property_definition worksheet.  The worksheet can also be sorted and filtered.
 
 See Help > User Guide (section 5.3)
@@ -1311,19 +1333,19 @@ documentation."
 outputMsg "\nSyntax Errors --------------------------------------------------------------" blue
 outputMsg "Syntax Error information and other errors can be used to debug a STEP file.  Syntax Errors are
 generated when Analysis related to Semantic PMI, Graphical PMI, and Validation Properties are
-selected.  Syntax Errors and some other errors are shown in the Status tab and highlighted in
-red or yellow.  Syntax Errors are related to CAx-IF Recommended Practices and usually refer to a
-specific section, figure, or table in a Recommended Practice.  Some references to section, figure,
-and table numbers in a recommended practice might be to a newer version of a recommended practice
-that has not been released to the public.  Specific section, figure, and table numbers might be
-wrong relative to the publicly available recommended practice.
+selected.  Syntax Errors and some other errors are shown in the Status tab and highlighted in red or
+yellow.  Syntax Errors are related to CAx-IF Recommended Practices and usually refer to a specific
+section, figure, or table in a Recommended Practice.  Some references to section, figure, and table
+numbers in a recommended practice might be to a newer version of a recommended practice that has not
+been released to the public.  Specific section, figure, and table numbers might be wrong relative to
+the publicly available recommended practice.
 
 See Help > User Guide (section 6)
 See Websites > Recommended Practices
 
-Most entity types that have Syntax Errors or some other errors are highlighted in gray in
-column A on the File Summary worksheet.  A comment indicating that there are errors is shown with a
-small red triangle in the upper right corner of the cell.
+Most entity types that have Syntax Errors or some other errors are highlighted in gray in column A
+on the File Summary worksheet.  A comment indicating that there are errors is shown with a small red
+triangle in the upper right corner of the cell.
 
 On an entity worksheet, most Syntax Errors are highlighted in red and have a cell comment with the
 text of the Syntax Error that was shown in the Status tab.
@@ -1337,17 +1359,19 @@ The log file is written to myfile-sfa.log.  In a log file, error messages are hi
     
   $Help add command -label "View Part Geometry" -command {
 outputMsg "\nView Part Geometry ---------------------------------------------------------" blue
-outputMsg "Part geometry (b-rep) is viewed in any STEP file where the geometry is modeled with
-advanced_brep_shape_representation or manifold_surface_shape_representation or manifold_solid_brep.
+outputMsg "Part geometry (b-rep) is shown for any STEP file where the geometry is modeled with
+advanced_brep_shape_representation or manifold_surface_shape_representation or manifold_solid_brep
+entities.
 
 The color of part geometry is ignored.  Part geometry might also include supplemental geometry.  In
-some cases, curved surfaces might appear jagged or incomplete.  Some part geometry cannot be viewed.
+some cases, curved surfaces might appear jagged or incomplete.  Some part geometry cannot be shown.
 
+See Help > Supplemental Geometry
 See Examples > Part with PMI
 See Websites > STEP File Viewers
 
 Some other STEP file viewers cannot view PMI, tessellated part geometry, and finite element models.
-However, those viewers are usually better at viewing part geometry than this software.
+However, those viewers usually have better capabilities for viewing part geometry.
 
 The part geometry view is based on OpenCascade and pythonOCC.  See Help > About"
     .tnb select .tnb.status
@@ -1355,12 +1379,11 @@ The part geometry view is based on OpenCascade and pythonOCC.  See Help > About"
     
   $Help add command -label "Graphical PMI" -command {
 outputMsg "\nGraphical PMI --------------------------------------------------------------" blue
-outputMsg "Graphical PMI (PMI Presentation) annotations can be viewed in a web browser.  The view is only
-of the graphical PMI, not the model geometry, except for tessellated part geometry.  Polylines,
-lines, circles, and tessellated geometry are supported for viewing.  The color of the annotations
-can be modified.  Filled characters are not filled.  PMI associated with Saved Views can be
-switched on and off.  Some Graphical PMI might not have equivalent Semantic PMI in the STEP file.
-The graphical PMI file is written to myfile-sfa.html
+outputMsg "Graphical PMI (PMI Presentation) annotations composed of polylines, lines, circles, and tessellated
+geometry are supported for viewing.  The color of the annotations can be modified.  Filled
+characters are not filled.  PMI associated with Saved Views can be switched on and off.  Some
+Graphical PMI might not have equivalent Semantic PMI in the STEP file.  The graphical PMI file is
+written to myfile-sfa.html
 
 See Help > User Guide (sections 7.1.1)
 See Help > PMI Presentation
@@ -1371,10 +1394,10 @@ See Examples > Sample STEP Files"
     
   $Help add command -label "Supplemental Geometry" -command {
 outputMsg "\nSupplemental Geometry ------------------------------------------------------" blue
-outputMsg "Supplemental geometry is only shown if Graphical PMI or AP242 Tessellated Part Geometry are also
-viewed.  Supplemental geometry is not associated with Saved Views.
+outputMsg "Supplemental geometry is shown only if part or PMI is also viewed.  Supplemental geometry is not
+associated with Saved Views.
 
-The following types of supplemental geometry and associated text are shown.
+The following types of supplemental geometry and associated text are supported.
 - Coordinate System: red, green, blue axes or by color assigned to axes
 - Plane: blue transparent outlined square
 - Cylinder: blue transparent cylinder
@@ -1389,15 +1412,14 @@ planes and cylinders are ignored.  All bounded and unbounded planes are shown wi
     
   $Help add command -label "AP242 Tessellated Part Geometry" -command {
 outputMsg "\nAP242 Tessellated Part Geometry --------------------------------------------" blue
-outputMsg "Parts modeled with tessellated geometry can be viewed in a web browser (Options tab).  Tessellated
-geometry is supported by AP242 and is supplementary to part geometry.
+outputMsg "Tessellated part geometry is supported by AP242 and is usually supplementary to part geometry.
 
 ** Parts in an assembly might have the wrong position and orientation or be missing. **
 
-Faces in a tessellated shell are outlined in black.  Lines generated from tessellated edges are
-also shown.  A wireframe mesh, outlining the facets of the tessellated surfaces can also be shown.
-If both are present, tessellated edges might be obscured by the wireframe mesh.  Brown is used as
-the color assigned to tessellated solids, shells, or faces that do not have colors assigned to them.
+Faces in a tessellated shell are outlined in black.  Lines generated from tessellated edges are also
+shown.  A wireframe mesh, outlining the facets of the tessellated surfaces can also be shown.  If
+both are present, tessellated edges might be obscured by the wireframe mesh.  Brown is used as the
+color assigned to tessellated solids, shells, or faces that do not have colors assigned to them.
 
 See Help > User Guide (section 7.1.3)
 See Examples > AP242 Tessellated Part with PMI"
@@ -1406,30 +1428,27 @@ See Examples > AP242 Tessellated Part with PMI"
     
   $Help add command -label "AP209 Finite Element Model" -command {
 outputMsg "\nAP209 Finite Element Model -------------------------------------------------" blue
-outputMsg "All AP209 entities are always processed and written to a spreadsheet unless a User-defined
-list is used.
+outputMsg "All AP209 entities are always processed and written to a spreadsheet unless a User-defined list is
+used.
 
-The AP209 finite element model can be viewed in a web browser (Options tab).  Nodes, mesh,
-elements, boundary conditions, loads, and displacments are shown and can be toggled on and off
-in the viewer.  Internal faces for solid elements are not shown.  Elements can be made
-transparent although it is only approximate.
+The AP209 finite element model composed of bodes, mesh, elements, boundary conditions, loads, and
+displacments are shown and can be toggled on and off in the viewer.  Internal faces for solid
+elements are not shown.  Elements can be made transparent although it is only approximate.
 
-Nodal loads and element surface pressures are viewed.  Load vectors are colored by their
-magnitude.  The length of load vectors can be scaled by their magnitude.  Forces use a
-single-headed arrow.  Moments use a double-headed arrow.
+Nodal loads and element surface pressures are shown.  Load vectors are colored by their magnitude.
+The length of load vectors can be scaled by their magnitude.  Forces use a single-headed arrow.
+Moments use a double-headed arrow.
 
-Displacement vectors are colored by their magnitude.  The length of displacement vectors can
-be scaled by their magnitude depending on if they have a tail.  The finite element mesh is not
-deformed.
+Displacement vectors are colored by their magnitude.  The length of displacement vectors can be
+scaled by their magnitude depending on if they have a tail.  The finite element mesh is not deformed.
 
 Boundary conditions for translation DOF are shown with a red, green, or blue line along the
-X, Y, or Z axes depending on the constrained DOF.  Boundary conditions for rotation DOF are
-shown with a red, green, or blue circle around the X, Y, or Z axes depending on the
-constrained DOF.  A gray box is used when all six DOF are constrained.  A gray pyramid is used
-when all three translation DOF are constrained.  A gray sphere is used when all three rotation
-DOF are constrained.
+X, Y, or Z axes depending on the constrained DOF.  Boundary conditions for rotation DOF are shown
+with a red, green, or blue circle around the X, Y, or Z axes depending on the constrained DOF.  A
+gray box is used when all six DOF are constrained.  A gray pyramid is used when all three
+translation DOF are constrained.  A gray sphere is used when all three rotation DOF are constrained.
 
-Stresses and strains are not viewed.  Multiple coordinate systems are not considered.
+Stresses and strains are not shown.  Multiple coordinate systems are not considered.
 
 Setting Maximum Rows (Spreadsheet tab) does not affect the view.  For large AP209 files, there
 might be insufficient memory to process all of the elements, loads, displacements, and boundary
@@ -1447,14 +1466,14 @@ See Websites > AP209 Project"
 outputMsg "\nCrash Recovery -------------------------------------------------------------" blue
 outputMsg "Sometimes the STEP File Analyzer and Viewer will crash after a STEP file has been successfully
 opened and the processing of entities has started.  Popup dialogs might appear that say
-\"Runtime Error!\" or \"ActiveState Basekit has stopped working\".  A crash might also be caused
-by a very large STEP file.  See Help > Large STEP Files.
+\"Runtime Error!\" or \"ActiveState Basekit has stopped working\".  A crash might also be caused by
+a very large STEP file.  See Help > Large STEP Files.
 
 See Help > User Guide (sections 2.4 and 10)
 
-A crash is most likely due to syntax errors in the STEP file or sometimes due to limitations of
-the toolkit used to read STEP files.  To see which type of entity caused the error, check the
-Status tab to see which type of entity was last processed.
+A crash is most likely due to syntax errors in the STEP file or sometimes due to limitations of the
+toolkit used to read STEP files.  To see which type of entity caused the error, check the Status tab
+to see which type of entity was last processed.
 
 Workarounds for this problem:
 
@@ -1467,9 +1486,8 @@ If syntax errors related to the bad entities are corrected, then delete the *-sk
 that the corrected entities are processed.  When the STEP file is processed, the list of specific
 entities that are not processed is reported.
 
-- Deselect Inverse Relationships and all Analysis in the Options tab.  If one of these features
-caused the crash, then the *-skip.dat file is still created as described above and might need to be
-deleted.
+- Deselect Inverse Relationships and all Analyze options.  If one of these features caused the crash,
+then the *-skip.dat file is still created as described above and might need to be deleted.
 
 - Processing of the type of entity that caused the error can be deselected in the Options tab
 under Process.  However, this will prevent processing of other entities that do not cause a crash."
@@ -1484,7 +1502,7 @@ spreadsheet, several options are available:
 - In the Process section, deselect entity types Geometry and Coordinates
 - In the Process section, select only a User-Defined List of required entities 
 - In the Spreadsheet tab, select a smaller value for the Maximum Rows
-- In the Options tab, deselect Analysis and Inverse Relationships
+- In the Options tab, deselect Analyze options and Inverse Relationships
 
 The STEP File Analyzer and Viewer might also crash when processing very large STEP files.  Popup
 dialogs might appear that say 'Unable to alloc xxx bytes'.  See the Help > Crash Recovery."
@@ -1673,7 +1691,7 @@ set txt "Sometimes the STEP File Analyzer and Viewer will crash AFTER a file has
 
 A crash is most likely due to syntax errors in the STEP file or sometimes due to limitations of the toolkit used to read STEP files.
 
-If this happens, simply restart the STEP File Analyzer and Viewer and process the same STEP file again by using function key F1 or F4 if processing multiple STEP files.  Also deselect, Analysis and Inverse Relationships in the Options tab.
+If this happens, simply restart the STEP File Analyzer and Viewer and process the same STEP file again by using function key F1 or F4 if processing multiple STEP files.  Also deselect, Analyze and Inverse Relationships options.
 
 The STEP File Analyzer and Viewer keeps track of which entity type caused the error for a particular STEP file and won't process that type again.  The bad entities types are stored in a file *-skip.dat  If syntax errors related to the bad entities are corrected, then delete the *-skip.dat file so that the corrected entities are processed.
 

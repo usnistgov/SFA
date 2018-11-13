@@ -64,7 +64,7 @@ proc x3dFileStart {} {
 # write tessellated geometry for annotations and parts
 proc x3dTessGeom {objID objEntity1 ent1} {
   global ao draftModelCameras entCount nshape recPracNames shapeRepName savedViewFile tessIndex tessIndexCoord tessCoord tessCoordID
-  global tessPlacement tessRepo x3dColor x3dCoord x3dIndex x3dFile x3dColors x3dColorFile x3dMsg opt defaultColor tessPartFile tessSuppGeomFile shellSuppGeom
+  global tessPlacement tessRepo x3dColor x3dCoord x3dIndex x3dFile x3dColors x3dColors1 x3dColorFile x3dMsg opt defaultColor tessPartFile tessSuppGeomFile shellSuppGeom
   global savedViewNames savedViewFileName mytemp srNames
   #outputMsg "x3dTessGeom $objID"
   
@@ -173,7 +173,7 @@ proc x3dTessGeom {objID objEntity1 ent1} {
           set matID ""
           set colorID [lsearch $x3dColors $x3dColor]
           if {$colorID == -1} {
-            lappend x3dColors $x3dColor
+            lappend x3dColors  $x3dColor
             puts $f "<Shape$defstr><Appearance DEF='app[llength $x3dColors]'><Material id='mat[llength $x3dColors]' diffuseColor='$x3dColor' $spec></Material></Appearance>"
           } else {
             puts $f "<Shape$defstr><Appearance USE='app[incr colorID]'></Appearance>"
@@ -181,6 +181,7 @@ proc x3dTessGeom {objID objEntity1 ent1} {
         } else {
           puts $f "<Shape$defstr><Appearance><Material diffuseColor='$x3dColor' $emit></Material></Appearance>"
         }
+        lappend x3dColors1 $x3dColor
         
         set indexedSet "<Indexed[string totitle $x3dIndexType]\Set $solid coordIndex='[string trim $x3dIndex]'>"
         
@@ -260,7 +261,7 @@ proc x3dTessGeom {objID objEntity1 ent1} {
 # -------------------------------------------------------------------------------
 # write tessellated edges, PMI saved view geometry, set viewpoints, add navigation and background color, and close X3DOM file
 proc x3dFileEnd {} {
-  global ao modelURLs nistName opt stepAP x3dAxes x3dMax x3dMin x3dFile x3dMsg stepAP entCount nistVersion numSavedViews numTessColor viz
+  global ao modelURLs nistName opt stepAP x3dAxes x3dMax x3dMin x3dFile x3dMsg x3dColors1 stepAP entCount nistVersion numSavedViews numTessColor viz
   global savedViewButtons savedViewFileName savedViewFile savedViewNames savedViewpoint feaBoundary feaLoad savedViewItems feaLoadMsg feaLoadMag
   global tessEdgeFile tessEdgeFileName tessPartFile tessPartFileName tessEdgeCoordDef
   global wdir mytemp localName brepFile brepFileName
@@ -414,7 +415,13 @@ proc x3dFileEnd {} {
 
 # navigation, background color
   set bgc "1 1 1"
-  if {$viz(PMI)} {set bgc ".8 .8 .8"}
+  if {$viz(PMI)} {
+    set x3dColors1 [lrmdups $x3dColors1]
+    #outputMsg $x3dColors1
+    foreach color {"1 1 0" "1 1 1" "1. 1. 1."} {
+      if {[lsearch $x3dColors1 $color] != -1} {set bgc ".8 .8 .8"}
+    }
+  }
   puts $x3dFile "\n<!-- BACKGROUND -->"
   puts $x3dFile "<Background id='BG' skyColor='$bgc'></Background>"
   puts $x3dFile "<NavigationInfo type='\"EXAMINE\" \"ANY\"'></NavigationInfo>"
@@ -491,7 +498,7 @@ proc x3dFileEnd {} {
   puts $x3dFile "\n<!-- Background buttons -->\nBackground Color<br>"
   set check1 "checked"
   set check2 ""
-  if {$viz(PMI)} {
+  if {$bgc == ".8 .8 .8"} {
     set check2 "checked"
     set check1 ""
   }
@@ -743,7 +750,7 @@ proc x3dBrepGeom {} {
 # -------------------------------------------------------------------------------
 # supplemental geometry
 proc x3dSuppGeom {maxxyz} {
-  global x3dFile objDesign viz tessSuppGeomFile tessSuppGeomFileName trimVal x3dMsg
+  global x3dFile objDesign viz tessSuppGeomFile tessSuppGeomFileName trimVal x3dMsg x3dColors1
   
   set size [trimNum [expr {$maxxyz*0.025}]]
   set tsize [trimNum [expr {$size*0.33}]]
@@ -814,6 +821,7 @@ proc x3dSuppGeom {maxxyz} {
                 puts $x3dFile " <Transform translation='$sz 0 0' scale='$tsize $tsize $tsize'><Billboard axisOfRotation='0 0 0'><Shape><Appearance><Material diffuseColor='$axisColor'></Material></Appearance><Text string='\"X\"'><FontStyle family='\"SANS\"'></FontStyle></Text></Shape></Billboard></Transform>"
                 puts $x3dFile " <Transform translation='0 $sz 0' scale='$tsize $tsize $tsize'><Billboard axisOfRotation='0 0 0'><Shape><Appearance><Material diffuseColor='$axisColor'></Material></Appearance><Text string='\"Y\"'><FontStyle family='\"SANS\"'></FontStyle></Text></Shape></Billboard></Transform>"
                 puts $x3dFile " <Transform translation='0 0 $sz' scale='$tsize $tsize $tsize'><Billboard axisOfRotation='0 0 0'><Shape><Appearance><Material diffuseColor='$axisColor'></Material></Appearance><Text string='\"Z\"'><FontStyle family='\"SANS\"'></FontStyle></Text></Shape></Billboard></Transform>"
+                lappend x3dColors1 $axisColor
               }
               
               set nsize [trimNum [expr {$tsize*1.5}]]
@@ -1186,7 +1194,7 @@ proc x3dSuppGeomCylinder {e2 tsize {name ""}} {
 # -------------------------------------------------------------------------------
 # write geometry for polyline annotations
 proc x3dPolylinePMI {} {
-  global ao x3dCoord x3dShape x3dIndex x3dIndexType x3dFile x3dColor gpmiPlacement placeOrigin placeAnchor boxSize
+  global ao x3dCoord x3dShape x3dIndex x3dIndexType x3dFile x3dColor x3dColors1 gpmiPlacement placeOrigin placeAnchor boxSize
   global savedViewName savedViewNames savedViewFile savedViewFileName recPracNames mytemp opt x3dColorFile
 
   if {[catch {
@@ -1217,6 +1225,8 @@ proc x3dPolylinePMI {} {
 # start shape
           if {$x3dColor != ""} {
             puts $f "<Shape>\n <Appearance><Material diffuseColor='$x3dColor' emissiveColor='$x3dColor'></Material></Appearance>"
+            lappend x3dColors1 $x3dColor
+            
           } else {
             puts $f "<Shape>\n <Appearance><Material diffuseColor='0 0 0' emissiveColor='0 0 0'></Material></Appearance>"
             errorMsg "Syntax Error: Missing PMI Presentation color for [formatComplexEnt $ao] (using black)\n[string repeat " " 14]\($recPracNames(pmi242), Sec. 8.4, Figure 75)"
@@ -1283,13 +1293,13 @@ proc x3dSetColor {type {mode 0}} {
     incr idxColor($mode)
     switch -- $idxColor($mode) {
       1 {set color "1 0 0"}
-      2 {set color "1 1 0"}
+      2 {set color "0 0 1"}
       3 {set color "0 .5 0"}
-      4 {set color "0 .5 .5"}
-      5 {set color "0 0 1"}
-      6 {set color "1 0 1"}
-      7 {set color ".5 .25 0"}
-      8 {set color "0 0 0"}
+      4 {set color "1 0 1"}
+      5 {set color "0 .5 .5"}
+      6 {set color ".5 .25 0"}
+      7 {set color "0 0 0"}
+      8 {set color "1 1 0"}
       9 {set color "1 1 1"}
     }
     if {$idxColor($mode) == 9} {set idxColor($mode) 0}

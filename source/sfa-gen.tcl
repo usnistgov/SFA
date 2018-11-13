@@ -8,10 +8,10 @@ proc genExcel {{numFile 0}} {
   global lastXLS lenfilelist localName localNameList logFile multiFile multiFileDir mytemp nistName nistVersion nprogBarEnts nshape
   global ofExcel ofCSV
   global opt p21e3 p21e3Section pmiCol pmiMaster recPracNames row rowmax
-  global savedViewButtons savedViewName savedViewNames scriptName sheetLast spmiEntity spmiSumName spmiSumRow spmiTypesPerFile startrow stepAP
+  global savedViewButtons savedViewName savedViewNames scriptName sheetLast spmiEntity spmiSumName spmiSumRow spmiTypesPerFile startrow stepAP statsOnly
   global tessColor thisEntType tlast tolNames tolStandard totalEntity userEntityFile userEntityList userXLSFile useXL virtualDir viz
   global workbook workbooks worksheet worksheet1 worksheets writeDir wsCount wsNames
-  global x3dAxes x3dColor x3dColors x3dColorFile x3dCoord x3dFile x3dFileName x3dStartFile x3dIndex x3dMax x3dMin x3dMsg
+  global x3dAxes x3dColor x3dColors x3dColors1 x3dColorFile x3dCoord x3dFile x3dFileName x3dStartFile x3dIndex x3dMax x3dMin x3dMsg
   global xlFileName xlFileNames xlFormat xlInstalled
   global objDesign
   
@@ -24,7 +24,8 @@ proc genExcel {{numFile 0}} {
     set x3dAxes 1
     set x3dFileName ""
     set x3dColor ""
-    set x3dColors {}
+    set x3dColors  {}
+    set x3dColors1 {}
     foreach idx {x y z} {
       set x3dMax($idx) -1.e10
       set x3dMin($idx)  1.e10
@@ -83,6 +84,14 @@ proc genExcel {{numFile 0}} {
     } elseif {$stepAP != ""} {
       set str $stepAP
     }
+    
+# open log file
+    if {$opt(LOGFILE)} {
+      set lfile [file rootname $fname]
+      append lfile "-sfa.log"
+      set logFile [open $lfile w]
+      puts $logFile "NIST STEP File Analyzer and Viewer (v[getVersion])  [clock format [clock seconds]]"
+    }
     outputMsg "\nOpening $str file"
 
 # check for Part 21 edition 3 files and strip out sections
@@ -113,10 +122,64 @@ proc genExcel {{numFile 0}} {
     set objDesign [$objIFCsvr OpenDesign [file nativename $fname]]
     if {![info exists buttons]} {outputMsg "*** End ST-Developer messages\n"}
 
-# count entities
+# get stats
     set entityCount [$objDesign CountEntities "*"]
-    outputMsg " $entityCount entities\n"
-    if {$entityCount == 0} {errorMsg "There are no entities in the STEP file."}
+    if {$entityCount > 0} {
+      outputMsg " $entityCount entities"
+      set entityTypeNames [$objDesign EntityTypeNames [expr 2]]
+      set characteristics {}
+      foreach entType $entityTypeNames {
+        set ecount [$objDesign CountEntities "$entType"]
+        if {$ecount > 0} {
+          #outputMsg $entType red
+          if {$entType == "dimensional_characteristic_representation"} {
+            lappend characteristics "Dimensions"
+          } elseif {$entType == "datum"} {
+            lappend characteristics "Datums"
+          } elseif {[string first "_tolerance" $entType] != -1} {
+            lappend characteristics "Geometric tolerances"
+          } elseif {$entType == "tessellated_annotation_occurrence"} {
+            lappend characteristics "Graphical PMI (tessellated)"
+          } elseif {$entType == "annotation_occurrence" || [string first "annotation_curve_occurrence" $entType] != -1 || $entType == "annotation_fill_area_occurrence"} {
+            lappend characteristics "Graphical PMI (polyline)"
+          } elseif {$entType == "advanced_brep_shape_representation" || $entType == "manifold_surface_shape_representation" || $entType == "manifold_solid_brep"} {
+            lappend characteristics "B-rep geometry"
+          } elseif {$entType == "constructive_geometry_representation"} {
+            lappend characteristics "Supplemental geometry"
+          } elseif {$entType == "tessellated_solid" || $entType == "tessellated_shell"} {
+            lappend characteristics "Tessellated geometry"
+          } elseif {[lsearch $entCategory(PR_STEP_COMP) $entType] != -1} {
+            lappend characteristics "Composites"
+          } elseif {[lsearch $entCategory(PR_STEP_KINE) $entType] != -1} {
+            lappend characteristics "Kinematics"
+          } elseif {[lsearch $entCategory(PR_STEP_FEAT) $entType] != -1} {
+            lappend characteristics "Machining features"
+          }
+        }
+      }
+      if {[llength $characteristics] > 0} {
+        set str ""
+        foreach item [lrmdups $characteristics] {append str "$item, "}
+        set str [string range $str 0 end-2]
+        outputMsg "This file contains: $str" red
+      }
+    } else {
+      errorMsg "There are no entities in the STEP file."
+    }
+    outputMsg " "
+    
+# exit if stats only from command-line version    
+    if {[info exists statsOnly]} {
+      if {[info exists logFile]} {
+        update idletasks
+        outputMsg "\nSaving Log file as:"
+        outputMsg " [truncFileName [file nativename $lfile]]" blue
+        close $logFile
+        unset lfile
+        unset logFile
+      }
+      exit
+    }
 
 # add AP, file size, entity count to multi file summary
     if {$numFile != 0 && [info exists cells1(Summary)]} {
@@ -161,14 +224,6 @@ proc genExcel {{numFile 0}} {
         file delete -force $cfile1
         errorMsg "File of entities to skip '[file tail $cfile1]' renamed to '[file tail $cfile]'."
       }
-    }
-    
-# open log file
-    if {$opt(LOGFILE)} {
-      set lfile [file rootname $fname]
-      append lfile "-sfa.log"
-      set logFile [open $lfile w]
-      puts $logFile "NIST STEP File Analyzer and Viewer (v[getVersion])  [clock format [clock seconds]]\n"
     }
 
 # check if a file generated from a NIST test case (and some other files) is being processed
@@ -410,7 +465,6 @@ proc genExcel {{numFile 0}} {
   catch {unset entCount}
 
 # for all entity types, check for which ones to process
-  set entityTypeNames [$objDesign EntityTypeNames [expr 2]]
   foreach entType $entityTypeNames {
     set entCount($entType) [$objDesign CountEntities "$entType"]
 
@@ -1973,8 +2027,9 @@ proc moveWorksheet {items {where "Before"}} {
 # -------------------------------------------------------------------------------------------------
 proc addP21e3Section {} {
   global objDesign
-  global p21e3Section worksheets legendColor
-  
+  global cells p21e3Section worksheet worksheets legendColor
+
+# look for three section types possible in Part 21 Edition 3  
   foreach line $p21e3Section {
     if {$line == "ANCHOR" || $line == "REFERENCE" || $line == "SIGNATURE"} {
       set sect $line
@@ -1988,9 +2043,11 @@ proc addP21e3Section {} {
       outputMsg " Adding $line worksheet" green
     }
 
+# add to worksheet
     incr r
     $cells($sect) Item $r 1 $line
 
+# process anchor
     if {$sect == "ANCHOR"} {
       if {$r == 1} {$cells($sect) Item $r 2 "Entity"}
       set c2 [string first ";" $line]
@@ -2001,22 +2058,60 @@ proc addP21e3Section {} {
         set badEnt 0
         set anchorID [string range $line $c1+1 end]
         if {[string is integer $anchorID]} {
-          set anchorEnt [$objDesign FindObjectByP21Id [expr {int($anchorID)}]]
+          set anchorEnt [[$objDesign FindObjectByP21Id [expr {int($anchorID)}]] Type]
+
+# add anchor ID to entity worksheet
           if {$anchorEnt != ""} {
-            $cells($sect) Item $r 2 [[$objDesign FindObjectByP21Id [expr {int($anchorID)}]] Type]
+            $cells($sect) Item $r 2 $anchorEnt
+            if {[info exists worksheet($anchorEnt)]} {
+              set c3 [string first ">" $line]
+              if {$c3 == -1} {set c3 [string first "=" $line]}
+              set uuid [string range $line 1 $c3-1]
+              if {![info exists urow($anchorEnt)]} {set urow($anchorEnt) [[[$worksheet($anchorEnt) UsedRange] Rows] Count]}
+              if {![info exists ucol($anchorEnt)]} {set ucol($anchorEnt) [expr {[[[$worksheet($anchorEnt) UsedRange] Columns] Count] + 1}]}
+              for {set ur 4} {$ur <= $urow($anchorEnt)} {incr ur} {
+                set id [[$cells($anchorEnt) Item $ur 1] Value]
+                if {$id == $anchorID} {
+                  $cells($anchorEnt) Item $ur $ucol($anchorEnt) $uuid
+                  break
+                }
+              }
+            }
           } else {
             set badEnt 1
           }
         } else {
           set badEnt 1
         }
+
+# bad ID in anchor section
         if {$badEnt} {
           [[$worksheet($sect) Range [cellRange $r 1] [cellRange $r 1]] Interior] Color $legendColor(red)
           errorMsg "Syntax Error: Bad format for entity ID in ANCHOR section."
         }
       }
     }
-    
+
     if {$line == "ENDSEC"} {[$worksheet($sect) Columns] AutoFit}
+  }
+
+# format ID columns
+  if {[llength [array names urow]] > 0} {outputMsg " Adding ANCHOR IDS on: [lsort [array names urow]]" green}
+  foreach ent [array names urow] {
+    $cells($ent) Item 3 $ucol($ent) "ANCHOR section ID"
+    set range [$worksheet($ent) Range [cellRange 3 $ucol($ent)] [cellRange $urow($ent) $ucol($ent)]]
+    [$range Columns] AutoFit
+    [$range Interior] ColorIndex [expr 40]
+    for {set r 4} {$r <= $urow($ent)} {incr r} {
+      set range [$worksheet($ent) Range [cellRange $r $ucol($ent)]]
+      [[$range Borders] Item [expr 8]] Weight [expr 1]
+      [[$range Borders] Item [expr 9]] Weight [expr 1]
+    }
+
+    set range [$worksheet($ent) Range [cellRange 3 $ucol($ent)]]
+    [[$range Borders] Item [expr 8]] Weight [expr 3]
+    [$range Font] Bold [expr 1]
+    $range HorizontalAlignment [expr -4108]
+    [[[$worksheet($ent) Range [cellRange $urow($ent) $ucol($ent)]] Borders] Item [expr 9]] Weight [expr 3]
   }
 }

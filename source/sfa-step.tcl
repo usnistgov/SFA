@@ -1324,7 +1324,7 @@ proc checkForReports {entType} {
       #$entType == "element_nodal_freedom_actions"
       #($opt(VIZFEALV) && ($entType == "nodal_freedom_action_definition" || $entType == "element_nodal_freedom_actions"))
     } emsg]} {
-      errorMsg "ERROR adding Analysis Model for '$entType'\n  $emsg"
+      errorMsg "ERROR adding FEM for '$entType'\n  $emsg"
     }
   }
 }

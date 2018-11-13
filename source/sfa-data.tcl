@@ -1,33 +1,3 @@
-#-------------------------------------------------------------------------------
-# version numbers, software and user guide, contact
-proc getVersion {}   {return 3.12}
-proc getVersionUG {} {return 3.0}
-proc getContact {}   {return [list "Robert Lipman" "robert.lipman@nist.gov"]}
-
-# -------------------------------------------------------------------------------
-proc whatsNew {} {
-  global progtime sfaVersion
-  
-  if {$sfaVersion > 0 && $sfaVersion < [getVersion]} {outputMsg "\nThe previous version of the STEP File Analyzer and Viewer was: $sfaVersion" red}
-
-outputMsg "\nWhat's New (Version: [getVersion]  Updated: [string trim [clock format $progtime -format "%e %b %Y"]])" blue
-outputMsg "- Part Geometry Viewer (See Help > View Part Geometry)
-- Graphical PMI colored by saved view
-- Improved processing of tolerance zone form, supplemental geometry, and annotation placeholder
-- Explanation of Analysis errors (Help > Syntax Errors)
-- Support for AP242 Edition 2 DIS (Draft International Standard)
-- More STEP related Websites
-- Bug fixes and minor improvements"
-
-if {$sfaVersion > 0 && $sfaVersion <= 2.60} {
-  outputMsg "\nRenamed output files:\n Spreadsheets from  myfile_stp.xlsx  to  myfile-sfa.xlsx\n Views from  myfile-x3dom.html  to  myfile-sfa.html" red
-}
-
-  .tnb select .tnb.status
-  update idletasks
-}
-
-#-------------------------------------------------------------------------------
 proc initData {} {
 
 global entCategory entColorIndex badAttributes roseLogical defaultColor
