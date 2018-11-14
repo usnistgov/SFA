@@ -1,6 +1,6 @@
 # start x3dom file for non-FEM graphics                       
 proc x3dFileStart {} {
-  global ao entCount localName opt x3dFile x3dFileName x3dStartFile numTessColor x3dMin x3dMax cadSystem viz
+  global ao entCount localName opt timeStamp x3dFile x3dFileName x3dStartFile numTessColor x3dMin x3dMax cadSystem viz
   
   set x3dStartFile 0
   catch {file delete -force -- "[file rootname $localName]_x3dom.html"}
@@ -8,26 +8,17 @@ proc x3dFileStart {} {
   set x3dFileName [file rootname $localName]-sfa.html
   catch {file delete -force -- $x3dFileName}
   set x3dFile [open $x3dFileName w]
-
-  if {$viz(PMI) && $viz(TPG)} {
-    set title "Graphical PMI and Tessellated Part Geometry"
-  } elseif {$viz(PMI)} {
-    set title "Graphical PMI"
-  } elseif {$viz(TPG)} {
-    set title "Tessellated Part Geometry"
-  } elseif {$opt(VIZBRP)} {
-    set title "Part Geometry"
-  }
   
-  puts $x3dFile "<!DOCTYPE html>\n<html>\n<head>\n<title>[file tail $localName] | $title</title>\n<base target=\"_blank\">\n<meta http-equiv='Content-Type' content='text/html;charset=utf-8'/>"
+  puts $x3dFile "<!DOCTYPE html>\n<html>\n<head>\n<title>[file tail $localName]</title>\n<base target=\"_blank\">\n<meta http-equiv='Content-Type' content='text/html;charset=utf-8'/>"
   puts $x3dFile "<link rel='stylesheet' type='text/css' href='https://www.x3dom.org/x3dom/release/x3dom.css'/>\n<script type='text/javascript' src='https://www.x3dom.org/x3dom/release/x3dom.js'></script>\n</head>"
 
   set name [file tail $localName]
-  if {$cadSystem != ""} {append name "  ($cadSystem)"}
-  puts $x3dFile "\n<body><font face=\"arial\">\n<h3>$title:  $name</h3>"
+  if {$timeStamp != ""} {append name "&nbsp;&nbsp;&nbsp;$timeStamp"}
+  if {$cadSystem != ""} {append name "&nbsp;&nbsp;&nbsp;$cadSystem"}
+  puts $x3dFile "\n<body><font face=\"arial\">\n<h3>$name</h3>"
   puts $x3dFile "\n<table><tr><td valign='top' width='85%'>"
   puts $x3dFile "Part geometry can also be viewed with other <a href=\"https://www.cax-if.org/step_viewers.html\">STEP file viewers</a>."
-  puts $x3dFile "  Part color is ignored."
+  if {$opt(VIZBRP) && !$viz(TPG)} {puts $x3dFile "  Part color is ignored."}
   if {$viz(PMI)} {puts $x3dFile "  Some Graphical PMI might not have equivalent Semantic PMI in the STEP file."}
   if {$viz(TPG) && [info exist entCount(next_assembly_usage_occurrence)]} {
     puts $x3dFile "  ** Parts in an assembly might have the wrong position and orientation or be missing. **"

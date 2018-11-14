@@ -1,5 +1,5 @@
 # version numbers, software and user guide, contact
-proc getVersion {}   {return 3.15}
+proc getVersion {}   {return 3.16}
 proc getVersionUG {} {return 3.0}
 proc getContact {}   {return [list "Robert Lipman" "robert.lipman@nist.gov"]}
 

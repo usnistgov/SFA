@@ -161,7 +161,7 @@ proc genExcel {{numFile 0}} {
         set str ""
         foreach item [lrmdups $characteristics] {append str "$item, "}
         set str [string range $str 0 end-2]
-        outputMsg "This file contains: $str" red
+        outputMsg "This file contains: $str" green
       }
     } else {
       errorMsg "There are no entities in the STEP file."
@@ -1230,7 +1230,6 @@ proc addHeaderWorksheet {numFile fname} {
       set csvfname [file join $csvdirnam $hdr.csv]
       if {[file exists $csvfname]} {file delete -force $csvfname}
       set fcsv [open $csvfname w]
-      #outputMsg $fcsv red
     }
 
     set row($hdr) 0
@@ -1345,8 +1344,8 @@ proc addHeaderWorksheet {numFile fname} {
             errorMsg "FileTimeStamp has the wrong format, see Header worksheet"            
             if {$useXL} {[[$worksheet($hdr) Range B5] Interior] Color $legendColor(red)}
           }
+          set timeStamp $objAttr
           if {$numFile != 0 && [info exists cells1(Summary)] && $useXL} {
-            set timeStamp $objAttr
             set colsum [expr {$col1(Summary)+1}]
             set range [$worksheet1(Summary) Range [cellRange 5 $colsum]]
             catch {$cells1(Summary) Item 5 $colsum "'[string range $timeStamp 2 9]"}
@@ -1432,7 +1431,7 @@ proc addHeaderWorksheet {numFile fname} {
       }
     }
     
-# add app2 to multiple file summary worksheet    
+# add app2 to multiple file summary worksheet
     if {$numFile != 0 && $useXL && [info exists cells1(Summary)]} {
       if {$ok == 0} {set app2 [setCAXIFvendor]}
       set colsum [expr {$col1(Summary)+1}]
@@ -2076,6 +2075,8 @@ proc addP21e3Section {} {
                   break
                 }
               }
+            } else {
+              lappend noanchor $anchorEnt
             }
           } else {
             set badEnt 1
@@ -2096,9 +2097,18 @@ proc addP21e3Section {} {
   }
 
 # format ID columns
-  if {[llength [array names urow]] > 0} {outputMsg " Adding ANCHOR IDS on: [lsort [array names urow]]" green}
+  if {[llength [array names urow]] > 0} {
+    set ids {}
+    foreach item [lsort [array names urow]] {lappend ids [formatComplexEnt $item]}
+    outputMsg " Adding ANCHOR IDs on: $ids" green
+    if {[info exists noanchor]} {
+      set ids {}
+      foreach item [lrmdups $noanchor] {lappend ids [formatComplexEnt $item]}
+      outputMsg "  ANCHOR IDs are also associated with: $ids" red
+    }
+  }
   foreach ent [array names urow] {
-    $cells($ent) Item 3 $ucol($ent) "ANCHOR section ID"
+    $cells($ent) Item 3 $ucol($ent) "ANCHOR ID"
     set range [$worksheet($ent) Range [cellRange 3 $ucol($ent)] [cellRange $urow($ent) $ucol($ent)]]
     [$range Columns] AutoFit
     [$range Interior] ColorIndex [expr 40]
