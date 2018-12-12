@@ -4,15 +4,20 @@ global entCategory entColorIndex badAttributes roseLogical defaultColor
 global aoEntTypes gpmiTypes spmiEntTypes dimSizeNames tolNames tzfNames dimModNames pmiModifiers pmiModifiersRP pmiUnicode
 global spmiTypes recPracNames modelPictures schemaLinks modelURLs legendColor
 global ap203all ap214all ap242all
-global feaIndex feaElemFace cadApps allVendor numSavedViews andEntAP209
+global feaIndex feaElemFace cadApps allVendor numSavedViews andEntAP209 brepEnts
 
-set defaultColor [list "0.818 0.512 0.266" brown]
+set defaultColor [list "0.996 0.463 0.418" pink]
+#set defaultColor [list "0.818 0.512 0.266" brown]
 
 set roseLogical(0) "FALSE"
 set roseLogical(1) "TRUE"
 set roseLogical(2) "UNKNOWN"
 
+# AP209 entities with a specific '_and_' in the entity name
 set andEntAP209 [list "_and_location" "_and_volume_location" "_and_coefficient" "_and_frequencies" "_and_parameters" "_and_value_definition" "_and_freedom"]
+
+# entities with b-rep geometry
+set brepEnts [list advanced_brep_shape_representation manifold_surface_shape_representation manifold_solid_brep shell_based_surface_model]
 
 # names of CAx-IF Recommended Practices
 set recPracNames(model)    "Model Styling and Organization"
@@ -122,7 +127,7 @@ set allVendor(ug) "Unigraphics"
 # sort cadApps by string length
 set cadApps [sortlength2 $cadApps]
 
-# list of annotation occurrence entities, *order is important* (removed draughting_annotation_occurrence, not in RP)
+# list of annotation occurrence entities, *order is important*
 set aoEntTypes [list \
   tessellated_annotation_occurrence \
   annotation_placeholder_occurrence \

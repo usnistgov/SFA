@@ -1,28 +1,67 @@
 # start x3dom file for non-FEM graphics                       
 proc x3dFileStart {} {
-  global ao entCount localName opt timeStamp x3dFile x3dFileName x3dStartFile numTessColor x3dMin x3dMax cadSystem viz
+  global ao entCount localName opt timeStamp x3dFile x3dFileName x3dStartFile numTessColor
+  global x3dMin x3dMax cadSystem viz stepAP brepEnts x3dColorBrep x3dColorStyle
+  global objDesign
   
+  if {$x3dStartFile == 0} {return}
   set x3dStartFile 0
+  
   catch {file delete -force -- "[file rootname $localName]_x3dom.html"}
   catch {file delete -force -- "[file rootname $localName]-x3dom.html"}
   set x3dFileName [file rootname $localName]-sfa.html
   catch {file delete -force -- $x3dFileName}
   set x3dFile [open $x3dFileName w]
   
-  puts $x3dFile "<!DOCTYPE html>\n<html>\n<head>\n<title>[file tail $localName]</title>\n<base target=\"_blank\">\n<meta http-equiv='Content-Type' content='text/html;charset=utf-8'/>"
+  set title [file tail $localName]
+  if {$stepAP != "" && [string range $stepAP 0 1] == "AP"} {append title " | $stepAP"}
+  puts $x3dFile "<!DOCTYPE html>\n<html>\n<head>\n<title>$title</title>\n<base target=\"_blank\">\n<meta http-equiv='Content-Type' content='text/html;charset=utf-8'/>"
   puts $x3dFile "<link rel='stylesheet' type='text/css' href='https://www.x3dom.org/x3dom/release/x3dom.css'/>\n<script type='text/javascript' src='https://www.x3dom.org/x3dom/release/x3dom.js'></script>\n</head>"
 
   set name [file tail $localName]
-  if {$timeStamp != ""} {append name "&nbsp;&nbsp;&nbsp;$timeStamp"}
-  if {$cadSystem != ""} {append name "&nbsp;&nbsp;&nbsp;$cadSystem"}
+  if {$stepAP != "" && [string range $stepAP 0 1] == "AP"} {append name "&nbsp;&nbsp;&nbsp;$stepAP"}
+  if {$timeStamp != ""} {
+    set ts [fixTimeStamp $timeStamp]
+    append name "&nbsp;&nbsp;&nbsp;$ts"
+  }
+  if {$cadSystem != ""} {
+    regsub -all "_" $cadSystem " " cs
+    append name "&nbsp;&nbsp;&nbsp;$cs"
+  }
   puts $x3dFile "\n<body><font face=\"arial\">\n<h3>$name</h3>"
   puts $x3dFile "\n<table><tr><td valign='top' width='85%'>"
-  puts $x3dFile "Part geometry can also be viewed with other <a href=\"https://www.cax-if.org/step_viewers.html\">STEP file viewers</a>."
-  if {$opt(VIZBRP) && !$viz(TPG)} {puts $x3dFile "  Part color is ignored."}
-  if {$viz(PMI)} {puts $x3dFile "  Some Graphical PMI might not have equivalent Semantic PMI in the STEP file."}
-  if {$viz(TPG) && [info exist entCount(next_assembly_usage_occurrence)]} {
-    puts $x3dFile "  ** Parts in an assembly might have the wrong position and orientation or be missing. **"
+  
+  if {$opt(VIZBRP)} {
+    set ok 0
+    foreach item $brepEnts {if {[info exists entCount($item)]} {set ok 1}}
+    set x3dColorBrep [x3dBrepColor]
+    if {$ok} {
+      
+# report multiple colors      
+      set ok1 0
+      if {$x3dColorBrep == "" && [info exists entCount(styled_item)] && $x3dColorStyle} {set ok1 1}
+      if {$ok1} {
+        puts $x3dFile "Multiple part colors are ignored.  "
+
+# report overriding colors      
+      } elseif {[info exists entCount(over_riding_styled_item)]} {
+        if {$entCount(over_riding_styled_item) > 0} {
+          set overriding 0
+          ::tcom::foreach e0 [$objDesign FindObjects [string trim over_riding_styled_item]] {
+            set item [[[[$e0 Attributes] Item [expr 3]] Value] Type]
+            if {$item == "advanced_face"} {set overriding 1}
+          }
+          if {$overriding} {puts $x3dFile "Overriding part colors are ignored.  "}
+        }
+      }
+    }
   }
+  if {$viz(PMI)} {
+    puts $x3dFile "$viz(PMIMSG)  "
+  } else {
+    if {[string first "Some Graphical PMI" $viz(PMIMSG)] == 0} {puts $x3dFile "The STEP file contains only Semantic PMI and no Graphical PMI.  "}
+  }
+  if {$viz(TPG) && [info exist entCount(next_assembly_usage_occurrence)]} {puts $x3dFile "Parts in an assembly might have the wrong position and orientation or be missing."}
   puts $x3dFile "</td><td></td><tr><td valign='top' width='85%'>"
 
 # x3d window size
@@ -55,7 +94,7 @@ proc x3dFileStart {} {
 # write tessellated geometry for annotations and parts
 proc x3dTessGeom {objID objEntity1 ent1} {
   global ao draftModelCameras entCount nshape recPracNames shapeRepName savedViewFile tessIndex tessIndexCoord tessCoord tessCoordID
-  global tessPlacement tessRepo x3dColor x3dCoord x3dIndex x3dFile x3dColors x3dColors1 x3dColorFile x3dMsg opt defaultColor tessPartFile tessSuppGeomFile shellSuppGeom
+  global tessPlacement tessRepo x3dColor x3dCoord x3dIndex x3dFile x3dColors x3dColorsUsed x3dColorFile x3dMsg opt defaultColor tessPartFile tessSuppGeomFile shellSuppGeom
   global savedViewNames savedViewFileName mytemp srNames
   #outputMsg "x3dTessGeom $objID"
   
@@ -172,7 +211,7 @@ proc x3dTessGeom {objID objEntity1 ent1} {
         } else {
           puts $f "<Shape$defstr><Appearance><Material diffuseColor='$x3dColor' $emit></Material></Appearance>"
         }
-        lappend x3dColors1 $x3dColor
+        lappend x3dColorsUsed $x3dColor
         
         set indexedSet "<Indexed[string totitle $x3dIndexType]\Set $solid coordIndex='[string trim $x3dIndex]'>"
         
@@ -252,19 +291,19 @@ proc x3dTessGeom {objID objEntity1 ent1} {
 # -------------------------------------------------------------------------------
 # write tessellated edges, PMI saved view geometry, set viewpoints, add navigation and background color, and close X3DOM file
 proc x3dFileEnd {} {
-  global ao modelURLs nistName opt stepAP x3dAxes x3dMax x3dMin x3dFile x3dMsg x3dColors1 stepAP entCount nistVersion numSavedViews numTessColor viz
+  global ao modelURLs nistName opt stepAP x3dAxes x3dMax x3dMin x3dFile x3dMsg x3dColorsUsed stepAP entCount nistVersion numSavedViews numTessColor viz
   global savedViewButtons savedViewFileName savedViewFile savedViewNames savedViewpoint feaBoundary feaLoad savedViewItems feaLoadMsg feaLoadMag
   global tessEdgeFile tessEdgeFileName tessPartFile tessPartFileName tessEdgeCoordDef
-  global wdir mytemp localName brepFile brepFileName
+  global wdir mytemp localName brepFile brepFileName brepEnts
   global objDesign
 
 # PMI is already written to file
 # generate b-rep part geometry based on pythonOCC and OpenCascade
   set viz(BRP) 0
-  if {([info exists entCount(advanced_brep_shape_representation)] || \
-       [info exists entCount(manifold_surface_shape_representation)] || \
-       [info exists entCount(manifold_solid_brep)]) && $opt(VIZBRP)} {
-    x3dBrepGeom
+  if {$opt(VIZBRP)} {
+    set ok 0
+    foreach item $brepEnts {if {[info exists entCount($item)]} {set ok 1}}
+    if {$ok} {x3dBrepGeom}
   }
   
 # coordinate min, max, center
@@ -280,7 +319,7 @@ proc x3dFileEnd {} {
 # write tessellated edges
   set viz(EDG) 0
   if {[info exists tessEdgeFile]} {
-    close $tessEdgeFile
+    catch {close $tessEdgeFile}
     if {[file size $tessEdgeFileName] > 0} {
       puts $x3dFile "\n<!-- TESSELLATED EDGES -->\n<Switch whichChoice='0' id='swTED'><Group>"
       set f [open $tessEdgeFileName r]
@@ -304,10 +343,10 @@ proc x3dFileEnd {} {
   if {[llength $savedViewNames] > 0} {
     for {set i 0} {$i < [llength $savedViewNames]} {incr i} {
       set svn [lindex $savedViewNames $i]
+      catch {close $savedViewFile($svn)}
       if {[file size $savedViewFileName($svn)] > 0} {
         set svMap($svn) $svn
         set svWrite 1
-        close $savedViewFile($svn)
         
 # check if same saved view graphics already written
         if {[info exists savedViewItems($svn)]} {
@@ -344,7 +383,7 @@ proc x3dFileEnd {} {
         }
         puts $x3dFile "</Group></Switch>"
       } else {
-        close $savedViewFile($svn)
+        catch {close $savedViewFile($svn)}
       }
       catch {file delete -force -- $savedViewFileName($svn)}
     }
@@ -406,17 +445,42 @@ proc x3dFileEnd {} {
 
 # navigation, background color
   set bgc "1 1 1"
-  if {$viz(PMI)} {
-    set x3dColors1 [lrmdups $x3dColors1]
-    #outputMsg $x3dColors1
+  if {[info exists x3dColorsUsed]} {
+    set x3dColorsUsed [lrmdups $x3dColorsUsed]
     foreach color {"1 1 0" "1 1 1" "1. 1. 1."} {
-      if {[lsearch $x3dColors1 $color] != -1} {set bgc ".8 .8 .8"}
+      if {[lsearch $x3dColorsUsed $color] != -1} {
+        set bgc ".8 .8 .8"
+        break
+      }
     }
   }
   puts $x3dFile "\n<!-- BACKGROUND -->"
   puts $x3dFile "<Background id='BG' skyColor='$bgc'></Background>"
   puts $x3dFile "<NavigationInfo type='\"EXAMINE\" \"ANY\"'></NavigationInfo>"
-  puts $x3dFile "</Scene></X3D>\n</td>\n\n<!-- START RIGHT COLUMN -->\n<td valign='top'>"
+  puts $x3dFile "</Scene></X3D>"
+  
+# credits  
+  set ver "NIST "
+  set url "https://www.nist.gov/services-resources/software/step-file-analyzer-and-viewer"
+  if {!$nistVersion} {
+    set ver ""
+    set url "https://github.com/usnistgov/SFA"
+  }
+  set str "\n<p>&nbsp;<br>Generated by the <a href=\"$url\">$ver\STEP File Analyzer and Viewer (v[getVersion])</a> and displayed with <a href=\"https://www.x3dom.org/\">x3dom</a>"
+  if {$opt(VIZBRP)} {
+    set ok 0
+    foreach item $brepEnts {if {[info exists entCount($item)]} {set ok 1}}
+    if {$ok} {
+      append str " and <a href=\"http://www.pythonocc.org/\">pythonOCC</a>"
+      if {$viz(TPG) || $viz(PMI) || $viz(FEA) || $viz(SMG)} {append str " for part geometry"}
+      append str ".  Part geometry can also be viewed with <a href=\"https://www.cax-if.org/step_viewers.html\">STEP file viewers</a>"
+    }
+  }
+  append str ".<br><a href=\"https://www.nist.gov/disclaimer\">NIST Disclaimer</a>  [clock format [clock seconds] -format "%d %b %G %H:%M"]"
+  puts $x3dFile $str
+  
+# start right column  
+  puts $x3dFile "</td>\n\n<!-- START RIGHT COLUMN -->\n<td valign='top'>"
 
 # -------------------------------------------------------------------------------
 # for NIST model - link to drawing 
@@ -432,7 +496,7 @@ proc x3dFileEnd {} {
   }
 
 # TPG button
-  if {$viz(TPG) && ($viz(PMI) || $viz(SMG) || $viz(EDG) || $viz(BRP))} {
+  if {$viz(TPG)} {
     puts $x3dFile "\n<!-- TPG button -->\n<input type='checkbox' checked onclick='togTPG(this.value)'/>Tessellated Part Geometry"
     if {$viz(EDG)} {puts $x3dFile "<!-- TED button -->\n<br><input type='checkbox' checked onclick='togTED(this.value)'/>Lines (Tessellated Edges)"}
     puts $x3dFile "<p>"
@@ -523,7 +587,7 @@ proc x3dFileEnd {} {
   if {$viz(BRP)} {x3dSwitchScript BRP}
   
 # function for TPG
-  if {$viz(TPG) && ($viz(PMI) || $viz(SMG) || $viz(EDG) || $viz(BRP))} {
+  if {$viz(TPG)} {
     if {[string first "occurrence" $ao] == -1} {
       x3dSwitchScript TPG
       if {$viz(EDG)} {x3dSwitchScript TED}
@@ -565,16 +629,6 @@ proc x3dFileEnd {} {
     }
     puts $x3dFile "}\n</script>"
   }
-                          
-# credits
-  set str "NIST "
-  set url "https://www.nist.gov/services-resources/software/step-file-analyzer-and-viewer"
-  if {!$nistVersion} {
-    set str ""
-    set url "https://github.com/usnistgov/SFA"
-  }
-  puts $x3dFile "\n<p>Generated by the <a href=\"$url\">$str\STEP File Analyzer and Viewer (v[getVersion])</a> and viewed with <a href=\"https://www.x3dom.org/\">x3dom</a>."
-  puts $x3dFile "[clock format [clock seconds]]"
 
   puts $x3dFile "</font></body></html>"
   close $x3dFile
@@ -587,7 +641,7 @@ proc x3dFileEnd {} {
 # -------------------------------------------------------------------------------
 # B-rep part geometry
 proc x3dBrepGeom {} {
-  global entCount opt viz mytemp wdir localName objDesign x3dMin x3dMax brepFile brepFileName x3dMsg sfaType
+  global entCount opt viz mytemp wdir localName objDesign x3dMin x3dMax brepFile brepFileName x3dMsg sfaType x3dColorBrep
 
 # copy stp2x3d executable to temp directory
   if {[catch {
@@ -608,6 +662,7 @@ proc x3dBrepGeom {} {
       catch {file delete -force $stpx3dFileName}
       outputMsg " Processing part geometry.  Wait for the popup program (stp2x3d.exe) to complete.  See Options tab." green
       catch {exec $stp2x3d [file nativename $localName]} errs
+      update idletasks
       
 # done processing      
       if {[string first "DONE!" $errs] != -1} {
@@ -695,7 +750,9 @@ proc x3dBrepGeom {} {
                 
 # adjust color                
               } elseif {[string first "<Material" $line] != -1} {
-                set line "<Material id='color' diffuseColor='0.65 0.65 0.7' specularColor='.2 .2 .2'>"
+                if {![info exists x3dColorBrep]} {set x3dColorBrep "0.65 0.65 0.7"}
+                if {$x3dColorBrep == ""} {set x3dColorBrep "0.65 0.65 0.7"}
+                set line "<Material id='color' diffuseColor='$x3dColorBrep' specularColor='.2 .2 .2'>"
               }
               if {$write} {puts $brepFile $line}
               if {[string first "</Shape" $line] != -1} {set write 0}
@@ -728,7 +785,8 @@ proc x3dBrepGeom {} {
 
 # stp2x3d did not finish
       } else {
-        errorMsg " ERROR generating view of part geometry"
+        errorMsg " ERROR generating view of part geometry.  See Websites > STEP File Viewers"
+        lappend x3dMsg "B-rep geometry cannot be viewed."
       }
     } elseif {$sfaType == "CL"} {
       errorMsg "Run the GUI version first to view part geometry in the command-line version."
@@ -739,9 +797,105 @@ proc x3dBrepGeom {} {
 }
 
 # -------------------------------------------------------------------------------
+proc x3dBrepColor {} {      
+  global objDesign x3dColorsUsed entCount x3dColorBrepAdjusted x3dColorStyle opt
+  
+  set x3dColorBrep ""
+  set x3dColorStyle 0
+  foreach item {manifold_solid_brep shell_based_surface_model advanced_face} {set colors($item) {}}
+
+# get styled_item
+  catch {
+    ::tcom::foreach e0 [$objDesign FindObjects [string trim styled_item]] {
+      #if {$opt(DEBUG1)} {errorMsg "[$e0 Type] [$e0 P21ID]" green}
+      
+# styled_item.styles
+      if {[$e0 Type] == "styled_item"} {
+        set a1 [[$e0 Attributes] Item [expr 2]]
+        set item [[[[$e0 Attributes] Item [expr 3]] Value] Type]
+    
+        if {$item == "manifold_solid_brep" || $item == "shell_based_surface_model" || $item == "advanced_face"} {
+          set x3dColorStyle 1
+          
+# presentation_style.styles
+          ::tcom::foreach e2 [$a1 Value] {
+            set a2 [[$e2 Attributes] Item [expr 1]]
+            set e3 [$a2 Value]
+            set a3 [[$e3 Attributes] Item [expr 2]]
+  
+# surface side style
+            set e4 [$a3 Value]
+            set a4s [[$e4 Attributes] Item [expr 2]]
+  
+# surface style fill area
+            foreach e5 [$a4s Value] {
+              if {[$e5 Type] == "surface_style_fill_area"} {
+                set a5 [[$e5 Attributes] Item [expr 1]]
+  
+# fill area style
+                set e6 [$a5 Value]
+                set a6 [[$e6 Attributes] Item [expr 2]]
+  
+# fill area style colour
+                set e7 [$a6 Value]
+                set a7 [[$e7 Attributes] Item [expr 2]]
+  
+# color
+                set e8 [$a7 Value]
+                if {[$e8 Type] == "colour_rgb"} {
+                  set x3dColorBrep ""
+                  set j 0
+                  ::tcom::foreach a8 [$e8 Attributes] {
+                    if {$j > 0} {append x3dColorBrep "[trimNum [$a8 Value] 3] "}
+                    incr j
+                  }
+                  set x3dColorBrep [string trim $x3dColorBrep]
+                  lappend colors($item) $x3dColorBrep
+                } elseif {[$e8 Type] == "draughting_pre_defined_colour"} {
+                  set x3dColorBrep [x3dPreDefinedColor [[[$e8 Attributes] Item [expr 1]] Value]]
+                  lappend colors($item) $x3dColorBrep
+                } else {
+                  errorMsg "  Unexpected color type ([$e8 Type])"
+                }
+                if {$opt(DEBUG1)} {errorMsg "$x3dColorBrep  $item" red}
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+  
+# ignore advanced_face if other colors exist  
+  if {[llength $colors(advanced_face)] > 0} {
+    if {[llength $colors(manifold_solid_brep)] > 0 || [llength $colors(shell_based_surface_model)] > 0} {set colors(advanced_face) {}}
+  }
+  set allcolors [lrmdups [concat $colors(manifold_solid_brep) $colors(shell_based_surface_model) $colors(advanced_face)]]
+  if {$opt(DEBUG1)} {outputMsg $allcolors green}
+  if {[llength $allcolors] > 1} {
+    set x3dColorBrep ""
+    errorMsg " Part colors are ignored if multiple colors are specified (using gray)."
+
+# adjust color for comparison to PMI color
+  } else {
+    lappend x3dColorsUsed $x3dColorBrep
+    set x3dColorBrepAdjusted ""
+    foreach val $x3dColorBrep {
+      set nval $val
+      if {$val < 0.3} {set nval 0}
+      if {$val > 0.7} {set nval 1}
+      append x3dColorBrepAdjusted "$nval "
+    }
+    set x3dColorBrepAdjusted [string trim $x3dColorBrepAdjusted]
+  }
+  if {$opt(DEBUG1)} {outputMsg $x3dColorBrep blue}
+  return $x3dColorBrep
+}
+
+# -------------------------------------------------------------------------------
 # supplemental geometry
 proc x3dSuppGeom {maxxyz} {
-  global x3dFile objDesign viz tessSuppGeomFile tessSuppGeomFileName trimVal x3dMsg x3dColors1
+  global x3dFile objDesign viz tessSuppGeomFile tessSuppGeomFileName trimVal x3dMsg x3dColorsUsed
   
   set size [trimNum [expr {$maxxyz*0.025}]]
   set tsize [trimNum [expr {$size*0.33}]]
@@ -812,7 +966,7 @@ proc x3dSuppGeom {maxxyz} {
                 puts $x3dFile " <Transform translation='$sz 0 0' scale='$tsize $tsize $tsize'><Billboard axisOfRotation='0 0 0'><Shape><Appearance><Material diffuseColor='$axisColor'></Material></Appearance><Text string='\"X\"'><FontStyle family='\"SANS\"'></FontStyle></Text></Shape></Billboard></Transform>"
                 puts $x3dFile " <Transform translation='0 $sz 0' scale='$tsize $tsize $tsize'><Billboard axisOfRotation='0 0 0'><Shape><Appearance><Material diffuseColor='$axisColor'></Material></Appearance><Text string='\"Y\"'><FontStyle family='\"SANS\"'></FontStyle></Text></Shape></Billboard></Transform>"
                 puts $x3dFile " <Transform translation='0 0 $sz' scale='$tsize $tsize $tsize'><Billboard axisOfRotation='0 0 0'><Shape><Appearance><Material diffuseColor='$axisColor'></Material></Appearance><Text string='\"Z\"'><FontStyle family='\"SANS\"'></FontStyle></Text></Shape></Billboard></Transform>"
-                lappend x3dColors1 $axisColor
+                lappend x3dColorsUsed $axisColor
               }
               
               set nsize [trimNum [expr {$tsize*1.5}]]
@@ -1185,7 +1339,7 @@ proc x3dSuppGeomCylinder {e2 tsize {name ""}} {
 # -------------------------------------------------------------------------------
 # write geometry for polyline annotations
 proc x3dPolylinePMI {} {
-  global ao x3dCoord x3dShape x3dIndex x3dIndexType x3dFile x3dColor x3dColors1 gpmiPlacement placeOrigin placeAnchor boxSize
+  global ao x3dCoord x3dShape x3dIndex x3dIndexType x3dFile x3dColor x3dColorsUsed gpmiPlacement placeOrigin placeAnchor boxSize
   global savedViewName savedViewNames savedViewFile savedViewFileName recPracNames mytemp opt x3dColorFile
 
   if {[catch {
@@ -1216,7 +1370,7 @@ proc x3dPolylinePMI {} {
 # start shape
           if {$x3dColor != ""} {
             puts $f "<Shape>\n <Appearance><Material diffuseColor='$x3dColor' emissiveColor='$x3dColor'></Material></Appearance>"
-            lappend x3dColors1 $x3dColor
+            lappend x3dColorsUsed $x3dColor
             
           } else {
             puts $f "<Shape>\n <Appearance><Material diffuseColor='0 0 0' emissiveColor='0 0 0'></Material></Appearance>"
@@ -1274,7 +1428,7 @@ proc x3dCoordAxes {size} {
 # -------------------------------------------------------------------------------
 # set x3d color
 proc x3dSetColor {type {mode 0}} {
-  global idxColor
+  global idxColor x3dColorBrepAdjusted
 
 # black
   if {$type == 1} {return "0 0 0"}
@@ -1294,6 +1448,14 @@ proc x3dSetColor {type {mode 0}} {
       9 {set color "1 1 1"}
     }
     if {$idxColor($mode) == 9} {set idxColor($mode) 0}
+  }
+  
+# change color if is it the same as brep color
+  if {[info exists x3dColorBrepAdjusted]} {
+    set color1 $color
+    if {$color1 == "0 .5 0"}  {set color1 "0 1 0"}
+    if {$color1 == "0 .5 .5"} {set color1 "0 1 1"}
+    if {$color1 == $x3dColorBrepAdjusted} {set color [x3dSetColor $type $mode]}
   }
   return $color
 } 
@@ -1324,6 +1486,7 @@ proc openX3DOM {{fn ""}} {
   if {![info exists multiFile]} {set multiFile 0}
   
   set open 0
+  if {![info exists viz(BRP)]} {set viz(BRP) 0}
   if {$f7} {
     set open 1
   } elseif {($viz(PMI) || $viz(TPG) || $viz(FEA) || $viz(BRP)) && $fn != "" && $multiFile == 0} {
@@ -1339,7 +1502,7 @@ proc openX3DOM {{fn ""}} {
       exec {*}[auto_execok start] "" [file nativename $fn]
     } emsg]} {
       if {[string first "UNC" $emsg] == -1} {
-        errorMsg "ERROR opening View file: $emsg\n Open [truncFileName [file nativename $fn]]\n in a web browser that supports x3dom https://www.x3dom.org"
+        errorMsg "ERROR opening View file ($emsg)\n Open [truncFileName [file nativename $fn]]\n in a web browser that supports x3dom https://www.x3dom.org"
       }
     }
     update idletasks

@@ -2034,6 +2034,19 @@ proc setHomeDir {} {
 }
 
 #-------------------------------------------------------------------------------
+proc fixTimeStamp {ts} {
+  set c1 [string last "+" $ts]
+  if {$c1 != -1} {set ts [string range $ts 0 $c1-1]}
+  set c1 [string last "-" $ts]
+  if {$c1 > 8} {set ts [string range $ts 0 $c1-1]}
+  set c1 [string first ":" $ts]
+  set c2 [string last  ":" $ts]
+  if {$c1 != $c2 && $c2 != -1} {set ts [string range $ts 0 $c2-1]}
+  if {[string index $ts end] == "T"} {set ts [string range $ts 0 end-1]}
+  return $ts
+}
+
+#-------------------------------------------------------------------------------
 proc getTiming {{str ""}} {
   global tlast
 

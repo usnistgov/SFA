@@ -259,7 +259,7 @@ proc gpmiAnnotationReport {objEntity} {
                       append msg "($recPracNames(pmi203), Sec. 4.1.1, 4.1.2)"
                     }
                     errorMsg $msg
-                    set msg "Some annotation line segments may be missing."
+                    set msg "PMI annotation curves for '[$objValue Type]' will be missing."
                     if {[lsearch $x3dMsg $msg] == -1} {lappend x3dMsg $msg}
                   }
                 }
@@ -473,11 +473,12 @@ proc gpmiAnnotationReport {objEntity} {
                   }
                 }
                 "direction direction_ratios" {
-                  set dirRatio(x) [format "%.4f" [lindex $objValue 0]]
-                  set dirRatio(y) [format "%.4f" [lindex $objValue 1]]
-                  set dirRatio(z) [format "%.4f" [lindex $objValue 2]]
-                  if {[info exists tessRepo]} {if {$tessRepo} {lappend tessPlacement($dirType) $objValue}}
-                  if {[string first "placeholder" $ao] != -1} {set gpmiPlacement($dirType) $objValue}
+                  set dir [vecnorm $objValue]
+                  set dirRatio(x,$dirType) [format "%.3f" [lindex $dir 0]]
+                  set dirRatio(y,$dirType) [format "%.3f" [lindex $dir 1]]
+                  set dirRatio(z,$dirType) [format "%.3f" [lindex $dir 2]]
+                  if {[info exists tessRepo]} {if {$tessRepo} {lappend tessPlacement($dirType) $dir}}
+                  if {[string first "placeholder" $ao] != -1} {set gpmiPlacement($dirType) $dir}
                 }
                 "composite_curve segments" {set numCompCurveSeg $objSize}
               }
@@ -605,20 +606,21 @@ proc gpmiAnnotationReport {objEntity} {
                     set x3dIndexType "Line"
 
                     for {set i 0} {$i < $ns} {incr i} {
-                      if {[expr {abs($dirRatio(z))}] > 0.99} {
+                      if {[expr {abs($dirRatio(z,axis))}] > 0.99} {
                         set x3dPoint(x) [expr {$objValue*cos($angle)+[lindex $circleCenter 0]}]
                         set x3dPoint(y) [expr {-1.*$objValue*sin($angle)+[lindex $circleCenter 1]}]
                         set x3dPoint(z) [lindex $circleCenter 2]
-                      } elseif {[expr {abs($dirRatio(y))}] > 0.99} {
+                      } elseif {[expr {abs($dirRatio(y,axis))}] > 0.99} {
                         set x3dPoint(x) [expr {$objValue*cos($angle)+[lindex $circleCenter 0]}]
                         set x3dPoint(z) [expr {-1.*$objValue*sin($angle)+[lindex $circleCenter 2]}]
                         set x3dPoint(y) [lindex $circleCenter 1]
-                      } elseif {[expr {abs($dirRatio(x))}] > 0.99} {
+                      } elseif {[expr {abs($dirRatio(x,axis))}] > 0.99} {
                         set x3dPoint(z) [expr {$objValue*cos($angle)+[lindex $circleCenter 2]}]
                         set x3dPoint(y) [expr {-1.*$objValue*sin($angle)+[lindex $circleCenter 1]}]
                         set x3dPoint(x) [lindex $circleCenter 0]
                       } else {
-                        set msg "Circles in PMI annotations might be shown with the wrong orientation."
+                        #outputMsg "$dirRatio(x,axis) $dirRatio(y,axis) $dirRatio(z,axis) " red
+                        set msg "Some circles in PMI annotations might be shown with the wrong orientation."
                         errorMsg " $msg"
                         if {[lsearch $x3dMsg $msg] == -1} {lappend x3dMsg $msg}
                         set x3dPoint(x) [expr {$objValue*cos($angle)+[lindex $circleCenter 0]}]
@@ -644,7 +646,7 @@ proc gpmiAnnotationReport {objEntity} {
                       set curveTrim([$a0 Name]) $val
                     }
                   }
-                  set msg "Circles in PMI annotations might be shown with the wrong orientation."
+                  set msg "Some trimmed circles in PMI annotations might be incorrectly trimmed."
                   errorMsg " $msg"
                   if {[lsearch $x3dMsg $msg] == -1} {lappend x3dMsg $msg}
                 }
@@ -1125,19 +1127,21 @@ proc gpmiAnnotationReport {objEntity} {
           }
       
 # check if there are any entDraughtingModel, if none then there are no camera models for the annotation
-          if {$opt(PMIGRF) && $opt(XLSCSV) != "None"} {
-            set okdm 0
-            ::tcom::foreach entDraughtingModel $entDraughtingModels {set okdm 1}
-            if {!$okdm} {
-              set msg "Syntax Error: Annotation not in a Saved View.  Check draughting_model.items for missing draughting_callout related to annotation.\n[string repeat " " 14]"
-              if {$stepAP == "AP242"} {
-                append msg "($recPracNames(pmi242), Sec. 9.4.2.1, Fig. 86)"
-              } else {
-                append msg "($recPracNames(pmi203), Sec. 5.4.2, Fig. 14)"
-              }
-              errorMsg $msg
-              lappend syntaxErr($ao) [list $objID "Saved Views" $msg]
+          set okdm 0
+          ::tcom::foreach entDraughtingModel $entDraughtingModels {set okdm 1}
+          if {!$okdm} {
+            if {$opt(PMIGRF) && $opt(XLSCSV) != "None"} {
+                set msg "Syntax Error: Annotation not in a Saved View.  Check draughting_model.items for missing draughting_callout related to annotation.\n[string repeat " " 14]"
+                if {$stepAP == "AP242"} {
+                  append msg "($recPracNames(pmi242), Sec. 9.4.2.1, Fig. 86)"
+                } else {
+                  append msg "($recPracNames(pmi203), Sec. 5.4.2, Fig. 14)"
+                }
+                errorMsg $msg
+                lappend syntaxErr($ao) [list $objID "Saved Views" $msg]
             }
+            set msg "Some PMI might not be in a Saved View."
+            if {[lsearch $x3dMsg $msg] == -1} {lappend x3dMsg $msg}
           }
 
 # get save view names
@@ -1383,10 +1387,12 @@ proc pmiGetCamerasAndProperties {} {
             ::tcom::foreach entDraughtingModel $entDraughtingModels {
               set attrDraughtingModels [$entDraughtingModel Attributes]
               set dmitems([$entDraughtingModel P21ID]) ""
+              set annForDM([$entDraughtingModel P21ID]) 0
   
 # DM name attribute
               set ok 0
-              if {[llength $dmlist] == 1 || [string first "characterized" $dm] != -1} {set ok 1}
+              #if {[llength $dmlist] == 1 || [string first "characterized" $dm] != -1} {set ok 1}
+              set ok 1
               if {$ok} {
                 set nattr 0
                 set iattr 1
@@ -1413,6 +1419,9 @@ proc pmiGetCamerasAndProperties {} {
                       if {$itype != "mapped_item" && [string first "camera_model_d3" $itype] == -1} {
                         append dmitems([$entDraughtingModel P21ID]) "[$item P21ID] "
                       }
+                      if {[string first "annotation" $itype] != -1 || [string first "_callout" $itype] != -1} {
+                        set annForDM([$entDraughtingModel P21ID]) 1
+                      }
                     }
                   }
                 }
@@ -1430,6 +1439,7 @@ proc pmiGetCamerasAndProperties {} {
                   regsub -all {\)} [string trim $name1] "" name1  
                   regsub -all {:~$%&*<>?/+\|\"\#\\\{\}\-} [string trim $name1] "_" name1
                   regsub -all {\-} $name1 "_" name1
+                  regsub -all {\.} $name1 "_" name1
                   if {$name1 == ""} {set name1 "Missing_name"}
                   
                   if {$name == ""} {
@@ -1482,7 +1492,7 @@ proc pmiGetCamerasAndProperties {} {
               if {$opt(VIZPMI)} {
                 set dmcn $draftModelCameraNames([$entDraughtingModel P21ID])
                 if {[lsearch $savedViewName $dmcn] == -1} {lappend savedViewName $dmcn}
-                if {[lsearch $savedViewNames $name1] == -1} {
+                if {[lsearch $savedViewNames $name1] == -1 && $annForDM([$entDraughtingModel P21ID])} {
                   lappend savedViewNames $name1
                   set savedViewFileName($name1) [file join $mytemp $name1.txt]
                   catch {file delete -force $savedViewFileName($name1)}
@@ -1500,6 +1510,7 @@ proc pmiGetCamerasAndProperties {} {
     }
   } elseif {[info exists entCount(annotation_text_occurrence)]} {
     errorMsg "Using 'annotation_text_occurrence' is not valid for PMI Presentation.\n ($recPracNames(pmi242), Sec. 1)"
+    return
   }
   
 # get pmi validation properties so that they can be annotation_occurrence

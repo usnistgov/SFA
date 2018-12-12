@@ -59,23 +59,6 @@ proc openMultiFile {{ask 1}} {
       set fileList {}
       findFile $multiFileDir $recurse
 
-# filter out some directories when processing STEP CAx-IF files
-      if {$developer} {
-        set mfd [split $multiFileDir "//"]
-        if {[lindex $mfd end] == "CAx-IF"} {
-          set nfl {}
-          foreach f $fileList {
-            if {([string first "/R0" $f] != -1 || [string first "/R1" $f] != -1 || [string first "/R2" $f] != -1 || [string first "/R3" $f] != -1) && \
-                [string first "/Semantic/" $f] == -1 && [string first "/PMI/" $f] == -1} {lappend nfl $f}
-          }
-          set fileList $nfl
-        } else {
-          set nfl {}
-          foreach f $fileList {if {[string first "/Old/" $f] == -1} {lappend nfl $f}}
-          set fileList $nfl
-        }  
-      }
-
 # limit by maxfiles
       if {[llength $fileList] > $maxfiles} {outputMsg "File list limited to first $maxfiles of [llength $fileList] files" red}
       set fileList [lrange $fileList 0 [expr {$maxfiles-1}]]    

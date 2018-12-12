@@ -1,6 +1,6 @@
 proc feaModel {entType} {
   global objDesign
-  global ent entAttrList entCount entLevel opt rowmax nprogBarEnts count localName mytemp sfaPID cadSystem timeStamp
+  global ent entAttrList entCount entLevel opt rowmax nprogBarEnts count localName mytemp sfaPID cadSystem timeStamp stepAP
   global x3dFile x3dMin x3dMax x3dMsg x3dStartFile x3dFileName x3dAxesSize
   global feaType feaTypes feaElemTypes nfeaElem feaFile feaFileName feaFaceList feaFaceOrig feaBoundary feaLoad feaMeshIndex feaLoadMag \
   global feaDisp feaDispMag feaLastEntity
@@ -92,7 +92,10 @@ proc feaModel {entType} {
     set x3dFileName [file rootname $localName]-sfa.html
     catch {file delete -force -- $x3dFileName}
     set x3dFile [open $x3dFileName w]
-    puts $x3dFile "<!DOCTYPE html>\n<html>\n<head>\n<title>[file tail $localName] | STEP AP209 Finite Element Model</title>\n<base target=\"_blank\">\n<meta http-equiv='Content-Type' content='text/html;charset=utf-8'/>"
+
+    set title [file tail $localName]
+    if {$stepAP != "" && [string range $stepAP 0 1] == "AP"} {append title " | $stepAP"}
+    puts $x3dFile "<!DOCTYPE html>\n<html>\n<head>\n<title>$title</title>\n<base target=\"_blank\">\n<meta http-equiv='Content-Type' content='text/html;charset=utf-8'/>"
     puts $x3dFile "<link rel='stylesheet' type='text/css' href='https://www.x3dom.org/x3dom/release/x3dom.css'/>\n<script type='text/javascript' src='https://www.x3dom.org/x3dom/release/x3dom.js'></script>"
 
 # node, element checkbox script
@@ -120,8 +123,15 @@ proc feaModel {entType} {
     puts $x3dFile "</head>"
 
     set name [file tail $localName]
-    if {$timeStamp != ""} {append name "&nbsp;&nbsp;&nbsp;$timeStamp"}
-    if {$cadSystem != ""} {append name "&nbsp;&nbsp;&nbsp;$cadSystem"}
+    if {$stepAP != "" && [string range $stepAP 0 1] == "AP"} {append name "&nbsp;&nbsp;&nbsp;$stepAP"}
+    if {$timeStamp != ""} {
+      set ts [fixTimeStamp $timeStamp]
+      append name "&nbsp;&nbsp;&nbsp;$ts"
+    }
+    if {$cadSystem != ""} {
+      regsub -all "_" $cadSystem " " cs
+      append name "&nbsp;&nbsp;&nbsp;$cs"
+    }
     puts $x3dFile "\n<body><font face=\"arial\">\n<h3>$name</h3>"
     puts $x3dFile "\n<table><tr><td valign='top' width='85%'>"
     

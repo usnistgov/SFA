@@ -1145,7 +1145,12 @@ proc gpmiCheckEnt {ent} {
       if {[string first $item $ent] != -1} {set ok 1}
     }
   }
+  
   if {[string first "leader" $ent] != -1} {set ok 0}
+  if {[string first "over_riding_styled_item" $ent] != -1} {set ok 0}
+  if {[string first "annotation_occurrence_associativity" $ent] != -1} {set ok 0}
+  if {[string first "annotation_occurrence_relationship"  $ent] != -1} {set ok 0}
+    
   return $ok
 }
  

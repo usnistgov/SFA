@@ -1,5 +1,5 @@
 # version numbers, software and user guide, contact
-proc getVersion {}   {return 3.16}
+proc getVersion {}   {return 3.20}
 proc getVersionUG {} {return 3.0}
 proc getContact {}   {return [list "Robert Lipman" "robert.lipman@nist.gov"]}
 
@@ -10,9 +10,11 @@ proc whatsNew {} {
   if {$sfaVersion > 0 && $sfaVersion < [getVersion]} {outputMsg "\nThe previous version of the STEP File Analyzer and Viewer was: $sfaVersion" red}
 
 outputMsg "\nWhat's New (Version: [getVersion]  Updated: [string trim [clock format $progtime -format "%e %b %Y"]])" blue
-outputMsg "- Part Geometry Viewer (See Help > View Part Geometry)
+outputMsg "- Part geometry color (See Help > View Part Geometry)
+- AP209 FEA validation properties
+- Improved Websites menu
 - Graphical PMI colored by saved view
-- Improved processing of tolerance zone form, supplemental geometry, and annotation placeholder
+- Report ANCHOR section IDs
 - Explanation of Analysis errors (Help > Syntax Errors)
 - Support for AP242 Edition 2 DIS (Draft International Standard)
 - Bug fixes and minor improvements"
@@ -362,7 +364,7 @@ proc guiProcessAndReports {} {
           }
         } elseif {$allNone == 1} {
           foreach item [array names opt] {if {[string first "PR_STEP" $item] == 0} {set opt($item) 0}}
-          foreach item {VIZFEA VIZPMI VIZTPG PMISEM PMIGRF VALPROP INVERSE PR_USER} {set opt($item) 0}
+          foreach item {VIZBRP VIZFEA VIZPMI VIZTPG PMISEM PMIGRF VALPROP INVERSE PR_USER} {set opt($item) 0}
           set opt(PR_STEP_COMM) 1
         } elseif {$allNone == 2} {
           foreach item {PMISEM PMIGRF VALPROP} {set opt($item) 1}
@@ -375,10 +377,10 @@ proc guiProcessAndReports {} {
     incr cb
   }
   catch {
-    tooltip::tooltip $buttons(allNone0) "Selects most Entity types to Process\nSee Help > User Guide (section 4.4.2)"
-    tooltip::tooltip $buttons(allNone1) "Deselects most Entity types, Analyze, and View options\nSee Help > User Guide (section 4.4.2)"
-    tooltip::tooltip $buttons(allNone2) "Selects all Analyze options and associated entities\nSee Help > User Guide (section 5)"
-    tooltip::tooltip $buttons(allNone3) "Selects all View options and associated entities\nSee Help > User Guide (section 7)"
+    tooltip::tooltip $buttons(allNone0) "Selects most Entity types\nSee Help > User Guide (section 4.4.2)"
+    tooltip::tooltip $buttons(allNone1) "Deselects most Entity types and all Analyze and View options\nSee Help > User Guide (section 4.4.2)"
+    tooltip::tooltip $buttons(allNone2) "Selects all Analyze options and associated Entity types\nSee Help > User Guide (section 5)"
+    tooltip::tooltip $buttons(allNone3) "Selects all View options and associated Entity types\nSee Help > User Guide (section 7)"
   }
   pack $fopta4 -side left -anchor w -pady 0 -padx 0 -fill y
   pack $fopta -side top -anchor w -pady {5 2} -padx 10 -fill both
@@ -400,9 +402,9 @@ proc guiProcessAndReports {} {
   pack $foptd1 -side top -anchor w -pady 0 -padx 0 -fill y
   pack $foptd -side left -anchor w -pady {5 2} -padx 10 -fill both -expand true
   catch {
-    tooltip::tooltip $buttons(optPMISEM)  "The analysis of PMI Representation information is shown on\ndimension, tolerance, datum target, and datum entities.\nSemantic PMI is found mainly in STEP AP242 files.\n\nSee Help > PMI Representation\nSee Help > User Guide (section 5.1)\nSee Help > Syntax Errors\nSee Examples > Spreadsheet\nSee Examples > Sample STEP Files\nSee Websites > AP242 Project"
-    tooltip::tooltip $buttons(optPMIGRF)  "The analysis of PMI Presentation information is\nshown on 'annotation occurrence' entities.\nGraphical PMI can also be viewed.\n\nSee Help > PMI Presentation\nSee Help > User Guide (section 5.2)\nSee Help > Syntax Errors\nSee Examples > Spreadsheet\nSee Examples > Part with PMI\nSee Examples > AP242 Tessellated Part with PMI\nSee Examples > Sample STEP Files"
-    tooltip::tooltip $buttons(optVALPROP) "The analysis of Validation Properties and other properties\nis shown on the 'property_definition' entity.\n\nSee Help > Validation Properties\nSee Help > User Guide (section 5.3)\nSee Help > Syntax Errors\nSee Examples > Spreadsheet"
+    tooltip::tooltip $buttons(optPMISEM)  "The analysis of PMI Representation information is shown on\ndimension, tolerance, datum target, and datum entities.\nSemantic PMI is found mainly in STEP AP242 files.\n\nSee Help > PMI Representation\nSee Help > User Guide (section 5.1)\nSee Help > Syntax Errors\nSee Examples > Spreadsheet - PMI Representation\nSee Examples > Sample STEP Files\nSee Websites > AP242 Project"
+    tooltip::tooltip $buttons(optPMIGRF)  "The analysis of PMI Presentation information is\nshown on 'annotation occurrence' entities.\nGraphical PMI can also be viewed.\n\nSee Help > PMI Presentation\nSee Help > User Guide (section 5.2)\nSee Help > Syntax Errors\nSee Examples > PMI Presentation, Validation Properties\nSee Examples > View Part with PMI\nSee Examples > AP242 Tessellated Part with PMI\nSee Examples > Sample STEP Files"
+    tooltip::tooltip $buttons(optVALPROP) "The analysis of Validation Properties and other properties\nis shown on the 'property_definition' entity.\n\nSee Help > Validation Properties\nSee Help > User Guide (section 5.3)\nSee Help > Syntax Errors\nSee Examples > PMI Presentation, Validation Properties"
   }
   
 #-------------------------------------------------------------------------------
@@ -484,8 +486,8 @@ proc guiProcessAndReports {} {
   pack $foptv -side left -anchor w -pady {5 2} -padx 10 -fill both -expand true
   pack $foptrv -side top -anchor w -pady 0 -fill x
   catch {
-    tooltip::tooltip $buttons(optVIZBRP) "Most boundary representation (b-rep) part geometry can be shown.\nPart color is ignored.  Supplemental geometry is also shown.\n\nSee Help > View Part Geometry\nSee Help > Supplemental Geometry\nSee Examples > Part with PMI\nSee Websites > STEP File Viewers for other part geometry viewers\n\nViews can be generated without generating a spreadsheet or CSV files.\nSee the Output Format option below.\n\nViews are shown in web browsers that are not optimized for large models.\nOlder versions of web browsers are not supported."
-    tooltip::tooltip $buttons(optVIZPMI) "Graphical PMI is supported in AP242, AP203, and AP214 files.\n\nSee Help > PMI Presentation\nSee Help > User Guide (section 7.1.1)\nSee Examples > Part with PMI\nSee Examples > AP242 Tessellated Part with PMI\nSee Examples > Sample STEP Files"
+    tooltip::tooltip $buttons(optVIZBRP) "Most boundary representation (b-rep) part geometry can be viewed.\nMultiple and overriding part colors are ignored.\nSupplemental geometry is also shown.\n\nSee Help > View Part Geometry\nSee Help > Supplemental Geometry\nSee Examples > View Part with PMI\nSee Websites > STEP File Viewers for other part geometry viewers\n\nViews can be generated without generating a spreadsheet or CSV files.\nSee the Output Format option below.\n\nViews are shown in web browsers that are not optimized for large models.\nOlder versions of web browsers are not supported."
+    tooltip::tooltip $buttons(optVIZPMI) "Graphical PMI is supported in AP242, AP203, and AP214 files.\n\nSee Help > PMI Presentation\nSee Help > User Guide (section 7.1.1)\nSee Examples > View Part with PMI\nSee Examples > AP242 Tessellated Part with PMI\nSee Examples > Sample STEP Files"
     tooltip::tooltip $buttons(optVIZTPG) "** Parts in an assembly might have the wrong\nposition and orientation or be missing. **\n\nTessellated edges (lines) are also shown.  Faces\nin tessellated shells are outlined in black.\n\nSee Help > AP242 Tessellated Part Geometry\nSee Help > User Guide (section 7.1.2, 7.1.3)\nSee Examples > AP242 Tessellated Part with PMI"
     tooltip::tooltip $buttons(optVIZTPGMSH) "Show a tessellation wireframe mesh based on the tessellated\nfaces or surfaces.  Not recommended for very large models."
     tooltip::tooltip $buttons(optVIZFEALVS) "The length of load vectors can be scaled by their magnitude.\nLoad vectors are always colored by their magnitude."
@@ -909,9 +911,9 @@ proc guiSpreadsheet {} {
 #-------------------------------------------------------------------------------
 # help menu
 proc guiHelpMenu {} {
-  global Examples Help opt nistVersion mytemp ifcsvrDir virtualDir contact excelVersion
+  global Examples Help opt nistVersion mytemp ifcsvrDir virtualDir contact excelVersion defaultColor
 
-  $Help add command -label "User Guide (pdf)" -command {showUserGuide}
+  $Help add command -label "User Guide" -command {showUserGuide}
   $Help add command -label "What's New" -command {whatsNew}
   
   $Help add command -label "Supported STEP APs" -command {
@@ -1097,7 +1099,7 @@ Multiple STEP Files in a Directory'.  Files in subdirectories of the selected di
 be processed.
 
 See Help > User Guide (section 9)
-See Examples > Spreadsheet - PMI Coverage Analysis
+See Examples > PMI Coverage Analysis
 
 When processing multiple STEP files, a File Summary spreadsheet is generated in addition to
 individual spreadsheets for each file.  The File Summary spreadsheet shows the entity count and
@@ -1184,8 +1186,8 @@ Representation.
 
 See Help > User Guide (sections 5.2)
 See Help > Graphical PMI
-See Examples > Part with PMI
-See Examples > Spreadsheet - PMI Presentation
+See Examples > View Part with PMI
+See Examples > PMI Presentation, Validation Properties
 See Examples > Sample STEP Files
 
 The analysis of Graphical PMI on annotation_curve_occurrence, annotation_curve,
@@ -1217,7 +1219,7 @@ reports for PMI Representation or Presentation are selected.
 
 See Help > PMI Representation
 See Help > User Guide (sections 5.1.7 and 5.2.1)
-See Examples > Spreadsheets
+See Examples > PMI Coverage Analysis
 
 PMI Representation Coverage Analysis (semantic PMI) counts the number of PMI elements found in a
 STEP file for tolerances, dimensions, datums, modifiers, and CAx-IF Recommended Practices for PMI
@@ -1248,7 +1250,7 @@ from one of the NIST CAD models.
 
 See Help > User Guide (section 8)
 See Websites > MBE PMI Validation Testing
-See Examples > Spreadsheets
+See Examples > Spreadsheet - PMI Representation
 
 * PMI Representation Summary *
 This worksheet is color-coded by the expected PMI annotations in a test case drawing.
@@ -1299,19 +1301,19 @@ mean that the CAD system or translator:
 - has not implemented exporting a PMI element to a STEP file
 - mapped an internal PMI element to the wrong STEP PMI element
 
-Some of the NIST test cases have complex PMI annotations that are not commonly used.  There may be
-ambiguities in counting the number of PMI elements, particularly for dimensions."
+Some of the NIST test cases have complex PMI annotations that are not commonly used.  There might
+be ambiguities in counting the number of PMI elements, particularly for dimensions."
     .tnb select .tnb.status
   }
     
   $Help add command -label "Validation Properties" -command {
 outputMsg "\nValidation Properties ------------------------------------------------------" blue
-outputMsg "Geometric, assembly, PMI, annotation, attribute, and tessellated validation properties are reported.
-The property values are reported in columns highlighted in yellow and green on the
-Property_definition worksheet.  The worksheet can also be sorted and filtered.
+outputMsg "Geometric, assembly, PMI, annotation, attribute, tessellated, composite, and FEA validation
+properties are reported.  The property values are reported in columns highlighted in yellow and
+green on the property_definition worksheet.  The worksheet can also be sorted and filtered.
 
 See Help > User Guide (section 5.3)
-See Examples > Spreadsheet - PMI ValProps
+See Examples > PMI Presentation, Validation Properties
 
 Other properties and User-Defined Attributes are also reported.
 
@@ -1360,18 +1362,21 @@ The log file is written to myfile-sfa.log.  In a log file, error messages are hi
   $Help add command -label "View Part Geometry" -command {
 outputMsg "\nView Part Geometry ---------------------------------------------------------" blue
 outputMsg "Part geometry (b-rep) is shown for any STEP file where the geometry is modeled with
-advanced_brep_shape_representation or manifold_surface_shape_representation or manifold_solid_brep
-entities.
+advanced_brep_shape_representation, manifold_surface_shape_representation, manifold_solid_brep, or
+shell_based_surface_model entities.
 
-The color of part geometry is ignored.  Part geometry might also include supplemental geometry.  In
-some cases, curved surfaces might appear jagged or incomplete.  Some part geometry cannot be shown.
+All Views are written to: myfile-sfa.html
+
+Part colors are ignored if multiple colors are specified.  Overriding style colors are also ignored.
+Part geometry might also include supplemental geometry.  In some cases, curved surfaces might appear
+jagged or incomplete.  Some part geometry cannot be processed.
 
 See Help > Supplemental Geometry
-See Examples > Part with PMI
+See Examples > View Part with PMI
 See Websites > STEP File Viewers
 
 Some other STEP file viewers cannot view PMI, tessellated part geometry, and finite element models.
-However, those viewers usually have better capabilities for viewing part geometry.
+However, those viewers usually have better capabilities for viewing and measuring part geometry.
 
 The part geometry view is based on OpenCascade and pythonOCC.  See Help > About"
     .tnb select .tnb.status
@@ -1382,12 +1387,12 @@ outputMsg "\nGraphical PMI -----------------------------------------------------
 outputMsg "Graphical PMI (PMI Presentation) annotations composed of polylines, lines, circles, and tessellated
 geometry are supported for viewing.  The color of the annotations can be modified.  Filled
 characters are not filled.  PMI associated with Saved Views can be switched on and off.  Some
-Graphical PMI might not have equivalent Semantic PMI in the STEP file.  The graphical PMI file is
-written to myfile-sfa.html
+Graphical PMI might not have equivalent or any Semantic PMI in the STEP file.  Some STEP files with
+Semantic PMI might not have any Graphical PMI.
 
 See Help > User Guide (sections 7.1.1)
 See Help > PMI Presentation
-See Examples > Part with PMI
+See Examples > View Part with PMI
 See Examples > Sample STEP Files"
     .tnb select .tnb.status
   }
@@ -1418,7 +1423,7 @@ outputMsg "Tessellated part geometry is supported by AP242 and is usually supple
 
 Faces in a tessellated shell are outlined in black.  Lines generated from tessellated edges are also
 shown.  A wireframe mesh, outlining the facets of the tessellated surfaces can also be shown.  If
-both are present, tessellated edges might be obscured by the wireframe mesh.  Brown is used as the
+both are present, tessellated edges might be obscured by the wireframe mesh.  [string totitle [lindex $defaultColor 1]] is used as the
 color assigned to tessellated solids, shells, or faces that do not have colors assigned to them.
 
 See Help > User Guide (section 7.1.3)
@@ -1579,13 +1584,13 @@ Credits
   $Examples add command -label "AP203 Archive"           -command {openURL http://web.archive.org/web/20160812122922/http://www.steptools.com/support/stdev_docs/stpfiles/ap203/index.html}
   $Examples add command -label "AP214 Archive"           -command {openURL http://web.archive.org/web/20160903141712/http://www.steptools.com/support/stdev_docs/stpfiles/ap214/index.html}
   $Examples add separator
-  $Examples add command -label "Spreadsheet - PMI Representation"         -command {openURL https://s3.amazonaws.com/nist-el/mfg_digitalthread/STEP-File-Analyzer-PMI-Representation_stp.xlsx}
-  $Examples add command -label "Spreadsheet - PMI Presentation, ValProps" -command {openURL https://s3.amazonaws.com/nist-el/mfg_digitalthread/STEP-File-Analyzer_stp.xlsx}
-  $Examples add command -label "Spreadsheet - PMI Coverage Analysis"      -command {openURL https://s3.amazonaws.com/nist-el/mfg_digitalthread/STEP-File-Analyzer-Coverage.xlsx}
-  $Examples add separator
-  $Examples add command -label "Part with PMI"                   -command {openURL https://pages.nist.gov/CAD-PMI-Testing/graphical-pmi-viewer.html}
+  $Examples add command -label "View Part with PMI"              -command {openURL https://pages.nist.gov/CAD-PMI-Testing/graphical-pmi-viewer.html}
   $Examples add command -label "AP242 Tessellated Part with PMI" -command {openURL https://pages.nist.gov/CAD-PMI-Testing/tessellated-part-geometry.html}
   $Examples add command -label "AP209 Finite Element Model"      -command {openURL https://pages.nist.gov/CAD-PMI-Testing/ap209-viewer.html}
+  $Examples add separator
+  $Examples add command -label "Spreadsheet - PMI Representation"        -command {openURL https://s3.amazonaws.com/nist-el/mfg_digitalthread/STEP-File-Analyzer-PMI-Representation_stp.xlsx}
+  $Examples add command -label "PMI Presentation, Validation Properties" -command {openURL https://s3.amazonaws.com/nist-el/mfg_digitalthread/STEP-File-Analyzer_stp.xlsx}
+  $Examples add command -label "PMI Coverage Analysis"                   -command {openURL https://s3.amazonaws.com/nist-el/mfg_digitalthread/STEP-File-Analyzer-Coverage.xlsx}
 }
 
 #-------------------------------------------------------------------------------
@@ -1594,49 +1599,62 @@ proc guiWebsitesMenu {} {
   global Websites
 
   $Websites add command -label "STEP File Analyzer and Viewer"             -command {openURL https://www.nist.gov/services-resources/software/step-file-analyzer-and-viewer}
-  $Websites add command -label "Journal of NIST Research"                  -command {openURL https://doi.org/10.6028/jres.122.016}
+  $Websites add command -label "Journal of NIST Research (citation)"       -command {openURL https://doi.org/10.6028/jres.122.016}
   $Websites add command -label "Conformance Checking of PMI in STEP Files" -command {openURL https://www.nist.gov/publications/conformance-checking-pmi-representation-cad-model-step-data-exchange-files}
-  $Websites add command -label "MBE PMI Validation Testing (free CAD models and STEP files)" -command {openURL https://www.nist.gov/el/systems-integration-division-73400/mbe-pmi-validation-and-conformance-testing-project/download}
-  $Websites add command -label "Enabling the Digital Thread for Smart Manufacturing"         -command {openURL https://www.nist.gov/el/systems-integration-division-73400/enabling-digital-thread-smart-manufacturing}
+  $Websites add command -label "PMI Validation Testing (free CAD models and STEP files)" -command {openURL https://www.nist.gov/el/systems-integration-division-73400/mbe-pmi-validation-and-conformance-testing-project/download}
+  $Websites add command -label "Enabling the Digital Thread for Smart Manufacturing"     -command {openURL https://www.nist.gov/el/systems-integration-division-73400/enabling-digital-thread-smart-manufacturing}
+  $Websites add command -label "STEP: The Grand Experience"                -command {openURL https://www.researchgate.net/publication/273763505_STEP_The_Grand_Experience}
   
   $Websites add separator
   $Websites add command -label "CAx Implementor Forum (CAx-IF)" -command {openURL https://www.cax-if.org}
   $Websites add command -label "STEP File Viewers"              -command {openURL https://www.cax-if.org/step_viewers.html}
   $Websites add command -label "Recommended Practices"          -command {openURL https://www.cax-if.org/joint_testing_info.html#recpracs}
   $Websites add command -label "CAD Implementations"            -command {openURL https://www.cax-if.org/vendor_info.php}
-  $Websites add command -label "CAE-IF (FEA testing)"           -command {openURL http://afnet.fr/dotank/sps/cae-if/}
   $Websites add command -label "CAx-IF (alternate website)"     -command {openURL https://www.cax-if.de}
   
   $Websites add separator
-  $Websites add command -label "AP242 Project"            -command {openURL http://www.ap242.org}
-  $Websites add command -label "AP242 Paper"              -command {openURL https://www.nist.gov/publications/portrait-iso-step-tolerancing-standard-enabler-smart-manufacturing-systems}
-  $Websites add command -label "AP242 Presentation (pdf)" -command {openURL https://www.nist.gov/document-2058}
-  $Websites add command -label "AP242 Benchmark Testing"  -command {openURL http://www.asd-ssg.org/step-ap242-benchmark}
+  $Websites add command -label "AP242"                   -command {openURL http://www.ap242.org}
+  $Websites add command -label "AP242 Paper"             -command {openURL https://www.nist.gov/publications/portrait-iso-step-tolerancing-standard-enabler-smart-manufacturing-systems}
+  $Websites add command -label "AP242 Presentation"      -command {openURL https://www.nist.gov/document-2058}
+  $Websites add command -label "AP242 Benchmark Testing" -command {openURL http://www.asd-ssg.org/step-ap242-benchmark}
   
   $Websites add separator
-  $Websites add command -label "AP209 Project"           -command {openURL http://www.ap209.org}
-  $Websites add command -label "AP238 Project"           -command {openURL http://www.ap238.org}
-  $Websites add command -label "AP239 Project"           -command {openURL http://www.ap239.org}
-  $Websites add command -label "EXPRESS Schemas"         -command {openURL https://www.cax-if.org/joint_testing_info.html#schemas}
-  $Websites add command -label "More EXPRESS Schemas"    -command {openURL http://web.archive.org/web/20160322005246/www.steptools.com/support/stdev_docs/express/}
+  $Websites add command -label "CAE-IF (FEA testing)" -command {openURL http://afnet.fr/dotank/sps/cae-if/}
+  $Websites add command -label "AP209 FEA"            -command {openURL http://www.ap209.org}
   
   $Websites add separator
-  $Websites add command -label "PDES, Inc. (U.S.)"                         -command {openURL http://pdesinc.org}
-  $Websites add command -label "prostep ivip (Germany)"                    -command {openURL https://www.prostep.org/en/projects/}
-  $Websites add command -label "AFNeT (France)"                            -command {openURL http://afnet.fr/dotank/sps/plm-committee/}
-  $Websites add command -label "LOTAR (LOng Term Archiving and Retrieval)" -command {openURL http://www.lotar-international.org}
-  $Websites add command -label "ASD Strategic Standardisation Group"       -command {openURL http://www.asd-ssg.org/}
-  $Websites add command -label "STEP Format"                               -command {openURL https://www.loc.gov/preservation/digital/formats/fdd/fdd000448.shtml}
+  $Websites add cascade -label "More STEP APs" -menu $Websites.1
+  set Websites1 [menu $Websites.1 -tearoff 1]
+  $Websites1 add command -label "AP238 Machining"  -command {openURL http://www.ap238.org}
+  $Websites1 add command -label "AP239 PLCS"       -command {openURL http://www.ap239.org}
+  $Websites1 add command -label "AP235 Properties" -command {openURL http://www.ap235.org}
   
-  $Websites add separator
-  $Websites add command -label "STEP File Analyzer and Viewer source code" -command {openURL https://github.com/usnistgov/SFA}
-  $Websites add command -label "Digital Manufacturing Certificate Toolkit" -command {openURL https://github.com/usnistgov/DT4SM/tree/master/DMC-Toolkit}
-  $Websites add command -label "STEP Tools Software"                       -command {openURL https://github.com/steptools}
-  $Websites add command -label "STEP to X3D Translation"                   -command {openURL http://www.web3d.org/wiki/index.php/STEP_X3D_Translation}
-  $Websites add command -label "OpenCascade STEP Processor"                -command {openURL https://www.opencascade.com/doc/occt-7.0.0/overview/html/occt_user_guides__step.html}
-  $Websites add command -label "STEP Class Library (STEPcode)"             -command {openURL https://www.nist.gov/services-resources/software/step-class-library-scl}
-  $Websites add command -label "Express Engine"                            -command {openURL http://exp-engine.sourceforge.net/}
-  $Websites add command -label "STEP: The Grand Experience"                -command {openURL https://www.researchgate.net/publication/273763505_STEP_The_Grand_Experience}
+  $Websites add cascade -label "STEP Format and Schemas" -menu $Websites.2
+  set Websites2 [menu $Websites.2 -tearoff 1]
+  $Websites2 add command -label "STEP Format"                -command {openURL https://www.loc.gov/preservation/digital/formats/fdd/fdd000448.shtml}
+  $Websites2 add command -label "STEP Format (ISO 10303-21)" -command {openURL https://en.wikipedia.org/wiki/ISO_10303-21}
+  $Websites2 add command -label "EXPRESS Schemas"            -command {openURL https://www.cax-if.org/joint_testing_info.html#schemas}
+  $Websites2 add command -label "More EXPRESS Schemas"       -command {openURL http://web.archive.org/web/20160322005246/www.steptools.com/support/stdev_docs/express/}
+  
+  $Websites add cascade -label "STEP Related Organizations" -menu $Websites.3
+  set Websites3 [menu $Websites.3 -tearoff 1]
+  $Websites3 add command -label "PDES, Inc. (U.S.)"                         -command {openURL http://pdesinc.org}
+  $Websites3 add command -label "prostep ivip (Germany)"                    -command {openURL https://www.prostep.org/en/projects/}
+  $Websites3 add command -label "AFNeT (France)"                            -command {openURL http://afnet.fr/dotank/sps/plm-committee/}
+  $Websites3 add command -label "LOTAR (LOng Term Archiving and Retrieval)" -command {openURL http://www.lotar-international.org}
+  $Websites3 add command -label "ASD Strategic Standardisation Group"       -command {openURL http://www.asd-ssg.org/}
+  $Websites3 add command -label "KStep (Korea)"                             -command {openURL http://www.kstep.or.kr/}
+  
+  $Websites add cascade -label "STEP Software" -menu $Websites.4
+  set Websites4 [menu $Websites.4 -tearoff 1]
+  $Websites4 add command -label "STEP File Analyzer and Viewer source code" -command {openURL https://github.com/usnistgov/SFA}
+  $Websites4 add command -label "Digital Manufacturing Certificate Toolkit" -command {openURL https://github.com/usnistgov/DT4SM/tree/master/DMC-Toolkit}
+  $Websites4 add command -label "STEP Tools Software"                       -command {openURL https://github.com/steptools}
+  $Websites4 add command -label "OpenCascade STEP Processor"                -command {openURL https://www.opencascade.com/doc/occt-7.0.0/overview/html/occt_user_guides__step.html}
+  $Websites4 add command -label "pythonOCC"                                 -command {openURL http://www.pythonocc.org/}
+  $Websites4 add command -label "STEP to X3D Translation"                   -command {openURL http://www.web3d.org/wiki/index.php/STEP_X3D_Translation}
+  $Websites4 add command -label "STEP Class Library (STEPcode)"             -command {openURL https://www.nist.gov/services-resources/software/step-class-library-scl}
+  $Websites4 add command -label "Express Engine"                            -command {openURL http://exp-engine.sourceforge.net/}
 }
 
 #-------------------------------------------------------------------------------

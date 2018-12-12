@@ -1,7 +1,7 @@
 # generate an Excel spreadsheet from a STEP file
 
 proc genExcel {{numFile 0}} {
-  global allEntity allVendor aoEntTypes ap203all ap214all ap242all badAttributes buttons
+  global allEntity allVendor aoEntTypes ap203all ap214all ap242all badAttributes buttons brepEnts
   global cells cells1 col col1 count coverageLegend readPMI csvdirnam csvfile
   global developer dim dimRepeatDiv editorCmd entCategories entCategory entColorIndex entCount entityCount entsIgnored entsWithErrors env errmsg
   global excel excelVersion extXLS fcsv feaElemTypes feaLastEntity File fileEntity skipEntities skipPerm gpmiTypesInvalid gpmiTypesPerFile idxColor ifcsvrDir inverses
@@ -11,7 +11,7 @@ proc genExcel {{numFile 0}} {
   global savedViewButtons savedViewName savedViewNames scriptName sheetLast spmiEntity spmiSumName spmiSumRow spmiTypesPerFile startrow stepAP statsOnly
   global tessColor thisEntType tlast tolNames tolStandard totalEntity userEntityFile userEntityList userXLSFile useXL virtualDir viz
   global workbook workbooks worksheet worksheet1 worksheets writeDir wsCount wsNames
-  global x3dAxes x3dColor x3dColors x3dColors1 x3dColorFile x3dCoord x3dFile x3dFileName x3dStartFile x3dIndex x3dMax x3dMin x3dMsg
+  global x3dAxes x3dColor x3dColors x3dColorsUsed x3dColorFile x3dCoord x3dFile x3dFileName x3dStartFile x3dIndex x3dMax x3dMin x3dMsg x3dStartFile
   global xlFileName xlFileNames xlFormat xlInstalled
   global objDesign
   
@@ -25,7 +25,7 @@ proc genExcel {{numFile 0}} {
     set x3dFileName ""
     set x3dColor ""
     set x3dColors  {}
-    set x3dColors1 {}
+    set x3dColorsUsed {}
     foreach idx {x y z} {
       set x3dMax($idx) -1.e10
       set x3dMin($idx)  1.e10
@@ -123,6 +123,7 @@ proc genExcel {{numFile 0}} {
     if {![info exists buttons]} {outputMsg "*** End ST-Developer messages\n"}
 
 # get stats
+    set viz(PMIMSG) "The STEP file contains only Graphical PMI and no Semantic PMI."
     set entityCount [$objDesign CountEntities "*"]
     if {$entityCount > 0} {
       outputMsg " $entityCount entities"
@@ -134,20 +135,28 @@ proc genExcel {{numFile 0}} {
           #outputMsg $entType red
           if {$entType == "dimensional_characteristic_representation"} {
             lappend characteristics "Dimensions"
+            set viz(PMIMSG) "Some Graphical PMI might not have equivalent Semantic PMI in the STEP file."
           } elseif {$entType == "datum"} {
             lappend characteristics "Datums"
+            set viz(PMIMSG) "Some Graphical PMI might not have equivalent Semantic PMI in the STEP file."
           } elseif {[string first "_tolerance" $entType] != -1} {
             lappend characteristics "Geometric tolerances"
+            set viz(PMIMSG) "Some Graphical PMI might not have equivalent Semantic PMI in the STEP file."
+
           } elseif {$entType == "tessellated_annotation_occurrence"} {
             lappend characteristics "Graphical PMI (tessellated)"
-          } elseif {$entType == "annotation_occurrence" || [string first "annotation_curve_occurrence" $entType] != -1 || $entType == "annotation_fill_area_occurrence"} {
+          } elseif {$entType == "annotation_occurrence" || [string first "annotation_curve_occurrence" $entType] != -1 || $entType == "annotation_fill_area_occurrence" || $entType == "annotation_occurrence_and_characterized_object"} {
             lappend characteristics "Graphical PMI (polyline)"
-          } elseif {$entType == "advanced_brep_shape_representation" || $entType == "manifold_surface_shape_representation" || $entType == "manifold_solid_brep"} {
+
+          } elseif {$entType == "advanced_brep_shape_representation" || $entType == "manifold_surface_shape_representation" || $entType == "manifold_solid_brep" || $entType == "shell_based_surface_model"} {
             lappend characteristics "B-rep geometry"
           } elseif {$entType == "constructive_geometry_representation"} {
             lappend characteristics "Supplemental geometry"
           } elseif {$entType == "tessellated_solid" || $entType == "tessellated_shell"} {
             lappend characteristics "Tessellated geometry"
+          } elseif {$entType == "property_definition_representation"} {
+            lappend characteristics "Properties"
+
           } elseif {[lsearch $entCategory(PR_STEP_COMP) $entType] != -1} {
             lappend characteristics "Composites"
           } elseif {[lsearch $entCategory(PR_STEP_KINE) $entType] != -1} {
@@ -161,7 +170,7 @@ proc genExcel {{numFile 0}} {
         set str ""
         foreach item [lrmdups $characteristics] {append str "$item, "}
         set str [string range $str 0 end-2]
-        outputMsg "This file contains: $str" green
+        if {$str != "B-rep geometry"} {outputMsg "This file contains: $str" red}
       }
     } else {
       errorMsg "There are no entities in the STEP file."
@@ -552,7 +561,15 @@ proc genExcel {{numFile 0}} {
 # -------------------------------------------------------------------------------------------------
 # check if there is anything to view
   foreach typ {PMI TPG FEA} {set viz($typ) 0}
-  if {$opt(VIZPMI)} {foreach ao $aoEntTypes {if {[info exists entCount($ao)]} {set viz(PMI) 1}}}
+  if {$opt(VIZPMI)} {
+    foreach ao $aoEntTypes {
+      if {[info exists entCount($ao)]}  {if {$entCount($ao)  > 0} {set viz(PMI) 1}}
+      set ao1 "$ao\_and_characterized_object"
+      if {[info exists entCount($ao1)]} {if {$entCount($ao1) > 0} {set viz(PMI) 1}}
+      set ao1 "$ao\_and_geometric_representation_item"
+      if {[info exists entCount($ao1)]} {if {$entCount($ao1) > 0} {set viz(PMI) 1}}
+    }
+  }
   if {$opt(VIZTPG)} {if {[info exists entCount(tessellated_solid)] || [info exists entCount(tessellated_shell)]} {set viz(TPG) 1}}
   if {$opt(VIZFEA) && [string first "AP209" $stepAP] == 0} {set viz(FEA) 1}
     
@@ -592,7 +609,7 @@ proc genExcel {{numFile 0}} {
       } else {
         set msg "Views might"
       }
-      append msg " NOT be generated for entities listed in\n [truncFileName [file nativename $cfile]]:"
+      append msg " NOT be generated based on entities listed in\n [truncFileName [file nativename $cfile]]:"
       outputMsg " "
       errorMsg $msg
       foreach item [lsort $fixlist] {outputMsg "  $item" red}
@@ -910,9 +927,9 @@ proc genExcel {{numFile 0}} {
 # generate b-rep part geometry if no other viz exists
   set vizbrp 0
   if {$opt(VIZBRP) && !$viz(PMI) && !$viz(FEA) && !$viz(TPG)} {
-    if {[info exists entCount(advanced_brep_shape_representation)] || \
-        [info exists entCount(manifold_surface_shape_representation)] || \
-        [info exists entCount(manifold_solid_brep)]} {
+    set ok 0
+    foreach item $brepEnts {if {[info exists entCount($item)]} {set ok 1}}
+    if {$ok} {
       x3dFileStart
       set vizbrp 1
       update
