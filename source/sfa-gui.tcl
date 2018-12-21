@@ -1,5 +1,5 @@
 # version numbers, software and user guide, contact
-proc getVersion {}   {return 3.20}
+proc getVersion {}   {return 3.21}
 proc getVersionUG {} {return 3.0}
 proc getContact {}   {return [list "Robert Lipman" "robert.lipman@nist.gov"]}
 
@@ -699,7 +699,7 @@ proc guiOpenSTEPFile {} {
     }
   }
   
-  catch {tooltip::tooltip $foptf "This option is a convenient way to open a STEP file in other applications.\nThe pull-down menu will contain some applications that can open a STEP\nfile such as STEP viewers, browsers, and conformance checkers, only if\nthey are installed in their default location.\n\nSee Websites > STEP File Viewers  and  Help > NIST Disclaimer\n\nThe 'Tree View (for debugging)' option rearranges and indents the\nentities to show the hierarchy of information in a STEP file.  The 'tree view'\nfile (myfile-sfa.txt) is written to the same directory as the STEP file or to the\nsame user-defined directory specified in the Spreadsheet tab.  Including\nGeometry or Styled_item can make the 'tree view' file very large.  The\n'tree view' might not process /*comments*/ in a STEP file correctly.\n\nThe 'Default STEP Viewer' option will open the STEP file in whatever\napplication is associated with STEP (.stp) files."}
+  catch {tooltip::tooltip $foptf "This option is a convenient way to open a STEP file in other applications.\nThe pull-down menu will contain some applications that can open a STEP\nfile such as STEP viewers and browsers, only if they are installed in their\ndefault location.\n\nSee Help > Open STEP File in Apps\nSee Websites > STEP File Viewers\n\nThe 'Tree View (for debugging)' option rearranges and indents the\nentities to show the hierarchy of information in a STEP file.  The 'tree view'\nfile (myfile-sfa.txt) is written to the same directory as the STEP file or to the\nsame user-defined directory specified in the Spreadsheet tab.  Including\nGeometry or Styled_item can make the 'tree view' file very large.  The\n'tree view' might not process /*comments*/ in a STEP file correctly.\n\nThe 'Default STEP Viewer' option will open the STEP file in whatever\napplication is associated with STEP (.stp, .step) files."}
   pack $foptf -side top -anchor w -pady {5 2} -padx 10 -fill both
 
 # output format, checkbuttons are used for pseudo-radiobuttons

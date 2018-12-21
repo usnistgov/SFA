@@ -1290,10 +1290,18 @@ proc addHeaderWorksheet {numFile fname} {
           } elseif {[string first "1 0 10303 442 1 1 4" $sn] == -1} {
             errorMsg "This file uses an older or unknown version of AP242."
           }
-        }
 
-# check version of AP214        
-        if {[string first "AUTOMOTIVE_DESIGN_CC2" $sn] == 0} {errorMsg "This file uses an older version of STEP AP214.  See Help > Supported STEP APs"}
+# check version of AP203, AP214        
+        } elseif {[string first "CONFIG_CONTROL_DESIGN" $sn] == 0 || [string first "CONFIGURATION_CONTROL_3D_DESIGN" $sn] == 0} {
+          errorMsg "This file uses an older version of STEP AP203.  See Help > Supported STEP APs"
+        } elseif {[string first "AUTOMOTIVE_DESIGN_CC2" $sn] == 0} {
+          errorMsg "This file uses an older version of STEP AP214.  See Help > Supported STEP APs"
+          
+# no schema name          
+        } elseif {$sn == ""} {
+          errorMsg "Schema name missing on: FILE_SCHEMA(())\;"
+          return
+        }
         
 # check that schema names end with _MIM_LF instead of _MIM
         if {[string first "_MIM" $sn] != -1 && [string first "_MIM_LF" $sn] == -1} {

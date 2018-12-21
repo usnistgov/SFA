@@ -241,7 +241,12 @@ proc getNISTName {} {
   
   set nistName ""
   set filePrefix {}
-  foreach fp [list sp4 sp5 sp6 sp7 sp8 tgp1 tgp2 tgp3 tgp4 tgp5 tp3 tp4 tp5 tp6 lsp lpp ltg ltp] {
+  set prefixes {}
+  for {set i 4} {$i < 20} {incr i} {lappend prefixes "sp$i"}
+  for {set i 1} {$i < 20} {incr i} {lappend prefixes "tgp$i"}
+  for {set i 3} {$i < 5}  {incr i} {lappend prefixes "tp$i"}
+  set prefixes [concat $prefixes [list lsp lpp ltg ltp]]
+  foreach fp $prefixes {
     lappend filePrefix "$fp\_"
     lappend filePrefix "$fp\-"
   }
@@ -924,14 +929,14 @@ proc getOpenPrograms {} {
   foreach pf $pflist {
     if {[file isdirectory [file join $pf "STEP Tools"]]} {
       set applist [list \
-        [list ap203checkgui.exe "STEP AP203 Conformance Checker"] \
-        [list ap209checkgui.exe "STEP AP209 Conformance Checker"] \
-        [list ap214checkgui.exe "STEP AP214 Conformance Checker"] \
-        [list apconformgui.exe "STEP AP Conformance Checker"] \
+        [list ap203checkgui.exe "AP203 Conformance Checker"] \
+        [list ap209checkgui.exe "AP209 Conformance Checker"] \
+        [list ap214checkgui.exe "AP214 Conformance Checker"] \
+        [list apconformgui.exe "AP Conformance Checker"] \
         [list stepbrws.exe "STEP File Browser"] \
         [list stepcleangui.exe "STEP File Cleaner"] \
         [list stpcheckgui.exe "STEP Check and Browse"] \
-        [list stview.exe "STEP Viewer"] \
+        [list stview.exe "ST-Viewer"] \
       ]
       foreach app $applist {
         set stmatch ""
@@ -995,6 +1000,13 @@ proc getOpenPrograms {} {
         set name [lindex $app 1]
         set dispApps([lindex $app 0]) $name
       }
+    }
+    
+# FreeCAD    
+    foreach app [list {*}[glob -nocomplain -directory [file join $pf] -join "FreeCAD *" bin FreeCAD.exe] FreeCAD]] {
+      set ver [lindex [split [file nativename $app] [file separator]] 2]
+      if {$pf64 != "" && [string first "x86" $app] != -1} {append ver " (32-bit)"}
+      set dispApps($app) $ver
     }
 
 # Tetra4D in Adobe Acrobat

@@ -660,11 +660,10 @@ proc x3dBrepGeom {} {
     if {[file exists $stp2x3d]} {
       set stpx3dFileName [file rootname $localName].x3d
       catch {file delete -force $stpx3dFileName}
-      outputMsg " Processing part geometry.  Wait for the popup program (stp2x3d.exe) to complete.  See Options tab." green
+      outputMsg " Processing STEP part geometry.  Wait for the popup program (stp2x3d.exe) to complete." green
       catch {exec $stp2x3d [file nativename $localName]} errs
-      update idletasks
       
-# done processing      
+# done processing
       if {[string first "DONE!" $errs] != -1} {
         if {[file exists $stpx3dFileName]} {
           if {[file size $stpx3dFileName] > 0} {
@@ -703,19 +702,26 @@ proc x3dBrepGeom {} {
 # integrate x3d from stp2x3d with existing x3dom file
             puts $brepFile "\n<!-- B-REP PART GEOMETRY -->\n<Switch whichChoice='0' id='swBRP'><Transform scale='$sc $sc $sc'>"
             set stpx3dFile [open $stpx3dFileName r]
+            update idletasks
             set write 0
+            
+# process all lines in file            
+            outputMsg " Processing X3D output from stp2x3d.exe" green
+            update
             while {[gets $stpx3dFile line] >= 0} {
               if {[string first "<Shape" $line] != -1} {
                 set line "<Shape><Appearance>"
                 set write 1
               }
+
+# loop over all coordinates
               if {[string first "<Coordinate" $line] != -1} {
                 set n 0
                 foreach idx {0 1 2} {set min($idx) 1.e10; set max($idx) -1.e10}
                 set getMinMax 1
                 while {[gets $stpx3dFile nline] >= 0} {
 
-# done reading all coordinates, save min and max
+# done reading all coordinates, save min and max, compute ratio
                   if {[string first "/Coordinate" $nline] != -1} {
                     set getMinMax 0
                     set ratio 0
@@ -734,17 +740,25 @@ proc x3dBrepGeom {} {
 
 # get xyz min and max
                   if {$getMinMax} {
+                    set vals [split $nline " "]
                     foreach idx {0 1 2} {
-                      set val [expr {[lindex $nline $idx]*$sc}]
-                      if {$val < $min($idx)} {set min($idx) $val}
-                      if {$val > $max($idx)} {set max($idx) $val}
+                      set val [lindex $vals $idx]
+                      if {$sc != 1} {set val [expr {$val*$sc}]}
+                      set min($idx) [expr {min($val, $min($idx))}]
+                      set max($idx) [expr {max($val, $max($idx))}]
                     }
                   }
 
                   if {[string first "<Normal" $nline] != -1} {append line "\n"}
                   append line " $nline"
+
+# write line to file every 3000 lines
                   incr n
-                  if {[expr {$n%3000}] == 0} {append line "\n"; set n 0}
+                  if {[expr {$n%3000}] == 0} {
+                    puts $brepFile $line
+                    set line ""
+                    set n 0
+                  }
                   if {[string first "</Normal" $nline] != -1} {break}
                 }
                 
@@ -754,6 +768,8 @@ proc x3dBrepGeom {} {
                 if {$x3dColorBrep == ""} {set x3dColorBrep "0.65 0.65 0.7"}
                 set line "<Material id='color' diffuseColor='$x3dColorBrep' specularColor='.2 .2 .2'>"
               }
+              
+# write remaining line to file              
               if {$write} {puts $brepFile $line}
               if {[string first "</Shape" $line] != -1} {set write 0}
             }
@@ -798,8 +814,9 @@ proc x3dBrepGeom {} {
 
 # -------------------------------------------------------------------------------
 proc x3dBrepColor {} {      
-  global objDesign x3dColorsUsed entCount x3dColorBrepAdjusted x3dColorStyle opt
+  global objDesign x3dColorsUsed entCount x3dColorBrepAdjusted x3dColorStyle
   
+  set debug 0
   set x3dColorBrep ""
   set x3dColorStyle 0
   foreach item {manifold_solid_brep shell_based_surface_model advanced_face} {set colors($item) {}}
@@ -807,7 +824,7 @@ proc x3dBrepColor {} {
 # get styled_item
   catch {
     ::tcom::foreach e0 [$objDesign FindObjects [string trim styled_item]] {
-      #if {$opt(DEBUG1)} {errorMsg "[$e0 Type] [$e0 P21ID]" green}
+      #if {$debug} {errorMsg "[$e0 Type] [$e0 P21ID]" green}
       
 # styled_item.styles
       if {[$e0 Type] == "styled_item"} {
@@ -857,7 +874,7 @@ proc x3dBrepColor {} {
                 } else {
                   errorMsg "  Unexpected color type ([$e8 Type])"
                 }
-                if {$opt(DEBUG1)} {errorMsg "$x3dColorBrep  $item" red}
+                if {$debug} {errorMsg "$x3dColorBrep  $item" red}
               }
             }
           }
@@ -871,7 +888,7 @@ proc x3dBrepColor {} {
     if {[llength $colors(manifold_solid_brep)] > 0 || [llength $colors(shell_based_surface_model)] > 0} {set colors(advanced_face) {}}
   }
   set allcolors [lrmdups [concat $colors(manifold_solid_brep) $colors(shell_based_surface_model) $colors(advanced_face)]]
-  if {$opt(DEBUG1)} {outputMsg $allcolors green}
+  if {$debug} {outputMsg $allcolors green}
   if {[llength $allcolors] > 1} {
     set x3dColorBrep ""
     errorMsg " Part colors are ignored if multiple colors are specified (using gray)."
@@ -888,7 +905,7 @@ proc x3dBrepColor {} {
     }
     set x3dColorBrepAdjusted [string trim $x3dColorBrepAdjusted]
   }
-  if {$opt(DEBUG1)} {outputMsg $x3dColorBrep blue}
+  if {$debug} {outputMsg $x3dColorBrep blue}
   return $x3dColorBrep
 }
 
