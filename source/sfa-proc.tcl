@@ -1730,7 +1730,7 @@ proc copyRoseFiles {} {
         outputMsg " "
         errorMsg "Opening folder containing the *.rose files: $mytemp"
         outputMsg "Copy the *.rose files in $mytemp\n to [file nativename $ifcsvrDir]" red
-        outputMsg "You should copy the files with Administrator Privileges, if possible.\nIf there are problems copying the *.rose files, contact [lindex $contact 0] ([lindex $contact 1]).\nGo to Help > Supported STEP APs to see which STEP schemas are supported." red
+        outputMsg "You should copy the files with administrator privileges (Run as administrator), if possible.\nIf there are problems copying the *.rose files, contact [lindex $contact 0] ([lindex $contact 1]).\nGo to Help > Supported STEP APs to see which STEP schemas are supported." red
         after 1000
         if {[catch {
           exec {*}[auto_execok start] [file nativename $mytemp]
@@ -1790,17 +1790,19 @@ proc installIFCsvr {} {
   if {[info exists buttons]} {.tnb select .tnb.status}
   outputMsg " "
   errorMsg "The IFCsvr Toolkit needs to be installed to read and process STEP files (User Guide section 2.2.1)."
-  outputMsg "- You might need administrator privileges to install the toolkit.  Antivirus
-  software might respond that there is a security issue with the toolkit.  The
-  toolkit is safe to install.  Use the default installation folder for the toolkit.
+  outputMsg "- You might need administrator privileges (Run as administrator) to install the
+  toolkit.  Antivirus software might respond that there is a security issue with
+  the toolkit.  The toolkit is safe to install.  Use the default installation
+  folder for the toolkit.
 - See Help > Supported STEP APs to see which type of STEP files are supported.
 - To reinstall the toolkit, run the installation file ifcsvrr300_setup_1008.en.msi
-  in $mytemp or your home directory or the current directory.
+  in $mytemp
+  or your home directory or the current directory.
 - If there are problems with the IFCsvr installation, contact [lindex $contact 0] ([lindex $contact 1])."
 
   if {[file exists $ifcsvrInst] && [info exists buttons]} {
     set msg "The IFCsvr Toolkit needs to be installed to read and process STEP files (User Guide section 2.2.1).  After clicking OK the IFCsvr Toolkit installation will start."
-    append msg "\n\nYou might need administrator privileges to install the toolkit.  Antivirus software might respond that there is a security issue with the toolkit.  The toolkit is safe to install.  Use the default installation folder for the toolkit."
+    append msg "\n\nYou might need administrator privileges (Run as administrator) to install the toolkit.  Antivirus software might respond that there is a security issue with the toolkit.  The toolkit is safe to install.  Use the default installation folder for the toolkit."
     append msg "\n\nSee Help > Supported STEP APs to see which type of STEP files are supported."
     append msg "\n\nIf there are problems with the IFCsvr installation, contact [lindex $contact 0] ([lindex $contact 1])."
     set choice [tk_messageBox -type ok -message $msg -icon info -title "Install IFCsvr"]
@@ -1846,7 +1848,7 @@ proc installIFCsvr {} {
 - The installation file ifcsvrr300_setup_1008.en.msi can be found in either:
   $mytemp or your home directory or the current directory.
 - Run the installer and follow the instructions.  Use the default installation folder for IFCsvr.
-  You might need administrator privileges to install the toolkit.
+  You might need administrator privileges (Run as administrator) to install the toolkit.
 - If there are problems with the IFCsvr installation, contact [lindex $contact 0] ([lindex $contact 1])\n"
       after 1000
       errorMsg "Opening folder: $mytemp"

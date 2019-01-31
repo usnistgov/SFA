@@ -73,17 +73,10 @@ proc genExcel {{numFile 0}} {
 # -------------------------------------------------------------------------------------------------
 # open STEP file
   if {[catch {
+    set openStage 1
     set nprogBarEnts 0
     set fname $localName  
-    
-# for STEP, get AP number, i.e. AP203   
     set stepAP [getStepAP $fname]
-    set str "STEP"
-    if {[string first "AP" $stepAP] == 0} {
-      set str "STEP [string range $stepAP 0 4]"
-    } elseif {$stepAP != ""} {
-      set str $stepAP
-    }
     
 # open log file
     if {$opt(LOGFILE)} {
@@ -92,7 +85,6 @@ proc genExcel {{numFile 0}} {
       set logFile [open $lfile w]
       puts $logFile "NIST STEP File Analyzer and Viewer (v[getVersion])  [clock format [clock seconds]]"
     }
-    outputMsg "\nOpening $str file"
 
 # check for Part 21 edition 3 files and strip out sections
     set fname [checkP21e3 $fname]
@@ -118,13 +110,25 @@ proc genExcel {{numFile 0}} {
     }
 
 # open file with IFCsvr
+    set str "STEP"
+    if {[string first "AP" $stepAP] == 0} {
+      set str "STEP [string range $stepAP 0 4]"
+    } elseif {$stepAP != ""} {
+      set str $stepAP
+    }
+    outputMsg "\nOpening $str file"
+    
+    set openStage 2
     if {![info exists buttons]} {outputMsg "\n*** Begin ST-Developer messages"}
     set objDesign [$objIFCsvr OpenDesign [file nativename $fname]]
     if {![info exists buttons]} {outputMsg "*** End ST-Developer messages\n"}
+    
+# CountEntities causes the error if the STEP file cannot be opened because objDesign is null    
+    set entityCount [$objDesign CountEntities "*"]
 
 # get stats
+    set openStage 3
     set viz(PMIMSG) "The STEP file contains only Graphical PMI and no Semantic PMI."
-    set entityCount [$objDesign CountEntities "*"]
     if {$entityCount > 0} {
       outputMsg " $entityCount entities"
       set entityTypeNames [$objDesign EntityTypeNames [expr 2]]
@@ -132,7 +136,6 @@ proc genExcel {{numFile 0}} {
       foreach entType $entityTypeNames {
         set ecount [$objDesign CountEntities "$entType"]
         if {$ecount > 0} {
-          #outputMsg $entType red
           if {$entType == "dimensional_characteristic_representation"} {
             lappend characteristics "Dimensions"
             set viz(PMIMSG) "Some Graphical PMI might not have equivalent Semantic PMI in the STEP file."
@@ -238,49 +241,65 @@ proc genExcel {{numFile 0}} {
 # check if a file generated from a NIST test case (and some other files) is being processed
     set nistName [getNISTName]
 
-# error opening file, report the schema
+# error opening file
   } emsg]} {
-    errorMsg "ERROR opening STEP file"
-    getSchemaFromFile $fname 1
-
-    if {!$p21e3} {
-      set fext [string tolower [file extension $fname]]
-      if {$fext != ".stp" && $fext != ".step" && $fext != ".p21" && $fext != ".stpz" && $fext != ".ifc"} {
-        errorMsg "File extension not supported ([file extension $fname])"
+    if {$openStage == 2} {
+      errorMsg "ERROR opening STEP file"
+  
+      if {!$p21e3} {
+        set fext [string tolower [file extension $fname]]
+        if {$fext != ".stp" && $fext != ".step" && $fext != ".p21" && $fext != ".stpz" && $fext != ".ifc"} {
+          errorMsg "File extension not supported ([file extension $fname])"
+        } else {
+          set fs [getSchemaFromFile $fname]
+          set c1 [string first "\{" $fs]
+          if {$c1 != -1} {set fs [string range $fs 0 $c1-1]}
+          set msg "\nPossible causes of the ERROR:"
+          append msg "\n1 - Syntax errors in the STEP file"
+          append msg "\n    Try opening the file in a different STEP viewer, see Websites > STEP File Viewers"
+          append msg "\n2 - File or directory name contains accented, non-English, or symbol characters"
+          append msg "\n     [file nativename $fname]"
+          append msg "\n    Change the file or directory name"
+          append msg "\n3 - STEP AP (schema) is not supported: $fs"
+          append msg "\n    See Help > Supported STEP APs"
+          append msg "\n4 - File is not an ISO 10303 Part 21 file that starts with ISO-10303-21; and ends with ENDSEC; END-ISO-10303-21;"
+          append msg "\n\nIf the problem is not with the STEP file, then try running this software with administrator privileges (Run as administrator)"
+          append msg "\nFor other problems, contact: [join [getContact]]"
+          errorMsg $msg red
+        }      
+      
+  # part 21 edition 3
       } else {
-        set msg "Possible causes of the ERROR:"
-        append msg "\n- File or directory name contains accented, non-English, or symbol characters\n   [file nativename $fname]"
-        append msg "\n- STEP schema is not supported, see Help > Supported STEP APs"
-        append msg "\n- Syntax errors in the file\n- File does not end with END-ISO-10303-21;"
-        append msg "\n- File is not an ISO 10303 Part 21 file\n- FILE_SCHEMA contains multiple schemas"
-        append msg "\nTry opening the file in a different STEP viewer, see Websites > STEP File Viewers"
-        errorMsg $msg red
-      }      
-    
-# part 21 edition 3
-    } else {
-      outputMsg " "
-      errorMsg "The STEP file uses Edition 3 of Part 21 and cannot be processed by the STEP File Analyzer and Viewer.\n Edit the STEP file to delete the Edition 3 content such as the ANCHOR, REFERENCE, and SIGNATURE sections."
+        outputMsg " "
+        errorMsg "The STEP file uses Edition 3 of Part 21 and cannot be processed by the STEP File Analyzer and Viewer.\n Edit the STEP file to delete the Edition 3 content such as the ANCHOR, REFERENCE, and SIGNATURE sections."
+      }
+      if {!$nistVersion} {
+        outputMsg " "
+        errorMsg "You must process at least one STEP file with the NIST version of the STEP File Analyzer and Viewer\n before using a user-built version."
+      }
+      
+  # open STEP file in editor
+      if {$editorCmd != ""} {
+        outputMsg " "
+        errorMsg "Opening STEP file in text editor"
+        exec $editorCmd [file nativename $localName] &
+      }
+  
+      if {[info exists errmsg]} {unset errmsg}
+      catch {
+        $objDesign Delete
+        unset objDesign
+        unset objIFCsvr
+      }
+      catch {raise .}
+      return 0
+  
+# other errors  
+    } elseif {$openStage == 1} {
+      errorMsg "ERROR before opening STEP file: $emsg"
+    } elseif {$openStage == 3} {
+      errorMsg "ERROR after opening STEP file: $emsg"
     }
-    if {!$nistVersion} {
-      outputMsg " "
-      errorMsg "You must process at least one STEP file with the NIST version of the STEP File Analyzer and Viewer\n before using a user-built version."
-    }
-    
-# open STEP file in editor
-    if {$editorCmd != ""} {
-      errorMsg "Opening STEP file in text editor"
-      exec $editorCmd [file nativename $localName] &
-    }
-
-    if {[info exists errmsg]} {unset errmsg}
-    catch {
-      $objDesign Delete
-      unset objDesign
-      unset objIFCsvr
-    }
-    catch {raise .}
-    return 0
   }
 
 # -------------------------------------------------------------------------------------------------
@@ -752,7 +771,7 @@ proc genExcel {{numFile 0}} {
   }
   if {[llength $stds] > 0} {
     outputMsg "\nStandards:" blue
-    foreach std $stds {outputMsg " $std"}
+    foreach std [lsort $stds] {outputMsg " $std"}
   }
   if {$tolStandard(type) == "ISO"} {
     set fn [string toupper [file tail $localName]]

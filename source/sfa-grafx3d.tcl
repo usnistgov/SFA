@@ -58,7 +58,7 @@ proc x3dFileStart {} {
   }
   if {$viz(PMI)} {
     puts $x3dFile "$viz(PMIMSG)  "
-  } else {
+  } elseif {$opt(VIZPMI)} {
     if {[string first "Some Graphical PMI" $viz(PMIMSG)] == 0} {puts $x3dFile "The STEP file contains only Semantic PMI and no Graphical PMI.  "}
   }
   if {$viz(TPG) && [info exist entCount(next_assembly_usage_occurrence)]} {puts $x3dFile "Parts in an assembly might have the wrong position and orientation or be missing."}

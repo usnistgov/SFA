@@ -241,16 +241,20 @@ proc spmiDimtolReport {objEntity} {
 
 # problems with NR2 values relative to dimension
                                 if {$prec1 != 0} {
-                                  if {[info exists dim(unit)]} {
-                                    if {$dim(unit) == "INCH"} {
-                                      if {$objValue < 1. && $prec1 > 0} {
-                                        set msg "value_format_type_qualifier 'NR2 $prec1.n' conflicts with INCH values < 1, use 'NR2 0.n' instead.  See ASME Y14.5-2009, Decimal Inch Dimensioning, Sec. 1.6.2.a"
-                                        errorMsg $msg
-                                        lappend syntaxErr(dimensional_characteristic_representation) [list "-$spmiIDRow($dt,$spmiID)" "decimal places" $msg]
-                                      }
+                                  set ok1 0
+                                  if {[info exists dim(unit)]} {if {$dim(unit) == "INCH"} {set ok1 1}}
+                                  if {$ok1} {
+                                    if {$objValue < 1. && $prec1 > 0} {
+                                      set msg "value_format_type_qualifier 'NR2 $prec1.n' conflicts with INCH dimension values < 1, use 'NR2 0.n' instead.  See ASME Y14.5-2009, Decimal Inch Dimensioning, Sec. 1.6.2.a"
+                                      errorMsg $msg
+                                      lappend syntaxErr(dimensional_characteristic_representation) [list "-$spmiIDRow($dt,$spmiID)" "decimal places" $msg]
                                     }
                                   } elseif {[string length $val1] > $prec1} {
                                     set msg "value_format_type_qualifier '[$attr1 Value]' too small for $objValue  ($recPracNames(pmi242), Sec. 5.4)"
+                                    errorMsg $msg
+                                    lappend syntaxErr(dimensional_characteristic_representation) [list "-$spmiIDRow($dt,$spmiID)" "decimal places" $msg]
+                                  } elseif {[string length $val1] < $prec1} {
+                                    set msg "value_format_type_qualifier '[$attr1 Value]' too large for dimension value  ($recPracNames(pmi242), Sec. 5.4)"
                                     errorMsg $msg
                                     lappend syntaxErr(dimensional_characteristic_representation) [list "-$spmiIDRow($dt,$spmiID)" "decimal places" $msg]
                                   }

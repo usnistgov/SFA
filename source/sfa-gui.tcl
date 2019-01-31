@@ -1,5 +1,5 @@
 # version numbers, software and user guide, contact
-proc getVersion {}   {return 3.21}
+proc getVersion {}   {return 3.22}
 proc getVersionUG {} {return 3.0}
 proc getContact {}   {return [list "Robert Lipman" "robert.lipman@nist.gov"]}
 
@@ -291,7 +291,7 @@ proc guiProcessAndReports {} {
     incr cb
     set tt [string range $idx 3 end]
     if {[info exists entCategory($tt)]} {
-      set ttmsg "[string trim [lindex $item 0]] entities ([llength $entCategory($tt)])  These entities are found in most APs."
+      set ttmsg "There are [llength $entCategory($tt)] [string trim [lindex $item 0]] entities.  These entities are found in most APs."
       if {$tt == "PR_STEP_TOLR"} {append ttmsg "  Some entities are specific to AP242 and some only to AP242 Edition 2."}
       append ttmsg "\nSee Help > Supported STEP APs and Websites > EXPRESS Schemas\n\n"
       if {$tt != "PR_STEP_COMM"} {
@@ -315,7 +315,7 @@ proc guiProcessAndReports {} {
     incr cb
     set tt [string range $idx 3 end]
     if {[info exists entCategory($tt)]} {
-      set ttmsg "[string trim [lindex $item 0]] entities ([llength $entCategory($tt)])"
+      set ttmsg "There are [llength $entCategory($tt)] [string trim [lindex $item 0]] entities."
       if {$tt == "PR_STEP_GEOM"} {
         append ttmsg "  These entities are found in most APs.  Some entities are specific to AP242 and some only to AP242 Edition 2.\nSee Help > Supported STEP APs and Websites > EXPRESS Schemas\n\n"
       } elseif {$tt == "PR_STEP_CPNT"} {
@@ -339,7 +339,7 @@ proc guiProcessAndReports {} {
     incr cb
     set tt [string range $idx 3 end]
     if {[info exists entCategory($tt)]} {
-      set ttmsg "[string trim [lindex $item 0]] entities ([llength $entCategory($tt)])"
+      set ttmsg "There are [llength $entCategory($tt)] [string trim [lindex $item 0]] entities."
       if {$tt == "PR_STEP_KINE" || $tt == "PR_STEP_COMP"} {
         append ttmsg "  These entities are found in some APs.\nSee Help > Supported STEP APs and Websites > EXPRESS Schemas\n\n"
         set ttmsg [guiToolTip $ttmsg $tt]
@@ -403,7 +403,7 @@ proc guiProcessAndReports {} {
   pack $foptd -side left -anchor w -pady {5 2} -padx 10 -fill both -expand true
   catch {
     tooltip::tooltip $buttons(optPMISEM)  "The analysis of PMI Representation information is shown on\ndimension, tolerance, datum target, and datum entities.\nSemantic PMI is found mainly in STEP AP242 files.\n\nSee Help > PMI Representation\nSee Help > User Guide (section 5.1)\nSee Help > Syntax Errors\nSee Examples > Spreadsheet - PMI Representation\nSee Examples > Sample STEP Files\nSee Websites > AP242 Project"
-    tooltip::tooltip $buttons(optPMIGRF)  "The analysis of PMI Presentation information is\nshown on 'annotation occurrence' entities.\nGraphical PMI can also be viewed.\n\nSee Help > PMI Presentation\nSee Help > User Guide (section 5.2)\nSee Help > Syntax Errors\nSee Examples > PMI Presentation, Validation Properties\nSee Examples > View Part with PMI\nSee Examples > AP242 Tessellated Part with PMI\nSee Examples > Sample STEP Files"
+    tooltip::tooltip $buttons(optPMIGRF)  "The analysis of PMI Presentation information is\nshown on 'annotation occurrence' entities.\n\nSee Help > PMI Presentation\nSee Help > User Guide (section 5.2)\nSee Help > Syntax Errors\nSee Examples > PMI Presentation, Validation Properties\nSee Examples > View Part with PMI\nSee Examples > AP242 Tessellated Part with PMI\nSee Examples > Sample STEP Files"
     tooltip::tooltip $buttons(optVALPROP) "The analysis of Validation Properties and other properties\nis shown on the 'property_definition' entity.\n\nSee Help > Validation Properties\nSee Help > User Guide (section 5.3)\nSee Help > Syntax Errors\nSee Examples > PMI Presentation, Validation Properties"
   }
   
@@ -486,10 +486,10 @@ proc guiProcessAndReports {} {
   pack $foptv -side left -anchor w -pady {5 2} -padx 10 -fill both -expand true
   pack $foptrv -side top -anchor w -pady 0 -fill x
   catch {
-    tooltip::tooltip $buttons(optVIZBRP) "Most boundary representation (b-rep) part geometry can be viewed.\nMultiple and overriding part colors are ignored.\nSupplemental geometry is also shown.\n\nSee Help > View Part Geometry\nSee Help > Supplemental Geometry\nSee Examples > View Part with PMI\nSee Websites > STEP File Viewers for other part geometry viewers\n\nViews can be generated without generating a spreadsheet or CSV files.\nSee the Output Format option below.\n\nViews are shown in web browsers that are not optimized for large models.\nOlder versions of web browsers are not supported."
+    tooltip::tooltip $buttons(optVIZBRP) "Most boundary representation (b-rep) part geometry can be viewed.\nMultiple and overriding part colors are ignored.\nSupplemental geometry is also shown.\nViews for very large STEP files might take 10-20 minutes to generate.\n\nSee Help > View Part Geometry\nSee Help > Supplemental Geometry\nSee Examples > View Part with PMI\nSee Websites > STEP File Viewers for other part geometry viewers\n\nViews can be generated without generating a spreadsheet or CSV files.\nSee the Output Format option below.\n\nOlder versions of web browsers are not supported."
     tooltip::tooltip $buttons(optVIZPMI) "Graphical PMI is supported in AP242, AP203, and AP214 files.\n\nSee Help > PMI Presentation\nSee Help > User Guide (section 7.1.1)\nSee Examples > View Part with PMI\nSee Examples > AP242 Tessellated Part with PMI\nSee Examples > Sample STEP Files"
     tooltip::tooltip $buttons(optVIZTPG) "** Parts in an assembly might have the wrong\nposition and orientation or be missing. **\n\nTessellated edges (lines) are also shown.  Faces\nin tessellated shells are outlined in black.\n\nSee Help > AP242 Tessellated Part Geometry\nSee Help > User Guide (section 7.1.2, 7.1.3)\nSee Examples > AP242 Tessellated Part with PMI"
-    tooltip::tooltip $buttons(optVIZTPGMSH) "Show a tessellation wireframe mesh based on the tessellated\nfaces or surfaces.  Not recommended for very large models."
+    tooltip::tooltip $buttons(optVIZTPGMSH) "Show a tessellation wireframe mesh based on the tessellated\nfaces or surfaces."
     tooltip::tooltip $buttons(optVIZFEALVS) "The length of load vectors can be scaled by their magnitude.\nLoad vectors are always colored by their magnitude."
     tooltip::tooltip $buttons(optVIZFEADSntail) "The length of displacement vectors with a tail are scaled by\ntheir magnitude.  Vectors without a tail are not.\nDisplacement vectors are always colored by their magnitude.\nLoad vectors always have a tail."
     tooltip::tooltip $foptv4 "For 'By View' PMI colors, each Saved View is assigned a different color.\nIf there are one or no Saved Views, then 'Random' PMI colors are used.\n\nFor 'Random' PMI colors, each 'annotation occurrence' is assigned a\ndifferent color to help differentiate one from another."
@@ -762,7 +762,7 @@ proc guiOpenSTEPFile {} {
     incr cb
   }
   pack $foptk -side top -anchor w -pady {5 2} -padx 10 -fill both
-  catch {tooltip::tooltip $foptk "If Excel is installed, then Spreadsheets and CSV files can be generated.\nIf CSV Files is selected, the Spreadsheet is also generated.\n\nIf Excel is not installed, only CSV files can be generated.\nOptions for Analyze and Inverse Relationships are disabled.\n\nCSV files do not contain any cell colors, comments, or links.\nGD&T symbols will look correct only with Excel 2016 or newer.\n\nView Only does not generate any Spreadsheets or CSV files.\nAll options except View are disabled.\n\nViews are shown in web browsers that are not optimized for large\nmodels.  Older versions of web browsers are not supported.\n\nSee Help > User Guide (section 4.4.1)"}
+  catch {tooltip::tooltip $foptk "If Excel is installed, then Spreadsheets and CSV files can be generated.\nIf CSV Files is selected, the Spreadsheet is also generated.\n\nIf Excel is not installed, only CSV files can be generated.\nOptions for Analyze and Inverse Relationships are disabled.\n\nCSV files do not contain any cell colors, comments, or links.\nGD&T symbols will look correct only with Excel 2016 or newer.\n\nView Only does not generate any Spreadsheets or CSV files.\nAll options except View are disabled.\n\nOlder versions of web browsers are not supported.\n\nSee Help > User Guide (section 4.4.1)"}
 
 # log file
   set foptm [ttk::labelframe $fopt.m -text " Log File "]
@@ -1369,7 +1369,8 @@ All Views are written to: myfile-sfa.html
 
 Part colors are ignored if multiple colors are specified.  Overriding style colors are also ignored.
 Part geometry might also include supplemental geometry.  In some cases, curved surfaces might appear
-jagged or incomplete.  Some part geometry cannot be processed.
+jagged or incomplete.  Some part geometry cannot be processed.  Views for very large STEP files might
+take 10-20 minutes to generate.
 
 See Help > Supplemental Geometry
 See Examples > View Part with PMI
