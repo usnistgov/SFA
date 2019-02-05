@@ -253,19 +253,31 @@ proc genExcel {{numFile 0}} {
         } else {
           set fs [getSchemaFromFile $fname]
           set c1 [string first "\{" $fs]
-          if {$c1 != -1} {set fs [string range $fs 0 $c1-1]}
-          set msg "\nPossible causes of the ERROR:"
-          append msg "\n1 - Syntax errors in the STEP file"
-          append msg "\n    Try opening the file in a different STEP viewer, see Websites > STEP File Viewers"
-          append msg "\n2 - File or directory name contains accented, non-English, or symbol characters"
-          append msg "\n     [file nativename $fname]"
-          append msg "\n    Change the file or directory name"
-          append msg "\n3 - STEP AP (schema) is not supported: $fs"
-          append msg "\n    See Help > Supported STEP APs"
-          append msg "\n4 - File is not an ISO 10303 Part 21 file that starts with ISO-10303-21; and ends with ENDSEC; END-ISO-10303-21;"
-          append msg "\n\nIf the problem is not with the STEP file, then try running this software with administrator privileges (Run as administrator)"
-          append msg "\nFor other problems, contact: [join [getContact]]"
-          errorMsg $msg red
+          if {$c1 != -1} {set fs [string trim [string range $fs 0 $c1-1]]}
+
+# check for a bad schema          
+          set okSchema 0
+          foreach match [lsort [glob -nocomplain -directory $ifcsvrDir *.rose]] {
+            set schema [string toupper [file rootname [file tail $match]]]
+            if {$fs == $schema} {set okSchema 1; break}
+          }
+          if {!$okSchema} {
+            errorMsg "\nThe STEP AP (schema) is not supported: $fs\n See Help > Supported STEP APs" red
+
+# other possible errors
+          } else {
+            set msg "\nPossible causes of the ERROR:"
+            append msg "\n1 - Syntax errors in the STEP file"
+            append msg "\n    The file must start with ISO-10303-21; and end with ENDSEC; END-ISO-10303-21;"
+            append msg "\n    Try opening the file in a different STEP viewer, see Websites > STEP File Viewers"
+            append msg "\n2 - File or directory name contains accented, non-English, or symbol characters"
+            append msg "\n     [file nativename $fname]"
+            append msg "\n    Change the file or directory name"
+            append msg "\n3 - If the problem is not with the STEP file, then restart this software and try again,"
+            append msg "\n    or run this software as administrator, or reboot your computer"
+            append msg "\n\nFor other problems, contact: [join [getContact]]"
+            errorMsg $msg red
+          }
         }      
       
   # part 21 edition 3

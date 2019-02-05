@@ -64,27 +64,23 @@ proc valPropStart {} {
     [list "3D elements volume" [list "3D elements volume measure"]] \
     [list "2D elements area" [list "2D elements area measure"]] \
     [list "1D elements length" [list "1D elements length measure"]] \
-    [list "total model volume" [list "total model volume measure"]] \
+    [list "physical model volume" [list "physical model volume measure"]] \
     [list "3D elements centroid" [list "3D elements centre point"]] \
     [list "2D elements centroid" [list "2D elements centre point"]] \
     [list "1D elements centroid" [list "1D elements centre point"]] \
-    [list "total model mass" [list "total model mass measure"]] \
+    [list "volumetric model mass" [list "volumetric model mass measure"]] \
+    [list "concentrated masses" [list "concentrated masses measure"]] \
+    [list "non-structural masses" [list "non-structural masses measure"]] \
     [list "centre of gravity" [list "centre of gravity"]] \
     [list "number of load cases" [list "number of load cases"]] \
     [list "number of fixed DOF" [list "number of fixed DOF"]] \
-    [list "resultant force of applied loads" [list "Fx resultant force measure" "Fy resultant force measure" "Fz resultant force measure"]] \
-    [list "resultant moment of applied forces" [list "Mxx resultant moment measure" "Myy resultant moment measure" "Mzz resultant moment measure" "reference point for resultant moment"]] \
-    [list "resultant moment of applied moments" [list "Mxx resultant moment measure" "Myy resultant moment measure" "Mzz resultant moment measure"]] \
+    [list "FEA model resultant force of applied loads" [list "Fx resultant force measure" "Fy resultant force measure" "Fz resultant force measure"]] \
+    [list "FEA model resultant moment of applied moments" [list "Mxx resultant moment of moments measure" "Myy resultant moment of moments measure" "Mzz resultant moment of moments measure"]] \
+    [list "FEA model resultant moment of applied forces" [list "reference point for resultant moment of forces" "Mxx resultant moment of forces measure" "Myy resultant moment of forces measure" "Mzz resultant moment of forces measure"]] \
     [list "max nodal displacement" [list "max nodal displacement measure"]] \
     [list "max nodal rotation" [list "max nodal rotation measure"]] \
     [list "min-max volume change ratio" [list "min volume change ratio measure" "max volume change ratio measure"]] \
     [list "max Von-Mises stress" [list "max Von-Mises stress measure"]] \
-    [list "min-max 1D elements axial force" [list "min 1D elements axial force measure" "max 1D elements axial force measure"]] \
-    [list "min-max 1D elements shear1 force" [list "min 1D elements shear1 force measure" "max 1D elements shear1 force measure"]] \
-    [list "min-max 1D elements shear2 force" [list "min 1D elements shear2 force measure" "max 1D elements shear2 force measure"]] \
-    [list "min-max 1D elements torsion moment" [list "min 1D elements torsion moment measure" "max 1D elements torsion moment measure"]] \
-    [list "min-max 1D elements bending1 moment" [list "min 1D elements bending1 moment measure" "max 1D elements bending1 moment measure"]] \
-    [list "min-max 1D elements bending2 moment" [list "min 1D elements bending2 moment measure" "max 1D elements bending2 moment measure"]] \
     [list "min-max 2D elements membrane_X force" [list "min 2D elements membrane_X force measure" "max 2D elements membrane_X force measure"]] \
     [list "min-max 2D elements membrane_Y force" [list "min 2D elements membrane_Y force measure" "max 2D elements membrane_Y force measure"]] \
     [list "min-max 2D elements membrane_XY force" [list "min 2D elements membrane_XY force measure" "max 2D elements membrane_XY force measure"]] \
@@ -93,6 +89,12 @@ proc valPropStart {} {
     [list "min-max 2D elements bending_X moment" [list "min 2D elements bending_X moment measure" "max 2D elements bending_X moment measure"]] \
     [list "min-max 2D elements bending_Y moment" [list "min 2D elements bending_Y moment measure" "max 2D elements bending_Y moment measure"]] \
     [list "min-max 2D elements bending_XY moment" [list "min 2D elements bending_XY moment measure" "max 2D elements bending_XY moment measure"]] \
+    [list "min-max 1D elements axial force" [list "min 1D elements axial force measure" "max 1D elements axial force measure"]] \
+    [list "min-max 1D elements shear1 force" [list "min 1D elements shear1 force measure" "max 1D elements shear1 force measure"]] \
+    [list "min-max 1D elements shear2 force" [list "min 1D elements shear2 force measure" "max 1D elements shear2 force measure"]] \
+    [list "min-max 1D elements torsion moment" [list "min 1D elements torsion moment measure" "max 1D elements torsion moment measure"]] \
+    [list "min-max 1D elements bending1 moment" [list "min 1D elements bending1 moment measure" "max 1D elements bending1 moment measure"]] \
+    [list "min-max 1D elements bending2 moment" [list "min 1D elements bending2 moment measure" "max 1D elements bending2 moment measure"]] \
   ]
 
   set derived_unit_element [list derived_unit_element unit \
