@@ -865,6 +865,8 @@ proc spmiGeotolReport {objEntity} {
                     catch {unset datumTargetGeom}
                     set datumTargetType $ov
                     set oktarget 1
+                    set targetType $ov
+                    
 # check target type
                     set msg ""
                     if {$ov == "point" || $ov == "line" || $ov == "rectangle" || $ov == "circle" || $ov == "circular curve"} {
@@ -909,14 +911,14 @@ proc spmiGeotolReport {objEntity} {
                           }
                         }
                       }
+                      
+# check optional datum target feature (geometry)
                       if {[info exists datumTargetGeom]} {
                         set ok 1
                         set col($gt) [expr {$pmiStartCol($gt)+2}]
-                        set colName "Target Geometry[format "%c" 10](Sec. 6.6.2)"
+                        set colName "Target Feature[format "%c" 10](Sec. 6.6.2)"
                         set objValue $datumTargetGeom
                         lappend spmiTypesPerFile "placed datum target geometry (6.6.2)"
-                      } else {
-                        #errorMsg "Syntax Error: Missing target geometry for [$gtEntity Type].\n[string repeat " " 14]\($recPracNames(pmi242), Sec. 6.6.2)"
                       }
 
 # datum target feature geometry
@@ -1008,7 +1010,11 @@ proc spmiGeotolReport {objEntity} {
                                                   if {$val == "-0."} {set val 0.}
                                                   append datumTargetRep "  $val"
                                                 }
-                                                if {[string first "0. 0. 0." $datumTargetRep] != -1} {errorMsg "Datum target origin located at 0,0,0"}
+                                                if {[string first "0.  0.  0." $datumTargetRep] != -1} {
+                                                  set msg "Datum target origin located at 0, 0, 0"
+                                                  errorMsg $msg
+                                                  lappend syntaxErr([$gtEntity Type]) [list [$gtEntity P21ID] "Target Representation" $msg]
+                                                }
                                                 append datumTargetRep "[format "%c" 10]   (axis2_placement_3d [$e4 P21ID])"
                                               }
                                             }
@@ -1064,8 +1070,7 @@ proc spmiGeotolReport {objEntity} {
                                             if {$datumTargetValue <= 0. && $datumTargetType != "point"} {
                                               set msg "Syntax Error: Datum target '$datumTargetType' dimension = 0\n[string repeat " " 14]\($recPracNames(pmi242), Sec. 6.6.1)"
                                               errorMsg $msg
-                                              #lappend syntaxErr([$gtEntity Type]) [list [$gtEntity P21ID] "Target Representation" $msg] 
-                                              set invalid $msg
+                                              lappend syntaxErr([$gtEntity Type]) [list [$gtEntity P21ID] "Target Representation" $msg] 
                                             } 
                                           }
                                         }
@@ -1094,8 +1099,28 @@ proc spmiGeotolReport {objEntity} {
                           }
                         }
                       }
+                      
+# missing target length, width, or diameter
+                      if {$datumTargetType == "line" || $datumTargetType == "rectangle"} {
+                        if {[string first "target length" $datumTargetRep] == -1} {
+                          set msg "Syntax Error: Missing 'target length' for '$datumTargetType' on [$gtEntity Type].\n[string repeat " " 14]\($recPracNames(pmi242), Sec. 6.6.1, Table 9)"
+                          errorMsg $msg
+                          lappend syntaxErr([$gtEntity Type]) [list [$gtEntity P21ID] "Target Representation" $msg] 
+                        }
+                        if {$datumTargetType == "rectangle" && [string first "target width" $datumTargetRep] == -1} {
+                          set msg "Syntax Error: Missing 'target width' for '$datumTargetType' on [$gtEntity Type].\n[string repeat " " 14]\($recPracNames(pmi242), Sec. 6.6.1, Table 9)"
+                          errorMsg $msg
+                          lappend syntaxErr([$gtEntity Type]) [list [$gtEntity P21ID] "Target Representation" $msg] 
+                        }
+                      } elseif {$datumTargetType == "circle" || $datumTargetType == "circular curve"} {
+                        if {[string first "target diameter" $datumTargetRep] == -1} {
+                          set msg "Syntax Error: Missing 'target diameter' for '$datumTargetType' on [$gtEntity Type].\n[string repeat " " 14]\($recPracNames(pmi242), Sec. 6.6.1, Table 9)"
+                          errorMsg $msg
+                          lappend syntaxErr([$gtEntity Type]) [list [$gtEntity P21ID] "Target Representation" $msg] 
+                        }
+                      
 # missing target representation
-                      if {[string first "." $datumTargetRep] == -1} {
+                      } elseif {[string first "." $datumTargetRep] == -1} {
                         set msg "Syntax Error: Missing target representation for '$datumTargetType' on [$gtEntity Type].\n[string repeat " " 14]\($recPracNames(pmi242), Sec. 6.6.1, Figure 38)"
                         errorMsg $msg
                         set invalid $msg

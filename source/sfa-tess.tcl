@@ -255,10 +255,7 @@ proc tessReadGeometry {} {
 # regsub is very important to distill line into something usable
           regsub -all {[(),]} $line " " line
           set line [string trim $line]
-          regsub -all "  " $line " " line
-          regsub -all "  " $line " " line
-          regsub -all "  " $line " " line
-          regsub -all "  " $line " " line
+          for {set i 0} {$i < 4} {incr i} {regsub -all "  " $line " " line}
           set tessCoord($id) " "
 
           set sline [split $line " "]
@@ -282,7 +279,7 @@ proc tessReadGeometry {} {
             append tessCoord($id) $tc
           }
         } else {
-          set msg "COORDINATES_LIST #$id has no coordinates."
+          set msg "ERROR missing coordinates on \#$id=COORDINATES_LIST"
           errorMsg $msg
         }
         incr ncl
@@ -315,20 +312,25 @@ proc tessReadGeometry {} {
 # regsub is very important to distill line into something usable
           set c1 [string last "((" $line]
           if {$c1 != -1} {
+            set tessIndex($id) ""
             set line [string range $line $c1 end-1]
             regsub -all " " $line "" line
             regsub -all {[(),]} $line "x" line
             regsub -all "xxx" $line " 0 " line
             regsub -all "x" $line " " line
-  
-            set tessIndex($id) ""
             foreach j [split $line " "] {if {$j != ""} {append tessIndex($id) "[expr {$j-1}] "}}
+
+# error reading line strips
           } else {
-            errorMsg "ERROR reading 'line_strips' on \#$id=TESSELLATED_CURVE_SET"
+            set str "reading"
+            if {[string first "$,$" $line] != -1} {set str "missing"}
+            errorMsg "ERROR $str line_strips on \#$id=TESSELLATED_CURVE_SET"
           }
 
 # *triangulated surface set, *triangulated face
         } else {
+
+# try to read normals and triangles for spreadsheet
           #if {$opt(PR_STEP_GEOM)} {
           #  if {[string first "_FACE" $line] != -1} {
           #    set c1 [string first "))" $line]

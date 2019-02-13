@@ -1014,6 +1014,11 @@ proc spmiDimtolReport {objEntity} {
                 ::tcom::foreach subAttr [$subEntity Attributes] {
                   if {[string first "bound" [$subAttr Name]] != -1} {
                     ::tcom::foreach measureAttr [[$subAttr Value] Attributes] {
+                      if {[string first "qualified" [[$subAttr Value] Type]] != -1} {
+                        set msg "Syntax Error: Invalid use of 'qualified_representation_item' on 'tolerance_value'.\n[string repeat " " 14]\($recPracNames(pmi242), Sec. 5.2.3)"
+                        errorMsg $msg
+                        lappend syntaxErr(tolerance_value) [list [$subEntity P21ID] [$subAttr Name] $msg]
+                      }
                       if {[$measureAttr Name] == "value_component"} {append plusminus "[$measureAttr Value] "}
                     } 
                   }

@@ -530,7 +530,7 @@ proc x3dFileEnd {} {
     }
     puts $x3dFile "<hr><p>"
   }
-  if {[llength $svmsg] > 0 && $viz(PMI)} {foreach msg $svmsg {errorMsg $msg}}
+  if {[llength $svmsg] > 0 && $viz(PMI)} {foreach msg $svmsg {errorMsg $msg red}}
 
 # FEM buttons
   if {$viz(FEA)} {feaButtons 1}
@@ -1479,8 +1479,8 @@ proc x3dSetColor {type {mode 0}} {
 
 # -------------------------------------------------------------------------------------------------
 # open X3DOM file 
-proc openX3DOM {{fn ""}} {
-  global opt x3dFileName multiFile lastX3DOM viz
+proc openX3DOM {{fn ""} {numFile 0}} {
+  global opt x3dFileName multiFile lastX3DOM viz scriptName
   
 # f7 is for opening last x3dom file with function key F7
   set f7 1  
@@ -1507,14 +1507,14 @@ proc openX3DOM {{fn ""}} {
   if {$f7} {
     set open 1
   } elseif {($viz(PMI) || $viz(TPG) || $viz(FEA) || $viz(BRP)) && $fn != "" && $multiFile == 0} {
-    set open 1
+    if {$opt(XL_OPEN)} {set open 1}
   }
 
 # open file (.html) in web browser
+  set lastX3DOM $fn
   if {$open} {
     outputMsg "\nOpening View in the default Web Browser: [file tail $fn]" green
     catch {.tnb select .tnb.status}
-    set lastX3DOM $fn
     if {[catch {
       exec {*}[auto_execok start] "" [file nativename $fn]
     } emsg]} {
@@ -1523,6 +1523,8 @@ proc openX3DOM {{fn ""}} {
       }
     }
     update idletasks
+  } elseif {$numFile == 0 && [string first "STEP-File-Analyzer.exe" $scriptName] != -1} {
+    outputMsg " Use F7 to open the View (see Options tab)" red
   }
 }
 

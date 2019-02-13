@@ -701,7 +701,7 @@ proc runOpenProgram {} {
     } emsg]} {
       if {[string first "UNC" $emsg] == -1} {
         errorMsg "No application is associated with STEP files."
-        errorMsg " Go to Websites > STEP File Viewers"
+        errorMsg " See Websites > STEP File Viewers"
       }
     }
 
@@ -958,13 +958,15 @@ proc getOpenPrograms {} {
 # other STEP file apps
     set applist [list \
       [list {*}[glob -nocomplain -directory [file join $pf "Soft Gold"] -join "ABViewer*" ABViewer.exe] ABViewer] \
+      [list {*}[glob -nocomplain -directory [file join $pf "SOLIDWORKS Corp"] -join "eDrawings (*)" eDrawings.exe] eDrawings] \
       [list {*}[glob -nocomplain -directory [file join $pf "Stratasys Direct Manufacturing"] -join "SolidView Pro RP *" bin SldView.exe] SolidView] \
       [list {*}[glob -nocomplain -directory [file join $pf "TransMagic Inc"] -join "TransMagic *" System code bin TransMagic.exe] TransMagic] \
       [list {*}[glob -nocomplain -directory [file join $pf Actify SpinFire] -join "*" SpinFire.exe] SpinFire] \
       [list {*}[glob -nocomplain -directory [file join $pf CADSoftTools] -join "ABViewer*" ABViewer.exe] ABViewer] \
+      [list {*}[glob -nocomplain -directory [file join $pf Kubotek] -join "Spectrum*" Spectrum.exe] Spectrum] \
       [list {*}[glob -nocomplain -directory [file join $pf] -join "3D-Tool V*" 3D-Tool.exe] 3D-Tool] \
       [list {*}[glob -nocomplain -directory [file join $pf] -join "VariCADViewer *" bin varicad-x64.exe] "VariCAD Viewer"] \
-      [list {*}[glob -nocomplain -directory [file join $pf] -join ZWSOFT "CADbro *" CADbro.exe] "CADbro"] \
+      [list {*}[glob -nocomplain -directory [file join $pf] -join ZWSOFT "CADbro *" CADbro.exe] CADbro] \
     ]
     if {$pf64 == ""} {
       lappend applist [list {*}[glob -nocomplain -directory [file join $pf] -join "VariCADViewer *" bin varicad-i386.exe] "VariCAD Viewer (32-bit)"]
@@ -1431,12 +1433,12 @@ proc colorBadCells {ent} {
   if {$stepAP == "" || $excelVersion < 11} {return}
       
 # color red for syntax errors
-  set lastr 4
   set rmax [expr {$count($ent)+3}]
   set okcomment 0
   
   set syntaxErr($ent) [lsort -integer -index 0 [lrmdups $syntaxErr($ent)]]
   foreach err $syntaxErr($ent) {
+    set lastr 4
     if {[catch {
 
 # get row and column number
@@ -1446,7 +1448,6 @@ proc colorBadCells {ent} {
 # get message for cell comment
       set msg ""
       set msg [lindex $err 2]
-      #outputMsg "syntaxErr $ent $r $c $msg" red
 
 # row and column are integers
       if {[string is integer $c]} {
@@ -1460,8 +1461,9 @@ proc colorBadCells {ent} {
         #outputMsg "$ent / $r / $c / [string is integer $c]" red
 
 # find column based on heading text
+        set lastCol [[[$worksheet($ent) UsedRange] Columns] Count]
         if {![info exists nc($c)]} { 
-          for {set i 2} {$i < 30} {incr i} {
+          for {set i 2} {$i <= $lastCol} {incr i} {
             set val [[$cells($ent) Item 3 $i] Value]
             if {[string first $c $val] == 0} {
               set nc($c) $i
@@ -1470,28 +1472,28 @@ proc colorBadCells {ent} {
           }
         }
         
-        if {[info exists nc($c)]} {
-          set c $nc($c)
-        
+# cannot find heading, use last column        
+        if {![info exists nc($c)]} {set nc($c) $lastCol}
+        set c $nc($c)
+      
 # entity ID
-          if {$r > 0} {
-            for {set i $lastr} {$i <= $rmax} {incr i} {
-              set val [[$cells($ent) Item $i 1] Value]
-              if {$val == $r} {
-                set r $i
-                set lastr [expr {$r+1}]
-                [[$worksheet($ent) Range [cellRange $r $c] [cellRange $r $c]] Interior] Color $legendColor(red)
-                set okcomment 1
-                break
-              }              
-            }
+        if {$r > 0} {
+          for {set i $lastr} {$i <= $rmax} {incr i} {
+            set val [[$cells($ent) Item $i 1] Value]
+            if {$val == $r} {
+              set r $i
+              set lastr [expr {$r+1}]
+              [[$worksheet($ent) Range [cellRange $r $c] [cellRange $r $c]] Interior] Color $legendColor(red)
+              set okcomment 1
+              break
+            }              
+          }
 
 # row number
-          } else {
-            set r [expr {abs($r)}]
-            [[$worksheet($ent) Range [cellRange $r $c] [cellRange $r $c]] Interior] Color $legendColor(red)
-            set okcomment 1
-          }
+        } else {
+          set r [expr {abs($r)}]
+          [[$worksheet($ent) Range [cellRange $r $c] [cellRange $r $c]] Interior] Color $legendColor(red)
+          set okcomment 1
         }
       }
       
@@ -1730,7 +1732,7 @@ proc copyRoseFiles {} {
         outputMsg " "
         errorMsg "Opening folder containing the *.rose files: $mytemp"
         outputMsg "Copy the *.rose files in $mytemp\n to [file nativename $ifcsvrDir]" red
-        outputMsg "You should copy the files with administrator privileges (Run as administrator), if possible.\nIf there are problems copying the *.rose files, contact [lindex $contact 0] ([lindex $contact 1]).\nGo to Help > Supported STEP APs to see which STEP schemas are supported." red
+        outputMsg "You should copy the files with administrator privileges (Run as administrator), if possible.\nIf there are problems copying the *.rose files, contact [lindex $contact 0] ([lindex $contact 1]).\nSee Help > Supported STEP APs to see which STEP schemas are supported." red
         after 1000
         if {[catch {
           exec {*}[auto_execok start] [file nativename $mytemp]

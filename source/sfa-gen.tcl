@@ -249,9 +249,9 @@ proc genExcel {{numFile 0}} {
       if {!$p21e3} {
         set fext [string tolower [file extension $fname]]
         if {$fext != ".stp" && $fext != ".step" && $fext != ".p21" && $fext != ".stpz" && $fext != ".ifc"} {
-          errorMsg "File extension not supported ([file extension $fname])"
+          errorMsg "File extension not supported ([file extension $fname])" red
         } else {
-          set fs [getSchemaFromFile $fname]
+          set fs [getSchemaFromFile $fname 1]
           set c1 [string first "\{" $fs]
           if {$c1 != -1} {set fs [string trim [string range $fs 0 $c1-1]]}
 
@@ -262,7 +262,15 @@ proc genExcel {{numFile 0}} {
             if {$fs == $schema} {set okSchema 1; break}
           }
           if {!$okSchema} {
-            errorMsg "\nThe STEP AP (schema) is not supported: $fs\n See Help > Supported STEP APs" red
+            if {[string first "," $fs] != -1} {
+              set msg "\nMultiple schemas are not supported: $fs"
+            } elseif {[string first "_MIM" $fs] != -1 && [string first "_MIM_LF" $fs] == -1} {
+              set msg "\nThe STEP AP (schema) should end with _MIM_LF: $fs"
+            } else {
+              set msg "\nThe STEP AP (schema) is not supported: $fs"
+            }
+            append msg "\n See Help > Supported STEP APs"
+            errorMsg $msg red
 
 # other possible errors
           } else {
@@ -280,7 +288,7 @@ proc genExcel {{numFile 0}} {
           }
         }      
       
-  # part 21 edition 3
+# part 21 edition 3
       } else {
         outputMsg " "
         errorMsg "The STEP file uses Edition 3 of Part 21 and cannot be processed by the STEP File Analyzer and Viewer.\n Edit the STEP file to delete the Edition 3 content such as the ANCHOR, REFERENCE, and SIGNATURE sections."
@@ -290,7 +298,7 @@ proc genExcel {{numFile 0}} {
         errorMsg "You must process at least one STEP file with the NIST version of the STEP File Analyzer and Viewer\n before using a user-built version."
       }
       
-  # open STEP file in editor
+# open STEP file in editor
       if {$editorCmd != ""} {
         outputMsg " "
         errorMsg "Opening STEP file in text editor"
@@ -298,11 +306,9 @@ proc genExcel {{numFile 0}} {
       }
   
       if {[info exists errmsg]} {unset errmsg}
-      catch {
-        $objDesign Delete
-        unset objDesign
-        unset objIFCsvr
-      }
+      catch {$objDesign Delete}
+      catch {unset objDesign}
+      catch {unset objIFCsvr}
       catch {raise .}
       return 0
   
@@ -1160,7 +1166,7 @@ proc genExcel {{numFile 0}} {
       if {$ok} {
         openXLS $xlFileName
       } elseif {!$opt(XL_OPEN) && $numFile == 0 && [string first "STEP-File-Analyzer.exe" $scriptName] != -1} {
-        outputMsg " Use F2 to open the Spreadsheet (see Spreadsheet tab)" red
+        outputMsg " Use F2 to open the Spreadsheet (see Options tab)" red
       }
     }
 
@@ -1204,7 +1210,7 @@ proc genExcel {{numFile 0}} {
 
 # -------------------------------------------------------------------------------------------------
 # open X3DOM file of graphical PMI or FEM
-  openX3DOM
+  openX3DOM "" $numFile
     
 # save log file
   if {[info exists logFile]} {
@@ -1327,17 +1333,6 @@ proc addHeaderWorksheet {numFile fname} {
           errorMsg "This file uses an older version of STEP AP203.  See Help > Supported STEP APs"
         } elseif {[string first "AUTOMOTIVE_DESIGN_CC2" $sn] == 0} {
           errorMsg "This file uses an older version of STEP AP214.  See Help > Supported STEP APs"
-          
-# no schema name          
-        } elseif {$sn == ""} {
-          errorMsg "Schema name missing on: FILE_SCHEMA(())\;"
-          return
-        }
-        
-# check that schema names end with _MIM_LF instead of _MIM
-        if {[string first "_MIM" $sn] != -1 && [string first "_MIM_LF" $sn] == -1} {
-          errorMsg "SchemaName (FILE_SCHEMA) should end with '_MIM_LF', see Header worksheet"
-          if {$useXL} {[[$worksheet($hdr) Range B11] Interior] Color $legendColor(red)}
         }
 
 # check for IFC or CIS/2 files

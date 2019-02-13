@@ -231,6 +231,7 @@ proc reportAssocGeom {entType {row ""}} {
     } else {
       set str1 "Sec. 6.5, Fig. 35"
       set str2 "Toleranced"
+      if {$entType == "datum_feature"} {set str2 "Associated"}
     }
 
     set ok 1
@@ -1410,6 +1411,8 @@ proc getSchemaFromFile {fname {msg 0}} {
   set nline 0
   set niderr 0
   set stepfile [open $fname r]
+  
+# read first 100 lines  
   while {[gets $stepfile line] != -1 && $nline < 100} {
     if {$msg} {
       foreach item {"MIME-Version" "Content-Type" "X-MimeOLE" "DOCTYPE HTML" "META content"} {
@@ -1423,27 +1426,16 @@ proc getSchemaFromFile {fname {msg 0}} {
     if {[string first "FILE_SCHEMA" $line] != -1} {
       set ok 1
       set fsline $line
+
+# done reading header section, get schema
     } elseif {[string first "ENDSEC" $line] != -1} {
       set sline [split $fsline "'"]
       set schema [lindex $sline 1]
-      if {$msg} {
-        errorMsg "STEP file schema: [lindex [split $schema " "] 0]"
-        if {[llength $sline] > 3} {
-          set schema1 [lindex $sline 3]
-          outputMsg " "
-          errorMsg "Second STEP file schema: $schema1\n STEP files with multiple schemas cannot be read by this software.  See FILE_SCHEMA in the HEADER section."
-        } elseif {[string first "_MIM" $fsline] != -1 && [string first "_MIM_LF" $fsline] == -1} {
-          errorMsg "The schema name should end with _MIM_LF"
-        }
 
-# check for CIS/2 or IFC files
-        if {[string first "STRUCTURAL_FRAME_SCHEMA" $fsline] != -1} {
-          errorMsg "Use SteelVis to view CIS/2 files.  https://go.usa.gov/s8fm"
-        } elseif {[string first "IFC" $fsline] != -1} {
-          errorMsg "Use the IFC File Analyzer with IFC files."
-          after 1000
-          openURL https://www.nist.gov/services-resources/software/ifc-file-analyzer
-        }
+# multiple schemas
+      if {[string first "," $fsline] != -1} {
+        regsub -all " " $fsline "" fsline
+        set schema [string range $fsline [string first "'" $fsline] [string last "'" $fsline]]
       }
       if {$p21e3} {break}
 
@@ -1496,7 +1488,7 @@ proc checkP21e3 {fname} {
   if {$p21e3} {
 
 # new file name
-    set nname "[file rootname $fname]-NOE3[file extension $fname]"
+    set nname "[file rootname $fname]-p21e2[file extension $fname]"
     catch {file delete -force $nname}
     set f2 [open $nname w]
 
@@ -1512,7 +1504,12 @@ proc checkP21e3 {fname} {
           set write 1
           set data 1
           regsub -all " " [join $sects] " and " sects
-          errorMsg "The STEP file uses $sects section(s) from Edition 3 of Part 21.\n A new file ([file tail $nname]) without the those sections\n will be written and processed instead of ([file tail $fname])."
+          errorMsg "The STEP file uses ISO 10303 Part 21 Edition 3 $sects section(s)."
+          set msg " This software cannot directly process Part 21 Edition 3 files.  A new Part 21 Edition 2 file"
+          append msg "\n '[file tail $nname]' without those sections will be written and processed."
+          append msg "\n The $sects section(s) from the original file will still be processed separately."
+          append msg "\n See Websites > STEP Format and Schemas > ISO 10303 Part 21 Edition 3"
+          errorMsg $msg red
           
 # check for part 21 edition 3 content
         } elseif {[string first "ANCHOR\;" $line] == 0 || \
