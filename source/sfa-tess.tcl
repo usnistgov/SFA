@@ -32,6 +32,7 @@ proc tessPart {entType} {
   if {$opt(DEBUG1)} {outputMsg "entattrlist $entAttrList"}
   
 # open file for tessellated parts
+  checkTempDir
   foreach tess {tessellated_solid tessellated_shell tessellated_wire} {
     if {[info exist entCount($tess)] && ![info exists tessPartFileName]} {
       if {$entCount($tess) > 0} {
@@ -512,7 +513,7 @@ proc tessSetColor {objEntity tsID} {
 # color not found in styled_item.item
   if {![info exists tessColor($tsID)]} {
     if {[info exists missingStyledItem]} {
-      errorMsg " For tessellated geometry color, '$missingStyledItem' was not found in 'styled_item.item' (using [lindex $defaultColor 1])"
+      errorMsg "Syntax Error: '$missingStyledItem' was not found in 'styled_item.item' (using [lindex $defaultColor 1])\n[string repeat " " 14]($recPracNames(model), Sec. 4.2.2, Fig. 2)"
     }
   }
 }

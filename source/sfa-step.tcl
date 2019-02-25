@@ -32,17 +32,6 @@ proc getAssocGeom {entDef {tolType 0} {tolName ""}} {
       
 # find AF for SA with GISU or IIRU
       getAssocGeomFace $entDef
-      
-# check all around      
-      if {$entDefType == "all_around_shape_aspect" && [string first "annotation" $tolName] == -1} {
-        if {[info exists assocGeom(advanced_face)]} {
-          if {[llength $assocGeom(advanced_face)] == 1} {
-            set msg "Syntax Error: For All Around tolerance, GISU relates '$entDefType' to only one 'advanced_face'.\n[string repeat " " 14]\($recPracNames(pmi242), Sec. 6.4, Fig. 31)"
-            errorMsg $msg
-            if {[info exists gtEntity]} {lappend syntaxErr([$gtEntity Type]) [list [$gtEntity P21ID] "toleranced_shape_aspect" $msg]}
-          }
-        }
-      }
     }
     
 # look at SAR with CSA, CGSA, AASA, COS to find SAs, possibly nested
@@ -53,28 +42,39 @@ proc getAssocGeom {entDef {tolType 0} {tolName ""}} {
       if {[string first "relationship" [$e0 Type]] != -1} {
         ::tcom::foreach a0 [$e0 Attributes] {
           if {[$a0 Name] == "related_shape_aspect"} {
-            set type [appendAssocGeom [$a0 Value] E]
-            if {$type == "advanced_face"} {getFaceGeom [$a0 Value] E}
-  
-            set a0val {}
-            set e1 [$a0 Value]
-            if {[[$a0 Value] Type] == "composite_shape_aspect" || [[$a0 Value] Type] == "composite_group_shape_aspect"} {
-              set e1s [[$a0 Value] GetUsedIn [string trim shape_aspect_relationship] [string trim relating_shape_aspect]]
-              ::tcom::foreach e1 $e1s {
-                if {[string first "relationship" [$e1 Type]] != -1} {
-                  ::tcom::foreach a1 [$e1 Attributes] {
-                    if {[$a1 Name] == "related_shape_aspect"} {
-                      lappend a0val [$a1 Value]
-                      set type [appendAssocGeom [$a1 Value] F]
+            catch {unset relatedSA}
+            if {[catch {
+              set relatedSA [[$a0 Value] Type]
+            } emsg]} {
+              set msg "Syntax Error: Invalid 'related_shape_aspect' attribute on 'shape_aspect_relationship'."
+              errorMsg $msg
+              lappend syntaxErr(shape_aspect_relationship) [list [$e0 P21ID] "related_shape_aspect" $msg]
+            }
+
+# related SA is OK
+            if {[info exists relatedSA]} {
+              set type [appendAssocGeom [$a0 Value] E]
+              if {$type == "advanced_face"} {getFaceGeom [$a0 Value] E}
+    
+              set a0val {}
+              if {$relatedSA == "composite_shape_aspect" || $relatedSA == "composite_group_shape_aspect"} {
+                set e1s [[$a0 Value] GetUsedIn [string trim shape_aspect_relationship] [string trim relating_shape_aspect]]
+                ::tcom::foreach e1 $e1s {
+                  if {[string first "relationship" [$e1 Type]] != -1} {
+                    ::tcom::foreach a1 [$e1 Attributes] {
+                      if {[$a1 Name] == "related_shape_aspect"} {
+                        lappend a0val [$a1 Value]
+                        set type [appendAssocGeom [$a1 Value] F]
+                      }
                     }
                   }
                 }
+              } else {
+                lappend a0val [$a0 Value]
               }
-            } else {
-              lappend a0val [$a0 Value]
             }
   
-# find AF for SA with GISU or IIRU
+# find AF for SA with GISU or IIRU, check all around
             foreach val $a0val {getAssocGeomFace $val}
           }
         }
@@ -83,18 +83,18 @@ proc getAssocGeom {entDef {tolType 0} {tolName ""}} {
     
 # check all around
     if {$entDefType == "all_around_shape_aspect" && [string first "annotation" $tolName] == -1} {
-      if {[llength $assocGeom($type)] == 1} {
-        #outputMsg " assocGeom $type $assocGeom($type) [llength $assocGeom($type)]" green
-        if {$type == "advanced_face"} {
-          set msg "Syntax Error: For All Around tolerance, 'shape_aspect relationship' entity relates '$entDefType' to only one 'advanced_face'.\n[string repeat " " 14]\($recPracNames(pmi242), Sec. 6.4, Fig. 31)"
+      if {[info exists assocGeom(shape_aspect)]} {
+        if {[llength $assocGeom(shape_aspect)] == 1} {
+          set msg "Syntax Error: '$entDefType' relates to only one 'shape_aspect'.\n[string repeat " " 14]\($recPracNames(pmi242), Sec. 6.4, Fig. 31)"
           errorMsg $msg
           if {[info exists gtEntity]} {lappend syntaxErr([$gtEntity Type]) [list [$gtEntity P21ID] "toleranced_shape_aspect" $msg]}
-        } elseif {$type == $entDefType} {
-          set msg "Syntax Error: For All Around tolerance, missing 'shape_aspect relationship' entity relating '$entDefType' to 'advanced_face'.\n[string repeat " " 14]\($recPracNames(pmi242), Sec. 6.4, Fig. 31)"
-          errorMsg $msg
-          if {[info exists gtEntity]} {lappend syntaxErr([$gtEntity Type]) [list [$gtEntity P21ID] "toleranced_shape_aspect" $msg]}
-          unset assocGeom($type)
         }
+      }
+      if {[llength $assocGeom($type)] == 1 && $type == $entDefType} {
+        set msg "Syntax Error: '$entDefType' missing relationship to 'shape_aspect'.\n[string repeat " " 14]\($recPracNames(pmi242), Sec. 6.4, Fig. 31)"
+        errorMsg $msg
+        if {[info exists gtEntity]} {lappend syntaxErr([$gtEntity Type]) [list [$gtEntity P21ID] "toleranced_shape_aspect" $msg]}
+        unset assocGeom($type)
       }
     }
   } emsg]} {
@@ -178,7 +178,7 @@ proc getFaceGeom {a0 {id ""}} {
 
 # -------------------------------------------------------------------------------
 proc reportAssocGeom {entType {row ""}} {
-  global assocGeom recPracNames dimRepeat dimRepeatDiv syntaxErr cells opt
+  global assocGeom recPracNames dimRepeat dimRepeatDiv syntaxErr cells opt suppGeomEnts
   #outputMsg "reportAssocGeom $entType" red
   
   set str ""
@@ -238,6 +238,7 @@ proc reportAssocGeom {entType {row ""}} {
     if {[string first "occurrence" $entType] != -1} {
       if {!$opt(INVERSE)} {
         set c E
+        if {[string first "placeholder" $entType] != -1} {set c G}
       } else {
         foreach c1 {H G F E} {
           set head [[$cells($entType) Item 3 $c1] Value]
@@ -271,6 +272,16 @@ proc reportAssocGeom {entType {row ""}} {
       }
     }
   }
+  
+# check for supplemental geometry
+  foreach id $suppGeomEnts {
+    set c1 [string first $id $str]
+    if {$c1 != -1} {
+      set lid [string length $id]
+      set nid "$id*"
+      set str [string replace $str $c1 [expr {$c1+$lid-1}] $nid]
+    }
+  }
   return $str
 }
 
@@ -278,7 +289,7 @@ proc reportAssocGeom {entType {row ""}} {
 # Semantic PMI summary worksheet
 proc spmiSummary {} {
   global cells entName localName row sheetLast spmiSumName spmiSumRow thisEntType worksheet worksheets xlFileName
-  global nistName pmiExpected pmiExpectedNX wdir mytemp legendColor pmiUnicode pmiFound pmiModifiers pmiActual recPracNames tolNames pmiType valType
+  global nistName pmiExpected pmiExpectedNX wdir legendColor pmiUnicode pmiFound pmiModifiers pmiActual recPracNames tolNames pmiType valType
   global nsimilar pmiMaster allPMI
   
 # first time through, start worksheet
@@ -836,6 +847,9 @@ proc spmiGetPMI {} {
   if {[catch {
     set lf 1
     if {![info exists spmiCoverages]} {
+
+# check mytemp dir
+      checkTempDir
       
 # first mount NIST zip file with images and expected PMI
       if {$nistVersion} {
@@ -1504,12 +1518,14 @@ proc checkP21e3 {fname} {
           set write 1
           set data 1
           regsub -all " " [join $sects] " and " sects
-          errorMsg "The STEP file uses ISO 10303 Part 21 Edition 3 $sects section(s)."
-          set msg " This software cannot directly process Part 21 Edition 3 files.  A new Part 21 Edition 2 file"
-          append msg "\n '[file tail $nname]' without those sections will be written and processed."
-          append msg "\n The $sects section(s) from the original file will still be processed separately."
+          outputMsg " "
+          errorMsg "The STEP file uses ISO 10303 Part 21 Edition *3* '$sects' section(s)."
+          outputMsg " This software cannot directly process Edition 3 files.  A new Part 21 Edition *2* file:" red
+          outputMsg "   [truncFileName $nname]"
+          set msg " without those sections will be written and processed."
+          append msg "\n The '$sects' section(s) from the original file will be processed separately for the spreadsheet."
           append msg "\n See Websites > STEP Format and Schemas > ISO 10303 Part 21 Edition 3"
-          errorMsg $msg red
+          outputMsg $msg red
           
 # check for part 21 edition 3 content
         } elseif {[string first "ANCHOR\;" $line] == 0 || \

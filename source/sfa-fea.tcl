@@ -164,6 +164,7 @@ proc feaModel {entType} {
 
 # create temp files
   if {[string first "element_representation" $entType] != -1} {
+    checkTempDir
     foreach f {elements mesh meshIndex faceIndex loads bcs} {
       set feaFileName($f) [file join $mytemp $f.txt]
       if {![file exists $feaFileName($f)]} {set feaFile($f) [open $feaFileName($f) w]}

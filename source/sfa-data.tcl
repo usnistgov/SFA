@@ -7,7 +7,6 @@ global ap203all ap214all ap242all ap242only
 global feaIndex feaElemFace cadApps allVendor numSavedViews andEntAP209 brepEnts
 
 set defaultColor [list "0.996 0.463 0.418" pink]
-#set defaultColor [list "0.818 0.512 0.266" brown]
 
 set roseLogical(0) "FALSE"
 set roseLogical(1) "TRUE"
@@ -27,6 +26,7 @@ set recPracNames(valprop)  "Geometric and Assembly Validation Properties"
 set recPracNames(tessgeom) "3D Tessellated Geometry"
 set recPracNames(uda)      "User Defined Attributes"
 set recPracNames(comp)     "Composite Structure Validation Properties"
+set recPracNames(suppgeom) "Supplemental Geometry"
 
 # links to schema documentation
 set schemaLinks(AP203)   "https://www.cax-if.org/documents/AP203e2_html/AP203e2.htm"
@@ -227,7 +227,7 @@ set pmiModifiersArray(any_part_of_the_feature,5.3)          "/Length"
 set pmiModifiersArray(arc_length)                           "\u2322"
 set pmiModifiersArray(area_diameter_calculated_size,5.3)    "(CA)"
 set pmiModifiersArray(average_rank_order_size,5.3)          "(SA)"
-set pmiModifiersArray(basic,6.9.7)                          "\[BASIC\]"
+set pmiModifiersArray(basic,6.9.7)                          "\[BSC\]"
 set pmiModifiersArray(between,6.4.3)                        "\u2194"
 set pmiModifiersArray(circumference_diameter_calculated_size,5.3) "(CC)"
 set pmiModifiersArray(common_tolerance,5.3)                 "CT"

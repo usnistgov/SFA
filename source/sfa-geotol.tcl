@@ -121,7 +121,7 @@ proc spmiGeotolReport {objEntity} {
   global entLevel ent entAttrList entCount gt gtEntity incrcol lastAttr lastEnt nistName
   global objID opt pmiCol pmiHeading pmiModifiers pmiStartCol pmiUnicode ptz recPracNames
   global spmiEnts spmiID spmiIDRow spmiRow spmiTypesPerFile stepAP syntaxErr
-  global tolNames tolStandard tolval tzf1 tzfNames tzWithDatum worksheet datumModValue
+  global tolNames tolStandard tolStandards tolval tzf1 tzfNames tzWithDatum worksheet datumModValue
 
   if {$opt(DEBUG1)} {outputMsg "spmiGeotolReport" red}
    
@@ -297,6 +297,13 @@ proc spmiGeotolReport {objEntity} {
                         lappend syntaxErr([lindex [split $ent1 " "] 0]) [list [$gtEntity P21ID] [lindex [split $ent1 " "] 1] $msg]
                       }
                     }
+                    
+# check for ASME Y14.5:2018 and removed tolerances
+                    if {[string first "concentricity" $ent1] != -1 || [string first "symmetry" $ent1] != -1} {
+                      foreach std $tolStandards {
+                        if {[string first "Y14.5" $std] != -1 && [string first "2018" $std] != -1} {errorMsg "[$gtEntity Type] is no longer valid in $std"}
+                      }
+                    }
                   }
                   "length_measure_with_unit* value_component" {
 
@@ -348,7 +355,9 @@ proc spmiGeotolReport {objEntity} {
                                   lappend syntaxErr(tolerance_zone_form) [list [[$attrTZ Value] P21ID] "name" $msg]
                                   set tzf1 "(Invalid TZF: $tzfName)"
                                 } elseif {$tzfName == ""} {
-                                  errorMsg "The tolerance_zone_form 'name' attribute is blank."
+                                  set msg "The tolerance_zone_form 'name' attribute is blank."
+                                  errorMsg $msg
+                                  lappend syntaxErr(tolerance_zone_form) [list [[$attrTZ Value] P21ID] "name" $msg]
                                 }
                               }
 
@@ -402,7 +411,7 @@ proc spmiGeotolReport {objEntity} {
                       }
                     }
                       
-# get directed or oriented tolerance zone
+# get directed or oriented tolerance zone (AP242e2 for ISO 1101 intersection and orientation plane)
                     foreach tz [list directed oriented] {
                       set e0s [$gtEntity GetUsedIn [string trim $tz\_tolerance_zone] [string trim defining_tolerance]]
                       ::tcom::foreach e0 $e0s {
@@ -416,7 +425,9 @@ proc spmiGeotolReport {objEntity} {
                           set tzWithDatum($tz) "\u25C1 $pmiUnicode($dir) | $datumSystem([$ds P21ID])"
                           if {$tz == "oriented"} {append tzWithDatum($tz) " \u25B7 \[$angle$pmiUnicode(degree)\]"}
                         } else {
-                          errorMsg "Syntax Error: Invalid type '$dir' for '$tz\_tolerance_zone'."
+                          set msg "Syntax Error: Invalid orientation attribute '$dir' on '$tz\_tolerance_zone'."
+                          errorMsg $msg
+                          lappend syntaxErr($tz\_tolerance_zone) [list [$e0 P21ID] "orientation" $msg]
                         }
                       }
                     }
@@ -828,10 +839,14 @@ proc spmiGeotolReport {objEntity} {
                         if {[string first "relationship" [$e1 Type]] != -1} {
                           ::tcom::foreach a1 [$e1 Attributes] {
                             if {[$a1 Name] == "related_shape_aspect"} {
-                              ::tcom::foreach a2 [[$a1 Value] Attributes] {
-                                if {[$a2 Name] == "identification"} {
-                                  set datumSymbol($datumGeomEnts) [$a2 Value]
+                              if {[catch {
+                                ::tcom::foreach a2 [[$a1 Value] Attributes] {
+                                  if {[$a2 Name] == "identification"} {set datumSymbol($datumGeomEnts) [$a2 Value]}
                                 }
+                              } emsg]} {
+                                set msg "Syntax Error: Invalid 'related_shape_aspect' attribute on 'shape_aspect_relationship'."
+                                errorMsg $msg
+                                lappend syntaxErr(shape_aspect_relationship) [list [$e1 P21ID] "related_shape_aspect" $msg]
                               }
                             }
                           }
@@ -937,8 +952,10 @@ proc spmiGeotolReport {objEntity} {
                         set col($gt) [expr {$pmiStartCol($gt)+2}]
                         set colName "Target Geometry[format "%c" 10](Sec. 6.6.1)"
                         set objValue $datumTargetGeom
-                      } elseif {$ov != "curve" && $ov != "area"} {
-                        errorMsg "Syntax Error: Missing target geometry for [$gtEntity Type].\n[string repeat " " 14]\($recPracNames(pmi242), Sec. 6.6.1)"
+                      } elseif {$ov == "curve" || $ov == "area"} {
+                        set msg "Syntax Error: Missing '$ov' target geometry for [$gtEntity Type].\n[string repeat " " 14]\($recPracNames(pmi242), Sec. 6.6.1)"
+                        errorMsg $msg
+                        lappend syntaxErr(datum_target) [list $objID "Target Geometry" $msg]
                       }
                     }
                   }
@@ -963,7 +980,7 @@ proc spmiGeotolReport {objEntity} {
                       }
                     }
                     if {![info exists datumTarget]} {
-                      errorMsg "Syntax Error: Missing relationship to datum for [$objEntity Type].\n[string repeat " " 14]\($recPracNames(pmi242), Sec. 6.6)"
+                      errorMsg "Syntax Error: Missing relationship to 'datum' for [$objEntity Type].\n[string repeat " " 14]\($recPracNames(pmi242), Sec. 6.6)"
                     }
                     set ok 1
                     set col($gt) $pmiStartCol($gt)
@@ -1079,7 +1096,9 @@ proc spmiGeotolReport {objEntity} {
                                         ::tcom::foreach a4 [$e4 Attributes] {
                                           if {[$a4 Name] == "name"} {
                                             if {[$a4 Value] != "movable direction"} {
-                                              errorMsg "Syntax Error: Invalid 'name' ([$a4 Value]) on direction for a movable datum target (must be 'movable direction')\n[string repeat " " 14]\($recPracNames(pmi242), Sec. 6.6.3)"
+                                              set msg "Syntax Error: Invalid 'name' ([$a4 Value]) on 'direction' for a movable datum target (must be 'movable direction')\n[string repeat " " 14]\($recPracNames(pmi242), Sec. 6.6.3)"
+                                              errorMsg $msg
+                                              lappend syntaxErr(direction) [list [$e4 P21ID] "name" $msg] 
                                             }
                                           } elseif {[$a4 Name] == "direction_ratios"} {
                                             set dirrat [$a4 Value]
@@ -1175,7 +1194,9 @@ proc spmiGeotolReport {objEntity} {
 # defined area unit, look for square, rectangle and add " X 0.whatever" to existing value
                     set ok 1
                     if {[lsearch [list square rectangular circular cylindrical spherical] $objValue] == -1} {
-                      errorMsg "Syntax Error: Invalid 'area_type' attribute ($objValue) on geometric_tolerance_with_defined_area_unit.\n[string repeat " " 14]\($recPracNames(pmi242), Sec. 6.9.6)"
+                      set msg "Syntax Error: Invalid 'area_type' attribute ($objValue) on geometric_tolerance_with_defined_area_unit.\n[string repeat " " 14]\($recPracNames(pmi242), Sec. 6.9.6)"
+                      errorMsg $msg
+                      lappend syntaxErr([lindex [split $ent1 " "] 0]) [list [$gtEntity P21ID] [lindex [split $ent1 " "] 1] $msg]
                     }
                   }
                   "datum_reference_modifier_with_value modifier_type" {
@@ -1187,7 +1208,9 @@ proc spmiGeotolReport {objEntity} {
                     } elseif {$objValue == "projected"} {
                       append datumModValue "\u24C5"
                     } elseif {$objValue != "distance"} {
-                      errorMsg "Syntax Error: Unexpected 'modifier_type' on 'datum_reference_modifier_with_value'\n[string repeat " " 14]\($recPracNames(pmi242), Sec. 6.9.7)"
+                      set msg "Syntax Error: Unexpected 'modifier_type' on 'datum_reference_modifier_with_value'\n[string repeat " " 14]\($recPracNames(pmi242), Sec. 6.9.7)"
+                      errorMsg $msg
+                      lappend syntaxErr([lindex [split $ent1 " "] 0]) [list [$gtEntity P21ID] [lindex [split $ent1 " "] 1] $msg]
                     }
                   }
                 }
@@ -1604,6 +1627,11 @@ proc spmiGeotolReport {objEntity} {
         }
         $cells($gt) Item $r $c [string trim $geotolGeom]
         if {[lsearch $spmiRow($gt) $r] == -1} {lappend spmiRow($gt) $r}
+
+        if {[string first "*" $geotolGeom] != -1} {
+          set comment "Geometry IDs marked with an asterisk (*) are also Supplemental Geometry.  ($recPracNames(suppgeom) Section 4.3)"
+          addCellComment $gt $r $c $comment
+        }
 
         if {[string first "manifold_solid_brep" $geotolGeom] != -1 && [string first "surface" $gt] == -1} {
           errorMsg "Toleranced Geometry for a [formatComplexEnt $gt]\n contains a 'manifold_solid_brep'."

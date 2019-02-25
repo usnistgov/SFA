@@ -815,7 +815,7 @@ proc gpmiAnnotationReport {objEntity} {
                     $ent1 == "tessellated_geometric_set name" || \
                     $ent1 == "repositioned_tessellated_item_and_tessellated_geometric_set name" || \
                     $ent1 == "composite_curve name"} {
-                  set ov $objValue
+                  set ov [string tolower $objValue]
 
 # look for invalid 'name' values                  
                   set invalid ""
@@ -860,6 +860,7 @@ proc gpmiAnnotationReport {objEntity} {
                       }
                     }
                   }
+                  set ov $objValue
               
 # start X3DOM file, read tessellated geometry
                   if {$opt(VIZPMI) && [string first "occurrence" $ao] != -1} {
@@ -1350,6 +1351,8 @@ proc pmiGetCamerasAndProperties {} {
   
   catch {unset draftModelCameras}
   catch {unset draftModelCameraNames}
+  checkTempDir
+  
   if {[llength $aolist] > 0} {
     if {[catch {
   
@@ -1493,10 +1496,11 @@ proc pmiGetCamerasAndProperties {} {
                 set dmcn $draftModelCameraNames([$entDraughtingModel P21ID])
                 if {[lsearch $savedViewName $dmcn] == -1} {lappend savedViewName $dmcn}
                 if {[lsearch $savedViewNames $name1] == -1 && $annForDM([$entDraughtingModel P21ID])} {
-                  lappend savedViewNames $name1
-                  set savedViewFileName($name1) [file join $mytemp $name1.txt]
                   catch {file delete -force $savedViewFileName($name1)}
-                  set savedViewFile($name1) [open $savedViewFileName($name1) w]
+                  set fn [file join $mytemp $name1.txt]
+                  set savedViewFile($name1) [open $fn w]
+                  set savedViewFileName($name1) $fn
+                  lappend savedViewNames $name1
                   if {[string length $dmitems([$entDraughtingModel P21ID])] > 0} {set savedViewItems($dmcn) $dmitems([$entDraughtingModel P21ID])}
                 }
               }

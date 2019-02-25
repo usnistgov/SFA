@@ -1,7 +1,7 @@
 # version numbers, software and user guide, contact
 # user guide URLs are below in showUserGuide
 
-proc getVersion {}   {return 3.25}
+proc getVersion {}   {return 3.26}
 proc getVersionUG {} {return 3.0}
 proc getContact {}   {return [list "Robert Lipman" "robert.lipman@nist.gov"]}
 
@@ -12,7 +12,7 @@ proc whatsNew {} {
   if {$sfaVersion > 0 && $sfaVersion < [getVersion]} {outputMsg "\nThe previous version of the STEP File Analyzer and Viewer was: $sfaVersion" red}
 
 outputMsg "\nWhat's New (Version: [getVersion]  Updated: [string trim [clock format $progtime -format "%e %b %Y"]])" blue
-outputMsg "- Improved analysis of datum targets
+outputMsg "- Improved analysis of datum targets and all around
 - Part geometry color (See Help > View Part Geometry)
 - AP209 FEA validation properties
 - Graphical PMI colored by saved view
@@ -49,7 +49,7 @@ proc showUserGuide {} {
   if {$byURL} {openURL https://doi.org/10.6028/NIST.AMS.200-6}
 
 # extra message if user guide is out-of-date, versions defined in sfa-step.tcl  
-  if {[getVersion] > [expr {[getVersionUG]+0.5}]} {
+  if {[getVersion] > [expr {[getVersionUG]+0.25}]} {
     errorMsg "The User Guide is based on version [getVersionUG] of the STEP File Analyzer and Viewer.\n New features are documented in the Help menu."
     outputMsg " "
     .tnb select .tnb.status
@@ -321,7 +321,7 @@ proc guiProcessAndReports {} {
     if {[info exists entCategory($tt)]} {
       set ttmsg "There are [llength $entCategory($tt)] [string trim [lindex $item 0]] entities.  These entities are found in most APs."
       if {$tt != "PR_STEP_COMM"} {append ttmsg "\nEntities marked with an asterisk (*) are only in AP242.  Some are only in AP242 edition 2."}
-      append ttmsg "\nSee Help > Supported STEP APs, and Websites > STEP Format and Schemas > EXPRESS Schemas\n\n"
+      append ttmsg "\nSee Help > Supported STEP APs  and  Websites > STEP Format and Schemas > EXPRESS Schemas\n\n"
       if {$tt != "PR_STEP_COMM"} {
         set ttmsg [guiToolTip $ttmsg $tt]
       } else {
@@ -350,7 +350,7 @@ proc guiProcessAndReports {} {
       } elseif {$tt == "PR_STEP_CPNT"} {
         append ttmsg "  coordinates_list is only in AP242."
       }
-      append ttmsg "\nSee Help > Supported STEP APs, and Websites > STEP Format and Schemas > EXPRESS Schemas\n\n"
+      append ttmsg "\nSee Help > Supported STEP APs  and  Websites > STEP Format and Schemas > EXPRESS Schemas\n\n"
       set ttmsg [guiToolTip $ttmsg $tt]
       catch {tooltip::tooltip $buttons($idx) $ttmsg}
     }
@@ -370,12 +370,12 @@ proc guiProcessAndReports {} {
       set ttmsg "There are [llength $entCategory($tt)] [string trim [lindex $item 0]] entities."
       if {$tt != "PR_STEP_AP242"} {
         append ttmsg "  These entities are found in some APs.\nEntities marked with an asterisk (*) are only in AP242.  Some are only in AP242 edition 2."
-        append ttmsg "\nSee Help > Supported STEP APs, and Websites > STEP Format and Schemas > EXPRESS Schemas\n\n"
+        append ttmsg "\nSee Help > Supported STEP APs  and  Websites > STEP Format and Schemas > EXPRESS Schemas\n\n"
         set ttmsg [guiToolTip $ttmsg $tt]
       } else {
         append ttmsg "\n\nThese entities are only in AP242 and not in AP203 or AP214.  Some entities are only in AP242 Edition 2."
         append ttmsg "\nSee Websites > AP242 Project"
-        append ttmsg "\nSee Help > Supported STEP APs, and Websites > STEP Format and Schemas > EXPRESS Schemas"
+        append ttmsg "\nSee Help > Supported STEP APs  and  Websites > STEP Format and Schemas > EXPRESS Schemas"
       }
       catch {tooltip::tooltip $buttons($idx) $ttmsg}
     }
@@ -795,7 +795,7 @@ proc guiOpenSTEPFile {} {
   }
 
   pack $foptk -side top -anchor w -pady {5 2} -padx 10 -fill both
-  catch {tooltip::tooltip $foptk "If Excel is installed, then Spreadsheets and CSV files can be\ngenerated.  If CSV Files is selected, the Spreadsheet is also\ngenerated.\n\nIf Excel is not installed, only CSV files can be generated.\nOptions for Analyze and Inverse Relationships are disabled.\n\nCSV files do not contain any cell colors, comments, or links.\nGD&T symbols will look correct only with Excel 2016 or newer.\n\nView Only does not generate any Spreadsheets or CSV files.\nAll options except View are disabled.\n\nIf Output files are not opened after they have been generated,\nuse F2 to open a Spreadsheet and F7 to open a View.\n\nSee Help > User Guide (section 4.4.1)"}
+  catch {tooltip::tooltip $foptk "If Excel is installed, then Spreadsheets and CSV files can be\ngenerated.  If CSV Files is selected, the Spreadsheet is also\ngenerated.\n\nIf Excel is not installed, only CSV files can be generated.\nOptions for Analyze and Inverse Relationships are disabled.\n\nCSV files do not contain any cell colors, comments, or links.\nGD&T symbols will look correct only with Excel 2016 or newer.\n\nView Only does not generate any Spreadsheets or CSV files.\nAll options except View are disabled.\n\nIf Output files are not opened after they have been generated,\nuse F2 to open a Spreadsheet and F7 to open a View.  Use F3\nto open the File Summary Spreadsheet when processing\nmultiple files.\n\nSee Help > User Guide (section 4.4.1)"}
 
 # log file
   set foptm [ttk::labelframe $fopt.m -text " Log File "]
@@ -1018,7 +1018,7 @@ proc guiHelpMenu {} {
     }
     
     if {$nschema == 0} {errorMsg "No Supported STEP APs were found.\nThere was a problem copying STEP schema files (*.rose) to the IFCsvr/dll directory."}
-    outputMsg "\nSee Websites > STEP Format and Schemas > EXPRESS Schemas, and More EXPRESS Schemas"
+    outputMsg "\nSee Websites > STEP Format and Schemas > EXPRESS Schemas"
 
     .tnb select .tnb.status
   }
@@ -1393,11 +1393,12 @@ The log file is written to myfile-sfa.log.  In a log file, error messages are hi
     
   $Help add command -label "View Part Geometry" -command {
 outputMsg "\nView Part Geometry ---------------------------------------------------------" blue
-outputMsg "Part geometry (b-rep) is shown for any STEP file where the geometry is modeled with
+outputMsg "Views are shown in the default web browser.  Older versions of web browsers are not supported.
+All Views are written to: myfile-sfa.html
+
+Part geometry (b-rep) is shown for any STEP file where the geometry is modeled with
 advanced_brep_shape_representation, manifold_surface_shape_representation, manifold_solid_brep, or
 shell_based_surface_model entities.
-
-All Views are written to: myfile-sfa.html
 
 Part colors are ignored if multiple colors are specified.  Overriding style colors are also ignored.
 Part geometry might also include supplemental geometry.  In some cases, curved surfaces might appear
@@ -1646,39 +1647,26 @@ proc guiWebsitesMenu {} {
   $Websites add command -label "CAx-IF (alternate website)"     -command {openURL https://www.cax-if.de}
   
   $Websites add separator
-  $Websites add command -label "AP242 Project"           -command {openURL http://www.ap242.org}
-  $Websites add command -label "AP242 Edition 2"         -command {openURL http://www.ap242.org/edition-2}
-  $Websites add command -label "AP242 Paper"             -command {openURL https://www.nist.gov/publications/portrait-iso-step-tolerancing-standard-enabler-smart-manufacturing-systems}
-  $Websites add command -label "AP242 Presentation"      -command {openURL https://www.nist.gov/document-2058}
-  $Websites add command -label "AP242 Benchmark Testing" -command {openURL http://www.asd-ssg.org/step-ap242-benchmark}
+  $Websites add command -label "AP242 Project" -command {openURL http://www.ap242.org}
+  $Websites add cascade -label "More AP242 Information" -menu $Websites.0
+  set Websites0 [menu $Websites.0 -tearoff 1]
+  $Websites0 add command -label "AP242 Paper"             -command {openURL https://www.nist.gov/publications/portrait-iso-step-tolerancing-standard-enabler-smart-manufacturing-systems}
+  $Websites0 add command -label "AP242 Presentation"      -command {openURL https://www.nist.gov/document-2058}
+  $Websites0 add command -label "AP242 Benchmark Testing" -command {openURL http://www.asd-ssg.org/step-ap242-benchmark}
+  $Websites0 add command -label "AP242 Edition 2"         -command {openURL http://www.ap242.org/edition-2}
   
   $Websites add separator
-  $Websites add command -label "CAE-IF (FEA testing)" -command {openURL http://afnet.fr/dotank/sps/cae-if/}
   $Websites add command -label "AP209 FEA"            -command {openURL http://www.ap209.org}
+  $Websites add command -label "CAE-IF (FEA testing)" -command {openURL http://afnet.fr/dotank/sps/cae-if/}
   
   $Websites add separator
-  $Websites add cascade -label "More STEP APs" -menu $Websites.1
-  set Websites1 [menu $Websites.1 -tearoff 1]
-  $Websites1 add command -label "AP238 Machining"  -command {openURL http://www.ap238.org}
-  $Websites1 add command -label "AP239 PLCS"       -command {openURL http://www.ap239.org}
-  $Websites1 add command -label "AP235 Properties" -command {openURL http://www.ap235.org}
-  
   $Websites add cascade -label "STEP Format and Schemas" -menu $Websites.2
   set Websites2 [menu $Websites.2 -tearoff 1]
-  $Websites2 add command -label "STEP Format"                -command {openURL https://www.loc.gov/preservation/digital/formats/fdd/fdd000448.shtml}
-  $Websites2 add command -label "STEP Format (ISO 10303-21 Edition 2)" -command {openURL https://en.wikipedia.org/wiki/ISO_10303-21}
-  $Websites2 add command -label "ISO 10303-21 Edition 3"     -command {openURL https://www.steptools.com/stds/step/}
-  $Websites2 add command -label "EXPRESS Schemas"            -command {openURL https://www.cax-if.org/joint_testing_info.html#schemas}
-  $Websites2 add command -label "More EXPRESS Schemas"       -command {openURL http://web.archive.org/web/20160322005246/www.steptools.com/support/stdev_docs/express/}
-  
-  $Websites add cascade -label "STEP Related Organizations" -menu $Websites.3
-  set Websites3 [menu $Websites.3 -tearoff 1]
-  $Websites3 add command -label "PDES, Inc. (U.S.)"                         -command {openURL http://pdesinc.org}
-  $Websites3 add command -label "prostep ivip (Germany)"                    -command {openURL https://www.prostep.org/en/projects/}
-  $Websites3 add command -label "AFNeT (France)"                            -command {openURL http://afnet.fr/dotank/sps/plm-committee/}
-  $Websites3 add command -label "LOTAR (LOng Term Archiving and Retrieval)" -command {openURL http://www.lotar-international.org}
-  $Websites3 add command -label "ASD Strategic Standardisation Group"       -command {openURL http://www.asd-ssg.org/}
-  $Websites3 add command -label "KStep (Korea)"                             -command {openURL http://www.kstep.or.kr/}
+  $Websites2 add command -label "STEP Format"                 -command {openURL https://www.loc.gov/preservation/digital/formats/fdd/fdd000448.shtml}
+  $Websites2 add command -label "ISO 10303 Part 21"           -command {openURL https://en.wikipedia.org/wiki/ISO_10303-21}
+  $Websites2 add command -label "ISO 10303 Part 21 Edition 3" -command {openURL https://www.steptools.com/stds/step/}
+  $Websites2 add command -label "EXPRESS Schemas"             -command {openURL https://www.cax-if.org/joint_testing_info.html#schemas}
+  $Websites2 add command -label "More EXPRESS Schemas"        -command {openURL http://web.archive.org/web/20160322005246/www.steptools.com/support/stdev_docs/express/}
   
   $Websites add cascade -label "STEP Software" -menu $Websites.4
   set Websites4 [menu $Websites.4 -tearoff 1]
@@ -1690,6 +1678,21 @@ proc guiWebsitesMenu {} {
   $Websites4 add command -label "STEP to X3D Translation"                   -command {openURL http://www.web3d.org/wiki/index.php/STEP_X3D_Translation}
   $Websites4 add command -label "STEP Class Library (STEPcode)"             -command {openURL https://www.nist.gov/services-resources/software/step-class-library-scl}
   $Websites4 add command -label "Express Engine"                            -command {openURL http://exp-engine.sourceforge.net/}
+  
+  $Websites add cascade -label "STEP Related Organizations" -menu $Websites.3
+  set Websites3 [menu $Websites.3 -tearoff 1]
+  $Websites3 add command -label "PDES, Inc. (U.S.)"                         -command {openURL http://pdesinc.org}
+  $Websites3 add command -label "prostep ivip (Germany)"                    -command {openURL https://www.prostep.org/en/projects/}
+  $Websites3 add command -label "AFNeT (France)"                            -command {openURL http://afnet.fr/dotank/sps/plm-committee/}
+  $Websites3 add command -label "LOTAR (LOng Term Archiving and Retrieval)" -command {openURL http://www.lotar-international.org}
+  $Websites3 add command -label "ASD Strategic Standardisation Group"       -command {openURL http://www.asd-ssg.org/}
+  $Websites3 add command -label "KStep (Korea)"                             -command {openURL http://www.kstep.or.kr/}
+
+  $Websites add cascade -label "More STEP APs" -menu $Websites.1
+  set Websites1 [menu $Websites.1 -tearoff 1]
+  $Websites1 add command -label "AP238 Machining"  -command {openURL http://www.ap238.org}
+  $Websites1 add command -label "AP239 PLCS"       -command {openURL http://www.ap239.org}
+  $Websites1 add command -label "AP235 Properties" -command {openURL http://www.ap235.org}
 }
 
 #-------------------------------------------------------------------------------

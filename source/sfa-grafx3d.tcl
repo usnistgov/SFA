@@ -6,6 +6,7 @@ proc x3dFileStart {} {
   
   if {$x3dStartFile == 0} {return}
   set x3dStartFile 0
+  checkTempDir
   
   catch {file delete -force -- "[file rootname $localName]_x3dom.html"}
   catch {file delete -force -- "[file rootname $localName]-x3dom.html"}
@@ -95,7 +96,7 @@ proc x3dFileStart {} {
 proc x3dTessGeom {objID objEntity1 ent1} {
   global ao draftModelCameras entCount nshape recPracNames shapeRepName savedViewFile tessIndex tessIndexCoord tessCoord tessCoordID
   global tessPlacement tessRepo x3dColor x3dCoord x3dIndex x3dFile x3dColors x3dColorsUsed x3dColorFile x3dMsg opt defaultColor tessPartFile tessSuppGeomFile shellSuppGeom
-  global savedViewNames savedViewFileName mytemp srNames
+  global savedViewNames savedViewFileName srNames
   #outputMsg "x3dTessGeom $objID"
   
   set x3dIndex $tessIndex($objID)
@@ -261,7 +262,6 @@ proc x3dTessGeom {objID objEntity1 ent1} {
             foreach c [split $x3dColor] {append ecolor "[expr {$c*.5}] "}
             if {$ao == "tessellated_shell" && [info exists entCount(tessellated_solid)]} {
               set ecolor "0 0 0"
-              errorMsg " Triangular faces in 'tessellated_shell' are outlined in black."
               set msg "Triangular faces in tessellated shells are outlined in black."
               if {[lsearch $x3dMsg $msg] == -1} {lappend x3dMsg $msg}
             }
@@ -294,7 +294,7 @@ proc x3dFileEnd {} {
   global ao modelURLs nistName opt stepAP x3dAxes x3dMax x3dMin x3dFile x3dMsg x3dColorsUsed stepAP entCount nistVersion numSavedViews numTessColor viz
   global savedViewButtons savedViewFileName savedViewFile savedViewNames savedViewpoint feaBoundary feaLoad savedViewItems feaLoadMsg feaLoadMag
   global tessEdgeFile tessEdgeFileName tessPartFile tessPartFileName tessEdgeCoordDef
-  global wdir mytemp localName brepFile brepFileName brepEnts
+  global wdir localName brepFile brepFileName brepEnts
   global objDesign
 
 # PMI is already written to file
@@ -473,10 +473,10 @@ proc x3dFileEnd {} {
     if {$ok} {
       append str " and <a href=\"http://www.pythonocc.org/\">pythonOCC</a>"
       if {$viz(TPG) || $viz(PMI) || $viz(FEA) || $viz(SMG)} {append str " for part geometry"}
-      append str ".  Part geometry can also be viewed with <a href=\"https://www.cax-if.org/step_viewers.html\">STEP file viewers</a>"
+      append str ".&nbsp;&nbsp;&nbsp;Part geometry can also be viewed with <a href=\"https://www.cax-if.org/step_viewers.html\">STEP file viewers</a>"
     }
   }
-  append str ".<br><a href=\"https://www.nist.gov/disclaimer\">NIST Disclaimer</a>  [clock format [clock seconds] -format "%d %b %G %H:%M"]"
+  append str ".&nbsp;&nbsp;&nbsp;<a href=\"https://www.nist.gov/disclaimer\">NIST Disclaimer</a>&nbsp;&nbsp;&nbsp;[clock format [clock seconds] -format "%d %b %G %H:%M"]"
   puts $x3dFile $str
   
 # start right column  
@@ -655,7 +655,7 @@ proc x3dBrepGeom {} {
       }
       if {$copy} {file copy -force [file join $wdir exe stp2x3d.exe] $mytemp}
     }
-              
+    
 # run stp2x3d    
     if {[file exists $stp2x3d]} {
       set stpx3dFileName [file rootname $localName].x3d
@@ -695,7 +695,7 @@ proc x3dBrepGeom {} {
               }
             }
             
-# open temp file            
+# open temp file
             set brepFileName [file join $mytemp brep.txt]
             if {![file exists brepFileName]} {set brepFile [open $brepFileName w]}
             
@@ -913,6 +913,7 @@ proc x3dBrepColor {} {
 # supplemental geometry
 proc x3dSuppGeom {maxxyz} {
   global x3dFile objDesign viz tessSuppGeomFile tessSuppGeomFileName trimVal x3dMsg x3dColorsUsed
+  global recPracNames syntaxErr
   
   set size [trimNum [expr {$maxxyz*0.025}]]
   set tsize [trimNum [expr {$size*0.33}]]
@@ -1137,7 +1138,11 @@ proc x3dSuppGeom {maxxyz} {
                 errorMsg " $msg"
                 if {[lsearch $x3dMsg $msg] == -1} {lappend x3dMsg $msg}
               } else {
-                errorMsg "Syntax Error: '$ename' is not valid supplemental geometry."
+                set msg "Supplemental geometry for '$ename' is not valid."
+                if {[lsearch $x3dMsg $msg] == -1} {lappend x3dMsg $msg}
+                set msg "Syntax Error: Supplemental geometry for '$ename' is not valid.\n[string repeat " " 14]\($recPracNames(suppgeom), Sec. 4.2)"
+                errorMsg $msg
+                lappend syntaxErr(constructive_geometry_representation) [list [$e0 P21ID] "items" $msg]
               }
             }
           }
@@ -1274,17 +1279,7 @@ proc x3dSuppGeomCircle {e3 tsize {name ""}} {
 proc x3dSuppGeomPlane {e2 size {name ""}} {
   global x3dFile viz x3dMsg
   
-# check if plane is bounded
   if {[catch {
-    set bnds [$e2 GetUsedIn [string trim advanced_face] [string trim faced_geometry]]
-    set bound 0
-    ::tcom::foreach bnd $bnds {set bound 1}
-    if {$bound} {
-      set msg "Bounding edges for supplemental geometry 'plane' are ignored."
-      errorMsg " $msg"
-      if {[lsearch $x3dMsg $msg] == -1} {lappend x3dMsg $msg}
-    }
-    
     set e3 [[[$e2 Attributes] Item [expr 2]] Value]
     set a2p3d [x3dGetA2P3D $e3]
     set origin [lindex $a2p3d 0]
@@ -1301,15 +1296,57 @@ proc x3dSuppGeomPlane {e2 size {name ""}} {
     puts $x3dFile "</Transform>"
     set viz(SMG) 1
 
+# check if the plane is bounded
+    set bnds [$e2 GetUsedIn [string trim advanced_face] [string trim faced_geometry]]
+    set bound 0
+    ::tcom::foreach bnd $bnds {set bound 1}
+    if {$bound} {
+      set msg "Bounding edges for supplemental geometry 'plane' are ignored."
+      errorMsg " $msg"
+      if {[lsearch $x3dMsg $msg] == -1} {lappend x3dMsg $msg}
+    }
+    
   } emsg]} {
     errorMsg "ERROR adding 'plane' supplemental geometry: $emsg"
   }
 }
 
 # -------------------------------------------------------------------------------
+# supplemental geometry for cylinder
+proc x3dSuppGeomCylinder {e2 tsize {name ""}} {
+  global x3dFile viz x3dMsg
+  
+  if {[catch {
+    set e3 [[[$e2 Attributes] Item [expr 2]] Value]
+    set rad [[[$e2 Attributes] Item [expr 3]] Value]
+    set a2p3d [x3dGetA2P3D $e3]
+    set origin [lindex $a2p3d 0]
+    set axis   [lindex $a2p3d 1]
+    set refdir [lindex $a2p3d 2]
+    puts $x3dFile "<Transform translation='$origin' rotation='[x3dRotation $axis $refdir]'><Transform rotation='1 0 0 1.5708'>"
+    puts $x3dFile "  <Shape><Appearance><Material diffuseColor='0 0 1' transparency='0.8'></Material></Appearance><Cylinder radius='$rad' height='[trimNum [expr {$tsize*10.}]]' top='false' bottom='false' solid='false'></Cylinder></Shape>"
+    puts $x3dFile "</Transform></Transform>"
+    set viz(SMG) 1
+    
+# check if the cylinder is bounded
+    set bnds [$e2 GetUsedIn [string trim advanced_face] [string trim face_geometry]]
+    set bound 0
+    ::tcom::foreach e0 $bnds {set bound 1}
+    if {$bound} {
+      set msg "Bounding edges for supplemental geometry 'cylindrical_surface' are ignored."
+      errorMsg " $msg"
+      if {[lsearch $x3dMsg $msg] == -1} {lappend x3dMsg $msg}
+    }
+
+  } emsg]} {
+    errorMsg "ERROR adding 'cylinder' supplemental geometry: $emsg"
+  }
+}
+
+# -------------------------------------------------------------------------------
 # set predefined color
 proc x3dPreDefinedColor {name} {
-  global defaultColor
+  global defaultColor recPracNames
   
   switch $name {
     black   {set color "0 0 0"}
@@ -1322,42 +1359,17 @@ proc x3dPreDefinedColor {name} {
     magenta {set color "1 0 1"}
     default {
       set color [lindex $defaultColor 0]
-      errorMsg "Syntax Error: Unexpected draughting_pre_defined_colour name '$objValue' (using [lindex $defaultColor 1])\n[string repeat " " 14]($recPracNames(model), Sec. 4.2.3, Table 2)"
+      errorMsg "Syntax Error: Unexpected draughting_pre_defined_colour name '$name' (using [lindex $defaultColor 1])\n[string repeat " " 14]($recPracNames(model), Sec. 4.2.3, Table 2)"
     }
   }
   return $color
 }
 
 # -------------------------------------------------------------------------------
-# supplemental geometry for cylinder
-proc x3dSuppGeomCylinder {e2 tsize {name ""}} {
-  global x3dFile viz x3dMsg
-  
-  if {[catch {
-    set e4 [[[$e2 Attributes] Item [expr 2]] Value]
-    set rad [[[$e2 Attributes] Item [expr 3]] Value]
-    set a2p3d [x3dGetA2P3D $e4]
-    set origin [lindex $a2p3d 0]
-    set axis   [lindex $a2p3d 1]
-    set refdir [lindex $a2p3d 2]
-    puts $x3dFile "<Transform translation='$origin' rotation='[x3dRotation $axis $refdir]'><Transform rotation='1 0 0 1.5708' translation='0 0 -[trimNum [expr {$tsize*5.}]]'>"
-    puts $x3dFile "  <Shape><Appearance><Material diffuseColor='0 0 1' transparency='0.8'></Material></Appearance><Cylinder radius='$rad' height='[trimNum [expr {$tsize*10.}]]' top='false' bottom='false' solid='false'></Cylinder></Shape>"
-    puts $x3dFile "</Transform></Transform>"
-    set viz(SMG) 1
-    set msg "Bounding edges for supplemental geometry 'cylindrical_surface' are ignored."
-    errorMsg " $msg"
-    if {[lsearch $x3dMsg $msg] == -1} {lappend x3dMsg $msg}
-
-  } emsg]} {
-    errorMsg "ERROR adding 'cylinder' supplemental geometry: $emsg"
-  }
-}
-
-# -------------------------------------------------------------------------------
 # write geometry for polyline annotations
 proc x3dPolylinePMI {} {
   global ao x3dCoord x3dShape x3dIndex x3dIndexType x3dFile x3dColor x3dColorsUsed gpmiPlacement placeOrigin placeAnchor boxSize
-  global savedViewName savedViewNames savedViewFile savedViewFileName recPracNames mytemp opt x3dColorFile
+  global savedViewName savedViewNames savedViewFile savedViewFileName recPracNames opt x3dColorFile
 
   if {[catch {
     if {[info exists x3dCoord] || $x3dShape} {

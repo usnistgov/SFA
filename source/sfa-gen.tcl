@@ -8,8 +8,8 @@ proc genExcel {{numFile 0}} {
   global lastXLS lenfilelist localName localNameList logFile multiFile multiFileDir mytemp nistName nistVersion nprogBarEnts nshape
   global ofExcel ofCSV
   global opt p21e3 p21e3Section pmiCol pmiMaster recPracNames row rowmax
-  global savedViewButtons savedViewName savedViewNames scriptName sheetLast spmiEntity spmiSumName spmiSumRow spmiTypesPerFile startrow stepAP statsOnly
-  global tessColor thisEntType tlast tolNames tolStandard totalEntity userEntityFile userEntityList userXLSFile useXL virtualDir viz
+  global savedViewButtons savedViewName savedViewNames scriptName sheetLast spmiEntity spmiSumName spmiSumRow spmiTypesPerFile startrow stepAP statsOnly suppGeomEnts
+  global tessColor thisEntType tlast tolNames tolStandard tolStandards totalEntity userEntityFile userEntityList userXLSFile useXL virtualDir viz
   global workbook workbooks worksheet worksheet1 worksheets writeDir wsCount wsNames
   global x3dAxes x3dColor x3dColors x3dColorsUsed x3dColorFile x3dCoord x3dFile x3dFileName x3dStartFile x3dIndex x3dMax x3dMin x3dMsg x3dStartFile
   global xlFileName xlFileNames xlFormat xlInstalled
@@ -288,10 +288,10 @@ proc genExcel {{numFile 0}} {
           }
         }      
       
-# part 21 edition 3
+# part 21 edition 3, but should not get to this point
       } else {
         outputMsg " "
-        errorMsg "The STEP file uses Edition 3 of Part 21 and cannot be processed by the STEP File Analyzer and Viewer.\n Edit the STEP file to delete the Edition 3 content such as the ANCHOR, REFERENCE, and SIGNATURE sections."
+        errorMsg "The STEP file uses of ISO 10303 Part 21 Edition 3 and cannot be processed by the STEP File Analyzer and Viewer.\n Edit the STEP file to delete the Edition 3 content such as the ANCHOR and REFERENCE sections."
       }
       if {!$nistVersion} {
         outputMsg " "
@@ -764,7 +764,7 @@ proc genExcel {{numFile 0}} {
 # check for ISO/ASME standards on product_definition_formation, document, product
   set tolStandard(type) ""
   set tolStandard(num)  ""
-  set stds {}
+  set tolStandards {}
   foreach item {product_definition_formation product} {
     ::tcom::foreach thisEnt [$objDesign FindObjects $item] {
       ::tcom::foreach attr [$thisEnt Attributes] {
@@ -780,20 +780,36 @@ proc genExcel {{numFile 0}} {
               if {[string first "Y14." $val] != ""} {if {[string first $val $tolStandard(num)] == -1} {append tolStandard(num) "$val    "}}
             }
             set ok 1
-            foreach std $stds {if {[string first $val $std] != -1} {set ok 0}}
-            if {$ok} {lappend stds $val}
+            foreach std $tolStandards {if {[string first $val $std] != -1} {set ok 0}}
+            if {$ok} {lappend tolStandards $val}
           }
         }
       }
     }
   }
-  if {[llength $stds] > 0} {
+  if {[llength $tolStandards] > 0} {
     outputMsg "\nStandards:" blue
-    foreach std [lsort $stds] {outputMsg " $std"}
+    foreach std [lsort $tolStandards] {outputMsg " $std"}
   }
   if {$tolStandard(type) == "ISO"} {
     set fn [string toupper [file tail $localName]]
     if {[string first "NIST_" $fn] == 0 && [string first "ASME" $fn] != -1} {errorMsg "All of the NIST models use ASME Y14.5 tolerance standard."}
+  }
+
+# -------------------------------------------------------------------------------------------------
+# check for supplemental geometry
+  set suppGeomEnts {}
+  if {[info exists entCount(constructive_geometry_representation)]} {
+    if {$entCount(constructive_geometry_representation) > 0} {
+      ::tcom::foreach gisu [$objDesign FindObjects [string trim geometric_item_specific_usage]] {
+        set attr [$gisu Attributes]
+        set ur [$attr Item [expr 4]]
+        if {[[$ur Value] Type] == "constructive_geometry_representation"} {
+          set ii [$attr Item [expr 5]]
+          lappend suppGeomEnts [[$ii Value] P21ID]
+        }
+      }
+    }
   }
 
 # -------------------------------------------------------------------------------------------------
@@ -1386,6 +1402,7 @@ proc addHeaderWorksheet {numFile fname} {
             if {$useXL} {[[$worksheet($hdr) Range B4] Interior] Color $legendColor(red)}
           } elseif {$objAttr == "4\;1"} {
             set p21e3 1
+            if {[string first "p21e2" $fname] == -1} {errorMsg "This file uses ISO 10303 Part 21 Edition 3 with possible ANCHOR, REFERENCE, SIGNATURE, or TRACE sections."}
           }
         }
 

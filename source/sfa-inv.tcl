@@ -423,6 +423,8 @@ proc initDataInverses {} {
   lappend inverses [list component_path_shape_aspect location used_in]
   lappend inverses [list component_path_shape_aspect component_shape_aspect used_in]
   lappend inverses [list constructive_geometry_representation items used_in]
+  lappend inverses [list constructive_geometry_representation_relationship rep_1 rep_2]
+  lappend inverses [list constructive_geometry_representation_relationship rep_2 rep_1]
   lappend inverses [list context_dependent_shape_representation representation_relation used_in]
   lappend inverses [list context_dependent_shape_representation represented_product_relation used_in]
 
@@ -453,6 +455,9 @@ proc initDataInverses {} {
   lappend inverses [list geometric_tolerance_relationship relating_geometric_tolerance related_geometric_tolerance]
 
   lappend inverses [list id_attribute identified_item used_in]
+  lappend inverses [list item_identified_representation_usage definition used_in]
+  lappend inverses [list item_identified_representation_usage identified_item used_in]
+  lappend inverses [list item_identified_representation_usage used_representation used_in]
   lappend inverses [list leader_directed_callout contents used_in]
 
   lappend inverses [list make_from_usage_option related_product_definition relating_product_definition]

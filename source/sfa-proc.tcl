@@ -757,7 +757,8 @@ proc runOpenProgram {} {
     cd [file dirname $filename]
 
 # write script file to open database
-    set edmScript "[file rootname $filename]_edm.scr"
+    set edmScript [file join [file dirname $filename] edm-validate-script.txt]
+    catch {file delete -force $edmScript}
     set scriptFile [open $edmScript w]
     set okschema 1
 
@@ -803,7 +804,7 @@ proc runOpenProgram {} {
         [string first ")" $fileRoot] != -1} {
         if {[string is integer [string index $fileRoot 0]]} {set fileRoot "a_$fileRoot"}
         regsub -all " " $fileRoot "_" fileRoot
-        regsub -all {[\.()]} $fileRoot "_" fileRoot
+        regsub -all {[\.()+%]} $fileRoot "_" fileRoot
         set edmFile [file join [file dirname $filename] $fileRoot]
         append edmFile [file extension $filename]
         file copy -force $filename $edmFile
@@ -863,9 +864,9 @@ proc runOpenProgram {} {
 # attempt to delete the script file
       set nerr 0
       while {[file exists $edmScript]} {
+        catch {file delete -force $edmScript}
         after 1000
         incr nerr
-        catch {file delete $edmScript}
         if {$nerr > 60} {break}
       }
 
@@ -873,9 +874,9 @@ proc runOpenProgram {} {
       if {$tmpfile} {
         set nerr 0
         while {[file exists $edmFile]} {
+          catch {file delete -force $edmFile}
           after 1000
           incr nerr
-          catch {file delete $edmFile}
           if {$nerr > 60} {break}
         }
       }
@@ -1389,35 +1390,43 @@ proc cellRange {r c} {
 }
 
 #-------------------------------------------------------------------------------
-proc addCellComment {ent r c text} {
-  global worksheet
+proc addCellComment {ent r c comment} {
+  global worksheet recPracNames
 
-  if {![info exists worksheet($ent)] || [string length $text] < 2} {return}
-  
+  if {![info exists worksheet($ent)] || [string length $comment] < 2} {return}
+
+# modify comment      
   if {[catch {
-# remove extra spaces    
-    #regsub -all \n $text " " text
-    while {[string first "  " $text] != -1} {regsub -all "  " $text " " text}
-    if {[string first "Syntax" $text] == 0} {set text "[string range $text 14 end]  See Websites > Recommended Practices or the link in row 2."}
+    while {[string first "  " $comment] != -1} {regsub -all "  " $comment " " comment}
+    if {[string first "Syntax" $comment] == 0} {set comment "[string range $comment 14 end]"}
+    if {[string first "GISU" $comment] != -1} {regsub "GISU" $comment "geometric_item_specific_usage"  comment}
+    if {[string first "IIRU" $comment] != -1} {regsub "IIRU" $comment "item_identified_representation_usage" comment}
+
+    foreach idx [array names recPracNames] {
+      if {[string first $recPracNames($idx) $comment] != -1} {
+        append comment "  See Websites > Recommended Practices or the link in row 2."
+        break
+      }
+    }
     
 # add linefeeds for line length
-    set ntext ""
+    set ncomment ""
     set j 0
-    for {set i 0} {$i < [string length $text]} {incr i} {
+    for {set i 0} {$i < [string length $comment]} {incr i} {
       incr j
-      set char [string index $text $i]
+      set char [string index $comment $i]
       if {($j > 50 && $char == " ") || $char == [format "%c" 10]} {
-        append ntext \n
+        append ncomment \n
         set j 0
       } else {
-        append ntext $char
+        append ncomment $char
       }
     }
       
 # add comment
-    set comment [[$worksheet($ent) Range [cellRange $r $c]] AddComment]
-    $comment Text $ntext
-    catch {[[$comment Shape] TextFrame] AutoSize [expr 1]}
+    set comm [[$worksheet($ent) Range [cellRange $r $c]] AddComment]
+    $comm Text $ncomment
+    catch {[[$comm Shape] TextFrame] AutoSize [expr 1]}
 
 # error
   } emsg]} {
@@ -1472,8 +1481,8 @@ proc colorBadCells {ent} {
           }
         }
         
-# cannot find heading, use last column        
-        if {![info exists nc($c)]} {set nc($c) $lastCol}
+# cannot find heading, use first column        
+        if {![info exists nc($c)]} {set nc($c) 1}
         set c $nc($c)
       
 # entity ID
@@ -1969,38 +1978,26 @@ proc setHomeDir {} {
       if {[string first "%USERPROFILE%" $reg_menu] == 0} {regsub "%USERPROFILE%" $reg_menu $env(USERPROFILE) mymenu}
     }
     
-# set mytemp - windows 7 or greater    
+# set mytemp
     if {$tcl_platform(osVersion) >= 6.0} {
       set reg_temp [registry get {HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\User Shell Folders} {Local AppData}]
-      if {[string first "%USERPROFILE%" $reg_menu] == 0} {
-        if {[regsub "%USERPROFILE%" $reg_temp $env(USERPROFILE) mytemp]} {
-          set mytemp [file join $mytemp Temp]
-          if {[string first $env(USERNAME) $mytemp] == -1} {
-            unset mytemp
-          } else {
-            if {[file exists [file join $mytemp NIST]]} {catch {file delete -force [file join $mytemp NIST]}}
-            set mytemp [file nativename [file join $mytemp SFA]]
-            if {![file exists $mytemp]} {file mkdir $mytemp}
-          }
-        }
-      }
-
-# set mytemp - windows xp
     } else {
       set reg_temp [registry get {HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\User Shell Folders} {Local Settings}]
-      if {[string first "%USERPROFILE%" $reg_menu] == 0} {
-        if {[regsub "%USERPROFILE%" $reg_temp $env(USERPROFILE) mytemp]} {
-          set mytemp [file join $mytemp Temp]
-          if {[string first $env(USERNAME) $mytemp] == -1} {
-            unset mytemp
-          } else {
-            if {[file exists [file join $mytemp NIST]]} {catch {file delete -force [file join $mytemp NIST]}}
-            set mytemp [file join $mytemp SFA]
-            if {![file exists $mytemp]} {file mkdir $mytemp}
-          }
+    }
+    if {[string first "%USERPROFILE%" $reg_menu] == 0} {
+      if {[regsub "%USERPROFILE%" $reg_temp $env(USERPROFILE) mytemp]} {
+        set mytemp [file join $mytemp Temp]
+        if {[string first $env(USERNAME) $mytemp] == -1} {
+          unset mytemp
+        } else {
+          if {[file exists [file join $mytemp NIST]]} {catch {file delete -force [file join $mytemp NIST]}}
         }
       }
     }
+
+# make mytemp dir
+    set mytemp [file nativename [file join $mytemp SFA]]
+    checkTempDir
   }
 
 # construct directories from drive and env(USERNAME)
@@ -2046,6 +2043,16 @@ proc setHomeDir {} {
     } elseif {[info exists env(USERNAME)]} {
       set virtualDir [file nativename [file join C:/ Users $env(USERNAME) AppData Local VirtualStore [string range $env(ProgramFiles) 3 end] IFCsvrR300 dll]]
     }
+  }
+}
+
+#-------------------------------------------------------------------------------
+proc checkTempDir {} {
+  global mytemp
+  
+  if {[info exists mytemp]} {
+    if {[file isfile $mytemp]} {file delete -force $mytemp}
+    if {![file exists $mytemp]} {file mkdir $mytemp}
   }
 }
 

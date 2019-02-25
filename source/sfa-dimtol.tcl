@@ -104,9 +104,8 @@ proc spmiDimtolStart {entType} {
 proc spmiDimtolReport {objEntity} {
   global assocGeom badAttributes cells col dim dimBasic dimRepeat dimDirected dimName dimModNames dimOrient dimReference dimrep dimrepID
   global dimSizeNames dimtolEnt dimtolEntType dimtolGeom dimval draftModelCameras dt dtpmivalprop entLevel ent entAttrList entCount entlevel2 entsWithErrors
-  global incrcol lastAttr lastEnt nistName opt pmiCol pmiColumns pmiHeading pmiModifiers pmiStartCol
+  global incrcol lastAttr lastEnt nistName numDSnames opt pmiCol pmiColumns pmiHeading pmiModifiers pmiStartCol
   global pmiUnicode prefix angDegree recPracNames savedModifier spmiEnts spmiID spmiIDRow spmiRow spmiTypesPerFile syntaxErr tolStandard
-  global numDSnames
 
   if {$opt(DEBUG1)} {outputMsg "spmiDimtolReport" red}
 
@@ -951,6 +950,10 @@ proc spmiDimtolReport {objEntity} {
             addCellComment $dt 3 $c $comment
           }
           $cells($dt) Item $r $pmiColumns(ch) [string trim $str]
+          if {[string first "*" $str] != -1} {
+            set comment "Geometry IDs marked with an asterisk (*) are also Supplemental Geometry.  ($recPracNames(suppgeom) Section 4.3)"
+            addCellComment $dt $r $pmiColumns(ch) $comment
+          }
           
 # check for unexpected associated geometry for diameters and radius
           if {[info exists dimName]} {

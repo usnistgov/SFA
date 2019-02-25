@@ -120,7 +120,6 @@ proc openMultiFile {{ask 1}} {
               set fileList [lrange $fileList 0 [expr {$mf-1}]]
             }
 
-            #outputMsg "\nOpening File Summary spreadsheet" green
             $excel1 Visible 1
     
 # errors
@@ -566,8 +565,12 @@ proc openMultiFile {{ask 1}} {
           }
 
 # open spreadsheet
-          openXLS $aname 0 1
-          if {$opt(XL_LINK1)} {outputMsg " Click on the Links in Row 3 to access individual spreadsheets.\n" blue}
+          if {$opt(XL_OPEN)} {
+            openXLS $aname 0 1
+            if {$opt(XL_LINK1)} {outputMsg " Click on the Links in Row 3 to access individual spreadsheets.\n" blue}
+          } else {
+            outputMsg " Use F3 to open the spreadsheet (see Options tab)" red
+          }
         
 # unset some variables for the multi-file summary 
           foreach var {excel1 worksheets1 worksheet1 cells1 row1 col1} {if {[info exists $var]} {unset $var}}
