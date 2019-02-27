@@ -91,7 +91,7 @@ proc getAssocGeom {entDef {tolType 0} {tolName ""}} {
         }
       }
       if {[llength $assocGeom($type)] == 1 && $type == $entDefType} {
-        set msg "Syntax Error: '$entDefType' missing relationship to 'shape_aspect'.\n[string repeat " " 14]\($recPracNames(pmi242), Sec. 6.4, Fig. 31)"
+        set msg "Syntax Error: '$entDefType' missing 'shape_aspect_relationship' to 'shape_aspect'.\n[string repeat " " 14]\($recPracNames(pmi242), Sec. 6.4, Fig. 31)"
         errorMsg $msg
         if {[info exists gtEntity]} {lappend syntaxErr([$gtEntity Type]) [list [$gtEntity P21ID] "toleranced_shape_aspect" $msg]}
         unset assocGeom($type)
@@ -178,7 +178,8 @@ proc getFaceGeom {a0 {id ""}} {
 
 # -------------------------------------------------------------------------------
 proc reportAssocGeom {entType {row ""}} {
-  global assocGeom recPracNames dimRepeat dimRepeatDiv syntaxErr cells opt suppGeomEnts
+  global assocGeom recPracNames dimRepeat dimRepeatDiv syntaxErr cells opt suppGeomEnts entCount cgrObjects
+  global objDesign
   #outputMsg "reportAssocGeom $entType" red
   
   set str ""
@@ -272,8 +273,59 @@ proc reportAssocGeom {entType {row ""}} {
       }
     }
   }
+
+# get entity IDs for supplemental geometry once
+  if {![info exists suppGeomEnts]} {
+    set suppGeomEnts {}
+    if {[info exists entCount(constructive_geometry_representation)]} {
+      if {$entCount(constructive_geometry_representation) > 0} {
+
+# find items in CGR
+        set cgrItems {}
+        set cgrObjects [$objDesign FindObjects [string trim constructive_geometry_representation]]
+        ::tcom::foreach e0 $cgrObjects {
+          set a1 [[$e0 Attributes] Item [expr 2]]
+          ::tcom::foreach e2 [$a1 Value] {lappend crgItems [$e2 P21ID]}
+        }
+        
+# find identified_items in GISU for CGR
+        set okcgr 1
+        ::tcom::foreach gisu [$objDesign FindObjects [string trim geometric_item_specific_usage]] {
+          set attrerr ""
+          set attr [$gisu Attributes]
+          set ur [$attr Item [expr 4]]
+          if {[$ur Value] != ""} {
+            if {[[$ur Value] Type] == "constructive_geometry_representation"} {
+              set ii [$attr Item [expr 5]]
+              if {[$ii Value] != ""} {
+                set p21id [[$ii Value] P21ID]
+                lappend suppGeomEnts [[$ii Value] P21ID]
+                if {[lsearch $crgItems $p21id] == -1} {
+                  set okcgr 0
+                  set msg "Syntax Error: 'constructive_geometry_representation' is missing some 'items' based on GISU 'identified_item' attribute.\n[string repeat " " 14]\($recPracNames(suppgeom), Sec. 4.3, Fig. 4)"
+                  errorMsg $msg
+                  lappend syntaxErr(geometric_item_specific_usage) [list [$gisu P21ID] identified_item $msg]
+                }
+              } else {
+                set attrerr "identified_item"
+                set msg "Syntax Error: Missing 'identified_item' attribute on 'geometric_item_specific_usage'."
+                errorMsg $msg
+                lappend syntaxErr(geometric_item_specific_usage) [list [$gisu P21ID] identified_item $msg]
+              }
+            }
+          }
+        }
+        
+        if {!$okcgr} {
+          set msg "Syntax Error: 'constructive_geometry_representation' is missing some 'items' based on GISU 'identified_item' attribute.\n[string repeat " " 14]\($recPracNames(suppgeom), Sec. 4.3, Fig. 4)"
+          errorMsg $msg
+          lappend syntaxErr(constructive_geometry_representation) [list [$e0 P21ID] items $msg]
+        }
+      }
+    }
+  }
   
-# check for supplemental geometry
+# check for supplemental geometry in associated geometry
   foreach id $suppGeomEnts {
     set c1 [string first $id $str]
     if {$c1 != -1} {

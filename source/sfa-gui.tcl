@@ -1,7 +1,7 @@
 # version numbers, software and user guide, contact
 # user guide URLs are below in showUserGuide
 
-proc getVersion {}   {return 3.26}
+proc getVersion {}   {return 3.27}
 proc getVersionUG {} {return 3.0}
 proc getContact {}   {return [list "Robert Lipman" "robert.lipman@nist.gov"]}
 
@@ -12,11 +12,11 @@ proc whatsNew {} {
   if {$sfaVersion > 0 && $sfaVersion < [getVersion]} {outputMsg "\nThe previous version of the STEP File Analyzer and Viewer was: $sfaVersion" red}
 
 outputMsg "\nWhat's New (Version: [getVersion]  Updated: [string trim [clock format $progtime -format "%e %b %Y"]])" blue
-outputMsg "- Improved analysis of datum targets and all around
+outputMsg "- Improved processing of supplemental geometry, datum targets, and all around
 - Part geometry color (See Help > View Part Geometry)
 - AP209 FEA validation properties
 - Graphical PMI colored by saved view
-- Report ANCHOR section IDs
+- Report ANCHOR section IDs in ISO 10303 Part 21 Edition 3 files
 - Explanation of Analysis errors (Help > Syntax Errors)
 - Support for AP242 Edition 2 DIS (Draft International Standard)
 - Bug fixes and minor improvements"
@@ -1018,7 +1018,7 @@ proc guiHelpMenu {} {
     }
     
     if {$nschema == 0} {errorMsg "No Supported STEP APs were found.\nThere was a problem copying STEP schema files (*.rose) to the IFCsvr/dll directory."}
-    outputMsg "\nSee Websites > STEP Format and Schemas > EXPRESS Schemas"
+    outputMsg "\nSee the Websites menu for information about the STEP Format, EXPRESS Schemas, AP242, and others."
 
     .tnb select .tnb.status
   }
@@ -1593,13 +1593,13 @@ Credits
       catch {outputMsg " AppData   [registry get {HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\User Shell Folders} {Local AppData}]"}
       catch {outputMsg " Browser   [registry get {HKEY_CURRENT_USER\Software\Classes\http\shell\open\command} {}]"}
       outputMsg "SFA variables" red
-      catch {outputMsg " Drive $drive"}
-      catch {outputMsg " Home  $myhome"}
-      catch {outputMsg " Docs  $mydocs"}
-      catch {outputMsg " Temp  $mytemp"}
-      catch {outputMsg " Desk  $mydesk"}
-      catch {outputMsg " Menu  $mymenu"}
-      catch {outputMsg " ifcsvrDir   [file nativename $ifcsvrDir]"}
+      catch {outputMsg " Drive $drive ([file exists $drive])"}
+      catch {outputMsg " Home  $myhome ([file exists $myhome])"}
+      catch {outputMsg " Docs  $mydocs ([file exists $mydocs])"}
+      catch {outputMsg " Temp  $mytemp ([file exists $mytemp])"}
+      catch {outputMsg " Desk  $mydesk ([file exists $mydesk])"}
+      catch {outputMsg " Menu  $mymenu ([file exists $mymenu])"}
+      catch {outputMsg " ifcsvrDir   [file nativename $ifcsvrDir] ([file exists $ifcsvrDir])"}
       if {[info exists virtualDir]} {outputMsg " virtualDir  $virtualDir"}
       outputMsg " pf32  $pf32"
       if {$pf64 != ""} {outputMsg " pf64  $pf64"}

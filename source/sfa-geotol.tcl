@@ -1629,8 +1629,11 @@ proc spmiGeotolReport {objEntity} {
         if {[lsearch $spmiRow($gt) $r] == -1} {lappend spmiRow($gt) $r}
 
         if {[string first "*" $geotolGeom] != -1} {
-          set comment "Geometry IDs marked with an asterisk (*) are also Supplemental Geometry.  ($recPracNames(suppgeom) Section 4.3)"
+          set comment "Geometry IDs marked with an asterisk (*) are also Supplemental Geometry.  ($recPracNames(suppgeom), Sec. 4.3, Fig. 4)"
           addCellComment $gt $r $c $comment
+          set str "Datum"
+          if {[string first "Tolerance" $gt] != -1} {set str "tolerance"}
+          errorMsg "Some geometry associated with a $str is also Supplemental Geometry."
         }
 
         if {[string first "manifold_solid_brep" $geotolGeom] != -1 && [string first "surface" $gt] == -1} {

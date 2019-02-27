@@ -249,7 +249,7 @@ proc spmiDimtolReport {objEntity} {
                                       lappend syntaxErr(dimensional_characteristic_representation) [list "-$spmiIDRow($dt,$spmiID)" "decimal places" $msg]
                                     }
                                   } elseif {[string length $val1] > $prec1} {
-                                    set msg "value_format_type_qualifier '[$attr1 Value]' too small for $objValue  ($recPracNames(pmi242), Sec. 5.4)"
+                                    set msg "value_format_type_qualifier '[$attr1 Value]' too small for value of $objValue  ($recPracNames(pmi242), Sec. 5.4)"
                                     errorMsg $msg
                                     lappend syntaxErr(dimensional_characteristic_representation) [list "-$spmiIDRow($dt,$spmiID)" "decimal places" $msg]
                                   } elseif {[string length $val1] < $prec1} {
@@ -951,8 +951,9 @@ proc spmiDimtolReport {objEntity} {
           }
           $cells($dt) Item $r $pmiColumns(ch) [string trim $str]
           if {[string first "*" $str] != -1} {
-            set comment "Geometry IDs marked with an asterisk (*) are also Supplemental Geometry.  ($recPracNames(suppgeom) Section 4.3)"
+            set comment "Geometry IDs marked with an asterisk (*) are also Supplemental Geometry.  ($recPracNames(suppgeom), Sec. 4.3, Fig. 4)"
             addCellComment $dt $r $pmiColumns(ch) $comment
+            errorMsg "Some geometry associated with a Dimension is also Supplemental Geometry."
           }
           
 # check for unexpected associated geometry for diameters and radius

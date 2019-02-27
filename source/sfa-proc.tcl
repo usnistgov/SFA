@@ -95,7 +95,7 @@ proc checkValues {} {
 # graphical PMI report
   if {$opt(PMIGRF)} {
     if {$opt(XLSCSV) != "None"} {
-      foreach b {optPR_STEP_AP242 optPR_STEP_PRES optPR_STEP_SHAP} {
+      foreach b {optPR_STEP_AP242 optPR_STEP_PRES optPR_STEP_REPR optPR_STEP_SHAP} {
         set opt([string range $b 3 end]) 1
         lappend butDisabled $b
       }
@@ -103,7 +103,7 @@ proc checkValues {} {
   } else {
     lappend butNormal optPR_STEP_PRES
     if {!$opt(VALPROP)} {lappend butNormal optPR_STEP_QUAN}
-    if {!$opt(PMISEM)}  {foreach b {optPR_STEP_AP242 optPR_STEP_COMM optPR_STEP_SHAP} {lappend butNormal $b}}
+    if {!$opt(PMISEM)}  {foreach b {optPR_STEP_AP242 optPR_STEP_COMM optPR_STEP_SHAP optPR_STEP_REPR} {lappend butNormal $b}}
   }
 
 # validation properties
@@ -958,7 +958,6 @@ proc getOpenPrograms {} {
 
 # other STEP file apps
     set applist [list \
-      [list {*}[glob -nocomplain -directory [file join $pf "Soft Gold"] -join "ABViewer*" ABViewer.exe] ABViewer] \
       [list {*}[glob -nocomplain -directory [file join $pf "SOLIDWORKS Corp"] -join "eDrawings (*)" eDrawings.exe] eDrawings] \
       [list {*}[glob -nocomplain -directory [file join $pf "Stratasys Direct Manufacturing"] -join "SolidView Pro RP *" bin SldView.exe] SolidView] \
       [list {*}[glob -nocomplain -directory [file join $pf "TransMagic Inc"] -join "TransMagic *" System code bin TransMagic.exe] TransMagic] \
@@ -1404,7 +1403,7 @@ proc addCellComment {ent r c comment} {
 
     foreach idx [array names recPracNames] {
       if {[string first $recPracNames($idx) $comment] != -1} {
-        append comment "  See Websites > Recommended Practices or the link in row 2."
+        append comment "  See Websites > Recommended Practices"
         break
       }
     }
@@ -1979,28 +1978,22 @@ proc setHomeDir {} {
     }
     
 # set mytemp
-    if {$tcl_platform(osVersion) >= 6.0} {
-      set reg_temp [registry get {HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\User Shell Folders} {Local AppData}]
-    } else {
-      set reg_temp [registry get {HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\User Shell Folders} {Local Settings}]
-    }
-    if {[string first "%USERPROFILE%" $reg_menu] == 0} {
-      if {[regsub "%USERPROFILE%" $reg_temp $env(USERPROFILE) mytemp]} {
-        set mytemp [file join $mytemp Temp]
-        if {[string first $env(USERNAME) $mytemp] == -1} {
-          unset mytemp
-        } else {
-          if {[file exists [file join $mytemp NIST]]} {catch {file delete -force [file join $mytemp NIST]}}
-        }
+    catch {
+      if {$tcl_platform(osVersion) >= 6.0} {
+        set reg_temp [registry get {HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\User Shell Folders} {Local AppData}]
+      } else {
+        set reg_temp [registry get {HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\User Shell Folders} {Local Settings}]
       }
-    }
+      if {[string first "%USERPROFILE%" $reg_temp] == 0} {regsub "%USERPROFILE%" $reg_temp $env(USERPROFILE) mytemp}
+      set mytemp [file join $mytemp Temp]
 
 # make mytemp dir
-    set mytemp [file nativename [file join $mytemp SFA]]
-    checkTempDir
+      set mytemp [file nativename [file join $mytemp SFA]]
+      checkTempDir
+    }
   }
 
-# construct directories from drive and env(USERNAME)
+# construct directory names from drive and env(USERNAME)
   if {[info exists env(USERNAME)] && $myhome == $drive} {
     set myhome [file join $drive Users $env(USERNAME)]
     if {$tcl_platform(osVersion) < 6.0} {set myhome [file join $drive "Documents and Settings" $env(USERNAME)]}
@@ -2020,13 +2013,13 @@ proc setHomeDir {} {
     set desk [file join $mydesk $desk]
     if {[file exists $desk]} {if {[file isdirectory $desk]} {set mydesk $desk}}
   }
-
+  
   if {![info exists mytemp]} {
     set mytemp $myhome
     set temp [file join AppData Local Temp SFA]
     if {$tcl_platform(osVersion) < 6.0} {set temp [file join "Local Settings" Temp SFA]}
-    set temp [file join $mytemp $temp]
-    if {[file exists $temp]} {if {[file isdirectory $temp]} {set mytemp $temp}}
+    set mytemp [file join $mytemp $temp]
+    checkTempDir
   }
 
   set myhome [file nativename $myhome]
@@ -2049,7 +2042,7 @@ proc setHomeDir {} {
 #-------------------------------------------------------------------------------
 proc checkTempDir {} {
   global mytemp
-  
+
   if {[info exists mytemp]} {
     if {[file isfile $mytemp]} {file delete -force $mytemp}
     if {![file exists $mytemp]} {file mkdir $mytemp}

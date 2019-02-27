@@ -1070,6 +1070,11 @@ proc gpmiAnnotationReport {objEntity} {
             set pmiCol [expr {max($pmiColumns(ageom),$pmiCol)}]
           }
           $cells($ao) Item $r $pmiColumns(ageom) [string trim $str]
+          if {[string first "*" $str] != -1} {
+            set comment "Geometry IDs marked with an asterisk (*) are also Supplemental Geometry.  ($recPracNames(suppgeom), Sec. 4.3, Fig. 4)"
+            addCellComment $ao $r $pmiColumns(ageom) $comment
+            errorMsg "Some geometry associated with an Annotation is also Supplemental Geometry."
+          }
           if {[lsearch $gpmiRow($ao) $r] == -1} {lappend gpmiRow($ao) $r}
         }
       }

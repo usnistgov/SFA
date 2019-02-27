@@ -8,7 +8,7 @@ proc genExcel {{numFile 0}} {
   global lastXLS lenfilelist localName localNameList logFile multiFile multiFileDir mytemp nistName nistVersion nprogBarEnts nshape
   global ofExcel ofCSV
   global opt p21e3 p21e3Section pmiCol pmiMaster recPracNames row rowmax
-  global savedViewButtons savedViewName savedViewNames scriptName sheetLast spmiEntity spmiSumName spmiSumRow spmiTypesPerFile startrow stepAP statsOnly suppGeomEnts
+  global savedViewButtons savedViewName savedViewNames scriptName sheetLast spmiEntity spmiSumName spmiSumRow spmiTypesPerFile startrow stepAP statsOnly
   global tessColor thisEntType tlast tolNames tolStandard tolStandards totalEntity userEntityFile userEntityList userXLSFile useXL virtualDir viz
   global workbook workbooks worksheet worksheet1 worksheets writeDir wsCount wsNames
   global x3dAxes x3dColor x3dColors x3dColorsUsed x3dColorFile x3dCoord x3dFile x3dFileName x3dStartFile x3dIndex x3dMax x3dMin x3dMsg x3dStartFile
@@ -797,22 +797,6 @@ proc genExcel {{numFile 0}} {
   }
 
 # -------------------------------------------------------------------------------------------------
-# check for supplemental geometry
-  set suppGeomEnts {}
-  if {[info exists entCount(constructive_geometry_representation)]} {
-    if {$entCount(constructive_geometry_representation) > 0} {
-      ::tcom::foreach gisu [$objDesign FindObjects [string trim geometric_item_specific_usage]] {
-        set attr [$gisu Attributes]
-        set ur [$attr Item [expr 4]]
-        if {[[$ur Value] Type] == "constructive_geometry_representation"} {
-          set ii [$attr Item [expr 5]]
-          lappend suppGeomEnts [[$ii Value] P21ID]
-        }
-      }
-    }
-  }
-
-# -------------------------------------------------------------------------------------------------
 # generate worksheet for each entity
   outputMsg " "
   if {$useXL} {
@@ -1251,7 +1235,7 @@ proc genExcel {{numFile 0}} {
   global propDefID propDefIDRow propDefName propDefOK propDefRow syntaxErr
   global shapeRepName tessRepo tessPlacement dimtolGeom dimtolEntID datumGeom datumSymbol
   global savedViewFileName savedViewFile feaDOFT feaDOFR savedsavedViewNames
-  global coordinatesList lineStrips srNames
+  global coordinatesList lineStrips srNames suppGeomEnts cgrObjects
 
   foreach var {cells colColor invCol count currx3dPID dimrep dimrepID entName entsIgnored \
               gpmiID gpmiIDRow gpmiRow heading invGroup nrep feaNodes numx3dPID \
@@ -1260,7 +1244,7 @@ proc genExcel {{numFile 0}} {
               x3dCoord x3dFile x3dFileName x3dStartFile x3dIndex x3dMax x3dMin \
               shapeRepName tessRepo tessPlacement dimtolGeom dimtolEntID datumGeom datumSymbol\
               savedViewNames savedViewFileName savedViewFile x3dFileName feaDOFT feaDOFR \
-              savedsavedViewNames coordinatesList lineStrips srNames} {
+              savedsavedViewNames coordinatesList lineStrips srNames suppGeomEnts cgrObjects} {
     if {[info exists $var]} {unset $var}
   }
   if {!$multiFile} {
