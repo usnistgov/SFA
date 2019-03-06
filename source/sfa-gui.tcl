@@ -1,7 +1,7 @@
 # version numbers, software and user guide, contact
 # user guide URLs are below in showUserGuide
 
-proc getVersion {}   {return 3.27}
+proc getVersion {}   {return 3.30}
 proc getVersionUG {} {return 3.0}
 proc getContact {}   {return [list "Robert Lipman" "robert.lipman@nist.gov"]}
 
@@ -12,7 +12,8 @@ proc whatsNew {} {
   if {$sfaVersion > 0 && $sfaVersion < [getVersion]} {outputMsg "\nThe previous version of the STEP File Analyzer and Viewer was: $sfaVersion" red}
 
 outputMsg "\nWhat's New (Version: [getVersion]  Updated: [string trim [clock format $progtime -format "%e %b %Y"]])" blue
-outputMsg "- Improved processing of supplemental geometry, datum targets, and all around
+outputMsg "- Improved processing of repetitive dimensions, supplemental geometry,
+   datum targets, annotation placeholder, and all around
 - Part geometry color (See Help > View Part Geometry)
 - AP209 FEA validation properties
 - Graphical PMI colored by saved view
@@ -723,7 +724,7 @@ proc guiOpenSTEPFile {} {
     }
   }
   
-  catch {tooltip::tooltip $foptf "This option is a convenient way to open a STEP file in other applications.\nThe pull-down menu will contain some applications that can open a STEP\nfile such as STEP viewers and browsers, only if they are installed in their\ndefault location.\n\nSee Help > Open STEP File in Apps\nSee Websites > STEP File Viewers\n\nThe 'Tree View (for debugging)' option rearranges and indents the\nentities to show the hierarchy of information in a STEP file.  The 'tree view'\nfile (myfile-sfa.txt) is written to the same directory as the STEP file or to the\nsame user-defined directory specified in the Spreadsheet tab.  Including\nGeometry or Styled_item can make the 'tree view' file very large.  The\n'tree view' might not process /*comments*/ in a STEP file correctly.\n\nThe 'Default STEP Viewer' option will open the STEP file in whatever\napplication is associated with STEP (.stp, .step) files."}
+  catch {tooltip::tooltip $foptf "This option is a convenient way to open a STEP file in other applications.\nThe pull-down menu contains some applications that can open a STEP\nfile such as STEP viewers and browsers, however, only if they are installed in\ntheir default location.\n\nSee Help > Open STEP File in Apps\nSee Websites > STEP File Viewers\n\nThe 'Tree View (for debugging)' option rearranges and indents the\nentities to show the hierarchy of information in a STEP file.  The 'tree view'\nfile (myfile-sfa.txt) is written to the same directory as the STEP file or to the\nsame user-defined directory specified in the Spreadsheet tab.  Including\nGeometry or Styled_item can make the 'tree view' file very large.  The\n'tree view' might not process /*comments*/ in a STEP file correctly.\n\nThe 'Default STEP Viewer' option opens the STEP file in whatever\napplication is associated with STEP (.stp, .step) files."}
   pack $foptf -side top -anchor w -pady {5 2} -padx 10 -fill both
 
 # output format
@@ -836,7 +837,7 @@ proc guiSpreadsheet {} {
     incr cb
   }
   pack $fxlsa -side top -anchor w -pady {5 2} -padx 10 -fill both
-  set msg "Excel rounds real numbers if there are more than 11 characters in the number string.  For example,\nthe number 0.1249999999997 in the STEP file will be shown as 0.125\n\nClicking in a cell with a rounded number will show all of the digits in the formula bar.\n\nThis option will show most real numbers exactly as they appear in the STEP file.  This applies\nonly to single real numbers.  Lists of real numbers, such as cartesian point coordinates, are\nalways shown exactly as they appear in the STEP file.\n\nSee Help > User Guide (section 4.5.2)"
+  set msg "Excel rounds real numbers if there are more than 11 characters in the number string.  For example,\nthe number 0.1249999999997 in the STEP file is shown as 0.125\n\nClicking in a cell with a rounded number shows all of the digits in the formula bar.\n\nThis option shows most real numbers exactly as they appear in the STEP file.  This applies\nonly to single real numbers.  Lists of real numbers, such as cartesian point coordinates, are\nalways shown exactly as they appear in the STEP file.\n\nSee Help > User Guide (section 4.5.2)"
   catch {tooltip::tooltip $fxlsa $msg}
   
   set fxlsb [ttk::labelframe $fxls.b -text " Maximum Rows for any worksheet"]
@@ -850,7 +851,7 @@ proc guiSpreadsheet {} {
     incr cb
   }
   pack $fxlsb -side top -anchor w -pady 5 -padx 10 -fill both
-  set msg "This option will limit the number of rows (entities) written to any one worksheet or CSV file.\nThe Maximum rows ([lindex [lindex $rlimit end] 1]) depends on the version of Excel.\n\nFor large STEP files, setting a low maximum can speed up processing at the expense\nof not processing all of the entities.  This is useful when processing Geometry entities.\n\nSyntax Errors might be missed if some entities are not processed due to a small maximum rows.\n\nMaximum rows does not affect generating Views.\n\nSee Help > User Guide (section 4.5.3)"
+  set msg "This option limits the number of rows (entities) written to any one worksheet or CSV file.\nThe Maximum Rows depends on the version of Excel.\n\nFor large STEP files, setting a low maximum can speed up processing at the expense\nof not processing all of the entities.  This is useful when processing Geometry entities.\n\nSyntax Errors might be missed if some entities are not processed due to a small value\nof maximum rows.\n\nMaximum rows does not affect generating Views.\n\nSee Help > User Guide (section 4.5.3)"
   catch {tooltip::tooltip $fxlsb $msg}
 
   set fxlsd [ttk::labelframe $fxls.d -text " Write Spreadsheet to "]
@@ -1117,8 +1118,8 @@ hierarchy of information in a STEP file.  The 'tree view' file (myfile-sfa.txt) 
 same directory as the STEP file or to the same user-defined directory specified in the Spreadsheet
 tab.  It is useful for debugging STEP files but is not recommended for large STEP files.
 
-The 'Default STEP Viewer' option will open the STEP file in whatever application is associated
-with STEP files.  A text editor will always appear in the menu."
+The 'Default STEP Viewer' option opens the STEP file in whatever application is associated with
+STEP files.  A text editor always appear in the menu."
     .tnb select .tnb.status
   }
 
@@ -1232,7 +1233,7 @@ PMI Presentation is defined by the CAx-IF Recommended Practices for Representati
 of Product Manufacturing Information (AP242) and PMI Polyline Presentation (AP203/AP242)
 See Websites > Recommended Practices to access documentation.
 
-The Summary worksheet will indicate on which worksheets PMI Presentation is reported.  Some syntax
+The Summary worksheet indicates on which worksheets PMI Presentation is reported.  Some syntax
 errors related to PMI Presentation are also reported in the Status tab and the relevant worksheet
 cells.  Syntax errors are highlighted in red.  See Help > Syntax Errors.
 
@@ -1352,11 +1353,11 @@ Other properties and User-Defined Attributes are also reported.
 Syntax errors related to validation property attribute values are also reported in the Status tab
 and the relevant worksheet cells.  Syntax errors are highlighted in red.  See Help > Syntax Errors.
 
-Clicking on the plus '+' symbols above the columns will show other columns that contain the entity
-ID and attribute name of the validation property value.  All of the other columns can be shown or
+Clicking on the plus '+' symbols above the columns shows other columns that contain the entity ID
+and attribute name of the validation property value.  All of the other columns can be shown or
 hidden by clicking the '1' or '2' in the upper right corner of the spreadsheet.
 
-The Summary worksheet will indicate on the property_definition entity if properties are reported.
+The Summary worksheet indicates on the property_definition entity if properties are reported.
 
 Validation properties are defined by the CAx-IF.  See Websites > Recommended Practices to access
 documentation."
@@ -1503,7 +1504,7 @@ See Websites > AP209 FEA"
 
   $Help add command -label "Crash Recovery" -command {
 outputMsg "\nCrash Recovery -------------------------------------------------------------" blue
-outputMsg "Sometimes the STEP File Analyzer and Viewer will crash after a STEP file has been successfully
+outputMsg "Sometimes the STEP File Analyzer and Viewer crashes after a STEP file has been successfully
 opened and the processing of entities has started.  Popup dialogs might appear that say
 \"Runtime Error!\" or \"ActiveState Basekit has stopped working\".  A crash might also be caused by
 a very large STEP file.  See Help > Large STEP Files.
@@ -1582,7 +1583,7 @@ Credits
       outputMsg "Environment variables" red
       foreach id [lsort [array names env]] {
         #outputMsg " $id   $env($id)" green
-        foreach id1 [list HOME Program System USER TEMP TMP ROSE EDM] {
+        foreach id1 [list HOME Program System USER TEMP TMP APP ROSE EDM] {
           if {[string first $id1 $id] == 0} {outputMsg " $id   $env($id)"; break}
         }
       }
@@ -1593,13 +1594,13 @@ Credits
       catch {outputMsg " AppData   [registry get {HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\User Shell Folders} {Local AppData}]"}
       catch {outputMsg " Browser   [registry get {HKEY_CURRENT_USER\Software\Classes\http\shell\open\command} {}]"}
       outputMsg "SFA variables" red
-      catch {outputMsg " Drive $drive ([file exists $drive])"}
-      catch {outputMsg " Home  $myhome ([file exists $myhome])"}
-      catch {outputMsg " Docs  $mydocs ([file exists $mydocs])"}
-      catch {outputMsg " Temp  $mytemp ([file exists $mytemp])"}
-      catch {outputMsg " Desk  $mydesk ([file exists $mydesk])"}
-      catch {outputMsg " Menu  $mymenu ([file exists $mymenu])"}
-      catch {outputMsg " ifcsvrDir   [file nativename $ifcsvrDir] ([file exists $ifcsvrDir])"}
+      catch {outputMsg " Drive $drive"}
+      catch {outputMsg " Home  $myhome"}
+      catch {outputMsg " Docs  $mydocs"}
+      catch {outputMsg " Desk  $mydesk"}
+      catch {outputMsg " Menu  $mymenu"}
+      catch {outputMsg " Temp  $mytemp  ([file exists $mytemp])"}
+      catch {outputMsg " ifcsvrDir  [file nativename $ifcsvrDir]"}
       if {[info exists virtualDir]} {outputMsg " virtualDir  $virtualDir"}
       outputMsg " pf32  $pf32"
       if {$pf64 != ""} {outputMsg " pf64  $pf64"}
@@ -1742,7 +1743,7 @@ See Help > NIST Disclaimer and Help > About"
 # crash recovery dialog
 proc showCrashRecovery {} {
 
-set txt "Sometimes the STEP File Analyzer and Viewer will crash AFTER a file has been successfully opened and the processing of entities has started.
+set txt "Sometimes the STEP File Analyzer and Viewer crashes AFTER a file has been successfully opened and the processing of entities has started.
 
 A crash is most likely due to syntax errors in the STEP file or sometimes due to limitations of the toolkit used to read STEP files.
 

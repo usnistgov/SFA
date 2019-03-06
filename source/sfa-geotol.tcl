@@ -237,7 +237,7 @@ proc spmiGeotolReport {objEntity} {
                       set tsaID   [$objValue P21ID]
                     } else {
                       set oktsa 0
-                      set msg "Syntax Error: Missing 'toleranced_shape_aspect' attribute on $objType\n[string repeat " " 14]\($recPracNames(pmi242))"
+                      set msg "Syntax Error: Missing 'toleranced_shape_aspect' attribute on $objType\n[string repeat " " 14]\($recPracNames(pmi242), Sec. 6.9)"
                       errorMsg $msg
                       lappend syntaxErr([lindex [split $ent1 " "] 0]) [list [$gtEntity P21ID] [lindex [split $ent1 " "] 1] $msg]
                     }
@@ -292,7 +292,7 @@ proc spmiGeotolReport {objEntity} {
                         }
                       }
                       if {!$nonUniform} {
-                        set msg "Syntax Error: Missing tolerance magnitude on [formatComplexEnt [$gtEntity Type]]\n[string repeat " " 14]\($recPracNames(pmi242), Sec. 6.9.1, Figure 43)"
+                        set msg "Syntax Error: Missing tolerance 'magnitude' on [formatComplexEnt [$gtEntity Type]]\n[string repeat " " 14]\($recPracNames(pmi242), Sec. 6.9.1, Figure 43)"
                         errorMsg $msg
                         lappend syntaxErr([lindex [split $ent1 " "] 0]) [list [$gtEntity P21ID] [lindex [split $ent1 " "] 1] $msg]
                       }
@@ -518,7 +518,7 @@ proc spmiGeotolReport {objEntity} {
                     if {[info exists colName]} {
                       $cells($gt) Item 3 $c $colName
                       if {[string first "GD&T" $colName] != -1} {
-                        set comment "See Help > User Guide (section 5.1.4) for an explanation of how the annotations below are constructed."
+                        set comment "See Help > User Guide (section 6.9) for an explanation of how the annotations below are constructed."
                         append comment "\n\nThe geometric tolerance might be shown with associated dimensions (above) and datum features (below).  That depends on any of the two referring to the same Associated Geometry as the Toleranced Geometry in the column to the right.  See the Associated Geometry columns on the 'dimensional_characteristic_representation' (DCR) and 'datum_feature' worksheets to see if they match the Toleranced Geometry."
                         append comment "\n\nSee the DCR worksheet for an explanation of Repetitive Dimensions."
                         if {$nistName != ""} {
@@ -526,8 +526,6 @@ proc spmiGeotolReport {objEntity} {
                         }
                         addCellComment $gt 3 $c $comment
                       }
-                    } else {
-                      errorMsg "Syntax Error on [formatComplexEnt $gt]"
                     }
                     set pmiHeading($col($gt)) 1
                     set pmiCol [expr {max($col($gt),$pmiCol)}]
@@ -694,11 +692,7 @@ proc spmiGeotolReport {objEntity} {
 
 # column name
                   if {![info exists pmiHeading($col($gt))]} {
-                    if {[info exists colName]} {
-                      $cells($gt) Item 3 $c $colName
-                    } else {
-                      errorMsg "Syntax Error on [formatComplexEnt $gt]"
-                    }
+                    if {[info exists colName]} {$cells($gt) Item 3 $c $colName}
                     set pmiHeading($col($gt)) 1
                     set pmiCol [expr {max($col($gt),$pmiCol)}]
                   }
@@ -979,16 +973,20 @@ proc spmiGeotolReport {objEntity} {
                         }
                       }
                     }
-                    if {![info exists datumTarget]} {
-                      errorMsg "Syntax Error: Missing relationship to 'datum' for [$objEntity Type].\n[string repeat " " 14]\($recPracNames(pmi242), Sec. 6.6)"
-                    }
+
                     set ok 1
-                    set col($gt) $pmiStartCol($gt)
-                    set colName "Datum Target[format "%c" 10](Sec. 6.6)"
-                    if {$datumTargetType != "circle" && $datumTargetType != "rectangle"} {
-                      set objValue "$datumTarget ($datumTargetType)"
+                    if {[info exists datumTarget]} {
+                      set col($gt) $pmiStartCol($gt)
+                      set colName "Datum Target[format "%c" 10](Sec. 6.6)"
+                      if {$datumTargetType != "circle" && $datumTargetType != "rectangle"} {
+                        set objValue "$datumTarget ($datumTargetType)"
+                      } else {
+                        set objValue "$datumTarget"
+                      }
                     } else {
-                      set objValue "$datumTarget"
+                      set msg "Syntax Error: Missing relationship to 'datum' for [$objEntity Type].\n[string repeat " " 14]\($recPracNames(pmi242), Sec. 6.6)"
+                      errorMsg $msg
+                      lappend syntaxErr(placed_datum_target_feature) [list $objID "Datum Target" $msg]
                     }
 
 # datum target shape representation (Section 6.6.1)
@@ -1614,26 +1612,23 @@ proc spmiGeotolReport {objEntity} {
         set r $spmiIDRow($gt,$spmiID)
         if {[string first "datum_feature" [$gtEntity Type]] == -1} {
           set heading "Toleranced Geometry[format "%c" 10](column E)"
-          set comment "See Help > User Guide (section 5.1.5) for an explanation of Toleranced Geometry."
         } else {
           set heading "Associated Geometry[format "%c" 10](Sec. 6.5)"
-          set comment "See Help > User Guide (section 5.1.5) for an explanation of Associated Geometry."
         }
         if {![info exists pmiHeading($c1)]} {
           $cells($gt) Item 3 $c $heading
           set pmiHeading($c1)) 1
           set pmiCol [expr {max($c1,$pmiCol)}]
-          addCellComment $gt 3 $c $comment
         }
         $cells($gt) Item $r $c [string trim $geotolGeom]
         if {[lsearch $spmiRow($gt) $r] == -1} {lappend spmiRow($gt) $r}
 
         if {[string first "*" $geotolGeom] != -1} {
           set comment "Geometry IDs marked with an asterisk (*) are also Supplemental Geometry.  ($recPracNames(suppgeom), Sec. 4.3, Fig. 4)"
-          addCellComment $gt $r $c $comment
+          addCellComment $gt 3 $c $comment
           set str "Datum"
-          if {[string first "Tolerance" $gt] != -1} {set str "tolerance"}
-          errorMsg "Some geometry associated with a $str is also Supplemental Geometry."
+          if {[string first "tolerance" $gt] != -1} {set str "Tolerance"}
+          errorMsg "Some Toleranced Geometry for a $str is also Supplemental Geometry."
         }
 
         if {[string first "manifold_solid_brep" $geotolGeom] != -1 && [string first "surface" $gt] == -1} {
@@ -1644,9 +1639,11 @@ proc spmiGeotolReport {objEntity} {
 
 # missing toleranced geometry
     } elseif {[string first "_tolerance" $gt] != -1} {
-      set msg "Syntax Error: Missing Toleranced Geometry.  Check GISU or IIRU 'definition' attribute or shape_aspect_relationship 'relating_shape_aspect' attribute.\n[string repeat " " 14]\($recPracNames(pmi242), Sec. 6.9.2)"
-      errorMsg $msg
-      lappend syntaxErr($gt) [list "-$spmiIDRow($gt,$spmiID)" "Toleranced Geometry" $msg]
+      if {$oktsa} {
+        set msg "Syntax Error: Missing Toleranced Geometry.  Check GISU or IIRU 'definition' attribute or shape_aspect_relationship 'relating_shape_aspect' attribute.\n[string repeat " " 14]\($recPracNames(pmi242), Sec. 6.9.2)"
+        errorMsg $msg
+        lappend syntaxErr($gt) [list "-$spmiIDRow($gt,$spmiID)" "Toleranced Geometry" $msg]
+      }
     }
   }
 

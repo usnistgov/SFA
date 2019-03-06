@@ -781,10 +781,7 @@ proc runOpenProgram {} {
       puts $scriptFile "Database>Open([file nativename [file join $edmDir Db]], ap214, $edmPW, \"$edmDBopen\")"
     } elseif {[string first "AP242_MANAGED_MODEL_BASED_3D_ENGINEERING_MIM_LF" $fschema] == 0} {
       set ap242 "ap242"
-      if {[string first "1 0 10303 442 2 1 4" $fschema] != -1} {
-        append ap242 "e2"
-        errorMsg "This file uses the new AP242 Edition 2."
-      }
+      if {[string first "1 0 10303 442 2 1 4" $fschema] != -1} {append ap242 "e2"}
       puts $scriptFile "Database>Open([file nativename [file join $edmDir Db]], $ap242, $edmPW, \"$edmDBopen\")"
     } else {
       outputMsg "$idisp cannot be used with:\n $fschema" red
@@ -1910,38 +1907,42 @@ proc setShortcuts {} {
     }
     if {[file exists [file join $mydesk [file tail [info nameofexecutable]]]]} {set ok 0}
 
-    if {$ok} {
-      set choice [tk_messageBox -type yesno -icon question -title "Shortcuts" \
-        -message "Do you want to create or overwrite shortcuts to the $progstr (v[getVersion]) in the Start Menu and on the Desktop?"]
-    } else {
-      set choice [tk_messageBox -type yesno -icon question -title "Shortcuts" \
-        -message "Do you want to create or overwrite a shortcut to the $progstr (v[getVersion]) in the Start Menu"]
+    set msg "Do you want to create or overwrite shortcuts to the $progstr (v[getVersion])"
+    if {[info exists mydesk]} {
+      append msg " on the Desktop"
+      if {[info exists mymenu]} {append msg " and"}
     }
-    if {$choice == "yes"} {
-      outputMsg " "
-      if {$nistVersion} {catch {[file copy -force [file join $wdir images NIST.ico] [file join $mytemp NIST.ico]]}}
-      catch {
-        if {[info exists mymenu]} {
-          if {[file exists [file join $mymenu "$progstr.lnk"]]} {outputMsg "Existing Start Menu shortcut will be overwritten" red}
-          if {$nistVersion} {
-            twapi::write_shortcut [file join $mymenu "$progstr.lnk"] -path [info nameofexecutable] -desc $progstr -iconpath [file join $mytemp NIST.ico]
-          } else {
-            twapi::write_shortcut [file join $mymenu "$progstr.lnk"] -path [info nameofexecutable] -desc $progstr
-          }
-          outputMsg " Shortcut created in Start Menu to [truncFileName [file nativename [info nameofexecutable]]]"
-        }
-      }
-
-      if {$ok} {
+    if {[info exists mymenu]} {append msg " in the Start Menu"}
+    append msg "?"
+      
+    if {[info exists mydesk] || [info exists mymenu]} {
+      set choice [tk_messageBox -type yesno -icon question -title "Shortcuts" -message $msg]
+      if {$choice == "yes"} {
+        outputMsg " "
+        if {$nistVersion} {catch {[file copy -force [file join $wdir images NIST.ico] [file join $mytemp NIST.ico]]}}
         catch {
-          if {[info exists mydesk]} {
-            if {[file exists [file join $mydesk "$progstr.lnk"]]} {outputMsg "Existing Desktop shortcut will be overwritten" red}
+          if {[info exists mymenu]} {
+            if {[file exists [file join $mymenu "$progstr.lnk"]]} {outputMsg "Existing Start Menu shortcut will be overwritten" red}
             if {$nistVersion} {
-              twapi::write_shortcut [file join $mydesk "$progstr.lnk"] -path [info nameofexecutable] -desc $progstr -iconpath [file join $mytemp NIST.ico]
+              twapi::write_shortcut [file join $mymenu "$progstr.lnk"] -path [info nameofexecutable] -desc $progstr -iconpath [file join $mytemp NIST.ico]
             } else {
-              twapi::write_shortcut [file join $mydesk "$progstr.lnk"] -path [info nameofexecutable] -desc $progstr
+              twapi::write_shortcut [file join $mymenu "$progstr.lnk"] -path [info nameofexecutable] -desc $progstr
             }
-            outputMsg " Shortcut created on Desktop to [truncFileName [file nativename [info nameofexecutable]]]"
+            outputMsg " Shortcut created in Start Menu to [truncFileName [file nativename [info nameofexecutable]]]"
+          }
+        }
+  
+        if {$ok} {
+          catch {
+            if {[info exists mydesk]} {
+              if {[file exists [file join $mydesk "$progstr.lnk"]]} {outputMsg "Existing Desktop shortcut will be overwritten" red}
+              if {$nistVersion} {
+                twapi::write_shortcut [file join $mydesk "$progstr.lnk"] -path [info nameofexecutable] -desc $progstr -iconpath [file join $mytemp NIST.ico]
+              } else {
+                twapi::write_shortcut [file join $mydesk "$progstr.lnk"] -path [info nameofexecutable] -desc $progstr
+              }
+              outputMsg " Shortcut created on Desktop to [truncFileName [file nativename [info nameofexecutable]]]"
+            }
           }
         }
       }
@@ -1964,6 +1965,7 @@ proc setHomeDir {} {
 # set mydocs, mydesk, mymenu based on USERPROFILE and registry entries
   if {[info exists env(USERPROFILE)]} {
     set myhome $env(USERPROFILE)
+    
     catch {
       set reg_personal [registry get {HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\User Shell Folders} {Personal}]
       if {[string first "%USERPROFILE%" $reg_personal] == 0} {regsub "%USERPROFILE%" $reg_personal $env(USERPROFILE) mydocs}
@@ -1991,10 +1993,9 @@ proc setHomeDir {} {
       set mytemp [file nativename [file join $mytemp SFA]]
       checkTempDir
     }
-  }
 
-# construct directory names from drive and env(USERNAME)
-  if {[info exists env(USERNAME)] && $myhome == $drive} {
+# create myhome if USERPROFILE does not exist 
+  } elseif {[info exists env(USERNAME)]} {
     set myhome [file join $drive Users $env(USERNAME)]
     if {$tcl_platform(osVersion) < 6.0} {set myhome [file join $drive "Documents and Settings" $env(USERNAME)]}
   }
@@ -2026,7 +2027,6 @@ proc setHomeDir {} {
   set mydocs [file nativename $mydocs]
   set mydesk [file nativename $mydesk]
   set mytemp [file nativename $mytemp]
-  set drive [string range $myhome 0 2]
 
 # virtualStore directory  
   if {$tcl_platform(osVersion) >= 6.0} {
@@ -2034,7 +2034,7 @@ proc setHomeDir {} {
       set appData [string range $env(APPDATA) 0 [string last "\\" $env(APPDATA)]-1]
       set virtualDir [file nativename [file join $appData Local VirtualStore [string range $env(ProgramFiles) 3 end] IFCsvrR300 dll]]
     } elseif {[info exists env(USERNAME)]} {
-      set virtualDir [file nativename [file join C:/ Users $env(USERNAME) AppData Local VirtualStore [string range $env(ProgramFiles) 3 end] IFCsvrR300 dll]]
+      set virtualDir [file nativename [file join $drive Users $env(USERNAME) AppData Local VirtualStore [string range $env(ProgramFiles) 3 end] IFCsvrR300 dll]]
     }
   }
 }

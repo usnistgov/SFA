@@ -16,7 +16,7 @@ set roseLogical(2) "UNKNOWN"
 set andEntAP209 [list "_and_location" "_and_volume_location" "_and_coefficient" "_and_frequencies" "_and_parameters" "_and_value_definition" "_and_freedom"]
 
 # entities with b-rep geometry
-set brepEnts [list advanced_brep_shape_representation manifold_surface_shape_representation manifold_solid_brep shell_based_surface_model geometric_set]
+set brepEnts [list advanced_brep_shape_representation manifold_surface_shape_representation manifold_solid_brep shell_based_surface_model]
 
 # names of CAx-IF Recommended Practices
 set recPracNames(model)    "Model Styling and Organization"

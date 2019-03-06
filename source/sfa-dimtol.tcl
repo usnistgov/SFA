@@ -946,14 +946,12 @@ proc spmiDimtolReport {objEntity} {
             $cells($dt) Item 3 $c $colName
             set pmiHeading($pmiColumns(ch)) 1
             set pmiCol [expr {max($pmiColumns(ch),$pmiCol)}]
-            set comment "See Help > User Guide (section 5.1.5) for an explanation of Associated Geometry."
-            addCellComment $dt 3 $c $comment
           }
           $cells($dt) Item $r $pmiColumns(ch) [string trim $str]
           if {[string first "*" $str] != -1} {
             set comment "Geometry IDs marked with an asterisk (*) are also Supplemental Geometry.  ($recPracNames(suppgeom), Sec. 4.3, Fig. 4)"
             addCellComment $dt $r $pmiColumns(ch) $comment
-            errorMsg "Some geometry associated with a Dimension is also Supplemental Geometry."
+            errorMsg "Some Associated Geometry associated with a Dimension is also Supplemental Geometry."
           }
           
 # check for unexpected associated geometry for diameters and radius

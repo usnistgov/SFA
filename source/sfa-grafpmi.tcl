@@ -164,14 +164,13 @@ proc gpmiAnnotation {entType} {
 # -------------------------------------------------------------------------------
 proc gpmiAnnotationReport {objEntity} {
   global objDesign
-  global ao aoname assocGeom badAttributes boxSize cells circleCenter col currx3dPID curveTrim
+  global ao aoname ap242edition assocGeom badAttributes boxSize cells circleCenter col currx3dPID curveTrim
   global defaultColor dirRatio dirType draftModelCameras draftModelCameraNames
   global entCount entLevel ent entAttrList entCount entsWithErrors geomType gpmiEnts gpmiID gpmiIDRow gpmiRow gpmiTypes gpmiTypesInvalid gpmiTypesPerFile gpmiValProp
   global iCompCurve iCompCurveSeg incrcol iPolyline localName nindex nistVersion nshape numCompCurve numCompCurveSeg numPolyline numx3dPID
   global objEntity1 opt pmiCol pmiColumns pmiHeading pmiStartCol pointLimit prefix propDefIDS recPracNames savedViewCol stepAP syntaxErr 
   global x3dColor x3dCoord x3dFile x3dFileName x3dStartFile x3dIndex x3dPoint x3dPID x3dShape x3dMsg x3dIndexType x3dMax x3dMin
   global tessCoord tessIndex tessIndexCoord tessRepo tessPlacement gpmiPlacement placeNCP placeOrigin placeAnchor useXL
-  global savedViewName
   #outputMsg "gpmiAnnotationReport" red
 
 # entLevel is very important, keeps track level of entity in hierarchy
@@ -419,31 +418,40 @@ proc gpmiAnnotationReport {objEntity} {
                   set ok 1
                   if {$opt(PMIGRF) && $opt(XLSCSV) != "None"} {
                     set col($ao) [expr {$pmiStartCol($ao)+1}]
-                    if {$stepAP == "AP242"} {
-                      set colName "elements[format "%c" 10](Sec. 8.1.1)"
-                    } else {
-                      set colName "elements[format "%c" 10](Sec. 4.1.1)"
-                    }
-                  }
-# for placeholder viz, check for required a2p3d, cartesian_point, and optional planar_box
-                  if {$opt(VIZPMI)} {
+                    set colName "elements[format "%c" 10](Sec. "
                     if {[string first "placeholder" $ao] != -1} {
-                      set elements {}
-                      foreach elem $objValue {
-                        set etype [$elem Type]
-                        if {[string first "handle" $etype] != -1} {set etype [[$etype Value] Type]}
-                        lappend elements $etype
-                        if {$etype != "axis2_placement_3d" && $etype != "cartesian_point" && $etype != "planar_box"} {
-                          errorMsg "Syntax Error: Unexpected '$etype' in 'geometric_set.elements' for '$ao'."
-                        }
-                      }
+                      append colName "7.2.2"
+                    } elseif {$stepAP == "AP242"} {
+                      append colName "8.1.1"
+                    } else {
+                      append colName "4.1.1"
+                    }
+                    append colName ")"
+                  }
+# for placeholder, check for required a2p3d, cartesian_point, and optional planar_box
+                  if {[string first "placeholder" $ao] != -1} {
+                    set elements {}
+                    set msg "Syntax Error: "
+                    foreach elem $objValue {
+                      set etype [$elem Type]
+                      if {[string first "handle" $etype] != -1} {set etype [[$etype Value] Type]}
+                      lappend elements $etype
+                      if {$etype != "axis2_placement_3d" && $etype != "cartesian_point" && $etype != "planar_box"} {append msg "Unexpected '$etype'"}
+                    }
+                    if {[string first "Unexpected" $msg] == -1} {
                       if {[lsearch $elements "axis2_placement_3d"] == -1} {
-                        errorMsg "Syntax Error: Missing required 'axis2_placement_3d' in 'geometric_set.elements' for '$ao'."
+                        append msg "Missing required 'axis2_placement_3d'"
                       } elseif {[lsearch $elements "cartesian_point"] == -1} {
-                        errorMsg "Syntax Error: Missing required 'cartesian_point' in 'geometric_set.elements' for '$ao'."
-                      } elseif {[lsearch $elements "planar_box"] == -1} {
-                        errorMsg "Optional 'planar_box' not used for '$ao'."
+                        append msg "Missing required 'cartesian_point'"
                       }
+                    }
+                    if {[string length $msg] < 15 && [lsearch $elements "planar_box"] == -1} {set msg "Optional 'planar_box' not used for '$ao'."}
+                    if {[string length $msg] > 14} {
+                      if {[string first "Syntax" $msg] == 0} {
+                        append msg " in 'geometric_set.elements'.\n[string repeat " " 14]\($recPracNames(pmi242), Sec. 7.2.2)"
+                      }
+                      errorMsg $msg
+                      lappend syntaxErr($ao) [list $gpmiID "elements" $msg]
                     }
                   }
                 }
@@ -700,6 +708,11 @@ proc gpmiAnnotationReport {objEntity} {
                         lappend syntaxErr($ann) [list 1 1 $msg]
                         set ok 0
                       }
+                    }
+        
+# check new rule with AP242 edition 2
+                    if {$ap242edition == 2 && ![info exists entCount(draughting_model_and_tessellated_shape_representation)]} {
+                      errorMsg "Syntax Error: Missing (draughting_model)(tessellated_shape_representation) entity\n[string repeat " " 14]\($recPracNames(pmi242), Sec. 8.2, note for AP242 Edition 2)"
                     }
                   }
                 } 

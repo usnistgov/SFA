@@ -10,7 +10,7 @@ proc getAssocGeom {entDef {tolType 0} {tolName ""}} {
     if {$entDefType == "shape_aspect" || $entDefType == "all_around_shape_aspect" || $entDefType == "centre_of_symmetry" || \
       ([string first "datum" $entDefType] != -1 && [string first "_and_" $entDefType] == -1)} {
 
-# add shape_aspect to AG for dimtol
+# add shape_aspect to AG for dimtol (tolType = 1)
       if {$tolType && ($entDefType == "shape_aspect" || $entDefType == "centre_of_symmetry" || $entDefType == "datum_feature" || \
                   [string first "datum_target" $entDefType] != -1)} {
         set type [appendAssocGeom $entDef A]
@@ -31,7 +31,7 @@ proc getAssocGeom {entDef {tolType 0} {tolName ""}} {
       }
       
 # find AF for SA with GISU or IIRU
-      getAssocGeomFace $entDef
+      getAssocGeomFace $entDef $tolType
     }
     
 # look at SAR with CSA, CGSA, AASA, COS to find SAs, possibly nested
@@ -54,7 +54,7 @@ proc getAssocGeom {entDef {tolType 0} {tolName ""}} {
 # related SA is OK
             if {[info exists relatedSA]} {
               set type [appendAssocGeom [$a0 Value] E]
-              if {$type == "advanced_face"} {getFaceGeom [$a0 Value] E}
+              if {$type == "advanced_face"} {getFaceGeom [$a0 Value] $tolType E}
     
               set a0val {}
               if {$relatedSA == "composite_shape_aspect" || $relatedSA == "composite_group_shape_aspect"} {
@@ -75,7 +75,7 @@ proc getAssocGeom {entDef {tolType 0} {tolName ""}} {
             }
   
 # find AF for SA with GISU or IIRU, check all around
-            foreach val $a0val {getAssocGeomFace $val}
+            foreach val $a0val {getAssocGeomFace $val $tolType}
           }
         }
       }
@@ -103,7 +103,7 @@ proc getAssocGeom {entDef {tolType 0} {tolName ""}} {
 }
 
 # -------------------------------------------------------------------------------
-proc getAssocGeomFace {entDef} {
+proc getAssocGeomFace {entDef tolType} {
   global entCount syntaxErr
   #outputMsg "getAssocGeomFace [$entDef Type] [$entDef P21ID]" green
   
@@ -116,22 +116,29 @@ proc getAssocGeomFace {entDef} {
   foreach usage $usages {
     set e1s [$entDef GetUsedIn [string trim $usage] [string trim definition]]
     ::tcom::foreach e1 $e1s {
-      ::tcom::foreach a1 [$e1 Attributes] {
-        if {[$a1 Name] == "identified_item"} {
-          if {[$a1 Value] != ""} {
-            if {[catch {
-              set type [appendAssocGeom [$a1 Value] B]
-              if {$type == "advanced_face"} {getFaceGeom [$a1 Value] B}
-            } emsg1]} {
-              ::tcom::foreach e2 [$a1 Value] {
-                set type [appendAssocGeom $e2 C]
-                if {$type == "advanced_face"} {getFaceGeom $e2 C}
+
+# prevent double counting GISU and IIRU
+      set ok 1
+      if {[$e1 Type] == "geometric_item_specific_usage" && $usage == "item_identified_representation_usage"} {set ok 0}
+        
+      if {$ok} {
+        ::tcom::foreach a1 [$e1 Attributes] {
+          if {[$a1 Name] == "identified_item"} {
+            if {[$a1 Value] != ""} {
+              if {[catch {
+                set type [appendAssocGeom [$a1 Value] B]
+                if {$type == "advanced_face"} {getFaceGeom [$a1 Value] $tolType B}
+              } emsg1]} {
+                ::tcom::foreach e2 [$a1 Value] {
+                  set type [appendAssocGeom $e2 C]
+                  if {$type == "advanced_face"} {getFaceGeom $e2 $tolType C}
+                }
               }
+            } else {
+              set msg "Syntax Error: Missing 'identified_item' attribute on '$usage'."
+              errorMsg $msg
+              lappend syntaxErr($usage) [list [$e1 P21ID] "identified_item" $msg]
             }
-          } else {
-            set msg "Syntax Error: Missing 'identified_item' attribute on '$usage'."
-            errorMsg $msg
-            lappend syntaxErr($usage) [list [$e1 P21ID] "identified_item" $msg]
           }
         }
       }
@@ -158,28 +165,91 @@ proc appendAssocGeom {ent {id ""}} {
 }
 
 # -------------------------------------------------------------------------------
-proc getFaceGeom {a0 {id ""}} {
-  global assocGeom
+proc getFaceGeom {e0 tolType {id ""}} {
+  global assocGeom cylSurfBounds
   
-  ::tcom::foreach a1 [$a0 Attributes] {
-    if {[$a1 Name] == "face_geometry"} {
-      set p21id [[$a1 Value] P21ID]
-      set type  [[$a1 Value] Type]
-      #outputMsg "  $type $p21id $id"
-      
-      if {![info exists assocGeom($type)]} {
+  if {$tolType} {set debug 0}
+  
+  if {[catch {
+    ::tcom::foreach a1 [$e0 Attributes] {
+      if {[$a1 Name] == "face_geometry"} {
+        set p21id [[$a1 Value] P21ID]
+        set type  [[$a1 Value] Type]
         lappend assocGeom($type) $p21id
-      } elseif {[lsearch $assocGeom($type) $p21id] == -1} {
-        lappend assocGeom($type) $p21id
+        set currEnt ""
+        #outputMsg "  getFaceGeom $type $p21id $id / [$e0 Type] [$e0 P21ID]" red
+        
+# for cylindrical or conical surfaces with dimensional tolerances (tolType = 1)
+#  set cylSurfBounds to 180 or 360 depending on bounds of the surfaces
+        if {$tolType && ($type == "cylindrical_surface" || $type == "conical_surface")} {
+  
+# face bounds
+          set a2 [[$e0 Attributes] Item [expr 2]]
+          ::tcom::foreach e3 [$a2 Value] {
+            set currEnt [$e3 Type]
+            if {$debug} {outputMsg "e3  [$e3 Type] [$e3 P21ID]"}
+            set a4 [[$e3 Attributes] Item [expr 2]]
+# edge loops
+            set e4 [$a4 Value]
+            set currEnt [$e4 Type]
+            if {$debug} {outputMsg "e4   [$e4 Type] [$e4 P21ID]"}
+            
+            if {[$e4 Type] == "edge_loop"} {
+              set a5s [[$e4 Attributes] Item [expr 2]]
+# oriented edge
+              ::tcom::foreach e5 [$a5s Value] {
+                set currEnt [$e5 Type]
+                if {$debug} {outputMsg "e5    [$e5 Type] [$e5 P21ID]"}
+                set a6 [[$e5 Attributes] Item [expr 4]]
+# edge curve
+                set e6 [$a6 Value]
+                set currEnt [$e6 Type]
+                if {$debug} {outputMsg "e6     [$e6 Type] [$e6 P21ID]"}
+                set a7 [[$e6 Attributes] Item [expr 4]]
+                set e7 [$a7 Value]
+                set currEnt [$e7 Type]
+                if {$debug} {outputMsg "e7      [$e7 Type] [$e7 P21ID]"}
+                if {[$e7 Type] == "circle"} {
+                  foreach i [list 2 3] {
+# vertex point
+                    set a7 [[$e6 Attributes] Item [expr $i]]
+                    set e7 [$a7 Value]
+                    set currEnt [$e7 Type]
+                    if {$debug} {outputMsg "       $i [$e7 Type] [$e7 P21ID]"}
+# cartesian point
+                    set a8 [[$e7 Attributes] Item [expr 2]]
+                    set e8 [$a8 Value]
+                    set currEnt [$e8 Type]
+                    if {$debug} {outputMsg "        $i [$e8 Type] [$e8 P21ID]"}
+                    set id1($i) [$e8 P21ID]
+                  }
+    
+# cartesian point IDs are the same
+                  if {$id1(2) == $id1(3)} {
+                    set cylSurfBounds 360
+                  } else {
+                    set cylSurfBounds 180
+                  }
+                }
+              }
+            } else {
+              errorMsg "Unexpected bounding loop for Associated Geometry face: [$e4 Type]"
+            }
+          }
+        } else {
+          catch {unset cylSurfBounds}
+        }
       }
     }
+  } emsg]} {
+    errorMsg "ERROR getting Face Geometry ($currEnt): $emsg"
   }
 }
 
 # -------------------------------------------------------------------------------
 proc reportAssocGeom {entType {row ""}} {
   global assocGeom recPracNames dimRepeat dimRepeatDiv syntaxErr cells opt suppGeomEnts entCount cgrObjects
-  global objDesign
+  global objDesign cylSurfBounds
   #outputMsg "reportAssocGeom $entType" red
   
   set str ""
@@ -195,21 +265,29 @@ proc reportAssocGeom {entType {row ""}} {
       append str "([llength $assocGeom($item)]) [formatComplexEnt $item] [lsort -integer $assocGeom($item)]"
 
 # repetitive hole dimension count, e.g. 4X
+      set dc [llength $assocGeom($item)]
       if {[string first "_size" $entType] != -1 || [string first "angular_location" $entType] != -1} {
-        if {$item == "cylindrical_surface" || $item == "spherical_surface" || $item == "toroidal_surface" || $item == "conical_surface"} {
-
+        if {$item == "cylindrical_surface" || $item == "conical_surface" || $item == "spherical_surface" || $item == "toroidal_surface"} {
+          if {![info exists cylSurfBounds]} {
+  
 # set divider based on cylinders, assume two half cylinders, but if odd number of cylinders, then one complete cylinder
-          set dc [llength $assocGeom($item)]
-          if {$dc == 1} {set dimRepeatDiv 1}
-
-          if {$dimRepeatDiv == 1} {
-            if {$dc > 1} {incr dimRepeat $dc}
-          } else {
-            if {[expr {$dc%2}] == 0} {
-              if {$dc > 3} {incr dimRepeat [expr {$dc/2}]}
-            } else {
+            if {$dc == 1} {set dimRepeatDiv 1}
+  
+            if {$dimRepeatDiv == 1} {
               if {$dc > 1} {incr dimRepeat $dc}
+            } else {
+              if {[expr {$dc%2}] == 0} {
+                if {$dc > 3} {incr dimRepeat [expr {$dc/2}]}
+              } else {
+                if {$dc > 1} {incr dimRepeat $dc}
+              }
             }
+
+# set number of cylinders based on value from getFaceGeom
+          } elseif {$cylSurfBounds == 360} {
+            incr dimRepeat $dc
+          } elseif {$cylSurfBounds == 180} {
+            incr dimRepeat [expr {$dc/2}]
           }
         }
       }

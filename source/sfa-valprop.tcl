@@ -614,17 +614,14 @@ proc valPropReport {objEntity} {
               if {[lsearch $propDefRow $r] == -1 && [string first "validation_property" $propDefName] != -1} {lappend propDefRow $r}
 
               set val [[$cells($pd) Item $r $c] Value]
-              if {$val == " "} {set val ""}
               if {$invalid != ""} {lappend syntaxErr($pd) [list $r $col($pd) $invalid]}
 
               if {$val == ""} {
                 $cells($pd) Item $r $c $objValue
               } else {
 
-# adjust val for length with unnecessary exponent of 1
-                if {[string first "exponent" $ent2] != -1 && [string first "length" $valName] != -1} {
-                  set val [string range $val 0 end-3]
-                }
+# adjust exponent val for length (why?)
+                if {[string first "exponent" $ent2] != -1 && [string first "length" $valName] != -1} {set val [string range $val 0 end-3]}
 
                 if {![info exists nrep] || $c != "G"} {
                   $cells($pd) Item $r $c "$val[format "%c" 10]$objValue"

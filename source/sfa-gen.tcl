@@ -1260,7 +1260,7 @@ proc addHeaderWorksheet {numFile fname} {
   global objDesign
   global excel worksheets worksheet cells row timeStamp fileSchema cadApps cadSystem opt localName p21e3
   global excel1 worksheet1 cells1 col1 legendColor syntaxErr
-  global csvdirnam useXL
+  global csvdirnam useXL ap242edition
    
   if {[catch {
     set cadSystem ""
@@ -1318,12 +1318,15 @@ proc addHeaderWorksheet {numFile fname} {
         }
         outputMsg "$attr:  $sn" blue
 
-# check version of AP242        
+# check edition of AP242
+        set ap242edition 1
         if {[string first "1 0 10303 442" $sn] != -1} {
           if {[string first "1 0 10303 442 2 1 4" $sn] != -1} {
             errorMsg "This file uses the new AP242 Edition 2."
+            set ap242edition 2
           } elseif {[string first "1 0 10303 442 3 1 4" $sn] != -1} {
             errorMsg "This file uses the new AP242 Edition 3."
+            set ap242edition 3
           } elseif {[string first "1 0 10303 442 1 1 4" $sn] == -1} {
             errorMsg "This file uses an older or unknown version of AP242."
           }
