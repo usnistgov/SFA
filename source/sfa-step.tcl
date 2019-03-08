@@ -303,6 +303,14 @@ proc reportAssocGeom {entType {row ""}} {
   }
   
 # missing geometry  
+  if {$dimtol || [string first "occurrence" $entType] != -1} {
+    set str1 "Sec. 5.1, Figs. 5, 6, 12"
+    set str2 "Associated"
+  } else {
+    set str1 "Sec. 6.5, Fig. 35"
+    set str2 "Toleranced"
+    if {$entType == "datum_feature"} {set str2 "Associated"}
+  }
   if {[string length $str] == 0} {
     if {$dimtol || [string first "occurrence" $entType] != -1} {
       set str1 "Sec. 5.1, Figs. 5, 6, 12"
@@ -348,6 +356,23 @@ proc reportAssocGeom {entType {row ""}} {
         set msg "Associated Geometry has multiple ([llength $assocGeom($item)]) $item for a [formatComplexEnt $entType]."
         errorMsg $msg
         #if {$row != ""} {lappend syntaxErr($entType) [list "-$row" "Toleranced Geometry" $msg]}
+      }
+    }
+  }
+  
+# check CGSA with less than 2 SA
+  set ncgsa 0
+  set nsa 0
+  foreach item [array names assocGeom] {
+    if {$item == "composite_group_shape_aspect"} {set ncgsa [llength $assocGeom($item)]}
+    if {$item == "shape_aspect" || $item == "centre_of_symmetry"} {set nsa [llength $assocGeom($item)]}
+    if {$ncgsa == 1 && $nsa < 2} {
+      set msg "Syntax Error: 'composite_group_shape_aspect' does not relate to at least two 'shape_aspect' or similar entities."
+      errorMsg $msg
+      if {$row != ""} {
+        set typ $entType
+        if {$dimtol} {set typ "dimensional_characteristic_representation"}
+        lappend syntaxErr($typ) [list "-$row" $str2 $msg]
       }
     }
   }

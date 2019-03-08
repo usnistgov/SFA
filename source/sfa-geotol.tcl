@@ -237,7 +237,7 @@ proc spmiGeotolReport {objEntity} {
                       set tsaID   [$objValue P21ID]
                     } else {
                       set oktsa 0
-                      set msg "Syntax Error: Missing 'toleranced_shape_aspect' attribute on $objType\n[string repeat " " 14]\($recPracNames(pmi242), Sec. 6.9)"
+                      set msg "Syntax Error: Missing 'toleranced_shape_aspect' attribute on [formatComplexEnt $objType]\n[string repeat " " 14]\($recPracNames(pmi242), Sec. 6.9)"
                       errorMsg $msg
                       lappend syntaxErr([lindex [split $ent1 " "] 0]) [list [$gtEntity P21ID] [lindex [split $ent1 " "] 1] $msg]
                     }
@@ -880,12 +880,14 @@ proc spmiGeotolReport {objEntity} {
                     set msg ""
                     if {$ov == "point" || $ov == "line" || $ov == "rectangle" || $ov == "circle" || $ov == "circular curve"} {
                       lappend spmiTypesPerFile "$ov placed datum target (6.6)"
+                      lappend spmiTypesPerFile "all datum targets"
                       if {[$gtEntity Type] != "placed_datum_target_feature" } {
                         set msg "Syntax Error: Target description '$ov' is only valid for placed_datum_target_feature, not [$gtEntity Type].\n[string repeat " " 14]\($recPracNames(pmi242), Sec. 6.6.1, Figure 38, Table 9)"
                         errorMsg $msg
                       }
                     } elseif {$ov == "curve" || $ov == "area"} {
                       lappend spmiTypesPerFile "$ov datum target (6.6)"
+                      lappend spmiTypesPerFile "all datum targets"
                       if {[$gtEntity Type] != "datum_target" } {
                         set msg "Syntax Error: Target description '$ov' is only valid for datum_target, not [$gtEntity Type].\n[string repeat " " 14]\($recPracNames(pmi242), Sec. 6.6.1, Figure 39, Table 9)"
                         errorMsg $msg

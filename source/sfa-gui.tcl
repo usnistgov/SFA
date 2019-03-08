@@ -1,7 +1,7 @@
 # version numbers, software and user guide, contact
 # user guide URLs are below in showUserGuide
 
-proc getVersion {}   {return 3.30}
+proc getVersion {}   {return 3.31}
 proc getVersionUG {} {return 3.0}
 proc getContact {}   {return [list "Robert Lipman" "robert.lipman@nist.gov"]}
 

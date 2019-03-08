@@ -199,7 +199,7 @@ set gpmiTypes [list \
 set spmiTypes $tolNames
 
 foreach item [list \
-  "tolerance zone diameter (6.9.2, Table 11)" "tolerance zone spherical diameter (6.9.2, Table 11)" "tolerance zone within a cylinder (6.9.2, Table 12)" \
+  "tolerance zone diameter (6.9.2, Table 11)" "tolerance zone within a cylinder (6.9.2, Table 12)" "tolerance zone spherical diameter (6.9.2, Table 11)" \
   "tolerance zone other (6.9.2, Table 12)" "affected plane tolerance zone (6.9.2.1)" "non-uniform tolerance zone (6.9.2.3)" "tolerance with max value (6.9.5)" \
   "unit-basis tolerance (6.9.6)" "all_around \u232E (6.4.2)" "between \u2194 (6.4.3)" "composite tolerance (6.9.9)" \
   "unequally_disposed \u24CA (6.9.4)" "projected \u24C5 (6.9.2.2)" "free_state \u24BB (6.9.3)" "tangent_plane \u24C9 (6.9.3)" \
@@ -211,8 +211,8 @@ foreach item [list \
   "basic dimension (5.3)" "reference dimension (5.3)" "statistical_dimension <ST> (5.3)" "type qualifier (5.2.2)" "tolerance class (5.2.5)" \
   "location with path (5.1.7)" "square \u25A1 (5.3)" "decimal places (5.4)" \
   "datum (6.5)" "multiple datum features (6.9.8)" "datum with axis system (6.9.7)" "datum with modifiers (6.9.7)" \
-  "point placed datum target (6.6)" "line placed datum target (6.6)" "rectangle placed datum target (6.6)" "circle placed datum target (6.6)" \
-  "circular curve placed datum target (6.6)" \
+  "all datum targets (Rows 66 thru 72)" "point placed datum target (6.6)" "line placed datum target (6.6)" "rectangle placed datum target (6.6)" \
+  "circle placed datum target (6.6)" "circular curve placed datum target (6.6)" \
   "curve datum target (6.6)" "area datum target (6.6)" "placed datum target geometry (6.6.2)" "movable datum target (6.6.3)" \
 ] {lappend spmiTypes $item}
 

@@ -248,46 +248,54 @@ proc spmiCoverageWrite {{fn ""} {sum ""} {multi 1}} {
                 set ci $coverage($item)
                 catch {set ci [expr {int($ci)}]}
                 #outputMsg " $item / $tval / $coverage($item) / $ci" red
+                
+# check tolerance zone diameter vs. within a cylinder
+                set skip 0
+                if {$item == "tolerance zone diameter" &&          $tval == 0 && [[$cells($sempmi_coverage) Item 20 2] Value] != ""} {set skip 1}
+                if {$item == "tolerance zone within a cylinder" && $tval == 0 && [[$cells($sempmi_coverage) Item 19 2] Value] != ""} {set skip 1}
+                
 # neutral - gray         
-                if {$coverage($item) != "" && $ci < 0} {
-                  [[$worksheet($sempmi_coverage) Range B$r] Interior] Color $legendColor(gray)
-                  set coverageLegend 1
-                  lappend coverageStyle "$r $nf gray"
+                if {!$skip} {
+                  if {$coverage($item) != "" && $ci < 0} {
+                    [[$worksheet($sempmi_coverage) Range B$r] Interior] Color $legendColor(gray)
+                    set coverageLegend 1
+                    lappend coverageStyle "$r $nf gray"
 
 # too few - yellow or red (was red or magenta)
-                } elseif {$tval < $ci} {
-                  set str "'$tval/$ci"
-                  $cells($sempmi_coverage) Item $r 2 $str
-                  [$worksheet($sempmi_coverage) Range B$r] HorizontalAlignment [expr -4108]
-                  set coverageLegend 1
-                  if {$tval == 0} {
-                    set clr "red"
-                  } else {
-                    set clr "yellow"
-                  }
-                  [[$worksheet($sempmi_coverage) Range B$r] Interior] Color $legendColor($clr)
-                  lappend coverageStyle "$r $nf $clr $str"
+                  } elseif {$tval < $ci} {
+                    set str "'$tval/$ci"
+                    $cells($sempmi_coverage) Item $r 2 $str
+                    [$worksheet($sempmi_coverage) Range B$r] HorizontalAlignment [expr -4108]
+                    set coverageLegend 1
+                    if {$tval == 0} {
+                      set clr "red"
+                    } else {
+                      set clr "yellow"
+                    }
+                    [[$worksheet($sempmi_coverage) Range B$r] Interior] Color $legendColor($clr)
+                    lappend coverageStyle "$r $nf $clr $str"
 
 # too many - cyan or magenta (was yellow)
-                } elseif {$tval > $ci && $tval != 0} {
-                  set ci1 $coverage($item)
-                  set clr "cyan"
-                  if {$ci1 == ""} {
-                    set ci1 0
-                    set clr "magenta"
-                  }
-                  set str "'$tval/[expr {int($ci1)}]"
-                  $cells($sempmi_coverage) Item $r 2 $str
-                  [[$worksheet($sempmi_coverage) Range B$r] Interior] Color $legendColor($clr)
-                  [$worksheet($sempmi_coverage) Range B$r] NumberFormat "@"
-                  set coverageLegend 1
-                  lappend coverageStyle "$r $nf $clr $str"
+                  } elseif {$tval > $ci && $tval != 0} {
+                    set ci1 $coverage($item)
+                    set clr "cyan"
+                    if {$ci1 == ""} {
+                      set ci1 0
+                      set clr "magenta"
+                    }
+                    set str "'$tval/[expr {int($ci1)}]"
+                    $cells($sempmi_coverage) Item $r 2 $str
+                    [[$worksheet($sempmi_coverage) Range B$r] Interior] Color $legendColor($clr)
+                    [$worksheet($sempmi_coverage) Range B$r] NumberFormat "@"
+                    set coverageLegend 1
+                    lappend coverageStyle "$r $nf $clr $str"
 
 # just right - green
-                } elseif {$tval != 0} {
-                  [[$worksheet($sempmi_coverage) Range B$r] Interior] Color $legendColor(green)
-                  set coverageLegend 1
-                  lappend coverageStyle "$r $nf green"
+                  } elseif {$tval != 0} {
+                    [[$worksheet($sempmi_coverage) Range B$r] Interior] Color $legendColor(green)
+                    set coverageLegend 1
+                    lappend coverageStyle "$r $nf green"
+                  }
                 }
               }
             }
@@ -365,7 +373,7 @@ proc spmiCoverageFormat {sum {multi 1}} {
     }
  
 # horizontal break lines
-    set idx1 [list 19 36 45 61 65 74 84]
+    set idx1 [list 19 36 45 61 65 75 85]
     if {!$multi} {set idx1 [concat [list 3 4] $idx1]}
     for {set r 200} {$r >= [lindex $idx1 end]} {incr r -1} {
       if {$multi} {
@@ -389,7 +397,7 @@ proc spmiCoverageFormat {sum {multi 1}} {
       catch {[[$range Borders] Item [expr 8]] Weight [expr 2]}
     }
 
-# vertical line(s)
+# vertical line(s), also in sfa-multi.tcl vertical lines when changing directory
     if {$multi} {
       for {set i 0} {$i < $i1} {incr i} {
         set range [$worksheet1($sempmi_coverage) Range [cellRange 1 [expr {$col1($sempmi_coverage)+$i}]] [cellRange [expr {[lindex $idx1 end]-1}] [expr {$col1($sempmi_coverage)+$i}]]]
