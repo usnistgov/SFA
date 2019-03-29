@@ -1,7 +1,7 @@
 # version numbers, software and user guide, contact
 # user guide URLs are below in showUserGuide
 
-proc getVersion {}   {return 3.31}
+proc getVersion {}   {return 3.40}
 proc getVersionUG {} {return 3.0}
 proc getContact {}   {return [list "Robert Lipman" "robert.lipman@nist.gov"]}
 
@@ -12,10 +12,8 @@ proc whatsNew {} {
   if {$sfaVersion > 0 && $sfaVersion < [getVersion]} {outputMsg "\nThe previous version of the STEP File Analyzer and Viewer was: $sfaVersion" red}
 
 outputMsg "\nWhat's New (Version: [getVersion]  Updated: [string trim [clock format $progtime -format "%e %b %Y"]])" blue
-outputMsg "- Improved processing of repetitive dimensions, supplemental geometry,
-   datum targets, annotation placeholder, and all around
+outputMsg "- Improved processing of dimensions, datum targets, validation properties, and supplemental geometry
 - Part geometry color (See Help > View Part Geometry)
-- AP209 FEA validation properties
 - Graphical PMI colored by saved view
 - Report ANCHOR section IDs in ISO 10303 Part 21 Edition 3 files
 - Explanation of Analysis errors (Help > Syntax Errors)
@@ -345,9 +343,8 @@ proc guiProcessAndReports {} {
     set tt [string range $idx 3 end]
     if {[info exists entCategory($tt)]} {
       set ttmsg "There are [llength $entCategory($tt)] [string trim [lindex $item 0]] entities."
-      if {$tt != "PR_STEP_CPNT"} {append ttmsg "  These entities are found in most APs."}
-      if {$tt == "PR_STEP_SHAP" || $tt == "PR_STEP_GEOM"} {
-        append ttmsg "\nEntities marked with an asterisk (*) are only in AP242.  Some are only in AP242 edition 2."
+      if {$tt != "PR_STEP_CPNT"} {
+        append ttmsg "  These entities are found in most APs.\nEntities marked with an asterisk (*) are only in AP242.  Some are only in AP242 edition 2."
       } elseif {$tt == "PR_STEP_CPNT"} {
         append ttmsg "  coordinates_list is only in AP242."
       }
@@ -851,7 +848,7 @@ proc guiSpreadsheet {} {
     incr cb
   }
   pack $fxlsb -side top -anchor w -pady 5 -padx 10 -fill both
-  set msg "This option limits the number of rows (entities) written to any one worksheet or CSV file.\nThe Maximum Rows depends on the version of Excel.\n\nFor large STEP files, setting a low maximum can speed up processing at the expense\nof not processing all of the entities.  This is useful when processing Geometry entities.\n\nSyntax Errors might be missed if some entities are not processed due to a small value\nof maximum rows.\n\nMaximum rows does not affect generating Views.\n\nSee Help > User Guide (section 4.5.3)"
+  set msg "This option limits the number of rows (entities) written to any one worksheet or CSV file.\nIf the maximum number of rows is exceeded, the number of entities processed will be\nreported as, for example, 'property_definition (100 of 147)'.\n\nFor large STEP files, setting a low maximum can speed up processing at the expense of\nnot processing all of the entities.  This is useful when processing Geometry entities.\n\nSyntax Errors might be missed if some entities are not processed due to a small value\nof maximum rows.  Maximum rows does not affect generating Views.  The maximum\nnumber of rows depends on the version of Excel.\n\nSee Help > User Guide (section 4.5.3)"
   catch {tooltip::tooltip $fxlsb $msg}
 
   set fxlsd [ttk::labelframe $fxls.d -text " Write Spreadsheet to "]
@@ -1257,9 +1254,11 @@ See Examples > PMI Coverage Analysis
 PMI Representation Coverage Analysis (semantic PMI) counts the number of PMI elements found in a
 STEP file for tolerances, dimensions, datums, modifiers, and CAx-IF Recommended Practices for PMI
 Representation.  On the coverage analysis worksheet, some PMI elements show their associated
-symbol, while others show the relevant section in the Recommended Practice.  The PMI elements are
-grouped by features related tolerances, dimensions, datums, tolerance zones, common modifiers, and
-other modifiers.
+symbol, while others show the relevant section in the Recommended Practice.  PMI elements without
+a section number do not have a Recommended Practice for their implementation.  The PMI elements are
+grouped by features related tolerances, tolerance zones, dimensions, dimension modifiers, datums,
+datum targets, and other modifiers.  The number of some modifiers, e.g., maximum material condition,
+does not differentiate whether they appear in the tolerance zone definition or datum reference frame.
 
 If STEP files from the NIST CAD models (Websites > PMI Validation Testing) are processed, then
 the PMI Representation Coverage Analysis worksheet is color-coded by the expected number of PMI
@@ -1268,7 +1267,7 @@ elements in each CAD model.  See Help > NIST CAD Models.
 PMI Presentation Coverage Analysis (graphical PMI) counts the occurrences of a name attribute
 defined in the CAx-IF Recommended Practice for PMI Representation and Presentation of PMI (AP242) or
 PMI Polyline Presentation (AP203/AP242).  The name attribute is associated with the graphic elements
-used to draw a PMI annotation."
+used to draw a PMI annotation.  There is no semantic meaning to the name attributes."
     .tnb select .tnb.status
   }
 
@@ -1319,12 +1318,6 @@ appear in the tolerance zone definition or datum reference frame.
 - Yellow means that less were found than expected.
 - Red means that no instances of an expected PMI element were found.
 - Magenta means that some PMI elements were found when none were expected.
-
-Gray means that a PMI element is in a test case definition but there is no CAx-IF Recommended
-Practice to model it.  For example, there is no recommended practice for hole depth, counterbore,
-and countersink.  This means that the dimensions of a hole are not associated with a dimension type
-such as diameter and radius in the STEP file although the dimension value is still represented
-semantically.  This does not affect the PMI Presentation (graphics) for those PMI elements.
 
 * Missing PMI *
 Missing PMI annotations on the Summary worksheet or PMI elements on the Coverage worksheet might
@@ -1571,7 +1564,7 @@ Credits
 - Generating spreadsheets:        Microsoft Excel (https://products.office.com/excel)
 - Reading and parsing STEP files: IFCsvr (https://groups.yahoo.com/neo/groups/ifcsvr-users/info)
 - Viewing B-rep part geometry:    OpenCascade (https://www.opencascade.com/) and
-                                  pythonOCC (http://www.pythonocc.org/)
+                                  pythonOCC (https://github.com/tpaviot/pythonocc)
                                   See Websites > STEP Software > STEP to X3D Translation"
     } else {
       outputMsg "\nThis version was built from the NIST STEP File Analyzer and Viewer source\ncode available on GitHub.  https://github.com/usnistgov/SFA"
@@ -1582,7 +1575,6 @@ Credits
       outputMsg " "
       outputMsg "Environment variables" red
       foreach id [lsort [array names env]] {
-        #outputMsg " $id   $env($id)" green
         foreach id1 [list HOME Program System USER TEMP TMP APP ROSE EDM] {
           if {[string first $id1 $id] == 0} {outputMsg " $id   $env($id)"; break}
         }
@@ -1675,7 +1667,7 @@ proc guiWebsitesMenu {} {
   $Websites4 add command -label "Digital Manufacturing Certificate Toolkit" -command {openURL https://github.com/usnistgov/DT4SM/tree/master/DMC-Toolkit}
   $Websites4 add command -label "STEP Tools Software"                       -command {openURL https://github.com/steptools}
   $Websites4 add command -label "OpenCascade STEP Processor"                -command {openURL https://www.opencascade.com/doc/occt-7.0.0/overview/html/occt_user_guides__step.html}
-  $Websites4 add command -label "pythonOCC"                                 -command {openURL http://www.pythonocc.org/}
+  $Websites4 add command -label "pythonOCC"                                 -command {openURL https://github.com/tpaviot/pythonocc}
   $Websites4 add command -label "STEP to X3D Translation"                   -command {openURL http://www.web3d.org/wiki/index.php/STEP_X3D_Translation}
   $Websites4 add command -label "STEP Class Library (STEPcode)"             -command {openURL https://www.nist.gov/services-resources/software/step-class-library-scl}
   $Websites4 add command -label "Express Engine"                            -command {openURL http://exp-engine.sourceforge.net/}

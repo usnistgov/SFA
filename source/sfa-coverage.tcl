@@ -85,16 +85,10 @@ proc spmiCoverageWrite {{fn ""} {sum ""} {multi 1}} {
       $cells1($sempmi_coverage) Item 3 $col1($sum) $fn
     }
     
+# datums handled differently
     if {[info exists entCount(datum)]} {
       for {set i 0} {$i < $entCount(datum)} {incr i} {lappend spmiTypesPerFile1 "datum (6.5)"}
       if {$multi} {unset entCount(datum)}
-    }
-    
-    foreach ent [list derived_shape_aspect centre_of_symmetry apex geometric_alignment perpendicular_to extension tangent parallel_offset] {
-      if {[info exists entCount($ent)]} {
-        for {set i 0} {$i < $entCount($ent)} {incr i} {lappend spmiTypesPerFile1 "derived shapes dimensional location (5.1.4)"}
-        if {$multi} {unset entCount($ent)}
-      }
     }
     
 # check for some modifiers and count from allPMI
@@ -112,7 +106,7 @@ proc spmiCoverageWrite {{fn ""} {sum ""} {multi 1}} {
 
 # add number of pmi types
     if {[info exists spmiTypesPerFile] || [info exists spmiTypesPerFile1]} {
-      for {set r 4} {$r <= 134} {incr r} {
+      for {set r 4} {$r <= 142} {incr r} {
         if {$multi} {
           set val [[$cells1($sempmi_coverage) Item $r 1] Value]
         } else {
@@ -128,9 +122,9 @@ proc spmiCoverageWrite {{fn ""} {sum ""} {multi 1}} {
             } else {
               if {[string first "$idx  " $val] == 0} {set ok 1}
             }
-            if {$ok} {
 
 # get current value
+            if {$ok} {
               if {$multi} {
                 set npmi [[$cells1($sempmi_coverage) Item $r $col1($sum)] Value]
               } else {
@@ -254,15 +248,9 @@ proc spmiCoverageWrite {{fn ""} {sum ""} {multi 1}} {
                 if {$item == "tolerance zone diameter" &&          $tval == 0 && [[$cells($sempmi_coverage) Item 20 2] Value] != ""} {set skip 1}
                 if {$item == "tolerance zone within a cylinder" && $tval == 0 && [[$cells($sempmi_coverage) Item 19 2] Value] != ""} {set skip 1}
                 
-# neutral - gray         
-                if {!$skip} {
-                  if {$coverage($item) != "" && $ci < 0} {
-                    [[$worksheet($sempmi_coverage) Range B$r] Interior] Color $legendColor(gray)
-                    set coverageLegend 1
-                    lappend coverageStyle "$r $nf gray"
-
 # too few - yellow or red (was red or magenta)
-                  } elseif {$tval < $ci} {
+                if {!$skip} {
+                  if {$tval < $ci} {
                     set str "'$tval/$ci"
                     $cells($sempmi_coverage) Item $r 2 $str
                     [$worksheet($sempmi_coverage) Range B$r] HorizontalAlignment [expr -4108]
@@ -315,7 +303,6 @@ proc spmiCoverageWrite {{fn ""} {sum ""} {multi 1}} {
             $cells1($sempmi_coverage) Item $r $c $str
             [$worksheet1($sempmi_coverage) Range [cellRange $r $c]] HorizontalAlignment [expr -4108]
           }
-          #outputMsg "$r $c $style" green
           [[$worksheet1($sempmi_coverage) Range [cellRange $r $c]] Interior] Color $legendColor($style)
         }
       }
@@ -372,8 +359,8 @@ proc spmiCoverageFormat {sum {multi 1}} {
       $worksheet1($sempmi_coverage) Activate
     }
  
-# horizontal break lines
-    set idx1 [list 19 36 45 61 65 75 85]
+# horizontal break lines, depends on items in representation coverage worksheet, items defined in sfa-data
+    set idx1 [list 19 37 46 62 66 76]
     if {!$multi} {set idx1 [concat [list 3 4] $idx1]}
     for {set r 200} {$r >= [lindex $idx1 end]} {incr r -1} {
       if {$multi} {
@@ -473,8 +460,7 @@ proc spmiCoverageLegend {multi {row 3}} {
               {"More than expected" "cyan"} \
               {"Less than expected" "yellow"} \
               {"None (0/n)" "red"} \
-              {"Unexpected (n/0)" "magenta"} \
-              {"Not in CAx-IF Recommended Practice" "gray"}}
+              {"Unexpected (n/0)" "magenta"}}
   foreach item $legend {
     set str [lindex $item 0]
     $cl Item $r $c $str

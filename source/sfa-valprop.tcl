@@ -116,12 +116,18 @@ proc valPropStart {} {
     [list mass_unit_and_si_unit prefix name] \
     [list si_unit_and_thermodynamic_temperature_unit dimensions prefix name]]
 
+  set ang  [list plane_angle_measure_with_unit_and_measure_representation_item value_component unit_component name]
   set len1 [list length_measure_with_unit_and_measure_representation_item value_component unit_component name]
   set len2 [list length_measure_with_unit_and_measure_representation_item_and_qualified_representation_item value_component unit_component name qualifiers]
-  set mass1 [list mass_measure_with_unit_and_measure_representation_item value_component unit_component name]
+  set area [list area_measure_with_unit_and_measure_representation_item value_component unit_component name]
+  set vol  [list volume_measure_with_unit_and_measure_representation_item value_component unit_component name]
+  set forc [list force_measure_with_unit_and_measure_representation_item value_component unit_component name]
+  set pres [list pressure_measure_with_unit_and_measure_representation_item value_component unit_component name]
+  set mass [list mass_measure_with_unit_and_measure_representation_item value_component unit_component name]
+  set rat  [list ratio_measure_with_unit_and_measure_representation_item value_component unit_component name]
 
-  set rep1 [list representation name items $a2p3d $drep $vrep $brep $irep $rrep $mrep $len1 $len2 $mass1 $cartesian_point]
-  set rep2 [list shape_representation_with_parameters name items $a2p3d $drep $vrep $brep $irep $rrep $mrep $len1 $len2 $mass1 $cartesian_point]
+  set rep1 [list representation name items $a2p3d $drep $vrep $brep $irep $rrep $mrep $len1 $len2 $mass $cartesian_point $ang $area $vol $forc $pres $rat]
+  set rep2 [list shape_representation_with_parameters name items $a2p3d $drep $vrep $brep $irep $rrep $mrep $len1 $len2 $mass $cartesian_point $ang $area $vol $forc $pres $rat]
 
   set gvp [list property_definition_representation \
     definition [list property_definition name description definition] \
@@ -175,9 +181,7 @@ proc valPropReport {objEntity} {
   incr entLevel
   set ind [string repeat " " [expr {4*($entLevel-1)}]]
 
-  if {[string first "handle" $objEntity] == -1} {
-    #if {$objEntity != ""} {outputMsg "$ind $objEntity"}
-  } else {
+  if {[string first "handle" $objEntity] != -1} {
     set objType [$objEntity Type]
     set objID   [$objEntity P21ID]
     set ent($entLevel) [$objEntity Type]
@@ -228,11 +232,14 @@ proc valPropReport {objEntity} {
         if {$idx != -1} {
           if {$opt(DEBUG1)} {outputMsg "$ind   ATR $entLevel $objName - $objValue ($objNodeType, $objSize, $objAttrType)"}
           
+          set nounits 0
           if {[string length $objValue] == 0 && $objName == "unit_component" && \
               ([string first "volume" $valName] == -1 || [string first "area" $valName] == -1 || [string first "length" $valName] == -1)} {
-            set msg "Syntax Error: Missing or invalid '$objName' attribute on $ent($entLevel).\n[string repeat " " 14]Units will not be reported for a length, area, or volume validation property.\n[string repeat " " 14]\($recPracNames(valprop))"
+            set msg "Syntax Error: Missing or invalid '$objName' attribute on $ent($entLevel).\n[string repeat " " 14]No units assigned to '$valName' values. ($recPracNames(valprop))"
             errorMsg $msg
             lappend syntaxErr($ent($entLevel)) [list $objID unit_component $msg]
+            lappend syntaxErr(property_definition) [list $propDefIDRow($propDefID) 9 $msg]
+            set nounits 1
           }
 
           if {[info exists cells($pd)]} {
@@ -250,8 +257,30 @@ proc valPropReport {objEntity} {
                   }
                 }
               }
-              "value_representation_item value_component"     -
-              "descriptive_representation_item description"   {set ok 1; set col($pd) 9}
+
+              "*measure_representation_item* unit_component" {
+# check for exponent (derived_unit) for area and volume
+                if {!$nounits} {
+                  foreach mtype [list area volume] {
+                    if {[string first $mtype $valName] != -1} {
+                      set munit $mtype
+                      append munit "_unit"
+                      set typ [$objValue Type]
+                      if {$typ != "derived_unit" && $typ != $munit} {
+                        set msg "Syntax Error: Missing units exponent for a '$mtype' measure.  '$ent2' must refer to '$munit' or 'derived_unit'."
+                        errorMsg $msg
+                        set vpcol 11
+                        catch {if {[[$cells($pd) Item 3 13] Value] != ""} {set vpcol 13}}
+                        lappend syntaxErr(property_definition) [list $propDefIDRow($propDefID) $vpcol $msg]
+                      }
+                    }
+                  }
+                }
+              }
+              
+              "value_representation_item value_component" -
+              "descriptive_representation_item description" {set ok 1; set col($pd) 9}
+
               "property_definition definition" {
                 if {[string first "validation_property" $propDefName] != -1} {
                   if {[string length $objValue] == 0} {
@@ -449,12 +478,12 @@ proc valPropReport {objEntity} {
                 
                 if {[string first "validation property" $objValue] != -1} {
                   set okvp 0
-                  set vps [list "geometric" "assembly" "pmi" "tessellated" "attribute" "fea" "composite"]
+                  set vps [list "geometric" "assembly" "pmi" "tessellated" "attribute" "FEA" "composite"]
                   foreach vp $vps {if {[string first $vp $objValue] == 0} {set okvp 1}}
                   if {!$okvp} {
                     set okvp 0
                     foreach vp $vps {
-                      if {[string first $vp [string tolower $objValue]] == 0} {
+                      if {[string first $vp [string tolower $objValue]] == 0 && $objValue != "FEA validation property"} {
                         set okvp 1
                         set emsg "Syntax Error: Use lower case 'property_definition' attribute 'name' ($objValue)."
                         regsub -all " " [string tolower $objValue] "_" propDefName
@@ -660,7 +689,6 @@ proc valPropReport {objEntity} {
                       ([string first "length_unit" $ent2] != -1 || [string first "description" $ent2] != -1 || [string first "value" $ent2] > 0)} {
                     set i1 4
                     if {[string first "length" $valName] != -1 || [string first "thickness" $valName] != -1 || $valName == ""} {set i1 2}
-                    #outputMsg "$ent2\n $valName\n  here $i1"
                     for {set i 0} {$i < $i1} {incr i} {
                       incr col($pd)
                       set c [string index [cellRange 1 $col($pd)] 0]
@@ -779,12 +807,14 @@ proc valPropFormat {} {
       }
     }
     
-# bottom bold line
-    #set range [$worksheet($thisEntType) Range [cellRange $row($thisEntType) 5] [cellRange $row($thisEntType) $col($thisEntType)]]
-    #catch {[[$range Borders] Item [expr 9]] Weight [expr -4138]}
+# bold lines top and bottom
+    set colrange [[[$worksheet($thisEntType) UsedRange] Columns] Count]
+    set range [$worksheet($thisEntType) Range [cellRange $row($thisEntType) 5] [cellRange $row($thisEntType) $colrange]]
+    catch {[[$range Borders] Item [expr 9]] Weight [expr -4138]}
+    set range [$worksheet($thisEntType) Range [cellRange 2 5] [cellRange 2 $colrange]]
+    catch {[[$range Borders] Item [expr 9]] Weight [expr -4138]}
     
 # fix column widths
-    set colrange [[[$worksheet($thisEntType) UsedRange] Columns] Count]
     for {set i 1} {$i <= $colrange} {incr i} {
       set val [[$cells($thisEntType) Item 3 $i] Value]
       if {$val == "value name"} {

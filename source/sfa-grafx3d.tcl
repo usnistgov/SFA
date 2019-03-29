@@ -471,7 +471,7 @@ proc x3dFileEnd {} {
     set ok 0
     foreach item $brepEnts {if {[info exists entCount($item)]} {set ok 1}}
     if {$ok} {
-      append str " and <a href=\"http://www.pythonocc.org/\">pythonOCC</a>"
+      append str " and <a href=\"https://github.com/tpaviot/pythonocc\">pythonOCC</a>"
       if {$viz(TPG) || $viz(PMI) || $viz(FEA) || $viz(SMG)} {append str " for part geometry"}
       append str ".&nbsp;&nbsp;&nbsp;Part geometry can also be viewed with <a href=\"https://www.cax-if.org/step_viewers.html\">STEP file viewers</a>"
     }
@@ -658,7 +658,10 @@ proc x3dBrepGeom {} {
     
 # run stp2x3d    
     if {[file exists $stp2x3d]} {
-      set stpx3dFileName [file rootname $localName].x3d
+
+# output .x3d file name, account for extra '.' characters
+      set stpx3dFileName [string range $localName 0 [string first "." $localName]]
+      append stpx3dFileName "x3d"
       catch {file delete -force $stpx3dFileName}
       outputMsg " Processing STEP part geometry.  Wait for the popup program (stp2x3d.exe) to complete." green
       catch {exec $stp2x3d [file nativename $localName]} errs
@@ -780,20 +783,7 @@ proc x3dBrepGeom {} {
 
 # no X3D output
         } else {
-          set msg " ERROR: Cannot find the part geometry (X3D file) output from stp2x3d.exe"
-
-# check for invalid '.' in directory name
-          if {[string first "." $stpx3dFileName] != [string last "." $stpx3dFileName]} {
-            set baddir ""
-            foreach dir [lrange [split $stpx3dFileName "/"] 0 end-1] {if {[string first "." $dir] != -1} {set baddir $dir; break}}
-            if {$baddir != ""} {
-              append msg "\n  Remove the '.' character from the directory '$baddir'"
-            } else {
-              append msg "\n  Rename STEP file or directory name to remove extra '.' characters"
-            }
-            append msg " or\n  move the STEP file to a different directory and process it again."
-          }
-          errorMsg $msg
+          errorMsg " ERROR: Cannot find the part geometry (X3D file) output from stp2x3d.exe"
         }
 
 # delete X3D file
@@ -1379,7 +1369,7 @@ proc x3dPolylinePMI {} {
       set flist $x3dFile
       if {[llength $savedViewName] > 0} {
         set flist {}
-        foreach svn $savedViewName {lappend flist $savedViewFile($svn)}
+        foreach svn $savedViewName {if {[info exists savedViewFile($svn)]} {lappend flist $savedViewFile($svn)}}
       }
   
       foreach f $flist {

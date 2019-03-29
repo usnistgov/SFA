@@ -472,9 +472,9 @@ proc openMultiFile {{ask 1}} {
                   set borders [$range Borders]
                   catch {[$borders Item [expr -4152]] Weight [expr 2]}
 
-# also for PMI coverage analysis worksheets, change 141 as necessary
+# also for PMI coverage analysis worksheets, change 142 as necessary
                   catch {
-                    set range [$worksheet1($sempmi_coverage) Range [cellRange 3 $nf1] [cellRange 141 $nf1]]
+                    set range [$worksheet1($sempmi_coverage) Range [cellRange 3 $nf1] [cellRange 142 $nf1]]
                     set borders [$range Borders]
                     [$borders Item [expr -4152]] Weight [expr 2]
                   }
@@ -552,7 +552,6 @@ proc openMultiFile {{ask 1}} {
             set lastXLS1 $aname
 
 # close Excel
-            #outputMsg "Closing Excel" green
             $excel1 Quit
             update idletasks
             catch {unset excel1}

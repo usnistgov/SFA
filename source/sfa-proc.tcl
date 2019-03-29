@@ -108,8 +108,10 @@ proc checkValues {} {
 
 # validation properties
   if {$opt(VALPROP)} {
-    set opt(PR_STEP_QUAN) 1
-    lappend butDisabled optPR_STEP_QUAN
+    foreach b {optPR_STEP_QUAN optPR_STEP_REPR optPR_STEP_SHAP} {
+      set opt([string range $b 3 end]) 1
+      lappend butDisabled $b
+    }
   } elseif {!$opt(PMIGRF)} {
     lappend butNormal optPR_STEP_QUAN
   }
@@ -177,6 +179,14 @@ proc checkValues {} {
   } else {
     foreach b {userentity userentityopen} {lappend butDisabled $b}
     set userEntityList {}
+  }
+  
+# common for any report  
+  if {$opt(PMISEM) || $opt(PMIGRF) || $opt(VALPROP)} {
+    set opt(PR_STEP_COMM) 1
+    lappend butDisabled optPR_STEP_COMM
+  } else {
+    lappend butNormal optPR_STEP_COMM
   }
   
   if {$developer} {
@@ -479,8 +489,7 @@ proc openFile {{openName ""}} {
   if {$openName == ""} {
   
 # file types for file select dialog (removed .stpnc)
-    set typelist {{"STEP Files" {".stp" ".step" ".p21" ".stpZ" ".ifc"}}}
-    lappend typelist {"All Files" {*}}
+    set typelist [list {"STEP Files" {".stp" ".step" ".p21" ".stpZ"}} {"IFC Files" {".ifc"}}]
 
 # file open dialog
     set localNameList [tk_getOpenFile -title "Open STEP File(s)" -filetypes $typelist -initialdir $fileDir -multiple true]
@@ -1235,11 +1244,9 @@ proc openXLS {filename {check 0} {multiFile 0}} {
 
 # check if instances of Excel are already running
     if {$check} {checkForExcel}
-    #outputMsg " "
     
 # start Excel
     if {[catch {
-      #outputMsg "Starting Excel" green
       set xl [::tcom::ref createobject Excel.Application]
       [$xl ErrorCheckingOptions] TextDate False
 
@@ -1293,7 +1300,6 @@ proc checkForExcel {{multFile 0}} {
         set choice [tk_messageBox -type yesno -default $dflt -message $msg -icon question -title "Close Excel?"]
 
         if {$choice == "yes"} {
-          #outputMsg "Closing Excel" red
           for {set i 0} {$i < 5} {incr i} {
             set nnc 0
             foreach pid $pid1 {
@@ -1310,7 +1316,6 @@ proc checkForExcel {{multFile 0}} {
         }
       }
     } else {
-      #outputMsg "Closing Excel" red
       foreach pid $pid1 {
         if {[catch {
           twapi::end_process $pid -force
@@ -2145,7 +2150,7 @@ proc ColumnIntToChar {col} {
 proc compareLists {str l1 l2} {
   set l3 [intersect3 $l1 $l2]
   outputMsg "\n$str" red
-  outputMsg "Unique to L1 ([llength [lindex $l3 0]])\n  [lrange [lindex $l3 0] 0 500]"
-  outputMsg "Common to both ([llength [lindex $l3 1]])\n  [lrange [lindex $l3 1] 0 500]"
-  outputMsg "Unique to L2 ([llength [lindex $l3 2]])\n  [lrange [lindex $l3 2] 0 600]"
+  outputMsg "Unique to L1   ([llength [lindex $l3 0]])\n  [lindex $l3 0]"
+  outputMsg "Common to both ([llength [lindex $l3 1]])\n  [lindex $l3 1]"
+  outputMsg "Unique to L2   ([llength [lindex $l3 2]])\n  [lindex $l3 2]"
 }

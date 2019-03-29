@@ -45,7 +45,7 @@ proc spmiGeotolStart {entType} {
       modifiers \
       modifier \
       displacement [list length_measure_with_unit value_component] \
-      unit_size $len1 area_type second_unit_size $len1 \
+      unit_size $len1 area_type second_unit_size $len1 $len4 \
       maximum_upper_tolerance $len1 \
     ]
   }
@@ -305,6 +305,7 @@ proc spmiGeotolReport {objEntity} {
                       }
                     }
                   }
+                  "plane_angle_measure_with_unit* value_component" -
                   "length_measure_with_unit* value_component" {
 
 # datum reference modifier (not commonly used)                  
@@ -336,7 +337,7 @@ proc spmiGeotolReport {objEntity} {
                                   set tzf $pmiUnicode($tzfName1)
 
 # message when 'within a cylinder' is used
-                                  if {$tzfName == "within a cylinder" || $tzfName == "within a sphere"} {
+                                  if {$tzfName == "within a cylinder" || $tzfName == "within a circle" || $tzfName == "within a sphere"} {
                                     errorMsg "The tolerance_zone_form 'name' attribute uses '$tzfName' for a '$pmiUnicode(diameter)' symbol in the tolerance zone.  See the Recommended Practice for $recPracNames(pmi242), Sec. 6.9.2."
                                   }
 
@@ -355,7 +356,7 @@ proc spmiGeotolReport {objEntity} {
                                   lappend syntaxErr(tolerance_zone_form) [list [[$attrTZ Value] P21ID] "name" $msg]
                                   set tzf1 "(Invalid TZF: $tzfName)"
                                 } elseif {$tzfName == ""} {
-                                  set msg "The tolerance_zone_form 'name' attribute is blank."
+                                  set msg "Syntax Error: The tolerance_zone_form 'name' attribute is blank.\n[string repeat " " 14]\($recPracNames(pmi242), Sec. 6.9.2, Tables 11, 12)"
                                   errorMsg $msg
                                   lappend syntaxErr(tolerance_zone_form) [list [[$attrTZ Value] P21ID] "name" $msg]
                                 }
@@ -423,7 +424,10 @@ proc spmiGeotolReport {objEntity} {
                         }
                         if {[info exists pmiUnicode($dir)]} {
                           set tzWithDatum($tz) "\u25C1 $pmiUnicode($dir) | $datumSystem([$ds P21ID])"
-                          if {$tz == "oriented"} {append tzWithDatum($tz) " \u25B7 \[$angle$pmiUnicode(degree)\]"}
+                          lappend spmiTypesPerFile "intersection/orientation plane indicator"
+                          if {$tz == "oriented"} {
+                            append tzWithDatum($tz) " \u25B7 \[$angle$pmiUnicode(degree)\]"
+                          }
                         } else {
                           set msg "Syntax Error: Invalid orientation attribute '$dir' on '$tz\_tolerance_zone'."
                           errorMsg $msg
@@ -495,6 +499,7 @@ proc spmiGeotolReport {objEntity} {
                         lappend syntaxErr([$gtEntity Type]) [list [$gtEntity P21ID] $ATR(1) $msg]
                       }
                       set objValue "X $objValue"
+                      if {[string first "angle" $ent1] != -1} {append objValue $pmiUnicode(degree)}
 
 # get maximum tolerance value (6.9.5)
                     } elseif {$ATR(1) == "maximum_upper_tolerance"} {
@@ -882,14 +887,14 @@ proc spmiGeotolReport {objEntity} {
                       lappend spmiTypesPerFile "$ov placed datum target (6.6)"
                       lappend spmiTypesPerFile "all datum targets"
                       if {[$gtEntity Type] != "placed_datum_target_feature" } {
-                        set msg "Syntax Error: Target description '$ov' is only valid for placed_datum_target_feature, not [$gtEntity Type].\n[string repeat " " 14]\($recPracNames(pmi242), Sec. 6.6.1, Figure 38, Table 9)"
+                        set msg "Syntax Error: Target description '$ov' is not valid.  Use 'placed_datum_target_feature' instead of [$gtEntity Type] with '$ov' datum targets.\n[string repeat " " 14]\($recPracNames(pmi242), Sec. 6.6.1, Figure 38, Table 9)"
                         errorMsg $msg
                       }
                     } elseif {$ov == "curve" || $ov == "area"} {
                       lappend spmiTypesPerFile "$ov datum target (6.6)"
                       lappend spmiTypesPerFile "all datum targets"
                       if {[$gtEntity Type] != "datum_target" } {
-                        set msg "Syntax Error: Target description '$ov' is only valid for datum_target, not [$gtEntity Type].\n[string repeat " " 14]\($recPracNames(pmi242), Sec. 6.6.1, Figure 39, Table 9)"
+                        set msg "Syntax Error: Target description '$ov' is not valid.  Use 'datum_target' instead of [$gtEntity Type] with '$ov' datum targets.\n[string repeat " " 14]\($recPracNames(pmi242), Sec. 6.6.1, Figure 39, Table 9)"
                         errorMsg $msg
                       }
                     } else {
@@ -930,6 +935,13 @@ proc spmiGeotolReport {objEntity} {
                         set colName "Target Feature[format "%c" 10](Sec. 6.6.2)"
                         set objValue $datumTargetGeom
                         lappend spmiTypesPerFile "placed datum target geometry (6.6.2)"
+
+# bad feature for a point
+                        if {$ov == "point" && [string first "advanced_face" $datumTargetGeom] != -1} {
+                          set msg "Target feature for a 'point' datum target is a 'face'."
+                          errorMsg $msg
+                          lappend syntaxErr([$gtEntity Type]) [list [$gtEntity P21ID] "Target Feature" $msg]
+                        }
                       }
 
 # datum target feature geometry
@@ -1028,7 +1040,7 @@ proc spmiGeotolReport {objEntity} {
                                                   append datumTargetRep "  $val"
                                                 }
                                                 if {[string first "0.  0.  0." $datumTargetRep] != -1} {
-                                                  set msg "Datum target origin located at 0, 0, 0"
+                                                  set msg "Datum target origin located at 0 0 0."
                                                   errorMsg $msg
                                                   lappend syntaxErr([$gtEntity Type]) [list [$gtEntity P21ID] "Target Representation" $msg]
                                                 }
@@ -1139,7 +1151,7 @@ proc spmiGeotolReport {objEntity} {
                         }
                       
 # missing target representation
-                      } elseif {[string first "." $datumTargetRep] == -1} {
+                      } elseif {[string first "." $datumTargetRep] == -1 && $datumTargetType != "area" && $datumTargetType != "curve"} {
                         set msg "Syntax Error: Missing target representation for '$datumTargetType' on [$gtEntity Type].\n[string repeat " " 14]\($recPracNames(pmi242), Sec. 6.6.1, Figure 38)"
                         errorMsg $msg
                         set invalid $msg
@@ -1288,7 +1300,7 @@ proc spmiGeotolReport {objEntity} {
                     } elseif {$ov == "circular"} {
                       regsub -all "/ " $val "/ $pmiUnicode(diameter)" nval
                       $cells($gt) Item $r $c $nval
-                    } elseif {$ov != "rectangular"} {
+                    } elseif {$ov != "rectangular" && $ov != "cylindrical" && $ov != "spherical"} {
                       $cells($gt) Item $r $c "$val[format "%c" 10]$ov"
                     }
                   }
@@ -1613,15 +1625,19 @@ proc spmiGeotolReport {objEntity} {
         set c [string index [cellRange 1 $c1] 0]
         set r $spmiIDRow($gt,$spmiID)
         if {[string first "datum_feature" [$gtEntity Type]] == -1} {
-          set heading "Toleranced Geometry[format "%c" 10](column E)"
+          set head1 "Toleranced"
+          set heading "$head1 Geometry[format "%c" 10](column E)"
         } else {
-          set heading "Associated Geometry[format "%c" 10](Sec. 6.5)"
+          set head1 "Associated"
+          set heading "$head1 Geometry[format "%c" 10](Sec. 6.5)"
         }
         if {![info exists pmiHeading($c1)]} {
           $cells($gt) Item 3 $c $heading
           set pmiHeading($c1)) 1
           set pmiCol [expr {max($c1,$pmiCol)}]
-        }
+          set comment "See Help > User Guide (section 5.1.5) for an explanation of $head1 Geometry."
+          addCellComment $gt 3 $c $comment
+       }
         $cells($gt) Item $r $c [string trim $geotolGeom]
         if {[lsearch $spmiRow($gt) $r] == -1} {lappend spmiRow($gt) $r}
 

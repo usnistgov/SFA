@@ -168,7 +168,7 @@ proc gpmiAnnotationReport {objEntity} {
   global defaultColor dirRatio dirType draftModelCameras draftModelCameraNames
   global entCount entLevel ent entAttrList entCount entsWithErrors geomType gpmiEnts gpmiID gpmiIDRow gpmiRow gpmiTypes gpmiTypesInvalid gpmiTypesPerFile gpmiValProp
   global iCompCurve iCompCurveSeg incrcol iPolyline localName nindex nistVersion nshape numCompCurve numCompCurveSeg numPolyline numx3dPID
-  global objEntity1 opt pmiCol pmiColumns pmiHeading pmiStartCol pointLimit prefix propDefIDS recPracNames savedViewCol stepAP syntaxErr 
+  global objEntity1 opt pmiCol pmiColumns pmiHeading pmiStartCol pointLimit prefix propDefIDS recPracNames savedViewCol savedViewName stepAP syntaxErr 
   global x3dColor x3dCoord x3dFile x3dFileName x3dStartFile x3dIndex x3dPoint x3dPID x3dShape x3dMsg x3dIndexType x3dMax x3dMin
   global tessCoord tessIndex tessIndexCoord tessRepo tessPlacement gpmiPlacement placeNCP placeOrigin placeAnchor useXL
   #outputMsg "gpmiAnnotationReport" red
@@ -1068,7 +1068,6 @@ proc gpmiAnnotationReport {objEntity} {
       if {[info exists assocGeom]} {
         set str [reportAssocGeom $ao $gpmiIDRow($ao,$gpmiID)]
         if {$str != ""  } {
-          #outputMsg "  Adding Associated Geometry" green
           if {![info exists pmiColumns(ageom)]} {set pmiColumns(ageom) [getNextUnusedColumn $ao]}
           if {$stepAP == "AP242"} {
             set colName "Associated Geometry[format "%c" 10](Sec. 9.3.1)"
@@ -1103,7 +1102,6 @@ proc gpmiAnnotationReport {objEntity} {
         }
         if {$nspmi == 1} {set str [string range $str 4 end]}
         if {$str != ""} {
-          #errorMsg "  Adding Associated Representation" green
           if {![info exists pmiColumns(spmi)]} {set pmiColumns(spmi) [getNextUnusedColumn $ao]}
           set colName "Associated Representation[format "%c" 10](Sec. 7.3)"
           set c [string index [cellRange 1 $pmiColumns(spmi)] 0]
@@ -1173,7 +1171,6 @@ proc gpmiAnnotationReport {objEntity} {
                 incr nsv
               }
               lappend savedViewName $draftModelCameraNames([$entDraughtingModel P21ID])
-              #errorMsg "  Adding Saved Views" green
 
               if {$opt(PMIGRF) && $opt(XLSCSV) != "None"} {
                 if {$stepAP == "AP242"} {

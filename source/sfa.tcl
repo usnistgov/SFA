@@ -437,6 +437,10 @@ wm minsize . [winfo reqwidth .] [expr {int([winfo reqheight .]*1.05)}]
 
 # debug
 #compareLists "AP242" $ap242all $ap242e1
+
+#set all [lrmdups [concat $ap203all $ap214all $ap242all]] 
+#foreach idx [array names entCategory] {compareLists "$idx" $all $entCategory($idx); outputMsg "--------------"}
+
 #set apcat {}
 #foreach idx [array names entCategory] {set apcat [concat $apcat $entCategory($idx)]}
 #compareLists "cat" $apcat [lrmdups [concat $ap203all $ap214all $ap242all]]

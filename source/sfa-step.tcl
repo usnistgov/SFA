@@ -46,9 +46,9 @@ proc getAssocGeom {entDef {tolType 0} {tolName ""}} {
             if {[catch {
               set relatedSA [[$a0 Value] Type]
             } emsg]} {
-              set msg "Syntax Error: Invalid 'related_shape_aspect' attribute on 'shape_aspect_relationship'."
+              set msg "Syntax Error: Invalid 'related_shape_aspect' attribute on '[$e0 Type]'."
               errorMsg $msg
-              lappend syntaxErr(shape_aspect_relationship) [list [$e0 P21ID] "related_shape_aspect" $msg]
+              lappend syntaxErr([$e0 Type]) [list [$e0 P21ID] "related_shape_aspect" $msg]
             }
 
 # related SA is OK
@@ -72,29 +72,12 @@ proc getAssocGeom {entDef {tolType 0} {tolName ""}} {
               } else {
                 lappend a0val [$a0 Value]
               }
-            }
   
 # find AF for SA with GISU or IIRU, check all around
-            foreach val $a0val {getAssocGeomFace $val $tolType}
+              foreach val $a0val {getAssocGeomFace $val $tolType}
+            }
           }
         }
-      }
-    }
-    
-# check all around
-    if {$entDefType == "all_around_shape_aspect" && [string first "annotation" $tolName] == -1} {
-      if {[info exists assocGeom(shape_aspect)]} {
-        if {[llength $assocGeom(shape_aspect)] == 1} {
-          set msg "Syntax Error: '$entDefType' relates to only one 'shape_aspect'.\n[string repeat " " 14]\($recPracNames(pmi242), Sec. 6.4, Fig. 31)"
-          errorMsg $msg
-          if {[info exists gtEntity]} {lappend syntaxErr([$gtEntity Type]) [list [$gtEntity P21ID] "toleranced_shape_aspect" $msg]}
-        }
-      }
-      if {[llength $assocGeom($type)] == 1 && $type == $entDefType} {
-        set msg "Syntax Error: '$entDefType' missing 'shape_aspect_relationship' to 'shape_aspect'.\n[string repeat " " 14]\($recPracNames(pmi242), Sec. 6.4, Fig. 31)"
-        errorMsg $msg
-        if {[info exists gtEntity]} {lappend syntaxErr([$gtEntity Type]) [list [$gtEntity P21ID] "toleranced_shape_aspect" $msg]}
-        unset assocGeom($type)
       }
     }
   } emsg]} {
@@ -360,14 +343,19 @@ proc reportAssocGeom {entType {row ""}} {
     }
   }
   
-# check CGSA with less than 2 SA
-  set ncgsa 0
+# check CGSA, all around, and between with less than 2 SA
+  set ncsa 0
   set nsa 0
   foreach item [array names assocGeom] {
-    if {$item == "composite_group_shape_aspect"} {set ncgsa [llength $assocGeom($item)]}
-    if {$item == "shape_aspect" || $item == "centre_of_symmetry"} {set nsa [llength $assocGeom($item)]}
-    if {$ncgsa == 1 && $nsa < 2} {
-      set msg "Syntax Error: 'composite_group_shape_aspect' does not relate to at least two 'shape_aspect' or similar entities."
+    if {$item == "composite_group_shape_aspect" || $item == "all_around_shape_aspect" || $item == " between_shape_aspect"} {
+      set ncsa [llength $assocGeom($item)]
+      set csaEnt $item
+    } elseif {$item == "shape_aspect" || $item == "centre_of_symmetry" || $item == "datum_feature"} {
+      incr nsa [llength $assocGeom($item)]
+    }
+    if {$ncsa == 1 && $nsa < 2} {
+      set msg "Syntax Error: '$csaEnt' must relate to at least two 'shape_aspect' or similar entities."
+      if {$item == "all_around_shape_aspect"} {append msg "\n[string repeat " " 14]\($recPracNames(pmi242), Sec. 6.4, Fig. 31)"}
       errorMsg $msg
       if {$row != ""} {
         set typ $entType
@@ -388,7 +376,16 @@ proc reportAssocGeom {entType {row ""}} {
         set cgrObjects [$objDesign FindObjects [string trim constructive_geometry_representation]]
         ::tcom::foreach e0 $cgrObjects {
           set a1 [[$e0 Attributes] Item [expr 2]]
-          ::tcom::foreach e2 [$a1 Value] {lappend crgItems [$e2 P21ID]}
+          ::tcom::foreach e2 [$a1 Value] {
+            lappend crgItems [$e2 P21ID]
+
+# find trimmed_curve for composite_curve and add to crgItems
+            if {[$e2 Type] == "composite_curve"} {
+              ::tcom::foreach ccs [[[$e2 Attributes] Item [expr 2]] Value] {
+                lappend crgItems [[[[$ccs Attributes] Item [expr 3]] Value] P21ID]
+              }
+            }
+          }
         }
         
 # find identified_items in GISU for CGR
