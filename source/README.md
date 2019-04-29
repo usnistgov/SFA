@@ -1,10 +1,11 @@
-# STEP File Analyzer source code
+# STEP File Analyzer and Viewer source code
 
 ## Tcl files
 
 - sfa.tcl - main program
 - sfa-cl.tcl - main program for command-line version
-- sfa-coverage.tcl - coverage analysis
+- sfa-counter.tcl - process counterbore/sink/drill and spotface
+- sfa-coverage.tcl - PMI coverage analysis
 - sfa-data.tcl - set lots of variables
 - sfa-dimtol.tcl - process dimensional tolerances
 - sfa-ent.tcl - write STEP entity to worksheet or CSV file
@@ -12,13 +13,13 @@
 - sfa-gen.tcl - generate a spreadsheet
 - sfa-geotol.tcl- process geometric tolerances
 - sfa-grafpmi.tcl - process graphical PMI and tessellated geometry
-- sfa-grafx3d.tcl - X3DOM graphics
+- sfa-grafx3d.tcl - generate X3DOM graphics for visualization
 - sfa-gui.tcl - generate user interface
-- sfa-indent.tcl - indents STEP file
+- sfa-indent.tcl - indents STEP file for tree view
 - sfa-inv.tcl - process inverse relationships
 - sfa-multi.tcl - process multiple STEP files
-- sfa-proc.tcl - more utility procedures
-- sfa-step.tcl - utility procedures
+- sfa-proc.tcl - utility procedures
+- sfa-step.tcl - STEP utility procedures
 - sfa-tess.tcl - process tessellated geometry
 - sfa-valprop.tcl - process validation properties
 

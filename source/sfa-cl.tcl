@@ -65,7 +65,7 @@ catch {
 set helpText "\nUsage: sfa-cl.exe myfile.stp \[csv\] \[viz\] \[noopen\] \[file\]
 
 Optional command line settings:
-  csv     Generate CSV files                                                                              
+  csv     Generate CSV files
   viz     Only generate Views and no Spreadsheet or CSV files
   stats   Only report characteristics of the STEP file
   noopen  Do not open the Spreadsheet or View after it has been generated
@@ -81,7 +81,7 @@ be installed the first time this software is run.
 Disclaimers:
 
 This software was developed at the National Institute of Standards and Technology
-by employees of the Federal Government in the course of their official duties.  
+by employees of the Federal Government in the course of their official duties.
 Pursuant to Title 17 Section 105 of the United States Code this software is not
 subject to copyright protection and is in the public domain.  This software is an
 experimental system.  NIST assumes no responsibility whatsoever for its use by

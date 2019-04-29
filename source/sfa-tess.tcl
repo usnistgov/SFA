@@ -551,7 +551,6 @@ proc tessCountColors {} {
 
 # -------------------------------------------------------------------------------
 proc tessSetPlacement {objEntity tsID} {
-  global objDesign
   global tessPlacement tessRepo shapeRepName
 
   set debug 0
@@ -673,7 +672,20 @@ proc x3dGetA2P3D {e0} {
 
 # -------------------------------------------------------------------------------
 # generate x3d rotation from axis2_placement_3d
-proc x3dRotation {axis refdir} {
+proc x3dRotation {axis refdir {type ""}} {
+  
+# check axis and refdir
+  set msg ""
+  if {[veclen [veccross $axis $refdir]] == 0} {
+    set msg "Syntax Error: For an axis2_placement_3d"
+    if {$type != ""} {append msg " related to '$type',"}
+    append msg " the 'axis' and 'ref_direction' are the same."
+  } elseif {[veclen $axis] == 0 || [veclen $refdir] == 0} {
+    set msg "Syntax Error: For an axis2_placement_3d"
+    if {$type != ""} {append msg " related to '$type',"}
+    append msg " the magnitude of the 'axis' or 'ref_direction' is zero."
+  }
+  if {$msg != ""} {errorMsg $msg}
     
 # construct rotation matrix u, must normalize to use with quaternion
   set u3 [vecnorm $axis]
@@ -816,4 +828,10 @@ proc vecnorm {v1} {
     set v2 $v1
   }
   return $v2
+}
+
+# angle - angle between two vectors
+proc vecangle {v1 v2} {
+  set angle [trimNum [expr {acos([vecdot $v1 $v2] / ([veclen $v1]*[veclen $v2]))}]]
+  return $angle
 }

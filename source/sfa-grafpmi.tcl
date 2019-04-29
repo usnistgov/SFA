@@ -20,7 +20,7 @@ proc gpmiAnnotation {entType} {
     set polyline        [list polyline]
     set trimmed_curve   [list trimmed_curve basis_curve]
   }
-  set composite_curve [list composite_curve segments [list composite_curve_segment parent_curve $trimmed_curve]]                        
+  set composite_curve [list composite_curve segments [list composite_curve_segment parent_curve $trimmed_curve]]
 
 # tessellated geometry
   set triangulated_face                [list triangulated_face name]
@@ -54,7 +54,7 @@ proc gpmiAnnotation {entType} {
   set planar_box    [list planar_box size_in_x size_in_y placement $a2p3d]
   set geometric_set [list geometric_set name elements $cartesian_point $a2p3d $planar_box]
   set PMIP(annotation_placeholder_occurrence) [list annotation_placeholder_occurrence name styles $curve_style item $geometric_set]
-    
+
 # generate correct PMIP variable accounting for variations like characterized_object
   if {![info exists PMIP($entType)]} {
     foreach item $aoEntTypes {
@@ -65,7 +65,7 @@ proc gpmiAnnotation {entType} {
       }
     }
   }
-   
+
   if {![info exists PMIP($entType)]} {return}
   set ao $entType
 
@@ -101,7 +101,7 @@ proc gpmiAnnotation {entType} {
       errorMsg $msg
       lappend syntaxErr($ao) [list 1 1 $msg]
     }
-  
+
     if {[string first "annotation_occurrence" $ao] != -1 && [string first "tessellated" $ao] == -1 && [string first "draughting_annotation_occurrence" $ao] == -1} {
       set msg "Syntax Error: Using 'annotation_occurrence' with $stepAP is not valid for PMI Presentation.\n[string repeat " " 14]\($recPracNames(pmi242), Sec. 8.1.1)"
       errorMsg $msg
@@ -116,7 +116,7 @@ proc gpmiAnnotation {entType} {
       lappend syntaxErr($ao) [list 1 1 $msg]
     }
   }
-  
+
   if {[string first "draughting" $ao] != -1} {
     set msg "Syntax Error: Using 'draughting_annotation_*_occurrence' is not valid for PMI Presentation.\n[string repeat " " 14]"
     if {$stepAP == "AP242"} {
@@ -133,11 +133,11 @@ proc gpmiAnnotation {entType} {
   setEntAttrList $PMIP($ao)
   if {$opt(DEBUG1)} {outputMsg "entattrlist $entAttrList"}
   if {$opt(DEBUG1)} {outputMsg \n}
-    
+
   set startent [lindex $PMIP($ao) 0]
   set n 0
   set entLevel 0
-  
+
 # get next unused column by checking if there is a colName
   if {$useXL} {set pmiStartCol($ao) [getNextUnusedColumn $startent]}
 
@@ -156,19 +156,18 @@ proc gpmiAnnotation {entType} {
     }
   }
   set col($ao) $pmiCol
-  
+
 # write any remaining geometry for polyline annotations
   if {$opt(VIZPMI)} {x3dPolylinePMI}
 }
 
 # -------------------------------------------------------------------------------
 proc gpmiAnnotationReport {objEntity} {
-  global objDesign
   global ao aoname ap242edition assocGeom badAttributes boxSize cells circleCenter col currx3dPID curveTrim
   global defaultColor dirRatio dirType draftModelCameras draftModelCameraNames
   global entCount entLevel ent entAttrList entCount entsWithErrors geomType gpmiEnts gpmiID gpmiIDRow gpmiRow gpmiTypes gpmiTypesInvalid gpmiTypesPerFile gpmiValProp
   global iCompCurve iCompCurveSeg incrcol iPolyline localName nindex nistVersion nshape numCompCurve numCompCurveSeg numPolyline numx3dPID
-  global objEntity1 opt pmiCol pmiColumns pmiHeading pmiStartCol pointLimit prefix propDefIDS recPracNames savedViewCol savedViewName stepAP syntaxErr 
+  global objEntity1 opt pmiCol pmiColumns pmiHeading pmiStartCol pointLimit prefix propDefIDS recPracNames savedViewCol savedViewName stepAP syntaxErr
   global x3dColor x3dCoord x3dFile x3dFileName x3dStartFile x3dIndex x3dPoint x3dPID x3dShape x3dMsg x3dIndexType x3dMax x3dMin
   global tessCoord tessIndex tessIndexCoord tessRepo tessPlacement gpmiPlacement placeNCP placeOrigin placeAnchor useXL
   #outputMsg "gpmiAnnotationReport" red
@@ -199,14 +198,14 @@ proc gpmiAnnotationReport {objEntity} {
 # write geometry polyline annotations
       if {$opt(VIZPMI)} {x3dPolylinePMI}
     }
-    
+
 # keep track of the number of c_c or c_c_s, if not polyline
     if {$objType == "composite_curve"} {
       incr iCompCurve
     } elseif {$objType == "composite_curve_segment"} {
       incr iCompCurveSeg
     }
-    
+
     if {[string first "occurrence" $ao] != -1 && $objType != $ao && $opt(XLSCSV) != "None"}  {
       if {$entLevel == 2 && \
           $objType != "geometric_curve_set" && $objType != "annotation_fill_area" && $objType != "presentation_style_assignment" && \
@@ -236,7 +235,7 @@ proc gpmiAnnotationReport {objEntity} {
         set objNodeType [$objAttribute NodeType]
         set objSize     [$objAttribute Size]
         set objAttrType [$objAttribute Type]
-  
+
         set idx [lsearch $entAttrList $ent1]
 
 # -----------------
@@ -271,7 +270,7 @@ proc gpmiAnnotationReport {objEntity} {
               }
 
               set colName "value"
-  
+
               if {$ok && [info exists gpmiIDRow($ao,$gpmiID)] && $opt(PMIGRF) && $opt(XLSCSV) != "None"} {
                 set c [string index [cellRange 1 $col($ao)] 0]
                 set r $gpmiIDRow($ao,$gpmiID)
@@ -320,7 +319,7 @@ proc gpmiAnnotationReport {objEntity} {
           if {[catch {
             if {$idx != -1} {
               if {$opt(DEBUG1) && $geomType != "polyline"} {outputMsg "$ind   ATR $entLevel $objName - $objValue ($objNodeType, $objSize, $objAttrType)"}
-          
+
 # start of a list of cartesian points, assuming it is for a polyline, entLevel = 3
               if {$objAttrType == "ListOfcartesian_point" && $entLevel == 3} {
                 #outputMsg 1entLevel$entLevel red
@@ -332,7 +331,7 @@ proc gpmiAnnotationReport {objEntity} {
                 set numx3dPID $objSize
                 set currx3dPID 0
                 incr iPolyline
-    
+
                 set str ""
                 for {set i 0} {$i < $objSize} {incr i} {append x3dIndex "[expr {$i+$nindex}] "}
                 append x3dIndex "-1 "
@@ -384,7 +383,7 @@ proc gpmiAnnotationReport {objEntity} {
 # write placeholder box after getting origin and anchor
                       if {$placeNCP == 3} {
                         append x3dCoord "0 0 0 "
-                        append x3dCoord "$boxSize(x) 0 0 " 
+                        append x3dCoord "$boxSize(x) 0 0 "
                         append x3dCoord "0 $boxSize(y) 0 "
                         append x3dCoord "$boxSize(x) $boxSize(y) 0 "
                         append x3dIndex "0 1 3 2 0 -1"
@@ -550,7 +549,7 @@ proc gpmiAnnotationReport {objEntity} {
                   }
                 }
                 set ov [string trim $str]
-  
+
                 set val [[$cells($ao) Item $r $c] Value]
                 if {$val == ""} {
                   $cells($ao) Item $r $c $ov
@@ -561,7 +560,7 @@ proc gpmiAnnotationReport {objEntity} {
                     errorMsg "  ERROR: Too much data to show in a cell" red
                   }
                 }
-            
+
 # keep track of max column
                 set pmiCol [expr {max($col($ao),$pmiCol)}]
               }
@@ -584,14 +583,14 @@ proc gpmiAnnotationReport {objEntity} {
           if {[catch {
             if {$idx != -1} {
               if {$opt(DEBUG1) && $ent1 != "cartesian_point name"} {outputMsg "$ind   ATR $entLevel $objName - $objValue ($objNodeType, $objAttrType)  ($ent1)"}
-    
+
 # get values for these entity and attribute pairs
               set ok 0
               set colName ""
               switch -glob $ent1 {
                 "circle radius" {
                   if {$opt(VIZPMI) && $x3dFileName != ""} {
-# write circle to X3DOM                    
+# write circle to X3DOM
                     #set ns 8
                     set ns 24
                     set angle 0
@@ -709,13 +708,13 @@ proc gpmiAnnotationReport {objEntity} {
                         set ok 0
                       }
                     }
-        
+
 # check new rule with AP242 edition 2
                     if {$ap242edition == 2 && ![info exists entCount(draughting_model_and_tessellated_shape_representation)]} {
                       errorMsg "Syntax Error: Missing (draughting_model)(tessellated_shape_representation) entity\n[string repeat " " 14]\($recPracNames(pmi242), Sec. 8.2, note for AP242 Edition 2)"
                     }
                   }
-                } 
+                }
                 "*triangulated_face name" -
                 "*triangulated_surface_set name" -
                 "tessellated_curve_set name" {
@@ -820,7 +819,7 @@ proc gpmiAnnotationReport {objEntity} {
                   if {[lsearch $gpmiRow($ao) $r] == -1} {lappend gpmiRow($ao) $r}
                 }
 
-# look for correct PMI name on 
+# look for correct PMI name on
 # geometric_curve_set  annotation_fill_area  tessellated_geometric_set  composite_curve
                 if {$ent1 == "geometric_curve_set name" || \
                     $ent1 == "geometric_set name" || \
@@ -830,7 +829,7 @@ proc gpmiAnnotationReport {objEntity} {
                     $ent1 == "composite_curve name"} {
                   set ov [string tolower $objValue]
 
-# look for invalid 'name' values                  
+# look for invalid 'name' values
                   set invalid ""
                   if {[string first "occurrence" $ao] != -1 && $opt(XLSCSV) != "None"} {
                     if {$ov == "" || [lsearch $gpmiTypes $ov] == -1} {
@@ -852,7 +851,7 @@ proc gpmiAnnotationReport {objEntity} {
                       lappend syntaxErr([lindex [split $ent1 " "] 0]) [list $objID [lindex [split $ent1 " "] 1] $msg]
                     }
                   }
-                  
+
 # count number of gpmi types
                   if {[info exists aoname]} {
                     if {$ov != $aoname} {
@@ -874,7 +873,7 @@ proc gpmiAnnotationReport {objEntity} {
                     }
                   }
                   set ov $objValue
-              
+
 # start X3DOM file, read tessellated geometry
                   if {$opt(VIZPMI) && [string first "occurrence" $ao] != -1} {
                     if {$x3dStartFile} {x3dFileStart}
@@ -883,13 +882,13 @@ proc gpmiAnnotationReport {objEntity} {
                     if {$ao == "annotation_fill_area_occurrence"} {errorMsg " PMI annotations with filled characters are not filled."}
                     if {[string first "tessellated" $ao] == -1 && [string first "placeholder" $ao] == -1} {set x3dShape 1}
                     update
-                  }               
+                  }
 
-# value in spreadsheet  
+# value in spreadsheet
                   if {[info exists gpmiIDRow($ao,$gpmiID)] && [string first "occurrence" $ao] != -1 && $opt(PMIGRF) && $opt(XLSCSV) != "None"} {
                     set val [[$cells($ao) Item $r $c] Value]
                     if {$invalid != ""} {lappend syntaxErr($ao) [list $r $col($ao) $invalid]}
-  
+
                     if {$val == ""} {
                       $cells($ao) Item $r $c $ov
                     } else {
@@ -930,7 +929,7 @@ proc gpmiAnnotationReport {objEntity} {
     }
   }
   incr entLevel -1
-  
+
 # write a few more things at the end of processing an annotation_occurrence entity
   if {$entLevel == 0 && $opt(PMIGRF) && $opt(XLSCSV) != "None" && [info exists gpmiIDRow($ao,$gpmiID)]} {
 
@@ -940,7 +939,7 @@ proc gpmiAnnotationReport {objEntity} {
     if {[catch {
       catch {unset assocGeom}
       catch {unset assocSPMI}
-      
+
       if {[string first "placeholder" $ao] == -1} {
         set ok 0
         set objDC [$objEntity GetUsedIn [string trim draughting_callout] [string trim contents]]
@@ -958,7 +957,7 @@ proc gpmiAnnotationReport {objEntity} {
         }
         if {!$ok} {set objGuiEntities [$objEntity GetUsedIn [string trim draughting_model_item_association_with_placeholder] [string trim identified_item]]}
       }
-      
+
       ::tcom::foreach objGuiEntity $objGuiEntities {
         ::tcom::foreach attrDMIA [$objGuiEntity Attributes] {
           if {[$attrDMIA Name] == "name"} {set attrName [$attrDMIA Value]}
@@ -1062,7 +1061,7 @@ proc gpmiAnnotationReport {objEntity} {
     } emsg]} {
       errorMsg "ERROR reporting Annotation Plane: $emsg"
     }
-      
+
 # report associated geometry
     if {[catch {
       if {[info exists assocGeom]} {
@@ -1119,7 +1118,7 @@ proc gpmiAnnotationReport {objEntity} {
       errorMsg "ERROR reporting Associated Geometry and Representation: $emsg"
     }
   }
-    
+
 # report camera models associated with the annotation occurrence through draughting_model
   if {$entLevel == 0 && (($opt(PMIGRF) && $opt(XLSCSV) != "None" && [info exists gpmiIDRow($ao,$gpmiID)]) || ($opt(VIZPMI) && !$opt(PMIGRF)))} {
     if {[catch {
@@ -1135,14 +1134,14 @@ proc gpmiAnnotationReport {objEntity} {
         }
         foreach dm $dmlist {
           set entDraughtingModels [$objEntity GetUsedIn [string trim $dm] [string trim items]]
-          
+
 # check for draughting_callout.contents -> ao (PMI RP, section 9.4.4, figure 93)
           set entDraughtingCallouts [$objEntity GetUsedIn [string trim draughting_callout] [string trim contents]]
           ::tcom::foreach entDraughtingCallout $entDraughtingCallouts {
             set entDraughtingModels [$entDraughtingCallout GetUsedIn [string trim $dm] [string trim items]]
             #outputMsg [$entDraughtingCallout P21ID][$entDraughtingCallout Type] blue
           }
-      
+
 # check if there are any entDraughtingModel, if none then there are no camera models for the annotation
           set okdm 0
           ::tcom::foreach entDraughtingModel $entDraughtingModels {set okdm 1}
@@ -1186,7 +1185,7 @@ proc gpmiAnnotationReport {objEntity} {
                   set pmiHeading($savedViewCol) 1
                   set pmiCol [expr {max($savedViewCol,$pmiCol)}]
                 }
-  
+
                 set str "($nsv) camera_model_d3 [string trim $savedViews]"
                 if {$nsv == 1} {set str "camera_model_d3 [string trim $savedViews]"}
                 $cells($ao) Item $r $c $str
@@ -1202,7 +1201,7 @@ proc gpmiAnnotationReport {objEntity} {
                 }
                 if {[lsearch $gpmiRow($ao) $r] == -1} {lappend gpmiRow($ao) $r}
               }
-              
+
 # check for a mapped_item in draughting_model.items, do not check style_item (see old code)
               set attrsDraughtingModel [$entDraughtingModel Attributes]
               ::tcom::foreach attrDraughtingModel $attrsDraughtingModel {
@@ -1216,7 +1215,7 @@ proc gpmiAnnotationReport {objEntity} {
                     if {$itype == "mapped_item"} {set okmi 1}
                     if {[string first "camera_model_d3" $itype] == 0} {set okcm 1}
                   }
-                  
+
                   if {$okcm} {
                     if {$okmi == 0 && $opt(XLSCSV) != "None"} {
                       set msg "Syntax Error: For Saved Views, missing required reference to 'mapped_item' on [formatComplexEnt [$entDraughtingModel Type]].items\n[string repeat " " 14]"
@@ -1231,7 +1230,7 @@ proc gpmiAnnotationReport {objEntity} {
                   }
                 }
               }
-          
+
 # check MDADR (or RR) rep_1 vs. rep_2
               if {$stepAP == "AP242"} {
                 set relType ""
@@ -1289,12 +1288,12 @@ proc gpmiAnnotationReport {objEntity} {
       errorMsg "ERROR adding Saved Views: $emsg"
     }
   }
-  
+
 # check if there are PMI validation properties (propDefIDS) associated with the annotation_occurrence
   if {$entLevel == 0 && $opt(PMIGRF) && $opt(XLSCSV) != "None" && [info exists gpmiIDRow($ao,$gpmiID)]} {
     if {[catch {
       if {[info exists propDefIDS]} {
-      
+
 # look for annotation_occurrence used in property_definition.definition
         set objGuiEntities [$objEntity GetUsedIn [string trim property_definition] [string trim definition]]
         ::tcom::foreach objGuiEntity $objGuiEntities {
@@ -1363,20 +1362,20 @@ proc pmiGetCamerasAndProperties {} {
                 annotation_occurrence_and_characterized_object] {
     if {[info exists entCount($ao)]} {if {$entCount($ao) > 0} {lappend aolist $ao}}
   }
-  
+
   catch {unset draftModelCameras}
   catch {unset draftModelCameraNames}
   checkTempDir
-  
+
   if {[llength $aolist] > 0} {
     if {[catch {
-  
+
 # camera list
       set cmlist {}
       foreach cms [list camera_model_d3 camera_model_d3_multi_clipping] {
         if {[info exists entCount($cms)]} {if {$entCount($cms) > 0} {lappend cmlist $cms}}
       }
-      
+
       if {[info exists entCount(camera_model_d2)]} {
         set msg "Syntax Error: For Saved Views, 'camera_model_d2' is not allowed.\n[string repeat " " 14]"
         if {$stepAP == "AP242"} {
@@ -1386,19 +1385,19 @@ proc pmiGetCamerasAndProperties {} {
         }
         errorMsg $msg
       }
-  
+
 # draughting model list
       set dmlist {}
       foreach dms [list characterized_object_and_draughting_model characterized_representation_and_draughting_model \
                         characterized_representation_and_draughting_model_and_representation draughting_model] {
         if {[info exists entCount($dms)]} {if {$entCount($dms) > 0} {lappend dmlist $dms}}
       }
-      
+
 # loop over camera model entities
       foreach cm $cmlist {
         ::tcom::foreach entCameraModel [$objDesign FindObjects [string trim $cm]] {
           set attrCameraModels [$entCameraModel Attributes]
-    
+
 # loop over draughting model entities
           foreach dm $dmlist {
             set entDraughtingModels [$entCameraModel GetUsedIn [string trim $dm] [string trim items]]
@@ -1406,7 +1405,7 @@ proc pmiGetCamerasAndProperties {} {
               set attrDraughtingModels [$entDraughtingModel Attributes]
               set dmitems([$entDraughtingModel P21ID]) ""
               set annForDM([$entDraughtingModel P21ID]) 0
-  
+
 # DM name attribute
               set ok 0
               #if {[llength $dmlist] == 1 || [string first "characterized" $dm] != -1} {set ok 1}
@@ -1444,22 +1443,22 @@ proc pmiGetCamerasAndProperties {} {
                   }
                 }
               }
-  
+
 # CM name attribute
               ::tcom::foreach attrCameraModel $attrCameraModels {
                 set nameCameraModel [$attrCameraModel Name]
                 if {$nameCameraModel == "name"} {
                   set name [$attrCameraModel Value]
-  
+
 # clean up the camera name
-                  regsub -all " " [string trim $name] "_" name1  
-                  regsub -all {\(} [string trim $name1] "_" name1 
-                  regsub -all {\)} [string trim $name1] "" name1  
+                  regsub -all " " [string trim $name] "_" name1
+                  regsub -all {\(} [string trim $name1] "_" name1
+                  regsub -all {\)} [string trim $name1] "" name1
                   regsub -all {:~$%&*<>?/+\|\"\#\\\{\}\-} [string trim $name1] "_" name1
                   regsub -all {\-} $name1 "_" name1
                   regsub -all {\.} $name1 "_" name1
                   if {$name1 == ""} {set name1 "Missing_name"}
-                  
+
                   if {$name == ""} {
                     set msg "Syntax Error: For Saved Views, missing required 'name' attribute on $cm\n[string repeat " " 14]"
                     if {$stepAP == "AP242"} {
@@ -1470,7 +1469,7 @@ proc pmiGetCamerasAndProperties {} {
                     errorMsg $msg
                     lappend syntaxErr($cm) [list [$entCameraModel P21ID] name $msg]
                   }
-  
+
 # get axis2_placement_3d for camera viewpoint
                 } elseif {$nameCameraModel == "view_reference_system"} {
                   catch {unset savedViewpoint($name1)}
@@ -1491,7 +1490,7 @@ proc pmiGetCamerasAndProperties {} {
                   }
                 }
               }
-  
+
 # cameras associated with draughting models
               set str "[$entCameraModel P21ID] ($name)  "
               set id [$entDraughtingModel P21ID]
@@ -1505,7 +1504,7 @@ proc pmiGetCamerasAndProperties {} {
               } elseif {[string first $name $draftModelCameraNames($id)] == -1 && [string first $name1 $draftModelCameraNames($id)] == -1} {
                 append draftModelCameraNames($id) " $name1"
               }
-  
+
 # keep track of saved views for graphic PMI
               if {$opt(VIZPMI)} {
                 set dmcn $draftModelCameraNames([$entDraughtingModel P21ID])
@@ -1531,11 +1530,11 @@ proc pmiGetCamerasAndProperties {} {
     errorMsg "Using 'annotation_text_occurrence' is not valid for PMI Presentation.\n ($recPracNames(pmi242), Sec. 1)"
     return
   }
-  
+
 # get pmi validation properties so that they can be annotation_occurrence
   catch {unset gpmiValProp}
   catch {unset propDefIDS}
-  
+
   if {[catch {
     ::tcom::foreach objPDEntity [$objDesign FindObjects [string trim property_definition]] {
       set objPDAttributes [$objPDEntity Attributes]
@@ -1553,4 +1552,4 @@ proc pmiGetCamerasAndProperties {} {
     errorMsg "ERROR getting PMI validation properities: $emsg"
     catch {raise .}
   }
-}  
+}

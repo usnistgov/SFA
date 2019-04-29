@@ -1,19 +1,19 @@
-# start x3dom file for non-FEM graphics                       
+# start x3dom file for non-FEM graphics
 proc x3dFileStart {} {
   global ao entCount localName opt timeStamp x3dFile x3dFileName x3dStartFile numTessColor
   global x3dMin x3dMax cadSystem viz stepAP brepEnts x3dColorBrep x3dColorStyle
   global objDesign
-  
+
   if {$x3dStartFile == 0} {return}
   set x3dStartFile 0
   checkTempDir
-  
+
   catch {file delete -force -- "[file rootname $localName]_x3dom.html"}
   catch {file delete -force -- "[file rootname $localName]-x3dom.html"}
   set x3dFileName [file rootname $localName]-sfa.html
   catch {file delete -force -- $x3dFileName}
   set x3dFile [open $x3dFileName w]
-  
+
   set title [file tail $localName]
   if {$stepAP != "" && [string range $stepAP 0 1] == "AP"} {append title " | $stepAP"}
   puts $x3dFile "<!DOCTYPE html>\n<html>\n<head>\n<title>$title</title>\n<base target=\"_blank\">\n<meta http-equiv='Content-Type' content='text/html;charset=utf-8'/>"
@@ -31,20 +31,20 @@ proc x3dFileStart {} {
   }
   puts $x3dFile "\n<body><font face=\"arial\">\n<h3>$name</h3>"
   puts $x3dFile "\n<table><tr><td valign='top' width='85%'>"
-  
+
   if {$opt(VIZBRP)} {
     set ok 0
     foreach item $brepEnts {if {[info exists entCount($item)]} {set ok 1}}
     set x3dColorBrep [x3dBrepColor]
     if {$ok} {
-      
-# report multiple colors      
+
+# report multiple colors
       set ok1 0
       if {$x3dColorBrep == "" && [info exists entCount(styled_item)] && $x3dColorStyle} {set ok1 1}
       if {$ok1} {
         puts $x3dFile "Multiple part colors are ignored.  "
 
-# report overriding colors      
+# report overriding colors
       } elseif {[info exists entCount(over_riding_styled_item)]} {
         if {$entCount(over_riding_styled_item) > 0} {
           set overriding 0
@@ -73,7 +73,7 @@ proc x3dFileStart {} {
     set width [expr {int($height*[winfo screenwidth .]/[winfo screenheight .])}]
   }
   puts $x3dFile "\n<X3D id='x3d' showStat='false' showLog='false' x='0px' y='0px' width='$width' height='$height'>\n<Scene DEF='scene'>"
-  
+
 # read tessellated geometry separately because of IFCsvr limitations
   if {($viz(PMI) && [info exists entCount(tessellated_annotation_occurrence)]) || $viz(TPG)} {tessReadGeometry}
   outputMsg " Writing View to: [truncFileName [file nativename $x3dFileName]]" green
@@ -98,7 +98,7 @@ proc x3dTessGeom {objID objEntity1 ent1} {
   global tessPlacement tessRepo x3dColor x3dCoord x3dIndex x3dFile x3dColors x3dColorsUsed x3dColorFile x3dMsg opt defaultColor tessPartFile tessSuppGeomFile shellSuppGeom
   global savedViewNames savedViewFileName srNames
   #outputMsg "x3dTessGeom $objID"
-  
+
   set x3dIndex $tessIndex($objID)
   set x3dCoord $tessCoord($tessIndexCoord($objID))
 
@@ -146,13 +146,13 @@ proc x3dTessGeom {objID objEntity1 ent1} {
   }
   if {$nplace == 0} {set nplace 1}
 
-# file list where to write geometry  
+# file list where to write geometry
   set flist $x3dFile
   if {$ao == "tessellated_solid" || $ao == "tessellated_shell"} {
     set flist $tessPartFile
     if {$ao == "tessellated_shell" && [info exists shellSuppGeom]} {if {$shellSuppGeom} {set flist $tessSuppGeomFile}}
-  } 
-  
+  }
+
 # multiple saved views, write PMI to individual files, collected in x3dViewpoint below
   if {[info exists draftModelCameras] && $ao == "tessellated_annotation_occurrence"} {
     set savedViewName [getSavedViewName $objEntity1]
@@ -173,7 +173,7 @@ proc x3dTessGeom {objID objEntity1 ent1} {
         set emit "emissiveColor='$x3dColor'"
       }
     }
-      
+
 # loop over placements, if any
     for {set np 0} {$np < $nplace} {incr np} {
       set srName ""
@@ -190,7 +190,7 @@ proc x3dTessGeom {objID objEntity1 ent1} {
 
 # translation and rotation (sometimes PMI and usually assemblies)
       if {$tessRepo && [info exists tessPlacement(origin)]} {
-        puts $f "<Transform translation='[lindex $tessPlacement(origin) $np]' rotation='[x3dRotation [lindex $tessPlacement(axis) $np] [lindex $tessPlacement(refdir) $np]]'>"
+        puts $f "<Transform translation='[lindex $tessPlacement(origin) $np]' rotation='[x3dRotation [lindex $tessPlacement(axis) $np] [lindex $tessPlacement(refdir) $np] "tessellated part geometry"]'>"
         set endTransform "</Transform>"
         #errorMsg "$np / [lindex $tessPlacement(origin) $np] / [lindex $tessPlacement(axis) $np] / [lindex $tessPlacement(refdir) $np] / [x3dRotation [lindex $tessPlacement(axis) $np] [lindex $tessPlacement(refdir) $np]] / $ao"
       }
@@ -199,7 +199,7 @@ proc x3dTessGeom {objID objEntity1 ent1} {
       if {$np == 0} {
         set defstr ""
         if {$nplace > 1} {set defstr " DEF='$shapeRepName$objID'"}
-        
+
         if {$emit == ""} {
           set matID ""
           set colorID [lsearch $x3dColors $x3dColor]
@@ -213,10 +213,10 @@ proc x3dTessGeom {objID objEntity1 ent1} {
           puts $f "<Shape$defstr><Appearance><Material diffuseColor='$x3dColor' $emit></Material></Appearance>"
         }
         lappend x3dColorsUsed $x3dColor
-        
+
         set indexedSet "<Indexed[string totitle $x3dIndexType]\Set $solid coordIndex='[string trim $x3dIndex]'>"
-        
-        if {[lsearch $tessCoordID $tessIndexCoord($objID)] == -1} { 
+
+        if {[lsearch $tessCoordID $tessIndexCoord($objID)] == -1} {
           lappend tessCoordID $tessIndexCoord($objID)
           puts $f " $indexedSet\n  <Coordinate DEF='coord$tessIndexCoord($objID)' point='[string trim $x3dCoord]'></Coordinate></Indexed[string totitle $x3dIndexType]\Set></Shape>"
         } else {
@@ -256,7 +256,7 @@ proc x3dTessGeom {objID objEntity1 ent1} {
               }
               append x3dMesh "$edge -1 "
             }
-            
+
 # write mesh
             set ecolor ""
             foreach c [split $x3dColor] {append ecolor "[expr {$c*.5}] "}
@@ -265,7 +265,7 @@ proc x3dTessGeom {objID objEntity1 ent1} {
               set msg "Triangular faces in tessellated shells are outlined in black."
               if {[lsearch $x3dMsg $msg] == -1} {lappend x3dMsg $msg}
             }
-            
+
             set defstr ""
             if {$nplace > 1} {set defstr " DEF='mesh$objID'"}
             puts $f "<Shape$defstr><Appearance><Material emissiveColor='$ecolor'></Material></Appearance>"
@@ -278,8 +278,8 @@ proc x3dTessGeom {objID objEntity1 ent1} {
 
       incr nshape
       if {[expr {$nshape%1000}] == 0} {outputMsg "  $nshape"}
-    
-# end transform                      
+
+# end transform
       if {[info exists endTransform]} {puts $f $endTransform}
     }
   }
@@ -295,7 +295,6 @@ proc x3dFileEnd {} {
   global savedViewButtons savedViewFileName savedViewFile savedViewNames savedViewpoint feaBoundary feaLoad savedViewItems feaLoadMsg feaLoadMag
   global tessEdgeFile tessEdgeFileName tessPartFile tessPartFileName tessEdgeCoordDef
   global wdir localName brepFile brepFileName brepEnts
-  global objDesign
 
 # PMI is already written to file
 # generate b-rep part geometry based on pythonOCC and OpenCascade
@@ -305,7 +304,7 @@ proc x3dFileEnd {} {
     foreach item $brepEnts {if {[info exists entCount($item)]} {set ok 1}}
     if {$ok} {x3dBrepGeom}
   }
-  
+
 # coordinate min, max, center
   foreach idx {x y z} {
     set delt($idx) [expr {$x3dMax($idx)-$x3dMin($idx)}]
@@ -347,7 +346,7 @@ proc x3dFileEnd {} {
       if {[file size $savedViewFileName($svn)] > 0} {
         set svMap($svn) $svn
         set svWrite 1
-        
+
 # check if same saved view graphics already written
         if {[info exists savedViewItems($svn)]} {
           for {set j 0} {$j < $i} {incr j} {
@@ -361,7 +360,7 @@ proc x3dFileEnd {} {
             }
           }
         }
-        
+
         set svn2 $svn
         if {$svn2 == ""} {
           set svn2 "Missing_name"
@@ -372,7 +371,7 @@ proc x3dFileEnd {} {
         puts $x3dFile "\n<!-- SAVED VIEW $svn2 -->"
         puts $x3dFile "<Switch whichChoice='0' id='sw$svn2'><Group>"
         if {$svWrite} {
-        
+
 # get saved view graphics from file
           set f [open $savedViewFileName($svn) r]
           while {[gets $f line] >= 0} {puts $x3dFile $line}
@@ -388,7 +387,7 @@ proc x3dFileEnd {} {
       catch {file delete -force -- $savedViewFileName($svn)}
     }
   }
-  
+
 # coordinate axes, if not already written
   if {$x3dAxes} {
     set asize [trimNum [expr {$maxxyz*0.05}]]
@@ -407,7 +406,7 @@ proc x3dFileEnd {} {
     unset tessPartFile
     unset tessPartFileName
   }
-  
+
 # -------------------------------------------------------------------------------
 # add b-rep part geometry from temp file
   if {$viz(BRP)} {
@@ -432,13 +431,13 @@ proc x3dFileEnd {} {
   set psy [trimNum [expr {$x3dMin(y) - 1.4*$maxxz}]]
 
   puts $x3dFile "<Viewpoint id='Front' position='$xyzcen(x) $psy $xyzcen(z)' orientation='1 0 0 1.5708' $cor></Viewpoint>"
-  puts $x3dFile "<OrthoViewpoint id='Ortho' position='$xyzcen(x) $psy $xyzcen(z)' orientation='1 0 0 1.5708' $cor fieldOfView='\[-$fov,-$fov,$fov,$fov\]'></OrthoViewpoint>"  
+  puts $x3dFile "<OrthoViewpoint id='Ortho' position='$xyzcen(x) $psy $xyzcen(z)' orientation='1 0 0 1.5708' $cor fieldOfView='\[-$fov,-$fov,$fov,$fov\]'></OrthoViewpoint>"
 
 # viewpoint orientation
   #if {[llength $savedViewNames] > 0 && $opt(VIZPMIVP)} {
   #  foreach svn $savedViewNames {
   #    if {[info exists savedViewpoint($svn)] && [lsearch $savedViewButtons $svn] != -1} {
-  #      puts $x3dFile "<Transform translation='[lindex $savedViewpoint($svn) 0]'><Viewpoint id='vp$svn' position='[lindex $savedViewpoint($svn) 0]' orientation='[lindex $savedViewpoint($svn) 1]' $cor></Viewpoint></Transform>"  
+  #      puts $x3dFile "<Transform translation='[lindex $savedViewpoint($svn) 0]'><Viewpoint id='vp$svn' position='[lindex $savedViewpoint($svn) 0]' orientation='[lindex $savedViewpoint($svn) 1]' $cor></Viewpoint></Transform>"
   #    }
   #  }
   #}
@@ -458,8 +457,8 @@ proc x3dFileEnd {} {
   puts $x3dFile "<Background id='BG' skyColor='$bgc'></Background>"
   puts $x3dFile "<NavigationInfo type='\"EXAMINE\" \"ANY\"'></NavigationInfo>"
   puts $x3dFile "</Scene></X3D>"
-  
-# credits  
+
+# credits
   set ver "NIST "
   set url "https://www.nist.gov/services-resources/software/step-file-analyzer-and-viewer"
   if {!$nistVersion} {
@@ -478,18 +477,18 @@ proc x3dFileEnd {} {
   }
   append str ".&nbsp;&nbsp;&nbsp;<a href=\"https://www.nist.gov/disclaimer\">NIST Disclaimer</a>&nbsp;&nbsp;&nbsp;[clock format [clock seconds] -format "%d %b %G %H:%M"]"
   puts $x3dFile $str
-  
-# start right column  
+
+# start right column
   puts $x3dFile "</td>\n\n<!-- START RIGHT COLUMN -->\n<td valign='top'>"
 
 # -------------------------------------------------------------------------------
-# for NIST model - link to drawing 
+# for NIST model - link to drawing
   if {$nistName != ""} {
     foreach item $modelURLs {
       if {[string first $nistName $item] == 0} {puts $x3dFile "<a href=\"https://s3.amazonaws.com/nist-el/mfg_digitalthread/$item\">NIST Test Case Drawing</a><p>"}
     }
   }
-    
+
 # BRP button
   if {$viz(BRP)} {
     puts $x3dFile "\n<!-- BRP button -->\n<input type='checkbox' checked onclick='togBRP(this.value)'/>Part Geometry<p>"
@@ -501,7 +500,7 @@ proc x3dFileEnd {} {
     if {$viz(EDG)} {puts $x3dFile "<!-- TED button -->\n<br><input type='checkbox' checked onclick='togTED(this.value)'/>Lines (Tessellated Edges)"}
     puts $x3dFile "<p>"
   }
-  
+
 # SMG button
   if {$viz(SMG)} {
     puts $x3dFile "\n<!-- SMG button -->\n<input type='checkbox' checked onclick='togSMG(this.value)'/>Supplemental Geometry<p>"
@@ -534,7 +533,7 @@ proc x3dFileEnd {} {
 
 # FEM buttons
   if {$viz(FEA)} {feaButtons 1}
-  
+
 # extra text messages
   if {[info exists x3dMsg]} {
     if {[llength $x3dMsg] > 0} {
@@ -545,10 +544,10 @@ proc x3dFileEnd {} {
       unset x3dMsg
     }
   }
-  
+
 # axes button
   puts $x3dFile "\n<!-- Axes button -->\n<p><input type='checkbox' checked onclick='togAxes(this.value)'/>Origin<p>"
-  
+
 # background color buttons
   puts $x3dFile "\n<!-- Background buttons -->\nBackground Color<br>"
   set check1 "checked"
@@ -577,15 +576,15 @@ proc x3dFileEnd {} {
     puts $x3dFile "<input style='width:80px' type='range' min='0' max='$max' step='0.1' value='0' onchange='matTrans(this.value)'/>"
     set transFunc 1
   }
-  
-# mouse message  
+
+# mouse message
   puts $x3dFile "\n<p>Key 'a' to view all, 'r' to restore, Page Up for orthographic.  <a href=\"https://www.x3dom.org/documentation/interaction/\">Use the mouse</a> in 'Examine Mode' to rotate, pan, zoom."
   puts $x3dFile "</td></tr></table>"
-  
+
 # -------------------------------------------------------------------------------
-# function for BRP 
+# function for BRP
   if {$viz(BRP)} {x3dSwitchScript BRP}
-  
+
 # function for TPG
   if {$viz(TPG)} {
     if {[string first "occurrence" $ao] == -1} {
@@ -593,8 +592,8 @@ proc x3dFileEnd {} {
       if {$viz(EDG)} {x3dSwitchScript TED}
     }
   }
-  
-# function for SMG 
+
+# function for SMG
   if {$viz(SMG)} {x3dSwitchScript SMG}
 
 # functions for PMI
@@ -609,10 +608,10 @@ proc x3dFileEnd {} {
 
 # functions for FEA buttons
   if {$viz(FEA)} {feaButtons 2}
-  
+
 # background function
   puts $x3dFile "\n<!-- Background function -->\n<script>function BGcolor(color){document.getElementById('BG').setAttribute('skyColor', color);}</script>"
-  
+
 # axes function
   x3dSwitchScript Axes
 
@@ -633,7 +632,7 @@ proc x3dFileEnd {} {
   puts $x3dFile "</font></body></html>"
   close $x3dFile
   update idletasks
-  
+
   unset x3dMax
   unset x3dMin
 }
@@ -641,7 +640,8 @@ proc x3dFileEnd {} {
 # -------------------------------------------------------------------------------
 # B-rep part geometry
 proc x3dBrepGeom {} {
-  global entCount opt viz mytemp wdir localName objDesign x3dMin x3dMax brepFile brepFileName x3dMsg sfaType x3dColorBrep
+  global entCount opt viz mytemp wdir localName x3dMin x3dMax brepFile brepFileName x3dMsg sfaType x3dColorBrep
+  global objDesign
 
 # copy stp2x3d executable to temp directory
   if {[catch {
@@ -655,8 +655,8 @@ proc x3dBrepGeom {} {
       }
       if {$copy} {file copy -force [file join $wdir exe stp2x3d.exe] $mytemp}
     }
-    
-# run stp2x3d    
+
+# run stp2x3d
     if {[file exists $stp2x3d]} {
 
 # output .x3d file name, account for extra '.' characters
@@ -665,12 +665,12 @@ proc x3dBrepGeom {} {
       catch {file delete -force $stpx3dFileName}
       outputMsg " Processing STEP part geometry.  Wait for the popup program (stp2x3d.exe) to complete." green
       catch {exec $stp2x3d [file nativename $localName]} errs
-      
+
 # done processing
       if {[string first "DONE!" $errs] != -1} {
         if {[file exists $stpx3dFileName]} {
           if {[file size $stpx3dFileName] > 0} {
-            
+
 # check for conversion units, mm > inch
             set sc 1
             ::tcom::foreach e0 [$objDesign FindObjects [string trim advanced_brep_shape_representation]] {
@@ -697,18 +697,18 @@ proc x3dBrepGeom {} {
                 }
               }
             }
-            
+
 # open temp file
             set brepFileName [file join $mytemp brep.txt]
             if {![file exists brepFileName]} {set brepFile [open $brepFileName w]}
-            
+
 # integrate x3d from stp2x3d with existing x3dom file
             puts $brepFile "\n<!-- B-REP PART GEOMETRY -->\n<Switch whichChoice='0' id='swBRP'><Transform scale='$sc $sc $sc'>"
             set stpx3dFile [open $stpx3dFileName r]
             update idletasks
             set write 0
-            
-# process all lines in file            
+
+# process all lines in file
             outputMsg " Processing X3D output from stp2x3d.exe" green
             update
             while {[gets $stpx3dFile line] >= 0} {
@@ -764,15 +764,15 @@ proc x3dBrepGeom {} {
                   }
                   if {[string first "</Normal" $nline] != -1} {break}
                 }
-                
-# adjust color                
+
+# adjust color
               } elseif {[string first "<Material" $line] != -1} {
                 if {![info exists x3dColorBrep]} {set x3dColorBrep "0.65 0.65 0.7"}
                 if {$x3dColorBrep == ""} {set x3dColorBrep "0.65 0.65 0.7"}
                 set line "<Material id='color' diffuseColor='$x3dColorBrep' specularColor='.2 .2 .2'>"
               }
-              
-# write remaining line to file              
+
+# write remaining line to file
               if {$write} {puts $brepFile $line}
               if {[string first "</Shape" $line] != -1} {set write 0}
             }
@@ -803,9 +803,10 @@ proc x3dBrepGeom {} {
 }
 
 # -------------------------------------------------------------------------------
-proc x3dBrepColor {} {      
-  global objDesign x3dColorsUsed entCount x3dColorBrepAdjusted x3dColorStyle
-  
+proc x3dBrepColor {} {
+  global x3dColorsUsed entCount x3dColorBrepAdjusted x3dColorStyle
+  global objDesign
+
   set debug 0
   set x3dColorBrep ""
   set x3dColorStyle 0
@@ -815,38 +816,38 @@ proc x3dBrepColor {} {
   catch {
     ::tcom::foreach e0 [$objDesign FindObjects [string trim styled_item]] {
       #if {$debug} {errorMsg "[$e0 Type] [$e0 P21ID]" green}
-      
+
 # styled_item.styles
       if {[$e0 Type] == "styled_item"} {
         set a1 [[$e0 Attributes] Item [expr 2]]
         set item [[[[$e0 Attributes] Item [expr 3]] Value] Type]
-    
+
         if {$item == "manifold_solid_brep" || $item == "shell_based_surface_model" || $item == "advanced_face"} {
           set x3dColorStyle 1
-          
+
 # presentation_style.styles
           ::tcom::foreach e2 [$a1 Value] {
             set a2 [[$e2 Attributes] Item [expr 1]]
             set e3 [$a2 Value]
             set a3 [[$e3 Attributes] Item [expr 2]]
-  
+
 # surface side style
             set e4 [$a3 Value]
             set a4s [[$e4 Attributes] Item [expr 2]]
-  
+
 # surface style fill area
             foreach e5 [$a4s Value] {
               if {[$e5 Type] == "surface_style_fill_area"} {
                 set a5 [[$e5 Attributes] Item [expr 1]]
-  
+
 # fill area style
                 set e6 [$a5 Value]
                 set a6 [[$e6 Attributes] Item [expr 2]]
-  
+
 # fill area style colour
                 set e7 [$a6 Value]
                 set a7 [[$e7 Attributes] Item [expr 2]]
-  
+
 # color
                 set e8 [$a7 Value]
                 if {[$e8 Type] == "colour_rgb"} {
@@ -872,8 +873,8 @@ proc x3dBrepColor {} {
       }
     }
   }
-  
-# ignore advanced_face if other colors exist  
+
+# ignore advanced_face if other colors exist
   if {[llength $colors(advanced_face)] > 0} {
     if {[llength $colors(manifold_solid_brep)] > 0 || [llength $colors(shell_based_surface_model)] > 0} {set colors(advanced_face) {}}
   }
@@ -902,9 +903,9 @@ proc x3dBrepColor {} {
 # -------------------------------------------------------------------------------
 # supplemental geometry
 proc x3dSuppGeom {maxxyz} {
-  global x3dFile objDesign viz tessSuppGeomFile tessSuppGeomFileName trimVal x3dMsg x3dColorsUsed
-  global recPracNames syntaxErr cgrObjects
-  
+  global x3dFile viz tessSuppGeomFile tessSuppGeomFileName trimVal x3dMsg x3dColorsUsed recPracNames syntaxErr cgrObjects
+  global objDesign
+
   set size [trimNum [expr {$maxxyz*0.025}]]
   set tsize [trimNum [expr {$size*0.33}]]
 
@@ -913,8 +914,8 @@ proc x3dSuppGeom {maxxyz} {
   if {![info exists cgrObjects]} {set cgrObjects [$objDesign FindObjects [string trim constructive_geometry_representation]]}
   ::tcom::foreach e0 $cgrObjects {
     set a1 [[$e0 Attributes] Item [expr 2]]
-    
-# process all items    
+
+# process all items
     ::tcom::foreach e2 [$a1 Value] {
       if {[catch {
         set ename [$e2 Type]
@@ -925,14 +926,15 @@ proc x3dSuppGeom {maxxyz} {
             set e3 $e2
             if {$ename == "plane"} {set e3 [[[$e2 Attributes] Item [expr 2]] Value]}
 
+# axis
             if {$ename == "axis2_placement_3d"} {
               set a2p3d [x3dGetA2P3D $e3]
               set origin [lindex $a2p3d 0]
               set axis   [lindex $a2p3d 1]
               set refdir [lindex $a2p3d 2]
-              puts $x3dFile "<Transform translation='$origin' rotation='[x3dRotation $axis $refdir]'>"
-        
-# check for axis color        
+              puts $x3dFile "<Transform translation='$origin' rotation='[x3dRotation $axis $refdir "supplemental geometry"]'>"
+
+# check for axis color
               set axisColor ""
               if {[catch {
                 set e4s [$e3 GetUsedIn [string trim styled_item] [string trim item]]
@@ -961,7 +963,7 @@ proc x3dSuppGeom {maxxyz} {
               } emsg]} {
                 errorMsg " ERROR getting color for '$ename' supplemental geometry."
               }
-              
+
               if {$axisColor == ""} {
                 puts $x3dFile " <Shape><Appearance><Material emissiveColor='1 0 0'></Material></Appearance><IndexedLineSet coordIndex='0 1 -1'><Coordinate point='0. 0. 0. $size 0. 0.'></Coordinate></IndexedLineSet></Shape>"
                 puts $x3dFile " <Shape><Appearance><Material emissiveColor='0 .5 0'></Material></Appearance><IndexedLineSet coordIndex='0 1 -1'><Coordinate point='0. 0. 0. 0. $size 0.'></Coordinate></IndexedLineSet></Shape>"
@@ -977,7 +979,7 @@ proc x3dSuppGeom {maxxyz} {
                 puts $x3dFile " <Transform translation='0 0 $sz' scale='$tsize $tsize $tsize'><Billboard axisOfRotation='0 0 0'><Shape><Appearance><Material diffuseColor='$axisColor'></Material></Appearance><Text string='\"Z\"'><FontStyle family='\"SANS\"'></FontStyle></Text></Shape></Billboard></Transform>"
                 lappend x3dColorsUsed $axisColor
               }
-              
+
               set nsize [trimNum [expr {$tsize*1.5}]]
               set tcolor "1 0 0"
               if {$axisColor != ""} {set tcolor $axisColor}
@@ -990,13 +992,13 @@ proc x3dSuppGeom {maxxyz} {
               x3dSuppGeomPlane $e2 $size $name
             }
           }
-          
+
           trimmed_curve -
           composite_curve -
           geometric_curve_set {
 
-# get all trimmed curves            
-            #outputMsg "\n$ename [$e2 P21ID]" red
+# get all trimmed curves
+            #outputMsg "$ename [$e2 P21ID]" red
             catch {unset trimVal}
             set trimmedCurves {}
             if {$ename == "trimmed_curve"} {
@@ -1007,36 +1009,40 @@ proc x3dSuppGeom {maxxyz} {
               ::tcom::foreach ccs [[[$e2 Attributes] Item [expr 2]] Value] {
                 lappend trimmedCurves [[[$ccs Attributes] Item [expr 3]] Value]
               }
-            
-# geometric_curve_set -> list of trimmed_ or composite_curve -> trimmed_curve
+
+# geometric_curve_set -> list of trimmed_ or composite_curve -> trimmed_curve or cartesian_point
             } elseif {$ename == "geometric_curve_set"} {
               set e3s [[[$e2 Attributes] Item [expr 2]] Value]
               foreach e3 $e3s {
-                if {[$e3 Type] == "trimmed_curve"} {
-                  lappend trimmedCurves $e3
-                } elseif {[$e3 Type] == "composite_curve"} {
-                  ::tcom::foreach ccs [[[$e3 Attributes] Item [expr 2]] Value] {lappend trimmedCurves [[[$ccs Attributes] Item [expr 3]] Value]}
-                } elseif {[$e3 Type] == "line"} {
-                  x3dSuppGeomLine $e3 $tsize $name
-                } elseif {[$e3 Type] == "circle"} {
-                  x3dSuppGeomCircle $e3 $tsize $name
-                } else {
-                  set msg "Supplemental geometry for '[$e3 Type]' in 'geometric_curve_set' is not shown."
-                  errorMsg " $msg"
-                  if {[lsearch $x3dMsg $msg] == -1} {lappend x3dMsg $msg}
+                set ename1 [$e3 Type]
+                switch $ename1 {
+                  trimmed_curve   {lappend trimmedCurves $e3}
+                  composite_curve {::tcom::foreach ccs [[[$e3 Attributes] Item [expr 2]] Value] {lappend trimmedCurves [[[$ccs Attributes] Item [expr 3]] Value]}}
+                  line            {x3dSuppGeomLine   $e3 $tsize $name}
+                  circle          {x3dSuppGeomCircle $e3 $tsize $name}
+                  cartesian_point {x3dSuppGeomPoint  $e3 $tsize}
+                  default {
+                    set msg "Supplemental geometry for '[$e3 Type]' in 'geometric_curve_set' is not shown."
+                    errorMsg " $msg"
+                    if {[lsearch $x3dMsg $msg] == -1} {lappend x3dMsg $msg}
+                  }
                 }
               }
             }
 
 # loop on trimmed curves, process lines and circles
             foreach tc $trimmedCurves {
-            
+
 # trimming with values OK, cartesian_points for lines, but circles NG, do not delete the meaningless 'catch'
               set trimVal(1) [[[$tc Attributes] Item [expr 3]] Value]
               set trimVal(2) [[[$tc Attributes] Item [expr 4]] Value]
               catch {set tmp "[$trimVal(1) Type][$trimVal(2) Type]"}
-              
+
               foreach idx [list 1 2] {
+                if {[llength $trimVal($idx)] == 2} {
+                  if {[string is double [lindex $trimVal($idx) 0]]} {set trimVal($idx) [lindex $trimVal($idx) 0]} 
+                  if {[string is double [lindex $trimVal($idx) 1]]} {set trimVal($idx) [lindex $trimVal($idx) 1]} 
+                }
                 if {[string first "handle" $trimVal($idx)] == -1} {
                   if {[expr {abs($trimVal($idx))}] > 1000.} {
                     set nval [trimNum [expr {10.*$trimVal($idx)/abs($trimVal($idx))}]]
@@ -1045,11 +1051,11 @@ proc x3dSuppGeom {maxxyz} {
                   }
                 }
               }
-  
+
               set name [[[$tc Attributes] Item [expr 1]] Value]
               set e3 [[[$tc Attributes] Item [expr 2]] Value]
               if {$name == "BRepFtrWithContract"} {set name ""}
-            
+
 # line, circle
               if {[$e3 Type] == "line"} {
                 x3dSuppGeomLine $e3 $tsize $name
@@ -1062,7 +1068,7 @@ proc x3dSuppGeom {maxxyz} {
               }
             }
           }
-        
+
           polyline {
             set e2s [[[$e2 Attributes] Item [expr 2]] Value]
             set polyline ""
@@ -1082,25 +1088,15 @@ proc x3dSuppGeom {maxxyz} {
             }
             set viz(SMG) 1
           }
-        
+
           cartesian_point {
-            set name [[[$e2 Attributes] Item [expr 1]] Value]
-            set coord1 [[[$e2 Attributes] Item [expr 2]] Value]
-            set nsize [trimNum [expr {$tsize*0.1}]]
-            puts $x3dFile "<Transform translation='$coord1'>"
-            puts $x3dFile " <Shape><Appearance><Material emissiveColor='0 0 0'></Material></Appearance><IndexedLineSet coordIndex='0 1 -1 2 3 -1 4 5 -1'><Coordinate point='$nsize 0. 0. -$nsize 0. 0. 0. $nsize 0. 0. -$nsize 0. 0. 0. $nsize 0. 0. -$nsize'></Coordinate></IndexedLineSet></Shape>"
-            if {$name != ""} {
-              set nsize [trimNum [expr {$tsize*0.25}]]
-              puts $x3dFile " <Transform scale='$nsize $nsize $nsize'><Billboard axisOfRotation='0 0 0'><Shape><Appearance><Material diffuseColor='0 0 0'></Material></Appearance><Text string='\"$name\"'><FontStyle family='\"SANS\"' justify='\"BEGIN\"'></FontStyle></Text></Shape></Billboard></Transform>"
-            }
-            puts $x3dFile "</Transform>"
-            set viz(SMG) 1
+            x3dSuppGeomPoint $e2 $tsize
           }
-        
+
           cylindrical_surface {
             x3dSuppGeomCylinder $e2 $tsize
           }
-        
+
           shell_based_surface_model {
             set cylIDs {}
             set e3 [lindex [[[$e2 Attributes] Item [expr 2]] Value] 0]
@@ -1121,7 +1117,7 @@ proc x3dSuppGeom {maxxyz} {
               }
             }
           }
-          
+
           default {
             if {$ename != "tessellated_shell" && $ename != "tessellated_wire"} {
               if {$ename != "direction"} {
@@ -1139,12 +1135,12 @@ proc x3dSuppGeom {maxxyz} {
           }
         }
       } emsg]} {
-        errorMsg " ERROR adding Supplemental Geometry for: $ename"
+        errorMsg " ERROR adding '$ename' Supplemental Geometry: $emsg"
       }
     }
   }
-  
-# check for tessellated edges that are supplemental geometry  
+
+# check for tessellated edges that are supplemental geometry
   if {[info exists tessSuppGeomFile]} {
     close $tessSuppGeomFile
     if {[file size $tessSuppGeomFileName] > 0} {
@@ -1161,10 +1157,31 @@ proc x3dSuppGeom {maxxyz} {
 }
 
 # -------------------------------------------------------------------------------
+# supplemental geometry for point
+proc x3dSuppGeomPoint {e2 tsize} {
+  global x3dFile viz
+
+  if {[catch {
+    set name [[[$e2 Attributes] Item [expr 1]] Value]
+    set coord1 [[[$e2 Attributes] Item [expr 2]] Value]
+    puts $x3dFile "<Transform translation='$coord1'>"
+    puts $x3dFile " <Shape><Appearance><Material diffuseColor='0 0 0' emissiveColor='0 0 0'></Material></Appearance><Sphere radius='[trimNum [expr {$tsize*0.05}]]'></Sphere></Shape>"
+    if {$name != ""} {
+      set nsize [trimNum [expr {$tsize*0.25}]]
+      puts $x3dFile " <Transform scale='$nsize $nsize $nsize'><Billboard axisOfRotation='0 0 0'><Shape><Appearance><Material diffuseColor='0 0 0'></Material></Appearance><Text string='\"$name\"'><FontStyle family='\"SANS\"' justify='\"BEGIN\"'></FontStyle></Text></Shape></Billboard></Transform>"
+    }
+    puts $x3dFile "</Transform>"
+    set viz(SMG) 1
+  } emsg]} {
+    errorMsg "ERROR adding 'point' supplemental geometry: $emsg"
+  }
+}
+
+# -------------------------------------------------------------------------------
 # supplemental geometry for line
 proc x3dSuppGeomLine {e3 tsize {name ""}} {
   global x3dFile viz trimVal
-  
+
   if {[catch {
     set e4 [[[$e3 Attributes] Item [expr 2]] Value]
     set coord1 [vectrim [[[$e4 Attributes] Item [expr 2]] Value]]
@@ -1174,23 +1191,23 @@ proc x3dSuppGeomLine {e3 tsize {name ""}} {
     set dir [[[$e6 Attributes] Item [expr 2]] Value]
     set coord2 [vectrim [vecmult $dir $mag]]
     set origin "0. 0. 0."
-    
+
 # trim line
     if {[info exists trimVal(2)]} {
-      
-# trim with real number      
+
+# trim with real number
       if {[string first "handle" $trimVal(2)] == -1} {
         if {$trimVal(1) != 0.} {set origin [vectrim [vecmult $dir [expr {$trimVal(1)*$mag}]]]}
         set coord2 [vectrim [vecmult $dir [expr {$trimVal(2)*$mag}]]]
-        
-# trim with cartesian points        
+
+# trim with cartesian points
       } else {
         foreach idx [list 1 2] {set trim($idx) [[[$trimVal($idx) Attributes] Item [expr 2]] Value]}
         set coord1 $trim(1)
         set coord2 [vectrim [vecsub $trim(2) $trim(1)]]
       }
     }
-    
+
     puts $x3dFile "<Transform translation='$coord1'>"
     puts $x3dFile " <Shape><Appearance><Material emissiveColor='1 0 1'></Material></Appearance><IndexedLineSet coordIndex='0 1 -1'><Coordinate point='$origin $coord2'></Coordinate></IndexedLineSet></Shape>"
     if {$name != ""} {
@@ -1208,8 +1225,8 @@ proc x3dSuppGeomLine {e3 tsize {name ""}} {
 # -------------------------------------------------------------------------------
 # supplemental geometry for circle
 proc x3dSuppGeomCircle {e3 tsize {name ""}} {
-  global x3dFile viz trimVal x3dMsg
-  
+  global x3dFile viz trimVal x3dMsg DTR
+
   if {[catch {
     set e4 [[[$e3 Attributes] Item [expr 2]] Value]
     set rad [[[$e3 Attributes] Item [expr 3]] Value]
@@ -1217,25 +1234,39 @@ proc x3dSuppGeomCircle {e3 tsize {name ""}} {
     set origin [lindex $a2p3d 0]
     set axis   [lindex $a2p3d 1]
     set refdir [lindex $a2p3d 2]
-    puts $x3dFile "<Transform translation='$origin' rotation='[x3dRotation $axis $refdir]'>"
+    puts $x3dFile "<Transform translation='$origin' rotation='[x3dRotation $axis $refdir "circle supplemental geometry"]'>"
 
 # generate circle, account for trimming
+# lim is the limit on an angle before deciding it is in degrees to convert to radians
     set ns 24
-    set angle 0
+    set angle 0.
     set dlt [expr {6.28319/$ns}]
     set trimmed 0
+    set lim 6.28319
+    
+# trim with angles
     if {[info exists trimVal(1)]} {
       if {[string first "handle" $trimVal(1)] == -1} {
         set angle $trimVal(1)
         set conv 1.
-        if {$trimVal(1) > 6.29 || $trimVal(2) > 6.29} {
-          set conv 0.01745
+        if {$trimVal(1) > $lim && $trimVal(2) > $lim} {
+          set conv $DTR
           set angle [expr {$angle*$conv}]
         }
         set dlt [expr {$conv*($trimVal(2)-$trimVal(1))/$ns}]
         incr ns
         set trimmed 1
+
+# trim with cartesian points
       } else {
+        
+# compute angles from cartesian points (doesn't work yet)
+        #foreach idx [list 1 2] {
+        #  set trim($idx) [[[$trimVal($idx) Attributes] Item [expr 2]] Value]
+        #  set vec($idx) [vecnorm [vecsub $trim($idx) $origin]]
+        #  outputMsg "$idx / trim point [vectrim $trim($idx)] / origin [vectrim $origin] / vector [vectrim $vec($idx)] / axis [vectrim $axis] / refdir [vectrim $refdir]" red
+        #  outputMsg "angle [vecangle $vec($idx) $axis]"
+        #}
         set msg "Supplemental geometry 'circle' trimmed by 'cartesian_point' are not trimmed."
         errorMsg " $msg"
         if {[lsearch $x3dMsg $msg] == -1} {lappend x3dMsg $msg}
@@ -1245,7 +1276,7 @@ proc x3dSuppGeomCircle {e3 tsize {name ""}} {
     for {set i 0} {$i < $ns} {incr i} {append index "$i "}
     if {!$trimmed} {append index "0 "}
     append index "-1"
-  
+
     set coord ""
     for {set i 0} {$i < $ns} {incr i} {
       append coord "[trimNum [expr {$rad*cos($angle)}]] "
@@ -1254,7 +1285,7 @@ proc x3dSuppGeomCircle {e3 tsize {name ""}} {
       set angle [expr {$angle+$dlt}]
       if {$i == 0} {set coord1 $coord}
     }
-  
+
     puts $x3dFile " <Shape><Appearance><Material emissiveColor='1 0 1'></Material></Appearance><IndexedLineSet coordIndex='$index'><Coordinate point='$coord'></Coordinate></IndexedLineSet></Shape>"
     if {$name != ""} {puts $x3dFile " <Transform translation='$coord1' scale='$tsize $tsize $tsize'><Billboard axisOfRotation='0 0 0'><Shape><Appearance><Material diffuseColor='1 0 1'></Material></Appearance><Text string='\"$name\"'><FontStyle family='\"SANS\"' justify='\"BEGIN\"'></FontStyle></Text></Shape></Billboard></Transform>"}
     puts $x3dFile "</Transform>"
@@ -1269,20 +1300,20 @@ proc x3dSuppGeomCircle {e3 tsize {name ""}} {
 # supplemental geometry for plane
 proc x3dSuppGeomPlane {e2 size {name ""}} {
   global x3dFile viz x3dMsg
-  
+
   if {[catch {
     set e3 [[[$e2 Attributes] Item [expr 2]] Value]
     set a2p3d [x3dGetA2P3D $e3]
     set origin [lindex $a2p3d 0]
     set axis   [lindex $a2p3d 1]
     set refdir [lindex $a2p3d 2]
-    puts $x3dFile "<Transform translation='$origin' rotation='[x3dRotation $axis $refdir]'>"
-  
+    puts $x3dFile "<Transform translation='$origin' rotation='[x3dRotation $axis $refdir "plane supplemental geometry"]'>"
+
     set nsize [trimNum [expr {$size*2.}]]
     set tsize [trimNum [expr {$size*0.33}]]
     puts $x3dFile " <Shape><Appearance><Material emissiveColor='0 0 1'></Material></Appearance><IndexedLineSet coordIndex='0 1 2 3 0 -1'><Coordinate point='-$nsize -$nsize 0. $nsize -$nsize 0. $nsize $nsize 0. -$nsize $nsize 0.'></Coordinate></IndexedLineSet></Shape>"
     puts $x3dFile " <Shape><Appearance><Material diffuseColor='0 0 1' transparency='0.8'></Material></Appearance><IndexedFaceSet solid='false' coordIndex='0 1 2 3 -1'><Coordinate point='-$nsize -$nsize 0. $nsize -$nsize 0. $nsize $nsize 0. -$nsize $nsize 0.'></Coordinate></IndexedFaceSet></Shape>"
-  
+
     if {$name != ""} {puts $x3dFile " <Transform translation='-$nsize -$nsize 0.' scale='$tsize $tsize $tsize'><Billboard axisOfRotation='0 0 0'><Shape><Appearance><Material diffuseColor='0 0 1'></Material></Appearance><Text string='\"$name\"'><FontStyle family='\"SANS\"' justify='\"BEGIN\"'></FontStyle></Text></Shape></Billboard></Transform>"}
     puts $x3dFile "</Transform>"
     set viz(SMG) 1
@@ -1296,7 +1327,7 @@ proc x3dSuppGeomPlane {e2 size {name ""}} {
       errorMsg " $msg"
       if {[lsearch $x3dMsg $msg] == -1} {lappend x3dMsg $msg}
     }
-    
+
   } emsg]} {
     errorMsg "ERROR adding 'plane' supplemental geometry: $emsg"
   }
@@ -1306,7 +1337,7 @@ proc x3dSuppGeomPlane {e2 size {name ""}} {
 # supplemental geometry for cylinder
 proc x3dSuppGeomCylinder {e2 tsize {name ""}} {
   global x3dFile viz x3dMsg
-  
+
   if {[catch {
     set e3 [[[$e2 Attributes] Item [expr 2]] Value]
     set rad [[[$e2 Attributes] Item [expr 3]] Value]
@@ -1314,11 +1345,11 @@ proc x3dSuppGeomCylinder {e2 tsize {name ""}} {
     set origin [lindex $a2p3d 0]
     set axis   [lindex $a2p3d 1]
     set refdir [lindex $a2p3d 2]
-    puts $x3dFile "<Transform translation='$origin' rotation='[x3dRotation $axis $refdir]'><Transform rotation='1 0 0 1.5708'>"
+    puts $x3dFile "<Transform translation='$origin' rotation='[x3dRotation $axis $refdir "cylinder supplemental geometry"]'><Transform rotation='1 0 0 1.5708'>"
     puts $x3dFile "  <Shape><Appearance><Material diffuseColor='0 0 1' transparency='0.8'></Material></Appearance><Cylinder radius='$rad' height='[trimNum [expr {$tsize*10.}]]' top='false' bottom='false' solid='false'></Cylinder></Shape>"
     puts $x3dFile "</Transform></Transform>"
     set viz(SMG) 1
-    
+
 # check if the cylinder is bounded
     set bnds [$e2 GetUsedIn [string trim advanced_face] [string trim face_geometry]]
     set bound 0
@@ -1338,7 +1369,7 @@ proc x3dSuppGeomCylinder {e2 tsize {name ""}} {
 # set predefined color
 proc x3dPreDefinedColor {name} {
   global defaultColor recPracNames
-  
+
   switch $name {
     black   {set color "0 0 0"}
     white   {set color "1 1 1"}
@@ -1371,10 +1402,10 @@ proc x3dPolylinePMI {} {
         set flist {}
         foreach svn $savedViewName {if {[info exists savedViewFile($svn)]} {lappend flist $savedViewFile($svn)}}
       }
-  
+
       foreach f $flist {
-    
-# multiple saved view color    
+
+# multiple saved view color
         if {$opt(gpmiColor) == 3 && [llength $savedViewNames] > 1} {
           if {![info exists x3dColorFile($f)]} {set x3dColorFile($f) [x3dSetColor $opt(gpmiColor) 1]}
           set x3dColor $x3dColorFile($f)
@@ -1384,14 +1415,14 @@ proc x3dPolylinePMI {} {
 
 # placeholder transform
           if {[string first "placeholder" $ao] != -1} {
-            puts $f "<Transform translation='$gpmiPlacement(origin)' rotation='[x3dRotation $gpmiPlacement(axis) $gpmiPlacement(refdir)]'>"
-          }  
+            puts $f "<Transform translation='$gpmiPlacement(origin)' rotation='[x3dRotation $gpmiPlacement(axis) $gpmiPlacement(refdir) "annotation placeholder"]'>"
+          }
 
 # start shape
           if {$x3dColor != ""} {
             puts $f "<Shape>\n <Appearance><Material diffuseColor='$x3dColor' emissiveColor='$x3dColor'></Material></Appearance>"
             lappend x3dColorsUsed $x3dColor
-            
+
           } else {
             puts $f "<Shape>\n <Appearance><Material diffuseColor='0 0 0' emissiveColor='0 0 0'></Material></Appearance>"
             errorMsg "Syntax Error: Missing PMI Presentation color for [formatComplexEnt $ao] (using black)\n[string repeat " " 14]\($recPracNames(pmi242), Sec. 8.4, Figure 75)"
@@ -1406,7 +1437,7 @@ proc x3dPolylinePMI {} {
             puts $f "<Shape>\n <Appearance><Material emissiveColor='$x3dColor'></Material></Appearance>"
             puts $f " <IndexedLineSet coordIndex='0 1 -1'>\n  <Coordinate point='$placeOrigin $placeAnchor'></Coordinate></IndexedLineSet>\n</Shape>"
           }
-    
+
 # end shape
         } elseif {$x3dShape} {
           puts $f "</Indexed$x3dIndexType\Set></Shape>"
@@ -1427,7 +1458,7 @@ proc x3dPolylinePMI {} {
 # write coordinate axes
 proc x3dCoordAxes {size} {
   global x3dFile x3dAxes
-  
+
 # axes
   if {$x3dAxes} {
     puts $x3dFile "\n<!-- COORDINATE AXIS -->\n<Switch whichChoice='0' id='swAxes'><Group>"
@@ -1469,7 +1500,7 @@ proc x3dSetColor {type {mode 0}} {
     }
     if {$idxColor($mode) == 9} {set idxColor($mode) 0}
   }
-  
+
 # change color if is it the same as brep color
   if {[info exists x3dColorBrepAdjusted]} {
     set color1 $color
@@ -1478,20 +1509,20 @@ proc x3dSetColor {type {mode 0}} {
     if {$color1 == $x3dColorBrepAdjusted} {set color [x3dSetColor $type $mode]}
   }
   return $color
-} 
+}
 
 # -------------------------------------------------------------------------------------------------
-# open X3DOM file 
+# open X3DOM file
 proc openX3DOM {{fn ""} {numFile 0}} {
   global opt x3dFileName multiFile lastX3DOM viz scriptName
-  
+
 # f7 is for opening last x3dom file with function key F7
-  set f7 1  
+  set f7 1
   if {$fn == ""} {
     set f7 0
     set ok 0
 
-# check that there is a file to view   
+# check that there is a file to view
     if {[info exists x3dFileName]} {if {[file exists $x3dFileName]} {set ok 1}}
     if {$ok} {
       set fn $x3dFileName
@@ -1504,7 +1535,7 @@ proc openX3DOM {{fn ""} {numFile 0}} {
   }
   if {[file exists $fn] != 1} {return}
   if {![info exists multiFile]} {set multiFile 0}
-  
+
   set open 0
   if {![info exists viz(BRP)]} {set viz(BRP) 0}
   if {$f7} {
@@ -1535,7 +1566,7 @@ proc openX3DOM {{fn ""} {numFile 0}} {
 # get saved view names
 proc getSavedViewName {objEntity} {
   global savedViewName draftModelCameras draftModelCameraNames entCount savedsavedViewNames
-  
+
 # saved view name already saved
   if {[info exists savedsavedViewNames([$objEntity P21ID])]} {return $savedsavedViewNames([$objEntity P21ID])}
 
@@ -1558,8 +1589,8 @@ proc getSavedViewName {objEntity} {
       }
     }
   }
-  
-# save saved view name  
+
+# save saved view name
   if {![info exists savedsavedViewNames([$objEntity P21ID])]} {set savedsavedViewNames([$objEntity P21ID]) $savedViewName}
   return $savedViewName
 }
@@ -1572,7 +1603,7 @@ proc x3dSwitchScript {name {name1 ""} {vp 0}} {
   if {$name1 == ""} {set name1 $name}
   regsub -all {\-} $name "_" name
   regsub -all {\-} $name1 "_" name1
-  
+
   puts $x3dFile "\n<!-- [string toupper $name1] switch -->\n<script>function tog$name1\(choice){"
   puts $x3dFile " if (!document.getElementById('sw$name1').checked) {"
   puts $x3dFile "  document.getElementById('sw$name').setAttribute('whichChoice', -1);"

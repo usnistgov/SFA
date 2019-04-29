@@ -9,11 +9,11 @@ proc openMultiFile {{ask 1}} {
   global sempmi_totals pmi_totals gpmiTypesInvalid col_ca pmi_rows stepAP
   global excel1 worksheets1 worksheet1 cells1 row1 col1 nfile coverageStyle
   global sempmi_coverage pmi_coverage useXL xlFormat andEntAP209
-  
+
   set maxfiles 1000
   if {$developer} {set maxfiles 10000}
   set multiFileDir ""
-  
+
 # select directory of files (default)
   if {$ask == 1} {
     if {![file exists $fileDir1] && [info exists mydocs]} {set fileDir1 $mydocs}
@@ -61,9 +61,9 @@ proc openMultiFile {{ask 1}} {
 
 # limit by maxfiles
       if {[llength $fileList] > $maxfiles} {outputMsg "File list limited to first $maxfiles of [llength $fileList] files" red}
-      set fileList [lrange $fileList 0 [expr {$maxfiles-1}]]    
+      set fileList [lrange $fileList 0 [expr {$maxfiles-1}]]
       set lenfilelist [llength $fileList]
-    
+
 # list files and size
       foreach file1 $fileList {
         outputMsg "  [string range [file nativename [truncFileName $file1]] $dlen end]  ([expr {[file size $file1]/1024}] Kb)"
@@ -81,7 +81,7 @@ proc openMultiFile {{ask 1}} {
       } else {
         set choice "yes"
       }
-      
+
       if {$choice == "yes"} {
         checkForExcel
         set lasttime1 [clock clicks -milliseconds]
@@ -121,7 +121,7 @@ proc openMultiFile {{ask 1}} {
             }
 
             $excel1 Visible 1
-    
+
 # errors
           } emsg]} {
             set useXL 0
@@ -171,7 +171,7 @@ proc openMultiFile {{ask 1}} {
               $cells1($sum) Item 1 1 "STEP Directory"
               set range [$worksheet1($sum) Range [cellRange 1 2]]
               $cells1($sum) Item 1 2 "[file nativename $multiFileDir]"
-            
+
 # set startrow
               set startrow 9
               $cells1($sum) Item $startrow 1 "Entity"
@@ -189,7 +189,7 @@ proc openMultiFile {{ask 1}} {
               set range [$worksheet1($sum) Range "4:4"]
               $range Orientation [expr 90]
               $range HorizontalAlignment [expr -4108]
-  
+
               if {!$coverageSTEP} {
                 [$excel1 ActiveWindow] TabRatio [expr 0.3]
               } else {
@@ -202,7 +202,7 @@ proc openMultiFile {{ask 1}} {
                 if {$opt(PMIGRF)} {gpmiCoverageStart}
               }
               $worksheet1($sum) Activate
-            
+
 # errors
             } emsg]} {
               errorMsg "ERROR opening Excel workbooks and worksheets for file summary: $emsg"
@@ -244,7 +244,7 @@ proc openMultiFile {{ask 1}} {
           outputMsg "($nfile of $lenfilelist) Ready to process: [file tail $file1] ([expr {[file size $file1]/1024}] Kb)" blue
 
 # check for zipped file
-          if {[string first ".stpz" [string tolower $localName]] != -1} {unzipFile}  
+          if {[string first ".stpz" [string tolower $localName]] != -1} {unzipFile}
 
 # process the file
           if {[catch {
@@ -279,7 +279,7 @@ proc openMultiFile {{ask 1}} {
 # -------------------------------------------------------------------------
           incr nprogBarFiles
         }
-        
+
 # -------------------------------------------------------------------------------------------------
 # time to generate spreadsheets
         set ptime [expr {([clock clicks -milliseconds] - $lasttime1)/1000}]
@@ -301,7 +301,7 @@ proc openMultiFile {{ask 1}} {
         append msg " generated in $ptime"
         outputMsg $msg green
         outputMsg "-------------------------------------------------------------------------------"
-          
+
 # -------------------------------------------------------------------------------------------------
 # file summary ws, entity names
         if {$lenfilelist > 1 && $useXL && $opt(XLSCSV) != "None"} {
@@ -317,7 +317,7 @@ proc openMultiFile {{ask 1}} {
             set allEntity [lsort [lrmdups $allEntity]]
             set links [$worksheet1($sum) Hyperlinks]
             set inc1 0
-            
+
 # entity names, split on _and_
             for {set i 0} {$i < [llength $allEntity]} {incr i} {
               set ent [string range [lindex $allEntity $i] 2 end]
@@ -333,7 +333,7 @@ proc openMultiFile {{ask 1}} {
                 $cells1($sum) Item [incr row1($sum)] 1 $ent
                 set ent2 $ent
               } else {
-# '10' is the ascii character for a linefeed          
+# '10' is the ascii character for a linefeed
                 regsub -all "_and_" $ent ")[format "%c" 10][format "%c" 32][format "%c" 32][format "%c" 32](" ent1
                 $cells1($sum) Item [incr row1($sum)] 1 "($ent1)"
                 set range [$worksheet1($sum) Range $row1($sum):$row1($sum)]
@@ -347,7 +347,7 @@ proc openMultiFile {{ask 1}} {
                 $cells1($sum) Item $row1($sum) [expr {$lenfilelist+$wid+$inc1}] $ent2
               }
             }
-            
+
 #-------------------------------------------------------------------------------
 # fix wrap for vertical file names
             set range [$worksheet1($sum) Range "4:4"]
@@ -370,7 +370,7 @@ proc openMultiFile {{ask 1}} {
                 [$borders Item [expr 9]] Weight [expr -4142]
               }
             }
-            
+
 # generated by
             set str "NIST "
             set url "https://www.nist.gov/services-resources/software/step-file-analyzer-and-viewer"
@@ -402,7 +402,7 @@ proc openMultiFile {{ask 1}} {
             $cells1($sum) Item $startrow $col1($sum) "Total[format "%c" 10]Entities"
             foreach idx [array names totalEntity] {
               $cells1($sum) Item $entrow($idx) $col1($sum) $totalEntity($idx)
-            }        
+            }
 
 # file occurances
             if {$lenfilelist > 1} {
@@ -410,7 +410,7 @@ proc openMultiFile {{ask 1}} {
             }
             foreach idx [array names infiles] {
               $cells1($sum) Item $idx $col1($sum) $infiles($idx)
-            }        
+            }
             [$excel1 ActiveWindow] ScrollColumn [expr 1]
 
 # bold text
@@ -440,7 +440,7 @@ proc openMultiFile {{ask 1}} {
                     [[$range1 Borders] Item [expr 9]] Weight [expr 1]
                   }
                 }
-              }      
+              }
             }
 
             #[$excel1 ActiveWindow] ScrollRow [expr 1]
@@ -472,9 +472,9 @@ proc openMultiFile {{ask 1}} {
                   set borders [$range Borders]
                   catch {[$borders Item [expr -4152]] Weight [expr 2]}
 
-# also for PMI coverage analysis worksheets, change 142 as necessary
+# also for PMI coverage analysis worksheets, change 143 as necessary
                   catch {
-                    set range [$worksheet1($sempmi_coverage) Range [cellRange 3 $nf1] [cellRange 142 $nf1]]
+                    set range [$worksheet1($sempmi_coverage) Range [cellRange 3 $nf1] [cellRange 143 $nf1]]
                     set borders [$range Borders]
                     [$borders Item [expr -4152]] Weight [expr 2]
                   }
@@ -489,7 +489,7 @@ proc openMultiFile {{ask 1}} {
             set range [$worksheet1($sum) Range [cellRange 3 [expr {$lenfilelist+1}]] [cellRange $row1($sum) [expr {$lenfilelist+1}]]]
             set borders [$range Borders]
             catch {[$borders Item [expr -4152]] Weight [expr 2]}
-    
+
 # fix column widths
             set c1 [[[[$worksheets1 Item [expr 1]] UsedRange] Columns] Count]
             for {set i 2} {$i <= $c1} {incr i} {
@@ -570,8 +570,8 @@ proc openMultiFile {{ask 1}} {
           } else {
             outputMsg " Use F3 to open the spreadsheet (see Options tab)" red
           }
-        
-# unset some variables for the multi-file summary 
+
+# unset some variables for the multi-file summary
           foreach var {excel1 worksheets1 worksheet1 cells1 row1 col1} {if {[info exists $var]} {unset $var}}
         }
         update idletasks
@@ -597,7 +597,7 @@ proc openMultiFile {{ask 1}} {
 #-------------------------------------------------------------------------------
 proc findFile {startDir {recurse 0}} {
   global fileList
-  
+
   set pwd [pwd]
   if {[catch {cd $startDir} err]} {
     errorMsg $err

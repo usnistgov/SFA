@@ -25,7 +25,7 @@ proc spmiDimtolStart {entType} {
 # measures
   set qualifier1      [list type_qualifier name]
   set qualifier2      [list value_format_type_qualifier format_type]
-  
+
   set length_measure1 [list length_measure_with_unit value_component]
   set length_measure2 [list length_measure_with_unit_and_measure_representation_item value_component name]
   set length_measure3 [list length_measure_with_unit_and_measure_representation_item_and_qualified_representation_item value_component name qualifiers $qualifier1 $qualifier2]
@@ -38,7 +38,7 @@ proc spmiDimtolStart {entType} {
   set measure_rep     [list measure_representation_item_and_qualified_representation_item name value_component qualifiers $qualifier1 $qualifier2]
   set descript_rep    [list descriptive_representation_item name description]
   set compound_rep    [list compound_representation_item item_element $descript_rep]
-  
+
   set PMIP(dimensional_characteristic_representation) \
     [list dimensional_characteristic_representation \
       dimension $dim_size $dim_size_wdf $dim_size_wdf1 $dim_size_wdf2 $dim_loc $dim_loc_wdf $dim_loc_pth $dim_loc_pthd $dim_loc_dir $ang_loc $ang_loc1 $ang_size $ang_size1 \
@@ -48,8 +48,8 @@ proc spmiDimtolStart {entType} {
         $value_range $measure_rep $descript_rep $compound_rep \
         $a2p3d \
       ]
-    ]  
-   
+    ]
+
   if {![info exists PMIP($entType)]} {return}
 
   set dt $entType
@@ -63,7 +63,7 @@ proc spmiDimtolStart {entType} {
   catch {unset gtEntity}
 
   outputMsg " Adding PMI Representation Analysis" blue
-  
+
   if {[string first "AP203" $stepAP] == 0 || [string first "AP214" $stepAP] == 0} {
     errorMsg "Syntax Error: There is no Recommended Practice for PMI Representation in $stepAP files.  Use AP242 for PMI Representation."
   }
@@ -73,11 +73,11 @@ proc spmiDimtolStart {entType} {
   setEntAttrList $PMIP($dt)
   if {$opt(DEBUG1)} {outputMsg "entAttrList $entAttrList"}
   if {$opt(DEBUG1)} {outputMsg \n}
-    
+
   set startent [lindex $PMIP($dt) 0]
   set n 0
   set entLevel 0
-  
+
 # get next unused column by checking if there is a colName
   set pmiStartCol($dt) [expr {[getNextUnusedColumn $startent]+1}]
   #outputMsg pmiStartCol$pmiStartCol($dt)
@@ -112,7 +112,7 @@ proc spmiDimtolReport {objEntity} {
 # entLevel is very important, keeps track level of entity in hierarchy
   incr entLevel
   set ind [string repeat " " [expr {4*($entLevel-1)}]]
-  
+
   if {[string first "handle" $objEntity] != -1} {
     set objType [$objEntity Type]
     set objID   [$objEntity P21ID]
@@ -128,7 +128,7 @@ proc spmiDimtolReport {objEntity} {
       if {$lastEnt == "$objID $objType"} {set follow 0}
     }
     set lastEnt "$objID $objType"
-    
+
     if {$entLevel == 1} {
       catch {unset dimtolEnt}
       catch {unset entlevel2}
@@ -158,8 +158,8 @@ proc spmiDimtolReport {objEntity} {
 # look for entities with bad attributes that cause a crash
       set okattr 1
       if {[info exists badAttributes($objType)]} {foreach ba $badAttributes($objType) {if {$ba == $objName} {set okattr 0}}}
-        
-# get attribute value        
+
+# get attribute value
       if {[catch {
         set objValue [$objAttribute Value]
       } emsg]} {
@@ -170,7 +170,7 @@ proc spmiDimtolReport {objEntity} {
         set objNodeType [$objAttribute NodeType]
         set objSize [$objAttribute Size]
         set objAttrType [$objAttribute Type]
-  
+
         set idx [lsearch $entAttrList $ent1]
 
 # -----------------
@@ -180,7 +180,7 @@ proc spmiDimtolReport {objEntity} {
             if {$idx != -1} {
               if {$opt(DEBUG1)} {outputMsg "$ind   ATR $entLevel $objName - $objValue ($objNodeType-[$objAttribute AggNodeType], $objSize, $objAttrType)"}
               set lastAttr $objName
-    
+
               if {[info exists cells($dt)]} {
                 set ok 0
 
@@ -222,87 +222,12 @@ proc spmiDimtolReport {objEntity} {
                       } elseif {[$attr Name] == "qualifiers"} {
                         foreach ent2 [$attr Value] {
                           if {[$ent2 Type] == "value_format_type_qualifier"} {
-                            ::tcom::foreach attr1 [$ent2 Attributes] {
-                              set tmp [split [lindex [split [$attr1 Value] " "] 1] "."]
-                              set prec1 [expr {abs([lindex $tmp 0])}]
-                              set dim(qual) [lindex $tmp 1]
-                              
-                              if {$prec1 != 0 || $dim(qual) != 0} {
-                                if {$dim(qual) > 5} {
-                                  set msg "value_format_type_qualifier '[$attr1 Value]' might have too many decimal places.  ($recPracNames(pmi242), Sec. 5.4)"
-                                  errorMsg $msg
-                                  lappend syntaxErr(dimensional_characteristic_representation) [list "-$spmiIDRow($dt,$spmiID)" "length/angle qualifier" $msg]
-                                }
-                                set objValue [string trimright [format "%.4f" $objValue] "0"]
-                                set val1 [lindex [split $objValue "."] 0]
-                                set val2 [lindex [split $objValue "."] 1]
-                                append val2 "0000"
-
-# problems with NR2 values relative to dimension
-                                if {$prec1 != 0} {
-                                  set ok1 0
-                                  if {[info exists dim(unit)]} {if {$dim(unit) == "INCH"} {set ok1 1}}
-                                  if {$ok1} {
-                                    if {$objValue < 1. && $prec1 > 0} {
-                                      set msg "value_format_type_qualifier 'NR2 $prec1.n' conflicts with INCH dimension values < 1, use 'NR2 0.n' instead.  See ASME Y14.5-2009, Decimal Inch Dimensioning, Sec. 1.6.2.a"
-                                      errorMsg $msg
-                                      lappend syntaxErr(dimensional_characteristic_representation) [list "-$spmiIDRow($dt,$spmiID)" "length/angle qualifier" $msg]
-                                    }
-                                  } elseif {[string length $val1] > $prec1} {
-                                    set msg "value_format_type_qualifier '[$attr1 Value]' too small for value of $objValue  ($recPracNames(pmi242), Sec. 5.4)"
-                                    errorMsg $msg
-                                    lappend syntaxErr(dimensional_characteristic_representation) [list "-$spmiIDRow($dt,$spmiID)" "length/angle qualifier" $msg]
-                                  } elseif {[string length $val1] < $prec1} {
-                                    set msg "value_format_type_qualifier '[$attr1 Value]' too large for dimension value  ($recPracNames(pmi242), Sec. 5.4)"
-                                    errorMsg $msg
-                                    lappend syntaxErr(dimensional_characteristic_representation) [list "-$spmiIDRow($dt,$spmiID)" "length/angle qualifier" $msg]
-                                  }
-                                  if {$dim(qual) == 0 && [string index $val2 0] != 0} {
-                                    regsub -all "0" $val2 "" tmp
-                                    if {$tmp != ""} {
-                                      set msg "value_format_type_qualifier 'NR2 $prec1.0' truncates decimal value for $objValue  ($recPracNames(pmi242), Sec. 5.4)"
-                                      errorMsg $msg
-                                      lappend syntaxErr(dimensional_characteristic_representation) [list "-$spmiIDRow($dt,$spmiID)" "length/angle qualifier" $msg]
-                                    }
-                                  }
-                                }
-                                
-# format for precision
-                                if {$prec1 != 0} {
-                                  set dec [string range $val2 0 $dim(qual)-1]
-                                  if {$dec != ""} {
-                                    set dimtmp "$val1.$dec"
-                                  } else {
-                                    set dimtmp $val1
-                                  }
-
-# remove leading zero                                  
-                                } else {
-                                  set dimtmp ".[string range $val2 0 $dim(qual)-1]"
-                                }
-
-# bad NR2 value
-                              } else {
-                                set msg "Syntax Error: Invalid value_format_type_qualifier ([$attr1 Value])\n[string repeat " " 14]\($recPracNames(pmi242), Sec. 5.4)"
-                                errorMsg $msg
-                                lappend syntaxErr([$ent2 Type]) [list [$ent2 P21ID] "format_type" $msg]
-                                lappend syntaxErr(dimensional_characteristic_representation) [list "-$spmiIDRow($dt,$spmiID)" "length/angle qualifier" $msg]
-                                set dimtmp $objValue
-                              }
-                              
-# more problems with NR2 values relative to dimension
-                              if {$dimtmp == 0 && $objValue != 0} {
-                                set msg "Syntax Error: value_format_type_qualifier ([$attr1 Value]) too small for $objValue\n[string repeat " " 14]\($recPracNames(pmi242), Sec. 5.4)"
-                                errorMsg $msg
-                                lappend syntaxErr([$ent2 Type]) [list [$ent2 P21ID] "format_type" $msg]
-                                lappend syntaxErr(dimensional_characteristic_representation) [list "-$spmiIDRow($dt,$spmiID)" "length/angle qualifier" $msg]
-                              }
-                            }
+                            set dimtmp [valueQualifier $ent2 $objValue]
                           }
                         }
                       }
                     }
-                    
+
 # if units exist, then ...
                     if {![info exists dim(unitOK)]} {set dim(unitOK) 0}
                     if {[info exists dim(unit)]} {
@@ -312,7 +237,7 @@ proc spmiDimtolReport {objEntity} {
                         if {$dim(unit) == "INCH" && $objValue < 1.} {set objValue [string range $objValue 1 end]}
                         set objValue [removeTrailingZero $objValue]
                       }
-                      
+
 # check units of NIST models
                       if {$nistName != ""} {
                         set ln $nistName
@@ -345,7 +270,7 @@ proc spmiDimtolReport {objEntity} {
                       set dim(prec) $dim(qual)
                       set dim(prec,max) $dim(prec)
                     }
-                    
+
 
                     if {[info exists dimrepID]} {
                       set dim(prec,$dimrepID) $dim(prec)
@@ -391,12 +316,12 @@ proc spmiDimtolReport {objEntity} {
                           append dimrep($dimrepID) $pmiUnicode(degree)
                         }
                         set dim(angle) 1
-                      } 
+                      }
                     }
                   }
-                  
+
                   "*dimensional_location* relating_shape_aspect" {
-# check for derived shapes                    
+# check for derived shapes
                     set derived 0
                     foreach dsa [list derived_shape_aspect apex centre_of_symmetry geometric_alignment perpendicular_to extension tangent parallel_offset] {
                       if {[$objValue Type] == $dsa} {set derived 1}
@@ -409,7 +334,7 @@ proc spmiDimtolReport {objEntity} {
                     }
                   }
                 }
-    
+
                 if {$ok && [info exists spmiID] && [info exists spmiIDRow($dt,$spmiID)]} {
                   set c [string index [cellRange 1 $col($dt)] 0]
                   set r $spmiIDRow($dt,$spmiID)
@@ -437,7 +362,7 @@ proc spmiDimtolReport {objEntity} {
 
 # keep track of max column
                   set pmiCol [expr {max($col($dt),$pmiCol)}]
-                  
+
 # check that length or plane_angle are used
                 } elseif {[string first "value_component" $ent1] != -1} {
                   set dte [string range [$dimtolEnt Type] 0 2]
@@ -494,7 +419,7 @@ proc spmiDimtolReport {objEntity} {
                 lappend syntaxErr(dimensional_characteristic_representation) [list "-$spmiIDRow($dt,$spmiID)" "length/angle" $msg]
               }
             }
-            
+
 # no values to get from this nodetype, but get the entities that are referred to
             if {$follow} {
               if {[catch {
@@ -521,7 +446,7 @@ proc spmiDimtolReport {objEntity} {
           if {[catch {
             if {$idx != -1} {
               if {$opt(DEBUG1)} {outputMsg "$ind   ATR $entLevel $objName - $objValue ($objNodeType, $objAttrType)  ($ent1)"}
-    
+
               if {[info exists cells($dt)]} {
                 set ok 0
                 set colName ""
@@ -532,12 +457,12 @@ proc spmiDimtolReport {objEntity} {
                 switch -glob $ent1 {
                   "angular_location* name" -
                   "angular_size* name" {
-# angular_location/size.name, add nothing to dimrep as there is no symbol associated with the location                    
+# angular_location/size.name, add nothing to dimrep as there is no symbol associated with the location
                     set ok 1
                     set col($dt) $pmiStartCol($dt)
                     set colName "dimension name[format "%c" 10](Sec. 5.1.1, 5.1.5)"
                     set dimtolEnt $objEntity
-  
+
                     set dimrepID $objID
                     set dimrep($dimrepID) ""
                     set dim(symbol) ""
@@ -550,13 +475,13 @@ proc spmiDimtolReport {objEntity} {
                       set item "angular size"
                     }
                     lappend spmiTypesPerFile $item
-                    
+
                     set angDegree 1
                     if {![info exists entCount(conversion_based_unit_and_plane_angle_unit)]} {set angDegree 0}
                   }
                   "angular_location* angle_selection" -
                   "angular_size* angle_selection" {
-# check angle selection values                    
+# check angle selection values
                     if {$ov != "equal" && $ov != "large" && $ov != "small"} {
                       set msg "Syntax Error: Invalid 'angle_selection' attribute ($ov) on [formatComplexEnt [lindex $ent1 0]].\n[string repeat " " 14]\($recPracNames(pmi242), Sec. 5.1.2, 5.1.6)"
                       errorMsg $msg
@@ -572,16 +497,16 @@ proc spmiDimtolReport {objEntity} {
                     set dimtolEnt $objEntity
                     # do not delete next line
                     update idletasks
-                    
+
                     set dimrepID $objID
                     if {![info exists dimrep($dimrepID)]} {set dimrep($dimrepID) ""}
                     set item ""
                     set dim(symbol) ""
                     set dimName $ov
-                    
+
                     set d1 ""
                     if {[info exists dimrep($dimrepID)]} {set d1 [string index $dimrep($dimrepID) 0]}
-                      
+
                     if {[string first "spherical" $ov] != -1} {
                       if {[string index $dimrep($dimrepID) 0] != "S"} {
                         append dimrep($dimrepID) "S"
@@ -621,7 +546,7 @@ proc spmiDimtolReport {objEntity} {
                       }
                     }
 
-# syntax check for correct dimensional_size.name attribute (dimSizeNames) from the RP                  
+# syntax check for correct dimensional_size.name attribute (dimSizeNames) from the RP
                     if {$okname} {
                       if {$ov == ""} {
                         set ov "(blank)"
@@ -638,12 +563,12 @@ proc spmiDimtolReport {objEntity} {
                     }
                   }
                   "*dimensional_location* name" {
-# dimensional_location.name, add nothing to dimrep as there is no symbol associated with the location                    
+# dimensional_location.name, add nothing to dimrep as there is no symbol associated with the location
                     set ok 1
                     set col($dt) $pmiStartCol($dt)
                     set colName "dimension name[format "%c" 10](Sec. 5.1.1, 5.1.5)"
                     set dimtolEnt $objEntity
-  
+
                     set dimrepID $objID
                     set dim(symbol) ""
                     set dimrep($dimrepID) ""
@@ -655,7 +580,7 @@ proc spmiDimtolReport {objEntity} {
                     lappend spmiTypesPerFile "dimensional location"
                     lappend spmiTypesPerFile "dimensions"
 
-# syntax check for correct dimensional_location.name attribute from the RP                  
+# syntax check for correct dimensional_location.name attribute from the RP
                     if {$ov == ""} {
                       set ov "(blank)"
                       set msg "Syntax Error: Missing 'name' attribute on [lindex $ent1 0].\n[string repeat " " 14]\($recPracNames(pmi242), Sec. 5.1.1, Tables 1 and 2)"
@@ -669,9 +594,9 @@ proc spmiDimtolReport {objEntity} {
                       set invalid $msg
                     }
                   }
-                  
+
                   "shape_dimension_representation name" {
-# shape_dimension.name, look for independency or envelope requirement per the RP, Sec 5.2.1                    
+# shape_dimension.name, look for independency or envelope requirement per the RP, Sec 5.2.1
                     set invalid ""
                     if {$ov != ""} {
                       set ok 1
@@ -832,14 +757,17 @@ proc spmiDimtolReport {objEntity} {
                         if {[string first "dimension name" $colName] == 0} {
                           set comment "Section names refer to the CAx-IF Recommended Practice for Representation and Presentation of PMI (AP242)."
                           addCellComment $dt 3 $c $comment
+                        } elseif {[string first "length/angle qualifier" $colName] == 0} {
+                          set comment "The qualifier might truncate or add trailing zeros to the length/angle dimensions in column F.  The Dimensional Tolerance in column D will show if the value is modified."
+                          addCellComment $dt 3 $c $comment
                         }
                       }
                     }
 
 # keep track of rows with semantic PMI
                     if {[lsearch $spmiRow($dt) $r] == -1} {lappend spmiRow($dt) $r}
-    
-                    set ov $objValue 
+
+                    set ov $objValue
                     set val [[$cells($dt) Item $r $c] Value]
 
                     if {$invalid != ""} {
@@ -852,7 +780,7 @@ proc spmiDimtolReport {objEntity} {
 
 # append a2p3d orientation
                     if {[info exists dimOrientVal]} {append ov "[format "%c" 10]$dimOrientVal"}
-                    
+
                     if {$val == ""} {
                       $cells($dt) Item $r $c $ov
                     } else {
@@ -889,18 +817,18 @@ proc spmiDimtolReport {objEntity} {
     }
   }
   incr entLevel -1
-  
+
 # -------------------------------------------------------------------------------
 # write a few more things at the end of processing a semantic PMI entity
   if {$entLevel == 0} {
-    
+
 # associated geometry (5.1.5), find link between dimtol and geometry through geometric_item_specific_usage (gisu)
 # dimtolEnt is either dimensional_location, angular_location, dimensional_size, or angular_size
     if {[catch {
       if {[info exists dimtolEnt]} {
         set dimtolType [$dimtolEnt Type]
         set dimtolID   [$dimtolEnt P21ID]
-        
+
 # dimensional_size
         if {[string first "_size" $dimtolType] != -1} {
           ::tcom::foreach dimtolAtt [$dimtolEnt Attributes] {
@@ -950,7 +878,7 @@ proc spmiDimtolReport {objEntity} {
           set str [reportAssocGeom $dimtolType]
         }
         set dimtolGeomEnts ""
-        
+
         if {$str != "" && [info exists spmiIDRow($dt,$spmiID)]} {
           if {![info exists pmiColumns(ch)]} {set pmiColumns(ch) [expr {$pmiStartCol($dt)+12}]}
           set colName "Associated Geometry[format "%c" 10](Sec. 5.1.1, 5.1.5)"
@@ -971,7 +899,7 @@ proc spmiDimtolReport {objEntity} {
             addCellComment $dt $r $pmiColumns(ch) $comment
             errorMsg "Some Associated Geometry associated with a Dimension is also Supplemental Geometry."
           }
-          
+
 # check for unexpected associated geometry for diameters and radius
           if {[info exists dimName]} {
             if {[string first "diameter" $dimName] != -1 || [string first "radius" $dimName] != -1} {
@@ -1009,15 +937,17 @@ proc spmiDimtolReport {objEntity} {
     } emsg]} {
       errorMsg "ERROR adding Associated Geometry: $emsg"
     }
-    
+
 # -------------------------------------------------------------------------------
 # plus minus tolerance on dimtolEnt
     if {[catch {
       if {[info exists dimtolEnt]} {
-        set objGuiEntities [$dimtolEnt GetUsedIn [string trim plus_minus_tolerance] [string trim toleranced_dimension]]
-        set plusminus ""
-        set colName ""
         set npm 0
+        set colName ""
+        set plusminus ""
+        set plusminusQualified ""
+
+        set objGuiEntities [$dimtolEnt GetUsedIn [string trim plus_minus_tolerance] [string trim toleranced_dimension]]
         ::tcom::foreach objGuiEntity $objGuiEntities {
           incr npm
           ::tcom::foreach attrPMT [$objGuiEntity Attributes] {
@@ -1027,7 +957,8 @@ proc spmiDimtolReport {objEntity} {
               set subEntity [$attrPMT Value]
               set subType [$subEntity Type]
               set tolQual {}
-              
+              set tolQualEnt {}
+
               if {$subType == "tolerance_value"} {
                 set colName "+/- tolerance[format "%c" 10](Sec. 5.2.3)"
 
@@ -1035,17 +966,24 @@ proc spmiDimtolReport {objEntity} {
                 ::tcom::foreach subAttr [$subEntity Attributes] {
                   if {[string first "bound" [$subAttr Name]] != -1} {
                     ::tcom::foreach measureAttr [[$subAttr Value] Attributes] {
-                    
-# get tolerance value                      
+
+# get tolerance value
                       if {[$measureAttr Name] == "value_component"} {
                         append plusminus "[$measureAttr Value] "
-                        
+
 # check for measure_qualification -> value_format_type_qualifier
                       } elseif {[$measureAttr Name] == "unit_component"} {
                         set e0s [[$subAttr Value] GetUsedIn [string trim measure_qualification] [string trim qualified_measure]]
                         ::tcom::foreach e0 $e0s {
                           set qualifier [[[$e0 Attributes] Item [expr 4]] Value]
-                          if {[$qualifier Type] == "value_format_type_qualifier"} {lappend tolQual [[[$qualifier Attributes] Item [expr 1]] Value]}
+                          if {[$qualifier Type] == "value_format_type_qualifier"} {
+                            set val [[[$qualifier Attributes] Item [expr 1]] Value]
+                            lappend spmiTypesPerFile "tolerance qualifier"
+                            if {[lsearch $tolQual $val] == -1} {
+                              lappend tolQual $val
+                              lappend tolQualEnt $qualifier
+                            }
+                          }
                         }
                       }
                     }
@@ -1058,6 +996,18 @@ proc spmiDimtolReport {objEntity} {
                     }
                   }
                 }
+
+# apply qualifier to +/- tolerance values
+                if {[llength $tolQualEnt] > 0} {
+                  set n 0
+                  foreach val $plusminus {
+                    set i $n
+                    if {$n == 1 && [llength $tolQualEnt] == 1} {set i 0}
+                    append plusminusQualified "[valueQualifier [lindex $tolQualEnt $i] $val "+/-"] "
+                    incr n
+                  }
+                }
+
                 if {$npm > 1} {errorMsg "Syntax Error: Multiple plus-minus tolerance values ($plusminus) for a single dimension."}
 
 # tolerance class on limits_and_fits
@@ -1067,7 +1017,7 @@ proc spmiDimtolReport {objEntity} {
                   append plusminus "[$subAttr Name] - [$subAttr Value][format "%c" 10]"
                   if {[$subAttr Name] == "form_variance"} {set form_variance [string toupper [$subAttr Value]]}
                   if {[$subAttr Name] == "grade"}         {set form_grade    [$subAttr Value]}
-                }                
+                }
               }
             }
           }
@@ -1104,7 +1054,7 @@ proc spmiDimtolReport {objEntity} {
               set pmiCol [expr {max($pmiColumns(pmt),$pmiCol)}]
             }
             $cells($dt) Item $r $pmiColumns(pmt) [string trim $plusminus]
-            
+
 # add +- qualifier
             if {[llength $tolQual] > 0} {
               if {![info exists pmiColumns(pmq)]} {set pmiColumns(pmq) [expr {$pmiStartCol($dt)+5}]}
@@ -1115,32 +1065,38 @@ proc spmiDimtolReport {objEntity} {
                 $cells($dt) Item 3 $c $colName
                 set pmiHeading($pmiColumns(pmq)) 1
                 set pmiCol [expr {max($pmiColumns(pmq),$pmiCol)}]
+                set comment "The qualifier might truncate or add trailing zeros to the +/- tolerances in the column to the left.  The Dimensional Tolerance in column D will show if the values are modified."
+                addCellComment $dt 3 $c $comment
               }
-              $cells($dt) Item $r $pmiColumns(pmq) [join [lrmdups $tolQual]]
+              $cells($dt) Item $r $pmiColumns(pmq) [join $tolQual]
             }
 
-# reconstruct +-            
+# reconstruct +-
             set pm [split [string trim $plusminus] " "]
             if {[llength $pm] == 2} {
 
 # truncate
-              if {[getPrecision [lindex $pm 0]] > 4 || [getPrecision [lindex $pm 1]] > 4} {
-                set pm1 [string trimright [format "%.4f" [lindex $pm 0]] "0"]
-                set pm2 [string trimright [format "%.4f" [lindex $pm 1]] "0"]
-                set pm [list $pm1 $pm2]
+              if {$plusminusQualified == ""} {
+                if {[getPrecision [lindex $pm 0]] > 4 || [getPrecision [lindex $pm 1]] > 4} {
+                  set pm1 [string trimright [format "%.4f" [lindex $pm 0]] "0"]
+                  set pm2 [string trimright [format "%.4f" [lindex $pm 1]] "0"]
+                  set pm [list $pm1 $pm2]
+                }
+              } else {
+                set pm [split [string trim $plusminusQualified] " "]
               }
 
               set sdimrep [split $dimrep($dimrepID) " "]
               set dmval [lindex $sdimrep 0]
-              
-# (0) < (1)              
+
+# (0) < (1)
               for {set i 0} {$i < 2} {incr i} {
                 set pmval($i) [lindex $pm $i]
 
 # fix trailing . and 0
                 set pmval($i) [removeTrailingZero $pmval($i)]
               }
-              
+
 # errors with +/- values
               if {$pmval(0) > $pmval(1)} {
                 set msg "Syntax Error: Plus-minus tolerance values for the lower ($pmval(0)) and upper ($pmval(1)) limits are reversed.  See tolerance_value entity.\n[string repeat " " 14]\($recPracNames(pmi242), Sec. 5.2.3)"
@@ -1151,12 +1107,12 @@ proc spmiDimtolReport {objEntity} {
                 errorMsg $msg
                 lappend syntaxErr($dt) [list -$r "+/- tolerance" $msg]
               }
-              
-# EQUAL values              
+
+# EQUAL values
               if {[string range $pmval(0) 1 end] == $pmval(1)} {
 
-# get precision of +- and compare to dimension
-                if {[info exists dim(unit)]} {
+# get precision of +- and compare to dimension, if not qualified
+                if {[info exists dim(unit)] && $plusminusQualified == ""} {
                   if {$dim(unit) == "INCH"} {
                     if {$pmval(1) < 1} {set pmval(1) [string range $pmval(1) 1 end]}
 
@@ -1172,7 +1128,7 @@ proc spmiDimtolReport {objEntity} {
                           set dim(prec,$dimrepID) $pmprec
                           if {$dim(prec,$dimrepID) > $dim(prec,max) && $dim(prec,$dimrepID) < 6} {set dim(prec,max) $dim(prec,$dimrepID)}
                         } else {
-                          set msg "value_format_type_qualifier 'NR2 n.$dim(prec,$dimrepID)' conflicts with the tolerance precision, should use 'NR2 n.$pmprec'.  See ASME Y14.5-2009, Decimal Inch Dimensioning, Sec. 2.3.2.b"
+                          set msg "value_format_type_qualifier 'NR2 n.$dim(prec,$dimrepID)' conflicts with the precision of the tolerance, should use 'NR2 n.$pmprec'.  See ASME Y14.5-2009, Decimal Inch Dimensioning, Sec. 2.3.2.b"
                           errorMsg $msg
                           lappend syntaxErr(dimensional_characteristic_representation) [list "-$spmiIDRow($dt,$spmiID)" "length/angle qualifier" $msg]
                         }
@@ -1197,11 +1153,11 @@ proc spmiDimtolReport {objEntity} {
 # NON EQUAL values
               } elseif {$pmval(0) != $pmval(1)} {
 
-# inch units
-                if {[info exists dim(unit)]} {
+# inch units, if not qualified
+                if {[info exists dim(unit)] && $plusminusQualified == ""} {
                   if {$dim(unit) == "INCH"} {
 
-# get precision of +- and compare to dimension                
+# get precision of +- and compare to dimension
                     set pmprec [expr {max([getPrecision $pmval(0)],[getPrecision $pmval(1)])}]
 
 # add trailing zeros to dimension
@@ -1254,7 +1210,7 @@ proc spmiDimtolReport {objEntity} {
 # mm units
                   } elseif {$dim(unit) == "MM"} {
 
-# get precision of +                
+# get precision of +
                     set pmprec [expr {max([getPrecision $pmval(0)],[getPrecision $pmval(1)])}]
 
 # fix 0.
@@ -1276,7 +1232,7 @@ proc spmiDimtolReport {objEntity} {
                     }
                   }
                 }
-                
+
 # show reconstructed +- tolerance
                 set deg ""
                 if {$dim(angle)} {if {$angDegree} {set deg $pmiUnicode(degree)}}
@@ -1292,7 +1248,7 @@ proc spmiDimtolReport {objEntity} {
     } emsg]} {
       errorMsg "ERROR adding +/- Tolerance: $emsg"
     }
-    
+
 # -------------------------------------------------------------------------------
 # report complete dimension representation (dimrep)
     if {[catch {
@@ -1302,7 +1258,7 @@ proc spmiDimtolReport {objEntity} {
         set c [string index [cellRange 1 $pmiColumns(dmrp)] 0]
         set r $spmiIDRow($dt,$spmiID)
         if {![info exists pmiHeading($pmiColumns(dmrp))]} {
-          set colName "Dimensional[format "%c" 10]Tolerance"           
+          set colName "Dimensional[format "%c" 10]Tolerance"
           $cells($dt) Item 3 $c $colName
           set pmiHeading($pmiColumns(dmrp)) 1
           set pmiCol [expr {max($pmiColumns(dmrp),$pmiCol)}]
@@ -1314,7 +1270,7 @@ proc spmiDimtolReport {objEntity} {
           }
           addCellComment $dt 3 $c $comment
         }
-        
+
 # add brackets or parentheses for basic or reference dimensions
         if {[info exists dimBasic]} {
           if {$dim(unit) == "INCH" && $dim(angle) == 0} {
@@ -1347,27 +1303,27 @@ proc spmiDimtolReport {objEntity} {
           }
           set dr "'$dr"
         }
-        
+
 # saved modifiers to append to dimension
         if {[info exist savedModifier]} {
           append dr " $savedModifier"
           unset savedModifier
         }
-        
+
 # directed
         if {[info exist dimDirected]} {
           append dr "[format "%c" 10](directed)"
           unset dimDirected
           set cellComment "For the definition of a 'directed' dimension, see the CAx-IF Recommended Practice for $recPracNames(pmi242), Sec. 5.1.1, 5.1.7"
         }
-        
+
 # oriented
         if {[info exist dimOrient]} {
           append dr "[format "%c" 10](oriented)"
           unset dimOrient
           set cellComment "For the definition of an 'oriented' dimension, see the CAx-IF Recommended Practice for $recPracNames(pmi242), Sec. 5.1.3"
         }
-        
+
 # repetitive hole dimension count, set in reportAssocGeom
         if {[info exists dimRepeat]} {
           if {$dimRepeat > 1} {
@@ -1386,7 +1342,7 @@ proc spmiDimtolReport {objEntity} {
             lappend entsWithErrors "dimensional_characteristic_representation"
           }
         }
-        
+
 # -------------------------------------------------------------------------------
 # save dimension with associated geometry
         if {[info exists dimtolGeomEnts]} {
@@ -1397,7 +1353,7 @@ proc spmiDimtolReport {objEntity} {
             } else {
               lappend dimtolGeom($dimtolGeomEnts) $dr
             }
-  
+
 # multiple dimensions for same geometry
             set lendtg [llength $dimtolGeom($dimtolGeomEnts)]
             if {$lendtg > 1} {
@@ -1436,17 +1392,98 @@ proc spmiDimtolReport {objEntity} {
 }
 
 #-------------------------------------------------------------------------------
+proc valueQualifier {ent2 dimval {type "length/angle"}} {
+  global dim dt recPracNames spmiID spmiIDRow syntaxErr
+
+  ::tcom::foreach attr1 [$ent2 Attributes] {
+    set tmp [split [lindex [split [$attr1 Value] " "] 1] "."]
+    set prec1 [expr {abs([lindex $tmp 0])}]
+    set dim(qual) [lindex $tmp 1]
+
+    if {$prec1 != 0 || $dim(qual) != 0} {
+      if {$dim(qual) > 5} {
+        set msg "value_format_type_qualifier '[$attr1 Value]' for $type dimension might have too many decimal places.  ($recPracNames(pmi242), Sec. 5.4)"
+        errorMsg $msg
+        lappend syntaxErr(dimensional_characteristic_representation) [list "-$spmiIDRow($dt,$spmiID)" "$type qualifier" $msg]
+      }
+      set dimval [string trimright [format "%.4f" $dimval] "0"]
+      set val1 [lindex [split $dimval "."] 0]
+      set val2 [lindex [split $dimval "."] 1]
+      set val2a $val2
+      append val2 "0000"
+
+      #outputMsg "$dimval / $val1  $prec1 / $val2a  $dim(qual)"
+
+# problems with NR2 values relative to dimension
+      #if {$prec1 != 0}
+      set msg ""
+      set ok1 0
+      if {[info exists dim(unit)]} {if {$dim(unit) == "INCH"} {set ok1 1}}
+      if {$ok1 && $dimval < 1. && $prec1 > 0} {
+        set msg "value_format_type_qualifier 'NR2 $prec1.n' conflicts with INCH $type dimensions < 1, use 'NR2 0.n' instead.  See ASME Y14.5-2009, Decimal Inch Dimensioning, Sec. 1.6.2.a"
+      } elseif {[string length $val2a] > $dim(qual)} {
+        set msg "value_format_type_qualifier '[$attr1 Value]' is too small for the precision of the $type dimension of $dimval  ($recPracNames(pmi242), Sec. 5.4)"
+      } elseif {[string length $val1] < $prec1} {
+        set msg "value_format_type_qualifier '[$attr1 Value]' is too large for the precision of the $type dimension of $dimval  ($recPracNames(pmi242), Sec. 5.4)"
+      }
+      if {$dim(qual) == 0 && [string index $val2 0] != 0} {
+        regsub -all "0" $val2 "" tmp
+        if {$tmp != ""} {
+          set msg "value_format_type_qualifier 'NR2 $prec1.0' truncates decimal $type dimension of $dimval  ($recPracNames(pmi242), Sec. 5.4)"
+        }
+      }
+      if {$msg != ""} {
+        errorMsg $msg
+        lappend syntaxErr(dimensional_characteristic_representation) [list "-$spmiIDRow($dt,$spmiID)" "$type qualifier" $msg]
+      }
+
+# format for precision
+      if {$prec1 != 0} {
+        set dec [string range $val2 0 $dim(qual)-1]
+        if {$dec != ""} {
+          set dimtmp "$val1.$dec"
+        } else {
+          set dimtmp $val1
+        }
+
+# remove leading zero
+      } else {
+        set dimtmp ".[string range $val2 0 $dim(qual)-1]"
+      }
+
+# bad NR2 value
+    } else {
+      set msg "Syntax Error: Invalid value_format_type_qualifier ([$attr1 Value])\n[string repeat " " 14]\($recPracNames(pmi242), Sec. 5.4)"
+      errorMsg $msg
+      lappend syntaxErr([$ent2 Type]) [list [$ent2 P21ID] "format_type" $msg]
+      lappend syntaxErr(dimensional_characteristic_representation) [list "-$spmiIDRow($dt,$spmiID)" "$type qualifier" $msg]
+      set dimtmp $dimval
+    }
+
+# more problems with NR2 values relative to dimension
+    if {$dimtmp == 0 && $dimval != 0} {
+      set msg "Syntax Error: value_format_type_qualifier ([$attr1 Value]) is too small for the precision of the $type dimension of $dimval, qualifier is ignored\n[string repeat " " 14]\($recPracNames(pmi242), Sec. 5.4)"
+      errorMsg $msg
+      lappend syntaxErr([$ent2 Type]) [list [$ent2 P21ID] "format_type" $msg]
+      lappend syntaxErr(dimensional_characteristic_representation) [list "-$spmiIDRow($dt,$spmiID)" "$type qualifier" $msg]
+      set dimtmp $dimval
+    }
+  }
+  return $dimtmp
+}
+
+#-------------------------------------------------------------------------------
 proc getPrecision {val} {
-  
+
 # remove leading 'nX'
   set c1 [string first "X" $val]
   if {$c1 == 1 || $c1 == 2} {set val [string range $val $c1+2 end]}
-  
+
 # remove trailing tolerances
   set c1 [string first " " $val]
   if {$c1 != -1} {set val [string range $val 0 $c1-1]}
 
-# get length of string after .  
+# get length of string after .
   set prec 0
   set c1 [string first "." $val]
   if {$c1 != -1} {set prec [string length [lindex [split $val "."] 1]]}
@@ -1457,7 +1494,7 @@ proc getPrecision {val} {
 proc removeTrailingZero {val} {
   global dim
 
-# remove trailing zero for cases like 1.0, inch > 1., mm > 1  
+# remove trailing zero for cases like 1.0, inch > 1., mm > 1
   if {[info exists dim(unit)]} {
     if {$dim(unit) == "INCH"} {
       if {[string index $val end] == "0" && [string index $val end-1] == "."} {set val [string range $val 0 end-1]}

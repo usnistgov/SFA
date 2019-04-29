@@ -88,8 +88,6 @@ proc checkValues {} {
     if {$opt(VIZFEA) == 0 && $opt(VIZPMI) == 0 && $opt(VIZTPG) == 0 && $opt(VIZBRP) == 0} {
       foreach item {VIZFEA VIZPMI VIZTPG VIZBRP} {set opt($item) 1}
     }
-  } else {
-    set opt(PR_STEP_FEAT) 1
   }
   
 # graphical PMI report
@@ -146,12 +144,12 @@ proc checkValues {} {
 
 # semantic PMI report
   if {$opt(PMISEM)} {
-    foreach b {optPR_STEP_AP242 optPR_STEP_REPR optPR_STEP_SHAP optPR_STEP_TOLR optPR_STEP_QUAN} {
+    foreach b {optPR_STEP_AP242 optPR_STEP_REPR optPR_STEP_SHAP optPR_STEP_TOLR optPR_STEP_QUAN optPR_STEP_FEAT} {
       set opt([string range $b 3 end]) 1
       lappend butDisabled $b
     }
   } else {
-    foreach b {optPR_STEP_REPR optPR_STEP_TOLR} {lappend butNormal $b}
+    foreach b {optPR_STEP_REPR optPR_STEP_TOLR optPR_STEP_FEAT} {lappend butNormal $b}
     if {!$opt(PMIGRF)} {
       if {!$opt(VALPROP)} {lappend butNormal optPR_STEP_QUAN}
       foreach b {optPR_STEP_AP242 optPR_STEP_COMM optPR_STEP_SHAP} {lappend butNormal $b}
@@ -1698,7 +1696,7 @@ proc truncFileName {fname {compact 0}} {
 # copy schema rose files that are in the Tcl Virtual File System (VFS) to the IFCsvr dll directory
 # this only works with Tcl 8.5.15 and lower
 proc copyRoseFiles {} {
-  global pf32 pf64 wdir mytemp env ifcsvrDir nistVersion contact
+  global pf32 pf64 wdir mytemp env ifcsvrDir nistVersion contact stepAPs
 
 # rose files in SFA distribution
   if {[file exists $ifcsvrDir]} {
@@ -1762,9 +1760,7 @@ proc copyRoseFiles {} {
         set ok 1
         foreach fn [glob -nocomplain -directory $stdir *.rose] {
           set fn1 [file tail $fn]
-          if {[string first "_EXP" $fn1] == -1 && ([string first "ap" $fn1] == 0 || [string first "auto" $fn1] == 0 || [string first "building" $fn1] == 0 || \
-              [string first "cast" $fn1] == 0 || [string first "config" $fn1] == 0 || [string first "integrated" $fn1] == 0 || [string first "plant" $fn1] == 0 || \
-              [string first "structural" $fn1] == 0 || [string first "feature" $fn1] == 0 || [string first "engineering" $fn1] == 0 || [string first "technical" $fn1] == 0)} {
+          if {[string first "_EXP" $fn1] == -1 && ([string first "ap" $fn1] == 0 || [info exists stepAPs([string toupper [file rootname $fn1]])])} {
             set f2 [file join $ifcsvrDir $fn1]
             set okcopy 0
             if {![file exists $f2]} {
@@ -1884,7 +1880,7 @@ proc installIFCsvr {} {
 #-------------------------------------------------------------------------------
 # shortcuts
 proc setShortcuts {} {
-  global mydesk mymenu mytemp nistVersion wdir
+  global mydesk mymenu mytemp nistVersion wdir tcl_platform
   
   set progname [info nameofexecutable]
   if {[string first "AppData/Local/Temp" $progname] != -1 || [string first ".zip" $progname] != -1} {
@@ -1929,7 +1925,11 @@ proc setShortcuts {} {
           if {[info exists mymenu]} {
             if {[file exists [file join $mymenu "$progstr.lnk"]]} {outputMsg "Existing Start Menu shortcut will be overwritten" red}
             if {$nistVersion} {
-              twapi::write_shortcut [file join $mymenu "$progstr.lnk"] -path [info nameofexecutable] -desc $progstr -iconpath [file join $mytemp NIST.ico]
+              if {$tcl_platform(osVersion) >= 6.2} {
+                twapi::write_shortcut [file join $mymenu "$progstr.lnk"] -path [info nameofexecutable] -desc $progstr -iconpath [info nameofexecutable]
+              } else {
+                twapi::write_shortcut [file join $mymenu "$progstr.lnk"] -path [info nameofexecutable] -desc $progstr -iconpath [file join $mytemp NIST.ico]
+              }
             } else {
               twapi::write_shortcut [file join $mymenu "$progstr.lnk"] -path [info nameofexecutable] -desc $progstr
             }
@@ -1942,7 +1942,11 @@ proc setShortcuts {} {
             if {[info exists mydesk]} {
               if {[file exists [file join $mydesk "$progstr.lnk"]]} {outputMsg "Existing Desktop shortcut will be overwritten" red}
               if {$nistVersion} {
-                twapi::write_shortcut [file join $mydesk "$progstr.lnk"] -path [info nameofexecutable] -desc $progstr -iconpath [file join $mytemp NIST.ico]
+                if {$tcl_platform(osVersion) >= 6.2} {
+                  twapi::write_shortcut [file join $mydesk "$progstr.lnk"] -path [info nameofexecutable] -desc $progstr -iconpath [info nameofexecutable]
+                } else {
+                  twapi::write_shortcut [file join $mydesk "$progstr.lnk"] -path [info nameofexecutable] -desc $progstr -iconpath [file join $mytemp NIST.ico]
+                }
               } else {
                 twapi::write_shortcut [file join $mydesk "$progstr.lnk"] -path [info nameofexecutable] -desc $progstr
               }

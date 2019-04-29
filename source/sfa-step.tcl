@@ -231,8 +231,8 @@ proc getFaceGeom {e0 tolType {id ""}} {
 
 # -------------------------------------------------------------------------------
 proc reportAssocGeom {entType {row ""}} {
-  global assocGeom recPracNames dimRepeat dimRepeatDiv syntaxErr cells opt suppGeomEnts entCount cgrObjects
-  global objDesign cylSurfBounds
+  global assocGeom recPracNames dimRepeat dimRepeatDiv syntaxErr cells opt suppGeomEnts entCount cgrObjects cylSurfBounds
+  global objDesign
   #outputMsg "reportAssocGeom $entType" red
   
   set str ""
@@ -541,6 +541,7 @@ proc spmiSummary {} {
           if {[string first "Datum Reference Frame" $val] != -1 || \
               $val == "GD&T[format "%c" 10]Annotation" || \
               $val == "Dimensional[format "%c" 10]Tolerance" || \
+              $val == "Hole[format "%c" 10]Tolerance" || \
               [string first "Datum Target" $val] == 0 || \
               ($thisEntType == "datum_reference" && [string first "reference" $val] != -1) || \
               ($thisEntType == "referenced_modified_datum" && [string first "datum" $val] != -1)} {set pmiCol $j}
@@ -1291,6 +1292,7 @@ proc spmiCheckEnt {ent} {
   set ok 0
   foreach sp $spmiEntTypes {if {[string first $sp $ent] ==  0} {set ok 1}}
   foreach sp $tolNames     {if {[string first $sp $ent] != -1} {set ok 1}}
+  if {([string first "counter" $ent] != -1 || [string first "spotface" $ent] != -1) && [string first "occurrence" $ent] == -1} {set ok 1}
   return $ok
 }
 
@@ -1409,7 +1411,6 @@ proc setEntsToProcess {entType} {
 # -------------------------------------------------------------------------------
 # check for all types of reports
 proc checkForReports {entType} {
-  global objDesign
   global cells skipEntities gpmiEnts opt pmiColumns savedViewCol spmiEnts
   
 # check for validation properties report, call valPropStart
@@ -1449,14 +1450,22 @@ proc checkForReports {entType} {
       errorMsg "ERROR adding Tessellated Part Geometry\n  $emsg"
     }
 
-# check for Semantic PMI report, call spmiDimtolStart or spmiGeotolStart
+# check for Semantic PMI reports
   } elseif {$spmiEnts($entType)} {
     if {[catch {
       if {[info exists opt(PMISEM)]} {
         if {$opt(PMISEM)} {
           if {[info exists cells($entType)]} {
+            
+# dimensions        
             if {$entType == "dimensional_characteristic_representation"} {
               spmiDimtolStart $entType
+
+# counter holes, spotface            
+            } elseif {([string first "counter" $entType] != -1 || [string first "spotface" $entType] != -1) && [string first "occurrence" $entType] == -1} {
+              spmiCounterStart $entType
+
+# geometric tolerances
             } else {
               spmiGeotolStart $entType
             }
@@ -1537,33 +1546,16 @@ proc setEntAttrList {abc} {
 # -------------------------------------------------------------------------------
 # get STEP AP name
 proc getStepAP {fname} {
-  global fileSchema1
+  global fileSchema stepAPs
   
   set fs [getSchemaFromFile $fname]
-  set fileSchema1 [string toupper $fs]
+  set fileSchema [string toupper $fs]
   
   set ap ""
-  foreach aps {AP203 AP209 AP210 AP238 AP239 AP242} {if {[string first $aps $fs] != -1} {set ap $aps}}
+  foreach aps {AP203 AP209 AP210 AP236 AP238 AP239 AP242} {if {[string first $aps $fs] != -1} {set ap $aps}}
 
-  if {$ap == ""} {
-    if {[string first "CONFIGURATION_CONTROL_3D_DESIGN" $fileSchema1] != -1}     {set ap AP203e1}
-    if {[string first "CONFIGURATION_CONTROL_3D_DESIGN_ED2" $fileSchema1] != -1} {set ap AP203}
-    if {[string first "CONFIG_CONTROL" $fileSchema1] != -1}                      {set ap AP203e1}
-    if {[string first "CCD_CLA_GVP_AST" $fileSchema1] != -1}                     {set ap AP203e1}
-
-    if {[string first "STRUCTURAL_ANALYSIS_DESIGN" $fileSchema1] != -1} {set ap AP209e1}
-    if {[string first "INTEGRATED_CNC_SCHEMA" $fileSchema1] != -1}      {set ap AP238}
-
-    if {[string first "AUTOMOTIVE_DESIGN_CC2" $fileSchema1] != -1} {
-      set ap AP214
-    } elseif {[string first "AUTOMOTIVE_DESIGN" $fileSchema1] != -1} {
-      set ap AP214e3
-    }
-
-    if {[string first "STRUCTURAL_FRAME_SCHEMA" $fileSchema1] != -1} {set ap CIS/2}
-    if {[string first "IFC" $fileSchema1] != -1} {set ap $fileSchema1}
-    if {$ap == ""} {set ap $fileSchema1}
-  }
+  if {$ap == "" && [info exists stepAPs($fileSchema)]} {set ap $stepAPs($fs)}
+  if {$ap == ""} {set ap $fileSchema}
   return $ap
 }
 
@@ -1576,6 +1568,7 @@ proc getSchemaFromFile {fname {msg 0}} {
   set ok 0
   set nline 0
   set niderr 0
+  set nendsec 0
   set stepfile [open $fname r]
   
 # read first 100 lines  
@@ -1594,9 +1587,10 @@ proc getSchemaFromFile {fname {msg 0}} {
       set fsline $line
 
 # done reading header section, get schema
-    } elseif {[string first "ENDSEC" $line] != -1} {
+    } elseif {[string first "ENDSEC" $line] != -1 && $nendsec == 0} {
       set sline [split $fsline "'"]
       set schema [lindex $sline 1]
+      incr nendsec
 
 # multiple schemas
       if {[string first "," $fsline] != -1} {

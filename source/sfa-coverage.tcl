@@ -106,7 +106,7 @@ proc spmiCoverageWrite {{fn ""} {sum ""} {multi 1}} {
 
 # add number of pmi types
     if {[info exists spmiTypesPerFile] || [info exists spmiTypesPerFile1]} {
-      for {set r 4} {$r <= 142} {incr r} {
+      for {set r 4} {$r <= 143} {incr r} {
         if {$multi} {
           set val [[$cells1($sempmi_coverage) Item $r 1] Value]
         } else {
@@ -360,7 +360,7 @@ proc spmiCoverageFormat {sum {multi 1}} {
     }
  
 # horizontal break lines, depends on items in representation coverage worksheet, items defined in sfa-data
-    set idx1 [list 19 37 46 62 66 76]
+    set idx1 [list 19 37 46 63 67 77]
     if {!$multi} {set idx1 [concat [list 3 4] $idx1]}
     for {set r 200} {$r >= [lindex $idx1 end]} {incr r -1} {
       if {$multi} {

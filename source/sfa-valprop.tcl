@@ -1,7 +1,7 @@
 proc valPropStart {} {
   global objDesign
   global cells col entLevel ent entAttrList ncartpt opt pd pdcol pdheading propDefRow valPropLink valPropNames rowmax
-  
+
 # CAx-IF RP Geometric and Assembly Validation Properties, section 8
   set valPropNames(geometric_validation_property) [list \
     [list "bounding box" [list "bounding box corner point"]] \
@@ -118,7 +118,7 @@ proc valPropStart {} {
 
   set ang  [list plane_angle_measure_with_unit_and_measure_representation_item value_component unit_component name]
   set len1 [list length_measure_with_unit_and_measure_representation_item value_component unit_component name]
-  set len2 [list length_measure_with_unit_and_measure_representation_item_and_qualified_representation_item value_component unit_component name qualifiers]
+  set len2 [list length_measure_with_unit_and_measure_representation_item_and_qualified_representation_item value_component unit_component name]
   set area [list area_measure_with_unit_and_measure_representation_item value_component unit_component name]
   set vol  [list volume_measure_with_unit_and_measure_representation_item value_component unit_component name]
   set forc [list force_measure_with_unit_and_measure_representation_item value_component unit_component name]
@@ -150,7 +150,7 @@ proc valPropStart {} {
   if {$opt(DEBUG1)} {outputMsg "entAttrList $entAttrList"}
   if {$opt(DEBUG1)} {outputMsg \n}
   unset ent
-    
+
   set startent [lindex $gvp 0]
   set n 0
   set entLevel 0
@@ -173,7 +173,7 @@ proc valPropStart {} {
 
 # -------------------------------------------------------------------------------
 proc valPropReport {objEntity} {
-  global cells col entLevel ent entAttrList maxrep ncartpt nrep opt pd pdcol pdheading pmivalprop pointLimit prefix 
+  global cells col entLevel ent entAttrList maxrep ncartpt nrep opt pd pdcol pdheading pmivalprop pointLimit prefix
   global propDefID propDefIDRow propDefName propDefOK propDefRow recPracNames repName stepAP syntaxErr valName valPropLink valPropNames
 
   if {[info exists propDefOK]} {if {$propDefOK == 0} {return}}
@@ -196,7 +196,7 @@ proc valPropReport {objEntity} {
         if {$ncartpt > $pointLimit} {
           errorMsg " Only the first $pointLimit sampling points are reported" red
           incr entLevel -1
-          return  
+          return
         }
       }
     }
@@ -211,7 +211,7 @@ proc valPropReport {objEntity} {
         set propDefOK 1
       }
     }
-    
+
     if {$entLevel == 1} {set pmivalprop 0}
 
     ::tcom::foreach objAttribute $objAttributes {
@@ -231,7 +231,7 @@ proc valPropReport {objEntity} {
       if {$objNodeType == 18 || $objNodeType == 19} {
         if {$idx != -1} {
           if {$opt(DEBUG1)} {outputMsg "$ind   ATR $entLevel $objName - $objValue ($objNodeType, $objSize, $objAttrType)"}
-          
+
           set nounits 0
           if {[string length $objValue] == 0 && $objName == "unit_component" && \
               ([string first "volume" $valName] == -1 || [string first "area" $valName] == -1 || [string first "length" $valName] == -1)} {
@@ -250,12 +250,6 @@ proc valPropReport {objEntity} {
               "*measure_representation_item* value_component" {
                 set ok 1
                 set col($pd) 9
-                if {$objValue <= 0.} {
-                  if {[string first "length" $valName] != -1 || [string first "area" $valName] != -1 || \
-                      [string first "volume" $valName] != -1 || [string first "number of" $valName] != -1} {
-                    errorMsg " Validation property '$valName' = $objValue"
-                  }
-                }
               }
 
               "*measure_representation_item* unit_component" {
@@ -267,7 +261,7 @@ proc valPropReport {objEntity} {
                       append munit "_unit"
                       set typ [$objValue Type]
                       if {$typ != "derived_unit" && $typ != $munit} {
-                        set msg "Syntax Error: Missing units exponent for a '$mtype' measure.  '$ent2' must refer to '$munit' or 'derived_unit'."
+                        set msg "Syntax Error: Missing units exponent for a '$mtype' validation property.  '$ent2' must refer to '$munit' or 'derived_unit'."
                         errorMsg $msg
                         set vpcol 11
                         catch {if {[[$cells($pd) Item 3 13] Value] != ""} {set vpcol 13}}
@@ -277,7 +271,7 @@ proc valPropReport {objEntity} {
                   }
                 }
               }
-              
+
               "value_representation_item value_component" -
               "descriptive_representation_item description" {set ok 1; set col($pd) 9}
 
@@ -348,7 +342,7 @@ proc valPropReport {objEntity} {
             switch -glob $ent1 {
               "cartesian_point coordinates" -
               "direction direction_ratios"  {set ok 1; set col($pd) 9; set colName "value"}
-              
+
               "representation items" -
               "shape_representation_with_parameters items" {set nrep 0; set maxrep $objSize}
             }
@@ -394,7 +388,7 @@ proc valPropReport {objEntity} {
                 $cells($pd) Item $r $c "$val[format "%c" 10]#$objID $ent2"
               }
               set pdcol [expr {max($col($pd),$pdcol)}]
-              
+
 # add blank columns for units and exponent, if more than one representation
               if {[info exists maxrep]} {
                 if {$maxrep > 1} {
@@ -408,7 +402,7 @@ proc valPropReport {objEntity} {
                       $cells($pd) Item $r $c "$val[format "%c" 10] "
                     }
                     set pdcol [expr {max($col($pd),$pdcol)}]
-                  }             
+                  }
                 }
               } else {
                 errorMsg "maxrep does not exist"
@@ -451,14 +445,8 @@ proc valPropReport {objEntity} {
                 set ok 1
                 set col($pd) 9
                 set colName "value"
-                if {$objValue <= 0.} {
-                  if {[string first "length" $valName] != -1 || [string first "area" $valName] != -1 || \
-                      [string first "volume" $valName] != -1 || [string first "number of" $valName] != -1} {
-                    errorMsg " Validation property '$valName' = $objValue"
-                  }
-                }
               }
-              
+
               "descriptive_representation_item description" {set ok 1; set col($pd) 9; set colName "value"}
 
               "conversion_based_unit_and_*_unit name" {set ok 1; set col($pd) 11; set colName "units"}
@@ -475,7 +463,7 @@ proc valPropReport {objEntity} {
                 set ok 0
                 set pmivalprop 1
                 regsub -all " " $objValue "_" propDefName
-                
+
                 if {[string first "validation property" $objValue] != -1} {
                   set okvp 0
                   set vps [list "geometric" "assembly" "pmi" "tessellated" "attribute" "FEA" "composite"]
@@ -529,7 +517,7 @@ proc valPropReport {objEntity} {
                     } else {
                       set ok1 1
                     }
-  
+
                     if {!$ok1} {
                       set emsg "Syntax Error: Invalid '$ent2' attribute ($repName) for '$propDefName'.\n              "
                       if {$propDefName == "geometric_validation_property" || $propDefName == "assembly_validation_property"} {
@@ -591,11 +579,11 @@ proc valPropReport {objEntity} {
                       }
                     }
 
-# do not flag cartesian_point.name errors with entity ids           
+# do not flag cartesian_point.name errors with entity ids
                     if {!$ok1 && $ent2 == "cartesian_point.name"} {
                       if {[string first "\#" $objValue] != -1} {set ok1 1}
                     }
-                    
+
                     if {$ok1 != 1} {
                       if {$ok1 == 0} {
                         set emsg "Syntax Error: Invalid "
@@ -718,7 +706,7 @@ proc valPropFormat {} {
 
   if {[info exists cells($thisEntType)] && $col($thisEntType) > 4} {
     outputMsg " property_definition"
-  
+
 # delete unused columns
     set delcol 0
     set ndelcol 0
@@ -727,11 +715,11 @@ proc valPropFormat {} {
       if {$val == ""} {
         set range [$worksheet($thisEntType) Range [cellRange -1 $i]]
         $range Delete
-        incr ndelcol 
+        incr ndelcol
       }
     }
     set col($thisEntType) [expr {$col($thisEntType)-$ndelcol}]
-  
+
 # sort
     if {$excelVersion > 11} {
       set ranrow $row($thisEntType)
@@ -739,7 +727,7 @@ proc valPropFormat {} {
         set range [$worksheet($thisEntType) Range [cellRange 3 1] [cellRange $ranrow $col($thisEntType)]]
         set tname [string trim "TABLE-$thisEntType"]
         [[$worksheet($thisEntType) ListObjects] Add 1 $range] Name $tname
-        [[$worksheet($thisEntType) ListObjects] Item $tname] TableStyle "TableStyleLight1" 
+        [[$worksheet($thisEntType) ListObjects] Item $tname] TableStyle "TableStyleLight1"
       }
     }
 
@@ -781,7 +769,7 @@ proc valPropFormat {} {
           set r2 [lindex $r 1]
           set range [$worksheet($thisEntType) Range [cellRange $r1 $i] [cellRange $r2 [expr {$i+1}]]]
           [$range Interior] ColorIndex [lindex [list 36 35] [expr {$j%2}]]
-  
+
           if {$i == 5 && $r2 > 3} {
             if {$r1 < 4} {set r1 4}
             set range [$worksheet($thisEntType) Range [cellRange $r1 5] [cellRange $r2 $col($thisEntType)]]
@@ -797,7 +785,7 @@ proc valPropFormat {} {
     } emsg]} {
       errorMsg "ERROR formatting Validation Properties 2: $emsg"
     }
-    
+
 # left and right borders in header
     for {set i 5} {$i <= $col($thisEntType)} {incr i} {
       set range [$worksheet($thisEntType) Range [cellRange 3 $i] [cellRange 3 $i]]
@@ -806,14 +794,14 @@ proc valPropFormat {} {
         [[$range Borders] Item [expr 10]] Weight [expr 1]
       }
     }
-    
+
 # bold lines top and bottom
     set colrange [[[$worksheet($thisEntType) UsedRange] Columns] Count]
     set range [$worksheet($thisEntType) Range [cellRange $row($thisEntType) 5] [cellRange $row($thisEntType) $colrange]]
     catch {[[$range Borders] Item [expr 9]] Weight [expr -4138]}
     set range [$worksheet($thisEntType) Range [cellRange 2 5] [cellRange 2 $colrange]]
     catch {[[$range Borders] Item [expr 9]] Weight [expr -4138]}
-    
+
 # fix column widths
     for {set i 1} {$i <= $colrange} {incr i} {
       set val [[$cells($thisEntType) Item 3 $i] Value]
@@ -836,14 +824,14 @@ proc valPropFormat {} {
       [$range Columns] Group
     }
     [$worksheet($thisEntType) Outline] ShowLevels [expr 0] [expr 1]
-    
+
 # link to RP
     if {$valPropLink} {
       $cells($thisEntType) Item 2 1 "See CAx-IF Recommended Practices for Validation Property Definitions"
       set range [$worksheet($thisEntType) Range A2:D2]
       $range MergeCells [expr 1]
       set anchor [$worksheet($thisEntType) Range A2]
-      [$worksheet($thisEntType) Hyperlinks] Add $anchor [join "https://www.cax-if.org/joint_testing_info.html#recpracs"] [join ""] [join "Link to CAx-IF Recommended Practices"]    
+      [$worksheet($thisEntType) Hyperlinks] Add $anchor [join "https://www.cax-if.org/joint_testing_info.html#recpracs"] [join ""] [join "Link to CAx-IF Recommended Practices"]
     }
   }
 }
