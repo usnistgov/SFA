@@ -2,7 +2,7 @@ proc initData {} {
 
 global entCategory entColorIndex badAttributes roseLogical defaultColor DTR
 global aoEntTypes gpmiTypes spmiEntTypes dimSizeNames tolNames tzfNames dimModNames pmiModifiers pmiModifiersRP pmiUnicode
-global spmiTypes recPracNames modelPictures schemaLinks modelURLs legendColor
+global spmiTypes recPracNames modelPictures schemaLinks modelURLs legendColor pmiElementsMaxRows pmiHorizontalLineBreaks
 global ap203all ap214all ap242all ap242only
 global feaIndex feaElemFace cadApps allVendor numSavedViews andEntAP209 brepEnts stepAPs
 
@@ -30,13 +30,41 @@ set recPracNames(uda)      "User Defined Attributes"
 set recPracNames(comp)     "Composite Structure Validation Properties"
 set recPracNames(suppgeom) "Supplemental Geometry"
 
+# STEP AP names for those that do not start with APnnn
+set stepAPs(CONFIGURATION_CONTROL_3D_DESIGN_ED2_MIM_LF) AP203
+set stepAPs(CCD_CLA_GVP_AST) AP203e1
+set stepAPs(CONFIG_CONTROL_DESIGN) AP203e1
+set stepAPs(CONFIGURATION_CONTROL_3D_DESIGN_MIM_LF) AP203e1
+set stepAPs(STRUCTURAL_ANALYSIS_DESIGN) AP209e1
+set stepAPs(AUTOMOTIVE_DESIGN) AP214
+set stepAPs(AUTOMOTIVE_DESIGN_CC2) AP214e1
+set stepAPs(CAST_PARTS_SCHEMA) AP223
+set stepAPs(FEATURE_BASED_PROCESS_PLANNING) AP224
+set stepAPs(BUILDING_DESIGN_SCHEMA) AP225
+set stepAPs(PLANT_SPATIAL_CONFIGURATION) AP227
+set stepAPs(TECHNICAL_DATA_PACKAGING) AP232
+set stepAPs(ENGINEERING_PROPERTIES_SCHEMA) AP235
+#set stepAPs(MODEL_BASED_INTEGRATED_MANUFACTURING_SCHEMA) AP238
+set stepAPs(INTEGRATED_CNC_SCHEMA) AP238
+set stepAPs(PROCESS_PLANNING_SCHEMA) AP240
+
+# other schemas
+#set stepAPs(EXPLICIT_DRAUGHTING) AP201
+#set stepAPs(ASSOCIATIVE_DRAUGHTING) AP202
+#set stepAPs(SHIP_ARRANGEMENT_SCHEMA) AP215
+#set stepAPs(SHIP_MOULDED_FORM_SCHEMA) AP216
+#set stepAPs(SHIP_STRUCTURES_SCHEMA) AP218
+#set stepAPs(DIMENSIONAL_INSPECTION_SCHEMA) AP219
+#set stepAPs(FUNCTIONAL_DATA_AND_SCHEMATIC_REPRESENTATION_MIM_LF) AP221
+#set stepAPs(FURNITURE_CATALOG_AND_INTERIOR_DESIGN) AP236
+
 # links to schema documentation
 set schemaLinks(AP203)   "https://www.cax-if.org/documents/AP203e2_html/AP203e2.htm"
 set schemaLinks(AP203e1) "http://web.archive.org/web/20160322005246/www.steptools.com/support/stdev_docs/express/ap203/html/index.html"
 set schemaLinks(AP209)   "https://www.cax-if.org/documents/AP209_HTML/AP209ed2_mim_lf_v1.46.htm"
 set schemaLinks(AP209e1) "http://web.archive.org/web/20160322005246/www.steptools.com/support/stdev_docs/express/ap209/index.html"
 set schemaLinks(AP210)   "http://web.archive.org/web/20160322005246/www.steptools.com/support/stdev_docs/express/ap210/html/index.html"
-set schemaLinks(AP214e3) "https://www.cax-if.org/documents/AP214E3/AP214_e3.htm"
+set schemaLinks(AP214)   "https://www.cax-if.org/documents/AP214E3/AP214_e3.htm"
 set schemaLinks(AP238)   "http://web.archive.org/web/20160322005246/www.steptools.com/support/stdev_docs/express/ap238/html/index.html"
 set schemaLinks(AP239)   "http://web.archive.org/web/20160322005246/www.steptools.com/support/stdev_docs/express/ap239/html/index.html"
 set schemaLinks(AP242)   "https://www.cax-if.org/documents/AP242/AP242_mim_lf_1.36.htm"
@@ -130,33 +158,6 @@ set allVendor(ts) "Theorem Cadverter (I-DEAS)"
 set allVendor(tx) "Theorem Cadverter (NX)"
 set allVendor(ug) "Unigraphics"
 
-# STEP AP names for those that do not start with APnnn
-set stepAPs(AUTOMOTIVE_DESIGN) AP214
-set stepAPs(AUTOMOTIVE_DESIGN_CC2) AP214e1
-set stepAPs(CCD_CLA_GVP_AST) AP203e1
-set stepAPs(CONFIG_CONTROL_DESIGN) AP203e1
-set stepAPs(CONFIGURATION_CONTROL_3D_DESIGN_ED2_MIM_LF) AP203
-set stepAPs(CONFIGURATION_CONTROL_3D_DESIGN_MIM_LF) AP203e1
-set stepAPs(ENGINEERING_PROPERTIES_SCHEMA) AP235
-set stepAPs(FEATURE_BASED_PROCESS_PLANNING) AP224
-set stepAPs(INTEGRATED_CNC_SCHEMA) AP238
-set stepAPs(PLANT_SPATIAL_CONFIGURATION) AP227
-set stepAPs(STRUCTURAL_ANALYSIS_DESIGN) AP209e1
-set stepAPs(TECHNICAL_DATA_PACKAGING) AP232
-
-# old unused schemas
-#set stepAPs(ASSOCIATIVE_DRAUGHTING) AP202
-#set stepAPs(SHIP_ARRANGEMENT_SCHEMA) AP215
-#set stepAPs(SHIP_MOULDED_FORM_SCHEMA) AP216
-#set stepAPs(SHIP_STRUCTURES_SCHEMA) AP218
-#set stepAPs(BUILDING_DESIGN_SCHEMA) AP225
-#set stepAPs(CAST_PARTS_SCHEMA) AP223
-#set stepAPs(DIMENSIONAL_INSPECTION_SCHEMA) AP219
-#set stepAPs(FURNITURE_CATALOG_AND_INTERIOR_DESIGN) AP236
-#set stepAPs(EXPLICIT_DRAUGHTING) AP201
-#set stepAPs(FUNCTIONAL_DATA_AND_SCHEMATIC_REPRESENTATION_MIM_LF) AP221
-#set stepAPs(PROCESS_PLANNING_SCHEMA) AP240
-
 # -----------------------------------------------------------------------------------------------------
 # list of annotation occurrence entities, *order is important*
 set aoEntTypes [list \
@@ -181,6 +182,10 @@ set spmiEntTypes [list \
   datum_target \
   dimensional_characteristic_representation \
 ]
+
+# max rows for PMI elements on PMI representation coverage worksheet, depends on number and order of items below
+set pmiElementsMaxRows 143
+set pmiHorizontalLineBreaks [list 19 37 46 63 67 71 81]
 
 # -----------------------------------------------------------------------------------------------------
 # dimensional_size names (Section 5.1.5, Table 4), controlled radius and square are not included
@@ -238,10 +243,10 @@ foreach item [list \
   "angular size (5.1.6)" "directed dimension \u2331 (5.1.1)"  "oriented dimensional location (5.1.3)" "derived shapes dimensional location (5.1.4)" \
   "repetitive dimensions 'nX' (5.1, User Guide 5.1.3)" "bilateral tolerance (5.2.3)" "non-bilateral tolerance (5.2.3)" "value range (5.2.4)" "diameter \u2205 (5.1.5)" \
   "radius R (5.1.5)" "spherical diameter S\u2205 (5.1.5)" "spherical radius SR (5.1.5)" "controlled radius CR (5.3)" "dimension basic (5.3)" "reference dimension (5.3)" \
-  "statistical_dimension <ST> (5.3)" "type qualifier (5.2.2)" "tolerance class (5.2.5)" "location with path (5.1.7)" "square \u25A1 (5.3)" "dimension qualifier (5.4)" \
-  "tolerance qualifier" "datum (6.5)" "multiple datum features (6.9.8)" "datum with axis system (6.9.7)" "datum with modifiers (6.9.7)" \
-  "all datum targets (Rows 67 thru 73)" "point placed datum target (6.6)" "line placed datum target (6.6)" "rectangle placed datum target (6.6)" \
-  "circle placed datum target (6.6)" "circular curve placed datum target (6.6)" "curve datum target (6.6)" "area datum target (6.6)" \
+  "statistical_dimension <ST> (5.3)" "type qualifier (5.2.2)" "limits and fits (5.2.5)" "location with path (5.1.7)" "square \u25A1 (5.3)" "dimension qualifier (5.4)" \
+  "tolerance qualifier"  "counterbore \u2334" "countersink \u2335" "depth \u21A7" "spotface SF" "datum (6.5)" "multiple datum features (6.9.8)" \
+  "datum with axis system (6.9.7)" "datum with modifiers (6.9.7)" "all datum targets (Rows 67 thru 73)" "point placed datum target (6.6)" "line placed datum target (6.6)" \
+  "rectangle placed datum target (6.6)" "circle placed datum target (6.6)" "circular curve placed datum target (6.6)" "curve datum target (6.6)" "area datum target (6.6)" \
   "placed datum target geometry (6.6.2)" "movable datum target (6.6.3)" \
 ] {lappend spmiTypes $item}
 
@@ -346,7 +351,7 @@ foreach pmf $pmfirst {
 
 # pmnot are already included in spmiTypes above
 set pmnot [list all_around between unequally_disposed projected free_state tangent_plane separate_requirement \
-                statistical_dimension statistical_tolerance]
+                statistical_dimension statistical_tolerance counterbore countersink spotface depth]
 foreach item [lsort [array names pmiModifiers]] {
   set idx [lindex [split $item ","] 0]
   if {[lsearch $pmfirst $idx] == -1 && [lsearch $pmnot $idx] == -1} {lappend spmiTypes $item}

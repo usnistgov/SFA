@@ -1,14 +1,10 @@
 # process multiple files in a directory
 
 proc openMultiFile {{ask 1}} {
-  global fileList opt localName localNameList buttons fileDir fileDir1 lastXLS1
-  global allEntity fileEntity totalEntity writeDir startrow
-  global xlFileNames nprogBarFiles extXLS mydocs entCategory
-  global lenfilelist multiFileDir
-  global coverageSTEP gpmiTypes developer nistVersion
-  global sempmi_totals pmi_totals gpmiTypesInvalid col_ca pmi_rows stepAP
-  global excel1 worksheets1 worksheet1 cells1 row1 col1 nfile coverageStyle
-  global sempmi_coverage pmi_coverage useXL xlFormat andEntAP209
+  global allEntity andEntAP209 buttons cells1 col_ca col1 coverageSTEP coverageStyle developer entCategory excel1 extXLS fileDir fileDir1 fileEntity fileList
+  global gpmiTypes gpmiTypesInvalid lastXLS1 lenfilelist localName localNameList multiFileDir mydocs nfile nistVersion nprogBarFiles opt
+  global pmi_coverage pmi_rows pmi_totals pmiElementsMaxRows row1 sempmi_coverage sempmi_totals startrow stepAP totalEntity useXL
+  global worksheet1 worksheets1 writeDir xlFileNames xlFormat
 
   set maxfiles 1000
   if {$developer} {set maxfiles 10000}
@@ -474,7 +470,7 @@ proc openMultiFile {{ask 1}} {
 
 # also for PMI coverage analysis worksheets, change 143 as necessary
                   catch {
-                    set range [$worksheet1($sempmi_coverage) Range [cellRange 3 $nf1] [cellRange 143 $nf1]]
+                    set range [$worksheet1($sempmi_coverage) Range [cellRange 3 $nf1] [cellRange $pmiElementsMaxRows $nf1]]
                     set borders [$range Borders]
                     [$borders Item [expr -4152]] Weight [expr 2]
                   }

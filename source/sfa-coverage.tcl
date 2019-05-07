@@ -73,7 +73,7 @@ proc spmiCoverageStart {{multi 1}} {
 # -------------------------------------------------------------------------------
 # write semantic PMI coverage analysis worksheet
 proc spmiCoverageWrite {{fn ""} {sum ""} {multi 1}} {
-  global cells cells1 col1 coverageLegend coverageStyle entCount fileList legendColor nfile nistName 
+  global cells cells1 col1 coverageLegend coverageStyle entCount fileList legendColor nfile nistName pmiElementsMaxRows
   global sempmi_coverage sempmi_totals spmiCoverages spmiTypes spmiTypesPerFile checkPMImods worksheet worksheet1 allPMI pmiModifiers
   #outputMsg "spmiCoverageWrite $multi" red
 
@@ -106,7 +106,7 @@ proc spmiCoverageWrite {{fn ""} {sum ""} {multi 1}} {
 
 # add number of pmi types
     if {[info exists spmiTypesPerFile] || [info exists spmiTypesPerFile1]} {
-      for {set r 4} {$r <= 143} {incr r} {
+      for {set r 4} {$r <= $pmiElementsMaxRows} {incr r} {
         if {$multi} {
           set val [[$cells1($sempmi_coverage) Item $r 1] Value]
         } else {
@@ -315,7 +315,7 @@ proc spmiCoverageWrite {{fn ""} {sum ""} {multi 1}} {
 # -------------------------------------------------------------------------------
 # format semantic PMI coverage analysis worksheet, also PMI totals
 proc spmiCoverageFormat {sum {multi 1}} {
-  global cells cells1 col1 coverageLegend coverageStyle excel1 lenfilelist localName opt
+  global cells cells1 col1 coverageLegend coverageStyle excel1 pmiHorizontalLineBreaks lenfilelist localName opt
   global pmiModifiers pmiUnicode recPracNames sempmi_coverage sempmi_totals spmiTypes worksheet worksheet1 
 
   #outputMsg "spmiCoverageFormat $multi" red
@@ -360,7 +360,7 @@ proc spmiCoverageFormat {sum {multi 1}} {
     }
  
 # horizontal break lines, depends on items in representation coverage worksheet, items defined in sfa-data
-    set idx1 [list 19 37 46 63 67 77]
+    set idx1 $pmiHorizontalLineBreaks
     if {!$multi} {set idx1 [concat [list 3 4] $idx1]}
     for {set r 200} {$r >= [lindex $idx1 end]} {incr r -1} {
       if {$multi} {

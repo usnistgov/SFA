@@ -333,6 +333,14 @@ proc x3dFileEnd {} {
     unset tessEdgeFileName
   }
 
+# holes
+  set ok 0
+  set viz(HOL) 0
+  foreach ent [list counterbore_hole_occurrence counterdrill_hole_occurrence countersink_hole_occurrence spotface_hole_occurrence] {
+    if {[info exists entCount($ent)]} {set ok 1}
+  }
+  if {$ok} {x3dHoles $maxxyz}
+
 # supplemental geometry
   set viz(SMG) 0
   if {[info exists entCount(constructive_geometry_representation)]} {x3dSuppGeom $maxxyz}
@@ -506,6 +514,11 @@ proc x3dFileEnd {} {
     puts $x3dFile "\n<!-- SMG button -->\n<input type='checkbox' checked onclick='togSMG(this.value)'/>Supplemental Geometry<p>"
   }
 
+# HOLE button
+  if {$viz(HOL)} {
+    puts $x3dFile "\n<!-- Hole button -->\n<input type='checkbox' checked onclick='togHole(this.value)'/>Holes<p>"
+  }
+
 # for PMI annotations - checkboxes for toggling saved view graphics
   set svmsg {}
   if {[info exists numSavedViews($nistName)]} {
@@ -596,6 +609,9 @@ proc x3dFileEnd {} {
 # function for SMG
   if {$viz(SMG)} {x3dSwitchScript SMG}
 
+# function for holes
+  if {$viz(HOL)} {x3dSwitchScript Hole}
+
 # functions for PMI
   if {$viz(PMI)} {
     if {[llength $savedViewButtons] > 0} {
@@ -673,27 +689,23 @@ proc x3dBrepGeom {} {
 
 # check for conversion units, mm > inch
             set sc 1
+            set a2 ""
             ::tcom::foreach e0 [$objDesign FindObjects [string trim advanced_brep_shape_representation]] {
               set e1 [[[$e0 Attributes] Item [expr 3]] Value]
               set a2 [[$e1 Attributes] Item [expr 5]]
               if {$a2 == ""} {set a2 [[$e1 Attributes] Item [expr 4]]}
+            }
+            if {$a2 == "" && ![info exists entCount(advanced_brep_shape_representation)]} {
+              ::tcom::foreach e0 [$objDesign FindObjects [string trim geometric_representation_context_and_global_uncertainty_assigned_context_and_global_unit_assigned_context]] {
+                set a2 [[$e0 Attributes] Item [expr 5]]
+              }
+            }
+            if {$a2 != ""} {
               foreach e3 [$a2 Value] {
                 if {[$e3 Type] == "conversion_based_unit_and_length_unit"} {
                   set e4 [[[$e3 Attributes] Item [expr 3]] Value]
                   set cf [[[$e4 Attributes] Item [expr 1]] Value]
                   set sc [trimNum [expr {1./$cf}] 5]
-                }
-              }
-            }
-            if {$sc == 1 && ![info exists entCount(advanced_brep_shape_representation)]} {
-              ::tcom::foreach e0 [$objDesign FindObjects [string trim geometric_representation_context_and_global_uncertainty_assigned_context_and_global_unit_assigned_context]] {
-                set a2 [[$e0 Attributes] Item [expr 5]]
-                foreach e3 [$a2 Value] {
-                  if {[$e3 Type] == "conversion_based_unit_and_length_unit"} {
-                    set e4 [[[$e3 Attributes] Item [expr 3]] Value]
-                    set cf [[[$e4 Attributes] Item [expr 1]] Value]
-                    set sc [trimNum [expr {1./$cf}] 5]
-                  }
                 }
               }
             }
@@ -1164,7 +1176,7 @@ proc x3dSuppGeomPoint {e2 tsize} {
   if {[catch {
     set name [[[$e2 Attributes] Item [expr 1]] Value]
     set coord1 [[[$e2 Attributes] Item [expr 2]] Value]
-    puts $x3dFile "<Transform translation='$coord1'>"
+    puts $x3dFile "<Transform translation='[vectrim $coord1]'>"
     puts $x3dFile " <Shape><Appearance><Material diffuseColor='0 0 0' emissiveColor='0 0 0'></Material></Appearance><Sphere radius='[trimNum [expr {$tsize*0.05}]]'></Sphere></Shape>"
     if {$name != ""} {
       set nsize [trimNum [expr {$tsize*0.25}]]
@@ -1362,6 +1374,130 @@ proc x3dSuppGeomCylinder {e2 tsize {name ""}} {
 
   } emsg]} {
     errorMsg "ERROR adding 'cylinder' supplemental geometry: $emsg"
+  }
+}
+
+# -------------------------------------------------------------------------------
+# holes counter and spotface
+proc x3dHoles {maxxyz} {
+  global dim holeDefinitions x3dFile viz trimVal x3dMsg x3dColorsUsed recPracNames syntaxErr DTR
+  global objDesign
+
+  if {[catch {
+    set size [trimNum [expr {$maxxyz*0.025}]]
+    set tsize [trimNum [expr {$size*0.33}]]
+    set head 1
+    set holeDEF {}
+    
+    set scale 1.
+    if {$dim(unit) == "INCH"} {set scale 25.4}
+  
+    ::tcom::foreach e0 [$objDesign FindObjects [string trim item_identified_representation_usage]] {
+      set e1 [[[$e0 Attributes] Item [expr 3]] Value]
+      if {[string first "occurrence" [$e1 Type]] != -1} {
+        set e2 [[[$e0 Attributes] Item [expr 5]] Value]
+        if {[$e2 Type] == "mapped_item"} {
+          set e3 [[[$e2 Attributes] Item [expr 3]] Value]
+  
+# check if there is an a2p3d associated with a hole occurrence
+          if {[$e3 Type] == "axis2_placement_3d"} {
+            if {$head} {
+              outputMsg " Processing holes" green
+              puts $x3dFile "\n<!-- HOLES -->\n<Switch whichChoice='0' id='swHole'><Group>"
+              set head 0
+              set viz(HOL) 1
+            }
+  
+# point at origin of hole
+            set e4 [[[$e3 Attributes] Item [expr 2]] Value]
+            x3dSuppGeomPoint $e4 $tsize
+  
+# hole geometry
+            set defID [[[[$e1 Attributes] Item [expr 5]] Value] P21ID]
+            if {[info exists holeDefinitions($defID)]} {
+              #outputMsg $holeDefinitions($defID) red
+  
+# hole origin
+              set a2p3d [x3dGetA2P3D $e3]
+              set origin [lindex $a2p3d 0]
+              set axis   [lindex $a2p3d 1]
+              set refdir [lindex $a2p3d 2]
+              #outputMsg "origin [$e3 P21ID]  $origin  $axis  $refdir"
+              
+# drilled hole dimensions
+              set drill [lindex $holeDefinitions($defID) 0]
+              set drillRad [trimNum [expr {[lindex $drill 1]*0.5*$scale}] 5]
+              set drillLen [expr {[lindex $drill 2]*$scale}]
+              #outputMsg "drill $drillRad $drillLen"
+              
+# through hole
+              set holeTop "true"
+              set thruHole [lindex $holeDefinitions($defID) end]
+              if {$thruHole == 1} {set holeTop "false"}
+              
+              catch {unset sink}
+              catch {unset bore}
+              
+              if {[llength $holeDefinitions($defID)] > 1} {
+  
+# countersink hole (cylinder, cone)
+                if {[lindex [lindex $holeDefinitions($defID) 1] 0] == "sink"} {
+                  set sink [lindex $holeDefinitions($defID) 1]
+  
+# compute length of countersind from angle and radius
+                  set sinkRad [trimNum [expr {[lindex $sink 1]*0.5*$scale}] 5]
+                  set sinkAng [expr {[lindex $sink 2]*0.5}]
+                  set sinkLen [expr {($sinkRad-$drillRad)/tan($sinkAng*$DTR)}]
+                  #outputMsg "sink $sinkRad $sinkAng $sinkLen"
+  
+                  set transform "<Transform translation='$origin' rotation='[x3dRotation $axis $refdir "countersink hole"]'>"
+                  if {[lsearch $holeDEF $defID] == -1} {
+                    puts $x3dFile "$transform<Group DEF='HOLE$defID'>"
+                    puts $x3dFile " <Transform rotation='1 0 0 1.5708' translation='0 0 [trimNum [expr {($drillLen+$sinkLen)*0.5}] 5]'>"
+                    puts $x3dFile "  <Shape><Appearance><Material diffuseColor='0 1 1'></Material></Appearance><Cylinder radius='$drillRad' height='[trimNum [expr {$drillLen-$sinkLen}] 5]' top='$holeTop' bottom='false' solid='false'></Cylinder></Shape></Transform>"
+                    puts $x3dFile " <Transform rotation='1 0 0 1.5708' translation='0 0 [trimNum [expr {$sinkLen*0.5}] 5]'>"
+                    puts $x3dFile "  <Shape><Appearance><Material diffuseColor='0 1 1'></Material></Appearance><Cone bottomRadius='$sinkRad' topRadius='$drillRad' height='[trimNum $sinkLen 5]' top='false' bottom='false' solid='false'></Cone></Shape></Transform>"
+                    puts $x3dFile "</Group></Transform>"
+                    lappend holeDEF $defID
+                  } else {
+                    puts $x3dFile "$transform<Group USE='HOLE$defID'></Group></Transform>"
+                  }
+  
+# counterbore hole (2 cylinders, cone)
+                } elseif {[lindex [lindex $holeDefinitions($defID) 1] 0] == "bore"} {
+                  set bore [lindex $holeDefinitions($defID) 1]
+                  set boreRad [expr {[lindex $bore 1]*0.5*$scale}]
+                  set boreLen [expr {[lindex $bore 2]*$scale}]
+                  #outputMsg "bore $boreRad $boreLen"
+  
+                  set transform "<Transform translation='$origin' rotation='[x3dRotation $axis $refdir "counterbore hole"]'>"
+                  if {[lsearch $holeDEF $defID] == -1} {
+                    puts $x3dFile "$transform<Group DEF='HOLE$defID'>"
+                    puts $x3dFile " <Transform rotation='1 0 0 1.5708' translation='0 0 [trimNum [expr {($drillLen+$boreLen)*0.5}] 5]'>"
+                    puts $x3dFile "  <Shape><Appearance><Material diffuseColor='0 1 0'></Material></Appearance><Cylinder radius='$drillRad' height='[trimNum [expr {$drillLen-$boreLen}] 5]' top='$holeTop' bottom='false' solid='false'></Cylinder></Shape></Transform>"
+                    puts $x3dFile " <Transform rotation='1 0 0 1.5708' translation='0 0 [trimNum $boreLen 5]'>"
+                    puts $x3dFile "  <Shape><Appearance><Material diffuseColor='0 1 0'></Material></Appearance><Cone bottomRadius='$boreRad' topRadius='$drillRad' height='0.001' top='false' bottom='false' solid='false'></Cone></Shape></Transform>"
+                    puts $x3dFile " <Transform rotation='1 0 0 1.5708' translation='0 0 [trimNum [expr {$boreLen*0.5}] 5]'>"
+                    puts $x3dFile "  <Shape><Appearance><Material diffuseColor='0 1 0'></Material></Appearance><Cylinder radius='$boreRad' height='[trimNum $boreLen 5]' top='false' bottom='false' solid='false'></Cylinder></Shape></Transform>"
+                    puts $x3dFile "</Group></Transform>"
+                    lappend holeDEF $defID
+                  } else {
+                    puts $x3dFile "$transform<Group USE='HOLE$defID'></Group></Transform>"
+                  }
+                }
+              }
+            } else {
+              errorMsg "Hole geometry is shown only when a spreadsheet with the Report for Semantic PMI is generated (See Options tab)."
+            }
+          }
+        }
+      }
+    }
+    if {$viz(HOL)} {puts $x3dFile "</Group></Switch>\n"}
+    catch {unset holeDefinitions}
+
+  } emsg]} {
+    errorMsg "ERROR adding 'hole' geometry: $emsg"
   }
 }
 

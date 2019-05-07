@@ -1012,7 +1012,7 @@ proc spmiDimtolReport {objEntity} {
 
 # tolerance class on limits_and_fits
               } elseif {$subType == "limits_and_fits"} {
-                set colName "tolerance class[format "%c" 10](Sec. 5.2.5)"
+                set colName "limits and fits[format "%c" 10](Sec. 5.2.5)"
                 ::tcom::foreach subAttr [$subEntity Attributes] {
                   append plusminus "[$subAttr Name] - [$subAttr Value][format "%c" 10]"
                   if {[$subAttr Name] == "form_variance"} {set form_variance [string toupper [$subAttr Value]]}
@@ -1026,7 +1026,7 @@ proc spmiDimtolReport {objEntity} {
 # construct correct plus-minus
         if {$plusminus != "" && [info exists spmiIDRow($dt,$spmiID)]} {
 
-# tolerance class
+# tolerance class (limits and fits)
           if {[info exists form_variance]} {
             if {![info exists pmiColumns(tolclass)]} {set pmiColumns(tolclass) [expr {$pmiStartCol($dt)+9}]}
             set c [string index [cellRange 1 $pmiColumns(tolclass)] 0]
@@ -1041,7 +1041,7 @@ proc spmiDimtolReport {objEntity} {
             if {[info exists form_grade]} {append dimrep($dimrepID) $form_grade}
             catch {unset form_variance}
             catch {unset form_grade}
-            lappend spmiTypesPerFile "tolerance class"
+            lappend spmiTypesPerFile "limits and fits"
 
 # add +- values to cell
           } else {

@@ -291,7 +291,7 @@ proc genExcel {{numFile 0}} {
 # part 21 edition 3, but should not get to this point
       } else {
         outputMsg " "
-        errorMsg "The STEP file uses of ISO 10303 Part 21 Edition 3 and cannot be processed by the STEP File Analyzer and Viewer.\n Edit the STEP file to delete the Edition 3 content such as the ANCHOR and REFERENCE sections."
+        errorMsg "The STEP file uses ISO 10303 Part 21 Edition 3 and cannot be processed by this software.\n Edit the STEP file to delete the Edition 3 content such as the ANCHOR and REFERENCE sections."
       }
       if {!$nistVersion} {
         outputMsg " "
@@ -342,7 +342,7 @@ proc genExcel {{numFile 0}} {
         set extXLS "xls"
         set xlFormat [expr 56]
         set rowmax [expr {2**16}]
-        errorMsg "Some spreadsheet features used by the STEP File Analyzer and Viewer\n are not compatible with this older version of Excel."
+        errorMsg "Some spreadsheet features are not compatible with older versions of Excel."
       }
 
 # generate with Excel but save as CSV

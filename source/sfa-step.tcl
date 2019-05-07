@@ -1292,7 +1292,9 @@ proc spmiCheckEnt {ent} {
   set ok 0
   foreach sp $spmiEntTypes {if {[string first $sp $ent] ==  0} {set ok 1}}
   foreach sp $tolNames     {if {[string first $sp $ent] != -1} {set ok 1}}
-  if {([string first "counter" $ent] != -1 || [string first "spotface" $ent] != -1) && [string first "occurrence" $ent] == -1} {set ok 1}
+  if {([string first "counter" $ent] != -1 || [string first "spotface" $ent] != -1) && [string first "occurrence" $ent] == -1} {
+    if {$ent != "spotface_definition"} {set ok 1}
+  }
   return $ok
 }
 
@@ -1463,7 +1465,7 @@ proc checkForReports {entType} {
 
 # counter holes, spotface            
             } elseif {([string first "counter" $entType] != -1 || [string first "spotface" $entType] != -1) && [string first "occurrence" $entType] == -1} {
-              spmiCounterStart $entType
+              if {$entType != "spotface_definition"} {spmiHoleStart $entType}
 
 # geometric tolerances
             } else {
@@ -1548,14 +1550,19 @@ proc setEntAttrList {abc} {
 proc getStepAP {fname} {
   global fileSchema stepAPs
   
-  set fs [getSchemaFromFile $fname]
-  set fileSchema [string toupper $fs]
-  
   set ap ""
-  foreach aps {AP203 AP209 AP210 AP236 AP238 AP239 AP242} {if {[string first $aps $fs] != -1} {set ap $aps}}
-
-  if {$ap == "" && [info exists stepAPs($fileSchema)]} {set ap $stepAPs($fs)}
-  if {$ap == ""} {set ap $fileSchema}
+  set fs [string toupper [getSchemaFromFile $fname]]
+  set fileSchema $fs
+  
+  set c1 [string first " " $fs]
+  if {$c1 != -1} {set fs [string range $fs 0 $c1-1]}
+  if {[string first "AP2" $fs] == 0} {
+    set ap [string range $fs 0 4]
+  } elseif {[info exists stepAPs($fs)]} {
+    set ap $stepAPs($fs)
+  } else {
+    set ap $fileSchema
+  }
   return $ap
 }
 

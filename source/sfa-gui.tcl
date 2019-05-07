@@ -1,7 +1,7 @@
 # version numbers, software and user guide, contact
 # user guide URLs are below in showUserGuide
 
-proc getVersion {}   {return 3.42}
+proc getVersion {}   {return 3.44}
 proc getVersionUG {} {return 3.0}
 proc getContact {}   {return [list "Robert Lipman" "robert.lipman@nist.gov"]}
 
@@ -12,13 +12,13 @@ proc whatsNew {} {
   if {$sfaVersion > 0 && $sfaVersion < [getVersion]} {outputMsg "\nThe previous version of the STEP File Analyzer and Viewer was: $sfaVersion" red}
 
 outputMsg "\nWhat's New (Version: [getVersion]  Updated: [string trim [clock format $progtime -format "%e %b %Y"]])" blue
-outputMsg "- New spreadsheet of changes to the software (Help > Changelog)
-- Updated Process options for Shape Aspect and new Features category
+outputMsg "- Updated Process options for Shape Aspect and new Features category
 - Improved processing of dimensions, supplemental geometry, datum targets, and validation properties
 - Part geometry color (See Help > View Part Geometry)
 - Explanation of Analysis errors (Help > Syntax Errors)
 - Support for AP242 Edition 2 FDIS
-- Bug fixes and minor improvements"
+- Experimental support for AP242e2 counterbore, countersink, and spotface including visualization
+\nFor more details go to Help > Changelog"
 
 if {$sfaVersion > 0 && $sfaVersion <= 2.60} {
   outputMsg "\nRenamed output files:\n Spreadsheets from  myfile_stp.xlsx  to  myfile-sfa.xlsx\n Views from  myfile-x3dom.html  to  myfile-sfa.html" red
@@ -431,7 +431,7 @@ proc guiProcessAndReports {} {
   pack $foptd1 -side top -anchor w -pady 0 -padx 0 -fill y
   pack $foptd -side left -anchor w -pady {5 2} -padx 10 -fill both -expand true
   catch {
-    tooltip::tooltip $buttons(optPMISEM)  "The analysis of PMI Representation information is shown on\ndimension, tolerance, datum target, and datum entities.\nSemantic PMI is found mainly in STEP AP242 files.\n\nSee Help > PMI Representation\nSee Help > User Guide (section 5.1)\nSee Help > Syntax Errors\nSee Examples > Spreadsheet - PMI Representation\nSee Examples > Sample STEP Files\nSee Websites > AP242 Project"
+    tooltip::tooltip $buttons(optPMISEM)  "The analysis of PMI Representation information is shown on\ndimension, tolerance, datum target, datum, and hole (AP242e2)\nentities.  Semantic PMI is found mainly in STEP AP242 files.\n\nSee Help > PMI Representation\nSee Help > User Guide (section 5.1)\nSee Help > Syntax Errors\nSee Examples > Spreadsheet - PMI Representation\nSee Examples > Sample STEP Files\nSee Websites > AP242 Project"
     tooltip::tooltip $buttons(optPMIGRF)  "The analysis of PMI Presentation information is\nshown on 'annotation occurrence' entities.\n\nSee Help > PMI Presentation\nSee Help > User Guide (section 5.2)\nSee Help > Syntax Errors\nSee Examples > PMI Presentation, Validation Properties\nSee Examples > View Part with PMI\nSee Examples > AP242 Tessellated Part with PMI\nSee Examples > Sample STEP Files"
     tooltip::tooltip $buttons(optVALPROP) "The analysis of Validation Properties and other properties\nis shown on the 'property_definition' entity.\n\nSee Help > Validation Properties\nSee Help > User Guide (section 5.3)\nSee Help > Syntax Errors\nSee Examples > PMI Presentation, Validation Properties"
   }
@@ -509,7 +509,7 @@ proc guiProcessAndReports {} {
   pack $foptv -side left -anchor w -pady {5 2} -padx 10 -fill both -expand true
   pack $foptrv -side top -anchor w -pady 0 -fill x
   catch {
-    tooltip::tooltip $buttons(optVIZBRP) "Views are shown in the default web browser.  Older versions of web\nbrowsers are not supported.\n\nMost boundary representation (b-rep) part geometry can be viewed.\nMultiple and overriding part colors are ignored.\nSupplemental geometry is also shown.\nViews for very large STEP files might take 10-20 minutes to generate.\n\nSee Help > View Part Geometry\nSee Help > Supplemental Geometry\nSee Examples > View Part with PMI\nSee Websites > STEP File Viewers for other part geometry viewers\n\nViews can be generated without generating a spreadsheet or CSV files.\nSee the Output Format option below."
+    tooltip::tooltip $buttons(optVIZBRP) "Views are shown in the default web browser.  Older versions of web\nbrowsers are not supported.  Views can be generated without generating\na spreadsheet or CSV files.  See the Output Format option below.\n\nMost boundary representation (b-rep) part geometry can be viewed.\nMultiple and overriding part colors are ignored.\nSupplemental geometry and holes (AP242e2) are also shown.\nViews for very large STEP files might take 10-20 minutes to generate.\n\nSee Help > View Part Geometry\nSee Help > Supplemental Geometry\nSee Examples > View Part with PMI\nSee Websites > STEP File Viewers for other part geometry viewers"
     tooltip::tooltip $buttons(optVIZPMI) "Graphical PMI is supported in AP242, AP203, and AP214 files.\n\nSee Help > PMI Presentation\nSee Help > User Guide (section 7.1.1)\nSee Examples > View Part with PMI\nSee Examples > AP242 Tessellated Part with PMI\nSee Examples > Sample STEP Files"
     tooltip::tooltip $buttons(optVIZTPG) "** Parts in an assembly might have the wrong\nposition and orientation or be missing. **\n\nTessellated edges (lines) are also shown.  Faces\nin tessellated shells are outlined in black.\n\nSee Help > AP242 Tessellated Part Geometry\nSee Help > User Guide (section 7.1.2, 7.1.3)\nSee Examples > AP242 Tessellated Part with PMI"
     tooltip::tooltip $buttons(optVIZTPGMSH) "Show a tessellation wireframe mesh based on the tessellated\nfaces or surfaces."
@@ -722,7 +722,7 @@ proc guiOpenSTEPFile {} {
     }
   }
 
-  catch {tooltip::tooltip $foptf "This option is a convenient way to open a STEP file in other applications.\nThe pull-down menu contains some applications that can open a STEP\nfile such as STEP viewers and browsers, however, only if they are installed in\ntheir default location.\n\nSee Help > Open STEP File in Apps\nSee Websites > STEP File Viewers\n\nThe 'Tree View (for debugging)' option rearranges and indents the\nentities to show the hierarchy of information in a STEP file.  The 'tree view'\nfile (myfile-sfa.txt) is written to the same directory as the STEP file or to the\nsame user-defined directory specified in the Spreadsheet tab.  Including\nGeometry or Styled_item can make the 'tree view' file very large.  The\n'tree view' might not process /*comments*/ in a STEP file correctly.\n\nThe 'Default STEP Viewer' option opens the STEP file in whatever\napplication is associated with STEP (.stp, .step) files."}
+  catch {tooltip::tooltip $foptf "This option is a convenient way to open a STEP file in other applications.\nThe pull-down menu contains some applications that can open a STEP\nfile such as STEP viewers and browsers, however, only if they are installed in\ntheir default location.\n\nSee Help > Open STEP File in Apps\nSee Websites > STEP File Viewers\n\nThe 'Tree View (for debugging)' option rearranges and indents the\nentities to show the hierarchy of information in a STEP file.  The 'tree view'\nfile (myfile-sfa.txt) is written to the same directory as the STEP file or to the\nsame user-defined directory specified in the Spreadsheet tab.  Including\nGeometry or Styled_item can make the 'tree view' file very large.  The\n'tree view' might not process /*comments*/ in a STEP file correctly.\n\nThe 'Default STEP Viewer' option opens the STEP file in whatever\napplication is associated with STEP (.stp, .step, .p21) files."}
   pack $foptf -side top -anchor w -pady {5 2} -padx 10 -fill both
 
 # output format
@@ -984,7 +984,7 @@ proc guiHelpMenu {} {
       if {$c1 == -1} {
         if {$n == 0} {
           incr n
-          outputMsg "\nOther schemas"
+          outputMsg "\nOther Schemas"
         }
         outputMsg "  [string toupper $item]"
       } else {
@@ -993,7 +993,7 @@ proc guiHelpMenu {} {
     }
 
     if {$nschema == 0} {errorMsg "No Supported STEP APs were found.\nThere was a problem copying STEP schema files (*.rose) to the IFCsvr/dll directory."}
-    outputMsg "\nSee the Websites menu for information about the STEP Format, EXPRESS Schemas, AP242, and more."
+    outputMsg "\nSee the Websites menu for information about the STEP Format, EXPRESS Schemas, AP242, and more.\nContact [join [getContact]] to add a new schema."
 
     .tnb select .tnb.status
   }
@@ -1225,14 +1225,17 @@ See Help > PMI Representation
 See Help > User Guide (sections 5.1.7 and 5.2.1)
 See Examples > PMI Coverage Analysis
 
-PMI Representation Coverage Analysis (semantic PMI) counts the number of PMI elements found in a
+PMI Representation Coverage Analysis (semantic PMI) counts the number of PMI Elements found in a
 STEP file for tolerances, dimensions, datums, modifiers, and CAx-IF Recommended Practices for PMI
-Representation.  On the coverage analysis worksheet, some PMI elements show their associated
-symbol, while others show the relevant section in the Recommended Practice.  PMI elements without
-a section number do not have a Recommended Practice for their implementation.  The PMI elements are
+Representation.  On the Coverage Analysis worksheet, some PMI Elements show their associated
+symbol, while others show the relevant section in the Recommended Practice.  PMI Elements without
+a section number do not have a Recommended Practice for their implementation.  The PMI Elements are
 grouped by features related tolerances, tolerance zones, dimensions, dimension modifiers, datums,
 datum targets, and other modifiers.  The number of some modifiers, e.g., maximum material condition,
 does not differentiate whether they appear in the tolerance zone definition or datum reference frame.
+
+Some PMI Elements might not be exported to a STEP file by your CAD system.  Some PMI Elements are
+only in AP242 edition 2.  
 
 If STEP files from the NIST CAD models (Websites > PMI Validation Testing) are processed, then
 the PMI Representation Coverage Analysis worksheet is color-coded by the expected number of PMI
@@ -1368,12 +1371,18 @@ Part geometry (b-rep) is shown for any STEP file where the geometry is modeled w
 advanced_brep_shape_representation, manifold_surface_shape_representation, manifold_solid_brep, or
 shell_based_surface_model entities.
 
-Part colors are ignored if multiple colors are specified.  Overriding style colors are also ignored.
-Part geometry might also include supplemental geometry.  In some cases, curved surfaces might appear
-jagged or incomplete.  Some part geometry cannot be processed.  Views for very large STEP files might
-take 10-20 minutes to generate.
-
+Supplemental geometry (axes, points, lines, circles, planes, cylinders) are shown.
 See Help > Supplemental Geometry
+
+Counterbore and countersink holes in AP242 edition 2 are also shown.  Countbore holes are green and
+countersink holes are cyan.  Both types of holes are shown with black dot at the entry point for drilling.
+
+Part colors are ignored if multiple colors are specified.  Overriding style colors are also ignored.
+
+Part geometry might also include supplemental geometry for planes.  In some cases, curved surfaces might
+appear jagged or incomplete.  Some part geometry cannot be processed.  Views for very large STEP files
+might take 10-20 minutes to generate.
+
 See Examples > View Part with PMI
 See Websites > STEP File Viewers
 
@@ -1405,7 +1414,7 @@ outputMsg "Supplemental geometry is shown only if part or PMI is also viewed.  S
 associated with Saved Views.
 
 The following types of supplemental geometry and associated text are supported.
-- Coordinate System: red, green, blue axes or by color assigned to axes
+- Coordinate System: red/green/blue axes or by color assigned to axes
 - Plane: blue transparent outlined square
 - Cylinder: blue transparent cylinder
 - Line/Circle: purple line/circle

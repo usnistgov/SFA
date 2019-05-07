@@ -1,5 +1,4 @@
 sfa.tcl
-sfa-counter.tcl
 sfa-coverage.tcl
 sfa-data.tcl
 sfa-dimtol.tcl
@@ -10,6 +9,7 @@ sfa-geotol.tcl
 sfa-grafpmi.tcl
 sfa-grafx3d.tcl
 sfa-gui.tcl
+sfa-hole.tcl
 sfa-indent.tcl
 sfa-inv.tcl
 sfa-multi.tcl
