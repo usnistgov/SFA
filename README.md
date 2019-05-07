@@ -27,9 +27,10 @@ freeWrap wraps the SFA Tcl code to create an executable.
 - Download freewrap651.zip from <https://sourceforge.net/projects/freewrap/files/freewrap/freeWrap%206.51/>.  More recent versions of freeWrap will **not** work with the SFA.
 - Extract freewrap.exe and put it in the same directory as the SFA files that were downloaded from the 'source' directory.
 
-Download the ActiveTcl Community Edition 8.5.\* pre-built Tcl distribution from <http://www.activestate.com/activetcl/downloads>.
+Purchase and download the legacy ActiveTcl 8.5.15 pre-built Tcl distribution from <https://www.activestate.com/products/activetcl/downloads/>.
 
-- Scroll down to 'Download Tcl: Other Platforms and Versions' and download the latest **Windows (x86) 8.5.15** version.  Do **not** download the 8.6 version or the 64-bit version.
+- Scroll down to 'Licensing Options For Beyond Development Use' for information about purchasing Legacy Builds
+- SFA can only be built with the legacy version of Active Tcl 8.5.15.  Do **not** download the freely available 8.5 and 8.6 versions or the 64-bit version.
 - Run the installer and use the default installation folders
 - Several Tcl packages from ActiveTcl also need to be installed.  Open a command prompt window, change to C:\\Tcl\\bin and enter the following three commands:
 
