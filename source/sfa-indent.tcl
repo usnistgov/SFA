@@ -1,14 +1,14 @@
 proc indentPutLine {line {comment ""} {putstat 1}} {
-  global indentWriteFile idlist idpatr npatr lpatr spatr
-  
+  global indentWriteFile idlist idpatr lpatr npatr opt spatr
+
   if {$putstat != 1} {return 0}
   set stat 1
-  
+
   set ll [string length $line]
   set t1 [string first "\#" $line]
   set t2 [string first "=" [string range $line [expr {$t1 + 1}] end]]
   set indent [expr {$t1 + $t2 + 2}]
-  #outputMsg "($indent $t1 $t2) [string range $line $t1 [expr {$t1+$t2}]] $line" 
+  #outputMsg "($indent $t1 $t2) [string range $line $t1 [expr {$t1+$t2}]] $line"
 
 # reset id list
   if {$t1 == 0} {
@@ -20,6 +20,7 @@ proc indentPutLine {line {comment ""} {putstat 1}} {
   }
   set id [string range $line $t1 [expr {$t1+$t2}]]
 
+# look for repeating patterns of entities and stop
   if {![info exists idlist]} {set idlist ""}
   if {[string first $id $idlist] != -1} {
     set id1 [string first $id $idpatr]
@@ -56,6 +57,7 @@ proc indentPutLine {line {comment ""} {putstat 1}} {
   append idlist [string range $line $t1 [expr {$t1+$t2}]]
   #outputMsg LIST$idlist
 
+# stop when indentation is out of control
   if {$indent > 40 && [string range $line 0 1] != "/*"} {
     outputMsg $line
     errorMsg "Indentation greater than 40 spaces" red
@@ -64,12 +66,16 @@ proc indentPutLine {line {comment ""} {putstat 1}} {
     return $stat
   }
 
+# write short lines
   if {$ll <= 120} {
-    #if {$comment != ""} {
-    #  puts $indentWriteFile [string range $line 0 [expr {$t1-1}]]$comment
-    #}
-    puts $indentWriteFile $line
+    #if {$comment != ""} {puts $indentWriteFile [string range $line 0 [expr {$t1-1}]]$comment}
+    
+# check for styled_item    
+    set ok 1
+    if {[info exists opt(indentStyledItem)]} {if {!$opt(indentStyledItem) && [string first "STYLED_ITEM" $line] != -1} {set ok 0}}
+    if {$ok} {puts $indentWriteFile $line}
 
+# write longer lines
   } else {
     set line1 [string range $line 90 end]
     set p1 [string first ")"  $line1]
@@ -118,9 +124,8 @@ proc indentPutLine {line {comment ""} {putstat 1}} {
 }
 
 #-------------------------------------------------------------------------------
-
 proc indentSearchLine {line ndent} {
-  global indentEntity indentReadFile indentWriteFile comment indentMissing indentdat2 indentstat
+  global comment indentdat2 indentEntity indentMissing indentstat
 
   incr ndent
   #outputMsg "------------- $ndent"
@@ -166,12 +171,9 @@ proc indentSearchLine {line ndent} {
 }
 
 #-------------------------------------------------------------------------------
-
 proc indentFile {ifile} {
-  global indentWriteFile indentReadFile indentEntity opt
-  global indentMissing editorCmd indentdat2 indentPass indentstat errmsg
-  global writeDir
-    
+  global editorCmd errmsg indentdat2 indentEntity indentMissing indentPass indentReadFile indentstat indentWriteFile opt writeDir
+
 # indent on these STEP entities
   set indentdat1 [list \
     ACTION_PROPERTY_REPRESENTATION ANNOTATION_CURVE_OCCURRENCE ANNOTATION_FILL_AREA_OCCURRENCE ANNOTATION_OCCURRENCE ANNOTATION_PLANE APPLICATION_PROTOCOL APPLIED APPROVAL_DATE APPROVAL_PERSON AREA_COMPONENT \
@@ -209,17 +211,22 @@ proc indentFile {ifile} {
     NODE \
     PATH_AREA POLYLINE PRIMARY_REFERENCE_TERMINAL PRISMATIC_PAIR_WITH_RANGE PRODUCT_DEFINITION_SHAPE \
     REVOLUTE_PAIR_WITH_RANGE RIGID_LINK_REPRESENTATION \
-    SIMPLIFIED SINGLE_AREA_CSG SINGLE_BOUNDARY_CSG SPOTFACE STYLED_ITEM SURFACE_3D_ELEMENT_REPRESENTATION \
+    SIMPLIFIED SINGLE_AREA_CSG SINGLE_BOUNDARY_CSG SPOTFACE SURFACE_3D_ELEMENT_REPRESENTATION \
     TEXT_LITERAL_WITH_EXTENT TOLERANCE_VALUE \
     VOLUME_3D_ELEMENT_REPRESENTATION \
     USAGE_CONCEPT_USAGE_RELATIONSHIP \
   ]
+
+# geometry option
   if {[info exists opt(indentGeometry)]} {
     if {!$opt(indentGeometry)} {
       lappend indentdat2 ADVANCED_FACE CLOSED_SHELL GEOMETRIC_CURVE_SET GEOMETRIC_SET CONSTRUCTIVE_GEOMETRY_REPRESENTATION TESSELLATED_SOLID
     }
   }
-  
+
+# styled_item option
+  if {[info exists opt(indentStyledItem)]} {if {!$opt(indentStyledItem)} {lappend indentdat2 STYLED_ITEM}}
+
   .tnb select .tnb.status
   outputMsg "Processing: [truncFileName [file nativename $ifile] 1]"
   outputMsg " Pass 1 of 2"
@@ -244,7 +251,7 @@ proc indentFile {ifile} {
   }
   if {[info exists errmsg]} {unset errmsg}
   set indentMissing {}
-  
+
 # read all entities
   set ihead 1
   while {[gets $indentReadFile line] >= 0} {
@@ -252,7 +259,7 @@ proc indentFile {ifile} {
 
     if {[string first "ENDSEC" $line] != -1} {set ihead 0}
     if {$ihead} {puts $indentWriteFile $line}
-    
+
     if {[string first "\#" $line] == 0} {
       set id [string trim [string range $line 1 [expr {[string first "\=" $line] - 1}]]]
       set indentEntity($id) $line
@@ -272,7 +279,7 @@ proc indentFile {ifile} {
   while {[gets $indentReadFile line] >= 0} {
     foreach var {idlist idpatr npatr lpatr spatr} {if {[info exists $var]} {unset $var}}
     set indentstat 1
-    
+
     set line [indentCheckLine $line]
     set line1 [string range $line 1 end]
     if {[string first "\#" $line1] != -1} {
@@ -281,7 +288,7 @@ proc indentFile {ifile} {
           puts $indentWriteFile \n
           #outputMsg "PUT LINE 2"
           set stat [indentPutLine $line]
-          if {$stat == 0} {break} 
+          if {$stat == 0} {break}
           #outputMsg "SEARCH LINE 2"
           set stat [indentSearchLine $line1 0]
           break
@@ -291,9 +298,9 @@ proc indentFile {ifile} {
   }
   close $indentReadFile
   close $indentWriteFile
-  
+
   if {[llength $indentMissing] > 0} {errorMsg "Missing STEP entities: [lsort $indentMissing]"}
-  
+
   set fs [expr {[file size $indentFileName]/1024}]
   if {$editorCmd != "" && $fs < 30000} {
     outputMsg "Opening Tree View STEP file:"
@@ -305,9 +312,8 @@ proc indentFile {ifile} {
 }
 
 #-------------------------------------------------------------------------------
-
 proc indentCheckLine {line} {
-  global indentReadFile indentPass
+  global indentReadFile
 
   if {([string last ";" $line] == -1 && [string last "*/" $line] == -1) || \
        [string range $line end end] == "(" || [string range $line end end] == ")" || [string range $line end end] == ","} {
@@ -341,7 +347,6 @@ proc indentCheckLine {line} {
 }
 
 #-------------------------------------------------------------------------------
-
 proc indentGetID {id} {
   set p1 [string first "," $id]
   set p2 [string first "\)" $id]

@@ -277,7 +277,7 @@ if {$opt(FIRSTTIME)} {
   set opt(FIRSTTIME) 0
   
   after 1000
-  showUserGuide
+  showFileURL UserGuide
   set opt(DISPGUIDE1) 0
   
   saveState
@@ -293,7 +293,7 @@ if {$opt(FIRSTTIME)} {
   whatsNew
   if {$sfaVersion < [getVersionUG]} {
     errorMsg "- A new version of the User Guide is available.\n  Sections 5.1.5, 6, 7, and 8.1 have new or updated content."
-    showUserGuide
+    showFileURL UserGuide
   }
   if {$sfaVersion < 2.30} {
     errorMsg "- The command-line version has been renamed: sfa-cl.exe  The old version STEP-File-Analyzer-CL.exe can be deleted."
@@ -341,7 +341,7 @@ if {$nistVersion} {
 
 # open user guide if it hasn't already
 if {$opt(DISPGUIDE1)} {
-  showUserGuide
+  showFileURL UserGuide
   set opt(DISPGUIDE1) 0
   saveState
 }

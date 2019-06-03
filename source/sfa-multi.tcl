@@ -1,9 +1,8 @@
 # process multiple files in a directory
-
 proc openMultiFile {{ask 1}} {
-  global allEntity andEntAP209 buttons cells1 col_ca col1 coverageSTEP coverageStyle developer entCategory excel1 extXLS fileDir fileDir1 fileEntity fileList
-  global gpmiTypes gpmiTypesInvalid lastXLS1 lenfilelist localName localNameList multiFileDir mydocs nfile nistVersion nprogBarFiles opt
-  global pmi_coverage pmi_rows pmi_totals pmiElementsMaxRows row1 sempmi_coverage sempmi_totals startrow stepAP totalEntity useXL
+  global allEntity andEntAP209 buttons cells1 col1 coverageSTEP developer entCategory excel1 extXLS fileDir fileDir1 fileEntity fileList
+  global gpmiTypes gpmiTypesInvalid lastXLS1 lenfilelist localName localNameList multiFileDir mydocs nfile nistCoverageStyle nistVersion nprogBarFiles
+  global opt pmi_coverage pmi_rows pmi_totals pmiElementsMaxRows row1 sempmi_coverage sempmi_totals startrow stepAP totalEntity useXL
   global worksheet1 worksheets1 writeDir xlFileNames xlFormat
 
   set maxfiles 1000
@@ -211,15 +210,11 @@ proc openMultiFile {{ask 1}} {
 
 # -------------------------------------------------------------------------------------------------
 # loop over all the files and process
-        if {[info exists fileEntity]}   {unset fileEntity}
-        if {[info exists totalEntity]}  {unset totalEntity}
-        if {[info exists pmi_totals]}    {unset pmi_totals}
-        if {[info exists sempmi_totals]} {unset sempmi_totals}
-        if {[info exists pmi_rows]}      {unset pmi_rows}
+        foreach var {fileEntity pmi_rows pmi_totals sempmi_totals totalEntity} {if {[info exists $var]} {unset $var}}
         set xlFileNames {}
         set allEntity {}
         set dirchange {}
-        catch {unset coverageStyle}
+        catch {unset nistCoverageStyle}
         set lastdirname ""
         set nfile 0
         set gpmiTypesInvalid {}

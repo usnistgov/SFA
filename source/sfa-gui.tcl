@@ -1,7 +1,7 @@
 # version numbers, software and user guide, contact
-# user guide URLs are below in showUserGuide
+# user guide URLs are below in showFileURL
 
-proc getVersion {}   {return 3.44}
+proc getVersion {}   {return 3.46}
 proc getVersionUG {} {return 3.0}
 proc getContact {}   {return [list "Robert Lipman" "robert.lipman@nist.gov"]}
 
@@ -11,14 +11,8 @@ proc whatsNew {} {
 
   if {$sfaVersion > 0 && $sfaVersion < [getVersion]} {outputMsg "\nThe previous version of the STEP File Analyzer and Viewer was: $sfaVersion" red}
 
-outputMsg "\nWhat's New (Version: [getVersion]  Updated: [string trim [clock format $progtime -format "%e %b %Y"]])" blue
-outputMsg "- Updated Process options for Shape Aspect and new Features category
-- Improved processing of dimensions, supplemental geometry, datum targets, and validation properties
-- Part geometry color (See Help > View Part Geometry)
-- Explanation of Analysis errors (Help > Syntax Errors)
-- Support for AP242 Edition 2 FDIS
-- Experimental support for AP242e2 counterbore, countersink, and spotface including visualization
-\nFor more details go to Help > Changelog"
+outputMsg "\nWhat's New (Version: [getVersion]  Updated: [string trim [clock format $progtime -format "%e %b %Y"]])
+- New features and bug fixes are now documented in the changelog, go to Help > Changelog" blue
 
 if {$sfaVersion > 0 && $sfaVersion <= 2.60} {
   outputMsg "\nRenamed output files:\n Spreadsheets from  myfile_stp.xlsx  to  myfile-sfa.xlsx\n Views from  myfile-x3dom.html  to  myfile-sfa.html" red
@@ -29,36 +23,60 @@ if {$sfaVersion > 0 && $sfaVersion <= 2.60} {
 }
 
 #-------------------------------------------------------------------------------
-# open user guide
-proc showUserGuide {} {
+# open local file or URL
+proc showFileURL {type} {
 
-# open user guide file (update 'vX' for new version)
-  set byURL 1
-  set ugName [file nativename [file join [file dirname [info nameofexecutable]] SFA-User-Guide-v5.pdf]]
-  if {[file exists $ugName]} {
-    if {[catch {
-      exec {*}[auto_execok start] "" $ugName
-      set byURL 0
-    } emsg]} {
-      if {[string first "UNC" $emsg] != -1} {set byURL 0}
+  switch $type {
+    UserGuide {
+# update for new versions, local and online
+      set localFile "SFA-User-Guide-v5.pdf"
+      set URL https://doi.org/10.6028/NIST.AMS.200-6
+
+# extra message if user guide is out-of-date, versions defined at the top of this file
+      if {[getVersion] > [expr {[getVersionUG]+0.25}]} {
+        outputMsg " "
+        errorMsg "The User Guide is based on version [getVersionUG] of the STEP File Analyzer and Viewer.\n See Help > Changelog for changes to the software."
+        outputMsg " "
+        .tnb select .tnb.status
+      }
+    }
+
+    Changelog {
+# local changelog file should also be on amazon
+      set localFile "STEP-File-Analyzer-changelog.xlsx"
+      set URL https://s3.amazonaws.com/nist-el/mfg_digitalthread/STEP-File-Analyzer-changelog.xlsx
     }
   }
 
-# open user guide by url (update url for new version)
-  if {$byURL} {openURL https://doi.org/10.6028/NIST.AMS.200-6}
+# open file, local file is assumed to be in same directory as executable, if not open URL
+  set byURL 1
+  set fname [file nativename [file join [file dirname [info nameofexecutable]] $localFile]]
+  if {[file exists $fname]} {
 
-# extra message if user guide is out-of-date, versions defined in sfa-step.tcl
-  if {[getVersion] > [expr {[getVersionUG]+0.25}]} {
-    errorMsg "The User Guide is based on version [getVersionUG] of the STEP File Analyzer and Viewer.\n See Help > Changelog for changes to the software."
-    outputMsg " "
-    .tnb select .tnb.status
+# open spreadsheet
+    if {[file extension $fname] == ".xlsx"} {
+      openXLS $fname
+      set byURL 0
+
+# open other types of files
+    } else {
+      if {[catch {
+        exec {*}[auto_execok start] "" $fname
+        set byURL 0
+      } emsg]} {
+        if {[string first "UNC" $emsg] != -1} {set byURL 0}
+      }
+    }
   }
+
+# open file by url if local file not opened
+  if {$byURL} {openURL $URL}
 }
 
 #-------------------------------------------------------------------------------
 # start window, bind keys
 proc guiStartWindow {} {
-  global winpos wingeo localName localNameList lastXLS lastXLS1 lastX3DOM fout
+  global fout editorCmd lastX3DOM lastXLS lastXLS1 localName localNameList wingeo winpos
 
   wm title . "STEP File Analyzer and Viewer  (v[getVersion])"
   wm protocol . WM_DELETE_WINDOW {exit}
@@ -133,6 +151,7 @@ proc guiStartWindow {} {
   bind . <Key-F2> {if {$lastXLS   != ""} {set lastXLS  [openXLS $lastXLS  1]}}
   bind . <Key-F3> {if {$lastXLS1  != ""} {set lastXLS1 [openXLS $lastXLS1 1]}}
   bind . <Key-F7> {if {$lastX3DOM != ""} {openX3DOM $lastX3DOM}}
+  bind . <Key-F9> {if {$lastX3DOM != ""} {exec $editorCmd [file nativename $lastX3DOM] &}}
 
   bind . <MouseWheel> {[$fout.text component text] yview scroll [expr {-%D/30}] units}
   bind . <Up>     {[$fout.text component text] yview scroll -1 units}
@@ -147,9 +166,8 @@ proc guiStartWindow {} {
 
 #-------------------------------------------------------------------------------
 # buttons and progress bar
-
 proc guiButtons {} {
-  global buttons wdir nprogBarEnts nprogBarFiles ftrans mytemp opt nistVersion
+  global buttons ftrans mytemp nistVersion nprogBarEnts nprogBarFiles opt wdir
 
   set ftrans [frame .ftrans1 -bd 2 -background "#F0F0F0"]
   set butstr "Spreadsheet"
@@ -203,9 +221,8 @@ proc guiButtons {} {
 
 #-------------------------------------------------------------------------------
 # status tab
-
 proc guiStatusTab {} {
-  global nb wout fout outputWin statusFont tcl_platform
+  global fout nb outputWin statusFont tcl_platform wout
 
   set wout [ttk::panedwindow $nb.status -orient horizontal]
   $nb add $wout -text " Status " -padding 2
@@ -266,7 +283,7 @@ proc guiStatusTab {} {
 #-------------------------------------------------------------------------------
 # file menu
 proc guiFileMenu {} {
-  global File openFileList lastXLS lastXLS1 lastX3DOM
+  global File lastX3DOM lastXLS lastXLS1 openFileList
 
   $File add command -label "Open STEP File(s)..." -accelerator "Ctrl+O" -command openFile
   $File add command -label "Open Multiple STEP Files in a Directory..." -accelerator "Ctrl+D, F4" -command {openMultiFile}
@@ -296,7 +313,7 @@ proc guiFileMenu {} {
 #-------------------------------------------------------------------------------
 # options tab, process and report
 proc guiProcessAndReports {} {
-  global fopt fopta nb opt cb buttons entCategory allNone
+  global allNone buttons cb entCategory fopt fopta nb opt
 
   set cb 0
   set wopt [ttk::panedwindow $nb.options -orient horizontal]
@@ -318,7 +335,9 @@ proc guiProcessAndReports {} {
     incr cb
     set tt [string range $idx 3 end]
     if {[info exists entCategory($tt)]} {
-      set ttmsg "There are [llength $entCategory($tt)] [string trim [lindex $item 0]] entities.  These entities are found in most STEP APs."
+      set mostSome "most"
+      if {$tt == "PR_STEP_TOLR"} {set mostSome "some"}
+      set ttmsg "There are [llength $entCategory($tt)] [string trim [lindex $item 0]] entities.  These entities are found in $mostSome STEP APs."
       if {$tt != "PR_STEP_COMM"} {append ttmsg "\nEntities marked with an asterisk (*) are only in AP242.  Some are only in AP242 edition 2."}
       append ttmsg "\nSee Help > Supported STEP APs  and  Websites > STEP Format and Schemas\n\n"
       if {$tt != "PR_STEP_COMM"} {
@@ -476,7 +495,7 @@ proc guiProcessAndReports {} {
     pack $buttons($idx) -side left -anchor w -padx 5 -pady 0 -ipady 0
     incr cb
   }
-  foreach item {{"Include Wireframe" opt(VIZTPGMSH)}} {
+  foreach item {{"Generate Wireframe" opt(VIZTPGMSH)}} {
     regsub -all {[\(\)]} [lindex $item 1] "" idx
     set buttons($idx) [ttk::checkbutton $foptv6.$cb -text [lindex $item 0] -variable [lindex $item 1] -command {checkValues}]
     pack $buttons($idx) -side left -anchor w -padx 8 -pady 0 -ipady 0
@@ -512,7 +531,7 @@ proc guiProcessAndReports {} {
     tooltip::tooltip $buttons(optVIZBRP) "Views are shown in the default web browser.  Older versions of web\nbrowsers are not supported.  Views can be generated without generating\na spreadsheet or CSV files.  See the Output Format option below.\n\nMost boundary representation (b-rep) part geometry can be viewed.\nMultiple and overriding part colors are ignored.\nSupplemental geometry and holes (AP242e2) are also shown.\nViews for very large STEP files might take 10-20 minutes to generate.\n\nSee Help > View Part Geometry\nSee Help > Supplemental Geometry\nSee Examples > View Part with PMI\nSee Websites > STEP File Viewers for other part geometry viewers"
     tooltip::tooltip $buttons(optVIZPMI) "Graphical PMI is supported in AP242, AP203, and AP214 files.\n\nSee Help > PMI Presentation\nSee Help > User Guide (section 7.1.1)\nSee Examples > View Part with PMI\nSee Examples > AP242 Tessellated Part with PMI\nSee Examples > Sample STEP Files"
     tooltip::tooltip $buttons(optVIZTPG) "** Parts in an assembly might have the wrong\nposition and orientation or be missing. **\n\nTessellated edges (lines) are also shown.  Faces\nin tessellated shells are outlined in black.\n\nSee Help > AP242 Tessellated Part Geometry\nSee Help > User Guide (section 7.1.2, 7.1.3)\nSee Examples > AP242 Tessellated Part with PMI"
-    tooltip::tooltip $buttons(optVIZTPGMSH) "Show a tessellation wireframe mesh based on the tessellated\nfaces or surfaces."
+    tooltip::tooltip $buttons(optVIZTPGMSH) "Generate a wireframe mesh based on the tessellated faces and surfaces."
     tooltip::tooltip $buttons(optVIZFEALVS) "The length of load vectors can be scaled by their magnitude.\nLoad vectors are always colored by their magnitude."
     tooltip::tooltip $buttons(optVIZFEADSntail) "The length of displacement vectors with a tail are scaled by\ntheir magnitude.  Vectors without a tail are not.\nDisplacement vectors are always colored by their magnitude.\nLoad vectors always have a tail."
     tooltip::tooltip $foptv4 "For 'By View' PMI colors, each Saved View is assigned a different color.\nIf there are one or no Saved Views, then 'Random' PMI colors are used.\n\nFor 'Random' PMI colors, each 'annotation occurrence' is assigned a\ndifferent color to help differentiate one from another."
@@ -526,7 +545,7 @@ proc guiProcessAndReports {} {
 #-------------------------------------------------------------------------------
 # user-defined list of entities
 proc guiUserDefinedEntities {} {
-  global fopta opt cb buttons fileDir userEntityFile userEntityList
+  global buttons cb opt fileDir fopta userEntityFile userEntityList
 
   set fopta6 [frame $fopta.6 -bd 0]
   foreach item {{" User-Defined List: " opt(PR_USER)}} {
@@ -577,7 +596,7 @@ proc guiUserDefinedEntities {} {
 #-------------------------------------------------------------------------------
 # inverse relationships
 proc guiInverse {} {
-  global buttons cb fopt inverses opt entCategory
+  global buttons cb fopt inverses opt
 
   set foptc [ttk::labelframe $fopt.3 -text " Inverse Relationships "]
   set txt " Show Inverses and Backwards References (Used In) for PMI, Shape Aspect, Representation, Tolerance, and more"
@@ -612,8 +631,8 @@ proc guiInverse {} {
 #-------------------------------------------------------------------------------
 # open STEP file and output format
 proc guiOpenSTEPFile {} {
-  global buttons cb fopt appNames developer dispCmds appName dispApps foptf
-  global edmWriteToFile edmWhereRules eeWriteToFile useXL xlInstalled
+  global appName appNames buttons cb developer dispApps dispCmds edmWhereRules edmWriteToFile eeWriteToFile
+  global fopt foptf useXL xlInstalled
 
   set foptf [ttk::labelframe $fopt.f -text " Open STEP File in "]
 
@@ -809,8 +828,7 @@ proc guiOpenSTEPFile {} {
 #-------------------------------------------------------------------------------
 # spreadsheet tab
 proc guiSpreadsheet {} {
-  global buttons cb env extXLS fileDir fxls mydocs nb opt developer
-  global userWriteDir userXLSFile writeDir excelVersion
+  global buttons cb developer excelVersion extXLS fileDir fxls mydocs nb opt userWriteDir userXLSFile writeDir
 
   set wxls [ttk::panedwindow $nb.xls -orient horizontal]
   $nb add $wxls -text " Spreadsheet " -padding 2
@@ -942,17 +960,17 @@ proc guiSpreadsheet {} {
 #-------------------------------------------------------------------------------
 # help menu
 proc guiHelpMenu {} {
-  global Examples Help opt nistVersion mytemp ifcsvrDir virtualDir contact excelVersion defaultColor stepAPs
+  global contact defaultColor Examples excelVersion Help ifcsvrDir mytemp nistVersion opt stepAPs virtualDir
 
-  $Help add command -label "User Guide" -command {showUserGuide}
+  $Help add command -label "User Guide" -command {showFileURL UserGuide}
   $Help add command -label "What's New" -command {whatsNew}
-  $Help add command -label "Changelog"  -command {openURL https://s3.amazonaws.com/nist-el/mfg_digitalthread/STEP-File-Analyzer-changelog.xlsx}
+  $Help add command -label "Changelog"  -command {showFileURL Changelog}
 
   $Help add command -label "Supported STEP APs" -command {
     if {[llength [glob -nocomplain -directory $ifcsvrDir *.rose]] < 12} {copyRoseFiles}
 
     outputMsg "\nSupported STEP APs ----------------------------------------------------------" blue
-    outputMsg "The following STEP Application Protocols (AP) and other schemas are supported.\nThe name of the AP is found on the FILE_SCHEMA entity in the HEADER section of a STEP file.\nThe 'e1' notation after an AP number refers to an older version of that AP.\n"
+    outputMsg "The following STEP Application Protocols (AP) and other schemas are supported.\nThe name of the AP is found on the FILE_SCHEMA entity in the HEADER section of a STEP file.\nThe 'e1' notation after an AP number below refers to an older version of that AP.\n"
 
     set nschema 0
     catch {file delete -force [file join $ifcsvrDir ap214e3_2010.rose]}
@@ -993,7 +1011,7 @@ proc guiHelpMenu {} {
     }
 
     if {$nschema == 0} {errorMsg "No Supported STEP APs were found.\nThere was a problem copying STEP schema files (*.rose) to the IFCsvr/dll directory."}
-    outputMsg "\nSee the Websites menu for information about the STEP Format, EXPRESS Schemas, AP242, and more.\nContact [join [getContact]] to add a new schema."
+    outputMsg "\nSee the Websites menu for information about the STEP Format, EXPRESS Schemas, AP242, and more."
 
     .tnb select .tnb.status
   }
@@ -1044,8 +1062,7 @@ Use F6 and F5 to change the font size."
   $Help add command -label "Options" -command {
 outputMsg "\nOptions --------------------------------------------------------------------" blue
 outputMsg "See Help > User Guide (sections 4.4, 4.5, 5, and 7)
-
-Process: Select which types of entities are processed.  The tooltip help lists all the entities
+process: Select which types of entities are processed.  The tooltip help lists all the entities
 associated with that type.  Selectively process only the entities or views relevant to your
 analysis.  Entity types and views can also be selected with the All, None, For Analysis, and
 For Views buttons.
@@ -1235,7 +1252,7 @@ datum targets, and other modifiers.  The number of some modifiers, e.g., maximum
 does not differentiate whether they appear in the tolerance zone definition or datum reference frame.
 
 Some PMI Elements might not be exported to a STEP file by your CAD system.  Some PMI Elements are
-only in AP242 edition 2.  
+only in AP242 edition 2.
 
 If STEP files from the NIST CAD models (Websites > PMI Validation Testing) are processed, then
 the PMI Representation Coverage Analysis worksheet is color-coded by the expected number of PMI
@@ -1609,10 +1626,10 @@ proc guiWebsitesMenu {} {
   global Websites
 
   $Websites add command -label "STEP File Analyzer and Viewer"             -command {openURL https://www.nist.gov/services-resources/software/step-file-analyzer-and-viewer}
-  $Websites add command -label "NIST Journal of Research (citation)"       -command {openURL https://www.nist.gov/publications/step-file-analyzer-software}
+  $Websites add command -label "NIST Journal of Research"                  -command {openURL https://www.nist.gov/publications/step-file-analyzer-software}
   $Websites add command -label "Conformance Checking of PMI in STEP Files" -command {openURL https://www.nist.gov/publications/conformance-checking-pmi-representation-cad-model-step-data-exchange-files}
-  $Websites add command -label "PMI Validation Testing (free CAD models and STEP files)" -command {openURL https://www.nist.gov/el/systems-integration-division-73400/mbe-pmi-validation-and-conformance-testing-project/download}
-  $Websites add command -label "Enabling the Digital Thread for Smart Manufacturing"     -command {openURL https://www.nist.gov/el/systems-integration-division-73400/enabling-digital-thread-smart-manufacturing}
+  $Websites add command -label "PMI Validation Testing"                    -command {openURL https://www.nist.gov/el/systems-integration-division-73400/mbe-pmi-validation-and-conformance-testing-project/download}
+  $Websites add command -label "Digital Thread for Smart Manufacturing"    -command {openURL https://www.nist.gov/el/systems-integration-division-73400/enabling-digital-thread-smart-manufacturing}
   $Websites add command -label "STEP: The Grand Experience"                -command {openURL https://www.nist.gov/publications/step-grand-experience}
 
   $Websites add separator
@@ -1620,20 +1637,21 @@ proc guiWebsitesMenu {} {
   $Websites add command -label "STEP File Viewers"              -command {openURL https://www.cax-if.org/step_viewers.html}
   $Websites add command -label "Recommended Practices"          -command {openURL https://www.cax-if.org/joint_testing_info.html#recpracs}
   $Websites add command -label "CAD Implementations"            -command {openURL https://www.cax-if.org/vendor_info.php}
-  $Websites add command -label "CAx-IF (alternate website)"     -command {openURL https://www.cax-if.de}
 
   $Websites add separator
-  $Websites add command -label "AP242 Project" -command {openURL http://www.ap242.org}
-  $Websites add cascade -label "More AP242 Information" -menu $Websites.0
+  $Websites add command -label "CAE-IF" -command {openURL http://afnet.fr/dotank/sps/plm-committee/cae-if/}
+  $Websites add command -label "PDM-IF" -command {openURL http://www.pdm-if.org/}
+
+  $Websites add separator
+  $Websites add cascade -label "AP242" -menu $Websites.0
   set Websites0 [menu $Websites.0 -tearoff 1]
+  $Websites0 add command -label "AP242 Project"           -command {openURL http://www.ap242.org}
   $Websites0 add command -label "AP242 Paper"             -command {openURL https://www.nist.gov/publications/portrait-iso-step-tolerancing-standard-enabler-smart-manufacturing-systems}
   $Websites0 add command -label "AP242 Presentation"      -command {openURL https://www.nist.gov/document-2058}
   $Websites0 add command -label "AP242 Benchmark Testing" -command {openURL http://www.asd-ssg.org/step-ap242-benchmark}
   $Websites0 add command -label "AP242 Edition 2"         -command {openURL http://www.ap242.org/edition-2}
 
-  $Websites add separator
-  $Websites add command -label "AP209 FEA"            -command {openURL http://www.ap209.org}
-  $Websites add command -label "CAE-IF (FEA testing)" -command {openURL http://afnet.fr/dotank/sps/plm-committee/cae-if/}
+  $Websites add command -label "AP209 FEA"                -command {openURL http://www.ap209.org}
 
   $Websites add separator
   $Websites add cascade -label "STEP Format and Schemas" -menu $Websites.2
@@ -1641,28 +1659,36 @@ proc guiWebsitesMenu {} {
   $Websites2 add command -label "STEP Format"                 -command {openURL https://www.loc.gov/preservation/digital/formats/fdd/fdd000448.shtml}
   $Websites2 add command -label "ISO 10303 Part 21"           -command {openURL https://en.wikipedia.org/wiki/ISO_10303-21}
   $Websites2 add command -label "ISO 10303 Part 21 Edition 3" -command {openURL https://www.steptools.com/stds/step/}
+  $Websites2 add separator
   $Websites2 add command -label "EXPRESS Schemas"             -command {openURL https://www.cax-if.org/joint_testing_info.html#schemas}
   $Websites2 add command -label "More EXPRESS Schemas"        -command {openURL http://web.archive.org/web/20160322005246/www.steptools.com/support/stdev_docs/express/}
+  $Websites2 add command -label "ISO 10303 Part 11 EXPRESS"   -command {openURL https://www.loc.gov/preservation/digital/formats/fdd/fdd000449.shtml}
+  $Websites2 add separator
+  $Websites2 add command -label "AP235 Properties"            -command {openURL http://www.ap235.org}
   $Websites2 add command -label "AP238 Machining"             -command {openURL http://www.ap238.org}
   $Websites2 add command -label "AP239 PLCS"                  -command {openURL http://www.ap239.org}
-  $Websites2 add command -label "AP235 Properties"            -command {openURL http://www.ap235.org}
+  $Websites2 add command -label "AP243 MoSSEC"                -command {openURL http://www.mossec.org/}
 
   $Websites add cascade -label "STEP Software" -menu $Websites.4
   set Websites4 [menu $Websites.4 -tearoff 1]
   $Websites4 add command -label "STEP File Analyzer and Viewer source code" -command {openURL https://github.com/usnistgov/SFA}
   $Websites4 add command -label "Digital Manufacturing Certificate Toolkit" -command {openURL https://github.com/usnistgov/DT4SM/tree/master/DMC-Toolkit}
+  $Websites4 add separator
   $Websites4 add command -label "STEP Tools Software"                       -command {openURL https://github.com/steptools}
   $Websites4 add command -label "OpenCascade STEP Processor"                -command {openURL https://www.opencascade.com/doc/occt-7.0.0/overview/html/occt_user_guides__step.html}
   $Websites4 add command -label "pythonOCC"                                 -command {openURL https://github.com/tpaviot/pythonocc}
   $Websites4 add command -label "STEP to X3D Translation"                   -command {openURL http://www.web3d.org/wiki/index.php/STEP_X3D_Translation}
   $Websites4 add command -label "STEP Class Library (STEPcode)"             -command {openURL https://www.nist.gov/services-resources/software/step-class-library-scl}
   $Websites4 add command -label "Express Engine"                            -command {openURL http://exp-engine.sourceforge.net/}
+  #$Websites4 add command -label "STEP Engine"                               -command {openURL http://rdf.bg/product-list/step-engine/}
 
   $Websites add cascade -label "STEP Related Organizations" -menu $Websites.3
   set Websites3 [menu $Websites.3 -tearoff 1]
   $Websites3 add command -label "PDES, Inc. (U.S.)"                         -command {openURL http://pdesinc.org}
   $Websites3 add command -label "prostep ivip (Germany)"                    -command {openURL https://www.prostep.org/en/projects/}
   $Websites3 add command -label "AFNeT (France)"                            -command {openURL http://afnet.fr/dotank/sps/plm-committee/}
+  $Websites3 add separator
+  $Websites3 add command -label "ISO TC184/SC4"                             -command {openURL https://www.iso.org/committee/54158.html}
   $Websites3 add command -label "LOTAR (LOng Term Archiving and Retrieval)" -command {openURL http://www.lotar-international.org}
   $Websites3 add command -label "ASD Strategic Standardisation Group"       -command {openURL http://www.asd-ssg.org/}
   $Websites3 add command -label "KStep (Korea)"                             -command {openURL http://www.kstep.or.kr/}
@@ -1734,7 +1760,7 @@ Please report other types of crashes to the software developer."
 
 #-------------------------------------------------------------------------------
 proc guiToolTip {ttmsg tt} {
-  global entCategory ap242only
+  global ap242only entCategory
 
   set ttlen 0
   set lchar ""
@@ -1761,4 +1787,336 @@ proc guiToolTip {ttmsg tt} {
     set lchar [string range $ent 0 $r1]
   }
   return $ttmsg
+}
+
+#-------------------------------------------------------------------------------
+proc getOpenPrograms {} {
+  global dispApps dispCmds dispCmd appNames appName env
+  global drive editorCmd developer myhome pf32 pf64
+
+# Including any of the CAD viewers and software below does not imply a recommendation or
+# endorsement of them by NIST https://www.nist.gov/disclaimer
+# For more STEP viewers, go to https://www.cax-if.org/step_viewers.html
+
+  regsub {\\} $pf32 "/" p32
+  lappend pflist $p32
+  if {$pf64 != "" && $pf64 != $pf32} {
+    regsub {\\} $pf64 "/" p64
+    lappend pflist $p64
+  }
+  set lastver 0
+
+# Jotne EDM Model Checker
+  if {$developer} {
+    set edms [glob -nocomplain -directory [file join $drive edm] -join edm* bin Edms.exe]
+    foreach match $edms {
+      set name "EDM Model Checker"
+      if {[string first "edm5" $match] != -1} {
+        set num 5
+      } elseif {[string first "edmsix" $match] != -1} {
+        set num 6
+      }
+      set dispApps($match) "$name $num"
+    }
+  }
+
+# STEP Tools apps
+  foreach pf $pflist {
+    if {[file isdirectory [file join $pf "STEP Tools"]]} {
+      set applist [list \
+        [list ap203checkgui.exe "AP203 Conformance Checker"] \
+        [list ap209checkgui.exe "AP209 Conformance Checker"] \
+        [list ap214checkgui.exe "AP214 Conformance Checker"] \
+        [list apconformgui.exe "AP Conformance Checker"] \
+        [list stepbrws.exe "STEP File Browser"] \
+        [list stepcleangui.exe "STEP File Cleaner"] \
+        [list stpcheckgui.exe "STEP Check and Browse"] \
+        [list stview.exe "ST-Viewer"] \
+      ]
+      foreach app $applist {
+        set stmatch ""
+        foreach match [glob -nocomplain -directory $pf -join "STEP Tools" "ST-Developer*" bin [lindex $app 0]] {
+          if {$stmatch == ""} {
+            set stmatch $match
+            set lastver [lindex [split [file nativename $match] [file separator]] 3]
+          } else {
+            set ver [lindex [split [file nativename $match] [file separator]] 3]
+            if {$ver > $lastver} {set stmatch $match}
+          }
+        }
+        if {$stmatch != ""} {
+          if {![info exists dispApps($stmatch)]} {set dispApps($stmatch) [lindex $app 1]}
+        }
+      }
+    }
+
+# other STEP file apps
+    set applist [list \
+      [list {*}[glob -nocomplain -directory [file join $pf] -join "Afanche3D*" "Afanche3D*.exe"] Afanche3D] \
+      [list {*}[glob -nocomplain -directory [file join $pf "Common Files"] -join "eDrawings*" eDrawings.exe] eDrawings] \
+      [list {*}[glob -nocomplain -directory [file join $pf "SOLIDWORKS Corp"] -join "eDrawings (*)" eDrawings.exe] eDrawings] \
+      [list {*}[glob -nocomplain -directory [file join $pf "Stratasys Direct Manufacturing"] -join "SolidView Pro RP *" bin SldView.exe] SolidView] \
+      [list {*}[glob -nocomplain -directory [file join $pf "TransMagic Inc"] -join "TransMagic *" System code bin TransMagic.exe] TransMagic] \
+      [list {*}[glob -nocomplain -directory [file join $pf Actify SpinFire] -join "*" SpinFire.exe] SpinFire] \
+      [list {*}[glob -nocomplain -directory [file join $pf CADSoftTools] -join "ABViewer*" ABViewer.exe] ABViewer] \
+      [list {*}[glob -nocomplain -directory [file join $pf Kubotek] -join "KDisplayView*" KDisplayView.exe] "K-Display View"] \
+      [list {*}[glob -nocomplain -directory [file join $pf Kubotek] -join "Spectrum*" Spectrum.exe] Spectrum] \
+      [list {*}[glob -nocomplain -directory [file join $pf] -join "3D-Tool V*" 3D-Tool.exe] 3D-Tool] \
+      [list {*}[glob -nocomplain -directory [file join $pf] -join "VariCADViewer *" bin varicad-x64.exe] "VariCAD Viewer"] \
+      [list {*}[glob -nocomplain -directory [file join $pf] -join ZWSOFT "CADbro *" CADbro.exe] CADbro] \
+    ]
+    if {$pf64 == ""} {
+      lappend applist [list {*}[glob -nocomplain -directory [file join $pf] -join "VariCADViewer *" bin varicad-i386.exe] "VariCAD Viewer (32-bit)"]
+    }
+
+    foreach app $applist {
+      if {[llength $app] == 2} {
+        set match [join [lindex $app 0]]
+        if {$match != "" && ![info exists dispApps($match)]} {
+          set dispApps($match) [lindex $app 1]
+        }
+      }
+    }
+
+    set applist [list \
+      [list [file join $pf "3DJuump X64" 3DJuump.exe] "3DJuump"] \
+      [list [file join $pf "CAD Assistant" CADAssistant.exe] "CAD Assistant"] \
+      [list [file join $pf "CAD Exchanger" bin Exchanger.exe] "CAD Exchanger"] \
+      [list [file join $pf "SOLIDWORKS Corp" eDrawings eDrawings.exe] "eDrawings"] \
+      [list [file join $pf "STEP Tools" "STEP-NC Machine Personal Edition" STEPNCExplorer.exe] "STEP-NC Machine"] \
+      [list [file join $pf "STEP Tools" "STEP-NC Machine Personal Edition" STEPNCExplorer_x86.exe] "STEP-NC Machine"] \
+      [list [file join $pf "STEP Tools" "STEP-NC Machine" STEPNCExplorer.exe] "STEP-NC Machine"] \
+      [list [file join $pf "STEP Tools" "STEP-NC Machine" STEPNCExplorer_x86.exe] "STEP-NC Machine"] \
+      [list [file join $pf "Tekla BIMsight" BIMsight.exe] "Tekla BIMsight"] \
+      [list [file join $pf CadFaster QuickStep QuickStep.exe] QuickStep] \
+      [list [file join $pf gCAD3D gCAD3D.bat] gCAD3D] \
+      [list [file join $pf Glovius Glovius glovius.exe] Glovius] \
+      [list [file join $pf IFCBrowser IfcQuickBrowser.exe] IfcQuickBrowser] \
+      [list [file join $pf Kisters 3DViewStation 3DViewStation.exe] 3DViewStation] \
+      [list [file join $pf STPViewer STPViewer.exe] "STP Viewer"] \
+    ]
+    foreach app $applist {
+      if {[file exists [lindex $app 0]]} {
+        set name [lindex $app 1]
+        set dispApps([lindex $app 0]) $name
+      }
+    }
+
+# FreeCAD
+    foreach app [list {*}[glob -nocomplain -directory [file join $pf] -join "FreeCAD *" bin FreeCAD.exe] FreeCAD] {
+      set ver [lindex [split [file nativename $app] [file separator]] 2]
+      if {$pf64 != "" && [string first "x86" $app] != -1} {append ver " (32-bit)"}
+      set dispApps($app) $ver
+    }
+
+# Tetra4D in Adobe Acrobat
+    for {set i 40} {$i > 9} {incr i -1} {
+      if {$i > 11} {
+        set j "20$i"
+      } else {
+        set j "$i.0"
+      }
+      foreach match [glob -nocomplain -directory $pf -join Adobe "Acrobat $j" Acrobat Acrobat.exe] {
+        if {[file exists [file join $pf Adobe "Acrobat $j" Acrobat plug_ins 3DPDFConverter 3DPDFConverter.exe]]} {
+          if {![info exists dispApps($match)]} {
+            set name "Tetra4D Converter"
+            set dispApps($match) $name
+          }
+        }
+      }
+      set match [file join $pf Adobe "Acrobat $j" Acrobat plug_ins 3DPDFConverter 3DReviewer.exe]
+      if {![info exists dispApps($match)]} {
+        set name "Tetra4D Reviewer"
+        set dispApps($match) $name
+      }
+    }
+  }
+
+# others
+  set b1 [file join $myhome AppData Local IDA-STEP ida-step.exe]
+  if {[file exists $b1]} {
+    set name "IDA-STEP Viewer"
+    set dispApps($b1) $name
+  }
+  set b1 [file join $drive CCELabs EnSuite-View Bin EnSuite-View.exe]
+  if {[file exists $b1]} {
+    set name "EnSuite-View"
+    set dispApps($b1) $name
+  } else {
+    set b1 [file join $drive CCE EnSuite-View Bin EnSuite-View.exe]
+    if {[file exists $b1]} {
+      set name "EnSuite-View"
+      set dispApps($b1) $name
+    }
+  }
+
+#-------------------------------------------------------------------------------
+# default viewer
+  set dispApps(Default) "Default STEP Viewer"
+
+# file tree view
+  set dispApps(Indent) "Tree View (for debugging)"
+
+#-------------------------------------------------------------------------------
+# set text editor command and name
+  set editorCmd ""
+  set editorName ""
+
+# Notepad++ or Notepad
+  set editorCmd [file join $pf32 Notepad++ notepad++.exe]
+  if {[file exists $editorCmd]} {
+    set editorName "Notepad++"
+    set dispApps($editorCmd) $editorName
+  } elseif {[info exists env(windir)]} {
+    set editorCmd [file join $env(windir) system32 Notepad.exe]
+    set editorName "Notepad"
+    set dispApps($editorCmd) $editorName
+  }
+
+#-------------------------------------------------------------------------------
+# remove cmd that do not exist in dispCmds and non-executables
+  set dispCmds1 {}
+  foreach app $dispCmds {
+    if {([file exists $app] || [string first "Default" $app] == 0 || [string first "Indent" $app] == 0) && \
+         [file tail $app] != "NotePad.exe"} {
+      lappend dispCmds1 $app
+    }
+  }
+  set dispCmds $dispCmds1
+
+# check for cmd in dispApps that does not exist in dispCmds and add to list
+  foreach app [array names dispApps] {
+    if {[file exists $app] || [string first "Default" $app] == 0 || [string first "Indent" $app] == 0} {
+      set notInCmds 1
+      foreach cmd $dispCmds {if {[string tolower $cmd] == [string tolower $app]} {set notInCmds 0}}
+      if {$notInCmds} {lappend dispCmds $app}
+    }
+  }
+
+# remove duplicates in dispCmds
+  if {[llength $dispCmds] != [llength [lrmdups $dispCmds]]} {set dispCmds [lrmdups $dispCmds]}
+
+# clean up list of app viewer commands
+  if {[info exists dispCmd]} {
+    if {([file exists $dispCmd] || [string first "Default" $dispCmd] == 0 || [string first "Indent" $dispCmd] == 0)} {
+      if {[lsearch $dispCmds $dispCmd] == -1 && $dispCmd != ""} {lappend dispCmds $dispCmd}
+    } else {
+      if {[llength $dispCmds] > 0} {
+        foreach dispCmd $dispCmds {
+          if {([file exists $dispCmd] || [string first "Default" $dispCmd] == 0 || [string first "Indent" $dispCmd] == 0)} {break}
+        }
+      } else {
+        set dispCmd ""
+      }
+    }
+  } else {
+    if {[llength $dispCmds] > 0} {
+      set dispCmd [lindex $dispCmds 0]
+    }
+  }
+  for {set i 0} {$i < [llength $dispCmds]} {incr i} {
+    if {![file exists [lindex $dispCmds $i]] && [string first "Default" [lindex $dispCmds $i]] == -1 && [string first "Indent" [lindex $dispCmds $i]] == -1} {set dispCmds [lreplace $dispCmds $i $i]}
+  }
+
+# put dispCmd at beginning of dispCmds list
+  if {[info exists dispCmd]} {
+    for {set i 0} {$i < [llength $dispCmds]} {incr i} {
+      if {$dispCmd == [lindex $dispCmds $i]} {
+        set dispCmds [lreplace $dispCmds $i $i]
+        set dispCmds [linsert $dispCmds 0 $dispCmd]
+      }
+    }
+  }
+
+# remove duplicates in dispCmds, again
+  if {[llength $dispCmds] != [llength [lrmdups $dispCmds]]} {set dispCmds [lrmdups $dispCmds]}
+
+# set list of STEP viewer names, appNames
+  set appNames {}
+  set appName  ""
+  foreach cmd $dispCmds {
+    if {[info exists dispApps($cmd)]} {
+      lappend appNames $dispApps($cmd)
+    } else {
+      set name [file rootname [file tail $cmd]]
+      lappend appNames  $name
+      set dispApps($cmd) $name
+    }
+  }
+  if {$dispCmd != ""} {
+    if {[info exists dispApps($dispCmd)]} {set appName $dispApps($dispCmd)}
+  }
+}
+
+# -------------------------------------------------------------------------------------------------
+proc getFirstFile {} {
+  global openFileList buttons
+
+  set localName [lindex $openFileList 0]
+  if {$localName != ""} {
+    outputMsg "\nReady to process: [file tail $localName] ([expr {[file size $localName]/1024}] Kb)" blue
+    if {[info exists buttons(appOpen)]} {$buttons(appOpen) configure -state normal}
+  }
+  return $localName
+}
+
+#-------------------------------------------------------------------------------
+proc addFileToMenu {} {
+  global openFileList localName File buttons
+
+  set lenlist 25
+  set filemenuinc 4
+
+  if {![info exists buttons]} {return}
+
+# change backslash to forward slash, if necessary
+  regsub -all {\\} $localName "/" localName
+
+# remove duplicates
+  set newlist {}
+  set dellist {}
+  for {set i 0} {$i < [llength $openFileList]} {incr i} {
+    set name [lindex $openFileList $i]
+    set ifile [lsearch -all $openFileList $name]
+    if {[llength $ifile] == 1 || [lindex $ifile 0] == $i} {
+      lappend newlist $name
+    } else {
+      lappend dellist $i
+    }
+  }
+  set openFileList $newlist
+
+# check if file name is already in the menu, if so, delete
+  set ifile [lsearch $openFileList $localName]
+  if {$ifile > 0} {
+    set openFileList [lreplace $openFileList $ifile $ifile]
+    $File delete [expr {$ifile+$filemenuinc}] [expr {$ifile+$filemenuinc}]
+  }
+
+# insert file name at top of list
+  set fext [string tolower [file extension $localName]]
+  if {$ifile != 0 && ($fext == ".stp" || $fext == ".step" || $fext == ".p21")} {
+    set openFileList [linsert $openFileList 0 $localName]
+    $File insert $filemenuinc command -label [truncFileName [file nativename $localName] 1] \
+      -command [list openFile $localName] -accelerator "F1"
+    catch {$File entryconfigure 5 -accelerator {}}
+  }
+
+# check length of file list, delete from the end of the list
+  if {[llength $openFileList] > $lenlist} {
+    set openFileList [lreplace $openFileList $lenlist $lenlist]
+    $File delete [expr {$lenlist+$filemenuinc}] [expr {$lenlist+$filemenuinc}]
+  }
+
+# compare file list and menu list
+  set llen [llength $openFileList]
+  for {set i 0} {$i < $llen} {incr i} {
+    set f1 [file tail [lindex $openFileList $i]]
+    set f2 ""
+    catch {set f2 [file tail [lindex [$File entryconfigure [expr {$i+$filemenuinc}] -label] 4]]}
+  }
+
+# save the state so that if the program crashes the file list will be already saved
+  saveState
+  return
 }

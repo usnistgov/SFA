@@ -1,6 +1,6 @@
 proc spmiHoleStart {entType} {
   global objDesign
-  global cells col ht entLevel ent entAttrList htEntity lastEnt opt pmiCol pmiHeading pmiStartCol spmiEntity spmiRow
+  global col entLevel ent entAttrList holeEntity ht lastEnt opt pmiCol pmiHeading pmiStartCol spmiEntity spmiRow
 
   if {$opt(DEBUG1)} {outputMsg "START spmiHoleStart $entType" red}
 
@@ -55,7 +55,7 @@ proc spmiHoleStart {entType} {
 
   catch {unset pmiHeading}
   catch {unset ent}
-  catch {unset htEntity}
+  catch {unset holeEntity}
 
   outputMsg " Adding PMI Representation Analysis" blue
   lappend spmiEntity $entType
@@ -93,10 +93,8 @@ proc spmiHoleStart {entType} {
 
 # -------------------------------------------------------------------------------
 proc spmiHoleReport {objEntity} {
-  global badAttributes cells col dim DTR hole holerep holerepID holeDim holeDimType
-  global counterEnt counterEntType holeDefinitions holtolGeom ht htEntity entLevel ent entAttrList entlevel2 entsWithErrors
-  global lastAttr lastEnt nistName opt pmiCol pmiColumns pmiHeading pmiModifiers pmiStartCol
-  global pmiUnicode recPracNames spmiEnts spmiID spmiIDRow spmiRow spmiTypesPerFile syntaxErr thruHole worksheet
+  global badAttributes cells col dim DTR hole holerep holeDim holeDimType holeDefinitions holeEntity ht entLevel ent entAttrList
+  global lastEnt opt pmiCol pmiColumns pmiHeading pmiModifiers pmiUnicode spmiEnts spmiID spmiIDRow spmiRow spmiTypesPerFile syntaxErr thruHole
 
   if {$opt(DEBUG1)} {outputMsg "spmiHoleReport" red}
 
@@ -114,18 +112,10 @@ proc spmiHoleReport {objEntity} {
 
     set follow 1
     set lastEnt "$objID $objType"
+    if {$entLevel == 1} {set holeEntity $objEntity}
 
-    if {$entLevel == 1} {
-      catch {unset counterEnt}
-      catch {unset entlevel2}
-      set htEntity $objEntity
-      set counterEnt $htEntity
-    } elseif {$entLevel == 2} {
-      if {![info exists entlevel2]} {set entlevel2 [list $objID $objType]}
-    }
-
-# check if there are rows with dt
-    if {$spmiEnts($objType) && [string first "datum_feature" $objType] == -1 && [string first "datum_target" $objType] == -1} {
+# check if there are rows with hole features
+    if {$spmiEnts($objType)} {
       set spmiID $objID
       if {![info exists spmiIDRow($ht,$spmiID)]} {
         incr entLevel -1
@@ -164,7 +154,6 @@ proc spmiHoleReport {objEntity} {
           if {[catch {
             if {$idx != -1} {
               if {$opt(DEBUG1)} {outputMsg "$ind   ATR $entLevel $objName - $objValue ($objNodeType-[$objAttribute AggNodeType], $objSize, $objAttrType)"}
-              set lastAttr $objName
 
               if {[info exists cells($ht)]} {
                 set ok 0
@@ -283,7 +272,8 @@ proc spmiHoleReport {objEntity} {
                       lappend spmiTypesPerFile "limits and fits"
                     }
                   }
-                  "*counter* through_hole" {
+                  "*counter* through_hole" -
+                  "*spotface* through_hole" {
                     set thruHole $objValue
                   }
                 }
@@ -305,19 +295,19 @@ proc spmiHoleReport {objEntity} {
     set holerep ""
 
 # check for repetitive dimensions
-    set ename [$htEntity Type]
+    set ename [$holeEntity Type]
     if {[string first "simplified" $ename] == 0} {set ename [string range $ename 11 end]}
     set c1 [string last "_" $ename]
     set ename [string range $ename 0 $c1]
     append ename "occurrence"
     set nhole 0
-    set e0s [$htEntity GetUsedIn [string trim $ename] [string trim definition]]
+    set e0s [$holeEntity GetUsedIn [string trim $ename] [string trim definition]]
     ::tcom::foreach e0 $e0s {incr nhole}
     if {$nhole > 1} {
       append holerep "$nhole\X "
       lappend spmiTypesPerFile "repetitive dimensions"
     } elseif {$nhole == 0} {
-      errorMsg "There are no hole occurrences that reference a [$htEntity Type]."
+      errorMsg "There are no hole occurrences that reference a [$holeEntity Type]."
     }
 
 # main hole diameter, depth, and tolerances
@@ -325,15 +315,26 @@ proc spmiHoleReport {objEntity} {
     lappend spmiTypesPerFile "diameter"
     set hd "drill $holeDim(drilled_hole_diameter)"
     if {[info exists holeDim(drilled_hole_diameter_tolerance)]} {append holerep " $holeDim(drilled_hole_diameter_tolerance)"}
+
+# drill depth specified, correct only if thru hole is false
     if {[info exists holeDim(drilled_hole_depth)]} {
-      if {!$thruHole} {
-        append holerep "  $pmiModifiers(depth)$holeDim(drilled_hole_depth)"
-        if {[info exists holeDim(drilled_hole_depth_tolerance)]} {append holerep " $holeDim(drilled_hole_depth_tolerance)"}
-        lappend spmiTypesPerFile "depth"
-      }
+      append holerep "  $pmiModifiers(depth)$holeDim(drilled_hole_depth)"
+      if {[info exists holeDim(drilled_hole_depth_tolerance)]} {append holerep " $holeDim(drilled_hole_depth_tolerance)"}
+      lappend spmiTypesPerFile "depth"
       append hd " $holeDim(drilled_hole_depth)"
+      if {$thruHole} {
+        set msg "Syntax Error: through_hole should be FALSE if drilled_hole_depth is specified."
+        errorMsg $msg
+        lappend syntaxErr([$holeEntity Type]) [list [$holeEntity P21ID] "through_hole" $msg]
+      }
+
+# no drill depth and not a thru hole
+    } elseif {!$thruHole} {
+      set msg "Syntax Error: through_hole should be TRUE if drilled_hole_depth is not specified."
+      errorMsg $msg
+      lappend syntaxErr([$holeEntity Type]) [list [$holeEntity P21ID] "through_hole" $msg]
     }
-    lappend holeDefinitions([$htEntity P21ID]) $hd
+    lappend holeDefinitions([$holeEntity P21ID]) $hd
 
 # countersink diameter, angle, and tolerances
     if {[info exists holeDim(countersink_diameter)]} {
@@ -343,18 +344,20 @@ proc spmiHoleReport {objEntity} {
       lappend spmiTypesPerFile "diameter"
       lappend spmiTypesPerFile "countersink"
       if {[info exists holeDim(countersink_angle_tolerance)]} {append holerep " $holeDim(countersink_angle_tolerance)$pmiUnicode(degree)"}
-      lappend holeDefinitions([$htEntity P21ID]) "sink $holeDim(countersink_diameter) $holeDim(countersink_angle)"
+      lappend holeDefinitions([$holeEntity P21ID]) "countersink $holeDim(countersink_diameter) $holeDim(countersink_angle)"
     }
 
 # counterbore or spotface diameter, depth, and tolerances
     if {[info exists holeDim(diameter)]} {
       append holerep [format "%c" 10]
-      if {[string first "counterbore" [$htEntity Type]] != -1} {
+      if {[string first "counterbore" [$holeEntity Type]] != -1} {
         append holerep $pmiModifiers(counterbore)
         lappend spmiTypesPerFile "counterbore"
-      } elseif {[string first "spotface" [$htEntity Type]] != -1} {
+        set type "counterbore"
+      } elseif {[string first "spotface" [$holeEntity Type]] != -1} {
         append holerep "$pmiModifiers(spotface) "
         lappend spmiTypesPerFile "spotface"
+        set type "spotface"
       }
       append holerep "$pmiUnicode(diameter)$holeDim(diameter)"
       if {[info exists holeDim(diameter_tolerance)]} {append holerep " $holeDim(diameter_tolerance)"}
@@ -364,35 +367,32 @@ proc spmiHoleReport {objEntity} {
         if {[info exists holeDim(depth_tolerance)]} {append holerep " $holeDim(depth_tolerance)"}
         lappend spmiTypesPerFile "depth"
       }
-      lappend holeDefinitions([$htEntity P21ID]) "bore $holeDim(diameter) $holeDim(depth)"
+      lappend holeDefinitions([$holeEntity P21ID]) "$type $holeDim(diameter) $holeDim(depth)"
     }
-    
-    lappend holeDefinitions([$htEntity P21ID]) $thruHole
+
+    lappend holeDefinitions([$holeEntity P21ID]) $thruHole
 
 # -------------------------------------------------------------------------------
 # report complete hole representation (holerep)
     if {[catch {
       set cellComment ""
       if {[info exists holerep] && [info exists spmiIDRow($ht,$spmiID)]} {
-        if {![info exists pmiColumns([$counterEnt Type])]} {set pmiColumns([$counterEnt Type]) [expr {[[[$worksheet($ht) UsedRange] Columns] Count]+1}]}
-        set c [string index [cellRange 1 $pmiColumns([$counterEnt Type])] 0]
+        if {![info exists pmiColumns([$holeEntity Type])]} {set pmiColumns([$holeEntity Type]) [getNextUnusedColumn $ht]}
+        set c [string index [cellRange 1 $pmiColumns([$holeEntity Type])] 0]
         set r $spmiIDRow($ht,$spmiID)
-        if {![info exists pmiHeading($pmiColumns([$counterEnt Type]))]} {
-          set colName "Hole[format "%c" 10]Tolerance"
+        if {![info exists pmiHeading($pmiColumns([$holeEntity Type]))]} {
+          set colName "Hole[format "%c" 10]Feature"
           $cells($ht) Item 3 $c $colName
-          set pmiHeading($pmiColumns([$counterEnt Type])) 1
-          set pmiCol [expr {max($pmiColumns([$counterEnt Type]),$pmiCol)}]
+          set pmiHeading($pmiColumns([$holeEntity Type])) 1
+          set pmiCol [expr {max($pmiColumns([$holeEntity Type]),$pmiCol)}]
           set comment "See Help > User Guide (section 5.1.3) for an explanation of how the hole dimensions below are constructed."
           if {[info exists hole(unit)]} {append comment "\n\nDimension units: $hole(unit)"}
           append comment "\n\nRepetitive dimensions (e.g., 4X) might be shown for holes.  They are computed based on the number of counterbore, sink, drill, and spotface occurrence entities that reference the hole definition."
-          #if {$nistName != ""} {
-          #  append comment "\n\nSee the PMI Representation Summary worksheet to see how the Hole Tolerance below compares to the expected PMI."
-          #}
           addCellComment $ht 3 $c $comment
         }
 
 # write hole to spreadsheet
-        $cells($ht) Item $r $pmiColumns([$counterEnt Type]) $holerep
+        $cells($ht) Item $r $pmiColumns([$holeEntity Type]) $holerep
         catch {unset holerep}
         catch {unset holeDim}
 

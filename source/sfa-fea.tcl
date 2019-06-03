@@ -1,10 +1,8 @@
 proc feaModel {entType} {
   global objDesign
-  global ent entAttrList entCount entLevel opt rowmax nprogBarEnts count localName mytemp sfaPID cadSystem timeStamp stepAP
-  global x3dFile x3dMin x3dMax x3dMsg x3dStartFile x3dFileName x3dAxesSize
-  global feaType feaTypes feaElemTypes nfeaElem feaFile feaFileName feaFaceList feaFaceOrig feaBoundary
-  global feaLoad feaMeshIndex feaLoadMag feaDisp feaDispMag feaLastEntity
-  global bcScaleSwitch ldScaleSwitch dsScaleSwitch
+  global cadSystem ent entAttrList entCount entLevel feaBoundary feaDisp feaFaceList feaFaceOrig feaFile feaFileName
+  global feaLastEntity feaLoad feaMeshIndex feaType feaTypes localName mytemp nfeaElem nprogBarEnts opt rowmax
+  global sfaPID stepAP timeStamp x3dAxesSize x3dFile x3dFileName x3dMax x3dMin x3dMsg x3dStartFile
 
   if {$opt(DEBUG1)} {outputMsg "START feaModel $entType\n" red}
   #outputMsg "START feaModel $entType" red
@@ -375,11 +373,9 @@ proc feaModel {entType} {
 
 # -------------------------------------------------------------------------------
 proc feaEntities {objEntity} {
-  global badAttributes ent entAttrList entCount entLevel localName nistVersion opt
-  global x3dFile x3dFileName x3dStartFile feaMeshIndex feaFaceIndex x3dMsg feaStateID feaEntity
-  global feaidx feaIndex feaType feaTypes firstID nnode nnodes nodeID nfeaElem feaFile feaFaceList feaBoundary feaLoad feaLoadNode feaBCNode feaLoadMag
-  global feaNodes feaDOFT feaDOFR surfaceNodes volumeNodes elemLoadVec elemLoadValue elemLoadVariable
-  global feaElemFace feaDisp feaDispNode feaDispMag elemID
+  global badAttributes elemID elemLoadValue elemLoadVariable elemLoadVec ent entAttrList entLevel feaBCNode feaBoundary feaDisp feaDispMag
+  global feaDispNode feaDOFR feaDOFT feaElemFace feaEntity feaFaceIndex feaFaceList feaFile feaidx feaIndex feaLoad feaLoadMag feaLoadNode feaMeshIndex
+  global feaNodes feaStateID feaType feaTypes firstID nnode nnodes nodeID opt surfaceNodes volumeNodes x3dMsg
 
 # entLevel is very important, keeps track level of entity in hierarchy
   incr entLevel
@@ -807,7 +803,7 @@ proc feaEntities {objEntity} {
 
 # -------------------------------------------------------------------------------
 proc feaLoads {entType} {
-  global x3dAxesSize feaLoadMag feaDispMag feaLoad opt ldScaleSwitch dsScaleSwitch feaFile feaDisp
+  global dsScaleSwitch feaDisp feaDispMag feaFile feaLoad feaLoadMag ldScaleSwitch opt x3dAxesSize
 
 # initialize
   catch {unset def}
@@ -998,7 +994,7 @@ proc feaArrow {r g b type num} {
 
 # -------------------------------------------------------------------------------
 proc feaBCs {entType} {
-  global x3dAxesSize bcScaleSwitch feaBoundary feaFile
+  global bcScaleSwitch feaBoundary feaFile x3dAxesSize
 
   outputMsg " Writing boundary conditions" green
   if {[catch {
@@ -1143,7 +1139,7 @@ proc feaBCs {entType} {
 
 # -------------------------------------------------------------------------------
 proc feaButtons {type} {
-  global x3dFile feaBoundary feaLoad feaLoadMag entCount bcScaleSwitch ldScaleSwitch opt feaDisp feaDispMag dsScaleSwitch
+  global bcScaleSwitch dsScaleSwitch entCount feaBoundary feaDisp feaDispMag feaLoad feaLoadMag ldScaleSwitch opt x3dFile
 
 # node, mesh, element checkboxes
   if {$type == 1} {
@@ -1351,9 +1347,9 @@ proc feaFaceSort {face} {
 # get and write nodes
 proc feaGetNodes {} {
   global objDesign
-  global entCount feaNodes x3dMax x3dMin x3dFile x3dMsg
-  catch {unset feaNodes}
+  global entCount feaNodes x3dFile x3dMax x3dMin x3dMsg
 
+  catch {unset feaNodes}
   set nodeIndex -1
   outputMsg " Reading nodes ($entCount(node))" green
 

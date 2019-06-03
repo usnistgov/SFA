@@ -1,7 +1,140 @@
-# start semantic PMI coverage analysis worksheet
+# PMI Representation Summary worksheet
+proc spmiSummary {} {
+  global allPMI cells entName localName nistName nistPMIexpected recPracNames row
+  global sheetLast spmiSumName spmiSumRow thisEntType worksheet worksheets xlFileName
+  
+# first time through, start worksheet
+  if {$spmiSumRow == 1} {
+    outputMsg " Adding PMI Representation Summary worksheet" blue
+
+    set spmiSumName "PMI Representation Summary"
+    set worksheet($spmiSumName) [$worksheets Add [::tcom::na] $sheetLast]
+    $worksheet($spmiSumName) Activate
+    $worksheet($spmiSumName) Name $spmiSumName
+    set cells($spmiSumName) [$worksheet($spmiSumName) Cells]
+    set wsCount [$worksheets Count]
+    [$worksheets Item [expr $wsCount]] -namedarg Move Before [$worksheets Item [expr 3]]
+
+    for {set i 2} {$i <= 3} {incr i} {[$worksheet($spmiSumName) Range [cellRange -1 $i]] ColumnWidth [expr 48]}
+    for {set i 1} {$i <= 4} {incr i} {[$worksheet($spmiSumName) Range [cellRange -1 $i]] VerticalAlignment [expr -4160]}
+
+    $cells($spmiSumName) Item $spmiSumRow 2 [file tail $localName]
+    incr spmiSumRow 2
+    $cells($spmiSumName) Item $spmiSumRow 1 "ID"
+    $cells($spmiSumName) Item $spmiSumRow 2 "Entity"
+    $cells($spmiSumName) Item $spmiSumRow 3 "PMI Representation"
+    
+    set comment "PMI Representation is collected here from the datum systems, dimensions, tolerances, and datum target entities in column B."
+    if {$nistName != ""} {
+      append comment "\n\nIt is color-coded by the expected PMI in the NIST test case drawing to the right.  The color-coding is explained at the bottom of the column.  Determining if the PMI is Partial and Possible match and corresponding Similar PMI depends on leading and trailing zeros, number precision, associated datum features and dimensions, and repetitive dimensions.\n\nSee Help > User Guide (section 8)"
+    }
+    append comment "."
+    addCellComment $spmiSumName $spmiSumRow 3 $comment
+    
+    set range [$worksheet($spmiSumName) Range [cellRange 1 1] [cellRange 3 3]]
+    [$range Font] Bold [expr 1]
+    set range [$worksheet($spmiSumName) Range [cellRange 3 1] [cellRange 3 3]]
+    catch {
+      [[$range Borders] Item [expr 8]] Weight [expr 2]
+      [[$range Borders] Item [expr 9]] Weight [expr 2]
+    }
+    incr spmiSumRow
+  
+    $cells($spmiSumName) Item 1 3 "See CAx-IF Recommended Practice for $recPracNames(pmi242)"
+    set range [$worksheet($spmiSumName) Range C1:K1]
+    $range MergeCells [expr 1]
+    set anchor [$worksheet($spmiSumName) Range C1]
+    [$worksheet($spmiSumName) Hyperlinks] Add $anchor [join "https://www.cax-if.org/joint_testing_info.html#recpracs"] [join ""] [join "Link to CAx-IF Recommended Practices"]
+    
+    set allPMI ""
+
+# get expected PMI for a NIST model
+    if {$nistName != ""} {nistGetSummaryPMI}
+  }
+ 
+# add to PMI summary worksheet
+  set hlink [$worksheet($spmiSumName) Hyperlinks]
+  for {set i 3} {$i <= $row($thisEntType)} {incr i} {
+
+# which entities are processed, check for holes
+    set okent 0
+    if {$thisEntType != "datum_reference_compartment" && $thisEntType != "datum_reference_element" && \
+        $thisEntType != "datum_reference_modifier_with_value" && [string first "datum_feature" $thisEntType] == -1} {
+      set okent 1
+    }
+    set notHole 1
+    if {[string first "counter" $thisEntType] != -1 || [string first "spotface" $thisEntType] != -1} {set notHole 0}
+
+# which entities and columns to summarize
+    if {$okent} {
+      if {$i == 3} {
+        for {set j 1} {$j < 30} {incr j} {
+          set val [[$cells($thisEntType) Item 3 $j] Value]
+          if {[string first "Datum Reference Frame" $val] != -1 || \
+              $val == "GD&T[format "%c" 10]Annotation" || \
+              $val == "Dimensional[format "%c" 10]Tolerance" || \
+              $val == "Hole[format "%c" 10]Feature" || \
+              [string first "Datum Target" $val] == 0 || \
+              ($thisEntType == "datum_reference" && [string first "reference" $val] != -1) || \
+              ($thisEntType == "referenced_modified_datum" && [string first "datum" $val] != -1)} {set pmiCol $j}
+        }
+
+# values
+      } else {
+        if {[info exists pmiCol]} {
+          $cells($spmiSumName) Item $spmiSumRow 1 [[$cells($thisEntType) Item $i 1] Value]
+          if {[string first "_and_" $thisEntType] == -1} {
+            set entstr $thisEntType
+          } else {
+            regsub -all "_and_" $thisEntType ")[format "%c" 10][format "%c" 32][format "%c" 32][format "%c" 32](" entstr
+            set entstr "($entstr)"
+          }
+          $cells($spmiSumName) Item $spmiSumRow 2 $entstr
+
+          set val [[$cells($thisEntType) Item $i $pmiCol] Value]
+
+# remove (TZF: ...)
+          set c1 [string first "(TZF:" $val]
+          if {$c1 != -1} {
+            set c2 [string first ")" $val]
+            if {$c2 > $c1} {
+              set val [string range $val 0 $c1-2][string range $val $c2+1 end]
+            } else {
+              set val [string range $val 0 $c1-2]
+            }
+          }
+          $cells($spmiSumName) Item $spmiSumRow 3 "'$val"
+          set cellval $val
+
+# allPMI used to count some modifiers for coverage analysis          
+          if {[string first "tolerance" $thisEntType] != -1} {append allPMI $val}
+
+# check actual vs. expected PMI for NIST files
+          if {[info exists nistPMIexpected($nistName)] && $notHole} {nistCheckExpectedPMI $val $entstr}
+
+# -------------------------------------------------------------------------------
+# link back to worksheets
+          set anchor [$worksheet($spmiSumName) Range "B$spmiSumRow"]
+          set hlsheet $thisEntType
+          if {[string length $thisEntType] > 31} {
+            foreach item [array names entName] {
+              if {$entName($item) == $thisEntType} {set hlsheet $item}
+            }
+          }
+          $hlink Add $anchor $xlFileName "$hlsheet!A1" "Go to $thisEntType"
+          incr spmiSumRow
+        } else {
+          errorMsg "Missing PMI on [formatComplexEnt $thisEntType]"
+        }
+      }
+    }
+  }
+}
+
+# -------------------------------------------------------------------------------
+# start PMI Representation Coverage analysis worksheet
 proc spmiCoverageStart {{multi 1}} {
-  global cells cells1 multiFileDir pmiModifiers pmiModifiersRP pmiUnicode
-  global sempmi_coverage sheetLast spmiTypes worksheet worksheet1 worksheets worksheets1 
+  global cells cells1 multiFileDir pmiModifiers pmiModifiersRP pmiUnicode sempmi_coverage sheetLast spmiTypes worksheet worksheet1 worksheets worksheets1 
   #outputMsg "spmiCoverageStart $multi" red
 
   if {[catch {
@@ -71,10 +204,10 @@ proc spmiCoverageStart {{multi 1}} {
 }
 
 # -------------------------------------------------------------------------------
-# write semantic PMI coverage analysis worksheet
+# write PMI Representation Coverage analysis worksheet
 proc spmiCoverageWrite {{fn ""} {sum ""} {multi 1}} {
-  global cells cells1 col1 coverageLegend coverageStyle entCount fileList legendColor nfile nistName pmiElementsMaxRows
-  global sempmi_coverage sempmi_totals spmiCoverages spmiTypes spmiTypesPerFile checkPMImods worksheet worksheet1 allPMI pmiModifiers
+  global allPMI cells cells1 col1 entCount fileList legendColor nfile nistCoverageStyle pmiElementsMaxRows
+  global pmiModifiers sempmi_coverage sempmi_totals spmiTypes spmiTypesPerFile worksheet worksheet1
   #outputMsg "spmiCoverageWrite $multi" red
 
   if {[catch {
@@ -140,7 +273,11 @@ proc spmiCoverageWrite {{fn ""} {sum ""} {multi 1}} {
 
 # use other count of some modifiers
               if {[info exists allPMI]} {
-                if {[string length $allPMI] > 0} {foreach mod $mods {if {$idx == $mod} {set npmi $numMods($mod)}}}
+                if {[string length $allPMI] > 0} {
+                  foreach mod $mods {
+                    if {$idx == $mod && $numMods($mod) > 0} {set npmi $numMods($mod)}
+                  }
+                }
               }
               
 # write npmi
@@ -152,7 +289,7 @@ proc spmiCoverageWrite {{fn ""} {sum ""} {multi 1}} {
                 set range [$worksheet($sempmi_coverage) Range [cellRange $r 2] [cellRange $r 2]]
               }
               $range HorizontalAlignment [expr -4108]
-              if {$multi} {incr sempmi_totals($r)}
+              if {$multi} {set sempmi_totals($r) 1}
             }
           }
         }
@@ -179,7 +316,7 @@ proc spmiCoverageWrite {{fn ""} {sum ""} {multi 1}} {
                 set range [$worksheet($sempmi_coverage) Range [cellRange $r 2] [cellRange $r 2]]
               }
               $range HorizontalAlignment [expr -4108]
-              if {$multi} {incr sempmi_totals($r)}
+              if {$multi} {set sempmi_totals($r) 1}
             }
           }          
         }
@@ -187,114 +324,21 @@ proc spmiCoverageWrite {{fn ""} {sum ""} {multi 1}} {
       catch {if {$multi} {unset spmiTypesPerFile}}
     }
 
-# get spmiCoverages (see sfa-gen.tcl to make sure spmiGetPMI is called)
+# get spmiCoverages (see sfa-gen.tcl to make sure nistReadExpectedPMI is called)
     if {![info exists nfile]} {
       set nf 0
     } else {
       set nf $nfile
     }
+
+# single file, for NIST file color-code coverage
     if {!$multi} {
-      foreach idx [lsort [array names spmiCoverages]] {
-        set tval [lindex [split $idx ","] 0]
-        set fnam [lindex [split $idx ","] 1]
-        if {$fnam == $nistName} {
-          set coverage($tval) $spmiCoverages($idx)
-        }
-      }
-      #foreach item [lsort [array names spmiCoverages]] {if {$spmiCoverages($item) != ""} {outputMsg "$item $spmiCoverages($item)" green}}
-      #foreach item [lsort [array names coverage]] {if {$coverage($item) != ""} {outputMsg "$item $coverage($item)" red}}
-    
-# check values for color-coding
-      for {set r 4} {$r <= [[[$worksheet($sempmi_coverage) UsedRange] Rows] Count]} {incr r} {
-        set ttyp [[$cells($sempmi_coverage) Item $r 1] Value]
-        set tval [[$cells($sempmi_coverage) Item $r 2] Value]
-        if {$ttyp != ""} {
-          if {$tval == ""} {set tval 0}
-          set tval [expr {int($tval)}]
-          #outputMsg "$r  $tval  $ttyp" red
-
-          foreach item [array names coverage] {
-            if {[string first $item $ttyp] == 0} {
-              set ok 0
-
-# these words appear in other PMI elements and need to be handled separately
-              if {$item != "datum" && $item != "line" && $item != "spherical" && $item != "basic" && $item != "point"} {
-                set ok 1
-
-# special cases
-              } else {
-                set str [string range $ttyp 0 [expr {[string last " " $ttyp]-1}]]
-                if {$item == $str} {set ok 1}
-                if {!$ok} {
-                  set str [string range $ttyp 0 [expr {[string last " " $ttyp]-2}]]
-                  if {$item == $str} {set ok 1}
-                }
-                if {!$ok} {
-                  set str [string range $ttyp 0 [expr {[string first "<" $ttyp]-3}]]
-                  if {$item == $str} {set ok 1}
-                }
-              }
-
-# need better fix for free_state_condition conflict with free_state
-              if {[string first "free_state_condition" $ttyp] != -1} {set ok 0}
-              
-              if {$ok} {
-                set ci $coverage($item)
-                catch {set ci [expr {int($ci)}]}
-                #outputMsg " $item / $tval / $coverage($item) / $ci" red
-                
-# check tolerance zone diameter vs. within a cylinder
-                set skip 0
-                if {$item == "tolerance zone diameter" &&          $tval == 0 && [[$cells($sempmi_coverage) Item 20 2] Value] != ""} {set skip 1}
-                if {$item == "tolerance zone within a cylinder" && $tval == 0 && [[$cells($sempmi_coverage) Item 19 2] Value] != ""} {set skip 1}
-                
-# too few - yellow or red (was red or magenta)
-                if {!$skip} {
-                  if {$tval < $ci} {
-                    set str "'$tval/$ci"
-                    $cells($sempmi_coverage) Item $r 2 $str
-                    [$worksheet($sempmi_coverage) Range B$r] HorizontalAlignment [expr -4108]
-                    set coverageLegend 1
-                    if {$tval == 0} {
-                      set clr "red"
-                    } else {
-                      set clr "yellow"
-                    }
-                    [[$worksheet($sempmi_coverage) Range B$r] Interior] Color $legendColor($clr)
-                    lappend coverageStyle "$r $nf $clr $str"
-
-# too many - cyan or magenta (was yellow)
-                  } elseif {$tval > $ci && $tval != 0} {
-                    set ci1 $coverage($item)
-                    set clr "cyan"
-                    if {$ci1 == ""} {
-                      set ci1 0
-                      set clr "magenta"
-                    }
-                    set str "'$tval/[expr {int($ci1)}]"
-                    $cells($sempmi_coverage) Item $r 2 $str
-                    [[$worksheet($sempmi_coverage) Range B$r] Interior] Color $legendColor($clr)
-                    [$worksheet($sempmi_coverage) Range B$r] NumberFormat "@"
-                    set coverageLegend 1
-                    lappend coverageStyle "$r $nf $clr $str"
-
-# just right - green
-                  } elseif {$tval != 0} {
-                    [[$worksheet($sempmi_coverage) Range B$r] Interior] Color $legendColor(green)
-                    set coverageLegend 1
-                    lappend coverageStyle "$r $nf green"
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
+      nistPMICoverage $nf
 
 # multiple files
     } elseif {$nfile == [llength $fileList]} {
-      if {[info exists coverageStyle]} {
-        foreach item $coverageStyle {
+      if {[info exists nistCoverageStyle]} {
+        foreach item $nistCoverageStyle {
           set r [lindex [split $item " "] 0]
           set c [expr {[lindex [split $item " "] 1]+1}]
           set style [lindex [split $item " "] 2]
@@ -313,11 +357,10 @@ proc spmiCoverageWrite {{fn ""} {sum ""} {multi 1}} {
 }
 
 # -------------------------------------------------------------------------------
-# format semantic PMI coverage analysis worksheet, also PMI totals
+# format PMI Representation Coverage analysis worksheet, also PMI totals
 proc spmiCoverageFormat {sum {multi 1}} {
-  global cells cells1 col1 coverageLegend coverageStyle excel1 pmiHorizontalLineBreaks lenfilelist localName opt
-  global pmiModifiers pmiUnicode recPracNames sempmi_coverage sempmi_totals spmiTypes worksheet worksheet1 
-
+  global cells cells1 col1 excel1 lenfilelist localName nistCoverageLegend nistCoverageStyle
+  global pmiHorizontalLineBreaks recPracNames sempmi_coverage sempmi_totals worksheet worksheet1
   #outputMsg "spmiCoverageFormat $multi" red
 
 # delete worksheet if no semantic PMI
@@ -328,34 +371,27 @@ proc spmiCoverageFormat {sum {multi 1}} {
     return
   }
 
-# total PMI, multiple files
+# total PMI for multiple files, sempmi_totals indicates to PMI totals from other columns
   if {[catch {
     set i1 1
     if {$multi} {
       set col1($sempmi_coverage) [expr {$lenfilelist+2}]
       $cells1($sempmi_coverage) Item 3 $col1($sempmi_coverage) "Total PMI"
       foreach idx [array names sempmi_totals] {
-        $cells1($sempmi_coverage) Item $idx $col1($sempmi_coverage) $sempmi_totals($idx)
-      }
-      catch {unset sempmi_totals}
-    
-# pmi names on right, if necessary
-      if {$col1($sempmi_coverage) > 20} {
-        set r 3
-        foreach item $spmiTypes {
-          set str0 [join $item]
-          set str $str0
-          if {$str != "square" && $str != "controlled_radius"} {
-            if {[info exists pmiModifiers($str0)]}   {append str "  $pmiModifiers($str0)"}
-            set str1 $str
-            set c1 [string last "_" $str]
-            if {$c1 != -1} {set str1 [string range $str 0 $c1-1]}
-            if {[info exists pmiUnicode($str1)]} {append str "  $pmiUnicode($str1)"}
-            $cells1($sempmi_coverage) Item [incr r] [expr {$col1($sempmi_coverage)+1}] $str
+        set pmitot 0
+        for {set c 2} {$c < $col1($sempmi_coverage)} {incr c} {
+          set val [[$cells1($sempmi_coverage) Item $idx $c] Value]
+          if {$val != ""} {
+            if {[string first "/" $val] == -1} {
+              incr pmitot [expr {int($val)}]
+            } else {
+              incr pmitot [expr {int([lindex [split $val "/"] 0])}]
+            }
           }
         }
-        set i1 2
+        $cells1($sempmi_coverage) Item $idx $col1($sempmi_coverage) $pmitot
       }
+      catch {unset sempmi_totals}
       $worksheet1($sempmi_coverage) Activate
     }
  
@@ -400,7 +436,7 @@ proc spmiCoverageFormat {sum {multi 1}} {
       set anchor [$worksheet1($sempmi_coverage) Range [cellRange [expr {[lindex $idx1 end]+1}] 1]]
       [$worksheet1($sempmi_coverage) Hyperlinks] Add $anchor [join "https://www.cax-if.org/joint_testing_info.html#recpracs"] [join ""] [join "Link to CAx-IF Recommended Practices"]
       
-      if {[info exists coverageStyle]} {spmiCoverageLegend $multi [expr {[lindex $idx1 end]+3}]}
+      if {[info exists nistCoverageStyle]} {nistAddCoverageLegend $multi [expr {[lindex $idx1 end]+3}]}
       
       [$worksheet1($sempmi_coverage) Rows] AutoFit
       [$worksheet1($sempmi_coverage) Range "B4"] Select
@@ -416,7 +452,7 @@ proc spmiCoverageFormat {sum {multi 1}} {
         catch {[[$range Borders] Item [expr 7]] Weight [expr 2]}
       }
       
-      if {$coverageLegend} {spmiCoverageLegend $multi}
+      if {$nistCoverageLegend} {nistAddCoverageLegend $multi}
       [$worksheet($sempmi_coverage) Columns] AutoFit
 
       $cells($sempmi_coverage) Item 1 4 "Section Numbers refer to the CAx-IF Recommended Practice for $recPracNames(pmi242)"
@@ -437,59 +473,9 @@ proc spmiCoverageFormat {sum {multi 1}} {
 }
 
 # -------------------------------------------------------------------------------
-# add coverage legend
-proc spmiCoverageLegend {multi {row 3}} {
-  global cells cells1 excel excel1 legendColor sempmi_coverage worksheet worksheet1
-  
-  if {$multi == 0} {
-    set cl $cells($sempmi_coverage)
-    set ws $worksheet($sempmi_coverage)
-    set r $row
-    set c D
-  } else {
-    set cl $cells1($sempmi_coverage)
-    set ws $worksheet1($sempmi_coverage)
-    set r $row
-    set c A
-  }
-  
-  set n 0
-  set legend {{"Values as Compared to NIST Test Case Drawing" ""} \
-              {"See Help > NIST CAD Models" ""} \
-              {"Match" "green"} \
-              {"More than expected" "cyan"} \
-              {"Less than expected" "yellow"} \
-              {"None (0/n)" "red"} \
-              {"Unexpected (n/0)" "magenta"}}
-  foreach item $legend {
-    set str [lindex $item 0]
-    $cl Item $r $c $str
-
-    set range [$ws Range $c$r]
-    [$range Font] Bold [expr 1]
-
-    set color [lindex $item 1]
-    if {$color != ""} {[$range Interior] Color $legendColor($color)}
-
-    catch {
-      [[$range Borders] Item [expr 10]] Weight [expr 2]
-      [[$range Borders] Item [expr 7]] Weight [expr 2]
-      incr n
-      if {$n == 1} {
-        [[$range Borders] Item [expr 8]] Weight [expr 2]
-      } elseif {$n == [llength $legend]} {
-        [[$range Borders] Item [expr 9]] Weight [expr 2]
-      }
-    }
-    incr r    
-  }
-}
-
-# -------------------------------------------------------------------------------
-# start PMI Presentation coverage analysis worksheet
+# start PMI Presentation Coverage analysis worksheet
 proc gpmiCoverageStart {{multi 1}} {
-  global cells cells1 gpmiTypes multiFileDir opt pmi_coverage recPracNames
-  global sheetLast worksheet worksheet1 worksheets worksheets1 
+  global cells cells1 gpmiTypes multiFileDir opt pmi_coverage sheetLast worksheet worksheet1 worksheets worksheets1 
   #outputMsg "gpmiCoverageStart $multi" red
   
   if {[catch {
@@ -547,10 +533,9 @@ proc gpmiCoverageStart {{multi 1}} {
 }
 
 # -------------------------------------------------------------------------------
-# write PMI coverage analysis worksheet
+# write PMI Presentation Coverage analysis worksheet
 proc gpmiCoverageWrite {{fn ""} {sum ""} {multi 1}} {
-  global cells cells1 col1 gpmiTypes gpmiTypesInvalid gpmiTypesPerFile pmi_coverage pmi_rows pmi_totals
-  global worksheet worksheet1 legendColor
+  global cells cells1 col1 gpmiTypes gpmiTypesInvalid gpmiTypesPerFile legendColor pmi_coverage pmi_rows pmi_totals worksheet worksheet1
   #outputMsg "gpmiCoverageWrite $multi " red
 
   if {[catch {
@@ -656,9 +641,9 @@ proc gpmiCoverageWrite {{fn ""} {sum ""} {multi 1}} {
 }
 
 # -------------------------------------------------------------------------------
-# format PMI coverage analysis worksheet, also PMI totals
+# format PMI Presentation Coverage analysis worksheet, also PMI totals
 proc gpmiCoverageFormat {{sum ""} {multi 1}} {
-  global cells cells1 col1 excel excel1 gpmiTypes lenfilelist localName opt
+  global cells cells1 col1 excel excel1 lenfilelist localName nistName
   global pmi_coverage pmi_rows pmi_totals recPracNames stepAP worksheet worksheet1
   #outputMsg "gpmiCoverageFormat $multi" red
 
@@ -751,7 +736,7 @@ proc gpmiCoverageFormat {{sum ""} {multi 1}} {
       $cells($pmi_coverage) Item [expr {$pmi_rows+3}] 1 "See Help > PMI Coverage Analysis"
 
 # add images for the CAx-IF and NIST PMI models
-      pmiAddModelPictures $pmi_coverage
+      if {$nistName != ""} {nistAddModelPictures $pmi_coverage}
     }
 # errors
   } emsg]} {

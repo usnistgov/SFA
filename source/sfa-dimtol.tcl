@@ -1,6 +1,6 @@
 proc spmiDimtolStart {entType} {
   global objDesign
-  global cells col dt entLevel ent entAttrList gtEntity lastEnt opt pmiCol pmiHeading pmiStartCol spmiRow stepAP
+  global col dt entLevel ent entAttrList gtEntity lastEnt opt pmiCol pmiHeading pmiStartCol spmiRow stepAP
 
   if {$opt(DEBUG1)} {outputMsg "START spmiDimtolStart $entType" red}
 
@@ -102,10 +102,10 @@ proc spmiDimtolStart {entType} {
 
 # -------------------------------------------------------------------------------
 proc spmiDimtolReport {objEntity} {
-  global assocGeom badAttributes cells col dim dimBasic dimRepeat dimDirected dimName dimModNames dimOrient dimReference dimrep dimrepID
-  global dimSizeNames dimtolEnt dimtolEntType dimtolGeom dimval draftModelCameras dt dtpmivalprop entLevel ent entAttrList entCount entlevel2 entsWithErrors
-  global incrcol lastAttr lastEnt nistName numDSnames opt pmiCol pmiColumns pmiHeading pmiModifiers pmiStartCol
-  global pmiUnicode prefix angDegree recPracNames savedModifier spmiEnts spmiID spmiIDRow spmiRow spmiTypesPerFile syntaxErr tolStandard
+  global angDegree assocGeom badAttributes cells col dim dimBasic dimRepeat dimDirected dimName dimModNames dimOrient dimReference dimrep dimrepID
+  global dimSizeNames dimtolEnt dimtolEntType dimtolGeom dimval dt entLevel ent entAttrList entCount entlevel2 entsWithErrors
+  global lastEnt nistName numDSnames opt pmiCol pmiColumns pmiHeading pmiModifiers pmiStartCol
+  global pmiUnicode recPracNames savedModifier spmiEnts spmiID spmiIDRow spmiRow spmiTypesPerFile syntaxErr tolStandard
 
   if {$opt(DEBUG1)} {outputMsg "spmiDimtolReport" red}
 
@@ -179,7 +179,6 @@ proc spmiDimtolReport {objEntity} {
           if {[catch {
             if {$idx != -1} {
               if {$opt(DEBUG1)} {outputMsg "$ind   ATR $entLevel $objName - $objValue ($objNodeType-[$objAttribute AggNodeType], $objSize, $objAttrType)"}
-              set lastAttr $objName
 
               if {[info exists cells($dt)]} {
                 set ok 0

@@ -1,6 +1,6 @@
 proc valPropStart {} {
   global objDesign
-  global cells col entLevel ent entAttrList ncartpt opt pd pdcol pdheading propDefRow valPropLink valPropNames rowmax
+  global col entLevel ent entAttrList ncartpt opt pd pdcol pdheading propDefRow rowmax valPropLink valPropNames
 
 # CAx-IF RP Geometric and Assembly Validation Properties, section 8
   set valPropNames(geometric_validation_property) [list \
@@ -173,8 +173,8 @@ proc valPropStart {} {
 
 # -------------------------------------------------------------------------------
 proc valPropReport {objEntity} {
-  global cells col entLevel ent entAttrList maxrep ncartpt nrep opt pd pdcol pdheading pmivalprop pointLimit prefix
-  global propDefID propDefIDRow propDefName propDefOK propDefRow recPracNames repName stepAP syntaxErr valName valPropLink valPropNames
+  global cells col entLevel ent entAttrList maxrep ncartpt nrep opt pd pdcol pdheading pmivalprop pointLimit prefix propDefID
+  global propDefIDRow propDefName propDefOK propDefRow recPracNames repName stepAP syntaxErr valName valPropLink valPropNames
 
   if {[info exists propDefOK]} {if {$propDefOK == 0} {return}}
 
@@ -702,7 +702,7 @@ proc valPropReport {objEntity} {
 
 # -------------------------------------------------------------------------------
 proc valPropFormat {} {
-  global cells col excelVersion propDefRow recPracNames row stepAP thisEntType worksheet valPropLink
+  global cells col excelVersion propDefRow row thisEntType worksheet valPropLink
 
   if {[info exists cells($thisEntType)] && $col($thisEntType) > 4} {
     outputMsg " property_definition"

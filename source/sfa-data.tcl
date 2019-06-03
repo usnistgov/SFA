@@ -1,10 +1,10 @@
 proc initData {} {
 
-global entCategory entColorIndex badAttributes roseLogical defaultColor DTR
-global aoEntTypes gpmiTypes spmiEntTypes dimSizeNames tolNames tzfNames dimModNames pmiModifiers pmiModifiersRP pmiUnicode
-global spmiTypes recPracNames modelPictures schemaLinks modelURLs legendColor pmiElementsMaxRows pmiHorizontalLineBreaks
 global ap203all ap214all ap242all ap242only
-global feaIndex feaElemFace cadApps allVendor numSavedViews andEntAP209 brepEnts stepAPs
+global allVendor andEntAP209 aoEntTypes badAttributes brepEnts cadApps defaultColor dimModNames dimSizeNames DTR
+global entCategory entColorIndex feaElemFace feaIndex gpmiTypes legendColor nistModelPictures nistModelURLs nistNumSavedViews
+global pmiElementsMaxRows pmiHorizontalLineBreaks pmiModifiers pmiModifiersRP pmiUnicode recPracNames roseLogical
+global schemaLinks spmiEntTypes spmiTypes stepAPs tolNames tzfNames
 
 set defaultColor [list "0.996 0.463 0.418" pink]
 
@@ -69,7 +69,7 @@ set schemaLinks(AP238)   "http://web.archive.org/web/20160322005246/www.steptool
 set schemaLinks(AP239)   "http://web.archive.org/web/20160322005246/www.steptools.com/support/stdev_docs/express/ap239/html/index.html"
 set schemaLinks(AP242)   "https://www.cax-if.org/documents/AP242/AP242_mim_lf_1.36.htm"
 set schemaLinks(CIS/2)   "http://web.archive.org/web/20160322005246/www.steptools.com/support/stdev_docs/express/cis/html/index.html"
-  
+ 
 # all app names for STEP and IFC software that might appear in header section
 set cadApps {"3D_Evolution" ACIS "Alias - OpenModel" "Alias AutoStudio" "Alias OpenModel" "Alias Studio" Alibre AutoCAD "Autodesk Inventor" \
   CADDS CADfix CADIF CATIA "CATIA V4" "CATIA V5" "CATIA V6" "CATIA Version 5" CgiStepCamp CoreTechnologie Creo "CV - CADDS 5" \
@@ -82,12 +82,12 @@ set cadApps {"3D_Evolution" ACIS "Alias - OpenModel" "Alias AutoStudio" "Alias O
   "UGS - NX" "UGS-NX" Unigraphics CoCreate Adobe Elysium ASFALIS CAPVIDIA 3DTransVidia MBDVidia NAFEMS COM209 CADCAM-E 3DEXPERIENCE ECCO SimDM \
   SDS/2 Tekla Revit RISA SAP2000 ETABS SmartPlant CADWorx "Advance Steel" ProSteel STAAD RAM Cype Parabuild RFEM RSTAB BuiltWorks EDMsix Mastercam \
   "3D Reviewer" "3D Converter" "HOOPS Exchange" HOOPS MicroStation SolidWorks Solidworks SOLIDWORKS "SOLIDWORKS MBD" ASCON PSStep Anark XStep \
-  Spatial "Spatial InterOp 3D" "STEP-NC Maker" CADverter Autodesk "ITI STEP"} 
+  Spatial "Spatial InterOp 3D" "STEP-NC Maker" CADverter Autodesk "ITI STEP"}
 
 # sort cadApps by string length
 set cadApps [sortlength2 $cadApps]
 
-# CAx-IF vendor names  
+# CAx-IF vendor names
 set allVendor(3DE) "3D Evolution"
 set allVendor(3de) "3D Evolution"
 set allVendor(a3) "Acrobat 3D"
@@ -184,8 +184,8 @@ set spmiEntTypes [list \
 ]
 
 # max rows for PMI elements on PMI representation coverage worksheet, depends on number and order of items below
-set pmiElementsMaxRows 143
-set pmiHorizontalLineBreaks [list 19 37 46 63 67 71 81]
+set pmiElementsMaxRows 144
+set pmiHorizontalLineBreaks [list 19 37 46 63 67 72 82]
 
 # -----------------------------------------------------------------------------------------------------
 # dimensional_size names (Section 5.1.5, Table 4), controlled radius and square are not included
@@ -194,7 +194,7 @@ set dimSizeNames [list \
   "curve length" "diameter" "thickness" "spherical diameter" "radius" "spherical radius" \
   "toroidal minor diameter" "toroidal major diameter" "toroidal minor radius" "toroidal major radius" \
   "toroidal high major diameter" "toroidal high minor diameter" "toroidal high major radius" "toroidal high minor radius"]
-                   
+
 # dimension modifiers (Section 5.3, Table 8)
 set dimModNames [list \
   "any cross section" "any part of the feature" "area diameter calculated size" "average rank order size" \
@@ -212,7 +212,7 @@ set tolNames [list \
   angularity_tolerance circular_runout_tolerance coaxiality_tolerance concentricity_tolerance cylindricity_tolerance \
   flatness_tolerance line_profile_tolerance parallelism_tolerance perpendicularity_tolerance position_tolerance \
   roundness_tolerance straightness_tolerance surface_profile_tolerance symmetry_tolerance total_runout_tolerance]
-                   
+
 # tolerance zone form names (Section 6.9.2, Tables 11, 12)
 set tzfNames [list \
   "cylindrical or circular" "spherical" "within a circle" "within a sphere" "between two concentric circles" "between two equidistant curves" \
@@ -244,10 +244,10 @@ foreach item [list \
   "repetitive dimensions 'nX' (5.1, User Guide 5.1.3)" "bilateral tolerance (5.2.3)" "non-bilateral tolerance (5.2.3)" "value range (5.2.4)" "diameter \u2205 (5.1.5)" \
   "radius R (5.1.5)" "spherical diameter S\u2205 (5.1.5)" "spherical radius SR (5.1.5)" "controlled radius CR (5.3)" "dimension basic (5.3)" "reference dimension (5.3)" \
   "statistical_dimension <ST> (5.3)" "type qualifier (5.2.2)" "limits and fits (5.2.5)" "location with path (5.1.7)" "square \u25A1 (5.3)" "dimension qualifier (5.4)" \
-  "tolerance qualifier"  "counterbore \u2334" "countersink \u2335" "depth \u21A7" "spotface SF" "datum (6.5)" "multiple datum features (6.9.8)" \
-  "datum with axis system (6.9.7)" "datum with modifiers (6.9.7)" "all datum targets (Rows 67 thru 73)" "point placed datum target (6.6)" "line placed datum target (6.6)" \
-  "rectangle placed datum target (6.6)" "circle placed datum target (6.6)" "circular curve placed datum target (6.6)" "curve datum target (6.6)" "area datum target (6.6)" \
-  "placed datum target geometry (6.6.2)" "movable datum target (6.6.3)" \
+  "tolerance qualifier"  "counterbore \u2334" "countersink \u2335" "depth \u21A7" "spotface SF" "datum (6.5)" "datum system (6.9.7)" "datum with axis system (6.9.7)" \
+  "datum with modifiers (6.9.7)" "multiple datum features (6.9.8)" "all datum targets (Rows 67 thru 73)" "point placed datum target (6.6)" \
+  "line placed datum target (6.6)" "rectangle placed datum target (6.6)" "circle placed datum target (6.6)" "circular curve placed datum target (6.6)" \
+  "curve datum target (6.6)" "area datum target (6.6)" "placed datum target geometry (6.6.2)" "movable datum target (6.6.3)" \
 ] {lappend spmiTypes $item}
 
 # -----------------------------------------------------------------------------------------------------
@@ -342,7 +342,7 @@ foreach item [array names pmiModifiersArray] {
 
 # pmfirst are pmi elements list before the rest of the modifiers
 set pmfirst [list maximum_material_requirement least_material_requirement]
-foreach pmf $pmfirst {             
+foreach pmf $pmfirst {            
   foreach item [lsort [array names pmiModifiers]] {
     set idx [lindex [split $item ","] 0]
     if {$pmf == $idx} {lappend spmiTypes $item}
@@ -473,7 +473,7 @@ set badAttributes(triangulated_surface_set) {normals triangles}
 
 # -----------------------------------------------------------------------------------------------------
 # pictures that are embedded in a spreadsheet based on STEP file name
-set modelPictures [list \
+set nistModelPictures [list \
   {sp3-1101  caxif-1101.jpg  E4 0} \
   {sp3-16792 caxif-16792.jpg E4 0} \
   {sp3-box   caxif-boxy123.jpg E4 0} \
@@ -496,7 +496,7 @@ set modelPictures [list \
   {sp6-pole    sp6-pole.jpg E4 0} \
   {sp6-spindle sp6-spindle.jpg E4 0}]
 
-set modelURLs [list \
+set nistModelURLs [list \
   nist_ctc_01_asme1_rd.pdf \
   nist_ctc_02_asme1_rc.pdf \
   nist_ctc_03_asme1_rc.pdf \
@@ -509,17 +509,17 @@ set modelURLs [list \
   nist_ftc_10_asme1_rb.pdf \
   nist_ftc_11_asme1_rb.pdf]
 
-set numSavedViews(nist_ctc_01) 1
-set numSavedViews(nist_ctc_02) 3
-set numSavedViews(nist_ctc_03) 1
-set numSavedViews(nist_ctc_04) 1
-set numSavedViews(nist_ctc_05) 2
-set numSavedViews(nist_ftc_06) 3
-set numSavedViews(nist_ftc_07) 4
-set numSavedViews(nist_ftc_08) 4
-set numSavedViews(nist_ftc_09) 4
-set numSavedViews(nist_ftc_10) 5
-set numSavedViews(nist_ftc_11) 2
+set nistNumSavedViews(nist_ctc_01) 1
+set nistNumSavedViews(nist_ctc_02) 3
+set nistNumSavedViews(nist_ctc_03) 1
+set nistNumSavedViews(nist_ctc_04) 1
+set nistNumSavedViews(nist_ctc_05) 2
+set nistNumSavedViews(nist_ftc_06) 3
+set nistNumSavedViews(nist_ftc_07) 4
+set nistNumSavedViews(nist_ftc_08) 4
+set nistNumSavedViews(nist_ftc_09) 4
+set nistNumSavedViews(nist_ftc_10) 5
+set nistNumSavedViews(nist_ftc_11) 2
 
 # -----------------------------------------------------------------------------------------------------
 # AP209 element index based on ISO 10303 Part 104 ordering
@@ -527,46 +527,46 @@ set numSavedViews(nist_ftc_11) 2
 # ordered so that normals point outward
 
 # 2D tri
-set feaIndex(surface_3d,3,line) [list 0 1 2 0 -1] 
-set feaIndex(surface_3d,3,surf) [list 0 1 2 -1] 
-set feaIndex(surface_3d,6,line) [list 0 3 1 4 2 5 0 -1] 
-set feaIndex(surface_3d,6,surf) [list 0 3 5 -1 3 1 4 -1 3 4 5 -1 5 4 2 -1] 
+set feaIndex(surface_3d,3,line) [list 0 1 2 0 -1]
+set feaIndex(surface_3d,3,surf) [list 0 1 2 -1]
+set feaIndex(surface_3d,6,line) [list 0 3 1 4 2 5 0 -1]
+set feaIndex(surface_3d,6,surf) [list 0 3 5 -1 3 1 4 -1 3 4 5 -1 5 4 2 -1]
 
 # 2D quad
-set feaIndex(surface_3d,4,line) [list 0 1 2 3 0 -1] 
-set feaIndex(surface_3d,4,surf) [list 0 1 2 3 -1] 
-set feaIndex(surface_3d,8,line) [list 0 4 1 5 2 6 3 7 0 -1] 
-set feaIndex(surface_3d,8,surf) [list 0 4 7 -1 4 1 5 -1 5 2 6 -1 6 3 7 -1 4 5 7 -1 7 5 6 -1] 
-set feaIndex(surface_3d,9,line) [list 0 4 1 5 2 6 3 7 0 -1] 
-set feaIndex(surface_3d,9,surf) [list 0 4 7 -1 4 1 5 -1 5 2 6 -1 6 3 7 -1 4 8 7 -1 4 5 8 -1 7 8 6 -1 8 5 6 -1] 
+set feaIndex(surface_3d,4,line) [list 0 1 2 3 0 -1]
+set feaIndex(surface_3d,4,surf) [list 0 1 2 3 -1]
+set feaIndex(surface_3d,8,line) [list 0 4 1 5 2 6 3 7 0 -1]
+set feaIndex(surface_3d,8,surf) [list 0 4 7 -1 4 1 5 -1 5 2 6 -1 6 3 7 -1 4 5 7 -1 7 5 6 -1]
+set feaIndex(surface_3d,9,line) [list 0 4 1 5 2 6 3 7 0 -1]
+set feaIndex(surface_3d,9,surf) [list 0 4 7 -1 4 1 5 -1 5 2 6 -1 6 3 7 -1 4 8 7 -1 4 5 8 -1 7 8 6 -1 8 5 6 -1]
 
 # 3D tetra
-set feaIndex(volume_3d,4,line)  [list 0 1 2 0 3 1 -1 2 3 -1] 
-set feaIndex(volume_3d,4,face)  [list 0 2 1 -1 0 1 3 -1 1 2 3 -1 0 3 2 -1] 
-set feaIndex(volume_3d,10,line) [list 0 4 3 6 2 9 0 7 1 5 3 -1 1 8 2 -1] 
-set feaIndex(volume_3d,10,face) [list 0 9 2 8 1 7 -1 0 7 1 5 3 4 -1 1 8 2 6 3 5 -1 0 4 3 6 2 9 -1] 
+set feaIndex(volume_3d,4,line)  [list 0 1 2 0 3 1 -1 2 3 -1]
+set feaIndex(volume_3d,4,face)  [list 0 2 1 -1 0 1 3 -1 1 2 3 -1 0 3 2 -1]
+set feaIndex(volume_3d,10,line) [list 0 4 3 6 2 9 0 7 1 5 3 -1 1 8 2 -1]
+set feaIndex(volume_3d,10,face) [list 0 9 2 8 1 7 -1 0 7 1 5 3 4 -1 1 8 2 6 3 5 -1 0 4 3 6 2 9 -1]
 
 # 3D pyra
-set feaIndex(volume_3d,5,line)  [list 0 1 4 0 3 2 1 4 2 -1 3 2 4 3 0 4 -1] 
-set feaIndex(volume_3d,5,face)  [list 0 3 2 1 -1 0 4 3 -1 2 3 4 -1 1 2 4 -1] 
-set feaIndex(volume_3d,13,line) [list 0 5 4 8 3 12 0 9 1 6 4 7 2 10 1 -1 0 9 1 -1 3 11 2 -1] 
-set feaIndex(volume_3d,13,face) [list 0 5 4 8 3 12 -1 3 8 4 7 2 11 -1 2 7 4 6 1 10 -1 1 6 4 5 0 9 -1 0 12 3 11 2 10 1 9 -1] 
+set feaIndex(volume_3d,5,line)  [list 0 1 4 0 3 2 1 4 2 -1 3 2 4 3 0 4 -1]
+set feaIndex(volume_3d,5,face)  [list 0 3 2 1 -1 0 4 3 -1 2 3 4 -1 1 2 4 -1]
+set feaIndex(volume_3d,13,line) [list 0 5 4 8 3 12 0 9 1 6 4 7 2 10 1 -1 0 9 1 -1 3 11 2 -1]
+set feaIndex(volume_3d,13,face) [list 0 5 4 8 3 12 -1 3 8 4 7 2 11 -1 2 7 4 6 1 10 -1 1 6 4 5 0 9 -1 0 12 3 11 2 10 1 9 -1]
 set feaIndex(volume_3d,14,line) $feaIndex(volume_3d,13,line)
 set feaIndex(volume_3d,14,face) $feaIndex(volume_3d,13,face)
 
 # 3D wedge
-set feaIndex(volume_3d,6,line)  [list 0 1 2 0 -1 3 4 5 3 -1 0 3 -1 1 4 -1 2 5 -1] 
+set feaIndex(volume_3d,6,line)  [list 0 1 2 0 -1 3 4 5 3 -1 0 3 -1 1 4 -1 2 5 -1]
 set feaIndex(volume_3d,6,face)  [list 0 2 1 -1 3 4 5 -1 0 3 5 2 -1 0 1 4 3 -1 1 2 5 4 -1]
-set feaIndex(volume_3d,15,line) [list 0 6 3 12 4 7 1 9 0 11 2 8 5 14 3 -1 1 10 2 -1 4 13 5 -1] 
+set feaIndex(volume_3d,15,line) [list 0 6 3 12 4 7 1 9 0 11 2 8 5 14 3 -1 1 10 2 -1 4 13 5 -1]
 set feaIndex(volume_3d,15,face) [list 0 9 11 -1 1 9 10 -1 9 10 11 -1 2 10 11 -1 3 12 14 -1 4 12 13 -1 12 13 14 -1 5 13 14 -1 \
                                       0 6 3 14 5 8 2 11 -1 0 9 1 7 4 12 3 6 -1 1 10 2 8 5 13 4 7 -1]
 set feaIndex(volume_3d,18,line) $feaIndex(volume_3d,15,line)
 set feaIndex(volume_3d,18,face) $feaIndex(volume_3d,15,face)
 
 # 3D hexa
-set feaIndex(volume_3d,8,line)  [list 0 1 2 3 0 -1 4 5 6 7 4 -1 0 4 -1 1 5 -1 2 6 -1 3 7 -1] 
+set feaIndex(volume_3d,8,line)  [list 0 1 2 3 0 -1 4 5 6 7 4 -1 0 4 -1 1 5 -1 2 6 -1 3 7 -1]
 set feaIndex(volume_3d,8,face)  [list 0 3 2 1 -1 0 4 7 3 -1 3 7 6 2 -1 4 5 6 7 -1 0 1 5 4 -1 1 2 6 5 -1]
-set feaIndex(volume_3d,20,line) [list 0 8 4 19 7 11 3 15 0 12 1 13 2 10 6 17 5 9 1 -1 3 14 2 -1 7 18 6 -1 4 16 5 -1] 
+set feaIndex(volume_3d,20,line) [list 0 8 4 19 7 11 3 15 0 12 1 13 2 10 6 17 5 9 1 -1 3 14 2 -1 7 18 6 -1 4 16 5 -1]
 set feaIndex(volume_3d,20,face) [list 0 15 3 14 2 13 1 12 -1 0 8 4 19 7 11 3 15 -1 3 11 7 18 6 10 2 14 -1 \
                                       4 16 5 17 6 18 7 19 -1 0 12 1 9 5 16 4 8 -1 1 13 2 10 6 17 5 9 -1]
 set feaIndex(volume_3d,27,line) $feaIndex(volume_3d,20,line)

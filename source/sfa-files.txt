@@ -5,6 +5,7 @@ sfa-dimtol.tcl
 sfa-ent.tcl
 sfa-fea.tcl
 sfa-gen.tcl
+sfa-geom.tcl
 sfa-geotol.tcl
 sfa-grafpmi.tcl
 sfa-grafx3d.tcl
@@ -13,6 +14,7 @@ sfa-hole.tcl
 sfa-indent.tcl
 sfa-inv.tcl
 sfa-multi.tcl
+sfa-nist.tcl
 sfa-proc.tcl
 sfa-step.tcl
 sfa-tess.tcl

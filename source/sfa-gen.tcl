@@ -1,18 +1,14 @@
 # generate an Excel spreadsheet from a STEP file
-
 proc genExcel {{numFile 0}} {
-  global allEntity allVendor aoEntTypes ap203all ap214all ap242all badAttributes buttons brepEnts
-  global cells cells1 col col1 count coverageLegend readPMI csvdirnam csvfile
-  global developer dim dimRepeatDiv editorCmd entCategories entCategory entColorIndex entCount entityCount entsIgnored entsWithErrors env errmsg
-  global excel excelVersion extXLS fcsv feaElemTypes feaLastEntity File fileEntity skipEntities skipPerm gpmiTypesInvalid gpmiTypesPerFile idxColor ifcsvrDir inverses
-  global lastXLS lenfilelist localName localNameList logFile multiFile multiFileDir mytemp nistName nistVersion nprogBarEnts nshape
-  global ofExcel ofCSV
-  global opt p21e3 p21e3Section pmiCol pmiMaster recPracNames row rowmax
-  global savedViewButtons savedViewName savedViewNames scriptName sheetLast spmiEntity spmiSumName spmiSumRow spmiTypesPerFile startrow stepAP statsOnly
-  global tessColor thisEntType tlast tolNames tolStandard tolStandards totalEntity userEntityFile userEntityList userXLSFile useXL virtualDir viz
-  global workbook workbooks worksheet worksheet1 worksheets writeDir wsCount wsNames
-  global x3dAxes x3dColor x3dColors x3dColorsUsed x3dColorFile x3dCoord x3dFile x3dFileName x3dStartFile x3dIndex x3dMax x3dMin x3dMsg x3dStartFile
-  global xlFileName xlFileNames xlFormat xlInstalled
+  global allEntity aoEntTypes ap203all ap214all ap242all badAttributes brepEnts buttons cells cells1 col col1 count csvdirnam csvfile currLogFile developer
+  global dim dimRepeatDiv editorCmd entCategories entCategory entColorIndex entCount entityCount entsIgnored entsWithErrors env errmsg excel
+  global excelVersion extXLS fcsv feaLastEntity File fileEntity gpmiTypesInvalid gpmiTypesPerFile idxColor ifcsvrDir inverses
+  global lastXLS lenfilelist localName localNameList logFile multiFile multiFileDir mytemp nistCoverageLegend nistName nistPMIexpected nistPMImaster
+  global nistVersion nprogBarEnts nshape ofCSV ofExcel opt p21e3 p21e3Section row rowmax savedViewButtons savedViewName savedViewNames scriptName
+  global sheetLast skipEntities skipPerm spmiEntity spmiSumName spmiSumRow spmiTypesPerFile startrow statsOnly stepAP tessColor thisEntType tlast
+  global tolNames tolStandard tolStandards totalEntity userEntityFile userEntityList userXLSFile useXL virtualDir viz workbook workbooks
+  global worksheet worksheet1 worksheets writeDir wsCount wsNames x3dAxes x3dColor x3dColorFile x3dColors x3dColorsUsed x3dFileName x3dIndex
+  global x3dMax x3dMin x3dMsg x3dStartFile xlFileName xlFileNames xlFormat xlInstalled
   global objDesign
 
   if {[info exists errmsg]} {set errmsg ""}
@@ -239,7 +235,7 @@ proc genExcel {{numFile 0}} {
     }
 
 # check if a file generated from a NIST test case (and some other files) is being processed
-    set nistName [getNISTName]
+    set nistName [nistGetName]
 
 # error opening file
   } emsg]} {
@@ -271,6 +267,12 @@ proc genExcel {{numFile 0}} {
             }
             append msg "\n See Help > Supported STEP APs"
             errorMsg $msg red
+
+            if {[string first "IFC" $fs] == 0} {
+              errorMsg "Use the IFC File Analyzer with IFC files."
+              after 1000
+              openURL https://www.nist.gov/services-resources/software/ifc-file-analyzer
+            }
 
 # other possible errors
           } else {
@@ -614,7 +616,7 @@ proc genExcel {{numFile 0}} {
   if {$opt(PMISEM) && $stepAP == "AP242" && $nistName != "" && $opt(XLSCSV) != "None"} {
     set tols [concat $tolNames [list dimensional_characteristic_representation datum datum_feature datum_reference_compartment datum_reference_element datum_system placed_datum_target_feature]]
     foreach tol $tols {if {[info exist entCount($tol)]} {set ok 1; break}}
-    if {$ok && ![info exists pmiMaster($nistName)]} {spmiGetPMI}
+    if {$ok && ![info exists nistPMImaster($nistName)]} {nistReadExpectedPMI}
   }
 
 # filter inverse relationships to check only by entities in file
@@ -809,7 +811,7 @@ proc genExcel {{numFile 0}} {
 
 # initialize variables
   if {[catch {
-    set coverageLegend 0
+    set nistCoverageLegend 0
     set entsWithErrors {}
     set gpmiTypesInvalid {}
     set idxColor(0) 0
@@ -1014,7 +1016,12 @@ proc genExcel {{numFile 0}} {
       }
 
 # format PMI Representation Summary worksheet
-      if {[info exists spmiSumName]} {spmiSummaryFormat}
+      if {[info exists spmiSumName]} {
+        if {$nistName != "" && [info exists nistPMIexpected($nistName)]} {nistPMISummaryFormat}
+        [$worksheet($spmiSumName) Columns] AutoFit
+        [$worksheet($spmiSumName) Rows] AutoFit
+      }
+      catch {unset spmiSumName}
     }
 
 # add PMI Pres. Coverage Analysis worksheet for a single file
@@ -1216,10 +1223,19 @@ proc genExcel {{numFile 0}} {
   if {[info exists logFile]} {
     update idletasks
     outputMsg "\nSaving Log file as:"
-    outputMsg " [truncFileName [file nativename $lfile]]" blue
+    set msg " [truncFileName [file nativename $lfile]]"
+    if {!$multiFile && [info exists buttons]} {append msg "  (Use F8 to open)"}
+    outputMsg $msg blue
     close $logFile
+    if {!$multiFile && [info exists buttons]} {
+      set currLogFile $lfile
+      bind . <Key-F8> {exec $editorCmd [file nativename $currLogFile] &}
+    }
     unset lfile
     unset logFile
+  } elseif {[info exists buttons]} {
+    if {[info exists currLogFile]} {unset currLogFile}
+    bind . <Key-F8> {}
   }
 
 # -------------------------------------------------------------------------------------------------
@@ -1230,21 +1246,16 @@ proc genExcel {{numFile 0}} {
   update idletasks
 
 # unset variables to release memory and/or to reset them
-  global colColor invCol currx3dPID dimrep dimrepID entName gpmiID gpmiIDRow gpmiRow
-  global heading invGroup feaNodes nrep numx3dPID pmiColumns pmiStartCol
-  global propDefID propDefIDRow propDefName propDefOK propDefRow syntaxErr
-  global shapeRepName tessRepo tessPlacement dimtolGeom dimtolEntID datumGeom datumSymbol
-  global savedViewFileName savedViewFile feaDOFT feaDOFR savedsavedViewNames
-  global coordinatesList lineStrips srNames suppGeomEnts cgrObjects
+  global cgrObjects colColor coordinatesList currx3dPID datumGeom datumSymbol dimrep dimrepID dimtolEntID dimtolGeom entName
+  global feaDOFR feaDOFT feaNodes gpmiID gpmiIDRow gpmiRow heading invCol invGroup lineStrips nrep numx3dPID pmiColumns pmiStartCol
+  global propDefID propDefIDRow propDefName propDefOK propDefRow savedsavedViewNames savedViewFile savedViewFileName shapeRepName
+  global srNames suppGeomEnts syntaxErr tessPlacement tessRepo
 
-  foreach var {cells colColor invCol count currx3dPID dimrep dimrepID entName entsIgnored \
-              gpmiID gpmiIDRow gpmiRow heading invGroup nrep feaNodes numx3dPID \
-              pmiCol pmiColumns pmiStartCol pmivalprop propDefID propDefIDRow propDefName propDefOK propDefRow \
-              syntaxErr workbook workbooks worksheet worksheets \
-              x3dCoord x3dFile x3dFileName x3dStartFile x3dIndex x3dMax x3dMin \
-              shapeRepName tessRepo tessPlacement dimtolGeom dimtolEntID datumGeom datumSymbol\
-              savedViewNames savedViewFileName savedViewFile x3dFileName feaDOFT feaDOFR \
-              savedsavedViewNames coordinatesList lineStrips srNames suppGeomEnts cgrObjects} {
+  foreach var {cells cgrObjects colColor coordinatesList count currx3dPID datumGeom datumSymbol dimrep dimrepID dimtolEntID dimtolGeom \
+               entName entsIgnored feaDOFR feaDOFT feaNodes gpmiID gpmiIDRow gpmiRow heading invCol invGroup lineStrips nrep numx3dPID \
+               pmiCol pmiColumns pmiStartCol pmivalprop propDefID propDefIDRow propDefName propDefOK propDefRow savedsavedViewNames \
+               savedViewFile savedViewFileName savedViewNames shapeRepName srNames suppGeomEnts syntaxErr tessPlacement tessRepo \
+               workbook workbooks worksheet worksheets x3dCoord x3dFile x3dFileName x3dIndex x3dMax x3dMin x3dStartFile} {
     if {[info exists $var]} {unset $var}
   }
   if {!$multiFile} {
@@ -1258,9 +1269,8 @@ proc genExcel {{numFile 0}} {
 # -------------------------------------------------------------------------------------------------
 proc addHeaderWorksheet {numFile fname} {
   global objDesign
-  global excel worksheets worksheet cells row timeStamp fileSchema cadApps cadSystem opt localName p21e3
-  global excel1 worksheet1 cells1 col1 legendColor syntaxErr
-  global csvdirnam useXL ap242edition
+  global ap242edition cadApps cadSystem cells cells1 col1 csvdirnam excel excel1 fileSchema legendColor
+  global localName opt p21e3 row timeStamp useXL worksheet worksheet1 worksheets
 
   if {[catch {
     set cadSystem ""
@@ -1511,9 +1521,8 @@ proc addHeaderWorksheet {numFile fname} {
 #-------------------------------------------------------------------------------------------------
 # add summary worksheet
 proc sumAddWorksheet {} {
-  global worksheet cells sum sheetSort sheetLast col worksheets row entCategory opt entsIgnored excel
-  global x3dFileName spmiEntity entCount gpmiEnts spmiEnts nistVersion
-  global propDefRow stepAP andEntAP209
+  global andEntAP209 cells col entCategory entCount entsIgnored excel gpmiEnts nistVersion
+  global opt row sheetLast sheetSort spmiEntity stepAP sum worksheet worksheets
 
   outputMsg "\nGenerating Summary worksheet" blue
   set sum "Summary"
@@ -1662,8 +1671,7 @@ proc sumAddWorksheet {} {
 #-------------------------------------------------------------------------------------------------
 # add file name and other info to top of Summary
 proc sumAddFileName {sum sumLinks} {
-  global worksheet cells timeStamp cadSystem xlFileName localName opt entityCount stepAP schemaLinks
-  global tolStandard dim fileSchema
+  global cadSystem cells dim entityCount fileSchema localName opt schemaLinks stepAP timeStamp tolStandard worksheet xlFileName
 
   set sumHeaderRow 0
   if {[catch {
@@ -1779,7 +1787,7 @@ proc sumAddFileName {sum sumLinks} {
 #-------------------------------------------------------------------------------------------------
 # add file name and other info to top of Summary
 proc sumAddColorLinks {sum sumHeaderRow sumLinks sheetSort sumRow} {
-  global worksheet cells row excel entName xlFileName col entsIgnored entsWithErrors
+  global cells col entName entsIgnored entsWithErrors excel row worksheet xlFileName
 
   if {[catch {
     #outputMsg " Adding links on Summary to Entity worksheets"
@@ -1871,9 +1879,8 @@ proc sumAddColorLinks {sum sumHeaderRow sumLinks sheetSort sumRow} {
 #-------------------------------------------------------------------------------------------------
 # format worksheets
 proc formatWorksheets {sheetSort sumRow inverseEnts} {
-  global buttons worksheet worksheets excel cells opt count entCount col row rowmax xlFileName thisEntType schemaLinks stepAP syntaxErr
-  global gpmiEnts spmiEnts nprogBarEnts excelVersion viz pmiStartCol
-
+  global buttons cells col count entCount excel excelVersion gpmiEnts nprogBarEnts opt pmiStartCol
+  global row rowmax spmiEnts stepAP syntaxErr thisEntType viz worksheet xlFileName
   outputMsg "Formatting Worksheets" blue
 
   if {[info exists buttons]} {$buttons(pgb) configure -maximum [llength $sheetSort]}
@@ -2083,7 +2090,7 @@ proc moveWorksheet {items {where "Before"}} {
 # -------------------------------------------------------------------------------------------------
 proc addP21e3Section {} {
   global objDesign
-  global cells p21e3Section worksheet worksheets legendColor
+  global cells legendColor p21e3Section worksheet worksheets
 
 # look for three section types possible in Part 21 Edition 3
   foreach line $p21e3Section {
@@ -2124,7 +2131,7 @@ proc addP21e3Section {} {
               if {$c3 == -1} {set c3 [string first "=" $line]}
               set uuid [string range $line 1 $c3-1]
               if {![info exists urow($anchorEnt)]} {set urow($anchorEnt) [[[$worksheet($anchorEnt) UsedRange] Rows] Count]}
-              if {![info exists ucol($anchorEnt)]} {set ucol($anchorEnt) [expr {[[[$worksheet($anchorEnt) UsedRange] Columns] Count] + 1}]}
+              if {![info exists ucol($anchorEnt)]} {set ucol($anchorEnt) [getNextUnusedColumn $anchorEnt]}
               for {set ur 4} {$ur <= $urow($anchorEnt)} {incr ur} {
                 set id [[$cells($anchorEnt) Item $ur 1] Value]
                 if {$id == $anchorID} {

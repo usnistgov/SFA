@@ -1,8 +1,7 @@
 proc gpmiAnnotation {entType} {
   global objDesign
-  global ao aoEntTypes cells col entLevel ent entAttrList gpmiRow gtEntity nindex opt pmiCol pmiHeading pmiStartCol
-  global recPracNames stepAP syntaxErr x3dShape x3dMsg useXL
-  global geomType tessCoordID
+  global ao aoEntTypes col ent entAttrList entLevel geomType gpmiRow gtEntity nindex opt pmiCol
+  global pmiHeading pmiStartCol recPracNames stepAP syntaxErr tessCoordID useXL x3dShape
 
   if {$opt(DEBUG1)} {outputMsg "START gpmiAnnotation $entType" red}
 
@@ -163,13 +162,13 @@ proc gpmiAnnotation {entType} {
 
 # -------------------------------------------------------------------------------
 proc gpmiAnnotationReport {objEntity} {
-  global ao aoname ap242edition assocGeom badAttributes boxSize cells circleCenter col currx3dPID curveTrim
-  global defaultColor dirRatio dirType draftModelCameras draftModelCameraNames
-  global entCount entLevel ent entAttrList entCount entsWithErrors geomType gpmiEnts gpmiID gpmiIDRow gpmiRow gpmiTypes gpmiTypesInvalid gpmiTypesPerFile gpmiValProp
-  global iCompCurve iCompCurveSeg incrcol iPolyline localName nindex nistVersion nshape numCompCurve numCompCurveSeg numPolyline numx3dPID
-  global objEntity1 opt pmiCol pmiColumns pmiHeading pmiStartCol pointLimit prefix propDefIDS recPracNames savedViewCol savedViewName stepAP syntaxErr
-  global x3dColor x3dCoord x3dFile x3dFileName x3dStartFile x3dIndex x3dPoint x3dPID x3dShape x3dMsg x3dIndexType x3dMax x3dMin
-  global tessCoord tessIndex tessIndexCoord tessRepo tessPlacement gpmiPlacement placeNCP placeOrigin placeAnchor useXL
+  global ao aoname ap242edition assocGeom badAttributes boxSize cells circleCenter col currx3dPID curveTrim dirRatio dirType
+  global draftModelCameraNames draftModelCameras ent entAttrList entCount entLevel geomType gpmiEnts gpmiID gpmiIDRow
+  global gpmiPlacement gpmiRow gpmiTypes gpmiTypesInvalid gpmiTypesPerFile gpmiValProp iCompCurve iCompCurveSeg iPolyline
+  global nindex numCompCurve numCompCurveSeg numPolyline numx3dPID objEntity1 opt placeAnchor placeNCP placeOrigin
+  global pmiCol pmiColumns pmiHeading pmiStartCol pointLimit propDefIDS recPracNames savedViewCol savedViewName stepAP syntaxErr
+  global tessCoord tessIndex tessIndexCoord tessPlacement tessRepo useXL
+  global x3dColor x3dCoord x3dFile x3dFileName x3dIndex x3dIndexType x3dMax x3dMin x3dMsg x3dPID x3dPoint x3dShape x3dStartFile
   #outputMsg "gpmiAnnotationReport" red
 
 # entLevel is very important, keeps track level of entity in hierarchy
@@ -1353,8 +1352,8 @@ proc gpmiAnnotationReport {objEntity} {
 # get camera models and validation properties
 proc pmiGetCamerasAndProperties {} {
   global objDesign
-  global draftModelCameras draftModelCameraNames gpmiValProp syntaxErr propDefIDS stepAP recPracNames entCount
-  global opt savedViewNames savedViewFile savedViewFileName mytemp savedViewName savedViewpoint savedViewItems
+  global draftModelCameraNames draftModelCameras entCount gpmiValProp mytemp opt propDefIDS recPracNames savedViewFile
+  global savedViewFileName savedViewItems savedViewName savedViewNames savedViewpoint stepAP syntaxErr
 
   set aolist {}
   foreach ao [list annotation_occurrence annotation_curve_occurrence annotation_curve_occurrence_and_geometric_representation_item \
@@ -1483,7 +1482,7 @@ proc pmiGetCamerasAndProperties {} {
                       }
                     }
                     lappend savedViewpoint($name1) [vectrim $origin]
-                    lappend savedViewpoint($name1) [x3dRotation $axis $refdir]
+                    lappend savedViewpoint($name1) [x3dGetRotation $axis $refdir]
                   } emsg]} {
                     errorMsg "ERROR getting Saved View position and orientation: $emsg"
                     catch {raise .}

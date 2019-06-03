@@ -1,8 +1,6 @@
-#-------------------------------------------------------------------------------
 proc checkValues {} {
-  global opt buttons appNames appName developer userEntityList allNone useXL developer
-  global edmWriteToFile edmWhereRules eeWriteToFile
-  
+  global allNone appName appNames buttons developer edmWhereRules edmWriteToFile eeWriteToFile opt userEntityList useXL
+
   set butNormal {}
   set butDisabled {}
 
@@ -244,128 +242,8 @@ proc checkValues {} {
 }
 
 # -------------------------------------------------------------------------------------------------
-proc getNISTName {} {
-  global developer localName
-  
-  set nistName ""
-  set filePrefix {}
-  set prefixes {}
-  for {set i 4} {$i < 20} {incr i} {lappend prefixes "sp$i"}
-  for {set i 1} {$i < 20} {incr i} {lappend prefixes "tgp$i"}
-  for {set i 3} {$i < 5}  {incr i} {lappend prefixes "tp$i"}
-  set prefixes [concat $prefixes [list lsp lpp ltg ltp]]
-  foreach fp $prefixes {
-    lappend filePrefix "$fp\_"
-    lappend filePrefix "$fp\-"
-  }
-  set ftail [string tolower [file tail $localName]]
-  set ftail1 $ftail
-  set c 3
-  if {[string first "tgp" $ftail] == 0} {set c 4}
-  foreach str {asme1 ap203 ap214 ap242 242 c3e} {regsub $str $ftail "" ftail}
-  
-# first check some specific names, CAx-IF ISO PMI models
-  foreach part [list base cheek pole spindle] {
-    if {[string first "sp" $ftail1] == 0} {
-      if {[string first $part $ftail] != -1} {set nistName "sp6-$part"}
-    }
-    if {[string first "$part\_r"  $ftail] == 0}      {set nistName "sp6-$part"}
-    if {[string first "_$part"    $ftail] != -1}     {set nistName "sp6-$part"}
-    if {[string first "$part.stp" $localName] != -1} {set nistName "sp6-$part"}
-  }
-    
-# QIF bracket    
-  if {[string first "332211_qif_bracket" $ftail] != -1} {set nistName "332211_qif_bracket_revh"}
-      
-# CAx-IF sp3 models      
-  if {[string first "sp" $ftail] == 0} {
-    if {[string first "1101"  $ftail] != -1} {set nistName "sp3-1101"}
-    if {[string first "16792" $ftail] != -1} {set nistName "sp3-16792"}
-    if {[string first "box"   $ftail] != -1} {set nistName "sp3-box"}
-  }
-
-  if {$developer && [string first "step-file-analyzer" $ftail] == 0} {set nistName "nist_ctc_01"}
-
-# specific name found  
-  if {$nistName != ""} {return $nistName}
-
-# check for a NIST CTC or FTC
-  set ctcftc 0
-  set ok  0
-  set ok1 0
-  
-  if {[lsearch $filePrefix [string range $ftail 0 $c]] != -1 || [string first "nist" $ftail] != -1 || \
-      [string first "ctc" $ftail] != -1 || [string first "ftc" $ftail] != -1} {
-    if {[lsearch $filePrefix [string range $ftail 0 $c]] != -1} {set ftail [string range $ftail $c+1 end]}
-
-    set tmp "nist_"
-    foreach item {ctc ftc} {
-      if {[string first $item $ftail] != -1} {
-        append tmp "$item\_"
-        set ctcftc 1
-      }
-    }
-
-# find nist_ctc_01 directly        
-    if {$ctcftc} {
-      foreach zero {"0" ""} {
-        for {set i 1} {$i <= 11} {incr i} {
-          set i1 $i
-          if {$i < 10} {set i1 "$zero$i"}
-          set tmp1 "$tmp$i1"
-          if {[string first $tmp1 $ftail] != -1 && !$ok1} {
-            set nistName $tmp1
-            #outputMsg $nistName green
-            set ok1 1
-          }
-        }
-      }
-    }
-
-# find the number in the string            
-    if {!$ok1} {
-      foreach zero {"0" ""} {
-        for {set i 1} {$i <= 11} {incr i} {
-          if {!$ok} {
-            set i1 $i
-            if {$i < 10} {set i1 "$zero$i"; set k "0$i"}
-            set c {""}
-            #outputMsg "$i1  [string first $i1 $ftail]  [string last $i1 $ftail]" blue
-            if {[string first $i1 $ftail] != [string last $i1 $ftail]} {set c {"_" "-"}}
-            foreach c1 $c {
-              for {set j 0} {$j < 2} {incr j} {
-                if {$j == 0} {set i2 "$c1$i1"}
-                if {$j == 1} {set i2 "$i1$c1"}
-                #outputMsg "[string first $i2 $ftail]  $i2  $ftail" green
-                if {[string first $i2 $ftail] != -1 && !$ok} {
-                  if {$ctcftc} {
-                    append tmp $k
-                  } elseif {$i <= 5} {
-                    append tmp "ctc_$k"
-                  } else {
-                    append tmp "ftc_$k"
-                  }
-                  set nistName $tmp
-                  set ok 1
-                  #outputMsg $nistName red
-                }
-              }
-            }
-          }
-        }
-      }
-    }
-  }
-  
-# other files
-#  if {!$ok} {}
-  
-  return $nistName
-}
-
-# -------------------------------------------------------------------------------------------------
 proc setCoordMinMax {coord} {
-  global x3dPoint x3dMin x3dMax
+  global x3dMax x3dMin x3dPoint
 
   set x3dPoint(x) [lindex $coord 0]
   set x3dPoint(y) [lindex $coord 1]
@@ -381,7 +259,7 @@ proc setCoordMinMax {coord} {
 # -------------------------------------------------------------------------------------------------
 # set color based on entColorIndex variable
 proc setColorIndex {ent {multi 0}} {
-  global entCategory entColorIndex stepAP andEntAP209
+  global andEntAP209 entCategory entColorIndex stepAP
   
 # special case
   if {[string first "geometric_representation_context" $ent] != -1} {set ent "geometric_representation_context"}
@@ -482,7 +360,7 @@ proc openURL {url} {
 
 #-------------------------------------------------------------------------------
 proc openFile {{openName ""}} {
-  global localName localNameList outputWin fileDir buttons extXLS
+  global buttons fileDir localName localNameList
 
   if {$openName == ""} {
   
@@ -540,7 +418,7 @@ proc openFile {{openName ""}} {
 
 #-------------------------------------------------------------------------------
 proc unzipFile {} {
-  global localName wdir mytemp
+  global localName mytemp wdir
 
   if {[catch {
     outputMsg "\nUnzipping: [file tail $localName] ([expr {[file size $localName]/1024}] Kb)"
@@ -589,10 +467,9 @@ proc unzipFile {} {
 
 #-------------------------------------------------------------------------------
 proc saveState {} {
-  global optionsFile fileDir openFileList opt userWriteDir dispCmd dispCmds
-  global lastXLS lastXLS1 lastX3DOM userXLSFile fileDir1 mydocs sfaVersion upgrade
-  global userEntityFile buttons statusFont excelVersion
-
+  global buttons dispCmd dispCmds excelVersion fileDir fileDir1 lastX3DOM lastXLS lastXLS1 mydocs
+  global openFileList opt optionsFile sfaVersion statusFont upgrade userEntityFile userWriteDir userXLSFile
+  
   if {![info exists buttons]} {return}
   
   if {[catch {
@@ -674,11 +551,8 @@ proc saveState {} {
 
 #-------------------------------------------------------------------------------
 proc runOpenProgram {} {
-  global localName dispCmd appName transFile
-  global sccmsg model_typ pfbent
-  global openFileList File editorCmd
-  global edmWriteToFile edmWhereRules eeWriteToFile
-  
+  global appName dispCmd editorCmd edmWhereRules edmWriteToFile eeWriteToFile File localName
+
   set dispFile $localName
   set idisp [file rootname [file tail $dispCmd]]
   if {[info exists appName]} {if {$appName != ""} {set idisp $appName}}
@@ -900,335 +774,6 @@ proc runOpenProgram {} {
 }
 
 #-------------------------------------------------------------------------------
-proc getOpenPrograms {} {
-  global dispApps dispCmds dispCmd appNames appName env
-  global drive editorCmd developer myhome pf32 pf64
-
-# Including any of the CAD viewers and software below does not imply a recommendation or
-# endorsement of them by NIST https://www.nist.gov/disclaimer
-# For more STEP viewers, go to https://www.cax-if.org/step_viewers.html
-  
-  regsub {\\} $pf32 "/" p32
-  lappend pflist $p32
-  if {$pf64 != "" && $pf64 != $pf32} {
-    regsub {\\} $pf64 "/" p64
-    lappend pflist $p64
-  }
-  set lastver 0
-
-# Jotne EDM Model Checker
-  if {$developer} {
-    set edms [glob -nocomplain -directory [file join $drive edm] -join edm* bin Edms.exe]
-    foreach match $edms {
-      set name "EDM Model Checker"
-      if {[string first "edm5" $match] != -1} {
-        set num 5 
-      } elseif {[string first "edmsix" $match] != -1} {
-        set num 6
-      }
-      set dispApps($match) "$name $num"
-    }
-  }
-
-# STEP Tools apps
-  foreach pf $pflist {
-    if {[file isdirectory [file join $pf "STEP Tools"]]} {
-      set applist [list \
-        [list ap203checkgui.exe "AP203 Conformance Checker"] \
-        [list ap209checkgui.exe "AP209 Conformance Checker"] \
-        [list ap214checkgui.exe "AP214 Conformance Checker"] \
-        [list apconformgui.exe "AP Conformance Checker"] \
-        [list stepbrws.exe "STEP File Browser"] \
-        [list stepcleangui.exe "STEP File Cleaner"] \
-        [list stpcheckgui.exe "STEP Check and Browse"] \
-        [list stview.exe "ST-Viewer"] \
-      ]
-      foreach app $applist {
-        set stmatch ""
-        foreach match [glob -nocomplain -directory $pf -join "STEP Tools" "ST-Developer*" bin [lindex $app 0]] {
-          if {$stmatch == ""} {
-            set stmatch $match
-            set lastver [lindex [split [file nativename $match] [file separator]] 3]
-          } else {
-            set ver [lindex [split [file nativename $match] [file separator]] 3]
-            if {$ver > $lastver} {set stmatch $match}
-          }
-        }
-        if {$stmatch != ""} {
-          if {![info exists dispApps($stmatch)]} {set dispApps($stmatch) [lindex $app 1]}
-        }
-      }
-    }
-
-# other STEP file apps
-    set applist [list \
-      [list {*}[glob -nocomplain -directory [file join $pf "SOLIDWORKS Corp"] -join "eDrawings (*)" eDrawings.exe] eDrawings] \
-      [list {*}[glob -nocomplain -directory [file join $pf "Stratasys Direct Manufacturing"] -join "SolidView Pro RP *" bin SldView.exe] SolidView] \
-      [list {*}[glob -nocomplain -directory [file join $pf "TransMagic Inc"] -join "TransMagic *" System code bin TransMagic.exe] TransMagic] \
-      [list {*}[glob -nocomplain -directory [file join $pf Actify SpinFire] -join "*" SpinFire.exe] SpinFire] \
-      [list {*}[glob -nocomplain -directory [file join $pf CADSoftTools] -join "ABViewer*" ABViewer.exe] ABViewer] \
-      [list {*}[glob -nocomplain -directory [file join $pf Kubotek] -join "Spectrum*" Spectrum.exe] Spectrum] \
-      [list {*}[glob -nocomplain -directory [file join $pf] -join "3D-Tool V*" 3D-Tool.exe] 3D-Tool] \
-      [list {*}[glob -nocomplain -directory [file join $pf] -join "VariCADViewer *" bin varicad-x64.exe] "VariCAD Viewer"] \
-      [list {*}[glob -nocomplain -directory [file join $pf] -join ZWSOFT "CADbro *" CADbro.exe] CADbro] \
-    ]
-    if {$pf64 == ""} {
-      lappend applist [list {*}[glob -nocomplain -directory [file join $pf] -join "VariCADViewer *" bin varicad-i386.exe] "VariCAD Viewer (32-bit)"]
-    }
-
-    foreach app $applist {
-      if {[llength $app] == 2} {
-        set match [join [lindex $app 0]]
-        if {$match != "" && ![info exists dispApps($match)]} {
-          set dispApps($match) [lindex $app 1]
-        }
-      }
-    }
-    
-    set applist [list \
-      [list [file join $pf "3DJuump X64" 3DJuump.exe] "3DJuump"] \
-      [list [file join $pf "CAD Assistant" CADAssistant.exe] "CAD Assistant"] \
-      [list [file join $pf "CAD Exchanger" bin Exchanger.exe] "CAD Exchanger"] \
-      [list [file join $pf "SOLIDWORKS Corp" eDrawings eDrawings.exe] "eDrawings"] \
-      [list [file join $pf "STEP Tools" "STEP-NC Machine Personal Edition" STEPNCExplorer.exe] "STEP-NC Machine"] \
-      [list [file join $pf "STEP Tools" "STEP-NC Machine Personal Edition" STEPNCExplorer_x86.exe] "STEP-NC Machine"] \
-      [list [file join $pf "STEP Tools" "STEP-NC Machine" STEPNCExplorer.exe] "STEP-NC Machine"] \
-      [list [file join $pf "STEP Tools" "STEP-NC Machine" STEPNCExplorer_x86.exe] "STEP-NC Machine"] \
-      [list [file join $pf "Tekla BIMsight" BIMsight.exe] "Tekla BIMsight"] \
-      [list [file join $pf CadFaster QuickStep QuickStep.exe] QuickStep] \
-      [list [file join $pf Glovius Glovius glovius.exe] Glovius] \
-      [list [file join $pf IFCBrowser IfcQuickBrowser.exe] IfcQuickBrowser] \
-      [list [file join $pf Kisters 3DViewStation 3DViewStation.exe] 3DViewStation] \
-      [list [file join $pf STPViewer STPViewer.exe] "STP Viewer"] \
-    ]
-    foreach app $applist {
-      if {[file exists [lindex $app 0]]} {
-        set name [lindex $app 1]
-        set dispApps([lindex $app 0]) $name
-      }
-    }
-    
-# FreeCAD    
-    foreach app [list {*}[glob -nocomplain -directory [file join $pf] -join "FreeCAD *" bin FreeCAD.exe] FreeCAD]] {
-      set ver [lindex [split [file nativename $app] [file separator]] 2]
-      if {$pf64 != "" && [string first "x86" $app] != -1} {append ver " (32-bit)"}
-      set dispApps($app) $ver
-    }
-
-# Tetra4D in Adobe Acrobat
-    for {set i 40} {$i > 9} {incr i -1} {
-      if {$i > 11} {
-        set j "20$i"
-      } else {
-        set j "$i.0"
-      }        
-      foreach match [glob -nocomplain -directory $pf -join Adobe "Acrobat $j" Acrobat Acrobat.exe] {
-        if {[file exists [file join $pf Adobe "Acrobat $j" Acrobat plug_ins 3DPDFConverter 3DPDFConverter.exe]]} {
-          if {![info exists dispApps($match)]} {
-            set name "Tetra4D Converter"
-            set dispApps($match) $name
-          }
-        }
-      }
-      set match [file join $pf Adobe "Acrobat $j" Acrobat plug_ins 3DPDFConverter 3DReviewer.exe]
-      if {![info exists dispApps($match)]} {
-        set name "Tetra4D Reviewer"
-        set dispApps($match) $name
-      }
-    }
-  }
-
-# others  
-  set b1 [file join $myhome AppData Local IDA-STEP ida-step.exe]
-  if {[file exists $b1]} {
-    set name "IDA-STEP Viewer"
-    set dispApps($b1) $name
-  }
-  set b1 [file join $drive CCELabs EnSuite-View Bin EnSuite-View.exe]
-  if {[file exists $b1]} {
-    set name "EnSuite-View"
-    set dispApps($b1) $name
-  } else {
-    set b1 [file join $drive CCE EnSuite-View Bin EnSuite-View.exe]
-    if {[file exists $b1]} {
-      set name "EnSuite-View"
-      set dispApps($b1) $name
-    }
-  }
-
-#-------------------------------------------------------------------------------
-# default viewer
-  set dispApps(Default) "Default STEP Viewer"
-
-# file tree view
-  set dispApps(Indent) "Tree View (for debugging)"
-
-#-------------------------------------------------------------------------------
-# set text editor command and name
-  set editorCmd ""
-  set editorName ""
-
-# Notepad++ or Notepad
-  set editorCmd [file join $pf32 Notepad++ notepad++.exe]
-  if {[file exists $editorCmd]} {
-    set editorName "Notepad++"
-    set dispApps($editorCmd) $editorName
-  } elseif {[info exists env(windir)]} {
-    set editorCmd [file join $env(windir) system32 Notepad.exe]
-    set editorName "Notepad"
-    set dispApps($editorCmd) $editorName
-  }
-
-#-------------------------------------------------------------------------------
-# remove cmd that do not exist in dispCmds and non-executables
-  set dispCmds1 {}
-  foreach app $dispCmds {
-    if {([file exists $app] || [string first "Default" $app] == 0 || [string first "Indent" $app] == 0) && \
-         [file tail $app] != "NotePad.exe"} {
-      lappend dispCmds1 $app
-    }
-  }
-  set dispCmds $dispCmds1
-
-# check for cmd in dispApps that does not exist in dispCmds and add to list
-  foreach app [array names dispApps] {
-    if {[file exists $app] || [string first "Default" $app] == 0 || [string first "Indent" $app] == 0} {
-      set notInCmds 1
-      foreach cmd $dispCmds {if {[string tolower $cmd] == [string tolower $app]} {set notInCmds 0}}
-      if {$notInCmds} {lappend dispCmds $app}
-    }
-  }
-
-# remove duplicates in dispCmds
-  if {[llength $dispCmds] != [llength [lrmdups $dispCmds]]} {set dispCmds [lrmdups $dispCmds]}
-
-# clean up list of app viewer commands
-  if {[info exists dispCmd]} {
-    if {([file exists $dispCmd] || [string first "Default" $dispCmd] == 0 || [string first "Indent" $dispCmd] == 0)} {
-      if {[lsearch $dispCmds $dispCmd] == -1 && $dispCmd != ""} {lappend dispCmds $dispCmd}
-    } else {
-      if {[llength $dispCmds] > 0} {
-        foreach dispCmd $dispCmds {
-          if {([file exists $dispCmd] || [string first "Default" $dispCmd] == 0 || [string first "Indent" $dispCmd] == 0)} {break}
-        }
-      } else {
-        set dispCmd ""
-      }
-    }
-  } else {
-    if {[llength $dispCmds] > 0} {
-      set dispCmd [lindex $dispCmds 0]
-    }
-  }
-  for {set i 0} {$i < [llength $dispCmds]} {incr i} {
-    if {![file exists [lindex $dispCmds $i]] && [string first "Default" [lindex $dispCmds $i]] == -1 && [string first "Indent" [lindex $dispCmds $i]] == -1} {set dispCmds [lreplace $dispCmds $i $i]}
-  }
-
-# put dispCmd at beginning of dispCmds list
-  if {[info exists dispCmd]} {
-    for {set i 0} {$i < [llength $dispCmds]} {incr i} {
-      if {$dispCmd == [lindex $dispCmds $i]} {
-        set dispCmds [lreplace $dispCmds $i $i]
-        set dispCmds [linsert $dispCmds 0 $dispCmd]
-      }
-    }
-  }
-
-# remove duplicates in dispCmds, again
-  if {[llength $dispCmds] != [llength [lrmdups $dispCmds]]} {set dispCmds [lrmdups $dispCmds]}
-
-# set list of STEP viewer names, appNames
-  set appNames {}
-  set appName  ""
-  foreach cmd $dispCmds {
-    if {[info exists dispApps($cmd)]} {
-      lappend appNames $dispApps($cmd)
-    } else {
-      set name [file rootname [file tail $cmd]]
-      lappend appNames  $name
-      set dispApps($cmd) $name
-    }
-  }
-  if {$dispCmd != ""} {
-    if {[info exists dispApps($dispCmd)]} {set appName $dispApps($dispCmd)}
-  }
-}
-
-# -------------------------------------------------------------------------------------------------
-proc getFirstFile {} {
-  global openFileList buttons
-  
-  set localName [lindex $openFileList 0]
-  if {$localName != ""} {
-    outputMsg "\nReady to process: [file tail $localName] ([expr {[file size $localName]/1024}] Kb)" blue
-    if {[info exists buttons(appOpen)]} {$buttons(appOpen) configure -state normal}
-  }
-  return $localName
-}
-
-#-------------------------------------------------------------------------------
-proc addFileToMenu {} {
-  global openFileList localName File buttons
-
-  set lenlist 25
-  set filemenuinc 4
-  
-  if {![info exists buttons]} {return}
-  
-# change backslash to forward slash, if necessary
-  regsub -all {\\} $localName "/" localName
-
-# remove duplicates
-  set newlist {}
-  set dellist {}
-  for {set i 0} {$i < [llength $openFileList]} {incr i} {
-    set name [lindex $openFileList $i]
-    set ifile [lsearch -all $openFileList $name]
-    if {[llength $ifile] == 1 || [lindex $ifile 0] == $i} {
-      lappend newlist $name
-    } else {
-      lappend dellist $i
-    }
-  }
-  set openFileList $newlist
-  
-# check if file name is already in the menu, if so, delete
-  set ifile [lsearch $openFileList $localName]
-  if {$ifile > 0} {
-    set openFileList [lreplace $openFileList $ifile $ifile]
-    $File delete [expr {$ifile+$filemenuinc}] [expr {$ifile+$filemenuinc}]
-  }
-
-# insert file name at top of list
-  set fext [string tolower [file extension $localName]]
-  if {$ifile != 0 && ($fext == ".stp" || $fext == ".step" || $fext == ".p21")} {
-    set openFileList [linsert $openFileList 0 $localName]
-    $File insert $filemenuinc command -label [truncFileName [file nativename $localName] 1] \
-      -command [list openFile $localName] -accelerator "F1"
-    catch {$File entryconfigure 5 -accelerator {}}
-  }
-
-# check length of file list, delete from the end of the list
-  if {[llength $openFileList] > $lenlist} {
-    set openFileList [lreplace $openFileList $lenlist $lenlist]
-    $File delete [expr {$lenlist+$filemenuinc}] [expr {$lenlist+$filemenuinc}]
-  }
-
-# compare file list and menu list
-  set llen [llength $openFileList]
-  for {set i 0} {$i < $llen} {incr i} {
-    set f1 [file tail [lindex $openFileList $i]]
-    set f2 ""
-    catch {set f2 [file tail [lindex [$File entryconfigure [expr {$i+$filemenuinc}] -label] 4]]}
-    #if {$f1 != $f2 && $f2 != ""} {errorMsg "File list and menu out of synch: $i $f1 $f2"}
-  }
-  
-# save the state so that if the program crashes the file list will be already saved
-  saveState
-  return
-}
-
-#-------------------------------------------------------------------------------
 # open a spreadsheet
 proc openXLS {filename {check 0} {multiFile 0}} {
   global buttons
@@ -1279,7 +824,7 @@ proc openXLS {filename {check 0} {multiFile 0}} {
 
 #-------------------------------------------------------------------------------
 proc checkForExcel {{multFile 0}} {
-  global lastXLS localName buttons opt
+  global buttons lastXLS localName opt
   
   set pid1 [twapi::get_process_ids -name "EXCEL.EXE"]
   if {![info exists useXL]} {set useXL 1}
@@ -1335,7 +880,7 @@ proc getNextUnusedColumn {ent} {
 
 # -------------------------------------------------------------------------------
 proc formatComplexEnt {str {space 0}} {
-  global entCategory opt stepAP andEntAP209
+  global andEntAP209 entCategory opt stepAP
   
   set str1 $str
 
@@ -1390,7 +935,7 @@ proc cellRange {r c} {
 
 #-------------------------------------------------------------------------------
 proc addCellComment {ent r c comment} {
-  global worksheet recPracNames
+  global recPracNames worksheet
 
   if {![info exists worksheet($ent)] || [string length $comment] < 2} {return}
 
@@ -1436,7 +981,7 @@ proc addCellComment {ent r c comment} {
 #-------------------------------------------------------------------------------
 # color bad cells red, add cell comment with message
 proc colorBadCells {ent} {
-  global excelVersion syntaxErr count cells worksheet stepAP legendColor entsWithErrors
+  global cells count entsWithErrors excelVersion legendColor stepAP syntaxErr worksheet
   
   if {$stepAP == "" || $excelVersion < 11} {return}
       
@@ -1556,7 +1101,7 @@ proc trimNum {num {prec 3}} {
 
 #-------------------------------------------------------------------------------
 proc outputMsg {msg {color "black"}} {
-  global outputWin opt logFile
+  global logFile opt outputWin
 
   if {[info exists outputWin]} {
     $outputWin issue "$msg " $color
@@ -1569,7 +1114,7 @@ proc outputMsg {msg {color "black"}} {
 
 #-------------------------------------------------------------------------------
 proc errorMsg {msg {color ""}} {
-  global errmsg outputWin stepAP opt logFile
+  global errmsg logFile opt outputWin stepAP
 
   set oklog 0
   if {$opt(LOGFILE) && [info exists logFile]} {set oklog 1}
@@ -1643,14 +1188,12 @@ proc errorMsg {msg {color ""}} {
 
 # -------------------------------------------------------------------------------------------------
 proc truncFileName {fname {compact 0}} {
-  global mydocs myhome mydesk
+  global mydesk mydocs
 
   if {[string first $mydocs $fname] == 0} {
     set nname "[string range $fname 0 2]...[string range $fname [string length $mydocs] end]"
   } elseif {[string first $mydesk $fname] == 0 && $mydesk != $fname} {
     set nname "[string range $fname 0 2]...[string range $fname [string length $mydesk] end]"
-  #} elseif {[string first $myhome $fname] == 0 && $myhome != $fname} {
-  #  set nname "[string range $fname 0 2]...[string range $fname [string length $myhome] end]"
   }
 
   if {[info exists nname]} {
@@ -1696,7 +1239,7 @@ proc truncFileName {fname {compact 0}} {
 # copy schema rose files that are in the Tcl Virtual File System (VFS) to the IFCsvr dll directory
 # this only works with Tcl 8.5.15 and lower
 proc copyRoseFiles {} {
-  global pf32 pf64 wdir mytemp env ifcsvrDir nistVersion contact stepAPs
+  global contact env ifcsvrDir mytemp pf32 pf64 stepAPs wdir
 
 # rose files in SFA distribution
   if {[file exists $ifcsvrDir]} {
@@ -1789,7 +1332,7 @@ proc copyRoseFiles {} {
 #-------------------------------------------------------------------------------
 # install IFCsvr
 proc installIFCsvr {} {
-  global wdir mydocs mytemp ifcsvrDir nistVersion buttons contact
+  global buttons contact mydocs mytemp nistVersion wdir
 
   set ifcsvr     "ifcsvrr300_setup_1008_en.msi"
   set ifcsvrInst [file join $wdir exe $ifcsvr]
@@ -1880,7 +1423,7 @@ proc installIFCsvr {} {
 #-------------------------------------------------------------------------------
 # shortcuts
 proc setShortcuts {} {
-  global mydesk mymenu mytemp nistVersion wdir tcl_platform
+  global mydesk mymenu mytemp nistVersion tcl_platform wdir
   
   set progname [info nameofexecutable]
   if {[string first "AppData/Local/Temp" $progname] != -1 || [string first ".zip" $progname] != -1} {
@@ -1962,7 +1505,7 @@ proc setShortcuts {} {
 #-------------------------------------------------------------------------------
 # set home, docs, desktop, menu directories
 proc setHomeDir {} {
-  global env tcl_platform drive myhome mydocs mydesk mymenu mytemp virtualDir
+  global drive env mydesk mydocs myhome mymenu mytemp tcl_platform virtualDir
 
   set drive "C:/"
   if {[info exists env(SystemDrive)]} {
@@ -2095,37 +1638,6 @@ proc sortlength2 {wordlist} {
 }
 
 #-------------------------------------------------------------------------------
-# From http://wiki.tcl.tk/3070
-proc stringSimilarity {a b} {
-  set totalLength [max [string length $a] [string length $b]]
-  return [string range [max [expr {double($totalLength-[levenshteinDistance $a $b])/$totalLength}] 0.0] 0 4]
-}
-
-proc levenshteinDistance {s t} {
-  if {![set n [string length $t]]} {
-    return [string length $s]
-  } elseif {![set m [string length $s]]} {
-    return $n
-  }
-  for {set i 0} {$i <= $m} {incr i} {
-    lappend d 0
-    lappend p $i
-  }
-  for {set j 0} {$j < $n} {} {
-    set tj [string index $t $j]
-    lset d 0 [incr j]
-    for {set i 0} {$i < $m} {} {
-      set a [expr {[lindex $d $i]+1}]
-      set b [expr {[lindex $p $i]+([string index $s $i] ne $tj)}]
-      set c [expr {[lindex $p [incr i]]+1}]
-      lset d $i [expr {$a<$b ? $c<$a ? $c : $a : $c<$b ? $c : $b}]
-    }
-    set nd $p; set p $d; set d $nd
-  }
-  return [lindex $p end]
-}
-
-#-------------------------------------------------------------------------------
 # Based on http://www.posoft.de/html/extCawt.html
 proc GetWorksheetAsMatrix {worksheetId} {
   set cellId [[$worksheetId Cells] Range [GetCellRange 1 1 [[[$worksheetId UsedRange] Rows] Count] [[[$worksheetId UsedRange] Columns] Count]]]
@@ -2157,4 +1669,89 @@ proc compareLists {str l1 l2} {
   outputMsg "Unique to L1   ([llength [lindex $l3 0]])\n  [lindex $l3 0]"
   outputMsg "Common to both ([llength [lindex $l3 1]])\n  [lindex $l3 1]"
   outputMsg "Unique to L2   ([llength [lindex $l3 2]])\n  [lindex $l3 2]"
+}
+
+#-------------------------------------------------------------------------------
+# dot - calculate scalar dot product of two vectors
+proc vecdot {v1 v2} {
+  set v3 0.0
+  foreach c1 $v1 c2 $v2 {set v3 [expr {$v3+$c1*$c2}]}
+  return $v3
+}
+
+# mult - multiply vector by scalar
+proc vecmult {v1 scalar} {
+  foreach c1 $v1 {lappend v2 [expr {$c1*$scalar}]}
+  return $v2
+}
+
+# sub - subtract one vector from another
+proc vecsub {v1 v2} {
+  foreach c1 $v1 c2 $v2 {lappend v3 [expr {$c1-$c2}]}
+  return $v3
+}
+
+# add - add one vector to another
+proc vecadd {v1 v2} {
+  foreach c1 $v1 c2 $v2 {lappend v3 [expr {$c1+$c2}]}
+  return $v3
+}
+
+# reverse - reverse vector direction
+proc vecrev {v1} {
+  foreach c1 $v1 {
+    if {$c1 != 0.} {
+      lappend v2 [expr {$c1*-1.}]
+    } else {
+      lappend v2 $c1
+    }
+  }
+  return $v2
+}
+
+# trim - truncate values in a vector
+proc vectrim {v1} {
+  foreach c1 $v1 {
+    set prec 3
+    if {[expr {abs($c1)}] < 0.01} {set prec 4}
+    lappend v2 [trimNum $c1 $prec]
+  }
+  return $v2
+}
+
+# cross - cross product between two 3d-vectors
+proc veccross {v1 v2} {
+  set v1x [lindex $v1 0]
+  set v1y [lindex $v1 1]
+  set v1z [lindex $v1 2]
+  set v2x [lindex $v2 0]
+  set v2y [lindex $v2 1]
+  set v2z [lindex $v2 2]
+  set v3 [list [expr {$v1y*$v2z-$v1z*$v2y}] [expr {$v1z*$v2x-$v1x*$v2z}] [expr {$v1x*$v2y-$v1y*$v2x}]]
+  return $v3
+}
+
+# len - get scalar length of a vector
+proc veclen {v1} {
+ set l 0.
+ foreach c1 $v1 {set l [expr {$l + $c1*$c1}]}
+ return [expr {sqrt($l)}]
+}
+
+# norm - normalize a vector
+proc vecnorm {v1} {
+  set l [veclen $v1]
+  if {$l != 0.} {
+    set s [expr {1./$l}]
+    foreach c1 $v1 {lappend v2 [expr {$c1*$s}]}
+  } else {
+    set v2 $v1
+  }
+  return $v2
+}
+
+# angle - angle between two vectors
+proc vecangle {v1 v2} {
+  set angle [trimNum [expr {acos([vecdot $v1 $v2] / ([veclen $v1]*[veclen $v2]))}]]
+  return $angle
 }

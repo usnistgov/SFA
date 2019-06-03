@@ -2,9 +2,9 @@
 
 A pre-built Windows version of NIST STEP File Analyzer and Viewer (SFA) is available [here](https://www.nist.gov/services-resources/software/step-file-analyzer-and-viewer).  There is no Linux version.  
 
-The following are instructions for building the NIST STEP File Analyzer and Viewer from source code.  The SFA generates a spreadsheet and visualization from an ISO 10303 Part 21 STEP file.  More information, sample spreadsheets and visualizations, and documentation about the SFA is available on the website including the [STEP File Analyzer and Viewer User Guide](https://www.nist.gov/publications/step-file-analyzer-and-viewer-user-guide-update-5).
+The following are instructions for building the NIST STEP File Analyzer and Viewer from source code.  SFA generates a spreadsheet and visualization from an ISO 10303 Part 21 STEP file.  More information, sample spreadsheets and visualizations, and documentation about SFA is available on the website including the [STEP File Analyzer and Viewer User Guide](https://www.nist.gov/publications/step-file-analyzer-and-viewer-user-guide-update-5).
 
-STEP files are used to represent product and manufacturing information (PMI) for data exchange and interoperability between Computer-Aided Design (CAD), Manufacturing (CAM), Analysis (CAE), and Inspection (CMM) software. STEP is also used for the long-term archiving and retrieval product data (LOTAR).
+STEP files are used to represent product and manufacturing information (PMI) for data exchange and interoperability between Computer-Aided Design (CAD), Manufacturing (CAM), Analysis (CAE), and Inspection (CMM) software.  STEP is also used for the long-term archiving and retrieval product data (LOTAR).
 
 ## Prerequisites
 
@@ -27,12 +27,12 @@ freeWrap wraps the SFA Tcl code to create an executable.
 - Download freewrap651.zip from <https://sourceforge.net/projects/freewrap/files/freewrap/freeWrap%206.51/>.  More recent versions of freeWrap will **not** work with the SFA.
 - Extract freewrap.exe and put it in the same directory as the SFA files that were downloaded from the 'source' directory.
 
-Purchase and download the legacy ActiveTcl 8.5.15 pre-built Tcl distribution from <https://www.activestate.com/products/activetcl/downloads/>.
+Purchase and download the legacy ActiveTcl **8.5.15** pre-built Tcl distribution from <https://www.activestate.com/products/activetcl/downloads/>.
 
 - Scroll down to 'Licensing Options For Beyond Development Use' for information about purchasing Legacy Builds
-- SFA can only be built with the legacy version of Active Tcl 8.5.15.  Do **not** download the freely available 8.5 and 8.6 versions or the 64-bit version.
+- SFA can **ONLY** be built with the legacy version of Active Tcl 8.5.15 (32-bit).  Newer versions of Tcl are not supported.
 - Run the installer and use the default installation folders
-- Several Tcl packages from ActiveTcl also need to be installed.  Open a command prompt window, change to C:\\Tcl\\bin and enter the following three commands:
+- Several Tcl packages from ActiveTcl also need to be installed.  Open a command prompt window, change to C:\\Tcl\\bin, or wherever it was installed, and enter the following three commands:
 
 ```
 teacup install tcom
@@ -42,7 +42,9 @@ teacup install Iwidgets
 
 ## Build the STEP File Analyzer and Viewer
 
-Open a command prompt window and change to the directory with the SFA Tcl files and freewrap.  To create the executable sfa.exe, enter the command:
+First, edit the source code file sfa.tcl and uncomment the lines at the top of the file that start with 'lappend auto_path C:/Tcl/lib/teapot/package/...'  Change 'C:/Tcl' if Tcl is installed in a different directory.
+
+Then, open a command prompt window and change to the directory with the SFA Tcl files and freewrap.  To create the executable sfa.exe, enter the command:
 
 ```
 freewrap -f sfa-files.txt
@@ -53,6 +55,7 @@ freewrap -f sfa-files.txt
 - Download freewrapTCLSH.zip from <https://sourceforge.net/projects/freewrap/files/freewrap/freeWrap%206.51/>
 - Extract freewrapTCLSH.exe to the directory with the SFA Tcl files
 - Edit sfa-files.txt and change the first line 'sfa.tcl' to 'sfa-cl.tcl'
+- Edit sfa-cl.tcl similar to sfa.tcl above
 - To create sfa-cl.exe, enter the command: freewrapTCLSH -f sfa-files.txt
 
 ## Differences from the NIST-built version of STEP File Analyzer and Viewer
@@ -63,7 +66,7 @@ Some features are not available in the user-built version including: tooltips, u
 
 Replace the Tcl package [tcom](http://wiki.tcl.tk/1821) (COM) with the COM features in [twapi](http://twapi.magicsplat.com/).
 
-Replace the IFCsvr toolkit with [STEPcode toolkit](https://github.com/stepcode/stepcode) or some other toolkit.
+Replace the IFCsvr toolkit with [STEPcode toolkit](https://github.com/stepcode/stepcode) or some other toolkit.  Rebuild IFCsvr toolkit to include more ROSE files.  Either suggestion can potentially remove the dependency on the older version of Tcl 8.5.15.
 
 Replace the home-grown code to interact with Excel spreadsheets with [CAWT](http://www.cawt.tcl3d.org/).
 
