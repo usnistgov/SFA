@@ -59,7 +59,7 @@ proc checkValues {} {
     foreach item [array names opt] {
       if {[string first "PR_STEP" $item] == 0} {lappend butNormal "opt$item"}
     }
-    foreach b {optINVERSE optPMIGRF optPMISEM optVALPROP optXL_FPREC optXL_KEEPOPEN optXL_LINK1 optXL_SORT allNone2} {lappend butDisabled $b}
+    foreach b {optINVERSE optPMIGRF optPMISEM optVALPROP optXL_FPREC optXL_LINK1 optXL_SORT allNone2} {lappend butDisabled $b}
     foreach b {optVIZFEA optVIZPMI optVIZTPG optVIZBRP} {lappend butNormal $b}
     foreach b {allNone0 allNone1 allNone3 optPR_USER} {lappend butNormal $b}
 
@@ -68,7 +68,7 @@ proc checkValues {} {
     foreach item [array names opt] {
       if {[string first "PR_STEP" $item] == 0} {lappend butNormal "opt$item"}
     }
-    foreach b {optINVERSE optPMIGRF optPMISEM optVALPROP optXL_FPREC optXL_KEEPOPEN optXL_LINK1 optXL_SORT} {lappend butNormal $b}
+    foreach b {optINVERSE optPMIGRF optPMISEM optVALPROP optXL_FPREC optXL_LINK1 optXL_SORT} {lappend butNormal $b}
     foreach b {optVIZFEA optVIZPMI optVIZTPG optVIZBRP} {lappend butNormal $b}
     foreach b {allNone0 allNone1 allNone2 allNone3 optPR_USER} {lappend butNormal $b}
   }
@@ -146,12 +146,14 @@ proc checkValues {} {
       set opt([string range $b 3 end]) 1
       lappend butDisabled $b
     }
+    lappend butNormal optPMISEMDIM
   } else {
     foreach b {optPR_STEP_REPR optPR_STEP_TOLR optPR_STEP_FEAT} {lappend butNormal $b}
     if {!$opt(PMIGRF)} {
       if {!$opt(VALPROP)} {lappend butNormal optPR_STEP_QUAN}
       foreach b {optPR_STEP_AP242 optPR_STEP_COMM optPR_STEP_SHAP} {lappend butNormal $b}
     }
+    lappend butDisabled optPMISEMDIM
   }
 
 # tessellated geometry view
@@ -401,7 +403,7 @@ proc openFile {{openName ""}} {
 
     set fileDir [file dirname $localName]
     if {[string first "z" [string tolower [file extension $localName]]] == -1} {
-      outputMsg "\nReady to process: [file tail $localName] ([expr {[file size $localName]/1024}] Kb)" blue
+      outputMsg "\nReady to process: [file tail $localName] ([expr {[file size $localName]/1024}] Kb)" green
       if {[info exists buttons]} {
         $buttons(genExcel) configure -state normal
         if {[info exists buttons(appOpen)]} {$buttons(appOpen) configure -state normal}
@@ -424,7 +426,7 @@ proc unzipFile {} {
     outputMsg "\nUnzipping: [file tail $localName] ([expr {[file size $localName]/1024}] Kb)"
 
 # copy gunzip to TEMP
-    if {[file exists [file join $wdir exe gunzip.exe]]} {file copy -force [file join $wdir exe gunzip.exe] $mytemp}
+    if {[file exists [file join $wdir exe gunzip.exe]]} {file copy -force -- [file join $wdir exe gunzip.exe] $mytemp}
 
     set gunzip [file join $mytemp gunzip.exe]
     if {[file exists $gunzip]} {
@@ -432,7 +434,7 @@ proc unzipFile {} {
 # copy zipped file to TEMP
       if {[regsub ".stpZ" $localName ".stp.Z" ln] == 0} {regsub ".stpz" $localName ".stp.Z" ln}
       set fzip [file join $mytemp [file tail $ln]]
-      file copy -force $localName $fzip
+      file copy -force -- $localName $fzip
 
 # get name of unzipped file
       set gz [exec $gunzip -Nl $fzip]
@@ -452,7 +454,7 @@ proc unzipFile {} {
         outputMsg " Overwriting existing unzipped STEP file: [truncFileName [file nativename $fstp]]" red
         set ok 1
       }
-      if {$ok} {file copy -force $ftmp $fstp}
+      if {$ok} {file copy -force -- $ftmp $fstp}
 
       set localName $fstp
       file delete $fzip
@@ -610,7 +612,7 @@ proc runOpenProgram {} {
     } else {
       set stname [file tail $stfile]
       set stlog  "[file rootname $stname]\_stdev.log"
-      catch {if {[file exists $stlog]} {file delete -force $stlog}}
+      catch {if {[file exists $stlog]} {file delete -force -- $stlog}}
       outputMsg "ST-Developer log file: [truncFileName [file nativename $stlog]]" blue
 
       set c1 [string first "gui" $dispCmd]
@@ -639,7 +641,7 @@ proc runOpenProgram {} {
 
 # write script file to open database
     set edmScript [file join [file dirname $filename] edm-validate-script.txt]
-    catch {file delete -force $edmScript}
+    catch {file delete -force -- $edmScript}
     set scriptFile [open $edmScript w]
     set okschema 1
 
@@ -685,7 +687,7 @@ proc runOpenProgram {} {
         regsub -all {[\.()+%]} $fileRoot "_" fileRoot
         set edmFile [file join [file dirname $filename] $fileRoot]
         append edmFile [file extension $filename]
-        file copy -force $filename $edmFile
+        file copy -force -- $filename $edmFile
         set tmpfile 1
       } else {
         set edmFile $filename
@@ -732,7 +734,7 @@ proc runOpenProgram {} {
           if {[file size $edmLogImport] > 0} {
             exec $editorCmd $edmLogImport &
           } else {
-            catch {file delete -force $edmLogImport}
+            catch {file delete -force -- $edmLogImport}
           }
         } else {
           outputMsg "Wait until the EDM Model Checker has finished and then open the log file"
@@ -742,7 +744,7 @@ proc runOpenProgram {} {
 # attempt to delete the script file
       set nerr 0
       while {[file exists $edmScript]} {
-        catch {file delete -force $edmScript}
+        catch {file delete -force -- $edmScript}
         after 1000
         incr nerr
         if {$nerr > 60} {break}
@@ -752,7 +754,7 @@ proc runOpenProgram {} {
       if {$tmpfile} {
         set nerr 0
         while {[file exists $edmFile]} {
-          catch {file delete -force $edmFile}
+          catch {file delete -force -- $edmFile}
           after 1000
           incr nerr
           if {$nerr > 60} {break}
@@ -1262,14 +1264,14 @@ proc copyRoseFiles {} {
           if {[catch {
             errorMsg "\nInstalling new or updated STEP schema files (Help > Supported STEP APs)" red
             outputMsg " [string toupper [file rootname $fn1]]"
-            file copy -force $fn $f2
+            file copy -force -- $fn $f2
           } emsg]} {
             errorMsg "ERROR copying STEP schema files (*.rose) to $ifcsvrDir"
             #errorMsg "ERROR copying STEP schema files (*.rose) to $ifcsvrDir: $emsg"
           }
           if {![file exists [file join $ifcsvrDir $fn1]]} {
             set ok 0
-            catch {file copy -force $fn [file join $mytemp $fn1]}
+            catch {file copy -force -- $fn [file join $mytemp $fn1]}
           }
         }
       }
@@ -1314,7 +1316,7 @@ proc copyRoseFiles {} {
             if {$okcopy} {
               catch {.tnb select .tnb.status}
               catch {
-                file copy -force $fn $f2
+                file copy -force -- $fn $f2
                 errorMsg "Installing STEP schema files from STEP Tools (Help > Supported STEP APs)" red
               }
             }
@@ -1366,15 +1368,15 @@ proc installIFCsvr {} {
   set ifcsvrMsi [file join $mytemp $ifcsvr]
   if {[file exists $ifcsvrInst]} {
     if {[catch {
-      file copy -force $ifcsvrInst $ifcsvrMsi
+      file copy -force -- $ifcsvrInst $ifcsvrMsi
     } emsg1]} {
       set ifcsvrMsi [file join $mydocs $ifcsvr]
       if {[catch {
-        file copy -force $ifcsvrInst $ifcsvrMsi
+        file copy -force -- $ifcsvrInst $ifcsvrMsi
       } emsg2]} {
         set ifcsvrMsi [file join [pwd] $ifcsvr]
         if {[catch {
-          file copy -force $ifcsvrInst $ifcsvrMsi
+          file copy -force -- $ifcsvrInst $ifcsvrMsi
         } emsg3]} {
           errorMsg "ERROR copying the IFCsvr Toolkit installation file to a directory."
           outputMsg " $emsg1\n $emsg2\n $emsg3"
@@ -1463,7 +1465,7 @@ proc setShortcuts {} {
       set choice [tk_messageBox -type yesno -icon question -title "Shortcuts" -message $msg]
       if {$choice == "yes"} {
         outputMsg " "
-        if {$nistVersion} {catch {[file copy -force [file join $wdir images NIST.ico] [file join $mytemp NIST.ico]]}}
+        if {$nistVersion} {catch {[file copy -force -- [file join $wdir images NIST.ico] [file join $mytemp NIST.ico]]}}
         catch {
           if {[info exists mymenu]} {
             if {[file exists [file join $mymenu "$progstr.lnk"]]} {outputMsg "Existing Start Menu shortcut will be overwritten" red}
@@ -1592,12 +1594,15 @@ proc setHomeDir {} {
 }
 
 #-------------------------------------------------------------------------------
+# check if temporary directory 'mytemp' exists
 proc checkTempDir {} {
   global mytemp
 
   if {[info exists mytemp]} {
-    if {[file isfile $mytemp]} {file delete -force $mytemp}
+    if {[file isfile $mytemp]} {file delete -force -- $mytemp}
     if {![file exists $mytemp]} {file mkdir $mytemp}
+  } else {
+    errorMsg "Temporary directory 'mytemp' does not exist."
   }
 }
 

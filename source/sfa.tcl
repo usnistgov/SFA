@@ -80,19 +80,14 @@ foreach item $auto_path {if {[string first "STEP-File-Analyzer" $item] != -1} {s
 # -----------------------------------------------------------------------------------------------------
 # initialize variables, set opt to 1
 foreach id { \
-  DISPGUIDE1 FIRSTTIME LOGFILE PMIGRF PMISEM \
-  PR_STEP_AP242 PR_STEP_COMM PR_STEP_COMP PR_STEP_FEAT PR_STEP_KINE \
-  PR_STEP_PRES PR_STEP_QUAN PR_STEP_REPR PR_STEP_SHAP PR_STEP_TOLR \
-  VALPROP VIZBRP VIZFEA VIZFEABC VIZFEADS \
-  VIZFEALV VIZPMI VIZTPG \
-  XL_LINK1 XL_OPEN \
+  DISPGUIDE1 FIRSTTIME LOGFILE PMIGRF PMISEM PR_STEP_AP242 PR_STEP_COMM PR_STEP_COMP PR_STEP_FEAT PR_STEP_KINE PR_STEP_PRES PR_STEP_QUAN \
+  PR_STEP_REPR PR_STEP_SHAP PR_STEP_TOLR VALPROP VIZBRP VIZFEA VIZFEABC VIZFEADS VIZFEALV VIZPMI VIZTPG XL_LINK1 XL_OPEN \
 } {set opt($id) 1}
 
 # set opt to 0
 foreach id { \
-  CRASH DEBUG1 DEBUGINV indentGeomtry indentStyledItem INVERSE \
-  PR_STEP_CPNT PR_STEP_GEOM PR_USER VIZFEADSntail VIZFEALVS VIZPMIVP VIZTPGMSH \
-  writeDirType XL_FPREC XL_KEEPOPEN XL_SORT \
+  CRASH DEBUG1 DEBUGINV indentGeomtry indentStyledItem INVERSE PMISEMDIM PR_STEP_CPNT PR_STEP_GEOM \
+  PR_USER VIZFEADSntail VIZFEALVS VIZPMIVP VIZTPGMSH writeDirType XL_FPREC XL_SORT \
 } {set opt($id) 0}
 
 set opt(gpmiColor) 3
@@ -155,18 +150,16 @@ if {[file exists $optionsFile]} {
     if {[info exists flag(FIRSTTIME)]}  {set opt(FIRSTTIME)  $flag(FIRSTTIME);  unset flag(FIRSTTIME)}
     if {[info exists flag(DISPGUIDE1)]} {set opt(DISPGUIDE1) $flag(DISPGUIDE1); unset flag(DISPGUIDE1)}
   
-    foreach item {PR_STEP_BAD PR_STEP_UNIT PR_TYPE XL_XLSX COUNT EX_A2P3D FN_APPEND XL_LINK2 XL_LINK3 XL_ORIENT \
-                  XL_SCROLL PMIVRML PMIPROP SEMPROP PMIP EX_ANAL EX_ARBP EX_LP VPDBG \
-                  PR_STEP_AP242_QUAL PR_STEP_AP242_CONS PR_STEP_AP242_MATH PR_STEP_AP242_KINE PR_STEP_AP242_OTHER PR_STEP_AP242_GEOM \
-                  PR_STEP_AP209 PR_STEP_AP210 PR_STEP_AP238 PR_STEP_AP239 PR_STEP_AP203 PR_STEP_AP214 PR_STEP_OTHER \
-                  PR_STEP_GEO PR_STEP_REP PR_STEP_ASPECT ROWLIM SORT GENX3DOM VIZ209 feaNodeType XLSBUG VIZBRPmsg VIZFEADStail} {
+    foreach item {COUNT EX_A2P3D EX_ANAL EX_ARBP EX_LP feaNodeType FN_APPEND GENX3DOM PMIP PMIPROP PMIVRML PR_STEP_AP203 PR_STEP_AP209 PR_STEP_AP210 \
+                  PR_STEP_AP214 PR_STEP_AP238 PR_STEP_AP239 PR_STEP_AP242_CONS PR_STEP_AP242_GEOM PR_STEP_AP242_KINE PR_STEP_AP242_MATH PR_STEP_AP242_OTHER \
+                  PR_STEP_AP242_QUAL PR_STEP_ASPECT PR_STEP_BAD PR_STEP_GEO PR_STEP_OTHER PR_STEP_REP PR_STEP_UNIT PR_TYPE ROWLIM SEMPROP SORT VIZ209 \
+                  VIZBRPmsg VIZFEADStail VPDBG XL_KEEPOPEN XL_LINK2 XL_LINK3 XL_ORIENT XL_SCROLL XL_XLSX XLSBUG} {
       catch {unset opt($item)}
     }
   } emsg]} {
     set endMsg "Error reading options file: [truncFileName $optionsFile]\n $emsg\nFix or delete the file."
   }
 }
-set opt(XL_KEEPOPEN) 0
 
 # check some directory variables
 if {[info exists userWriteDir]} {if {![file exists $userWriteDir]} {set userWriteDir $mydocs}}
@@ -187,7 +180,7 @@ if {$opt(XL_ROWLIM) < 103 || ([string range $opt(XL_ROWLIM) end-1 end] != "03" &
 set ofExcel 0
 set ofCSV 0
 set ofNone 0
-switch $opt(XLSCSV) {
+switch -- $opt(XLSCSV) {
   Excel   {set ofExcel 1}
   CSV     {set ofExcel 1; set ofCSV 1}
   None    {set ofNone 1}
@@ -364,7 +357,7 @@ if {$argv != ""} {
     .tnb select .tnb.status
     if {[file exists $localName]} {
       set localNameList [list $localName]
-      outputMsg "Ready to process: [file tail $localName] ([expr {[file size $localName]/1024}] Kb)" blue
+      outputMsg "Ready to process: [file tail $localName] ([expr {[file size $localName]/1024}] Kb)" green
       if {[info exists buttons(appOpen)]} {$buttons(appOpen) configure -state normal}
       if {[info exists buttons(genExcel)]} {
         $buttons(genExcel) configure -state normal

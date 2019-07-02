@@ -137,19 +137,14 @@ if {![file exists [file join $ifcsvrDir IFCsvrR300.dll]]} {installIFCsvr; exit}
 # -----------------------------------------------------------------------------------------------------
 # initialize variables, set opt to 1
 foreach id { \
-  DISPGUIDE1 FIRSTTIME LOGFILE PMIGRF PMISEM \
-  PR_STEP_AP242 PR_STEP_COMM PR_STEP_COMP PR_STEP_FEAT PR_STEP_KINE \
-  PR_STEP_PRES PR_STEP_QUAN PR_STEP_REPR PR_STEP_SHAP PR_STEP_TOLR \
-  VALPROP VIZFEABC VIZFEADS VIZFEALV \
-  XL_LINK1 XL_OPEN \
+  DISPGUIDE1 FIRSTTIME LOGFILE PMIGRF PMISEM PR_STEP_AP242 PR_STEP_COMM PR_STEP_COMP PR_STEP_FEAT PR_STEP_KINE \
+  PR_STEP_PRES PR_STEP_QUAN PR_STEP_REPR PR_STEP_SHAP PR_STEP_TOLR VALPROP VIZFEABC VIZFEADS VIZFEALV XL_LINK1 XL_OPEN \
 } {set opt($id) 1}
 
 # set opt to 0
 foreach id { \
-  CRASH DEBUG1 DEBUGINV indentGeomtry indentStyledItem INVERSE \
-  PR_STEP_CPNT PR_STEP_GEOM PR_USER VIZBRP VIZFEA VIZFEADSntail \
-  VIZFEALVS VIZPMI VIZPMIVP VIZTPG VIZTPGMSH \
-  writeDirType XL_FPREC XL_KEEPOPEN XL_SORT \
+  CRASH DEBUG1 DEBUGINV indentGeomtry indentStyledItem INVERSE PMISEMDIM PR_STEP_CPNT PR_STEP_GEOM PR_USER \
+  VIZBRP VIZFEA VIZFEADSntail VIZFEALVS VIZPMI VIZPMIVP VIZTPG VIZTPGMSH writeDirType XL_FPREC XL_SORT \
 } {set opt($id) 0}
 
 set opt(gpmiColor) 3
@@ -228,7 +223,6 @@ if {[info exists userEntityFile]} {
     set opt(PR_USER) 0
   }
 }
-set opt(XL_KEEPOPEN) 0
 
 # get command line options
 for {set i 1} {$i <= 10} {incr i} {

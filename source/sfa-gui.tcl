@@ -1,7 +1,7 @@
 # version numbers, software and user guide, contact
 # user guide URLs are below in showFileURL
 
-proc getVersion {}   {return 3.46}
+proc getVersion {}   {return 3.48}
 proc getVersionUG {} {return 3.0}
 proc getContact {}   {return [list "Robert Lipman" "robert.lipman@nist.gov"]}
 
@@ -26,7 +26,7 @@ if {$sfaVersion > 0 && $sfaVersion <= 2.60} {
 # open local file or URL
 proc showFileURL {type} {
 
-  switch $type {
+  switch -- $type {
     UserGuide {
 # update for new versions, local and online
       set localFile "SFA-User-Guide-v5.pdf"
@@ -197,7 +197,7 @@ proc guiButtons {} {
       bind $l3 <ButtonRelease-1> {openURL https://www.nist.gov}
       tooltip::tooltip $l3 "Click here to learn more about NIST"
     }
-    catch {[file copy -force [file join $wdir images NIST.ico] [file join $mytemp NIST.ico]]}
+    catch {[file copy -force -- [file join $wdir images NIST.ico] [file join $mytemp NIST.ico]]}
   }
 
   pack $ftrans -side top -padx 10 -pady 10 -fill x
@@ -439,20 +439,39 @@ proc guiProcessAndReports {} {
   set foptd [ttk::labelframe $foptrv.1 -text " Analyze "]
 
   set foptd1 [frame $foptd.1 -bd 0]
-  foreach item {{" AP242 PMI Representation (Semantic PMI)" opt(PMISEM)} \
-                {" PMI Presentation (Graphical PMI)"  opt(PMIGRF)} \
-                {" Validation Properties"             opt(VALPROP)}} {
+  foreach item {{" AP242 PMI Representation (Semantic PMI)" opt(PMISEM)}} {
   regsub -all {[\(\)]} [lindex $item 1] "" idx
     set buttons($idx) [ttk::checkbutton $foptd1.$cb -text [lindex $item 0] -variable [lindex $item 1] -command {checkValues}]
     pack $buttons($idx) -side top -anchor w -padx 5 -pady 0 -ipady 0
     incr cb
   }
   pack $foptd1 -side top -anchor w -pady 0 -padx 0 -fill y
+
+  set foptd2 [frame $foptd.2 -bd 0]
+  foreach item {{" Only Dimensions" opt(PMISEMDIM)}} {
+  regsub -all {[\(\)]} [lindex $item 1] "" idx
+    set buttons($idx) [ttk::checkbutton $foptd2.$cb -text [lindex $item 0] -variable [lindex $item 1] -command {checkValues}]
+    pack $buttons($idx) -side top -anchor w -padx 5 -pady 0 -ipady 0
+    incr cb
+  }
+  pack $foptd2 -side top -anchor w -pady 0 -padx 25 -fill y
+
+  set foptd3 [frame $foptd.3 -bd 0]
+  foreach item {{" PMI Presentation (Graphical PMI)"  opt(PMIGRF)} \
+                {" Validation Properties"             opt(VALPROP)}} {
+  regsub -all {[\(\)]} [lindex $item 1] "" idx
+    set buttons($idx) [ttk::checkbutton $foptd3.$cb -text [lindex $item 0] -variable [lindex $item 1] -command {checkValues}]
+    pack $buttons($idx) -side top -anchor w -padx 5 -pady 0 -ipady 0
+    incr cb
+  }
+  pack $foptd3 -side top -anchor w -pady 0 -padx 0 -fill y
+
   pack $foptd -side left -anchor w -pady {5 2} -padx 10 -fill both -expand true
   catch {
     tooltip::tooltip $buttons(optPMISEM)  "The analysis of PMI Representation information is shown on\ndimension, tolerance, datum target, datum, and hole (AP242e2)\nentities.  Semantic PMI is found mainly in STEP AP242 files.\n\nSee Help > PMI Representation\nSee Help > User Guide (section 5.1)\nSee Help > Syntax Errors\nSee Examples > Spreadsheet - PMI Representation\nSee Examples > Sample STEP Files\nSee Websites > AP242 Project"
     tooltip::tooltip $buttons(optPMIGRF)  "The analysis of PMI Presentation information is\nshown on 'annotation occurrence' entities.\n\nSee Help > PMI Presentation\nSee Help > User Guide (section 5.2)\nSee Help > Syntax Errors\nSee Examples > PMI Presentation, Validation Properties\nSee Examples > View Part with PMI\nSee Examples > AP242 Tessellated Part with PMI\nSee Examples > Sample STEP Files"
     tooltip::tooltip $buttons(optVALPROP) "The analysis of Validation Properties and other properties\nis shown on the 'property_definition' entity.\n\nSee Help > Validation Properties\nSee Help > User Guide (section 5.3)\nSee Help > Syntax Errors\nSee Examples > PMI Presentation, Validation Properties"
+    tooltip::tooltip $buttons(optPMISEMDIM)  "Analyze only dimensional tolerances and no\ngeometric tolerances, datums, or datum targets."
   }
 
 #-------------------------------------------------------------------------------
@@ -587,7 +606,7 @@ proc guiUserDefinedEntities {} {
   incr cb
   catch {
     foreach item {optPR_USER userentity userentityopen} {
-      tooltip::tooltip $buttons($item) "A User-Defined List is a text file with one STEP entity name per line.\nThis allows for more control to process only the required entity types.\nIt is also useful when processing large files that might crash the software."
+      tooltip::tooltip $buttons($item) "A User-Defined List is a plain text file with one STEP entity name per line.\n\nThis allows for more control to process only the required entity types,\nrather than process the board categories of entities above.\n\nIt is also useful when processing large files that might crash the software."
     }
   }
   pack $fopta6 -side bottom -anchor w -pady 5 -padx 0 -fill y
@@ -973,7 +992,7 @@ proc guiHelpMenu {} {
     outputMsg "The following STEP Application Protocols (AP) and other schemas are supported.\nThe name of the AP is found on the FILE_SCHEMA entity in the HEADER section of a STEP file.\nThe 'e1' notation after an AP number below refers to an older version of that AP.\n"
 
     set nschema 0
-    catch {file delete -force [file join $ifcsvrDir ap214e3_2010.rose]}
+    catch {file delete -force -- [file join $ifcsvrDir ap214e3_2010.rose]}
 
     set schemas {}
     foreach match [lsort [glob -nocomplain -directory $ifcsvrDir *.rose]] {
@@ -2054,7 +2073,7 @@ proc getFirstFile {} {
 
   set localName [lindex $openFileList 0]
   if {$localName != ""} {
-    outputMsg "\nReady to process: [file tail $localName] ([expr {[file size $localName]/1024}] Kb)" blue
+    outputMsg "\nReady to process: [file tail $localName] ([expr {[file size $localName]/1024}] Kb)" green
     if {[info exists buttons(appOpen)]} {$buttons(appOpen) configure -state normal}
   }
   return $localName

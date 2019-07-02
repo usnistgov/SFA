@@ -127,11 +127,20 @@ proc pmiFormatColumns {str} {
 # -------------------------------------------------------------------------------
 # check for an entity that is checked for semantic PMI
 proc spmiCheckEnt {ent} {
-  global spmiEntTypes tolNames
-
+  global opt spmiEntTypes tolNames
   set ok 0
-  foreach sp $spmiEntTypes {if {[string first $sp $ent] ==  0} {set ok 1}}
-  foreach sp $tolNames     {if {[string first $sp $ent] != -1} {set ok 1}}
+
+# all tolerances, dimensions, datums, etc. (defined in sfa-data.tcl)
+  if {!$opt(PMISEMDIM)} {
+    foreach sp $spmiEntTypes {if {[string first $sp $ent] ==  0} {set ok 1}}
+    foreach sp $tolNames     {if {[string first $sp $ent] != -1} {set ok 1}}
+      
+# only dimensions
+  } elseif {$ent == "dimensional_characteristic_representation"} {
+    set ok 1
+  }
+
+# counter holes  
   if {([string first "counter" $ent] != -1 || [string first "spotface" $ent] != -1) && [string first "occurrence" $ent] == -1} {
     if {$ent != "spotface_definition"} {set ok 1}
   }
@@ -496,7 +505,7 @@ proc checkP21e3 {fname} {
 
 # new file name
     set nname "[file rootname $fname]-p21e2[file extension $fname]"
-    catch {file delete -force $nname}
+    catch {file delete -force -- $nname}
     set f2 [open $nname w]
 
 # read file

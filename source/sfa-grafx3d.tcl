@@ -424,7 +424,7 @@ proc x3dFileEnd {} {
 
     set lastTransform ""
     set f [open $tessPartFileName r]
-    set ftmp [open [file join $mytemp tpgtmp.txt] w]
+    #set ftmp [open [file join $mytemp tpgtmp.txt] w]
 
 # first check for similar transforms, write to tmp file
     while {[gets $f line] >= 0} {
@@ -439,7 +439,7 @@ proc x3dFileEnd {} {
       }
     }
     if {$lastTransform != ""} {puts $x3dFile "</Transform>"}
-    close $ftmp
+    #close $ftmp
 
 # then from tmp file, consolidate faces that use the same coordinates
     #catch {unset coord}
@@ -477,7 +477,7 @@ proc x3dFileEnd {} {
 
     close $f
     #close $ftmp
-    #catch {[file delete -force [file join $mytemp tpgtmp.txt]]}
+    #catch {[file delete -force -- [file join $mytemp tpgtmp.txt]]}
 
 # write faces for each coord with index grouped together
     #foreach idx [array names coord] {
@@ -746,7 +746,7 @@ proc x3dBrepGeom {} {
       } elseif {[file mtime [file join $wdir exe stp2x3d.exe]] > [file mtime $stp2x3d]} {
         set copy 1
       }
-      if {$copy} {file copy -force [file join $wdir exe stp2x3d.exe] $mytemp}
+      if {$copy} {file copy -force -- [file join $wdir exe stp2x3d.exe] $mytemp}
     }
 
 # run stp2x3d
@@ -755,7 +755,7 @@ proc x3dBrepGeom {} {
 # output .x3d file name, account for extra '.' characters
       set stpx3dFileName [string range $localName 0 [string first "." $localName]]
       append stpx3dFileName "x3d"
-      catch {file delete -force $stpx3dFileName}
+      catch {file delete -force -- $stpx3dFileName}
       set msg " Processing STEP part geometry"
       if {[info exists buttons]} {append msg ".  Wait for the popup program (stp2x3d.exe) to complete."}
       outputMsg $msg green
@@ -791,7 +791,7 @@ proc x3dBrepGeom {} {
 
 # open temp file
             set brepFileName [file join $mytemp brep.txt]
-            if {![file exists brepFileName]} {set brepFile [open $brepFileName w]}
+            set brepFile [open $brepFileName w]
 
 # integrate x3d from stp2x3d with existing x3dom file
             puts $brepFile "\n<!-- B-REP PART GEOMETRY -->\n<Switch whichChoice='0' id='swBRP'><Transform scale='$sc $sc $sc'>"
@@ -1697,7 +1697,7 @@ proc x3dHoles {maxxyz} {
 proc x3dPreDefinedColor {name} {
   global defaultColor recPracNames
 
-  switch $name {
+  switch -- $name {
     black   {set color "0 0 0"}
     white   {set color "1 1 1"}
     red     {set color "1 0 0"}
@@ -1836,7 +1836,7 @@ proc x3dGetA2P3D {e0} {
     set refdir [[[$e4 Attributes] Item [expr 2]] Value]
     if {$debug} {errorMsg "      [$e4 Type] [$e4 P21ID] ([$a4 Name]) $refdir" red}
   }
-  
+
   return [list $origin $axis $refdir]
 }
 
@@ -2075,5 +2075,5 @@ proc x3dGetRotation {axis refdir {type ""}} {
     lset rotation_changed 3 $angle
     foreach i {0 1 2 3} {lset rotation_changed $i [trimNum [lindex $rotation_changed $i] 4]}
   }
-  return $rotation_changed  
+  return $rotation_changed
 }

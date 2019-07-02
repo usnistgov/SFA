@@ -165,7 +165,7 @@ proc feaModel {entType} {
     checkTempDir
     foreach f {elements mesh meshIndex faceIndex loads bcs} {
       set feaFileName($f) [file join $mytemp $f.txt]
-      if {![file exists $feaFileName($f)]} {set feaFile($f) [open $feaFileName($f) w]}
+      set feaFile($f) [open $feaFileName($f) w]
     }
   }
 
@@ -330,7 +330,7 @@ proc feaModel {entType} {
             foreach f {mesh meshIndex} {
               if {[file exists $feaFileName($f)]} {
                 catch {close $feaFileName($f)}
-                catch {file delete -force $feaFileName($f)}
+                catch {file delete -force -- $feaFileName($f)}
               }
             }
             unset feaMeshIndex
@@ -358,7 +358,7 @@ proc feaModel {entType} {
     foreach f {elements mesh meshIndex faceIndex loads bcs} {
       if {[file exists $feaFileName($f)]} {
         catch {close $feaFileName($f)}
-        catch {file delete -force $feaFileName($f)}
+        catch {file delete -force -- $feaFileName($f)}
       }
     }
     catch {unset feaFaceList}
@@ -836,11 +836,13 @@ proc feaLoads {entType} {
     set size [expr {($x3dAxesSize*0.15)/0.12}]
     set range [expr {$magMax-$magMin}]
     set n 0
+    set choice -1
+    if {[llength [array names fld]] == 1} {set choice 0}
 
     puts $feaFile(loads) "\n<!-- [string toupper $type] -->"
     foreach load [lsort [array names fld]] {
       incr n
-      puts $feaFile(loads) "<Switch whichChoice='-1' id='[string range $type 0 3]$n'><Group>"
+      puts $feaFile(loads) "<Switch whichChoice='$choice' id='[string range $type 0 3]$n'><Group>"
 
       foreach fl $fld($load) {
         set fl [split $fl ","]
@@ -868,7 +870,7 @@ proc feaLoads {entType} {
           set x [expr {floor($a)}]
           set y [trimNum [expr {$a-$x}]]
           set x [expr {int($x)}]
-          switch $x {
+          switch -- $x {
             0 {set r 1; set g $y; set b 0}
             1 {set r [trimNum [expr {1-$y}]]; set g 1; set b 0}
             2 {set r 0; set g 1; set b $y}
@@ -885,7 +887,7 @@ proc feaLoads {entType} {
         set vec [vectrim [vecnorm [lindex $fl 1]]]
 
 # default vector direction is 1 0 0
-        switch $vec {
+        switch -- $vec {
           "-1. 0. 0." {set rot "0 1 0 3.1416"}
           "0. 1. 0."  {set rot "0 0 1 1.5708"}
           "0. -1. 0." {set rot "0 0 1 -1.5708"}
@@ -954,7 +956,7 @@ proc feaArrow {r g b type num} {
   set t1 -1
   set t2 0
   set h1 -.2
-  switch $type {
+  switch -- $type {
     npressure -
     displacement {
       if {!$opt(VIZFEADSntail) || $type == "npressure"} {
@@ -1022,10 +1024,12 @@ proc feaBCs {entType} {
     append circleIndex "0 -1 "
 
     set n 0
+    set choice -1
+    if {[llength [array names feaBoundary]] == 1} {set choice 0}
     set bctxt "<!-- BOUNDARY CONDITIONS -->"
     foreach spc [lsort [array names feaBoundary]] {
       incr n
-      append bctxt "\n<Switch whichChoice='-1' id='spc$n'><Group>"
+      append bctxt "\n<Switch whichChoice='$choice' id='spc$n'><Group>"
 
       foreach fbc $feaBoundary($spc) {
         set fbc [split $fbc ","]
@@ -1106,7 +1110,7 @@ proc feaBCs {entType} {
                     for {set i 0} {$i < $ns} {incr i} {
                       set x [trimNum [expr {0.3*$size*cos($angle)}]]
                       set y [trimNum [expr {-0.3*$size*sin($angle)}]]
-                      switch $r {
+                      switch -- $r {
                         x {append circlePoints "0 $x $y "}
                         y {append circlePoints "$x 0 $y "}
                         z {append circlePoints "$x $y 0 "}
@@ -1154,9 +1158,11 @@ proc feaButtons {type} {
     if {[info exists feaBoundary] && $opt(VIZFEABC)} {
       puts $x3dFile "\n<!-- BC buttons -->\n<p>Boundary Conditions<br>"
       set n 0
+      set checked ""
+      if {[llength [array names feaBoundary]] == 1} {set checked "checked"}
       foreach spc [lsort [array names feaBoundary]] {
         incr n
-        puts $x3dFile "<input type='checkbox' name='spc' id='SPC$n' onclick='togSPC(this.value)'/>$spc<br>"
+        puts $x3dFile "<input type='checkbox' $checked name='spc' id='SPC$n' onclick='togSPC(this.value)'/>$spc<br>"
       }
       puts $x3dFile "<input style='width:80px' type='range' min='-2' max='4' step='0.25' value='1' onchange='bcScale(this.value)'/> Scale"
     }
@@ -1174,9 +1180,11 @@ proc feaButtons {type} {
       }
 
 # load checkboxes
+      set checked ""
+      if {[llength [array names feaLoad]] == 1} {set checked "checked"}
       foreach load [lsort [array names feaLoad]] {
         incr n
-        puts $x3dFile "<tr><td><input type='checkbox' name='load' id='LOAD$n' onclick='togLOAD(this.value)'/>$load</td></tr>"
+        puts $x3dFile "<tr><td><input type='checkbox' $checked name='load' id='LOAD$n' onclick='togLOAD(this.value)'/>$load</td></tr>"
       }
 
 # load color scale
@@ -1199,9 +1207,11 @@ proc feaButtons {type} {
       }
 
 # displacement checkboxes
+      set checked ""
+      if {[llength [array names feaDisp]] == 1} {set checked "checked"}
       foreach disp [lsort [array names feaDisp]] {
         incr n
-        puts $x3dFile "<tr><td><input type='checkbox' name='DISP' id='DISP$n' onclick='togDISPLACEMENT(this.value)'/>$disp</td></tr>"
+        puts $x3dFile "<tr><td><input type='checkbox' $checked name='DISP' id='DISP$n' onclick='togDISPLACEMENT(this.value)'/>$disp</td></tr>"
       }
 
 # displacement color scale
@@ -1426,6 +1436,6 @@ proc feaWriteIndex {ftyp file} {
     if {[string length $nline] > 0} {puts $feaFile($file) $nline}
 
     close $feaFile($ftyp)
-    catch {file delete -force $feaFileName($ftyp)}
+    catch {file delete -force -- $feaFileName($ftyp)}
   }
 }

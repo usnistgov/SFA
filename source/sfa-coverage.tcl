@@ -206,7 +206,7 @@ proc spmiCoverageStart {{multi 1}} {
 # -------------------------------------------------------------------------------
 # write PMI Representation Coverage analysis worksheet
 proc spmiCoverageWrite {{fn ""} {sum ""} {multi 1}} {
-  global allPMI cells cells1 col1 entCount fileList legendColor nfile nistCoverageStyle pmiElementsMaxRows
+  global allPMI cells cells1 col1 entCount fileList legendColor nfile nistCoverageStyle opt pmiElementsMaxRows
   global pmiModifiers sempmi_coverage sempmi_totals spmiTypes spmiTypesPerFile worksheet worksheet1
   #outputMsg "spmiCoverageWrite $multi" red
 
@@ -219,7 +219,7 @@ proc spmiCoverageWrite {{fn ""} {sum ""} {multi 1}} {
     }
     
 # datums handled differently
-    if {[info exists entCount(datum)]} {
+    if {[info exists entCount(datum)] && !$opt(PMISEMDIM)} {
       for {set i 0} {$i < $entCount(datum)} {incr i} {lappend spmiTypesPerFile1 "datum (6.5)"}
       if {$multi} {unset entCount(datum)}
     }
@@ -228,7 +228,6 @@ proc spmiCoverageWrite {{fn ""} {sum ""} {multi 1}} {
     if {[info exists allPMI]} {
       if {[string length $allPMI] > 0} {
         set mods [list maximum_material_requirement least_material_requirement free_state tangent_plane]
-        foreach mod $mods {set numMods($mod) 0}
         for {set i 0} {$i < [string length $allPMI]} {incr i} {
           foreach mod $mods {
             if {[string index $allPMI $i] == $pmiModifiers($mod)} {incr numMods($mod)}
@@ -237,8 +236,19 @@ proc spmiCoverageWrite {{fn ""} {sum ""} {multi 1}} {
       }
     }
 
-# add number of pmi types
-    if {[info exists spmiTypesPerFile] || [info exists spmiTypesPerFile1]} {
+# add number of pmi types to rows of coverage analysis worksheet
+    if {[info exists spmiTypesPerFile] || [info exists spmiTypesPerFile1]} {      
+
+# count number of spmiTypesPerFile, put in stpf
+      if {[info exists spmiTypesPerFile]} {
+        foreach id $spmiTypesPerFile {incr num($id)}
+        foreach id [array names num] {lappend stpf [list $id $num($id)]}
+      }
+      if {[info exists spmiTypesPerFile1]} {
+        foreach id $spmiTypesPerFile1 {incr num1($id)}
+        foreach id [array names num1] {lappend stpf1 [list $id $num1($id)]}
+      }
+
       for {set r 4} {$r <= $pmiElementsMaxRows} {incr r} {
         if {$multi} {
           set val [[$cells1($sempmi_coverage) Item $r 1] Value]
@@ -247,37 +257,22 @@ proc spmiCoverageWrite {{fn ""} {sum ""} {multi 1}} {
         }
 
         if {[info exists spmiTypesPerFile]} {
-          foreach idx $spmiTypesPerFile {
+          foreach item $stpf {
+            set idx [lindex $item 0]
             set ok 0
             if {$idx != "line" && $idx != "point"} {
-              if {([string first $idx $val] == 0 && [string first "free_state_condition" $val] == -1) || \
-                  $idx == [lindex [split $val " "] 0]} {set ok 1}
+              if {([string first $idx $val] == 0 && [string first "free_state_condition" $val] == -1) || $idx == [lindex [split $val " "] 0]} {set ok 1}
             } else {
               if {[string first "$idx  " $val] == 0} {set ok 1}
             }
 
-# get current value
+# add number of pmi to worksheet
             if {$ok} {
-              if {$multi} {
-                set npmi [[$cells1($sempmi_coverage) Item $r $col1($sum)] Value]
-              } else {
-                set npmi [[$cells($sempmi_coverage) Item $r 2] Value]
-              }
-
-# set or increment npmi
-              if {$npmi == ""} {
-                set npmi 1
-              } else {
-                set npmi [expr {int($npmi)+1}]
-              }
+              set npmi [lindex $item 1]
 
 # use other count of some modifiers
-              if {[info exists allPMI]} {
-                if {[string length $allPMI] > 0} {
-                  foreach mod $mods {
-                    if {$idx == $mod && $numMods($mod) > 0} {set npmi $numMods($mod)}
-                  }
-                }
+              if {[info exists numMods]} {
+                foreach mod $mods {if {$idx == $mod && $numMods($mod) > 0} {set npmi $numMods($mod)}}
               }
               
 # write npmi
@@ -296,18 +291,10 @@ proc spmiCoverageWrite {{fn ""} {sum ""} {multi 1}} {
 
 # exact match (only datum)
         if {[info exists spmiTypesPerFile1]} {
-          foreach idx $spmiTypesPerFile1 {
+          foreach item $stpf1 {
+            set idx [lindex $item 0]
             if {$idx == $val} {
-              if {$multi} {
-                set npmi [[$cells1($sempmi_coverage) Item $r $col1($sum)] Value]
-              } else {
-                set npmi [[$cells($sempmi_coverage) Item $r 2] Value]
-              }
-              if {$npmi == ""} {
-                set npmi 1
-              } else {
-                set npmi [expr {int($npmi)+1}]
-              }
+              set npmi [lindex $item 1]
               if {$multi} {
                 $cells1($sempmi_coverage) Item $r $col1($sum) $npmi
                 set range [$worksheet1($sempmi_coverage) Range [cellRange $r $col1($sum)] [cellRange $r $col1($sum)]]

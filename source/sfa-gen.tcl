@@ -229,7 +229,7 @@ proc genExcel {{numFile 0}} {
           }
         }
         close $skipFile
-        file delete -force $cfile1
+        file delete -force -- $cfile1
         errorMsg "File of entities to skip '[file tail $cfile1]' renamed to '[file tail $cfile]'."
       }
     }
@@ -357,12 +357,8 @@ proc genExcel {{numFile 0}} {
       }
 
 # turning off ScreenUpdating, saves A LOT of time
-      if {$opt(XL_KEEPOPEN) && $numFile == 0} {
-        $excel Visible 1
-      } else {
-        $excel Visible 0
-        catch {$excel ScreenUpdating 0}
-      }
+      $excel Visible 0
+      catch {$excel ScreenUpdating 0}
 
       set rowmax [expr {$rowmax-2}]
       if {$opt(XL_ROWLIM) < $rowmax} {set rowmax $opt(XL_ROWLIM)}
@@ -458,10 +454,10 @@ proc genExcel {{numFile 0}} {
     }
 
 # delete existing file
-    if {[file exists $xlFileNameOld]} {catch {file delete -force $xlFileNameOld}}
+    if {[file exists $xlFileNameOld]} {catch {file delete -force -- $xlFileNameOld}}
     if {[file exists $xlFileName]} {
       if {[catch {
-        file delete -force $xlFileName
+        file delete -force -- $xlFileName
       } emsg]} {
         if {[string length $xlsmsg] > 0} {append xlsmsg "\n"}
         append xlsmsg "ERROR deleting existing Spreadsheet: [truncFileName $xlFileName]"
@@ -537,9 +533,9 @@ proc genExcel {{numFile 0}} {
       set ok1 [setEntsToProcess $entType]
       if {$ok == 0} {set ok $ok1}
 
-# entities in unsupported APs that are not AP203, AP214, AP242 - if not using a user-defined list
-      if {!$opt(PR_USER)} {
-        if {[string first "AP203" $stepAP] == -1 && [string first "AP214" $stepAP] == -1 && $stepAP != "AP242"} {
+# entities in unsupported APs that are not AP203, AP214, AP242 - if not using a user-defined list or not generating a spreadsheet
+      if {[string first "AP203" $stepAP] == -1 && [string first "AP214" $stepAP] == -1 && $stepAP != "AP242"} {
+        if {!$opt(PR_USER) || $opt(XLSCSV) == "None"} {
           set et $entType
           set c1 [string first "_and_" $et]
           if {$c1 != -1} {set et [string range $et 0 $c1-1]}
@@ -552,6 +548,13 @@ proc genExcel {{numFile 0}} {
               }
             }
           }
+
+# user-defined list and AP209 views are not allowed when generating a spreadsheet
+        } elseif {[string first "AP209" $stepAP] != -1 && $opt(VIZFEA) && $opt(XLSCSV) != "None"} {
+          outputMsg " "
+          errorMsg "Viewing the AP209 FEM is not allowed when a User-Defined List is selected in the Options tab."
+          set opt(VIZFEA) 0
+          checkValues
         }
       }
 
@@ -829,7 +832,7 @@ proc genExcel {{numFile 0}} {
     set stat 1
     set wsCount 0
     set x3dMsg {}
-    foreach f {elements mesh meshIndex faceIndex} {catch {file delete -force [file join $mytemp $f.txt]}}
+    foreach f {elements mesh meshIndex faceIndex} {catch {file delete -force -- [file join $mytemp $f.txt]}}
 
     if {[info exists dim]} {unset dim}
     set dim(prec,max) 0
@@ -954,7 +957,7 @@ proc genExcel {{numFile 0}} {
     }
 
     if {[join $fixtmp] == ""} {
-      catch {file delete -force $cfile}
+      catch {file delete -force -- $cfile}
     } else {
       set skipFile [open $cfile w]
       foreach item $fixtmp {puts $skipFile $item}
@@ -1115,7 +1118,7 @@ proc genExcel {{numFile 0}} {
             $worksheet($wsname) Activate
             regsub -all " " $wsname "-" wsname
             set csvfname [file nativename [file join $csvdirnam $wsname.csv]]
-            if {[file exists $csvfname]} {file delete -force $csvfname}
+            if {[file exists $csvfname]} {file delete -force -- $csvfname}
             if {[string first "PMI-Representation" $csvfname] != -1 && $excelVersion < 16} {
               errorMsg "PMI symbols written to CSV files will look correct only with Excel 2016 or newer." red
             }
@@ -1258,10 +1261,10 @@ proc genExcel {{numFile 0}} {
                workbook workbooks worksheet worksheets x3dCoord x3dFile x3dFileName x3dIndex x3dMax x3dMin x3dStartFile} {
     if {[info exists $var]} {unset $var}
   }
-  if {!$multiFile} {
-    foreach var {gpmiTypesPerFile spmiTypesPerFile} {if {[info exists $var]} {unset $var}}
-  }
-  foreach f {elements mesh meshIndex faceIndex loads bcs} {catch {file delete -force [file join $mytemp $f.txt]}}
+  if {!$multiFile} {foreach var {gpmiTypesPerFile spmiTypesPerFile} {if {[info exists $var]} {unset $var}}}
+
+# delete leftover text files
+  foreach f [glob -nocomplain -directory $mytemp *.txt] {catch {file delete -force -- $f}}
   update idletasks
   return 1
 }
@@ -1292,7 +1295,7 @@ proc addHeaderWorksheet {numFile fname} {
       set csvdirnam "[file join [file dirname $localName] [file rootname [file tail $localName]]]-sfa-csv"
       file mkdir $csvdirnam
       set csvfname [file join $csvdirnam $hdr.csv]
-      if {[file exists $csvfname]} {file delete -force $csvfname}
+      if {[file exists $csvfname]} {file delete -force -- $csvfname}
       set fcsv [open $csvfname w]
     }
 

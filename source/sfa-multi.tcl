@@ -232,7 +232,7 @@ proc openMultiFile {{ask 1}} {
           set localName $file1
 
           outputMsg "\n-------------------------------------------------------------------------------"
-          outputMsg "($nfile of $lenfilelist) Ready to process: [file tail $file1] ([expr {[file size $file1]/1024}] Kb)" blue
+          outputMsg "($nfile of $lenfilelist) Ready to process: [file tail $file1] ([expr {[file size $file1]/1024}] Kb)" green
 
 # check for zipped file
           if {[string first ".stpz" [string tolower $localName]] != -1} {unzipFile}

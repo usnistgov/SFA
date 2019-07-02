@@ -99,7 +99,7 @@ proc nistReadExpectedPMI {} {
 # -------------------------------------------------------------------------------
 # get expected PMI for PMI Representation Summary worksheet
 proc nistGetSummaryPMI {} {
-  global nistName nistPMIactual nistPMIexpected nistPMIexpectedNX nistPMIfound nistPMImaster nsimilar pmiType spmiSumName tolNames worksheet
+  global nistName nistPMIactual nistPMIexpected nistPMIexpectedNX nistPMIfound nistPMImaster nsimilar opt pmiType spmiSumName tolNames worksheet
 
 # add pictures
   nistAddModelPictures $spmiSumName
@@ -115,30 +115,29 @@ proc nistGetSummaryPMI {} {
     foreach item $nistPMImaster($nistName) {
       set c1 [string first "\\" $item]
       set typ [string range $item 0 $c1-1]
-      set pmi [string range $item $c1+1 end]
-      set newpmi [pmiRemoveZeros $pmi]
-      lappend nistPMIexpected($nistName) $newpmi
+
+      if {!$opt(PMISEMDIM) || $typ == "dimensional_characteristic_representation"} {
+        set pmi [string range $item $c1+1 end]
+        set newpmi [pmiRemoveZeros $pmi]
+        lappend nistPMIexpected($nistName) $newpmi
       
 # look for 'nX' in expected
-      set c1 [string first "X" $newpmi]
-      if {$c1 < 3} {
-        set newpminx [string range $newpmi $c1+1 end]
-        lappend nistPMIexpectedNX($nistName) [string trim $newpminx]
-      } else {
-        lappend nistPMIexpectedNX($nistName) $newpmi
+        set c1 [string first "X" $newpmi]
+        if {$c1 < 3} {
+          set newpminx [string range $newpmi $c1+1 end]
+          lappend nistPMIexpectedNX($nistName) [string trim $newpminx]
+        } else {
+          lappend nistPMIexpectedNX($nistName) $newpmi
+        }
+        
+        if {[string first "tolerance" $typ] != -1} {
+          foreach nam $tolNames {if {[string first $nam $typ] != -1} {set pmiType($newpmi) $nam}}
+        } else {
+          set pmiType($newpmi) $typ
+        }
+        set nistPMIactual($newpmi) $pmi
       }
-      
-      if {[string first "tolerance" $typ] != -1} {
-        foreach nam $tolNames {if {[string first $nam $typ] != -1} {set pmiType($newpmi) $nam}}
-      } else {
-        set pmiType($newpmi) $typ
-      }
-      set nistPMIactual($newpmi) $pmi
     }
-
-    #for {set i 0} {$i < [llength $nistPMIexpected($nistName)]} {incr i} {
-    #  outputMsg "$i / [lindex $nistPMIexpected($nistName) $i] / [lindex $nistPMIexpectedNX($nistName) $i]"
-    #}
   }
   set nistPMIfound {}
 }
@@ -827,7 +826,7 @@ proc pmiRemoveZeros {pmi} {
 
 # leading zero
           regsub -all " 0" $spmi " " spmi
-          if {[string first $pmiUnicode(diameter) $spmi] != -1} {regsub -all "$pmiUnicode(diameter)0" $spmi $pmiUnicode(diameter) spmi}
+          if {[string first $pmiUnicode(diameter) $spmi] != -1} {regsub -all -- "$pmiUnicode(diameter)0" $spmi $pmiUnicode(diameter) spmi}
 
 # trailing .
           if {[string first ". " $spmi] != -1} {regsub {\. } $spmi " " spmi}
