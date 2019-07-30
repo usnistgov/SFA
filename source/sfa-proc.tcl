@@ -343,7 +343,8 @@ proc openURL {url} {
       exec {*}[auto_execok start] "" $url
     } emsg]} {
       if {[string first "is not recognized" $emsg] == -1} {
-        if {[string first "UNC" $emsg] == -1} {errorMsg "ERROR opening $url: $emsg"}
+        if {[string first "UNC" $emsg] != -1} {set emsg [fixErrorMsg $emsg]}
+        if {$emsg != ""} {errorMsg "ERROR opening $url: $emsg"}
       }
     }
 
@@ -362,7 +363,7 @@ proc openURL {url} {
 
 #-------------------------------------------------------------------------------
 proc openFile {{openName ""}} {
-  global buttons fileDir localName localNameList
+  global buttons editorCmd fileDir localName localNameList
 
   if {$openName == ""} {
   
@@ -408,6 +409,14 @@ proc openFile {{openName ""}} {
         $buttons(genExcel) configure -state normal
         if {[info exists buttons(appOpen)]} {$buttons(appOpen) configure -state normal}
         focus $buttons(genExcel)
+        if {$editorCmd != ""} {
+          bind . <Key-F5> {
+            if {[file exists $localName]} {
+              outputMsg "\nOpening STEP file: [file tail $localName]"
+              exec $editorCmd [file nativename $localName] &
+            }
+          }
+        }
       }
     }
   
@@ -582,7 +591,8 @@ proc runOpenProgram {} {
     if {[catch {
       exec {*}[auto_execok start] "" [file nativename $dispFile]
     } emsg]} {
-      if {[string first "UNC" $emsg] == -1} {
+      if {[string first "UNC" $emsg] != -1} {set emsg [fixErrorMsg $emsg]}
+      if {$emsg != ""} {
         errorMsg "No application is associated with STEP files."
         errorMsg " See Websites > STEP File Viewers"
       }
@@ -778,7 +788,7 @@ proc runOpenProgram {} {
 #-------------------------------------------------------------------------------
 # open a spreadsheet
 proc openXLS {filename {check 0} {multiFile 0}} {
-  global buttons
+  global buttons developer
 
   if {[info exists buttons]} {
     .tnb select .tnb.status
@@ -807,18 +817,23 @@ proc openXLS {filename {check 0} {multiFile 0}} {
 
 # errors
     } emsg]} {
-      if {[string first "UNC" $emsg] == -1} {
-        errorMsg "ERROR opening Spreadsheet: $emsg"
-        outputMsg " "
-        set funcstr "F2"
-        if {$multiFile} {set funcstr "F3"}
-        errorMsg "Use $funcstr to open the spreadsheet or\n Go to the directory with the spreadsheet and open it."
+      #if {$developer} {outputMsg $emsg red}
+      if {[string first "UNC" $emsg] != -1} {set emsg [fixErrorMsg $emsg]}
+      if {$emsg != ""} {
+        if {[string first "The process cannot access the file" $emsg] != -1} {
+          outputMsg " The Spreadsheet might already be opened." red
+        } else {
+          outputMsg " Error opening the Spreadsheet: $emsg" red
+        }
         catch {raise .}
       }
     }
 
   } else {
-    if {[file tail $filename] != ""} {errorMsg "Spreadsheet not found: [truncFileName [file nativename $filename]]"}
+    if {[file tail $filename] != ""} {
+      outputMsg "\nOpening Spreadsheet: [file tail $filename]"
+      outputMsg " Spreadsheet not found: [truncFileName [file nativename $filename]]" red
+    }
     set filename ""
   }
   return $filename
@@ -826,7 +841,7 @@ proc openXLS {filename {check 0} {multiFile 0}} {
 
 #-------------------------------------------------------------------------------
 proc checkForExcel {{multFile 0}} {
-  global buttons lastXLS localName opt
+  global buttons lastXLS localName opt tcl_platform
   
   set pid1 [twapi::get_process_ids -name "EXCEL.EXE"]
   if {![info exists useXL]} {set useXL 1}
@@ -834,15 +849,12 @@ proc checkForExcel {{multFile 0}} {
   if {[llength $pid1] > 0 && $opt(XLSCSV) != "None"} {
     if {[info exists buttons]} {
       if {!$multFile} {
-        set msg "There are ([llength $pid1]) instances of Excel already running.\nThe spreadsheets for the other instances might not be visible but will show up in the Windows Task Manager as EXCEL.EXE"
-        append msg "\n\nThey might affect generating, saving, or viewing a new Excel spreadsheet."
-        append msg "\n\nDo you want to close the other instances of Excel?"
-
+        set msg "There are at least ([llength $pid1]) Excel spreadsheets already opened.\n\nDo you want to close the open spreadsheets?"
         set dflt yes
         if {[info exists lastXLS] && [info exists localName]} {
           if {[llength $pid1] == 1} {if {[string first [file nativename [file rootname $localName]] [file nativename $lastXLS]] != 0} {set dflt no}}
         }
-        set choice [tk_messageBox -type yesno -default $dflt -message $msg -icon question -title "Close Excel?"]
+        set choice [tk_messageBox -type yesno -default $dflt -message $msg -icon question -title "Close Spreadsheets?"]
 
         if {$choice == "yes"} {
           for {set i 0} {$i < 5} {incr i} {
@@ -857,7 +869,6 @@ proc checkForExcel {{multFile 0}} {
             set pid1 [twapi::get_process_ids -name "EXCEL.EXE"]
             if {[llength $pid1] == 0} {break}
           }
-          #if {$nnc > 0} {errorMsg "Some instances ($nnc) of Excel were not closed: $emsg" red}
         }
       }
     } else {
@@ -1189,6 +1200,17 @@ proc errorMsg {msg {color ""}} {
 }
 
 # -------------------------------------------------------------------------------------------------
+proc fixErrorMsg {emsg} {
+  set emsg [split $emsg "\n"]
+  if {[llength $emsg] > 3} {
+    set emsg [join [lrange $emsg 3 end] "\n"]
+  } else {
+    set emsg ""
+  }
+  return $emsg
+}
+
+# -------------------------------------------------------------------------------------------------
 proc truncFileName {fname {compact 0}} {
   global mydesk mydocs
 
@@ -1235,6 +1257,19 @@ proc truncFileName {fname {compact 0}} {
     }
   }
   return $fname
+}
+
+#-------------------------------------------------------------------------------
+# create new file name if current file already exists
+proc incrFileName {fn} {
+  set fext [file extension $fn]
+  set c1 [string last "." $fn]
+  for {set i 1} {$i < 100} {incr i} {
+    set fn "[string range $fn 0 $c1-1] ($i)$fext"
+    catch {[file delete -force -- $fn]}
+    if {![file exists $fn]} {break}
+  }
+  return $fn
 }
 
 #-------------------------------------------------------------------------------
@@ -1290,7 +1325,8 @@ proc copyRoseFiles {} {
         if {[catch {
           exec {*}[auto_execok start] [file nativename $mytemp]
         } emsg]} {
-          if {[string first "UNC" $emsg] == -1} {errorMsg "ERROR opening directory: $emsg"}
+          if {[string first "UNC" $emsg] != -1} {set emsg [fixErrorMsg $emsg]}
+          if {$emsg != ""} {errorMsg "ERROR opening directory: $emsg"}
         }
       }
     }
@@ -1348,7 +1384,7 @@ proc installIFCsvr {} {
   the toolkit.  The toolkit is safe to install.  Use the default installation
   folder for the toolkit.
 - See Help > Supported STEP APs to see which type of STEP files are supported.
-- To reinstall the toolkit, run the installation file ifcsvrr300_setup_1008.en.msi
+- To reinstall the toolkit, run the installation file ifcsvrr300_setup_1008_en.msi
   in $mytemp
   or your home directory or the current directory.
 - If there are problems with the IFCsvr installation, contact [lindex $contact 0] ([lindex $contact 1])."
@@ -1390,7 +1426,8 @@ proc installIFCsvr {} {
     if {[catch {
       exec {*}[auto_execok start] "" $ifcsvrMsi
     } emsg]} {
-      if {[string first "UNC" $emsg] == -1} {errorMsg "ERROR installing IFCsvr Toolkit: $emsg"}
+      if {[string first "UNC" $emsg] != -1} {set emsg [fixErrorMsg $emsg]}
+      if {$emsg != ""} {errorMsg "ERROR installing IFCsvr Toolkit: $emsg"}
     }
   } else {
     if {[file exists $ifcsvrInst]} {errorMsg "The IFCsvr Toolkit cannot be automatically installed."}
@@ -1408,7 +1445,8 @@ proc installIFCsvr {} {
       if {[catch {
         exec {*}[auto_execok start] [file nativename $mytemp]
       } emsg]} {
-        if {[string first "UNC" $emsg] == -1} {errorMsg "ERROR opening directory: $emsg"}
+        if {[string first "UNC" $emsg] != -1} {set emsg [fixErrorMsg $emsg]}
+        if {$emsg != ""} {errorMsg "ERROR opening directory: $emsg"}
       }
     } else {
       outputMsg "To install the IFCsvr Toolkit you must install the NIST version of the STEP File Analyzer and Viewer."

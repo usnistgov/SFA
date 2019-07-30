@@ -278,7 +278,7 @@ if {$opt(FIRSTTIME)} {
   setShortcuts
   
   outputMsg " "
-  errorMsg "Use F6 and F5 to change the font size."
+  errorMsg "Use F8 and F9 to change the font size."
   saveState
 
 # what's new message
@@ -318,7 +318,7 @@ if {$nistVersion} {
     set lastupgrade [expr {round(([clock seconds] - $upgrade)/86400.)}]
     if {$lastupgrade > 30} {
       set choice [tk_messageBox -type yesno -default yes -title "Check for Update" \
-        -message "Do you want to check for a newer version of the STEP File Analyzer and Viewer?\n \nThe last check for an update was $lastupgrade days ago.\n \nYou can always check for an update with Help > Check for Update" -icon question]
+        -message "Do you want to check for a new version of the STEP File Analyzer and Viewer?\n \nThe last check for an update was $lastupgrade days ago.\n \nYou can always check for an update with Help > Check for Update" -icon question]
       if {$choice == "yes"} {
         set url "https://concrete.nist.gov/cgi-bin/ctv/sfa_upgrade.cgi?version=[getVersion]&auto=$lastupgrade"
         openURL $url
@@ -362,6 +362,14 @@ if {$argv != ""} {
       if {[info exists buttons(genExcel)]} {
         $buttons(genExcel) configure -state normal
         focus $buttons(genExcel)
+        if {$editorCmd != ""} {
+          bind . <Key-F5> {
+            if {[file exists $localName]} {
+              outputMsg "\nOpening STEP file: [file tail $localName]"
+              exec $editorCmd [file nativename $localName] &
+            }
+          }
+        }
       }
     } else {
       errorMsg "File not found: [truncFileName [file nativename $localName]]"
@@ -377,9 +385,8 @@ set pid2 [twapi::get_process_ids -name "STEP-File-Analyzer.exe"]
 set pid2 [concat $pid2 [twapi::get_process_ids -name "sfa.exe"]]
 
 if {[llength $pid2] > 1} {
-  set msg "There are ([expr {[llength $pid2]-1}]) other instances of the STEP File Analyzer and Viewer already running.\n\nThe windows for the other instances might not be visible but will show up in the Windows Task Manager as 'ActiveState Basekit' or 'STEP-File-Analyzer.exe'"
-  append msg "\n\nDo you want to close the other instances of the STEP File Analyzer and Viewer?"
-  set choice [tk_messageBox -type yesno -default yes -message $msg -icon question -title "Close the other STEP File Analyzer and Viewer?"]
+  set msg "There are at least ([expr {[llength $pid2]-1}]) other instances of the STEP File Analyzer and Viewer already running.\n\nDo you want to close them?"
+  set choice [tk_messageBox -type yesno -default yes -message $msg -icon question -title "Close?"]
   if {$choice == "yes"} {
     foreach pid $pid2 {
       if {$pid != [pid]} {catch {twapi::end_process $pid -force}}

@@ -62,37 +62,49 @@ catch {
 }
 
 # no arguments, no file, print help, and exit
-set helpText "\nUsage: sfa-cl.exe myfile.stp \[csv\] \[viz\] \[noopen\] \[file\]
+set helpText "\nUsage: sfa-cl.exe myfile.stp \[csv\] \[viz\] \[stats\] \[noopen\] \[file\]
 
 Optional command line settings:
   csv     Generate CSV files
   viz     Only generate Views and no Spreadsheet or CSV files
-  stats   Only report characteristics of the STEP file
+  stats   Only report characteristics of the STEP file, no output files are generated
   noopen  Do not open the Spreadsheet or View after it has been generated
-  file    Name of custom options file, e.g., C:/mydir/myoptions.dat
-          This file should be similar to STEP-File-Analyzer-options.dat in your home directory.
+  file    Name of custom options file, e.g., C:/mydir/myoptions.dat  This file should
+          be similar to STEP-File-Analyzer-options.dat in your home directory.
 
-If 'myfile.stp' has spaces, put quotes around the file name \"C:/mydir/my file.stp\"
+ Most options last used in the GUI version are used in this program unless the 'file'
+ option is used.
 
-It is recommended to run the GUI version of the software first.  If not already
-installed, the IFCsvr toolkit (used to read STEP files) and STEP schema files will
-be installed the first time this software is run.
+ If 'myfile.stp' has spaces, put quotes around the file name \"C:/mydir/my file.stp\"
 
-Disclaimers:
+ It is recommended to run the GUI version of the software first.  If not already
+ installed, the IFCsvr toolkit (used to read STEP files) and STEP schema files will be
+ installed the first time this software is run.
+ 
+ Existing Spreadsheets and View files are always overwritten.  An Internet connection
+ is required to show View files.
 
-This software was developed at the National Institute of Standards and Technology
-by employees of the Federal Government in the course of their official duties.
-Pursuant to Title 17 Section 105 of the United States Code this software is not
-subject to copyright protection and is in the public domain.  This software is an
-experimental system.  NIST assumes no responsibility whatsoever for its use by
-other parties, and makes no guarantees, expressed or implied, about its quality,
-reliability, or any other characteristic.
+ When the STEP file is opened, errors and warnings might appear in the output between
+ the '*** Begin ST-Developer output' and '*** End ST-Developer output' messages.  Use
+ the 'stats' option to only check for the errors and warnings without generating a
+ spreadsheet.
 
-This software uses Microsoft Excel and IFCsvr that are covered by their own
-End-User License Agreements.  The B-rep part geometry viewer is based on software
-from OpenCascade and pythonOCC.
-
-See the NIST Disclaimer at: https://www.nist.gov/disclaimer"
+Disclaimers
+ This software was developed at the National Institute of Standards and Technology by
+ employees of the Federal Government in the course of their official duties.  Pursuant
+ to Title 17 Section 105 of the United States Code this software is not subject to
+ copyright protection and is in the public domain.  This software is an experimental
+ system.  NIST assumes no responsibility whatsoever for its use by other parties, and
+ makes no guarantees, expressed or implied, about its quality, reliability, or any
+ other characteristic.  NIST Disclaimer: https://www.nist.gov/disclaimer
+ 
+Credits
+- Generating spreadsheets:        Microsoft Excel (https://products.office.com/excel)
+- Reading and parsing STEP files: IFCsvr (https://groups.yahoo.com/neo/groups/ifcsvr-users/info)
+                                  License agreement C:\\Program Files (x86)\\IFCsvrR300\\doc
+                                  IFCsvr ActiveX Component, Copyright \u00A9 1999, 2005 SECOM Co., Ltd. All Rights Reserved
+- Viewing B-rep part geometry:    OpenCascade (https://www.opencascade.com/) and
+                                  pythonOCC (https://github.com/tpaviot/pythonocc)"
 
 if {$argc == 1} {set arg [string tolower [lindex $argv 0]]}
 if {$argc == 0 || ($argc == 1 && ($arg == "help" || $arg == "-help" || $arg == "-h" || $arg == "-v"))} {

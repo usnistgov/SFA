@@ -26,12 +26,12 @@ proc spmiHoleStart {entType} {
   set spotface_definition [lreplace $explicit_round_hole 0 0 "spotface_definition"]
   set spotface_definition [concat $spotface_definition [list spotface_radius $plength_measure spotface_radius_tolerance $tol_val]]
 
-  set PMIP(simplified_counterbore_hole_definition)  [list simplified_counterbore_hole_definition placement $a2p3d counterbore $explicit_round_hole]
-  set PMIP(simplified_counterdrill_hole_definition) [list simplified_counterdrill_hole_definition placement $a2p3d counterbore $explicit_round_hole \
+  set PMIP(simplified_counterbore_hole_definition)  [list simplified_counterbore_hole_definition name placement $a2p3d counterbore $explicit_round_hole]
+  set PMIP(simplified_counterdrill_hole_definition) [list simplified_counterdrill_hole_definition name placement $a2p3d counterbore $explicit_round_hole \
       counterdrill_angle $pangle_measure counterdrill_angle_tolerance $tol_val]
-  set PMIP(simplified_countersink_hole_definition)  [list simplified_countersink_hole_definition placement $a2p3d \
+  set PMIP(simplified_countersink_hole_definition)  [list simplified_countersink_hole_definition name placement $a2p3d \
       countersink_angle $pangle_measure countersink_angle_tolerance $tol_val countersink_diameter $plength_measure countersink_diameter_tolerance $tol_val $lim_fit]
-  set PMIP(simplified_spotface_hole_definition)     [list simplified_spotface_hole_definition placement $a2p3d counterbore $spotface_definition]
+  set PMIP(simplified_spotface_hole_definition)     [list simplified_spotface_hole_definition name placement $a2p3d counterbore $spotface_definition]
 
 # add drilled hole
   set drilled_hole [list drilled_hole_depth $plength_measure drilled_hole_depth_tolerance $tol_val drilled_hole_diameter $plength_measure drilled_hole_diameter_tolerance $tol_val $lim_fit through_hole]
@@ -272,9 +272,11 @@ proc spmiHoleReport {objEntity} {
                       lappend spmiTypesPerFile "limits and fits"
                     }
                   }
-                  "*counter* through_hole" -
-                  "*spotface* through_hole" {
+                  "*hole_definition through_hole" {
                     set thruHole $objValue
+                  }
+                  "*hole_definition name" {
+                    set holeName $objValue
                   }
                 }
               }
@@ -311,14 +313,14 @@ proc spmiHoleReport {objEntity} {
     }
 
 # main hole diameter, depth, and tolerances
-    append holerep "$pmiUnicode(diameter)$holeDim(drilled_hole_diameter)"
+    append holerep "$pmiUnicode(diameter)[trimNum $holeDim(drilled_hole_diameter)]"
     lappend spmiTypesPerFile "diameter"
     set hd "drill $holeDim(drilled_hole_diameter)"
     if {[info exists holeDim(drilled_hole_diameter_tolerance)]} {append holerep " $holeDim(drilled_hole_diameter_tolerance)"}
 
 # drill depth specified, correct only if thru hole is false
     if {[info exists holeDim(drilled_hole_depth)]} {
-      append holerep "  $pmiModifiers(depth)$holeDim(drilled_hole_depth)"
+      append holerep "  $pmiModifiers(depth)[trimNum $holeDim(drilled_hole_depth)]"
       if {[info exists holeDim(drilled_hole_depth_tolerance)]} {append holerep " $holeDim(drilled_hole_depth_tolerance)"}
       lappend spmiTypesPerFile "depth"
       append hd " $holeDim(drilled_hole_depth)"
@@ -326,6 +328,7 @@ proc spmiHoleReport {objEntity} {
         set msg "Syntax Error: through_hole should be FALSE if drilled_hole_depth is specified."
         errorMsg $msg
         lappend syntaxErr([$holeEntity Type]) [list [$holeEntity P21ID] "through_hole" $msg]
+        lappend syntaxErr([$holeEntity Type]) [list [$holeEntity P21ID] "drilled_hole_depth" $msg]
       }
 
 # no drill depth and not a thru hole
@@ -338,7 +341,7 @@ proc spmiHoleReport {objEntity} {
 
 # countersink diameter, angle, and tolerances
     if {[info exists holeDim(countersink_diameter)]} {
-      append holerep "[format "%c" 10]$pmiModifiers(countersink)$pmiUnicode(diameter)$holeDim(countersink_diameter)"
+      append holerep "[format "%c" 10]$pmiModifiers(countersink)$pmiUnicode(diameter)[trimNum $holeDim(countersink_diameter)]"
       if {[info exists holeDim(countersink_diameter_tolerance)]} {append holerep " $holeDim(countersink_diameter_tolerance)"}
       append holerep " X $holeDim(countersink_angle)$pmiUnicode(degree)"
       lappend spmiTypesPerFile "diameter"
@@ -370,7 +373,9 @@ proc spmiHoleReport {objEntity} {
       lappend holeDefinitions([$holeEntity P21ID]) "$type $holeDim(diameter) $holeDim(depth)"
     }
 
+# thru hole and name
     lappend holeDefinitions([$holeEntity P21ID]) $thruHole
+    lappend holeDefinitions([$holeEntity P21ID]) $holeName
 
 # -------------------------------------------------------------------------------
 # report complete hole representation (holerep)

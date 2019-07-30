@@ -3,7 +3,7 @@ proc openMultiFile {{ask 1}} {
   global allEntity andEntAP209 buttons cells1 col1 coverageSTEP developer entCategory excel1 extXLS fileDir fileDir1 fileEntity fileList
   global gpmiTypes gpmiTypesInvalid lastXLS1 lenfilelist localName localNameList multiFileDir mydocs nfile nistCoverageStyle nistVersion nprogBarFiles
   global opt pmi_coverage pmi_rows pmi_totals pmiElementsMaxRows row1 sempmi_coverage sempmi_totals startrow stepAP totalEntity useXL
-  global worksheet1 worksheets1 writeDir xlFileNames xlFormat
+  global worksheet1 worksheets1 writeDir xlFileNames
 
   set maxfiles 1000
   if {$developer} {set maxfiles 10000}
@@ -101,11 +101,11 @@ proc openMultiFile {{ask 1}} {
 
             set mf [expr {2**14}]
             set extXLS "xlsx"
-            $excel1 DefaultSaveFormat [expr 51]
+            set xlFormat [expr 51]
             if {[expr {int([$excel1 Version])}] < 12} {
               set mf [expr {2**8}]
               set extXLS "xls"
-              $excel1 DefaultSaveFormat [expr 56]
+              set xlFormat [expr 56]
             }
 
             set mf [expr {$mf-3}]
@@ -533,6 +533,9 @@ proc openMultiFile {{ask 1}} {
             }
             catch {file delete -force $aname}
 
+# check if file exists and create new name
+            if {[file exists $aname]} {set aname [incrFileName $aname]}
+
 # save spreadsheet
             outputMsg "Saving File Summary Spreadsheet as:"
             outputMsg " [truncFileName $aname 1]" blue
@@ -559,7 +562,7 @@ proc openMultiFile {{ask 1}} {
             openXLS $aname 0 1
             if {$opt(XL_LINK1)} {outputMsg " Click on the Links in Row 3 to access individual spreadsheets.\n" blue}
           } else {
-            outputMsg " Use F3 to open the spreadsheet (see Options tab)" red
+            outputMsg " Use F7 to open the spreadsheet (see Options tab)" red
           }
 
 # unset some variables for the multi-file summary

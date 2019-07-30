@@ -17,6 +17,7 @@ proc x3dFileStart {} {
   set title [file tail $localName]
   if {$stepAP != "" && [string range $stepAP 0 1] == "AP"} {append title " | $stepAP"}
   puts $x3dFile "<!DOCTYPE html>\n<html>\n<head>\n<title>$title</title>\n<base target=\"_blank\">\n<meta http-equiv='Content-Type' content='text/html;charset=utf-8'/>"
+  #puts $x3dFile "<meta http-equiv=\"Cache-Control\" content=\"no-cache, no-store, must-revalidate\" />\n<meta http-equiv=\"Pragma\" content=\"no-cache\" />\n<meta http-equiv=\"Expires\" content=\"0\" />"
   puts $x3dFile "<link rel='stylesheet' type='text/css' href='https://www.x3dom.org/x3dom/release/x3dom.css'/>\n<script type='text/javascript' src='https://www.x3dom.org/x3dom/release/x3dom.js'></script>\n</head>"
 
   set name [file tail $localName]
@@ -562,6 +563,7 @@ proc x3dFileEnd {} {
   }
   append str ".&nbsp;&nbsp;&nbsp;<a href=\"https://www.nist.gov/disclaimer\">NIST Disclaimer</a>&nbsp;&nbsp;&nbsp;[clock format [clock seconds] -format "%d %b %G %H:%M"]"
   puts $x3dFile $str
+  #puts $x3dFile "<script>if (!navigator.onLine) {document.write(\"<B><P>You must have an Internet connection to view any of the graphics.</B>\");}</script>"
 
 # start right column
   puts $x3dFile "</td>\n\n<!-- START RIGHT COLUMN -->\n<td valign='top'>"
@@ -1268,11 +1270,14 @@ proc x3dSuppGeom {maxxyz} {
 
 # -------------------------------------------------------------------------------
 # supplemental geometry for point and the origin of a hole
-proc x3dSuppGeomPoint {e2 tsize {thruHole ""}} {
+proc x3dSuppGeomPoint {e2 tsize {thruHole ""} {holeName ""}} {
   global sphereDef viz x3dFile
 
   if {[catch {
+
+# get cartesian_point name attribute or use hole name   
     set name [[[$e2 Attributes] Item [expr 1]] Value]
+    if {$holeName != ""} {set name $holeName}
     set name [string trim $name]
 
 # append THRU for thru holes
@@ -1573,8 +1578,11 @@ proc x3dHoles {maxxyz} {
 
 # through hole
             set holeTop "true"
-            set thruHole [lindex $holeDefinitions($defID) end]
+            set thruHole [lindex $holeDefinitions($defID) end-1]
             if {$thruHole == 1} {set holeTop "false"}
+
+# hole name
+            set holeName [lindex $holeDefinitions($defID) end]
 
             catch {unset sink}
             catch {unset bore}
@@ -1674,14 +1682,14 @@ proc x3dHoles {maxxyz} {
               }
             }
           } else {
-            errorMsg "Only drill entry points for holes are shown when no spreadsheet is generated with the report for Semantic PMI (See Options tab)."
+            errorMsg "Only drill entry points for holes are shown when no spreadsheet\n is generated with the report for Semantic PMI (See Options tab)."
             if {[lsearch $holeDEF $defID] == -1} {lappend holeDEF $defID}
           }
 
 # point at origin of hole
           set e4 [[[$e3 Attributes] Item [expr 2]] Value]
           if {![info exists thruHole]} {set thruHole 0}
-          x3dSuppGeomPoint $e4 $drillPoint $thruHole
+          x3dSuppGeomPoint $e4 $drillPoint $thruHole $holeName
         }
       }
     } emsg]} {
@@ -1892,10 +1900,10 @@ proc x3dSetColor {type {mode 0}} {
 proc openX3DOM {{fn ""} {numFile 0}} {
   global lastX3DOM multiFile opt scriptName x3dFileName viz
 
-# f7 is for opening last x3dom file with function key F7
-  set f7 1
+# f3 is for opening last x3dom file with function key F3
+  set f3 1
   if {$fn == ""} {
-    set f7 0
+    set f3 0
     set ok 0
 
 # check that there is a file to view
@@ -1914,7 +1922,7 @@ proc openX3DOM {{fn ""} {numFile 0}} {
 
   set open 0
   if {![info exists viz(BRP)]} {set viz(BRP) 0}
-  if {$f7} {
+  if {$f3} {
     set open 1
   } elseif {($viz(PMI) || $viz(TPG) || $viz(FEA) || $viz(BRP)) && $fn != "" && $multiFile == 0} {
     if {$opt(XL_OPEN)} {set open 1}
@@ -1928,13 +1936,14 @@ proc openX3DOM {{fn ""} {numFile 0}} {
     if {[catch {
       exec {*}[auto_execok start] "" [file nativename $fn]
     } emsg]} {
-      if {[string first "UNC" $emsg] == -1} {
+      if {[string first "UNC" $emsg] != -1} {set emsg [fixErrorMsg $emsg]}
+      if {$emsg != ""} {
         errorMsg "ERROR opening View file ($emsg)\n Open [truncFileName [file nativename $fn]]\n in a web browser that supports x3dom https://www.x3dom.org"
       }
     }
     update idletasks
   } elseif {$numFile == 0 && [string first "STEP-File-Analyzer.exe" $scriptName] != -1} {
-    outputMsg " Use F7 to open the View (see Options tab)" red
+    outputMsg " Use F3 to open the View (see Options tab)" red
   }
 }
 

@@ -148,7 +148,7 @@ proc spmiCoverageStart {{multi 1}} {
       set cells1($sempmi_coverage) [$worksheet1($sempmi_coverage) Cells]
       $cells1($sempmi_coverage) Item 1 1 "STEP Directory"
       $cells1($sempmi_coverage) Item 1 2 "[file nativename $multiFileDir]"
-      $cells1($sempmi_coverage) Item 3 1 "PMI Element   (See Help > PMI Coverage Analysis)"
+      $cells1($sempmi_coverage) Item 3 1 "PMI Element   (See Help > Analyze > PMI Coverage Analysis)"
       set range [$worksheet1($sempmi_coverage) Range "B1:K1"]
       [$range Font] Bold [expr 1]
       $range MergeCells [expr 1]
@@ -162,7 +162,7 @@ proc spmiCoverageStart {{multi 1}} {
       set wsCount [$worksheets Count]
       [$worksheets Item [expr $wsCount]] -namedarg Move Before [$worksheets Item [expr 4]]
 
-      $cells($sempmi_coverage) Item 3 1 "PMI Element (See Help > PMI Coverage Analysis)"
+      $cells($sempmi_coverage) Item 3 1 "PMI Element (See Help > Analyze > PMI Coverage Analysis)"
       $cells($sempmi_coverage) Item 3 2 "Count"
       set range [$worksheet($sempmi_coverage) Range "1:3"]
       [$range Font] Bold [expr 1]
@@ -720,7 +720,7 @@ proc gpmiCoverageFormat {{sum ""} {multi 1}} {
       [$worksheet($pmi_coverage) Range "A1"] Select
       catch {[$worksheet($pmi_coverage) PageSetup] PrintGridlines [expr 1]}
       $cells($pmi_coverage) Item 1 1 [file tail $localName]
-      $cells($pmi_coverage) Item [expr {$pmi_rows+3}] 1 "See Help > PMI Coverage Analysis"
+      $cells($pmi_coverage) Item [expr {$pmi_rows+3}] 1 "See Help > Analyze > PMI Coverage Analysis"
 
 # add images for the CAx-IF and NIST PMI models
       if {$nistName != ""} {nistAddModelPictures $pmi_coverage}

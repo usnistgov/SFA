@@ -1343,11 +1343,12 @@ proc spmiGeotolReport {objEntity} {
         set ok1 0
         foreach item {"angularity" "circular_runout" "coaxiality" "concentricity" "parallelism" "perpendicularity" "symmetry" "total_runout"} {
           set gtol "$item\_tolerance"
-          if {[string first $gtol [$gtEntity Type]] != -1} {set ok1 1}
+          if {[string first $gtol [$gtEntity Type]] != -1} {set ok1 1; set gtol1 $gtol}
         }
         if {$ok1} {
-          errorMsg "Syntax Error: Datum system required with [$gtEntity Type].\n[string repeat " " 14]\($recPracNames(pmi242), Sec. 6.8)"
-          #lappend syntaxErr(tolerance_zone_form) [list [[$attrTZ Value] P21ID] "name"]
+          set msg "Syntax Error: Datum system required with $gtol1.\n[string repeat " " 14]\($recPracNames(pmi242), Sec. 6.8, Table 10)"
+          errorMsg $msg
+          lappend syntaxErr([$gtEntity Type]) [list [$gtEntity P21ID] "GD&T" $msg]
         }
       }
 
@@ -1362,13 +1363,14 @@ proc spmiGeotolReport {objEntity} {
 
 # check for tolerances that do not allow a datum system (section 6.8, table 10)
         set ok1 0
-        foreach item {"roundness" "cylindricity" "flatness" "straightness"} {
+        foreach item {"cylindricity" "flatness" "roundness" "straightness"} {
           set gtol "$item\_tolerance"
-          if {[string first $gtol [$gtEntity Type]] != -1} {set ok1 1}
+          if {[string first $gtol [$gtEntity Type]] != -1} {set ok1 1; set gtol1 $gtol}
         }
         if {$ok1} {
-          errorMsg "Syntax Error: Datum system ($ds) not allowed with [$gtEntity Type].\n[string repeat " " 14]\($recPracNames(pmi242), Sec. 6.8)"
-          #lappend syntaxErr(tolerance_zone_form) [list [[$attrTZ Value] P21ID] "name"]
+          set msg "Syntax Error: Datum system ($ds) not allowed with $gtol1.\n[string repeat " " 14]\($recPracNames(pmi242), Sec. 6.8, Table 10)"
+          errorMsg $msg
+          lappend syntaxErr([$gtEntity Type]) [list [$gtEntity P21ID] "datum_system" $msg]
         }
       }
 

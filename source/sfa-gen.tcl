@@ -8,7 +8,7 @@ proc genExcel {{numFile 0}} {
   global sheetLast skipEntities skipPerm spmiEntity spmiSumName spmiSumRow spmiTypesPerFile startrow statsOnly stepAP tessColor thisEntType tlast
   global tolNames tolStandard tolStandards totalEntity userEntityFile userEntityList userXLSFile useXL virtualDir viz workbook workbooks
   global worksheet worksheet1 worksheets writeDir wsCount wsNames x3dAxes x3dColor x3dColorFile x3dColors x3dColorsUsed x3dFileName x3dIndex
-  global x3dMax x3dMin x3dMsg x3dStartFile xlFileName xlFileNames xlFormat xlInstalled
+  global x3dMax x3dMin x3dMsg x3dStartFile xlFileName xlFileNames xlInstalled
   global objDesign
 
   if {[info exists errmsg]} {set errmsg ""}
@@ -55,11 +55,11 @@ proc genExcel {{numFile 0}} {
 # -------------------------------------------------------------------------------------------------
 # connect to IFCsvr
   if {[catch {
-    if {![info exists buttons]} {outputMsg "\n*** Begin ST-Developer messages"}
+    if {![info exists buttons]} {outputMsg "\n*** Begin ST-Developer output"}
     set objIFCsvr [::tcom::ref createobject IFCsvr.R300]
-    if {![info exists buttons]} {outputMsg "*** End ST-Developer messages"}
+    if {![info exists buttons]} {outputMsg "*** End ST-Developer output"}
 
-# print errors
+# error
   } emsg]} {
     errorMsg "\nERROR connecting to the IFCsvr software that is used to read STEP files: $emsg"
     catch {raise .}
@@ -115,9 +115,9 @@ proc genExcel {{numFile 0}} {
     outputMsg "\nOpening $str file"
 
     set openStage 2
-    if {![info exists buttons]} {outputMsg "\n*** Begin ST-Developer messages"}
+    if {![info exists buttons]} {outputMsg "\n*** Begin ST-Developer output\n*** Check for error or warning messages up to '*** End ST-Developer output' below"}
     set objDesign [$objIFCsvr OpenDesign [file nativename $fname]]
-    if {![info exists buttons]} {outputMsg "*** End ST-Developer messages\n"}
+    if {![info exists buttons]} {outputMsg "*** End ST-Developer output\n"}
 
 # CountEntities causes the error if the STEP file cannot be opened because objDesign is null
     set entityCount [$objDesign CountEntities "*"]
@@ -303,7 +303,7 @@ proc genExcel {{numFile 0}} {
 # open STEP file in editor
       if {$editorCmd != ""} {
         outputMsg " "
-        errorMsg "Opening STEP file in text editor"
+        errorMsg "Opening STEP file"
         exec $editorCmd [file nativename $localName] &
       }
 
@@ -460,7 +460,7 @@ proc genExcel {{numFile 0}} {
         file delete -force -- $xlFileName
       } emsg]} {
         if {[string length $xlsmsg] > 0} {append xlsmsg "\n"}
-        append xlsmsg "ERROR deleting existing Spreadsheet: [truncFileName $xlFileName]"
+        append xlsmsg "Existing Spreadsheet will not be overwritten: [file tail $xlFileName]"
         catch {raise .}
       }
     }
@@ -1076,22 +1076,26 @@ proc genExcel {{numFile 0}} {
   if {$useXL} {
     if {[catch {
       outputMsg " "
-      if {$xlsmsg != ""} {errorMsg $xlsmsg}
+      if {$xlsmsg != ""} {outputMsg $xlsmsg red}
       if {[string first "\[" $xlFileName] != -1} {
         regsub -all {\[} $xlFileName "(" xlFileName
         regsub -all {\]} $xlFileName ")" xlFileName
-        errorMsg "In the spreadsheet file name, the characters \'\[\' and \'\]\' have been\n substituted by \'\(\' and \'\)\'"
+        outputMsg "In the spreadsheet file name, the characters \'\[\' and \'\]\' have been\n substituted by \'\(\' and \'\)\'" red
       }
+      set xlfn $xlFileName
 
-# always save as spreadsheet
+# create new file name if spreadsheet already exists, delete new file name spreadsheets if possible
+      if {[file exists $xlfn]} {set xlfn [incrFileName $xlfn]}
+
+# always save as spreadsheet, create new file name if spreadsheet already exists
       outputMsg "Saving Spreadsheet as:"
-      outputMsg " [truncFileName $xlFileName 1]" blue
+      outputMsg " [truncFileName $xlfn 1]" blue
       if {[catch {
         catch {$excel DisplayAlerts False}
-        $workbook -namedarg SaveAs Filename $xlFileName FileFormat $xlFormat
+        $workbook -namedarg SaveAs Filename $xlfn FileFormat $xlFormat
         catch {$excel DisplayAlerts True}
-        set lastXLS $xlFileName
-        lappend xlFileNames $xlFileName
+        set lastXLS $xlfn
+        lappend xlFileNames $xlfn
       } emsg1]} {
         errorMsg "ERROR Saving Spreadsheet: $emsg1"
       }
@@ -1118,7 +1122,8 @@ proc genExcel {{numFile 0}} {
             $worksheet($wsname) Activate
             regsub -all " " $wsname "-" wsname
             set csvfname [file nativename [file join $csvdirnam $wsname.csv]]
-            if {[file exists $csvfname]} {file delete -force -- $csvfname}
+            catch {file delete -force -- $csvfname}
+            if {[file exists $csvfname]} {set csvfname [incrFileName $csvfname]}
             if {[string first "PMI-Representation" $csvfname] != -1 && $excelVersion < 16} {
               errorMsg "PMI symbols written to CSV files will look correct only with Excel 2016 or newer." red
             }
@@ -1174,9 +1179,9 @@ proc genExcel {{numFile 0}} {
 # open spreadsheet
     if {$useXL} {
       if {$ok} {
-        openXLS $xlFileName
+        openXLS $xlfn
       } elseif {!$opt(XL_OPEN) && $numFile == 0 && [string first "STEP-File-Analyzer.exe" $scriptName] != -1} {
-        outputMsg " Use F2 to open the Spreadsheet (see Options tab)" red
+        outputMsg " Use F2 to open the Spreadsheet (see Options tab, Help > Function Keys)" red
       }
     }
 
@@ -1210,7 +1215,8 @@ proc genExcel {{numFile 0}} {
         if {[catch {
           exec {*}[auto_execok start] $dir
         } emsg]} {
-          if {[string first "UNC" $emsg] == -1} {errorMsg "ERROR opening CSV file directory: $emsg"}
+          if {[string first "UNC" $emsg] != -1} {set emsg [fixErrorMsg $emsg]}
+          if {$emsg != ""} {errorMsg "ERROR opening CSV file directory: $emsg"}
         }
       } else {
         exec C:/Windows/explorer.exe $dir &
@@ -1226,19 +1232,22 @@ proc genExcel {{numFile 0}} {
   if {[info exists logFile]} {
     update idletasks
     outputMsg "\nSaving Log file as:"
-    set msg " [truncFileName [file nativename $lfile]]"
-    if {!$multiFile && [info exists buttons]} {append msg "  (Use F8 to open)"}
-    outputMsg $msg blue
+    outputMsg " [truncFileName [file nativename $lfile]]" blue
     close $logFile
     if {!$multiFile && [info exists buttons]} {
       set currLogFile $lfile
-      bind . <Key-F8> {exec $editorCmd [file nativename $currLogFile] &}
+      bind . <Key-F4> {
+        if {[file exists $currLogFile]} {
+          outputMsg "\nOpening Log file: [file tail $currLogFile]"
+          exec $editorCmd [file nativename $currLogFile] &
+        }
+      }
     }
     unset lfile
     unset logFile
   } elseif {[info exists buttons]} {
     if {[info exists currLogFile]} {unset currLogFile}
-    bind . <Key-F8> {}
+    bind . <Key-F4> {}
   }
 
 # -------------------------------------------------------------------------------------------------
@@ -1767,7 +1776,10 @@ proc sumAddFileName {sum sumLinks} {
     set range [$worksheet($sum) Range "B1:K1"]
     $range MergeCells [expr 1]
     set anchor [$worksheet($sum) Range "B1"]
-    if {$opt(XL_LINK1)} {$sumLinks Add $anchor [join $localName] [join ""] [join "Link to STEP file"]}
+    if {$opt(XL_LINK1)} {
+      regsub -all {\\} $localName "/" ln
+      $sumLinks Add $anchor [join $ln] [join ""] [join "Link to STEP file"]
+    }
     incr sumHeaderRow
 
     [$worksheet($sum) Range "1:1"] Insert
