@@ -2,6 +2,8 @@
 
 ## Tcl files
 
+Changes to the source code are listed in the [changelog](https://s3.amazonaws.com/nist-el/mfg_digitalthread/STEP-File-Analyzer-changelog.xlsx).
+
 - sfa.tcl - main program
 - sfa-cl.tcl - main program for command-line version
 - sfa-coverage.tcl - PMI coverage analysis

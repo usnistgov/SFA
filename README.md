@@ -1,6 +1,6 @@
 # NIST STEP File Analyzer and Viewer
 
-A pre-built Windows version of NIST STEP File Analyzer and Viewer (SFA) is available [here](https://www.nist.gov/services-resources/software/step-file-analyzer-and-viewer).  There is no Linux version.  
+A pre-built Windows version of NIST STEP File Analyzer and Viewer (SFA) is available [here](https://www.nist.gov/services-resources/software/step-file-analyzer-and-viewer).  
 
 These are the instructions for building the NIST STEP File Analyzer and Viewer from the source code.  SFA generates a spreadsheet and visualization from an ISO 10303 Part 21 STEP file.  More information, sample spreadsheets and visualizations, and documentation about SFA is available on the website including the [STEP File Analyzer and Viewer User Guide](https://www.nist.gov/publications/step-file-analyzer-and-viewer-user-guide-update-5).
 
