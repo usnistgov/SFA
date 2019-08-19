@@ -6,7 +6,7 @@ proc genExcel {{numFile 0}} {
   global lastXLS lenfilelist localName localNameList logFile multiFile multiFileDir mytemp nistCoverageLegend nistName nistPMIexpected nistPMImaster
   global nistVersion nprogBarEnts nshape ofCSV ofExcel opt p21e3 p21e3Section row rowmax savedViewButtons savedViewName savedViewNames scriptName
   global sheetLast skipEntities skipPerm spmiEntity spmiSumName spmiSumRow spmiTypesPerFile startrow statsOnly stepAP tessColor thisEntType tlast
-  global tolNames tolStandard tolStandards totalEntity userEntityFile userEntityList userXLSFile useXL virtualDir viz workbook workbooks
+  global tolNames tolStandard tolStandards totalEntity userEntityFile userEntityList userXLSFile useXL viz workbook workbooks
   global worksheet worksheet1 worksheets writeDir wsCount wsNames x3dAxes x3dColor x3dColorFile x3dColors x3dColorsUsed x3dFileName x3dIndex
   global x3dMax x3dMin x3dMsg x3dStartFile xlFileName xlFileNames xlInstalled
   global objDesign
@@ -36,12 +36,6 @@ proc genExcel {{numFile 0}} {
     installIFCsvr
     return
   }
-
-# check for ROSE files
-  if {![file exists [file join $ifcsvrDir  automotive_design.rose]] && \
-      ![file exists [file join $virtualDir automotive_design.rose]]} {copyRoseFiles}
-  set env(ROSE_RUNTIME) $ifcsvrDir
-  set env(ROSE_SCHEMAS) $ifcsvrDir
 
   if {[info exists buttons]} {
     $buttons(genExcel) configure -state disable
@@ -115,7 +109,7 @@ proc genExcel {{numFile 0}} {
     outputMsg "\nOpening $str file"
 
     set openStage 2
-    if {![info exists buttons]} {outputMsg "\n*** Begin ST-Developer output\n*** Check for error or warning messages up to '*** End ST-Developer output' below"}
+    if {![info exists buttons]} {outputMsg "\n*** Begin ST-Developer output\n*** Check for error or warning messages up to 'End ST-Developer output' below"}
     set objDesign [$objIFCsvr OpenDesign [file nativename $fname]]
     if {![info exists buttons]} {outputMsg "*** End ST-Developer output\n"}
 
@@ -265,7 +259,7 @@ proc genExcel {{numFile 0}} {
             } else {
               set msg "\nThe STEP AP (schema) is not supported: $fs"
             }
-            append msg "\n See Help > Supported STEP APs"
+            if {[info exists buttons]} {append msg "\n See Help > Supported STEP APs"}
             errorMsg $msg red
 
             if {[string first "IFC" $fs] == 0} {
@@ -295,15 +289,11 @@ proc genExcel {{numFile 0}} {
         outputMsg " "
         errorMsg "The STEP file uses ISO 10303 Part 21 Edition 3 and cannot be processed by this software.\n Edit the STEP file to delete the Edition 3 content such as the ANCHOR and REFERENCE sections."
       }
-      if {!$nistVersion} {
-        outputMsg " "
-        errorMsg "You must process at least one STEP file with the NIST version of the STEP File Analyzer and Viewer\n before using a user-built version."
-      }
 
 # open STEP file in editor
       if {$editorCmd != ""} {
         outputMsg " "
-        errorMsg "Opening STEP file"
+        errorMsg "Opening STEP file in text editor"
         exec $editorCmd [file nativename $localName] &
       }
 
@@ -558,6 +548,15 @@ proc genExcel {{numFile 0}} {
         }
       }
 
+# always process composite entities
+      if {[lsearch $entCategory(PR_STEP_COMP) $entType] != -1} {
+        set ok 1
+        if {!$opt(PR_STEP_COMP)} {
+          set opt(PR_STEP_COMP) 1
+          outputMsg "\nComposites entities will be processed." red
+        }
+      }
+
 # check for composite entities with "_11"
       if {$opt(PR_STEP_COMP) && $ok == 0} {if {[string first "_11" $entType] != -1} {set ok 1}}
 
@@ -642,20 +641,18 @@ proc genExcel {{numFile 0}} {
       foreach item $fixlist {if {[lsearch $skipPerm $item] == -1} {set ok 1}}
     }
     if {$ok} {
-      if {$opt(XLSCSV) != "None"} {
-        if {$useXL} {
-          set msg "Worksheets will"
-        } else {
-          set msg "CSV files will"
-        }
-      } else {
-        set msg "Views might"
-      }
-      append msg " NOT be generated based on entities listed in\n [truncFileName [file nativename $cfile]]:"
       outputMsg " "
+      if {$opt(XLSCSV) != "None"} {
+        set msg "Worksheets"
+        if {!$useXL} {set msg "CSV files"}
+        append msg " will not be generated for the entity types listed in"
+      } else {
+        set msg "Views might not be generated because of the entity types listed in"
+      }
+      append msg " [truncFileName [file nativename $cfile]]"
       errorMsg $msg
-      foreach item [lsort $fixlist] {outputMsg "  $item" red}
-      errorMsg " See Help > Crash Recovery"
+      foreach item [lsort $fixlist] {outputMsg " [formatComplexEnt $item]" red}
+      errorMsg "See Help > Crash Recovery"
     }
   }
 
@@ -798,7 +795,7 @@ proc genExcel {{numFile 0}} {
   }
   if {$tolStandard(type) == "ISO"} {
     set fn [string toupper [file tail $localName]]
-    if {[string first "NIST_" $fn] == 0 && [string first "ASME" $fn] != -1} {errorMsg "All of the NIST models use ASME Y14.5 tolerance standard."}
+    if {[string first "NIST_" $fn] == 0 && [string first "ASME" $fn] != -1} {errorMsg "All of the NIST models use the ASME Y14.5 tolerance standard."}
   }
 
 # -------------------------------------------------------------------------------------------------
@@ -1009,8 +1006,8 @@ proc genExcel {{numFile 0}} {
 # add PMI Rep. Coverage Analysis worksheet for a single file
     if {$opt(PMISEM)} {
       if {[info exists spmiTypesPerFile]} {
-        set sempmi_coverage "PMI Representation Coverage"
-        if {![info exists worksheet($sempmi_coverage)]} {
+        set spmiCoverageWS "PMI Representation Coverage"
+        if {![info exists worksheet($spmiCoverageWS)]} {
           outputMsg " Adding PMI Representation Coverage worksheet" blue
           spmiCoverageStart 0
           spmiCoverageWrite "" "" 0
@@ -1030,8 +1027,8 @@ proc genExcel {{numFile 0}} {
 # add PMI Pres. Coverage Analysis worksheet for a single file
     if {$opt(PMIGRF) && $opt(XLSCSV) != "None"} {
       if {[info exists gpmiTypesPerFile]} {
-        set pmi_coverage "PMI Presentation Coverage"
-        if {![info exists worksheet($pmi_coverage)]} {
+        set gpmiCoverageWS "PMI Presentation Coverage"
+        if {![info exists worksheet($gpmiCoverageWS)]} {
           outputMsg " Adding PMI Presentation Coverage worksheet" blue
           gpmiCoverageStart 0
           gpmiCoverageWrite "" "" 0
@@ -1087,7 +1084,7 @@ proc genExcel {{numFile 0}} {
 # create new file name if spreadsheet already exists, delete new file name spreadsheets if possible
       if {[file exists $xlfn]} {set xlfn [incrFileName $xlfn]}
 
-# always save as spreadsheet, create new file name if spreadsheet already exists
+# always save as spreadsheet
       outputMsg "Saving Spreadsheet as:"
       outputMsg " [truncFileName $xlfn 1]" blue
       if {[catch {
@@ -1258,12 +1255,12 @@ proc genExcel {{numFile 0}} {
   update idletasks
 
 # unset variables to release memory and/or to reset them
-  global cgrObjects colColor coordinatesList currx3dPID datumGeom datumSymbol dimrep dimrepID dimtolEntID dimtolGeom entName
+  global cgrObjects colColor coordinatesList currx3dPID datumGeom datumIDs datumSymbol dimrep dimrepID dimtolEntID dimtolGeom entName
   global feaDOFR feaDOFT feaNodes gpmiID gpmiIDRow gpmiRow heading invCol invGroup lineStrips nrep numx3dPID pmiColumns pmiStartCol
   global propDefID propDefIDRow propDefName propDefOK propDefRow savedsavedViewNames savedViewFile savedViewFileName shapeRepName
   global srNames suppGeomEnts syntaxErr tessPlacement tessRepo
 
-  foreach var {cells cgrObjects colColor coordinatesList count currx3dPID datumGeom datumSymbol dimrep dimrepID dimtolEntID dimtolGeom \
+  foreach var {cells cgrObjects colColor coordinatesList count currx3dPID datumGeom datumIDs datumSymbol dimrep dimrepID dimtolEntID dimtolGeom \
                entName entsIgnored feaDOFR feaDOFT feaNodes gpmiID gpmiIDRow gpmiRow heading invCol invGroup lineStrips nrep numx3dPID \
                pmiCol pmiColumns pmiStartCol pmivalprop propDefID propDefIDRow propDefName propDefOK propDefRow savedsavedViewNames \
                savedViewFile savedViewFileName savedViewNames shapeRepName srNames suppGeomEnts syntaxErr tessPlacement tessRepo \

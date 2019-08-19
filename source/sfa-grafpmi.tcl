@@ -1249,7 +1249,7 @@ proc gpmiAnnotationReport {objEntity} {
                     lappend syntaxErr($relType) [list $mdadrID rep_2 $msg]
                   }
                   if {$relType == "representation_relationship" && $opt(XLSCSV) != "None"} {
-                    set msg "For Saved Views, use 'mechanical_design_and_draughting_relationship' instead of 'representation_relationship'\n  to relate draughting models "
+                    set msg "Syntax Error: For Saved Views, use 'mechanical_design_and_draughting_relationship' instead of 'representation_relationship' to relate draughting models\n[string repeat " " 14]"
                     if {$stepAP == "AP242"} {
                       append msg "($recPracNames(pmi242), Sec. 9.4.4 Note 2)"
                     } else {

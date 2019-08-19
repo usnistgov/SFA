@@ -134,47 +134,47 @@ proc spmiSummary {} {
 # -------------------------------------------------------------------------------
 # start PMI Representation Coverage analysis worksheet
 proc spmiCoverageStart {{multi 1}} {
-  global cells cells1 multiFileDir pmiModifiers pmiModifiersRP pmiUnicode sempmi_coverage sheetLast spmiTypes worksheet worksheet1 worksheets worksheets1 
+  global cells cells1 multiFileDir pmiModifiers pmiModifiersRP pmiUnicode sheetLast spmiCoverageWS spmiTypes worksheet worksheet1 worksheets worksheets1 
   #outputMsg "spmiCoverageStart $multi" red
 
   if {[catch {
-    set sempmi_coverage "PMI Representation Coverage"
+    set spmiCoverageWS "PMI Representation Coverage"
 
 # multiple files
     if {$multi} {
-      set worksheet1($sempmi_coverage) [$worksheets1 Item [expr 2]]
-      #$worksheet1($sempmi_coverage) Activate
-      $worksheet1($sempmi_coverage) Name $sempmi_coverage
-      set cells1($sempmi_coverage) [$worksheet1($sempmi_coverage) Cells]
-      $cells1($sempmi_coverage) Item 1 1 "STEP Directory"
-      $cells1($sempmi_coverage) Item 1 2 "[file nativename $multiFileDir]"
-      $cells1($sempmi_coverage) Item 3 1 "PMI Element   (See Help > Analyze > PMI Coverage Analysis)"
-      set range [$worksheet1($sempmi_coverage) Range "B1:K1"]
+      set worksheet1($spmiCoverageWS) [$worksheets1 Item [expr 2]]
+      #$worksheet1($spmiCoverageWS) Activate
+      $worksheet1($spmiCoverageWS) Name $spmiCoverageWS
+      set cells1($spmiCoverageWS) [$worksheet1($spmiCoverageWS) Cells]
+      $cells1($spmiCoverageWS) Item 1 1 "STEP Directory"
+      $cells1($spmiCoverageWS) Item 1 2 "[file nativename $multiFileDir]"
+      $cells1($spmiCoverageWS) Item 3 1 "PMI Element   (See Help > Analyze > PMI Coverage Analysis)"
+      set range [$worksheet1($spmiCoverageWS) Range "B1:K1"]
       [$range Font] Bold [expr 1]
       $range MergeCells [expr 1]
 
 # single file
     } else {
-      set worksheet($sempmi_coverage) [$worksheets Add [::tcom::na] $sheetLast]
-      #$worksheet($sempmi_coverage) Activate
-      $worksheet($sempmi_coverage) Name $sempmi_coverage
-      set cells($sempmi_coverage) [$worksheet($sempmi_coverage) Cells]
+      set worksheet($spmiCoverageWS) [$worksheets Add [::tcom::na] $sheetLast]
+      #$worksheet($spmiCoverageWS) Activate
+      $worksheet($spmiCoverageWS) Name $spmiCoverageWS
+      set cells($spmiCoverageWS) [$worksheet($spmiCoverageWS) Cells]
       set wsCount [$worksheets Count]
       [$worksheets Item [expr $wsCount]] -namedarg Move Before [$worksheets Item [expr 4]]
 
-      $cells($sempmi_coverage) Item 3 1 "PMI Element (See Help > Analyze > PMI Coverage Analysis)"
-      $cells($sempmi_coverage) Item 3 2 "Count"
-      set range [$worksheet($sempmi_coverage) Range "1:3"]
+      $cells($spmiCoverageWS) Item 3 1 "PMI Element (See Help > Analyze > PMI Coverage Analysis)"
+      $cells($spmiCoverageWS) Item 3 2 "Count"
+      set range [$worksheet($spmiCoverageWS) Range "1:3"]
       [$range Font] Bold [expr 1]
 
-      [$worksheet($sempmi_coverage) Range A:A] ColumnWidth [expr 48]
-      [$worksheet($sempmi_coverage) Range B:B] ColumnWidth [expr 6]
-      [$worksheet($sempmi_coverage) Range D:D] ColumnWidth [expr 48]
+      [$worksheet($spmiCoverageWS) Range A:A] ColumnWidth [expr 48]
+      [$worksheet($spmiCoverageWS) Range B:B] ColumnWidth [expr 6]
+      [$worksheet($spmiCoverageWS) Range D:D] ColumnWidth [expr 48]
     }
     
 # add pmi types
-    set row1($sempmi_coverage) 3
-    set row($sempmi_coverage) 3
+    set row1($spmiCoverageWS) 3
+    set row($spmiCoverageWS) 3
 
 # add modifiers
     foreach item $spmiTypes {
@@ -191,9 +191,9 @@ proc spmiCoverageStart {{multi 1}} {
         if {[info exists pmiUnicode($str1)]} {append str "  $pmiUnicode($str1)"}
 
         if {!$multi} {
-          $cells($sempmi_coverage) Item [incr row($sempmi_coverage)] 1 $str
+          $cells($spmiCoverageWS) Item [incr row($spmiCoverageWS)] 1 $str
         } else {
-          $cells1($sempmi_coverage) Item [incr row1($sempmi_coverage)] 1 $str
+          $cells1($spmiCoverageWS) Item [incr row1($spmiCoverageWS)] 1 $str
         }
       }
       #outputMsg $str
@@ -207,15 +207,15 @@ proc spmiCoverageStart {{multi 1}} {
 # write PMI Representation Coverage analysis worksheet
 proc spmiCoverageWrite {{fn ""} {sum ""} {multi 1}} {
   global allPMI cells cells1 col1 entCount fileList legendColor nfile nistCoverageStyle opt pmiElementsMaxRows
-  global pmiModifiers sempmi_coverage sempmi_totals spmiTypes spmiTypesPerFile worksheet worksheet1
+  global pmiModifiers spmiCoverageWS spmiTypes spmiTypesPerFile totalPMI totalPMIrows worksheet worksheet1
   #outputMsg "spmiCoverageWrite $multi" red
 
   if {[catch {
     if {$multi} {
-      set range [$worksheet1($sempmi_coverage) Range [cellRange 3 $col1($sum)] [cellRange 3 $col1($sum)]]
+      set range [$worksheet1($spmiCoverageWS) Range [cellRange 3 $col1($sum)] [cellRange 3 $col1($sum)]]
       $range Orientation [expr 90]
       $range HorizontalAlignment [expr -4108]
-      $cells1($sempmi_coverage) Item 3 $col1($sum) $fn
+      $cells1($spmiCoverageWS) Item 3 $col1($sum) $fn
     }
     
 # datums handled differently
@@ -251,9 +251,9 @@ proc spmiCoverageWrite {{fn ""} {sum ""} {multi 1}} {
 
       for {set r 4} {$r <= $pmiElementsMaxRows} {incr r} {
         if {$multi} {
-          set val [[$cells1($sempmi_coverage) Item $r 1] Value]
+          set val [[$cells1($spmiCoverageWS) Item $r 1] Value]
         } else {
-          set val [[$cells($sempmi_coverage) Item $r 1] Value]
+          set val [[$cells($spmiCoverageWS) Item $r 1] Value]
         }
 
         if {[info exists spmiTypesPerFile]} {
@@ -277,14 +277,15 @@ proc spmiCoverageWrite {{fn ""} {sum ""} {multi 1}} {
               
 # write npmi
               if {$multi} {
-                $cells1($sempmi_coverage) Item $r $col1($sum) $npmi
-                set range [$worksheet1($sempmi_coverage) Range [cellRange $r $col1($sum)] [cellRange $r $col1($sum)]]
+                $cells1($spmiCoverageWS) Item $r $col1($sum) $npmi
+                set range [$worksheet1($spmiCoverageWS) Range [cellRange $r $col1($sum)] [cellRange $r $col1($sum)]]
+                incr totalPMI($r) $npmi
               } else {
-                $cells($sempmi_coverage) Item $r 2 $npmi
-                set range [$worksheet($sempmi_coverage) Range [cellRange $r 2] [cellRange $r 2]]
+                $cells($spmiCoverageWS) Item $r 2 $npmi
+                set range [$worksheet($spmiCoverageWS) Range [cellRange $r 2] [cellRange $r 2]]
               }
               $range HorizontalAlignment [expr -4108]
-              if {$multi} {set sempmi_totals($r) 1}
+              if {$multi} {set totalPMIrows($r) 1}
             }
           }
         }
@@ -296,14 +297,15 @@ proc spmiCoverageWrite {{fn ""} {sum ""} {multi 1}} {
             if {$idx == $val} {
               set npmi [lindex $item 1]
               if {$multi} {
-                $cells1($sempmi_coverage) Item $r $col1($sum) $npmi
-                set range [$worksheet1($sempmi_coverage) Range [cellRange $r $col1($sum)] [cellRange $r $col1($sum)]]
+                $cells1($spmiCoverageWS) Item $r $col1($sum) $npmi
+                set range [$worksheet1($spmiCoverageWS) Range [cellRange $r $col1($sum)] [cellRange $r $col1($sum)]]
+                incr totalPMI($r) $npmi
               } else {
-                $cells($sempmi_coverage) Item $r 2 $npmi
-                set range [$worksheet($sempmi_coverage) Range [cellRange $r 2] [cellRange $r 2]]
+                $cells($spmiCoverageWS) Item $r 2 $npmi
+                set range [$worksheet($spmiCoverageWS) Range [cellRange $r 2] [cellRange $r 2]]
               }
               $range HorizontalAlignment [expr -4108]
-              if {$multi} {set sempmi_totals($r) 1}
+              if {$multi} {set totalPMIrows($r) 1}
             }
           }          
         }
@@ -331,10 +333,10 @@ proc spmiCoverageWrite {{fn ""} {sum ""} {multi 1}} {
           set style [lindex [split $item " "] 2]
           if {[llength $item] > 3} {
             set str [lindex [split $item " "] 3]
-            $cells1($sempmi_coverage) Item $r $c $str
-            [$worksheet1($sempmi_coverage) Range [cellRange $r $c]] HorizontalAlignment [expr -4108]
+            $cells1($spmiCoverageWS) Item $r $c $str
+            [$worksheet1($spmiCoverageWS) Range [cellRange $r $c]] HorizontalAlignment [expr -4108]
           }
-          [[$worksheet1($sempmi_coverage) Range [cellRange $r $c]] Interior] Color $legendColor($style)
+          [[$worksheet1($spmiCoverageWS) Range [cellRange $r $c]] Interior] Color $legendColor($style)
         }
       }
     }
@@ -346,40 +348,30 @@ proc spmiCoverageWrite {{fn ""} {sum ""} {multi 1}} {
 # -------------------------------------------------------------------------------
 # format PMI Representation Coverage analysis worksheet, also PMI totals
 proc spmiCoverageFormat {sum {multi 1}} {
-  global cells cells1 col1 excel1 lenfilelist localName nistCoverageLegend nistCoverageStyle
-  global pmiHorizontalLineBreaks recPracNames sempmi_coverage sempmi_totals worksheet worksheet1
+  global cells cells1 col1 excel1 lenfilelist localName nistCoverageLegend nistCoverageStyle opt pmiElementsMaxRows
+  global pmiHorizontalLineBreaks recPracNames spmiCoverageWS totalPMI totalPMIrows worksheet worksheet1
   #outputMsg "spmiCoverageFormat $multi" red
 
 # delete worksheet if no semantic PMI
-  if {$multi && ![info exists sempmi_totals]} {
+  if {$multi && ![info exists totalPMIrows]} {
     catch {$excel1 DisplayAlerts False}
-    $worksheet1($sempmi_coverage) Delete
+    $worksheet1($spmiCoverageWS) Delete
     catch {$excel1 DisplayAlerts True}
     return
   }
 
-# total PMI for multiple files, sempmi_totals indicates to PMI totals from other columns
+# total PMI for multiple files, totalPMIrows indicates to PMI totals from other columns, totalPMI is the actual total
   if {[catch {
     set i1 1
     if {$multi} {
-      set col1($sempmi_coverage) [expr {$lenfilelist+2}]
-      $cells1($sempmi_coverage) Item 3 $col1($sempmi_coverage) "Total PMI"
-      foreach idx [array names sempmi_totals] {
-        set pmitot 0
-        for {set c 2} {$c < $col1($sempmi_coverage)} {incr c} {
-          set val [[$cells1($sempmi_coverage) Item $idx $c] Value]
-          if {$val != ""} {
-            if {[string first "/" $val] == -1} {
-              incr pmitot [expr {int($val)}]
-            } else {
-              incr pmitot [expr {int([lindex [split $val "/"] 0])}]
-            }
-          }
-        }
-        $cells1($sempmi_coverage) Item $idx $col1($sempmi_coverage) $pmitot
+      set col1($spmiCoverageWS) [expr {$lenfilelist+2}]
+      $cells1($spmiCoverageWS) Item 3 $col1($spmiCoverageWS) "Total PMI"
+      foreach idx [array names totalPMIrows] {
+        if {![info exists totalPMI($idx)]} {set totalPMI($idx) 0}
+        $cells1($spmiCoverageWS) Item $idx $col1($spmiCoverageWS) $totalPMI($idx)
       }
-      catch {unset sempmi_totals}
-      $worksheet1($sempmi_coverage) Activate
+      catch {unset totalPMIrows}
+      $worksheet1($spmiCoverageWS) Activate
     }
  
 # horizontal break lines, depends on items in representation coverage worksheet, items defined in sfa-data
@@ -387,9 +379,9 @@ proc spmiCoverageFormat {sum {multi 1}} {
     if {!$multi} {set idx1 [concat [list 3 4] $idx1]}
     for {set r 200} {$r >= [lindex $idx1 end]} {incr r -1} {
       if {$multi} {
-        set val [[$cells1($sempmi_coverage) Item $r 1] Value]
+        set val [[$cells1($spmiCoverageWS) Item $r 1] Value]
       } else {
-        set val [[$cells($sempmi_coverage) Item $r 1] Value]
+        set val [[$cells($spmiCoverageWS) Item $r 1] Value]
       }
       if {$val != ""} {
         lappend idx1 [expr {$r+1}]
@@ -400,9 +392,9 @@ proc spmiCoverageFormat {sum {multi 1}} {
 # horizontal lines
     foreach idx $idx1 {
       if {$multi} {
-        set range [$worksheet1($sempmi_coverage) Range [cellRange $idx 1] [cellRange $idx [expr {$col1($sempmi_coverage)+$i1-1}]]]
+        set range [$worksheet1($spmiCoverageWS) Range [cellRange $idx 1] [cellRange $idx [expr {$col1($spmiCoverageWS)+$i1-1}]]]
       } else {
-        set range [$worksheet($sempmi_coverage) Range [cellRange $idx 1] [cellRange $idx 2]]
+        set range [$worksheet($spmiCoverageWS) Range [cellRange $idx 1] [cellRange $idx 2]]
       }
       catch {[[$range Borders] Item [expr 8]] Weight [expr 2]}
     }
@@ -410,47 +402,69 @@ proc spmiCoverageFormat {sum {multi 1}} {
 # vertical line(s), also in sfa-multi.tcl vertical lines when changing directory
     if {$multi} {
       for {set i 0} {$i < $i1} {incr i} {
-        set range [$worksheet1($sempmi_coverage) Range [cellRange 1 [expr {$col1($sempmi_coverage)+$i}]] [cellRange [expr {[lindex $idx1 end]-1}] [expr {$col1($sempmi_coverage)+$i}]]]
+        set range [$worksheet1($spmiCoverageWS) Range [cellRange 1 [expr {$col1($spmiCoverageWS)+$i}]] [cellRange [expr {[lindex $idx1 end]-1}] [expr {$col1($spmiCoverageWS)+$i}]]]
         catch {[[$range Borders] Item [expr 7]] Weight [expr 2]}
       }
       
 # fix row 3 height and width
-      set range [$worksheet1($sempmi_coverage) Range 3:3]
+      set range [$worksheet1($spmiCoverageWS) Range 3:3]
       $range RowHeight 300
-      [$worksheet1($sempmi_coverage) Columns] AutoFit
+      [$worksheet1($spmiCoverageWS) Columns] AutoFit
 
-      $cells1($sempmi_coverage) Item [expr {[lindex $idx1 end]+1}] 1 "Section Numbers refer to the CAx-IF Recommended Practice for $recPracNames(pmi242)"
-      set anchor [$worksheet1($sempmi_coverage) Range [cellRange [expr {[lindex $idx1 end]+1}] 1]]
-      [$worksheet1($sempmi_coverage) Hyperlinks] Add $anchor [join "https://www.cax-if.org/joint_testing_info.html#recpracs"] [join ""] [join "Link to CAx-IF Recommended Practices"]
+      $cells1($spmiCoverageWS) Item [expr {[lindex $idx1 end]+1}] 1 "Section Numbers refer to the CAx-IF Recommended Practice for $recPracNames(pmi242)"
+      set anchor [$worksheet1($spmiCoverageWS) Range [cellRange [expr {[lindex $idx1 end]+1}] 1]]
+      [$worksheet1($spmiCoverageWS) Hyperlinks] Add $anchor [join "https://www.cax-if.org/joint_testing_info.html#recpracs"] [join ""] [join "Link to CAx-IF Recommended Practices"]
       
       if {[info exists nistCoverageStyle]} {nistAddCoverageLegend $multi [expr {[lindex $idx1 end]+3}]}
       
-      [$worksheet1($sempmi_coverage) Rows] AutoFit
-      [$worksheet1($sempmi_coverage) Range "B4"] Select
+# delete unused rows, check for a value in the Total PMI column
+      if {$opt(DELCOVROWS)} {
+        for {set i $pmiElementsMaxRows} {$i > 3} {incr i -1} {
+          set val [[$cells1($spmiCoverageWS) Item $i $col1($spmiCoverageWS)] Value]
+          if {$val == ""} {
+            set range [$worksheet1($spmiCoverageWS) Range A$i]
+            [$range EntireRow] Delete [expr -4162]
+          }
+        }
+      }
+      
+      [$worksheet1($spmiCoverageWS) Rows] AutoFit
+      [$worksheet1($spmiCoverageWS) Range "B4"] Select
       catch {[$excel1 ActiveWindow] FreezePanes [expr 1]}
-      [$worksheet1($sempmi_coverage) Range "A1"] Select
-      catch {[$worksheet1($sempmi_coverage) PageSetup] PrintGridlines [expr 1]}
+      [$worksheet1($spmiCoverageWS) Range "A1"] Select
+      catch {[$worksheet1($spmiCoverageWS) PageSetup] PrintGridlines [expr 1]}
 
 # single file
     } else {
       set i1 3
       for {set i 0} {$i < $i1} {incr i} {
-        set range [$worksheet($sempmi_coverage) Range [cellRange 3 [expr {$i+1}]] [cellRange [expr {[lindex $idx1 end]-1}] [expr {$i+1}]]]
+        set range [$worksheet($spmiCoverageWS) Range [cellRange 3 [expr {$i+1}]] [cellRange [expr {[lindex $idx1 end]-1}] [expr {$i+1}]]]
         catch {[[$range Borders] Item [expr 7]] Weight [expr 2]}
       }
       
+# delete unused rows
+      if {$opt(DELCOVROWS)} {
+        for {set i $pmiElementsMaxRows} {$i > 3} {incr i -1} {
+          set val [[$cells($spmiCoverageWS) Item $i 2] Value]
+          if {$val == ""} {
+            set range [$worksheet($spmiCoverageWS) Range A$i]
+            [$range EntireRow] Delete [expr -4162]
+          }
+        }
+      }
+      
       if {$nistCoverageLegend} {nistAddCoverageLegend $multi}
-      [$worksheet($sempmi_coverage) Columns] AutoFit
+      [$worksheet($spmiCoverageWS) Columns] AutoFit
 
-      $cells($sempmi_coverage) Item 1 4 "Section Numbers refer to the CAx-IF Recommended Practice for $recPracNames(pmi242)"
-      set range [$worksheet($sempmi_coverage) Range D1:N1]
+      $cells($spmiCoverageWS) Item 1 4 "Section Numbers refer to the CAx-IF Recommended Practice for $recPracNames(pmi242)"
+      set range [$worksheet($spmiCoverageWS) Range D1:N1]
       $range MergeCells [expr 1]
-      set anchor [$worksheet($sempmi_coverage) Range D1]
-      [$worksheet($sempmi_coverage) Hyperlinks] Add $anchor [join "https://www.cax-if.org/joint_testing_info.html#recpracs"] [join ""] [join "Link to CAx-IF Recommended Practices"]
+      set anchor [$worksheet($spmiCoverageWS) Range D1]
+      [$worksheet($spmiCoverageWS) Hyperlinks] Add $anchor [join "https://www.cax-if.org/joint_testing_info.html#recpracs"] [join ""] [join "Link to CAx-IF Recommended Practices"]
 
-      [$worksheet($sempmi_coverage) Range "A1"] Select
-      catch {[$worksheet($sempmi_coverage) PageSetup] PrintGridlines [expr 1]}
-      $cells($sempmi_coverage) Item 1 1 [file tail $localName]
+      [$worksheet($spmiCoverageWS) Range "A1"] Select
+      catch {[$worksheet($spmiCoverageWS) PageSetup] PrintGridlines [expr 1]}
+      $cells($spmiCoverageWS) Item 1 1 [file tail $localName]
     }
 
 # errors
@@ -462,56 +476,56 @@ proc spmiCoverageFormat {sum {multi 1}} {
 # -------------------------------------------------------------------------------
 # start PMI Presentation Coverage analysis worksheet
 proc gpmiCoverageStart {{multi 1}} {
-  global cells cells1 gpmiTypes multiFileDir opt pmi_coverage sheetLast worksheet worksheet1 worksheets worksheets1 
+  global cells cells1 gpmiCoverageWS gpmiTypes multiFileDir opt sheetLast worksheet worksheet1 worksheets worksheets1 
   #outputMsg "gpmiCoverageStart $multi" red
   
   if {[catch {
-    set pmi_coverage "PMI Presentation Coverage"
+    set gpmiCoverageWS "PMI Presentation Coverage"
 
 # multiple files
     if {$multi} {
       if {$opt(PMISEM)} {
-        set worksheet1($pmi_coverage) [$worksheets1 Item [expr 3]]
+        set worksheet1($gpmiCoverageWS) [$worksheets1 Item [expr 3]]
       } else {
-        set worksheet1($pmi_coverage) [$worksheets1 Item [expr 2]]
+        set worksheet1($gpmiCoverageWS) [$worksheets1 Item [expr 2]]
       }
-      #$worksheet1($pmi_coverage) Activate
-      $worksheet1($pmi_coverage) Name $pmi_coverage
-      set cells1($pmi_coverage) [$worksheet1($pmi_coverage) Cells]
-      $cells1($pmi_coverage) Item 1 1 "STEP Directory"
-      $cells1($pmi_coverage) Item 1 2 "[file nativename $multiFileDir]"
-      $cells1($pmi_coverage) Item 3 1 "PMI Presentation Names"
-      set range [$worksheet1($pmi_coverage) Range "B1:K1"]
+      #$worksheet1($gpmiCoverageWS) Activate
+      $worksheet1($gpmiCoverageWS) Name $gpmiCoverageWS
+      set cells1($gpmiCoverageWS) [$worksheet1($gpmiCoverageWS) Cells]
+      $cells1($gpmiCoverageWS) Item 1 1 "STEP Directory"
+      $cells1($gpmiCoverageWS) Item 1 2 "[file nativename $multiFileDir]"
+      $cells1($gpmiCoverageWS) Item 3 1 "PMI Presentation Names"
+      set range [$worksheet1($gpmiCoverageWS) Range "B1:K1"]
       [$range Font] Bold [expr 1]
       $range MergeCells [expr 1]
-      set row1($pmi_coverage) 3
+      set row1($gpmiCoverageWS) 3
 
 # single file
     } else {
-      set sempmi_coverage "PMI Representation Coverage"
+      set spmiCoverageWS "PMI Representation Coverage"
       set n 3
-      if {[info exists worksheet($sempmi_coverage)]} {
+      if {[info exists worksheet($spmiCoverageWS)]} {
         set n 5
       }
-      set worksheet($pmi_coverage) [$worksheets Add [::tcom::na] $sheetLast]
-      #$worksheet($pmi_coverage) Activate
-      $worksheet($pmi_coverage) Name $pmi_coverage
-      set cells($pmi_coverage) [$worksheet($pmi_coverage) Cells]
+      set worksheet($gpmiCoverageWS) [$worksheets Add [::tcom::na] $sheetLast]
+      #$worksheet($gpmiCoverageWS) Activate
+      $worksheet($gpmiCoverageWS) Name $gpmiCoverageWS
+      set cells($gpmiCoverageWS) [$worksheet($gpmiCoverageWS) Cells]
       set wsCount [$worksheets Count]
       [$worksheets Item [expr $wsCount]] -namedarg Move Before [$worksheets Item [expr $n]]
-      $cells($pmi_coverage) Item 3 1 "PMI Presentation Names"
-      $cells($pmi_coverage) Item 3 2 "Count"
-      set range [$worksheet($pmi_coverage) Range "1:3"]
+      $cells($gpmiCoverageWS) Item 3 1 "PMI Presentation Names"
+      $cells($gpmiCoverageWS) Item 3 2 "Count"
+      set range [$worksheet($gpmiCoverageWS) Range "1:3"]
       [$range Font] Bold [expr 1]
-      set row($pmi_coverage) 3
+      set row($gpmiCoverageWS) 3
     }
       
     foreach item $gpmiTypes {
       set str [join $item]
       if {$multi} {
-        $cells1($pmi_coverage) Item [incr row1($pmi_coverage)] 1 $str
+        $cells1($gpmiCoverageWS) Item [incr row1($gpmiCoverageWS)] 1 $str
       } else {
-        $cells($pmi_coverage) Item [incr row($pmi_coverage)] 1 $str
+        $cells($gpmiCoverageWS) Item [incr row($gpmiCoverageWS)] 1 $str
       }
     }
   } emsg3]} {
@@ -522,41 +536,41 @@ proc gpmiCoverageStart {{multi 1}} {
 # -------------------------------------------------------------------------------
 # write PMI Presentation Coverage analysis worksheet
 proc gpmiCoverageWrite {{fn ""} {sum ""} {multi 1}} {
-  global cells cells1 col1 gpmiTypes gpmiTypesInvalid gpmiTypesPerFile legendColor pmi_coverage pmi_rows pmi_totals worksheet worksheet1
+  global cells cells1 col1 gpmiCoverageWS gpmiRows gpmiTotals gpmiTypes gpmiTypesInvalid gpmiTypesPerFile legendColor worksheet worksheet1
   #outputMsg "gpmiCoverageWrite $multi " red
 
   if {[catch {
     if {$multi} {
-      set range [$worksheet1($pmi_coverage) Range [cellRange 3 $col1($sum)] [cellRange 3 $col1($sum)]]
+      set range [$worksheet1($gpmiCoverageWS) Range [cellRange 3 $col1($sum)] [cellRange 3 $col1($sum)]]
       $range Orientation [expr 90]
       $range HorizontalAlignment [expr -4108]
-      $cells1($pmi_coverage) Item 3 $col1($sum) $fn
+      $cells1($gpmiCoverageWS) Item 3 $col1($sum) $fn
     }
   
 # add invalid pmi types to column A
 # need to fix when there are invalid types, but a subsequent file does not if processing multiple files
     set r1 [expr {[llength $gpmiTypes]+4}]
-    if {![info exists pmi_rows]} {set pmi_rows 35}
+    if {![info exists gpmiRows]} {set gpmiRows 35}
     set ok 1
 
     if {[info exists gpmiTypesInvalid]} {
       #outputMsg "gpmiTypesInvalid  $multi  $gpmiTypesInvalid" red
       while {$ok} {
         if {$multi} {
-          set val [[$cells1($pmi_coverage) Item $r1 1] Value]
+          set val [[$cells1($gpmiCoverageWS) Item $r1 1] Value]
         } else {
-          set val [[$cells($pmi_coverage) Item $r1 1] Value]
+          set val [[$cells($gpmiCoverageWS) Item $r1 1] Value]
         }
         if {$val == ""} {
           foreach idx $gpmiTypesInvalid {
             if {$multi} {
-              $cells1($pmi_coverage) Item $r1 1 $idx
-              [[$worksheet1($pmi_coverage) Range [cellRange $r1 1] [cellRange $r1 1]] Interior] Color $legendColor(red)
+              $cells1($gpmiCoverageWS) Item $r1 1 $idx
+              [[$worksheet1($gpmiCoverageWS) Range [cellRange $r1 1] [cellRange $r1 1]] Interior] Color $legendColor(red)
             } else {
-              $cells($pmi_coverage) Item $r1 1 $idx
-              [[$worksheet($pmi_coverage) Range [cellRange $r1 1] [cellRange $r1 1]] Interior] Color $legendColor(red)
+              $cells($gpmiCoverageWS) Item $r1 1 $idx
+              [[$worksheet($gpmiCoverageWS) Range [cellRange $r1 1] [cellRange $r1 1]] Interior] Color $legendColor(red)
             }
-            if {$r1 > $pmi_rows} {set pmi_rows $r1}
+            if {$r1 > $gpmiRows} {set gpmiRows $r1}
             incr r1
           }
           set ok 0
@@ -565,14 +579,14 @@ proc gpmiCoverageWrite {{fn ""} {sum ""} {multi 1}} {
             if {$idx != $val} {
               incr r1
               if {$multi} {
-                $cells1($pmi_coverage) Item $r1 1 $idx
-                [[$worksheet1($pmi_coverage) Range [cellRange $r1 1] [cellRange $r1 1]] Interior] Color $legendColor(red)
+                $cells1($gpmiCoverageWS) Item $r1 1 $idx
+                [[$worksheet1($gpmiCoverageWS) Range [cellRange $r1 1] [cellRange $r1 1]] Interior] Color $legendColor(red)
               } else {
-                $cells($pmi_coverage) Item $r1 1 $idx
-                [[$worksheet($pmi_coverage) Range [cellRange $r1 1] [cellRange $r1 1]] Interior] Color $legendColor(red)
+                $cells($gpmiCoverageWS) Item $r1 1 $idx
+                [[$worksheet($gpmiCoverageWS) Range [cellRange $r1 1] [cellRange $r1 1]] Interior] Color $legendColor(red)
               }
               set val $idx
-              if {$r1 > $pmi_rows} {set pmi_rows $r1}
+              if {$r1 > $gpmiRows} {set gpmiRows $r1}
             }
           }
           set ok 0      
@@ -583,11 +597,11 @@ proc gpmiCoverageWrite {{fn ""} {sum ""} {multi 1}} {
 # add numbers
     if {[info exists gpmiTypesPerFile]} {
       set gpmiTypesPerFile [lrmdups $gpmiTypesPerFile]
-      for {set r 4} {$r <= $pmi_rows} {incr r} {
+      for {set r 4} {$r <= $gpmiRows} {incr r} {
         if {$multi} {
-          set val [[$cells1($pmi_coverage) Item $r 1] Value]
+          set val [[$cells1($gpmiCoverageWS) Item $r 1] Value]
         } else {
-          set val [[$cells($pmi_coverage) Item $r 1] Value]
+          set val [[$cells($gpmiCoverageWS) Item $r 1] Value]
         }
         foreach item $gpmiTypesPerFile {
           set idx [lindex [split $item "/"] 0]
@@ -595,9 +609,9 @@ proc gpmiCoverageWrite {{fn ""} {sum ""} {multi 1}} {
 
 # get current value
             if {$multi} {
-              set npmi [[$cells1($pmi_coverage) Item $r $col1($sum)] Value]
+              set npmi [[$cells1($gpmiCoverageWS) Item $r $col1($sum)] Value]
             } else {
-              set npmi [[$cells($pmi_coverage) Item $r 2] Value]
+              set npmi [[$cells($gpmiCoverageWS) Item $r 2] Value]
             }
 
 # set or increment npmi
@@ -609,12 +623,12 @@ proc gpmiCoverageWrite {{fn ""} {sum ""} {multi 1}} {
 
 # write npmi
             if {$multi} {
-              $cells1($pmi_coverage) Item $r $col1($sum) $npmi
-              set range [$worksheet1($pmi_coverage) Range [cellRange $r $col1($sum)] [cellRange $r $col1($sum)]]
-              incr pmi_totals($r)
+              $cells1($gpmiCoverageWS) Item $r $col1($sum) $npmi
+              set range [$worksheet1($gpmiCoverageWS) Range [cellRange $r $col1($sum)] [cellRange $r $col1($sum)]]
+              incr gpmiTotals($r)
             } else {
-              $cells($pmi_coverage) Item $r 2 $npmi
-              set range [$worksheet($pmi_coverage) Range [cellRange $r 2] [cellRange $r 2]]
+              $cells($gpmiCoverageWS) Item $r 2 $npmi
+              set range [$worksheet($gpmiCoverageWS) Range [cellRange $r 2] [cellRange $r 2]]
             }
             $range HorizontalAlignment [expr -4108]
           }
@@ -631,13 +645,13 @@ proc gpmiCoverageWrite {{fn ""} {sum ""} {multi 1}} {
 # format PMI Presentation Coverage analysis worksheet, also PMI totals
 proc gpmiCoverageFormat {{sum ""} {multi 1}} {
   global cells cells1 col1 excel excel1 lenfilelist localName nistName
-  global pmi_coverage pmi_rows pmi_totals recPracNames stepAP worksheet worksheet1
+  global gpmiCoverageWS gpmiRows gpmiTotals recPracNames stepAP worksheet worksheet1
   #outputMsg "gpmiCoverageFormat $multi" red
 
 # delete worksheet if no graphical PMI
-  if {$multi && ![info exists pmi_totals]} {
+  if {$multi && ![info exists gpmiTotals]} {
     catch {$excel1 DisplayAlerts False}
-    $worksheet1($pmi_coverage) Delete
+    $worksheet1($gpmiCoverageWS) Delete
     catch {$excel1 DisplayAlerts True}
     return
   }
@@ -645,12 +659,12 @@ proc gpmiCoverageFormat {{sum ""} {multi 1}} {
 # total PMI
   if {[catch {
     if {$multi} {
-      set col1($pmi_coverage) [expr {$lenfilelist+2}]
-      $cells1($pmi_coverage) Item 3 $col1($pmi_coverage) "Total PMI"
-      foreach idx [array names pmi_totals] {
-        $cells1($pmi_coverage) Item $idx $col1($pmi_coverage) $pmi_totals($idx)
+      set col1($gpmiCoverageWS) [expr {$lenfilelist+2}]
+      $cells1($gpmiCoverageWS) Item 3 $col1($gpmiCoverageWS) "Total PMI"
+      foreach idx [array names gpmiTotals] {
+        $cells1($gpmiCoverageWS) Item $idx $col1($gpmiCoverageWS) $gpmiTotals($idx)
       }        
-      $worksheet1($pmi_coverage) Activate
+      $worksheet1($gpmiCoverageWS) Activate
     }
  
 # horizontal break lines
@@ -658,9 +672,9 @@ proc gpmiCoverageFormat {{sum ""} {multi 1}} {
     if {!$multi} {set idx1 [list 3 4 21 28 30 35 36]}
     for {set r 100} {$r >= 35} {incr r -1} {
       if {$multi} {
-        set val [[$cells1($pmi_coverage) Item $r 1] Value]
+        set val [[$cells1($gpmiCoverageWS) Item $r 1] Value]
       } else {
-        set val [[$cells($pmi_coverage) Item $r 1] Value]
+        set val [[$cells($gpmiCoverageWS) Item $r 1] Value]
       }
       if {$val != ""} {
         lappend idx1 [expr {$r+1}]
@@ -671,9 +685,9 @@ proc gpmiCoverageFormat {{sum ""} {multi 1}} {
 # horizontal lines
     foreach idx $idx1 {
       if {$multi} {
-        set range [$worksheet1($pmi_coverage) Range [cellRange $idx 1] [cellRange $idx $col1($pmi_coverage)]]
+        set range [$worksheet1($gpmiCoverageWS) Range [cellRange $idx 1] [cellRange $idx $col1($gpmiCoverageWS)]]
       } else {
-        set range [$worksheet($pmi_coverage) Range [cellRange $idx 1] [cellRange $idx 2]]        
+        set range [$worksheet($gpmiCoverageWS) Range [cellRange $idx 1] [cellRange $idx 2]]        
       }
       catch {[[$range Borders] Item [expr 8]] Weight [expr 2]}
     }
@@ -684,46 +698,46 @@ proc gpmiCoverageFormat {{sum ""} {multi 1}} {
     
 # vertical line(s)
     if {$multi} {
-      set range [$worksheet1($pmi_coverage) Range [cellRange 1 $col1($pmi_coverage)] [cellRange [expr {[lindex $idx1 end]-1}] $col1($pmi_coverage)]]
+      set range [$worksheet1($gpmiCoverageWS) Range [cellRange 1 $col1($gpmiCoverageWS)] [cellRange [expr {[lindex $idx1 end]-1}] $col1($gpmiCoverageWS)]]
       catch {[[$range Borders] Item [expr 7]] Weight [expr 2]}
       
 # fix row 3 height and width
-      set range [$worksheet1($pmi_coverage) Range 3:3]
+      set range [$worksheet1($gpmiCoverageWS) Range 3:3]
       $range RowHeight 300
-      [$worksheet1($pmi_coverage) Columns] AutoFit
+      [$worksheet1($gpmiCoverageWS) Columns] AutoFit
       
-      $cells1($pmi_coverage) Item [expr {$pmi_rows+2}] 1 "Presentation Names defined in $rp"
-      set anchor [$worksheet1($pmi_coverage) Range [cellRange [expr {$pmi_rows+2}] 1]]
-      [$worksheet1($pmi_coverage) Hyperlinks] Add $anchor [join "https://www.cax-if.org/joint_testing_info.html#recpracs"] [join ""] [join "Link to CAx-IF Recommended Practices"]
+      $cells1($gpmiCoverageWS) Item [expr {$gpmiRows+2}] 1 "Presentation Names defined in $rp"
+      set anchor [$worksheet1($gpmiCoverageWS) Range [cellRange [expr {$gpmiRows+2}] 1]]
+      [$worksheet1($gpmiCoverageWS) Hyperlinks] Add $anchor [join "https://www.cax-if.org/joint_testing_info.html#recpracs"] [join ""] [join "Link to CAx-IF Recommended Practices"]
   
-      [$worksheet1($pmi_coverage) Rows] AutoFit
-      [$worksheet1($pmi_coverage) Range "B4"] Select
+      [$worksheet1($gpmiCoverageWS) Rows] AutoFit
+      [$worksheet1($gpmiCoverageWS) Range "B4"] Select
       catch {[$excel1 ActiveWindow] FreezePanes [expr 1]}
-      [$worksheet1($pmi_coverage) Range "A1"] Select
-      catch {[$worksheet1($pmi_coverage) PageSetup] PrintGridlines [expr 1]}
+      [$worksheet1($gpmiCoverageWS) Range "A1"] Select
+      catch {[$worksheet1($gpmiCoverageWS) PageSetup] PrintGridlines [expr 1]}
 
 # single file
     } else {
       set i1 3
       for {set i 0} {$i < $i1} {incr i} {
-        set range [$worksheet($pmi_coverage) Range [cellRange 3 [expr {$i+1}]] [cellRange [expr {[lindex $idx1 end]-1}] [expr {$i+1}]]]
+        set range [$worksheet($gpmiCoverageWS) Range [cellRange 3 [expr {$i+1}]] [cellRange [expr {[lindex $idx1 end]-1}] [expr {$i+1}]]]
         catch {[[$range Borders] Item [expr 7]] Weight [expr 2]}
       }
-      [$worksheet($pmi_coverage) Columns] AutoFit        
+      [$worksheet($gpmiCoverageWS) Columns] AutoFit        
       
-      catch {$cells($pmi_coverage) Item 1 5 "Presentation Names defined in $rp"}
-      set range [$worksheet($pmi_coverage) Range E1:O1]
+      catch {$cells($gpmiCoverageWS) Item 1 5 "Presentation Names defined in $rp"}
+      set range [$worksheet($gpmiCoverageWS) Range E1:O1]
       $range MergeCells [expr 1]
-      set anchor [$worksheet($pmi_coverage) Range E1]
-      [$worksheet($pmi_coverage) Hyperlinks] Add $anchor [join "https://www.cax-if.org/joint_testing_info.html#recpracs"] [join ""] [join "Link to CAx-IF Recommended Practices"]
+      set anchor [$worksheet($gpmiCoverageWS) Range E1]
+      [$worksheet($gpmiCoverageWS) Hyperlinks] Add $anchor [join "https://www.cax-if.org/joint_testing_info.html#recpracs"] [join ""] [join "Link to CAx-IF Recommended Practices"]
       
-      [$worksheet($pmi_coverage) Range "A1"] Select
-      catch {[$worksheet($pmi_coverage) PageSetup] PrintGridlines [expr 1]}
-      $cells($pmi_coverage) Item 1 1 [file tail $localName]
-      $cells($pmi_coverage) Item [expr {$pmi_rows+3}] 1 "See Help > Analyze > PMI Coverage Analysis"
+      [$worksheet($gpmiCoverageWS) Range "A1"] Select
+      catch {[$worksheet($gpmiCoverageWS) PageSetup] PrintGridlines [expr 1]}
+      $cells($gpmiCoverageWS) Item 1 1 [file tail $localName]
+      $cells($gpmiCoverageWS) Item [expr {$gpmiRows+3}] 1 "See Help > Analyze > PMI Coverage Analysis"
 
 # add images for the CAx-IF and NIST PMI models
-      if {$nistName != ""} {nistAddModelPictures $pmi_coverage}
+      if {$nistName != ""} {nistAddModelPictures $gpmiCoverageWS}
     }
 # errors
   } emsg]} {

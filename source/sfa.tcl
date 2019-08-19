@@ -12,10 +12,6 @@
 
 # The latest version of the source code is available at: https://github.com/usnistgov/SFA
 
-# ----------------------------------------------------------------------------------------------
-# The STEP File Analyzer and Viewer can only be built with Tcl 8.5.15 or earlier
-# More recent versions are incompatibile with the IFCsvr toolkit that is used to read STEP files
-# ----------------------------------------------------------------------------------------------
 # This is the main routine for the STEP File Analyzer and Viewer GUI version
 
 global env tcl_platform
@@ -25,8 +21,8 @@ set wdir [file dirname $scriptName]
 set auto_path [linsert $auto_path 0 $wdir]
 set contact [getContact]
 
-# for building your own version without Tcl Dev Kit, uncomment and modify C:/Tcl/lib/teapot directory if necessary
-# lappend commands add package locations to auto_path, must be before package commands
+# for building your own version with freewrap, uncomment and modify C:/Tcl/lib/teapot directory if necessary
+# the lappend commands add package locations to auto_path, must be before package commands below
 #lappend auto_path C:/Tcl/lib/teapot/package/win32-ix86/lib/tcom3.9
 #lappend auto_path C:/Tcl/lib/teapot/package/win32-ix86/lib/twapi3.0.32
 #lappend auto_path C:/Tcl/lib/teapot/package/win32-ix86/lib/Tclx8.4
@@ -80,7 +76,7 @@ foreach item $auto_path {if {[string first "STEP-File-Analyzer" $item] != -1} {s
 # -----------------------------------------------------------------------------------------------------
 # initialize variables, set opt to 1
 foreach id { \
-  DISPGUIDE1 FIRSTTIME LOGFILE PMIGRF PMISEM PR_STEP_AP242 PR_STEP_COMM PR_STEP_COMP PR_STEP_FEAT PR_STEP_KINE PR_STEP_PRES PR_STEP_QUAN \
+  DELCOVROWS DISPGUIDE1 FIRSTTIME LOGFILE PMIGRF PMISEM PR_STEP_AP242 PR_STEP_COMM PR_STEP_COMP PR_STEP_FEAT PR_STEP_KINE PR_STEP_PRES PR_STEP_QUAN \
   PR_STEP_REPR PR_STEP_SHAP PR_STEP_TOLR VALPROP VIZBRP VIZFEA VIZFEABC VIZFEADS VIZFEALV VIZPMI VIZTPG XL_LINK1 XL_OPEN \
 } {set opt($id) 1}
 
@@ -109,6 +105,7 @@ set openFileList {}
 set pointLimit 2
 set sfaVersion 0
 set upgrade 0
+set upgradeIFCsvr 0
 set userXLSFile ""
 set x3dFileName ""
 set x3dStartFile 1
@@ -259,7 +256,6 @@ guiButtons
 
 #-------------------------------------------------------------------------------
 # first time user
-set copyrose 0
 set ask 0
 
 if {$opt(FIRSTTIME)} {
@@ -274,7 +270,6 @@ if {$opt(FIRSTTIME)} {
   set opt(DISPGUIDE1) 0
   
   saveState
-  set copyrose 1
   setShortcuts
   
   outputMsg " "
@@ -284,24 +279,14 @@ if {$opt(FIRSTTIME)} {
 # what's new message
 } elseif {$sfaVersion < [getVersion]} {
   whatsNew
-  if {$sfaVersion < [getVersionUG]} {
-    errorMsg "- A new version of the User Guide is available.\n  Sections 5.1.5, 6, 7, and 8.1 have new or updated content."
-    showFileURL UserGuide
-  }
-  if {$sfaVersion < 2.30} {
-    errorMsg "- The command-line version has been renamed: sfa-cl.exe  The old version STEP-File-Analyzer-CL.exe can be deleted."
-  }
   set sfaVersion [getVersion]
   saveState
-  set copyrose 1
   setShortcuts
 
 } elseif {$sfaVersion > [getVersion]} {
   set sfaVersion [getVersion]
   saveState
 }
-  
-if {$developer} {set copyrose 1}
 
 #-------------------------------------------------------------------------------
 # crash recovery message
@@ -318,7 +303,7 @@ if {$nistVersion} {
     set lastupgrade [expr {round(([clock seconds] - $upgrade)/86400.)}]
     if {$lastupgrade > 30} {
       set choice [tk_messageBox -type yesno -default yes -title "Check for Update" \
-        -message "Do you want to check for a new version of the STEP File Analyzer and Viewer?\n \nThe last check for an update was $lastupgrade days ago.\n \nYou can always check for an update with Help > Check for Update" -icon question]
+        -message "Do you want to check for a new version of the STEP File Analyzer and Viewer?\n\nThe last check for an update was $lastupgrade days ago.\n\nYou can always check for an update with Help > Check for Update" -icon question]
       if {$choice == "yes"} {
         set url "https://concrete.nist.gov/cgi-bin/ctv/sfa_upgrade.cgi?version=[getVersion]&auto=$lastupgrade"
         openURL $url
@@ -341,9 +326,15 @@ if {$opt(DISPGUIDE1)} {
 
 #-------------------------------------------------------------------------------
 # install IFCsvr
-set sfaType "GUI"
 set ifcsvrDir [file join $pf32 IFCsvrR300 dll]
-if {![file exists [file join $ifcsvrDir IFCsvrR300.dll]]} {installIFCsvr} 
+if {![file exists [file join $ifcsvrDir IFCsvrR300.dll]]} {
+  installIFCsvr
+
+# or reinstall IFCsvr
+} elseif {$nistVersion} {
+  set ifcsvrTime [file mtime [file join $wdir exe ifcsvrr300_setup_1008_en-update.msi]]
+  if {$ifcsvrTime > $upgradeIFCsvr} {installIFCsvr 1}
+}
 
 focus .
 
@@ -398,9 +389,6 @@ if {[llength $pid2] > 1} {
 
 # set process id used to check memory usage for AP209 files
 set sfaPID [twapi::get_process_ids -name "STEP-File-Analyzer.exe"]
-
-# copy schema rose files that are in the Tcl Virtual File System (VFS) or STEP Tools runtime to the IFCsvr dll directory
-if {$copyrose} {copyRoseFiles}
 
 # warn if spreadsheets not written to default directory
 if {$opt(writeDirType) == 1} {

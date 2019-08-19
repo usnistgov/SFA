@@ -2,9 +2,9 @@
 
 A pre-built Windows version of NIST STEP File Analyzer and Viewer (SFA) is available [here](https://www.nist.gov/services-resources/software/step-file-analyzer-and-viewer).  There is no Linux version.  
 
-The following are instructions for building the NIST STEP File Analyzer and Viewer from source code.  SFA generates a spreadsheet and visualization from an ISO 10303 Part 21 STEP file.  More information, sample spreadsheets and visualizations, and documentation about SFA is available on the website including the [STEP File Analyzer and Viewer User Guide](https://www.nist.gov/publications/step-file-analyzer-and-viewer-user-guide-update-5).
+These are the instructions for building the NIST STEP File Analyzer and Viewer from the source code.  SFA generates a spreadsheet and visualization from an ISO 10303 Part 21 STEP file.  More information, sample spreadsheets and visualizations, and documentation about SFA is available on the website including the [STEP File Analyzer and Viewer User Guide](https://www.nist.gov/publications/step-file-analyzer-and-viewer-user-guide-update-5).
 
-STEP files are used to represent product and manufacturing information (PMI) for data exchange and interoperability between Computer-Aided Design (CAD), Manufacturing (CAM), Analysis (CAE), and Inspection (CMM) software.  STEP is also used for the long-term archiving and retrieval product data (LOTAR).
+STEP files are used to represent Product and Manufacturing Information (PMI) for data exchange and interoperability between Computer-Aided Design (CAD), Manufacturing (CAM), Analysis (CAE), and Inspection (CMM) software.  STEP is also used for the long-term archiving and retrieval product data (LOTAR).
 
 ## Prerequisites
 
@@ -14,8 +14,7 @@ The STEP File Analyzer and Viewer can only be built and run on Windows computers
 
 - Go to the [STEP File Analyzer and Viewer](https://www.nist.gov/services-resources/software/step-file-analyzer-and-viewer) and click on the link to Download the STEP File Analyzer and Viewer
 - Submit the form to get a link to download sfa-n.nn.zip
-- Extract step-file-analyzer-and-viewer.exe from the zip file and run it.  This will install the IFCsvr toolkit that is used to read STEP files.
-- Generate a spreadsheet or CSV files for at least one STEP file.  This will install the STEP schema files for the IFCsvr toolkit.  
+- Extract STEP-File-Analyzer.exe from the zip file and run it.  This will install the IFCsvr toolkit that is used to read STEP files.
 
 Download the SFA files from the GitHub 'source' directory to a directory on your computer.
 
@@ -27,12 +26,14 @@ freeWrap wraps the SFA Tcl code to create an executable.
 - Download freewrap651.zip from <https://sourceforge.net/projects/freewrap/files/freewrap/freeWrap%206.51/>.  More recent versions of freeWrap will **not** work with the SFA.
 - Extract freewrap.exe and put it in the same directory as the SFA files that were downloaded from the 'source' directory.
 
-Purchase and download the legacy ActiveTcl **8.5.15** pre-built Tcl distribution from <https://www.activestate.com/products/activetcl/downloads/>.
+Install the ActiveTcl **8.5 32-bit** version of Tcl.
 
-- Scroll down to 'Licensing Options For Beyond Development Use' for information about purchasing Legacy Builds
-- SFA can **ONLY** be built with the legacy version of Active Tcl 8.5.15 (32-bit).  Newer versions of Tcl are not supported.
+- Download the ActiveTcl installer from <https://www.activestate.com/products/activetcl/downloads/>.  You will have to create an ActiveState account.
+- The Windows installer file name is: ActiveTcl-8.5.18.0.nnnnnn-win32-ix86-threaded.exe
+- SFA can be built only with ActiveTcl 8.5.18 (32-bit).  ActiveTcl 8.6.n and 64-bit versions are not supported.
 - Run the installer and use the default installation folders
-- Several Tcl packages from ActiveTcl also need to be installed.  Open a command prompt window, change to C:\\Tcl\\bin, or wherever it was installed, and enter the following three commands:
+
+Several Tcl packages from ActiveTcl also need to be installed.  Open a command prompt window, change to C:\\Tcl\\bin, or wherever Tcl was installed, and enter the following three commands:
 
 ```
 teacup install tcom
@@ -64,11 +65,11 @@ Some features are not available in the user-built version including: tooltips, u
 
 ## Suggested improvements
 
-Replace the Tcl package [tcom](http://wiki.tcl.tk/1821) (COM) with the COM features in [twapi](http://twapi.magicsplat.com/).
-
-Replace the IFCsvr toolkit with [STEPcode toolkit](https://github.com/stepcode/stepcode) or some other toolkit.  Rebuild IFCsvr toolkit to include more ROSE files.  Either suggestion can potentially remove the dependency on the older version of Tcl 8.5.15.
+Replace the Tcl package [tcom](http://wiki.tcl.tk/1821) (COM) with the COM features in [twapi](http://twapi.magicsplat.com/).  This will allow upgrading to Tcl 8.6.
 
 Replace the home-grown code to interact with Excel spreadsheets with [CAWT](http://www.cawt.tcl3d.org/).
+
+Replace the IFCsvr toolkit with [STEPcode toolkit](https://github.com/stepcode/stepcode) or another toolkit that can read STEP and IFC files.
 
 ## Contact
 

@@ -403,7 +403,7 @@ proc nistCheckExpectedPMI {val entstr} {
 
 # -------------------------------------------------------------------------------
 proc nistPMICoverage {nf} {
-  global cells legendColor nistCoverageLegend nistCoverageStyle nistName sempmi_coverage sempmi_totals spmiCoverages worksheet
+  global cells legendColor nistCoverageLegend nistCoverageStyle nistName spmiCoverages spmiCoverageWS totalPMIrows worksheet
   
   foreach idx [lsort [array names spmiCoverages]] {
     set tval [lindex [split $idx ","] 0]
@@ -414,9 +414,9 @@ proc nistPMICoverage {nf} {
   #foreach item [lsort [array names coverage]] {if {$coverage($item) != ""} {outputMsg "$item $coverage($item)" red}}
   
   # check values for color-coding
-  for {set r 4} {$r <= [[[$worksheet($sempmi_coverage) UsedRange] Rows] Count]} {incr r} {
-    set ttyp [[$cells($sempmi_coverage) Item $r 1] Value]
-    set tval [[$cells($sempmi_coverage) Item $r 2] Value]
+  for {set r 4} {$r <= [[[$worksheet($spmiCoverageWS) UsedRange] Rows] Count]} {incr r} {
+    set ttyp [[$cells($spmiCoverageWS) Item $r 1] Value]
+    set tval [[$cells($spmiCoverageWS) Item $r 2] Value]
     if {$ttyp != ""} {
       if {$tval == ""} {set tval 0}
       set tval [expr {int($tval)}]
@@ -454,26 +454,31 @@ proc nistPMICoverage {nf} {
             
 # check tolerance zone diameter vs. within a cylinder
             set skip 0
-            if {$item == "tolerance zone diameter" &&          $tval == 0 && [[$cells($sempmi_coverage) Item 20 2] Value] != ""} {set skip 1}
-            if {$item == "tolerance zone within a cylinder" && $tval == 0 && [[$cells($sempmi_coverage) Item 19 2] Value] != ""} {set skip 1}
+            if {$item == "tolerance zone diameter" &&          $tval == 0 && [[$cells($spmiCoverageWS) Item 20 2] Value] != ""} {set skip 1}
+            if {$item == "tolerance zone within a cylinder" && $tval == 0 && [[$cells($spmiCoverageWS) Item 19 2] Value] != ""} {set skip 1}
             
-# too few - yellow or red (was red or magenta)
+# too few - yellow or red
             if {!$skip} {
               if {$tval < $ci} {
                 set str "'$tval/$ci"
-                $cells($sempmi_coverage) Item $r 2 $str
-                [$worksheet($sempmi_coverage) Range B$r] HorizontalAlignment [expr -4108]
+                set tc [expr {double($tval)/double($ci)}]
+                $cells($spmiCoverageWS) Item $r 2 $str
+                [$worksheet($spmiCoverageWS) Range B$r] HorizontalAlignment [expr -4108]
                 set nistCoverageLegend 1
                 if {$tval == 0} {
                   set clr "red"
-                  set sempmi_totals($r) 1
-                } else {
+                  set totalPMIrows($r) 1
+                } elseif {$tc < 0.334} {
+                  set clr "orange"
+                } elseif {$tc < 0.665} {
                   set clr "yellow"
+                } else {
+                  set clr "yelgre"
                 }
-                [[$worksheet($sempmi_coverage) Range B$r] Interior] Color $legendColor($clr)
+                [[$worksheet($spmiCoverageWS) Range B$r] Interior] Color $legendColor($clr)
                 lappend nistCoverageStyle "$r $nf $clr $str"
   
-# too many - cyan or magenta (was yellow)
+# too many - cyan or magenta
               } elseif {$tval > $ci && $tval != 0} {
                 set ci1 $coverage($item)
                 set clr "cyan"
@@ -482,15 +487,15 @@ proc nistPMICoverage {nf} {
                   set clr "magenta"
                 }
                 set str "'$tval/[expr {int($ci1)}]"
-                $cells($sempmi_coverage) Item $r 2 $str
-                [[$worksheet($sempmi_coverage) Range B$r] Interior] Color $legendColor($clr)
-                [$worksheet($sempmi_coverage) Range B$r] NumberFormat "@"
+                $cells($spmiCoverageWS) Item $r 2 $str
+                [[$worksheet($spmiCoverageWS) Range B$r] Interior] Color $legendColor($clr)
+                [$worksheet($spmiCoverageWS) Range B$r] NumberFormat "@"
                 set nistCoverageLegend 1
                 lappend nistCoverageStyle "$r $nf $clr $str"
   
 # just right - green
               } elseif {$tval != 0} {
-                [[$worksheet($sempmi_coverage) Range B$r] Interior] Color $legendColor(green)
+                [[$worksheet($spmiCoverageWS) Range B$r] Interior] Color $legendColor(green)
                 set nistCoverageLegend 1
                 lappend nistCoverageStyle "$r $nf green"
               }
@@ -559,16 +564,16 @@ proc nistPMISummaryFormat {} {
 # -------------------------------------------------------------------------------
 # add coverage legend
 proc nistAddCoverageLegend {multi {row 3}} {
-  global cells cells1 legendColor sempmi_coverage worksheet worksheet1
+  global cells cells1 legendColor spmiCoverageWS worksheet worksheet1
   
   if {$multi == 0} {
-    set cl $cells($sempmi_coverage)
-    set ws $worksheet($sempmi_coverage)
+    set cl $cells($spmiCoverageWS)
+    set ws $worksheet($spmiCoverageWS)
     set r $row
     set c D
   } else {
-    set cl $cells1($sempmi_coverage)
-    set ws $worksheet1($sempmi_coverage)
+    set cl $cells1($spmiCoverageWS)
+    set ws $worksheet1($spmiCoverageWS)
     set r $row
     set c A
   }
@@ -576,11 +581,14 @@ proc nistAddCoverageLegend {multi {row 3}} {
   set n 0
   set legend {{"Values as Compared to NIST Test Case Drawing" ""} \
               {"See Help > Analyze > NIST CAD Models" ""} \
-              {"Match" "green"} \
               {"More than expected" "cyan"} \
-              {"Less than expected" "yellow"} \
+              {"Exact match" "green"} \
+              {"Less than expected (upper 1/3)" "yelgre"} \
+              {"Less than expected (middle 1/3)" "yellow"} \
+              {"Less than expected (lower 1/3)" "orange"} \
               {"None (0/n)" "red"} \
-              {"Unexpected (n/0)" "magenta"}}
+              {"Unexpected (n/0)" "magenta"} \
+              {"Not checked" ""}}
   foreach item $legend {
     set str [lindex $item 0]
     $cl Item $r $c $str

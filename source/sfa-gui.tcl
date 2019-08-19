@@ -1,7 +1,7 @@
 # version numbers, software and user guide, contact
 # user guide URLs are below in showFileURL
 
-proc getVersion {}   {return 3.50}
+proc getVersion {}   {return 3.60}
 proc getVersionUG {} {return 3.0}
 proc getContact {}   {return [list "Robert Lipman" "robert.lipman@nist.gov"]}
 
@@ -11,11 +11,16 @@ proc whatsNew {} {
 
   if {$sfaVersion > 0 && $sfaVersion < [getVersion]} {outputMsg "\nThe previous version of the STEP File Analyzer and Viewer was: $sfaVersion" red}
 
-outputMsg "\nWhat's New (Version: [getVersion]  Updated: [string trim [clock format $progtime -format "%e %b %Y"]])
-- New features and bug fixes are now documented in the changelog, go to Help > Changelog" blue
-
-if {$sfaVersion > 0 && $sfaVersion <= 2.60} {
-  outputMsg "\nRenamed output files:\n Spreadsheets from  myfile_stp.xlsx  to  myfile-sfa.xlsx\n Views from  myfile-x3dom.html  to  myfile-sfa.html" red
+outputMsg "\nWhat's New (Version: [getVersion]  Updated: [string trim [clock format $progtime -format "%e %b %Y"]])" blue
+outputMsg "- New features and bug fixes are now documented in the Changelog, go to Help > Changelog"
+if {$sfaVersion > 0} {
+  if {$sfaVersion  < 2.30} {outputMsg "- The command-line version has been renamed: sfa-cl.exe  The old version STEP-File-Analyzer-CL.exe can be deleted."}
+  if {$sfaVersion <= 2.60} {outputMsg "- Renamed output files: Spreadsheets from 'myfile_stp.xlsx' to 'myfile-sfa.xlsx' and Views from 'myfile-x3dom.html' to 'myfile-sfa.html'"}
+  if {$sfaVersion < [getVersionUG]} {
+    outputMsg "- A new User Guide, based on version [getVersionUG] of this software, is available.\n  Sections 5.1.5, 6, 7, and 8.1 have new or updated content."
+    showFileURL UserGuide
+  }
+  if {$sfaVersion < 3.60} {outputMsg "- The IFCsvr toolkit needs to be reinstalled.  Please follow the directions below very carefully."}
 }
 
   .tnb select .tnb.status
@@ -31,14 +36,6 @@ proc showFileURL {type} {
 # update for new versions, local and online
       set localFile "SFA-User-Guide-v5.pdf"
       set URL https://doi.org/10.6028/NIST.AMS.200-6
-
-# extra message if user guide is out-of-date, versions defined at the top of this file
-      if {[getVersion] > [expr {[getVersionUG]+0.25}]} {
-        outputMsg " "
-        errorMsg "The User Guide is based on version [getVersionUG] of the STEP File Analyzer and Viewer.\n See Help > Changelog for changes to the software."
-        outputMsg " "
-        .tnb select .tnb.status
-      }
     }
 
     Changelog {
@@ -440,7 +437,7 @@ proc guiProcessAndReports {} {
 
   set foptd1 [frame $foptd.1 -bd 0]
   foreach item {{" AP242 PMI Representation (Semantic PMI)" opt(PMISEM)}} {
-  regsub -all {[\(\)]} [lindex $item 1] "" idx
+    regsub -all {[\(\)]} [lindex $item 1] "" idx
     set buttons($idx) [ttk::checkbutton $foptd1.$cb -text [lindex $item 0] -variable [lindex $item 1] -command {checkValues}]
     pack $buttons($idx) -side top -anchor w -padx 5 -pady 0 -ipady 0
     incr cb
@@ -449,7 +446,7 @@ proc guiProcessAndReports {} {
 
   set foptd2 [frame $foptd.2 -bd 0]
   foreach item {{" Only Dimensions" opt(PMISEMDIM)}} {
-  regsub -all {[\(\)]} [lindex $item 1] "" idx
+    regsub -all {[\(\)]} [lindex $item 1] "" idx
     set buttons($idx) [ttk::checkbutton $foptd2.$cb -text [lindex $item 0] -variable [lindex $item 1] -command {checkValues}]
     pack $buttons($idx) -side top -anchor w -padx 5 -pady 0 -ipady 0
     incr cb
@@ -459,7 +456,7 @@ proc guiProcessAndReports {} {
   set foptd3 [frame $foptd.3 -bd 0]
   foreach item {{" PMI Presentation (Graphical PMI)"  opt(PMIGRF)} \
                 {" Validation Properties"             opt(VALPROP)}} {
-  regsub -all {[\(\)]} [lindex $item 1] "" idx
+    regsub -all {[\(\)]} [lindex $item 1] "" idx
     set buttons($idx) [ttk::checkbutton $foptd3.$cb -text [lindex $item 0] -variable [lindex $item 1] -command {checkValues}]
     pack $buttons($idx) -side top -anchor w -padx 5 -pady 0 -ipady 0
     incr cb
@@ -951,15 +948,18 @@ proc guiSpreadsheet {} {
   catch {tooltip::tooltip $fxlsd "If possible, existing Spreadsheets, CSV files, and View files are\nalways overwritten by new files."}
 
   set fxlsc [ttk::labelframe $fxls.c -text " Other "]
-  set items [list {" On File Summary worksheet, create links to STEP files and spreadsheets (see File > Open Multiple ...)" opt(XL_LINK1)}]
-  foreach item $items {
+  foreach item {{" Delete unused rows on Coverage Analysis worksheets" opt(DELCOVROWS)} \
+                {" On File Summary worksheet, create links to STEP files and spreadsheets (see File > Open Multiple ...)" opt(XL_LINK1)}} {
     regsub -all {[\(\)]} [lindex $item 1] "" idx
     set buttons($idx) [ttk::checkbutton $fxlsc.$cb -text [lindex $item 0] -variable [lindex $item 1] -command {checkValues}]
     pack $buttons($idx) -side top -anchor w -padx 5 -pady 0 -ipady 0
+    incr cb
   }
   pack $fxlsc -side top -anchor w -pady {5 2} -padx 10 -fill both
-  catch {tooltip::tooltip $fxlsc.$cb "Deselecting this option is useful when sharing a Spreadsheet with another user."}
-  incr cb
+  catch {
+    tooltip::tooltip $buttons(optXL_LINK1)   "Deselecting this option is useful when sharing a Spreadsheet with another user."
+    tooltip::tooltip $buttons(optDELCOVROWS) "See Help > Analyze > PMI Coverage Analysis"
+  }
 
   if {$developer} {
     set fxlsx [ttk::labelframe $fxls.x -text " Debug "]
@@ -980,7 +980,7 @@ proc guiSpreadsheet {} {
 #-------------------------------------------------------------------------------
 # help menu
 proc guiHelpMenu {} {
-  global contact defaultColor Examples excelVersion Help ifcsvrDir mytemp nistVersion opt stepAPs virtualDir
+  global contact defaultColor Examples excelVersion Help ifcsvrDir mytemp nistVersion opt stepAPs
 
   $Help add command -label "User Guide" -command {showFileURL UserGuide}
   $Help add command -label "What's New" -command {whatsNew}
@@ -997,6 +997,43 @@ proc guiHelpMenu {} {
       saveState
     }
   }
+
+  $Help add command -label "Crash Recovery" -command {
+outputMsg "\nCrash Recovery -------------------------------------------------------------" blue
+outputMsg "Sometimes the STEP File Analyzer and Viewer crashes after a STEP file has been successfully
+opened and the processing of entities has started.  Popup dialogs might appear that say
+\"ActiveState Basekit has stopped working\" or \"Runtime Error!\".
+
+See Help > User Guide (sections 2.4 and 10)
+See Help > Large STEP Files
+
+A crash is most likely due to syntax errors in the STEP file or sometimes due to limitations of
+the toolkit used to read STEP files.  To see which type of entity caused the error, check the
+Status tab to see which type of entity was last processed.  A crash might also be caused by a very
+large STEP file.
+
+Workarounds for this problem:
+
+1 - This software keeps track of the last entity type processed when it crashed.  Simply restart
+the STEP File Analyzer and Viewer and use F1 to process the last STEP file or use F6 if processing
+multiple files.  The type of entity that caused the crash will be skipped.  The list of bad entity
+types that will not be processed is stored in myfile-skip.dat.
+
+NOTE - If syntax errors related to the bad entities are corrected, then delete the *-skip.dat file
+so that the corrected entities are processed.  When the STEP file is processed, the list of
+specific entities that are not processed is reported.
+
+2 - Processing of the type of entity that caused the error can be deselected in the Options tab
+under Process.  However, this will prevent processing of other entities that do not cause a crash.
+
+3 - Run the command-line version 'sfa-cl.exe' in a command prompt window.  Use the 'stats' option
+so that no spreadsheet or view is generated.  The output from reading the STEP file might show
+error and warning messages that might have caused the software to crash.  Those messages will be
+between the 'Begin ST-Developer output' and 'End ST-Developer output' messages.
+
+4 - Deselect all Analyze, View, and Inverse Relationships options."
+  .tnb select .tnb.status
+}
 
   $Help add separator
   $Help add command -label "Overview" -command {
@@ -1245,6 +1282,7 @@ a section number do not have a Recommended Practice for their implementation.  T
 grouped by features related tolerances, tolerance zones, dimensions, dimension modifiers, datums,
 datum targets, and other modifiers.  The number of some modifiers, e.g., maximum material condition,
 does not differentiate whether they appear in the tolerance zone definition or datum reference frame.
+Rows with no counts of PMI Elements can be deleted, see Spreadsheet tab.
 
 Some PMI Elements might not be exported to a STEP file by your CAD system.  Some PMI Elements are
 only in AP242 edition 2.
@@ -1328,9 +1366,9 @@ expected results were determined by manually counting the number of PMI elements
 Counting of some modifiers, e.g. maximum material condition, does not differentiate whether they
 appear in the tolerance zone definition or datum reference frame.
 - A green cell is a match to the expected number of PMI elements. (3/3)
-- Cyan means that more were found than expected. (4/3)
-- Yellow means that less were found than expected. (2/3)
+- Yellow, orange, and yellow-green means that less were found than expected. (2/3)
 - Red means that no instances of an expected PMI element were found. (0/3)
+- Cyan means that more were found than expected. (4/3)
 - Magenta means that some PMI elements were found when none were expected. (3/0)
 
 * Missing PMI *
@@ -1467,15 +1505,15 @@ See Websites > AP209 FEA"
   $Help add command -label "Syntax Errors" -command {
 outputMsg "\nSyntax Errors --------------------------------------------------------------" blue
 outputMsg "Syntax error information and other errors can be used to debug a STEP file.  Most syntax errors are
-generated when Analysis related to Semantic PMI, Graphical PMI, and Validation Properties are
-selected.  Analysis syntax errors and some other errors are shown in the Status tab and highlighted
-in red or yellow.
+generated when an Analysis related to Semantic PMI, Graphical PMI, and Validation Properties are
+selected.  Syntax errors and some other errors are shown in the Status tab and highlighted in red or
+yellow.
 
-Analysis syntax errors for Analysis are related to CAx-IF Recommended Practices and usually refer to
-a specific section, figure, or table in a Recommended Practice.  Some references to section, figure,
-and table numbers in a recommended practice might be to a newer version of a recommended practice
-that has not been released to the public.  Specific section, figure, and table numbers might be wrong
-relative to the publicly available recommended practice.
+Syntax errors are mostly related to CAx-IF Recommended Practices and usually refer to a specific
+section, figure, or table in a Recommended Practice.  Some references to section, figure, and table
+numbers in a recommended practice might be to a newer version of a recommended practice that has not
+been released to the public.  Specific section, figure, and table numbers might be wrong relative to
+the publicly available recommended practice.
 
 Most entity types that have syntax errors or some other errors are highlighted in gray in column A
 on the File Summary worksheet.  A comment indicating that there are errors is shown with a small red
@@ -1499,43 +1537,6 @@ Command-line version
     .tnb select .tnb.status
   }
 
-  $Help add command -label "Crash Recovery" -command {
-outputMsg "\nCrash Recovery -------------------------------------------------------------" blue
-outputMsg "Sometimes the STEP File Analyzer and Viewer crashes after a STEP file has been successfully
-opened and the processing of entities has started.  Popup dialogs might appear that say
-\"Runtime Error!\" or \"ActiveState Basekit has stopped working\".
-
-See Help > User Guide (sections 2.4 and 10)
-
-A crash is most likely due to syntax errors in the STEP file or sometimes due to limitations of
-the toolkit used to read STEP files.  To see which type of entity caused the error, check the
-Status tab to see which type of entity was last processed.  A crash might also be caused by a very
-large STEP file.
-
-Workarounds for this problem:
-
-1 - This software keeps track of the last entity type processed when it crashed.  Simply restart
-the STEP File Analyzer and Viewer and use F1 to process the last STEP file or use F6 if processing
-multiple files.  The type of entity that caused the crash will be skipped.  The list of bad entity
-types that will not be processed is stored in myfile-skip.dat.
-
-2 - Deselect all Analyze and Inverse Relationships options.  If one of these options caused the
-crash, then the *-skip.dat file is still created as described above and might need to be deleted.
-
-3 - Processing of the type of entity that caused the error can be deselected in the Options tab
-under Process.  However, this will prevent processing of other entities that do not cause a crash.
-
-4 - Run the command-line version 'sfa-cl.exe' in a command prompt window.  Use the 'stats' option
-so that no spreadsheet or view is generated.  The output from reading the STEP file might show
-error and warning messages that might have caused the software to crash.  Those messages will be
-between the '*** Begin ST-Developer output' and '*** End ST-Developer output' messages.
-
-NOTE - If syntax errors related to the bad entities are corrected, then delete the *-skip.dat file
-so that the corrected entities are processed.  When the STEP file is processed, the list of
-specific entities that are not processed is reported."
-  .tnb select .tnb.status
-}
-
 # large files help
   $Help add command -label "Large STEP Files" -command {
 outputMsg "\nLarge STEP Files -----------------------------------------------------------" blue
@@ -1551,8 +1552,6 @@ dialogs might appear that say 'Unable to alloc xxx bytes'.  See the Help > Crash
     .tnb select .tnb.status
   }
   $Help add command -label "Supported STEP APs" -command {
-    if {[llength [glob -nocomplain -directory $ifcsvrDir *.rose]] < 12} {copyRoseFiles}
-
     outputMsg "\nSupported STEP APs ----------------------------------------------------------" blue
     outputMsg "The following STEP Application Protocols (AP) and other schemas are supported.\nThe name of the AP is found on the FILE_SCHEMA entity in the HEADER section of a STEP file.\nThe 'e1' notation after an AP number below refers to an older version of that AP.\n"
 
@@ -1580,6 +1579,12 @@ dialogs might appear that say 'Unable to alloc xxx bytes'.  See the Help > Crash
       }
     }
 
+    if {[llength $schemas] <= 1} {
+      errorMsg "No Supported STEP APs were found."
+      if {[llength $schemas] == 1} {errorMsg "- Manually uninstall the existing IFCsvrR300 ActiveX Component 'App'."}
+      errorMsg "- Restart this software to install the new IFCsvr toolkit."
+    }
+
     set n 0
     foreach item [lsort $schemas] {
       set c1 [string first "-" $item]
@@ -1593,8 +1598,6 @@ dialogs might appear that say 'Unable to alloc xxx bytes'.  See the Help > Crash
         outputMsg "  [string range $item 0 $c1][string toupper [string range $item $c1+1 end]]"
       }
     }
-
-    if {$nschema == 0} {errorMsg "No Supported STEP APs were found.\nThere was a problem copying STEP schema files (*.rose) to the IFCsvr/dll directory."}
     outputMsg "\nSee the Websites menu for information about the STEP Format, EXPRESS Schemas, AP242, and more."
 
     .tnb select .tnb.status
@@ -1639,12 +1642,14 @@ Credits
           if {[string first $id1 $id] == 0} {outputMsg " $id   $env($id)"; break}
         }
       }
+
       outputMsg "Registry values" red
       catch {outputMsg " Personal  [registry get {HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\User Shell Folders} {Personal}]"}
       catch {outputMsg " Desktop   [registry get {HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\User Shell Folders} {Desktop}]"}
       catch {outputMsg " Programs  [registry get {HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\User Shell Folders} {Programs}]"}
       catch {outputMsg " AppData   [registry get {HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\User Shell Folders} {Local AppData}]"}
       catch {outputMsg " Browser   [registry get {HKEY_CURRENT_USER\Software\Classes\http\shell\open\command} {}]"}
+
       outputMsg "SFA variables" red
       catch {outputMsg " Drive $drive"}
       catch {outputMsg " Home  $myhome"}
@@ -1652,10 +1657,10 @@ Credits
       catch {outputMsg " Desk  $mydesk"}
       catch {outputMsg " Menu  $mymenu"}
       catch {outputMsg " Temp  $mytemp  ([file exists $mytemp])"}
-      catch {outputMsg " ifcsvrDir  [file nativename $ifcsvrDir]"}
-      if {[info exists virtualDir]} {outputMsg " virtualDir  $virtualDir"}
       outputMsg " pf32  $pf32"
       if {$pf64 != ""} {outputMsg " pf64  $pf64"}
+      #catch {outputMsg " ifcsvrDir  [file nativename $ifcsvrDir]"}
+
       outputMsg "Other variables" red
       outputMsg " Tcl [info patchlevel]"
       outputMsg " twapi [package versions twapi]"
@@ -1706,13 +1711,13 @@ proc guiWebsitesMenu {} {
   $Websites add separator
   $Websites add cascade -label "AP242" -menu $Websites.0
   set Websites0 [menu $Websites.0 -tearoff 1]
-  $Websites0 add command -label "AP242 Project"           -command {openURL http://www.ap242.org}
-  $Websites0 add command -label "Paper"             -command {openURL https://www.nist.gov/publications/portrait-iso-step-tolerancing-standard-enabler-smart-manufacturing-systems}
-  $Websites0 add command -label "Presentation"      -command {openURL https://www.nist.gov/document-2058}
-  $Websites0 add command -label "Benchmark Testing" -command {openURL http://www.asd-ssg.org/step-ap242-benchmark}
-  $Websites0 add command -label "Edition 2"         -command {openURL http://www.ap242.org/edition-2}
+  $Websites0 add command -label "AP242 Project"      -command {openURL http://www.ap242.org}
+  $Websites0 add command -label "Paper"              -command {openURL https://www.nist.gov/publications/portrait-iso-step-tolerancing-standard-enabler-smart-manufacturing-systems}
+  $Websites0 add command -label "Presentation (pdf)" -command {openURL https://www.nist.gov/document-2058}
+  $Websites0 add command -label "Benchmark Testing"  -command {openURL http://www.asd-ssg.org/step-ap242-benchmark}
+  $Websites0 add command -label "Edition 2"          -command {openURL http://www.ap242.org/edition-2}
 
-  $Websites add command -label "AP209 FEA"                -command {openURL http://www.ap209.org}
+  $Websites add command -label "AP209 FEA"           -command {openURL http://www.ap209.org}
 
   $Websites add separator
   $Websites add cascade -label "STEP Format and Schemas" -menu $Websites.2
@@ -1741,7 +1746,7 @@ proc guiWebsitesMenu {} {
   $Websites4 add command -label "STEP to X3D Translation"                   -command {openURL http://www.web3d.org/wiki/index.php/STEP_X3D_Translation}
   $Websites4 add command -label "STEP Class Library (STEPcode)"             -command {openURL https://www.nist.gov/services-resources/software/step-class-library-scl}
   $Websites4 add command -label "Express Engine"                            -command {openURL http://exp-engine.sourceforge.net/}
-  #$Websites4 add command -label "STEP Engine"                               -command {openURL http://rdf.bg/product-list/step-engine/}
+  $Websites4 add command -label "STEP Engine"                               -command {openURL http://rdf.bg/product-list/step-engine/}
 
   $Websites add cascade -label "STEP Related Organizations" -menu $Websites.3
   set Websites3 [menu $Websites.3 -tearoff 1]
@@ -1914,8 +1919,8 @@ proc getOpenPrograms {} {
 # other STEP file apps
     set applist [list \
       [list {*}[glob -nocomplain -directory [file join $pf] -join "Afanche3D*" "Afanche3D*.exe"] Afanche3D] \
-      [list {*}[glob -nocomplain -directory [file join $pf "Common Files"] -join "eDrawings*" eDrawings.exe] eDrawings] \
-      [list {*}[glob -nocomplain -directory [file join $pf "SOLIDWORKS Corp"] -join "eDrawings (*)" eDrawings.exe] eDrawings] \
+      [list {*}[glob -nocomplain -directory [file join $pf "Common Files"] -join "eDrawings*" eDrawings.exe] "eDrawings Viewer"] \
+      [list {*}[glob -nocomplain -directory [file join $pf "SOLIDWORKS Corp"] -join "eDrawings (*)" eDrawings.exe] "eDrawings Viewer"] \
       [list {*}[glob -nocomplain -directory [file join $pf "Stratasys Direct Manufacturing"] -join "SolidView Pro RP *" bin SldView.exe] SolidView] \
       [list {*}[glob -nocomplain -directory [file join $pf "TransMagic Inc"] -join "TransMagic *" System code bin TransMagic.exe] TransMagic] \
       [list {*}[glob -nocomplain -directory [file join $pf Actify SpinFire] -join "*" SpinFire.exe] SpinFire] \

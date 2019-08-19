@@ -65,7 +65,7 @@ proc spmiDimtolStart {entType} {
   outputMsg " Adding PMI Representation Analysis" blue
 
   if {[string first "AP203" $stepAP] == 0 || [string first "AP214" $stepAP] == 0} {
-    errorMsg "Syntax Error: There is no Recommended Practice for PMI Representation in $stepAP files.  Use AP242 for PMI Representation."
+    errorMsg "There is no Recommended Practice for PMI Representation in $stepAP files.  Use AP242 for PMI Representation."
   }
 
   if {$opt(DEBUG1)} {outputMsg \n}
@@ -202,22 +202,38 @@ proc spmiDimtolReport {objEntity} {
                           set val [string toupper [$attr1 Value]]
                           if {[string first "INCH" $val] != -1 } {
                             if {$val != "INCH"} {errorMsg "Syntax Error: Use 'INCH' instead of '[$attr1 Value]' to specify inches on conversion_based_unit."}
-                            if {[info exists dim(unit)]} {if {$dim(unit) == "MM"} {errorMsg "Syntax Error: Dimensions use mixed MM and INCH units."}}
+                            if {[info exists dim(unit)]} {if {$dim(unit) == "MM"} {errorMsg "Dimensions use both MM and INCH units."}}
                             set dim(unit) "INCH"
                             errorMsg " Dimension units: $dim(unit)" red
                             break
                           } elseif {$val == "MILLI"} {
-                            if {[info exists dim(unit)]} {if {$dim(unit) == "INCH"} {errorMsg "Syntax Error: Dimensions use mixed MM and INCH units."}}
+                            if {[info exists dim(unit)]} {if {$dim(unit) == "INCH"} {errorMsg "Dimensions use both MM and INCH units."}}
                             set dim(unit) "MM"
                             errorMsg " Dimension units: $dim(unit)" red
                             break
+                          }
+                        }
+
+# check units of NIST models
+                        if {$nistName != ""} {
+                          set ln $nistName
+                          if {$dim(unit) == "MM" && ([string first "ctc_03" $ln] != -1 || [string first "ctc_05" $ln] != -1 || \
+                                                     [string first "ftc_06" $ln] != -1 || [string first "ftc_07" $ln] != -1 || \
+                                                     [string first "ftc_08" $ln] != -1 || [string first "ftc_09" $ln] != -1)} {
+                            errorMsg " INCH dimensions are used in the NIST [string toupper [string range $ln 5 end]] test case."
+                            set dim(unitOK) 0
+                          }
+                          if {$dim(unit) == "INCH" && ([string first "ctc_01" $ln] != -1 || [string first "ctc_02" $ln] != -1 || [string first "ctc_04" $ln] != -1 || \
+                                                       [string first "ftc_10" $ln] != -1 || [string first "ftc_11" $ln] != -1)} {
+                            errorMsg " MM dimensions are used in the NIST [string toupper [string range $ln 5 end]] test case."
+                            set dim(unitOK) 0
                           }
                         }
 # get name
                       } elseif {[$attr Name] == "name"} {
                         set dim(name) [$attr Value]
 
-# get qualifier (in the form of NR2 x.y from ASN.1, ISO 6093), format dimension
+# get qualifier (in the form of NR2 x.y defined in ISO 13584-42 section D.4.2, table D.3), format dimension
                       } elseif {[$attr Name] == "qualifiers"} {
                         foreach ent2 [$attr Value] {
                           if {[$ent2 Type] == "value_format_type_qualifier"} {
@@ -235,22 +251,6 @@ proc spmiDimtolReport {objEntity} {
                       if {![info exists dim(qual)]} {
                         if {$dim(unit) == "INCH" && $objValue < 1.} {set objValue [string range $objValue 1 end]}
                         set objValue [removeTrailingZero $objValue]
-                      }
-
-# check units of NIST models
-                      if {$nistName != ""} {
-                        set ln $nistName
-                        if {$dim(unit) == "MM" && ([string first "ctc_03" $ln] != -1 || [string first "ctc_05" $ln] != -1 || \
-                                                   [string first "ftc_06" $ln] != -1 || [string first "ftc_07" $ln] != -1 || \
-                                                   [string first "ftc_08" $ln] != -1 || [string first "ftc_09" $ln] != -1)} {
-                          errorMsg " INCH dimensions are used in the NIST [string toupper [string range $ln 5 end]] test case."
-                          set dim(unitOK) 0
-                        }
-                        if {$dim(unit) == "INCH" && ([string first "ctc_01" $ln] != -1 || [string first "ctc_02" $ln] != -1 || [string first "ctc_04" $ln] != -1 || \
-                                                     [string first "ftc_10" $ln] != -1 || [string first "ftc_11" $ln] != -1)} {
-                          errorMsg " MM dimensions are used in the NIST [string toupper [string range $ln 5 end]] test case."
-                          set dim(unitOK) 0
-                        }
                       }
                     }
 
@@ -1007,6 +1007,7 @@ proc spmiDimtolReport {objEntity} {
                   }
                 }
 
+# multiple +/- tolerances
                 if {$npm > 1} {errorMsg "Syntax Error: Multiple plus-minus tolerance values ($plusminus) for a single dimension."}
 
 # tolerance class on limits_and_fits
@@ -1127,9 +1128,9 @@ proc spmiDimtolReport {objEntity} {
                           set dim(prec,$dimrepID) $pmprec
                           if {$dim(prec,$dimrepID) > $dim(prec,max) && $dim(prec,$dimrepID) < 6} {set dim(prec,max) $dim(prec,$dimrepID)}
                         } else {
-                          set msg "value_format_type_qualifier 'NR2 n.$dim(prec,$dimrepID)' conflicts with the precision of the tolerance, should use 'NR2 n.$pmprec'.  See ASME Y14.5-2009, Decimal Inch Dimensioning, Sec. 2.3.2.b"
-                          errorMsg $msg
-                          lappend syntaxErr(dimensional_characteristic_representation) [list "-$spmiIDRow($dt,$spmiID)" "length/angle qualifier" $msg]
+                          #set msg "value_format_type_qualifier 'NR2 n.$dim(prec,$dimrepID)' conflicts with the precision of the tolerance, should use 'NR2 n.$pmprec'.  See ASME Y14.5-2009, Decimal Inch Dimensioning, Sec. 2.3.2.b"
+                          #errorMsg $msg
+                          #lappend syntaxErr(dimensional_characteristic_representation) [list "-$spmiIDRow($dt,$spmiID)" "length/angle qualifier" $msg]
                         }
 
 # or trailing zeros to tolerance if necessary
@@ -1169,9 +1170,9 @@ proc spmiDimtolReport {objEntity} {
                         set dim(prec,$dimrepID) $pmprec
                         if {$dim(prec,$dimrepID) > $dim(prec,max) && $dim(prec,$dimrepID) < 6} {set dim(prec,max) $dim(prec,$dimrepID)}
                       } else {
-                        set msg "value_format_type_qualifier 'NR2 n.$dim(prec,$dimrepID)' conflicts with the tolerance precision, should use 'NR2 n.$pmprec'  See ASME Y14.5-2009, Decimal Inch Dimensioning, Sec. 2.3.2.b"
-                        errorMsg $msg
-                        lappend syntaxErr(dimensional_characteristic_representation) [list "-$spmiIDRow($dt,$spmiID)" "length/angle qualifier" $msg]
+                        #set msg "value_format_type_qualifier 'NR2 n.$dim(prec,$dimrepID)' conflicts with the tolerance precision, should use 'NR2 n.$pmprec'  See ASME Y14.5-2009, Decimal Inch Dimensioning, Sec. 2.3.2.b"
+                        #errorMsg $msg
+                        #lappend syntaxErr(dimensional_characteristic_representation) [list "-$spmiIDRow($dt,$spmiID)" "length/angle qualifier" $msg]
                       }
                     }
 
@@ -1419,7 +1420,7 @@ proc valueQualifier {ent2 dimval {type "length/angle"}} {
       set ok1 0
       if {[info exists dim(unit)]} {if {$dim(unit) == "INCH"} {set ok1 1}}
       if {$ok1 && $dimval < 1. && $prec1 > 0} {
-        set msg "value_format_type_qualifier 'NR2 $prec1.n' conflicts with INCH $type dimensions < 1, use 'NR2 0.n' instead.  See ASME Y14.5-2009, Decimal Inch Dimensioning, Sec. 1.6.2.a"
+        #set msg "value_format_type_qualifier 'NR2 $prec1.n' conflicts with INCH $type dimensions < 1, use 'NR2 0.n' instead.  See ASME Y14.5-2009, Decimal Inch Dimensioning, Sec. 1.6.2.a"
       } elseif {[string length $val2a] > $dim(qual)} {
         set msg "value_format_type_qualifier '[$attr1 Value]' is too small for the precision of the $type dimension of $dimval  ($recPracNames(pmi242), Sec. 5.4)"
       } elseif {[string length $val1] < $prec1} {

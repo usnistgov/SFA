@@ -426,7 +426,7 @@ proc feaEntities {objEntity} {
                   if {$objValue != ""} {
                     set elemLoadValue $objValue
                   } else {
-                    errorMsg "Syntax Error: Missing 'simple_value' attribute on [lindex $ent1 0]"
+                    errorMsg "Syntax Error: Missing required 'simple_value' attribute on [lindex $ent1 0]"
                     catch {unset elemLoadValue}
                   }
                 }
@@ -435,7 +435,7 @@ proc feaEntities {objEntity} {
                   if {$objValue != ""} {
                     set elemLoadVariable $objValue
                   } else {
-                    errorMsg "Syntax Error: Missing 'variable' attribute on [lindex $ent1 0]"
+                    errorMsg "Syntax Error: Missing required 'variable' attribute on [lindex $ent1 0]"
                     catch {unset elemLoadVariable}
                   }
                 }

@@ -735,7 +735,7 @@ proc x3dFileEnd {} {
 # -------------------------------------------------------------------------------
 # B-rep part geometry
 proc x3dBrepGeom {} {
-  global brepFile brepFileName buttons entCount localName mytemp sfaType viz wdir x3dColorBrep x3dMax x3dMin x3dMsg
+  global brepFile brepFileName buttons entCount localName mytemp viz wdir x3dColorBrep x3dMax x3dMin x3dMsg
   global objDesign
 
 # copy stp2x3d executable to temp directory
@@ -884,11 +884,11 @@ proc x3dBrepGeom {} {
 
 # stp2x3d did not finish
       } else {
-        errorMsg " ERROR generating view of part geometry.  See Websites > STEP File Viewers"
-        lappend x3dMsg "B-rep geometry cannot be viewed."
+        errorMsg " ERROR generating X3D from the part geometry.  Try another viewer, see Websites > STEP File Viewers"
+        lappend x3dMsg "B-rep part geometry cannot be viewed."
       }
-    } elseif {$sfaType == "CL"} {
-      errorMsg "Run the GUI version first to view part geometry in the command-line version."
+    } else {
+      errorMsg " ERROR: The program (stp2x3d.exe) to convert b-rep part geometry to X3D was not found in $mytemp"
     }
   } emsg]} {
     errorMsg " ERROR adding Part Geometry ($emsg)"
@@ -908,7 +908,7 @@ proc x3dBrepColor {} {
 # get styled_item
   catch {
     ::tcom::foreach e0 [$objDesign FindObjects [string trim styled_item]] {
-      #if {$debug} {errorMsg "[$e0 Type] [$e0 P21ID]" green}
+      if {$debug} {errorMsg "[$e0 Type] [$e0 P21ID]" green}
 
 # styled_item.styles
       if {[$e0 Type] == "styled_item"} {
@@ -989,6 +989,8 @@ proc x3dBrepColor {} {
     }
     set x3dColorBrepAdjusted [string trim $x3dColorBrepAdjusted]
   }
+
+  if {$x3dColorBrep == "0 0 0"} {errorMsg " The STEP part geometry is colored black."}
   if {$debug} {outputMsg $x3dColorBrep blue}
   return $x3dColorBrep
 }
@@ -1275,7 +1277,7 @@ proc x3dSuppGeomPoint {e2 tsize {thruHole ""} {holeName ""}} {
 
   if {[catch {
 
-# get cartesian_point name attribute or use hole name   
+# get cartesian_point name attribute or use hole name
     set name [[[$e2 Attributes] Item [expr 1]] Value]
     if {$holeName != ""} {set name $holeName}
     set name [string trim $name]

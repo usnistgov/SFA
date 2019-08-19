@@ -477,11 +477,12 @@ proc unzipFile {} {
 }
 
 #-------------------------------------------------------------------------------
-proc saveState {} {
-  global buttons dispCmd dispCmds excelVersion fileDir fileDir1 lastX3DOM lastXLS lastXLS1 mydocs
-  global openFileList opt optionsFile sfaVersion statusFont upgrade userEntityFile userWriteDir userXLSFile
-  
-  if {![info exists buttons]} {return}
+proc saveState {{ok 1}} {
+  global buttons dispCmd dispCmds excelVersion fileDir fileDir1 lastX3DOM lastXLS lastXLS1 mydocs openFileList
+  global opt optionsFile sfaVersion statusFont upgrade upgradeIFCsvr userEntityFile userWriteDir userXLSFile
+
+# ok = 0 only after installing IFCsvr from the command-line version  
+  if {![info exists buttons] && $ok} {return}
   
   if {[catch {
     if {![file exists $optionsFile]} {
@@ -491,7 +492,7 @@ proc saveState {} {
     set fileOptions [open $optionsFile w]
     puts $fileOptions "# Options file for the NIST STEP File Analyzer and Viewer v[getVersion] ([string trim [clock format [clock seconds]]])\n#\n# DO NOT EDIT OR DELETE FROM USER HOME DIRECTORY $mydocs\n# DOING SO WILL CORRUPT THE CURRENT SETTINGS OR CAUSE ERRORS IN THE SOFTWARE\n#"
     set varlist [list fileDir fileDir1 userWriteDir userEntityFile openFileList dispCmd dispCmds lastXLS lastXLS1 lastX3DOM \
-                      userXLSFile statusFont upgrade sfaVersion excelVersion]
+                      userXLSFile statusFont upgrade upgradeIFCsvr sfaVersion excelVersion]
 
     foreach var $varlist {
       if {[info exists $var]} {
@@ -529,11 +530,13 @@ proc saveState {} {
     }
     
     set winpos "+300+200"
-    set wg [winfo geometry .]
-    catch {set winpos [string range $wg [string first "+" $wg] end]}
-    puts $fileOptions "set winpos \"$winpos\""
-    set wingeo [string range $wg 0 [expr {[string first "+" $wg]-1}]]
-    puts $fileOptions "set wingeo \"$wingeo\""
+    catch {
+      set wg [winfo geometry .]
+      set winpos [string range $wg [string first "+" $wg] end]
+      set wingeo [string range $wg 0 [expr {[string first "+" $wg]-1}]]
+    }
+    catch {puts $fileOptions "set wingeo \"$wingeo\""}
+    catch {puts $fileOptions "set winpos \"$winpos\""}
 
     foreach idx [lsort [array names opt]] {
       if {([string first "PR_" $idx] == -1 || [string first "PR_STEP" $idx] == 0 || [string first "PR_USER" $idx] == 0) && [string first "DEBUG" $idx] == -1} {
@@ -611,7 +614,7 @@ proc runOpenProgram {} {
 # validate file with ST-Developer Conformance Checkers
   } elseif {[string first "Conformance" $idisp] != -1} {
     set stfile $dispFile
-    outputMsg "Ready to validate:  [truncFileName [file nativename $stfile]] ([expr {[file size $stfile]/1024}] Kb)" blue
+    outputMsg "Ready to validate: [file tail $stfile]" blue
     cd [file dirname $stfile]
 
 # gui version
@@ -646,7 +649,7 @@ proc runOpenProgram {} {
 # Jotne EDM Model Checker (only for developer)
   } elseif {[string first "EDM Model Checker" $idisp] != -1} {
     set filename $dispFile
-    outputMsg "Ready to validate:  [truncFileName [file nativename $filename]] ([expr {[file size $filename]/1024}] Kb)" blue
+    outputMsg "Ready to validate: [file tail $filename]" blue
     cd [file dirname $filename]
 
 # write script file to open database
@@ -1004,6 +1007,7 @@ proc colorBadCells {ent} {
   
   set syntaxErr($ent) [lsort -integer -index 0 [lrmdups $syntaxErr($ent)]]
   foreach err $syntaxErr($ent) {
+    #outputMsg "$ent $err" red
     set lastr 4
     if {[catch {
 
@@ -1273,131 +1277,58 @@ proc incrFileName {fn} {
 }
 
 #-------------------------------------------------------------------------------
-# copy schema rose files that are in the Tcl Virtual File System (VFS) to the IFCsvr dll directory
-# this only works with Tcl 8.5.15 and lower
-proc copyRoseFiles {} {
-  global contact env ifcsvrDir mytemp pf32 pf64 stepAPs wdir
+# install IFCsvr (or remove to reinstall)
+proc installIFCsvr {{reinstall 0}} {
+  global buttons contact mydocs mytemp nistVersion upgradeIFCsvr wdir
 
-# rose files in SFA distribution
-  if {[file exists $ifcsvrDir]} {
-    if {[llength [glob -nocomplain -directory [file join $wdir schemas] *.rose]] > 0} {
-      set ok 1
-      foreach fn [glob -nocomplain -directory [file join $wdir schemas] *.rose] {
-          
-        set fn1 [file tail $fn]
-        set f2 [file join $ifcsvrDir $fn1]
-        set okcopy 0
-        if {![file exists $f2]} {
-          set okcopy 1
-        } elseif {[file mtime $fn] > [file mtime $f2]} {
-          set okcopy 1
-        }
-
-# copy files
-        if {$okcopy} {
-          catch {.tnb select .tnb.status}
-          if {[catch {
-            errorMsg "\nInstalling new or updated STEP schema files (Help > Supported STEP APs)" red
-            outputMsg " [string toupper [file rootname $fn1]]"
-            file copy -force -- $fn $f2
-          } emsg]} {
-            errorMsg "ERROR copying STEP schema files (*.rose) to $ifcsvrDir"
-            #errorMsg "ERROR copying STEP schema files (*.rose) to $ifcsvrDir: $emsg"
-          }
-          if {![file exists [file join $ifcsvrDir $fn1]]} {
-            set ok 0
-            catch {file copy -force -- $fn [file join $mytemp $fn1]}
-          }
-        }
-      }
-
-# error copying files
-      if {!$ok} {
-        catch {.tnb select .tnb.status}
-        update idletasks
-        errorMsg "STEP schema files (*.rose) could not be copied to the IFCsvr/dll directory."
-        after 1000
-        outputMsg " "
-        errorMsg "Opening folder containing the *.rose files: $mytemp"
-        outputMsg "Copy the *.rose files in $mytemp\n to [file nativename $ifcsvrDir]" red
-        outputMsg "You should copy the files with administrator privileges (Run as administrator), if possible.\nIf there are problems copying the *.rose files, contact [lindex $contact 0] ([lindex $contact 1]).\nSee Help > Supported STEP APs to see which STEP schemas are supported." red
-        after 1000
-        if {[catch {
-          exec {*}[auto_execok start] [file nativename $mytemp]
-        } emsg]} {
-          if {[string first "UNC" $emsg] != -1} {set emsg [fixErrorMsg $emsg]}
-          if {$emsg != ""} {errorMsg "ERROR opening directory: $emsg"}
-        }
-      }
-    }
-
-# rose files in STEP Tools distribution
-    if {[info exists env(ROSE)]} {
-      set n [string range $env(ROSE) end-2 end-1]
-      set stdir [file join $pf32 "STEP Tools" "ST-Runtime $n" schemas]
-      if {![file exists $stdir]} {set stdir [file join $pf64 "STEP Tools" "ST-Runtime $n" schemas]}
-      
-      if {[file exists $stdir]} {
-        set ok 1
-        foreach fn [glob -nocomplain -directory $stdir *.rose] {
-          set fn1 [file tail $fn]
-          if {[string first "_EXP" $fn1] == -1 && ([string first "ap" $fn1] == 0 || [info exists stepAPs([string toupper [file rootname $fn1]])])} {
-            set f2 [file join $ifcsvrDir $fn1]
-            set okcopy 0
-            if {![file exists $f2]} {
-              set okcopy 1
-            } elseif {[file mtime $fn] > [file mtime $f2]} {
-              set okcopy 1
-            }
-            if {$okcopy} {
-              catch {.tnb select .tnb.status}
-              catch {
-                file copy -force -- $fn $f2
-                errorMsg "Installing STEP schema files from STEP Tools (Help > Supported STEP APs)" red
-              }
-            }
-          }
-        }      
-      }
-    }
-
-# IFCsvr toolkit not found
-  } else {
-    #errorMsg "ERROR: IFCsvr Toolkit needs to be installed before copying STEP schema files (*.rose) to\n $ifcsvrDir"
-  }
-}
-
-#-------------------------------------------------------------------------------
-# install IFCsvr
-proc installIFCsvr {} {
-  global buttons contact mydocs mytemp nistVersion wdir
-
-  set ifcsvr     "ifcsvrr300_setup_1008_en.msi"
+  set ifcsvr     "ifcsvrr300_setup_1008_en-update.msi"
   set ifcsvrInst [file join $wdir exe $ifcsvr]
 
-# install if not already installed
   if {[info exists buttons]} {.tnb select .tnb.status}
   outputMsg " "
-  errorMsg "The IFCsvr Toolkit needs to be installed to read and process STEP files (User Guide section 2.2.1)."
-  outputMsg "- You might need administrator privileges (Run as administrator) to install the
-  toolkit.  Antivirus software might respond that there is a security issue with
-  the toolkit.  The toolkit is safe to install.  Use the default installation
-  folder for the toolkit.
-- See Help > Supported STEP APs to see which type of STEP files are supported.
-- To reinstall the toolkit, run the installation file ifcsvrr300_setup_1008_en.msi
-  in $mytemp
-  or your home directory or the current directory.
-- If there are problems with the IFCsvr installation, contact [lindex $contact 0] ([lindex $contact 1])."
+  
+# first time installation
+  if {!$reinstall} {
+    errorMsg "The IFCsvr toolkit must be installed to read and process STEP files (User Guide section 2.2.1)."
+    outputMsg "- You might need administrator privileges (Run as administrator) to install the toolkit.
+  Antivirus software might respond that there is a security issue with the toolkit.  The
+  toolkit is safe to install.  Use the default installation folder for the toolkit.
+- To reinstall the toolkit, run the installation file ifcsvrr300_setup_1008_en-update.msi
+  in $mytemp  or your home directory or the current directory.
+- If there are problems with this procedure, contact [lindex $contact 0] ([lindex $contact 1])."
 
-  if {[file exists $ifcsvrInst] && [info exists buttons]} {
-    set msg "The IFCsvr Toolkit needs to be installed to read and process STEP files (User Guide section 2.2.1).  After clicking OK the IFCsvr Toolkit installation will start."
-    append msg "\n\nYou might need administrator privileges (Run as administrator) to install the toolkit.  Antivirus software might respond that there is a security issue with the toolkit.  The toolkit is safe to install.  Use the default installation folder for the toolkit."
-    append msg "\n\nSee Help > Supported STEP APs to see which type of STEP files are supported."
-    append msg "\n\nIf there are problems with the IFCsvr installation, contact [lindex $contact 0] ([lindex $contact 1])."
-    set choice [tk_messageBox -type ok -message $msg -icon info -title "Install IFCsvr"]
-    outputMsg "\nWait for the installation to complete before generating a spreadsheet or view.\n" red
-  } elseif {![info exists buttons]} {
-    outputMsg "\nRerun this program after the installation has completed to process a STEP file.\n"
+    if {[file exists $ifcsvrInst] && [info exists buttons]} {
+      set msg "The IFCsvr toolkit must be installed to read and process STEP files (User Guide section 2.2.1).  After clicking OK the IFCsvr toolkit installation will start."
+      append msg "\n\nYou might need administrator privileges (Run as administrator) to install the toolkit.  Antivirus software might respond that there is a security issue with the toolkit.  The toolkit is safe to install.  Use the default installation folder for the toolkit."
+      append msg "\n\nIf there are problems with this procedure, contact [lindex $contact 0] ([lindex $contact 1])."
+      set choice [tk_messageBox -type ok -message $msg -icon info -title "Install IFCsvr"]
+      outputMsg "\nWait for the installation to finish before processing a STEP file." red
+    } elseif {![info exists buttons]} {
+      outputMsg "\nRerun this program after the installation has finished to process a STEP file."
+    }
+
+# reinstall
+  } else {
+    errorMsg "The existing IFCsvr toolkit must be reinstalled to update the STEP schemas."
+    outputMsg "- First REMOVE the current installation of the IFCsvr toolkit."
+    outputMsg "    In the IFCsvr Setup Wizard select 'REMOVE IFCsvrR300 ActiveX Component' and Finish" red
+    outputMsg "    If the REMOVE was not successful, then manually uninstall the 'IFCsvrR300 ActiveX Component'"
+    if {[info exists buttons]} {
+      outputMsg "- Then restart this software or process a STEP file to install the updated IFCsvr toolkit."
+    } else {
+      outputMsg "- Then run this software again to install the updated IFCsvr toolkit."
+    }
+    outputMsg "- If there are problems with this procedure, contact [lindex $contact 0] ([lindex $contact 1])."
+
+    if {[file exists $ifcsvrInst] && [info exists buttons]} {
+      set msg "The IFCsvr toolkit must be reinstalled to update the STEP schemas."
+      append msg "\n\nFirst REMOVE the current installation of the IFCsvr toolkit."
+      append msg "\n\nIn the IFCsvr Setup Wizard (after clicking OK below) select 'REMOVE IFCsvrR300 ActiveX Component' and Finish.  If the REMOVE was not successful, then manually uninstall the 'IFCsvrR300 ActiveX Component'"
+      append msg "\n\nThen restart this software or process a STEP file to install the updated IFCsvr toolkit."
+      append msg "\n\nIf there are problems with this procedure, contact [lindex $contact 0] ([lindex $contact 1])."
+      set choice [tk_messageBox -type ok -message $msg -icon warning -title "Reinstall IFCsvr"]
+      outputMsg "\nWait for the REMOVE process to finish, then restart this software or process a STEP file to install the updated IFCsvr toolkit." red
+    }
   }
 
 # try copying installation file to several locations
@@ -1414,28 +1345,35 @@ proc installIFCsvr {} {
         if {[catch {
           file copy -force -- $ifcsvrInst $ifcsvrMsi
         } emsg3]} {
-          errorMsg "ERROR copying the IFCsvr Toolkit installation file to a directory."
+          errorMsg "ERROR copying the IFCsvr toolkit installation file to a directory."
           outputMsg " $emsg1\n $emsg2\n $emsg3"
         }
       }
     }
   }
+  
+# delete old installer
+  catch {file delete -force -- [file join $mytemp ifcsvrr300_setup_1008_en.msi]}
 
 # ready or not to install
   if {[file exists $ifcsvrMsi]} {
     if {[catch {
       exec {*}[auto_execok start] "" $ifcsvrMsi
+      if {!$reinstall} {
+        set upgradeIFCsvr [clock seconds]
+        saveState 0
+      }
     } emsg]} {
       if {[string first "UNC" $emsg] != -1} {set emsg [fixErrorMsg $emsg]}
-      if {$emsg != ""} {errorMsg "ERROR installing IFCsvr Toolkit: $emsg"}
+      if {$emsg != ""} {errorMsg "ERROR installing IFCsvr toolkit: $emsg"}
     }
   } else {
-    if {[file exists $ifcsvrInst]} {errorMsg "The IFCsvr Toolkit cannot be automatically installed."}
+    if {[file exists $ifcsvrInst]} {errorMsg "The IFCsvr toolkit cannot be automatically installed."}
     catch {.tnb select .tnb.status}
     update idletasks
     if {$nistVersion} {
-      outputMsg "To manually install the IFCsvr Toolkit:
-- The installation file ifcsvrr300_setup_1008.en.msi can be found in either:
+      outputMsg "To manually install the IFCsvr toolkit:
+- The installation file ifcsvrr300_setup_1008_en-update.msi can be found in either:
   $mytemp or your home directory or the current directory.
 - Run the installer and follow the instructions.  Use the default installation folder for IFCsvr.
   You might need administrator privileges (Run as administrator) to install the toolkit.
@@ -1449,11 +1387,10 @@ proc installIFCsvr {} {
         if {$emsg != ""} {errorMsg "ERROR opening directory: $emsg"}
       }
     } else {
-      outputMsg "To install the IFCsvr Toolkit you must install the NIST version of the STEP File Analyzer and Viewer."
+      outputMsg "To install the IFCsvr toolkit you must run the NIST version of the STEP File Analyzer and Viewer."
       outputMsg "1 - Go to https://concrete.nist.gov/cgi-bin/ctv/sfa_request.cgi"
       outputMsg "2 - Fill out the form, submit it, and follow the instructions."
-      outputMsg "3 - The IFCsvr Toolkit will be installed when the NIST STEP File Analyzer and Viewer is run."
-      outputMsg "4 - Generate a spreadsheet for at least one STEP file."
+      outputMsg "3 - The IFCsvr toolkit will be installed when the NIST STEP File Analyzer and Viewer is run."
       after 1000
       openURL https://concrete.nist.gov/cgi-bin/ctv/sfa_request.cgi
     }
@@ -1545,7 +1482,7 @@ proc setShortcuts {} {
 #-------------------------------------------------------------------------------
 # set home, docs, desktop, menu directories
 proc setHomeDir {} {
-  global drive env mydesk mydocs myhome mymenu mytemp tcl_platform virtualDir
+  global drive env mydesk mydocs myhome mymenu mytemp tcl_platform
 
   set drive "C:/"
   if {[info exists env(SystemDrive)]} {
@@ -1619,16 +1556,6 @@ proc setHomeDir {} {
   set mydocs [file nativename $mydocs]
   set mydesk [file nativename $mydesk]
   set mytemp [file nativename $mytemp]
-
-# virtualStore directory  
-  if {$tcl_platform(osVersion) >= 6.0} {
-    if {[info exists env(APPDATA)]} {
-      set appData [string range $env(APPDATA) 0 [string last "\\" $env(APPDATA)]-1]
-      set virtualDir [file nativename [file join $appData Local VirtualStore [string range $env(ProgramFiles) 3 end] IFCsvrR300 dll]]
-    } elseif {[info exists env(USERNAME)]} {
-      set virtualDir [file nativename [file join $drive Users $env(USERNAME) AppData Local VirtualStore [string range $env(ProgramFiles) 3 end] IFCsvrR300 dll]]
-    }
-  }
 }
 
 #-------------------------------------------------------------------------------

@@ -103,6 +103,11 @@ set allVendor(c6) "CATIA V6"
 set allVendor(cg) "CgiStepCamp"
 set allVendor(cm) "PTC CoCreate Modeling"
 set allVendor(cr) "PTC Creo"
+set allVendor(ct5) "3D Evolution (CATIA_V5)"
+set allVendor(cti) "3D Evolution (Inventor)"
+set allVendor(cto) "3D Evolution (Creo)"
+set allVendor(ctw) "3D Evolution (SolidWorks)"
+set allVendor(ctx) "3D Evolution (NX)"
 set allVendor(d5) "Datakit CrossCad (CATIA_V5)"
 set allVendor(dc) "Datakit CrossCad"
 set allVendor(di) "Datakit CrossCad (Inventor)"
@@ -185,7 +190,7 @@ set spmiEntTypes [list \
 
 # max rows for PMI elements on PMI representation coverage worksheet, depends on number and order of items below
 set pmiElementsMaxRows 144
-set pmiHorizontalLineBreaks [list 19 37 46 63 67 72 82]
+set pmiHorizontalLineBreaks [list 19 37 46 63 68 78]
 
 # -----------------------------------------------------------------------------------------------------
 # dimensional_size names (Section 5.1.5, Table 4), controlled radius and square are not included
@@ -239,13 +244,13 @@ foreach item [list \
   "tolerance zone other (6.9.2, Table 12)" "affected plane tolerance zone (6.9.2.1)" "non-uniform tolerance zone (6.9.2.3)" "tolerance with max value (6.9.5)" \
   "unit-basis tolerance (6.9.6)" "all_around \u232E (6.4.2)" "between \u2194 (6.4.3)" "composite tolerance (6.9.9)" "unequally_disposed \u24CA (6.9.4)" \
   "projected \u24C5 (6.9.2.2)" "free_state \u24BB (6.9.3)" "tangent_plane \u24C9 (6.9.3)" "statistical_tolerance <ST> (6.9.3)" "separate_requirement SEP REQT (6.9.3)" \
-  "intersection/orientation plane indicator" "dimensions (Row 38+39)" "dimensional location (5.1.1)" "dimensional size (5.1.5)" "angular location (5.1.2)" \
+  "intersection/orientation plane indicator" "dimensions (location+size)" "dimensional location (5.1.1)" "dimensional size (5.1.5)" "angular location (5.1.2)" \
   "angular size (5.1.6)" "directed dimension \u2331 (5.1.1)"  "oriented dimensional location (5.1.3)" "derived shapes dimensional location (5.1.4)" \
   "repetitive dimensions 'nX' (5.1, User Guide 5.1.3)" "bilateral tolerance (5.2.3)" "non-bilateral tolerance (5.2.3)" "value range (5.2.4)" "diameter \u2205 (5.1.5)" \
   "radius R (5.1.5)" "spherical diameter S\u2205 (5.1.5)" "spherical radius SR (5.1.5)" "controlled radius CR (5.3)" "dimension basic (5.3)" "reference dimension (5.3)" \
   "statistical_dimension <ST> (5.3)" "type qualifier (5.2.2)" "limits and fits (5.2.5)" "location with path (5.1.7)" "square \u25A1 (5.3)" "dimension qualifier (5.4)" \
-  "tolerance qualifier"  "counterbore \u2334" "countersink \u2335" "depth \u21A7" "spotface SF" "datum (6.5)" "datum system (6.9.7)" "datum with axis system (6.9.7)" \
-  "datum with modifiers (6.9.7)" "multiple datum features (6.9.8)" "all datum targets (Rows 67 thru 73)" "point placed datum target (6.6)" \
+  "tolerance qualifier" "datum (6.5)" "datum system (6.9.7)" "datum with axis system (6.9.7)" \
+  "datum with modifiers (6.9.7)" "multiple datum features (6.9.8)" "all datum targets" "point placed datum target (6.6)" \
   "line placed datum target (6.6)" "rectangle placed datum target (6.6)" "circle placed datum target (6.6)" "circular curve placed datum target (6.6)" \
   "curve datum target (6.6)" "area datum target (6.6)" "placed datum target geometry (6.6.2)" "movable datum target (6.6.3)" \
 ] {lappend spmiTypes $item}
@@ -350,8 +355,7 @@ foreach pmf $pmfirst {
 }
 
 # pmnot are already included in spmiTypes above
-set pmnot [list all_around between unequally_disposed projected free_state tangent_plane separate_requirement \
-                statistical_dimension statistical_tolerance counterbore countersink spotface depth]
+set pmnot [list all_around between unequally_disposed projected free_state tangent_plane separate_requirement statistical_dimension statistical_tolerance]
 foreach item [lsort [array names pmiModifiers]] {
   set idx [lindex [split $item ","] 0]
   if {[lsearch $pmfirst $idx] == -1 && [lsearch $pmnot $idx] == -1} {lappend spmiTypes $item}
@@ -419,10 +423,12 @@ set entColorIndex(PR_STEP_GEOM) 43
 set entColorIndex(PR_STEP_CPNT) 43			
 set entColorIndex(PR_STEP_QUAN) 44
 
-# PMI coverage colors
+# PMI coverage colors (B, G, R)
 
 set legendColor(green)   [expr {int (128) << 16 | int (255) << 8 | int(128)}]
+set legendColor(yelgre)  [expr {int (128) << 16 | int (255) << 8 | int(225)}]
 set legendColor(yellow)  [expr {int (128) << 16 | int (255) << 8 | int(255)}]
+set legendColor(orange)  [expr {int (128) << 16 | int (225) << 8 | int(255)}]
 set legendColor(red)     [expr {int (128) << 16 | int (128) << 8 | int(255)}]
 set legendColor(cyan)    [expr {int (255) << 16 | int (255) << 8 | int(128)}]
 set legendColor(magenta) [expr {int (255) << 16 | int (128) << 8 | int(255)}]

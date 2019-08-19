@@ -179,7 +179,6 @@ proc tessReadGeometry {} {
   set ncl  0
   set ntc  0
   set ntc1 0
-  set ndup 0
   set tessellated 0
   
   foreach ent {tessellated_curve_set \
@@ -220,7 +219,6 @@ proc tessReadGeometry {} {
         if {$ncoord > 50000} {errorMsg "COORDINATES_LIST #$id has $ncoord coordinates."}
         
         if {$ncoord > 0} {
-          set nc 0
           set line [string range $line [string first "((" $line] end-1]
 
 # regsub is very important to distill line into something usable
@@ -243,10 +241,6 @@ proc tessReadGeometry {} {
               if {$x3dPoint($idx) > $x3dMax($idx)} {set x3dMax($idx) $x3dPoint($idx)}
               if {$x3dPoint($idx) < $x3dMin($idx)} {set x3dMin($idx) $x3dPoint($idx)}
             }
-            
-# check for one duplicate            
-            incr nc
-            if {$nc == 8} {if {[string first " $tc" $tessCoord($id)] != -1} {incr ndup}}
             append tessCoord($id) $tc
           }
         } else {
@@ -382,7 +376,6 @@ proc tessReadGeometry {} {
     
 # done reading tessellated geometry    
     if {$ncl == $entCount(coordinates_list) && $ntc == $ntc1} {
-      if {$ndup > 0 && [expr {double($ndup)/double($ncl)}] > 0.4} {errorMsg "At least $ndup of $ncl COORDINATE_LIST have duplicate coordinates."}
       outputMsg "  [expr {$ncl+$ntc}] tessellated geometry entities"
       if {!$tessellated} {errorMsg " No tessellated curves, faces, or surfaces found."}
       close $tg

@@ -1,8 +1,8 @@
 # process multiple files in a directory
 proc openMultiFile {{ask 1}} {
   global allEntity andEntAP209 buttons cells1 col1 coverageSTEP developer entCategory excel1 extXLS fileDir fileDir1 fileEntity fileList
-  global gpmiTypes gpmiTypesInvalid lastXLS1 lenfilelist localName localNameList multiFileDir mydocs nfile nistCoverageStyle nistVersion nprogBarFiles
-  global opt pmi_coverage pmi_rows pmi_totals pmiElementsMaxRows row1 sempmi_coverage sempmi_totals startrow stepAP totalEntity useXL
+  global gpmiCoverageWS gpmiRows gpmiTotals gpmiTypes gpmiTypesInvalid lastXLS1 lenfilelist localName localNameList multiFileDir mydocs nfile
+  global nistCoverageStyle nistVersion nprogBarFiles opt pmiElementsMaxRows row1 spmiCoverageWS startrow stepAP totalEntity totalPMIrows useXL
   global worksheet1 worksheets1 writeDir xlFileNames
 
   set maxfiles 1000
@@ -210,7 +210,7 @@ proc openMultiFile {{ask 1}} {
 
 # -------------------------------------------------------------------------------------------------
 # loop over all the files and process
-        foreach var {fileEntity pmi_rows pmi_totals sempmi_totals totalEntity} {if {[info exists $var]} {unset $var}}
+        foreach var {fileEntity gpmiRows gpmiTotals totalPMIrows totalEntity} {if {[info exists $var]} {unset $var}}
         set xlFileNames {}
         set allEntity {}
         set dirchange {}
@@ -465,12 +465,12 @@ proc openMultiFile {{ask 1}} {
 
 # also for PMI coverage analysis worksheets, change 143 as necessary
                   catch {
-                    set range [$worksheet1($sempmi_coverage) Range [cellRange 3 $nf1] [cellRange $pmiElementsMaxRows $nf1]]
+                    set range [$worksheet1($spmiCoverageWS) Range [cellRange 3 $nf1] [cellRange $pmiElementsMaxRows $nf1]]
                     set borders [$range Borders]
                     [$borders Item [expr -4152]] Weight [expr 2]
                   }
                   catch {
-                    set range [$worksheet1($pmi_coverage) Range [cellRange 3 $nf1] [cellRange $pmi_rows $nf1]]
+                    set range [$worksheet1($gpmiCoverageWS) Range [cellRange 3 $nf1] [cellRange $gpmiRows $nf1]]
                     set borders [$range Borders]
                     [$borders Item [expr -4152]] Weight [expr 2]
                   }
@@ -560,7 +560,7 @@ proc openMultiFile {{ask 1}} {
 # open spreadsheet
           if {$opt(XL_OPEN)} {
             openXLS $aname 0 1
-            if {$opt(XL_LINK1)} {outputMsg " Click on the Links in Row 3 to access individual spreadsheets.\n" blue}
+            if {$opt(XL_LINK1)} {outputMsg " Click on the Links in Row 3 to access individual spreadsheets." blue}
           } else {
             outputMsg " Use F7 to open the spreadsheet (see Options tab)" red
           }

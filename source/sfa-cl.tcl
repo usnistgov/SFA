@@ -12,10 +12,6 @@
 
 # The latest version of the source code is available at: https://github.com/usnistgov/SFA
 
-# ----------------------------------------------------------------------------------------------
-# The STEP File Analyzer and Viewer can only be built with Tcl 8.5.15 or earlier
-# More recent versions are incompatibile with the IFCsvr toolkit that is used to read STEP files
-# ----------------------------------------------------------------------------------------------
 # This is the main routine for the STEP File Analyzer and Viewer command-line version
 
 global env
@@ -36,7 +32,8 @@ foreach fname [glob -nocomplain -directory $wdir *.tcl] {
 puts "\n--------------------------------------------------------------------------------"
 puts "NIST STEP File Analyzer and Viewer (v[getVersion] - Updated: [string trim [clock format $progtime -format "%e %b %Y"]])"
 
-# for freeWrap the following lappend commands add package locations to auto_path, must be before package commands
+# for building your own version with freewrap, uncomment and modify C:/Tcl/lib/teapot directory if necessary
+# the lappend commands add package locations to auto_path, must be before package commands below
 #lappend auto_path C:/Tcl/lib/teapot/package/win32-ix86/lib/tcom3.9
 #lappend auto_path C:/Tcl/lib/teapot/package/win32-ix86/lib/twapi3.0.32
 #lappend auto_path C:/Tcl/lib/teapot/package/win32-ix86/lib/Tclx8.4
@@ -85,8 +82,8 @@ Optional command line settings:
  is required to show View files.
 
  When the STEP file is opened, errors and warnings might appear in the output between
- the '*** Begin ST-Developer output' and '*** End ST-Developer output' messages.  Use
- the 'stats' option to only check for the errors and warnings without generating a
+ the 'Begin ST-Developer output' and 'End ST-Developer output' messages.  Use the
+ 'stats' option to only check for the errors and warnings without generating a
  spreadsheet.
 
 Disclaimers
@@ -141,15 +138,10 @@ if {![file exists $localName]} {
   exit
 }
 
-# check for IFCsvr toolkit
-set sfaType "CL"
-set ifcsvrDir [file join $pf32 IFCsvrR300 dll]
-if {![file exists [file join $ifcsvrDir IFCsvrR300.dll]]} {installIFCsvr; exit} 
-
 # -----------------------------------------------------------------------------------------------------
 # initialize variables, set opt to 1
 foreach id { \
-  DISPGUIDE1 FIRSTTIME LOGFILE PMIGRF PMISEM PR_STEP_AP242 PR_STEP_COMM PR_STEP_COMP PR_STEP_FEAT PR_STEP_KINE \
+  DELCOVROWS DISPGUIDE1 FIRSTTIME LOGFILE PMIGRF PMISEM PR_STEP_AP242 PR_STEP_COMM PR_STEP_COMP PR_STEP_FEAT PR_STEP_KINE \
   PR_STEP_PRES PR_STEP_QUAN PR_STEP_REPR PR_STEP_SHAP PR_STEP_TOLR VALPROP VIZFEABC VIZFEADS VIZFEALV XL_LINK1 XL_OPEN \
 } {set opt($id) 1}
 
@@ -176,6 +168,7 @@ set openFileList {}
 set pointLimit 2
 set sfaVersion 0
 set upgrade 0
+set upgradeIFCsvr 0
 set userXLSFile ""
 set x3dFileName ""
 set x3dStartFile 1
@@ -236,6 +229,19 @@ if {[info exists userEntityFile]} {
   }
 }
 
+#-------------------------------------------------------------------------------
+# install IFCsvr
+set ifcsvrDir [file join $pf32 IFCsvrR300 dll]
+if {![file exists [file join $ifcsvrDir IFCsvrR300.dll]]} {
+  installIFCsvr
+  exit
+  
+# or reinstall IFCsvr
+} elseif {$nistVersion} {
+  set ifcsvrTime [file mtime [file join $wdir exe ifcsvrr300_setup_1008_en-update.msi]]
+  if {$ifcsvrTime > $upgradeIFCsvr} {installIFCsvr 1; exit}
+}
+
 # get command line options
 for {set i 1} {$i <= 10} {incr i} {
   set arg [string tolower [lindex $argv $i]]
@@ -253,15 +259,11 @@ for {set i 1} {$i <= 10} {incr i} {
   }
 }
 
-# copy schema rose files that are in the Tcl Virtual File System (VFS) or STEP Tools runtime to the IFCsvr dll directory
-set copyrose 0
 if {$opt(FIRSTTIME) || $sfaVersion < [getVersion]} {
   set opt(FIRSTTIME) 0
   set sfaVersion [getVersion]
-  set copyrose 1
   saveState
 }
-if {$copyrose} {copyRoseFiles}
 
 # set process id used to check memory usage for AP209 files
 set sfaPID [twapi::get_process_ids -name "sfa-cl.exe"]

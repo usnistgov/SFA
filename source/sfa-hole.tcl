@@ -325,7 +325,7 @@ proc spmiHoleReport {objEntity} {
       lappend spmiTypesPerFile "depth"
       append hd " $holeDim(drilled_hole_depth)"
       if {$thruHole} {
-        set msg "Syntax Error: through_hole should be FALSE if drilled_hole_depth is specified."
+        set msg "Syntax Error: through_hole should be FALSE if drilled_hole_depth is specified OR if though_hole is TRUE then the drilled_hole_depth should not be specified."
         errorMsg $msg
         lappend syntaxErr([$holeEntity Type]) [list [$holeEntity P21ID] "through_hole" $msg]
         lappend syntaxErr([$holeEntity Type]) [list [$holeEntity P21ID] "drilled_hole_depth" $msg]

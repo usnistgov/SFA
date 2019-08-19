@@ -12,13 +12,13 @@ proc spmiGeotolStart {entType} {
 
   set dtm [list datum identification]
   set cdt [list common_datum identification]
-  set df1 [list datum_feature name]
-  set df2 [list composite_shape_aspect_and_datum_feature name]
-  set df3 [list composite_group_shape_aspect_and_datum_feature name]
+  set df1 [list datum_feature name product_definitional]
+  set df2 [list composite_shape_aspect_and_datum_feature name product_definitional]
+  set df3 [list composite_group_shape_aspect_and_datum_feature name product_definitional]
   set dr  [list datum_reference precedence referenced_datum $dtm $cdt]
   set drm [list datum_reference_modifier_with_value modifier_type modifier_value $len1 $len2 $len3]
-  set dre [list datum_reference_element base $dtm modifiers $drm]
-  set drc [list datum_reference_compartment base $dtm $dre modifiers $drm]
+  set dre [list datum_reference_element name product_definitional base $dtm modifiers $drm]
+  set drc [list datum_reference_compartment name product_definitional base $dtm $dre modifiers $drm]
   set rmd [list referenced_modified_datum referenced_datum $dtm modifier]
 
   set PMIP(datum_feature)                                  $df1
@@ -41,7 +41,7 @@ proc spmiGeotolStart {entType} {
         [list composite_group_shape_aspect name] [list composite_shape_aspect name] \
         [list composite_unit_shape_aspect name] [list composite_unit_shape_aspect_and_datum_feature name] \
         [list all_around_shape_aspect name] [list between_shape_aspect name] [list shape_aspect name] [list product_definition_shape name] \
-      datum_system [list datum_system name] $dr $rmd \
+      datum_system [list datum_system name product_definitional] $dr $rmd \
       modifiers \
       modifier \
       displacement [list length_measure_with_unit value_component] \
@@ -75,7 +75,7 @@ proc spmiGeotolStart {entType} {
   lappend spmiEntity $entType
 
   if {[string first "AP203" $stepAP] == 0 || [string first "AP214" $stepAP] == 0} {
-    errorMsg "Syntax Error: There is no Recommended Practice for PMI Representation (Semantic PMI) in $stepAP files.  Use AP242 for PMI Representation."
+    errorMsg "There is no Recommended Practice for PMI Representation (Semantic PMI) in $stepAP files.  Use AP242 for PMI Representation."
   }
 
   if {$opt(DEBUG1)} {outputMsg \n}
@@ -117,11 +117,12 @@ proc spmiGeotolStart {entType} {
 proc spmiGeotolReport {objEntity} {
   global all_around all_over assocGeom ATR badAttributes between cells col
   global datsys datumCompartment datumFeature datumModValue datumSymbol datumSystem
-  global dim datumEntType datumGeom datumTargetType dimtolEntType dimtolGeom
+  global dim datumEntType datumGeom datumIDs datumTargetType dimtolEntType dimtolGeom
   global entLevel ent entAttrList entCount gt gtEntity nistName
   global objID opt pmiCol pmiHeading pmiModifiers pmiStartCol pmiUnicode ptz recPracNames
   global spmiEnts spmiID spmiIDRow spmiRow spmiTypesPerFile stepAP syntaxErr
   global tolNames tolStandard tolStandards tolval tzf1 tzfNames tzWithDatum worksheet
+  global objDesign
 
   if {$opt(DEBUG1)} {outputMsg "spmiGeotolReport" red}
 
@@ -166,7 +167,11 @@ proc spmiGeotolReport {objEntity} {
     if {$objType == "datum_system" && [string first "_tolerance" $gt] != -1} {
       set c [string index [cellRange 1 $col($gt)] 0]
       set r $spmiIDRow($gt,$spmiID)
-      set datsys [list $c $r $datumSystem($objID)]
+      if {[catch {
+        set datsys [list $c $r $datumSystem($objID)]
+      } emsg]} {
+        errorMsg "Datum system not found."
+      }
     }
 
     ::tcom::foreach objAttribute $objAttributes {
@@ -381,7 +386,7 @@ proc spmiGeotolReport {objEntity} {
                                 if {$ok1 == 0 && [string tolower $tzfName] != "unknown"} {
                                   set tolType [$gtEntity Type]
                                   foreach item $tolNames {if {[string first [$gtEntity Type] $item] != -1} {set tolType $item}}
-                                  set msg "Syntax Error: Tolerance zones are not allowed with [formatComplexEnt $tolType]."
+                                  set msg "Syntax Error: Tolerance zones are not allowed with [formatComplexEnt $tolType].\n[string repeat " " 14]\($recPracNames(pmi242), Sec. 6.9.2)"
                                   errorMsg $msg
                                   lappend syntaxErr(tolerance_zone_form) [list [[$attrTZ Value] P21ID] "name" $msg]
                                 }
@@ -405,6 +410,12 @@ proc spmiGeotolReport {objEntity} {
                                   lappend syntaxErr(projected_zone_definition) [list [$objPZDEntity P21ID] "projected_length" $msg]
                                 }
                               }
+                            }
+                          } elseif {[$attrPZD Name] == "projection_end"} {
+                            if {[$attrPZD Value] == ""} {
+                              set msg "Syntax Error: Missing required 'projection_end' attribute on 'projected_zone_definition'.\n[string repeat " " 14]\($recPracNames(pmi242), Sec. 6.9.2.2)"
+                              errorMsg $msg
+                              lappend syntaxErr(projected_zone_definition) [list [$objPZDEntity P21ID] "projection_end" $msg]
                             }
                           }
                         }
@@ -624,7 +635,7 @@ proc spmiGeotolReport {objEntity} {
 # get datum or tolerance modifiers
                     set modlim 5
                     if {$objSize > $modlim} {
-                      set msg "Possible Syntax Error: More than $modlim Modifiers"
+                      set msg "Possible Error: More than $modlim datum or tolerance modifiers"
                       errorMsg $msg
                       lappend syntaxErr([lindex [split $ent1 " "] 0]) [list [$gtEntity P21ID] [lindex [split $ent1 " "] 1] $msg]
                     }
@@ -656,7 +667,7 @@ proc spmiGeotolReport {objEntity} {
                         } else {
                           if {$val != ""} {append nval " \[$val\]"}
                           set ok 1
-                          set msg "Possible Syntax Error: Unexpected DRF Modifier"
+                          set msg "Syntax Error: Unexpected datum reference frame modifier '$val'\n[string repeat " " 14]\($recPracNames(pmi242), Sec. 6.9.7)"
                           errorMsg $msg
                           lappend syntaxErr([lindex [split $ent1 " "] 0]) [list [$gtEntity P21ID] [lindex [split $ent1 " "] 1] $msg]
                         }
@@ -773,10 +784,40 @@ proc spmiGeotolReport {objEntity} {
                       set colName "Datum Identification"
                     }
                     set ov [string trim $ov]
-                    if {![string is alpha $ov] || [string length $ov] != 1} {
-                      set msg "Syntax Error: Datum 'identification' attribute is not a single letter ([string trim $ov])\n[string repeat " " 14]\($recPracNames(pmi242), Sec. 6.5, 6.9.8)"
-                      errorMsg $msg
-                      lappend syntaxErr([lindex [split $ent1 " "] 0]) [list $objID [lindex [split $ent1 " "] 1] $msg]
+
+# check all datum entities once
+                    if {![info exists datumIDs]} {
+                      ::tcom::foreach datum [$objDesign FindObjects [string trim datum]] {
+                        set letter [[[$datum Attributes] Item [expr 5]] Value]
+                        set id [$datum P21ID]
+
+# check for multiple datum identification
+                        if {[info exists datumIDs]} {
+                          if {[lsearch $datumIDs $letter] != -1} {
+                            set msg "Multiple 'datum' entities use the same letter for the 'identification' attribute."
+                            errorMsg $msg
+                            lappend syntaxErr(datum) [list $id identification $msg]
+                          }
+                        }
+                        lappend datumIDs $letter
+
+# check for non-single letter datum identification
+                        if {![string is alpha $letter] || [string length $letter] != 1} {
+                          set msg "Syntax Error: Datum 'identification' attribute should be a single letter.\n[string repeat " " 14]\($recPracNames(pmi242), Sec. 6.5, 6.9.8)"
+                          errorMsg $msg
+                          lappend syntaxErr(datum) [list $id identification $msg]
+                        }
+
+# check for datum in SAR related_shape_aspect
+                        set e1s [$datum GetUsedIn [string trim shape_aspect_relationship] [string trim related_shape_aspect]]
+                        set n 0
+                        ::tcom::foreach e1 $e1s {incr n}
+                        if {$n == 0} {
+                          set msg "Syntax Error: Datum is not referenced by 'related_shape_aspect' on 'shape_aspect_relationship'.\n[string repeat " " 14]\($recPracNames(pmi242), Sec. 6.5, Figure 35)"
+                          errorMsg $msg
+                          lappend syntaxErr(datum) [list $id ID $msg]
+                        }
+                      }
                     }
                   }
                   "common_datum identification" {
@@ -867,7 +908,7 @@ proc spmiGeotolReport {objEntity} {
                     } else {
                       if {$objValue != ""} {set objValue " \[$objValue\]"}
                       set ok 1
-                      set msg "Possible Syntax Error: Unexpected Modifier"
+                      set msg "Syntax Error: Unexpected datum reference frame modifier '$objValue'.\n[string repeat " " 14]\($recPracNames(pmi242), Sec. 6.9.7)"
                       errorMsg $msg
                       lappend syntaxErr([lindex [split $ent1 " "] 0]) [list [$gtEntity P21ID] [lindex [split $ent1 " "] 1] $msg]
                     }
@@ -1119,7 +1160,9 @@ proc spmiGeotolReport {objEntity} {
                                         lappend spmiTypesPerFile "movable datum target"
                                         append objValue " (movable)"
                                       } else {
-                                        errorMsg "Syntax Error: Invalid 'item' ([formatComplexEnt [$e4 Type]]) on shape_representation_with_parameters for a datum target\n[string repeat " " 14]\($recPracNames(pmi242), Sec. 6.6)"
+                                        set msg "Syntax Error: Invalid 'item' ([formatComplexEnt [$e4 Type]]) on shape_representation_with_parameters for a datum target\n[string repeat " " 14]\($recPracNames(pmi242), Sec. 6.6)"
+                                        errorMsg $msg
+                                        lappend syntaxErr(shape_representation_with_parameters) [list [$e3 P21ID] "item" $msg]
                                       }
                                     }
                                   }
@@ -1151,7 +1194,7 @@ proc spmiGeotolReport {objEntity} {
 
 # missing target representation
                       } elseif {[string first "." $datumTargetRep] == -1 && $datumTargetType != "area" && $datumTargetType != "curve"} {
-                        set msg "Syntax Error: Missing target representation for '$datumTargetType' on [$gtEntity Type].\n[string repeat " " 14]\($recPracNames(pmi242), Sec. 6.6.1, Figure 38)"
+                        set msg "Syntax Error: Missing target representation (shape_representation_with_parameters) for '$datumTargetType' on [$gtEntity Type].\n[string repeat " " 14]\($recPracNames(pmi242), Sec. 6.6.1, Figure 38)"
                         errorMsg $msg
                         set invalid $msg
                       }
@@ -1164,6 +1207,32 @@ proc spmiGeotolReport {objEntity} {
                       set all_over 1
                       set idx "all over"
                       lappend spmiTypesPerFile $idx
+                    }
+                  }
+                  "datum_reference_* name" {
+# datum_reference_element or _compartment name attribute should be blank
+                    if {$objValue != "" && [string first "datum_reference_" [$gtEntity Type]] != -1} {
+                      set msg "The [$gtEntity Type] 'name' attribute should be blank."
+                      errorMsg $msg
+                      lappend syntaxErr([$gtEntity Type]) [list [$gtEntity P21ID] "name" $msg]
+                    }
+                  }
+                  "datum_system product_definitional" -
+                  "datum_reference_element product_definitional" -
+                  "datum_reference_compartment product_definitional" {
+# product_definitional should be false
+                    if {$objValue == 1 && $objType == [lindex $ent1 0]} {
+                      set msg "The $objType 'product_definitional' attribute should be FALSE."
+                      errorMsg $msg
+                      lappend syntaxErr($objType) [list $objID "product_definitional" $msg]
+                    }
+                  }
+                  "*datum_feature* product_definitional"  {
+# product_definitional should be true
+                    if {$objValue == 0 && [$gtEntity Type] == [lindex $ent1 0]} {
+                      set msg "The [$gtEntity Type] 'product_definitional' attribute should be TRUE."
+                      errorMsg $msg
+                      lappend syntaxErr([$gtEntity Type]) [list [$gtEntity P21ID] "product_definitional" $msg]
                     }
                   }
                   "*modified_geometric_tolerance* modifier" {
@@ -1194,7 +1263,7 @@ proc spmiGeotolReport {objEntity} {
                       } else {
                         if {$val != ""} {append nval " \[$val\]"}
                         set ok 1
-                        set msg "Possible Syntax Error: Unexpected Modifier"
+                        set msg "Syntax Error: Unexpected [$gtEntity Type] modifier '$val'\n[string repeat " " 14]\($recPracNames(pmi242), Sec. 6.9.3)"
                         errorMsg $msg
                         set invalid $msg
                       }
@@ -1487,7 +1556,7 @@ proc spmiGeotolReport {objEntity} {
                 append form f
                 set ntol [format $form $ntol]
               }
-              regsub $tolval $val $ntol val
+              regsub -- $tolval $val $ntol val
 
 # modify projected tolerance zone to dimension precision
               if {[info exists ptz]} {
@@ -1504,7 +1573,7 @@ proc spmiGeotolReport {objEntity} {
                     append form f
                     set ntol [format $form $ntol]
                   }
-                  regsub $ptz $val $ntol val
+                  regsub -- $ptz $val $ntol val
                 }
               }
             }

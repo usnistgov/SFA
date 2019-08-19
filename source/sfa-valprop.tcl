@@ -29,7 +29,9 @@ proc valPropStart {} {
       "number of datum targets" "number of dimensional locations" "number of dimensional sizes" "number of facets" \
       "number of geometric tolerances" "number of PMI presentation elements" "number of segments" "number of semantic pmi elements" \
       "number of views" "polyline centre point" "polyline curve length" "tessellated curve centre point" \
-      "tessellated curve length" "tessellated surface area" "tessellated surface centre point"]]]
+      "tessellated curve length" "tessellated surface area" "tessellated surface centre point" \
+      "number of semantic text notes" "number of semantic text notes on part" "number of semantic text notes on geometry" \
+      "number of semantic text notes on PMI"]]]
 
 # CAx-IF RP User Defined Attributes, section 8
   set valPropNames(attribute_validation_property) [list \
