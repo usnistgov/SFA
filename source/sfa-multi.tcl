@@ -2,8 +2,8 @@
 proc openMultiFile {{ask 1}} {
   global allEntity andEntAP209 buttons cells1 col1 coverageSTEP developer entCategory excel1 extXLS fileDir fileDir1 fileEntity fileList
   global gpmiCoverageWS gpmiRows gpmiTotals gpmiTypes gpmiTypesInvalid lastXLS1 lenfilelist localName localNameList multiFileDir mydocs nfile
-  global nistCoverageStyle nistVersion nprogBarFiles opt pmiElementsMaxRows row1 spmiCoverageWS startrow stepAP totalEntity totalPMIrows useXL
-  global worksheet1 worksheets1 writeDir xlFileNames
+  global nistCoverageStyle nistVersion nprogBarFiles opt pmiElementsMaxRows row1 spmiCoverageWS startrow stepAP totalEntity totalPMI totalPMIrows
+  global useXL worksheet1 worksheets1 writeDir xlFileNames
 
   set maxfiles 1000
   if {$developer} {set maxfiles 10000}
@@ -139,9 +139,9 @@ proc openMultiFile {{ask 1}} {
 # determine how many worksheets to add for coverage analysis
               set n1 1
               set coverageSTEP 0
-              if {$opt(PMIGRF) || $opt(PMISEM)} {
+              if {($opt(PMIGRF) && $opt(PMIGRFCOV)) || $opt(PMISEM)} {
                 set coverageSTEP 1
-                if {$opt(PMIGRF) && $opt(PMISEM)} {
+                if {$opt(PMIGRF) && $opt(PMIGRFCOV) && $opt(PMISEM)} {
                   set n1 3
                 } else {
                   set n1 2
@@ -194,7 +194,7 @@ proc openMultiFile {{ask 1}} {
 # start STEP coverage analysis worksheet
               if {$coverageSTEP} {
                 if {$opt(PMISEM)} {spmiCoverageStart}
-                if {$opt(PMIGRF)} {gpmiCoverageStart}
+                if {$opt(PMIGRF) && $opt(PMIGRFCOV)} {gpmiCoverageStart}
               }
               $worksheet1($sum) Activate
 
@@ -210,7 +210,7 @@ proc openMultiFile {{ask 1}} {
 
 # -------------------------------------------------------------------------------------------------
 # loop over all the files and process
-        foreach var {fileEntity gpmiRows gpmiTotals totalPMIrows totalEntity} {if {[info exists $var]} {unset $var}}
+        foreach var {fileEntity gpmiRows gpmiTotals totalPMI totalPMIrows totalEntity} {if {[info exists $var]} {unset $var}}
         set xlFileNames {}
         set allEntity {}
         set dirchange {}
@@ -261,8 +261,8 @@ proc openMultiFile {{ask 1}} {
 
 # STEP coverage analysis
             if {$coverageSTEP} {
-              if {$opt(PMIGRF)} {gpmiCoverageWrite $fn $sum}
               if {$opt(PMISEM)} {spmiCoverageWrite $fn $sum}
+              if {$opt(PMIGRF) && $opt(PMIGRFCOV)} {gpmiCoverageWrite $fn $sum}
             }
           }
 
@@ -463,16 +463,18 @@ proc openMultiFile {{ask 1}} {
                   set borders [$range Borders]
                   catch {[$borders Item [expr -4152]] Weight [expr 2]}
 
-# also for PMI coverage analysis worksheets, change 143 as necessary
+# also for PMI coverage analysis worksheets
                   catch {
                     set range [$worksheet1($spmiCoverageWS) Range [cellRange 3 $nf1] [cellRange $pmiElementsMaxRows $nf1]]
                     set borders [$range Borders]
                     [$borders Item [expr -4152]] Weight [expr 2]
                   }
                   catch {
-                    set range [$worksheet1($gpmiCoverageWS) Range [cellRange 3 $nf1] [cellRange $gpmiRows $nf1]]
-                    set borders [$range Borders]
-                    [$borders Item [expr -4152]] Weight [expr 2]
+                    if {$opt(PMIGRFCOV)} {
+                      set range [$worksheet1($gpmiCoverageWS) Range [cellRange 3 $nf1] [cellRange $gpmiRows $nf1]]
+                      set borders [$range Borders]
+                      [$borders Item [expr -4152]] Weight [expr 2]
+                    }
                   }
                 }
               }
@@ -497,7 +499,6 @@ proc openMultiFile {{ask 1}} {
             [$worksheet1($sum) Range "B[expr {$startrow+1}]"] Select
             catch {[$excel1 ActiveWindow] FreezePanes [expr 1]}
             [$worksheet1($sum) Range "A1"] Select
-            catch {[$worksheet1($sum) PageSetup] PrintGridlines [expr 1]}
 
 # errors
           } emsg]} {
@@ -508,8 +509,8 @@ proc openMultiFile {{ask 1}} {
 # -------------------------------------------------------------------------------------------------
 # format STEP coverage analysis sheet
           if {$coverageSTEP} {
-            if {$opt(PMIGRF)} {gpmiCoverageFormat $sum}
             if {$opt(PMISEM)} {spmiCoverageFormat $sum}
+            if {$opt(PMIGRF) && $opt(PMIGRFCOV)} {gpmiCoverageFormat $sum}
             catch {$worksheet1($sum) Activate}
           }
           catch {$excel1 ScreenUpdating 1}
@@ -566,7 +567,7 @@ proc openMultiFile {{ask 1}} {
           }
 
 # unset some variables for the multi-file summary
-          foreach var {excel1 worksheets1 worksheet1 cells1 row1 col1} {if {[info exists $var]} {unset $var}}
+          foreach var {cells1 col1 excel1 lenfilelist row1 worksheet1 worksheets1} {if {[info exists $var]} {unset $var}}
         }
         update idletasks
 

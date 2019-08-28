@@ -1,7 +1,7 @@
 # version numbers, software and user guide, contact
 # user guide URLs are below in showFileURL
 
-proc getVersion {}   {return 3.60}
+proc getVersion {}   {return 3.62}
 proc getVersionUG {} {return 3.0}
 proc getContact {}   {return [list "Robert Lipman" "robert.lipman@nist.gov"]}
 
@@ -310,7 +310,7 @@ proc guiFileMenu {} {
 #-------------------------------------------------------------------------------
 # options tab, process and report
 proc guiProcessAndReports {} {
-  global allNone buttons cb entCategory fopt fopta nb opt
+  global allNone buttons cb entCategory fopt fopta nb opt recPracNames
 
   set cb 0
   set wopt [ttk::panedwindow $nb.options -orient horizontal]
@@ -436,39 +436,29 @@ proc guiProcessAndReports {} {
   set foptd [ttk::labelframe $foptrv.1 -text " Analyze "]
 
   set foptd1 [frame $foptd.1 -bd 0]
-  foreach item {{" AP242 PMI Representation (Semantic PMI)" opt(PMISEM)}} {
+  foreach item {{" AP242 PMI Representation (Semantic PMI)" opt(PMISEM)} \
+                {" Only Dimensions" opt(PMISEMDIM)} \
+                {" PMI Presentation (Graphical PMI)"  opt(PMIGRF)} \
+                {" Generate PMI Presentation Coverage worksheet" opt(PMIGRFCOV)} \
+                {" Validation Properties"             opt(VALPROP)}} {
     regsub -all {[\(\)]} [lindex $item 1] "" idx
     set buttons($idx) [ttk::checkbutton $foptd1.$cb -text [lindex $item 0] -variable [lindex $item 1] -command {checkValues}]
-    pack $buttons($idx) -side top -anchor w -padx 5 -pady 0 -ipady 0
+    if {$idx == "optPMISEMDIM" || $idx == "optPMIGRFCOV"} {
+      pack $buttons($idx) -side top -anchor w -padx 30 -pady 0 -ipady 0
+    } else {
+      pack $buttons($idx) -side top -anchor w -padx 5 -pady 0 -ipady 0
+    }
     incr cb
   }
   pack $foptd1 -side top -anchor w -pady 0 -padx 0 -fill y
-
-  set foptd2 [frame $foptd.2 -bd 0]
-  foreach item {{" Only Dimensions" opt(PMISEMDIM)}} {
-    regsub -all {[\(\)]} [lindex $item 1] "" idx
-    set buttons($idx) [ttk::checkbutton $foptd2.$cb -text [lindex $item 0] -variable [lindex $item 1] -command {checkValues}]
-    pack $buttons($idx) -side top -anchor w -padx 5 -pady 0 -ipady 0
-    incr cb
-  }
-  pack $foptd2 -side top -anchor w -pady 0 -padx 25 -fill y
-
-  set foptd3 [frame $foptd.3 -bd 0]
-  foreach item {{" PMI Presentation (Graphical PMI)"  opt(PMIGRF)} \
-                {" Validation Properties"             opt(VALPROP)}} {
-    regsub -all {[\(\)]} [lindex $item 1] "" idx
-    set buttons($idx) [ttk::checkbutton $foptd3.$cb -text [lindex $item 0] -variable [lindex $item 1] -command {checkValues}]
-    pack $buttons($idx) -side top -anchor w -padx 5 -pady 0 -ipady 0
-    incr cb
-  }
-  pack $foptd3 -side top -anchor w -pady 0 -padx 0 -fill y
 
   pack $foptd -side left -anchor w -pady {5 2} -padx 10 -fill both -expand true
   catch {
     tooltip::tooltip $buttons(optPMISEM)  "The analysis of PMI Representation information is shown on\ndimension, tolerance, datum target, datum, and hole (AP242e2)\nentities.  Semantic PMI is found mainly in STEP AP242 files.\n\nSee Help > Analyze > PMI Representation\nSee Help > User Guide (section 5.1)\nSee Help > Syntax Errors\nSee Examples > Spreadsheet - PMI Representation\nSee Examples > Sample STEP Files\nSee Websites > AP242"
     tooltip::tooltip $buttons(optPMIGRF)  "The analysis of PMI Presentation information is\nshown on 'annotation occurrence' entities.\n\nSee Help > Analyze > PMI Presentation\nSee Help > User Guide (section 5.2)\nSee Help > Syntax Errors\nSee Examples > PMI Presentation, Validation Properties\nSee Examples > View Part with PMI\nSee Examples > AP242 Tessellated Part with PMI\nSee Examples > Sample STEP Files"
     tooltip::tooltip $buttons(optVALPROP) "The analysis of Validation Properties and other properties\nis shown on the 'property_definition' entity.\n\nSee Help > Analyze > Validation Properties\nSee Help > User Guide (section 5.3)\nSee Help > Syntax Errors\nSee Examples > PMI Presentation, Validation Properties"
-    tooltip::tooltip $buttons(optPMISEMDIM)  "Analyze only dimensional tolerances and no\ngeometric tolerances, datums, or datum targets."
+    tooltip::tooltip $buttons(optPMIGRFCOV) "The PMI Presentation Coverage worksheet counts the number of suggested names used from the\nRecommended Practice for Representation and Presentation of PMI (AP242), Section 8.4, Table 14.\nThe names do not have any semantic PMI meaning.  This worksheet not optional before version 3.62.\n\nSee Help > Analyze > PMI Coverage Analysis"    
+    tooltip::tooltip $buttons(optPMISEMDIM) "Analyze only dimensional tolerances and no\ngeometric tolerances, datums, or datum targets."
   }
 
 #-------------------------------------------------------------------------------
@@ -948,7 +938,7 @@ proc guiSpreadsheet {} {
   catch {tooltip::tooltip $fxlsd "If possible, existing Spreadsheets, CSV files, and View files are\nalways overwritten by new files."}
 
   set fxlsc [ttk::labelframe $fxls.c -text " Other "]
-  foreach item {{" Delete unused rows on Coverage Analysis worksheets" opt(DELCOVROWS)} \
+  foreach item {{" Delete unused rows on PMI Representation Coverage worksheets" opt(DELCOVROWS)} \
                 {" On File Summary worksheet, create links to STEP files and spreadsheets (see File > Open Multiple ...)" opt(XL_LINK1)}} {
     regsub -all {[\(\)]} [lindex $item 1] "" idx
     set buttons($idx) [ttk::checkbutton $fxlsc.$cb -text [lindex $item 0] -variable [lindex $item 1] -command {checkValues}]
@@ -958,7 +948,7 @@ proc guiSpreadsheet {} {
   pack $fxlsc -side top -anchor w -pady {5 2} -padx 10 -fill both
   catch {
     tooltip::tooltip $buttons(optXL_LINK1)   "Deselecting this option is useful when sharing a Spreadsheet with another user."
-    tooltip::tooltip $buttons(optDELCOVROWS) "See Help > Analyze > PMI Coverage Analysis"
+    tooltip::tooltip $buttons(optDELCOVROWS) "Deselecting this option will show all of the PMI Elements\non the PMI Representation Coverage worksheet.  No\nCount for any element means that it is not used.\n\nSee Help > Analyze > PMI Coverage Analysis"
   }
 
   if {$developer} {
@@ -1227,7 +1217,8 @@ Some syntax errors that indicate non-conformance to a CAx-IF Recommended Practic
 Representation are also reported in the Status tab and the relevant worksheet cells.  Syntax
 errors are highlighted in red.  See Help > Syntax Errors.
 
-A PMI Representation Coverage Analysis worksheet is generated."
+A PMI Representation Coverage Analysis worksheet is generated.
+See Help > Analyze > PMI Coverage Analysis"
     .tnb select .tnb.status
   }
 
@@ -1236,7 +1227,7 @@ outputMsg "\nPMI Presentation --------------------------------------------------
 outputMsg "PMI Presentation (Graphical PMI) consists of geometric elements such as lines and arcs
 preserving the exact appearance (color, shape, positioning) of the geometric and dimensional
 tolerance (GD&T) annotations.  PMI Presentation is not intended to be computer-interpretable and
-does not carry any representation information, although it can be linked to its corresponding PMI
+does not have any representation information, although it can be linked to its corresponding PMI
 Representation.
 
 See Help > User Guide (sections 5.2)
@@ -1259,7 +1250,7 @@ The Summary worksheet indicates on which worksheets PMI Presentation is reported
 errors related to PMI Presentation are also reported in the Status tab and the relevant worksheet
 cells.  Syntax errors are highlighted in red.  See Help > Syntax Errors.
 
-A PMI Presentation Coverage Analysis worksheet is generated.
+An optional PMI Presentation Coverage Analysis worksheet can be generated.
 See Help > Analyze > PMI Coverage Analysis."
     .tnb select .tnb.status
   }
@@ -1291,10 +1282,11 @@ If STEP files from the NIST CAD models (Websites > PMI Validation Testing) are p
 the PMI Representation Coverage Analysis worksheet is color-coded by the expected number of PMI
 elements in each CAD model.  See Help > Analyze > NIST CAD Models.
 
-PMI Presentation Coverage Analysis (graphical PMI) counts the occurrences of a name attribute
-defined in the CAx-IF Recommended Practice for PMI Representation and Presentation of PMI (AP242) or
-PMI Polyline Presentation (AP203/AP242).  The name attribute is associated with the graphic elements
-used to draw a PMI annotation.  There is no semantic meaning to the name attributes."
+The optional PMI Presentation Coverage Analysis (graphical PMI) counts the occurrences of the
+suggested name attribute defined in the CAx-IF Recommended Practice for PMI Representation and
+Presentation of PMI (AP242) or PMI Polyline Presentation (AP203/AP242).  The name attribute is
+associated with the graphic elements used to draw a PMI annotation.  There is no semantic PMI meaning
+to the name attributes."
     .tnb select .tnb.status
   }
 
@@ -1342,8 +1334,8 @@ This worksheet is color-coded by the expected PMI annotations in a test case dra
 - Cyan is a partial match.
 - Yellow is a possible match.
 - Red is no match.
-For partial and possible matches, the best Similar PMI match is shown.  Missing PMI annotations are
-also shown.
+For partial and possible matches, the best Similar PMI match is shown.  Missing PMI annotations
+are also shown.
 
 Trailing and leading zeros are ignored when matching a PMI annotation.  Matches also only consider
 the current capabilities of PMI annotations in STEP AP242 and CAx-IF Recommended Practices.  For
@@ -1371,6 +1363,14 @@ appear in the tolerance zone definition or datum reference frame.
 - Cyan means that more were found than expected. (4/3)
 - Magenta means that some PMI elements were found when none were expected. (3/0)
 
+From the PMI Representation Summary results, color-coded percentages of exact, partial, and
+possible matches and missing PMI is shown in a table below the PMI Representation Coverage
+Analysis.  The Total PMI on which the percentages are based on is also shown.  Coverage Analysis
+is only based on individual PMI elements.  The PMI Representation Summary is based on the entire
+PMI feature control frame and provides a better understanding of the PMI.  The Coverage Analysis
+might show that there is an exact match for all of the PMI elements, however, the Representation
+Summary might show less than exact matches.
+
 * Missing PMI *
 Missing PMI annotations on the Summary worksheet or PMI elements on the Coverage worksheet might
 mean that the CAD system or translator:
@@ -1379,8 +1379,8 @@ mean that the CAD system or translator:
 - has not implemented exporting a PMI element to a STEP file
 - mapped an internal PMI element to the wrong STEP PMI element
 
-Some of the NIST test cases have complex PMI annotations that are not commonly used.  There might
-be ambiguities in counting the number of PMI elements, particularly for dimensions."
+NOTE - Some of the NIST test cases have complex PMI annotations that are not commonly used.  There
+might be ambiguities in counting the number of PMI elements"
     .tnb select .tnb.status
   }
 
@@ -1389,30 +1389,30 @@ be ambiguities in counting the number of PMI elements, particularly for dimensio
 
   $helpView add command -label "Part Geometry" -command {
 outputMsg "\nPart Geometry --------------------------------------------------------------" blue
-outputMsg "Views are shown in the default web browser.  Older versions of web browsers are not supported.
-All Views are written to: myfile-sfa.html  An Internet connection is required to show View files.
-
-Part geometry (b-rep) is shown for any STEP file where the geometry is modeled with
-advanced_brep_shape_representation, manifold_surface_shape_representation, manifold_solid_brep, or
-shell_based_surface_model entities.
-
-Supplemental geometry (axes, points, lines, circles, planes, cylinders) are shown.
-See Help > View > Supplemental Geometry
-
-Counterbore and countersink holes in AP242 edition 2 are also shown.  Countbore holes are green and
-countersink holes are cyan.  Both types of holes are shown with black dot at the entry point for drilling.
+outputMsg "Views are shown in the default web browser.  All Views are written to: myfile-sfa.html  An Internet
+connection is required to open View files.  Older versions of web browsers are not supported.
 
 Part colors are ignored if multiple colors are specified.  Overriding style colors are also ignored.
 
-Part geometry might also include supplemental geometry for planes.  In some cases, curved surfaces might
-appear jagged or incomplete.  Some part geometry cannot be processed.  Views for very large STEP files
-might take 10-20 minutes to generate.
+Supplemental geometry (axes, points, lines, circles, planes, cylinders), separate from part geometry,
+is also shown.  However, part geometry might also include supplemental geometry for planes.
+See Help > View > Supplemental Geometry
+
+In some cases, curved surfaces might appear jagged or incomplete.  Some part geometry cannot be
+processed.  Views for very large STEP files might take 10-20 minutes to generate.
 
 See Examples > View Part with PMI
 See Websites > STEP File Viewers
 
 Some other STEP file viewers cannot view PMI, tessellated part geometry, and finite element models.
 However, those viewers usually have better capabilities for viewing and measuring part geometry.
+
+Counterbore and countersink holes in AP242 edition 2 are also shown.  Countbore holes are green and
+countersink holes are cyan.  Both types of holes are shown with black dot at the drilling entry point.
+
+Part geometry (b-rep) is shown for any STEP file where the geometry is modeled with
+advanced_brep_shape_representation, manifold_surface_shape_representation, manifold_solid_brep, or
+shell_based_surface_model entities.
 
 The part geometry view is based on OpenCascade and pythonOCC.  See Help > About"
     .tnb select .tnb.status

@@ -127,6 +127,8 @@ set auto_index(openMultiFile) [list source [file join $dir sfa-multi.tcl]]
 
 set auto_index(levenshteinDistance) [list source [file join $dir sfa-nist.tcl]]
 set auto_index(nistAddCoverageLegend) [list source [file join $dir sfa-nist.tcl]]
+set auto_index(nistAddCoverageStyle) [list source [file join $dir sfa-nist.tcl]]
+set auto_index(nistAddExpectedPMIPercent) [list source [file join $dir sfa-nist.tcl]]
 set auto_index(nistAddModelPictures) [list source [file join $dir sfa-nist.tcl]]
 set auto_index(nistCheckExpectedPMI) [list source [file join $dir sfa-nist.tcl]]
 set auto_index(nistGetName) [list source [file join $dir sfa-nist.tcl]]

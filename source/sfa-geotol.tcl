@@ -115,13 +115,10 @@ proc spmiGeotolStart {entType} {
 
 # -------------------------------------------------------------------------------
 proc spmiGeotolReport {objEntity} {
-  global all_around all_over assocGeom ATR badAttributes between cells col
-  global datsys datumCompartment datumFeature datumModValue datumSymbol datumSystem
-  global dim datumEntType datumGeom datumIDs datumTargetType dimtolEntType dimtolGeom
-  global entLevel ent entAttrList entCount gt gtEntity nistName
-  global objID opt pmiCol pmiHeading pmiModifiers pmiStartCol pmiUnicode ptz recPracNames
-  global spmiEnts spmiID spmiIDRow spmiRow spmiTypesPerFile stepAP syntaxErr
-  global tolNames tolStandard tolStandards tolval tzf1 tzfNames tzWithDatum worksheet
+  global all_around all_over assocGeom ATR badAttributes between cells col datsys datumCompartment datumFeature datumModValue datumSymbol
+  global datumSystem dim datumEntType datumGeom datumIDs datumTargetType dimtolEntType dimtolGeom entLevel ent entAttrList entCount gt
+  global gtEntity nistName objID opt pmiCol pmiHeading pmiModifiers pmiStartCol pmiUnicode ptz recPracNames spmiEnts spmiID spmiIDRow
+  global spmiRow spmiTypesPerFile stepAP syntaxErr tolNames tolStandard tolStandards tolval tzf1 tzfNames tzWithDatum worksheet
   global objDesign
 
   if {$opt(DEBUG1)} {outputMsg "spmiGeotolReport" red}
@@ -333,22 +330,11 @@ proc spmiGeotolReport {objEntity} {
                             if {[$attrTZF Name] == "name"} {
                               set tzfName [$attrTZF Value]
                               if {[lsearch $tzfNames $tzfName] != -1} {
-                                set tzfName1 $tzfName
-                                if {$tzfName1 == "spherical" || $tzfName1 == "within a sphere"} {set tzfName1 "spherical diameter"}
 
 # tzf symbol
-                                if {[info exists pmiUnicode($tzfName1)]} {
-                                  set tzf $pmiUnicode($tzfName1)
-
-# message when 'within a cylinder' is used
-                                  if {$tzfName == "within a cylinder" || $tzfName == "within a circle" || $tzfName == "within a sphere"} {
-                                    errorMsg "The tolerance_zone_form 'name' attribute uses '$tzfName' for a '$pmiUnicode(diameter)' symbol in the tolerance zone.  See the Recommended Practice for $recPracNames(pmi242), Sec. 6.9.2."
-                                  }
-
-# no tzf symbol, table 12
-                                } else {
-                                  errorMsg "The tolerance_zone_form 'name' attribute uses values from Table 12 in the Recommended Practice for $recPracNames(pmi242), Sec. 6.9.2."
-                                }
+                                set tzfName1 $tzfName
+                                if {$tzfName1 == "spherical" || $tzfName1 == "within a sphere"} {set tzfName1 "spherical diameter"}
+                                if {[info exists pmiUnicode($tzfName1)]} {set tzf $pmiUnicode($tzfName1)}
 
 # invalid tzf
                               } else {
@@ -493,7 +479,7 @@ proc spmiGeotolReport {objEntity} {
                       set ok 1
                       if {[string range $objValue end-1 end] == ".0"} {set objValue [string range $objValue 0 end-2]}
                       if {$objValue == 0.} {
-                        set msg "Syntax Error: Tolerance unit size = 0 for [formatComplexEnt $gt]\n[string repeat " " 14]\($recPracNames(pmi242), Sec. 6.9.6)"
+                        set msg "Syntax Error: Tolerance unit-basis size = 0 for [formatComplexEnt $gt]\n[string repeat " " 14]\($recPracNames(pmi242), Sec. 6.9.6)"
                         errorMsg $msg
                         lappend syntaxErr([$gtEntity Type]) [list [$gtEntity P21ID] $ATR(1) $msg]
                       }
@@ -925,14 +911,14 @@ proc spmiGeotolReport {objEntity} {
                     set msg ""
                     if {$ov == "point" || $ov == "line" || $ov == "rectangle" || $ov == "circle" || $ov == "circular curve"} {
                       lappend spmiTypesPerFile "$ov placed datum target (6.6)"
-                      lappend spmiTypesPerFile "all datum targets"
+                      if {$nistName != ""} {lappend spmiTypesPerFile "all datum targets"}
                       if {[$gtEntity Type] != "placed_datum_target_feature" } {
                         set msg "Syntax Error: Target description '$ov' is not valid.  Use 'placed_datum_target_feature' instead of [$gtEntity Type] with '$ov' datum targets.\n[string repeat " " 14]\($recPracNames(pmi242), Sec. 6.6.1, Figure 38, Table 9)"
                         errorMsg $msg
                       }
                     } elseif {$ov == "curve" || $ov == "area"} {
                       lappend spmiTypesPerFile "$ov datum target (6.6)"
-                      lappend spmiTypesPerFile "all datum targets"
+                      if {$nistName != ""} {lappend spmiTypesPerFile "all datum targets"}
                       if {[$gtEntity Type] != "datum_target" } {
                         set msg "Syntax Error: Target description '$ov' is not valid.  Use 'datum_target' instead of [$gtEntity Type] with '$ov' datum targets.\n[string repeat " " 14]\($recPracNames(pmi242), Sec. 6.6.1, Figure 39, Table 9)"
                         errorMsg $msg
@@ -1581,6 +1567,7 @@ proc spmiGeotolReport {objEntity} {
         }
         $cells($gt) Item $r $c "$tolDimrep[format "%c" 10]$val"
         unset tolDimrep
+        lappend spmiTypesPerFile "dimension association to geometric tolerance"
       }
 
 # add datum feature with a triangle and line
@@ -1588,6 +1575,7 @@ proc spmiGeotolReport {objEntity} {
         if {[info exists datumSymbol($geotolGeomEnts)]} {
           set val [[$cells($gt) Item $r $c] Value]
           $cells($gt) Item $r $c "$val [format "%c" 10]   \u25BD[format "%c" 10]   \u23B9[format "%c" 10]   \[$datumSymbol($geotolGeomEnts)\]"
+          lappend spmiTypesPerFile "datum feature association to geometric tolerance"
         }
       }
 

@@ -96,10 +96,12 @@ proc checkValues {} {
         lappend butDisabled $b
       }
     }
+    lappend butNormal optPMIGRFCOV
   } else {
     lappend butNormal optPR_STEP_PRES
     if {!$opt(VALPROP)} {lappend butNormal optPR_STEP_QUAN}
     if {!$opt(PMISEM)}  {foreach b {optPR_STEP_AP242 optPR_STEP_COMM optPR_STEP_SHAP optPR_STEP_REPR} {lappend butNormal $b}}
+    lappend butDisabled optPMIGRFCOV
   }
 
 # validation properties
@@ -844,7 +846,7 @@ proc openXLS {filename {check 0} {multiFile 0}} {
 
 #-------------------------------------------------------------------------------
 proc checkForExcel {{multFile 0}} {
-  global buttons lastXLS localName opt tcl_platform
+  global buttons lastXLS localName opt
   
   set pid1 [twapi::get_process_ids -name "EXCEL.EXE"]
   if {![info exists useXL]} {set useXL 1}

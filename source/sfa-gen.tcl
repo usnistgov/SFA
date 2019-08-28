@@ -1,10 +1,10 @@
 # generate an Excel spreadsheet from a STEP file
 proc genExcel {{numFile 0}} {
   global allEntity aoEntTypes ap203all ap214all ap242all badAttributes brepEnts buttons cells cells1 col col1 count csvdirnam csvfile currLogFile developer
-  global dim dimRepeatDiv editorCmd entCategories entCategory entColorIndex entCount entityCount entsIgnored entsWithErrors env errmsg excel
+  global dim dimRepeatDiv editorCmd entCategories entCategory entColorIndex entCount entityCount entsIgnored entsWithErrors errmsg excel
   global excelVersion extXLS fcsv feaLastEntity File fileEntity gpmiTypesInvalid gpmiTypesPerFile idxColor ifcsvrDir inverses
   global lastXLS lenfilelist localName localNameList logFile multiFile multiFileDir mytemp nistCoverageLegend nistName nistPMIexpected nistPMImaster
-  global nistVersion nprogBarEnts nshape ofCSV ofExcel opt p21e3 p21e3Section row rowmax savedViewButtons savedViewName savedViewNames scriptName
+  global nprogBarEnts nshape ofCSV ofExcel opt p21e3 p21e3Section row rowmax savedViewButtons savedViewName savedViewNames scriptName
   global sheetLast skipEntities skipPerm spmiEntity spmiSumName spmiSumRow spmiTypesPerFile startrow statsOnly stepAP tessColor thisEntType tlast
   global tolNames tolStandard tolStandards totalEntity userEntityFile userEntityList userXLSFile useXL viz workbook workbooks
   global worksheet worksheet1 worksheets writeDir wsCount wsNames x3dAxes x3dColor x3dColorFile x3dColors x3dColorsUsed x3dFileName x3dIndex
@@ -132,9 +132,6 @@ proc genExcel {{numFile 0}} {
           } elseif {$entType == "datum"} {
             lappend characteristics "Datums"
             set viz(PMIMSG) "Some Graphical PMI might not have equivalent Semantic PMI in the STEP file."
-          } elseif {[string first "_tolerance" $entType] != -1} {
-            lappend characteristics "Geometric tolerances"
-            set viz(PMIMSG) "Some Graphical PMI might not have equivalent Semantic PMI in the STEP file."
 
           } elseif {$entType == "tessellated_annotation_occurrence"} {
             lappend characteristics "Graphical PMI (tessellated)"
@@ -156,6 +153,13 @@ proc genExcel {{numFile 0}} {
             lappend characteristics "Kinematics"
           } elseif {[lsearch $entCategory(PR_STEP_FEAT) $entType] != -1} {
             lappend characteristics "Features"
+          } else {
+            foreach tol $tolNames {
+              if {[string first $tol $entType] != -1} {
+                lappend characteristics "Geometric tolerances"
+                set viz(PMIMSG) "Some Graphical PMI might not have equivalent Semantic PMI in the STEP file."
+              }
+            }
           }
         }
       }
@@ -763,7 +767,7 @@ proc genExcel {{numFile 0}} {
   }
 
 # -------------------------------------------------------------------------------------------------
-# check for ISO/ASME standards on product_definition_formation, document, product
+# check for ISO/ASME standards on product_definition_formation, product
   set tolStandard(type) ""
   set tolStandard(num)  ""
   set tolStandards {}
@@ -784,6 +788,11 @@ proc genExcel {{numFile 0}} {
             set ok 1
             foreach std $tolStandards {if {[string first $val $std] != -1} {set ok 0}}
             if {$ok} {lappend tolStandards $val}
+
+            if {$item == "product_definition_formation"} {
+              if {[string first "Y14.5" $val]  != -1 || [string first "1101" $val]  != -1} {lappend spmiTypesPerFile "dimensioning standard"}
+              if {[string first "Y14.41" $val] != -1 || [string first "16792" $val] != -1} {lappend spmiTypesPerFile "modeling standard"}
+            }
           }
         }
       }
@@ -1025,7 +1034,7 @@ proc genExcel {{numFile 0}} {
     }
 
 # add PMI Pres. Coverage Analysis worksheet for a single file
-    if {$opt(PMIGRF) && $opt(XLSCSV) != "None"} {
+    if {$opt(PMIGRF) && $opt(XLSCSV) != "None" && $opt(PMIGRFCOV)} {
       if {[info exists gpmiTypesPerFile]} {
         set gpmiCoverageWS "PMI Presentation Coverage"
         if {![info exists worksheet($gpmiCoverageWS)]} {
@@ -1255,12 +1264,12 @@ proc genExcel {{numFile 0}} {
   update idletasks
 
 # unset variables to release memory and/or to reset them
-  global cgrObjects colColor coordinatesList currx3dPID datumGeom datumIDs datumSymbol dimrep dimrepID dimtolEntID dimtolGeom entName
+  global cgrObjects colColor coordinatesList currx3dPID datumGeom datumIDs datumSymbol dimrep dimrepID dimtolEnt dimtolEntID dimtolGeom entName
   global feaDOFR feaDOFT feaNodes gpmiID gpmiIDRow gpmiRow heading invCol invGroup lineStrips nrep numx3dPID pmiColumns pmiStartCol
   global propDefID propDefIDRow propDefName propDefOK propDefRow savedsavedViewNames savedViewFile savedViewFileName shapeRepName
   global srNames suppGeomEnts syntaxErr tessPlacement tessRepo
 
-  foreach var {cells cgrObjects colColor coordinatesList count currx3dPID datumGeom datumIDs datumSymbol dimrep dimrepID dimtolEntID dimtolGeom \
+  foreach var {cells cgrObjects colColor coordinatesList count currx3dPID datumGeom datumIDs datumSymbol dimrep dimrepID dimtolEnt dimtolEntID dimtolGeom \
                entName entsIgnored feaDOFR feaDOFT feaNodes gpmiID gpmiIDRow gpmiRow heading invCol invGroup lineStrips nrep numx3dPID \
                pmiCol pmiColumns pmiStartCol pmivalprop propDefID propDefIDRow propDefName propDefOK propDefRow savedsavedViewNames \
                savedViewFile savedViewFileName savedViewNames shapeRepName srNames suppGeomEnts syntaxErr tessPlacement tessRepo \
@@ -1279,7 +1288,7 @@ proc genExcel {{numFile 0}} {
 proc addHeaderWorksheet {numFile fname} {
   global objDesign
   global ap242edition cadApps cadSystem cells cells1 col1 csvdirnam excel excel1 fileSchema legendColor
-  global localName opt p21e3 row timeStamp useXL worksheet worksheet1 worksheets
+  global localName opt p21e3 row spmiTypesPerFile timeStamp useXL worksheet worksheet1 worksheets
 
   if {[catch {
     set cadSystem ""
@@ -1432,8 +1441,6 @@ proc addHeaderWorksheet {numFile fname} {
       [[$worksheet($hdr) Range "A:A"] Font] Bold [expr 1]
       [$worksheet($hdr) Columns] AutoFit
       [$worksheet($hdr) Rows] AutoFit
-      catch {[$worksheet($hdr) PageSetup] Orientation [expr 2]}
-      catch {[$worksheet($hdr) PageSetup] PrintGridlines [expr 1]}
     }
 
 # check for CAx-IF Recommended Practices in the file description
@@ -1446,6 +1453,7 @@ proc addHeaderWorksheet {numFile fname} {
       outputMsg "\nCAx-IF Recommended Practices: (www.cax-if.org/joint_testing_info.html#recpracs)" blue
       foreach item $caxifrp {
         outputMsg " $item"
+        lappend spmiTypesPerFile "document identification"
         if {[string first "AP242" $fschema] == -1 && [string first "Tessellated" $item] != -1} {
           errorMsg "  Error: Recommended Practices related to 'Tessellated' only apply to AP242 files."
         }
@@ -1841,10 +1849,7 @@ proc sumAddColorLinks {sum sumHeaderRow sumLinks sheetSort sumRow} {
             addCellComment $sum $sumRow 1 "There are errors or warnings for this entity based on CAx-IF Recommended Practices.  Check for cell comments in the Associated Geometry column.  See Help > Syntax Errors."
           }
         }
-        catch {
-          [[$anchor Borders] Item [expr 8]] Weight [expr 1]
-          [[$anchor Borders] Item [expr 9]] Weight [expr 1]
-        }
+        catch {foreach i {8 9} {[[$anchor Borders] Item $i] Weight [expr 1]}}
       }
 
 # bold entities for reports
@@ -1880,7 +1885,6 @@ proc sumAddColorLinks {sum sumHeaderRow sumLinks sheetSort sumRow} {
     }
     [$worksheet($sum) Columns] AutoFit
     [$worksheet($sum) Rows] AutoFit
-    [$worksheet($sum) PageSetup] PrintGridlines [expr 1]
 
   } emsg]} {
     errorMsg "ERROR adding Summary colors and links: $emsg"
@@ -2190,8 +2194,7 @@ proc addP21e3Section {} {
     [$range Interior] ColorIndex [expr 40]
     for {set r 4} {$r <= $urow($ent)} {incr r} {
       set range [$worksheet($ent) Range [cellRange $r $ucol($ent)]]
-      [[$range Borders] Item [expr 8]] Weight [expr 1]
-      [[$range Borders] Item [expr 9]] Weight [expr 1]
+      catch {foreach i {8 9} {[[$range Borders] Item $i] Weight [expr 1]}}
     }
 
     set range [$worksheet($ent) Range [cellRange 3 $ucol($ent)]]

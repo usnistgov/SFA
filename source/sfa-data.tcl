@@ -189,8 +189,9 @@ set spmiEntTypes [list \
 ]
 
 # max rows for PMI elements on PMI representation coverage worksheet, depends on number and order of items below
-set pmiElementsMaxRows 144
-set pmiHorizontalLineBreaks [list 19 37 46 63 68 78]
+set pmiElementsMaxRows 150
+# line breaks are above the row, depends on the grouping of PMI elements below
+set pmiHorizontalLineBreaks [list 19 33 43 59 65 75 [expr {$pmiElementsMaxRows-4}] $pmiElementsMaxRows]
 
 # -----------------------------------------------------------------------------------------------------
 # dimensional_size names (Section 5.1.5, Table 4), controlled radius and square are not included
@@ -227,11 +228,9 @@ set tzfNames [list \
 # *Graphical PMI* names (Section 8.2, Table 13)
 
 set gpmiTypes [list \
-  "angularity" "circular runout" "circularity" "coaxiality" "concentricity" "cylindricity" \
-  "flatness" "parallelism" "perpendicularity" "position" "profile of line" "profile of surface" \
-  "roundness" "straightness" "symmetry" "total runout" "general tolerance" "linear dimension" \
-  "radial dimension" "diameter dimension" "angular dimension" "ordinate dimension" "curve dimension" \
-  "general dimension" "datum" "datum target" "note" "label" "surface roughness" "weld symbol" \
+  "angularity" "circular runout" "circularity" "coaxiality" "concentricity" "cylindricity" "flatness" "parallelism" "perpendicularity" "position" "profile of line" \
+  "profile of surface" "roundness" "straightness" "symmetry" "total runout" "general tolerance" "linear dimension" "radial dimension" "diameter dimension" \
+  "angular dimension" "ordinate dimension" "curve dimension" "general dimension" "datum" "datum target" "note" "label" "surface roughness" "weld symbol" \
   "general note" "over riding style set"]
 
 # -----------------------------------------------------------------------------------------------------
@@ -242,22 +241,24 @@ set spmiTypes $tolNames
 foreach item [list \
   "tolerance zone diameter (6.9.2, Table 11)" "tolerance zone within a cylinder (6.9.2, Table 12)" "tolerance zone spherical diameter (6.9.2, Table 11)" \
   "tolerance zone other (6.9.2, Table 12)" "affected plane tolerance zone (6.9.2.1)" "non-uniform tolerance zone (6.9.2.3)" "tolerance with max value (6.9.5)" \
-  "unit-basis tolerance (6.9.6)" "all_around \u232E (6.4.2)" "between \u2194 (6.4.3)" "composite tolerance (6.9.9)" "unequally_disposed \u24CA (6.9.4)" \
-  "projected \u24C5 (6.9.2.2)" "free_state \u24BB (6.9.3)" "tangent_plane \u24C9 (6.9.3)" "statistical_tolerance <ST> (6.9.3)" "separate_requirement SEP REQT (6.9.3)" \
-  "intersection/orientation plane indicator" "dimensions (location+size)" "dimensional location (5.1.1)" "dimensional size (5.1.5)" "angular location (5.1.2)" \
-  "angular size (5.1.6)" "directed dimension \u2331 (5.1.1)"  "oriented dimensional location (5.1.3)" "derived shapes dimensional location (5.1.4)" \
-  "repetitive dimensions 'nX' (5.1, User Guide 5.1.3)" "bilateral tolerance (5.2.3)" "non-bilateral tolerance (5.2.3)" "value range (5.2.4)" "diameter \u2205 (5.1.5)" \
-  "radius R (5.1.5)" "spherical diameter S\u2205 (5.1.5)" "spherical radius SR (5.1.5)" "controlled radius CR (5.3)" "dimension basic (5.3)" "reference dimension (5.3)" \
-  "statistical_dimension <ST> (5.3)" "type qualifier (5.2.2)" "limits and fits (5.2.5)" "location with path (5.1.7)" "square \u25A1 (5.3)" "dimension qualifier (5.4)" \
-  "tolerance qualifier" "datum (6.5)" "datum system (6.9.7)" "datum with axis system (6.9.7)" \
-  "datum with modifiers (6.9.7)" "multiple datum features (6.9.8)" "all datum targets" "point placed datum target (6.6)" \
-  "line placed datum target (6.6)" "rectangle placed datum target (6.6)" "circle placed datum target (6.6)" "circular curve placed datum target (6.6)" \
-  "curve datum target (6.6)" "area datum target (6.6)" "placed datum target geometry (6.6.2)" "movable datum target (6.6.3)" \
+  "unit-basis tolerance (6.9.6)" "all_around \u232E (6.4.2)" "between \u2194 (6.4.3)" "composite tolerance (6.9.9)" "unequally_disposed \u24CA or UZ (6.9.4)" \
+  "projected \u24C5 (6.9.2.2)" "intersection/orientation plane indicator" \
+  "dimensions (location+size)" "dimensional location (5.1.1)" "dimensional size (5.1.5)" "angular location (5.1.2)" "angular size (5.1.6)" \
+  "directed dimension \u2331 (5.1.1)"  "oriented dimensional location (5.1.3)" "derived shapes dimensional location (5.1.4)" \
+  "repetitive dimensions 'nX' (5.1, User Guide 5.1.3)" "dimension association to geometric tolerance (5.1)" \
+  "bilateral tolerance (5.2.3)" "non-bilateral tolerance (5.2.3)" "value range (5.2.4)" "diameter \u2205 (5.1.5)" "radius R (5.1.5)" \
+  "spherical diameter S\u2205 (5.1.5)" "spherical radius SR (5.1.5)" "controlled radius CR (5.3)" "dimension basic (5.3)" "reference dimension (5.3)" \
+  "type qualifier (5.2.2)" "limits and fits (5.2.5)" "location with path (5.1.7)" "square \u25A1 (5.3)" "dimension qualifier (5.4)" "tolerance qualifier" \
+  "datum (6.5)" "datum system (6.9.7)" "datum with axis system (6.9.7)" "datum with modifiers (6.9.7)" "multiple datum features (6.9.8)" \
+  "datum feature association to geometric tolerance (6.1)" \
+  "all datum targets" "point placed datum target (6.6)" "line placed datum target (6.6)" "rectangle placed datum target (6.6)" "circle placed datum target (6.6)" \
+  "circular curve placed datum target (6.6)" "curve datum target (6.6)" "area datum target (6.6)" "placed datum target geometry (6.6.2)" "movable datum target (6.6.3)" \
 ] {lappend spmiTypes $item}
 
 # -----------------------------------------------------------------------------------------------------
-# pmiModifiers are the symbols associated with many strings such as dimModNames and others
+# pmiModifiers are the symbols associated with many strings such as dimModNames and others, includes new ISO 1101 modifiers
 
+set section "6.9.3 or 6.9.7"
 set pmiModifiersArray(all_around,6.4.2)                     "\u232E"
 set pmiModifiersArray(all_over,6.3)                         "ALL OVER"
 set pmiModifiersArray(any_cross_section,5.3)                "ACS"
@@ -265,6 +266,11 @@ set pmiModifiersArray(any_longitudinal_section,6.9.7)       "ALS"
 set pmiModifiersArray(any_part_of_the_feature,5.3)          "/Length"
 set pmiModifiersArray(arc_length)                           "\u2322"
 set pmiModifiersArray(area_diameter_calculated_size,5.3)    "(CA)"
+set pmiModifiersArray(associated_minmax_feature,6.9.3)            "\u24B8"
+set pmiModifiersArray(associated_least_square_feature,6.9.3)      "\u24BC"
+set pmiModifiersArray(associated_minimum_inscribed_feature,6.9.3) "\u24C3"
+set pmiModifiersArray(associated_tangent_feature,6.9.3)           "\u24C9"
+set pmiModifiersArray(associated_maximum_inscribed_feature,6.9.3) "\u24CD"
 set pmiModifiersArray(average_rank_order_size,5.3)          "(SA)"
 set pmiModifiersArray(basic,6.9.7)                          "\[BSC\]"
 set pmiModifiersArray(between,6.4.3)                        "\u2194"
@@ -284,23 +290,23 @@ set pmiModifiersArray(degree_of_freedom_constraint_x,6.9.7) "x"
 set pmiModifiersArray(degree_of_freedom_constraint_y,6.9.7) "y"
 set pmiModifiersArray(degree_of_freedom_constraint_z,6.9.7) "z"
 set pmiModifiersArray(depth)                                "\u21A7"
+set pmiModifiersArray(derived_feature,6.9.3)                "\u24B6"
 set pmiModifiersArray(distance_variable,6.9.7)              "DV"
 set pmiModifiersArray(each_radial_element,6.9.3)            "ERE"
 set pmiModifiersArray(envelope_requirement,5.2.1)           "\u24BA"
 set pmiModifiersArray(free_state_condition,5.3)             "\u24BB"
-set pmiModifiersArray(free_state,6.9.3)                     "\u24BB"
-set pmiModifiersArray(hole_thread)                          ""
+set pmiModifiersArray(free_state,$section)                  "\u24BB"
 set pmiModifiersArray(independency,5.2.1)                   "\u24BE"
 set pmiModifiersArray(least_material_condition)             "\u24C1"
-set pmiModifiersArray(least_material_requirement,6.9.3-6.9.7) "\u24C1"
+set pmiModifiersArray(least_material_requirement,$section)  "\u24C1"
 set pmiModifiersArray(least_square_association_criteria,5.3)  "(GG)"
-set pmiModifiersArray(line)                                 "SL"
+set pmiModifiersArray(line,6.9.3)                            "SL"
 set pmiModifiersArray(line_element,6.9.3)                   "LE"
 set pmiModifiersArray(local_size_defined_by_a_sphere,5.3)   "(LS)"
 set pmiModifiersArray(major_diameter,6.9.3)                 "MD"
 set pmiModifiersArray(maximum_inscribed_association_criteria,5.3) "(GX)"
 set pmiModifiersArray(maximum_material_condition)           "\u24C2"
-set pmiModifiersArray(maximum_material_requirement,6.9.3-6.9.7) "\u24C2"
+set pmiModifiersArray(maximum_material_requirement,$section) "\u24C2"
 set pmiModifiersArray(maximum_rank_order_size,5.3)          "(SX)"
 set pmiModifiersArray(median_rank_order_size,5.3)           "(SM)"
 set pmiModifiersArray(mid_range_rank_order_size,5.3)        "(SD)"
@@ -328,38 +334,26 @@ set pmiModifiersArray(tangent_plane,6.9.3)                  "\u24C9"
 set pmiModifiersArray(translation,6.9.7)                    "\u25B7"
 set pmiModifiersArray(two_point_size,5.3)                   "(LP)"
 set pmiModifiersArray(unequally_disposed,6.9.4)             "\u24CA"
+set pmiModifiersArray(united_feature,6.9.3)                 "UF"
 set pmiModifiersArray(volume_diameter_calculated_size,5.3)  "(CV)"
 
-# new ISO 1101 modifiers
-set pmiModifiersArray(united_feature,6.9.3)                       "UF"
-set pmiModifiersArray(derived_feature,6.9.3)                      "\u24B6"
-set pmiModifiersArray(associated_minmax_feature,6.9.3)            "\u24B8"
-set pmiModifiersArray(associated_least_square_feature,6.9.3)      "\u24BC"
-set pmiModifiersArray(associated_minimum_inscribed_feature,6.9.3) "\u24C3"
-set pmiModifiersArray(associated_tangent_feature,6.9.3)           "\u24C9"
-set pmiModifiersArray(associated_maximum_inscribed_feature,6.9.3) "\u24CD"
-
+# set pmiModifiersRP
 foreach item [array names pmiModifiersArray] {
   set ids [split $item ","]
   set pmiModifiers([lindex $ids 0]) $pmiModifiersArray($item)
   if {[llength $ids] > 1} {set pmiModifiersRP([lindex $ids 0]) [lindex $ids 1]}
 }
 
-# pmfirst are pmi elements list before the rest of the modifiers
-set pmfirst [list maximum_material_requirement least_material_requirement]
-foreach pmf $pmfirst {            
-  foreach item [lsort [array names pmiModifiers]] {
-    set idx [lindex [split $item ","] 0]
-    if {$pmf == $idx} {lappend spmiTypes $item}
-  }
-}
-
-# pmnot are already included in spmiTypes above
-set pmnot [list all_around between unequally_disposed projected free_state tangent_plane separate_requirement statistical_dimension statistical_tolerance]
+# pmnot modifiers are already included in spmiTypes above
+set pmnot [list all_around between unequally_disposed projected]
 foreach item [lsort [array names pmiModifiers]] {
   set idx [lindex [split $item ","] 0]
-  if {[lsearch $pmfirst $idx] == -1 && [lsearch $pmnot $idx] == -1} {lappend spmiTypes $item}
+  if {[lsearch $pmnot $idx] == -1} {lappend spmiTypes $item}
 }
+
+# a few more overall PMI types
+set spmiTypes [concat $spmiTypes [list "document identification (3)" "dimensioning standard (4, Figure 1)" "modeling standard (4, Figure 2)" \
+                "default tolerance decimal places (4.1)"]]
 
 # -----------------------------------------------------------------------------------------------------
 # pmiUnicode are the symbols associated with tolerances and a few others
@@ -480,9 +474,6 @@ set badAttributes(triangulated_surface_set) {normals triangles}
 # -----------------------------------------------------------------------------------------------------
 # pictures that are embedded in a spreadsheet based on STEP file name
 set nistModelPictures [list \
-  {sp3-1101  caxif-1101.jpg  E4 0} \
-  {sp3-16792 caxif-16792.jpg E4 0} \
-  {sp3-box   caxif-boxy123.jpg E4 0} \
   {STEP-File-Analyzer nist_ctc_01.jpg E4 0} \
   {nist_ctc_01 nist_ctc_01.jpg E4 0} \
   {nist_ctc_02 nist_ctc_02abc.jpg E4 0} \

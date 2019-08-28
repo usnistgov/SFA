@@ -434,7 +434,8 @@ proc gpmiAnnotationReport {objEntity} {
                       set etype [$elem Type]
                       if {[string first "handle" $etype] != -1} {set etype [[$etype Value] Type]}
                       lappend elements $etype
-                      if {$etype != "axis2_placement_3d" && $etype != "cartesian_point" && $etype != "planar_box"} {append msg "Unexpected '$etype'"}
+                      if {$etype != "axis2_placement_3d" && $etype != "cartesian_point" && $etype != "planar_box" && \
+                          [string first $etype $msg] == -1} {append msg "Unexpected '$etype'"}
                     }
                     if {[string first "Unexpected" $msg] == -1} {
                       if {[lsearch $elements "axis2_placement_3d"] == -1} {

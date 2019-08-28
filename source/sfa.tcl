@@ -82,7 +82,7 @@ foreach id { \
 
 # set opt to 0
 foreach id { \
-  CRASH DEBUG1 DEBUGINV indentGeomtry indentStyledItem INVERSE PMISEMDIM PR_STEP_CPNT PR_STEP_GEOM \
+  CRASH DEBUG1 DEBUGINV indentGeomtry indentStyledItem INVERSE PMIGRFCOV PMISEMDIM PR_STEP_CPNT PR_STEP_GEOM \
   PR_USER VIZFEADSntail VIZFEALVS VIZPMIVP VIZTPGMSH writeDirType XL_FPREC XL_SORT \
 } {set opt($id) 0}
 

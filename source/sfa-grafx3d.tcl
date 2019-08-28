@@ -912,13 +912,18 @@ proc x3dBrepColor {} {
 
 # styled_item.styles
       if {[$e0 Type] == "styled_item"} {
-        set a1 [[$e0 Attributes] Item [expr 2]]
-        set item [[[[$e0 Attributes] Item [expr 3]] Value] Type]
+        if {[[[$e0 Attributes] Item [expr 3]] Value] != ""} {
+          set item [[[[$e0 Attributes] Item [expr 3]] Value] Type]
+        } else {
+          errorMsg "Syntax Error: Required styled_item 'item' attribute is blank."
+          set item ""
+        }
 
         if {$item == "manifold_solid_brep" || $item == "shell_based_surface_model" || $item == "advanced_face"} {
           set x3dColorStyle 1
 
 # presentation_style.styles
+          set a1 [[$e0 Attributes] Item [expr 2]]
           ::tcom::foreach e2 [$a1 Value] {
             set a2 [[$e2 Attributes] Item [expr 1]]
             set e3 [$a2 Value]
@@ -969,8 +974,12 @@ proc x3dBrepColor {} {
 
 # ignore advanced_face if other colors exist
   if {[llength $colors(advanced_face)] > 0} {
-    if {[llength $colors(manifold_solid_brep)] > 0 || [llength $colors(shell_based_surface_model)] > 0} {set colors(advanced_face) {}}
+    if {[llength $colors(manifold_solid_brep)] > 0 || [llength $colors(shell_based_surface_model)] > 0} {
+      set colors(advanced_face) {}
+      #errorMsg " Part colors assigned to 'advanced_face' are ignored." red
+    }
   }
+
   set allcolors [lrmdups [concat $colors(manifold_solid_brep) $colors(shell_based_surface_model) $colors(advanced_face)]]
   if {$debug} {outputMsg $allcolors green}
   if {[llength $allcolors] > 1} {
