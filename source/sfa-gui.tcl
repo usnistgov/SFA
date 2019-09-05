@@ -1,7 +1,7 @@
 # version numbers, software and user guide, contact
 # user guide URLs are below in showFileURL
 
-proc getVersion {}   {return 3.62}
+proc getVersion {}   {return 3.64}
 proc getVersionUG {} {return 3.0}
 proc getContact {}   {return [list "Robert Lipman" "robert.lipman@nist.gov"]}
 
@@ -12,15 +12,22 @@ proc whatsNew {} {
   if {$sfaVersion > 0 && $sfaVersion < [getVersion]} {outputMsg "\nThe previous version of the STEP File Analyzer and Viewer was: $sfaVersion" red}
 
 outputMsg "\nWhat's New (Version: [getVersion]  Updated: [string trim [clock format $progtime -format "%e %b %Y"]])" blue
-outputMsg "- New features and bug fixes are now documented in the Changelog, go to Help > Changelog"
+outputMsg "- New features and bug fixes are listed in the Changelog, go to Help > Changelog"
+
+# messages if SFA has already been run
 if {$sfaVersion > 0} {
-  if {$sfaVersion  < 2.30} {outputMsg "- The command-line version has been renamed: sfa-cl.exe  The old version STEP-File-Analyzer-CL.exe can be deleted."}
-  if {$sfaVersion <= 2.60} {outputMsg "- Renamed output files: Spreadsheets from 'myfile_stp.xlsx' to 'myfile-sfa.xlsx' and Views from 'myfile-x3dom.html' to 'myfile-sfa.html'"}
   if {$sfaVersion < [getVersionUG]} {
     outputMsg "- A new User Guide, based on version [getVersionUG] of this software, is available.\n  Sections 5.1.5, 6, 7, and 8.1 have new or updated content."
     showFileURL UserGuide
   }
-  if {$sfaVersion < 3.60} {outputMsg "- The IFCsvr toolkit needs to be reinstalled.  Please follow the directions below very carefully."}
+  if {$sfaVersion <= 2.60} {outputMsg "- Renamed output files: Spreadsheets from 'myfile_stp.xlsx' to 'myfile-sfa.xlsx' and Views from 'myfile-x3dom.html' to 'myfile-sfa.html'"}
+  if {$sfaVersion  < 2.30} {outputMsg "- The command-line version has been renamed: sfa-cl.exe  The old version STEP-File-Analyzer-CL.exe can be deleted."}
+  if {$sfaVersion  < 3.60} {outputMsg "- The IFCsvr toolkit needs to be reinstalled.  Please follow the directions below very carefully."}
+
+# first time messages
+} else {
+  outputMsg "- Use F8 and F9 to change the font size here.  See Help > Function Keys"
+  outputMsg "- The User Guide is based on version [getVersionUG] of this software.\n  New and updated features are documented in the Help menu and tooltips."
 }
 
   .tnb select .tnb.status
@@ -246,7 +253,6 @@ proc guiStatusTab {} {
     if {[string first "Courier" $statusFont] != -1} {
       regsub "Courier" $statusFont "Consolas" statusFont
       regsub "120" $statusFont "140" statusFont
-      saveState
     }
   }
 
@@ -438,16 +444,14 @@ proc guiProcessAndReports {} {
   set foptd1 [frame $foptd.1 -bd 0]
   foreach item {{" AP242 PMI Representation (Semantic PMI)" opt(PMISEM)} \
                 {" Only Dimensions" opt(PMISEMDIM)} \
-                {" PMI Presentation (Graphical PMI)"  opt(PMIGRF)} \
-                {" Generate PMI Presentation Coverage worksheet" opt(PMIGRFCOV)} \
-                {" Validation Properties"             opt(VALPROP)}} {
+                {" PMI Presentation (Graphical PMI)" opt(PMIGRF)} \
+                {" Generate Presentation Coverage worksheet" opt(PMIGRFCOV)} \
+                {" Validation Properties" opt(VALPROP)}} {
     regsub -all {[\(\)]} [lindex $item 1] "" idx
     set buttons($idx) [ttk::checkbutton $foptd1.$cb -text [lindex $item 0] -variable [lindex $item 1] -command {checkValues}]
-    if {$idx == "optPMISEMDIM" || $idx == "optPMIGRFCOV"} {
-      pack $buttons($idx) -side top -anchor w -padx 30 -pady 0 -ipady 0
-    } else {
-      pack $buttons($idx) -side top -anchor w -padx 5 -pady 0 -ipady 0
-    }
+    set padx 5
+    if {$idx == "optPMISEMDIM" || $idx == "optPMIGRFCOV"} {set padx 27}
+    pack $buttons($idx) -side top -anchor w -padx $padx -pady 0 -ipady 0
     incr cb
   }
   pack $foptd1 -side top -anchor w -pady 0 -padx 0 -fill y
@@ -457,7 +461,7 @@ proc guiProcessAndReports {} {
     tooltip::tooltip $buttons(optPMISEM)  "The analysis of PMI Representation information is shown on\ndimension, tolerance, datum target, datum, and hole (AP242e2)\nentities.  Semantic PMI is found mainly in STEP AP242 files.\n\nSee Help > Analyze > PMI Representation\nSee Help > User Guide (section 5.1)\nSee Help > Syntax Errors\nSee Examples > Spreadsheet - PMI Representation\nSee Examples > Sample STEP Files\nSee Websites > AP242"
     tooltip::tooltip $buttons(optPMIGRF)  "The analysis of PMI Presentation information is\nshown on 'annotation occurrence' entities.\n\nSee Help > Analyze > PMI Presentation\nSee Help > User Guide (section 5.2)\nSee Help > Syntax Errors\nSee Examples > PMI Presentation, Validation Properties\nSee Examples > View Part with PMI\nSee Examples > AP242 Tessellated Part with PMI\nSee Examples > Sample STEP Files"
     tooltip::tooltip $buttons(optVALPROP) "The analysis of Validation Properties and other properties\nis shown on the 'property_definition' entity.\n\nSee Help > Analyze > Validation Properties\nSee Help > User Guide (section 5.3)\nSee Help > Syntax Errors\nSee Examples > PMI Presentation, Validation Properties"
-    tooltip::tooltip $buttons(optPMIGRFCOV) "The PMI Presentation Coverage worksheet counts the number of suggested names used from the\nRecommended Practice for Representation and Presentation of PMI (AP242), Section 8.4, Table 14.\nThe names do not have any semantic PMI meaning.  This worksheet not optional before version 3.62.\n\nSee Help > Analyze > PMI Coverage Analysis"    
+    tooltip::tooltip $buttons(optPMIGRFCOV) "The PMI Presentation Coverage worksheet counts the number of recommended names used from the\nRecommended Practice for Representation and Presentation of PMI (AP242), Section 8.4, Table 14.  The\nnames do not have any semantic PMI meaning.  This worksheet was always generated before version\n3.62 when PMI Presentation was selected.\n\nSee Help > Analyze > PMI Coverage Analysis"    
     tooltip::tooltip $buttons(optPMISEMDIM) "Analyze only dimensional tolerances and no\ngeometric tolerances, datums, or datum targets."
   }
 
@@ -938,7 +942,7 @@ proc guiSpreadsheet {} {
   catch {tooltip::tooltip $fxlsd "If possible, existing Spreadsheets, CSV files, and View files are\nalways overwritten by new files."}
 
   set fxlsc [ttk::labelframe $fxls.c -text " Other "]
-  foreach item {{" Delete unused rows on PMI Representation Coverage worksheets" opt(DELCOVROWS)} \
+  foreach item {{" Hide unused rows on PMI Representation Coverage worksheets" opt(DELCOVROWS)} \
                 {" On File Summary worksheet, create links to STEP files and spreadsheets (see File > Open Multiple ...)" opt(XL_LINK1)}} {
     regsub -all {[\(\)]} [lindex $item 1] "" idx
     set buttons($idx) [ttk::checkbutton $fxlsc.$cb -text [lindex $item 0] -variable [lindex $item 1] -command {checkValues}]
@@ -948,7 +952,7 @@ proc guiSpreadsheet {} {
   pack $fxlsc -side top -anchor w -pady {5 2} -padx 10 -fill both
   catch {
     tooltip::tooltip $buttons(optXL_LINK1)   "Deselecting this option is useful when sharing a Spreadsheet with another user."
-    tooltip::tooltip $buttons(optDELCOVROWS) "Deselecting this option will show all of the PMI Elements\non the PMI Representation Coverage worksheet.  No\nCount for any element means that it is not used.\n\nSee Help > Analyze > PMI Coverage Analysis"
+    tooltip::tooltip $buttons(optDELCOVROWS) "PMI Elements that are not found in the STEP file can be\nhidden on the PMI Representation Coverage worksheet.\n\nSee Help > Analyze > PMI Coverage Analysis"
   }
 
   if {$developer} {
@@ -1272,8 +1276,8 @@ symbol, while others show the relevant section in the Recommended Practice.  PMI
 a section number do not have a Recommended Practice for their implementation.  The PMI Elements are
 grouped by features related tolerances, tolerance zones, dimensions, dimension modifiers, datums,
 datum targets, and other modifiers.  The number of some modifiers, e.g., maximum material condition,
-does not differentiate whether they appear in the tolerance zone definition or datum reference frame.
-Rows with no counts of PMI Elements can be deleted, see Spreadsheet tab.
+does not differentiate whether they appear in the tolerance zone definition or datum reference
+frame.  Rows with no counts of PMI Elements can be hidden, see Spreadsheet tab.
 
 Some PMI Elements might not be exported to a STEP file by your CAD system.  Some PMI Elements are
 only in AP242 edition 2.
@@ -1283,10 +1287,10 @@ the PMI Representation Coverage Analysis worksheet is color-coded by the expecte
 elements in each CAD model.  See Help > Analyze > NIST CAD Models.
 
 The optional PMI Presentation Coverage Analysis (graphical PMI) counts the occurrences of the
-suggested name attribute defined in the CAx-IF Recommended Practice for PMI Representation and
+recommended name attribute defined in the CAx-IF Recommended Practice for PMI Representation and
 Presentation of PMI (AP242) or PMI Polyline Presentation (AP203/AP242).  The name attribute is
-associated with the graphic elements used to draw a PMI annotation.  There is no semantic PMI meaning
-to the name attributes."
+associated with the graphic elements used to draw a PMI annotation.  There is no semantic PMI
+meaning to the name attributes."
     .tnb select .tnb.status
   }
 
@@ -1818,9 +1822,7 @@ The STEP File Analyzer and Viewer keeps track of which entity type caused the er
 
 The software might also crash when processing very large STEP files.  In this case, deselect some entity types to process in Options tab or use a User-Defined List of entities to process.
 
-More details about recovering from a crash are explained in Help > Crash Recovery and in the User Guide.
-
-Please report other types of crashes to the software developer."
+More details about recovering from a crash are explained in Help > Crash Recovery and in the User Guide."
 
   tk_messageBox -type ok -icon error -title "What to do if the STEP File Analyzer and Viewer crashes?" -message $txt
 }

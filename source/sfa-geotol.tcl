@@ -1191,7 +1191,7 @@ proc spmiGeotolReport {objEntity} {
                     if {$ATR(1) == "toleranced_shape_aspect"} {
                       set ok 1
                       set all_over 1
-                      set idx "all over"
+                      set idx "all_over"
                       lappend spmiTypesPerFile $idx
                     }
                   }
@@ -1312,7 +1312,8 @@ proc spmiGeotolReport {objEntity} {
                     }
                   } else {
                     if {[info exists all_over]} {
-                      $cells($gt) Item $r $c "\[ALL OVER\] | $val"
+                      $cells($gt) Item $r $c "$pmiModifiers(all_over) | $val"
+                      errorMsg "The All Over symbol is approximated with $pmiModifiers(all_over) ($recPracNames(pmi242), Sec. 6.3)"
                       unset all_over
 
 # common or multiple datum features (section 6.9.8)

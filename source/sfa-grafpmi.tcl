@@ -507,13 +507,21 @@ proc gpmiAnnotationReport {objEntity} {
 
 # format cellval into str
                 if {[catch {
+                  set nval 0
                   ::tcom::foreach val [$objAttribute Value] {
                     append cellval([$val Type]) "[$val P21ID] "
-                    if {$ent1 == "tessellated_geometric_set children" && [$val Type] != "tessellated_curve_set" && [$val Type] != "complex_triangulated_surface_set"} {
+                    incr nval
+                    if {[string first "tessellated_geometric_set" $ent1] != -1 && [$val Type] != "tessellated_curve_set" && [$val Type] != "complex_triangulated_surface_set"} {
                       set msg "Syntax Error: Invalid '[$val Type]' attribute for tessellated_geometric_set.children\n[string repeat " " 14]\($recPracNames(pmi242), Sec. 8.2)"
                       errorMsg $msg
-                      lappend syntaxErr(tessellated_geometric_set) [list "-$r" children $msg]
+                      lappend syntaxErr($objType) [list $objID children $msg]
                     }
+                  }
+                  if {$nval == 0 && [string first "tessellated_geometric_set" $ent1] != -1} {
+                    set msg "Syntax Error: Missing 'children' attribute on [formatComplexEnt $objType].\n[string repeat " " 14]\($recPracNames(pmi242), Sec. 8.2)"
+                    errorMsg $msg
+                    lappend syntaxErr($objType) [list $objID children $msg]
+                    lappend syntaxErr(tessellated_annotation_occurrence) [list $gpmiID children $msg]
                   }
                 } emsg]} {
                   foreach val [$objAttribute Value] {
@@ -834,16 +842,15 @@ proc gpmiAnnotationReport {objEntity} {
                   if {[string first "occurrence" $ao] != -1 && $opt(XLSCSV) != "None"} {
                     if {$ov == "" || [lsearch $gpmiTypes $ov] == -1} {
                       if {$ov == ""} {
-                        set msg "Syntax Error: Missing 'name' attribute on [formatComplexEnt [lindex $ent1 0]]."
+                        set msg "Missing 'name' attribute on [formatComplexEnt [lindex $ent1 0]]"
                         set ov "(blank)"
                       } else {
-                        set msg "Syntax Error: 'name' attribute ($ov) on [formatComplexEnt [lindex $ent1 0]] is not recommended."
+                        set msg "The 'name' attribute on [formatComplexEnt [lindex $ent1 0]] is not a recommended name for presented PMI type"
                       }
-                      append msg "\n[string repeat " " 14]"
                       if {$stepAP == "AP242"} {
-                        append msg "($recPracNames(pmi242), Sec. 8.4, Table 14)"
+                        append msg " ($recPracNames(pmi242), Sec. 8.4, Table 14)"
                       } else {
-                        append msg "($recPracNames(pmi203), Sec. 4.3, Table 1)"
+                        append msg " ($recPracNames(pmi203), Sec. 4.3, Table 1)"
                       }
                       errorMsg $msg
                       if {[info exists gpmiTypesInvalid]} {if {[lsearch $gpmiTypesInvalid $ov] == -1} {lappend gpmiTypesInvalid $ov}}

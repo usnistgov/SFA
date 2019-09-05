@@ -2,7 +2,7 @@
 proc genExcel {{numFile 0}} {
   global allEntity aoEntTypes ap203all ap214all ap242all badAttributes brepEnts buttons cells cells1 col col1 count csvdirnam csvfile currLogFile developer
   global dim dimRepeatDiv editorCmd entCategories entCategory entColorIndex entCount entityCount entsIgnored entsWithErrors errmsg excel
-  global excelVersion extXLS fcsv feaLastEntity File fileEntity gpmiTypesInvalid gpmiTypesPerFile idxColor ifcsvrDir inverses
+  global excelVersion extXLS fcsv feaLastEntity File fileEntity filesProcessed gpmiTypesInvalid gpmiTypesPerFile idxColor ifcsvrDir inverses
   global lastXLS lenfilelist localName localNameList logFile multiFile multiFileDir mytemp nistCoverageLegend nistName nistPMIexpected nistPMImaster
   global nprogBarEnts nshape ofCSV ofExcel opt p21e3 p21e3Section row rowmax savedViewButtons savedViewName savedViewNames scriptName
   global sheetLast skipEntities skipPerm spmiEntity spmiSumName spmiSumRow spmiTypesPerFile startrow statsOnly stepAP tessColor thisEntType tlast
@@ -1076,6 +1076,9 @@ proc genExcel {{numFile 0}} {
   outputMsg "Processing time: $proctime seconds"
   update
 
+  incr filesProcessed
+  saveState
+  
 # -------------------------------------------------------------------------------------------------
 # save spreadsheet
   set csvOpenDir 0

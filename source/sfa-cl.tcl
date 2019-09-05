@@ -141,13 +141,13 @@ if {![file exists $localName]} {
 # -----------------------------------------------------------------------------------------------------
 # initialize variables, set opt to 1
 foreach id { \
-  DELCOVROWS DISPGUIDE1 FIRSTTIME LOGFILE PMIGRF PMISEM PR_STEP_AP242 PR_STEP_COMM PR_STEP_COMP PR_STEP_FEAT PR_STEP_KINE \
+  DELCOVROWS LOGFILE PMIGRF PMISEM PR_STEP_AP242 PR_STEP_COMM PR_STEP_COMP PR_STEP_FEAT PR_STEP_KINE \
   PR_STEP_PRES PR_STEP_QUAN PR_STEP_REPR PR_STEP_SHAP PR_STEP_TOLR VALPROP VIZFEABC VIZFEADS VIZFEALV XL_LINK1 XL_OPEN \
 } {set opt($id) 1}
 
 # set opt to 0
 foreach id { \
-  CRASH DEBUG1 DEBUGINV indentGeomtry indentStyledItem INVERSE PMIGRFCOV PMISEMDIM PR_STEP_CPNT PR_STEP_GEOM PR_USER \
+  DEBUG1 DEBUGINV indentGeomtry indentStyledItem INVERSE PMIGRFCOV PMISEMDIM PR_STEP_CPNT PR_STEP_GEOM PR_USER \
   VIZBRP VIZFEA VIZFEADSntail VIZFEALVS VIZPMI VIZPMIVP VIZTPG VIZTPGMSH writeDirType XL_FPREC XL_SORT \
 } {set opt($id) 0}
 
@@ -159,8 +159,8 @@ set opt(XLSCSV) Excel
 set coverageSTEP 0
 set dispCmd ""
 set dispCmds {}
-set firsttime 1
 set excelVersion 12
+set filesProcessed 0
 set lastX3DOM ""
 set lastXLS  ""
 set lastXLS1 ""
@@ -259,8 +259,8 @@ for {set i 1} {$i <= 10} {incr i} {
   }
 }
 
-if {$opt(FIRSTTIME) || $sfaVersion < [getVersion]} {
-  set opt(FIRSTTIME) 0
+# update version in options file
+if {$sfaVersion < [getVersion]} {
   set sfaVersion [getVersion]
   saveState
 }

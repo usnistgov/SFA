@@ -480,21 +480,18 @@ proc unzipFile {} {
 
 #-------------------------------------------------------------------------------
 proc saveState {{ok 1}} {
-  global buttons dispCmd dispCmds excelVersion fileDir fileDir1 lastX3DOM lastXLS lastXLS1 mydocs openFileList
+  global buttons dispCmd dispCmds excelVersion fileDir fileDir1 filesProcessed lastX3DOM lastXLS lastXLS1 mydocs openFileList
   global opt optionsFile sfaVersion statusFont upgrade upgradeIFCsvr userEntityFile userWriteDir userXLSFile
 
 # ok = 0 only after installing IFCsvr from the command-line version  
   if {![info exists buttons] && $ok} {return}
   
   if {[catch {
-    if {![file exists $optionsFile]} {
-      outputMsg " "
-      errorMsg "Creating options file: [truncFileName $optionsFile]"
-    }
+    if {![file exists $optionsFile]} {outputMsg "\nCreating options file: [file nativename $optionsFile]"}
     set fileOptions [open $optionsFile w]
     puts $fileOptions "# Options file for the NIST STEP File Analyzer and Viewer v[getVersion] ([string trim [clock format [clock seconds]]])\n#\n# DO NOT EDIT OR DELETE FROM USER HOME DIRECTORY $mydocs\n# DOING SO WILL CORRUPT THE CURRENT SETTINGS OR CAUSE ERRORS IN THE SOFTWARE\n#"
     set varlist [list fileDir fileDir1 userWriteDir userEntityFile openFileList dispCmd dispCmds lastXLS lastXLS1 lastX3DOM \
-                      userXLSFile statusFont upgrade upgradeIFCsvr sfaVersion excelVersion]
+                      userXLSFile statusFont upgrade upgradeIFCsvr sfaVersion excelVersion filesProcessed]
 
     foreach var $varlist {
       if {[info exists $var]} {

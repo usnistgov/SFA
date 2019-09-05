@@ -220,12 +220,12 @@ proc spmiDimtolReport {objEntity} {
                           if {$dim(unit) == "MM" && ([string first "ctc_03" $ln] != -1 || [string first "ctc_05" $ln] != -1 || \
                                                      [string first "ftc_06" $ln] != -1 || [string first "ftc_07" $ln] != -1 || \
                                                      [string first "ftc_08" $ln] != -1 || [string first "ftc_09" $ln] != -1)} {
-                            errorMsg " INCH dimensions are used in the NIST [string toupper [string range $ln 5 end]] test case."
+                            errorMsg "INCH dimensions are used in the NIST [string toupper [string range $ln 5 end]] test case."
                             set dim(unitOK) 0
                           }
                           if {$dim(unit) == "INCH" && ([string first "ctc_01" $ln] != -1 || [string first "ctc_02" $ln] != -1 || [string first "ctc_04" $ln] != -1 || \
                                                        [string first "ftc_10" $ln] != -1 || [string first "ftc_11" $ln] != -1)} {
-                            errorMsg " MM dimensions are used in the NIST [string toupper [string range $ln 5 end]] test case."
+                            errorMsg "MM dimensions are used in the NIST [string toupper [string range $ln 5 end]] test case."
                             set dim(unitOK) 0
                           }
                         }
@@ -493,7 +493,7 @@ proc spmiDimtolReport {objEntity} {
                     }
                   }
                   "*dimensional_size* name" {
-# dimensional_size.name, from the name add symbol to dimrep for spherical, radius, diameter or thickness  (Section 5.1.5, Table 4)
+# dimensional_size.name, from the name add symbol to dimrep for spherical, radius, or diameter  (Section 5.1.5, Table 4)
                     set okname 0
                     set ok 1
                     set col($dt) $pmiStartCol($dt)
@@ -513,28 +513,28 @@ proc spmiDimtolReport {objEntity} {
                     set d1 ""
                     if {[info exists dimrep($dimrepID)]} {set d1 [string index $dimrep($dimrepID) 0]}
 
+# spherical (not sure what item is used for)
                     if {[string first "spherical" $ov] != -1} {
                       if {[string index $dimrep($dimrepID) 0] != "S"} {
                         append dimrep($dimrepID) "S"
                         append item "spherical "
                       }
                     }
+
+# add diameter
                     if {[string first "diameter" $ov] != -1 && $d1 != $pmiUnicode(diameter)} {
                       if {[string first $pmiUnicode(diameter) $dimrep($dimrepID)] == -1} {
                         append dimrep($dimrepID) $pmiUnicode(diameter)
                         append item "diameter"
                       }
                     }
+
+# add radius
                     if {[string first "radius" $ov] != -1} {
                       if {[string first "R" $dimrep($dimrepID)] == -1} {
                         append dimrep($dimrepID) "R"
                         append item "radius"
                       }
-                    }
-                    if {$ov == "thickness"} {
-                      # no symbol (leader lines) for thickness
-                      #append dimrep($dimrepID) $pmiUnicode(thickness)
-                      append item "thickness"
                     }
 
                     set dim(symbol) $dimrep($dimrepID)
@@ -547,7 +547,11 @@ proc spmiDimtolReport {objEntity} {
                       }
                       if {$okname} {
                         lappend spmiTypesPerFile "dimensional size"
-                        lappend spmiTypesPerFile $ov
+                        if {[string first "toroidal" $ov] == -1} {
+                          lappend spmiTypesPerFile $ov
+                        } else {
+                          lappend spmiTypesPerFile "toroidal radius/diameter"
+                        }
                         if {$nistName != ""} {lappend spmiTypesPerFile "dimensions"}
                       }
                     }
@@ -587,6 +591,11 @@ proc spmiDimtolReport {objEntity} {
                     }
                     lappend spmiTypesPerFile "dimensional location"
                     if {$nistName != ""} {lappend spmiTypesPerFile "dimensions"}
+                    if {[string first "linear distance" $dimName] != 0} {
+                      lappend spmiTypesPerFile $dimName
+                    } else {
+                      if {$dimName != "linear distance"} {lappend spmiTypesPerFile "linear distance inner/outer"}
+                    }
 
 # syntax check for correct dimensional_location.name attribute from the RP
                     if {$ov == ""} {
@@ -613,7 +622,7 @@ proc spmiDimtolReport {objEntity} {
                       if {$ov == "independency" || $ov == "envelope requirement"} {
                         regsub -all " " $ov "_" ov1
                         append savedModifier $pmiModifiers($ov1)
-                        lappend spmiTypesPerFile $ov
+                        lappend spmiTypesPerFile $ov1
                       } else {
                         set msg "Syntax Error: Invalid 'name' attribute ($ov) on [lindex $ent1 0].\n[string repeat " " 14]\($recPracNames(pmi242), Sec. 5.2.1, Table 5)"
                         errorMsg $msg
@@ -985,7 +994,7 @@ proc spmiDimtolReport {objEntity} {
                           set qualifier [[[$e0 Attributes] Item [expr 4]] Value]
                           if {[$qualifier Type] == "value_format_type_qualifier"} {
                             set val [[[$qualifier Attributes] Item [expr 1]] Value]
-                            lappend spmiTypesPerFile "tolerance qualifier"
+                            lappend spmiTypesPerFile "measure qualifier"
                             if {[lsearch $tolQual $val] == -1} {
                               lappend tolQual $val
                               lappend tolQualEnt $qualifier
@@ -1116,7 +1125,7 @@ proc spmiDimtolReport {objEntity} {
               } elseif {$pmval(0) == $pmval(1)} {
                 set msg "Syntax Error: +/- tolerances are both the same.\n[string repeat " " 14]\($recPracNames(pmi242), Sec. 5.2.3)"
               } elseif {($pmval(0) > 0 && $pmval(1) > 0) || ($pmval(0) < 0 && $pmval(1) < 0)} {
-                set msg "Syntax Error: +/- tolerances are either both positive or both negative.\n[string repeat " " 14]\($recPracNames(pmi242), Sec. 5.2.3)"
+                set msg "+/- tolerances are either both positive or both negative."
               }
               if {$msg != ""} {
                 errorMsg $msg

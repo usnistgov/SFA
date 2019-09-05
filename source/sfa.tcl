@@ -76,13 +76,13 @@ foreach item $auto_path {if {[string first "STEP-File-Analyzer" $item] != -1} {s
 # -----------------------------------------------------------------------------------------------------
 # initialize variables, set opt to 1
 foreach id { \
-  DELCOVROWS DISPGUIDE1 FIRSTTIME LOGFILE PMIGRF PMISEM PR_STEP_AP242 PR_STEP_COMM PR_STEP_COMP PR_STEP_FEAT PR_STEP_KINE PR_STEP_PRES PR_STEP_QUAN \
+  DELCOVROWS LOGFILE PMIGRF PMISEM PR_STEP_AP242 PR_STEP_COMM PR_STEP_COMP PR_STEP_FEAT PR_STEP_KINE PR_STEP_PRES PR_STEP_QUAN \
   PR_STEP_REPR PR_STEP_SHAP PR_STEP_TOLR VALPROP VIZBRP VIZFEA VIZFEABC VIZFEADS VIZFEALV VIZPMI VIZTPG XL_LINK1 XL_OPEN \
 } {set opt($id) 1}
 
 # set opt to 0
 foreach id { \
-  CRASH DEBUG1 DEBUGINV indentGeomtry indentStyledItem INVERSE PMIGRFCOV PMISEMDIM PR_STEP_CPNT PR_STEP_GEOM \
+  DEBUG1 DEBUGINV indentGeomtry indentStyledItem INVERSE PMIGRFCOV PMISEMDIM PR_STEP_CPNT PR_STEP_GEOM \
   PR_USER VIZFEADSntail VIZFEALVS VIZPMIVP VIZTPGMSH writeDirType XL_FPREC XL_SORT \
 } {set opt($id) 0}
 
@@ -98,6 +98,7 @@ set edmWhereRules 0
 set edmWriteToFile 0
 set eeWriteToFile  0
 set excelVersion 12
+set filesProcessed 0
 set lastX3DOM ""
 set lastXLS  ""
 set lastXLS1 ""
@@ -130,35 +131,31 @@ if {[file exists $optionsFile]} {
     source $optionsFile
 
 # rename and unset old variable names from old options file
+    if {[info exists verite]} {set sfaVersion $verite}
+
     if {[info exists opt(VIZTES)]}    {set opt(VIZTPG)    $opt(VIZTES);    unset opt(VIZTES)}
     if {[info exists opt(VIZTESMSH)]} {set opt(VIZTPGMSH) $opt(VIZTESMSH); unset opt(VIZTESMSH)}
+    if {[info exists opt(CRASH)]}     {set filesProcessed 1}
 
-    if {[info exists verite]} {set sfaVersion $verite; unset verite}
-    if {[info exists indentStyledItem]} {set opt(indentStyledItem) $indentStyledItem; unset indentStyledItem}
-    if {[info exists indentGeometry]}   {set opt(indentGeometry)   $indentGeometry;   unset indentGeometry}
-    if {[info exists writeDirType]}     {set opt(writeDirType)     $writeDirType;     unset writeDirType}
+    if {[info exists gpmiColor]}        {set opt(gpmiColor) $gpmiColor}
+    if {[info exists indentGeometry]}   {set opt(indentGeometry) $indentGeometry}
+    if {[info exists indentStyledItem]} {set opt(indentStyledItem) $indentStyledItem}
+    if {[info exists writeDirType]}     {set opt(writeDirType) $writeDirType}
+    if {[info exists row_limit]}        {set opt(XL_ROWLIM) $row_limit}
   
-    if {[info exists gpmiColor]} {set opt(gpmiColor) $gpmiColor; unset gpmiColor}
-    if {[info exists row_limit]} {set opt(XL_ROWLIM) $row_limit; unset row_limit}
-    if {[info exists firsttime]} {set opt(FIRSTTIME) $firsttime; unset firsttime}
-    if {[info exists ncrash]}    {set opt(CRASH)     $ncrash;    unset ncrash}
-  
-    if {[info exists flag(CRASH)]}      {set opt(CRASH)      $flag(CRASH);      unset flag(CRASH)}
-    if {[info exists flag(FIRSTTIME)]}  {set opt(FIRSTTIME)  $flag(FIRSTTIME);  unset flag(FIRSTTIME)}
-    if {[info exists flag(DISPGUIDE1)]} {set opt(DISPGUIDE1) $flag(DISPGUIDE1); unset flag(DISPGUIDE1)}
-  
-    foreach item {COUNT EX_A2P3D EX_ANAL EX_ARBP EX_LP feaNodeType FN_APPEND GENX3DOM PMIP PMIPROP PMIVRML PR_STEP_AP203 PR_STEP_AP209 PR_STEP_AP210 \
-                  PR_STEP_AP214 PR_STEP_AP238 PR_STEP_AP239 PR_STEP_AP242_CONS PR_STEP_AP242_GEOM PR_STEP_AP242_KINE PR_STEP_AP242_MATH PR_STEP_AP242_OTHER \
-                  PR_STEP_AP242_QUAL PR_STEP_ASPECT PR_STEP_BAD PR_STEP_GEO PR_STEP_OTHER PR_STEP_REP PR_STEP_UNIT PR_TYPE ROWLIM SEMPROP SORT VIZ209 \
-                  VIZBRPmsg VIZFEADStail VPDBG XL_KEEPOPEN XL_LINK2 XL_LINK3 XL_ORIENT XL_SCROLL XL_XLSX XLSBUG} {
-      catch {unset opt($item)}
+    foreach item {COUNT CRASH DISPGUIDE1 EX_A2P3D EX_ANAL EX_ARBP EX_LP feaNodeType FIRSTTIME FN_APPEND GENX3DOM PMIP PMIPROP PMIVRML PR_STEP_AP203 PR_STEP_AP209 \
+      PR_STEP_AP210 PR_STEP_AP214 PR_STEP_AP238 PR_STEP_AP239 PR_STEP_AP242_CONS PR_STEP_AP242_GEOM PR_STEP_AP242_KINE PR_STEP_AP242_MATH PR_STEP_AP242_OTHER \
+      PR_STEP_AP242_QUAL PR_STEP_ASPECT PR_STEP_BAD PR_STEP_GEO PR_STEP_OTHER PR_STEP_REP PR_STEP_UNIT PR_TYPE ROWLIM SEMPROP SORT VIZ209 VIZBRPmsg VIZFEADStail \
+      VPDBG XL_KEEPOPEN XL_LINK2 XL_LINK3 XL_ORIENT XL_SCROLL XL_XLSX XLSBUG} {catch {unset opt($item)}
     }
+    foreach var {firsttime gpmiColor indentGeometry indentStyledItem ncrash row_limit verite writeDirType} {catch {unset $var}}
+    catch {unset flag}
   } emsg]} {
     set endMsg "Error reading options file: [truncFileName $optionsFile]\n $emsg\nFix or delete the file."
   }
 }
 
-# check some directory variables
+# check that directories exist
 if {[info exists userWriteDir]} {if {![file exists $userWriteDir]} {set userWriteDir $mydocs}}
 if {[info exists fileDir]}      {if {![file exists $fileDir]}      {set fileDir      $mydocs}}
 if {[info exists fileDir1]}     {if {![file exists $fileDir1]}     {set fileDir1     $mydocs}}
@@ -256,45 +253,33 @@ guiButtons
 
 #-------------------------------------------------------------------------------
 # first time user
-set ask 0
-
-if {$opt(FIRSTTIME)} {
+set save 0
+if {$sfaVersion == 0} {
   whatsNew
-  if {$nistVersion} {showDisclaimer}
-  
   set sfaVersion [getVersion]
-  set opt(FIRSTTIME) 0
-  
-  after 1000
+  if {$nistVersion} {showDisclaimer}
   showFileURL UserGuide
-  set opt(DISPGUIDE1) 0
-  
-  saveState
   setShortcuts
-  
-  outputMsg " "
-  errorMsg "Use F8 and F9 to change the font size."
-  saveState
+  set save 1
 
 # what's new message
 } elseif {$sfaVersion < [getVersion]} {
   whatsNew
   set sfaVersion [getVersion]
-  saveState
   setShortcuts
+  set save 1
 
 } elseif {$sfaVersion > [getVersion]} {
   set sfaVersion [getVersion]
-  saveState
+  set save 1
 }
 
 #-------------------------------------------------------------------------------
 # crash recovery message
-if {$opt(CRASH) < 2} {
-  showCrashRecovery
-  incr opt(CRASH)
-  saveState
-}
+if {$filesProcessed == 0} {showCrashRecovery}
+
+# save the variables
+if {$save} {saveState}
 
 #-------------------------------------------------------------------------------
 # check for update every 30 days
@@ -315,13 +300,6 @@ if {$nistVersion} {
     set upgrade [clock seconds]
     saveState
   }
-}
-
-# open user guide if it hasn't already
-if {$opt(DISPGUIDE1)} {
-  showFileURL UserGuide
-  set opt(DISPGUIDE1) 0
-  saveState
 }
 
 #-------------------------------------------------------------------------------
@@ -370,6 +348,7 @@ if {$argv != ""} {
 
 set writeDir $userWriteDir
 checkValues
+if {$developer} {outputMsg $filesProcessed blue}  
 
 # other STEP File Analyzer and Viewers already running
 set pid2 [twapi::get_process_ids -name "STEP-File-Analyzer.exe"]
