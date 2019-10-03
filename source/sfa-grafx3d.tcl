@@ -558,7 +558,7 @@ proc x3dFileEnd {} {
     if {$ok} {
       append str " and <a href=\"https://github.com/tpaviot/pythonocc\">pythonOCC</a>"
       if {$viz(TPG) || $viz(PMI) || $viz(FEA) || $viz(SMG)} {append str " for part geometry"}
-      append str ".&nbsp;&nbsp;&nbsp;Part geometry can also be viewed with <a href=\"https://www.cax-if.org/step_viewers.html\">STEP file viewers</a>"
+      append str ".&nbsp;&nbsp;&nbsp;Part geometry can also be viewed with <a href=\"https://www.cax-if.org/cax/step_viewers.php\">STEP file viewers</a>"
     }
   }
   append str ".&nbsp;&nbsp;&nbsp;<a href=\"https://www.nist.gov/disclaimer\">NIST Disclaimer</a>&nbsp;&nbsp;&nbsp;[clock format [clock seconds] -format "%d %b %G %H:%M"]"
@@ -2031,7 +2031,8 @@ proc x3dGetRotation {axis refdir {type ""}} {
 
   if {$msg != ""} {
     errorMsg $msg
-    if {[string first "supplemental" $msg] != -1} {lappend x3dMsg [string range $msg 14 end]}
+    set msg1 [string range $msg 14 end]
+    if {[lsearch $x3dMsg $msg1] == -1 && [string first "supplemental" $msg1] != -1} {lappend x3dMsg $msg1}
   }
 
 # construct rotation matrix u, must normalize to use with quaternion

@@ -4,7 +4,7 @@ proc genExcel {{numFile 0}} {
   global dim dimRepeatDiv editorCmd entCategories entCategory entColorIndex entCount entityCount entsIgnored entsWithErrors errmsg excel
   global excelVersion extXLS fcsv feaLastEntity File fileEntity filesProcessed gpmiTypesInvalid gpmiTypesPerFile idxColor ifcsvrDir inverses
   global lastXLS lenfilelist localName localNameList logFile multiFile multiFileDir mytemp nistCoverageLegend nistName nistPMIexpected nistPMImaster
-  global nprogBarEnts nshape ofCSV ofExcel opt p21e3 p21e3Section row rowmax savedViewButtons savedViewName savedViewNames scriptName
+  global nprogBarEnts nshape ofCSV ofExcel opt pf32 p21e3 p21e3Section row rowmax savedViewButtons savedViewName savedViewNames scriptName
   global sheetLast skipEntities skipPerm spmiEntity spmiSumName spmiSumRow spmiTypesPerFile startrow statsOnly stepAP tessColor thisEntType tlast
   global tolNames tolStandard tolStandards totalEntity userEntityFile userEntityList userXLSFile useXL viz workbook workbooks
   global worksheet worksheet1 worksheets writeDir wsCount wsNames x3dAxes x3dColor x3dColorFile x3dColors x3dColorsUsed x3dFileName x3dIndex
@@ -31,6 +31,7 @@ proc genExcel {{numFile 0}} {
   }
 
 # check if IFCsvr is installed
+  if {![info exists ifcsvrDir]} {set ifcsvrDir [file join $pf32 IFCsvrR300 dll]}
   if {![file exists [file join $ifcsvrDir IFCsvrR300.dll]]} {
     if {[info exists buttons]} {$buttons(genExcel) configure -state disable}
     installIFCsvr
@@ -790,8 +791,8 @@ proc genExcel {{numFile 0}} {
             if {$ok} {lappend tolStandards $val}
 
             if {$item == "product_definition_formation"} {
-              if {[string first "Y14.5" $val]  != -1 || [string first "1101" $val]  != -1} {lappend spmiTypesPerFile "dimensioning standard"}
-              if {[string first "Y14.41" $val] != -1 || [string first "16792" $val] != -1} {lappend spmiTypesPerFile "modeling standard"}
+              if {[string first "Y14.5" $val]  != -1 || [string first "1101" $val]  != -1} {lappend spmiTypesPerFile "$tolStandard(type) dimensioning standard"}
+              if {[string first "Y14.41" $val] != -1 || [string first "16792" $val] != -1} {lappend spmiTypesPerFile "$tolStandard(type) modeling standard"}
             }
           }
         }
@@ -1453,7 +1454,7 @@ proc addHeaderWorksheet {numFile fname} {
       if {$c1 != -1} {lappend caxifrp [string trim [string range $fd $c1+20 end]]}
     }
     if {[llength $caxifrp] > 0} {
-      outputMsg "\nCAx-IF Recommended Practices: (www.cax-if.org/joint_testing_info.html#recpracs)" blue
+      outputMsg "\nCAx-IF Recommended Practices: (https://www.cax-if.org/cax/cax_recommPractice.php)" blue
       foreach item $caxifrp {
         outputMsg " $item"
         lappend spmiTypesPerFile "document identification"

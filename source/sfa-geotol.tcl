@@ -75,7 +75,7 @@ proc spmiGeotolStart {entType} {
   lappend spmiEntity $entType
 
   if {[string first "AP203" $stepAP] == 0 || [string first "AP214" $stepAP] == 0} {
-    errorMsg "There is no Recommended Practice for PMI Representation (Semantic PMI) in $stepAP files.  Use AP242 for PMI Representation."
+    errorMsg "There is no Recommended Practice for PMI Representation in $stepAP files.  Use AP242 for PMI Representation."
   }
 
   if {$opt(DEBUG1)} {outputMsg \n}
@@ -340,13 +340,13 @@ proc spmiGeotolReport {objEntity} {
                               } else {
                                 set msg ""
                                 if {$tzfName != ""} {
-                                  set msg "Syntax Error: Invalid 'tolerance_zone_form.name' attribute ($tzfName) on [formatComplexEnt [$gtEntity Type]]\n[string repeat " " 14]\($recPracNames(pmi242), Sec. 6.9.2, Tables 11, 12)"
+                                  set msg "Syntax Error: Bad tolerance_zone_form 'name' attribute ($tzfName) on [formatComplexEnt [$gtEntity Type]]\n[string repeat " " 14]\($recPracNames(pmi242), Sec. 6.9.2, Tables 11, 12)"
                                   errorMsg $msg
                                   set invalid $msg
                                   lappend syntaxErr(tolerance_zone_form) [list [[$attrTZ Value] P21ID] "name" $msg]
                                   set tzf1 "(Invalid TZF: $tzfName)"
                                 } elseif {$tzfName == ""} {
-                                  set msg "Syntax Error: The tolerance_zone_form 'name' attribute is blank.\n[string repeat " " 14]\($recPracNames(pmi242), Sec. 6.9.2, Tables 11, 12)"
+                                  set msg "Syntax Error: Missing tolerance_zone_form 'name' attribute.\n[string repeat " " 14]\($recPracNames(pmi242), Sec. 6.9.2, Tables 11, 12)"
                                   errorMsg $msg
                                   lappend syntaxErr(tolerance_zone_form) [list [[$attrTZ Value] P21ID] "name" $msg]
                                 }
@@ -425,7 +425,7 @@ proc spmiGeotolReport {objEntity} {
                             append tzWithDatum($tz) " \u25B7 \[$angle$pmiUnicode(degree)\]"
                           }
                         } else {
-                          set msg "Syntax Error: Invalid orientation attribute '$dir' on '$tz\_tolerance_zone'."
+                          set msg "Syntax Error: Bad orientation attribute '$dir' on '$tz\_tolerance_zone'."
                           errorMsg $msg
                           lappend syntaxErr($tz\_tolerance_zone) [list [$e0 P21ID] "orientation" $msg]
                         }
@@ -787,9 +787,11 @@ proc spmiGeotolReport {objEntity} {
                         }
                         lappend datumIDs $letter
 
-# check for non-single letter datum identification
-                        if {![string is alpha $letter] || [string length $letter] != 1} {
-                          set msg "Syntax Error: Datum 'identification' attribute should be a single letter.\n[string repeat " " 14]\($recPracNames(pmi242), Sec. 6.5, 6.9.8)"
+# check for datum identification with too many letters
+                        set nlet 2
+                        if {$tolStandard(type) == "ISO"} {set nlet 3}
+                        if {![string is alpha $letter] || [string length $letter] > $nlet} {
+                          set msg "Datum 'identification' attribute cannot be more than $nlet letters (no numbers) based on the tolerancing standard."
                           errorMsg $msg
                           lappend syntaxErr(datum) [list $id identification $msg]
                         }
@@ -869,7 +871,7 @@ proc spmiGeotolReport {objEntity} {
                                   if {[$a2 Name] == "identification"} {set datumSymbol($datumGeomEnts) [$a2 Value]}
                                 }
                               } emsg]} {
-                                set msg "Syntax Error: Invalid 'related_shape_aspect' attribute on 'shape_aspect_relationship'."
+                                set msg "Syntax Error: Bad 'related_shape_aspect' attribute on 'shape_aspect_relationship'."
                                 errorMsg $msg
                                 lappend syntaxErr(shape_aspect_relationship) [list [$e1 P21ID] "related_shape_aspect" $msg]
                               }
@@ -924,12 +926,7 @@ proc spmiGeotolReport {objEntity} {
                         errorMsg $msg
                       }
                     } else {
-                      if {$ov != ""} {
-                        set msg "Syntax Error: Invalid 'description' ($ov) "
-                      } else {
-                        set msg "Syntax Error: Missing 'description' "
-                      }
-                      append msg "on [$gtEntity Type].\n[string repeat " " 14]\($recPracNames(pmi242), Sec. 6.6.1, Table 9)"
+                      set msg "Syntax Error: Bad 'description' attribute on [$gtEntity Type].\n[string repeat " " 14]\($recPracNames(pmi242), Sec. 6.6.1, Table 9)"
                       errorMsg $msg
                     }
                     if {$msg != ""} {lappend syntaxErr([lindex [split $ent1 " "] 0]) [list $objID [lindex [split $ent1 " "] 1] $msg]}
@@ -997,7 +994,7 @@ proc spmiGeotolReport {objEntity} {
                   "datum_target target_id" {
 # datum target IDs (Section 6.6)
                     if {![string is integer $ov]} {
-                      set msg "Syntax Error: Invalid datum target 'target_id' ($ov), only integers are valid\n[string repeat " " 14]\($recPracNames(pmi242), Sec. 6.6)"
+                      set msg "Syntax Error: Bad datum target 'target_id' ($ov), only integers are valid\n[string repeat " " 14]\($recPracNames(pmi242), Sec. 6.6)"
                       errorMsg $msg
                       lappend syntaxErr([lindex [split $ent1 " "] 0]) [list $objID [lindex [split $ent1 " "] 1] $msg]
                     }
@@ -1051,7 +1048,7 @@ proc spmiGeotolReport {objEntity} {
                                         ::tcom::foreach a4 [$e4 Attributes] {
                                           if {[$a4 Name] == "name"} {
                                             if {[$a4 Value] != "orientation"} {
-                                              set msg "Syntax Error: Invalid 'name' ([$a4 Value]) on axis2_placement_3d for a placed datum target (must be 'orientation')\n[string repeat " " 14]\($recPracNames(pmi242), Sec. 6.6.1)"
+                                              set msg "Syntax Error: Bad 'name' ([$a4 Value]) on axis2_placement_3d for a placed datum target, must be 'orientation'.\n[string repeat " " 14]\($recPracNames(pmi242), Sec. 6.6.1)"
                                               errorMsg $msg
                                               lappend syntaxErr(axis2_placement_3d) [list [$e4 P21ID] name $msg]
                                             }
@@ -1086,11 +1083,11 @@ proc spmiGeotolReport {objEntity} {
 # bad target attributes
                                             set msg ""
                                             if {$datumTargetType == "line" && $datumTargetName != "target length"} {
-                                              set msg "Syntax Error: Invalid datum target 'name' ($datumTargetName) on [formatComplexEnt [$e4 Type]], use 'target length' for a '$datumTargetType' target\n[string repeat " " 14]\($recPracNames(pmi242), Sec. 6.6.1)"
+                                              set msg "Syntax Error: Bad datum target 'name' ($datumTargetName) on [formatComplexEnt [$e4 Type]], use 'target length' for a '$datumTargetType' target\n[string repeat " " 14]\($recPracNames(pmi242), Sec. 6.6.1)"
                                             } elseif {$datumTargetType == "circle" && $datumTargetName != "target diameter"} {
-                                              set msg "Syntax Error: Invalid datum target 'name' ($datumTargetName) on [formatComplexEnt [$e4 Type]], use 'target diameter' for a '$datumTargetType' target\n[string repeat " " 14]\($recPracNames(pmi242), Sec. 6.6.1)"
+                                              set msg "Syntax Error: Bad datum target 'name' ($datumTargetName) on [formatComplexEnt [$e4 Type]], use 'target diameter' for a '$datumTargetType' target\n[string repeat " " 14]\($recPracNames(pmi242), Sec. 6.6.1)"
                                             } elseif {$datumTargetType == "rectangle" && ($datumTargetName != "target length" && $datumTargetName != "target width")} {
-                                              set msg "Syntax Error: Invalid datum target 'name' ($datumTargetName) on [formatComplexEnt [$e4 Type]], use 'target length' or 'target width' for a '$datumTargetType' target\n[string repeat " " 14]\($recPracNames(pmi242), Sec. 6.6.1)"
+                                              set msg "Syntax Error: Bad datum target 'name' ($datumTargetName) on [formatComplexEnt [$e4 Type]], use 'target length' or 'target width' for a '$datumTargetType' target\n[string repeat " " 14]\($recPracNames(pmi242), Sec. 6.6.1)"
                                             } elseif {$datumTargetType == "point"} {
                                               set msg "Syntax Error: No length_measure attribute on shape_representation_with_parameters is required for a 'point' datum target\n[string repeat " " 14]\($recPracNames(pmi242), Sec. 6.6.1)"
 
@@ -1134,7 +1131,7 @@ proc spmiGeotolReport {objEntity} {
                                         ::tcom::foreach a4 [$e4 Attributes] {
                                           if {[$a4 Name] == "name"} {
                                             if {[$a4 Value] != "movable direction"} {
-                                              set msg "Syntax Error: Invalid 'name' ([$a4 Value]) on 'direction' for a movable datum target (must be 'movable direction')\n[string repeat " " 14]\($recPracNames(pmi242), Sec. 6.6.3)"
+                                              set msg "Syntax Error: Bad 'name' ([$a4 Value]) on 'direction' for a movable datum target, must be 'movable direction'\n[string repeat " " 14]\($recPracNames(pmi242), Sec. 6.6.3)"
                                               errorMsg $msg
                                               lappend syntaxErr(direction) [list [$e4 P21ID] "name" $msg]
                                             }
@@ -1146,7 +1143,7 @@ proc spmiGeotolReport {objEntity} {
                                         lappend spmiTypesPerFile "movable datum target"
                                         append objValue " (movable)"
                                       } else {
-                                        set msg "Syntax Error: Invalid 'item' ([formatComplexEnt [$e4 Type]]) on shape_representation_with_parameters for a datum target\n[string repeat " " 14]\($recPracNames(pmi242), Sec. 6.6)"
+                                        set msg "Syntax Error: Bad 'item' ([formatComplexEnt [$e4 Type]]) on shape_representation_with_parameters for a datum target\n[string repeat " " 14]\($recPracNames(pmi242), Sec. 6.6)"
                                         errorMsg $msg
                                         lappend syntaxErr(shape_representation_with_parameters) [list [$e3 P21ID] "item" $msg]
                                       }
@@ -1260,7 +1257,7 @@ proc spmiGeotolReport {objEntity} {
 # defined area unit, look for square, rectangle and add " X 0.whatever" to existing value
                     set ok 1
                     if {[lsearch [list square rectangular circular cylindrical spherical] $objValue] == -1} {
-                      set msg "Syntax Error: Invalid 'area_type' attribute ($objValue) on geometric_tolerance_with_defined_area_unit.\n[string repeat " " 14]\($recPracNames(pmi242), Sec. 6.9.6)"
+                      set msg "Syntax Error: Bad 'area_type' attribute ($objValue) on geometric_tolerance_with_defined_area_unit.\n[string repeat " " 14]\($recPracNames(pmi242), Sec. 6.9.6)"
                       errorMsg $msg
                       lappend syntaxErr([lindex [split $ent1 " "] 0]) [list [$gtEntity P21ID] [lindex [split $ent1 " "] 1] $msg]
                     }
@@ -1462,7 +1459,7 @@ proc spmiGeotolReport {objEntity} {
                 } elseif {$compval == "precedence" || $compval == "simultaneity"} {
                   set msg "Syntax Error: 'name' attribute ($compval) not recommended on geometric_tolerance_relationship.\n[string repeat " " 14]\($recPracNames(pmi242), Sec. 6.9.9)"
                 } else {
-                  set msg "Syntax Error: Invalid 'name' attribute ($compval) on geometric_tolerance_relationship.\n[string repeat " " 14]\($recPracNames(pmi242), Sec. 6.9.9)"
+                  set msg "Syntax Error: Bad 'name' attribute ($compval) on geometric_tolerance_relationship.\n[string repeat " " 14]\($recPracNames(pmi242), Sec. 6.9.9)"
                 }
                 errorMsg $msg
                 lappend syntaxErr(geometric_tolerance_relationship) [list [$e1 P21ID] "name" $msg]

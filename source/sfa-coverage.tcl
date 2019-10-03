@@ -41,7 +41,7 @@ proc spmiSummary {} {
     set range [$worksheet($spmiSumName) Range C1:K1]
     $range MergeCells [expr 1]
     set anchor [$worksheet($spmiSumName) Range C1]
-    [$worksheet($spmiSumName) Hyperlinks] Add $anchor [join "https://www.cax-if.org/joint_testing_info.html#recpracs"] [join ""] [join "Link to CAx-IF Recommended Practices"]
+    [$worksheet($spmiSumName) Hyperlinks] Add $anchor [join "https://www.cax-if.org/cax/cax_recommPractice.php"] [join ""] [join "Link to CAx-IF Recommended Practices"]
     
     set allPMI ""
 
@@ -208,6 +208,7 @@ proc spmiCoverageStart {{multi 1}} {
 proc spmiCoverageWrite {{fn ""} {sum ""} {multi 1}} {
   global allPMI allPMIelements cells cells1 col1 developer entCount fileList nfile nistCoverageStyle nistName opt pmiElements pmiElements1
   global pmiElementsMaxRows pmiModifiers spmiCoverageWS spmiTypesPerFile totalPMI totalPMIrows usedPMIrows worksheet worksheet1
+  global objDesign
 
   if {[catch {
     if {$multi} {
@@ -222,7 +223,19 @@ proc spmiCoverageWrite {{fn ""} {sum ""} {multi 1}} {
       for {set i 0} {$i < $entCount(datum)} {incr i} {lappend spmiTypesPerFile1 "datum (6.5)"}
       if {$multi} {unset entCount(datum)}
     }
-    
+
+# check for 'semantic text'
+    if {!$multi} {
+      ::tcom::foreach thisEnt [$objDesign FindObjects [string trim property_definition]] {
+        ::tcom::foreach attr [$thisEnt Attributes] {
+          if {[$attr Name] == "name"} {
+            set val [$attr Value]
+            if {$val == "semantic text"} {lappend spmiTypesPerFile "editable text"}
+          }
+        }
+      }
+    }
+
 # check for some modifiers and count from allPMI
     if {[info exists allPMI]} {
       if {[string length $allPMI] > 0} {
@@ -434,7 +447,7 @@ proc spmiCoverageFormat {sum {multi 1}} {
       if {$opt(DELCOVROWS)} {incr r2}
       $cells1($spmiCoverageWS) Item $r2 1 "Section numbers above refer to the CAx-IF Recommended Practice for $recPracNames(pmi242)"
       set anchor [$worksheet1($spmiCoverageWS) Range [cellRange $r2 1]]
-      [$worksheet1($spmiCoverageWS) Hyperlinks] Add $anchor [join "https://www.cax-if.org/joint_testing_info.html#recpracs"] [join ""] [join "Link to CAx-IF Recommended Practices"]
+      [$worksheet1($spmiCoverageWS) Hyperlinks] Add $anchor [join "https://www.cax-if.org/cax/cax_recommPractice.php"] [join ""] [join "Link to CAx-IF Recommended Practices"]
       
       [$worksheet1($spmiCoverageWS) Rows] AutoFit
       [$worksheet1($spmiCoverageWS) Range "B4"] Select
@@ -476,7 +489,7 @@ proc spmiCoverageFormat {sum {multi 1}} {
       if {$opt(DELCOVROWS)} {incr r2}
       $cells($spmiCoverageWS) Item $r2 1 "Section numbers above refer to the CAx-IF Recommended Practice for $recPracNames(pmi242)"
       set anchor [$worksheet($spmiCoverageWS) Range [cellRange $r2 1]]
-      [$worksheet($spmiCoverageWS) Hyperlinks] Add $anchor [join "https://www.cax-if.org/joint_testing_info.html#recpracs"] [join ""] [join "Link to CAx-IF Recommended Practices"]
+      [$worksheet($spmiCoverageWS) Hyperlinks] Add $anchor [join "https://www.cax-if.org/cax/cax_recommPractice.php"] [join ""] [join "Link to CAx-IF Recommended Practices"]
 
       [$worksheet($spmiCoverageWS) Range "A1"] Select
       $cells($spmiCoverageWS) Item 1 1 [file tail $localName]
@@ -721,7 +734,7 @@ proc gpmiCoverageFormat {{sum ""} {multi 1}} {
       
       $cells1($gpmiCoverageWS) Item [expr {$gpmiRows+2}] 1 "Presentation Names defined in $rp"
       set anchor [$worksheet1($gpmiCoverageWS) Range [cellRange [expr {$gpmiRows+2}] 1]]
-      [$worksheet1($gpmiCoverageWS) Hyperlinks] Add $anchor [join "https://www.cax-if.org/joint_testing_info.html#recpracs"] [join ""] [join "Link to CAx-IF Recommended Practices"]
+      [$worksheet1($gpmiCoverageWS) Hyperlinks] Add $anchor [join "https://www.cax-if.org/cax/cax_recommPractice.php"] [join ""] [join "Link to CAx-IF Recommended Practices"]
   
       [$worksheet1($gpmiCoverageWS) Rows] AutoFit
       [$worksheet1($gpmiCoverageWS) Range "B4"] Select
@@ -741,7 +754,7 @@ proc gpmiCoverageFormat {{sum ""} {multi 1}} {
       set range [$worksheet($gpmiCoverageWS) Range E1:O1]
       $range MergeCells [expr 1]
       set anchor [$worksheet($gpmiCoverageWS) Range E1]
-      [$worksheet($gpmiCoverageWS) Hyperlinks] Add $anchor [join "https://www.cax-if.org/joint_testing_info.html#recpracs"] [join ""] [join "Link to CAx-IF Recommended Practices"]
+      [$worksheet($gpmiCoverageWS) Hyperlinks] Add $anchor [join "https://www.cax-if.org/cax/cax_recommPractice.php"] [join ""] [join "Link to CAx-IF Recommended Practices"]
       
       [$worksheet($gpmiCoverageWS) Range "A1"] Select
       $cells($gpmiCoverageWS) Item 1 1 [file tail $localName]

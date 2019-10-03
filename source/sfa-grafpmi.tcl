@@ -512,7 +512,7 @@ proc gpmiAnnotationReport {objEntity} {
                     append cellval([$val Type]) "[$val P21ID] "
                     incr nval
                     if {[string first "tessellated_geometric_set" $ent1] != -1 && [$val Type] != "tessellated_curve_set" && [$val Type] != "complex_triangulated_surface_set"} {
-                      set msg "Syntax Error: Invalid '[$val Type]' attribute for tessellated_geometric_set.children\n[string repeat " " 14]\($recPracNames(pmi242), Sec. 8.2)"
+                      set msg "Syntax Error: Bad '[$val Type]' attribute for tessellated_geometric_set.children\n[string repeat " " 14]\($recPracNames(pmi242), Sec. 8.2)"
                       errorMsg $msg
                       lappend syntaxErr($objType) [list $objID children $msg]
                     }
@@ -527,7 +527,7 @@ proc gpmiAnnotationReport {objEntity} {
                   foreach val [$objAttribute Value] {
                     append cellval([$val Type]) "[$val P21ID] "
                     if {$ent1 == "geometric_curve_set items" && [$val Type] != "polyline" && [$val Type] != "trimmed_curve" && [$val Type] != "circle"} {
-                      set msg "Syntax Error: Invalid '[$val Type]' attribute for geometric_curve_set.items\n[string repeat " " 14]"
+                      set msg "Syntax Error: Bad '[$val Type]' attribute for geometric_curve_set.items\n[string repeat " " 14]"
                       if {$stepAP == "AP242"} {
                         append msg "($recPracNames(pmi242), Sec. 8.1.1, 8.1.2)"
                       } else {
@@ -843,7 +843,6 @@ proc gpmiAnnotationReport {objEntity} {
                     if {$ov == "" || [lsearch $gpmiTypes $ov] == -1} {
                       if {$ov == ""} {
                         set msg "Missing 'name' attribute on [formatComplexEnt [lindex $ent1 0]]"
-                        set ov "(blank)"
                       } else {
                         set msg "The 'name' attribute on [formatComplexEnt [lindex $ent1 0]] is not a recommended name for presented PMI type"
                       }
@@ -1008,7 +1007,7 @@ proc gpmiAnnotationReport {objEntity} {
             if {[string first "handle" $dmiaDef] != -1} {
               set dmiaDefType [$dmiaDef Type]
               if {[string first "draughting_model" $dmiaDefType] == -1} {
-                set msg "Syntax Error: Invalid 'used_representation' attribute ($dmiaDefType) on draughting_model_item_association.\n[string repeat " " 14]\($recPracNames(pmi242), Sec. 7.3)"
+                set msg "Syntax Error: Bad 'used_representation' attribute ($dmiaDefType) on draughting_model_item_association.\n[string repeat " " 14]\($recPracNames(pmi242), Sec. 7.3)"
                 errorMsg $msg
                 lappend syntaxErr([$objGuiEntity Type]) [list [$objGuiEntity P21ID] "used_representation" $msg]
               }

@@ -480,7 +480,7 @@ proc unzipFile {} {
 
 #-------------------------------------------------------------------------------
 proc saveState {{ok 1}} {
-  global buttons dispCmd dispCmds excelVersion fileDir fileDir1 filesProcessed lastX3DOM lastXLS lastXLS1 mydocs openFileList
+  global buttons dispCmd dispCmds fileDir fileDir1 filesProcessed lastX3DOM lastXLS lastXLS1 mydocs openFileList
   global opt optionsFile sfaVersion statusFont upgrade upgradeIFCsvr userEntityFile userWriteDir userXLSFile
 
 # ok = 0 only after installing IFCsvr from the command-line version  
@@ -491,7 +491,7 @@ proc saveState {{ok 1}} {
     set fileOptions [open $optionsFile w]
     puts $fileOptions "# Options file for the NIST STEP File Analyzer and Viewer v[getVersion] ([string trim [clock format [clock seconds]]])\n#\n# DO NOT EDIT OR DELETE FROM USER HOME DIRECTORY $mydocs\n# DOING SO WILL CORRUPT THE CURRENT SETTINGS OR CAUSE ERRORS IN THE SOFTWARE\n#"
     set varlist [list fileDir fileDir1 userWriteDir userEntityFile openFileList dispCmd dispCmds lastXLS lastXLS1 lastX3DOM \
-                      userXLSFile statusFont upgrade upgradeIFCsvr sfaVersion excelVersion filesProcessed]
+                      userXLSFile statusFont upgrade upgradeIFCsvr sfaVersion filesProcessed]
 
     foreach var $varlist {
       if {[info exists $var]} {
@@ -851,7 +851,7 @@ proc checkForExcel {{multFile 0}} {
   if {[llength $pid1] > 0 && $opt(XLSCSV) != "None"} {
     if {[info exists buttons]} {
       if {!$multFile} {
-        set msg "There are at least ([llength $pid1]) Excel spreadsheets already opened.\n\nDo you want to close the open spreadsheets?"
+        set msg "There are at least ([llength $pid1]) Excel spreadsheets already opened.\n\nDo you want to close the spreadsheets?"
         set dflt yes
         if {[info exists lastXLS] && [info exists localName]} {
           if {[llength $pid1] == 1} {if {[string first [file nativename [file rootname $localName]] [file nativename $lastXLS]] != 0} {set dflt no}}
@@ -1004,6 +1004,7 @@ proc colorBadCells {ent} {
   set rmax [expr {$count($ent)+3}]
   set okcomment 0
   
+  outputMsg " [formatComplexEnt $ent]" red
   set syntaxErr($ent) [lsort -integer -index 0 [lrmdups $syntaxErr($ent)]]
   foreach err $syntaxErr($ent) {
     #outputMsg "$ent $err" red
@@ -1291,14 +1292,15 @@ proc installIFCsvr {{reinstall 0}} {
     errorMsg "The IFCsvr toolkit must be installed to read and process STEP files (User Guide section 2.2.1)."
     outputMsg "- You might need administrator privileges (Run as administrator) to install the toolkit.
   Antivirus software might respond that there is a security issue with the toolkit.  The
-  toolkit is safe to install.  Use the default installation folder for the toolkit.
-- To reinstall the toolkit, run the installation file ifcsvrr300_setup_1008_en-update.msi
+  toolkit is safe to install."
+    outputMsg "- You must use the default installation folder for the toolkit." red
+    outputMsg "- To reinstall the toolkit, run the installation file ifcsvrr300_setup_1008_en-update.msi
   in $mytemp  or your home directory or the current directory.
 - If there are problems with this procedure, contact [lindex $contact 0] ([lindex $contact 1])."
 
     if {[file exists $ifcsvrInst] && [info exists buttons]} {
       set msg "The IFCsvr toolkit must be installed to read and process STEP files (User Guide section 2.2.1).  After clicking OK the IFCsvr toolkit installation will start."
-      append msg "\n\nYou might need administrator privileges (Run as administrator) to install the toolkit.  Antivirus software might respond that there is a security issue with the toolkit.  The toolkit is safe to install.  Use the default installation folder for the toolkit."
+      append msg "\n\nYou might need administrator privileges (Run as administrator) to install the toolkit.  Antivirus software might respond that there is a security issue with the toolkit.  The toolkit is safe to install.\n\nYou must use the default installation folder for the toolkit."
       append msg "\n\nIf there are problems with this procedure, contact [lindex $contact 0] ([lindex $contact 1])."
       set choice [tk_messageBox -type ok -message $msg -icon info -title "Install IFCsvr"]
       outputMsg "\nWait for the installation to finish before processing a STEP file." red

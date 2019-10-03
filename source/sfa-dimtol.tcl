@@ -487,7 +487,7 @@ proc spmiDimtolReport {objEntity} {
                   "angular_size* angle_selection" {
 # check angle selection values
                     if {$ov != "equal" && $ov != "large" && $ov != "small"} {
-                      set msg "Syntax Error: Invalid 'angle_selection' attribute ($ov) on [formatComplexEnt [lindex $ent1 0]].\n[string repeat " " 14]\($recPracNames(pmi242), Sec. 5.1.2, 5.1.6)"
+                      set msg "Syntax Error: Bad 'angle_selection' attribute ($ov) on [formatComplexEnt [lindex $ent1 0]].\n[string repeat " " 14]\($recPracNames(pmi242), Sec. 5.1.2, 5.1.6)"
                       errorMsg $msg
                       lappend syntaxErr([lindex [split $ent1 " "] 0]) [list $objID [lindex [split $ent1 " "] 1] $msg]
                     }
@@ -557,19 +557,11 @@ proc spmiDimtolReport {objEntity} {
                     }
 
 # syntax check for correct dimensional_size.name attribute (dimSizeNames) from the RP
-                    if {$okname} {
-                      if {$ov == ""} {
-                        set ov "(blank)"
-                        set msg "Syntax Error: Missing 'name' attribute on [formatComplexEnt [lindex $ent1 0]].\n[string repeat " " 14]\($recPracNames(pmi242), Sec. 5.1.5, Table 4)"
-                        errorMsg $msg
-                        lappend syntaxErr([lindex [split $ent1 " "] 0]) [list $objID [lindex [split $ent1 " "] 1] $msg]
-                        set invalid $msg
-                      } elseif {[lsearch $dimSizeNames $ov] == -1} {
-                        set msg "Syntax Error: Invalid 'name' attribute ($ov) on [formatComplexEnt [lindex $ent1 0]].\n[string repeat " " 14]\($recPracNames(pmi242), Sec. 5.1.5, Table 4)"
-                        errorMsg $msg
-                        lappend syntaxErr([lindex [split $ent1 " "] 0]) [list $objID [lindex [split $ent1 " "] 1] $msg]
-                        set invalid $msg
-                      }
+                    if {$okname && ($ov == "" || [lsearch $dimSizeNames $ov] == -1)} {
+                      set msg "Syntax Error: Bad 'name' attribute on [formatComplexEnt [lindex $ent1 0]].\n[string repeat " " 14]\($recPracNames(pmi242), Sec. 5.1.5, Table 4)"
+                      errorMsg $msg
+                      lappend syntaxErr([lindex [split $ent1 " "] 0]) [list $objID [lindex [split $ent1 " "] 1] $msg]
+                      set invalid $msg
                     }
                   }
                   "*dimensional_location* name" {
@@ -598,14 +590,8 @@ proc spmiDimtolReport {objEntity} {
                     }
 
 # syntax check for correct dimensional_location.name attribute from the RP
-                    if {$ov == ""} {
-                      set ov "(blank)"
-                      set msg "Syntax Error: Missing 'name' attribute on [lindex $ent1 0].\n[string repeat " " 14]\($recPracNames(pmi242), Sec. 5.1.1, Tables 1 and 2)"
-                      errorMsg $msg
-                      set invalid $msg
-                      lappend syntaxErr([lindex [split $ent1 " "] 0]) [list $objID [lindex [split $ent1 " "] 1] $msg]
-                    } elseif {$ov != "curved distance" && [string first "linear distance" $ov] == -1} {
-                      set msg "Syntax Error: Invalid 'name' attribute ($ov) on [lindex $ent1 0].\n[string repeat " " 14]\($recPracNames(pmi242), Sec. 5.1.1, Tables 1 and 2)"
+                    if {$ov == "" || ($ov != "curved distance" && [string first "linear distance" $ov] == -1)} {
+                      set msg "Syntax Error: Bad 'name' attribute on [lindex $ent1 0].\n[string repeat " " 14]\($recPracNames(pmi242), Sec. 5.1.1, Tables 1 and 2)"
                       errorMsg $msg
                       lappend syntaxErr([lindex [split $ent1 " "] 0]) [list $objID [lindex [split $ent1 " "] 1] $msg]
                       set invalid $msg
@@ -624,7 +610,7 @@ proc spmiDimtolReport {objEntity} {
                         append savedModifier $pmiModifiers($ov1)
                         lappend spmiTypesPerFile $ov1
                       } else {
-                        set msg "Syntax Error: Invalid 'name' attribute ($ov) on [lindex $ent1 0].\n[string repeat " " 14]\($recPracNames(pmi242), Sec. 5.2.1, Table 5)"
+                        set msg "Syntax Error: Bad 'name' attribute on [lindex $ent1 0].\n[string repeat " " 14]\($recPracNames(pmi242), Sec. 5.2.1, Table 5)"
                         errorMsg $msg
                         lappend syntaxErr([lindex [split $ent1 " "] 0]) [list $objID [lindex [split $ent1 " "] 1] $msg]
                         set invalid $msg
@@ -644,13 +630,8 @@ proc spmiDimtolReport {objEntity} {
                     set ok 1
                     set col($dt) [expr {$pmiStartCol($dt)+6}]
                     set colName "modifier type 1[format "%c" 10](Sec. 5.3)"
-                    if {$ov == ""} {
-                      set msg "Syntax Error: Missing 'name' attribute on [lindex $ent1 0] must be 'dimensional note'.\n[string repeat " " 14]\($recPracNames(pmi242), Sec. 5.3)"
-                      errorMsg $msg
-                      set invalid $msg
-                      lappend syntaxErr([lindex [split $ent1 " "] 0]) [list $objID [lindex [split $ent1 " "] 1] $msg]
-                    } elseif {$ov != "dimensional note"} {
-                      set msg "Syntax Error: Invalid 'name' attribute ($ov) on [lindex $ent1 0] must be 'dimensional note'.\n[string repeat " " 14]\($recPracNames(pmi242), Sec. 5.3)"
+                    if {$ov == "" || $ov != "dimensional note"} {
+                      set msg "Syntax Error: Bad 'name' attribute on [lindex $ent1 0], must be 'dimensional note'.\n[string repeat " " 14]\($recPracNames(pmi242), Sec. 5.3)"
                       errorMsg $msg
                       set invalid $msg
                       lappend syntaxErr([lindex [split $ent1 " "] 0]) [list $objID [lindex [split $ent1 " "] 1] $msg]
@@ -675,7 +656,7 @@ proc spmiDimtolReport {objEntity} {
                         set dimReference 1
                         lappend spmiTypesPerFile "reference dimension"
                       } else {
-                        set msg "Syntax Error: Invalid 'description' attribute ($ov) on [lindex $ent1 0] must be 'theoretical' or 'auxiliary'.\n[string repeat " " 14]\($recPracNames(pmi242), Sec. 5.3, Table 7)"
+                        set msg "Syntax Error: Bad 'description' attribute ($ov) on [lindex $ent1 0], must be 'theoretical' or 'auxiliary'.\n[string repeat " " 14]\($recPracNames(pmi242), Sec. 5.3, Table 7)"
                         errorMsg $msg
                         set invalid $msg
                         lappend syntaxErr([lindex [split $ent1 " "] 0]) [list $objID [lindex [split $ent1 " "] 1] $msg]
@@ -705,7 +686,7 @@ proc spmiDimtolReport {objEntity} {
 # bad dimension modifier
                       } else {
                         append dimrep($dimrepID) " ($ov)"
-                        set msg "Syntax Error: Invalid 'description' attribute ($ov) on [lindex $ent1 0].\n[string repeat " " 14]\($recPracNames(pmi242), Sec. 5.3, Table 8)"
+                        set msg "Syntax Error: Bad 'description' attribute ($ov) on [lindex $ent1 0].\n[string repeat " " 14]\($recPracNames(pmi242), Sec. 5.3, Table 8)"
                         errorMsg $msg
                         set invalid $msg
                         lappend syntaxErr([lindex [split $ent1 " "] 0]) [list $objID [lindex [split $ent1 " "] 1] $msg]
@@ -717,13 +698,8 @@ proc spmiDimtolReport {objEntity} {
                     set ok 1
                     set col($dt) [expr {$pmiStartCol($dt)+8}]
                     set colName "type qualifier[format "%c" 10](Sec. 5.2.2)"
-                    if {$ov == ""} {
-                      set msg "Syntax Error: Missing 'name' attribute on [lindex $ent1 0].\n[string repeat " " 14]\($recPracNames(pmi242), Sec. 5.2.2, Table 6)"
-                      errorMsg $msg
-                      lappend syntaxErr([lindex [split $ent1 " "] 0]) [list $objID [lindex [split $ent1 " "] 1] $msg]
-                      set invalid $msg
-                    } elseif {$ov != "maximum" && $ov != "minimum" && $ov != "average"} {
-                      set msg "Syntax Error: Invalid 'name' attribute ($ov) on [lindex $ent1 0].\n[string repeat " " 14]\($recPracNames(pmi242), Sec. 5.2.2, Table 6)"
+                    if {$ov == "" || ($ov != "maximum" && $ov != "minimum" && $ov != "average")} {
+                      set msg "Syntax Error: Bad 'name' attribute on [lindex $ent1 0].\n[string repeat " " 14]\($recPracNames(pmi242), Sec. 5.2.2, Table 6)"
                       errorMsg $msg
                       lappend syntaxErr([lindex [split $ent1 " "] 0]) [list $objID [lindex [split $ent1 " "] 1] $msg]
                       set invalid $msg
@@ -1006,7 +982,7 @@ proc spmiDimtolReport {objEntity} {
 
 # check for invalid use of qualified_rep_item
                     if {[string first "qualified" [[$subAttr Value] Type]] != -1} {
-                      set msg "Syntax Error: Invalid use of 'qualified_representation_item' on 'tolerance_value'.  Use 'measure_qualification'.\n[string repeat " " 14]\($recPracNames(pmi242), Sec. 5.2.3)"
+                      set msg "Syntax Error: Bad use of 'qualified_representation_item' on 'tolerance_value'.  Use 'measure_qualification'.\n[string repeat " " 14]\($recPracNames(pmi242), Sec. 5.2.3)"
                       errorMsg $msg
                       lappend syntaxErr(tolerance_value) [list [$subEntity P21ID] [$subAttr Name] $msg]
                     }
@@ -1476,7 +1452,7 @@ proc valueQualifier {ent2 dimval {type "length/angle"} {equal "equal"}} {
 
 # bad NR2 value
     } else {
-      set msg "Syntax Error: Invalid value_format_type_qualifier ([$attr1 Value])\n[string repeat " " 14]\($recPracNames(pmi242), Sec. 5.4)"
+      set msg "Syntax Error: Bad value_format_type_qualifier ([$attr1 Value])\n[string repeat " " 14]\($recPracNames(pmi242), Sec. 5.4)"
       errorMsg $msg
       lappend syntaxErr([$ent2 Type]) [list [$ent2 P21ID] "format_type" $msg]
       lappend syntaxErr(dimensional_characteristic_representation) [list "-$spmiIDRow($dt,$spmiID)" "$type qualifier" $msg]

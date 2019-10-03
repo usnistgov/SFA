@@ -25,7 +25,7 @@ proc valPropStart {} {
 # includes tessellated pmi and semantic pmi valprops, section 10
   set valPropNames(pmi_validation_property) [list \
     [list "" [list "affected area" "affected curve length" "datum references" "equivalent unicode string" "font name" \
-      "number of annotations" "number of composite tolerances" "number of datum features" "number of datum references" \
+      "number of annotations" "number of composite tolerances" "number of datums" "number of datum features" "number of datum references" \
       "number of datum targets" "number of dimensional locations" "number of dimensional sizes" "number of facets" \
       "number of geometric tolerances" "number of PMI presentation elements" "number of segments" "number of semantic pmi elements" \
       "number of views" "polyline centre point" "polyline curve length" "tessellated curve centre point" \
@@ -35,8 +35,8 @@ proc valPropStart {} {
 
 # CAx-IF RP User Defined Attributes, section 8
   set valPropNames(attribute_validation_property) [list \
-    [list "" [list "boolean user attributes" "edge user attributes" "face user attributes" "group user attributes" \
-      "instance user attributes" "integer user attributes" "measure value user attributes" "part user attributes" \
+    [list "" [list "boolean user attributes" "edge user attributes" "face user attributes" "geometric set user attributes" "group user attributes" \
+      "instance user attributes" "integer user attributes" "measure value user attributes" "part user attributes" "pmi user attributes" \
       "real user attributes" "solid user attributes" "text user attributes" "user attribute groups" "vertex user attributes"]]]
 
 # tessellated geometry recommended practice
@@ -57,6 +57,23 @@ proc valPropStart {} {
       "notational centroid" "number of ply pieces per ply" \
       "number of tables" "number of sequences" "number of plies" "number of materials" "number of orientations" \
       "sum of all ply surfaces areas" "centre point of all plies" "number of cores"]]]
+ 
+# new composite validation properties
+#"boundary length" "bounded area" "centroid for all the ply shapes in the part" "centroids for all the ply shapes in each laminate table" 
+#"curve centroid for rosette type guide by a curve" "curve length for rosette type guide by a curve" 
+#"geometric boundary (inner + outer) curve centroid (for implicit plies)" "geometric boundary (inner + outer) curve length (for implicit plies)" 
+#"geometric centroid" "geometric centroid (for cores and explicit plies)" "geometric surface area (for cores and explicit plies)" 
+#"geometric volume (for cores and explicit plies)" "notional rosette centroid (association ply/rosette)" "number of composite materials for each laminate table" 
+#"number of composite materials in the part" "number of composite sequences for each laminate table" "number of composite sequences in the part" 
+#"number of cores for each laminate table" "number of cores in the part" "number of laminates tables in the part" "number of orientations for each laminate table" 
+#"number of orientations in the part" "number of plies" "number of plies for each laminate table" "number of plies in each sequence" "number of plies in the part" 
+#"number of plies using the rosette" "number of ply pieces per ply" "number of rosette used in the part" 
+#"ordered (alphanumeric ascending) list of orientation names used in each laminate table" "ordered (alphanumeric ascending) list of orientation names used in part" 
+#"ordered (numerically ascending) list of orientation values used in each laminate table" "ordered (numerically ascending) list of orientation values used in part" 
+#"ordered sequences name for each laminate table" "sum of area (for exact implicit ply representation) in the part" 
+#"sum of area (for exact implicit ply representation) of each laminate table" "sum of ply area by material" "sum of ply surface areas for each laminate table" 
+#"sum of ply volume by material" "sum of the geometric boundary length of the plies using the rosette" 
+#"sum of volume (for core and explicit plies) of each laminate table" "sum of volume explicit plies in the part" "sum of volume for core in the part"
 
 # FEA validation properties
   set valPropNames(FEA_validation_property) [list \
@@ -70,13 +87,11 @@ proc valPropStart {} {
     [list "3D elements centroid" [list "3D elements centre point"]] \
     [list "2D elements centroid" [list "2D elements centre point"]] \
     [list "1D elements centroid" [list "1D elements centre point"]] \
-    [list "volumetric model mass" [list "volumetric model mass measure"]] \
-    [list "concentrated masses" [list "concentrated masses measure"]] \
-    [list "non-structural masses" [list "non-structural masses measure"]] \
+    [list "total model mass" [list "total model mass measure"]] \
     [list "centre of gravity" [list "centre of gravity"]] \
     [list "number of load cases" [list "number of load cases"]] \
     [list "number of fixed DOF" [list "number of fixed DOF"]] \
-    [list "FEA model resultant force of applied loads" [list "Fx resultant force measure" "Fy resultant force measure" "Fz resultant force measure"]] \
+    [list "FEA model resultant force of applied forces" [list "Fx resultant force measure" "Fy resultant force measure" "Fz resultant force measure"]] \
     [list "FEA model resultant moment of applied moments" [list "Mxx resultant moment of moments measure" "Myy resultant moment of moments measure" "Mzz resultant moment of moments measure"]] \
     [list "FEA model resultant moment of applied forces" [list "reference point for resultant moment of forces" "Mxx resultant moment of forces measure" "Myy resultant moment of forces measure" "Mzz resultant moment of forces measure"]] \
     [list "max nodal displacement" [list "max nodal displacement measure"]] \
@@ -178,491 +193,226 @@ proc valPropReport {objEntity} {
   global cells col entLevel ent entAttrList maxrep ncartpt nrep opt pd pdcol pdheading pmivalprop pointLimit prefix propDefID
   global propDefIDRow propDefName propDefOK propDefRow recPracNames repName stepAP syntaxErr valName valPropLink valPropNames
 
+  if {$opt(DEBUG1)} {outputMsg "valPropReport" red}
   if {[info exists propDefOK]} {if {$propDefOK == 0} {return}}
+  set lf "\n[string repeat " " 14]"
 
   incr entLevel
   set ind [string repeat " " [expr {4*($entLevel-1)}]]
 
   if {[string first "handle" $objEntity] != -1} {
-    set objType [$objEntity Type]
-    set objID   [$objEntity P21ID]
-    set ent($entLevel) [$objEntity Type]
-    set objAttributes [$objEntity Attributes]
+    if {[catch {
+      set objType [$objEntity Type]
+      set objID   [$objEntity P21ID]
+      set ent($entLevel) [$objEntity Type]
+      set objAttributes [$objEntity Attributes]
 
-    if {$opt(DEBUG1)} {outputMsg "$ind ENT $entLevel #$objID=$objType (ATR=[$objAttributes Count])" blue}
+      if {$opt(DEBUG1)} {outputMsg "$ind ENT $entLevel #$objID=$objType (ATR=[$objAttributes Count])" blue}
 
 # limit sampling points to pointLimit (2)
-    if {[info exists repName]} {
-      if {$objType == "cartesian_point" && [string first "sampling points" $repName] != -1} {
-        incr ncartpt
-        if {$ncartpt > $pointLimit} {
-          errorMsg " Only the first $pointLimit sampling points are reported" red
-          incr entLevel -1
-          return
+      if {[info exists repName]} {
+        if {$objType == "cartesian_point" && [string first "sampling points" $repName] != -1} {
+          incr ncartpt
+          if {$ncartpt > $pointLimit} {
+            errorMsg " Only the first $pointLimit sampling points are reported" red
+            incr entLevel -1
+            return
+          }
         }
       }
-    }
 
-    if {$objType == "property_definition"} {
-      set propDefID $objID
-      if {![info exists propDefIDRow($propDefID)]} {
-        incr entLevel -1
-        set propDefOK 0
-        return
-      } else {
-        set propDefOK 1
+      if {$objType == "property_definition"} {
+        set propDefID $objID
+        if {![info exists propDefIDRow($propDefID)]} {
+          incr entLevel -1
+          set propDefOK 0
+          return
+        } else {
+          set propDefOK 1
+        }
       }
-    }
 
-    if {$entLevel == 1} {set pmivalprop 0}
+      if {$entLevel == 1} {set pmivalprop 0}
 
-    ::tcom::foreach objAttribute $objAttributes {
-      set objName  [$objAttribute Name]
-      set objValue [$objAttribute Value]
-      set objNodeType [$objAttribute NodeType]
-      set objSize [$objAttribute Size]
-      set objAttrType [$objAttribute Type]
+      ::tcom::foreach objAttribute $objAttributes {
+        set objName  [$objAttribute Name]
+        set objValue [$objAttribute Value]
+        set objNodeType [$objAttribute NodeType]
+        set objSize [$objAttribute Size]
+        set objAttrType [$objAttribute Type]
 
-      set ent1 "$ent($entLevel) $objName"
-      set ent2 "$ent($entLevel).$objName"
-      set idx [lsearch $entAttrList $ent1]
-      set invalid ""
+        set ent1 "$ent($entLevel) $objName"
+        set ent2 "$ent($entLevel).$objName"
+        set idx [lsearch $entAttrList $ent1]
+        set invalid ""
 
 # -----------------
 # nodeType = 18,19
-      if {$objNodeType == 18 || $objNodeType == 19} {
-        if {$idx != -1} {
-          if {$opt(DEBUG1)} {outputMsg "$ind   ATR $entLevel $objName - $objValue ($objNodeType, $objSize, $objAttrType)"}
+        if {$objNodeType == 18 || $objNodeType == 19} {
+          if {$idx != -1} {
+            if {$opt(DEBUG1)} {outputMsg "$ind   ATR $entLevel $objName - $objValue ($objNodeType, $objSize, $objAttrType)"}
 
-          set nounits 0
-          if {[string length $objValue] == 0 && $objName == "unit_component" && \
-              ([string first "volume" $valName] == -1 || [string first "area" $valName] == -1 || [string first "length" $valName] == -1)} {
-            set msg "Syntax Error: Missing or invalid '$objName' attribute on $ent($entLevel).\n[string repeat " " 14]No units assigned to '$valName' values. ($recPracNames(valprop))"
-            errorMsg $msg
-            lappend syntaxErr($ent($entLevel)) [list $objID unit_component $msg]
-            lappend syntaxErr(property_definition) [list $propDefIDRow($propDefID) 9 $msg]
-            set nounits 1
-          }
-
-          if {[info exists cells($pd)]} {
-            set ok 0
-
-# get values for these entity and attribute pairs
-            switch -glob $ent1 {
-              "*measure_representation_item* value_component" {
-                set ok 1
-                set col($pd) 9
+# missing units          
+            set nounits 0
+            if {$objName == "unit_component"} {
+              if {[string length $objValue] == 0 && \
+                  ([string first "volume" $valName] == -1 || [string first "area" $valName] == -1 || [string first "length" $valName] == -1)} {
+                set msg "Syntax Error: Missing 'unit_component' attribute on $ent($entLevel).  No units assigned to validation property values."
+                if {$propDefName == "geometric_validation_property"} {append msg "$lf\($recPracNames(valprop))"}
+                errorMsg $msg
+                lappend syntaxErr($ent($entLevel)) [list $objID unit_component $msg]
+                lappend syntaxErr(property_definition) [list $propDefIDRow($propDefID) 9 $msg]
+                set nounits 1
               }
 
-              "*measure_representation_item* unit_component" {
+# wrong units
+              catch {
+                if {[string first "length" [$objValue Type]] != -1 && \
+                   ([string first "force" $valName] != -1 || [string first "moment" $valName] != -1 || [string first "mass" $valName] != -1)} {
+                  set msg "Syntax Error: Wrong units for the validation property value."
+                  errorMsg $msg
+                  lappend syntaxErr($ent($entLevel)) [list $objID unit_component $msg]
+                  lappend syntaxErr(property_definition) [list $propDefIDRow($propDefID) 11 $msg]
+                }
+              }
+            }
+
+            if {[info exists cells($pd)]} {
+              set ok 0
+
+# get values for these entity and attribute pairs
+              switch -glob $ent1 {
+                "*measure_representation_item* value_component" {
+                  set ok 1
+                  set col($pd) 9
+                }
+
+                "*measure_representation_item* unit_component" {
 # check for exponent (derived_unit) for area and volume
-                if {!$nounits} {
-                  foreach mtype [list area volume] {
-                    if {[string first $mtype $valName] != -1} {
-                      set munit $mtype
-                      append munit "_unit"
-                      set typ [$objValue Type]
-                      if {$typ != "derived_unit" && $typ != $munit} {
-                        set msg "Syntax Error: Missing units exponent for a '$mtype' validation property.  '$ent2' must refer to '$munit' or 'derived_unit'."
-                        errorMsg $msg
-                        set vpcol 11
-                        catch {if {[[$cells($pd) Item 3 13] Value] != ""} {set vpcol 13}}
-                        lappend syntaxErr(property_definition) [list $propDefIDRow($propDefID) $vpcol $msg]
+                  if {!$nounits} {
+                    foreach mtype [list area volume] {
+                      if {[string first $mtype $valName] != -1} {
+                        set munit $mtype
+                        append munit "_unit"
+                        set typ [$objValue Type]
+                        if {$typ != "derived_unit" && $typ != $munit} {
+                          set msg "Syntax Error: Missing units exponent for a '$mtype' validation property.  '$ent2' must refer to '$munit' or 'derived_unit'."
+                          errorMsg $msg
+                          set vpcol 11
+                          catch {if {[[$cells($pd) Item 3 13] Value] != ""} {set vpcol 13}}
+                          lappend syntaxErr(property_definition) [list $propDefIDRow($propDefID) $vpcol $msg]
+                        }
                       }
                     }
                   }
                 }
-              }
 
-              "value_representation_item value_component" -
-              "descriptive_representation_item description" {set ok 1; set col($pd) 9}
+                "value_representation_item value_component" -
+                "descriptive_representation_item description" {set ok 1; set col($pd) 9}
 
-              "property_definition definition" {
-                if {[string first "validation_property" $propDefName] != -1} {
-                  if {[string length $objValue] == 0} {
-                    set msg "Syntax Error: Missing 'definition' attribute on property_definition.\n[string repeat " " 14]\($recPracNames(valprop), Sec. 4)"
-                    errorMsg $msg
-                    lappend syntaxErr(property_definition) [list $propDefIDRow($propDefID) 4 $msg]
+                "property_definition definition" {
+                  if {[string first "validation_property" $propDefName] != -1} {
+                    if {[string length $objValue] == 0} {
+                      set msg "Syntax Error: Missing property_definition 'definition' attribute."
+                      if {$propDefName == "geometric_validation_property"} {append msg "\n[string repeat " " 14]\($recPracNames(valprop), Sec. 4)"}
+                      errorMsg $msg
+                      lappend syntaxErr(property_definition) [list $propDefIDRow($propDefID) 4 $msg]
+                    }
                   }
                 }
               }
-            }
-            set colName "value"
+              set colName "value"
 
-            if {$ok && [info exists propDefID]} {
-              set c [string index [cellRange 1 $col($pd)] 0]
-              set r $propDefIDRow($propDefID)
+              if {$ok && [info exists propDefID]} {
+                set c [string index [cellRange 1 $col($pd)] 0]
+                set r $propDefIDRow($propDefID)
 
 # colName
-              if {![info exists pdheading($col($pd))]} {
-                $cells($pd) Item 3 $c $colName
-                $cells($pd) Item 3 [string index [cellRange 1 [expr {$col($pd)+1}]] 0] "attribute"
-                set pdheading($col($pd)) 1
-              }
+                if {![info exists pdheading($col($pd))]} {
+                  $cells($pd) Item 3 $c $colName
+                  $cells($pd) Item 3 [string index [cellRange 1 [expr {$col($pd)+1}]] 0] "attribute"
+                  set pdheading($col($pd)) 1
+                }
 
 # keep track of rows with validation properties
-              if {[lsearch $propDefRow $r] == -1 && [string first "validation_property" $propDefName] != -1} {lappend propDefRow $r}
+                if {[lsearch $propDefRow $r] == -1 && [string first "validation_property" $propDefName] != -1} {lappend propDefRow $r}
 
 # value in spreadsheet
-              set val [[$cells($pd) Item $r $c] Value]
-              if {$val == ""} {
-                $cells($pd) Item $r $c $objValue
-              } else {
-                $cells($pd) Item $r $c "$val[format "%c" 10]$objValue"
-              }
-
-# entity reference in spreadsheet
-              incr col($pd)
-              set c [string index [cellRange 1 $col($pd)] 0]
-              set val [[$cells($pd) Item $r $c] Value]
-              if {$val == ""} {
-                $cells($pd) Item $r $c "#$objID $ent2"
-              } else {
-                $cells($pd) Item $r $c "$val[format "%c" 10]#$objID $ent2"
-              }
-
-# keep track of max column
-              set pdcol [expr {max($col($pd),$pdcol)}]
-            }
-          }
-
-# if referred to another, get the entity
-          if {[string first "handle" $objEntity] != -1} {valPropReport $objValue}
-        }
-
-# --------------
-# nodeType = 20
-      } elseif {$objNodeType == 20} {
-        if {$idx != -1} {
-          if {$opt(DEBUG1)} {outputMsg "$ind   ATR $entLevel $objName - $objValue ($objNodeType, $objSize, $objAttrType)"}
-
-          if {[info exists cells($pd)]} {
-            set ok 0
-
-# get values for these entity and attribute pairs
-# nrep keeps track of multiple representation items
-            switch -glob $ent1 {
-              "cartesian_point coordinates" -
-              "direction direction_ratios"  {set ok 1; set col($pd) 9; set colName "value"}
-
-              "representation items" -
-              "shape_representation_with_parameters items" {set nrep 0; set maxrep $objSize}
-            }
-
-# value in spreadsheet
-            if {$ok && [info exists propDefID]} {
-              set c [string index [cellRange 1 $col($pd)] 0]
-              set r $propDefIDRow($propDefID)
-
-# colName
-              if {![info exists pdheading($col($pd))]} {
-                $cells($pd) Item 3 $c $colName
-                $cells($pd) Item 3 [string index [cellRange 1 [expr {$col($pd)+1}]] 0] "attribute"
-                set pdheading($col($pd)) 1
-              }
-
-# keep track of rows with validation properties
-              if {[lsearch $propDefRow $r] == -1 && [string first "validation_property" $propDefName] != -1} {lappend propDefRow $r}
-
-              set ov $objValue
-              if {$ent1 == "cartesian_point coordinates" || $ent1 == "direction direction_ratios"} {
-                regsub -all " " $ov "    " ov
-              }
-
-              set val [[$cells($pd) Item $r $c] Value]
-              if {$val == ""} {
-                $cells($pd) Item $r $c $ov
-              } else {
-                if {[catch {
-                  $cells($pd) Item $r $c "$val[format "%c" 10]$ov"
-                } emsg]} {
-                  errorMsg "  ERROR: Too much data to show in a cell" red
-                }
-              }
-
-# entity reference in spreadsheet (cartesian point or direction)
-              incr col($pd)
-              set c [string index [cellRange 1 $col($pd)] 0]
-              set val [[$cells($pd) Item $r $c] Value]
-              if {$val == ""} {
-                $cells($pd) Item $r $c "#$objID $ent2"
-              } else {
-                $cells($pd) Item $r $c "$val[format "%c" 10]#$objID $ent2"
-              }
-              set pdcol [expr {max($col($pd),$pdcol)}]
-
-# add blank columns for units and exponent, if more than one representation
-              if {[info exists maxrep]} {
-                if {$maxrep > 1} {
-                  for {set i 0} {$i < 4} {incr i} {
-                    incr col($pd)
-                    set c [string index [cellRange 1 $col($pd)] 0]
-                    set val [[$cells($pd) Item $r $c] Value]
-                    if {$val == ""} {
-                      $cells($pd) Item $r $c " "
-                    } else {
-                      $cells($pd) Item $r $c "$val[format "%c" 10] "
-                    }
-                    set pdcol [expr {max($col($pd),$pdcol)}]
-                  }
-                }
-              } else {
-                errorMsg "maxrep does not exist"
-              }
-            }
-          }
-
-# write sampling points
-          if {$objName == "items" && [info exists r]} {
-            set val [[$cells($pd) Item $r 5] Value]
-            if {[string first " sampling points" $val] != -1} {
-              $cells($pd) Item $r 5 "$val ([expr {min($pointLimit,$objSize)}] of $objSize)"
-            }
-          }
-
-# get the entities that are referred to, but only up to pointLimit cartesian points for sampling points
-          if {$ncartpt < $pointLimit} {
-            if {[catch {
-              ::tcom::foreach val1 $objValue {valPropReport $val1}
-            } emsg]} {
-              foreach val2 $objValue {valPropReport $val2}
-            }
-          }
-        }
-
-# ---------------------
-# nodeType != 18,19,20
-      } else {
-        if {$idx != -1} {
-          if {$opt(DEBUG1)} {outputMsg "$ind   ATR $entLevel $objName - $objValue ($objNodeType, $objAttrType)"}
-
-          if {[info exists cells($pd)]} {
-            set ok 0
-            set colName ""
-            set invalid ""
-
-# get values for these entity and attribute pairs
-            switch -glob $ent1 {
-              "*_representation_item the_value" {
-                set ok 1
-                set col($pd) 9
-                set colName "value"
-              }
-
-              "descriptive_representation_item description" {set ok 1; set col($pd) 9; set colName "value"}
-
-              "conversion_based_unit_and_*_unit name" {set ok 1; set col($pd) 11; set colName "units"}
-
-              "*_unit_and_si_unit name" -
-              "si_unit_and_*_unit name" {set ok 1; set col($pd) 11; set colName "units"; set objValue "$prefix$objValue"}
-
-              "derived_unit_element exponent" {set ok 1; set col($pd) 13; set colName "exponent"}
-
-              "*_unit_and_si_unit prefix" -
-              "si_unit_and_*_unit prefix" {set ok 0; set prefix $objValue}
-
-              "property_definition name" {
-                set ok 0
-                set pmivalprop 1
-                regsub -all " " $objValue "_" propDefName
-
-                if {[string first "validation property" $objValue] != -1} {
-                  set okvp 0
-                  set vps [list "geometric" "assembly" "pmi" "tessellated" "attribute" "FEA" "composite"]
-                  foreach vp $vps {if {[string first $vp $objValue] == 0} {set okvp 1}}
-                  if {!$okvp} {
-                    set okvp 0
-                    foreach vp $vps {
-                      if {[string first $vp [string tolower $objValue]] == 0 && $objValue != "FEA validation property"} {
-                        set okvp 1
-                        set emsg "Syntax Error: Use lower case 'property_definition' attribute 'name' ($objValue)."
-                        regsub -all " " [string tolower $objValue] "_" propDefName
-                        errorMsg $emsg
-                        set invalid $emsg
-                        lappend syntaxErr([lindex [split $ent1 " "] 0]) [list $objID [lindex [split $ent1 " "] 1] $emsg]
-                      }
-                    }
-                  }
-                  if {!$okvp} {
-                    set msg "Syntax Error: Unexpected Validation Property '$objValue'"
-                    errorMsg $msg
-                    set invalid $msg
-                    lappend syntaxErr([lindex [split $ent1 " "] 0]) [list $objID [lindex [split $ent1 " "] 1] $msg]
-                  }
-                  set valPropLink 1
-                }
-              }
-
-              "representation name" {
-                set ok 1
-                set col($pd) 5
-                set colName "representation name"
-
-                set repName $objValue
-                if {[string first "sampling points" $repName] != -1} {set ncardpt 0}
-
-                if {[info exists propDefName]} {
-                  if {$entLevel == 2 && [info exists valPropNames($propDefName)]} {
-                    set ok1 0
-
-# look for valid representation.name in valPropNames
-# new RP allows for blank representation.name (repName) except for sampling points
-                    if {[string trim $repName] != ""} {
-                      if {$repName != ""} {
-                        foreach idx $valPropNames($propDefName) {
-                          if {[lindex $idx 0] == $repName || [lindex $idx 0] == ""} {
-                            set ok1 1
-                            break
-                          }
-                        }
-                      }
-                    } else {
-                      set ok1 1
-                    }
-
-                    if {!$ok1} {
-                      set emsg "Syntax Error: Invalid '$ent2' attribute ($repName) for '$propDefName'.\n              "
-                      if {$propDefName == "geometric_validation_property" || $propDefName == "assembly_validation_property"} {
-                        append emsg "($recPracNames(valprop), Sec. 8, Table 1)"
-                      } elseif {$propDefName == "pmi_validation_property"} {
-                        if {$stepAP == "AP242"} {
-                          append emsg "($recPracNames(pmi242), Sec. 10)"
-                        } else {
-                          append emsg "($recPracNames(pmi203), Sec. 6)"
-                        }
-                      } elseif {$propDefName == "tessellated_validation_property"} {
-                        append emsg "($recPracNames(tessgeom), Sec. 8.4)"
-                      } elseif {$propDefName == "attribute_validation_property"} {
-                        append emsg "($recPracNames(uda), Sec. 8)"
-                      } elseif {$propDefName == "composite_validation_property"} {
-                        append emsg "($recPracNames(comp), Sec. 3)"
-                      }
-                      errorMsg $emsg
-                      set invalid $emsg
-                      lappend syntaxErr([lindex [split $ent1 " "] 0]) [list $objID [lindex [split $ent1 " "] 1] $emsg]
-                    }
-                  }
-                }
-              }
-
-              "*_representation_item name"       -
-              "*_representation_item_and_* name" -
-              "cartesian_point name"             -
-              "direction name" {
-                set ok 1
-                set col($pd) 7
-                set colName "value name"
-                set valName $objValue
-                if {[info exists nrep]} {incr nrep}
-
-# new RP allows for blank representation.name (repName) except for sampling points
-                if {[info exists propDefName]} {
-                  if {$entLevel == 3 && [info exists valPropNames($propDefName)]} {
-                    set ok1 0
-                    foreach idx $valPropNames($propDefName) {
-                      if {[lindex $idx 0] == $repName || [lindex $idx 0] == "" || [string trim $repName] == ""} {
-                        foreach item [lindex $idx 1] {
-                          set repItemName $item
-                          if {$objValue == $repItemName} {
-                            set ok1 1
-                            if {$objValue == "sampling point" && [string trim $repName] == ""} {
-                              set emsg "Syntax Error: Invalid blank representation.name for '$objValue'.\n              "
-                              append emsg "($recPracNames(valprop), Sec. 4.11)"
-                              errorMsg $emsg
-                            }
-                            break
-
-# check if wrong case used
-                          } elseif {[string tolower $objValue] == $repItemName} {
-                            set ok1 2
-                            break
-                          }
-                        }
-                      }
-                    }
-
-# do not flag cartesian_point.name errors with entity ids
-                    if {!$ok1 && $ent2 == "cartesian_point.name"} {
-                      if {[string first "\#" $objValue] != -1} {set ok1 1}
-                    }
-
-                    if {$ok1 != 1} {
-                      if {$ok1 == 0} {
-                        set emsg "Syntax Error: Invalid "
-                      } elseif {$ok1 == 2} {
-                        set emsg "Syntax Error: Use lower case for "
-                      }
-                      append emsg "'$ent2' attribute ($objValue) for '$propDefName'.\n              "
-                      if {$propDefName == "geometric_validation_property" || $propDefName == "assembly_validation_property"} {
-                        append emsg "($recPracNames(valprop), Sec. 8)"
-                      } elseif {$propDefName == "pmi_validation_property"} {
-                        if {$stepAP == "AP242"} {
-                          append emsg "($recPracNames(pmi242), Sec. 10)"
-                        } else {
-                          append emsg "($recPracNames(pmi203), Sec. 6)"
-                        }
-                      } elseif {$propDefName == "tessellated_validation_property"} {
-                        append emsg "($recPracNames(tessgeom), Sec. 8)"
-                      } elseif {$propDefName == "attribute_validation_property"} {
-                        append emsg "($recPracNames(uda), Sec. 8)"
-                      } elseif {$propDefName == "composite_validation_property"} {
-                        append emsg "($recPracNames(comp), Sec. 3)"
-                      }
-                      errorMsg $emsg
-                      set invalid $emsg
-                      lappend syntaxErr([lindex [split $ent1 " "] 0]) [list $objID [lindex [split $ent1 " "] 1] $emsg]
-                    }
-                  }
-                }
-              }
-            }
-
-# value in spreadsheet
-            if {$ok && [info exists propDefID]} {
-              set c [string index [cellRange 1 $col($pd)] 0]
-              set r $propDefIDRow($propDefID)
-
-# colName
-              if {![info exists pdheading($col($pd))]} {
-                $cells($pd) Item 3 $c $colName
-                $cells($pd) Item 3 [string index [cellRange 1 [expr {$col($pd)+1}]] 0] "attribute"
-                set pdheading($col($pd)) 1
-              }
-
-# keep track of rows with validation properties
-              if {[lsearch $propDefRow $r] == -1 && [string first "validation_property" $propDefName] != -1} {lappend propDefRow $r}
-
-              set val [[$cells($pd) Item $r $c] Value]
-              if {$invalid != ""} {lappend syntaxErr($pd) [list $r $col($pd) $invalid]}
-
-              if {$val == ""} {
-                $cells($pd) Item $r $c $objValue
-              } else {
-
-# adjust exponent val for length (why?)
-                if {[string first "exponent" $ent2] != -1 && [string first "length" $valName] != -1} {set val [string range $val 0 end-3]}
-
-                if {![info exists nrep] || $c != "G"} {
-                  $cells($pd) Item $r $c "$val[format "%c" 10]$objValue"
-
-# add nrep count
-                } elseif {$maxrep > 1} {
-                  if {$nrep != 2} {
-                    $cells($pd) Item $r $c "$val[format "%c" 10]($nrep) $objValue"
-                  } else {
-                    if {[string range $val 0 2] != "(1)"} {
-                      $cells($pd) Item $r $c "(1) $val[format "%c" 10]($nrep) $objValue"
-                    } else {
-                      $cells($pd) Item $r $c "$val[format "%c" 10]($nrep) $objValue"
-                    }
-                  }
+                set val [[$cells($pd) Item $r $c] Value]
+                if {$val == ""} {
+                  $cells($pd) Item $r $c $objValue
                 } else {
                   $cells($pd) Item $r $c "$val[format "%c" 10]$objValue"
                 }
-              }
 
 # entity reference in spreadsheet
-              if {[info exists r]} {
+                incr col($pd)
+                set c [string index [cellRange 1 $col($pd)] 0]
+                set val [[$cells($pd) Item $r $c] Value]
+                if {$val == ""} {
+                  $cells($pd) Item $r $c "#$objID $ent2"
+                } else {
+                  $cells($pd) Item $r $c "$val[format "%c" 10]#$objID $ent2"
+                }
+
+# keep track of max column
+                set pdcol [expr {max($col($pd),$pdcol)}]
+              }
+            }
+
+# if referred to another, get the entity
+            if {[string first "handle" $objEntity] != -1} {valPropReport $objValue}
+          }
+
+# --------------
+# nodeType = 20
+        } elseif {$objNodeType == 20} {
+          if {$idx != -1} {
+            if {$opt(DEBUG1)} {outputMsg "$ind   ATR $entLevel $objName - $objValue ($objNodeType, $objSize, $objAttrType)"}
+
+            if {[info exists cells($pd)]} {
+              set ok 0
+
+# get values for these entity and attribute pairs
+# nrep keeps track of multiple representation items
+              switch -glob $ent1 {
+                "cartesian_point coordinates" -
+                "direction direction_ratios"  {set ok 1; set col($pd) 9; set colName "value"}
+
+                "representation items" -
+                "shape_representation_with_parameters items" {set nrep 0; set maxrep $objSize}
+              }
+
+# value in spreadsheet
+              if {$ok && [info exists propDefID]} {
+                set c [string index [cellRange 1 $col($pd)] 0]
+                set r $propDefIDRow($propDefID)
+
+# colName
+                if {![info exists pdheading($col($pd))]} {
+                  $cells($pd) Item 3 $c $colName
+                  $cells($pd) Item 3 [string index [cellRange 1 [expr {$col($pd)+1}]] 0] "attribute"
+                  set pdheading($col($pd)) 1
+                }
+
+# keep track of rows with validation properties
+                if {[lsearch $propDefRow $r] == -1 && [string first "validation_property" $propDefName] != -1} {lappend propDefRow $r}
+
+                set ov $objValue
+                if {$ent1 == "cartesian_point coordinates" || $ent1 == "direction direction_ratios"} {regsub -all " " $ov "    " ov}
+
+                set val [[$cells($pd) Item $r $c] Value]
+                if {$val == ""} {
+                  $cells($pd) Item $r $c $ov
+                } else {
+                  if {[catch {
+                    $cells($pd) Item $r $c "$val[format "%c" 10]$ov"
+                  } emsg]} {
+                    errorMsg "  ERROR: Too much data to show in a cell" red
+                  }
+                }
+
+# entity reference in spreadsheet (cartesian point or direction)
                 incr col($pd)
                 set c [string index [cellRange 1 $col($pd)] 0]
                 set val [[$cells($pd) Item $r $c] Value]
@@ -673,13 +423,10 @@ proc valPropReport {objEntity} {
                 }
                 set pdcol [expr {max($col($pd),$pdcol)}]
 
-# add blank columns for units and exponent
-                if {[info exists valName]} {
-                  if {[string first "area" $valName] == -1 && [string first "volume" $valName] == -1 && [string first "density" $valName] == -1 && \
-                      ([string first "length_unit" $ent2] != -1 || [string first "description" $ent2] != -1 || [string first "value" $ent2] > 0)} {
-                    set i1 4
-                    if {[string first "length" $valName] != -1 || [string first "thickness" $valName] != -1 || $valName == ""} {set i1 2}
-                    for {set i 0} {$i < $i1} {incr i} {
+# add blank columns for units and exponent, if more than one representation
+                if {[info exists maxrep]} {
+                  if {$maxrep > 1} {
+                    for {set i 0} {$i < 4} {incr i} {
                       incr col($pd)
                       set c [string index [cellRange 1 $col($pd)] 0]
                       set val [[$cells($pd) Item $r $c] Value]
@@ -691,11 +438,306 @@ proc valPropReport {objEntity} {
                       set pdcol [expr {max($col($pd),$pdcol)}]
                     }
                   }
+                } else {
+                  errorMsg "maxrep does not exist"
+                }
+              }
+            }
+
+# write sampling points
+            if {$objName == "items" && [info exists r]} {
+              set val [[$cells($pd) Item $r 5] Value]
+              if {[string first " sampling points" $val] != -1} {
+                $cells($pd) Item $r 5 "$val ([expr {min($pointLimit,$objSize)}] of $objSize)"
+              }
+            }
+
+# get the entities that are referred to, but only up to pointLimit cartesian points for sampling points
+            if {$ncartpt < $pointLimit} {
+              if {[catch {
+                ::tcom::foreach val1 $objValue {valPropReport $val1}
+              } emsg]} {
+                foreach val2 $objValue {valPropReport $val2}
+              }
+            }
+          }
+
+# ---------------------
+# nodeType != 18,19,20
+        } else {
+          if {$idx != -1} {
+            if {$opt(DEBUG1)} {outputMsg "$ind   ATR $entLevel $objName - $objValue ($objNodeType, $objAttrType)"}
+
+            if {[info exists cells($pd)]} {
+              set ok 0
+              set colName ""
+              set invalid ""
+
+# get values for these entity and attribute pairs
+              switch -glob $ent1 {
+                "*_representation_item the_value" {
+                  set ok 1
+                  set col($pd) 9
+                  set colName "value"
+                }
+
+                "descriptive_representation_item description" {set ok 1; set col($pd) 9;  set colName "value"}
+                "derived_unit_element exponent"               {set ok 1; set col($pd) 13; set colName "exponent"}
+
+                "*_unit_and_si_unit name" -
+                "si_unit_and_*_unit name" {set ok 1; set col($pd) 11; set colName "units"; set objValue "$prefix$objValue"}
+                "*_unit_and_si_unit prefix" -
+                "si_unit_and_*_unit prefix" {set ok 0; set prefix $objValue}
+                "conversion_based_unit_and_*_unit name" {set ok 1; set col($pd) 11; set colName "units"}
+
+                "property_definition name" {
+                  set ok 0
+                  set pmivalprop 1
+                  regsub -all " " $objValue "_" propDefName
+
+                  if {[string first "validation property" $objValue] != -1} {
+                    set okvp 0
+                    set vps [list "geometric" "assembly" "pmi" "tessellated" "attribute" "FEA" "composite"]
+                    foreach vp $vps {if {[string first $vp $objValue] == 0} {set okvp 1}}
+                    if {!$okvp} {
+                      set okvp 0
+                      foreach vp $vps {
+                        if {[string first $vp [string tolower $objValue]] == 0 && $objValue != "FEA validation property"} {
+                          set okvp 1
+                          set emsg "Syntax Error: Use lower case 'property_definition' attribute 'name' ($objValue)."
+                          regsub -all " " [string tolower $objValue] "_" propDefName
+                          errorMsg $emsg
+                          set invalid $emsg
+                          lappend syntaxErr([lindex [split $ent1 " "] 0]) [list $objID [lindex [split $ent1 " "] 1] $emsg]
+                        }
+                      }
+                    }
+                    if {!$okvp} {
+                      set msg "Syntax Error: Unexpected Validation Property '$objValue'"
+                      errorMsg $msg
+                      set invalid $msg
+                      lappend syntaxErr([lindex [split $ent1 " "] 0]) [list $objID [lindex [split $ent1 " "] 1] $msg]
+                    }
+                    set valPropLink 1
+                  }
+                }
+
+                "representation name" {
+                  set ok 1
+                  set col($pd) 5
+                  set colName "representation name"
+
+                  set repName $objValue
+                  if {[string first "sampling points" $repName] != -1} {set ncardpt 0}
+
+                  if {[info exists propDefName]} {
+                    if {$entLevel == 2 && [info exists valPropNames($propDefName)]} {
+                      set ok1 0
+
+# look for valid representation.name in valPropNames
+# new RP allows for blank representation.name (repName) except for sampling points
+                      if {[string trim $repName] != ""} {
+                        if {$repName != ""} {
+                          foreach idx $valPropNames($propDefName) {
+                            if {[lindex $idx 0] == $repName || [lindex $idx 0] == ""} {
+                              set ok1 1
+                              break
+                            }
+                          }
+                        }
+                      } else {
+                        set ok1 1
+                      }
+
+                      if {!$ok1} {
+                        set emsg "Syntax Error: Bad '$ent2' attribute for '$propDefName'."
+                        switch $propDefName {
+                          geometric_validation_property -
+                          assembly_validation_property {append emsg "$lf\($recPracNames(valprop), Sec. 8)"}
+                          pmi_validation_property {
+                            if {$stepAP == "AP242"} {
+                              append emsg "$lf\($recPracNames(pmi242), Sec. 10)"
+                            } else {
+                              append emsg "$lf\($recPracNames(pmi203), Sec. 6)"
+                            }
+                          }
+                          tessellated_validation_property {append emsg "$lf\($recPracNames(tessgeom), Sec. 8.4)"}
+                          attribute_validation_property   {append emsg "$lf\($recPracNames(uda), Sec. 8)"}
+                          composite_validation_property   {append emsg "$lf\($recPracNames(comp), Sec. 3)"}
+                        }
+                        errorMsg $emsg
+                        set invalid $emsg
+                        lappend syntaxErr([lindex [split $ent1 " "] 0]) [list $objID [lindex [split $ent1 " "] 1] $emsg]
+                      }
+                    }
+                  }
+                }
+
+                "*_representation_item name"       -
+                "*_representation_item_and_* name" -
+                "cartesian_point name"             -
+                "direction name" {
+                  set ok 1
+                  set col($pd) 7
+                  set colName "value name"
+                  set valName $objValue
+                  if {[info exists nrep]} {incr nrep}
+
+# RP allows for blank representation.name (repName) except for sampling points
+                  if {[info exists propDefName]} {
+                    if {$entLevel == 3 && [info exists valPropNames($propDefName)]} {
+                      set ok1 0
+                      foreach idx $valPropNames($propDefName) {
+                        if {[lindex $idx 0] == $repName || [lindex $idx 0] == "" || [string trim $repName] == ""} {
+                          foreach item [lindex $idx 1] {
+                            set repItemName $item
+                            if {$objValue == $repItemName} {
+                              set ok1 1
+                              if {$objValue == "sampling point" && [string trim $repName] == ""} {
+                                set emsg "Syntax Error: Bad representation 'name' attribute for '$objValue'.\n[string repeat " " 14]($recPracNames(valprop), Sec. 4.11)"
+                                errorMsg $emsg
+                              }
+                              break
+
+# check if wrong case used
+                            } elseif {[string tolower $objValue] == $repItemName} {
+                              set ok1 2
+                              break
+                            }
+                          }
+                        }
+                      }
+
+# do not flag cartesian_point.name errors with entity ids
+                      if {!$ok1 && $ent2 == "cartesian_point.name"} {
+                        if {[string first "\#" $objValue] != -1} {set ok1 1}
+                      }
+
+                      if {$ok1 != 1} {
+                        if {$ok1 == 0} {
+                          set emsg "Syntax Error: Bad "
+                        } elseif {$ok1 == 2} {
+                          set emsg "Syntax Error: Use lower case for "
+                        }
+                        append emsg "'$ent2' attribute for '$propDefName'."
+                        switch $propDefName {
+                          geometric_validation_property -
+                          assembly_validation_property {append emsg "$lf\($recPracNames(valprop), Sec. 8)"}
+                          pmi_validation_property {
+                            if {$stepAP == "AP242"} {
+                              append emsg "$lf\($recPracNames(pmi242), Sec. 10)"
+                            } else {
+                              append emsg "$lf\($recPracNames(pmi203), Sec. 6)"
+                            }
+                          }
+                          tessellated_validation_property {append emsg "$lf\($recPracNames(tessgeom), Sec. 8.4)"}
+                          attribute_validation_property   {append emsg "$lf\($recPracNames(uda), Sec. 8)"}
+                          composite_validation_property   {append emsg "$lf\($recPracNames(comp), Sec. 3)"}
+                        }
+                        errorMsg $emsg
+                        set invalid $emsg
+                        lappend syntaxErr([lindex [split $ent1 " "] 0]) [list $objID [lindex [split $ent1 " "] 1] $emsg]
+                      }
+                    }
+                  }
+                }
+              }
+
+# value in spreadsheet
+              if {$ok && [info exists propDefID]} {
+                set c [string index [cellRange 1 $col($pd)] 0]
+                set r $propDefIDRow($propDefID)
+
+# colName
+                if {![info exists pdheading($col($pd))]} {
+                  $cells($pd) Item 3 $c $colName
+                  $cells($pd) Item 3 [string index [cellRange 1 [expr {$col($pd)+1}]] 0] "attribute"
+                  set pdheading($col($pd)) 1
+                }
+
+# keep track of rows with validation properties
+                if {[lsearch $propDefRow $r] == -1 && [string first "validation_property" $propDefName] != -1} {lappend propDefRow $r}
+
+                set val [[$cells($pd) Item $r $c] Value]
+                if {$invalid != ""} {lappend syntaxErr($pd) [list $r $col($pd) $invalid]}
+
+                if {$val == ""} {
+                  $cells($pd) Item $r $c $objValue
+                } else {
+
+# adjust exponent val for length (why?)
+                  if {[string first "exponent" $ent2] != -1 && [string first "length" $valName] != -1} {set val [string range $val 0 end-3]}
+
+                  if {![info exists nrep] || $c != "G"} {
+                    $cells($pd) Item $r $c "$val[format "%c" 10]$objValue"
+
+# add nrep count
+                  } elseif {$maxrep > 1} {
+                    if {$nrep != 2} {
+                      $cells($pd) Item $r $c "$val[format "%c" 10]($nrep) $objValue"
+                    } else {
+                      if {[string range $val 0 2] != "(1)"} {
+                        $cells($pd) Item $r $c "(1) $val[format "%c" 10]($nrep) $objValue"
+                      } else {
+                        $cells($pd) Item $r $c "$val[format "%c" 10]($nrep) $objValue"
+                      }
+                    }
+                  } else {
+                    $cells($pd) Item $r $c "$val[format "%c" 10]$objValue"
+                  }
+                }
+
+# entity reference in spreadsheet
+                if {[info exists r]} {
+                  incr col($pd)
+                  set c [string index [cellRange 1 $col($pd)] 0]
+                  set val [[$cells($pd) Item $r $c] Value]
+                  if {$val == ""} {
+                    $cells($pd) Item $r $c "#$objID $ent2"
+                  } else {
+                    $cells($pd) Item $r $c "$val[format "%c" 10]#$objID $ent2"
+                  }
+                  set pdcol [expr {max($col($pd),$pdcol)}]
+
+# add blank columns for units and exponent
+                  if {[info exists valName]} {
+                    if {[string first "area" $valName] == -1 && [string first "volume" $valName] == -1 && [string first "density" $valName] == -1 && \
+                        ([string first "length_unit" $ent2] != -1 || [string first "description" $ent2] != -1 || [string first "value" $ent2] > 0)} {
+                      set i1 4
+                      if {[string first "length" $valName] != -1 || [string first "thickness" $valName] != -1 || $valName == ""} {set i1 2}
+                      for {set i 0} {$i < $i1} {incr i} {
+                        incr col($pd)
+                        set c [string index [cellRange 1 $col($pd)] 0]
+                        set val [[$cells($pd) Item $r $c] Value]
+                        if {$val == ""} {
+                          $cells($pd) Item $r $c " "
+                        } else {
+                          $cells($pd) Item $r $c "$val[format "%c" 10] "
+                        }
+                        set pdcol [expr {max($col($pd),$pdcol)}]
+                      }
+                    }
+                  }
                 }
               }
             }
           }
         }
+      }
+
+# error reading valprop      
+    } emsg1]} {
+      set msg ""
+      if {[info exists objName]} {
+        if {$objName == "unit_component" && $objValue == ""} {
+          set msg "Syntax Error: Missing 'unit_component' attribute on $ent($entLevel).  No units assigned to validation property values."
+          errorMsg $msg
+          lappend syntaxErr($ent($entLevel)) [list $objID unit_component $msg]
+        }
+      }
+      if {$msg == ""} {
+        set emsg1 [string trim $emsg1]
+        if {[string length $emsg1] > 0 && [string first "can't read" $emsg1] == -1} {errorMsg "ERROR adding Validation Properties: $emsg1"}
       }
     }
   }
@@ -704,7 +746,7 @@ proc valPropReport {objEntity} {
 
 # -------------------------------------------------------------------------------
 proc valPropFormat {} {
-  global cells col excelVersion propDefRow row thisEntType worksheet valPropLink
+  global cells col entCount excelVersion opt propDefRow row thisEntType worksheet valPropLink
 
   if {[info exists cells($thisEntType)] && $col($thisEntType) > 4} {
     outputMsg " property_definition"
@@ -799,7 +841,9 @@ proc valPropFormat {} {
 
 # bold lines top and bottom
     set colrange [[[$worksheet($thisEntType) UsedRange] Columns] Count]
-    set range [$worksheet($thisEntType) Range [cellRange $row($thisEntType) 5] [cellRange $row($thisEntType) $colrange]]
+    set r $row($thisEntType)
+    if {$opt(XL_ROWLIM) < $entCount($thisEntType) && $r > $opt(XL_ROWLIM)} {set r $opt(XL_ROWLIM)}
+    set range [$worksheet($thisEntType) Range [cellRange $r 5] [cellRange $r $colrange]]
     catch {[[$range Borders] Item [expr 9]] Weight [expr -4138]}
     set range [$worksheet($thisEntType) Range [cellRange 2 5] [cellRange 2 $colrange]]
     catch {[[$range Borders] Item [expr 9]] Weight [expr -4138]}
@@ -833,7 +877,7 @@ proc valPropFormat {} {
       set range [$worksheet($thisEntType) Range A2:D2]
       $range MergeCells [expr 1]
       set anchor [$worksheet($thisEntType) Range A2]
-      [$worksheet($thisEntType) Hyperlinks] Add $anchor [join "https://www.cax-if.org/joint_testing_info.html#recpracs"] [join ""] [join "Link to CAx-IF Recommended Practices"]
+      [$worksheet($thisEntType) Hyperlinks] Add $anchor [join "https://www.cax-if.org/cax/cax_recommPractice.php"] [join ""] [join "Link to CAx-IF Recommended Practices"]
     }
   }
 }

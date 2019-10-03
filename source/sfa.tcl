@@ -251,6 +251,8 @@ guiButtons
 # switch to options tab (any text output will switch back to the status tab)
 .tnb select .tnb.options
 
+if {$developer} {outputMsg $filesProcessed blue}  
+
 #-------------------------------------------------------------------------------
 # first time user
 set save 0
@@ -348,7 +350,6 @@ if {$argv != ""} {
 
 set writeDir $userWriteDir
 checkValues
-if {$developer} {outputMsg $filesProcessed blue}  
 
 # other STEP File Analyzer and Viewers already running
 set pid2 [twapi::get_process_ids -name "STEP-File-Analyzer.exe"]

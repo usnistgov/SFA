@@ -45,7 +45,7 @@ proc getAssocGeom {entDef {tolType 0} {tolName ""}} {
             if {[catch {
               set relatedSA [[$a0 Value] Type]
             } emsg]} {
-              set msg "Syntax Error: Invalid 'related_shape_aspect' attribute on '[$e0 Type]'."
+              set msg "Syntax Error: Bad 'related_shape_aspect' attribute on '[$e0 Type]'."
               errorMsg $msg
               lappend syntaxErr([$e0 Type]) [list [$e0 P21ID] "related_shape_aspect" $msg]
             }

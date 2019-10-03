@@ -1,7 +1,7 @@
 # version numbers, software and user guide, contact
 # user guide URLs are below in showFileURL
 
-proc getVersion {}   {return 3.64}
+proc getVersion {}   {return 3.66}
 proc getVersionUG {} {return 3.0}
 proc getContact {}   {return [list "Robert Lipman" "robert.lipman@nist.gov"]}
 
@@ -1676,7 +1676,7 @@ Credits
 
 # examples menu
   $Examples add command -label "Sample STEP Files (zip)" -command {openURL https://s3.amazonaws.com/nist-el/mfg_digitalthread/NIST_CTC_STEP_PMI.zip}
-  $Examples add command -label "STEP File Library"       -command {openURL https://www.cax-if.org/library/}
+  $Examples add command -label "STEP File Library"       -command {openURL https://www.cax-if.org/cax/cax_stepLib.php}
   $Examples add command -label "AP203e2 Archive"         -command {openURL http://web.archive.org/web/20160812122922/http://www.steptools.com/support/stdev_docs/stpfiles/ap203e2/index.html}
   $Examples add command -label "AP203 Archive"           -command {openURL http://web.archive.org/web/20160812122922/http://www.steptools.com/support/stdev_docs/stpfiles/ap203/index.html}
   $Examples add command -label "AP214 Archive"           -command {openURL http://web.archive.org/web/20160903141712/http://www.steptools.com/support/stdev_docs/stpfiles/ap214/index.html}
@@ -1703,14 +1703,15 @@ proc guiWebsitesMenu {} {
   $Websites add command -label "STEP: The Grand Experience"                -command {openURL https://www.nist.gov/publications/step-grand-experience}
 
   $Websites add separator
-  $Websites add command -label "CAx Implementor Forum (CAx-IF)" -command {openURL https://www.cax-if.org}
-  $Websites add command -label "STEP File Viewers"              -command {openURL https://www.cax-if.org/step_viewers.html}
-  $Websites add command -label "Recommended Practices"          -command {openURL https://www.cax-if.org/joint_testing_info.html#recpracs}
-  $Websites add command -label "CAD Implementations"            -command {openURL https://www.cax-if.org/vendor_info.php}
+  $Websites add command -label "MBx Interoperability Forum (MBx-IF)" -command {openURL https://www.cax-if.org}
+  $Websites add command -label "STEP File Viewers"     -command {openURL https://www.cax-if.org/cax/step_viewers.php}
+  $Websites add command -label "Recommended Practices" -command {openURL https://www.cax-if.org/cax/cax_recommPractice.php}
+  $Websites add command -label "CAD Implementations"   -command {openURL https://www.cax-if.org/cax/vendor_info.php}
 
   $Websites add separator
-  $Websites add command -label "CAE-IF" -command {openURL http://afnet.fr/dotank/sps/plm-committee/cae-if/}
+  $Websites add command -label "CAE-IF" -command {openURL https://www.cax-if.org/cae/cae_testround.php}
   $Websites add command -label "PDM-IF" -command {openURL http://www.pdm-if.org/}
+  $Websites add command -label "Digital Manufacturing-IF" -command {openURL http://www.ap238.org/dmif/}
 
   $Websites add separator
   $Websites add cascade -label "AP242" -menu $Websites.0
@@ -1730,7 +1731,7 @@ proc guiWebsitesMenu {} {
   $Websites2 add command -label "ISO 10303 Part 21"           -command {openURL https://en.wikipedia.org/wiki/ISO_10303-21}
   $Websites2 add command -label "ISO 10303 Part 21 Edition 3" -command {openURL https://www.steptools.com/stds/step/}
   $Websites2 add separator
-  $Websites2 add command -label "EXPRESS Schemas"             -command {openURL https://www.cax-if.org/joint_testing_info.html#schemas}
+  $Websites2 add command -label "EXPRESS Schemas"             -command {openURL https://www.cax-if.org/cax/cax_express.php}
   $Websites2 add command -label "More EXPRESS Schemas"        -command {openURL http://web.archive.org/web/20160322005246/www.steptools.com/support/stdev_docs/express/}
   $Websites2 add command -label "ISO 10303 Part 11 EXPRESS"   -command {openURL https://www.loc.gov/preservation/digital/formats/fdd/fdd000449.shtml}
   $Websites2 add separator
@@ -1864,7 +1865,7 @@ proc getOpenPrograms {} {
   global drive editorCmd developer myhome pf32 pf64
 
 # Including any of the CAD viewers and software below does not imply a recommendation or endorsement of them by NIST https://www.nist.gov/disclaimer
-# For more STEP viewers, go to https://www.cax-if.org/step_viewers.html
+# For more STEP viewers, go to https://www.cax-if.org/cax/step_viewers.php
 
   regsub {\\} $pf32 "/" p32
   lappend pflist $p32
