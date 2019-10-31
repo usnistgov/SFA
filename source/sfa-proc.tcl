@@ -925,7 +925,7 @@ proc formatComplexEnt {str {space 0}} {
 
 #-------------------------------------------------------------------------------
 proc cellRange {r c} {
-  set letters ABCDEFGHIJKLMNOPQRSTUVWXYZ
+  global letters
   
 # correct if 'c' is passed in as a letter
   set cf [string first $c $letters]
@@ -1278,8 +1278,41 @@ proc incrFileName {fn} {
 
 #-------------------------------------------------------------------------------
 # install IFCsvr (or remove to reinstall)
-proc installIFCsvr {{reinstall 0}} {
+proc installIFCsvr {{exit 0}} {
   global buttons contact mydocs mytemp nistVersion upgradeIFCsvr wdir
+
+# if IFCsvr is alreadly installed, get version from registry, decide to reinstall newer version
+  if {[catch {
+
+# get registry value "1.0.0 (NIST Update yyyy-mm-dd)"    
+    set verIFCsvr [registry get "HKEY_LOCAL_MACHINE\\SOFTWARE\\WOW6432Node\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\{3C8CE0A4-803B-48A6-96A0-A3DDD5AE5596}" {DisplayVersion}]
+
+# format version to be yyyymmdd
+    set c1 [string first "20" $verIFCsvr]
+    if {$c1 != -1} {
+      set verIFCsvr [string range $verIFCsvr $c1 end-1]
+      regsub -all {\-} $verIFCsvr "" verIFCsvr
+    } else {
+      set verIFCsvr 0
+    }
+
+# old version, reinstall      
+    if {$verIFCsvr < [getVersionIFCsvr]} {
+      set reinstall 1
+
+# up-to-date, do nothing    
+    } else {
+      set reinstall 2
+      set upgradeIFCsvr [clock seconds]
+    }
+    
+# IFCsvr not installed or can't read registry    
+  } emsg]} {
+    set reinstall 0
+  }
+
+# up-to-date  
+  if {$reinstall == 2} {return}
 
   set ifcsvr     "ifcsvrr300_setup_1008_en-update.msi"
   set ifcsvrInst [file join $wdir exe $ifcsvr]
@@ -1292,15 +1325,14 @@ proc installIFCsvr {{reinstall 0}} {
     errorMsg "The IFCsvr toolkit must be installed to read and process STEP files (User Guide section 2.2.1)."
     outputMsg "- You might need administrator privileges (Run as administrator) to install the toolkit.
   Antivirus software might respond that there is a security issue with the toolkit.  The
-  toolkit is safe to install."
-    outputMsg "- You must use the default installation folder for the toolkit." red
-    outputMsg "- To reinstall the toolkit, run the installation file ifcsvrr300_setup_1008_en-update.msi
-  in $mytemp  or your home directory or the current directory.
+  toolkit is safe to install.  Use the default installation folder for the toolkit.
+- To reinstall the toolkit, run the installation file ifcsvrr300_setup_1008_en-update.msi
+  in $mytemp
 - If there are problems with this procedure, contact [lindex $contact 0] ([lindex $contact 1])."
 
     if {[file exists $ifcsvrInst] && [info exists buttons]} {
       set msg "The IFCsvr toolkit must be installed to read and process STEP files (User Guide section 2.2.1).  After clicking OK the IFCsvr toolkit installation will start."
-      append msg "\n\nYou might need administrator privileges (Run as administrator) to install the toolkit.  Antivirus software might respond that there is a security issue with the toolkit.  The toolkit is safe to install.\n\nYou must use the default installation folder for the toolkit."
+      append msg "\n\nYou might need administrator privileges (Run as administrator) to install the toolkit.  Antivirus software might respond that there is a security issue with the toolkit.  The toolkit is safe to install.  Use the default installation folder for the toolkit."
       append msg "\n\nIf there are problems with this procedure, contact [lindex $contact 0] ([lindex $contact 1])."
       set choice [tk_messageBox -type ok -message $msg -icon info -title "Install IFCsvr"]
       outputMsg "\nWait for the installation to finish before processing a STEP file." red
@@ -1360,22 +1392,24 @@ proc installIFCsvr {{reinstall 0}} {
   if {[file exists $ifcsvrMsi]} {
     if {[catch {
       exec {*}[auto_execok start] "" $ifcsvrMsi
-      if {!$reinstall} {
-        set upgradeIFCsvr [clock seconds]
-        saveState 0
-      }
+      set upgradeIFCsvr [clock seconds]
+      saveState 0
+      if {$exit} {exit}
     } emsg]} {
       if {[string first "UNC" $emsg] != -1} {set emsg [fixErrorMsg $emsg]}
       if {$emsg != ""} {errorMsg "ERROR installing IFCsvr toolkit: $emsg"}
     }
+
+# cannot find the toolkit
   } else {
     if {[file exists $ifcsvrInst]} {errorMsg "The IFCsvr toolkit cannot be automatically installed."}
     catch {.tnb select .tnb.status}
     update idletasks
+
+# manual install instructions
     if {$nistVersion} {
       outputMsg "To manually install the IFCsvr toolkit:
-- The installation file ifcsvrr300_setup_1008_en-update.msi can be found in either:
-  $mytemp or your home directory or the current directory.
+- The installation file ifcsvrr300_setup_1008_en-update.msi can be found in $mytemp
 - Run the installer and follow the instructions.  Use the default installation folder for IFCsvr.
   You might need administrator privileges (Run as administrator) to install the toolkit.
 - If there are problems with the IFCsvr installation, contact [lindex $contact 0] ([lindex $contact 1])\n"
@@ -1383,6 +1417,7 @@ proc installIFCsvr {{reinstall 0}} {
       errorMsg "Opening folder: $mytemp"
       if {[catch {
         exec {*}[auto_execok start] [file nativename $mytemp]
+        if {$exit} {exit}
       } emsg]} {
         if {[string first "UNC" $emsg] != -1} {set emsg [fixErrorMsg $emsg]}
         if {$emsg != ""} {errorMsg "ERROR opening directory: $emsg"}

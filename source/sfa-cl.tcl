@@ -97,9 +97,9 @@ Disclaimers
  
 Credits
 - Generating spreadsheets:        Microsoft Excel (https://products.office.com/excel)
-- Reading and parsing STEP files: IFCsvr (https://groups.yahoo.com/neo/groups/ifcsvr-users/info)
-                                  License agreement C:\\Program Files (x86)\\IFCsvrR300\\doc
-                                  IFCsvr ActiveX Component, Copyright \u00A9 1999, 2005 SECOM Co., Ltd. All Rights Reserved
+- Reading and parsing STEP files: IFCsvr ActiveX Component, Copyright \u00A9 1999, 2005 SECOM Co., Ltd. All Rights Reserved
+                                  IFCsvr has been modified by NIST to include STEP schemas.
+                                  The license agreement can be found in C:\\Program Files (x86)\\IFCsvrR300\\doc
 - Viewing B-rep part geometry:    OpenCascade (https://www.opencascade.com/) and
                                   pythonOCC (https://github.com/tpaviot/pythonocc)"
 
@@ -165,10 +165,8 @@ set lastX3DOM ""
 set lastXLS  ""
 set lastXLS1 ""
 set openFileList {}
-set pointLimit 2
 set sfaVersion 0
 set upgrade 0
-set upgradeIFCsvr 0
 set userXLSFile ""
 set x3dFileName ""
 set x3dStartFile 1
@@ -232,15 +230,7 @@ if {[info exists userEntityFile]} {
 #-------------------------------------------------------------------------------
 # install IFCsvr
 set ifcsvrDir [file join $pf32 IFCsvrR300 dll]
-if {![file exists [file join $ifcsvrDir IFCsvrR300.dll]]} {
-  installIFCsvr
-  exit
-  
-# or reinstall IFCsvr
-} elseif {$nistVersion} {
-  set ifcsvrTime [file mtime [file join $wdir exe ifcsvrr300_setup_1008_en-update.msi]]
-  if {$ifcsvrTime > $upgradeIFCsvr} {installIFCsvr 1; exit}
-}
+installIFCsvr 1
 
 # get command line options
 for {set i 1} {$i <= 10} {incr i} {

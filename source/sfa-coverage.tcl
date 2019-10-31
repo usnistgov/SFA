@@ -129,8 +129,8 @@ proc spmiSummary {} {
 # -------------------------------------------------------------------------------
 # start PMI Representation Coverage analysis worksheet
 proc spmiCoverageStart {{multi 1}} {
-  global allPMIelements cells cells1 multiFileDir pmiElements pmiElements1 pmiModifiers pmiModifiersRP pmiUnicode
-  global recPracNames sheetLast spmiCoverageWS spmiTypes worksheet worksheet1 worksheets worksheets1 
+  global allPMIelements cells cells1 multiFileDir pmiElements pmiElements1 pmiModifiers pmiModifiersRP
+  global pmiUnicode sheetLast spmiCoverageWS spmiTypes worksheet worksheet1 worksheets worksheets1 
 
   if {[catch {
     set spmiCoverageWS "PMI Representation Coverage"
@@ -206,8 +206,8 @@ proc spmiCoverageStart {{multi 1}} {
 # -------------------------------------------------------------------------------
 # write PMI Representation Coverage analysis worksheet
 proc spmiCoverageWrite {{fn ""} {sum ""} {multi 1}} {
-  global allPMI allPMIelements cells cells1 col1 developer entCount fileList nfile nistCoverageStyle nistName opt pmiElements pmiElements1
-  global pmiElementsMaxRows pmiModifiers spmiCoverageWS spmiTypesPerFile totalPMI totalPMIrows usedPMIrows worksheet worksheet1
+  global allPMI allPMIelements cells cells1 col1 developer entCount fileList nfile nistCoverageStyle nistName opt
+  global pmiModifiers recPracNames spmiCoverageWS spmiTypesPerFile totalPMI totalPMIrows usedPMIrows worksheet worksheet1
   global objDesign
 
   if {[catch {
@@ -230,7 +230,14 @@ proc spmiCoverageWrite {{fn ""} {sum ""} {multi 1}} {
         ::tcom::foreach attr [$thisEnt Attributes] {
           if {[$attr Name] == "name"} {
             set val [$attr Value]
-            if {$val == "semantic text"} {lappend spmiTypesPerFile "editable text"}
+            if {$val == "semantic text"} {
+              lappend spmiTypesPerFile "editable text"
+              if {$opt(VALPROP)} {
+                errorMsg " See 'property_definition' worksheet for 'semantic text'.\n $recPracNames(pmi242), Sec. 7.4.2"
+              } else {
+                errorMsg " See 'descriptive_representation_item' worksheet for 'editable text'.\n $recPracNames(pmi242), Sec. 7.4.2"
+              }
+            }
           }
         }
       }

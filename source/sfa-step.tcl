@@ -447,6 +447,7 @@ proc getSchemaFromFile {fname {msg 0}} {
       set sline [split $fsline "'"]
       set schema [lindex $sline 1]
       incr nendsec
+      if {$schema == ""} {errorMsg "The required schema name is blank on FILE_SCHEMA.  See Help > Supported STEP APs for supported schema names."}
 
 # multiple schemas
       if {[string first "," $fsline] != -1} {

@@ -1,6 +1,7 @@
 proc valPropStart {} {
   global objDesign
-  global col entLevel ent entAttrList ncartpt opt pd pdcol pdheading propDefRow rowmax valPropLink valPropNames
+  global cells col entLevel ent entAttrList letters ncartpt opt pd pdcol pdheading propDefID
+  global propDefIDRow propDefRow rowmax valPropEnts valPropLink valPropNames valProps
 
 # CAx-IF RP Geometric and Assembly Validation Properties, section 8
   set valPropNames(geometric_validation_property) [list \
@@ -24,14 +25,13 @@ proc valPropStart {} {
 
 # includes tessellated pmi and semantic pmi valprops, section 10
   set valPropNames(pmi_validation_property) [list \
-    [list "" [list "affected area" "affected curve length" "datum references" "equivalent unicode string" "font name" \
-      "number of annotations" "number of composite tolerances" "number of datums" "number of datum features" "number of datum references" \
-      "number of datum targets" "number of dimensional locations" "number of dimensional sizes" "number of facets" \
-      "number of geometric tolerances" "number of PMI presentation elements" "number of segments" "number of semantic pmi elements" \
-      "number of views" "polyline centre point" "polyline curve length" "tessellated curve centre point" \
-      "tessellated curve length" "tessellated surface area" "tessellated surface centre point" \
-      "number of semantic text notes" "number of semantic text notes on part" "number of semantic text notes on geometry" \
-      "number of semantic text notes on PMI"]]]
+    [list "" [list "affected area" "affected curve length" "datum references" "equivalent unicode string" "font name" "number of annotations" \
+      "number of composite tolerances" "number of datum annotations" "number of datum features" "number of datum references" "number of datum targets" \
+      "number of datums" "number of dimension annotations" "number of dimensional locations" "number of dimensional sizes" "number of facets" \
+      "number of geometric tolerances" "number of other annotations" "number of PMI presentation elements" "number of segments" \
+      "number of semantic pmi elements" "number of semantic text notes on geometry" "number of semantic text notes on part" \
+      "number of semantic text notes on PMI" "number of semantic text notes" "number of tolerance annotations" "number of views" "polyline centre point" \
+      "polyline curve length" "tessellated curve centre point" "tessellated curve length" "tessellated surface area" "tessellated surface centre point"]]]
 
 # CAx-IF RP User Defined Attributes, section 8
   set valPropNames(attribute_validation_property) [list \
@@ -57,22 +57,22 @@ proc valPropStart {} {
       "notational centroid" "number of ply pieces per ply" \
       "number of tables" "number of sequences" "number of plies" "number of materials" "number of orientations" \
       "sum of all ply surfaces areas" "centre point of all plies" "number of cores"]]]
- 
+
 # new composite validation properties
-#"boundary length" "bounded area" "centroid for all the ply shapes in the part" "centroids for all the ply shapes in each laminate table" 
-#"curve centroid for rosette type guide by a curve" "curve length for rosette type guide by a curve" 
-#"geometric boundary (inner + outer) curve centroid (for implicit plies)" "geometric boundary (inner + outer) curve length (for implicit plies)" 
-#"geometric centroid" "geometric centroid (for cores and explicit plies)" "geometric surface area (for cores and explicit plies)" 
-#"geometric volume (for cores and explicit plies)" "notional rosette centroid (association ply/rosette)" "number of composite materials for each laminate table" 
-#"number of composite materials in the part" "number of composite sequences for each laminate table" "number of composite sequences in the part" 
-#"number of cores for each laminate table" "number of cores in the part" "number of laminates tables in the part" "number of orientations for each laminate table" 
-#"number of orientations in the part" "number of plies" "number of plies for each laminate table" "number of plies in each sequence" "number of plies in the part" 
-#"number of plies using the rosette" "number of ply pieces per ply" "number of rosette used in the part" 
-#"ordered (alphanumeric ascending) list of orientation names used in each laminate table" "ordered (alphanumeric ascending) list of orientation names used in part" 
-#"ordered (numerically ascending) list of orientation values used in each laminate table" "ordered (numerically ascending) list of orientation values used in part" 
-#"ordered sequences name for each laminate table" "sum of area (for exact implicit ply representation) in the part" 
-#"sum of area (for exact implicit ply representation) of each laminate table" "sum of ply area by material" "sum of ply surface areas for each laminate table" 
-#"sum of ply volume by material" "sum of the geometric boundary length of the plies using the rosette" 
+#"boundary length" "bounded area" "centroid for all the ply shapes in the part" "centroids for all the ply shapes in each laminate table"
+#"curve centroid for rosette type guide by a curve" "curve length for rosette type guide by a curve"
+#"geometric boundary (inner + outer) curve centroid (for implicit plies)" "geometric boundary (inner + outer) curve length (for implicit plies)"
+#"geometric centroid" "geometric centroid (for cores and explicit plies)" "geometric surface area (for cores and explicit plies)"
+#"geometric volume (for cores and explicit plies)" "notional rosette centroid (association ply/rosette)" "number of composite materials for each laminate table"
+#"number of composite materials in the part" "number of composite sequences for each laminate table" "number of composite sequences in the part"
+#"number of cores for each laminate table" "number of cores in the part" "number of laminates tables in the part" "number of orientations for each laminate table"
+#"number of orientations in the part" "number of plies" "number of plies for each laminate table" "number of plies in each sequence" "number of plies in the part"
+#"number of plies using the rosette" "number of ply pieces per ply" "number of rosette used in the part"
+#"ordered (alphanumeric ascending) list of orientation names used in each laminate table" "ordered (alphanumeric ascending) list of orientation names used in part"
+#"ordered (numerically ascending) list of orientation values used in each laminate table" "ordered (numerically ascending) list of orientation values used in part"
+#"ordered sequences name for each laminate table" "sum of area (for exact implicit ply representation) in the part"
+#"sum of area (for exact implicit ply representation) of each laminate table" "sum of ply area by material" "sum of ply surface areas for each laminate table"
+#"sum of ply volume by material" "sum of the geometric boundary length of the plies using the rosette"
 #"sum of volume (for core and explicit plies) of each laminate table" "sum of volume explicit plies in the part" "sum of volume for core in the part"
 
 # FEA validation properties
@@ -114,10 +114,18 @@ proc valPropStart {} {
     [list "min-max 1D elements bending2 moment" [list "min 1D elements bending2 moment measure" "max 1D elements bending2 moment measure"]] \
   ]
 
+# semantic text, section 7.4.2 (not a traditional valprop)
+  set valPropNames(semantic_text) [list [list "" [list ""]]]
+
   set derived_unit_element [list derived_unit_element unit \
     [list conversion_based_unit_and_length_unit dimensions name conversion_factor] \
     [list conversion_based_unit_and_mass_unit dimensions name conversion_factor] \
-    [list length_unit_and_si_unit prefix name] exponent]
+    [list conversion_based_unit_and_plane_angle_unit dimensions name conversion_factor] \
+    [list length_unit_and_si_unit prefix name] exponent \
+    [list mass_unit_and_si_unit prefix name] exponent \
+    [list plane_angle_unit_and_si_unit prefix name] exponent \
+    [list si_unit_and_time_unit prefix name] exponent]
+
   set cartesian_point [list cartesian_point name coordinates]
   set a2p3d [list axis2_placement_3d name location $cartesian_point axis [list direction name direction_ratios] ref_direction [list direction name direction_ratios]]
 
@@ -131,7 +139,9 @@ proc valPropStart {} {
     [list area_unit elements $derived_unit_element] \
     [list volume_unit elements $derived_unit_element] \
     [list mass_unit_and_si_unit prefix name] \
-    [list si_unit_and_thermodynamic_temperature_unit dimensions prefix name]]
+    [list si_unit_and_thermodynamic_temperature_unit dimensions prefix name] \
+    [list force_unit elements $derived_unit_element] \
+    [list moment_unit elements $derived_unit_element]]
 
   set ang  [list plane_angle_measure_with_unit_and_measure_representation_item value_component unit_component name]
   set len1 [list length_measure_with_unit_and_measure_representation_item value_component unit_component name]
@@ -150,14 +160,13 @@ proc valPropStart {} {
     definition [list property_definition name description definition] \
     used_representation $rep1 $rep2]
 
-  set valPropLink 0
   set entAttrList {}
+  set pd "property_definition"
   set pdcol 0
   set propDefRow {}
-  set pd "property_definition"
-
-  if {[info exists pdheading]} {unset pdheading}
-  if {[info exists ent]}       {unset ent}
+  set valPropLink 0
+  catch {unset ent}
+  catch {unset pdheading}
 
   outputMsg " Adding Properties to property_definition worksheet" blue
 
@@ -171,27 +180,85 @@ proc valPropStart {} {
   set startent [lindex $gvp 0]
   set n 0
   set entLevel 0
+
+# get all property_definition_representation
+  set pdr {}
   ::tcom::foreach objEntity [$objDesign FindObjects [join $startent]] {
+    set objType [$objEntity Type]
+    if {$objType == $startent} {lappend pdr $objEntity}
+  }
+
+# process all property_definition_representation
+  foreach objEntity $pdr {
+    set objType [$objEntity Type]
     set ncartpt 0
-    if {[$objEntity Type] == $startent} {
-      if {$n < $rowmax} {
-        if {[expr {$n%2000}] == 0} {
-          if {$n > 0} {outputMsg "  $n"}
-          update
-        }
-        valPropReport $objEntity
-        if {$opt(DEBUG1)} {outputMsg \n}
+    if {$n < $rowmax} {
+      if {[expr {$n%2000}] == 0} {
+        if {$n > 0} {outputMsg "  $n"}
+        update
       }
-      incr n
+      valPropReport $objEntity
+      if {$opt(DEBUG1)} {outputMsg \n}
+
+# write valProps and valPropEnts to worksheet cells
+      if {[info exists propDefIDRow($propDefID)] && [info exists valProps]} {
+        set vprow $propDefIDRow($propDefID)
+        set vpadd 0
+        if {[string length [[$cells($pd) Item $vprow E] Value]] > 0} {set vpadd 1}
+
+        foreach {id c1} {0 E 1 G 2 I 3 K 4 M} {
+          set c2 [string index $letters [expr {[string first $c1 $letters]+1}]]
+          set vp1 [lindex $valProps $id]
+          set vp2 [lindex $valPropEnts $id]
+          set lvp [llength $vp1]
+          set str1 ""
+          set str2 ""
+          set okstr 0
+
+# add linefeeds for multiline vp
+          for {set i 0} {$i < $lvp} {incr i} {
+            set val1 [lindex $vp1 $i]
+            set val2 [lindex $vp2 $i]
+            append str1 $val1[format "%c" 10]
+            append str2 $val2[format "%c" 10]
+            if {[string length $val2] > 0} {set okstr 1}
+          }
+
+# write cells
+          if {$okstr} {
+
+# remove last linefeed
+            set str1 [string range $str1 0 end-1]
+            set str2 [string range $str2 0 end-1]
+
+# append new str to existing cells, usually for sampling points
+            if {$vpadd} {
+              set val1 [[$cells($pd) Item $vprow $c1] Value]
+              set str1 $val1[format "%c" 10]$str1
+              set val2 [[$cells($pd) Item $vprow $c2] Value]
+              set str2 $val2[format "%c" 10]$str2
+            }
+            if {[catch {
+              $cells($pd) Item $vprow $c1 $str1
+              $cells($pd) Item $vprow $c2 $str2
+            } emsg]} {
+              errorMsg "  Error writing validation property to cell $c1$vprow" red
+            }
+          }
+        }
+        unset valProps
+        unset valPropEnts
+      }
     }
+    incr n
   }
   set col($pd) $pdcol
 }
 
 # -------------------------------------------------------------------------------
 proc valPropReport {objEntity} {
-  global cells col entLevel ent entAttrList maxrep ncartpt nrep opt pd pdcol pdheading pmivalprop pointLimit prefix propDefID
-  global propDefIDRow propDefName propDefOK propDefRow recPracNames repName stepAP syntaxErr valName valPropLink valPropNames
+  global cells col entLevel ent entAttrList maxelem maxrep ncartpt nelem nrep opt pd pdcol pdheading pmivalprop prefix propDefID propDefIDRow
+  global propDefName propDefOK propDefRow recPracNames repName stepAP syntaxErr valName valPropEnts valPropLink valPropNames valProps
 
   if {$opt(DEBUG1)} {outputMsg "valPropReport" red}
   if {[info exists propDefOK]} {if {$propDefOK == 0} {return}}
@@ -199,6 +266,7 @@ proc valPropReport {objEntity} {
 
   incr entLevel
   set ind [string repeat " " [expr {4*($entLevel-1)}]]
+  set pointLimit 2
 
   if {[string first "handle" $objEntity] != -1} {
     if {[catch {
@@ -209,13 +277,12 @@ proc valPropReport {objEntity} {
 
       if {$opt(DEBUG1)} {outputMsg "$ind ENT $entLevel #$objID=$objType (ATR=[$objAttributes Count])" blue}
 
-# limit sampling points to pointLimit (2)
+# limit sampling points to pointLimit
       if {[info exists repName]} {
         if {$objType == "cartesian_point" && [string first "sampling points" $repName] != -1} {
           incr ncartpt
           if {$ncartpt > $pointLimit} {
-            errorMsg " Only the first $pointLimit sampling points are reported" red
-            incr entLevel -1
+            errorMsg " Only the first $pointLimit sampling points are reported."
             return
           }
         }
@@ -232,7 +299,13 @@ proc valPropReport {objEntity} {
         }
       }
 
-      if {$entLevel == 1} {set pmivalprop 0}
+      if {$entLevel == 1} {
+        set pmivalprop 0
+        catch {unset nelem}
+        catch {unset maxelem}
+        set valProps [list {} {} {} {} {}]
+        set valPropEnts $valProps
+      }
 
       ::tcom::foreach objAttribute $objAttributes {
         set objName  [$objAttribute Name]
@@ -252,7 +325,7 @@ proc valPropReport {objEntity} {
           if {$idx != -1} {
             if {$opt(DEBUG1)} {outputMsg "$ind   ATR $entLevel $objName - $objValue ($objNodeType, $objSize, $objAttrType)"}
 
-# missing units          
+# missing units
             set nounits 0
             if {$objName == "unit_component"} {
               if {[string length $objValue] == 0 && \
@@ -282,9 +355,13 @@ proc valPropReport {objEntity} {
 
 # get values for these entity and attribute pairs
               switch -glob $ent1 {
-                "*measure_representation_item* value_component" {
+                "*measure_representation_item* value_component" -
+                "value_representation_item value_component" -
+                "descriptive_representation_item description" {
                   set ok 1
                   set col($pd) 9
+                  addValProps 2 $objValue "#$objID $ent2"
+                  #outputMsg "  VALUE    [llength [lindex $valProps 2]]  $valProps" red
                 }
 
                 "*measure_representation_item* unit_component" {
@@ -307,9 +384,6 @@ proc valPropReport {objEntity} {
                   }
                 }
 
-                "value_representation_item value_component" -
-                "descriptive_representation_item description" {set ok 1; set col($pd) 9}
-
                 "property_definition definition" {
                   if {[string first "validation_property" $propDefName] != -1} {
                     if {[string length $objValue] == 0} {
@@ -323,11 +397,10 @@ proc valPropReport {objEntity} {
               }
               set colName "value"
 
+# colName
               if {$ok && [info exists propDefID]} {
                 set c [string index [cellRange 1 $col($pd)] 0]
                 set r $propDefIDRow($propDefID)
-
-# colName
                 if {![info exists pdheading($col($pd))]} {
                   $cells($pd) Item 3 $c $colName
                   $cells($pd) Item 3 [string index [cellRange 1 [expr {$col($pd)+1}]] 0] "attribute"
@@ -337,25 +410,8 @@ proc valPropReport {objEntity} {
 # keep track of rows with validation properties
                 if {[lsearch $propDefRow $r] == -1 && [string first "validation_property" $propDefName] != -1} {lappend propDefRow $r}
 
-# value in spreadsheet
-                set val [[$cells($pd) Item $r $c] Value]
-                if {$val == ""} {
-                  $cells($pd) Item $r $c $objValue
-                } else {
-                  $cells($pd) Item $r $c "$val[format "%c" 10]$objValue"
-                }
-
-# entity reference in spreadsheet
-                incr col($pd)
-                set c [string index [cellRange 1 $col($pd)] 0]
-                set val [[$cells($pd) Item $r $c] Value]
-                if {$val == ""} {
-                  $cells($pd) Item $r $c "#$objID $ent2"
-                } else {
-                  $cells($pd) Item $r $c "$val[format "%c" 10]#$objID $ent2"
-                }
-
 # keep track of max column
+                incr col($pd)
                 set pdcol [expr {max($col($pd),$pdcol)}]
               }
             }
@@ -373,22 +429,33 @@ proc valPropReport {objEntity} {
             if {[info exists cells($pd)]} {
               set ok 0
 
-# get values for these entity and attribute pairs
-# nrep keeps track of multiple representation items
+# get values for these entity and attribute pairs, nrep keeps track of multiple representation items
               switch -glob $ent1 {
                 "cartesian_point coordinates" -
-                "direction direction_ratios"  {set ok 1; set col($pd) 9; set colName "value"}
+                "direction direction_ratios"  {
+                  set ok 1
+                  set col($pd) 9
+                  set colName "value"
+                  addValProps 2 $objValue "#$objID $ent2"
+                  #outputMsg "  VALUE    [llength [lindex $valProps 2]]  $valProps" red
+                }
 
                 "representation items" -
-                "shape_representation_with_parameters items" {set nrep 0; set maxrep $objSize}
+                "shape_representation_with_parameters items" {
+                  set nrep 0
+                  set maxrep $objSize
+
+# add number of sampling points to representation name
+                  if {[string first "sampling points" $repName] != -1} {set valProps [lreplace $valProps 0 0 [list "$repName ($maxrep)"]]}
+                }
+
+                "* elements" {set maxelem $objSize}
               }
 
-# value in spreadsheet
+# colName
               if {$ok && [info exists propDefID]} {
                 set c [string index [cellRange 1 $col($pd)] 0]
                 set r $propDefIDRow($propDefID)
-
-# colName
                 if {![info exists pdheading($col($pd))]} {
                   $cells($pd) Item 3 $c $colName
                   $cells($pd) Item 3 [string index [cellRange 1 [expr {$col($pd)+1}]] 0] "attribute"
@@ -400,55 +467,8 @@ proc valPropReport {objEntity} {
 
                 set ov $objValue
                 if {$ent1 == "cartesian_point coordinates" || $ent1 == "direction direction_ratios"} {regsub -all " " $ov "    " ov}
-
-                set val [[$cells($pd) Item $r $c] Value]
-                if {$val == ""} {
-                  $cells($pd) Item $r $c $ov
-                } else {
-                  if {[catch {
-                    $cells($pd) Item $r $c "$val[format "%c" 10]$ov"
-                  } emsg]} {
-                    errorMsg "  ERROR: Too much data to show in a cell" red
-                  }
-                }
-
-# entity reference in spreadsheet (cartesian point or direction)
                 incr col($pd)
-                set c [string index [cellRange 1 $col($pd)] 0]
-                set val [[$cells($pd) Item $r $c] Value]
-                if {$val == ""} {
-                  $cells($pd) Item $r $c "#$objID $ent2"
-                } else {
-                  $cells($pd) Item $r $c "$val[format "%c" 10]#$objID $ent2"
-                }
                 set pdcol [expr {max($col($pd),$pdcol)}]
-
-# add blank columns for units and exponent, if more than one representation
-                if {[info exists maxrep]} {
-                  if {$maxrep > 1} {
-                    for {set i 0} {$i < 4} {incr i} {
-                      incr col($pd)
-                      set c [string index [cellRange 1 $col($pd)] 0]
-                      set val [[$cells($pd) Item $r $c] Value]
-                      if {$val == ""} {
-                        $cells($pd) Item $r $c " "
-                      } else {
-                        $cells($pd) Item $r $c "$val[format "%c" 10] "
-                      }
-                      set pdcol [expr {max($col($pd),$pdcol)}]
-                    }
-                  }
-                } else {
-                  errorMsg "maxrep does not exist"
-                }
-              }
-            }
-
-# write sampling points
-            if {$objName == "items" && [info exists r]} {
-              set val [[$cells($pd) Item $r 5] Value]
-              if {[string first " sampling points" $val] != -1} {
-                $cells($pd) Item $r 5 "$val ([expr {min($pointLimit,$objSize)}] of $objSize)"
               }
             }
 
@@ -475,30 +495,56 @@ proc valPropReport {objEntity} {
 
 # get values for these entity and attribute pairs
               switch -glob $ent1 {
-                "*_representation_item the_value" {
+                "*_representation_item the_value" -
+                "descriptive_representation_item description" {
                   set ok 1
                   set col($pd) 9
                   set colName "value"
+                  addValProps 2 $objValue "#$objID $ent2"
+                  #outputMsg "  VALUE    [llength [lindex $valProps 2]]  $valProps" red
                 }
 
-                "descriptive_representation_item description" {set ok 1; set col($pd) 9;  set colName "value"}
-                "derived_unit_element exponent"               {set ok 1; set col($pd) 13; set colName "exponent"}
-
-                "*_unit_and_si_unit name" -
-                "si_unit_and_*_unit name" {set ok 1; set col($pd) 11; set colName "units"; set objValue "$prefix$objValue"}
                 "*_unit_and_si_unit prefix" -
                 "si_unit_and_*_unit prefix" {set ok 0; set prefix $objValue}
-                "conversion_based_unit_and_*_unit name" {set ok 1; set col($pd) 11; set colName "units"}
+
+                "*_unit_and_si_unit name" -
+                "si_unit_and_*_unit name" {
+                  set ok 1
+                  set col($pd) 11
+                  set colName "units"
+                  set objValue "$prefix$objValue"
+                  addValProps 3 $objValue "#$objID $ent2"
+                  #outputMsg "   UNITS    [llength [lindex $valProps 3]]  $valProps" red
+                }
+                "conversion_based_unit_and_*_unit name" {
+                  set ok 1
+                  set col($pd) 11
+                  set colName "units"
+                  addValProps 3 $objValue "#$objID $ent2"
+                  #outputMsg "   UNITS    [llength [lindex $valProps 3]]  $valProps" red
+                }
+
+                "derived_unit_element exponent" {
+                  set ok 1
+                  set col($pd) 13
+                  set colName "exponent"
+                  addValProps 4 $objValue "#$objID $ent2"
+                  #outputMsg "    EXP      [llength [lindex $valProps 4]]  $valProps" red
+                }
 
                 "property_definition name" {
                   set ok 0
                   set pmivalprop 1
                   regsub -all " " $objValue "_" propDefName
 
-                  if {[string first "validation property" $objValue] != -1} {
+# check for valid validation property names and 'semantic text'
+                  if {[string first "validation property" $objValue] != -1 || $objValue == "semantic text"} {
                     set okvp 0
                     set vps [list "geometric" "assembly" "pmi" "tessellated" "attribute" "FEA" "composite"]
                     foreach vp $vps {if {[string first $vp $objValue] == 0} {set okvp 1}}
+                    if {$objValue == "semantic text"} {set okvp 1}
+
+# bad valprop name
                     if {!$okvp} {
                       set okvp 0
                       foreach vp $vps {
@@ -526,9 +572,12 @@ proc valPropReport {objEntity} {
                   set ok 1
                   set col($pd) 5
                   set colName "representation name"
-
                   set repName $objValue
                   if {[string first "sampling points" $repName] != -1} {set ncardpt 0}
+
+# add representation name to valProps
+                  addValProps 0 $objValue "#$objID $ent2"
+                  #outputMsg "REPNAME  [llength [lindex $valProps 0]]  $valProps" red
 
                   if {[info exists propDefName]} {
                     if {$entLevel == 2 && [info exists valPropNames($propDefName)]} {
@@ -582,6 +631,8 @@ proc valPropReport {objEntity} {
                   set colName "value name"
                   set valName $objValue
                   if {[info exists nrep]} {incr nrep}
+                  addValProps 1 $objValue "#$objID $ent2"
+                  #outputMsg " VALNAME  [llength [lindex $valProps 1]]  $valProps" red
 
 # RP allows for blank representation.name (repName) except for sampling points
                   if {[info exists propDefName]} {
@@ -608,10 +659,11 @@ proc valPropReport {objEntity} {
                         }
                       }
 
-# do not flag cartesian_point.name errors with entity ids
+# do not flag cartesian_point.name errors with entity ids, or semantic text property name
                       if {!$ok1 && $ent2 == "cartesian_point.name"} {
                         if {[string first "\#" $objValue] != -1} {set ok1 1}
                       }
+                      if {$propDefName == "semantic_text"} {set ok1 1}
 
                       if {$ok1 != 1} {
                         if {$ok1 == 0} {
@@ -643,12 +695,10 @@ proc valPropReport {objEntity} {
                 }
               }
 
-# value in spreadsheet
+# colName
               if {$ok && [info exists propDefID]} {
                 set c [string index [cellRange 1 $col($pd)] 0]
                 set r $propDefIDRow($propDefID)
-
-# colName
                 if {![info exists pdheading($col($pd))]} {
                   $cells($pd) Item 3 $c $colName
                   $cells($pd) Item 3 [string index [cellRange 1 [expr {$col($pd)+1}]] 0] "attribute"
@@ -656,76 +706,18 @@ proc valPropReport {objEntity} {
                 }
 
 # keep track of rows with validation properties
-                if {[lsearch $propDefRow $r] == -1 && [string first "validation_property" $propDefName] != -1} {lappend propDefRow $r}
-
-                set val [[$cells($pd) Item $r $c] Value]
+                if {[lsearch $propDefRow $r] == -1 && \
+                   ([string first "validation_property" $propDefName] != -1 || $propDefName == "semantic_text")} {lappend propDefRow $r}
                 if {$invalid != ""} {lappend syntaxErr($pd) [list $r $col($pd) $invalid]}
-
-                if {$val == ""} {
-                  $cells($pd) Item $r $c $objValue
-                } else {
-
-# adjust exponent val for length (why?)
-                  if {[string first "exponent" $ent2] != -1 && [string first "length" $valName] != -1} {set val [string range $val 0 end-3]}
-
-                  if {![info exists nrep] || $c != "G"} {
-                    $cells($pd) Item $r $c "$val[format "%c" 10]$objValue"
-
-# add nrep count
-                  } elseif {$maxrep > 1} {
-                    if {$nrep != 2} {
-                      $cells($pd) Item $r $c "$val[format "%c" 10]($nrep) $objValue"
-                    } else {
-                      if {[string range $val 0 2] != "(1)"} {
-                        $cells($pd) Item $r $c "(1) $val[format "%c" 10]($nrep) $objValue"
-                      } else {
-                        $cells($pd) Item $r $c "$val[format "%c" 10]($nrep) $objValue"
-                      }
-                    }
-                  } else {
-                    $cells($pd) Item $r $c "$val[format "%c" 10]$objValue"
-                  }
-                }
-
-# entity reference in spreadsheet
-                if {[info exists r]} {
-                  incr col($pd)
-                  set c [string index [cellRange 1 $col($pd)] 0]
-                  set val [[$cells($pd) Item $r $c] Value]
-                  if {$val == ""} {
-                    $cells($pd) Item $r $c "#$objID $ent2"
-                  } else {
-                    $cells($pd) Item $r $c "$val[format "%c" 10]#$objID $ent2"
-                  }
-                  set pdcol [expr {max($col($pd),$pdcol)}]
-
-# add blank columns for units and exponent
-                  if {[info exists valName]} {
-                    if {[string first "area" $valName] == -1 && [string first "volume" $valName] == -1 && [string first "density" $valName] == -1 && \
-                        ([string first "length_unit" $ent2] != -1 || [string first "description" $ent2] != -1 || [string first "value" $ent2] > 0)} {
-                      set i1 4
-                      if {[string first "length" $valName] != -1 || [string first "thickness" $valName] != -1 || $valName == ""} {set i1 2}
-                      for {set i 0} {$i < $i1} {incr i} {
-                        incr col($pd)
-                        set c [string index [cellRange 1 $col($pd)] 0]
-                        set val [[$cells($pd) Item $r $c] Value]
-                        if {$val == ""} {
-                          $cells($pd) Item $r $c " "
-                        } else {
-                          $cells($pd) Item $r $c "$val[format "%c" 10] "
-                        }
-                        set pdcol [expr {max($col($pd),$pdcol)}]
-                      }
-                    }
-                  }
-                }
+                incr col($pd)
+                set pdcol [expr {max($col($pd),$pdcol)}]
               }
             }
           }
         }
       }
 
-# error reading valprop      
+# error reading valprop
     } emsg1]} {
       set msg ""
       if {[info exists objName]} {
@@ -737,7 +729,7 @@ proc valPropReport {objEntity} {
       }
       if {$msg == ""} {
         set emsg1 [string trim $emsg1]
-        if {[string length $emsg1] > 0 && [string first "can't read" $emsg1] == -1} {errorMsg "ERROR adding Validation Properties: $emsg1"}
+        if {[string length $emsg1] > 0 && [string first "can't read \"ent(" $emsg1] == -1} {errorMsg "ERROR adding Validation Properties: $emsg1"}
       }
     }
   }
@@ -804,7 +796,7 @@ proc valPropFormat {} {
       errorMsg "ERROR formatting Validation Properties 1: $emsg"
     }
 
-# colors and borders
+# colors
     if {[catch {
       set j 0
       for {set i 5} {$i <= $col($thisEntType)} {incr i 2} {
@@ -813,21 +805,21 @@ proc valPropFormat {} {
           set r2 [lindex $r 1]
           set range [$worksheet($thisEntType) Range [cellRange $r1 $i] [cellRange $r2 [expr {$i+1}]]]
           [$range Interior] ColorIndex [lindex [list 36 35] [expr {$j%2}]]
-
-          if {$i == 5 && $r2 > 3} {
-            if {$r1 < 4} {set r1 4}
-            set range [$worksheet($thisEntType) Range [cellRange $r1 5] [cellRange $r2 $col($thisEntType)]]
-            for {set k 7} {$k <= 12} {incr k} {
-              if {$k != 9 || [expr {$row($thisEntType)+2}] != $r2} {
-                catch {[[$range Borders] Item [expr $k]] Weight [expr 1]}
-              }
-            }
-          }
         }
         incr j
       }
     } emsg]} {
-      errorMsg "ERROR formatting Validation Properties 2: $emsg"
+      errorMsg "ERROR formatting Validation Properties (colors): $emsg"
+    }
+
+# borders (inside horizontal and vertical)
+    if {[catch {
+      set range [$worksheet($thisEntType) Range [cellRange 4 5] \
+        [cellRange [expr {[[[$worksheet($thisEntType) UsedRange] Rows] Count]+1}] [[[$worksheet($thisEntType) UsedRange] Columns] Count]]]
+      [[$range Borders] Item [expr 11]] Weight [expr 1]
+      [[$range Borders] Item [expr 12]] Weight [expr 1]
+    } emsg]} {
+      errorMsg "ERROR formatting Validation Properties (borders): $emsg"
     }
 
 # left and right borders in header
@@ -854,7 +846,7 @@ proc valPropFormat {} {
       if {$val == "value name"} {
         for {set i1 $i} {$i1 <= $colrange} {incr i1} {
           set range [$worksheet($thisEntType) Range [cellRange -1 $i1]]
-          $range ColumnWidth [expr 96]
+          $range ColumnWidth [expr 196]
         }
         break
       }
@@ -879,5 +871,62 @@ proc valPropFormat {} {
       set anchor [$worksheet($thisEntType) Range A2]
       [$worksheet($thisEntType) Hyperlinks] Add $anchor [join "https://www.cax-if.org/cax/cax_recommPractice.php"] [join ""] [join "Link to CAx-IF Recommended Practices"]
     }
+  }
+}
+
+# -------------------------------------------------------------------------------
+# add (idx=0) representation name, (1) value name, (2) value, (3) units, or (4) exponent to valProps and ents to valPropEnts
+proc addValProps {idx val ent} {
+  global maxelem nvp valName valstr valent
+
+# accumulate val in valstr($idx) if maxelem > 1 for units and exponents
+  if {[info exists maxelem] && $idx >= 3} {
+    if {$maxelem > 1} {
+      incr nvp($idx)
+      append valstr($idx) "$val  "
+      append valent($idx) "$ent   "
+      if {$nvp($idx) == $maxelem} {
+        set val [string trim $valstr($idx)]
+        set ent [string trim $valent($idx)]
+        unset valstr($idx)
+        unset valent($idx)
+        set nvp($idx) 0
+      } else {
+        return
+      }
+    }
+  }
+
+# set or append val in valProps
+  setValProps $idx $val $ent
+
+# add blank depending on the value name, units and exponents
+  if {$idx == 2} {
+    foreach str [list name "number of" point string] {if {[string first $str $valName] != -1} {foreach id {3 4} {setValProps $id}; break}}
+
+# only exponent
+  } elseif {$idx == 3} {
+    foreach str [list degree length mass] {if {[string first $str $valName] != -1} {setValProps 4; break}}
+  }
+}
+
+# -------------------------------------------------------------------------------
+proc setValProps {idx {val ""} {ent ""}} {
+  global valPropEnts valProps
+
+# set
+  if {[lindex $valProps $idx] == ""} {
+    lset valProps $idx    [list $val]
+    lset valPropEnts $idx [list $ent]
+
+# append
+  } else {
+    set vn [lindex $valProps $idx]
+    lappend vn $val
+    lset valProps $idx $vn
+
+    set vn [lindex $valPropEnts $idx]
+    lappend vn $ent
+    lset valPropEnts $idx $vn
   }
 }

@@ -3,7 +3,7 @@ proc genExcel {{numFile 0}} {
   global allEntity aoEntTypes ap203all ap214all ap242all badAttributes brepEnts buttons cells cells1 col col1 count csvdirnam csvfile currLogFile developer
   global dim dimRepeatDiv editorCmd entCategories entCategory entColorIndex entCount entityCount entsIgnored entsWithErrors errmsg excel
   global excelVersion extXLS fcsv feaLastEntity File fileEntity filesProcessed gpmiTypesInvalid gpmiTypesPerFile idxColor ifcsvrDir inverses
-  global lastXLS lenfilelist localName localNameList logFile multiFile multiFileDir mytemp nistCoverageLegend nistName nistPMIexpected nistPMImaster
+  global lastXLS lenfilelist localName localNameList logFile matrixList multiFile multiFileDir mytemp nistCoverageLegend nistName nistPMIexpected nistPMImaster
   global nprogBarEnts nshape ofCSV ofExcel opt pf32 p21e3 p21e3Section row rowmax savedViewButtons savedViewName savedViewNames scriptName
   global sheetLast skipEntities skipPerm spmiEntity spmiSumName spmiSumRow spmiTypesPerFile startrow statsOnly stepAP tessColor thisEntType tlast
   global tolNames tolStandard tolStandards totalEntity userEntityFile userEntityList userXLSFile useXL viz workbook workbooks
@@ -171,7 +171,7 @@ proc genExcel {{numFile 0}} {
         if {$str != "B-rep geometry"} {outputMsg "This file contains: $str" red}
       }
     } else {
-      errorMsg "There are no entities in the STEP file."
+      errorMsg "The number of entities could not be counted or there are no entities in the STEP file.  See Examples menu for sample STEP files."
     }
     outputMsg " "
 
@@ -339,7 +339,8 @@ proc genExcel {{numFile 0}} {
         set extXLS "xls"
         set xlFormat [expr 56]
         set rowmax [expr {2**16}]
-        errorMsg "Some spreadsheet features are not compatible with older versions of Excel."
+        errorMsg "Some spreadsheet formatting is not compatible with older versions of Excel."
+        outputMsg " "
       }
 
 # generate with Excel but save as CSV
@@ -502,6 +503,11 @@ proc genExcel {{numFile 0}} {
   set fixlist {}
   if {![info exists objDesign]} {return}
   catch {unset entCount}
+
+  if {![info exists entityTypeNames]} {
+    errorMsg "The STEP file cannot be processed.  Try opening the file in a different STEP viewer, see Websites > STEP File Viewers"
+    return
+  }
 
 # for all entity types, check for which ones to process
   foreach entType $entityTypeNames {
@@ -875,6 +881,7 @@ proc genExcel {{numFile 0}} {
         set badAttr [info exists badAttributes($entType)]
 
 # process the entity type
+        catch {unset matrixList}
         ::tcom::foreach objEntity [$objDesign FindObjects [join $entType]] {
           if {$entType == [$objEntity Type]} {
             incr nprogBarEnts
@@ -929,6 +936,10 @@ proc genExcel {{numFile 0}} {
             }
           }
         }
+
+# write matrix of values to the worksheet for this entity, matrixList is from getEntity
+        set range [$worksheet($thisEntType) Range [cellRange 4 1] [cellRange [expr {[llength $matrixList]+3}] [llength [lindex $matrixList 0]]]]
+        $range Value2 $matrixList
 
 # close CSV file
         if {!$useXL} {catch {close $fcsv}}
@@ -1079,7 +1090,7 @@ proc genExcel {{numFile 0}} {
 
   incr filesProcessed
   saveState
-  
+
 # -------------------------------------------------------------------------------------------------
 # save spreadsheet
   set csvOpenDir 0
@@ -2202,9 +2213,9 @@ proc addP21e3Section {} {
     }
 
     set range [$worksheet($ent) Range [cellRange 3 $ucol($ent)]]
-    [[$range Borders] Item [expr 8]] Weight [expr 3]
+    catch {[[$range Borders] Item [expr 8]] Weight [expr 3]}
     [$range Font] Bold [expr 1]
     $range HorizontalAlignment [expr -4108]
-    [[[$worksheet($ent) Range [cellRange $urow($ent) $ucol($ent)]] Borders] Item [expr 9]] Weight [expr 3]
+    catch {[[[$worksheet($ent) Range [cellRange $urow($ent) $ucol($ent)]] Borders] Item [expr 9]] Weight [expr 3]}
   }
 }

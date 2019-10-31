@@ -1,8 +1,10 @@
-# version numbers, software and user guide, contact
-# user guide URLs are below in showFileURL
-
-proc getVersion {}   {return 3.66}
+# version numbers - SFA, software user guide (UG)
+proc getVersion {}   {return 3.70}
 proc getVersionUG {} {return 3.0}
+
+# IFCsvr version, depends on string entered when IFCsvr is repackaged for new STEP schemas
+proc getVersionIFCsvr {} {return 20191002}
+
 proc getContact {}   {return [list "Robert Lipman" "robert.lipman@nist.gov"]}
 
 # -------------------------------------------------------------------------------
@@ -22,7 +24,9 @@ if {$sfaVersion > 0} {
   }
   if {$sfaVersion <= 2.60} {outputMsg "- Renamed output files: Spreadsheets from 'myfile_stp.xlsx' to 'myfile-sfa.xlsx' and Views from 'myfile-x3dom.html' to 'myfile-sfa.html'"}
   if {$sfaVersion  < 2.30} {outputMsg "- The command-line version has been renamed: sfa-cl.exe  The old version STEP-File-Analyzer-CL.exe can be deleted."}
-  if {$sfaVersion  < 3.60} {outputMsg "- The IFCsvr toolkit needs to be reinstalled.  Please follow the directions below very carefully."}
+
+# update the version number when IFCsvr is repackaged to include updated STEP schemas
+  if {$sfaVersion  < 3.66} {outputMsg "- The IFCsvr toolkit needs to be reinstalled.  Please follow the directions below very carefully." red}
 
 # first time messages
 } else {
@@ -316,7 +320,7 @@ proc guiFileMenu {} {
 #-------------------------------------------------------------------------------
 # options tab, process and report
 proc guiProcessAndReports {} {
-  global allNone buttons cb entCategory fopt fopta nb opt recPracNames
+  global allNone buttons cb entCategory fopt fopta nb opt
 
   set cb 0
   set wopt [ttk::panedwindow $nb.options -orient horizontal]
@@ -460,8 +464,8 @@ proc guiProcessAndReports {} {
   catch {
     tooltip::tooltip $buttons(optPMISEM)  "The analysis of PMI Representation information is shown on\ndimension, tolerance, datum target, datum, and hole (AP242e2)\nentities.  Semantic PMI is found mainly in STEP AP242 files.\n\nSee Help > Analyze > PMI Representation\nSee Help > User Guide (section 5.1)\nSee Help > Syntax Errors\nSee Examples > Spreadsheet - PMI Representation\nSee Examples > Sample STEP Files\nSee Websites > AP242"
     tooltip::tooltip $buttons(optPMIGRF)  "The analysis of PMI Presentation information is\nshown on 'annotation occurrence' entities.\n\nSee Help > Analyze > PMI Presentation\nSee Help > User Guide (section 5.2)\nSee Help > Syntax Errors\nSee Examples > PMI Presentation, Validation Properties\nSee Examples > View Part with PMI\nSee Examples > AP242 Tessellated Part with PMI\nSee Examples > Sample STEP Files"
-    tooltip::tooltip $buttons(optVALPROP) "The analysis of Validation Properties and other properties\nis shown on the 'property_definition' entity.\n\nSee Help > Analyze > Validation Properties\nSee Help > User Guide (section 5.3)\nSee Help > Syntax Errors\nSee Examples > PMI Presentation, Validation Properties"
-    tooltip::tooltip $buttons(optPMIGRFCOV) "The PMI Presentation Coverage worksheet counts the number of recommended names used from the\nRecommended Practice for Representation and Presentation of PMI (AP242), Section 8.4, Table 14.  The\nnames do not have any semantic PMI meaning.  This worksheet was always generated before version\n3.62 when PMI Presentation was selected.\n\nSee Help > Analyze > PMI Coverage Analysis"    
+    tooltip::tooltip $buttons(optVALPROP) "The analysis of Validation Properties and other properties is shown\non the 'property_definition' entity.  All properties might not shown\ndepending on the value of Maximum Rows (Spreadsheet tab).\n\nSee Help > Analyze > Validation Properties\nSee Help > User Guide (section 5.3)\nSee Help > Syntax Errors\nSee Examples > PMI Presentation, Validation Properties"
+    tooltip::tooltip $buttons(optPMIGRFCOV) "The PMI Presentation Coverage worksheet counts the number of recommended names used from the\nRecommended Practice for Representation and Presentation of PMI (AP242), Section 8.4, Table 14.  The\nnames do not have any semantic PMI meaning.  This worksheet was always generated before version\n3.62 when PMI Presentation was selected.\n\nSee Help > Analyze > PMI Coverage Analysis"
     tooltip::tooltip $buttons(optPMISEMDIM) "Analyze only dimensional tolerances and no\ngeometric tolerances, datums, or datum targets."
   }
 
@@ -1298,7 +1302,8 @@ meaning to the name attributes."
 outputMsg "\nValidation Properties ------------------------------------------------------" blue
 outputMsg "Geometric, assembly, PMI, annotation, attribute, tessellated, composite, and FEA validation
 properties are reported.  The property values are reported in columns highlighted in yellow and
-green on the property_definition worksheet.  The worksheet can also be sorted and filtered.
+green on the property_definition worksheet.  The worksheet can also be sorted and filtered.  All
+properties might not shown depending on the value of Maximum Rows (Spreadsheet tab).
 
 See Help > User Guide (section 5.3)
 See Examples > PMI Presentation, Validation Properties
@@ -1621,15 +1626,15 @@ dialogs might appear that say 'Unable to alloc xxx bytes'.  See the Help > Crash
 
 The STEP File Analyzer and Viewer was first released in April 2012 and is developed at
 NIST in the Systems Integration Division of the Engineering Laboratory.  Click the NIST
-logo below for the NIST website.
+logo below for information about NIST.
 
-See Help > Disclaimer and NIST Disclaimer
+See Help > Disclaimers and NIST Disclaimer
 
 Credits
 - Generating spreadsheets:        Microsoft Excel (https://products.office.com/excel)
-- Reading and parsing STEP files: IFCsvr (https://groups.yahoo.com/neo/groups/ifcsvr-users/info)
-                                  License agreement C:\\Program Files (x86)\\IFCsvrR300\\doc
-                                  IFCsvr ActiveX Component, Copyright \u00A9 1999, 2005 SECOM Co., Ltd. All Rights Reserved
+- Reading and parsing STEP files: IFCsvr ActiveX Component, Copyright \u00A9 1999, 2005 SECOM Co., Ltd. All Rights Reserved
+                                  IFCsvr has been modified by NIST to include STEP schemas.
+                                  The license agreement can be found in C:\\Program Files (x86)\\IFCsvrR300\\doc
 - Viewing B-rep part geometry:    OpenCascade (https://www.opencascade.com/) and
                                   pythonOCC (https://github.com/tpaviot/pythonocc)
                                   See Websites > STEP Software"
@@ -1652,7 +1657,6 @@ Credits
       catch {outputMsg " Desktop   [registry get {HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\User Shell Folders} {Desktop}]"}
       catch {outputMsg " Programs  [registry get {HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\User Shell Folders} {Programs}]"}
       catch {outputMsg " AppData   [registry get {HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\User Shell Folders} {Local AppData}]"}
-      catch {outputMsg " Browser   [registry get {HKEY_CURRENT_USER\Software\Classes\http\shell\open\command} {}]"}
 
       outputMsg "SFA variables" red
       catch {outputMsg " Drive $drive"}
@@ -1663,7 +1667,6 @@ Credits
       catch {outputMsg " Temp  $mytemp  ([file exists $mytemp])"}
       outputMsg " pf32  $pf32"
       if {$pf64 != ""} {outputMsg " pf64  $pf64"}
-      #catch {outputMsg " ifcsvrDir  [file nativename $ifcsvrDir]"}
 
       outputMsg "Other variables" red
       outputMsg " Tcl [info patchlevel]"
@@ -1677,9 +1680,13 @@ Credits
 # examples menu
   $Examples add command -label "Sample STEP Files (zip)" -command {openURL https://s3.amazonaws.com/nist-el/mfg_digitalthread/NIST_CTC_STEP_PMI.zip}
   $Examples add command -label "STEP File Library"       -command {openURL https://www.cax-if.org/cax/cax_stepLib.php}
-  $Examples add command -label "AP203e2 Archive"         -command {openURL http://web.archive.org/web/20160812122922/http://www.steptools.com/support/stdev_docs/stpfiles/ap203e2/index.html}
-  $Examples add command -label "AP203 Archive"           -command {openURL http://web.archive.org/web/20160812122922/http://www.steptools.com/support/stdev_docs/stpfiles/ap203/index.html}
-  $Examples add command -label "AP214 Archive"           -command {openURL http://web.archive.org/web/20160903141712/http://www.steptools.com/support/stdev_docs/stpfiles/ap214/index.html}
+
+  $Examples add cascade -label "Archived Sample STEP Files" -menu $Examples.0
+  set Examples0 [menu $Examples.0 -tearoff 1]
+  $Examples0 add command -label "AP203e2 Files" -command {openURL http://web.archive.org/web/20160812122922/http://www.steptools.com/support/stdev_docs/stpfiles/ap203e2/index.html}
+  $Examples0 add command -label "AP203e1 Files" -command {openURL http://web.archive.org/web/20160812122922/http://www.steptools.com/support/stdev_docs/stpfiles/ap203/index.html}
+  $Examples0 add command -label "AP214e1 Files" -command {openURL http://web.archive.org/web/20160903141712/http://www.steptools.com/support/stdev_docs/stpfiles/ap214/index.html}
+
   $Examples add separator
   $Examples add command -label "View Part with PMI"              -command {openURL https://pages.nist.gov/CAD-PMI-Testing/graphical-pmi-viewer.html}
   $Examples add command -label "AP242 Tessellated Part with PMI" -command {openURL https://pages.nist.gov/CAD-PMI-Testing/tessellated-part-geometry.html}
@@ -1704,9 +1711,9 @@ proc guiWebsitesMenu {} {
 
   $Websites add separator
   $Websites add command -label "MBx Interoperability Forum (MBx-IF)" -command {openURL https://www.cax-if.org}
-  $Websites add command -label "STEP File Viewers"     -command {openURL https://www.cax-if.org/cax/step_viewers.php}
-  $Websites add command -label "Recommended Practices" -command {openURL https://www.cax-if.org/cax/cax_recommPractice.php}
-  $Websites add command -label "CAD Implementations"   -command {openURL https://www.cax-if.org/cax/vendor_info.php}
+  $Websites add command -label "STEP File Viewers"         -command {openURL https://www.cax-if.org/cax/step_viewers.php}
+  $Websites add command -label "CAx Recommended Practices" -command {openURL https://www.cax-if.org/cax/cax_recommPractice.php}
+  $Websites add command -label "CAD Implementations"       -command {openURL https://www.cax-if.org/cax/vendor_info.php}
 
   $Websites add separator
   $Websites add command -label "CAE-IF" -command {openURL https://www.cax-if.org/cae/cae_testround.php}
@@ -1727,42 +1734,42 @@ proc guiWebsitesMenu {} {
   $Websites add separator
   $Websites add cascade -label "STEP Format and Schemas" -menu $Websites.2
   set Websites2 [menu $Websites.2 -tearoff 1]
-  $Websites2 add command -label "STEP Format"                 -command {openURL https://www.loc.gov/preservation/digital/formats/fdd/fdd000448.shtml}
-  $Websites2 add command -label "ISO 10303 Part 21"           -command {openURL https://en.wikipedia.org/wiki/ISO_10303-21}
-  $Websites2 add command -label "ISO 10303 Part 21 Edition 3" -command {openURL https://www.steptools.com/stds/step/}
+  $Websites2 add command -label "STEP Format"                       -command {openURL https://www.loc.gov/preservation/digital/formats/fdd/fdd000448.shtml}
+  $Websites2 add command -label "ISO 10303 Part 21"                 -command {openURL https://en.wikipedia.org/wiki/ISO_10303-21}
+  #$Websites2 add command -label "STEP Application Handbook (pdf)"   -command {openURL http://www.asd-ssg.org/c/document_library/get_file?uuid=1a27ecc6-6570-40cd-b611-f02bac2c2687&groupId=11317}
+  $Websites2 add command -label "AP203 Recommended Practice (pdf)"  -command {openURL https://www.oasis-open.org/committees/download.php/11728/recprac8.pdf}
+  $Websites2 add command -label "ISO 10303 Part 21 Edition 3 (ppt)" -command {openURL https://www.steptools.com/stds/step/p21e3_final_review.pptx}
   $Websites2 add separator
-  $Websites2 add command -label "EXPRESS Schemas"             -command {openURL https://www.cax-if.org/cax/cax_express.php}
-  $Websites2 add command -label "More EXPRESS Schemas"        -command {openURL http://web.archive.org/web/20160322005246/www.steptools.com/support/stdev_docs/express/}
-  $Websites2 add command -label "ISO 10303 Part 11 EXPRESS"   -command {openURL https://www.loc.gov/preservation/digital/formats/fdd/fdd000449.shtml}
+  $Websites2 add command -label "EXPRESS Schemas"                -command {openURL https://www.cax-if.org/cax/cax_express.php}
+  $Websites2 add command -label "More EXPRESS Schemas"           -command {openURL http://web.archive.org/web/20160322005246/www.steptools.com/support/stdev_docs/express/}
+  $Websites2 add command -label "ISO 10303 Part 11 EXPRESS"      -command {openURL https://www.loc.gov/preservation/digital/formats/fdd/fdd000449.shtml}
+  $Websites2 add command -label "EXPRESS data modeling language" -command {https://en.wikipedia.org/wiki/EXPRESS_(data_modeling_language)}
   $Websites2 add separator
-  $Websites2 add command -label "AP235 Properties"            -command {openURL http://www.ap235.org}
-  $Websites2 add command -label "AP238 Machining"             -command {openURL http://www.ap238.org}
-  $Websites2 add command -label "AP239 PLCS"                  -command {openURL http://www.ap239.org}
-  $Websites2 add command -label "AP243 MoSSEC"                -command {openURL http://www.mossec.org/}
+  $Websites2 add command -label "AP235 Properties" -command {openURL http://www.ap235.org}
+  $Websites2 add command -label "AP238 Machining"  -command {openURL http://www.ap238.org}
+  $Websites2 add command -label "AP239 PLCS"       -command {openURL http://www.ap239.org}
+  $Websites2 add command -label "AP243 MoSSEC"     -command {openURL http://www.mossec.org/}
 
   $Websites add cascade -label "STEP Software" -menu $Websites.4
   set Websites4 [menu $Websites.4 -tearoff 1]
-  $Websites4 add command -label "STEP File Analyzer and Viewer source code" -command {openURL https://github.com/usnistgov/SFA}
-  $Websites4 add command -label "Digital Manufacturing Certificate Toolkit" -command {openURL https://github.com/usnistgov/DT4SM/tree/master/DMC-Toolkit}
-  $Websites4 add separator
-  $Websites4 add command -label "STEP Tools Software"                       -command {openURL https://github.com/steptools}
+  $Websites4 add command -label "STEPcode"                                  -command {openURL http://stepcode.github.io/}
   $Websites4 add command -label "OpenCascade STEP Processor"                -command {openURL https://www.opencascade.com/doc/occt-7.0.0/overview/html/occt_user_guides__step.html}
   $Websites4 add command -label "pythonOCC"                                 -command {openURL https://github.com/tpaviot/pythonocc}
   $Websites4 add command -label "STEP to X3D Translation"                   -command {openURL http://www.web3d.org/wiki/index.php/STEP_X3D_Translation}
-  $Websites4 add command -label "STEP Class Library (STEPcode)"             -command {openURL https://www.nist.gov/services-resources/software/step-class-library-scl}
+  $Websites4 add command -label "STEP File Analyzer and Viewer source code" -command {openURL https://github.com/usnistgov/SFA}
+  $Websites4 add command -label "Digital Manufacturing Certificate Toolkit" -command {openURL https://github.com/usnistgov/DT4SM/tree/master/DMC-Toolkit}
+  $Websites4 add command -label "STEP Class Library"                        -command {openURL https://www.nist.gov/services-resources/software/step-class-library-scl}
   $Websites4 add command -label "Express Engine"                            -command {openURL http://exp-engine.sourceforge.net/}
-  $Websites4 add command -label "STEP Engine"                               -command {openURL http://rdf.bg/product-list/step-engine/}
 
   $Websites add cascade -label "STEP Related Organizations" -menu $Websites.3
   set Websites3 [menu $Websites.3 -tearoff 1]
-  $Websites3 add command -label "PDES, Inc. (U.S.)"                         -command {openURL http://pdesinc.org}
   $Websites3 add command -label "prostep ivip (Germany)"                    -command {openURL https://www.prostep.org/en/projects/}
   $Websites3 add command -label "AFNeT (France)"                            -command {openURL http://afnet.fr/dotank/sps/plm-committee/}
-  $Websites3 add separator
-  $Websites3 add command -label "ISO TC184/SC4"                             -command {openURL https://www.iso.org/committee/54158.html}
-  $Websites3 add command -label "LOTAR (LOng Term Archiving and Retrieval)" -command {openURL http://www.lotar-international.org}
   $Websites3 add command -label "ASD Strategic Standardisation Group"       -command {openURL http://www.asd-ssg.org/}
+  $Websites3 add command -label "LOTAR (LOng Term Archiving and Retrieval)" -command {openURL http://www.lotar-international.org}
+  $Websites3 add command -label "PDES, Inc. (U.S.)"                         -command {openURL http://pdesinc.org}
   $Websites3 add command -label "KStep (Korea)"                             -command {openURL http://www.kstep.or.kr/}
+  $Websites3 add command -label "ISO TC184/SC4"                             -command {openURL https://www.iso.org/committee/54158.html}
 }
 
 #-------------------------------------------------------------------------------

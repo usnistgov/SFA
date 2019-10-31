@@ -1,10 +1,8 @@
 # read entity and write to spreadsheet
-
 proc getEntity {objEntity checkInverse} {
-  global attrType badAttributes cells col count developer entComment entCount entName
-  global skipEntities skipPerm heading invMsg invVals localName opt roseLogical row rowmax sheetLast
-  global thisEntType worksheet worksheets wsCount wsNames syntaxErr
-  global coordinatesList lineStrips normals triangles
+  global attrType badAttributes cells col coordinatesList count developer entComment entCount entName heading invMsg invVals lineStrips localName
+  global matrixList normals opt roseLogical row rowmax sheetLast skipEntities skipPerm syntaxErr thisEntType triangles worksheet worksheets
+  global wsCount wsNames
   
 # get entity type
   set thisEntType [$objEntity Type]
@@ -89,9 +87,9 @@ proc getEntity {objEntity checkInverse} {
   }
 
 # -------------------------------------------------------------------------------------------------
-# start filling in the cells
-
-# if less than max allowed rows
+# if less than max allowed rows, append attribute values to rowList, append rowList to matrixList 
+# originally, values where written directly one-by-one to a worksheet, see commented lines $cells() Item
+# writing a matrix of values to a worksheet is much faster than writing values to cells one at a time
   if {$row($thisEntType) <= $rowmax} {
     set col($thisEntType) 1
     incr count($thisEntType)
@@ -107,7 +105,8 @@ proc getEntity {objEntity checkInverse} {
 
 # entity ID
     set p21id [$objEntity P21ID]
-    $cells($thisEntType) Item $row($thisEntType) 1 $p21id
+    #$cells($thisEntType) Item $row($thisEntType) 1 $p21id
+    lappend rowList $p21id
     [$worksheet($thisEntType) Range A$row($thisEntType)] NumberFormat "0"
       
 # keep track of property_defintion or annotation occurrence rows in propDefIDRow, gpmiIDRow
@@ -199,15 +198,19 @@ proc getEntity {objEntity checkInverse} {
 # check if showing numbers without rounding
         catch {
           if {!$opt(XL_FPREC)} {
-            $cells($thisEntType) Item $row($thisEntType) $col($thisEntType) $ov
+            #$cells($thisEntType) Item $row($thisEntType) $col($thisEntType) $ov
+            lappend rowList $ov
           } elseif {$attrType($col($thisEntType)) != "double" && $attrType($col($thisEntType)) != "measure_value"} {
-            $cells($thisEntType) Item $row($thisEntType) $col($thisEntType) $ov
+            #$cells($thisEntType) Item $row($thisEntType) $col($thisEntType) $ov
+            lappend rowList $ov
           } elseif {[string length $ov] < 12} {
-            $cells($thisEntType) Item $row($thisEntType) $col($thisEntType) $ov
+            #$cells($thisEntType) Item $row($thisEntType) $col($thisEntType) $ov
+            lappend rowList $ov
 
 # no rounding, show as text '
           } else {
-            $cells($thisEntType) Item $row($thisEntType) $col($thisEntType) "'$ov"
+            #$cells($thisEntType) Item $row($thisEntType) $col($thisEntType) "'$ov"
+            lappend rowList "'$ov"
           }
         }
         
@@ -251,7 +254,9 @@ proc getEntity {objEntity checkInverse} {
               }
             }
           }
-          $cells($thisEntType) Item $row($thisEntType) $col($thisEntType) [string trim $str]
+          
+          #$cells($thisEntType) Item $row($thisEntType) $col($thisEntType) [string trim $str]
+          lappend rowList [string trim $str]
           set valnotlist 0
         }
 
@@ -269,7 +274,8 @@ proc getEntity {objEntity checkInverse} {
               }
             }
           }
-          $cells($thisEntType) Item $row($thisEntType) $col($thisEntType) $str
+          #$cells($thisEntType) Item $row($thisEntType) $col($thisEntType) $str
+          lappend rowList $str
           if {$cellComment && $entComment($attrName)} {
             addCellComment $thisEntType 3 $col($thisEntType) "The values of *_measure_with_unit are also shown."
             set entComment($attrName) 0
@@ -347,13 +353,18 @@ proc getEntity {objEntity checkInverse} {
             }
           }
         }
-        $cells($thisEntType) Item $row($thisEntType) $col($thisEntType) [string trim $str]
+        
+        #$cells($thisEntType) Item $row($thisEntType) $col($thisEntType) [string trim $str]
+        lappend rowList [string trim $str]
         if {$strMeasure != "" && $entComment($attrName)} {
           addCellComment $thisEntType 3 $col($thisEntType) "The values of *_measure_with_unit are also shown."
           set entComment($attrName) 0
         }
       }
     }
+
+# append rowList to matrixList which will be written to spreadsheet after all entities have been processed in genExcel
+    lappend matrixList $rowList
 
 # -------------------------------------------------------------------------------------------------
 # report inverses    
@@ -371,9 +382,7 @@ proc getEntity {objEntity checkInverse} {
 }
 
 # -------------------------------------------------------------------------------
-# keep track of property_defintion, annotation occurrence, or semantic PMI rows in
-# propDefIDRow, gpmiIDRow, spmiIDRow
-
+# keep track of property_defintion, annotation occurrence, or semantic PMI rows in propDefIDRow, gpmiIDRow, spmiIDRow
 proc setIDRow {entType p21id} {
   global gpmiEnts gpmiIDRow propDefIDRow row spmiEnts spmiIDRow
   #outputMsg "setIDRow [info exists spmiEnts($entType)] $entType $p21id $row($entType)" red
@@ -390,7 +399,7 @@ proc setIDRow {entType p21id} {
 # -------------------------------------------------------------------------------------------------
 # read entity and write to CSV file
 proc getEntityCSV {objEntity} {
-  global badAttributes count csvdirnam csvfile csvstr entCount fcsv skipEntities skipPerm localName roseLogical thisEntType rowmax row
+  global badAttributes count csvdirnam csvfile csvstr entCount fcsv localName roseLogical row rowmax skipEntities skipPerm thisEntType
   
 # get entity type
   set thisEntType [$objEntity Type]
@@ -444,9 +453,7 @@ proc getEntityCSV {objEntity} {
   }
 
 # -------------------------------------------------------------------------------------------------
-# start filling in the cells
-
-# if less than max allowed rows
+# start appending to csvstr, if less than max allowed rows
   update idletasks
   if {$row($thisEntType) <= $rowmax} {
     incr count($thisEntType)
@@ -500,7 +507,6 @@ proc getEntityCSV {objEntity} {
         set objValue ""
         catch {raise .}
       }
-  
       incr nattr
 
 # -------------------------------------------------------------------------------------------------
@@ -510,7 +516,6 @@ proc getEntityCSV {objEntity} {
   
 # if value is a boolean, substitute string roseLogical
         if {([$objAttribute Type] == "RoseBoolean" || [$objAttribute Type] == "RoseLogical") && [info exists roseLogical($ov)]} {set ov $roseLogical($ov)}
-  
         append csvstr ",$ov"
 
 # -------------------------------------------------------------------------------------------------
@@ -527,9 +532,7 @@ proc getEntityCSV {objEntity} {
 
 # process like a list which is very unusual
           catch {foreach idx [array names cellval] {unset cellval($idx)}}
-          ::tcom::foreach val $refEntity {
-            append cellval([$val Type]) "[$val P21ID] "
-          }
+          ::tcom::foreach val $refEntity {append cellval([$val Type]) "[$val P21ID] "}
           set str ""
           set size 0
           catch {set size [array size cellval]}
@@ -540,8 +543,8 @@ proc getEntityCSV {objEntity} {
               if {$ncell > 1 || $size > 1} {
                 set ok 1
                 if {$ncell > $cellLimit1 && ([string first "styled_item" $idx] != -1 || [string first "triangulated" $idx] != -1 || \
-                                     [string first "connecting_edge" $idx] != -1 || [string first "3d_element_representation" $idx] != -1 || \
-                                     $idx == "node" || $idx == "cartesian_point" || $idx == "advanced_face")} {
+                    [string first "connecting_edge" $idx] != -1 || [string first "3d_element_representation" $idx] != -1 || \
+                    $idx == "node" || $idx == "cartesian_point" || $idx == "advanced_face")} {
                   set ok 0
                 } elseif {$ncell > $cellLimit2} {
                   set ok 0
@@ -626,7 +629,6 @@ proc getEntityCSV {objEntity} {
         append csvstr ",[string trim $str]"
       }
     }
-    #outputMsg "$fcsv $csvstr"
 
 # write to CSV file
     if {[catch {

@@ -566,7 +566,7 @@ proc nistAddExpectedPMIPercent {nf} {
       set range [$worksheet1($spmiCoverageWS) Range A$r]
       [$range Font] Bold [expr 1]
       set range [$worksheet1($spmiCoverageWS) Range [cellRange [expr {$pmiElementsMaxRows+4}] 1] [cellRange [expr {$pmiElementsMaxRows+10}] [expr {$lenfilelist+1}]]]
-      foreach i {8 9 10} {[[$range Borders] Item $i] Weight [expr 2]}
+      catch {foreach i {8 9 10} {[[$range Borders] Item $i] Weight [expr 2]}}
       set r2 [expr {$pmiElementsMaxRows+9}]
       set range [$worksheet1($spmiCoverageWS) Range [cellRange $r2 1] [cellRange $r2 [expr {$lenfilelist+1}]]]
       catch {foreach i {8 9} {[[$range Borders] Item $i] Weight [expr 2]}}
@@ -646,7 +646,7 @@ proc nistAddExpectedPMIPercent {nf} {
   set r2 [expr {$r-1}]
   foreach row [list $r $r2] {
     set range [$worksheet($spmiCoverageWS) Range [cellRange $row 1] [cellRange $row 2]]
-    foreach i {8 9} {[[$range Borders] Item $i] Weight [expr 2]}
+    catch {foreach i {8 9} {[[$range Borders] Item $i] Weight [expr 2]}}
   }
 }
 

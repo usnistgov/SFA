@@ -23,6 +23,7 @@ set contact [getContact]
 
 # for building your own version with freewrap, uncomment and modify C:/Tcl/lib/teapot directory if necessary
 # the lappend commands add package locations to auto_path, must be before package commands below
+# see 30 lines below for two more lappend commands
 #lappend auto_path C:/Tcl/lib/teapot/package/win32-ix86/lib/tcom3.9
 #lappend auto_path C:/Tcl/lib/teapot/package/win32-ix86/lib/twapi3.0.32
 #lappend auto_path C:/Tcl/lib/teapot/package/win32-ix86/lib/Tclx8.4
@@ -49,6 +50,7 @@ if {[catch {
   exit
 }
 
+# for building your own version with freewrap, also uncomment and modify the lappend commands
 catch {
   #lappend auto_path C:/Tcl/lib/teapot/package/win32-ix86/lib/vfs1.4.2
   package require vfs::zip
@@ -103,10 +105,8 @@ set lastX3DOM ""
 set lastXLS  ""
 set lastXLS1 ""
 set openFileList {}
-set pointLimit 2
 set sfaVersion 0
 set upgrade 0
-set upgradeIFCsvr 0
 set userXLSFile ""
 set x3dFileName ""
 set x3dStartFile 1
@@ -143,13 +143,12 @@ if {[file exists $optionsFile]} {
     if {[info exists writeDirType]}     {set opt(writeDirType) $writeDirType}
     if {[info exists row_limit]}        {set opt(XL_ROWLIM) $row_limit}
   
+# unset old unused opt variables
     foreach item {COUNT CRASH DISPGUIDE1 EX_A2P3D EX_ANAL EX_ARBP EX_LP feaNodeType FIRSTTIME FN_APPEND GENX3DOM PMIP PMIPROP PMIVRML PR_STEP_AP203 PR_STEP_AP209 \
       PR_STEP_AP210 PR_STEP_AP214 PR_STEP_AP238 PR_STEP_AP239 PR_STEP_AP242_CONS PR_STEP_AP242_GEOM PR_STEP_AP242_KINE PR_STEP_AP242_MATH PR_STEP_AP242_OTHER \
       PR_STEP_AP242_QUAL PR_STEP_ASPECT PR_STEP_BAD PR_STEP_GEO PR_STEP_OTHER PR_STEP_REP PR_STEP_UNIT PR_TYPE ROWLIM SEMPROP SORT VIZ209 VIZBRPmsg VIZFEADStail \
       VPDBG XL_KEEPOPEN XL_LINK2 XL_LINK3 XL_ORIENT XL_SCROLL XL_XLSX XLSBUG} {catch {unset opt($item)}
     }
-    foreach var {firsttime gpmiColor indentGeometry indentStyledItem ncrash row_limit verite writeDirType} {catch {unset $var}}
-    catch {unset flag}
   } emsg]} {
     set endMsg "Error reading options file: [truncFileName $optionsFile]\n $emsg\nFix or delete the file."
   }
@@ -306,15 +305,8 @@ if {$nistVersion} {
 
 #-------------------------------------------------------------------------------
 # install IFCsvr
+installIFCsvr
 set ifcsvrDir [file join $pf32 IFCsvrR300 dll]
-if {![file exists [file join $ifcsvrDir IFCsvrR300.dll]]} {
-  installIFCsvr
-
-# or reinstall IFCsvr
-} elseif {$nistVersion} {
-  set ifcsvrTime [file mtime [file join $wdir exe ifcsvrr300_setup_1008_en-update.msi]]
-  if {$ifcsvrTime > $upgradeIFCsvr} {installIFCsvr 1}
-}
 
 focus .
 

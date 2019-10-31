@@ -166,7 +166,7 @@ proc gpmiAnnotationReport {objEntity} {
   global draftModelCameraNames draftModelCameras ent entAttrList entCount entLevel geomType gpmiEnts gpmiID gpmiIDRow
   global gpmiPlacement gpmiRow gpmiTypes gpmiTypesInvalid gpmiTypesPerFile gpmiValProp iCompCurve iCompCurveSeg iPolyline
   global nindex numCompCurve numCompCurveSeg numPolyline numx3dPID objEntity1 opt placeAnchor placeNCP placeOrigin
-  global pmiCol pmiColumns pmiHeading pmiStartCol pointLimit propDefIDS recPracNames savedViewCol savedViewName stepAP syntaxErr
+  global pmiCol pmiColumns pmiHeading pmiStartCol propDefIDS recPracNames savedViewCol savedViewName stepAP syntaxErr
   global tessCoord tessIndex tessIndexCoord tessPlacement tessRepo useXL
   global x3dColor x3dCoord x3dFile x3dFileName x3dIndex x3dIndexType x3dMax x3dMin x3dMsg x3dPID x3dPoint x3dShape x3dStartFile
   #outputMsg "gpmiAnnotationReport" red
@@ -175,7 +175,7 @@ proc gpmiAnnotationReport {objEntity} {
   incr entLevel
   set ind [string repeat " " [expr {4*($entLevel-1)}]]
 
-  set maxcp $pointLimit
+  set maxcp 2
 
   if {[string first "handle" $objEntity] != -1} {
     set objType [$objEntity Type]
@@ -322,7 +322,7 @@ proc gpmiAnnotationReport {objEntity} {
 # start of a list of cartesian points, assuming it is for a polyline, entLevel = 3
               if {$objAttrType == "ListOfcartesian_point" && $entLevel == 3} {
                 #outputMsg 1entLevel$entLevel red
-                if {$maxcp <= 10 && $maxcp < $objSize} {
+                if {$maxcp < $objSize} {
                   append x3dPID "($maxcp of $objSize) cartesian_point "
                 } else {
                   append x3dPID "($objSize) cartesian_point "
@@ -976,13 +976,17 @@ proc gpmiAnnotationReport {objEntity} {
 
 # look for link to pmi representation
               if {$attrName == "PMI representation to presentation link"} {
-                if {[string first "shape_aspect" $dmiaDefType] == -1} {
+                if {[string first "shape_aspect" $dmiaDefType] == -1 && [string first "property_definition" $dmiaDefType]} {
                   set spmi_p21id [$dmiaDef P21ID]
                   if {![info exists assocSPMI($dmiaDefType)]} {
                     lappend assocSPMI($dmiaDefType) $spmi_p21id
                   } elseif {[lsearch $assocSPMI($dmiaDefType) $spmi_p21id] == -1} {
                     lappend assocSPMI($dmiaDefType) $spmi_p21id
                   }
+                } else {
+                  set msg "Syntax Error: Bad 'definition' attribute on draughting_model_item_association with 'PMI representation to presentation link' name attribute.\n[string repeat " " 14]($recPracNames(pmi242), Sec. 7.3)"
+                  errorMsg $msg
+                  lappend syntaxErr(draughting_model_item_association) [list [$objGuiEntity P21ID] definition $msg]
                 }
 
 # look at shape_aspect or datums to find associated geometry
