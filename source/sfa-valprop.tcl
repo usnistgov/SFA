@@ -708,7 +708,7 @@ proc valPropReport {objEntity} {
 # keep track of rows with validation properties
                 if {[lsearch $propDefRow $r] == -1 && \
                    ([string first "validation_property" $propDefName] != -1 || $propDefName == "semantic_text")} {lappend propDefRow $r}
-                if {$invalid != ""} {lappend syntaxErr($pd) [list $r $col($pd) $invalid]}
+                if {$invalid != ""} {lappend syntaxErr($pd) [list "-$r" $col($pd) $invalid]}
                 incr col($pd)
                 set pdcol [expr {max($col($pd),$pdcol)}]
               }

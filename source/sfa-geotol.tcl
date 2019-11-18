@@ -534,7 +534,7 @@ proc spmiGeotolReport {objEntity} {
 
 # keep track of rows with PMI properties
                   if {[lsearch $spmiRow($gt) $r] == -1} {lappend spmiRow($gt) $r}
-                  if {$invalid != ""} {lappend syntaxErr($gt) [list $r $col($gt) $invalid]}
+                  if {$invalid != ""} {lappend syntaxErr($gt) [list "-$r" $col($gt) $invalid]}
 
 # value in spreadsheet
                   set val [[$cells($gt) Item $r $c] Value]
@@ -700,7 +700,7 @@ proc spmiGeotolReport {objEntity} {
 
 # keep track of rows with PMI properties
                   if {[lsearch $spmiRow($gt) $r] == -1} {lappend spmiRow($gt) $r}
-                  if {$invalid != ""} {lappend syntaxErr($gt) [list $r $col($gt) $invalid]}
+                  if {$invalid != ""} {lappend syntaxErr($gt) [list "-$r" $col($gt) $invalid]}
 
 # write tolerance with modifier
                   set ov $objValue
@@ -1295,7 +1295,7 @@ proc spmiGeotolReport {objEntity} {
 
 # keep track of rows with semantic PMI
                   if {[lsearch $spmiRow($gt) $r] == -1} {lappend spmiRow($gt) $r}
-                  if {$invalid != ""} {lappend syntaxErr($gt) [list $r $col($gt) $invalid]}
+                  if {$invalid != ""} {lappend syntaxErr($gt) [list "-$r" $col($gt) $invalid]}
 
                   set ov $objValue
                   set val [[$cells($gt) Item $r $c] Value]

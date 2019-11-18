@@ -844,7 +844,7 @@ proc gpmiAnnotationReport {objEntity} {
                       if {$ov == ""} {
                         set msg "Missing 'name' attribute on [formatComplexEnt [lindex $ent1 0]]"
                       } else {
-                        set msg "The 'name' attribute on [formatComplexEnt [lindex $ent1 0]] is not a recommended name for presented PMI type"
+                        set msg "The [formatComplexEnt [lindex $ent1 0]] 'name' attribute is not a recommended name for presented PMI type."
                       }
                       if {$stepAP == "AP242"} {
                         append msg " ($recPracNames(pmi242), Sec. 8.4, Table 14)"
@@ -893,7 +893,7 @@ proc gpmiAnnotationReport {objEntity} {
 # value in spreadsheet
                   if {[info exists gpmiIDRow($ao,$gpmiID)] && [string first "occurrence" $ao] != -1 && $opt(PMIGRF) && $opt(XLSCSV) != "None"} {
                     set val [[$cells($ao) Item $r $c] Value]
-                    if {$invalid != ""} {lappend syntaxErr($ao) [list $r $col($ao) $invalid]}
+                    if {$invalid != ""} {lappend syntaxErr($ao) [list "-$r" $col($ao) $invalid]}
 
                     if {$val == ""} {
                       $cells($ao) Item $r $c $ov
@@ -1206,7 +1206,7 @@ proc gpmiAnnotationReport {objEntity} {
                   } else {
                     append msg "($recPracNames(pmi203), Sec. 5.4.2.1, Fig. 14)"
                   }
-                  lappend syntaxErr($ao) [list $r $savedViewCol $msg]
+                  lappend syntaxErr($ao) [list "-$r" $savedViewCol $msg]
                   errorMsg $msg
                 }
                 if {[lsearch $gpmiRow($ao) $r] == -1} {lappend gpmiRow($ao) $r}

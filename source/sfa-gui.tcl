@@ -1,5 +1,5 @@
 # version numbers - SFA, software user guide (UG)
-proc getVersion {}   {return 3.70}
+proc getVersion {}   {return 3.80}
 proc getVersionUG {} {return 3.0}
 
 # IFCsvr version, depends on string entered when IFCsvr is repackaged for new STEP schemas
@@ -22,15 +22,16 @@ if {$sfaVersion > 0} {
     outputMsg "- A new User Guide, based on version [getVersionUG] of this software, is available.\n  Sections 5.1.5, 6, 7, and 8.1 have new or updated content."
     showFileURL UserGuide
   }
+  if {$sfaVersion <= 3.70} {outputMsg "- Run the new Syntax Checker with the Output Format option on the Options tab\n  or function key F8, see Help > Syntax Checker" green}
   if {$sfaVersion <= 2.60} {outputMsg "- Renamed output files: Spreadsheets from 'myfile_stp.xlsx' to 'myfile-sfa.xlsx' and Views from 'myfile-x3dom.html' to 'myfile-sfa.html'"}
   if {$sfaVersion  < 2.30} {outputMsg "- The command-line version has been renamed: sfa-cl.exe  The old version STEP-File-Analyzer-CL.exe can be deleted."}
 
 # update the version number when IFCsvr is repackaged to include updated STEP schemas
-  if {$sfaVersion  < 3.66} {outputMsg "- The IFCsvr toolkit needs to be reinstalled.  Please follow the directions below very carefully." red}
+  if {$sfaVersion  < 3.66} {outputMsg "- The IFCsvr toolkit needs to be reinstalled.  Please follow the directions carefully." red}
 
 # first time messages
 } else {
-  outputMsg "- Use F8 and F9 to change the font size here.  See Help > Function Keys"
+  outputMsg "- Use F9 and F10 to change the font size here.  See Help > Function Keys"
   outputMsg "- The User Guide is based on version [getVersionUG] of this software.\n  New and updated features are documented in the Help menu and tooltips."
 }
 
@@ -159,6 +160,7 @@ proc guiStartWindow {} {
   bind . <Key-F3> {if {$lastX3DOM != ""} {openX3DOM $lastX3DOM}}
   bind . <Key-F6> {openMultiFile 0}
   bind . <Key-F7> {if {$lastXLS1  != ""} {set lastXLS1 [openXLS $lastXLS1 1]}}
+  bind . <Key-F8> {if {[info exists localName]} {if {[file exists $localName]} {syntaxChecker $localName}}}
   bind . <Key-F12> {if {$lastX3DOM != "" && [file exists $lastX3DOM]} {exec $editorCmd [file nativename $lastX3DOM] &}}
 
   bind . <MouseWheel> {[$fout.text component text] yview scroll [expr {-%D/30}] units}
@@ -264,7 +266,7 @@ proc guiStatusTab {} {
     foreach typ {black red green magenta cyan blue error syntax} {$outputWin type configure $typ -font $statusFont}
   }
 
-  bind . <Key-F9> {
+  bind . <Key-F10> {
     set statusFont [$outputWin type cget black -font]
     for {set i 210} {$i >= 100} {incr i -10} {regsub -all $i $statusFont [expr {$i+10}] statusFont}
     foreach typ {black red green magenta cyan blue error syntax} {$outputWin type configure $typ -font $statusFont}
@@ -275,7 +277,7 @@ proc guiStatusTab {} {
     foreach typ {black red green magenta cyan blue error syntax} {$outputWin type configure $typ -font $statusFont}
   }
 
-  bind . <Key-F8> {
+  bind . <Key-F9> {
     set statusFont [$outputWin type cget black -font]
     for {set i 110} {$i <= 220} {incr i 10} {regsub -all $i $statusFont [expr {$i-10}] statusFont}
     foreach typ {black red green magenta cyan blue error syntax} {$outputWin type configure $typ -font $statusFont}
@@ -292,7 +294,7 @@ proc guiStatusTab {} {
 proc guiFileMenu {} {
   global File lastX3DOM lastXLS lastXLS1 openFileList
 
-  $File add command -label "Open STEP File(s)..." -accelerator "Ctrl+O" -command openFile
+  $File add command -label "Open STEP File(s)..." -accelerator "Ctrl+O" -command {openFile}
   $File add command -label "Open Multiple STEP Files in a Directory..." -accelerator "Ctrl+D, F6" -command {openMultiFile}
   set newFileList {}
   foreach fo $openFileList {if {[file exists $fo]} {lappend newFileList $fo}}
@@ -755,15 +757,19 @@ proc guiOpenSTEPFile {} {
     }
   }
 
-  catch {tooltip::tooltip $foptf "This option is a convenient way to open a STEP file in other applications.\nThe pull-down menu contains some applications that can open a STEP\nfile such as STEP viewers and browsers, however, only if they are installed in\ntheir default location.\n\nSee Help > Open STEP File in Apps\nSee Websites > STEP File Viewers\n\nThe 'Tree View (for debugging)' option rearranges and indents the\nentities to show the hierarchy of information in a STEP file.  The 'tree view'\nfile (myfile-sfa.txt) is written to the same directory as the STEP file or to the\nsame user-defined directory specified in the Spreadsheet tab.  Including\nGeometry or Styled_item can make the 'tree view' file very large.  The\n'tree view' might not process /*comments*/ in a STEP file correctly.\n\nThe 'Default STEP Viewer' option opens the STEP file in whatever\napplication is associated with STEP (.stp, .step, .p21) files.\n\nUse F5 to open the STEP file in a text editor."}
+  catch {tooltip::tooltip $foptf "This option is a convenient way to open a STEP file in other applications.\nThe pull-down menu contains some applications that can open a STEP\nfile such as STEP viewers and browsers, however, only if they are installed\nin their default location.\n\nSee Help > Open STEP File in Apps\nSee Websites > STEP File Viewers\n\nThe 'Tree View (for debugging)' option rearranges and indents the entities\nto show the hierarchy of information in a STEP file.  The 'tree view' file\n(myfile-sfa.txt) is written to the same directory as the STEP file or to the\nsame user-defined directory specified in the Spreadsheet tab.  Including\nGeometry or Styled_item can make the 'tree view' file very large.  The\n'tree view' might not process /*comments*/ in a STEP file correctly.\n\nThe 'Default STEP Viewer' option opens the STEP file in whatever\napplication is associated with STEP (.stp, .step, .p21) files.\n\nUse F5 to open the STEP file in a text editor."}
   pack $foptf -side top -anchor w -pady {5 2} -padx 10 -fill both
 
 # output format
   set foptk [ttk::labelframe $fopt.k -text " Output Format "]
 
-  set txt " Open Output files after they have been generated"
+  regsub -all {[\(\)]} opt(SYNCHK) "" idx
+  set buttons($idx) [ttk::checkbutton $foptk.$cb -text " Include Syntax Checker results" -variable opt(SYNCHK)]
+  pack $buttons($idx) -side bottom -anchor w -padx 5 -pady 0 -ipady 0
+  incr cb
+
   regsub -all {[\(\)]} opt(XL_OPEN) "" idx
-  set buttons($idx) [ttk::checkbutton $foptk.$cb -text $txt -variable opt(XL_OPEN)]
+  set buttons($idx) [ttk::checkbutton $foptk.$cb -text " Open Output files after they have been generated" -variable opt(XL_OPEN)]
   pack $buttons($idx) -side bottom -anchor w -padx 5 -pady 0 -ipady 0
   incr cb
 
@@ -827,7 +833,7 @@ proc guiOpenSTEPFile {} {
   }
 
   pack $foptk -side top -anchor w -pady {5 2} -padx 10 -fill both
-  catch {tooltip::tooltip $foptk "If Excel is installed, then Spreadsheets and CSV files can be\ngenerated.  If CSV Files is selected, the Spreadsheet is also\ngenerated.\n\nIf Excel is not installed, only CSV files can be generated.\nOptions for Analyze and Inverse Relationships are disabled.\n\nCSV files do not contain any cell colors, comments, or links.\nGD&T symbols will look correct only with Excel 2016 or newer.\n\nView Only does not generate any Spreadsheets or CSV files.\nAll options except View are disabled.\n\nIf Output files are not opened after they have been generated,\nuse F2 to open a Spreadsheet and F3 to open a View.  Use F7\nto open the File Summary Spreadsheet when processing\nmultiple files.\n\nIf possible, existing Spreadsheets, CSV files, and View files are\nalways overwritten by new files.\n\nSee Help > User Guide (section 4.4.1)"}
+  catch {tooltip::tooltip $foptk "If Excel is installed, then Spreadsheets and CSV files can be\ngenerated.  If CSV Files is selected, the Spreadsheet is also\ngenerated.\n\nCSV files do not contain any cell colors, comments, or links.\nGD&T symbols will look correct only with Excel 2016 or newer.\n\nIf Excel is not installed, only CSV files can be generated.\nOptions for Analyze and Inverse Relationships are disabled.\n\nView Only does not generate any Spreadsheets or CSV files.\nAll options except View are disabled.\n\nIf Output files are not opened after they have been generated,\nuse F2 to open a Spreadsheet and F3 to open a View.  Use F7\nto open the File Summary Spreadsheet when processing\nmultiple files.\n\nIf possible, existing Spreadsheets, CSV files, and View files are\nalways overwritten by new files.\n\nThe Syntax Checker can also be run when generating a\nSpreadsheet or View.  See Help > Syntax Checker\n\nSee Help > User Guide (section 4.4.1)"}
 
 # log file
   set foptm [ttk::labelframe $fopt.m -text " Log File "]
@@ -836,7 +842,7 @@ proc guiOpenSTEPFile {} {
   set buttons($idx) [ttk::checkbutton $foptm.$cb -text $txt -variable opt(LOGFILE)]
   pack $buttons($idx) -side left -anchor w -padx 5 -pady 0 -ipady 0
   pack $foptm -side top -anchor w -pady {5 2} -padx 10 -fill both
-  catch {tooltip::tooltip $buttons(optLOGFILE)  "The Log file is written to myfile-sfa.log\nUse F4 to open the Log file.\n\nSee Help > Syntax Errors"}
+  catch {tooltip::tooltip $buttons(optLOGFILE)  "The Log file is written to myfile-sfa.log  Use F4 to open the Log file.\nSyntax Checker results are written to myfile-sfa-err.log  See Help > Syntax Checker\nAll text in the Status tab can be saved by right-clicking and selecting Save."}
 }
 
 #-------------------------------------------------------------------------------
@@ -978,7 +984,7 @@ proc guiSpreadsheet {} {
 #-------------------------------------------------------------------------------
 # help menu
 proc guiHelpMenu {} {
-  global contact defaultColor Examples excelVersion Help ifcsvrDir mytemp nistVersion opt stepAPs
+  global contact defaultColor Examples excelVersion filesProcessed Help ifcsvrDir ifcsvrKey mytemp nistVersion opt scriptName stepAPs
 
   $Help add command -label "User Guide" -command {showFileURL UserGuide}
   $Help add command -label "What's New" -command {whatsNew}
@@ -996,43 +1002,6 @@ proc guiHelpMenu {} {
     }
   }
 
-  $Help add command -label "Crash Recovery" -command {
-outputMsg "\nCrash Recovery -------------------------------------------------------------" blue
-outputMsg "Sometimes the STEP File Analyzer and Viewer crashes after a STEP file has been successfully
-opened and the processing of entities has started.  Popup dialogs might appear that say
-\"ActiveState Basekit has stopped working\" or \"Runtime Error!\".
-
-See Help > User Guide (sections 2.4 and 10)
-See Help > Large STEP Files
-
-A crash is most likely due to syntax errors in the STEP file or sometimes due to limitations of
-the toolkit used to read STEP files.  To see which type of entity caused the error, check the
-Status tab to see which type of entity was last processed.  A crash might also be caused by a very
-large STEP file.
-
-Workarounds for this problem:
-
-1 - This software keeps track of the last entity type processed when it crashed.  Simply restart
-the STEP File Analyzer and Viewer and use F1 to process the last STEP file or use F6 if processing
-multiple files.  The type of entity that caused the crash will be skipped.  The list of bad entity
-types that will not be processed is stored in myfile-skip.dat.
-
-NOTE - If syntax errors related to the bad entities are corrected, then delete the *-skip.dat file
-so that the corrected entities are processed.  When the STEP file is processed, the list of
-specific entities that are not processed is reported.
-
-2 - Processing of the type of entity that caused the error can be deselected in the Options tab
-under Process.  However, this will prevent processing of other entities that do not cause a crash.
-
-3 - Run the command-line version 'sfa-cl.exe' in a command prompt window.  Use the 'stats' option
-so that no spreadsheet or view is generated.  The output from reading the STEP file might show
-error and warning messages that might have caused the software to crash.  Those messages will be
-between the 'Begin ST-Developer output' and 'End ST-Developer output' messages.
-
-4 - Deselect all Analyze, View, and Inverse Relationships options."
-  .tnb select .tnb.status
-}
-
   $Help add separator
   $Help add command -label "Overview" -command {
 outputMsg "\nOverview -------------------------------------------------------------------" blue
@@ -1044,8 +1013,8 @@ modify the information written to the spreadsheet or CSV files.
 
 Spreadsheets or CSV files can be selected in the Options tab.  CSV files are automatically
 generated if Excel is not installed.  To generate a spreadsheet or CSV files, select a STEP file
-from the File menu above and click the Generate button below.  If possible, existing spreadsheets,
-CSV files, and view files are always overwritten by new files.
+from the File menu above and click the Generate button.  If possible, existing spreadsheets, CSV
+files, and view files are always overwritten by new files.
 
 For spreadsheets, a Summary worksheet shows the Count of each entity.  Links on the Summary and
 entity worksheets can be used to navigate to other worksheets.
@@ -1112,8 +1081,10 @@ F5 - Open STEP file in a text editor  (See also Help > Open STEP File in Apps)
 F6 - Generate Speadsheets and/or Views from current or last set of multiple STEP files
 F7 - Open current or last File Summary Spreadsheet from set of multiple STEP files
 
-F8 - Decrease this font size
-F9 - Increase this font size
+F8 - Run the Syntax Checker (See Help > Syntax Checker)
+
+F9  - Decrease this font size
+F10 - Increase this font size
 
 For F1, F2, F3, F6, and F7 the last STEP file, Spreadsheet, and View are remembered between
 sessions.  In other words, F1 can process the last STEP file from a previous session without
@@ -1130,9 +1101,9 @@ STEP file such as STEP viewers, browsers, and conformance checkers.
 
 See Help > User Guide (section 4.4.6)
 
-The 'Tree View (for debugging)' option rearranges and indents the entities to show the
-hierarchy of information in a STEP file.  The 'tree view' file (myfile-sfa.txt) is written to the
-same directory as the STEP file or to the same user-defined directory specified in the Spreadsheet
+The 'Tree View (for debugging)' option rearranges and indents the entities to show the hierarchy
+of information in a STEP file.  The 'tree view' file (myfile-sfa.txt) is written to the same
+directory as the STEP file or to the same user-defined directory specified in the Spreadsheet
 tab.  It is useful for debugging STEP files but is not recommended for large STEP files.
 
 The 'Default STEP Viewer' option opens the STEP file in whatever application is associated with
@@ -1511,10 +1482,35 @@ See Websites > AP209 FEA"
   }
 
   $Help add separator
+  $Help add command -label "Syntax Checker" -command {
+outputMsg "\nSyntax Checker -------------------------------------------------------------" blue
+outputMsg "The Syntax Checker checks for syntax errors and warnings in the STEP file, such as missing entities
+and attributes or invalid entity references.  There should not be any of these types of syntax errors
+in a STEP file.  Errors should be fixed to ensure that the STEP file (1) conforms to the STEP schema
+and (2) can interoperate with other software. The Syntax Checker works with any supported STEP schema.
+See Help > Supported STEP APs
+
+The resulting syntax checker errors and warnings are unrelated to errors detected when CAx-IF
+Recommended Practices are checked with one of the Analysis options (see Help > Syntax Errors).  There
+are other conformance rules defined by the STEP schema (inverses, where rules, derived attributes,
+uniqueness rules, global rules, aggregates) that are not checked by the Syntax Checker.
+See Websites > STEP Format and Schemas
+
+The Syntax Checker can be run with the Output Format option on the Options tab or function key F8.
+If the Output Format option is used, the Syntax Checker is run before a spreadsheet or view is
+generated.  The Status tab might be grayed out when the Syntax Checker is started with F8.
+
+Syntax checker results appear in the Status tab.  If the Log File option is selected, syntax checker
+results are also written to a log file (myfile-sfa-err.log).  The syntax checker errors and warnings
+are not reported in the spreadsheet.  If errors and warning are reported, the number in parentheses
+is the line number in the STEP file where the error or warning was detected."
+    .tnb select .tnb.status
+  }
+
   $Help add command -label "Syntax Errors" -command {
 outputMsg "\nSyntax Errors --------------------------------------------------------------" blue
 outputMsg "Syntax error information and other errors can be used to debug a STEP file.  Most syntax errors are
-generated when an Analysis related to Semantic PMI, Graphical PMI, and Validation Properties are
+generated when an Analysis related to Semantic PMI, Graphical PMI, and Validation Properties is
 selected.  Syntax errors and some other errors are shown in the Status tab and highlighted in red or
 yellow.
 
@@ -1531,25 +1527,57 @@ triangle in the upper right corner of the cell.
 On an entity worksheet, most syntax errors are highlighted in red and have a cell comment with the
 text of the syntax error that was shown in the Status tab.
 
+All text in the Status tab can be written to a Log File when a STEP file is processed (Options tab).
+The log file is written to myfile-sfa.log.  In a log file, error messages are highlighted by ***.
+Use F4 to open the log file.
+
 See Help > User Guide (section 6)
-See Websites > Recommended Practices
+See Help > Syntax Checker
+See Websites > Recommended Practices"
+    .tnb select .tnb.status
+  }
 
-Log File
-  All text in the Status tab can be written to a Log File when a STEP file is processed (Options tab).
-  The log file is written to myfile-sfa.log.  In a log file, error messages are highlighted by ***.
-  Use F4 to open the log file.
+  $Help add command -label "Crash Recovery" -command {
+outputMsg "\nCrash Recovery -------------------------------------------------------------" blue
+outputMsg "Sometimes the STEP File Analyzer and Viewer crashes after a STEP file has been successfully opened
+and the processing of entities has started.  Popup dialogs might appear that say
+\"ActiveState Basekit has stopped working\" or \"Runtime Error!\".
 
-Command-line version
-  Some syntax errors and warning are reported only by the command-line version sfa-cl.exe when reading
-  the STEP file.  Use the 'stats' option to only check for errors and warnings without generating a
-  spreadsheet."
+Run the Syntax Checker with the Output Format option on the Options tab or function key F8 to check
+for errors with entities that might have caused the crash.  See Help > Syntax Checker
+
+A crash is most likely due to syntax errors in the STEP file or sometimes due to limitations of the
+toolkit used to read STEP files.  To see which type of entity caused the error, check the Status tab
+to see which type of entity was last processed.  A crash might also be caused by a very large STEP
+file.
+
+See Help > User Guide (sections 2.4 and 10)
+See Help > Large STEP Files
+
+Workarounds for this problem:
+
+1 - This software keeps track of the last entity type processed when it crashed.  Simply restart the
+STEP File Analyzer and Viewer and use F1 to process the last STEP file or use F6 if processing
+multiple files.  The type of entity that caused the crash will be skipped.  The list of bad entity
+types that will not be processed is stored in myfile-skip.dat.
+
+NOTE - If syntax errors related to the bad entities are corrected, then delete the *-skip.dat file
+so that the corrected entities are processed.  When the STEP file is processed, the list of specific
+entities that are not processed is reported.
+
+2 - Processing of the type of entity that caused the error can be deselected in the Options tab
+under Process.  However, this will prevent processing of other entities that do not cause a crash.
+
+3 - Deselect all Analyze, View, and Inverse Relationships options."
     .tnb select .tnb.status
   }
 
 # large files help
   $Help add command -label "Large STEP Files" -command {
 outputMsg "\nLarge STEP Files -----------------------------------------------------------" blue
-outputMsg "To reduce the amount of time to process large STEP files and to reduce the size of the resulting
+outputMsg "The Status tab might be grayed out when a large STEP file is being read.
+
+To reduce the amount of time to process large STEP files and to reduce the size of the resulting
 spreadsheet, several options are available:
 - In the Process section, deselect entity types Geometry and Coordinates
 - In the Process section, select only a User-Defined List of required entities
@@ -1562,7 +1590,7 @@ dialogs might appear that say 'Unable to alloc xxx bytes'.  See the Help > Crash
   }
   $Help add command -label "Supported STEP APs" -command {
     outputMsg "\nSupported STEP APs ----------------------------------------------------------" blue
-    outputMsg "The following STEP Application Protocols (AP) and other schemas are supported.\nThe name of the AP is found on the FILE_SCHEMA entity in the HEADER section of a STEP file.\nThe 'e1' notation after an AP number below refers to an older version of that AP.\n"
+    outputMsg "The following STEP Application Protocols (AP) and other schemas are supported.\nThe name of the AP is found on the FILE_SCHEMA entity in the HEADER section of a STEP file.\nThe 'e1' notation after an AP number refers to an older version of that AP.\n"
 
     set nschema 0
     catch {file delete -force -- [file join $ifcsvrDir ap214e3_2010.rose]}
@@ -1618,15 +1646,21 @@ dialogs might appear that say 'Unable to alloc xxx bytes'.  See the Help > Crash
     $Help add command -label "NIST Disclaimer" -command {openURL https://www.nist.gov/disclaimer}
   }
   $Help add command -label "About" -command {
+    set sysvar "System:   $tcl_platform(os) $tcl_platform(osVersion)"
+    if {$excelVersion < 1000} {append sysvar ", Excel $excelVersion"}
+    catch {append sysvar ", IFCsvr [registry get $ifcsvrKey {DisplayVersion}]"}
+    append sysvar ", Tcl [info patchlevel], twapi [package versions twapi], files $filesProcessed"
+    if {$opt(XL_ROWLIM) != 100003} {append sysvar "\n          For more System variables, set Maximum Rows to 100000 and repeat Help > About."}
+
     outputMsg "\nSTEP File Analyzer and Viewer ---------------------------------------------------------" blue
     outputMsg "Version:  [getVersion]"
     outputMsg "Updated:  [string trim [clock format $progtime -format "%e %b %Y"]]"
     if {"$nistVersion"} {
-      outputMsg "Contact:  [lindex $contact 0], [lindex $contact 1]
+      outputMsg "Contact:  [lindex $contact 0], [lindex $contact 1]\n$sysvar
 
-The STEP File Analyzer and Viewer was first released in April 2012 and is developed at
-NIST in the Systems Integration Division of the Engineering Laboratory.  Click the NIST
-logo below for information about NIST.
+The STEP File Analyzer and Viewer was first released in April 2012 and is developed at NIST in the
+Systems Integration Division of the Engineering Laboratory.  Click the logo below for information
+about NIST.
 
 See Help > Disclaimers and NIST Disclaimer
 
@@ -1642,22 +1676,9 @@ Credits
       outputMsg "\nThis version was built from the NIST STEP File Analyzer and Viewer source\ncode available on GitHub.  https://github.com/usnistgov/SFA"
     }
 
-  # debug
-    if {$opt(XL_ROWLIM) == 100003 || $env(USERDOMAIN) == "NIST"} {
+# debug
+    if {$opt(XL_ROWLIM) == 100003} {
       outputMsg " "
-      outputMsg "Environment variables" red
-      foreach id [lsort [array names env]] {
-        foreach id1 [list HOME Program System USER TEMP TMP APP ROSE EDM] {
-          if {[string first $id1 $id] == 0} {outputMsg " $id   $env($id)"; break}
-        }
-      }
-
-      outputMsg "Registry values" red
-      catch {outputMsg " Personal  [registry get {HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\User Shell Folders} {Personal}]"}
-      catch {outputMsg " Desktop   [registry get {HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\User Shell Folders} {Desktop}]"}
-      catch {outputMsg " Programs  [registry get {HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\User Shell Folders} {Programs}]"}
-      catch {outputMsg " AppData   [registry get {HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\User Shell Folders} {Local AppData}]"}
-
       outputMsg "SFA variables" red
       catch {outputMsg " Drive $drive"}
       catch {outputMsg " Home  $myhome"}
@@ -1667,12 +1688,20 @@ Credits
       catch {outputMsg " Temp  $mytemp  ([file exists $mytemp])"}
       outputMsg " pf32  $pf32"
       if {$pf64 != ""} {outputMsg " pf64  $pf64"}
+      catch {outputMsg " $scriptName"}
 
-      outputMsg "Other variables" red
-      outputMsg " Tcl [info patchlevel]"
-      outputMsg " twapi [package versions twapi]"
-      outputMsg " $tcl_platform(os) $tcl_platform(osVersion)"
-      outputMsg " Excel $excelVersion"
+      outputMsg "Registry values" red
+      catch {outputMsg " Personal  [registry get {HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\User Shell Folders} {Personal}]"}
+      catch {outputMsg " Desktop   [registry get {HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\User Shell Folders} {Desktop}]"}
+      catch {outputMsg " Programs  [registry get {HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\User Shell Folders} {Programs}]"}
+      catch {outputMsg " AppData   [registry get {HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\User Shell Folders} {Local AppData}]"}
+
+      outputMsg "Environment variables" red
+      foreach id [lsort [array names env]] {
+        foreach id1 [list HOME Program System USER TEMP TMP APP ROSE EDM] {
+          if {[string first $id1 $id] == 0} {outputMsg " $id   $env($id)"; break}
+        }
+      }
     }
     .tnb select .tnb.status
   }
@@ -1743,7 +1772,7 @@ proc guiWebsitesMenu {} {
   $Websites2 add command -label "EXPRESS Schemas"                -command {openURL https://www.cax-if.org/cax/cax_express.php}
   $Websites2 add command -label "More EXPRESS Schemas"           -command {openURL http://web.archive.org/web/20160322005246/www.steptools.com/support/stdev_docs/express/}
   $Websites2 add command -label "ISO 10303 Part 11 EXPRESS"      -command {openURL https://www.loc.gov/preservation/digital/formats/fdd/fdd000449.shtml}
-  $Websites2 add command -label "EXPRESS data modeling language" -command {https://en.wikipedia.org/wiki/EXPRESS_(data_modeling_language)}
+  $Websites2 add command -label "EXPRESS data modeling language" -command {openURL https://en.wikipedia.org/wiki/EXPRESS_(data_modeling_language)}
   $Websites2 add separator
   $Websites2 add command -label "AP235 Properties" -command {openURL http://www.ap235.org}
   $Websites2 add command -label "AP238 Machining"  -command {openURL http://www.ap238.org}
@@ -1871,7 +1900,7 @@ proc getOpenPrograms {} {
   global dispApps dispCmds dispCmd appNames appName env
   global drive editorCmd developer myhome pf32 pf64
 
-# Including any of the CAD viewers and software below does not imply a recommendation or endorsement of them by NIST https://www.nist.gov/disclaimer
+# Including any of the CAD viewers and software does not imply a recommendation or endorsement of them by NIST https://www.nist.gov/disclaimer
 # For more STEP viewers, go to https://www.cax-if.org/cax/step_viewers.php
 
   regsub {\\} $pf32 "/" p32
@@ -1970,6 +1999,7 @@ proc getOpenPrograms {} {
       [list [file join $pf IFCBrowser IfcQuickBrowser.exe] IfcQuickBrowser] \
       [list [file join $pf Kisters 3DViewStation 3DViewStation.exe] 3DViewStation] \
       [list [file join $pf STPViewer STPViewer.exe] "STP Viewer"] \
+      [list [file join $pf Trimble "Trimble Connect" TrimbleConnect.exe] "Trimble Connect"] \
     ]
     foreach app $applist {
       if {[file exists [lindex $app 0]]} {

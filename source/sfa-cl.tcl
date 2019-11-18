@@ -148,7 +148,7 @@ foreach id { \
 # set opt to 0
 foreach id { \
   DEBUG1 DEBUGINV indentGeomtry indentStyledItem INVERSE PMIGRFCOV PMISEMDIM PR_STEP_CPNT PR_STEP_GEOM PR_USER \
-  VIZBRP VIZFEA VIZFEADSntail VIZFEALVS VIZPMI VIZPMIVP VIZTPG VIZTPGMSH writeDirType XL_FPREC XL_SORT \
+  SYNCHK VIZBRP VIZFEA VIZFEADSntail VIZFEALVS VIZPMI VIZPMIVP VIZTPG VIZTPGMSH writeDirType XL_FPREC XL_SORT \
 } {set opt($id) 0}
 
 set opt(gpmiColor) 3
@@ -159,7 +159,7 @@ set opt(XLSCSV) Excel
 set coverageSTEP 0
 set dispCmd ""
 set dispCmds {}
-set excelVersion 12
+set excelVersion 1000
 set filesProcessed 0
 set lastX3DOM ""
 set lastXLS  ""

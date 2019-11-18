@@ -538,7 +538,7 @@ proc openMultiFile {{ask 1}} {
             if {[file exists $aname]} {set aname [incrFileName $aname]}
 
 # save spreadsheet
-            outputMsg "Saving File Summary Spreadsheet as:"
+            outputMsg "Saving File Summary Spreadsheet to:"
             outputMsg " [truncFileName $aname 1]" blue
             update
             catch {$excel1 DisplayAlerts False}

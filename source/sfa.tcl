@@ -21,6 +21,19 @@ set wdir [file dirname $scriptName]
 set auto_path [linsert $auto_path 0 $wdir]
 set contact [getContact]
 
+# get path for command-line version
+set path [split $wdir "/"]
+set sfacl {}
+foreach item $path {
+  if {$item != "STEP-File-Analyzer.exe"} {
+    lappend sfacl $item
+  } else {
+    break
+  }
+}
+lappend sfacl "sfa-cl.exe"
+set sfacl [join $sfacl "/"]
+
 # for building your own version with freewrap, uncomment and modify C:/Tcl/lib/teapot directory if necessary
 # the lappend commands add package locations to auto_path, must be before package commands below
 # see 30 lines below for two more lappend commands
@@ -85,7 +98,7 @@ foreach id { \
 # set opt to 0
 foreach id { \
   DEBUG1 DEBUGINV indentGeomtry indentStyledItem INVERSE PMIGRFCOV PMISEMDIM PR_STEP_CPNT PR_STEP_GEOM \
-  PR_USER VIZFEADSntail VIZFEALVS VIZPMIVP VIZTPGMSH writeDirType XL_FPREC XL_SORT \
+  PR_USER SYNCHK VIZFEADSntail VIZFEALVS VIZPMIVP VIZTPGMSH writeDirType XL_FPREC XL_SORT \
 } {set opt($id) 0}
 
 set opt(gpmiColor) 3
@@ -99,7 +112,7 @@ set dispCmds {}
 set edmWhereRules 0
 set edmWriteToFile 0
 set eeWriteToFile  0
-set excelVersion 12
+set excelVersion 1000
 set filesProcessed 0
 set lastX3DOM ""
 set lastXLS  ""

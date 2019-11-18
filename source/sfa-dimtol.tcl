@@ -358,7 +358,7 @@ proc spmiDimtolReport {objEntity} {
                     if {$colName != ""} {
                       lappend syntaxErr($dt) [list "-$r" $colName $invalid]
                     } else {
-                      lappend syntaxErr($dt) [list $r $col($dt) $invalid]
+                      lappend syntaxErr($dt) [list "-$r" $col($dt) $invalid]
                     }
                   }
 
@@ -704,7 +704,9 @@ proc spmiDimtolReport {objEntity} {
                       lappend syntaxErr([lindex [split $ent1 " "] 0]) [list $objID [lindex [split $ent1 " "] 1] $msg]
                       set invalid $msg
                     } else {
-                      append dimrep($dimrepID) " [string toupper [string range $ov 0 2]]"
+                      set tqstr [string toupper [string range $ov 0 2]]
+                      if {$tqstr == "AVE"} {set tqstr "AVG"}
+                      append dimrep($dimrepID) " $tqstr  "
                       lappend spmiTypesPerFile "type qualifier"
                     }
                   }
@@ -767,7 +769,7 @@ proc spmiDimtolReport {objEntity} {
                       if {$colName != ""} {
                         lappend syntaxErr($dt) [list "-$r" $colName $invalid]
                       } else {
-                        lappend syntaxErr($dt) [list $r $col($dt) $invalid]
+                        lappend syntaxErr($dt) [list "-$r" $col($dt) $invalid]
                       }
                     }
 
@@ -1256,11 +1258,11 @@ proc spmiDimtolReport {objEntity} {
           $cells($dt) Item 3 $c $colName
           set pmiHeading($pmiColumns(dmrp)) 1
           set pmiCol [expr {max($pmiColumns(dmrp),$pmiCol)}]
-          set comment "See Help > User Guide (section 5.1.3) for an explanation of how the dimensions below are constructed."
+          set comment "See Help > User Guide (section 5.1.3) for an explanation of how the Dimensional Tolerances are constructed."
           if {[info exists dim(unit)]} {append comment "\n\nDimension units: $dim(unit)"}
           append comment "\n\nRepetitive dimensions (e.g., 4X) might be shown for diameters and radii.  They are computed based on the number of cylindrical, spherical, and toroidal surfaces associated with a dimension (see Associated Geometry column to the right) and, depending on the CAD system, might be off by a factor of two, have the wrong value, or be missing."
           if {$nistName != ""} {
-            append comment "\n\nSee the PMI Representation Summary worksheet to see how the Dimensional Tolerance below compares to the expected PMI."
+            append comment "\n\nSee the PMI Representation Summary worksheet to see how the Dimensional Tolerance compares to the expected PMI."
           }
           addCellComment $dt 3 $c $comment
         }
@@ -1415,7 +1417,7 @@ proc valueQualifier {ent2 dimval {type "length/angle"} {equal "equal"}} {
       set msg ""
       set ok1 0
       if {[info exists dim(unit)]} {if {$dim(unit) == "INCH"} {set ok1 1}}
-        
+
       if {[string length $val2a] > $dim(qual)} {
         set msg "value_format_type_qualifier truncates the $type value ($recPracNames(pmi242), Sec. 5.4)"
       } elseif {[string length $val1] < $prec1} {

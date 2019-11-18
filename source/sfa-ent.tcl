@@ -88,8 +88,8 @@ proc getEntity {objEntity checkInverse} {
 
 # -------------------------------------------------------------------------------------------------
 # if less than max allowed rows, append attribute values to rowList, append rowList to matrixList 
-# originally, values where written directly one-by-one to a worksheet, see commented lines $cells() Item
-# writing a matrix of values to a worksheet is much faster than writing values to cells one at a time
+# originally, values where written directly one-by-one to a worksheet, now writing a matrix of values
+# to a worksheet is much faster than writing values to cells one at a time
   if {$row($thisEntType) <= $rowmax} {
     set col($thisEntType) 1
     incr count($thisEntType)
@@ -105,11 +105,10 @@ proc getEntity {objEntity checkInverse} {
 
 # entity ID
     set p21id [$objEntity P21ID]
-    #$cells($thisEntType) Item $row($thisEntType) 1 $p21id
     lappend rowList $p21id
     [$worksheet($thisEntType) Range A$row($thisEntType)] NumberFormat "0"
       
-# keep track of property_defintion or annotation occurrence rows in propDefIDRow, gpmiIDRow
+# keep track of the entity ID for a row
     setIDRow $thisEntType $p21id
 
 # -------------------------------------------------------------------------------------------------
@@ -198,18 +197,14 @@ proc getEntity {objEntity checkInverse} {
 # check if showing numbers without rounding
         catch {
           if {!$opt(XL_FPREC)} {
-            #$cells($thisEntType) Item $row($thisEntType) $col($thisEntType) $ov
             lappend rowList $ov
           } elseif {$attrType($col($thisEntType)) != "double" && $attrType($col($thisEntType)) != "measure_value"} {
-            #$cells($thisEntType) Item $row($thisEntType) $col($thisEntType) $ov
             lappend rowList $ov
           } elseif {[string length $ov] < 12} {
-            #$cells($thisEntType) Item $row($thisEntType) $col($thisEntType) $ov
             lappend rowList $ov
 
 # no rounding, show as text '
           } else {
-            #$cells($thisEntType) Item $row($thisEntType) $col($thisEntType) "'$ov"
             lappend rowList "'$ov"
           }
         }
@@ -255,7 +250,6 @@ proc getEntity {objEntity checkInverse} {
             }
           }
           
-          #$cells($thisEntType) Item $row($thisEntType) $col($thisEntType) [string trim $str]
           lappend rowList [string trim $str]
           set valnotlist 0
         }
@@ -274,7 +268,6 @@ proc getEntity {objEntity checkInverse} {
               }
             }
           }
-          #$cells($thisEntType) Item $row($thisEntType) $col($thisEntType) $str
           lappend rowList $str
           if {$cellComment && $entComment($attrName)} {
             addCellComment $thisEntType 3 $col($thisEntType) "The values of *_measure_with_unit are also shown."
@@ -354,7 +347,6 @@ proc getEntity {objEntity checkInverse} {
           }
         }
         
-        #$cells($thisEntType) Item $row($thisEntType) $col($thisEntType) [string trim $str]
         lappend rowList [string trim $str]
         if {$strMeasure != "" && $entComment($attrName)} {
           addCellComment $thisEntType 3 $col($thisEntType) "The values of *_measure_with_unit are also shown."
@@ -382,11 +374,15 @@ proc getEntity {objEntity checkInverse} {
 }
 
 # -------------------------------------------------------------------------------
-# keep track of property_defintion, annotation occurrence, or semantic PMI rows in propDefIDRow, gpmiIDRow, spmiIDRow
+# keep track of the entity ID for a row
 proc setIDRow {entType p21id} {
-  global gpmiEnts gpmiIDRow propDefIDRow row spmiEnts spmiIDRow
+  global gpmiEnts gpmiIDRow idRow propDefIDRow row spmiEnts spmiIDRow
   #outputMsg "setIDRow [info exists spmiEnts($entType)] $entType $p21id $row($entType)" red
   
+# row id for an entity id
+  set idRow($entType,$p21id) $row($entType)
+  
+# specific arrays for properties and PMI
   if {$entType == "property_definition"} {
     set propDefIDRow($p21id) $row($entType)
   } elseif {$gpmiEnts($entType)} {

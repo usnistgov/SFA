@@ -47,6 +47,9 @@ proc genExcel {{numFile 0}} {
   set multiFile 0
   if {$numFile > 0} {set multiFile 1}
 
+# run syntax checker too
+  if {$opt(SYNCHK) && [info exist buttons]} {syntaxChecker $localName}
+
 # -------------------------------------------------------------------------------------------------
 # connect to IFCsvr
   if {[catch {
@@ -171,7 +174,7 @@ proc genExcel {{numFile 0}} {
         if {$str != "B-rep geometry"} {outputMsg "This file contains: $str" red}
       }
     } else {
-      errorMsg "The number of entities could not be counted or there are no entities in the STEP file.  See Examples menu for sample STEP files."
+      errorMsg "The number of entities could not be counted or there are no entities in the STEP file.\n See Examples menu for sample STEP files.\n See Help > Syntax Checker"
     }
     outputMsg " "
 
@@ -179,7 +182,7 @@ proc genExcel {{numFile 0}} {
     if {[info exists statsOnly]} {
       if {[info exists logFile]} {
         update idletasks
-        outputMsg "\nSaving Log file as:"
+        outputMsg "\nSaving Log file to:"
         outputMsg " [truncFileName [file nativename $lfile]]" blue
         close $logFile
         unset lfile
@@ -277,8 +280,9 @@ proc genExcel {{numFile 0}} {
           } else {
             set msg "\nPossible causes of the ERROR:"
             append msg "\n1 - Syntax errors in the STEP file"
+            append msg "\n    Use F8 to run the Syntax Checker to check for errors in the STEP file, see Help > Syntax Checker."
+            append msg "\n    Try opening the file in a STEP viewer, see Websites > STEP File Viewers"
             append msg "\n    The file must start with ISO-10303-21; and end with ENDSEC; END-ISO-10303-21;"
-            append msg "\n    Try opening the file in a different STEP viewer, see Websites > STEP File Viewers"
             append msg "\n2 - File or directory name contains accented, non-English, or symbol characters"
             append msg "\n     [file nativename $fname]"
             append msg "\n    Change the file or directory name"
@@ -299,7 +303,11 @@ proc genExcel {{numFile 0}} {
       if {$editorCmd != ""} {
         outputMsg " "
         errorMsg "Opening STEP file in text editor"
-        exec $editorCmd [file nativename $localName] &
+        if {[catch {
+          exec $editorCmd [file nativename $localName] &
+        } emsg1]} {
+          errorMsg "ERROR opening STEP file in text editor"
+        }
       }
 
       if {[info exists errmsg]} {unset errmsg}
@@ -505,7 +513,9 @@ proc genExcel {{numFile 0}} {
   catch {unset entCount}
 
   if {![info exists entityTypeNames]} {
-    errorMsg "The STEP file cannot be processed.  Try opening the file in a different STEP viewer, see Websites > STEP File Viewers"
+    set msg "The STEP file cannot be processed."
+    if {!$opt(SYNCHK)} {append msg "\n Use F8 to run the Syntax Checker to check for errors in the STEP file.\n See Help > Syntax Checker"}
+    errorMsg $msg
     return
   }
 
@@ -1109,7 +1119,7 @@ proc genExcel {{numFile 0}} {
       if {[file exists $xlfn]} {set xlfn [incrFileName $xlfn]}
 
 # always save as spreadsheet
-      outputMsg "Saving Spreadsheet as:"
+      outputMsg "Saving Spreadsheet to:"
       outputMsg " [truncFileName $xlfn 1]" blue
       if {[catch {
         catch {$excel DisplayAlerts False}
@@ -1252,7 +1262,7 @@ proc genExcel {{numFile 0}} {
 # save log file
   if {[info exists logFile]} {
     update idletasks
-    outputMsg "\nSaving Log file as:"
+    outputMsg "\nSaving Log file to:"
     outputMsg " [truncFileName [file nativename $lfile]]" blue
     close $logFile
     if {!$multiFile && [info exists buttons]} {
@@ -1280,12 +1290,12 @@ proc genExcel {{numFile 0}} {
 
 # unset variables to release memory and/or to reset them
   global cgrObjects colColor coordinatesList currx3dPID datumGeom datumIDs datumSymbol dimrep dimrepID dimtolEnt dimtolEntID dimtolGeom entName
-  global feaDOFR feaDOFT feaNodes gpmiID gpmiIDRow gpmiRow heading invCol invGroup lineStrips nrep numx3dPID pmiColumns pmiStartCol
+  global feaDOFR feaDOFT feaNodes gpmiID gpmiIDRow gpmiRow heading idRow invCol invGroup lineStrips nrep numx3dPID pmiColumns pmiStartCol
   global propDefID propDefIDRow propDefName propDefOK propDefRow savedsavedViewNames savedViewFile savedViewFileName shapeRepName
   global srNames suppGeomEnts syntaxErr tessPlacement tessRepo
 
   foreach var {cells cgrObjects colColor coordinatesList count currx3dPID datumGeom datumIDs datumSymbol dimrep dimrepID dimtolEnt dimtolEntID dimtolGeom \
-               entName entsIgnored feaDOFR feaDOFT feaNodes gpmiID gpmiIDRow gpmiRow heading invCol invGroup lineStrips nrep numx3dPID \
+               entName entsIgnored feaDOFR feaDOFT feaNodes gpmiID gpmiIDRow gpmiRow heading idRow invCol invGroup lineStrips nrep numx3dPID \
                pmiCol pmiColumns pmiStartCol pmivalprop propDefID propDefIDRow propDefName propDefOK propDefRow savedsavedViewNames \
                savedViewFile savedViewFileName savedViewNames shapeRepName srNames suppGeomEnts syntaxErr tessPlacement tessRepo \
                workbook workbooks worksheet worksheets x3dCoord x3dFile x3dFileName x3dIndex x3dMax x3dMin x3dStartFile} {

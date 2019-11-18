@@ -44,8 +44,8 @@ set stepAPs(BUILDING_DESIGN_SCHEMA) AP225
 set stepAPs(PLANT_SPATIAL_CONFIGURATION) AP227
 set stepAPs(TECHNICAL_DATA_PACKAGING) AP232
 set stepAPs(ENGINEERING_PROPERTIES_SCHEMA) AP235
-#set stepAPs(MODEL_BASED_INTEGRATED_MANUFACTURING_SCHEMA) AP238
-set stepAPs(INTEGRATED_CNC_SCHEMA) AP238
+set stepAPs(MODEL_BASED_INTEGRATED_MANUFACTURING_SCHEMA) AP238
+set stepAPs(INTEGRATED_CNC_SCHEMA) AP238e1
 set stepAPs(PROCESS_PLANNING_SCHEMA) AP240
 
 # other schemas
@@ -65,7 +65,8 @@ set schemaLinks(AP209)   "https://www.cax-if.org/documents_cae/AP209_HTML/AP209e
 set schemaLinks(AP209e1) "http://web.archive.org/web/20160322005246/www.steptools.com/support/stdev_docs/express/ap209/index.html"
 set schemaLinks(AP210)   "http://web.archive.org/web/20160322005246/www.steptools.com/support/stdev_docs/express/ap210/html/index.html"
 set schemaLinks(AP214)   "https://www.cax-if.org/documents/AP214E3/AP214_e3.htm"
-set schemaLinks(AP238)   "http://web.archive.org/web/20160322005246/www.steptools.com/support/stdev_docs/express/ap238/html/index.html"
+set schemaLinks(AP238)   "http://ap238.org/ap238e2/"
+set schemaLinks(AP238e1) "http://web.archive.org/web/20160322005246/www.steptools.com/support/stdev_docs/express/ap238/html/index.html"
 set schemaLinks(AP239)   "http://web.archive.org/web/20160322005246/www.steptools.com/support/stdev_docs/express/ap239/html/index.html"
 set schemaLinks(AP242)   "https://www.cax-if.org/documents/AP242/AP242_mim_lf_1.36.htm"
 set schemaLinks(CIS/2)   "http://web.archive.org/web/20160322005246/www.steptools.com/support/stdev_docs/express/cis/html/index.html"

@@ -480,7 +480,7 @@ proc unzipFile {} {
 
 #-------------------------------------------------------------------------------
 proc saveState {{ok 1}} {
-  global buttons dispCmd dispCmds fileDir fileDir1 filesProcessed lastX3DOM lastXLS lastXLS1 mydocs openFileList
+  global buttons developer dispCmd dispCmds fileDir fileDir1 filesProcessed lastX3DOM lastXLS lastXLS1 mydocs openFileList
   global opt optionsFile sfaVersion statusFont upgrade upgradeIFCsvr userEntityFile userWriteDir userXLSFile
 
 # ok = 0 only after installing IFCsvr from the command-line version  
@@ -555,6 +555,11 @@ proc saveState {{ok 1}} {
     }
 
     close $fileOptions
+    if {$developer} {
+      set f1 $optionsFile
+      append f1 " - Copy"
+      file copy -force -- $optionsFile $f1
+    }
 
   } emsg]} {
     errorMsg "ERROR writing to options file: $emsg"
@@ -996,7 +1001,7 @@ proc addCellComment {ent r c comment} {
 #-------------------------------------------------------------------------------
 # color bad cells red, add cell comment with message
 proc colorBadCells {ent} {
-  global cells count entsWithErrors excelVersion legendColor stepAP syntaxErr worksheet
+  global cells count entsWithErrors excelVersion idRow legendColor stepAP syntaxErr worksheet
   
   if {$stepAP == "" || $excelVersion < 11} {return}
       
@@ -1014,6 +1019,20 @@ proc colorBadCells {ent} {
 # get row and column number
       set r [lindex $err 0]
       set c [lindex $err 1]
+      if {$r > 0 && ![info exists idRow($ent,$r)]} {return}
+      
+# r is entity ID, get row
+      if {$r > 0} {
+        if {[info exists idRow($ent,$r)]} {
+          set r $idRow($ent,$r)
+        } else {
+          return
+        }
+
+# row number passed as a negative number
+      } else {
+        set r [expr {abs($r)}]
+      }
       
 # get message for cell comment
       set msg ""
@@ -1026,13 +1045,13 @@ proc colorBadCells {ent} {
           set okcomment 1
         }
 
-# values are entity ID or row number (row) and attribute name (column)
+# column is attribute name
       } else {
         #outputMsg "$ent / $r / $c / [string is integer $c]" red
 
 # find column based on heading text
         set lastCol [[[$worksheet($ent) UsedRange] Columns] Count]
-        if {![info exists nc($c)]} { 
+        if {![info exists nc($c)]} {
           for {set i 2} {$i <= $lastCol} {incr i} {
             set val [[$cells($ent) Item 3 $i] Value]
             if {[string first $c $val] == 0} {
@@ -1045,23 +1064,9 @@ proc colorBadCells {ent} {
 # cannot find heading, use first column        
         if {![info exists nc($c)]} {set nc($c) 1}
         set c $nc($c)
-      
-# entity ID
-        if {$r > 0} {
-          for {set i $lastr} {$i <= $rmax} {incr i} {
-            set val [[$cells($ent) Item $i 1] Value]
-            if {$val == $r} {
-              set r $i
-              set lastr [expr {$r+1}]
-              [[$worksheet($ent) Range [cellRange $r $c] [cellRange $r $c]] Interior] Color $legendColor(red)
-              set okcomment 1
-              break
-            }              
-          }
 
-# row number
-        } else {
-          set r [expr {abs($r)}]
+# color cell
+        if {$r <= $rmax} {
           [[$worksheet($ent) Range [cellRange $r $c] [cellRange $r $c]] Interior] Color $legendColor(red)
           set okcomment 1
         }
@@ -1073,8 +1078,10 @@ proc colorBadCells {ent} {
 
 # error      
     } emsg]} {
-      errorMsg "ERROR setting cell color (red) or comment: $emsg\n  $ent"
-      catch {raise .}
+      if {$emsg != ""} {
+        errorMsg "ERROR setting cell color (red) or comment: $emsg\n  $ent"
+        catch {raise .}
+      }
     }
   }
 }
@@ -1279,13 +1286,14 @@ proc incrFileName {fn} {
 #-------------------------------------------------------------------------------
 # install IFCsvr (or remove to reinstall)
 proc installIFCsvr {{exit 0}} {
-  global buttons contact mydocs mytemp nistVersion upgradeIFCsvr wdir
+  global buttons contact ifcsvrKey mydocs mytemp nistVersion upgradeIFCsvr wdir
 
 # if IFCsvr is alreadly installed, get version from registry, decide to reinstall newer version
   if {[catch {
 
-# get registry value "1.0.0 (NIST Update yyyy-mm-dd)"    
-    set verIFCsvr [registry get "HKEY_LOCAL_MACHINE\\SOFTWARE\\WOW6432Node\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\{3C8CE0A4-803B-48A6-96A0-A3DDD5AE5596}" {DisplayVersion}]
+# get registry value "1.0.0 (NIST Update yyyy-mm-dd)"
+    set ifcsvrKey "HKEY_LOCAL_MACHINE\\SOFTWARE\\WOW6432Node\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\{3C8CE0A4-803B-48A6-96A0-A3DDD5AE5596}"
+    set verIFCsvr [registry get $ifcsvrKey {DisplayVersion}]
 
 # format version to be yyyymmdd
     set c1 [string first "20" $verIFCsvr]
@@ -1356,7 +1364,7 @@ proc installIFCsvr {{exit 0}} {
     if {[file exists $ifcsvrInst] && [info exists buttons]} {
       set msg "The IFCsvr toolkit must be reinstalled to update the STEP schemas."
       append msg "\n\nFirst REMOVE the current installation of the IFCsvr toolkit."
-      append msg "\n\nIn the IFCsvr Setup Wizard (after clicking OK below) select 'REMOVE IFCsvrR300 ActiveX Component' and Finish.  If the REMOVE was not successful, then manually uninstall the 'IFCsvrR300 ActiveX Component'"
+      append msg "\n\nIn the IFCsvr Setup Wizard (after clicking OK) select 'REMOVE IFCsvrR300 ActiveX Component' and Finish.  If the REMOVE was not successful, then manually uninstall the 'IFCsvrR300 ActiveX Component'"
       append msg "\n\nThen restart this software or process a STEP file to install the updated IFCsvr toolkit."
       append msg "\n\nIf there are problems with this procedure, contact [lindex $contact 0] ([lindex $contact 1])."
       set choice [tk_messageBox -type ok -message $msg -icon warning -title "Reinstall IFCsvr"]

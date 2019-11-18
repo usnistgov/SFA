@@ -193,6 +193,7 @@ set auto_index(setCAXIFvendor) [list source [file join $dir sfa-step.tcl]]
 set auto_index(setEntAttrList) [list source [file join $dir sfa-step.tcl]]
 set auto_index(setEntsToProcess) [list source [file join $dir sfa-step.tcl]]
 set auto_index(spmiCheckEnt) [list source [file join $dir sfa-step.tcl]]
+set auto_index(syntaxChecker) [list source [file join $dir sfa-step.tcl]]
 
 set auto_index(tessCountColors) [list source [file join $dir sfa-tess.tcl]]
 set auto_index(tessPart) [list source [file join $dir sfa-tess.tcl]]

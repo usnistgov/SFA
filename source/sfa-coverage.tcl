@@ -65,7 +65,8 @@ proc spmiSummary {} {
 # which entities and columns to summarize
     if {$okent} {
       if {$i == 3} {
-        for {set j 1} {$j < 30} {incr j} {
+        set j1 [getNextUnusedColumn $thisEntType]
+        for {set j 1} {$j < $j1} {incr j} {
           set val [[$cells($thisEntType) Item 3 $j] Value]
           if {[string first "Datum Reference Frame" $val] != -1 || \
               $val == "GD&T[format "%c" 10]Annotation" || \
@@ -304,7 +305,7 @@ proc spmiCoverageWrite {{fn ""} {sum ""} {multi 1}} {
         $range HorizontalAlignment [expr -4108]
         if {$multi} {set totalPMIrows($r) 1}
       } elseif {$developer && !$multi && $idx != "curve length" && $idx != "thickness"} {
-        errorMsg "'$idx' not found in allPMIelements" red
+        errorMsg "  $idx not found in allPMIelements" red
       }
     }
 
