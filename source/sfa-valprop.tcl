@@ -303,6 +303,7 @@ proc valPropReport {objEntity} {
         set pmivalprop 0
         catch {unset nelem}
         catch {unset maxelem}
+        catch {unset repName}
         set valProps [list {} {} {} {} {}]
         set valPropEnts $valProps
       }
@@ -568,7 +569,8 @@ proc valPropReport {objEntity} {
                   }
                 }
 
-                "representation name" {
+                "representation name" -
+                "shape_representation_with_parameters name" {
                   set ok 1
                   set col($pd) 5
                   set colName "representation name"

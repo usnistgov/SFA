@@ -399,7 +399,7 @@ proc setEntAttrList {abc} {
 proc syntaxChecker {fileName} {
   global sfacl opt
   
-  outputMsg "\nRunning Syntax Checker" green
+  outputMsg "\n[string repeat "-" 29]\nRunning Syntax Checker"
 
 # check header  
   getSchemaFromFile $fileName  
@@ -412,6 +412,7 @@ proc syntaxChecker {fileName} {
       set sfaout [exec $sfacl [file nativename $fileName] stats]
       set sfaout [split $sfaout "\n"]
       catch {unset sfaerr}
+      set lineLast ""
       foreach line $sfaout {
 
 # get lines with errors and warnings
@@ -421,7 +422,8 @@ proc syntaxChecker {fileName} {
           if {[string first "Converting 'integer' value" $line] == -1 && \
               [string first "ROSE_RUNTIME" $line] == -1 && \
               [string first "End ST-Developer" $line] == -1} {
-            append sfaerr " $line\n"
+            if {$line != $lineLast} {append sfaerr " $line\n"}
+            set lineLast $line
           }
           if {[string first "warning: No schemas" $line] != -1} {break}
           if {[string first "warning: Couldn't find schema" $line] != -1} {
@@ -458,6 +460,8 @@ proc syntaxChecker {fileName} {
   } else {
     outputMsg " Syntax Checker cannot be run.  Make sure the command-line version 'sfa-cl.exe' is in the same directory as 'STEP-File-Analyzer.exe" red
   }
+
+  outputMsg "[string repeat "-" 29]"
 }
 
 # -------------------------------------------------------------------------------
@@ -488,6 +492,7 @@ proc getSchemaFromFile {fname {msg 0}} {
   set p21e3 0
   set schema ""
   set ok 0
+  set ok1 0
   set nline 0
   set niderr 0
   set nendsec 0
@@ -502,17 +507,25 @@ proc getSchemaFromFile {fname {msg 0}} {
         }
       }
     }
-
     incr nline
+
+# check file
+    if {[string first "ISO-10303-21;" $line] != -1} {set ok1 1}
+    
+# look for FILE_SCHEMA
     if {[string first "FILE_SCHEMA" $line] != -1} {
       set ok 1
       set fsline $line
-      if {[string first "(" $line] == [string last "(" $line] || [string first ")" $line] == [string last ")" $line]} {
+
+# done reading header section
+    } elseif {[string first "ENDSEC" $line] != -1 && $nendsec == 0} {
+
+# check for double parentheses
+      if {[string first "(" $fsline] == [string last "(" $fsline] || [string first ")" $fsline] == [string last ")" $fsline]} {
         errorMsg "FILE_SCHEMA must use a double set of parentheses."
       }
 
-# done reading header section, get schema
-    } elseif {[string first "ENDSEC" $line] != -1 && $nendsec == 0} {
+# get schema
       set sline [split $fsline "'"]
       set schema [lindex $sline 1]
       incr nendsec
@@ -544,6 +557,9 @@ proc getSchemaFromFile {fname {msg 0}} {
     }
   }
   close $stepfile
+  
+# not a STEP file
+  if {!$ok1} {errorMsg "ERROR: The STEP file does not start with ISO-10303-21;"}
   return $schema
 }
 

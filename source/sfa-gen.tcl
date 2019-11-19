@@ -1037,12 +1037,19 @@ proc genExcel {{numFile 0}} {
 # add PMI Rep. Coverage Analysis worksheet for a single file
     if {$opt(PMISEM)} {
       if {[info exists spmiTypesPerFile]} {
-        set spmiCoverageWS "PMI Representation Coverage"
-        if {![info exists worksheet($spmiCoverageWS)]} {
-          outputMsg " Adding PMI Representation Coverage worksheet" blue
-          spmiCoverageStart 0
-          spmiCoverageWrite "" "" 0
-          spmiCoverageFormat "" 0
+
+# do not generate if only 'document identification' or '... standard'
+        set ok 0
+        foreach type $spmiTypesPerFile {if {$type != "document identification" && [string first "standard" $type] == -1} {set ok 1; break}}
+
+        if {$ok} {
+          set spmiCoverageWS "PMI Representation Coverage"
+          if {![info exists worksheet($spmiCoverageWS)]} {
+            outputMsg " Adding PMI Representation Coverage worksheet" blue
+            spmiCoverageStart 0
+            spmiCoverageWrite "" "" 0
+            spmiCoverageFormat "" 0
+          }
         }
       }
 

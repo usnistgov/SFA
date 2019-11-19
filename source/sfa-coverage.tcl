@@ -211,6 +211,13 @@ proc spmiCoverageWrite {{fn ""} {sum ""} {multi 1}} {
   global pmiModifiers recPracNames spmiCoverageWS spmiTypesPerFile totalPMI totalPMIrows usedPMIrows worksheet worksheet1
   global objDesign
 
+# return if only 'document identification' or '... standard'
+  if {[info exists spmiTypesPerFile]} {
+    set ok 0
+    foreach type $spmiTypesPerFile {if {$type != "document identification" && [string first "standard" $type] == -1} {set ok 1}}
+    if {!$ok} {return}
+  }
+
   if {[catch {
     if {$multi} {
       set range [$worksheet1($spmiCoverageWS) Range [cellRange 3 $col1($sum)] [cellRange 3 $col1($sum)]]
