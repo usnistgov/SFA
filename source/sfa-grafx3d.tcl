@@ -296,7 +296,7 @@ proc x3dFileEnd {} {
   global sphereDef stepAP tessCoord tessEdges tessPartFile tessPartFileName viz x3dAxes x3dColorsUsed x3dFile x3dMax x3dMin x3dMsg x3dTitle
 
 # PMI is already written to file
-# generate b-rep part geometry based on pythonOCC and OpenCascade
+# generate b-rep part geometry based on pythonOCC
   set viz(BRP) 0
   if {$opt(VIZBRP)} {
     set ok 0
@@ -561,10 +561,10 @@ proc x3dFileEnd {} {
     if {$ok} {
       append str " and <a href=\"https://github.com/tpaviot/pythonocc\">pythonOCC</a>"
       if {$viz(TPG) || $viz(PMI) || $viz(FEA) || $viz(SMG)} {append str " for part geometry"}
-      append str ".&nbsp;&nbsp;&nbsp;Part geometry can also be viewed with <a href=\"https://www.cax-if.org/cax/step_viewers.php\">STEP file viewers</a>"
+      append str ".&nbsp;&nbsp;Other <a href=\"https://www.cax-if.org/cax/step_viewers.php\">STEP file viewers</a> are available"
     }
   }
-  append str ".&nbsp;&nbsp;&nbsp;<a href=\"https://www.nist.gov/disclaimer\">NIST Disclaimer</a>&nbsp;&nbsp;&nbsp;[clock format [clock seconds] -format "%d %b %G %H:%M"]"
+  append str ".&nbsp;&nbsp;<a href=\"https://www.nist.gov/disclaimer\">NIST Disclaimer</a>&nbsp;&nbsp;[clock format [clock seconds] -format "%d %b %G %H:%M"]"
   puts $x3dFile $str
   #puts $x3dFile "<script>if (!navigator.onLine) {document.write(\"<B><P>You must have an Internet connection to view any of the graphics.</B>\");}</script>"
 
@@ -806,11 +806,12 @@ proc x3dBrepGeom {} {
             set stpx3dFile [open $stpx3dFileName r]
             update idletasks
             set write 0
+            set nostop 1
 
 # process all lines in file
             outputMsg " Processing X3D output from stp2x3d.exe" green
             update
-            while {[gets $stpx3dFile line] >= 0} {
+            while {[gets $stpx3dFile line] >= 0 && $nostop} {
               if {[string first "<Shape" $line] != -1} {
                 set line "<Shape><Appearance>"
                 set write 1
@@ -821,22 +822,14 @@ proc x3dBrepGeom {} {
                 set n 0
                 foreach idx {0 1 2} {set min($idx) 1.e10; set max($idx) -1.e10}
                 set getMinMax 1
-                while {[gets $stpx3dFile nline] >= 0} {
+                while {[gets $stpx3dFile nline] >= 0 && $nostop} {
 
-# done reading all coordinates, save min and max, compute ratio
+# done reading all coordinates, save min and max
                   if {[string first "/Coordinate" $nline] != -1} {
                     set getMinMax 0
-                    set ratio 0
                     foreach id1 {0 1 2} id2 {x y z} {
-                      if {[expr {abs($x3dMin($id2))}] > 0.1} {set ratio [expr {max($ratio, $min($id1)/$x3dMin($id2))}]}
-                      if {[expr {abs($x3dMax($id2))}] > 0.1} {set ratio [expr {max($ratio, $max($id1)/$x3dMax($id2))}]}
                       set x3dMin($id2) $min($id1)
                       set x3dMax($id2) $max($id1)
-                    }
-                    if {$ratio > 1000.} {
-                      set msg "Part geometry XYZ dimensions are much greater than the dimensions of the graphical PMI."
-                      errorMsg " $msg"
-                      if {[lsearch $x3dMsg $msg] == -1} {lappend x3dMsg $msg}
                     }
                   }
 
@@ -851,17 +844,29 @@ proc x3dBrepGeom {} {
                     }
                   }
 
-                  if {[string first "<Normal" $nline] != -1} {append line "\n"}
-                  append line " $nline"
+# add line break for normal or skip normals
+                  if {[string first "<Normal" $nline] != -1} {
+                    switch -- $opt(VIZBRPNRM) {
+                      0 {append line "\n"}
+                      1 {
+                        set nostop 0
+                        append line "\n</TriangleSet></Shape>"
+                      }
+                    }
+                  }
+
+                  if {$nostop} {
+                    append line " $nline"
 
 # write line to file every 3000 lines
-                  incr n
-                  if {[expr {$n%3000}] == 0} {
-                    puts $brepFile $line
-                    set line ""
-                    set n 0
+                    incr n
+                    if {[expr {$n%3000}] == 0} {
+                      puts $brepFile $line
+                      set line ""
+                      set n 0
+                    }
+                    if {[string first "</Normal" $nline] != -1} {break}
                   }
-                  if {[string first "</Normal" $nline] != -1} {break}
                 }
 
 # adjust color

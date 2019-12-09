@@ -1,7 +1,7 @@
 # PMI Representation Summary worksheet
 proc spmiSummary {} {
-  global allPMI cells entName localName nistName nistPMIexpected recPracNames row
-  global sheetLast spmiSumName spmiSumRow thisEntType worksheet worksheets xlFileName
+  global allPMI cells entName localName nistName nistPMIexpected recPracNames row sheetLast
+  global spmiSumName spmiSumRow spmiSumRowID thisEntType worksheet worksheets xlFileName
   
 # first time through, start worksheet
   if {$spmiSumRow == 1} {
@@ -80,7 +80,9 @@ proc spmiSummary {} {
 # values
       } else {
         if {[info exists pmiCol]} {
-          $cells($spmiSumName) Item $spmiSumRow 1 [[$cells($thisEntType) Item $i 1] Value]
+          set id [expr {int([[$cells($thisEntType) Item $i 1] Value])}]
+          $cells($spmiSumName) Item $spmiSumRow 1 $id
+          set spmiSumRowID($id) $spmiSumRow
           if {[string first "_and_" $thisEntType] == -1} {
             set entstr $thisEntType
           } else {

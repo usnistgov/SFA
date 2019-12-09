@@ -2,7 +2,7 @@
 proc genExcel {{numFile 0}} {
   global allEntity aoEntTypes ap203all ap214all ap242all badAttributes brepEnts buttons cells cells1 col col1 count csvdirnam csvfile currLogFile developer
   global dim dimRepeatDiv editorCmd entCategories entCategory entColorIndex entCount entityCount entsIgnored entsWithErrors errmsg excel
-  global excelVersion extXLS fcsv feaLastEntity File fileEntity filesProcessed gpmiTypesInvalid gpmiTypesPerFile idxColor ifcsvrDir inverses
+  global excelVersion extXLS fcsv feaFirstEntity feaLastEntity File fileEntity filesProcessed gpmiTypesInvalid gpmiTypesPerFile idxColor ifcsvrDir inverses
   global lastXLS lenfilelist localName localNameList logFile matrixList multiFile multiFileDir mytemp nistCoverageLegend nistName nistPMIexpected nistPMImaster
   global nprogBarEnts nshape ofCSV ofExcel opt pf32 p21e3 p21e3Section row rowmax savedViewButtons savedViewName savedViewNames scriptName
   global sheetLast skipEntities skipPerm spmiEntity spmiSumName spmiSumRow spmiTypesPerFile startrow statsOnly stepAP tessColor thisEntType tlast
@@ -280,8 +280,8 @@ proc genExcel {{numFile 0}} {
           } else {
             set msg "\nPossible causes of the ERROR:"
             append msg "\n1 - Syntax errors in the STEP file"
-            append msg "\n    Use F8 to run the Syntax Checker to check for errors in the STEP file, see Help > Syntax Checker."
-            append msg "\n    Try opening the file in a STEP viewer, see Websites > STEP File Viewers"
+            append msg "\n    Use F8 to run the Syntax Checker to check for errors in the STEP file.  See Help > Syntax Checker"
+            append msg "\n    Try opening the file in a STEP viewer.  See Websites > STEP File Viewers"
             append msg "\n    The file must start with ISO-10303-21; and end with ENDSEC; END-ISO-10303-21;"
             append msg "\n2 - File or directory name contains accented, non-English, or symbol characters"
             append msg "\n     [file nativename $fname]"
@@ -762,6 +762,7 @@ proc genExcel {{numFile 0}} {
     }
     if {$opt(VIZFEADS)} {lappend ents "nodal_freedom_values"}
     if {$opt(VIZFEABC)} {lappend ents "single_point_constraint_element_values"}
+    foreach ent $ents {if {[info exists entCount($ent)]} {set feaFirstEntity $ent; break}}
     foreach ent $ents {if {[info exists entCount($ent)]} {set feaLastEntity $ent}}
   }
 
@@ -1249,12 +1250,12 @@ proc genExcel {{numFile 0}} {
     if {$ok} {
       set dir [file nativename $csvdirnam]
       if {[string first " " $dir] == -1} {
-        outputMsg "Opening CSV file directory"
+        outputMsg "Opening directory of CSV files"
         if {[catch {
           exec {*}[auto_execok start] $dir
         } emsg]} {
           if {[string first "UNC" $emsg] != -1} {set emsg [fixErrorMsg $emsg]}
-          if {$emsg != ""} {errorMsg "ERROR opening CSV file directory: $emsg"}
+          if {$emsg != ""} {errorMsg "ERROR opening directory of CSV files: $emsg"}
         }
       } else {
         exec C:/Windows/explorer.exe $dir &
@@ -1876,9 +1877,9 @@ proc sumAddColorLinks {sum sumHeaderRow sumLinks sheetSort sumRow} {
         } else {
           [$anchor Interior] ColorIndex [expr 15]
           if {$ent != "dimensional_characteristic_representation"} {
-            addCellComment $sum $sumRow 1 "There are errors or warnings for this entity based on CAx-IF Recommended Practices.  See Help > Syntax Errors."
+            addCellComment $sum $sumRow 1 "There are errors or warnings for this entity based on CAx-IF Recommended Practices.  See Help > Analyze > Syntax Errors"
           } else {
-            addCellComment $sum $sumRow 1 "There are errors or warnings for this entity based on CAx-IF Recommended Practices.  Check for cell comments in the Associated Geometry column.  See Help > Syntax Errors."
+            addCellComment $sum $sumRow 1 "There are errors or warnings for this entity based on CAx-IF Recommended Practices.  Check for cell comments in the Associated Geometry column.  See Help > Analyze > Syntax Errors"
           }
         }
         catch {foreach i {8 9} {[[$anchor Borders] Item $i] Weight [expr 1]}}
@@ -2138,7 +2139,9 @@ proc moveWorksheet {items {where "Before"}} {
 # -------------------------------------------------------------------------------------------------
 proc addP21e3Section {} {
   global objDesign
-  global cells legendColor p21e3Section worksheet worksheets
+  global cells legendColor p21e3Section spmiSumRowID worksheet worksheets
+
+  catch {unset anchorSum}
 
 # look for three section types possible in Part 21 Edition 3
   foreach line $p21e3Section {
@@ -2171,7 +2174,7 @@ proc addP21e3Section {} {
         if {[string is integer $anchorID]} {
           set anchorEnt [[$objDesign FindObjectByP21Id [expr {int($anchorID)}]] Type]
 
-# add anchor ID to entity worksheet
+# add anchor ID to entity worksheet and representation summary
           if {$anchorEnt != ""} {
             $cells($sect) Item $r 2 $anchorEnt
             if {[info exists worksheet($anchorEnt)]} {
@@ -2184,6 +2187,7 @@ proc addP21e3Section {} {
                 set id [[$cells($anchorEnt) Item $ur 1] Value]
                 if {$id == $anchorID} {
                   $cells($anchorEnt) Item $ur $ucol($anchorEnt) $uuid
+                  if {[info exists spmiSumRowID($anchorID)]} {set anchorSum($spmiSumRowID($anchorID)) $uuid}
                   break
                 }
               }
@@ -2206,6 +2210,32 @@ proc addP21e3Section {} {
     }
 
     if {$line == "ENDSEC"} {[$worksheet($sect) Columns] AutoFit}
+  }
+
+# add anchor ids to representation summary worksheet
+  if {[info exists anchorSum]} {
+    outputMsg " Adding ANCHOR IDs on: PMI Representation Summary worksheet" green
+    set spmiSumName "PMI Representation Summary"
+    set c 4
+    if {[[$cells($spmiSumName) Item 3 $c] Value] != ""} {
+      set c 5
+      set range [$worksheet($spmiSumName) Range E2]
+      [$range EntireColumn] Insert [expr -4161]
+    }
+
+    $cells($spmiSumName) Item 3 $c "ANCHOR ID"
+    set range [$worksheet($spmiSumName) Range [cellRange 3 $c]]
+    catch {foreach i {8 9} {[[$range Borders] Item $i] Weight [expr 2]}}
+    [$range Font] Bold [expr 1]
+    $range HorizontalAlignment [expr -4108]
+
+    set rmax 0
+    foreach r [array names anchorSum] {
+      $cells($spmiSumName) Item $r $c $anchorSum($r)
+      if {$r > $rmax} {set rmax $r}
+    }
+    set range [$worksheet($spmiSumName) Range [cellRange 3 $c] [cellRange $rmax $c]]
+    [$range Columns] AutoFit
   }
 
 # format ID columns

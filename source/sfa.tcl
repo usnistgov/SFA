@@ -98,7 +98,7 @@ foreach id { \
 # set opt to 0
 foreach id { \
   DEBUG1 DEBUGINV indentGeomtry indentStyledItem INVERSE PMIGRFCOV PMISEMDIM PR_STEP_CPNT PR_STEP_GEOM \
-  PR_USER SYNCHK VIZFEADSntail VIZFEALVS VIZPMIVP VIZTPGMSH writeDirType XL_FPREC XL_SORT \
+  PR_USER SYNCHK VIZBRPNRM VIZFEADSntail VIZFEALVS VIZPMIVP VIZTPGMSH writeDirType XL_FPREC XL_SORT \
 } {set opt($id) 0}
 
 set opt(gpmiColor) 3

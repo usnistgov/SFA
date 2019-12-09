@@ -335,7 +335,7 @@ proc valPropReport {objEntity} {
                 if {$propDefName == "geometric_validation_property"} {append msg "$lf\($recPracNames(valprop))"}
                 errorMsg $msg
                 lappend syntaxErr($ent($entLevel)) [list $objID unit_component $msg]
-                lappend syntaxErr(property_definition) [list $propDefIDRow($propDefID) 9 $msg]
+                lappend syntaxErr(property_definition) [list $propDefID 9 $msg]
                 set nounits 1
               }
 
@@ -343,10 +343,10 @@ proc valPropReport {objEntity} {
               catch {
                 if {[string first "length" [$objValue Type]] != -1 && \
                    ([string first "force" $valName] != -1 || [string first "moment" $valName] != -1 || [string first "mass" $valName] != -1)} {
-                  set msg "Syntax Error: Wrong units for the validation property value."
+                  set msg "Syntax Error: Bad units for the validation property value."
                   errorMsg $msg
                   lappend syntaxErr($ent($entLevel)) [list $objID unit_component $msg]
-                  lappend syntaxErr(property_definition) [list $propDefIDRow($propDefID) 11 $msg]
+                  lappend syntaxErr(property_definition) [list $propDefID 11 $msg]
                 }
               }
             }
@@ -378,7 +378,7 @@ proc valPropReport {objEntity} {
                           errorMsg $msg
                           set vpcol 11
                           catch {if {[[$cells($pd) Item 3 13] Value] != ""} {set vpcol 13}}
-                          lappend syntaxErr(property_definition) [list $propDefIDRow($propDefID) $vpcol $msg]
+                          lappend syntaxErr(property_definition) [list $propDefID $vpcol $msg]
                         }
                       }
                     }
@@ -391,7 +391,7 @@ proc valPropReport {objEntity} {
                       set msg "Syntax Error: Missing property_definition 'definition' attribute."
                       if {$propDefName == "geometric_validation_property"} {append msg "\n[string repeat " " 14]\($recPracNames(valprop), Sec. 4)"}
                       errorMsg $msg
-                      lappend syntaxErr(property_definition) [list $propDefIDRow($propDefID) 4 $msg]
+                      lappend syntaxErr(property_definition) [list $propDefID 4 $msg]
                     }
                   }
                 }
@@ -531,6 +531,18 @@ proc valPropReport {objEntity} {
                   set colName "exponent"
                   addValProps 4 $objValue "#$objID $ent2"
                   #outputMsg "    EXP      [llength [lindex $valProps 4]]  $valProps" red
+
+# wrong exponent
+                  catch {
+                    if {([string first "length" $valName] != -1 && $objValue != 1) || \
+                        ([string first "area" $valName]   != -1 && $objValue != 2) || \
+                        ([string first "volume" $valName] != -1 && $objValue != 3)} {
+                      set msg "Syntax Error: Bad exponent for the validation property units"
+                      errorMsg $msg
+                      lappend syntaxErr($ent($entLevel)) [list $objID exponent $msg]
+                      lappend syntaxErr(property_definition) [list $propDefID 13 $msg]
+                    }
+                  }
                 }
 
                 "property_definition name" {

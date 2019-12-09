@@ -60,7 +60,7 @@ proc checkValues {} {
       if {[string first "PR_STEP" $item] == 0} {lappend butNormal "opt$item"}
     }
     foreach b {optINVERSE optPMIGRF optPMISEM optVALPROP optXL_FPREC optXL_LINK1 optXL_SORT allNone2} {lappend butDisabled $b}
-    foreach b {optVIZFEA optVIZPMI optVIZTPG optVIZBRP} {lappend butNormal $b}
+    foreach b {optVIZFEA optVIZPMI optVIZTPG optVIZBRP optVIZBRPNRM} {lappend butNormal $b}
     foreach b {allNone0 allNone1 allNone3 optPR_USER} {lappend butNormal $b}
 
 # Excel
@@ -69,7 +69,7 @@ proc checkValues {} {
       if {[string first "PR_STEP" $item] == 0} {lappend butNormal "opt$item"}
     }
     foreach b {optINVERSE optPMIGRF optPMISEM optVALPROP optXL_FPREC optXL_LINK1 optXL_SORT} {lappend butNormal $b}
-    foreach b {optVIZFEA optVIZPMI optVIZTPG optVIZBRP} {lappend butNormal $b}
+    foreach b {optVIZFEA optVIZPMI optVIZTPG optVIZBRP optVIZBRPNRM} {lappend butNormal $b}
     foreach b {allNone0 allNone1 allNone2 allNone3 optPR_USER} {lappend butNormal $b}
   }
 
@@ -156,6 +156,21 @@ proc checkValues {} {
       foreach b {optPR_STEP_AP242 optPR_STEP_COMM optPR_STEP_SHAP} {lappend butNormal $b}
     }
     lappend butDisabled optPMISEMDIM
+  }
+
+# part geometry view
+  if {$opt(VIZBRP)} {
+    if {$opt(XLSCSV) != "None"} {
+      set opt(PR_STEP_PRES) 1
+      lappend butDisabled optPR_STEP_PRES
+    }
+    foreach b {optVIZBRPNRM} {lappend butNormal $b}
+  } else {
+    catch {
+      if {!$opt(PMISEM) && !$opt(PMIGRF)} {lappend butNormal optPR_STEP_COMM}
+      if {!$opt(PMISEM)} {lappend butNormal optPR_STEP_PRES}
+    }
+    foreach b {optVIZBRPNRM} {lappend butDisabled $b}
   }
 
 # tessellated geometry view

@@ -1,7 +1,7 @@
 proc feaModel {entType} {
   global objDesign
   global cadSystem ent entAttrList entCount entLevel feaBoundary feaDisp feaFaceList feaFaceOrig feaFile feaFileName
-  global feaLastEntity feaLoad feaMeshIndex feaType feaTypes localName mytemp nfeaElem nprogBarEnts opt rowmax
+  global feaFirstEntity feaLastEntity feaLoad feaMeshIndex feaType feaTypes localName mytemp nfeaElem nprogBarEnts opt rowmax
   global sfaPID stepAP timeStamp x3dAxesSize x3dFile x3dFileName x3dMax x3dMin x3dMsg x3dStartFile x3dTitle
 
   if {$opt(DEBUG1)} {outputMsg "START feaModel $entType\n" red}
@@ -164,9 +164,15 @@ proc feaModel {entType} {
 # create temp files
   if {[string first "element_representation" $entType] != -1} {
     checkTempDir
-    foreach f {elements mesh meshIndex faceIndex loads bcs} {
+    foreach f {faceIndex meshIndex} {
       set feaFileName($f) [file join $mytemp $f.txt]
       set feaFile($f) [open $feaFileName($f) w]
+    }
+    if {$entType == $feaFirstEntity} {
+      foreach f {bcs elements loads mesh} {
+        set feaFileName($f) [file join $mytemp $f.txt]
+        set feaFile($f) [open $feaFileName($f) w]
+      }
     }
   }
 
@@ -330,7 +336,7 @@ proc feaModel {entType} {
             close $feaFile(mesh)
             foreach f {mesh meshIndex} {
               if {[file exists $feaFileName($f)]} {
-                catch {close $feaFileName($f)}
+                catch {close $feaFile($f)}
                 catch {file delete -force -- $feaFileName($f)}
               }
             }
@@ -340,7 +346,7 @@ proc feaModel {entType} {
       }
     }
 
-# loads (displacements), bcs, elements
+# loads (displacements), bcs, elements (order is important)
     foreach f {loads bcs elements} {
       if {[info exists feaFileName($f)]} {
         if {[file exists $feaFileName($f)]} {
@@ -355,10 +361,10 @@ proc feaModel {entType} {
       }
     }
 
-# close temp files
-    foreach f {elements mesh meshIndex faceIndex loads bcs} {
+# delete temp files
+    foreach f {bcs elements faceIndex loads} {
       if {[file exists $feaFileName($f)]} {
-        catch {close $feaFileName($f)}
+        catch {close $feaFile($f)}
         catch {file delete -force -- $feaFileName($f)}
       }
     }

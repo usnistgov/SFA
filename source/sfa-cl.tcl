@@ -75,8 +75,8 @@ Optional command line settings:
  If 'myfile.stp' has spaces, put quotes around the file name \"C:/mydir/my file.stp\"
 
  It is recommended to run the GUI version of the software first.  If not already
- installed, the IFCsvr toolkit (used to read STEP files) and STEP schema files will be
- installed the first time this software is run.
+ installed, the IFCsvr toolkit used to read STEP files will be installed the first
+ time this software is run.
  
  Existing Spreadsheets and View files are always overwritten.  An Internet connection
  is required to show View files.
@@ -100,8 +100,7 @@ Credits
 - Reading and parsing STEP files: IFCsvr ActiveX Component, Copyright \u00A9 1999, 2005 SECOM Co., Ltd. All Rights Reserved
                                   IFCsvr has been modified by NIST to include STEP schemas.
                                   The license agreement can be found in C:\\Program Files (x86)\\IFCsvrR300\\doc
-- Viewing B-rep part geometry:    OpenCascade (https://www.opencascade.com/) and
-                                  pythonOCC (https://github.com/tpaviot/pythonocc)"
+- Viewing B-rep part geometry:    pythonOCC (https://github.com/tpaviot/pythonocc)"
 
 if {$argc == 1} {set arg [string tolower [lindex $argv 0]]}
 if {$argc == 0 || ($argc == 1 && ($arg == "help" || $arg == "-help" || $arg == "-h" || $arg == "-v"))} {
@@ -148,7 +147,7 @@ foreach id { \
 # set opt to 0
 foreach id { \
   DEBUG1 DEBUGINV indentGeomtry indentStyledItem INVERSE PMIGRFCOV PMISEMDIM PR_STEP_CPNT PR_STEP_GEOM PR_USER \
-  SYNCHK VIZBRP VIZFEA VIZFEADSntail VIZFEALVS VIZPMI VIZPMIVP VIZTPG VIZTPGMSH writeDirType XL_FPREC XL_SORT \
+  SYNCHK VIZBRP VIZBRPNRM VIZFEA VIZFEADSntail VIZFEALVS VIZPMI VIZPMIVP VIZTPG VIZTPGMSH writeDirType XL_FPREC XL_SORT \
 } {set opt($id) 0}
 
 set opt(gpmiColor) 3

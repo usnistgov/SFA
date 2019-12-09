@@ -623,8 +623,10 @@ proc checkP21e3 {fname} {
           lappend sects [string range $line 0 end-1]
         }
   
-# write new file w/o part 21 edition 3 content
+# write new file w/o part 21 edition 3 content, change 4;1 to 2;1
         if {$write} {
+          set c1 [string first "4\;1" $line]
+          if {$c1 != -1} {set line [string replace $line $c1 $c1 2]}
           puts $f2 $line
         } else {
           lappend p21e3Section [string range $line 0 end-1]
