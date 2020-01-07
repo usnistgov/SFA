@@ -100,7 +100,7 @@ proc genExcel {{numFile 0}} {
       set colsum [expr {$col1(Summary)+1}]
       set range [$worksheet1(Summary) Range [cellRange 4 $colsum]]
       $cells1(Summary) Item 4 $colsum $fn
-      if {$opt(XL_LINK1)} {[$worksheet1(Summary) Hyperlinks] Add $range [join $fname] [join ""] [join "Link to STEP file"]}
+      if {!$opt(HIDELINKS)} {[$worksheet1(Summary) Hyperlinks] Add $range [join $fname] [join ""] [join "Link to STEP file"]}
     }
 
 # open file with IFCsvr
@@ -282,12 +282,10 @@ proc genExcel {{numFile 0}} {
             append msg "\n1 - Syntax errors in the STEP file"
             append msg "\n    Use F8 to run the Syntax Checker to check for errors in the STEP file.  See Help > Syntax Checker"
             append msg "\n    Try opening the file in a STEP viewer.  See Websites > STEP File Viewers"
-            append msg "\n    The file must start with ISO-10303-21; and end with ENDSEC; END-ISO-10303-21;"
             append msg "\n2 - File or directory name contains accented, non-English, or symbol characters"
             append msg "\n     [file nativename $fname]"
             append msg "\n    Change the file or directory name"
-            append msg "\n3 - If the problem is not with the STEP file, then restart this software and try again,"
-            append msg "\n    or run this software as administrator, or reboot your computer"
+            append msg "\n3 - If the problem is not with the STEP file, then restart this software and try again."
             append msg "\n\nFor other problems, contact: [join [getContact]]"
             errorMsg $msg red
           }
@@ -949,11 +947,14 @@ proc genExcel {{numFile 0}} {
         }
 
 # write matrix of values to the worksheet for this entity, matrixList is from getEntity
-        set range [$worksheet($thisEntType) Range [cellRange 4 1] [cellRange [expr {[llength $matrixList]+3}] [llength [lindex $matrixList 0]]]]
-        $range Value2 $matrixList
+        if {$useXL} {
+          set range [$worksheet($thisEntType) Range [cellRange 4 1] [cellRange [expr {[llength $matrixList]+3}] [llength [lindex $matrixList 0]]]]
+          $range Value2 $matrixList
 
 # close CSV file
-        if {!$useXL} {catch {close $fcsv}}
+        } else {
+          catch {close $fcsv}
+        }
       }
 
 # check for reports (validation properties, PMI presentation and representation, tessellated geometry, AP209 FEM)
@@ -1186,7 +1187,7 @@ proc genExcel {{numFile 0}} {
 # add Link(n) text to multi file summary
       if {$numFile != 0 && [info exists cells1(Summary)]} {
         set colsum [expr {$col1(Summary)+1}]
-        if {$opt(XL_LINK1)} {
+        if {!$opt(HIDELINKS)} {
           $cells1(Summary) Item 3 $colsum "Link ($numFile)"
           set range [$worksheet1(Summary) Range [cellRange 3 $colsum]]
           regsub -all {\\} $xlFileName "/" xls
@@ -1300,12 +1301,12 @@ proc genExcel {{numFile 0}} {
   global cgrObjects colColor coordinatesList currx3dPID datumGeom datumIDs datumSymbol dimrep dimrepID dimtolEnt dimtolEntID dimtolGeom entName
   global feaDOFR feaDOFT feaNodes gpmiID gpmiIDRow gpmiRow heading idRow invCol invGroup lineStrips nrep numx3dPID pmiColumns pmiStartCol
   global propDefID propDefIDRow propDefName propDefOK propDefRow savedsavedViewNames savedViewFile savedViewFileName shapeRepName
-  global srNames suppGeomEnts syntaxErr tessPlacement tessRepo
+  global srNames suppGeomEnts syntaxErr tessCoord tessCoordName tessIndex tessIndexCoord tessPlacement tessRepo
 
   foreach var {cells cgrObjects colColor coordinatesList count currx3dPID datumGeom datumIDs datumSymbol dimrep dimrepID dimtolEnt dimtolEntID dimtolGeom \
                entName entsIgnored feaDOFR feaDOFT feaNodes gpmiID gpmiIDRow gpmiRow heading idRow invCol invGroup lineStrips nrep numx3dPID \
-               pmiCol pmiColumns pmiStartCol pmivalprop propDefID propDefIDRow propDefName propDefOK propDefRow savedsavedViewNames \
-               savedViewFile savedViewFileName savedViewNames shapeRepName srNames suppGeomEnts syntaxErr tessPlacement tessRepo \
+               pmiCol pmiColumns pmiStartCol pmivalprop propDefID propDefIDRow propDefName propDefOK propDefRow savedsavedViewNames savedViewFile savedViewFileName \
+               savedViewNames shapeRepName srNames suppGeomEnts syntaxErr tessCoord tessCoordName tessIndex tessIndexCoord tessPlacement tessRepo \
                workbook workbooks worksheet worksheets x3dCoord x3dFile x3dFileName x3dIndex x3dMax x3dMin x3dStartFile} {
     if {[info exists $var]} {unset $var}
   }
@@ -1377,22 +1378,27 @@ proc addHeaderWorksheet {numFile fname} {
           append csvstr ",$sn"
           puts $fcsv $csvstr
         }
-        outputMsg "$attr:  $sn" blue
+        set str "$attr:  $sn"
 
 # check edition of AP242
         set ap242edition 1
         if {[string first "1 0 10303 442" $sn] != -1} {
-          if {[string first "1 0 10303 442 2 1 4" $sn] != -1} {
-            errorMsg "This file uses the new AP242 Edition 2."
+          if {[string first "442 1 1 4" $sn] != -1} {
+            append str " (edition $ap242edition)"
+          } elseif {[string first "442 2 1 4" $sn] != -1 || [string first "442 3 1 4" $sn] != -1} {
             set ap242edition 2
-          } elseif {[string first "1 0 10303 442 3 1 4" $sn] != -1} {
-            errorMsg "This file uses the new AP242 Edition 3."
-            set ap242edition 3
-          } elseif {[string first "1 0 10303 442 1 1 4" $sn] == -1} {
-            errorMsg "This file uses an older or unknown version of AP242."
+            append str " (edition $ap242edition)"
+          }
+        }
+        outputMsg $str blue
+
+# check unknown edition of AP242
+        if {[string first "1 0 10303 442" $sn] != -1} {
+          if {[string first "442 1 1 4" $sn] == -1 && [string first "442 2 1 4" $sn] == -1 && [string first "442 3 1 4" $sn] == -1} {
+            errorMsg "This file uses an unknown edition ([string trim [string range $sn [string first "442" $sn]+4 end-1]]) of AP242."
           }
 
-# check version of AP203, AP214
+# check old version of AP203, AP214
         } elseif {[string first "CONFIG_CONTROL_DESIGN" $sn] == 0 || [string first "CONFIGURATION_CONTROL_3D_DESIGN" $sn] == 0} {
           errorMsg "This file uses an older version of STEP AP203.  See Help > Supported STEP APs"
         } elseif {[string first "AUTOMOTIVE_DESIGN_CC2" $sn] == 0} {
@@ -1814,7 +1820,7 @@ proc sumAddFileName {sum sumLinks} {
     set range [$worksheet($sum) Range "B1:K1"]
     $range MergeCells [expr 1]
     set anchor [$worksheet($sum) Range "B1"]
-    if {$opt(XL_LINK1)} {
+    if {!$opt(HIDELINKS)} {
       regsub -all {\\} $localName "/" ln
       $sumLinks Add $anchor [join $ln] [join ""] [join "Link to STEP file"]
     }

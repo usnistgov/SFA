@@ -28,10 +28,11 @@ proc valPropStart {} {
     [list "" [list "affected area" "affected curve length" "datum references" "equivalent unicode string" "font name" "number of annotations" \
       "number of composite tolerances" "number of datum annotations" "number of datum features" "number of datum references" "number of datum targets" \
       "number of datums" "number of dimension annotations" "number of dimensional locations" "number of dimensional sizes" "number of facets" \
-      "number of geometric tolerances" "number of other annotations" "number of PMI presentation elements" "number of segments" \
-      "number of semantic pmi elements" "number of semantic text notes on geometry" "number of semantic text notes on part" \
+      "number of geometric tolerances" "number of linked annotations" "number of other annotations" "number of PMI presentation elements" \
+      "number of segments" "number of semantic pmi elements" "number of semantic text notes on geometry" "number of semantic text notes on part" \
       "number of semantic text notes on PMI" "number of semantic text notes" "number of tolerance annotations" "number of views" "polyline centre point" \
-      "polyline curve length" "tessellated curve centre point" "tessellated curve length" "tessellated surface area" "tessellated surface centre point"]]]
+      "polyline curve length" "saved view camera coordinates" "saved view world coordinates" "tessellated curve centre point" "tessellated curve length" \
+      "tessellated surface area" "tessellated surface centre point" "visible geometry curve length" "visible geometry surface area"]]]
 
 # CAx-IF RP User Defined Attributes, section 8
   set valPropNames(attribute_validation_property) [list \
@@ -48,32 +49,14 @@ proc valPropStart {} {
     [list "number of segments" [list "number of segments"]] \
     [list "surface area" [list "tessellated surface area"]]]
 
-# composite recommended practice (new vp in the last 2 lines)
+# composite recommended practice (version 0.14 of RP)
   set valPropNames(composite_validation_property) [list \
-    [list "" [list "number of composite tables" "number of composite materials per part" \
-      "number of orientations per part" "number of plies per part" "number of plies per laminate table" \
-      "number of composite sequences per laminate table" "number of composite materials per laminate table" \
-      "number of composite orientations per laminate table" "ordered sequences per laminate table" \
-      "notational centroid" "number of ply pieces per ply" \
-      "number of tables" "number of sequences" "number of plies" "number of materials" "number of orientations" \
-      "sum of all ply surfaces areas" "centre point of all plies" "number of cores"]]]
-
-# new composite validation properties
-#"boundary length" "bounded area" "centroid for all the ply shapes in the part" "centroids for all the ply shapes in each laminate table"
-#"curve centroid for rosette type guide by a curve" "curve length for rosette type guide by a curve"
-#"geometric boundary (inner + outer) curve centroid (for implicit plies)" "geometric boundary (inner + outer) curve length (for implicit plies)"
-#"geometric centroid" "geometric centroid (for cores and explicit plies)" "geometric surface area (for cores and explicit plies)"
-#"geometric volume (for cores and explicit plies)" "notional rosette centroid (association ply/rosette)" "number of composite materials for each laminate table"
-#"number of composite materials in the part" "number of composite sequences for each laminate table" "number of composite sequences in the part"
-#"number of cores for each laminate table" "number of cores in the part" "number of laminates tables in the part" "number of orientations for each laminate table"
-#"number of orientations in the part" "number of plies" "number of plies for each laminate table" "number of plies in each sequence" "number of plies in the part"
-#"number of plies using the rosette" "number of ply pieces per ply" "number of rosette used in the part"
-#"ordered (alphanumeric ascending) list of orientation names used in each laminate table" "ordered (alphanumeric ascending) list of orientation names used in part"
-#"ordered (numerically ascending) list of orientation values used in each laminate table" "ordered (numerically ascending) list of orientation values used in part"
-#"ordered sequences name for each laminate table" "sum of area (for exact implicit ply representation) in the part"
-#"sum of area (for exact implicit ply representation) of each laminate table" "sum of ply area by material" "sum of ply surface areas for each laminate table"
-#"sum of ply volume by material" "sum of the geometric boundary length of the plies using the rosette"
-#"sum of volume (for core and explicit plies) of each laminate table" "sum of volume explicit plies in the part" "sum of volume for core in the part"
+    [list "" [list "centre point of all plies" "centre point" "curve centre point" "curve length measure" "notational centre point" "notational centroid" \
+      "number of composite materials per laminate table" "number of composite materials per part" "number of composite orientations per laminate table" \
+      "number of composite sequences per laminate table" "number of composite tables" "number of cores" "number of materials" "number of orientations per part" \
+      "number of orientations" "number of plies per laminate table" "number of plies per part" "number of plies" "number of ply pieces per ply" "number of rosettes" \
+      "number of sequences" "number of tables" "ordered list of orientation names" "ordered list of orientation values" "ordered sequences per laminate table" \
+      "sum of all core volumes" "sum of all ply surfaces areas" "sum of all ply volumes" "surface area measure" "volume measure"]]]
 
 # FEA validation properties
   set valPropNames(FEA_validation_property) [list \
@@ -153,12 +136,16 @@ proc valPropStart {} {
   set mass [list mass_measure_with_unit_and_measure_representation_item value_component unit_component name]
   set rat  [list ratio_measure_with_unit_and_measure_representation_item value_component unit_component name]
 
+  set def1 [list characterized_representation_and_draughting_model name]
+  set def2 [list model_geometric_view item [list camera_model_d3 name]]
+
   set rep1 [list representation name items $a2p3d $drep $vrep $brep $irep $rrep $mrep $len1 $len2 $mass $cartesian_point $ang $area $vol $forc $pres $rat]
   set rep2 [list shape_representation_with_parameters name items $a2p3d $drep $vrep $brep $irep $rrep $mrep $len1 $len2 $mass $cartesian_point $ang $area $vol $forc $pres $rat]
+  set rep3 [list tessellated_shape_representation name items]
 
   set gvp [list property_definition_representation \
-    definition [list property_definition name description definition] \
-    used_representation $rep1 $rep2]
+    definition [list property_definition name description definition $def1 $def2] \
+    used_representation $rep1 $rep2 $rep3]
 
   set entAttrList {}
   set pd "property_definition"
@@ -257,8 +244,8 @@ proc valPropStart {} {
 
 # -------------------------------------------------------------------------------
 proc valPropReport {objEntity} {
-  global cells col entLevel ent entAttrList maxelem maxrep ncartpt nelem nrep opt pd pdcol pdheading pmivalprop prefix propDefID propDefIDRow
-  global propDefName propDefOK propDefRow recPracNames repName stepAP syntaxErr valName valPropEnts valPropLink valPropNames valProps
+  global cells col entLevel ent entAttrList maxelem maxrep ncartpt nelem nrep opt pd pdcol pdheading pmivalprop prefix propDefID propDefIDRow propDefName
+  global propDefOK propDefRow recPracNames repName stepAP syntaxErr tessCoord tessCoordName valName valPropEnts valPropLink valPropNames valProps
 
   if {$opt(DEBUG1)} {outputMsg "valPropReport" red}
   if {[info exists propDefOK]} {if {$propDefOK == 0} {return}}
@@ -442,6 +429,7 @@ proc valPropReport {objEntity} {
                 }
 
                 "representation items" -
+                "tessellated_shape_representation items" -
                 "shape_representation_with_parameters items" {
                   set nrep 0
                   set maxrep $objSize
@@ -474,11 +462,27 @@ proc valPropReport {objEntity} {
             }
 
 # get the entities that are referred to, but only up to pointLimit cartesian points for sampling points
-            if {$ncartpt < $pointLimit} {
-              if {[catch {
-                ::tcom::foreach val1 $objValue {valPropReport $val1}
-              } emsg]} {
-                foreach val2 $objValue {valPropReport $val2}
+            if {$ent1 != "tessellated_shape_representation items"} {
+              if {$ncartpt < $pointLimit} {
+                if {[catch {
+                  ::tcom::foreach val1 $objValue {valPropReport $val1}
+                } emsg]} {
+                  foreach val2 $objValue {valPropReport $val2}
+                }
+              }
+
+# handle tessellated_shape_representation.items for coordinates_list
+            } else {
+              ::tcom::foreach val1 $objValue {
+                set id [$val1 P21ID]
+                if {[$val1 Type] == "coordinates_list" && ![info exists tessCoord($id)]} {tessReadGeometry 1}
+                if {[llength $tessCoord($id)] != 24} {
+                  set msg "Syntax Error: Bad number of points ([expr {[llength $tessCoord($id)]/3}]) in coordinates_list for saved view validation property.\n[string repeat " " 14]\($recPracNames(pmi242), Sec. 10.2.2)"
+                  errorMsg $msg
+                  lappend syntaxErr(property_definition) [list $propDefID 9 $msg]
+                }
+                addValProps 1 $tessCoordName($id) "#$id coordinates_list.name"
+                addValProps 2 $tessCoord($id) "#$id coordinates_list.position_coords"
               }
             }
           }
@@ -514,14 +518,18 @@ proc valPropReport {objEntity} {
                   set col($pd) 11
                   set colName "units"
                   set objValue "$prefix$objValue"
-                  addValProps 3 $objValue "#$objID $ent2"
+                  set c1 [string first "." $ent2]
+                  set ent3 [formatComplexEnt [string range $ent2 0 $c1-1]][string range $ent2 $c1 end]
+                  addValProps 3 $objValue "#$objID $ent3"
                   #outputMsg "   UNITS    [llength [lindex $valProps 3]]  $valProps" red
                 }
                 "conversion_based_unit_and_*_unit name" {
                   set ok 1
                   set col($pd) 11
                   set colName "units"
-                  addValProps 3 $objValue "#$objID $ent2"
+                  set c1 [string first "." $ent2]
+                  set ent3 [formatComplexEnt [string range $ent2 0 $c1-1]][string range $ent2 $c1 end]
+                  addValProps 3 $objValue "#$objID $ent3"
                   #outputMsg "   UNITS    [llength [lindex $valProps 3]]  $valProps" red
                 }
 
@@ -537,7 +545,7 @@ proc valPropReport {objEntity} {
                     if {([string first "length" $valName] != -1 && $objValue != 1) || \
                         ([string first "area" $valName]   != -1 && $objValue != 2) || \
                         ([string first "volume" $valName] != -1 && $objValue != 3)} {
-                      set msg "Syntax Error: Bad exponent for the validation property units"
+                      set msg "Syntax Error: Bad exponent for the value name and units"
                       errorMsg $msg
                       lappend syntaxErr($ent($entLevel)) [list $objID exponent $msg]
                       lappend syntaxErr(property_definition) [list $propDefID 13 $msg]
@@ -582,6 +590,7 @@ proc valPropReport {objEntity} {
                 }
 
                 "representation name" -
+                "tessellated_shape_representation name" -
                 "shape_representation_with_parameters name" {
                   set ok 1
                   set col($pd) 5
@@ -645,7 +654,12 @@ proc valPropReport {objEntity} {
                   set colName "value name"
                   set valName $objValue
                   if {[info exists nrep]} {incr nrep}
-                  addValProps 1 $objValue "#$objID $ent2"
+                  set ent3 $ent2
+                  if {[string first "_and_" $ent2] != -1} {
+                    set c1 [string first "." $ent2]
+                    set ent3 [formatComplexEnt [string range $ent2 0 $c1-1]][string range $ent2 $c1 end]
+                  }
+                  addValProps 1 $objValue "#$objID $ent3"
                   #outputMsg " VALNAME  [llength [lindex $valProps 1]]  $valProps" red
 
 # RP allows for blank representation.name (repName) except for sampling points
@@ -707,6 +721,15 @@ proc valPropReport {objEntity} {
                     }
                   }
                 }
+
+                "camera_model_d3 name" -
+                "characterized_representation_and_draughting_model name" {
+# saved view name
+                  #outputMsg "$ent1 $objValue" red
+                  set ok 1
+                  set col($pd) 15
+                  set colName "saved view"
+                }
               }
 
 # colName
@@ -717,6 +740,20 @@ proc valPropReport {objEntity} {
                   $cells($pd) Item 3 $c $colName
                   $cells($pd) Item 3 [string index [cellRange 1 [expr {$col($pd)+1}]] 0] "attribute"
                   set pdheading($col($pd)) 1
+                  if {$colName == "saved view"} {addCellComment "property_definition" 3 $c "Saved View validation properties are defined in $recPracNames(pmi242), Sec. 10.2.2"}
+                }
+
+# saved view
+                if {$colName == "saved view"} {
+                  if {$objValue != ""} {
+                    $cells($pd) Item $r $c $objValue
+                    set ent3 $ent2
+                    if {[string first "_and_" $ent2] != -1} {
+                      set c1 [string first "." $ent2]
+                      set ent3 [formatComplexEnt [string range $ent2 0 $c1-1]][string range $ent2 $c1 end]
+                    }
+                    $cells($pd) Item $r [expr {$col($pd)+1}] "#$objID $ent3"
+                  }
                 }
 
 # keep track of rows with validation properties

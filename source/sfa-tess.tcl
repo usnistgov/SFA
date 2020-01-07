@@ -172,8 +172,9 @@ proc tessPartGeometry {objEntity} {
 
 # -------------------------------------------------------------------------------
 # generate coordinates and faces by reading tessellated geometry entities line-by-line from STEP file, necessary because of limitations of the IFCsvr toolkit
-proc tessReadGeometry {} {
-  global coordinatesList entCount lineStrips localName normals opt tessCoord tessIndex tessIndexCoord triangles x3dMax x3dMin
+# if coordOnly=1, then only read coordinates_list, used for saved view pmi validation properties
+proc tessReadGeometry {{coordOnly 0}} {
+  global coordinatesList entCount lineStrips localName normals opt tessCoord tessCoordName tessIndex tessIndexCoord triangles x3dMax x3dMin
   
   set tg [open $localName r]
   set ncl  0
@@ -181,21 +182,26 @@ proc tessReadGeometry {} {
   set ntc1 0
   set tessellated 0
   
-  foreach ent {tessellated_curve_set \
-              complex_triangulated_surface_set triangulated_surface_set \
-              complex_triangulated_face triangulated_face} {
-    if {[info exists entCount($ent)]} {set ntc1 [expr {$ntc1+$entCount($ent)}]}
+# read everything
+  if {$coordOnly == 0} {
+    foreach ent {tessellated_curve_set complex_triangulated_surface_set triangulated_surface_set complex_triangulated_face triangulated_face} {
+      if {[info exists entCount($ent)]} {set ntc1 [expr {$ntc1+$entCount($ent)}]}
+    }
+    set ents [list COORDINATES_LIST TESSELLATED_CURVE_SET TRIANGULATED_FACE COMPLEX_TRIANGULATED_FACE TRIANGULATED_SURFACE_SET COMPLEX_TRIANGULATED_SURFACE_SET]
+    outputMsg " Reading tessellated geometry" green
+
+# read only coordinates list
+  } else {
+    foreach ent {coordinates_list} {if {[info exists entCount($ent)]} {set ntc1 [expr {$ntc1+$entCount($ent)}]}}
+    set ents [list COORDINATES_LIST]
+    outputMsg " Reading coordinates_list" green
   }
-  outputMsg " Reading tessellated geometry" green
   
 # read step
   while {[gets $tg line] >= 0} {
-    if {[string first "COORDINATES_LIST" $line] != -1 || \
-        [string first "TESSELLATED_CURVE_SET" $line] != -1 || \
-        [string first "TRIANGULATED_FACE" $line] != -1 || \
-        [string first "COMPLEX_TRIANGULATED_FACE" $line] != -1 || \
-        [string first "TRIANGULATED_SURFACE_SET" $line] != -1 || \
-        [string first "COMPLEX_TRIANGULATED_SURFACE_SET" $line] != -1} {
+    set ok 0
+    foreach ent $ents {if {[string first $ent $line] != -1} {set ok 1; break}}
+    if {$ok} {
 
 # get rest of entity if one multiple lines
       while {1} {
@@ -213,6 +219,11 @@ proc tessReadGeometry {} {
 
 # coordinates_list
       if {[string first "COORDINATES_LIST" $line] != -1} {
+        set tessCoordName($id) ""
+        set c1 [string first "'" $line]
+        set c2 [string last  "'" $line]
+        if {$c2 != [expr {$c1+1}]} {set tessCoordName($id) [string range $line $c1+1 $c2-1]} 
+        
         if {$opt(PR_STEP_CPNT)} {regsub -all " " [string range $line [string first "((" $line]+1 end-3] "" coordinatesList($id)}
         
         set ncoord [string range $line [string first "," $line]+1 [string first "((" $line]-2]
@@ -238,8 +249,10 @@ proc tessReadGeometry {} {
               set prec 3
               if {[expr {abs($x3dPoint($idx))}] < 0.01} {set prec 4}
               append tc "[trimNum $x3dPoint($idx) $prec] "
-              if {$x3dPoint($idx) > $x3dMax($idx)} {set x3dMax($idx) $x3dPoint($idx)}
-              if {$x3dPoint($idx) < $x3dMin($idx)} {set x3dMin($idx) $x3dPoint($idx)}
+              if {$coordOnly == 0} {
+                if {$x3dPoint($idx) > $x3dMax($idx)} {set x3dMax($idx) $x3dPoint($idx)}
+                if {$x3dPoint($idx) < $x3dMin($idx)} {set x3dMin($idx) $x3dPoint($idx)}
+              }
             }
             append tessCoord($id) $tc
           }
@@ -374,12 +387,16 @@ proc tessReadGeometry {} {
       }
     }
     
-# done reading tessellated geometry    
-    if {$ncl == $entCount(coordinates_list) && $ntc == $ntc1} {
-      outputMsg "  [expr {$ncl+$ntc}] tessellated geometry entities"
-      if {!$tessellated} {errorMsg " No tessellated curves, faces, or surfaces found."}
-      close $tg
-      return
+# done reading tessellated geometry
+    if {$ncl == $entCount(coordinates_list)} {
+      if {($coordOnly == 0 && $ntc == $ntc1) || $coordOnly} {
+        if {$coordOnly == 0} {
+          outputMsg "  [expr {$ncl+$ntc}] tessellated geometry entities"
+          if {!$tessellated} {errorMsg " No tessellated curves, faces, or surfaces found."}
+        }
+        close $tg
+        return
+      }
     }
   }
 }

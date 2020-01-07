@@ -91,19 +91,18 @@ foreach item $auto_path {if {[string first "STEP-File-Analyzer" $item] != -1} {s
 # -----------------------------------------------------------------------------------------------------
 # initialize variables, set opt to 1
 foreach id { \
-  DELCOVROWS LOGFILE PMIGRF PMISEM PR_STEP_AP242 PR_STEP_COMM PR_STEP_COMP PR_STEP_FEAT PR_STEP_KINE PR_STEP_PRES PR_STEP_QUAN \
-  PR_STEP_REPR PR_STEP_SHAP PR_STEP_TOLR VALPROP VIZBRP VIZFEA VIZFEABC VIZFEADS VIZFEALV VIZPMI VIZTPG XL_LINK1 XL_OPEN \
+  LOGFILE PMIGRF PMISEM PR_STEP_AP242 PR_STEP_COMM PR_STEP_COMP PR_STEP_FEAT PR_STEP_KINE PR_STEP_PRES PR_STEP_QUAN \
+  PR_STEP_REPR PR_STEP_SHAP PR_STEP_TOLR VALPROP VIZBRP VIZFEA VIZFEABC VIZFEADS VIZFEALV VIZPMI VIZTPG XL_OPEN \
 } {set opt($id) 1}
 
 # set opt to 0
 foreach id { \
-  DEBUG1 DEBUGINV indentGeomtry indentStyledItem INVERSE PMIGRFCOV PMISEMDIM PR_STEP_CPNT PR_STEP_GEOM \
-  PR_USER SYNCHK VIZBRPNRM VIZFEADSntail VIZFEALVS VIZPMIVP VIZTPGMSH writeDirType XL_FPREC XL_SORT \
+  DEBUG1 DEBUGINV DEBUGX3D HIDELINKS indentGeomtry indentStyledItem INVERSE PMIGRFCOV PMISEMDIM PR_STEP_CPNT PR_STEP_GEOM \
+  PR_USER SHOWALLPMI SYNCHK VIZBRPEDG VIZBRPNRM VIZFEADSntail VIZFEALVS VIZTPGMSH writeDirType XL_FPREC XL_SORT \
 } {set opt($id) 0}
 
 set opt(gpmiColor) 3
 set opt(XL_ROWLIM) 1003
-set opt(XLSBUG1) 30
 set opt(XLSCSV) Excel
 
 set coverageSTEP 0
@@ -130,7 +129,7 @@ set userWriteDir $mydocs
 set writeDir $userWriteDir
 
 set developer 0
-if {$env(USERDOMAIN) == "NIST"} {set developer 1}
+if {$env(USERDOMAIN) == "NIST" || $env(USERDOMAIN) == "Cassie"} {set developer 1}
 
 # initialize data
 initData
@@ -157,10 +156,10 @@ if {[file exists $optionsFile]} {
     if {[info exists row_limit]}        {set opt(XL_ROWLIM) $row_limit}
   
 # unset old unused opt variables
-    foreach item {COUNT CRASH DISPGUIDE1 EX_A2P3D EX_ANAL EX_ARBP EX_LP feaNodeType FIRSTTIME FN_APPEND GENX3DOM PMIP PMIPROP PMIVRML PR_STEP_AP203 PR_STEP_AP209 \
-      PR_STEP_AP210 PR_STEP_AP214 PR_STEP_AP238 PR_STEP_AP239 PR_STEP_AP242_CONS PR_STEP_AP242_GEOM PR_STEP_AP242_KINE PR_STEP_AP242_MATH PR_STEP_AP242_OTHER \
-      PR_STEP_AP242_QUAL PR_STEP_ASPECT PR_STEP_BAD PR_STEP_GEO PR_STEP_OTHER PR_STEP_REP PR_STEP_UNIT PR_TYPE ROWLIM SEMPROP SORT VIZ209 VIZBRPmsg VIZFEADStail \
-      VPDBG XL_KEEPOPEN XL_LINK2 XL_LINK3 XL_ORIENT XL_SCROLL XL_XLSX XLSBUG} {catch {unset opt($item)}
+    foreach item {COUNT CRASH DELCOVROWS DISPGUIDE1 EX_A2P3D EX_ANAL EX_ARBP EX_LP feaNodeType FIRSTTIME FN_APPEND indentGeomtry GENX3DOM PMIP PMIPROP PMIVRML \
+      PR_STEP_AP203 PR_STEP_AP209 PR_STEP_AP210 PR_STEP_AP214 PR_STEP_AP238 PR_STEP_AP239 PR_STEP_AP242_CONS PR_STEP_AP242_GEOM PR_STEP_AP242_KINE PR_STEP_AP242_MATH \
+      PR_STEP_AP242_OTHER PR_STEP_AP242_QUAL PR_STEP_ASPECT PR_STEP_BAD PR_STEP_GEO PR_STEP_OTHER PR_STEP_REP PR_STEP_UNIT PR_TYPE ROWLIM SEMPROP SORT VIZ209 \
+      VIZBRPmsg VIZFEADStail VPDBG VIZPMIVP XL_KEEPOPEN XL_LINK1 XL_LINK2 XL_LINK3 XL_ORIENT XL_SCROLL XL_XLSX XLSBUG XLSBUG1} {catch {unset opt($item)}
     }
   } emsg]} {
     set endMsg "Error reading options file: [truncFileName $optionsFile]\n $emsg\nFix or delete the file."
@@ -263,7 +262,7 @@ guiButtons
 # switch to options tab (any text output will switch back to the status tab)
 .tnb select .tnb.options
 
-if {$developer} {outputMsg $filesProcessed blue}  
+if {$developer} {if {$filesProcessed > 0} {outputMsg $filesProcessed} else {errorMsg $filesProcessed}}
 
 #-------------------------------------------------------------------------------
 # first time user

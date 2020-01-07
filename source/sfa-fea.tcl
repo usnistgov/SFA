@@ -94,31 +94,7 @@ proc feaModel {entType} {
     set title [file tail $localName]
     if {$stepAP != "" && [string range $stepAP 0 1] == "AP"} {append title " | $stepAP"}
     puts $x3dFile "<!DOCTYPE html>\n<html>\n<head>\n<title>$title</title>\n<base target=\"_blank\">\n<meta http-equiv='Content-Type' content='text/html;charset=utf-8'/>"
-    puts $x3dFile "<link rel='stylesheet' type='text/css' href='https://www.x3dom.org/x3dom/release/x3dom.css'/>\n<script type='text/javascript' src='https://www.x3dom.org/x3dom/release/x3dom.js'></script>"
-
-# node, element checkbox script
-    x3dSwitchScript Nodes
-    if {[info exists entCount(surface_3d_element_representation)] || \
-        [info exists entCount(volume_3d_element_representation)]}  {x3dSwitchScript Mesh}
-    if {[info exists entCount(curve_3d_element_representation)]}   {x3dSwitchScript 1DElements}
-    if {[info exists entCount(surface_3d_element_representation)]} {x3dSwitchScript 2DElements}
-    if {[info exists entCount(volume_3d_element_representation)]}  {x3dSwitchScript 3DElements}
-
-# transparency script
-    if {[info exists entCount(surface_3d_element_representation)] || [info exists entCount(volume_3d_element_representation)]} {
-      puts $x3dFile "\n<!-- Transparency -->\n<script>function matTrans(trans)\{"
-      if {[info exists entCount(surface_3d_element_representation)]} {puts $x3dFile " document.getElementById('mat2D').setAttribute('transparency', trans);"}
-      if {[info exists entCount(volume_3d_element_representation)]}  {
-        puts $x3dFile " document.getElementById('mat3D').setAttribute('transparency', trans);"
-        puts $x3dFile " if (trans > 0) {document.getElementById('faces').setAttribute('solid', true);} else {document.getElementById('faces').setAttribute('solid', false);}"
-      }
-      if {[info exists entCount(advanced_brep_shape_representation)]}  {
-        puts $x3dFile " document.getElementById('color').setAttribute('transparency', trans);"
-        puts $x3dFile " if (trans > 0) {document.getElementById('color').setAttribute('solid', true);} else {document.getElementById('color').setAttribute('solid', false);}"
-      }
-      puts $x3dFile "\}\n</script>"
-    }
-    puts $x3dFile "</head>"
+    puts $x3dFile "<link rel='stylesheet' type='text/css' href='https://www.x3dom.org/x3dom/release/x3dom.css'/>\n<script type='text/javascript' src='https://www.x3dom.org/x3dom/release/x3dom.js'></script>\n</head>"
 
     set x3dTitle [file tail $localName]
     if {$stepAP != "" && [string range $stepAP 0 1] == "AP"} {append x3dTitle "&nbsp;&nbsp;&nbsp;$stepAP"}
@@ -244,11 +220,11 @@ proc feaModel {entType} {
 # write faces index file to elements file
       if {$feaType == "surface_3d"} {
         puts $feaFile(elements) "<Switch whichChoice='0' id='sw2DElements'>"
-        puts $feaFile(elements) " <Shape><Appearance><Material id='mat2D' diffuseColor='0 1 1'></Material></Appearance>"
+        puts $feaFile(elements) " <Shape><Appearance><Material id='mat2Dfem' diffuseColor='0 1 1'></Material></Appearance>"
         puts $feaFile(elements) "  <IndexedFaceSet solid='false' coordIndex='"
       } else {
         puts $feaFile(elements) "<Switch whichChoice='0' id='sw3DElements'>"
-        puts $feaFile(elements) " <Shape><Appearance><Material id='mat3D' diffuseColor='1 1 0'></Material></Appearance>"
+        puts $feaFile(elements) " <Shape><Appearance><Material id='mat3Dfem' diffuseColor='1 1 0'></Material></Appearance>"
         puts $feaFile(elements) "  <IndexedFaceSet id='faces' solid='false' coordIndex='"
       }
       if {[info exists feaFaceList]} {
@@ -1163,7 +1139,7 @@ proc feaButtons {type} {
 
 # boundary condition checkboxes
     if {[info exists feaBoundary] && $opt(VIZFEABC)} {
-      puts $x3dFile "\n<!-- BC buttons -->\n<p>Boundary Conditions<br>"
+      puts $x3dFile "\n<!-- BC checkbox and slider -->\n<p>Boundary Conditions<br>"
       set n 0
       set checked ""
       if {[llength [array names feaBoundary]] == 1} {set checked "checked"}
@@ -1176,7 +1152,7 @@ proc feaButtons {type} {
 
 # loads
     if {[info exists feaLoad] && $opt(VIZFEALV)} {
-      puts $x3dFile "\n<!-- LOAD buttons -->\n<p>"
+      puts $x3dFile "\n<!-- LOAD checkbox and slider -->\n<p>"
       set n 0
       if {$feaLoadMag(min) != $feaLoadMag(max)} {
         puts $x3dFile "<table border=0 cellpadding=0 cellspacing=0><tr><td>Loads</td></tr>"
@@ -1205,7 +1181,7 @@ proc feaButtons {type} {
 
 # displacements
     if {[info exists feaDisp] && $opt(VIZFEADS)} {
-      puts $x3dFile "\n<!-- DISPLACEMENT buttons -->\n<p>"
+      puts $x3dFile "\n<!-- DISPLACEMENT checkbox and slider -->\n<p>"
       set n 0
       if {$feaDispMag(min) != $feaDispMag(max)} {
         puts $x3dFile "<table border=0 cellpadding=0 cellspacing=0><tr><td>Displacements</td></tr>"
@@ -1235,11 +1211,7 @@ proc feaButtons {type} {
     if {[info exists feaBoundary] && $opt(VIZFEABC)} {
       puts $x3dFile "\n<!-- BC switch -->\n<script>function togSPC(val)\{"
       puts $x3dFile "  for(var i=1; i<=[llength [array names feaBoundary]]; i++) \{"
-      puts $x3dFile "    if (!document.getElementById('SPC' + i).checked) \{"
-      puts $x3dFile "     document.getElementById('spc' + i).setAttribute('whichChoice', -1);"
-      puts $x3dFile "    \} else \{"
-      puts $x3dFile "     document.getElementById('spc' + i).setAttribute('whichChoice', 0);"
-      puts $x3dFile "    \}"
+      puts $x3dFile "    if (!document.getElementById('SPC' + i).checked) \{document.getElementById('spc' + i).setAttribute('whichChoice', -1);\} else \{document.getElementById('spc' + i).setAttribute('whichChoice', 0);\}"
       puts $x3dFile "  \}"
       puts $x3dFile "\}</script>"
       unset feaBoundary
@@ -1256,11 +1228,7 @@ proc feaButtons {type} {
     if {[info exists feaLoad] && $opt(VIZFEALV)} {
       puts $x3dFile "\n<!-- LOAD switch -->\n<script>function togLOAD(val)\{"
       puts $x3dFile "  for(var i=1; i<=[llength [array names feaLoad]]; i++) \{"
-      puts $x3dFile "    if (!document.getElementById('LOAD' + i).checked) \{"
-      puts $x3dFile "     document.getElementById('load' + i).setAttribute('whichChoice', -1);"
-      puts $x3dFile "    \} else \{"
-      puts $x3dFile "     document.getElementById('load' + i).setAttribute('whichChoice', 0);"
-      puts $x3dFile "    \}"
+      puts $x3dFile "    if (!document.getElementById('LOAD' + i).checked) \{document.getElementById('load' + i).setAttribute('whichChoice', -1);\} else \{document.getElementById('load' + i).setAttribute('whichChoice', 0);\}"
       puts $x3dFile "  \}"
       puts $x3dFile "\}</script>"
       unset feaLoad
@@ -1277,11 +1245,7 @@ proc feaButtons {type} {
     if {[info exists feaDisp] && $opt(VIZFEADS)} {
       puts $x3dFile "\n<!-- DISPLACEMENT switch -->\n<script>function togDISPLACEMENT(val)\{"
       puts $x3dFile "  for(var i=1; i<=[llength [array names feaDisp]]; i++) \{"
-      puts $x3dFile "    if (!document.getElementById('DISP' + i).checked) \{"
-      puts $x3dFile "     document.getElementById('disp' + i).setAttribute('whichChoice', -1);"
-      puts $x3dFile "    \} else \{"
-      puts $x3dFile "     document.getElementById('disp' + i).setAttribute('whichChoice', 0);"
-      puts $x3dFile "    \}"
+      puts $x3dFile "    if (!document.getElementById('DISP' + i).checked) \{document.getElementById('disp' + i).setAttribute('whichChoice', -1);\} else \{document.getElementById('disp' + i).setAttribute('whichChoice', 0);\}"
       puts $x3dFile "  \}"
       puts $x3dFile "\}</script>"
       unset feaDisp

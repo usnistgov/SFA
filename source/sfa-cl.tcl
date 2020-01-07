@@ -100,7 +100,8 @@ Credits
 - Reading and parsing STEP files: IFCsvr ActiveX Component, Copyright \u00A9 1999, 2005 SECOM Co., Ltd. All Rights Reserved
                                   IFCsvr has been modified by NIST to include STEP schemas.
                                   The license agreement can be found in C:\\Program Files (x86)\\IFCsvrR300\\doc
-- Viewing B-rep part geometry:    pythonOCC (https://github.com/tpaviot/pythonocc)"
+- Viewing B-rep part geometry:    pythonOCC (https://github.com/tpaviot/pythonocc)
+                                  With modifications by William Bernstein at NIST"
 
 if {$argc == 1} {set arg [string tolower [lindex $argv 0]]}
 if {$argc == 0 || ($argc == 1 && ($arg == "help" || $arg == "-help" || $arg == "-h" || $arg == "-v"))} {
@@ -140,19 +141,18 @@ if {![file exists $localName]} {
 # -----------------------------------------------------------------------------------------------------
 # initialize variables, set opt to 1
 foreach id { \
-  DELCOVROWS LOGFILE PMIGRF PMISEM PR_STEP_AP242 PR_STEP_COMM PR_STEP_COMP PR_STEP_FEAT PR_STEP_KINE \
-  PR_STEP_PRES PR_STEP_QUAN PR_STEP_REPR PR_STEP_SHAP PR_STEP_TOLR VALPROP VIZFEABC VIZFEADS VIZFEALV XL_LINK1 XL_OPEN \
+  LOGFILE PMIGRF PMISEM PR_STEP_AP242 PR_STEP_COMM PR_STEP_COMP PR_STEP_FEAT PR_STEP_KINE \
+  PR_STEP_PRES PR_STEP_QUAN PR_STEP_REPR PR_STEP_SHAP PR_STEP_TOLR VALPROP VIZFEABC VIZFEADS VIZFEALV XL_OPEN \
 } {set opt($id) 1}
 
 # set opt to 0
 foreach id { \
-  DEBUG1 DEBUGINV indentGeomtry indentStyledItem INVERSE PMIGRFCOV PMISEMDIM PR_STEP_CPNT PR_STEP_GEOM PR_USER \
-  SYNCHK VIZBRP VIZBRPNRM VIZFEA VIZFEADSntail VIZFEALVS VIZPMI VIZPMIVP VIZTPG VIZTPGMSH writeDirType XL_FPREC XL_SORT \
+  DEBUG1 DEBUGINV DEBUGX3D HIDELINKS indentGeometry indentStyledItem INVERSE PMIGRFCOV PMISEMDIM PR_STEP_CPNT PR_STEP_GEOM PR_USER \
+  SHOWALLPMI SYNCHK VIZBRP VIZBRPEDG VIZBRPNRM VIZFEA VIZFEADSntail VIZFEALVS VIZPMI VIZTPG VIZTPGMSH writeDirType XL_FPREC XL_SORT \
 } {set opt($id) 0}
 
 set opt(gpmiColor) 3
 set opt(XL_ROWLIM) 1003
-set opt(XLSBUG1) 30
 set opt(XLSCSV) Excel
 
 set coverageSTEP 0
@@ -176,7 +176,7 @@ set userWriteDir $mydocs
 set writeDir $userWriteDir
 
 set developer 0
-if {$env(USERDOMAIN) == "NIST"} {set developer 1}
+if {$env(USERDOMAIN) == "NIST" || $env(USERDOMAIN) == "Cassie"} {set developer 1}
 
 # initialize other data
 initData
@@ -242,7 +242,7 @@ for {set i 1} {$i <= 10} {incr i} {
     if {[string first "viz" $arg] == 0} {
       set opt(XLSCSV) "None"
       foreach id {VIZBRP VIZFEA VIZFEABC VIZFEADS VIZFEALV VIZPMI VIZTPG} {set opt($id) 1}
-      foreach id {PMIGRF PMISEM VALPROP VIZFEADSntail VIZFEALVS VIZPMIVP VIZTPGMSH} {set opt($id) 0}
+      foreach id {PMIGRF PMISEM VALPROP VIZFEADSntail VIZFEALVS VIZTPGMSH} {set opt($id) 0}
     }
     if {[string first "sta" $arg] == 0} {set statsOnly 1}
   }

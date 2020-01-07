@@ -577,16 +577,18 @@ proc spmiDimtolReport {objEntity} {
                     set dim(symbol) ""
                     set dimrep($dimrepID) ""
                     set dimName $ov
+
+                    lappend spmiTypesPerFile "dimensional location"
+                    if {$nistName != ""} {lappend spmiTypesPerFile "dimensions"}
+
+                    if {$dimName == "curved distance" || $dimName == "linear distance"} {
+                      lappend spmiTypesPerFile $dimName
+                    } elseif {[string first "inner" $dimName] != -1 || [string first "outer" $dimName] != -1} {
+                      lappend spmiTypesPerFile "linear distance inner/outer"
+                    }
                     if {[string first "directed" $ent1] != -1} {
                       set dimDirected 1
                       lappend spmiTypesPerFile "directed dimension"
-                    }
-                    lappend spmiTypesPerFile "dimensional location"
-                    if {$nistName != ""} {lappend spmiTypesPerFile "dimensions"}
-                    if {[string first "linear distance" $dimName] != 0} {
-                      lappend spmiTypesPerFile $dimName
-                    } else {
-                      if {$dimName != "linear distance"} {lappend spmiTypesPerFile "linear distance inner/outer"}
                     }
 
 # syntax check for correct dimensional_location.name attribute from the RP

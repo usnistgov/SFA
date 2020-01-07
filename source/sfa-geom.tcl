@@ -56,7 +56,7 @@ proc getAssocGeom {entDef {tolType 0} {tolName ""}} {
               if {$type == "advanced_face"} {getFaceGeom [$a0 Value] $tolType E}
     
               set a0val {}
-              if {$relatedSA == "composite_shape_aspect" || $relatedSA == "composite_group_shape_aspect"} {
+              if {[string first "composite_shape_aspect" $relatedSA] != -1 || $relatedSA == "composite_group_shape_aspect"} {
                 set e1s [[$a0 Value] GetUsedIn [string trim shape_aspect_relationship] [string trim relating_shape_aspect]]
                 ::tcom::foreach e1 $e1s {
                   if {[string first "relationship" [$e1 Type]] != -1} {

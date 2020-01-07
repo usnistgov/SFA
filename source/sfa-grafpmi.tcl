@@ -976,7 +976,8 @@ proc gpmiAnnotationReport {objEntity} {
 
 # look for link to pmi representation
               if {$attrName == "PMI representation to presentation link"} {
-                if {[string first "shape_aspect" $dmiaDefType] == -1 && [string first "property_definition" $dmiaDefType]} {
+                if {([string first "shape_aspect" $dmiaDefType] == -1 && [string first "property_definition" $dmiaDefType] == -1) || \
+                     [string first "_and_datum_feature" $dmiaDefType] != -1} {
                   set spmi_p21id [$dmiaDef P21ID]
                   if {![info exists assocSPMI($dmiaDefType)]} {
                     lappend assocSPMI($dmiaDefType) $spmi_p21id
@@ -984,7 +985,7 @@ proc gpmiAnnotationReport {objEntity} {
                     lappend assocSPMI($dmiaDefType) $spmi_p21id
                   }
                 } else {
-                  set msg "Syntax Error: Bad 'definition' attribute on draughting_model_item_association with 'PMI representation to presentation link' name attribute.\n[string repeat " " 14]($recPracNames(pmi242), Sec. 7.3)"
+                  set msg "Syntax Error: Bad 'definition' attribute on draughting_model_item_association when 'name' attribute is 'PMI representation to presentation link'.\n[string repeat " " 14]($recPracNames(pmi242), Sec. 7.3)"
                   errorMsg $msg
                   lappend syntaxErr(draughting_model_item_association) [list [$objGuiEntity P21ID] definition $msg]
                 }

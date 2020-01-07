@@ -59,8 +59,8 @@ proc checkValues {} {
     foreach item [array names opt] {
       if {[string first "PR_STEP" $item] == 0} {lappend butNormal "opt$item"}
     }
-    foreach b {optINVERSE optPMIGRF optPMISEM optVALPROP optXL_FPREC optXL_LINK1 optXL_SORT allNone2} {lappend butDisabled $b}
-    foreach b {optVIZFEA optVIZPMI optVIZTPG optVIZBRP optVIZBRPNRM} {lappend butNormal $b}
+    foreach b {optHIDELINKS optINVERSE optPMIGRF optPMISEM optVALPROP optXL_FPREC optXL_SORT allNone2} {lappend butDisabled $b}
+    foreach b {optVIZFEA optVIZPMI optVIZTPG optVIZBRP optVIZBRPEDG optVIZBRPNRM} {lappend butNormal $b}
     foreach b {allNone0 allNone1 allNone3 optPR_USER} {lappend butNormal $b}
 
 # Excel
@@ -68,8 +68,8 @@ proc checkValues {} {
     foreach item [array names opt] {
       if {[string first "PR_STEP" $item] == 0} {lappend butNormal "opt$item"}
     }
-    foreach b {optINVERSE optPMIGRF optPMISEM optVALPROP optXL_FPREC optXL_LINK1 optXL_SORT} {lappend butNormal $b}
-    foreach b {optVIZFEA optVIZPMI optVIZTPG optVIZBRP optVIZBRPNRM} {lappend butNormal $b}
+    foreach b {optHIDELINKS optINVERSE optPMIGRF optPMISEM optVALPROP optXL_FPREC optXL_SORT} {lappend butNormal $b}
+    foreach b {optVIZFEA optVIZPMI optVIZTPG optVIZBRP optVIZBRPEDG optVIZBRPNRM} {lappend butNormal $b}
     foreach b {allNone0 allNone1 allNone2 allNone3 optPR_USER} {lappend butNormal $b}
   }
 
@@ -79,7 +79,7 @@ proc checkValues {} {
     foreach item [array names opt] {
       if {[string first "PR_STEP" $item] == 0} {lappend butDisabled "opt$item"}
     }
-    foreach b {optPMIGRF optPMISEM optVALPROP optPR_USER optINVERSE} {lappend butDisabled $b}
+    foreach b {optPMIGRF optPMIGRFCOV optPMISEM optPMISEMDIM optVALPROP optPR_USER optINVERSE} {lappend butDisabled $b}
     foreach b {allNone0 allNone1 allNone2} {lappend butDisabled $b}
     foreach b {userentity userentityopen} {lappend butDisabled $b}
     set userEntityList {}
@@ -106,7 +106,7 @@ proc checkValues {} {
 
 # validation properties
   if {$opt(VALPROP)} {
-    foreach b {optPR_STEP_QUAN optPR_STEP_REPR optPR_STEP_SHAP} {
+    foreach b {optPR_STEP_AP242 optPR_STEP_QUAN optPR_STEP_REPR optPR_STEP_SHAP} {
       set opt([string range $b 3 end]) 1
       lappend butDisabled $b
     }
@@ -116,13 +116,13 @@ proc checkValues {} {
 
 # graphical PMI view
   if {$opt(VIZPMI)} {
-    foreach b {gpmiColor0 gpmiColor1 gpmiColor2 gpmiColor3 linecolor optVIZPMIVP} {lappend butNormal $b}
+    foreach b {gpmiColor0 gpmiColor1 gpmiColor2 gpmiColor3 linecolor} {lappend butNormal $b}
     if {$opt(XLSCSV) != "None"} {
       set opt(PR_STEP_PRES) 1
       lappend butDisabled optPR_STEP_PRES
     }
   } else {
-    foreach b {gpmiColor0 gpmiColor1 gpmiColor2 gpmiColor3 linecolor optVIZPMIVP} {lappend butDisabled $b}
+    foreach b {gpmiColor0 gpmiColor1 gpmiColor2 gpmiColor3 linecolor} {lappend butDisabled $b}
   }
 
 # FEM view
@@ -164,13 +164,13 @@ proc checkValues {} {
       set opt(PR_STEP_PRES) 1
       lappend butDisabled optPR_STEP_PRES
     }
-    foreach b {optVIZBRPNRM} {lappend butNormal $b}
+    foreach b {optVIZBRPEDG optVIZBRPNRM} {lappend butNormal $b}
   } else {
     catch {
       if {!$opt(PMISEM) && !$opt(PMIGRF)} {lappend butNormal optPR_STEP_COMM}
       if {!$opt(PMISEM)} {lappend butNormal optPR_STEP_PRES}
     }
-    foreach b {optVIZBRPNRM} {lappend butDisabled $b}
+    foreach b {optVIZBRPEDG optVIZBRPNRM} {lappend butDisabled $b}
   }
 
 # tessellated geometry view
@@ -696,7 +696,7 @@ proc runOpenProgram {} {
       puts $scriptFile "Database>Open([file nativename [file join $edmDir Db]], ap214, $edmPW, \"$edmDBopen\")"
     } elseif {[string first "AP242_MANAGED_MODEL_BASED_3D_ENGINEERING_MIM_LF" $fschema] == 0} {
       set ap242 "ap242"
-      if {[string first "1 0 10303 442 2 1 4" $fschema] != -1} {append ap242 "e2"}
+      if {[string first "442 2 1 4" $fschema] != -1 || [string first "442 3 1 4" $fschema] != -1} {append ap242 "e2"}
       puts $scriptFile "Database>Open([file nativename [file join $edmDir Db]], $ap242, $edmPW, \"$edmDBopen\")"
     } else {
       outputMsg "$idisp cannot be used with:\n $fschema" red
@@ -1648,7 +1648,7 @@ proc getTiming {{str ""}} {
   global tlast
 
   set t [clock clicks -milliseconds]
-  if {[info exists tlast]} {outputMsg "Timing: [expr {($t-$tlast)}]  $str" red}
+  if {[info exists tlast]} {outputMsg "Timing: [expr {$t-$tlast}]  $str" red}
   set tlast $t
 }
 

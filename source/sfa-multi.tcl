@@ -445,7 +445,7 @@ proc openMultiFile {{ask 1}} {
               if {$stat([expr {$nf-1}]) != 0} {
 
 # link to file
-                if {$opt(XL_LINK1)} {
+                if {!$opt(HIDELINKS)} {
                   set range [$worksheet1($sum) Range [cellRange 4 $nf]]
                   $links Add $range [join $file1] [join ""] [join "Link to STEP file"]
                 }
@@ -454,7 +454,7 @@ proc openMultiFile {{ask 1}} {
                 set range [$worksheet1($sum) Range [cellRange 3 $nf]]
                 incr idx
                 regsub -all {\\} [lindex $xlFileNames $idx] "/" xls
-                if {$opt(XL_LINK1)} {$links Add $range [join $xls] [join ""] [join "Link to Spreadsheet"]}
+                if {!$opt(HIDELINKS)} {$links Add $range [join $xls] [join ""] [join "Link to Spreadsheet"]}
 
 # add vertical border when directory changes from column to column
                 if {[lsearch $dirchange $nf] != -1} {
@@ -561,7 +561,7 @@ proc openMultiFile {{ask 1}} {
 # open spreadsheet
           if {$opt(XL_OPEN)} {
             openXLS $aname 0 1
-            if {$opt(XL_LINK1)} {outputMsg " Click on the Links in Row 3 to access individual spreadsheets." blue}
+            if {!$opt(HIDELINKS)} {outputMsg " Click on the Links in Row 3 to access individual spreadsheets." blue}
           } else {
             outputMsg " Use F7 to open the spreadsheet (see Options tab)" red
           }

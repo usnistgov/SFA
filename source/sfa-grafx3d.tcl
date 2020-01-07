@@ -1,8 +1,7 @@
 # start x3dom file for non-FEM graphics
 proc x3dFileStart {} {
   global brepEnts cadSystem entCount localName opt stepAP timeStamp viz
-  global x3dColorBrep x3dColorStyle x3dFile x3dFileName x3dMax x3dMin x3dStartFile x3dTitle
-  global objDesign
+  global x3dColorAll x3dColorBrep x3dColorOverriding x3dFile x3dFileName x3dMax x3dMin x3dStartFile x3dTitle
 
   if {$x3dStartFile == 0} {return}
   set x3dStartFile 0
@@ -10,7 +9,11 @@ proc x3dFileStart {} {
 
   catch {file delete -force -- "[file rootname $localName]_x3dom.html"}
   catch {file delete -force -- "[file rootname $localName]-x3dom.html"}
-  set x3dFileName [file rootname $localName]-sfa.html
+  if {!$opt(DEBUGX3D)} {
+    set x3dFileName [file rootname $localName]-sfa.html
+  } else {
+    set x3dFileName [file rootname $localName]-sfa-color.html
+  }
   catch {file delete -force -- $x3dFileName}
   set x3dFile [open $x3dFileName w]
 
@@ -37,25 +40,19 @@ proc x3dFileStart {} {
     set ok 0
     foreach item $brepEnts {if {[info exists entCount($item)]} {set ok 1}}
     set x3dColorBrep [x3dBrepColor]
-    if {$ok} {
+    if {$ok && !$opt(DEBUGX3D) && ($x3dColorAll > 1 || $x3dColorOverriding > 0)} {
 
 # report multiple colors
-      set ok1 0
-      if {$x3dColorBrep == "" && [info exists entCount(styled_item)] && $x3dColorStyle} {set ok1 1}
-      if {$ok1} {
-        puts $x3dFile "Multiple part colors are ignored.  "
-
-# report overriding colors
-      } elseif {[info exists entCount(over_riding_styled_item)]} {
-        if {$entCount(over_riding_styled_item) > 0} {
-          set overriding 0
-          ::tcom::foreach e0 [$objDesign FindObjects [string trim over_riding_styled_item]] {
-            set item [[[[$e0 Attributes] Item [expr 3]] Value] Type]
-            if {$item == "advanced_face"} {set overriding 1}
-          }
-          if {$overriding} {puts $x3dFile "Overriding part colors are ignored.  "}
+      set colormsg ""
+      if {$x3dColorAll > 1} {set colormsg "Multiple colors ($x3dColorAll)"}
+      if {$x3dColorOverriding > 0} {
+        if {$colormsg != ""} {
+          append colormsg " and overriding colors"
+        } else {
+          append colormsg "Overriding colors ($x3dColorOverriding)"
         }
       }
+      if {$colormsg != ""} {puts $x3dFile "$colormsg are ignored.  "}
     }
   }
   if {$viz(PMI)} {
@@ -64,7 +61,7 @@ proc x3dFileStart {} {
     if {[string first "Some Graphical PMI" $viz(PMIMSG)] == 0} {puts $x3dFile "The STEP file contains only Semantic PMI and no Graphical PMI.  "}
   }
   if {$viz(TPG) && [info exist entCount(next_assembly_usage_occurrence)]} {puts $x3dFile "Tessellated parts in an assembly might have the wrong position and orientation or be missing."}
-  puts $x3dFile "</td><td></td><tr><td valign='top' width='85%'>"
+  puts $x3dFile "</td><td></td></tr><tr><td valign='top' width='85%'>"
 
 # x3d window size
   set height 900
@@ -205,7 +202,7 @@ proc x3dTessGeom {objID objEntity1 ent1} {
           set colorID [lsearch $x3dColors $x3dColor]
           if {$colorID == -1} {
             lappend x3dColors $x3dColor
-            puts $f "<Shape$defstr><Appearance DEF='app[llength $x3dColors]'><Material id='mat[llength $x3dColors]' diffuseColor='$x3dColor' $spec></Material></Appearance>"
+            puts $f "<Shape$defstr><Appearance DEF='app[llength $x3dColors]'><Material id='matTess[llength $x3dColors]' diffuseColor='$x3dColor' $spec></Material></Appearance>"
           } else {
             puts $f "<Shape$defstr><Appearance USE='app[incr colorID]'></Appearance>"
           }
@@ -291,9 +288,9 @@ proc x3dTessGeom {objID objEntity1 ent1} {
 # -------------------------------------------------------------------------------
 # finish x3d file, write tessellated edges, PMI saved view geometry, set viewpoints, add navigation and background color, and close X3DOM file
 proc x3dFileEnd {} {
-  global ao brepEnts brepFile brepFileName entCount nistModelURLs mytemp nistName nistVersion
-  global nistNumSavedViews numTessColor opt savedViewButtons savedViewFile savedViewFileName savedViewItems savedViewNames savedViewpoint
-  global sphereDef stepAP tessCoord tessEdges tessPartFile tessPartFileName viz x3dAxes x3dColorsUsed x3dFile x3dMax x3dMin x3dMsg x3dTitle
+  global ao brepEnts brepFile brepFileName entCount nistModelURLs nistName nistVersion
+  global nistNumSavedViews numTessColor opt savedViewButtons savedViewFile savedViewFileName savedViewItems savedViewNames sphereDef
+  global tessCoord tessEdges tessPartFile tessPartFileName viz x3dAppColor x3dApps x3dAxes x3dColorOverriding x3dColorsUsed x3dFile x3dMax x3dMin x3dMsg x3dTitle
 
 # PMI is already written to file
 # generate b-rep part geometry based on pythonOCC
@@ -301,7 +298,13 @@ proc x3dFileEnd {} {
   if {$opt(VIZBRP)} {
     set ok 0
     foreach item $brepEnts {if {[info exists entCount($item)]} {set ok 1}}
-    if {$ok} {x3dBrepGeom}
+    if {$ok} {
+      if {!$opt(DEBUGX3D)} {
+        x3dBrepGeom
+      } else {
+        x3dBrepGeomColor
+      }
+    }
   }
 
 # coordinate min, max, center
@@ -426,7 +429,6 @@ proc x3dFileEnd {} {
 
     set lastTransform ""
     set f [open $tessPartFileName r]
-    #set ftmp [open [file join $mytemp tpgtmp.txt] w]
 
 # first check for similar transforms, write to tmp file
     while {[gets $f line] >= 0} {
@@ -440,54 +442,9 @@ proc x3dFileEnd {} {
         }
       }
     }
-    if {$lastTransform != ""} {puts $x3dFile "</Transform>"}
-    #close $ftmp
-
-# then from tmp file, consolidate faces that use the same coordinates
-    #catch {unset coord}
-    #catch {unset index}
-    #set ftmp [open [file join $mytemp tpgtmp.txt] r]
-    #
-    #while {[gets $ftmp line] >= 0} {
-#      if {[string first "IndexedFaceSet" $line] != -1} {
-#        set sline [split $line "'"]
-#        #outputMsg "[llength $sline] $sline"
-#
-## check for IFS with new coord def
-#        if {[llength $sline] == 5} {
-#
-## get the coordinates
-#          gets $ftmp line1
-#          set cidx [lindex [split $line1 "'"] 1]
-#          set coord($cidx) $line1
-#          #outputMsg "coordinates $cidx [string range $coord($cidx) 0 100]" green
-#        }
-#        lappend index($cidx) [lindex $sline 3]
-#        set shape($cidx) $shp
-#
-## get shape
-#      } elseif {[string first "<Shape>" $line] != -1 && [string first "Appearance DEF" $line] != -1} {
-#        set shp $line
-#        #outputMsg $shape red
-#      } elseif {([string first "<Shape" $line] != -1 && [string first "emissiveColor" $line] != -1) || [string first "IndexedLineSet" $line] != -1} {
-#        puts $x3dFile $line
-#        outputMsg $line blue
-#      } else {
-#        outputMsg $line red
-#      }
-    #}
-
     close $f
-    #close $ftmp
-    #catch {[file delete -force -- [file join $mytemp tpgtmp.txt]]}
 
-# write faces for each coord with index grouped together
-    #foreach idx [array names coord] {
-    #  puts $x3dFile $shape($idx)
-    #  puts $x3dFile " <IndexedFaceSet solid='false' coordIndex='[join $index($idx)]'>"
-    #  puts $x3dFile $coord($idx)
-    #}
-
+    if {$lastTransform != ""} {puts $x3dFile "</Transform>"}
     puts $x3dFile "</Group></Switch>"
     catch {file delete -force -- $tessPartFileName}
     unset tessPartFile
@@ -504,7 +461,7 @@ proc x3dFileEnd {} {
           set brepFile [open $brepFileName r]
           while {[gets $brepFile line] >= 0} {puts $x3dFile $line}
           close $brepFile
-          catch {file delete -force -- $brepFileName}
+          if {!$opt(DEBUGX3D)} {catch {file delete -force -- $brepFileName}}
         }
       }
     }
@@ -519,15 +476,6 @@ proc x3dFileEnd {} {
 
   puts $x3dFile "<Viewpoint id='Front' position='$xyzcen(x) $psy $xyzcen(z)' orientation='1 0 0 1.5708' $cor></Viewpoint>"
   puts $x3dFile "<OrthoViewpoint id='Ortho' position='$xyzcen(x) $psy $xyzcen(z)' orientation='1 0 0 1.5708' $cor fieldOfView='\[-$fov,-$fov,$fov,$fov\]'></OrthoViewpoint>"
-
-# viewpoint orientation
-  #if {[llength $savedViewNames] > 0 && $opt(VIZPMIVP)} {
-  #  foreach svn $savedViewNames {
-  #    if {[info exists savedViewpoint($svn)] && [lsearch $savedViewButtons $svn] != -1} {
-  #      puts $x3dFile "<Transform translation='[lindex $savedViewpoint($svn) 0]'><Viewpoint id='vp$svn' position='[lindex $savedViewpoint($svn) 0]' orientation='[lindex $savedViewpoint($svn) 1]' $cor></Viewpoint></Transform>"
-  #    }
-  #  }
-  #}
 
 # navigation, background color
   set bgc "1 1 1"
@@ -554,8 +502,23 @@ proc x3dFileEnd {} {
     set ver ""
     set url "https://github.com/usnistgov/SFA"
   }
-  set str "\n<p>&nbsp;<br>Generated by the <a href=\"$url\">$ver\STEP File Analyzer and Viewer (v[getVersion])</a> and displayed with <a href=\"https://www.x3dom.org/\">x3dom</a>"
-  if {$opt(VIZBRP)} {
+  puts $x3dFile "\n<p>&nbsp;"
+
+# color switch checkbox
+  if {$viz(BRP)} {
+    if {[info exists x3dApps]} {
+      if {[llength $x3dApps] > 1} {
+        puts $x3dFile "<br>\n<!-- Color checkbox -->\n<b>Colors:</b> "
+        foreach n [lsort -integer $x3dApps] {
+          puts $x3dFile "<input type='checkbox' checked onclick='togColor$n\(this.value)'/>$x3dAppColor($n)$n&nbsp;"
+        }
+        if {$x3dColorOverriding > 1} {puts $x3dFile "&nbsp;($x3dColorOverriding) Overriding colors"}
+      }
+    }
+  }
+
+  set str "<br>Generated by the <a href=\"$url\">$ver\STEP File Analyzer and Viewer (v[getVersion])</a> and displayed with <a href=\"https://www.x3dom.org/\">x3dom</a>"
+  if {$viz(BRP)} {
     set ok 0
     foreach item $brepEnts {if {[info exists entCount($item)]} {set ok 1}}
     if {$ok} {
@@ -579,26 +542,28 @@ proc x3dFileEnd {} {
     }
   }
 
-# BRP button
+# BRP checkbox
   if {$viz(BRP)} {
-    puts $x3dFile "\n<!-- BRP button -->\n<input type='checkbox' checked onclick='togBRP(this.value)'/>Part Geometry<p>"
-  }
-
-# TPG button
-  if {$viz(TPG)} {
-    puts $x3dFile "\n<!-- TPG button -->\n<input type='checkbox' checked onclick='togTPG(this.value)'/>Tessellated Part Geometry"
-    if {$viz(EDG)} {puts $x3dFile "<!-- TED button -->\n<br><input type='checkbox' checked onclick='togTED(this.value)'/>Lines (Tessellated Edges)"}
+    puts $x3dFile "\n<!-- BRP checkbox -->\n<input type='checkbox' checked onclick='togBRP(this.value)'/>Part Geometry"
+    if {$opt(VIZBRPEDG) && $opt(DEBUGX3D)} {puts $x3dFile "<!-- EDG checkbox -->\n<br><input type='checkbox' checked onclick='togEDG(this.value)'/>Edges"}
     puts $x3dFile "<p>"
   }
 
-# SMG button
-  if {$viz(SMG)} {
-    puts $x3dFile "\n<!-- SMG button -->\n<input type='checkbox' checked onclick='togSMG(this.value)'/>Supplemental Geometry<p>"
+# TPG checkbox
+  if {$viz(TPG)} {
+    puts $x3dFile "\n<!-- TPG checkbox -->\n<input type='checkbox' checked onclick='togTPG(this.value)'/>Tessellated Part Geometry"
+    if {$viz(EDG)} {puts $x3dFile "<!-- TED checkbox -->\n<br><input type='checkbox' checked onclick='togTED(this.value)'/>Lines (Tessellated Edges)"}
+    puts $x3dFile "<p>"
   }
 
-# HOLE button
+# SMG checkbox
+  if {$viz(SMG)} {
+    puts $x3dFile "\n<!-- SMG checkbox -->\n<input type='checkbox' checked onclick='togSMG(this.value)'/>Supplemental Geometry<p>"
+  }
+
+# HOLE checkbox
   if {$viz(HOL)} {
-    puts $x3dFile "\n<!-- Hole button -->\n<input type='checkbox' checked onclick='togHole(this.value)'/>Holes<p>"
+    puts $x3dFile "\n<!-- Hole checkbox -->\n<input type='checkbox' checked onclick='togHole(this.value)'/>Holes<p>"
   }
 
 # for PMI annotations - checkboxes for toggling saved view graphics
@@ -609,7 +574,7 @@ proc x3dFileEnd {} {
     }
   }
   if {$viz(PMI) && [llength $savedViewButtons] > 0} {
-    puts $x3dFile "\n<!-- Saved View buttons -->\nSaved View PMI"
+    puts $x3dFile "\n<!-- Saved View checkbox -->\nSaved View PMI"
     set ok 1
     foreach svn $savedViewButtons {
       regsub -all {\-} $svn "_" svn2
@@ -618,9 +583,6 @@ proc x3dFileEnd {} {
     }
     if {!$ok && [info exists nistNumSavedViews($nistName)] && [llength $savedViewButtons] <= $nistNumSavedViews($nistName)} {
       lappend svmsg "For the NIST test case, some unexpected Graphical PMI Saved View names were found."
-    }
-    if {$opt(VIZPMIVP)} {
-      puts $x3dFile "<p>Selecting a Saved View above changes the viewpoint.  Viewpoints usually have the correct orientation but are not centered.  Use pan and zoom to center the PMI."
     }
     puts $x3dFile "<hr><p>"
   }
@@ -640,11 +602,11 @@ proc x3dFileEnd {} {
     }
   }
 
-# axes button
-  puts $x3dFile "\n<!-- Axes button -->\n<p><input type='checkbox' checked onclick='togAxes(this.value)'/>Origin<p>"
+# axes checkbox
+  puts $x3dFile "\n<!-- Axes checkbox -->\n<p><input type='checkbox' checked onclick='togAxes(this.value)'/>Origin<p>"
 
-# background color buttons
-  puts $x3dFile "\n<!-- Background buttons -->\nBackground Color<br>"
+# background color radio buttons
+  puts $x3dFile "\n<!-- Background radio button -->\nBackground Color<br>"
   set check1 "checked"
   set check2 ""
   if {$bgc == ".8 .8 .8"} {
@@ -677,8 +639,16 @@ proc x3dFileEnd {} {
   puts $x3dFile "</td></tr></table>"
 
 # -------------------------------------------------------------------------------
-# function for BRP
-  if {$viz(BRP)} {x3dSwitchScript BRP}
+# function for BRP, EDG, colors
+  if {$viz(BRP)} {
+    x3dSwitchScript BRP
+    if {$opt(VIZBRPEDG) && $opt(DEBUGX3D)} {x3dSwitchScript EDG}
+    if {[info exists x3dApps]} {
+      if {[llength $x3dApps] > 1} {
+        foreach n [lsort -integer $x3dApps] {x3dSwitchScript Color$n}
+      }
+    }
+  }
 
 # function for TPG
   if {$viz(TPG)} {
@@ -698,9 +668,7 @@ proc x3dFileEnd {} {
   if {$viz(PMI)} {
     if {[llength $savedViewButtons] > 0} {
       puts $x3dFile " "
-      foreach svn $savedViewButtons {
-        x3dSwitchScript $svMap($svn) $svn $opt(VIZPMIVP)
-      }
+      foreach svn $savedViewButtons {x3dSwitchScript $svMap($svn) $svn}
     }
   }
 
@@ -713,18 +681,40 @@ proc x3dFileEnd {} {
 # axes function
   x3dSwitchScript Axes
 
-# transparency function (function for fea in sfa-fea.tcl)
+# transparency function
   set numTessColor 0
   if {$viz(TPG)} {set numTessColor [tessCountColors]}
-  if {$transFunc && [string first "AP209" $stepAP] == -1} {
+  if {$transFunc} {
     puts $x3dFile "\n<!-- Transparency function -->\n<script>function matTrans(trans){"
+
+# part geometry
     if {$viz(BRP)} {
-      puts $x3dFile " document.getElementById('color').setAttribute('transparency', trans);"
+      if {[info exists x3dApps]} {foreach n [lsort -integer $x3dApps] {puts $x3dFile " document.getElementById('mat$n').setAttribute('transparency', trans);"}}
     }
-    for {set i 1} {$i <= $numTessColor} {incr i} {
-      puts $x3dFile " document.getElementById('mat$i').setAttribute('transparency', trans);"
+
+# tessellated geometry
+    for {set i 1} {$i <= $numTessColor} {incr i} {puts $x3dFile " document.getElementById('matTess$i').setAttribute('transparency', trans);"}
+
+    if {$viz(FEA)} {
+      if {[info exists entCount(surface_3d_element_representation)]} {
+        puts $x3dFile " document.getElementById('mat2Dfem').setAttribute('transparency', trans);"
+      }
+      if {[info exists entCount(volume_3d_element_representation)]}  {
+        puts $x3dFile " document.getElementById('mat3Dfem').setAttribute('transparency', trans);"
+        puts $x3dFile " if (trans > 0) {document.getElementById('faces').setAttribute('solid', true);} else {document.getElementById('faces').setAttribute('solid', false);}"
+      }
     }
     puts $x3dFile "}\n</script>"
+  }
+
+# switch functions for fem
+  if {$viz(FEA)} {
+    x3dSwitchScript Nodes
+    if {[info exists entCount(surface_3d_element_representation)] || \
+        [info exists entCount(volume_3d_element_representation)]}  {x3dSwitchScript Mesh}
+    if {[info exists entCount(curve_3d_element_representation)]}   {x3dSwitchScript 1DElements}
+    if {[info exists entCount(surface_3d_element_representation)]} {x3dSwitchScript 2DElements}
+    if {[info exists entCount(volume_3d_element_representation)]}  {x3dSwitchScript 3DElements}
   }
 
   puts $x3dFile "</font></body></html>"
@@ -736,9 +726,308 @@ proc x3dFileEnd {} {
 }
 
 # -------------------------------------------------------------------------------
+# B-rep part geometry (the code to process colors is experimental and only available at NIST)
+proc x3dBrepGeomColor {} {
+  global brepFile brepFileName buttons entCount localName mydocs mytemp opt viz wdir x3dAppColor x3dApps x3dMax x3dMin x3dMsg
+  global objDesign
+
+# copy stp2x3d-color executable to temp directory
+  if {[catch {
+    set stp2x3d [file join $mytemp stp2x3d-color.exe]
+    if {[file exists [file join $wdir exe stp2x3d-color.exe]]} {
+      set copy 0
+      if {![file exists $stp2x3d]} {
+        set copy 1
+      } elseif {[file mtime [file join $wdir exe stp2x3d-color.exe]] > [file mtime $stp2x3d]} {
+        set copy 1
+      }
+      if {$copy} {file copy -force -- [file join $wdir exe stp2x3d-color.exe] $mytemp}
+    }
+
+# generate x3d from b-rep geometry with stp2x3d-color
+    if {[file exists $stp2x3d]} {
+
+# output dir for stp2x3d-color, delete if it exists
+      set ftail [file tail [file rootname $localName]]
+      set stpx3dDir [file join [file dirname $localName] $ftail-x3dfiles]
+      catch {file delete -force -- $stpx3dDir}
+      set msg " Processing STEP part geometry"
+      if {[info exists buttons]} {append msg ".  Wait for the popup program (stp2x3d-color.exe) to complete."}
+      outputMsg $msg green
+
+# run stp2x3d-color.exe with correct options
+      cd [file dirname $localName]
+      set fname [file tail $localName]
+      getTiming
+      catch {exec $stp2x3d --file $fname} errs
+      #if {$opt(VIZBRPNRM) && $opt(VIZBRPEDG)} {
+      #  catch {exec $stp2x3d --file $fname} errs
+      #} elseif {!$opt(VIZBRPNRM) && !$opt(VIZBRPEDG)} {
+      #  catch {exec $stp2x3d --file $fname --no-normals --no-edges} errs
+      #} elseif {!$opt(VIZBRPNRM)} {
+      #  catch {exec $stp2x3d --file $fname --no-normals} errs
+      #} elseif {!$opt(VIZBRPEDG)} {
+      #  catch {exec $stp2x3d --file $fname --no-edges} errs
+      #}
+      getTiming stp2x3d
+      if {$opt(DEBUGX3D)} {outputMsg "Output from stp2x3d-color.exe"; outputMsg $errs}
+
+# check for conversion units, mm > inch
+      set sc 1
+      set a2 ""
+      ::tcom::foreach e0 [$objDesign FindObjects [string trim advanced_brep_shape_representation]] {
+        set e1 [[[$e0 Attributes] Item [expr 3]] Value]
+        set a2 [[$e1 Attributes] Item [expr 5]]
+        if {$a2 == ""} {set a2 [[$e1 Attributes] Item [expr 4]]}
+      }
+      if {$a2 == "" && ![info exists entCount(advanced_brep_shape_representation)]} {
+        ::tcom::foreach e0 [$objDesign FindObjects [string trim geometric_representation_context_and_global_uncertainty_assigned_context_and_global_unit_assigned_context]] {
+          set a2 [[$e0 Attributes] Item [expr 5]]
+        }
+      }
+      if {$a2 != ""} {
+        foreach e3 [$a2 Value] {
+          if {[$e3 Type] == "conversion_based_unit_and_length_unit"} {
+            set e4 [[[$e3 Attributes] Item [expr 3]] Value]
+            set cf [[[$e4 Attributes] Item [expr 1]] Value]
+            set sc [trimNum [expr {1./$cf}] 5]
+          }
+        }
+      }
+
+# start processing
+      outputMsg " Processing X3D output from stp2x3d-color.exe" green; update
+      #getTiming processing
+
+# start min-max
+      set n 0
+      foreach idx {0 1 2} {set min($idx) 1.e10; set max($idx) -1.e10}
+
+# get list of shp*.x3d files generated from dat file
+      set f1 [file join $stpx3dDir $ftail.dat]
+      if {[file size $f1] > 0} {
+        set r1 [open $f1 r]
+        set flist {}
+        while {[gets $r1 line] >= 0} {
+          if {[string first ".x3d" $line] != -1} {
+            set fx3d [string range $line [string last "/" $line]+1 [string last "." $line]]
+            append fx3d "x3d"
+            set fx3d [file join $stpx3dDir $fx3d]
+            lappend flist $fx3d
+          }
+        }
+        close $r1
+
+# or from list of shp*.x3d files in the directory, usually when there was an error running stp2x3d-color.exe
+      } else {
+        set flist [glob -nocomplain -directory $stpx3dDir shp*.x3d]
+      }
+      set lflist [llength $flist]
+      getTiming get-files
+
+# open temp file
+      set brepFileName [file join $mytemp brep.txt]
+      set brepFile [open $brepFileName w]
+
+# integrate x3d from stp2x3d-color with existing x3dom file
+      set apps {}
+      set napp -1
+      set nfile 0
+      set ngray 0
+      set nlineset 0
+      set checkColor 1
+      if {![info exists entCount(presentation_style_assignment)]} {set checkColor 0}
+      if {[llength $flist] == 1} {set checkColor 0}
+
+# process all shp*.x3d files
+      foreach fx3d $flist {
+        if {[catch {
+          set ncoord 0
+          incr nfile
+          if {[expr {$nfile%500}] == 0} {outputMsg "  $nfile"}
+
+          set r2 [open $fx3d r]
+          while {[gets $r2 line] >= 0} {
+
+# surfaces with color, group surfaces with the same diffuseColor in files named appN.x3d
+            set c1 [string first "diffuseColor" $line]
+            if {$c1 != -1} {
+              set rgb [string range $line $c1+14 end]
+              set rgb [string range $rgb 0 [string first "'" $rgb]-1]
+              if {$rgb == "0.5 0.5 0.5" && $checkColor} {incr ngray; break}
+              set iapp [lsearch $apps $rgb]
+              if {$iapp == -1} {
+                incr napp
+                set f [file join $stpx3dDir app$napp.x3d]
+                set w($napp) [open $f w]
+                set ww $w($napp)
+                puts $ww "<Appearance DEF='app$napp'><Material id='mat$napp' diffuseColor='$rgb' shininess='.9' specularColor='.2 .2 .2'></Material></Appearance>"
+                puts $ww "<Shape><Appearance USE='app$napp'></Appearance><TriangleSet solid='false'>"
+                lappend apps $rgb
+                set x3dAppColor($napp) [x3dColorName $rgb]
+              } else {
+                set ww $w($iapp)
+                puts $ww "<Shape><Appearance USE='app$iapp'></Appearance><TriangleSet solid='false'>"
+              }
+            }
+
+# coordinates
+            if {[string first "<Coordinate" $line] == 0} {
+              puts $ww $line
+              if {!$opt(VIZBRPNRM)} {puts $ww "</TriangleSet></Shape>"}
+
+# get some coordinates to compute min-max
+              incr ncoord
+              if {$ncoord == 1} {
+                set c1 [string first "point" $line]
+                if {$c1 != -1} {
+                  set c2 [string last "'" $line]
+                  set coords [string range $line $c1+7 $c2-2]
+                  set vals [split $coords " "]
+                  set ncoords [expr {int([llength $vals]/3)}]
+                  for {set i 0} {$i < $ncoords} {incr i} {
+                    foreach j {0 1 2} {
+                      set idx [expr {$i*3+$j}]
+                      set val [lindex $vals $idx]
+                      if {$sc != 1} {set val [expr {$val*$sc}]}
+                      set min($j) [expr {min($val, $min($j))}]
+                      set max($j) [expr {max($val, $max($j))}]
+                    }
+                  }
+                }
+              }
+
+# normals
+            } elseif {[string first "<Normal" $line] != -1 && $opt(VIZBRPNRM)} {
+              puts $ww $line
+              if {$opt(VIZBRPNRM)} {puts $ww "</TriangleSet></Shape>"}
+
+# write edges (LineSet) directly to b-rep file
+            } elseif {[string first "<LineSet" $line] != -1 && $opt(VIZBRPEDG)} {
+              incr nlineset
+              if {$nlineset == 1} {
+                set str "<!-- B-REP EDGES -->\n<Switch whichChoice='0' id='swEDG'>"
+                if {$sc == 1} {
+                  append str "<Group>"
+                } else {
+                  append str "<Transform scale='$sc $sc $sc'>"
+                }
+                puts $brepFile $str
+                puts $brepFile "<Appearance DEF='edg'><Material emissiveColor='0 0 0'></Material></Appearance>"
+              }
+              set str "<Shape><Appearance USE='edg'></Appearance>"
+              append str [string range $line [string first "LineSet" $line]-1 [string last "'" $line]]
+              append str "></Coordinate></Lineset></Shape>"
+              puts $brepFile $str
+
+# end scene
+            } elseif {[string first "</Scene" $line] != -1} {
+              break
+            }
+          }
+          close $r2
+
+# errors
+        } emsg]} {
+          errorMsg "ERROR processing [file tail $fx3d]: $emsg"
+        }
+      }
+
+# report some counters
+      outputMsg "  $nfile X3D files processed"
+      set msg "  [llength [array names w]] colors"
+      if {$ngray > 0} {append msg " ($ngray gray)"}
+      outputMsg $msg
+      if {$nlineset > 0} {
+        outputMsg "  $nlineset edges"
+        puts $brepFile "</Group></Switch>"
+      }
+      getTiming done-files
+
+# set global min-max
+      foreach id1 {0 1 2} id2 {x y z} {
+        set x3dMin($id2) $min($id1)
+        set x3dMax($id2) $max($id1)
+      }
+
+# start b-rep surfaces
+      set str "\n<!-- B-REP SURFACES -->\n<Switch whichChoice='0' id='swBRP'>"
+      if {$sc == 1} {
+        append str "<Group>"
+      } else {
+        append str "<Transform scale='$sc $sc $sc'>"
+      }
+      puts $brepFile $str
+
+# add appN.x3d files to b-rep file
+      catch {unset x3dApps}
+      set len [llength [array names w]]
+      foreach napp [lsort -integer [array names w]] {
+        lappend x3dApps $napp
+        close $w($napp)
+        set rr [open [file join $stpx3dDir "app$napp.x3d"] r]
+        if {$len > 1} {puts $brepFile "<!-- color $napp -->\n<Switch whichChoice='0' id='swColor$napp'><Group>"}
+        while {[gets $rr line] >= 0} {puts $brepFile $line}
+        if {$len > 1} {puts $brepFile "</Group></Switch>"}
+        close $rr
+      }
+
+# end b-rep file
+      if {$sc == 1} {
+        puts $brepFile "</Group></Switch>"
+      } else {
+        puts $brepFile "</Transform></Switch>"
+      }
+      set viz(BRP) 1
+      getTiming done-combining
+
+# delete temporary files
+      catch {file delete -force -- $stpx3dDir}
+
+# errors running stp2x3d-color
+      if {[string first "Done!" $errs] == -1} {
+        set errs1 [split $errs \n]
+        outputMsg "\nERRORS from stp2x3d-color.exe" red
+        foreach err $errs1 {
+          if {[string first "Check:" $err] != 0 && [string first "Parameter n" $err] != 0 && [string first "Complex Record n" $err] != 0 && \
+              [string first "unknown entities" $err] == -1 && [string first "Model Complete" $err] == -1 && [string first "***" $err] != 0 && \
+              [string first "    Type:" $err] != 0 && [string first "Unresolved Reference" $err] != 0 && [string first "A reference" $err] && \
+              [string first "Count of" $err] != 0 && $err != ""} {
+            outputMsg " $err" red
+          }
+        }
+
+# permission errors writing x3d file
+        if {[string first "PermissionError" $errs] != -1} {
+          set msg " ERROR writing X3D generated by stp2x3d-color.exe to "
+          if {[string first "." $mydocs] != -1} {
+            append msg "a directory with dots '.' in the user name: $mydocs"
+          } else {
+            append msg "this directory: [file dirname $localName]"
+          }
+          append msg "\n  Move the STEP file to a different directory."
+          errorMsg $msg
+
+# other errors
+        } else {
+          errorMsg " ERROR generating some X3D from the STEP part geometry\n  Try another STEP file viewer.  See Websites > STEP File Viewers"
+          outputMsg " "
+          lappend x3dMsg "ERROR generating some part geometry"
+        }
+      }
+      getTiming done
+    } else {
+      errorMsg " ERROR: The program (stp2x3d-color.exe) to convert STEP part geometry to X3D was not found in $mytemp"
+    }
+  } emsg]} {
+    errorMsg " ERROR adding Part Geometry ($emsg)"
+  }
+}
+
+# -------------------------------------------------------------------------------
 # B-rep part geometry
 proc x3dBrepGeom {} {
-  global brepFile brepFileName buttons entCount localName mydocs mytemp opt viz wdir x3dColorBrep x3dMax x3dMin x3dMsg
+  global brepFile brepFileName buttons defaultColor entCount localName mydocs mytemp opt viz wdir x3dApps x3dColorBrep x3dMax x3dMin x3dMsg
   global objDesign
 
 # copy stp2x3d executable to temp directory
@@ -753,6 +1042,8 @@ proc x3dBrepGeom {} {
       }
       if {$copy} {file copy -force -- [file join $wdir exe stp2x3d.exe] $mytemp}
     }
+    catch {unset x3dApps}
+
 
 # generate x3d from b-rep geometry with stp2x3d
     if {[file exists $stp2x3d]} {
@@ -767,7 +1058,7 @@ proc x3dBrepGeom {} {
 
 # run stp2x3d.exe
       catch {exec $stp2x3d [file nativename $localName]} errs
-      if {$opt(DEBUG1)} {outputMsg "\nSTART output from stp2x3d.exe\n$errs\nEND output from stp2x3d.exe\n" red}
+      if {$opt(DEBUGX3D)} {outputMsg "Output from stp2x3d.exe\n$errs" red}
 
 # done processing
       if {[string first "DONE!" $errs] != -1} {
@@ -802,15 +1093,15 @@ proc x3dBrepGeom {} {
             set brepFile [open $brepFileName w]
 
 # integrate x3d from stp2x3d with existing x3dom file
-            puts $brepFile "\n<!-- B-REP PART GEOMETRY -->\n<Switch whichChoice='0' id='swBRP'><Transform scale='$sc $sc $sc'>"
+            puts $brepFile "\n<!-- B-REP PART GEOMETRY -->\n<Switch whichChoice='0' id='swBRP'>"
+            if {$sc != 1} {puts $brepFile "<Transform scale='$sc $sc $sc'>"}
             set stpx3dFile [open $stpx3dFileName r]
-            update idletasks
             set write 0
             set nostop 1
+            set count 0
 
 # process all lines in file
-            outputMsg " Processing X3D output from stp2x3d.exe" green
-            update
+            outputMsg " Processing X3D output from stp2x3d.exe" green; update
             while {[gets $stpx3dFile line] >= 0 && $nostop} {
               if {[string first "<Shape" $line] != -1} {
                 set line "<Shape><Appearance>"
@@ -847,11 +1138,11 @@ proc x3dBrepGeom {} {
 # add line break for normal or skip normals
                   if {[string first "<Normal" $nline] != -1} {
                     switch -- $opt(VIZBRPNRM) {
-                      0 {append line "\n"}
-                      1 {
+                      0 {
                         set nostop 0
                         append line "\n</TriangleSet></Shape>"
                       }
+                      1 {append line "\n"}
                     }
                   }
 
@@ -865,15 +1156,21 @@ proc x3dBrepGeom {} {
                       set line ""
                       set n 0
                     }
+
+# progress counter
+                    incr count
+                    if {[expr {$count%500000}] == 0} {outputMsg "  $count"}
+
+# stop when done with normals
                     if {[string first "</Normal" $nline] != -1} {break}
                   }
                 }
 
 # adjust color
               } elseif {[string first "<Material" $line] != -1} {
-                if {![info exists x3dColorBrep]} {set x3dColorBrep "0.65 0.65 0.7"}
-                if {$x3dColorBrep == ""} {set x3dColorBrep "0.65 0.65 0.7"}
-                set line "<Material id='color' diffuseColor='$x3dColorBrep' specularColor='.2 .2 .2'>"
+                if {![info exists x3dColorBrep] || $x3dColorBrep == ""} {set x3dColorBrep [lindex $defaultColor 0]}
+                lappend x3dApps 0
+                set line "<Material id='mat0' diffuseColor='$x3dColorBrep' shininess='.9' specularColor='.2 .2 .2'>"
               }
 
 # write remaining line to file
@@ -881,8 +1178,13 @@ proc x3dBrepGeom {} {
               if {[string first "</Shape" $line] != -1} {set write 0}
             }
             close $stpx3dFile
-            puts $brepFile "</Transform></Switch>"
+            if {$sc == 1} {
+              puts $brepFile "</Switch>"
+            } else {
+              puts $brepFile "</Transform></Switch>"
+            }
             set viz(BRP) 1
+            if {$count > 500000} {outputMsg "  $count"}
           }
 
 # no X3D output
@@ -891,7 +1193,7 @@ proc x3dBrepGeom {} {
         }
 
 # delete X3D file
-        if {!$opt(DEBUG1)} {
+        if {!$opt(DEBUGX3D)} {
           catch {file delete -force -- $stpx3dFileName}
 
 # keep for debugging
@@ -903,24 +1205,39 @@ proc x3dBrepGeom {} {
           }
         }
 
-# permission errors writing x3d file
-      } elseif {[string first "PermissionError" $errs] != -1} {
-        set msg " ERROR writing X3D generated by stp2x3d.exe in "
-        if {[string first "." $mydocs] != -1} {
-          append msg "a directory with dots '.' in the user name: $mydocs"
-        } else {
-          append msg "this directory: [file dirname $localName]"
-        }
-        append msg "\n  Move the STEP file to a different directory."
-        errorMsg $msg
-
-# stp2x3d did not finish
+# errors running stp2x3d
       } else {
-        errorMsg " ERROR generating X3D from the part geometry.  Try another viewer, see Websites > STEP File Viewers"
-        lappend x3dMsg "B-rep part geometry cannot be viewed."
+        set errs1 [split $errs \n]
+        outputMsg " stp2x3d.exe ERRORS" red
+        foreach err $errs1 {
+          if {[string first "Check:" $err] != 0 && [string first "Parameter n" $err] != 0 && [string first "Complex Record n" $err] != 0 && \
+              [string first "unknown entities" $err] == -1 && [string first "Model Complete" $err] == -1 && [string first "***" $err] != 0 && \
+              [string first "    Type:" $err] != 0 && [string first "Unresolved Reference" $err] != 0 && [string first "A reference" $err] && \
+              [string first "Count of" $err] != 0 && $err != ""} {
+            outputMsg " $err" red
+          }
+        }
+
+# permission errors writing x3d file
+        if {[string first "PermissionError" $errs] != -1} {
+          set msg " ERROR writing X3D generated by stp2x3d.exe to "
+          if {[string first "." $mydocs] != -1} {
+            append msg "a directory with dots '.' in the user name: $mydocs"
+          } else {
+            append msg "this directory: [file dirname $localName]"
+          }
+          append msg "\n  Move the STEP file to a different directory."
+          errorMsg $msg
+
+# other errors
+        } else {
+          errorMsg " ERROR generating X3D from the STEP part geometry\n  Use F8 to run the Syntax Checker to check for STEP file errors.  See Help > Syntax Checker\n  Try another STEP file viewer.  See Websites > STEP File Viewers"
+          outputMsg " "
+          lappend x3dMsg "ERROR generating STEP part geometry"
+        }
       }
     } else {
-      errorMsg " ERROR: The program (stp2x3d.exe) to convert b-rep part geometry to X3D was not found in $mytemp"
+      errorMsg " ERROR: The program (stp2x3d.exe) to convert STEP part geometry to X3D was not found in $mytemp"
     }
   } emsg]} {
     errorMsg " ERROR adding Part Geometry ($emsg)"
@@ -929,12 +1246,14 @@ proc x3dBrepGeom {} {
 
 # -------------------------------------------------------------------------------
 proc x3dBrepColor {} {
-  global opt syntaxErr x3dColorBrepAdjusted x3dColorStyle x3dColorsUsed
+  global opt syntaxErr x3dColorAll x3dColorBrepAdjusted x3dColorOverriding x3dColorsUsed
   global objDesign
 
   set debug 0
   set x3dColorBrep ""
-  set x3dColorStyle 0
+  set x3dColorAll 0
+  set x3dColorOverriding 0
+  set overridingColors {}
   foreach item {manifold_solid_brep shell_based_surface_model advanced_face} {set colors($item) {}}
 
 # get styled_item
@@ -943,10 +1262,11 @@ proc x3dBrepColor {} {
       if {$debug} {errorMsg "[$e0 Type] [$e0 P21ID]" green}
 
 # styled_item.styles
-      if {[$e0 Type] == "styled_item"} {
+      set styledItem [$e0 Type]
+      if {$styledItem == "styled_item" || $styledItem == "over_riding_styled_item"} {
         if {[[[$e0 Attributes] Item [expr 3]] Value] != ""} {
           set item [[[[$e0 Attributes] Item [expr 3]] Value] Type]
-        } else {
+        } elseif {$styledItem == "styled_item"} {
           set msg "Missing required styled_item 'item' attribute or it references the wrong type of entity."
           if {$opt(XLSCSV) == "None"} {append msg "  Generate a Spreadsheet to see the problem with styled_item."}
           errorMsg $msg
@@ -954,10 +1274,8 @@ proc x3dBrepColor {} {
           set item ""
         }
 
-        if {$item == "manifold_solid_brep" || $item == "shell_based_surface_model" || $item == "advanced_face"} {
-          set x3dColorStyle 1
-
 # presentation_style.styles
+        if {$item == "manifold_solid_brep" || $item == "shell_based_surface_model" || $item == "advanced_face"} {
           set a1 [[$e0 Attributes] Item [expr 2]]
           ::tcom::foreach e2 [$a1 Value] {
             set a2 [[$e2 Attributes] Item [expr 1]]
@@ -991,10 +1309,18 @@ proc x3dBrepColor {} {
                     incr j
                   }
                   set x3dColorBrep [string trim $x3dColorBrep]
-                  lappend colors($item) $x3dColorBrep
+                  if {$styledItem == "styled_item"} {
+                    lappend colors($item) $x3dColorBrep
+                  } else {
+                    lappend overridingColors $x3dColorBrep
+                  }
                 } elseif {[$e8 Type] == "draughting_pre_defined_colour"} {
                   set x3dColorBrep [x3dPreDefinedColor [[[$e8 Attributes] Item [expr 1]] Value]]
-                  lappend colors($item) $x3dColorBrep
+                  if {$styledItem == "styled_item"} {
+                    lappend colors($item) $x3dColorBrep
+                  } else {
+                    lappend overridingColors $x3dColorBrep
+                  }
                 } else {
                   errorMsg "  Unexpected color type ([$e8 Type])"
                 }
@@ -1007,19 +1333,11 @@ proc x3dBrepColor {} {
     }
   }
 
-# ignore advanced_face if other colors exist
-  if {[llength $colors(advanced_face)] > 0} {
-    if {[llength $colors(manifold_solid_brep)] > 0 || [llength $colors(shell_based_surface_model)] > 0} {
-      set colors(advanced_face) {}
-      #errorMsg " Part colors assigned to 'advanced_face' are ignored." red
-    }
-  }
+  set x3dColorAll [llength [lrmdups [concat $colors(manifold_solid_brep) $colors(shell_based_surface_model) $colors(advanced_face)]]]
+  set x3dColorOverriding [llength [lrmdups $overridingColors]]
 
-  set allcolors [lrmdups [concat $colors(manifold_solid_brep) $colors(shell_based_surface_model) $colors(advanced_face)]]
-  if {$debug} {outputMsg $allcolors green}
-  if {[llength $allcolors] > 1} {
+  if {$x3dColorAll > 1} {
     set x3dColorBrep ""
-    errorMsg " Part colors are ignored if multiple colors are specified (using gray)."
 
 # adjust color for comparison to PMI color
   } else {
@@ -1034,7 +1352,12 @@ proc x3dBrepColor {} {
     set x3dColorBrepAdjusted [string trim $x3dColorBrepAdjusted]
   }
 
-  if {$x3dColorBrep == "0 0 0"} {errorMsg " The STEP part geometry is colored black."}
+  if {!$opt(DEBUGX3D)} {
+    if {$x3dColorAll > 1} {errorMsg " Multiple part colors ($x3dColorAll) are ignored (using gray)."}
+    if {$x3dColorOverriding > 0} {errorMsg " Overriding part colors ($x3dColorOverriding) are ignored."}
+  }
+
+  if {$x3dColorBrep == "0 0 0"} {errorMsg " The STEP part geometry is colored Black."}
   if {$debug} {outputMsg $x3dColorBrep blue}
   return $x3dColorBrep
 }
@@ -1769,6 +2092,68 @@ proc x3dPreDefinedColor {name} {
 }
 
 # -------------------------------------------------------------------------------
+# get color name for b-rep part geometry
+proc x3dColorName {color} {
+  set savcolor $color
+  set newcolor {}
+  set lcolor [split $color " "]
+
+# normalize color
+  set notnorm 1
+  set newcolor [vectrim [vecnorm $color]]
+  set ok 1
+  foreach c $newcolor {if {$c != 0. && $c != 1.} {set ok 0}}
+  if {$ok} {
+    regsub -all {\.} [join $newcolor " "] "" newcolor
+    if {$newcolor != "0 0 0" && $newcolor != "1 1 1"} {set color $newcolor; set notnorm 0}
+  }
+
+# threshhold color
+  if {$notnorm} {
+    set newcolor {}
+    foreach val $lcolor {
+      if {$val >= 0.66} {
+        lappend newcolor 1
+      } elseif {$val < 0.31} {
+        lappend newcolor 0
+      } else {
+        lappend newcolor $val
+      }
+    }
+    set newcolor [join $newcolor " "]
+    if {$newcolor != "0 0 0" && $newcolor != "1 1 1"} {set color $newcolor}
+  }
+
+  set name ""
+  switch -- $color {
+    "0 0 0" {set name Black}
+    "1 1 1" {set name White}
+    "1 0 0" {set name Red}
+    "1 1 0" {set name Yellow}
+    "0 1 0" {set name Green}
+    "0 1 1" {set name Cyan}
+    "0 0 1" {set name Blue}
+    "1 0 1" {set name Magenta}
+  }
+
+# approximate colors
+  if {$name == ""} {
+    if {[lindex $lcolor 0] == [lindex $lcolor 1] && [lindex $lcolor 0] == [lindex $lcolor 2]} {
+      set name Gray
+    } else {
+      set diff(0) [expr {abs([lindex $lcolor 0]-[lindex $lcolor 1])}]
+      set diff(1) [expr {abs([lindex $lcolor 0]-[lindex $lcolor 2])}]
+      set diff(2) [expr {abs([lindex $lcolor 1]-[lindex $lcolor 2])}]
+      set ok 1
+      foreach i {0 1 2} {if {$diff($i) > 0.1} {set ok 0}}
+      if {$ok} {set name Gray}
+    }
+  }
+  #outputMsg "$savcolor  $name"
+  return $name
+}
+
+# -------------------------------------------------------------------------------
 # write geometry for polyline annotations
 proc x3dPolylinePMI {} {
   global ao gpmiPlacement opt placeAnchor placeOrigin recPracNames savedViewFile savedViewName savedViewNames
@@ -1979,7 +2364,7 @@ proc openX3DOM {{fn ""} {numFile 0}} {
 # open file (.html) in web browser
   set lastX3DOM $fn
   if {$open} {
-    outputMsg "\nOpening View in the default Web Browser: [file tail $fn]" green
+    outputMsg "\nOpening View in the default Web Browser: [file tail $fn] ([expr {[file size $fn]/1024}] Kb)" green
     catch {.tnb select .tnb.status}
     if {[catch {
       exec {*}[auto_execok start] "" [file nativename $fn]
@@ -2030,7 +2415,7 @@ proc getSavedViewName {objEntity} {
 
 # -------------------------------------------------------------------------------
 # script for switch node
-proc x3dSwitchScript {name {name1 ""} {vp 0}} {
+proc x3dSwitchScript {name {name1 ""}} {
   global x3dFile
 
   if {$name1 == ""} {set name1 $name}
@@ -2038,12 +2423,7 @@ proc x3dSwitchScript {name {name1 ""} {vp 0}} {
   regsub -all {\-} $name1 "_" name1
 
   puts $x3dFile "\n<!-- [string toupper $name1] switch -->\n<script>function tog$name1\(choice){"
-  puts $x3dFile " if (!document.getElementById('sw$name1').checked) {"
-  puts $x3dFile "  document.getElementById('sw$name').setAttribute('whichChoice', -1);"
-  puts $x3dFile " } else {"
-  puts $x3dFile "  document.getElementById('sw$name').setAttribute('whichChoice', 0);"
-  if {$vp} {puts $x3dFile "  document.getElementById('vp$name1').setAttribute('set_bind','true');"}
-  puts $x3dFile " }"
+  puts $x3dFile " if (!document.getElementById('sw$name1').checked) {document.getElementById('sw$name').setAttribute('whichChoice', -1);} else {document.getElementById('sw$name').setAttribute('whichChoice', 0);}"
   puts $x3dFile " document.getElementById('sw$name1').checked = !document.getElementById('sw$name1').checked;\n}</script>"
 }
 

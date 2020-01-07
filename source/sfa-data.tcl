@@ -8,7 +8,7 @@ global schemaLinks spmiEntTypes spmiTypes stepAPs tolNames tzfNames
 
 set DTR [expr {3.1415927/180.}]
 set letters ABCDEFGHIJKLMNOPQRSTUVWXYZ
-set defaultColor [list "0.996 0.463 0.418" pink]
+set defaultColor [list ".55 .55 .6" gray]
 
 set roseLogical(0) "FALSE"
 set roseLogical(1) "TRUE"
@@ -19,16 +19,6 @@ set andEntAP209 [list "_and_location" "_and_volume_location" "_and_coefficient" 
 
 # entities with b-rep geometry
 set brepEnts [list advanced_brep_shape_representation manifold_surface_shape_representation manifold_solid_brep shell_based_surface_model]
-
-# names of CAx-IF Recommended Practices
-set recPracNames(model)    "Model Styling and Organization"
-set recPracNames(pmi242)   "Representation and Presentation of PMI (AP242)"
-set recPracNames(pmi203)   "PMI Polyline Presentation (AP203/AP214)"
-set recPracNames(valprop)  "Geometric and Assembly Validation Properties"
-set recPracNames(tessgeom) "3D Tessellated Geometry"
-set recPracNames(uda)      "User Defined Attributes"
-set recPracNames(comp)     "Composite Structure Validation Properties"
-set recPracNames(suppgeom) "Supplemental Geometry"
 
 # STEP AP names for those that do not start with APnnn
 set stepAPs(CONFIGURATION_CONTROL_3D_DESIGN_ED2_MIM_LF) AP203
@@ -68,9 +58,76 @@ set schemaLinks(AP214)   "https://www.cax-if.org/documents/AP214E3/AP214_e3.htm"
 set schemaLinks(AP238)   "http://ap238.org/ap238e2/"
 set schemaLinks(AP238e1) "http://web.archive.org/web/20160322005246/www.steptools.com/support/stdev_docs/express/ap238/html/index.html"
 set schemaLinks(AP239)   "http://web.archive.org/web/20160322005246/www.steptools.com/support/stdev_docs/express/ap239/html/index.html"
-set schemaLinks(AP242)   "https://www.cax-if.org/documents/AP242/AP242_mim_lf_1.36.htm"
+set schemaLinks(AP242)   "https://www.cax-if.org/documents/AP242ed2_HTML/AP242ed2.htm"
 set schemaLinks(CIS/2)   "http://web.archive.org/web/20160322005246/www.steptools.com/support/stdev_docs/express/cis/html/index.html"
+
+# -----------------------------------------------------------------------------------------------------
+# colors, the number determines the order that the group of entities is processed, do not use numbers less than 10 (dmcritchie.mvps.org/excel/colors.htm)
+set entColorIndex(PR_STEP_FEAT) 19	
+set entColorIndex(PR_STEP_KINE) 34	
+set entColorIndex(PR_STEP_COMP) 35
+set entColorIndex(PR_STEP_AP242) 36	
+set entColorIndex(PR_STEP_TOLR) 37			
+set entColorIndex(PR_STEP_PRES) 38			
+set entColorIndex(PR_STEP_REPR) 39			
+set entColorIndex(PR_STEP_SHAP) 40			
+set entColorIndex(PR_STEP_COMM) 42			
+set entColorIndex(PR_STEP_GEOM) 43			
+set entColorIndex(PR_STEP_CPNT) 43			
+set entColorIndex(PR_STEP_QUAN) 44
+
+# PMI coverage colors (B, G, R)
+set legendColor(green)   [expr {int (128) << 16 | int (255) << 8 | int(128)}]
+set legendColor(yelgre)  [expr {int (128) << 16 | int (255) << 8 | int(210)}]
+set legendColor(yellow)  [expr {int (128) << 16 | int (255) << 8 | int(255)}]
+set legendColor(orange)  [expr {int (128) << 16 | int (210) << 8 | int(255)}]
+set legendColor(red)     [expr {int (128) << 16 | int (128) << 8 | int(255)}]
+set legendColor(cyan)    [expr {int (255) << 16 | int (255) << 8 | int(128)}]
+set legendColor(magenta) [expr {int (255) << 16 | int (128) << 8 | int(255)}]
+set legendColor(gray)    [expr {int (208) << 16 | int (208) << 8 | int(208)}]
+
+# -----------------------------------------------------------------------------------------------------
+# entity attributes that cause a crash like 'LIST of LIST' or something of something, this is caused by a limitation of the IFCsvr toolkit
+set badattributes(axisymmetric_curve_2d_element_descriptor) {purpose}
+set badattributes(axisymmetric_surface_2d_element_descriptor) {purpose}
+set badAttributes(axisymmetric_volume_2d_element_descriptor) {purpose}
+set badAttributes(b_spline_surface_with_knots) {control_points_list}
+set badAttributes(b_spline_surface_with_knots_and_rational_b_spline_surface) {control_points_list weights_data}
+set badAttributes(bezier_surface) {control_points_list}
+set badAttributes(bezier_surface_and_rational_b_spline_surface) {control_points_list weights_data}
+set badAttributes(cc_design_approval) {items}
+set badattributes(complex_shelled_solid) {thickened_face_list}
+set badAttributes(complex_triangulated_face) {normals triangle_fans triangle_strips}
+set badAttributes(complex_triangulated_surface_set) {normals triangle_fans triangle_strips}
+set badAttributes(coordinates_list) {position_coords}
+set badAttributes(curve_3d_element_descriptor) {purpose}
+set badattributes(explicit_element_matrix) {node_dof_list}
+set badattributes(extruded_face_solid_with_multiple_draft_angles) {drafted_edges}
+set badattributes(finite_function) {pairs}
+set badattributes(indices_list) {indices}
+set badattributes(plane_curve_2d_element_descriptor) {purpose}
+set badattributes(plane_surface_2d_element_descriptor) {purpose}
+set badattributes(plane_volume_2d_element_descriptor) {purpose}
+set badAttributes(point_cloud_dataset) {point_coordinates}
+set badAttributes(point_cloud_dataset_with_colours) {point_coordinates colour_indices}
+set badAttributes(point_cloud_dataset_with_intensities) {point_coordinates}
+set badAttributes(point_cloud_dataset_with_normals) {point_coordinates normals}
+set badAttributes(quasi_uniform_surface) {control_points_list}
+set badAttributes(quasi_uniform_surface_and_rational_b_spline_surface) {control_points_list weights_data}
+set badAttributes(rational_b_spline_surface) {weights_data}
+set badAttributes(rational_b_spline_surface_and_uniform_surface) {control_points_list weights_data}
+set badAttributes(rectangular_composite_surface) {segments}
+set badAttributes(solid_with_incomplete_rectangular_pattern) {omitted_instances}
+set badattributes(solid_with_slot) {end_exit_faces}
+set badAttributes(surface_3d_element_descriptor) {purpose}
+set badAttributes(tessellated_curve_set) {line_strips}
+set badAttributes(tessellated_face) {normals}
+set badAttributes(tessellated_surface_set) {normals}
+set badAttributes(triangulated_face) {normals triangles}
+set badAttributes(triangulated_point_cloud_dataset) {triangles}
+set badAttributes(triangulated_surface_set) {normals triangles}
  
+# -----------------------------------------------------------------------------------------------------
 # all app names for STEP and IFC software that might appear in header section
 set cadApps {"3D_Evolution" ACIS "Alias - OpenModel" "Alias AutoStudio" "Alias OpenModel" "Alias Studio" Alibre AutoCAD "Autodesk Inventor" \
   CADDS CADfix CADIF CATIA "CATIA V4" "CATIA V5" "CATIA V6" "CATIA Version 5" CgiStepCamp CoreTechnologie Creo "CV - CADDS 5" \
@@ -89,80 +146,30 @@ set cadApps {"3D_Evolution" ACIS "Alias - OpenModel" "Alias AutoStudio" "Alias O
 set cadApps [sortlength2 $cadApps]
 
 # CAx-IF vendor names
-set allVendor(3DE) "3D Evolution"
-set allVendor(3de) "3D Evolution"
-set allVendor(a3) "Acrobat 3D"
-set allVendor(a5) "Acrobat_3D (CATIA_V5)"
-set allVendor(ac) "AutoCAD"
-set allVendor(al) "Autodesk AliasStudio"
-set allVendor(ap) "Acrobat_3D (Pro/E)"
-set allVendor(au) "Acrobat_3D (NX)"
-set allVendor(c3e) "3D Experience"
-set allVendor(c4) "CATIA V4"
-set allVendor(c5) "CATIA V5"
-set allVendor(c6) "CATIA V6"
-set allVendor(cg) "CgiStepCamp"
-set allVendor(cm) "PTC CoCreate Modeling"
-set allVendor(cr) "PTC Creo"
-set allVendor(ct5) "3D Evolution (CATIA_V5)"
-set allVendor(cti) "3D Evolution (Inventor)"
-set allVendor(cto) "3D Evolution (Creo)"
-set allVendor(ctw) "3D Evolution (SolidWorks)"
-set allVendor(ctx) "3D Evolution (NX)"
-set allVendor(d5) "Datakit CrossCad (CATIA_V5)"
-set allVendor(dc) "Datakit CrossCad"
-set allVendor(di) "Datakit CrossCad (Inventor)"
-set allVendor(do) "Datakit CrossCad (Creo)"
-set allVendor(dp) "Datakit CrossCad (PRO/E)"
-set allVendor(dw) "Datakit CrossCad (SolidWorks)"
-set allVendor(dx) "Datakit CrossCad (NX)"
-set allVendor(eb) "Electric Boat"
-set allVendor(ec) "Elysium CadDoctor"
-set allVendor(e5) "Elysium Asfalis (CATIA_V5)"
-set allVendor(ei) "Elysium Asfalis (Inventor)"
-set allVendor(eo) "Elysium Asfalis (Creo)"
-set allVendor(ew) "Elysium Asfalis (SolidWorks)"
-set allVendor(ex) "Elysium Asfalis (NX)"
-set allVendor(fs) "Vistagy FiberSim"
-set allVendor(h3) "HOOPS 3D Exchange"
-set allVendor(h5) "HOOPS 3D (CATIA_V5)"
-set allVendor(hc) "HOOPS 3D (Creo)"
-set allVendor(hx) "HOOPS 3D (NX)"
-set allVendor(i4) "ITI CADifx (CATIA_V4)"
-set allVendor(i5) "ITI CADfix (CATIA_V5)"
-set allVendor(ic) "ITI CADfix (Creo)"
-set allVendor(id) "NX I-DEAS"
-set allVendor(if) "ITI CADfix"
-set allVendor(in) "Autodesk Inventor"
-set allVendor(iq) "ITI CADfix"
-set allVendor(iw) "ITI CADfix (SolidWorks)"
-set allVendor(ix) "ITI CADfix (NX)"
-set allVendor(jn) "Jotne EPM NASTRAN"
-set allVendor(jo) "Jotne EPM openSimDM"
-set allVendor(kc) "Kubotek KeyCreator"
-set allVendor(kr) "Kubotek REALyze"
-set allVendor(lk) "LKSoft IDA-STEP"
-set allVendor(mp) "MSC Patran"
-set allVendor(nas) "NASTRAN"
-set allVendor(nx) "Siemens NX"
-set allVendor(oc) "Datakit CrossCad (OpenCascade)"
-set allVendor(pc) "PTC CADDS"
-set allVendor(pe) "PTC Pro/E"
-set allVendor(s4) "T-Systems COM/STEP (CATIA_V4)"
-set allVendor(s5) "T-Systems COM/FOX (CATIA_V5)"
-set allVendor(se) "SolidEdge"
-set allVendor(sp) "Spatial ACIS"
-set allVendor(sw) "SolidWorks"
-set allVendor(t3d) "TechSoft3D"
-set allVendor(t4) "Theorem Cadverter (CATIA_V4)"
-set allVendor(t5) "Theorem Cadverter (CATIA_V5)"
-set allVendor(tc) "Theorem Cadverter (CADDS)"
-set allVendor(td) "Theorem Solutions (CATIA_AP209)"
-set allVendor(to) "Theorem Cadverter (Creo)"
-set allVendor(tp) "Theorem Cadverter (PRO/E)"
-set allVendor(ts) "Theorem Cadverter (I-DEAS)"
-set allVendor(tx) "Theorem Cadverter (NX)"
-set allVendor(ug) "Unigraphics"
+set pairs [list {3DE "3D Evolution"} {3de "3D Evolution"} {a3 "Acrobat 3D"} {a5 "Acrobat_3D (CATIA_V5)"} {ac "AutoCAD"} {al "Autodesk AliasStudio"} \
+  {ap "Acrobat_3D (Pro/E)"} {au "Acrobat_3D (NX)"} {c3e "3D Experience"} {c4 "CATIA V4"} {c5 "CATIA V5"} {c6 "CATIA V6"} {cg "CgiStepCamp"} \
+  {cm "PTC CoCreate Modeling"} {cr "PTC Creo"} {ct5 "3D Evolution (CATIA_V5)"} {cti "3D Evolution (Inventor)"} {cto "3D Evolution (Creo)"} \
+  {ctw "3D Evolution (SolidWorks)"} {ctx "3D Evolution (NX)"} {d5 "Datakit CrossCad (CATIA_V5)"} {dc "Datakit CrossCad"} {di "Datakit CrossCad (Inventor)"} \
+  {do "Datakit CrossCad (Creo)"} {dp "Datakit CrossCad (PRO/E)"} {dw "Datakit CrossCad (SolidWorks)"} {dx "Datakit CrossCad (NX)"} {eb "Electric Boat"} \
+  {ec "Elysium CadDoctor"} {e5 "Elysium Asfalis (CATIA_V5)"} {ei "Elysium Asfalis (Inventor)"} {eo "Elysium Asfalis (Creo)"} {ew "Elysium Asfalis (SolidWorks)"} \
+  {ex "Elysium Asfalis (NX)"} {fs "Vistagy FiberSim"} {h3 "HOOPS 3D Exchange"} {h5 "HOOPS 3D (CATIA_V5)"} {hc "HOOPS 3D (Creo)"} {hx "HOOPS 3D (NX)"} \
+  {i4 "ITI CADifx (CATIA_V4)"} {i5 "ITI CADfix (CATIA_V5)"} {ic "ITI CADfix (Creo)"} {id "NX I-DEAS"} {if "ITI CADfix"} {in "Autodesk Inventor"} {iq "ITI CADfix"} \
+  {iw "ITI CADfix (SolidWorks)"} {ix "ITI CADfix (NX)"} {jn "Jotne EPM NASTRAN"} {jo "Jotne EPM openSimDM"} {kc "Kubotek KeyCreator"} {kr "Kubotek REALyze"} \
+  {lk "LKSoft IDA-STEP"} {mp "MSC Patran"} {nas "NASTRAN"} {nx "Siemens NX"} {oc "Datakit CrossCad (OpenCascade)"} {pc "PTC CADDS"} {pe "PTC Pro/E"} \
+  {s4 "T-Systems COM/STEP (CATIA_V4)"} {s5 "T-Systems COM/FOX (CATIA_V5)"} {se "SolidEdge"} {sp "Spatial ACIS"} {sw "SolidWorks"} {t3d "TechSoft3D"} \
+  {t4 "Theorem Cadverter (CATIA_V4)"} {t5 "Theorem Cadverter (CATIA_V5)"} {tc "Theorem Cadverter (CADDS)"} {td "Theorem Solutions (CATIA_AP209)"} \
+  {to "Theorem Cadverter (Creo)"} {tp "Theorem Cadverter (PRO/E)"} {ts "Theorem Cadverter (I-DEAS)"} {tx "Theorem Cadverter (NX)"} {ug "Unigraphics"}]
+foreach pair $pairs {set allVendor([lindex $pair 0]) [lindex $pair 1]}
+
+# names of CAx-IF Recommended Practices
+set recPracNames(model)    "Model Styling and Organization"
+set recPracNames(pmi242)   "Representation and Presentation of PMI (AP242)"
+set recPracNames(pmi203)   "PMI Polyline Presentation (AP203/AP214)"
+set recPracNames(valprop)  "Geometric and Assembly Validation Properties"
+set recPracNames(tessgeom) "3D Tessellated Geometry"
+set recPracNames(uda)      "User Defined Attributes"
+set recPracNames(comp)     "Composite Structure Validation Properties"
+set recPracNames(suppgeom) "Supplemental Geometry"
 
 # -----------------------------------------------------------------------------------------------------
 # list of annotation occurrence entities, *order is important*
@@ -192,11 +199,10 @@ set spmiEntTypes [list \
 # max rows for PMI elements on PMI representation coverage worksheet, depends on number and order of items below
 set pmiElementsMaxRows 158
 # line breaks are above the row, depends on the grouping of PMI elements below
-set pmiHorizontalLineBreaks [list 19 34 45 50 65 71 81 [expr {$pmiElementsMaxRows-6}] $pmiElementsMaxRows]
+set pmiHorizontalLineBreaks [list 19 34 45 50 66 72 82 [expr {$pmiElementsMaxRows-6}] $pmiElementsMaxRows]
 
 # -----------------------------------------------------------------------------------------------------
 # dimensional_size names (Section 5.1.5, Table 4), controlled radius and square are not included
-
 set dimSizeNames [list \
   "curve length" "diameter" "thickness" "spherical diameter" "radius" "spherical radius" \
   "toroidal minor diameter" "toroidal major diameter" "toroidal minor radius" "toroidal major radius" \
@@ -214,7 +220,6 @@ set dimModNames [list \
 
 # -----------------------------------------------------------------------------------------------------
 # tolerance entity names (Section 6.8, Table 10)
-
 set tolNames [list \
   angularity_tolerance circular_runout_tolerance coaxiality_tolerance concentricity_tolerance cylindricity_tolerance \
   flatness_tolerance line_profile_tolerance parallelism_tolerance perpendicularity_tolerance position_tolerance \
@@ -227,7 +232,6 @@ set tzfNames [list \
 
 # -----------------------------------------------------------------------------------------------------
 # *Graphical PMI* names (Section 8.2, Table 13)
-
 set gpmiTypes [list \
   "angularity" "circular runout" "circularity" "coaxiality" "concentricity" "cylindricity" "flatness" "parallelism" "perpendicularity" "position" "profile of line" \
   "profile of surface" "roundness" "straightness" "symmetry" "total runout" "general tolerance" "linear dimension" "radial dimension" "diameter dimension" \
@@ -236,7 +240,6 @@ set gpmiTypes [list \
 
 # -----------------------------------------------------------------------------------------------------
 # Semantic PMI types for coverage analysis, order is important
-
 set spmiTypes $tolNames
 
 foreach item [list \
@@ -245,11 +248,11 @@ foreach item [list \
   "projected \u24C5 (6.9.2.2)" "non-uniform tolerance zone (6.9.2.3)" "unequally_disposed \u24CA or UZ (6.9.4)" "tolerance with max value (6.9.5)" \
   "unit-basis tolerance (6.9.6)" "composite tolerance (6.9.9)" "intersection/orientation plane indicator" \
   "dimensions (location+size)" "dimensional location (5.1.1)" "dimensional size (5.1.5)" "angular location (5.1.2)" "angular size (5.1.6)" \
-  "directed dimension \u2331 (5.1.1)"  "oriented dimensional location (5.1.3)" "derived shapes dimensional location (5.1.4)" "location with path (5.1.7)" \
+  "directed dimension \u2331 (5.1.1)" "oriented dimensional location (5.1.3)" "derived shapes dimensional location (5.1.4)" "location with path (5.1.7)" \
   "repetitive dimensions 'nX' (5.1, User Guide 5.1.3)" "dimension association to geometric tolerance (5.1)" \
   "bilateral tolerance (5.2.3)" "non-bilateral tolerance (5.2.3)" "type qualifier (5.2.2)" "value range (5.2.4)" "limits and fits (5.2.5)" \
-  "diameter \u2205 (5.1.5)" "radius R (5.1.5)" "spherical diameter S\u2205 (5.1.5)" "spherical radius SR (5.1.5)" \
-  "curved distance (5.1.1)" "linear distance inner/outer (5.1.1)" "curve length (5.1.5)" "thickness (5.1.5)" "toroidal radius/diameter (5.1.5)" \
+  "diameter \u2205 (5.1.5)" "radius R (5.1.5)" "spherical diameter S\u2205 (5.1.5)" "spherical radius SR (5.1.5)" "curved distance (5.1.1)" \
+  "linear distance (5.1.1)" "linear distance inner/outer (5.1.1)" "curve length (5.1.5)" "thickness (5.1.5)" "toroidal radius/diameter (5.1.5)" \
   "controlled radius CR (5.3)" "dimension basic (5.3)" "reference dimension (5.3)" "square \u25A1 (5.3)" "dimension qualifier (5.4)" "measure qualifier" \
   "datum (6.5)" "datum system (6.9.7)" "datum with axis system (6.9.7)" "datum with modifiers (6.9.7)" "multiple datum features (6.9.8)" \
   "datum feature association to geometric tolerance (6.1)" \
@@ -261,7 +264,6 @@ foreach item [list \
 
 # -----------------------------------------------------------------------------------------------------
 # pmiModifiers are the symbols associated with many strings such as dimModNames and others, includes new ISO 1101 modifiers
-
 set section "6.9.3 or 6.9.7"
 set pmiModifiersArray(all_around,6.4.2)                     "\u232E"
 set pmiModifiersArray(all_over,6.3)                         "\u2b69\u25CE"
@@ -303,7 +305,7 @@ set pmiModifiersArray(free_state,$section)                  "\u24BB"
 set pmiModifiersArray(independency,5.2.1)                   "\u24BE"
 set pmiModifiersArray(least_material_condition)             "\u24C1"
 set pmiModifiersArray(least_material_requirement,$section)  "\u24C1"
-set pmiModifiersArray(least_square_association_criteria,5.3)  "(GG)"
+set pmiModifiersArray(least_square_association_criteria,5.3) "(GG)"
 set pmiModifiersArray(line,6.9.7)                           "SL"
 set pmiModifiersArray(line_element,6.9.3)                   "LE"
 set pmiModifiersArray(local_size_defined_by_a_sphere,5.3)   "(LS)"
@@ -359,10 +361,9 @@ foreach item [lsort [array names pmiModifiers]] {
 set spmiTypes [concat $spmiTypes \
   [list "editable text (7.4)" "document identification (3, see Header worksheet)" "ASME dimensioning standard (4, Fig. 1)" \
     "ASME modeling standard (4, Fig. 2)" "ISO dimensioning standard (4, Fig. 1)" "ISO modeling standard (4, Fig. 2)" "default tolerance decimal places (4.1)"]]
- 
+
 # -----------------------------------------------------------------------------------------------------
 # pmiUnicode are the symbols associated with tolerances and a few others
-
 set idx "cylindrical or circular"
 set pmiUnicode($idx)             "\u2205"
 set pmiUnicode(angularity)       "\u2220"
@@ -404,77 +405,6 @@ set pmiUnicode(angular)          $pmiUnicode(angularity)
 set pmiUnicode(parallel)         $pmiUnicode(parallelism)
 set pmiUnicode(perpendicular)    $pmiUnicode(perpendicularity)
 set pmiUnicode(including)        $pmiUnicode(symmetry)
-
-# -----------------------------------------------------------------------------------------------------
-# colors, the number determines the order that the group of entities is processed
-# do not use numbers less than 10  (dmcritchie.mvps.org/excel/colors.htm)
-
-set entColorIndex(PR_STEP_FEAT) 19	
-set entColorIndex(PR_STEP_KINE) 34	
-set entColorIndex(PR_STEP_COMP) 35
-set entColorIndex(PR_STEP_AP242) 36	
-set entColorIndex(PR_STEP_TOLR) 37			
-set entColorIndex(PR_STEP_PRES) 38			
-set entColorIndex(PR_STEP_REPR) 39			
-set entColorIndex(PR_STEP_SHAP) 40			
-set entColorIndex(PR_STEP_COMM) 42			
-set entColorIndex(PR_STEP_GEOM) 43			
-set entColorIndex(PR_STEP_CPNT) 43			
-set entColorIndex(PR_STEP_QUAN) 44
-
-# PMI coverage colors (B, G, R)
-
-set legendColor(green)   [expr {int (128) << 16 | int (255) << 8 | int(128)}]
-set legendColor(yelgre)  [expr {int (128) << 16 | int (255) << 8 | int(210)}]
-set legendColor(yellow)  [expr {int (128) << 16 | int (255) << 8 | int(255)}]
-set legendColor(orange)  [expr {int (128) << 16 | int (210) << 8 | int(255)}]
-set legendColor(red)     [expr {int (128) << 16 | int (128) << 8 | int(255)}]
-set legendColor(cyan)    [expr {int (255) << 16 | int (255) << 8 | int(128)}]
-set legendColor(magenta) [expr {int (255) << 16 | int (128) << 8 | int(255)}]
-set legendColor(gray)    [expr {int (208) << 16 | int (208) << 8 | int(208)}]
-
-# -----------------------------------------------------------------------------------------------------
-# entity attributes that cause a crash like 'LIST of LIST' or something of something
-# this is caused by a limitation of the IFCsvr toolkit
-
-set badattributes(axisymmetric_curve_2d_element_descriptor) {purpose}
-set badattributes(axisymmetric_surface_2d_element_descriptor) {purpose}
-set badAttributes(axisymmetric_volume_2d_element_descriptor) {purpose}
-set badAttributes(b_spline_surface_with_knots) {control_points_list}
-set badAttributes(b_spline_surface_with_knots_and_rational_b_spline_surface) {control_points_list weights_data}
-set badAttributes(bezier_surface) {control_points_list}
-set badAttributes(bezier_surface_and_rational_b_spline_surface) {control_points_list weights_data}
-set badAttributes(cc_design_approval) {items}
-set badattributes(complex_shelled_solid) {thickened_face_list}
-set badAttributes(complex_triangulated_face) {normals triangle_fans triangle_strips}
-set badAttributes(complex_triangulated_surface_set) {normals triangle_fans triangle_strips}
-set badAttributes(coordinates_list) {position_coords}
-set badAttributes(curve_3d_element_descriptor) {purpose}
-set badattributes(explicit_element_matrix) {node_dof_list}
-set badattributes(extruded_face_solid_with_multiple_draft_angles) {drafted_edges}
-set badattributes(finite_function) {pairs}
-set badattributes(indices_list) {indices}
-set badattributes(plane_curve_2d_element_descriptor) {purpose}
-set badattributes(plane_surface_2d_element_descriptor) {purpose}
-set badattributes(plane_volume_2d_element_descriptor) {purpose}
-set badAttributes(point_cloud_dataset) {point_coordinates}
-set badAttributes(point_cloud_dataset_with_colours) {point_coordinates colour_indices}
-set badAttributes(point_cloud_dataset_with_intensities) {point_coordinates}
-set badAttributes(point_cloud_dataset_with_normals) {point_coordinates normals}
-set badAttributes(quasi_uniform_surface) {control_points_list}
-set badAttributes(quasi_uniform_surface_and_rational_b_spline_surface) {control_points_list weights_data}
-set badAttributes(rational_b_spline_surface) {weights_data}
-set badAttributes(rational_b_spline_surface_and_uniform_surface) {control_points_list weights_data}
-set badAttributes(rectangular_composite_surface) {segments}
-set badAttributes(solid_with_incomplete_rectangular_pattern) {omitted_instances}
-set badattributes(solid_with_slot) {end_exit_faces}
-set badAttributes(surface_3d_element_descriptor) {purpose}
-set badAttributes(tessellated_curve_set) {line_strips}
-set badAttributes(tessellated_face) {normals}
-set badAttributes(tessellated_surface_set) {normals}
-set badAttributes(triangulated_face) {normals triangles}
-set badAttributes(triangulated_point_cloud_dataset) {triangles}
-set badAttributes(triangulated_surface_set) {normals triangles}
 
 # -----------------------------------------------------------------------------------------------------
 # pictures that are embedded in a spreadsheet based on STEP file name
@@ -601,7 +531,6 @@ foreach i {4 10} {
 
 # -----------------------------------------------------------------------------------------------------
 # STEP geometry entities
-
 set entCategory(PR_STEP_GEOM) [lsort [list \
 advanced_face axis1_placement axis2_placement_2d axis2_placement_3d b_spline_basis b_spline_curve b_spline_curve_knot_locator b_spline_curve_segment \
 b_spline_curve_with_knots b_spline_function b_spline_surface b_spline_surface_knot_locator b_spline_surface_patch b_spline_surface_strip \
@@ -639,12 +568,10 @@ triangulated_face triangulated_point_cloud_dataset triangulated_surface_set trim
 vertex_on_edge vertex_point vertex_shell volume_with_faces volume_with_parametric_boundary volume_with_shell wedge_volume wire_shell]]
 
 # STEP cartesian point, etc.
-
 set entCategory(PR_STEP_CPNT) [list cartesian_point coordinates_list]
 
 # -----------------------------------------------------------------------------------------------------
 # STEP shape aspect
-
 set entCategory(PR_STEP_SHAP) [lsort [list \
 all_around_shape_aspect apex assembly_bond_definition assembly_joint assembly_shape_constraint assembly_shape_joint between_shape_aspect centre_of_symmetry \
 component_feature component_feature_joint component_mating_constraint_condition component_path_shape_aspect component_terminal composite_group_shape_aspect \
@@ -661,7 +588,6 @@ symmetric_shape_aspect tangent terminal_feature terminal_location_group transpor
 
 # -----------------------------------------------------------------------------------------------------
 # STEP presentation, annotation
-
 set entCategory(PR_STEP_PRES) [lsort [list \
 angular_dimension annotation_curve_occurrence annotation_fill_area annotation_fill_area_occurrence annotation_occurrence annotation_occurrence_associativity \
 annotation_occurrence_relationship annotation_placeholder_occurrence annotation_plane annotation_point_occurrence annotation_subfigure_occurrence annotation_symbol \
@@ -700,7 +626,6 @@ vector_style view_volume]]
 
 # -----------------------------------------------------------------------------------------------------
 # STEP tolerance
-
 set entCategory(PR_STEP_TOLR) [lsort [list \
 angular_location angular_size angularity_tolerance circular_runout_tolerance coaxiality_tolerance common_datum concentricity_tolerance cylindricity_tolerance \
 datum datum_feature datum_reference datum_reference_compartment datum_reference_element datum_reference_modifier_with_value datum_system datum_target \
@@ -717,7 +642,6 @@ total_runout_tolerance unequally_disposed_geometric_tolerance]]
 
 # -----------------------------------------------------------------------------------------------------
 # STEP composites
-
 set entCategory(PR_STEP_COMP) [lsort [list \
 angle_direction_reference cartesian_11 composite_assembly_definition composite_assembly_sequence_definition composite_assembly_table composite_material_designation \
 composite_sheet_representation curve_11 cylindrical_11 draped_defined_transformation draped_orientation_angle flat_pattern_ply_representation_relationship \
@@ -728,7 +652,6 @@ zone_structural_makeup]]
 
 # -----------------------------------------------------------------------------------------------------
 # STEP kinematics
-
 set entCategory(PR_STEP_KINE) [lsort [list \
 actuated_kinematic_pair circular_path constrained_kinematic_motion_representation context_dependent_kinematic_link_representation curve_based_path \
 curve_based_path_with_orientation curve_based_path_with_orientation_and_parameters cylindrical_pair cylindrical_pair_range cylindrical_pair_value \
@@ -757,7 +680,6 @@ universal_pair_range universal_pair_value universal_pair_with_range]]
 
 # -----------------------------------------------------------------------------------------------------
 # STEP measure and unit (quantity)
-
 set entCategory(PR_STEP_QUAN) [lsort [list \
 absorbed_dose_measure_with_unit absorbed_dose_unit acceleration_measure_with_unit acceleration_unit amount_of_substance_measure_with_unit amount_of_substance_unit \
 area_measure_with_unit area_unit binary_representation_item boolean_representation_item bytes_representation_item capacitance_measure_with_unit capacitance_unit \
@@ -784,7 +706,6 @@ volume_measure_with_unit volume_unit]]
 
 # -----------------------------------------------------------------------------------------------------
 # STEP representation
-
 set entCategory(PR_STEP_REPR) [lsort [list \
 advanced_brep_shape_representation auxiliary_geometric_representation_item characterized_item_within_representation characterized_representation \
 compound_representation_item compound_shape_representation constructive_geometry_representation constructive_geometry_representation_relationship \
@@ -807,7 +728,6 @@ value_range variational_representation_item visual_appearance_representation]]
 
 # -----------------------------------------------------------------------------------------------------
 # STEP feature
-
 set entCategory(PR_STEP_FEAT) [lsort [list \
 applied_area barring_hole bead bead_end boss boss_top chamfer chamfer_offset circular_closed_profile circular_pattern closed_path_profile composite_hole \
 compound_feature counterbore_hole_definition counterdrill_hole_definition countersink_hole_definition edge_round explicit_composite_hole explicit_round_hole \
@@ -821,7 +741,6 @@ thread_runout transition_feature turned_knurl vee_profile]]
 
 # -----------------------------------------------------------------------------------------------------
 # STEP AP242
-
 set entCategory(PR_STEP_AP242) [lsort [list \
 a3m_equivalence_accuracy_association a3m_equivalence_assessment_by_logical_test a3m_equivalence_assessment_by_numerical_test a3m_equivalence_criteria_representation \
 a3m_equivalence_criterion a3m_equivalence_criterion_for_assembly a3m_equivalence_criterion_for_shape a3m_equivalence_criterion_of_assembly_data_structure \
@@ -966,7 +885,6 @@ wrongly_placed_void zero_surface_normal zone_breakdown_context zone_element_usag
 
 # -----------------------------------------------------------------------------------------------------
 # STEP common
-
 set entCategory(PR_STEP_COMM) [lsort [list \
 abs_function abstract_variable acos_function action action_actual action_assignment action_directive action_happening action_method action_method_assignment \
 action_method_relationship action_method_role action_property action_property_representation action_relationship action_request_assignment action_request_solution \

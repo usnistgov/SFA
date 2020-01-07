@@ -210,7 +210,7 @@ proc spmiCoverageStart {{multi 1}} {
 # write PMI Representation Coverage analysis worksheet
 proc spmiCoverageWrite {{fn ""} {sum ""} {multi 1}} {
   global allPMI allPMIelements cells cells1 col1 developer entCount fileList nfile nistCoverageStyle nistName opt
-  global pmiModifiers recPracNames spmiCoverageWS spmiTypesPerFile totalPMI totalPMIrows usedPMIrows worksheet worksheet1
+  global pmiModifiers spmiCoverageWS spmiTypesPerFile totalPMI totalPMIrows usedPMIrows worksheet worksheet1
   global objDesign
 
 # return if only 'document identification' or '... standard'
@@ -243,9 +243,9 @@ proc spmiCoverageWrite {{fn ""} {sum ""} {multi 1}} {
             if {$val == "semantic text"} {
               lappend spmiTypesPerFile "editable text"
               if {$opt(VALPROP)} {
-                errorMsg " See 'property_definition' worksheet for 'semantic text'.\n $recPracNames(pmi242), Sec. 7.4.2"
+                errorMsg " See 'property_definition' worksheet for 'semantic text'" red
               } else {
-                errorMsg " See 'descriptive_representation_item' worksheet for 'editable text'.\n $recPracNames(pmi242), Sec. 7.4.2"
+                errorMsg " See 'descriptive_representation_item' worksheet for 'editable text'" red
               }
             }
           }
@@ -434,7 +434,7 @@ proc spmiCoverageFormat {sum {multi 1}} {
       [$worksheet1($spmiCoverageWS) Columns] AutoFit
       
 # delete unused rows, check for a value in the Total PMI column (multi file)
-      if {$opt(DELCOVROWS)} {
+      if {!$opt(SHOWALLPMI)} {
         set lineBreak 0
         for {set i $pmiElementsMaxRows} {$i > 3} {incr i -1} {
           if {[lsearch [array names totalPMI] $i] == -1} {
@@ -460,8 +460,7 @@ proc spmiCoverageFormat {sum {multi 1}} {
       }
 
       set r2 [expr {[[[$worksheet1($spmiCoverageWS) UsedRange] Rows] Count]+1}]
-      if {$nistName != ""} {set r2 [expr {[[[$worksheet1($spmiCoverageWS) UsedRange] Rows] Count]-9}]}
-      if {$opt(DELCOVROWS)} {incr r2}
+      if {$nistName != ""} {set r2 [expr {[[[$worksheet1($spmiCoverageWS) UsedRange] Rows] Count]-8}]}
       $cells1($spmiCoverageWS) Item $r2 1 "Section numbers above refer to the CAx-IF Recommended Practice for $recPracNames(pmi242)"
       set anchor [$worksheet1($spmiCoverageWS) Range [cellRange $r2 1]]
       [$worksheet1($spmiCoverageWS) Hyperlinks] Add $anchor [join "https://www.cax-if.org/cax/cax_recommPractice.php"] [join ""] [join "Link to CAx-IF Recommended Practices"]
@@ -480,7 +479,7 @@ proc spmiCoverageFormat {sum {multi 1}} {
       }
       
 # delete unused rows and retain horizontal lines breaks (single file)
-      if {$opt(DELCOVROWS)} {
+      if {!$opt(SHOWALLPMI)} {
         set lineBreak 0
         for {set i $pmiElementsMaxRows} {$i > 3} {incr i -1} {
           if {[lsearch $usedPMIrows $i] == -1} {
@@ -502,8 +501,7 @@ proc spmiCoverageFormat {sum {multi 1}} {
 # final formatting (single file)
       [$worksheet($spmiCoverageWS) Columns] AutoFit
       set r2 [expr {[[[$worksheet($spmiCoverageWS) UsedRange] Rows] Count]+1}]
-      if {$nistName != ""} {set r2 [expr {[[[$worksheet($spmiCoverageWS) UsedRange] Rows] Count]-9}]}
-      if {$opt(DELCOVROWS)} {incr r2}
+      if {$nistName != ""} {set r2 [expr {[[[$worksheet($spmiCoverageWS) UsedRange] Rows] Count]-8}]}
       $cells($spmiCoverageWS) Item $r2 1 "Section numbers above refer to the CAx-IF Recommended Practice for $recPracNames(pmi242)"
       set anchor [$worksheet($spmiCoverageWS) Range [cellRange $r2 1]]
       [$worksheet($spmiCoverageWS) Hyperlinks] Add $anchor [join "https://www.cax-if.org/cax/cax_recommPractice.php"] [join ""] [join "Link to CAx-IF Recommended Practices"]
