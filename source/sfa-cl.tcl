@@ -148,7 +148,7 @@ foreach id { \
 # set opt to 0
 foreach id { \
   DEBUG1 DEBUGINV DEBUGX3D HIDELINKS indentGeometry indentStyledItem INVERSE PMIGRFCOV PMISEMDIM PR_STEP_CPNT PR_STEP_GEOM PR_USER \
-  SHOWALLPMI SYNCHK VIZBRP VIZBRPEDG VIZBRPNRM VIZFEA VIZFEADSntail VIZFEALVS VIZPMI VIZTPG VIZTPGMSH writeDirType XL_FPREC XL_SORT \
+  SHOWALLPMI SYNCHK VIZBRP VIZBRPCLR VIZBRPEDG VIZBRPNRM VIZFEA VIZFEADSntail VIZFEALVS VIZPMI VIZTPG VIZTPGMSH writeDirType XL_FPREC XL_SORT \
 } {set opt($id) 0}
 
 set opt(gpmiColor) 3
@@ -166,7 +166,6 @@ set lastXLS1 ""
 set openFileList {}
 set sfaVersion 0
 set upgrade 0
-set userXLSFile ""
 set x3dFileName ""
 set x3dStartFile 1
 

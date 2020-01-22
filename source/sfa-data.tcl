@@ -2,9 +2,12 @@ proc initData {} {
 
 global ap203all ap214all ap242all ap242only
 global allVendor andEntAP209 aoEntTypes badAttributes brepEnts cadApps defaultColor dimModNames dimSizeNames DTR
-global entCategory entColorIndex feaElemFace feaIndex gpmiTypes legendColor letters nistModelPictures nistModelURLs nistNumSavedViews
+global entCategory entColorIndex feaElemFace feaIndex gpmiTypes ifcsvrKey ifcsvrVer legendColor letters nistModelPictures nistModelURLs nistNumSavedViews
 global pmiElementsMaxRows pmiHorizontalLineBreaks pmiModifiers pmiModifiersRP pmiUnicode recPracNames roseLogical
 global schemaLinks spmiEntTypes spmiTypes stepAPs tolNames tzfNames
+
+set ifcsvrKey "HKEY_LOCAL_MACHINE\\SOFTWARE\\Classes\\IFCsvr.R300\\CLSID"
+set ifcsvrVer "HKEY_LOCAL_MACHINE\\SOFTWARE\\WOW6432Node\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\{3C8CE0A4-803B-48A6-96A0-A3DDD5AE5596}"
 
 set DTR [expr {3.1415927/180.}]
 set letters ABCDEFGHIJKLMNOPQRSTUVWXYZ

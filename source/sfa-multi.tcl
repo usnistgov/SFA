@@ -1,6 +1,6 @@
 # process multiple files in a directory
 proc openMultiFile {{ask 1}} {
-  global allEntity andEntAP209 buttons cells1 col1 coverageSTEP developer entCategory excel1 extXLS fileDir fileDir1 fileEntity fileList
+  global allEntity andEntAP209 buttons cells1 col1 coverageSTEP developer entCategory excel1 fileDir fileDir1 fileEntity fileList
   global gpmiCoverageWS gpmiRows gpmiTotals gpmiTypes gpmiTypesInvalid lastXLS1 lenfilelist localName localNameList multiFileDir mydocs nfile
   global nistCoverageStyle nistVersion nprogBarFiles opt pmiElementsMaxRows row1 spmiCoverageWS startrow stepAP totalEntity totalPMI totalPMIrows
   global useXL worksheet1 worksheets1 writeDir xlFileNames
@@ -12,8 +12,7 @@ proc openMultiFile {{ask 1}} {
 # select directory of files (default)
   if {$ask == 1} {
     if {![file exists $fileDir1] && [info exists mydocs]} {set fileDir1 $mydocs}
-    set multiFileDir [tk_chooseDirectory -title "Select Directory of STEP Files" \
-                -mustexist true -initialdir $fileDir1]
+    set multiFileDir [tk_chooseDirectory -title "Select Directory of STEP Files" -mustexist true -initialdir $fileDir1]
     if {[info exists localNameList]} {unset localNameList}
 
 # list of files
@@ -80,15 +79,7 @@ proc openMultiFile {{ask 1}} {
       if {$choice == "yes"} {
         checkForExcel
         set lasttime1 [clock clicks -milliseconds]
-
-# save some variables
-        set writeDirTypeSav $opt(writeDirType)
         checkValues
-
-        if {$opt(writeDirType) == 1} {
-          errorMsg "Multiple spreadsheets cannot be written to a user-defined file name and will\n be written to the same directory as the STEP files."
-          set opt(writeDirType) 0
-        }
 
 # start Excel for summary of all files
         set fileDir $multiFileDir
@@ -434,8 +425,6 @@ proc openMultiFile {{ask 1}} {
               }
             }
 
-            #[$excel1 ActiveWindow] ScrollRow [expr 1]
-
 #-------------------------------------------------------------------------------
 # link to STEP file, link to individual spreadsheet
             set nf 1
@@ -571,8 +560,6 @@ proc openMultiFile {{ask 1}} {
         }
         update idletasks
 
-# restore saved variables
-        set opt(writeDirType) $writeDirTypeSav
         saveState
         $buttons(genExcel) configure -state normal
       }

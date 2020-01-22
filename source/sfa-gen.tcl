@@ -1,12 +1,12 @@
 # generate an Excel spreadsheet from a STEP file
 proc genExcel {{numFile 0}} {
   global allEntity aoEntTypes ap203all ap214all ap242all badAttributes brepEnts buttons cells cells1 col col1 count csvdirnam csvfile currLogFile developer
-  global dim dimRepeatDiv editorCmd entCategories entCategory entColorIndex entCount entityCount entsIgnored entsWithErrors errmsg excel
-  global excelVersion extXLS fcsv feaFirstEntity feaLastEntity File fileEntity filesProcessed gpmiTypesInvalid gpmiTypesPerFile idxColor ifcsvrDir inverses
+  global dim dimRepeatDiv editorCmd entCategories entCategory entColorIndex entCount entityCount entsIgnored entsWithErrors errmsg
+  global excel excelVersion fcsv feaFirstEntity feaLastEntity File fileEntity filesProcessed gpmiTypesInvalid gpmiTypesPerFile guid idxColor ifcsvrDir inverses
   global lastXLS lenfilelist localName localNameList logFile matrixList multiFile multiFileDir mytemp nistCoverageLegend nistName nistPMIexpected nistPMImaster
   global nprogBarEnts nshape ofCSV ofExcel opt pf32 p21e3 p21e3Section row rowmax savedViewButtons savedViewName savedViewNames scriptName
   global sheetLast skipEntities skipPerm spmiEntity spmiSumName spmiSumRow spmiTypesPerFile startrow statsOnly stepAP tessColor thisEntType tlast
-  global tolNames tolStandard tolStandards totalEntity userEntityFile userEntityList userXLSFile useXL viz workbook workbooks
+  global tolNames tolStandard tolStandards totalEntity userEntityFile userEntityList useXL viz workbook workbooks
   global worksheet worksheet1 worksheets writeDir wsCount wsNames x3dAxes x3dColor x3dColorFile x3dColors x3dColorsUsed x3dFileName x3dIndex
   global x3dMax x3dMin x3dMsg x3dStartFile xlFileName xlFileNames xlInstalled
   global objDesign
@@ -75,6 +75,7 @@ proc genExcel {{numFile 0}} {
 # open log file
     if {$opt(LOGFILE)} {
       set lfile [file rootname $fname]
+      if {$opt(writeDirType) == 2} {set lfile [file join $writeDir [file rootname [file tail $fname]]]}
       append lfile "-sfa.log"
       set logFile [open $lfile w]
       puts $logFile "NIST STEP File Analyzer and Viewer (v[getVersion])  [clock format [clock seconds]]"
@@ -345,8 +346,6 @@ proc genExcel {{numFile 0}} {
         set extXLS "xls"
         set xlFormat [expr 56]
         set rowmax [expr {2**16}]
-        errorMsg "Some spreadsheet formatting is not compatible with older versions of Excel."
-        outputMsg " "
       }
 
 # generate with Excel but save as CSV
@@ -424,29 +423,19 @@ proc genExcel {{numFile 0}} {
 # user-defined file name
   if {$useXL} {
     set xlsmsg ""
-    if {$opt(writeDirType) == 1} {
-      if {$userXLSFile != ""} {
-        set xlFileName [file nativename $userXLSFile]
-      } else {
-        append xlsmsg "User-defined Spreadsheet file name is not valid.  Spreadsheet directory and\n file name will be based on the STEP file. (Options tab)"
-        set opt(writeDirType) 0
-      }
-    }
 
 # same directory as file
-    if {$opt(writeDirType) == 0} {
-      set xlFileName "[file nativename [file join [file dirname $fname] [file rootname [file tail $fname]]]]-sfa.$extXLS"
-      set xlFileNameOld "[file nativename [file join [file dirname $fname] [file rootname [file tail $fname]]]]_stp.$extXLS"
+    set xlFileName "[file nativename [file join [file dirname $fname] [file rootname [file tail $fname]]]]-sfa.$extXLS"
+    set xlFileNameOld "[file nativename [file join [file dirname $fname] [file rootname [file tail $fname]]]]_stp.$extXLS"
 
 # user-defined directory
-    } elseif {$opt(writeDirType) == 2} {
+    if {$opt(writeDirType) == 2} {
       set xlFileName "[file nativename [file join $writeDir [file rootname [file tail $fname]]]]-sfa.$extXLS"
       set xlFileNameOld "[file nativename [file join $writeDir [file rootname [file tail $fname]]]]_stp.$extXLS"
     }
 
 # file name too long
     if {[string length $xlFileName] > 218} {
-      if {[string length $xlsmsg] > 0} {append xlsmsg "\n\n"}
       append xlsmsg "Pathname of Spreadsheet file is too long for Excel ([string length $xlFileName])"
       set xlFileName "[file nativename [file join $writeDir [file rootname [file tail $fname]]]]-sfa.$extXLS"
       set xlFileNameOld "[file nativename [file join $writeDir [file rootname [file tail $fname]]]]_stp.$extXLS"
@@ -1078,9 +1067,26 @@ proc genExcel {{numFile 0}} {
     }
 
 # add ANCHOR and other sections from Part 21 Edition 3
-    if {[info exists p21e3Section]} {
-      if {[llength $p21e3Section] > 0} {addP21e3Section}
+    if {[info exists p21e3Section]} {if {[llength $p21e3Section] > 0} {addP21e3Section 1}}
+    
+# add persistent IDs (UUID) from id_attribute
+    if {[info exists entCount(id_attribute)]} {
+      set okid 0
+      ::tcom::foreach e0 [$objDesign FindObjects [string trim id_attribute]] {
+        set pid [[[$e0 Attributes] Item [expr 1]] Value]
+        if {[string length $pid] == 36} {
+          if {[string first "-" $pid] == 8} {
+            if {[string last "-" $pid] == 23} {
+              set a1 [[[$e0 Attributes] Item [expr 2]] Value]
+              set guid([$a1 Type],[$a1 P21ID]) $pid
+              set okid 1
+            }
+          }
+        }
+      }
+      if {$okid} {addP21e3Section 2}
     }
+
 # -------------------------------------------------------------------------------------------------
 # select the first tab
     [$worksheets Item [expr 1]] Select
@@ -1130,9 +1136,14 @@ proc genExcel {{numFile 0}} {
 # always save as spreadsheet
       outputMsg "Saving Spreadsheet to:"
       outputMsg " [truncFileName $xlfn 1]" blue
+      if {$excelVersion < 12} {outputMsg " Some Spreadsheet formatting is not available with older versions of Excel." red}
       if {[catch {
         catch {$excel DisplayAlerts False}
-        $workbook -namedarg SaveAs Filename $xlfn FileFormat $xlFormat
+        if {$xlFormat == 51} {
+          $workbook -namedarg SaveAs Filename $xlfn FileFormat $xlFormat
+        } else {
+          $workbook -namedarg SaveAs Filename $xlfn
+        }
         catch {$excel DisplayAlerts True}
         set lastXLS $xlfn
         lappend xlFileNames $xlfn
@@ -1144,6 +1155,7 @@ proc genExcel {{numFile 0}} {
       if {$saveCSV} {
         if {[catch {
           set csvdirnam "[file join [file dirname $localName] [file rootname [file tail $localName]]]-sfa-csv"
+          if {$opt(writeDirType) == 2} {set csvdirnam [file join $writeDir [file rootname [file tail $localName]]-sfa-csv]}
           file mkdir $csvdirnam
           outputMsg "Saving Spreadsheet as multiple CSV files to directory:"
           outputMsg " [truncFileName [file nativename $csvdirnam]]" blue
@@ -1322,7 +1334,7 @@ proc genExcel {{numFile 0}} {
 proc addHeaderWorksheet {numFile fname} {
   global objDesign
   global ap242edition cadApps cadSystem cells cells1 col1 csvdirnam excel excel1 fileSchema legendColor
-  global localName opt p21e3 row spmiTypesPerFile timeStamp useXL worksheet worksheet1 worksheets
+  global localName opt p21e3 row spmiTypesPerFile timeStamp useXL writeDir worksheet worksheet1 worksheets
 
   if {[catch {
     set cadSystem ""
@@ -1342,6 +1354,7 @@ proc addHeaderWorksheet {numFile fname} {
       outputMsg "Generating Header CSV file" blue
       foreach var {csvdirnam csvfname fcsv} {catch {unset $var}}
       set csvdirnam "[file join [file dirname $localName] [file rootname [file tail $localName]]]-sfa-csv"
+      if {$opt(writeDirType) == 2} {set csvdirnam "[file join $writeDir [file rootname [file tail $localName]]]-sfa-csv"}
       file mkdir $csvdirnam
       set csvfname [file join $csvdirnam $hdr.csv]
       if {[file exists $csvfname]} {file delete -force -- $csvfname}
@@ -2143,93 +2156,117 @@ proc moveWorksheet {items {where "Before"}} {
 }
 
 # -------------------------------------------------------------------------------------------------
-proc addP21e3Section {} {
+# add worksheets for part 21 edition 3 sections (idType=1) AND add persistent IDs (GUID) with id_attribute (idType=2)
+proc addP21e3Section {idType} {
   global objDesign
-  global cells legendColor p21e3Section spmiSumRowID worksheet worksheets
+  global cells idRow legendColor guid p21e3Section spmiSumRowID worksheet worksheets
 
   catch {unset anchorSum}
 
 # look for three section types possible in Part 21 Edition 3
-  foreach line $p21e3Section {
-    if {$line == "ANCHOR" || $line == "REFERENCE" || $line == "SIGNATURE"} {
-      set sect $line
-      set worksheet($sect) [$worksheets Add [::tcom::na] [$worksheets Item [$worksheets Count]]]
-      set n [$worksheets Count]
-      [$worksheets Item [expr $n]] -namedarg Move Before [$worksheets Item [expr 3]]
-      $worksheet($sect) Activate
-      $worksheet($sect) Name $sect
-      set cells($sect) [$worksheet($sect) Cells]
-      set r 0
-      outputMsg " Adding $line worksheet" green
-    }
-
+  if {$idType == 1} {
+    set heading "ANCHOR ID"
+    foreach line $p21e3Section {
+      if {$line == "ANCHOR" || $line == "REFERENCE" || $line == "SIGNATURE"} {
+        set sect $line
+        set worksheet($sect) [$worksheets Add [::tcom::na] [$worksheets Item [$worksheets Count]]]
+        set n [$worksheets Count]
+        [$worksheets Item [expr $n]] -namedarg Move Before [$worksheets Item [expr 3]]
+        $worksheet($sect) Activate
+        $worksheet($sect) Name $sect
+        set cells($sect) [$worksheet($sect) Cells]
+        set r 0
+        outputMsg " Adding $line worksheet" green
+      }
+  
 # add to worksheet
-    incr r
-    $cells($sect) Item $r 1 $line
-
-# process anchor
-    if {$sect == "ANCHOR"} {
-      if {$r == 1} {$cells($sect) Item $r 2 "Entity"}
-      set c2 [string first ";" $line]
-      if {$c2 != -1} {set line [string range $line 0 $c2-1]}
-
-      set c1 [string first "\#" $line]
-      if {$c1 != -1} {
-        set badEnt 0
-        set anchorID [string range $line $c1+1 end]
-        if {[string is integer $anchorID]} {
-          set anchorEnt [[$objDesign FindObjectByP21Id [expr {int($anchorID)}]] Type]
-
+      incr r
+      $cells($sect) Item $r 1 $line
+  
+# process anchor section persistent IDs
+      if {$sect == "ANCHOR"} {
+        if {$r == 1} {$cells($sect) Item $r 2 "Entity"}
+        set c2 [string first ";" $line]
+        if {$c2 != -1} {set line [string range $line 0 $c2-1]}
+  
+        set c1 [string first "\#" $line]
+        if {$c1 != -1} {
+          set badEnt 0
+          set anchorID [string range $line $c1+1 end]
+          if {[string is integer $anchorID]} {
+            set anchorEnt [[$objDesign FindObjectByP21Id [expr {int($anchorID)}]] Type]
+  
 # add anchor ID to entity worksheet and representation summary
-          if {$anchorEnt != ""} {
-            $cells($sect) Item $r 2 $anchorEnt
-            if {[info exists worksheet($anchorEnt)]} {
-              set c3 [string first ">" $line]
-              if {$c3 == -1} {set c3 [string first "=" $line]}
-              set uuid [string range $line 1 $c3-1]
-              if {![info exists urow($anchorEnt)]} {set urow($anchorEnt) [[[$worksheet($anchorEnt) UsedRange] Rows] Count]}
-              if {![info exists ucol($anchorEnt)]} {set ucol($anchorEnt) [getNextUnusedColumn $anchorEnt]}
-              for {set ur 4} {$ur <= $urow($anchorEnt)} {incr ur} {
-                set id [[$cells($anchorEnt) Item $ur 1] Value]
-                if {$id == $anchorID} {
+            if {$anchorEnt != ""} {
+              $cells($sect) Item $r 2 $anchorEnt
+              if {[info exists worksheet($anchorEnt)]} {
+                set c3 [string first ">" $line]
+                if {$c3 == -1} {set c3 [string first "=" $line]}
+                set uuid [string range $line 1 $c3-1]
+                if {![info exists urow($anchorEnt)]} {set urow($anchorEnt) [[[$worksheet($anchorEnt) UsedRange] Rows] Count]}
+                if {![info exists ucol($anchorEnt)]} {set ucol($anchorEnt) [getNextUnusedColumn $anchorEnt]}
+                if {[info exists idRow($anchorEnt,$anchorID)]} {
+                  set ur $idRow($anchorEnt,$anchorID)
                   $cells($anchorEnt) Item $ur $ucol($anchorEnt) $uuid
-                  if {[info exists spmiSumRowID($anchorID)]} {set anchorSum($spmiSumRowID($anchorID)) $uuid}
-                  break
                 }
+                if {[info exists spmiSumRowID($anchorID)]} {set anchorSum($spmiSumRowID($anchorID)) $uuid}
+              } else {
+                lappend noanchor $anchorEnt
               }
             } else {
-              lappend noanchor $anchorEnt
+              set badEnt 1
             }
           } else {
             set badEnt 1
           }
-        } else {
-          set badEnt 1
-        }
-
+  
 # bad ID in anchor section
-        if {$badEnt} {
-          [[$worksheet($sect) Range [cellRange $r 1] [cellRange $r 1]] Interior] Color $legendColor(red)
-          errorMsg "Syntax Error: Bad format for entity ID in ANCHOR section."
+          if {$badEnt} {
+            [[$worksheet($sect) Range [cellRange $r 1] [cellRange $r 1]] Interior] Color $legendColor(red)
+            errorMsg "Syntax Error: Bad format for entity ID in ANCHOR section."
+          }
         }
       }
+  
+      if {$line == "ENDSEC"} {[$worksheet($sect) Columns] AutoFit}
     }
-
-    if {$line == "ENDSEC"} {[$worksheet($sect) Columns] AutoFit}
+    
+# add persistent IDs (GUID) with id_attribute  
+  } elseif {$idType == 2} {
+    set heading "GUID"
+    foreach idx [array names guid] {
+      set uuid $guid($idx)
+      set idx [split $idx ","]
+      set anchorEnt [lindex $idx 0]
+      set anchorID  [lindex $idx 1]
+      if {[info exists worksheet($anchorEnt)]} {
+        if {![info exists urow($anchorEnt)]} {set urow($anchorEnt) [[[$worksheet($anchorEnt) UsedRange] Rows] Count]}
+        if {![info exists ucol($anchorEnt)]} {set ucol($anchorEnt) [getNextUnusedColumn $anchorEnt]}
+        if {[info exists idRow($anchorEnt,$anchorID)]} {
+          set ur $idRow($anchorEnt,$anchorID)
+          $cells($anchorEnt) Item $ur $ucol($anchorEnt) $uuid
+        }
+        if {[info exists spmiSumRowID($anchorID)]} {set anchorSum($spmiSumRowID($anchorID)) $uuid}
+      } else {
+        lappend noanchor $anchorEnt
+      }
+    }
   }
 
 # add anchor ids to representation summary worksheet
   if {[info exists anchorSum]} {
-    outputMsg " Adding ANCHOR IDs on: PMI Representation Summary worksheet" green
+    outputMsg " Adding $heading\s on: PMI Representation Summary worksheet" green
     set spmiSumName "PMI Representation Summary"
     set c 4
     if {[[$cells($spmiSumName) Item 3 $c] Value] != ""} {
       set c 5
       set range [$worksheet($spmiSumName) Range E2]
       [$range EntireColumn] Insert [expr -4161]
+      set range [$worksheet($spmiSumName) Range E:E]
+      [$range Interior] Pattern [expr -4142]
     }
 
-    $cells($spmiSumName) Item 3 $c "ANCHOR ID"
+    $cells($spmiSumName) Item 3 $c $heading
     set range [$worksheet($spmiSumName) Range [cellRange 3 $c]]
     catch {foreach i {8 9} {[[$range Borders] Item $i] Weight [expr 2]}}
     [$range Font] Bold [expr 1]
@@ -2248,15 +2285,15 @@ proc addP21e3Section {} {
   if {[llength [array names urow]] > 0} {
     set ids {}
     foreach item [lsort [array names urow]] {lappend ids [formatComplexEnt $item]}
-    outputMsg " Adding ANCHOR IDs on: $ids" green
+    outputMsg " Adding $heading\s on: $ids" green
     if {[info exists noanchor]} {
       set ids {}
       foreach item [lrmdups $noanchor] {lappend ids [formatComplexEnt $item]}
-      outputMsg "  ANCHOR IDs are also associated with: $ids" red
+      outputMsg "  $heading\s are also associated with: $ids" red
     }
   }
   foreach ent [array names urow] {
-    $cells($ent) Item 3 $ucol($ent) "ANCHOR ID"
+    $cells($ent) Item 3 $ucol($ent) $heading
     set range [$worksheet($ent) Range [cellRange 3 $ucol($ent)] [cellRange $urow($ent) $ucol($ent)]]
     [$range Columns] AutoFit
     [$range Interior] ColorIndex [expr 40]

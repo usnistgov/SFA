@@ -1091,7 +1091,7 @@ proc spmiGeotolReport {objEntity} {
                                             } elseif {$datumTargetType == "point"} {
                                               set msg "Syntax Error: No length_measure attribute on shape_representation_with_parameters is required for a 'point' datum target\n[string repeat " " 14]\($recPracNames(pmi242), Sec. 6.6.1)"
 
-# add target dimensions to PMI for circle and rectangle
+# add target dimensions to PMI
                                             } else {
                                               set dtv $datumTargetValue
                                               if {[string range $dtv end-1 end] == ".0"} {set dtv [string range $dtv 0 end-2]}
@@ -1101,12 +1101,18 @@ proc spmiGeotolReport {objEntity} {
                                                 set objValue "$objValue[format "%c" 10](L = [trimNum $dtv])"
                                               } elseif {$datumTargetType == "circular curve"} {
                                                 set objValue "$objValue[format "%c" 10](D = [trimNum $dtv])"
+
+# rectangular, smaller value first
                                               } elseif {$datumTargetType == "rectangle"} {
                                                 incr ndtv
                                                 if {$ndtv == 1} {
-                                                  set dtv1 "$dtv\x"
+                                                  set dtv1 $dtv
                                                 } elseif {$ndtv == 2} {
-                                                  append dtv1 $dtv
+                                                  if {$dtv > $dtv1} {
+                                                    append dtv1 "x$dtv"
+                                                  } else {
+                                                    set dtv1 "$dtv\x$dtv1"
+                                                  }
                                                   set objValue $dtv1[format "%c" 10]$objValue
                                                 }
                                               }

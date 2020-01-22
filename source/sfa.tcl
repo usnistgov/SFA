@@ -98,7 +98,7 @@ foreach id { \
 # set opt to 0
 foreach id { \
   DEBUG1 DEBUGINV DEBUGX3D HIDELINKS indentGeomtry indentStyledItem INVERSE PMIGRFCOV PMISEMDIM PR_STEP_CPNT PR_STEP_GEOM \
-  PR_USER SHOWALLPMI SYNCHK VIZBRPEDG VIZBRPNRM VIZFEADSntail VIZFEALVS VIZTPGMSH writeDirType XL_FPREC XL_SORT \
+  PR_USER SHOWALLPMI SYNCHK VIZBRPCLR VIZBRPEDG VIZBRPNRM VIZFEADSntail VIZFEALVS VIZTPGMSH writeDirType XL_FPREC XL_SORT \
 } {set opt($id) 0}
 
 set opt(gpmiColor) 3
@@ -119,7 +119,6 @@ set lastXLS1 ""
 set openFileList {}
 set sfaVersion 0
 set upgrade 0
-set userXLSFile ""
 set x3dFileName ""
 set x3dStartFile 1
 
@@ -152,8 +151,9 @@ if {[file exists $optionsFile]} {
     if {[info exists gpmiColor]}        {set opt(gpmiColor) $gpmiColor}
     if {[info exists indentGeometry]}   {set opt(indentGeometry) $indentGeometry}
     if {[info exists indentStyledItem]} {set opt(indentStyledItem) $indentStyledItem}
-    if {[info exists writeDirType]}     {set opt(writeDirType) $writeDirType}
     if {[info exists row_limit]}        {set opt(XL_ROWLIM) $row_limit}
+    if {[info exists writeDirType]}     {set opt(writeDirType) $writeDirType}
+    if {$opt(writeDirType) == 1}        {set opt(writeDirType) 0}
   
 # unset old unused opt variables
     foreach item {COUNT CRASH DELCOVROWS DISPGUIDE1 EX_A2P3D EX_ANAL EX_ARBP EX_LP feaNodeType FIRSTTIME FN_APPEND indentGeomtry GENX3DOM PMIP PMIPROP PMIVRML \
@@ -269,8 +269,8 @@ if {$developer} {if {$filesProcessed > 0} {outputMsg $filesProcessed} else {erro
 set save 0
 if {$sfaVersion == 0} {
   whatsNew
+  showDisclaimer
   set sfaVersion [getVersion]
-  if {$nistVersion} {showDisclaimer}
   showFileURL UserGuide
   setShortcuts
   set save 1
@@ -375,13 +375,9 @@ if {[llength $pid2] > 1} {
 set sfaPID [twapi::get_process_ids -name "STEP-File-Analyzer.exe"]
 
 # warn if spreadsheets not written to default directory
-if {$opt(writeDirType) == 1} {
+if {$opt(writeDirType) == 2} {
   outputMsg " "
-  errorMsg "Spreadsheets will be written to a user-defined file name (Spreadsheet tab)"
-  .tnb select .tnb.status
-} elseif {$opt(writeDirType) == 2} {
-  outputMsg " "
-  errorMsg "Spreadsheets will be written to a user-defined directory (Spreadsheet tab)"
+  errorMsg "All output files will be written to a user-defined directory (Spreadsheet tab)"
   .tnb select .tnb.status
 }
 

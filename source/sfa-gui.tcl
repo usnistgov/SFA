@@ -1,11 +1,11 @@
 # version numbers - SFA, software user guide (UG)
-proc getVersion {}   {return 3.84}
+proc getVersion {}   {return 3.86}
 proc getVersionUG {} {return 3.0}
 
 # IFCsvr version, depends on string entered when IFCsvr is repackaged for new STEP schemas
 proc getVersionIFCsvr {} {return 20191210}
 
-proc getContact {}   {return [list "Robert Lipman" "robert.lipman@nist.gov"]}
+proc getContact {} {return [list "Robert Lipman" "robert.lipman@nist.gov"]}
 
 # -------------------------------------------------------------------------------
 proc whatsNew {} {
@@ -13,27 +13,38 @@ proc whatsNew {} {
 
   if {$sfaVersion > 0 && $sfaVersion < [getVersion]} {outputMsg "\nThe previous version of the STEP File Analyzer and Viewer was: $sfaVersion" red}
 
-outputMsg "\nWhat's New (Version: [getVersion]  Updated: [string trim [clock format $progtime -format "%e %b %Y"]])" blue
-outputMsg "- New features and bug fixes are listed in the Changelog.  See Help > Changelog"
+# new user welcome message
+  if {$sfaVersion == 0} {
+    outputMsg "\nWelcome to the NIST STEP File Analyzer and Viewer ----------------------" blue
+    outputMsg "Please take a few minutes to read some the Help text so that you understand the options available
+in this software.  Also explore the Examples and Websites menus.  The User Guide is based on
+version [getVersionUG] of this software.  New and updated features are documented in the Help menu, tooltips,
+and Changelog.
+
+You will be prompted to install the IFCsvr toolkit which is required to read STEP files.  After the
+toolkit is installed, you are ready to process a STEP file.  Go to the File menu, select a STEP
+file, and click the Generate Spreadsheet button.  If you only want to generate a View of the STEP
+file, go to the Output Format section on the Options tab and check View Only.
+
+Use F9 and F10 to change the font size here.  See Help > Function Keys"
+  }
+
+  outputMsg "\nWhat's New (Version: [getVersion]  Updated: [string trim [clock format $progtime -format "%e %b %Y"]])" blue
+  outputMsg "- New features and bug fixes are listed in the Changelog.  See Help > Changelog"
 
 # messages if SFA has already been run
-if {$sfaVersion > 0} {
-  if {$sfaVersion < [getVersionUG]} {
-    outputMsg "- A new User Guide, based on version [getVersionUG] of this software, is available.\n  Sections 5.1.5, 6, 7, and 8.1 have new or updated content."
-    showFileURL UserGuide
-  }
-  if {$sfaVersion <= 3.70} {outputMsg "- Run the new Syntax Checker with the Options tab selection or function key F8.  See Help > Syntax Checker" green}
-  if {$sfaVersion <= 2.60} {outputMsg "- Renamed output files: Spreadsheets from 'myfile_stp.xlsx' to 'myfile-sfa.xlsx' and Views from 'myfile-x3dom.html' to 'myfile-sfa.html'"}
-  if {$sfaVersion  < 2.30} {outputMsg "- The command-line version has been renamed: sfa-cl.exe  The old version STEP-File-Analyzer-CL.exe can be deleted."}
+  if {$sfaVersion > 0} {
+    if {$sfaVersion <= 3.70} {outputMsg "- Run the new Syntax Checker with the Options tab selection or function key F8.  See Help > Syntax Checker"}
+    if {$sfaVersion < [getVersionUG]} {
+      outputMsg "- A new User Guide, based on version [getVersionUG] of this software, is available.  Sections 5.1.5, 6, 7, and 8.1 have new or updated content."
+      showFileURL UserGuide
+    }
+    if {$sfaVersion <= 2.60} {outputMsg "- Renamed output files: Spreadsheets from 'myfile_stp.xlsx' to 'myfile-sfa.xlsx' and Views from 'myfile-x3dom.html' to 'myfile-sfa.html'"}
+    if {$sfaVersion  < 2.30} {outputMsg "- The command-line version has been renamed: sfa-cl.exe  The old version STEP-File-Analyzer-CL.exe can be deleted."}
 
 # update the version number when IFCsvr is repackaged to include updated STEP schemas
-  if {$sfaVersion  < 3.83} {outputMsg "- The IFCsvr toolkit needs to be reinstalled.  Please follow the directions carefully." red}
-
-# first time messages
-} else {
-  outputMsg "- Use F9 and F10 to change the font size here.  See Help > Function Keys"
-  outputMsg "- The User Guide is based on version [getVersionUG] of this software.\n  New and updated features are documented in the Help menu, tooltips, and Changelog."
-}
+    if {$sfaVersion  < 3.83} {outputMsg "- The IFCsvr toolkit might need to be reinstalled.  Please follow the directions carefully." red}
+  }
 
   .tnb select .tnb.status
   update idletasks
@@ -163,6 +174,7 @@ proc guiStartWindow {} {
   bind . <Key-F8> {if {[info exists localName]} {if {[file exists $localName]} {syntaxChecker $localName}}}
   bind . <Key-F12> {if {$lastX3DOM != "" && [file exists $lastX3DOM]} {exec $editorCmd [file nativename $lastX3DOM] &}}
 
+# scrolling status tab
   bind . <MouseWheel> {[$fout.text component text] yview scroll [expr {-%D/30}] units}
   bind . <Up>     {[$fout.text component text] yview scroll -1 units}
   bind . <Down>   {[$fout.text component text] yview scroll  1 units}
@@ -179,6 +191,7 @@ proc guiStartWindow {} {
 proc guiButtons {} {
   global buttons ftrans mytemp nistVersion nprogBarEnts nprogBarFiles opt wdir
 
+# generate button
   set ftrans [frame .ftrans1 -bd 2 -background "#F0F0F0"]
   set butstr "Spreadsheet"
   if {$opt(XLSCSV) == "CSV"} {set butstr "CSV Files"}
@@ -266,6 +279,7 @@ proc guiStatusTab {} {
     foreach typ {black red green magenta cyan blue error syntax} {$outputWin type configure $typ -font $statusFont}
   }
 
+# function key bindings
   bind . <Key-F10> {
     set statusFont [$outputWin type cget black -font]
     for {set i 210} {$i >= 100} {incr i -10} {regsub -all $i $statusFont [expr {$i+10}] statusFont}
@@ -475,18 +489,24 @@ proc guiProcessAndReports {} {
 # view
   set foptv [ttk::labelframe $foptrv.9 -text " View "]
   set foptv20 [frame $foptv.20 -bd 0]
+
+# part geometry
   foreach item {{" Part Geometry" opt(VIZBRP)} \
                 {" Smooth Shaded" opt(VIZBRPNRM)} \
+                {" Color" opt(VIZBRPCLR)} \
                 {" Edges" opt(VIZBRPEDG)}} {
     regsub -all {[\(\)]} [lindex $item 1] "" idx
-    if {$developer || $idx != "optVIZBRPEDG"} {
+    if {$developer || ($idx != "optVIZBRPEDG" && $idx != "optVIZBRPCLR")} {
       set buttons($idx) [ttk::checkbutton $foptv20.$cb -text [lindex $item 0] -variable [lindex $item 1] -command {checkValues}]
-      pack $buttons($idx) -side left -anchor w -padx 5 -pady 0 -ipady 0
+      set px 2
+      if {$idx == "optVIZBRP"} {set px 5}
+      pack $buttons($idx) -side left -anchor w -padx $px -pady 0 -ipady 0
       incr cb
     }
   }
   pack $foptv20 -side top -anchor w -pady 0 -padx 0 -fill y
 
+# graphical pmi
   set foptv3 [frame $foptv.3 -bd 0]
   foreach item {{" Graphical PMI" opt(VIZPMI)}} {
     regsub -all {[\(\)]} [lindex $item 1] "" idx
@@ -508,6 +528,7 @@ proc guiProcessAndReports {} {
   }
   pack $foptv4 -side top -anchor w -pady 0 -padx 25 -fill y
 
+# tessellated geometry
   set foptv6 [frame $foptv.6 -bd 0]
   foreach item {{" AP242 Tessellated Part Geometry" opt(VIZTPG)}} {
     regsub -all {[\(\)]} [lindex $item 1] "" idx
@@ -518,11 +539,12 @@ proc guiProcessAndReports {} {
   foreach item {{"Generate Wireframe" opt(VIZTPGMSH)}} {
     regsub -all {[\(\)]} [lindex $item 1] "" idx
     set buttons($idx) [ttk::checkbutton $foptv6.$cb -text [lindex $item 0] -variable [lindex $item 1] -command {checkValues}]
-    pack $buttons($idx) -side left -anchor w -padx 8 -pady 0 -ipady 0
+    pack $buttons($idx) -side left -anchor w -padx 5 -pady 0 -ipady 0
     incr cb
   }
   pack $foptv6 -side top -anchor w -pady 0 -padx 0 -fill y
 
+# finite element model
   set foptv7 [frame $foptv.7 -bd 0]
   foreach item {{" AP209 Finite Element Model" opt(VIZFEA)} \
                 {"Boundary conditions" opt(VIZFEABC)}} {
@@ -832,7 +854,7 @@ proc guiOpenSTEPFile {} {
   }
 
   pack $foptk -side top -anchor w -pady {5 2} -padx 10 -fill both
-  catch {tooltip::tooltip $foptk "If Excel is installed, then Spreadsheets and CSV files can be\ngenerated.  If CSV Files is selected, the Spreadsheet is also\ngenerated.\n\nCSV files do not contain any cell colors, comments, or links.\nGD&T symbols will look correct only with Excel 2016 or newer.\n\nIf Excel is not installed, only CSV files can be generated.\nOptions for Analyze and Inverse Relationships are disabled.\n\nView Only does not generate any Spreadsheets or CSV files.\nAll options except View are disabled.\n\nIf Output files are not opened after they have been generated,\nuse F2 to open a Spreadsheet and F3 to open a View.  Use F7\nto open the File Summary Spreadsheet when processing\nmultiple files.\n\nIf possible, existing Spreadsheets, CSV files, and View files are\nalways overwritten by new files.\n\nSee Help > User Guide (section 4.4.1)"}
+  catch {tooltip::tooltip $foptk "If Excel is installed, then Spreadsheets and CSV files can be generated.  If CSV Files\nis selected, the Spreadsheet is also generated.  CSV files do not contain any cell\ncolors, comments, or links.  GD&T symbols will look correct only with Excel 2016\nor newer.\n\nIf Excel is not installed, only CSV files can be generated.  Options for Analyze and\nInverse Relationships are disabled.\n\nView Only does not generate any Spreadsheets or CSV files.  All options except\nView are disabled.\n\nIf output files are not opened after they have been generated, use F2 to open a\nSpreadsheet and F3 to open a View.  Use F7 to open the File Summary spreadsheet \nwhen processing multiple files.\n\nIf possible, existing output files are always overwritten by new files.  Output files\ncan be written to a user-defined directory.  See Spreadsheet tab.\n\nSee Help > User Guide (section 4.4.1)"}
 
 # syntax checker
   set foptl [ttk::labelframe $fopt.l -text " Syntax Checker "]
@@ -857,12 +879,13 @@ proc guiOpenSTEPFile {} {
 #-------------------------------------------------------------------------------
 # spreadsheet tab
 proc guiSpreadsheet {} {
-  global buttons cb developer excelVersion extXLS fileDir fxls mydocs nb opt pmiElementsMaxRows userWriteDir userXLSFile writeDir
+  global buttons cb developer excelVersion fileDir fxls mydocs nb opt pmiElementsMaxRows userWriteDir writeDir
 
   set wxls [ttk::panedwindow $nb.xls -orient horizontal]
   $nb add $wxls -text " Spreadsheet " -padding 2
   set fxls [frame $wxls.fxls -bd 2 -relief sunken]
 
+# tables for sorting
   set fxlsz [ttk::labelframe $fxls.z -text " Tables "]
   foreach item {{" Generate Tables for Sorting and Filtering" opt(XL_SORT)}} {
     regsub -all {[\(\)]} [lindex $item 1] "" idx
@@ -874,6 +897,7 @@ proc guiSpreadsheet {} {
   set msg "Worksheets can be sorted by column values.\nThe worksheet with Properties is always sorted.\n\nSee Help > User Guide (section 4.5.1)"
   catch {tooltip::tooltip $fxlsz $msg}
 
+# number format to round real numbers
   set fxlsa [ttk::labelframe $fxls.a -text " Number Format "]
   foreach item {{" Do not round Real Numbers" opt(XL_FPREC)}} {
     regsub -all {[\(\)]} [lindex $item 1] "" idx
@@ -885,6 +909,7 @@ proc guiSpreadsheet {} {
   set msg "Excel rounds real numbers if there are more than 11 characters in the number string.  For example,\nthe number 0.1249999999997 in the STEP file is shown as 0.125\n\nClicking in a cell with a rounded number shows all of the digits in the formula bar.\n\nThis option shows most real numbers exactly as they appear in the STEP file.  This applies\nonly to single real numbers.  Lists of real numbers, such as cartesian point coordinates, are\nalways shown exactly as they appear in the STEP file.\n\nSee Help > User Guide (section 4.5.2)"
   catch {tooltip::tooltip $fxlsa $msg}
 
+# maximum rows
   set fxlsb [ttk::labelframe $fxls.b -text " Maximum Rows for any worksheet"]
   set rlimit {{" 100" 103} {" 500" 503} {" 1000" 1003} {" 5000" 5003} {" 10000" 10003} {" 50000" 50003} {" 100000" 100003} {" Maximum" 1048576}}
   if {$excelVersion < 12} {
@@ -899,7 +924,8 @@ proc guiSpreadsheet {} {
   set msg "This option limits the number of rows (entities) written to any one worksheet or CSV file.\nIf the maximum number of rows is exceeded, the number of entities processed will be\nreported as, for example, 'property_definition (100 of 147)'.\n\nFor large STEP files, setting a low maximum can speed up processing at the expense of\nnot processing all of the entities.  This is useful when processing Geometry entities.\n\nSyntax Errors might be missed if some entities are not processed due to a small value\nof maximum rows.  Maximum rows does not affect generating Views.  The maximum\nnumber of rows depends on the version of Excel.\n\nSee Help > User Guide (section 4.5.3)"
   catch {tooltip::tooltip $fxlsb $msg}
 
-  set fxlsd [ttk::labelframe $fxls.d -text " Write Spreadsheet to "]
+# output directory, opt(writeDirType) = 2 no longer used
+  set fxlsd [ttk::labelframe $fxls.d -text " Write Output to "]
   set buttons(fileDir) [ttk::radiobutton $fxlsd.$cb -text " Same directory as the STEP file" -variable opt(writeDirType) -value 0 -command checkValues]
   pack $fxlsd.$cb -side top -anchor w -padx 5 -pady 2
   incr cb
@@ -917,7 +943,7 @@ proc guiSpreadsheet {} {
     focus $buttons(userdir)
   }
   pack $fxls1.$cb -side left -anchor w -padx {5 0}
-  catch {tooltip::tooltip $fxls1.$cb "Use this option when the directory containing the STEP file is\nprotected (read-only) and the Spreadsheet cannot be written to it."}
+  catch {tooltip::tooltip $fxls1.$cb "This option is useful when the directory containing the STEP file is\nprotected (read-only) and none of the output can be written to it."}
   incr cb
 
   set buttons(userentry) [ttk::entry $fxls1.entry -width 38 -textvariable userWriteDir]
@@ -932,34 +958,10 @@ proc guiSpreadsheet {} {
   pack $fxls1.button -side left -anchor w -padx 10 -pady 2
   pack $fxls1 -side top -anchor w
 
-  set fxls2 [frame $fxlsd.2]
-  ttk::radiobutton $fxls2.$cb -text " User-defined file name:  " -variable opt(writeDirType) -value 1 -command {
-    checkValues
-    focus $buttons(userfile)
-  }
-  pack $fxls2.$cb -side left -anchor w -padx {5 0}
-  incr cb
-
-  set buttons(userentry1) [ttk::entry $fxls2.entry -width 35 -textvariable userXLSFile]
-  pack $fxls2.entry -side left -anchor w -pady 2
-  set buttons(userfile) [ttk::button $fxls2.button -text " Browse " -command {
-    if {$extXLS == "xls"} {
-      set typelist {{"Excel Files" {".xls"}}}
-    } else {
-      set typelist {{"Excel Files" {".xlsx"}}}
-    }
-    set uxf [tk_getSaveFile -title "Save Spreadsheet to" -filetypes $typelist -initialdir $fileDir -defaultextension ".$extXLS"]
-    if {$uxf != ""} {
-      set userXLSFile $uxf
-    } else {
-      errorMsg "No file selected"
-    }
-  }]
-  pack $fxls2.button -side left -anchor w -padx 10 -pady 2
-  pack $fxls2 -side top -anchor w
   pack $fxlsd -side top -anchor w -pady {5 2} -padx 10 -fill both
-  catch {tooltip::tooltip $fxlsd "If possible, existing Spreadsheets, CSV files, and View files are\nalways overwritten by new files."}
+  catch {tooltip::tooltip $fxlsd "If possible, existing output files are always overwritten by new files."}
 
+# some other options
   set fxlsc [ttk::labelframe $fxls.c -text " Other "]
   foreach item {{" Show all PMI Elements on PMI Representation Coverage worksheets" opt(SHOWALLPMI)} \
                 {" Hide links to STEP files and spreadsheets on File Summary worksheet for multiple files" opt(HIDELINKS)}} {
@@ -974,9 +976,10 @@ proc guiSpreadsheet {} {
     tooltip::tooltip $buttons(optHIDELINKS) "Selecting this option is useful when sharing a Spreadsheet with another user."
   }
 
+# developer only options
   if {$developer} {
     set fxlsx [ttk::labelframe $fxls.x -text " Debug "]
-    foreach item {{" Color" opt(DEBUGX3D)} \
+    foreach item {{" View" opt(DEBUGX3D)} \
                   {" Analysis" opt(DEBUG1)} \
                   {" Inverses" opt(DEBUGINV)}} {
       regsub -all {[\(\)]} [lindex $item 1] "" idx
@@ -994,7 +997,7 @@ proc guiSpreadsheet {} {
 #-------------------------------------------------------------------------------
 # help menu
 proc guiHelpMenu {} {
-  global contact defaultColor Examples excelVersion filesProcessed Help ifcsvrDir ifcsvrKey mytemp nistVersion opt scriptName stepAPs
+  global contact defaultColor Examples excelVersion filesProcessed Help ifcsvrDir ifcsvrVer mytemp nistVersion opt scriptName stepAPs
 
   $Help add command -label "User Guide" -command {showFileURL UserGuide}
   $Help add command -label "What's New" -command {whatsNew}
@@ -1071,29 +1074,23 @@ Spreadsheet tab:
 # general viewer help
   $Help add command -label "Viewer" -command {
 outputMsg "\nViewer ---------------------------------------------------------------------" blue
-outputMsg "All Views are written to myfile-sfa.html  Views are shown in the default web browser.  An Internet
-connection is required to open View files.  Views can be generated without generating a spreadsheet
-or CSV files.  See Output Format on the Options tab.
+outputMsg "A View is written to an HTML file 'myfile-sfa.html' and is shown in the default web browser, if the
+web browser supports x3dom (x3dom.org).  All current major web browsers support x3dom.  An Internet
+connection is required to open the HTML file.  The HTML file is self-contained and can be shared
+with other users, including those on non-Windows systems.  Views can be generated without
+generating a spreadsheet or CSV files.  See Output Format on the Options tab.
 
-View HTML files are self-contained and can be shared with other users if their web browser supports
-x3dom (x3dom.org), including those on non-Windows systems.  All major web browsers support x3dom.
-See Examples > View Part with PMI
+For part geometry, a popup program stp2x3d.exe runs to process STEP geometry.  Please wait for that
+program to complete.  If smooth shaded is not selected then surfaces will appear faceted.  With
+faceted surfaces, the HTML file is smaller and faster to open in the web browser.
 
-Views might take several minutes to generate for large STEP files.  For STEP files that result in
-large View HTML files, Firefox can open the HTML file faster than other web browsers.  Select Wait
-if the web browser prompts that it is running slowly when opening the HTML file.
-
-Using the Viewer for Part Geometry is NOT recommended for very large, complex parts and assemblies.
-See Websites > STEP File Viewers
-
-For Part Geometry, if smooth shaded is not selected then surfaces will appear faceted.  Part colors
-are ignored if multiple colors are specified.  Overriding style colors are also ignored.  In some
-rare cases, curved surfaces might appear jagged or incomplete.
-
-If the part geometry cannot be processed, try another viewer.  See Websites > STEP File Viewers
-Some of the other STEP file viewers cannot view graphical PMI, tessellated part geometry, and
-finite element models.  However, those viewers usually have better features for viewing and
-measuring part geometry.  Many of the other viewers are faster.
+Part geometry limitations:
+- Multiple part colors are ignored.  Overriding colors are also ignored.
+- In some rare cases, curved surfaces might appear jagged or incomplete.
+- For large STEP files, a view might take several minutes or more to generate and show in the web
+  browser.
+- For large HTML files, Firefox can open the file faster than other web browsers.  Select Wait if
+  the web browser prompts that it is running slowly when opening the HTML file.
 
 See Help > View for more information about viewing:
 - Supplemental Geometry
@@ -1101,7 +1098,12 @@ See Help > View for more information about viewing:
 - AP242 Tessellated Geometry
 - AP209 Finite Element Models
 
-The part geometry view is based on pythonOCC.  See Websites > STEP Software"
+See Examples > View Part with PMI and others
+
+Other STEP file viewers are available.  See Websites > STEP File Viewers
+Many of the other viewers are much faster and have better features for viewing and measuring part
+geometry.  However, some of the other viewers cannot view graphical PMI, AP242 tessellated part
+geometry, and AP209 finite element models."
     .tnb select .tnb.status
   }
 
@@ -1528,7 +1530,7 @@ outputMsg "\nSyntax Checker ----------------------------------------------------
 outputMsg "The Syntax Checker checks for basic syntax errors and warnings in the STEP file related to missing
 or extra attributes, incompatible and unresolved entity references, select value types, illegal and
 unexpected characters, and other problems with entity attributes.  Some errors might prevent this
-software from processing a STEP file.
+software and others from processing a STEP file.
 
 There should not be any of these types of syntax errors in a STEP file.  Errors should be fixed to
 ensure that the STEP file conforms to the STEP schema and can interoperate with other software.
@@ -1543,7 +1545,7 @@ Status tab might be grayed out when the Syntax Checker is running.
 
 Syntax checker results appear in the Status tab.  If the Log File option is selected, the results
 are also written to a log file (myfile-sfa-err.log).  The syntax checker errors and warnings are
-not reported in the spreadsheet.  If errors and warning are reported, the number in parentheses is
+not reported in the spreadsheet.  If errors and warnings are reported, the number in parentheses is
 the line number in the STEP file where the error or warning was detected.
 
 The Syntax Checker works with any supported STEP schema.  See Help > Supported STEP APs
@@ -1593,8 +1595,7 @@ under Process.  However, this will prevent processing of other entities that do 
 outputMsg "\nLarge STEP Files -----------------------------------------------------------" blue
 outputMsg "The Status tab might be grayed out when a large STEP file is being read.
 
-Using the Viewer for Part Geometry is NOT recommended for very large, complex parts and assemblies.
-See Websites > STEP File Viewers
+See Help > Viewer for viewing large STEP files.
 
 To reduce the amount of time to process large STEP files and to reduce the size of the resulting
 spreadsheet, several options are available:
@@ -1667,7 +1668,7 @@ dialogs might appear that say 'Unable to alloc xxx bytes'.  See the Help > Crash
   $Help add command -label "About" -command {
     set sysvar "System:   $tcl_platform(os) $tcl_platform(osVersion)"
     if {$excelVersion < 1000} {append sysvar ", Excel $excelVersion"}
-    catch {append sysvar ", IFCsvr [registry get $ifcsvrKey {DisplayVersion}]"}
+    catch {append sysvar ", IFCsvr [registry get $ifcsvrVer {DisplayVersion}]"}
     append sysvar ", Files processed: $filesProcessed"
     if {$opt(XL_ROWLIM) != 100003} {append sysvar "\n          For more System variables, set Maximum Rows to 100000 and repeat Help > About."}
 
@@ -1798,7 +1799,7 @@ proc guiWebsitesMenu {} {
   $Websites add cascade -label "STEP Software" -menu $Websites.4
   set Websites4 [menu $Websites.4 -tearoff 1]
   $Websites4 add command -label "Source code on GitHub"      -command {openURL https://github.com/usnistgov/SFA}
-  $Websites4 add command -label "OpenCascade STEP Processor" -command {openURL https://www.opencascade.com/doc/occt-7.0.0/overview/html/occt_user_guides__step.html}
+  $Websites4 add command -label "Open Cascade STEP Processor" -command {openURL https://dev.opencascade.org/doc/overview/html/occt_user_guides__step.html}
   $Websites4 add command -label "pythonOCC"                  -command {openURL https://github.com/tpaviot/pythonocc}
   $Websites4 add command -label "STEPcode"                   -command {openURL http://stepcode.github.io/}
   $Websites4 add command -label "STEP Class Library"         -command {openURL https://www.nist.gov/services-resources/software/step-class-library-scl}
@@ -1817,11 +1818,14 @@ proc guiWebsitesMenu {} {
 
 #-------------------------------------------------------------------------------
 proc showDisclaimer {} {
-  global nistVersion
+  global nistVersion sfaVersion
 
   if {$nistVersion} {
-    outputMsg "\nDisclaimer -------------------------------------------------------------" blue
-    outputMsg "This software was developed at the National Institute of Standards and Technology by employees of
+
+# text disclaimer
+    if {$sfaVersion > 0} {
+      outputMsg "\nDisclaimer -------------------------------------------------------------" blue
+      outputMsg "This software was developed at the National Institute of Standards and Technology by employees of
 the Federal Government in the course of their official duties. Pursuant to Title 17 Section 105 of
 the United States Code this software is not subject to copyright protection and is in the public
 domain.  This software is an experimental system.  NIST assumes no responsibility whatsoever for
@@ -1843,8 +1847,10 @@ Agreements.  The IFCsvr agreement is in C:\\Program Files (x86)\\IFCsvrR300\\doc
 geometry viewer is based on software from pythonOCC.
 
 See Help > NIST Disclaimer and Help > About"
-    .tnb select .tnb.status
+      .tnb select .tnb.status
 
+# dialog box disclaimer
+    } else {
 set txt "This software was developed at the National Institute of Standards and Technology by employees of the Federal Government in the course of their official duties. Pursuant to Title 17 Section 105 of the United States Code this software is not subject to copyright protection and is in the public domain.  This software is an experimental system.  NIST assumes no responsibility whatsoever for its use by other parties, and makes no guarantees, expressed or implied, about its quality, reliability, or any other characteristic.
 
 The Examples menu of this software provides links to several sources of STEP files.  This software and other software might indicate that there are errors in some of the STEP files.  NIST assumes no responsibility whatsoever for the use of the STEP files by other parties, and makes no guarantees, expressed or implied, about their quality, reliability, or any other characteristic.
@@ -1855,7 +1861,8 @@ This software uses Microsoft Excel and IFCsvr that are covered by their own Soft
 
 See Help > NIST Disclaimer and Help > About"
 
-    tk_messageBox -type ok -icon info -title "Disclaimers" -message $txt
+     tk_messageBox -type ok -icon info -title "Disclaimers" -message $txt
+    }
   }
 }
 
@@ -1865,13 +1872,11 @@ proc showCrashRecovery {} {
 
 set txt "Sometimes the STEP File Analyzer and Viewer crashes AFTER a file has been successfully opened and the processing of entities has started.
 
-A crash is most likely due to syntax errors in the STEP file or sometimes due to limitations of the toolkit used to read STEP files.
+A crash is most likely due to syntax errors in the STEP file or sometimes due to limitations of the toolkit used to read STEP files.  Run the Syntax Checker with the Output Format option on the Options tab or function key F8 to check for errors with entities that might have caused the crash.  See Help > Syntax Checker
 
-If this happens, simply restart the STEP File Analyzer and Viewer and process the same STEP file again by using function key F1 or if processing multiple STEP files use F6.  Also deselect, Analyze and Inverse Relationships options.
+You can also restart this software and process the same STEP file again by using function key F1 or if processing multiple STEP files use F6.  The software keeps track of which entity type caused the error for a particular STEP file and won't process that type again.  The bad entities types are stored in a file *-skip.dat  If syntax errors related to the bad entities are corrected, then delete the *-skip.dat file so that the corrected entities are processed.
 
-The STEP File Analyzer and Viewer keeps track of which entity type caused the error for a particular STEP file and won't process that type again.  The bad entities types are stored in a file *-skip.dat  If syntax errors related to the bad entities are corrected, then delete the *-skip.dat file so that the corrected entities are processed.
-
-The software might also crash when processing very large STEP files.  In this case, deselect some entity types to process in Options tab or use a User-Defined List of entities to process.
+The software might also crash when processing very large STEP files.  See Help > Large STEP Files
 
 More details about recovering from a crash are explained in Help > Crash Recovery and in the User Guide."
 

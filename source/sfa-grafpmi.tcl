@@ -718,7 +718,9 @@ proc gpmiAnnotationReport {objEntity} {
                     }
 
 # check new rule with AP242 edition 2
-                    if {$ap242edition == 2 && ![info exists entCount(draughting_model_and_tessellated_shape_representation)]} {
+                    if {$ap242edition == 2 && \
+                        ![info exists entCount(draughting_model_and_tessellated_shape_representation)] && \
+                        ![info exists entCount(characterized_representation_and_draughting_model_and_tessellated_shape_representation)]} {
                       errorMsg "Syntax Error: Missing (draughting_model)(tessellated_shape_representation) entity\n[string repeat " " 14]\($recPracNames(pmi242), Sec. 8.2, note for AP242 Edition 2)"
                     }
                   }
@@ -984,7 +986,7 @@ proc gpmiAnnotationReport {objEntity} {
                   } elseif {[lsearch $assocSPMI($dmiaDefType) $spmi_p21id] == -1} {
                     lappend assocSPMI($dmiaDefType) $spmi_p21id
                   }
-                } else {
+                } elseif {[string first "property_definition" $dmiaDefType] == -1} {
                   set msg "Syntax Error: Bad 'definition' attribute on draughting_model_item_association when 'name' attribute is 'PMI representation to presentation link'.\n[string repeat " " 14]($recPracNames(pmi242), Sec. 7.3)"
                   errorMsg $msg
                   lappend syntaxErr(draughting_model_item_association) [list [$objGuiEntity P21ID] definition $msg]
@@ -992,10 +994,7 @@ proc gpmiAnnotationReport {objEntity} {
 
 # look at shape_aspect or datums to find associated geometry
               } elseif {[string first "shape_aspect" $dmiaDefType] != -1 || [string first "datum" $dmiaDefType] != -1} {
-                #outputMsg "   $dmiaDefType [$dmiaDef P21ID]  $attrName" blue
                 getAssocGeom $dmiaDef 1 $ao
-              } else {
-                #outputMsg "   $dmiaDefType [$dmiaDef P21ID]  $attrName" red
               }
             } elseif {$opt(XLSCSV) != "None"} {
               set msg "Syntax Error: Missing 'definition' attribute on draughting_model_item_association\n[string repeat " " 14]"

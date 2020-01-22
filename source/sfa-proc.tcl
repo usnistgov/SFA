@@ -54,13 +54,13 @@ proc checkValues {} {
 
 # no Excel
   if {!$useXL} {
-    foreach item {INVERSE PMIGRF PMISEM VALPROP writeDirType} {set opt($item) 0}
+    foreach item {INVERSE PMIGRF PMISEM VALPROP} {set opt($item) 0}
     set opt(XL_OPEN) 1
     foreach item [array names opt] {
       if {[string first "PR_STEP" $item] == 0} {lappend butNormal "opt$item"}
     }
     foreach b {optHIDELINKS optINVERSE optPMIGRF optPMISEM optVALPROP optXL_FPREC optXL_SORT allNone2} {lappend butDisabled $b}
-    foreach b {optVIZFEA optVIZPMI optVIZTPG optVIZBRP optVIZBRPEDG optVIZBRPNRM} {lappend butNormal $b}
+    foreach b {optVIZFEA optVIZPMI optVIZTPG optVIZBRP optVIZBRPCLR optVIZBRPEDG optVIZBRPNRM} {lappend butNormal $b}
     foreach b {allNone0 allNone1 allNone3 optPR_USER} {lappend butNormal $b}
 
 # Excel
@@ -69,7 +69,7 @@ proc checkValues {} {
       if {[string first "PR_STEP" $item] == 0} {lappend butNormal "opt$item"}
     }
     foreach b {optHIDELINKS optINVERSE optPMIGRF optPMISEM optVALPROP optXL_FPREC optXL_SORT} {lappend butNormal $b}
-    foreach b {optVIZFEA optVIZPMI optVIZTPG optVIZBRP optVIZBRPEDG optVIZBRPNRM} {lappend butNormal $b}
+    foreach b {optVIZFEA optVIZPMI optVIZTPG optVIZBRP optVIZBRPCLR optVIZBRPEDG optVIZBRPNRM} {lappend butNormal $b}
     foreach b {allNone0 allNone1 allNone2 allNone3 optPR_USER} {lappend butNormal $b}
   }
 
@@ -164,13 +164,19 @@ proc checkValues {} {
       set opt(PR_STEP_PRES) 1
       lappend butDisabled optPR_STEP_PRES
     }
-    foreach b {optVIZBRPEDG optVIZBRPNRM} {lappend butNormal $b}
+    foreach b {optVIZBRPCLR optVIZBRPNRM} {lappend butNormal $b}
+    if {$opt(VIZBRPCLR)} {
+      lappend butNormal optVIZBRPEDG
+    } else {
+      lappend butDisabled optVIZBRPEDG
+      set opt(VIZBRPEDG) 0
+    }
   } else {
     catch {
       if {!$opt(PMISEM) && !$opt(PMIGRF)} {lappend butNormal optPR_STEP_COMM}
       if {!$opt(PMISEM)} {lappend butNormal optPR_STEP_PRES}
     }
-    foreach b {optVIZBRPEDG optVIZBRPNRM} {lappend butDisabled $b}
+    foreach b {optVIZBRPCLR optVIZBRPEDG optVIZBRPNRM} {lappend butDisabled $b}
   }
 
 # tessellated geometry view
@@ -212,14 +218,11 @@ proc checkValues {} {
     }
   }
   
+# user-defined directory text entry and browse button
   if {$opt(writeDirType) == 0} {
-    foreach b {userdir userentry userentry1 userfile} {lappend butDisabled $b}
-  } elseif {$opt(writeDirType) == 1} {
-    foreach b {userdir userentry}   {lappend butDisabled $b}
-    foreach b {userentry1 userfile} {lappend butNormal   $b}
+    foreach b {userdir userentry} {lappend butDisabled $b}
   } elseif {$opt(writeDirType) == 2} {
-    foreach b {userdir userentry}   {lappend butNormal   $b}
-    foreach b {userentry1 userfile} {lappend butDisabled $b}
+    foreach b {userdir userentry} {lappend butNormal $b}
   }
 
 # make sure there is some entity type to process
@@ -496,7 +499,7 @@ proc unzipFile {} {
 #-------------------------------------------------------------------------------
 proc saveState {{ok 1}} {
   global buttons developer dispCmd dispCmds fileDir fileDir1 filesProcessed lastX3DOM lastXLS lastXLS1 mydocs openFileList
-  global opt optionsFile sfaVersion statusFont upgrade upgradeIFCsvr userEntityFile userWriteDir userXLSFile
+  global opt optionsFile sfaVersion statusFont upgrade upgradeIFCsvr userEntityFile userWriteDir
 
 # ok = 0 only after installing IFCsvr from the command-line version  
   if {![info exists buttons] && $ok} {return}
@@ -506,7 +509,7 @@ proc saveState {{ok 1}} {
     set fileOptions [open $optionsFile w]
     puts $fileOptions "# Options file for the NIST STEP File Analyzer and Viewer v[getVersion] ([string trim [clock format [clock seconds]]])\n#\n# DO NOT EDIT OR DELETE FROM USER HOME DIRECTORY $mydocs\n# DOING SO WILL CORRUPT THE CURRENT SETTINGS OR CAUSE ERRORS IN THE SOFTWARE\n#"
     set varlist [list fileDir fileDir1 userWriteDir userEntityFile openFileList dispCmd dispCmds lastXLS lastXLS1 lastX3DOM \
-                      userXLSFile statusFont upgrade upgradeIFCsvr sfaVersion filesProcessed]
+                      statusFont upgrade upgradeIFCsvr sfaVersion filesProcessed]
 
     foreach var $varlist {
       if {[info exists $var]} {
@@ -823,14 +826,23 @@ proc openXLS {filename {check 0} {multiFile 0}} {
     if {$check} {checkForExcel}
     
 # start Excel
+    set notok 0
     if {[catch {
       set xl [::tcom::ref createobject Excel.Application]
       [$xl ErrorCheckingOptions] TextDate False
+
+# check old version of Excel      
+      set xlver [expr {int([$xl Version])}]
+      if {$xlver < 12 && [file extension $filename] == ".xlsx"} {
+        errorMsg "[file tail $filename] cannot be opened with this version of Excel."
+        set notok 1
+      }
 
 # errors
     } emsg]} {
       errorMsg "ERROR starting Excel: $emsg"
     }
+    if {$notok} {return $filename}
     
 # open spreadsheet in Excel, works even if Excel not already started above although slower
     if {[catch {
@@ -839,7 +851,6 @@ proc openXLS {filename {check 0} {multiFile 0}} {
 
 # errors
     } emsg]} {
-      #if {$developer} {outputMsg $emsg red}
       if {[string first "UNC" $emsg] != -1} {set emsg [fixErrorMsg $emsg]}
       if {$emsg != ""} {
         if {[string first "The process cannot access the file" $emsg] != -1} {
@@ -880,27 +891,16 @@ proc checkForExcel {{multFile 0}} {
 
         if {$choice == "yes"} {
           for {set i 0} {$i < 5} {incr i} {
-            set nnc 0
-            foreach pid $pid1 {
-              if {[catch {
-                twapi::end_process $pid -force
-              } emsg]} {
-                incr nnc
-              }
-            }
+            foreach pid $pid1 {catch {twapi::end_process $pid -force}}
             set pid1 [twapi::get_process_ids -name "EXCEL.EXE"]
             if {[llength $pid1] == 0} {break}
           }
         }
       }
+
+# stop excel for command-line version
     } else {
-      foreach pid $pid1 {
-        if {[catch {
-          twapi::end_process $pid -force
-        } emsg]} {
-          #errorMsg "Some instances of Excel were not closed: $emsg" red
-        }
-      }
+      foreach pid $pid1 {catch {twapi::end_process $pid -force}}
     }
   }
   return $pid1
@@ -1301,14 +1301,15 @@ proc incrFileName {fn} {
 #-------------------------------------------------------------------------------
 # install IFCsvr (or remove to reinstall)
 proc installIFCsvr {{exit 0}} {
-  global buttons contact ifcsvrKey mydocs mytemp nistVersion upgradeIFCsvr wdir
+  global buttons contact ifcsvrKey ifcsvrVer mydocs mytemp nistVersion upgradeIFCsvr wdir
 
 # if IFCsvr is alreadly installed, get version from registry, decide to reinstall newer version
   if {[catch {
-
-# get registry value "1.0.0 (NIST Update yyyy-mm-dd)"
-    set ifcsvrKey "HKEY_LOCAL_MACHINE\\SOFTWARE\\WOW6432Node\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\{3C8CE0A4-803B-48A6-96A0-A3DDD5AE5596}"
-    set verIFCsvr [registry get $ifcsvrKey {DisplayVersion}]
+    
+# check IFCsvr CLSID and get version registry value "1.0.0 (NIST Update yyyy-mm-dd)"
+# if either fails, then install or reinstall
+    set clsid [registry get $ifcsvrKey {}]
+    set verIFCsvr [registry get $ifcsvrVer {DisplayVersion}]
 
 # format version to be yyyymmdd
     set c1 [string first "20" $verIFCsvr]
