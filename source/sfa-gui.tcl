@@ -1,5 +1,5 @@
 # version numbers - SFA, software user guide (UG)
-proc getVersion {}   {return 3.86}
+proc getVersion {}   {return 3.90}
 proc getVersionUG {} {return 3.0}
 
 # IFCsvr version, depends on string entered when IFCsvr is repackaged for new STEP schemas
@@ -1186,8 +1186,8 @@ worksheets are also generated."
 
   $helpView add command -label "Supplemental Geometry" -command {
 outputMsg "\nSupplemental Geometry ------------------------------------------------------" blue
-outputMsg "Supplemental geometry is shown only if part or PMI is also viewed.  Supplemental geometry is not
-associated with Saved Views.
+outputMsg "Supplemental geometry is shown only if Part Geometry or Graphical PMI is also viewed.  Supplemental
+geometry is not associated with graphical PMI Saved Views.
 
 The following types of supplemental geometry and associated text are supported.
 - Coordinate System: red/green/blue axes or by color assigned to axes
@@ -1199,6 +1199,24 @@ The following types of supplemental geometry and associated text are supported.
 
 Lines and circles that are trimmed by cartesian_point will not be trimmed.  Bounding edges for
 planes and cylinders are ignored.  All bounded and unbounded planes are shown with a fixed size."
+    .tnb select .tnb.status
+  }
+
+  $helpView add command -label "Datum Targets" -command {
+outputMsg "\nDatum Targets --------------------------------------------------------------" blue
+outputMsg "Datum targets are shown only if Analyze for Semantic PMI is selected and Part Geometry or
+Graphical PMI is also viewed.
+
+There are two methods to represent the position, orientation, and dimensions of a datum target.
+- The position, orientation, and target length, width, and diameter are specified with the
+  placed_datum_target_feature entity.  Point, line, circle, circular curve, and rectangle datum
+  targets are supported.
+- The datum_target entity refers to geometric entities the specify the shape and location of the
+  datum target.  The supported geometric entities are cartesian_point, line, circle, trimmed_curve,
+  and advanced_face bounded by lines or circles.
+
+Datum targets are shown in red and can be switched on and off in the view.  Datum target feature
+geometry, also specified with geometric entities, is shown in green."
     .tnb select .tnb.status
   }
 

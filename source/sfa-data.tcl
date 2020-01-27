@@ -1,7 +1,7 @@
 proc initData {} {
 
 global ap203all ap214all ap242all ap242only
-global allVendor andEntAP209 aoEntTypes badAttributes brepEnts cadApps defaultColor dimModNames dimSizeNames DTR
+global allVendor andEntAP209 aoEntTypes badAttributes brepEnts cadApps datumTargetDesc defaultColor dimModNames dimSizeNames DTR
 global entCategory entColorIndex feaElemFace feaIndex gpmiTypes ifcsvrKey ifcsvrVer legendColor letters nistModelPictures nistModelURLs nistNumSavedViews
 global pmiElementsMaxRows pmiHorizontalLineBreaks pmiModifiers pmiModifiersRP pmiUnicode recPracNames roseLogical
 global schemaLinks spmiEntTypes spmiTypes stepAPs tolNames tzfNames
@@ -259,11 +259,15 @@ foreach item [list \
   "controlled radius CR (5.3)" "dimension basic (5.3)" "reference dimension (5.3)" "square \u25A1 (5.3)" "dimension qualifier (5.4)" "measure qualifier" \
   "datum (6.5)" "datum system (6.9.7)" "datum with axis system (6.9.7)" "datum with modifiers (6.9.7)" "multiple datum features (6.9.8)" \
   "datum feature association to geometric tolerance (6.1)" \
-  "all datum targets" "point placed datum target (6.6)" "line placed datum target (6.6)" "rectangle placed datum target (6.6)" "circle placed datum target (6.6)" \
-  "circular curve placed datum target (6.6)" "curve datum target (6.6)" "area datum target (6.6)" "placed datum target geometry (6.6.2)" "movable datum target (6.6.3)" \
+  "all datum targets" "point datum target (6.6)" "line datum target (6.6)" "rectangle datum target (6.6)" "circle datum target (6.6)" \
+  "circular curve datum target (6.6)" "curve datum target (6.6)" "area datum target (6.6)" "placed datum target geometry (6.6.2)" "movable datum target (6.6.3)" \
 ] {lappend spmiTypes $item}
 
 # not included "linear distance (5.1.1)" because it is most common for dimensional_location
+
+# -----------------------------------------------------------------------------------------------------
+# datum target descriptions
+set datumTargetDesc [list area circle "circular curve" curve line point rectangle]
 
 # -----------------------------------------------------------------------------------------------------
 # pmiModifiers are the symbols associated with many strings such as dimModNames and others, includes new ISO 1101 modifiers

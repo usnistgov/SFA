@@ -290,7 +290,7 @@ proc x3dTessGeom {objID objEntity1 ent1} {
 # -------------------------------------------------------------------------------
 # finish x3d file, write tessellated edges, PMI saved view geometry, set viewpoints, add navigation and background color, and close X3DOM file
 proc x3dFileEnd {} {
-  global ao brepEnts brepFile brepFileName entCount nistModelURLs nistName nistVersion
+  global ao brepEnts brepFile brepFileName datumTargetView entCount nistModelURLs nistName nistVersion
   global nistNumSavedViews numTessColor opt savedViewButtons savedViewFile savedViewFileName savedViewItems savedViewNames sphereDef
   global tessCoord tessEdges tessPartFile tessPartFileName viz x3dAppColor x3dApps x3dAxes x3dColorOverriding x3dColorsUsed x3dFile x3dMax x3dMin x3dMsg x3dTitle
 
@@ -348,6 +348,11 @@ proc x3dFileEnd {} {
 # supplemental geometry
   set viz(SMG) 0
   if {[info exists entCount(constructive_geometry_representation)]} {x3dSuppGeom $maxxyz}
+
+# -------------------------------------------------------------------------------
+# datum targets
+  set viz(DTR) 0
+  if {[info exists datumTargetView]} {x3dDatumTarget $maxxyz}
 
 # -------------------------------------------------------------------------------
 # write any PMI saved view geometry for multiple saved views
@@ -557,7 +562,17 @@ proc x3dFileEnd {} {
 
 # SMG checkbox
   if {$viz(SMG)} {
-    puts $x3dFile "\n<!-- SMG checkbox -->\n<input type='checkbox' checked onclick='togSMG(this.value)'/>Supplemental Geometry<p>"
+    puts $x3dFile "\n<!-- SMG checkbox -->\n<input type='checkbox' checked onclick='togSMG(this.value)'/>Supplemental Geometry"
+    if {$viz(DTR)} {
+      puts $x3dFile "<br>"
+    } else {
+      puts $x3dFile "<p>"
+    }
+  }
+
+# DTR checkbox
+  if {$viz(DTR)} {
+    puts $x3dFile "\n<!-- DTR checkbox -->\n<input type='checkbox' checked onclick='togDTR(this.value)'/>Datum Targets<p>"
   }
 
 # HOLE checkbox
@@ -659,6 +674,9 @@ proc x3dFileEnd {} {
 
 # function for SMG
   if {$viz(SMG)} {x3dSwitchScript SMG}
+
+# function for DTR
+  if {$viz(DTR)} {x3dSwitchScript DTR}
 
 # function for holes
   if {$viz(HOL)} {x3dSwitchScript Hole}
@@ -1346,6 +1364,247 @@ proc x3dBrepUnits {} {
     }
   }
   return $sc
+}
+
+# -------------------------------------------------------------------------------
+# placed datum targets
+proc x3dDatumTarget {maxxyz} {
+  global datumTargetView developer dttype recPracNames opt viz x3dFile x3dMsg
+
+  outputMsg " Processing datum targets (See Help > View > Datum targets)" green
+  puts $x3dFile "\n<!-- DATUM TARGETS -->\n<Switch whichChoice='0' id='swDTR'><Group>"
+
+  set dttype ""
+  foreach idx [array names datumTargetView] {
+    if {$developer} {outputMsg "$idx $datumTargetView($idx)"}
+    set shape [lindex $datumTargetView($idx) 0]
+    set color "1 0 0"
+    if {[string first "feature" $idx] != -1} {set color "0 .5 0"}
+    set e3 ""
+
+# check for handle
+    if {[string first "handle" $shape] == -1} {
+
+# position and orientation
+      set origin [lindex [lindex $datumTargetView($idx) 1] 0]
+      set axis   [lindex [lindex $datumTargetView($idx) 1] 1]
+      set refdir [lindex [lindex $datumTargetView($idx) 1] 2]
+      if {$origin == "0. 0. 0."} {
+        set msg "Datum target(s) located at the origin."
+        if {[lsearch $x3dMsg $msg] == -1} {lappend x3dMsg $msg}
+      }
+
+# handle, then shape is with geometric entity (cartesian_point, line, and circle are supported)
+    } else {
+      set e3 [lindex $datumTargetView($idx) 0]
+      set shape [$e3 Type]
+      if {$shape == "trimmed_curve"} {
+        set e3 [[[$e3 Attributes] Item [expr 2]] Value]
+        if {[$e3 Type] == "line"}   {set shape [$e3 Type]}
+        if {[$e3 Type] == "circle"} {set shape "circular curve"}
+      } elseif {$shape == "circle"} {
+        set shape "circular curve"
+      }
+    }
+
+
+# text
+    set textOrigin "0 0 0"
+    set target [lindex $datumTargetView($idx) end]
+    set len [string length $target]
+    if {$len < 2 || $len > 5 || ![string is alpha [string index $target 0]]} {set target ""}
+    set textJustify "BEGIN"
+    if {$e3 != ""} {set textJustify "END"}
+
+# process different shapes
+    if {[catch {
+      switch -- $shape {
+        point -
+        cartesian_point {
+# generate point
+          set rad [trimNum [expr {$maxxyz*0.00125}]]
+          if {$e3 != ""} {set origin [vectrim [[[$e3 Attributes] Item [expr 2]] Value]]}
+          puts $x3dFile "<Transform translation='$origin'><Shape><Appearance><Material diffuseColor='$color' emissiveColor='$color'></Material></Appearance><Sphere radius='$rad'></Sphere></Shape>"
+          set target " $target"
+          set viz(DTR) 1
+        }
+
+        line {
+# generate line
+          if {$e3 == ""} {
+            puts $x3dFile [x3dTransform $origin $axis $refdir "$shape datum target"]
+            set x [trimNum [lindex [lindex $datumTargetView($idx) 2] 1]]
+            puts $x3dFile " <Shape><Appearance><Material emissiveColor='$color'></Material></Appearance><IndexedLineSet coordIndex='0 1 -1'><Coordinate point='0 0 0 $x 0 0'></Coordinate></IndexedLineSet></Shape>"
+            set textOrigin "[trimNum [expr {$x*0.5}]] 0 0"
+          } else {
+            set e4 [[[$e3 Attributes] Item [expr 2]] Value]
+            set coord1 [vectrim [[[$e4 Attributes] Item [expr 2]] Value]]
+            set e5 [[[$e3 Attributes] Item [expr 3]] Value]
+            set mag [[[$e5 Attributes] Item [expr 3]] Value]
+            set e6 [[[$e5 Attributes] Item [expr 2]] Value]
+            set dir [[[$e6 Attributes] Item [expr 2]] Value]
+            set coord2 [vectrim [vecmult $dir $mag]]
+            set coord2 [vectrim [vecadd $coord1 $coord2]]
+            puts $x3dFile "<Shape><IndexedLineSet coordIndex='0 1 -1'><Coordinate point='$coord1 $coord2'></Coordinate></IndexedLineSet><Appearance><Material emissiveColor='$color'></Material></Appearance></Shape>"
+            set textOrigin [vectrim [vecmult [vecadd $coord1 $coord2] 0.5]]
+          }
+          set viz(DTR) 1
+        }
+
+        rectangle {
+# generate rectangle
+          puts $x3dFile [x3dTransform $origin $axis $refdir "$shape datum target"]
+          foreach i {2 3} {
+            set type [lindex $datumTargetView($idx) $i]
+            switch -- [lindex $type 0] {
+              "target length" {set x [trimNum [expr {[lindex $type 1]*0.5}]]}
+              "target width"  {set y [trimNum [expr {[lindex $type 1]*0.5}]]}
+            }
+          }
+          puts $x3dFile " <Shape><Appearance><Material emissiveColor='$color'></Material></Appearance><IndexedLineSet coordIndex='0 1 2 3 0 -1'><Coordinate point='-$x -$y 0 $x -$y 0 $x $y 0 -$x $y 0'></Coordinate></IndexedLineSet></Shape>"
+          puts $x3dFile " <Shape><Appearance><Material diffuseColor='$color' transparency='0.8'></Material></Appearance><IndexedFaceSet solid='false' coordIndex='0 1 2 3 -1'><Coordinate point='-$x -$y 0 $x -$y 0 $x $y 0 -$x $y 0'></Coordinate></IndexedFaceSet></Shape>"
+          set viz(DTR) 1
+        }
+
+        circle -
+        "circular curve" {
+# generate circle
+          if {$e3 == ""} {
+            set rad [trimNum [expr {[lindex [lindex $datumTargetView($idx) 2] 1]*0.5}]]
+          } else {
+            set e4 [[[$e3 Attributes] Item [expr 2]] Value]
+            set rad [[[$e3 Attributes] Item [expr 3]] Value]
+            set a2p3d [x3dGetA2P3D $e4]
+            set origin [lindex $a2p3d 0]
+            set axis   [lindex $a2p3d 1]
+            set refdir [lindex $a2p3d 2]
+          }
+          puts $x3dFile [x3dTransform $origin $axis $refdir "$shape datum target"]
+          set ns 48
+          set angle 0.
+          set dlt [expr {6.28319/$ns}]
+          set index ""
+          for {set i 0} {$i < $ns} {incr i} {append index "$i "}
+          set coord ""
+          for {set i 0} {$i < $ns} {incr i} {
+            append coord "[trimNum [expr {$rad*cos($angle)}]] "
+            append coord "[trimNum [expr {-1.*$rad*sin($angle)}]] "
+            append coord "0 "
+            set angle [expr {$angle+$dlt}]
+          }
+          puts $x3dFile " <Shape><Appearance><Material emissiveColor='$color'></Material></Appearance><IndexedLineSet coordIndex='$index 0 -1'><Coordinate point='$coord'></Coordinate></IndexedLineSet></Shape>"
+          if {$shape == "circle"} {
+            puts $x3dFile " <Shape><Appearance><Material diffuseColor='$color' transparency='0.8'></Material></Appearance><IndexedFaceSet solid='false' coordIndex='$index -1'><Coordinate point='$coord'></Coordinate></IndexedFaceSet></Shape>"
+          } else {
+            set textOrigin "$rad 0 0"
+          }
+          set viz(DTR) 1
+        }
+
+        advanced_face {
+# for advanced face, look for circles and lines
+          set e1 $e3
+          set e2 [[[$e1 Attributes] Item [expr 3]] Value]
+
+# if in a plane, follow face_outer_bounds to
+          if {[$e2 Type] == "plane"} {
+            set e2s [[[$e1 Attributes] Item [expr 2]] Value]
+            ::tcom::foreach e2 $e2s {
+              set ngeom 0
+              set coord ""
+              set ncoord 0
+              set e3 [[[$e2 Attributes] Item [expr 2]] Value]
+              set e4s [[[$e3 Attributes] Item [expr 2]] Value]
+
+              ::tcom::foreach e4 $e4s {
+                incr ngeom
+                set e5 [[[$e4 Attributes] Item [expr 4]] Value]
+                set e6 [[[$e5 Attributes] Item [expr 4]] Value]
+                #outputMsg e4[$e4 P21ID][$e4 Type]
+                #outputMsg e5[$e5 P21ID][$e5 Type]
+                #outputMsg e6[$e6 P21ID][$e6 Type]
+
+# circle
+                if {[$e6 Type] == "circle"} {
+                  if {$ngeom == 1} {
+                    set rad [[[$e6 Attributes] Item [expr 3]] Value]
+                    set a2p3d [x3dGetA2P3D [[[$e6 Attributes] Item [expr 2]] Value]]
+                    puts $x3dFile [x3dTransform [lindex $a2p3d 0] [lindex $a2p3d 1] [lindex $a2p3d 2] "$shape circle datum target"]
+                    set ns 48
+                    set angle 0.
+                    set dlt [expr {6.28319/$ns}]
+                    set index ""
+                    for {set i 0} {$i < $ns} {incr i} {append index "$i "}
+                    set coord ""
+                    for {set i 0} {$i < $ns} {incr i} {
+                      append coord "[trimNum [expr {$rad*cos($angle)}]] "
+                      append coord "[trimNum [expr {-1.*$rad*sin($angle)}]] "
+                      append coord "0 "
+                      set angle [expr {$angle+$dlt}]
+                    }
+                    puts $x3dFile " <Shape><Appearance><Material emissiveColor='$color'></Material></Appearance><IndexedLineSet coordIndex='$index 0 -1'><Coordinate point='$coord'></Coordinate></IndexedLineSet></Shape>"
+                    puts $x3dFile " <Shape><Appearance><Material diffuseColor='$color' transparency='0.8'></Material></Appearance><IndexedFaceSet solid='false' coordIndex='$index -1'><Coordinate point='$coord'></Coordinate></IndexedFaceSet></Shape></Transform>"
+                    set textOrigin "[vectrim [lindex $a2p3d 0]]"
+                    set viz(DTR) 1
+                  }
+
+# lines
+                } elseif {[$e6 Type] == "line"} {
+                  set e7 [[[$e6 Attributes] Item [expr 2]] Value]
+                  set pt [vectrim [[[$e7 Attributes] Item [expr 2]] Value]]
+                  append coord "$pt "
+                  incr ncoord
+                  if {$ncoord == 1} {set textOrigin $pt}
+                } else {
+                  set target ""
+                  errorMsg " Datum target for '$shape ([$e6 Type])' cannot be viewed."
+                }
+              }
+
+# shape for circles and lines
+              if {$coord != ""} {
+                set index ""
+                for {set i 0} {$i < $ncoord} {incr i} {append index "$i "}
+                puts $x3dFile " <Shape><Appearance><Material emissiveColor='$color'></Material></Appearance><IndexedLineSet coordIndex='$index 0 -1'><Coordinate point='$coord'></Coordinate></IndexedLineSet></Shape>"
+                puts $x3dFile " <Shape><Appearance><Material diffuseColor='$color' transparency='0.8'></Material></Appearance><IndexedFaceSet solid='false' coordIndex='$index -1'><Coordinate point='$coord'></Coordinate></IndexedFaceSet></Shape>"
+                set viz(DTR) 1
+              }
+            }
+          }
+        }
+
+        default {
+          set target ""
+          set msg " Datum target for '$shape' cannot be viewed."
+          errorMsg $msg
+          set msg [string trim $msg]
+          if {[lsearch $x3dMsg $msg] == -1} {lappend x3dMsg [string trim $msg]}
+        }
+      }
+
+# small coordinate triad
+      if {$developer && $shape != "point" && $shape != "cartesian_point" && $shape != "advanced_face" && [string first "feature" $idx] == -1} {
+        set size [trimNum [expr {$maxxyz*0.005}]]
+        puts $x3dFile " <Shape><Appearance><Material emissiveColor='1 0 0'></Material></Appearance><IndexedLineSet coordIndex='0 1 -1'><Coordinate point='0. 0. 0. $size 0. 0.'></Coordinate></IndexedLineSet></Shape>"
+        puts $x3dFile " <Shape><Appearance><Material emissiveColor='0 .5 0'></Material></Appearance><IndexedLineSet coordIndex='0 1 -1'><Coordinate point='0. 0. 0. 0. $size 0.'></Coordinate></IndexedLineSet></Shape>"
+        puts $x3dFile " <Shape><Appearance><Material emissiveColor='0 0 1'></Material></Appearance><IndexedLineSet coordIndex='0 1 -1'><Coordinate point='0. 0. 0. 0. 0. $size'></Coordinate></IndexedLineSet></Shape>"
+      }
+
+# datum target label
+      if {$target != ""} {
+        set size [trimNum [expr {$maxxyz*0.01}]]
+        set trans ""
+        if {$textOrigin != "0 0 0"} {set trans " translation='$textOrigin'"}
+        puts $x3dFile " <Transform$trans scale='$size $size $size'><Billboard axisOfRotation='0 0 0'><Shape><Text string='\"$target\"'><FontStyle family='\"SANS\"' justify='\"$textJustify\"'></FontStyle></Text><Appearance><Material diffuseColor='$color'></Material></Appearance></Shape></Billboard></Transform>"
+      }
+      puts $x3dFile "</Transform>"
+    } emsg]} {
+      errorMsg "ERROR viewing a '$shape' datum target: $emsg"
+    }
+  }
+  puts $x3dFile "</Group></Switch>"
+  catch {unset datumTargetView}
+  catch {unset dttype}
 }
 
 # -------------------------------------------------------------------------------
@@ -2418,24 +2677,24 @@ proc x3dSwitchScript {name {name1 ""}} {
 proc x3dGetRotation {axis refdir {type ""}} {
   global x3dMsg
 
-# check axis and refdir, both are congruent
+# one of the vectors is zero length, i.e., '0 0 0'
   set msg ""
-  if {[veclen [veccross $axis $refdir]] == 0} {
-    set msg "Syntax Error: For an axis2_placement_3d"
-    if {$type != ""} {append msg " related to '$type',"}
-    append msg " the 'axis' and 'ref_direction' are congruent."
+  if {[veclen $axis] == 0 || [veclen $refdir] == 0} {
+    set msg "Syntax Error: The orientation"
+    if {$type != ""} {append msg ", related to $type,"}
+    append msg " axis or ref_direction vector is '0 0 0'."
 
-# one of the axes is zero length
-  } elseif {[veclen $axis] == 0 || [veclen $refdir] == 0} {
-    set msg "Syntax Error: For an axis2_placement_3d"
-    if {$type != ""} {append msg " related to '$type',"}
-    append msg " the magnitude of the 'axis' or 'ref_direction' is zero."
+# check axis and refdir are congruent
+  } elseif {[veclen [veccross $axis $refdir]] == 0} {
+    set msg "Syntax Error: The orientation"
+    if {$type != ""} {append msg ", related to $type,"}
+    append msg " axis and ref_direction vectors are congruent."
   }
 
   if {$msg != ""} {
     errorMsg $msg
     set msg1 [string range $msg 14 end]
-    if {[lsearch $x3dMsg $msg1] == -1 && [string first "supplemental" $msg1] != -1} {lappend x3dMsg $msg1}
+    if {[lsearch $x3dMsg $msg1] == -1 && ([string first "supplemental" $msg1] != -1 || [string first "datum target" $msg1] != -1)} {lappend x3dMsg $msg1}
   }
 
 # construct rotation matrix u, must normalize to use with quaternion
