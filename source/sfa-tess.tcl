@@ -463,7 +463,7 @@ proc tessSetColor {objEntity tsID} {
                 set x3dColor [x3dPreDefinedColor [[[$e8 Attributes] Item [expr 1]] Value]]
                 set tessColor($tsID) $x3dColor
               } else {
-                errorMsg "  Unexpected color type ([$e8 Type]) for $ao"
+                errorMsg "  Tessellated part color type '[$e8 Type]' is not supported."
                 set tessColor($tsID) $x3dColor
               }
             }

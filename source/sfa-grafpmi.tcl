@@ -163,7 +163,7 @@ proc gpmiAnnotation {entType} {
 # -------------------------------------------------------------------------------
 proc gpmiAnnotationReport {objEntity} {
   global ao aoname ap242edition assocGeom badAttributes boxSize cells circleCenter col currx3dPID curveTrim dirRatio dirType
-  global draftModelCameraNames draftModelCameras ent entAttrList entCount entLevel geomType gpmiEnts gpmiID gpmiIDRow
+  global draughtingModels draftModelCameraNames draftModelCameras ent entAttrList entCount entLevel geomType gpmiEnts gpmiID gpmiIDRow
   global gpmiPlacement gpmiRow gpmiTypes gpmiTypesInvalid gpmiTypesPerFile gpmiValProp iCompCurve iCompCurveSeg iPolyline
   global nindex numCompCurve numCompCurveSeg numPolyline numx3dPID objEntity1 opt placeAnchor placeNCP placeOrigin
   global pmiCol pmiColumns pmiHeading pmiStartCol propDefIDS recPracNames savedViewCol savedViewName stepAP syntaxErr
@@ -435,9 +435,9 @@ proc gpmiAnnotationReport {objEntity} {
                       if {[string first "handle" $etype] != -1} {set etype [[$etype Value] Type]}
                       lappend elements $etype
                       if {$etype != "axis2_placement_3d" && $etype != "cartesian_point" && $etype != "planar_box" && \
-                          [string first $etype $msg] == -1} {append msg "Unexpected '$etype'"}
+                          [string first $etype $msg] == -1} {append msg "'$etype' is not supported"}
                     }
-                    if {[string first "Unexpected" $msg] == -1} {
+                    if {[string first "not supported" $msg] == -1} {
                       if {[lsearch $elements "axis2_placement_3d"] == -1} {
                         append msg "Missing required 'axis2_placement_3d'"
                       } elseif {[lsearch $elements "cartesian_point"] == -1} {
@@ -565,7 +565,7 @@ proc gpmiAnnotationReport {objEntity} {
                   if {[catch {
                     $cells($ao) Item $r $c "$val[format "%c" 10]$ov"
                   } emsg]} {
-                    errorMsg "  ERROR: Too much data to show in a cell" red
+                    errorMsg "  ERROR too much data to show in a cell: $emsg" red
                   }
                 }
 
@@ -1138,11 +1138,7 @@ proc gpmiAnnotationReport {objEntity} {
       if {[info exists draftModelCameras]} {
 
 # get used draughting_model entities
-        set dmlist {}
-        foreach dms [list draughting_model characterized_object_and_draughting_model characterized_representation_and_draughting_model characterized_representation_and_draughting_model_and_representation] {
-          if {[info exists entCount($dms)]} {if {$entCount($dms) > 0} {lappend dmlist $dms}}
-        }
-        foreach dm $dmlist {
+        foreach dm $draughtingModels {
           set entDraughtingModels [$objEntity GetUsedIn [string trim $dm] [string trim items]]
 
 # check for draughting_callout.contents -> ao (PMI RP, section 9.4.4, figure 93)
@@ -1363,7 +1359,7 @@ proc gpmiAnnotationReport {objEntity} {
 # get camera models and validation properties
 proc pmiGetCamerasAndProperties {} {
   global objDesign
-  global draftModelCameraNames draftModelCameras entCount gpmiValProp mytemp opt propDefIDS recPracNames savedViewFile
+  global draughtingModels draftModelCameraNames draftModelCameras entCount gpmiValProp mytemp opt propDefIDS recPracNames savedViewFile
   global savedViewFileName savedViewItems savedViewName savedViewNames savedViewpoint stepAP syntaxErr
 
   set aolist {}
@@ -1396,20 +1392,13 @@ proc pmiGetCamerasAndProperties {} {
         errorMsg $msg
       }
 
-# draughting model list
-      set dmlist {}
-      foreach dms [list characterized_object_and_draughting_model characterized_representation_and_draughting_model \
-                        characterized_representation_and_draughting_model_and_representation draughting_model] {
-        if {[info exists entCount($dms)]} {if {$entCount($dms) > 0} {lappend dmlist $dms}}
-      }
-
 # loop over camera model entities
       foreach cm $cmlist {
         ::tcom::foreach entCameraModel [$objDesign FindObjects [string trim $cm]] {
           set attrCameraModels [$entCameraModel Attributes]
 
 # loop over draughting model entities
-          foreach dm $dmlist {
+          foreach dm $draughtingModels {
             set entDraughtingModels [$entCameraModel GetUsedIn [string trim $dm] [string trim items]]
             ::tcom::foreach entDraughtingModel $entDraughtingModels {
               set attrDraughtingModels [$entDraughtingModel Attributes]
@@ -1417,38 +1406,36 @@ proc pmiGetCamerasAndProperties {} {
               set annForDM([$entDraughtingModel P21ID]) 0
 
 # DM name attribute
-              set ok 0
-              #if {[llength $dmlist] == 1 || [string first "characterized" $dm] != -1} {set ok 1}
-              set ok 1
-              if {$ok} {
-                set nattr 0
-                set iattr 1
-                if {[string first "object" $dm] != -1} {set iattr 3}
-                ::tcom::foreach attrDraughtingModel $attrDraughtingModels {
-                  incr nattr
-                  set nameDraughtingModel [$attrDraughtingModel Name]
-                  if {$nameDraughtingModel == "name" && $nattr == $iattr} {
-                    set name [$attrDraughtingModel Value]
-                    if {$name == ""} {
-                      set msg "Syntax Error: For Saved Views, missing required 'name' attribute on [formatComplexEnt $dm]\n[string repeat " " 14]"
-                      if {$stepAP == "AP242"} {
-                        append msg "($recPracNames(pmi242), Sec. 9.4.2)"
-                      } else {
-                        append msg "($recPracNames(pmi203), Sec. 5.4.2)"
-                      }
-                      errorMsg $msg
-                      lappend syntaxErr($dm) [list [$entDraughtingModel P21ID] name $msg]
+              #set ok 0
+              #if {[llength $draughtingModels] == 1 || [string first "characterized" $dm] != -1} {set ok 1}
+              #set ok 1
+              set nattr 0
+              set iattr 1
+              if {[string first "object" $dm] != -1} {set iattr 3}
+              ::tcom::foreach attrDraughtingModel $attrDraughtingModels {
+                incr nattr
+                set nameDraughtingModel [$attrDraughtingModel Name]
+                if {$nameDraughtingModel == "name" && $nattr == $iattr} {
+                  set name [$attrDraughtingModel Value]
+                  if {$name == ""} {
+                    set msg "Syntax Error: For Saved Views, missing required 'name' attribute on [formatComplexEnt $dm]\n[string repeat " " 14]"
+                    if {$stepAP == "AP242"} {
+                      append msg "($recPracNames(pmi242), Sec. 9.4.2)"
+                    } else {
+                      append msg "($recPracNames(pmi203), Sec. 5.4.2)"
                     }
+                    errorMsg $msg
+                    lappend syntaxErr($dm) [list [$entDraughtingModel P21ID] name $msg]
                   }
-                  if {$nameDraughtingModel == "items"} {
-                    ::tcom::foreach item [$attrDraughtingModel Value] {
-                      set itype [$item Type]
-                      if {$itype != "mapped_item" && [string first "camera_model_d3" $itype] == -1} {
-                        append dmitems([$entDraughtingModel P21ID]) "[$item P21ID] "
-                      }
-                      if {[string first "annotation" $itype] != -1 || [string first "_callout" $itype] != -1} {
-                        set annForDM([$entDraughtingModel P21ID]) 1
-                      }
+                }
+                if {$nameDraughtingModel == "items"} {
+                  ::tcom::foreach item [$attrDraughtingModel Value] {
+                    set itype [$item Type]
+                    if {$itype != "mapped_item" && [string first "camera_model_d3" $itype] == -1} {
+                      append dmitems([$entDraughtingModel P21ID]) "[$item P21ID] "
+                    }
+                    if {[string first "annotation" $itype] != -1 || [string first "_callout" $itype] != -1} {
+                      set annForDM([$entDraughtingModel P21ID]) 1
                     }
                   }
                 }

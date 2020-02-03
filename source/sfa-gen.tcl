@@ -1,7 +1,7 @@
 # generate an Excel spreadsheet from a STEP file
 proc genExcel {{numFile 0}} {
   global allEntity aoEntTypes ap203all ap214all ap242all badAttributes brepEnts buttons cells cells1 col col1 count csvdirnam csvfile currLogFile developer
-  global dim dimRepeatDiv editorCmd entCategories entCategory entColorIndex entCount entityCount entsIgnored entsWithErrors errmsg
+  global dim dimRepeatDiv draughtingModels editorCmd entCategories entCategory entColorIndex entCount entityCount entsIgnored entsWithErrors errmsg
   global excel excelVersion fcsv feaFirstEntity feaLastEntity File fileEntity filesProcessed gpmiTypesInvalid gpmiTypesPerFile guid idxColor ifcsvrDir inverses
   global lastXLS lenfilelist localName localNameList logFile matrixList multiFile multiFileDir mytemp nistCoverageLegend nistName nistPMIexpected nistPMImaster
   global nprogBarEnts nshape ofCSV ofExcel opt pf32 p21e3 p21e3Section row rowmax savedViewButtons savedViewName savedViewNames scriptName
@@ -137,6 +137,8 @@ proc genExcel {{numFile 0}} {
           } elseif {$entType == "datum"} {
             lappend characteristics "Datums"
             set viz(PMIMSG) "Some Graphical PMI might not have equivalent Semantic PMI in the STEP file."
+          } elseif {$entType == "placed_datum_target_feature" || $entType == "datum_target"} {
+            lappend characteristics "Datum targets"
 
           } elseif {$entType == "tessellated_annotation_occurrence"} {
             lappend characteristics "Graphical PMI (tessellated)"
@@ -248,7 +250,7 @@ proc genExcel {{numFile 0}} {
       if {!$p21e3} {
         set fext [string tolower [file extension $fname]]
         if {$fext != ".stp" && $fext != ".step" && $fext != ".p21" && $fext != ".stpz" && $fext != ".ifc"} {
-          errorMsg "File extension not supported ([file extension $fname])" red
+          errorMsg "File extension '[file extension $fname]' is not supported." red
         } else {
           set fs [getSchemaFromFile $fname 1]
           set c1 [string first "\{" $fs]
@@ -640,6 +642,16 @@ proc genExcel {{numFile 0}} {
       set inverses $invNew
     }
   }
+
+# check draughting model entities for PMI saved views
+set draughtingModels {}
+foreach dm [list draughting_model \
+                 characterized_object_and_draughting_model \
+                 characterized_representation_and_draughting_model \
+                 characterized_representation_and_draughting_model_and_representation \
+                 characterized_representation_and_draughting_model_and_tessellated_shape_representation] {
+  if {[info exists entCount($dm)]} {if {$entCount($dm) > 0} {lappend draughtingModels $dm}}
+}
 
 # -------------------------------------------------------------------------------------------------
 # list entities not processed based on fix file
@@ -1068,7 +1080,7 @@ proc genExcel {{numFile 0}} {
 
 # add ANCHOR and other sections from Part 21 Edition 3
     if {[info exists p21e3Section]} {if {[llength $p21e3Section] > 0} {addP21e3Section 1}}
-    
+
 # add persistent IDs (UUID) from id_attribute
     if {[info exists entCount(id_attribute)]} {
       set okid 0
@@ -2178,24 +2190,24 @@ proc addP21e3Section {idType} {
         set r 0
         outputMsg " Adding $line worksheet" green
       }
-  
+
 # add to worksheet
       incr r
       $cells($sect) Item $r 1 $line
-  
+
 # process anchor section persistent IDs
       if {$sect == "ANCHOR"} {
         if {$r == 1} {$cells($sect) Item $r 2 "Entity"}
         set c2 [string first ";" $line]
         if {$c2 != -1} {set line [string range $line 0 $c2-1]}
-  
+
         set c1 [string first "\#" $line]
         if {$c1 != -1} {
           set badEnt 0
           set anchorID [string range $line $c1+1 end]
           if {[string is integer $anchorID]} {
             set anchorEnt [[$objDesign FindObjectByP21Id [expr {int($anchorID)}]] Type]
-  
+
 # add anchor ID to entity worksheet and representation summary
             if {$anchorEnt != ""} {
               $cells($sect) Item $r 2 $anchorEnt
@@ -2219,7 +2231,7 @@ proc addP21e3Section {idType} {
           } else {
             set badEnt 1
           }
-  
+
 # bad ID in anchor section
           if {$badEnt} {
             [[$worksheet($sect) Range [cellRange $r 1] [cellRange $r 1]] Interior] Color $legendColor(red)
@@ -2227,11 +2239,11 @@ proc addP21e3Section {idType} {
           }
         }
       }
-  
+
       if {$line == "ENDSEC"} {[$worksheet($sect) Columns] AutoFit}
     }
-    
-# add persistent IDs (GUID) with id_attribute  
+
+# add persistent IDs (GUID) with id_attribute
   } elseif {$idType == 2} {
     set heading "GUID"
     foreach idx [array names guid] {

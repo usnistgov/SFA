@@ -215,7 +215,7 @@ proc getFaceGeom {e0 tolType {id ""}} {
                 }
               }
             } else {
-              errorMsg "Unexpected bounding loop for Associated Geometry face: [$e4 Type]"
+              errorMsg "Edges defined by '[$e4 Type]' for an associated geometry face are not supported."
             }
           }
         } else {

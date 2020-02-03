@@ -813,7 +813,7 @@ proc runOpenProgram {} {
 #-------------------------------------------------------------------------------
 # open a spreadsheet
 proc openXLS {filename {check 0} {multiFile 0}} {
-  global buttons developer
+  global buttons
 
   if {[info exists buttons]} {
     .tnb select .tnb.status

@@ -54,7 +54,7 @@ proc x3dFileStart {} {
           append colormsg "Overriding colors ($x3dColorOverriding)"
         }
       }
-      if {$colormsg != ""} {puts $x3dFile "$colormsg are ignored.  "}
+      if {$colormsg != ""} {puts $x3dFile "$colormsg are not supported.  "}
     }
   }
   if {$viz(PMI)} {
@@ -352,7 +352,11 @@ proc x3dFileEnd {} {
 # -------------------------------------------------------------------------------
 # datum targets
   set viz(DTR) 0
-  if {[info exists datumTargetView]} {x3dDatumTarget $maxxyz}
+  if {[info exists datumTargetView]} {
+    x3dDatumTarget $maxxyz
+  } elseif {[info exists entCount(placed_datum_target_feature)] || [info exists entCount(datum_target)]} {
+    outputMsg " Datum targets cannot be viewed.  See Help > View > Datum Targets" red
+  }
 
 # -------------------------------------------------------------------------------
 # write any PMI saved view geometry for multiple saved views
@@ -1012,7 +1016,7 @@ proc x3dBrepGeomColor {} {
       if {$opt(VIZBRPCLR)} {x3dBrepGeom}
     }
   } emsg]} {
-    errorMsg " ERROR adding Part Geometry ($emsg)"
+    errorMsg " ERROR adding Part Geometry: $emsg"
   }
 }
 
@@ -1211,7 +1215,7 @@ proc x3dBrepGeom {} {
       errorMsg " ERROR: The program (stp2x3d.exe) to convert STEP part geometry to X3D was not found in $mytemp"
     }
   } emsg]} {
-    errorMsg " ERROR adding Part Geometry ($emsg)"
+    errorMsg " ERROR adding Part Geometry: $emsg"
   }
 }
 
@@ -1293,7 +1297,7 @@ proc x3dBrepColor {} {
                     lappend overridingColors $x3dColorBrep
                   }
                 } else {
-                  errorMsg "  Unexpected color type ([$e8 Type])"
+                  errorMsg "  Part geometry color type '[$e8 Type]' is not supported."
                 }
                 if {$debug} {errorMsg "$x3dColorBrep  $item" red}
               }
@@ -1328,11 +1332,13 @@ proc x3dBrepColor {} {
   }
 
   if {!$opt(VIZBRPCLR)} {
-    if {$x3dColorAll > 1} {errorMsg " Multiple part colors ($x3dColorAll) are ignored (using gray)."}
-    if {$x3dColorOverriding > 0} {errorMsg " Overriding part colors ($x3dColorOverriding) are ignored."}
+    if {$x3dColorAll > 1} {
+      errorMsg " Multiple part colors are not supported, using gray." red
+    } elseif {$x3dColorOverriding > 0} {
+      errorMsg " Overriding part colors are not supported." red
+    }
   }
 
-  if {$x3dColorBrep == "0 0 0"} {errorMsg " The STEP part geometry is colored Black."}
   if {$debug} {outputMsg $x3dColorBrep blue}
   return $x3dColorBrep
 }
@@ -1369,21 +1375,22 @@ proc x3dBrepUnits {} {
 # -------------------------------------------------------------------------------
 # placed datum targets
 proc x3dDatumTarget {maxxyz} {
-  global datumTargetView developer dttype recPracNames opt viz x3dFile x3dMsg
+  global datumTargetView developer dttype viz x3dFile x3dMsg
 
-  outputMsg " Processing datum targets (See Help > View > Datum targets)" green
+  outputMsg " Processing datum targets" green
   puts $x3dFile "\n<!-- DATUM TARGETS -->\n<Switch whichChoice='0' id='swDTR'><Group>"
 
   set dttype ""
   foreach idx [array names datumTargetView] {
-    if {$developer} {outputMsg "$idx $datumTargetView($idx)"}
+    #outputMsg "$idx $datumTargetView($idx)"
     set shape [lindex $datumTargetView($idx) 0]
     set color "1 0 0"
     if {[string first "feature" $idx] != -1} {set color "0 .5 0"}
-    set e3 ""
+    set endTransform 0
 
 # check for handle
     if {[string first "handle" $shape] == -1} {
+      set e3 ""
 
 # position and orientation
       set origin [lindex [lindex $datumTargetView($idx) 1] 0]
@@ -1407,7 +1414,6 @@ proc x3dDatumTarget {maxxyz} {
       }
     }
 
-
 # text
     set textOrigin "0 0 0"
     set target [lindex $datumTargetView($idx) end]
@@ -1415,6 +1421,7 @@ proc x3dDatumTarget {maxxyz} {
     if {$len < 2 || $len > 5 || ![string is alpha [string index $target 0]]} {set target ""}
     set textJustify "BEGIN"
     if {$e3 != ""} {set textJustify "END"}
+    if {$target != ""} {puts $x3dFile "<!-- $target -->"}
 
 # process different shapes
     if {[catch {
@@ -1427,6 +1434,7 @@ proc x3dDatumTarget {maxxyz} {
           puts $x3dFile "<Transform translation='$origin'><Shape><Appearance><Material diffuseColor='$color' emissiveColor='$color'></Material></Appearance><Sphere radius='$rad'></Sphere></Shape>"
           set target " $target"
           set viz(DTR) 1
+          set endTransform 1
         }
 
         line {
@@ -1436,6 +1444,7 @@ proc x3dDatumTarget {maxxyz} {
             set x [trimNum [lindex [lindex $datumTargetView($idx) 2] 1]]
             puts $x3dFile " <Shape><Appearance><Material emissiveColor='$color'></Material></Appearance><IndexedLineSet coordIndex='0 1 -1'><Coordinate point='0 0 0 $x 0 0'></Coordinate></IndexedLineSet></Shape>"
             set textOrigin "[trimNum [expr {$x*0.5}]] 0 0"
+            set endTransform 1
           } else {
             set e4 [[[$e3 Attributes] Item [expr 2]] Value]
             set coord1 [vectrim [[[$e4 Attributes] Item [expr 2]] Value]]
@@ -1445,7 +1454,7 @@ proc x3dDatumTarget {maxxyz} {
             set dir [[[$e6 Attributes] Item [expr 2]] Value]
             set coord2 [vectrim [vecmult $dir $mag]]
             set coord2 [vectrim [vecadd $coord1 $coord2]]
-            puts $x3dFile "<Shape><IndexedLineSet coordIndex='0 1 -1'><Coordinate point='$coord1 $coord2'></Coordinate></IndexedLineSet><Appearance><Material emissiveColor='$color'></Material></Appearance></Shape>"
+            puts $x3dFile "<Shape><Appearance><Material emissiveColor='$color'></Material></Appearance><IndexedLineSet coordIndex='0 1 -1'><Coordinate point='$coord1 $coord2'></Coordinate></IndexedLineSet></Shape>"
             set textOrigin [vectrim [vecmult [vecadd $coord1 $coord2] 0.5]]
           }
           set viz(DTR) 1
@@ -1463,6 +1472,7 @@ proc x3dDatumTarget {maxxyz} {
           }
           puts $x3dFile " <Shape><Appearance><Material emissiveColor='$color'></Material></Appearance><IndexedLineSet coordIndex='0 1 2 3 0 -1'><Coordinate point='-$x -$y 0 $x -$y 0 $x $y 0 -$x $y 0'></Coordinate></IndexedLineSet></Shape>"
           puts $x3dFile " <Shape><Appearance><Material diffuseColor='$color' transparency='0.8'></Material></Appearance><IndexedFaceSet solid='false' coordIndex='0 1 2 3 -1'><Coordinate point='-$x -$y 0 $x -$y 0 $x $y 0 -$x $y 0'></Coordinate></IndexedFaceSet></Shape>"
+          set endTransform 1
           set viz(DTR) 1
         }
 
@@ -1498,6 +1508,7 @@ proc x3dDatumTarget {maxxyz} {
           } else {
             set textOrigin "$rad 0 0"
           }
+          set endTransform 1
           set viz(DTR) 1
         }
 
@@ -1506,76 +1517,88 @@ proc x3dDatumTarget {maxxyz} {
           set e1 $e3
           set e2 [[[$e1 Attributes] Item [expr 3]] Value]
 
-# if in a plane, follow face_outer_bounds to
+# if in a plane, follow face_outer_bounds and face_bounds to ...
           if {[$e2 Type] == "plane"} {
             set e2s [[[$e1 Attributes] Item [expr 2]] Value]
+            set igeom 0
+            set coord ""
+            set ncoord 0
+            set nbound 0
+            ::tcom::foreach e2 $e2s {incr nbound}
+
             ::tcom::foreach e2 $e2s {
-              set ngeom 0
-              set coord ""
-              set ncoord 0
               set e3 [[[$e2 Attributes] Item [expr 2]] Value]
               set e4s [[[$e3 Attributes] Item [expr 2]] Value]
+              #outputMsg e2[$e2 P21ID][$e2 Type]
+              #outputMsg " e3[$e3 P21ID][$e3 Type]"
 
+              set ngeom 0
+              ::tcom::foreach e4 $e4s {incr ngeom}
               ::tcom::foreach e4 $e4s {
-                incr ngeom
                 set e5 [[[$e4 Attributes] Item [expr 4]] Value]
                 set e6 [[[$e5 Attributes] Item [expr 4]] Value]
-                #outputMsg e4[$e4 P21ID][$e4 Type]
-                #outputMsg e5[$e5 P21ID][$e5 Type]
-                #outputMsg e6[$e6 P21ID][$e6 Type]
+                incr igeom
+                #outputMsg "$nbound $ngeom"
+                #outputMsg "  e4[$e4 P21ID][$e4 Type]"
+                #outputMsg "   e5[$e5 P21ID][$e5 Type]"
+                #outputMsg "    e6[$e6 P21ID][$e6 Type]"
 
-# circle
+# advanced face circle edges
                 if {[$e6 Type] == "circle"} {
-                  if {$ngeom == 1} {
+                  if {$nbound == 1 && $ngeom == 1} {
                     set rad [[[$e6 Attributes] Item [expr 3]] Value]
                     set a2p3d [x3dGetA2P3D [[[$e6 Attributes] Item [expr 2]] Value]]
                     puts $x3dFile [x3dTransform [lindex $a2p3d 0] [lindex $a2p3d 1] [lindex $a2p3d 2] "$shape circle datum target"]
-                    set ns 48
+                    incr ncoord 48
                     set angle 0.
-                    set dlt [expr {6.28319/$ns}]
-                    set index ""
-                    for {set i 0} {$i < $ns} {incr i} {append index "$i "}
-                    set coord ""
-                    for {set i 0} {$i < $ns} {incr i} {
+                    set dlt [expr {6.28319/$ncoord}]
+                    for {set i 0} {$i < $ncoord} {incr i} {
                       append coord "[trimNum [expr {$rad*cos($angle)}]] "
                       append coord "[trimNum [expr {-1.*$rad*sin($angle)}]] "
                       append coord "0 "
                       set angle [expr {$angle+$dlt}]
                     }
-                    puts $x3dFile " <Shape><Appearance><Material emissiveColor='$color'></Material></Appearance><IndexedLineSet coordIndex='$index 0 -1'><Coordinate point='$coord'></Coordinate></IndexedLineSet></Shape>"
-                    puts $x3dFile " <Shape><Appearance><Material diffuseColor='$color' transparency='0.8'></Material></Appearance><IndexedFaceSet solid='false' coordIndex='$index -1'><Coordinate point='$coord'></Coordinate></IndexedFaceSet></Shape></Transform>"
                     set textOrigin "[vectrim [lindex $a2p3d 0]]"
-                    set viz(DTR) 1
+                    set endTransform 1
+                  } else {
+                    errorMsg " Circle edges in datum target bounds defined in combination with other circles and lines are not supported."
                   }
 
-# lines
+# advanced face line edges
                 } elseif {[$e6 Type] == "line"} {
                   set e7 [[[$e6 Attributes] Item [expr 2]] Value]
                   set pt [vectrim [[[$e7 Attributes] Item [expr 2]] Value]]
                   append coord "$pt "
                   incr ncoord
-                  if {$ncoord == 1} {set textOrigin $pt}
+                  if {$ncoord == 1 && $igeom == 1} {set textOrigin $pt}
+
+# not a circle or line
                 } else {
                   set target ""
-                  errorMsg " Datum target for '$shape ([$e6 Type])' cannot be viewed."
+                  errorMsg " Datum target edge defined by '[$e6 Type]' is not supported."
                 }
               }
+            }
 
 # shape for circles and lines
-              if {$coord != ""} {
-                set index ""
-                for {set i 0} {$i < $ncoord} {incr i} {append index "$i "}
-                puts $x3dFile " <Shape><Appearance><Material emissiveColor='$color'></Material></Appearance><IndexedLineSet coordIndex='$index 0 -1'><Coordinate point='$coord'></Coordinate></IndexedLineSet></Shape>"
-                puts $x3dFile " <Shape><Appearance><Material diffuseColor='$color' transparency='0.8'></Material></Appearance><IndexedFaceSet solid='false' coordIndex='$index -1'><Coordinate point='$coord'></Coordinate></IndexedFaceSet></Shape>"
-                set viz(DTR) 1
-              }
+            if {$coord != ""} {
+              set index ""
+              for {set i 0} {$i < $ncoord} {incr i} {append index "$i "}
+              puts $x3dFile " <Shape><Appearance><Material emissiveColor='$color'></Material></Appearance><IndexedLineSet coordIndex='$index 0 -1'><Coordinate point='$coord'></Coordinate></IndexedLineSet></Shape>"
+              puts $x3dFile " <Shape><Appearance><Material diffuseColor='$color' transparency='0.8'></Material></Appearance><IndexedFaceSet solid='false' coordIndex='$index -1'><Coordinate point='$coord'></Coordinate></IndexedFaceSet></Shape>"
+              set viz(DTR) 1
             }
+
+# non planes are not supported
+          } else {
+            set target ""
+            errorMsg " Datum target surface defined by '[$e2 Type]' is not supported."
           }
         }
 
         default {
           set target ""
-          set msg " Datum target for '$shape' cannot be viewed."
+          set msg " Datum target defined by '$shape' is not supported."
           errorMsg $msg
           set msg [string trim $msg]
           if {[lsearch $x3dMsg $msg] == -1} {lappend x3dMsg [string trim $msg]}
@@ -1597,7 +1620,10 @@ proc x3dDatumTarget {maxxyz} {
         if {$textOrigin != "0 0 0"} {set trans " translation='$textOrigin'"}
         puts $x3dFile " <Transform$trans scale='$size $size $size'><Billboard axisOfRotation='0 0 0'><Shape><Text string='\"$target\"'><FontStyle family='\"SANS\"' justify='\"$textJustify\"'></FontStyle></Text><Appearance><Material diffuseColor='$color'></Material></Appearance></Shape></Billboard></Transform>"
       }
-      puts $x3dFile "</Transform>"
+
+# end transform
+      if {$endTransform} {puts $x3dFile "</Transform>"}
+
     } emsg]} {
       errorMsg "ERROR viewing a '$shape' datum target: $emsg"
     }
@@ -1651,26 +1677,29 @@ proc x3dSuppGeom {maxxyz} {
                   set e5s [[[$e4 Attributes] Item [expr 2]] Value]
                   ::tcom::foreach e5 $e5s {
                     set e6 [[[$e5 Attributes] Item [expr 1]] Value]
-                    set e7 [[[$e6 Attributes] Item [expr 4]] Value]
-                    if {$e7 != ""} {
-                      if {[$e7 Type] == "colour_rgb"} {
-                        set j 0
-                        ::tcom::foreach a7 [$e7 Attributes] {
-                          if {$j > 0} {append axisColor "[trimNum [$a7 Value] 3] "}
-                          incr j
+                    if {[$e6 Type] == "curve_style"} {
+                      set e7 [[[$e6 Attributes] Item [expr 4]] Value]
+                      if {$e7 != ""} {
+                        if {[$e7 Type] == "colour_rgb"} {
+                          set j 0
+                          ::tcom::foreach a7 [$e7 Attributes] {
+                            if {$j > 0} {append axisColor "[trimNum [$a7 Value] 3] "}
+                            incr j
+                          }
+                          set axisColor [string trim $axisColor]
+                        } elseif {[$e7 Type] == "draughting_pre_defined_colour"} {
+                          set axisColor [x3dPreDefinedColor [[[$e7 Attributes] Item [expr 1]] Value]]
+                        } else {
+                          errorMsg " Color '[$e7 Type]' for '$ename' supplemental geometry is not supported."
                         }
-                        set axisColor [string trim $axisColor]
-                      } elseif {[$e7 Type] == "draughting_pre_defined_colour"} {
-                        set axisColor [x3dPreDefinedColor [[[$e7 Attributes] Item [expr 1]] Value]]
-                      } else {
-                        errorMsg " Unexpected color '[$e7 Type]' for '$ename' supplemental geometry."
                       }
-                      #outputMsg color$axisColor
+                    } else {
+                      errorMsg " Color defined with '[$e6 Type]' for '$ename' supplemental geometry is not supported."
                     }
                   }
                 }
               } emsg]} {
-                errorMsg " ERROR getting color for '$ename' supplemental geometry."
+                errorMsg " ERROR getting color for '$ename' supplemental geometry: $emsg"
               }
 
               set closeTransform 1
@@ -2088,7 +2117,7 @@ proc x3dSuppGeomPlane {e2 size {name ""}} {
     set bound 0
     ::tcom::foreach bnd $bnds {set bound 1}
     if {$bound} {
-      set msg "Bounding edges for supplemental geometry 'plane' are ignored."
+      set msg "Bounding edges for supplemental geometry 'plane' are not supported."
       errorMsg " $msg"
       if {[lsearch $x3dMsg $msg] == -1} {lappend x3dMsg $msg}
     }
@@ -2125,7 +2154,7 @@ proc x3dSuppGeomCylinder {e2 tsize {name ""}} {
     set bound 0
     ::tcom::foreach e0 $bnds {set bound 1}
     if {$bound} {
-      set msg "Bounding edges for supplemental geometry 'cylindrical_surface' are ignored."
+      set msg "Bounding edges for supplemental geometry 'cylindrical_surface' are not supported."
       errorMsg " $msg"
       if {[lsearch $x3dMsg $msg] == -1} {lappend x3dMsg $msg}
     }
@@ -2330,7 +2359,7 @@ proc x3dPreDefinedColor {name} {
     magenta {set color "1 0 1"}
     default {
       set color [lindex $defaultColor 0]
-      errorMsg "Syntax Error: Unexpected draughting_pre_defined_colour name '$name' (using [lindex $defaultColor 1])\n[string repeat " " 14]($recPracNames(model), Sec. 4.2.3, Table 2)"
+      errorMsg "Syntax Error: draughting_pre_defined_colour name '$name' is not supported (using [lindex $defaultColor 1])\n[string repeat " " 14]($recPracNames(model), Sec. 4.2.3, Table 2)"
     }
   }
   return $color
@@ -2628,17 +2657,13 @@ proc openX3DOM {{fn ""} {numFile 0}} {
 # -------------------------------------------------------------------------------
 # get saved view names
 proc getSavedViewName {objEntity} {
-  global draftModelCameraNames draftModelCameras entCount savedsavedViewNames savedViewName
+  global draughtingModels draftModelCameraNames draftModelCameras savedsavedViewNames savedViewName
 
 # saved view name already saved
   if {[info exists savedsavedViewNames([$objEntity P21ID])]} {return $savedsavedViewNames([$objEntity P21ID])}
 
   set savedViewName {}
-  set dmlist {}
-  foreach dms [list draughting_model characterized_object_and_draughting_model characterized_representation_and_draughting_model characterized_representation_and_draughting_model_and_representation] {
-    if {[info exists entCount($dms)]} {if {$entCount($dms) > 0} {lappend dmlist $dms}}
-  }
-  foreach dm $dmlist {
+  foreach dm $draughtingModels {
     set entDraughtingModels [$objEntity GetUsedIn [string trim $dm] [string trim items]]
     set entDraughtingCallouts [$objEntity GetUsedIn [string trim draughting_callout] [string trim contents]]
     ::tcom::foreach entDraughtingCallout $entDraughtingCallouts {
@@ -2677,18 +2702,18 @@ proc x3dSwitchScript {name {name1 ""}} {
 proc x3dGetRotation {axis refdir {type ""}} {
   global x3dMsg
 
-# one of the vectors is zero length, i.e., '0 0 0'
+# check if one of the vectors is zero length, i.e., '0 0 0'
   set msg ""
   if {[veclen $axis] == 0 || [veclen $refdir] == 0} {
-    set msg "Syntax Error: The orientation"
-    if {$type != ""} {append msg ", related to $type,"}
-    append msg " axis or ref_direction vector is '0 0 0'."
+    set msg "Syntax Error: The orientation axis or ref_direction vector is '0 0 0'"
+    if {$type != ""} {append msg " for a $type"}
+    append msg "."
 
-# check axis and refdir are congruent
+# check if axis and refdir are congruent
   } elseif {[veclen [veccross $axis $refdir]] == 0} {
-    set msg "Syntax Error: The orientation"
-    if {$type != ""} {append msg ", related to $type,"}
-    append msg " axis and ref_direction vectors are congruent."
+    set msg "Syntax Error: The orientation axis and ref_direction vectors are congruent"
+    if {$type != ""} {append msg " for a $type"}
+    append msg "."
   }
 
   if {$msg != ""} {

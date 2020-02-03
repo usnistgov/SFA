@@ -580,7 +580,7 @@ proc valPropReport {objEntity} {
                       }
                     }
                     if {!$okvp} {
-                      set msg "Syntax Error: Unexpected Validation Property '$objValue'"
+                      set msg "Syntax Error: Validation property '$objValue' is not supported."
                       errorMsg $msg
                       set invalid $msg
                       lappend syntaxErr([lindex [split $ent1 " "] 0]) [list $objID [lindex [split $ent1 " "] 1] $msg]

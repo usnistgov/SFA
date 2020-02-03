@@ -1,5 +1,5 @@
 # version numbers - SFA, software user guide (UG)
-proc getVersion {}   {return 3.90}
+proc getVersion {}   {return 3.92}
 proc getVersionUG {} {return 3.0}
 
 # IFCsvr version, depends on string entered when IFCsvr is repackaged for new STEP schemas
@@ -1030,7 +1030,9 @@ model data) Part 21 file (.stp or .step or .p21 file extension) and
 
 The four different types of output can be selected in the Options tab.  Help is available in the
 User Guide or in tooltip help.  Some newer features might not be described in the User Guide.
-Check the Changelog for recent updates to the software."
+Check the Changelog for recent updates to the software.
+
+AP238 files with a .stpnc file extension are supported if the file extension is changed to .stp"
     .tnb select .tnb.status
   }
 
@@ -1085,7 +1087,7 @@ program to complete.  If smooth shaded is not selected then surfaces will appear
 faceted surfaces, the HTML file is smaller and faster to open in the web browser.
 
 Part geometry limitations:
-- Multiple part colors are ignored.  Overriding colors are also ignored.
+- Multiple part colors and overriding colors are not supported.
 - In some rare cases, curved surfaces might appear jagged or incomplete.
 - For large STEP files, a view might take several minutes or more to generate and show in the web
   browser.
@@ -1094,6 +1096,7 @@ Part geometry limitations:
 
 See Help > View for more information about viewing:
 - Supplemental Geometry
+- Datum Targets
 - Graphical PMI
 - AP242 Tessellated Geometry
 - AP209 Finite Element Models
@@ -1101,14 +1104,12 @@ See Help > View for more information about viewing:
 See Examples > View Part with PMI and others
 
 Other STEP file viewers are available.  See Websites > STEP File Viewers
-Many of the other viewers are much faster and have better features for viewing and measuring part
-geometry.  However, some of the other viewers cannot view graphical PMI, AP242 tessellated part
-geometry, and AP209 finite element models."
+
+Many of the other viewers are faster and have better features for viewing and measuring part
+geometry.  However, most of the other viewers cannot view graphical PMI, supplemental geometry,
+datum targets, AP242 tessellated part geometry, and AP209 finite element models."
     .tnb select .tnb.status
   }
-
-#Counterbore and countersink holes in AP242 edition 2 are also shown.  Countbore holes are green and
-#countersink holes are cyan.  Both types of holes are shown with black dot at the drill entry point.
 
 # open Function Keys help
   $Help add separator
@@ -1198,25 +1199,32 @@ The following types of supplemental geometry and associated text are supported.
 - Tessellated Surface: faces outlined in black
 
 Lines and circles that are trimmed by cartesian_point will not be trimmed.  Bounding edges for
-planes and cylinders are ignored.  All bounded and unbounded planes are shown with a fixed size."
+planes and cylinders are not supported.  All bounded and unbounded planes are shown with a fixed
+size."
     .tnb select .tnb.status
   }
 
   $helpView add command -label "Datum Targets" -command {
 outputMsg "\nDatum Targets --------------------------------------------------------------" blue
-outputMsg "Datum targets are shown only if Analyze for Semantic PMI is selected and Part Geometry or
-Graphical PMI is also viewed.
+outputMsg "Datum targets are shown only if Analyze for Semantic PMI is selected and Part Geometry or Graphical
+PMI is also viewed.  There are two methods to represent the position, orientation, and dimensions
+of a datum target.
 
-There are two methods to represent the position, orientation, and dimensions of a datum target.
-- The position, orientation, and target length, width, and diameter are specified with the
-  placed_datum_target_feature entity.  Point, line, circle, circular curve, and rectangle datum
-  targets are supported.
-- The datum_target entity refers to geometric entities the specify the shape and location of the
-  datum target.  The supported geometric entities are cartesian_point, line, circle, trimmed_curve,
-  and advanced_face bounded by lines or circles.
+1 - The position, orientation, and target length, width, and diameter are specified with the
+placed_datum_target_feature entity.  Point, line, circle, circular curve, and rectangle datum
+targets are supported.
+
+2 - The shape and location of arbitrarily shaped area and curve datum targets is specified with
+geometric entities referred to by the datum_target entity.  Supported geometric entities, that lie
+in plane, are line, circle, trimmed_curve, and advanced_face bounded by lines or circles.  If other
+geometric entities are used, then either the datum target will not be shown or some of the datum
+targets edges will be missing.
 
 Datum targets are shown in red and can be switched on and off in the view.  Datum target feature
-geometry, also specified with geometric entities, is shown in green."
+geometry (feature_for_datum_target_relationship), also specified with geometric entities, is shown
+in green.
+
+See Examples > View Part with PMI"
     .tnb select .tnb.status
   }
 
@@ -1673,7 +1681,8 @@ dialogs might appear that say 'Unable to alloc xxx bytes'.  See the Help > Crash
         outputMsg "  [string range $item 0 $c1][string toupper [string range $item $c1+1 end]]"
       }
     }
-    outputMsg "\nSee the Websites menu for information about the STEP Format, EXPRESS Schemas, AP242, and more."
+    outputMsg "\nAP238 files with a .stpnc file extension are supported if the file extension is changed to .stp
+See the Websites menu for information about the STEP Format, EXPRESS Schemas, AP242, and more."
 
     .tnb select .tnb.status
   }

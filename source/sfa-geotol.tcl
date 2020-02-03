@@ -167,7 +167,7 @@ proc spmiGeotolReport {objEntity} {
       if {[catch {
         set datsys [list $c $r $datumSystem($objID)]
       } emsg]} {
-        errorMsg "Datum system not found."
+        errorMsg "Datum system not found: $emsg"
       }
     }
 
@@ -597,7 +597,7 @@ proc spmiGeotolReport {objEntity} {
               }
             }
           } emsg3]} {
-            errorMsg "ERROR processing Geotol ($objNodeType $ent2)\n $emsg3"
+            errorMsg "ERROR processing Geotol ($objNodeType $ent2): $emsg3"
             set entLevel 1
           }
 
@@ -653,7 +653,7 @@ proc spmiGeotolReport {objEntity} {
                         } else {
                           if {$val != ""} {append nval " \[$val\]"}
                           set ok 1
-                          set msg "Syntax Error: Unexpected datum reference frame modifier '$val'\n[string repeat " " 14]\($recPracNames(pmi242), Sec. 6.9.7)"
+                          set msg "Syntax Error: Datum reference frame modifier '$val' is not supported.\n[string repeat " " 14]\($recPracNames(pmi242), Sec. 6.9.7)"
                           errorMsg $msg
                           lappend syntaxErr([lindex [split $ent1 " "] 0]) [list [$gtEntity P21ID] [lindex [split $ent1 " "] 1] $msg]
                         }
@@ -740,7 +740,7 @@ proc spmiGeotolReport {objEntity} {
               }
             }
           } emsg3]} {
-            errorMsg "ERROR processing Geotol ($objNodeType $ent2)\n $emsg3"
+            errorMsg "ERROR processing Geotol ($objNodeType $ent2): $emsg3"
             set entLevel 1
           }
 
@@ -896,7 +896,7 @@ proc spmiGeotolReport {objEntity} {
                     } else {
                       if {$objValue != ""} {set objValue " \[$objValue\]"}
                       set ok 1
-                      set msg "Syntax Error: Unexpected datum reference frame modifier '$objValue'.\n[string repeat " " 14]\($recPracNames(pmi242), Sec. 6.9.7)"
+                      set msg "Syntax Error: Datum reference frame modifier '$objValue' is not supported.\n[string repeat " " 14]\($recPracNames(pmi242), Sec. 6.9.7)"
                       errorMsg $msg
                       lappend syntaxErr([lindex [split $ent1 " "] 0]) [list [$gtEntity P21ID] [lindex [split $ent1 " "] 1] $msg]
                     }
@@ -957,7 +957,7 @@ proc spmiGeotolReport {objEntity} {
 
 # bad feature for a point
                         if {$ov == "point" && [string first "advanced_face" $datumTargetGeom] != -1} {
-                          set msg "Target feature for a 'point' datum target is a 'face'."
+                          set msg "Target feature for a 'point' datum target should not be a 'face'."
                           errorMsg $msg
                           lappend syntaxErr([$gtEntity Type]) [list [$gtEntity P21ID] "Target Feature" $msg]
                         }
@@ -993,7 +993,7 @@ proc spmiGeotolReport {objEntity} {
                   "datum_target target_id" {
 # datum target IDs (Section 6.6)
                     if {![string is integer $ov]} {
-                      set msg "Syntax Error: Bad datum target 'target_id' ($ov), only integers are valid\n[string repeat " " 14]\($recPracNames(pmi242), Sec. 6.6)"
+                      set msg "Syntax Error: Only integers are valid for datum target 'target_id'.\n[string repeat " " 14]\($recPracNames(pmi242), Sec. 6.6)"
                       errorMsg $msg
                       lappend syntaxErr([lindex [split $ent1 " "] 0]) [list $objID [lindex [split $ent1 " "] 1] $msg]
                     }
@@ -1214,7 +1214,7 @@ proc spmiGeotolReport {objEntity} {
                           set invalid $msg
                         }
                       } emsg]} {
-                        errorMsg "ERROR processing datum target (placed_datum_target_feature)"
+                        errorMsg "ERROR processing datum target (placed_datum_target_feature): $emsg"
                       }
                     }
                   }
@@ -1281,7 +1281,7 @@ proc spmiGeotolReport {objEntity} {
                       } else {
                         if {$val != ""} {append nval " \[$val\]"}
                         set ok 1
-                        set msg "Syntax Error: Unexpected [$gtEntity Type] modifier '$val'\n[string repeat " " 14]\($recPracNames(pmi242), Sec. 6.9.3)"
+                        set msg "Syntax Error: [$gtEntity Type] modifier '$val' is not supported.\n[string repeat " " 14]\($recPracNames(pmi242), Sec. 6.9.3)"
                         errorMsg $msg
                         set invalid $msg
                       }
@@ -1306,7 +1306,7 @@ proc spmiGeotolReport {objEntity} {
                     } elseif {$objValue == "projected"} {
                       append datumModValue "\u24C5"
                     } elseif {$objValue != "distance"} {
-                      set msg "Syntax Error: Unexpected 'modifier_type' on 'datum_reference_modifier_with_value'\n[string repeat " " 14]\($recPracNames(pmi242), Sec. 6.9.7)"
+                      set msg "Syntax Error: datum_reference_modifier_with_value modifier_type '$objValue' is not supported.\n[string repeat " " 14]\($recPracNames(pmi242), Sec. 6.9.7)"
                       errorMsg $msg
                       lappend syntaxErr([lindex [split $ent1 " "] 0]) [list [$gtEntity P21ID] [lindex [split $ent1 " "] 1] $msg]
                     }
@@ -1413,7 +1413,7 @@ proc spmiGeotolReport {objEntity} {
               }
             }
           } emsg3]} {
-            errorMsg "ERROR processing Geotol ($objNodeType $ent2)\n $emsg3"
+            errorMsg "ERROR processing Geotol ($objNodeType $ent2): $emsg3"
             set entLevel 1
           }
         }
