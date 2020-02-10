@@ -348,20 +348,24 @@ proc valPropReport {objEntity} {
                 "descriptive_representation_item description" {
                   set ok 1
                   set col($pd) 9
-                  addValProps 2 $objValue "#$objID $ent2"
+                  addValProps 2 $objValue "#$objID [formatComplexEnt $ent2]"
                   #outputMsg "  VALUE    [llength [lindex $valProps 2]]  $valProps" red
                 }
 
                 "*measure_representation_item* unit_component" {
 # check for exponent (derived_unit) for area and volume
                   if {!$nounits} {
+
+# get valName for complex entity with measure after _and_
+                    if {[string first "_and_measure" $ent2] != -1} {set valName [[[$objEntity Attributes] Item [expr 3]] Value]}
+
                     foreach mtype [list area volume] {
                       if {[string first $mtype $valName] != -1} {
                         set munit $mtype
                         append munit "_unit"
                         set typ [$objValue Type]
                         if {$typ != "derived_unit" && $typ != $munit} {
-                          set msg "Syntax Error: Missing units exponent for a '$mtype' validation property.  '$ent2' must refer to '$munit' or 'derived_unit'."
+                          set msg "Syntax Error: Missing units exponent for a '$mtype' validation property.  '[formatComplexEnt $ent2]' must refer to '$munit' or 'derived_unit'."
                           errorMsg $msg
                           set vpcol 11
                           catch {if {[[$cells($pd) Item 3 13] Value] != ""} {set vpcol 13}}
@@ -505,7 +509,7 @@ proc valPropReport {objEntity} {
                   set ok 1
                   set col($pd) 9
                   set colName "value"
-                  addValProps 2 $objValue "#$objID $ent2"
+                  addValProps 2 $objValue "#$objID [formatComplexEnt $ent2]"
                   #outputMsg "  VALUE    [llength [lindex $valProps 2]]  $valProps" red
                 }
 
@@ -518,18 +522,14 @@ proc valPropReport {objEntity} {
                   set col($pd) 11
                   set colName "units"
                   set objValue "$prefix$objValue"
-                  set c1 [string first "." $ent2]
-                  set ent3 [formatComplexEnt [string range $ent2 0 $c1-1]][string range $ent2 $c1 end]
-                  addValProps 3 $objValue "#$objID $ent3"
+                  addValProps 3 $objValue "#$objID [formatComplexEnt $ent2]"
                   #outputMsg "   UNITS    [llength [lindex $valProps 3]]  $valProps" red
                 }
                 "conversion_based_unit_and_*_unit name" {
                   set ok 1
                   set col($pd) 11
                   set colName "units"
-                  set c1 [string first "." $ent2]
-                  set ent3 [formatComplexEnt [string range $ent2 0 $c1-1]][string range $ent2 $c1 end]
-                  addValProps 3 $objValue "#$objID $ent3"
+                  addValProps 3 $objValue "#$objID [formatComplexEnt $ent2]"
                   #outputMsg "   UNITS    [llength [lindex $valProps 3]]  $valProps" red
                 }
 
@@ -654,12 +654,7 @@ proc valPropReport {objEntity} {
                   set colName "value name"
                   set valName $objValue
                   if {[info exists nrep]} {incr nrep}
-                  set ent3 $ent2
-                  if {[string first "_and_" $ent2] != -1} {
-                    set c1 [string first "." $ent2]
-                    set ent3 [formatComplexEnt [string range $ent2 0 $c1-1]][string range $ent2 $c1 end]
-                  }
-                  addValProps 1 $objValue "#$objID $ent3"
+                  addValProps 1 $objValue "#$objID [formatComplexEnt $ent2]"
                   #outputMsg " VALNAME  [llength [lindex $valProps 1]]  $valProps" red
 
 # RP allows for blank representation.name (repName) except for sampling points
@@ -699,7 +694,7 @@ proc valPropReport {objEntity} {
                         } elseif {$ok1 == 2} {
                           set emsg "Syntax Error: Use lower case for "
                         }
-                        append emsg "'$ent2' attribute for '$propDefName'."
+                        append emsg "'[formatComplexEnt $ent2]' attribute for '$propDefName'."
                         switch $propDefName {
                           geometric_validation_property -
                           assembly_validation_property {append emsg "$lf\($recPracNames(valprop), Sec. 8)"}
@@ -747,12 +742,7 @@ proc valPropReport {objEntity} {
                 if {$colName == "saved view"} {
                   if {$objValue != ""} {
                     $cells($pd) Item $r $c $objValue
-                    set ent3 $ent2
-                    if {[string first "_and_" $ent2] != -1} {
-                      set c1 [string first "." $ent2]
-                      set ent3 [formatComplexEnt [string range $ent2 0 $c1-1]][string range $ent2 $c1 end]
-                    }
-                    $cells($pd) Item $r [expr {$col($pd)+1}] "#$objID $ent3"
+                    $cells($pd) Item $r [expr {$col($pd)+1}] "#$objID [formatComplexEnt $ent2]"
                   }
                 }
 
@@ -773,7 +763,7 @@ proc valPropReport {objEntity} {
       set msg ""
       if {[info exists objName]} {
         if {$objName == "unit_component" && $objValue == ""} {
-          set msg "Syntax Error: Missing 'unit_component' attribute on $ent($entLevel).  No units assigned to validation property values."
+          set msg "Syntax Error: Missing 'unit_component' attribute on [formatComplexEnt $ent($entLevel)].  No units assigned to validation property values."
           errorMsg $msg
           lappend syntaxErr($ent($entLevel)) [list $objID unit_component $msg]
         }

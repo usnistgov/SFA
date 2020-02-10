@@ -315,10 +315,16 @@ proc reportAssocGeom {entType {row ""}} {
         }
       }
       set val [[$cells($entType) Item $row $c] Value]
-      foreach str3 {note title block} {if {[string first $str3 $val] != -1} {set ok 0}}
+      foreach str3 {note title block label text} {if {[string first $str3 $val] != -1} {set ok 0}}
     }
     if {$ok} {
-      set msg "Syntax Error: Missing $str2 Geometry.  Check GISU or IIRU 'definition' attribute or shape_aspect_relationship 'relating_shape_aspect' attribute."
+      set etyp "entity"
+      if {[string first "annotation" $entType] != -1} {set etyp "annotation"}
+      if {[string first "tolerance"  $entType] != -1} {set etyp "tolerance"}
+      if {[string first "dimension"  $entType] != -1} {set etyp "dimension"}
+      if {[string first "datum_feature" $entType] != -1} {set etyp "datum feature"}
+
+      set msg "Syntax Error: $str2 Geometry not found for a [formatComplexEnt $entType].  If the $etyp should have $str2 Geometry, then check GISU or IIRU 'definition' attribute or shape_aspect_relationship 'relating_shape_aspect' attribute."
       append msg "\n[string repeat " " 14]\($recPracNames(pmi242), $str1)"
       errorMsg $msg
       if {$row != ""} {

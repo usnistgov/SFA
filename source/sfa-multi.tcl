@@ -402,7 +402,7 @@ proc openMultiFile {{ask 1}} {
             [$worksheet1($sum) Columns] AutoFit
 
 #-------------------------------------------------------------------------------
-# color entity names in first column, link to documentation
+# color entity names in first column
             set c1 [expr {[llength $fileList]+$wid+$inc1}]
             for {set i 0} {$i < [llength $allEntity]} {incr i} {
               set ent [lindex $allEntity $i]
@@ -434,7 +434,7 @@ proc openMultiFile {{ask 1}} {
               if {$stat([expr {$nf-1}]) != 0} {
 
 # link to file
-                if {!$opt(HIDELINKS)} {
+                if {!$opt(HIDELINKS) && [string first "#" $file1] == -1} {
                   set range [$worksheet1($sum) Range [cellRange 4 $nf]]
                   $links Add $range [join $file1] [join ""] [join "Link to STEP file"]
                 }
@@ -443,7 +443,7 @@ proc openMultiFile {{ask 1}} {
                 set range [$worksheet1($sum) Range [cellRange 3 $nf]]
                 incr idx
                 regsub -all {\\} [lindex $xlFileNames $idx] "/" xls
-                if {!$opt(HIDELINKS)} {$links Add $range [join $xls] [join ""] [join "Link to Spreadsheet"]}
+                if {!$opt(HIDELINKS) && [string first "#" $file1] == -1} {$links Add $range [join $xls] [join ""] [join "Link to Spreadsheet"]}
 
 # add vertical border when directory changes from column to column
                 if {[lsearch $dirchange $nf] != -1} {

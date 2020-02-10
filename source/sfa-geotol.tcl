@@ -1750,7 +1750,7 @@ proc spmiGeotolReport {objEntity} {
 # missing toleranced geometry
     } elseif {[string first "_tolerance" $gt] != -1} {
       if {$oktsa} {
-        set msg "Syntax Error: Missing Toleranced Geometry.  Check GISU or IIRU 'definition' attribute or shape_aspect_relationship 'relating_shape_aspect' attribute.\n[string repeat " " 14]\($recPracNames(pmi242), Sec. 6.9.2)"
+        set msg "Syntax Error: Toleranced Geometry not found for a [formatComplexEnt $gt].  If the tolerance should have Toleranced Geometry, then check GISU or IIRU 'definition' attribute or shape_aspect_relationship 'relating_shape_aspect' attribute.\n[string repeat " " 14]\($recPracNames(pmi242), Sec. 6.9.2)"
         errorMsg $msg
         lappend syntaxErr($gt) [list "-$spmiIDRow($gt,$spmiID)" "Toleranced Geometry" $msg]
       }

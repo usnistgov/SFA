@@ -1092,7 +1092,7 @@ proc feaBCs {entType} {
                     set circlePoints ""
                     for {set i 0} {$i < $ns} {incr i} {
                       set x [trimNum [expr {0.3*$size*cos($angle)}]]
-                      set y [trimNum [expr {-0.3*$size*sin($angle)}]]
+                      set y [trimNum [expr {0.3*$size*sin($angle)}]]
                       switch -- $r {
                         x {append circlePoints "0 $x $y "}
                         y {append circlePoints "$x 0 $y "}

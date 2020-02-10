@@ -2,7 +2,7 @@
 proc spmiSummary {} {
   global allPMI cells entName localName nistName nistPMIexpected recPracNames row sheetLast
   global spmiSumName spmiSumRow spmiSumRowID thisEntType worksheet worksheets xlFileName
-  
+
 # first time through, start worksheet
   if {$spmiSumRow == 1} {
     outputMsg " Adding PMI Representation Summary worksheet" blue
@@ -23,32 +23,32 @@ proc spmiSummary {} {
     $cells($spmiSumName) Item $spmiSumRow 1 "ID"
     $cells($spmiSumName) Item $spmiSumRow 2 "Entity"
     $cells($spmiSumName) Item $spmiSumRow 3 "PMI Representation"
-    
+
     set comment "PMI Representation is collected here from the datum systems, dimensions, tolerances, and datum target entities in column B."
     if {$nistName != ""} {
       append comment "\n\nIt is color-coded by the expected PMI in the NIST test case drawing to the right.  The color-coding is explained at the bottom of the column.  Determining if the PMI is Partial and Possible match and corresponding Similar PMI depends on leading and trailing zeros, number precision, associated datum features and dimensions, and repetitive dimensions.\n\nSee Help > User Guide (section 8)"
     }
     append comment "."
     addCellComment $spmiSumName $spmiSumRow 3 $comment
-    
+
     set range [$worksheet($spmiSumName) Range [cellRange 1 1] [cellRange 3 3]]
     [$range Font] Bold [expr 1]
     set range [$worksheet($spmiSumName) Range [cellRange 3 1] [cellRange 3 3]]
     catch {foreach i {8 9} {[[$range Borders] Item $i] Weight [expr 2]}}
     incr spmiSumRow
-  
+
     $cells($spmiSumName) Item 1 3 "See CAx-IF Recommended Practice for $recPracNames(pmi242)"
     set range [$worksheet($spmiSumName) Range C1:K1]
     $range MergeCells [expr 1]
     set anchor [$worksheet($spmiSumName) Range C1]
     [$worksheet($spmiSumName) Hyperlinks] Add $anchor [join "https://www.cax-if.org/cax/cax_recommPractice.php"] [join ""] [join "Link to CAx-IF Recommended Practices"]
-    
+
     set allPMI ""
 
 # get expected PMI for a NIST model
     if {$nistName != ""} {nistGetSummaryPMI}
   }
- 
+
 # add to PMI summary worksheet
   set hlink [$worksheet($spmiSumName) Hyperlinks]
   for {set i 3} {$i <= $row($thisEntType)} {incr i} {
@@ -171,7 +171,7 @@ proc spmiCoverageStart {{multi 1}} {
       [$range Font] Bold [expr 1]
       $range MergeCells [expr 1]
     }
-    
+
 # rows to start adding pmi types
     set row1($spmiCoverageWS) 3
     set row($spmiCoverageWS) 3
@@ -227,7 +227,7 @@ proc spmiCoverageWrite {{fn ""} {sum ""} {multi 1}} {
       $range HorizontalAlignment [expr -4108]
       $cells1($spmiCoverageWS) Item 3 $col1($sum) $fn
     }
-    
+
 # datums handled differently (don't remember why)
     if {[info exists entCount(datum)] && !$opt(PMISEMDIM)} {
       for {set i 0} {$i < $entCount(datum)} {incr i} {lappend spmiTypesPerFile1 "datum (6.5)"}
@@ -269,7 +269,7 @@ proc spmiCoverageWrite {{fn ""} {sum ""} {multi 1}} {
 # count number of spmiTypesPerFile, put in stpf
     set stpf {}
     if {[info exists spmiTypesPerFile]} {
-      foreach id $spmiTypesPerFile {incr num($id)}
+      foreach id $spmiTypesPerFile {if {$id != ""} {incr num($id)}}
       foreach id [array names num] {lappend stpf [list $id $num($id)]}
     }
     set stpf1 {}
@@ -282,14 +282,14 @@ proc spmiCoverageWrite {{fn ""} {sum ""} {multi 1}} {
     foreach item $stpf {
       set idx [lindex $item 0]
       set r [lsearch -glob $allPMIelements $idx*]
-      
+
 # special handling of line, point
       if {$idx == "point"} {
         set r [lsearch $allPMIelements "point  PT  (6.9.7)"]
       } elseif {$idx == "line"} {
         set r [lsearch $allPMIelements "line  SL  (6.9.7)"]
       }
-      
+
       if {$r != -1} {
         set r [expr {$r+4}]
 
@@ -300,7 +300,7 @@ proc spmiCoverageWrite {{fn ""} {sum ""} {multi 1}} {
         if {[info exists numMods]} {
           foreach mod $mods {if {$idx == $mod && $numMods($mod) > 0} {set npmi $numMods($mod)}}
         }
-      
+
 # write npmi
         if {!$multi} {
           $cells($spmiCoverageWS) Item $r 2 $npmi
@@ -325,7 +325,7 @@ proc spmiCoverageWrite {{fn ""} {sum ""} {multi 1}} {
 
 # add number of pmi to worksheet
       set npmi [lindex $item 1]
-      
+
 # write npmi
       if {!$multi} {
         $cells($spmiCoverageWS) Item $r 2 $npmi
@@ -393,7 +393,7 @@ proc spmiCoverageFormat {sum {multi 1}} {
       catch {unset totalPMIrows}
       $worksheet1($spmiCoverageWS) Activate
     }
- 
+
 # horizontal break lines, depends on items in representation coverage worksheet, items defined in sfa-data
     set idx1 $pmiHorizontalLineBreaks
     if {!$multi} {set idx1 [concat [list 3 4] $idx1]}
@@ -407,7 +407,7 @@ proc spmiCoverageFormat {sum {multi 1}} {
         lappend idx1 [expr {$r+1}]
         break
       }
-    }    
+    }
 
 # horizontal lines
     foreach idx $idx1 {
@@ -427,12 +427,12 @@ proc spmiCoverageFormat {sum {multi 1}} {
         set range [$worksheet1($spmiCoverageWS) Range [cellRange 1 [expr {$col1($spmiCoverageWS)+$i}]] [cellRange [expr {[lindex $idx1 end]-1}] [expr {$col1($spmiCoverageWS)+$i}]]]
         catch {[[$range Borders] Item [expr 7]] Weight [expr 2]}
       }
-      
+
 # fix row 3 height and width
       set range [$worksheet1($spmiCoverageWS) Range 3:3]
       $range RowHeight 300
       [$worksheet1($spmiCoverageWS) Columns] AutoFit
-      
+
 # delete unused rows, check for a value in the Total PMI column (multi file)
       if {!$opt(SHOWALLPMI)} {
         set lineBreak 0
@@ -451,7 +451,7 @@ proc spmiCoverageFormat {sum {multi 1}} {
 
 # add color legend for NIST files      
       if {[info exists nistCoverageStyle]} {nistAddCoverageLegend $multi}
-        
+
 # final formatting (multi file)
       set range [$worksheet1($spmiCoverageWS) Range A3]
       foreach i {0 1} {
@@ -464,7 +464,7 @@ proc spmiCoverageFormat {sum {multi 1}} {
       $cells1($spmiCoverageWS) Item $r2 1 "Section numbers above refer to the CAx-IF Recommended Practice for $recPracNames(pmi242)"
       set anchor [$worksheet1($spmiCoverageWS) Range [cellRange $r2 1]]
       [$worksheet1($spmiCoverageWS) Hyperlinks] Add $anchor [join "https://www.cax-if.org/cax/cax_recommPractice.php"] [join ""] [join "Link to CAx-IF Recommended Practices"]
-      
+
       [$worksheet1($spmiCoverageWS) Rows] AutoFit
       [$worksheet1($spmiCoverageWS) Range "B4"] Select
       catch {[$excel1 ActiveWindow] FreezePanes [expr 1]}
@@ -477,7 +477,7 @@ proc spmiCoverageFormat {sum {multi 1}} {
         set range [$worksheet($spmiCoverageWS) Range [cellRange 3 [expr {$i+1}]] [cellRange [expr {[lindex $idx1 end]-1}] [expr {$i+1}]]]
         catch {[[$range Borders] Item [expr 7]] Weight [expr 2]}
       }
-      
+
 # delete unused rows and retain horizontal lines breaks (single file)
       if {!$opt(SHOWALLPMI)} {
         set lineBreak 0
@@ -497,7 +497,7 @@ proc spmiCoverageFormat {sum {multi 1}} {
 
 # add color legend for NIST files      
       if {$nistCoverageLegend} {nistAddCoverageLegend}
-      
+
 # final formatting (single file)
       [$worksheet($spmiCoverageWS) Columns] AutoFit
       set r2 [expr {[[[$worksheet($spmiCoverageWS) UsedRange] Rows] Count]+1}]
@@ -520,7 +520,7 @@ proc spmiCoverageFormat {sum {multi 1}} {
 # start PMI Presentation Coverage analysis worksheet
 proc gpmiCoverageStart {{multi 1}} {
   global cells cells1 gpmiCoverageWS gpmiTypes multiFileDir opt sheetLast worksheet worksheet1 worksheets worksheets1 
-  
+
   if {[catch {
     set gpmiCoverageWS "PMI Presentation Coverage"
 
@@ -561,7 +561,7 @@ proc gpmiCoverageStart {{multi 1}} {
       [$range Font] Bold [expr 1]
       set row($gpmiCoverageWS) 3
     }
-      
+
     foreach item $gpmiTypes {
       set str [join $item]
       if {$multi} {
@@ -587,7 +587,7 @@ proc gpmiCoverageWrite {{fn ""} {sum ""} {multi 1}} {
       $range HorizontalAlignment [expr -4108]
       $cells1($gpmiCoverageWS) Item 3 $col1($sum) $fn
     }
-  
+
 # add invalid pmi types to column A
 # need to fix when there are invalid types, but a subsequent file does not if processing multiple files
     set r1 [expr {[llength $gpmiTypes]+4}]
@@ -694,7 +694,7 @@ proc gpmiCoverageFormat {{sum ""} {multi 1}} {
     catch {$excel1 DisplayAlerts True}
     return
   }
- 
+
 # total PMI
   if {[catch {
     if {$multi} {
@@ -704,10 +704,10 @@ proc gpmiCoverageFormat {{sum ""} {multi 1}} {
       [$range Font] Bold [expr 1]
       foreach idx [array names gpmiTotals] {
         $cells1($gpmiCoverageWS) Item $idx $col1($gpmiCoverageWS) $gpmiTotals($idx)
-      }        
+      }
       $worksheet1($gpmiCoverageWS) Activate
     }
- 
+
 # horizontal break lines
     set idx1 [list 21 28 30 35 36]
     if {!$multi} {set idx1 [list 3 4 21 28 30 35 36]}
@@ -721,14 +721,14 @@ proc gpmiCoverageFormat {{sum ""} {multi 1}} {
         lappend idx1 [expr {$r+1}]
         break
       }
-    }    
+    }
 
 # horizontal lines
     foreach idx $idx1 {
       if {$multi} {
         set range [$worksheet1($gpmiCoverageWS) Range [cellRange $idx 1] [cellRange $idx $col1($gpmiCoverageWS)]]
       } else {
-        set range [$worksheet($gpmiCoverageWS) Range [cellRange $idx 1] [cellRange $idx 2]]        
+        set range [$worksheet($gpmiCoverageWS) Range [cellRange $idx 1] [cellRange $idx 2]]
       }
       catch {[[$range Borders] Item [expr 8]] Weight [expr 2]}
     }
@@ -736,21 +736,21 @@ proc gpmiCoverageFormat {{sum ""} {multi 1}} {
 # rec prac
     set rp "$recPracNames(pmi242), Sec. 8.4, Table 14"
     if {[string first "AP203" $stepAP] == 0} {set rp "$recPracNames(pmi203), Sec. 4.3, Table 1"}
-    
+
 # vertical line(s)
     if {$multi} {
       set range [$worksheet1($gpmiCoverageWS) Range [cellRange 1 $col1($gpmiCoverageWS)] [cellRange [expr {[lindex $idx1 end]-1}] $col1($gpmiCoverageWS)]]
       catch {[[$range Borders] Item [expr 7]] Weight [expr 2]}
-      
+
 # fix row 3 height and width
       set range [$worksheet1($gpmiCoverageWS) Range 3:3]
       $range RowHeight 300
       [$worksheet1($gpmiCoverageWS) Columns] AutoFit
-      
+
       $cells1($gpmiCoverageWS) Item [expr {$gpmiRows+2}] 1 "Presentation Names defined in $rp"
       set anchor [$worksheet1($gpmiCoverageWS) Range [cellRange [expr {$gpmiRows+2}] 1]]
       [$worksheet1($gpmiCoverageWS) Hyperlinks] Add $anchor [join "https://www.cax-if.org/cax/cax_recommPractice.php"] [join ""] [join "Link to CAx-IF Recommended Practices"]
-  
+
       [$worksheet1($gpmiCoverageWS) Rows] AutoFit
       [$worksheet1($gpmiCoverageWS) Range "B4"] Select
       catch {[$excel1 ActiveWindow] FreezePanes [expr 1]}
@@ -764,13 +764,13 @@ proc gpmiCoverageFormat {{sum ""} {multi 1}} {
         catch {[[$range Borders] Item [expr 7]] Weight [expr 2]}
       }
       [$worksheet($gpmiCoverageWS) Columns] AutoFit        
-      
+
       catch {$cells($gpmiCoverageWS) Item 1 5 "Presentation Names defined in $rp"}
       set range [$worksheet($gpmiCoverageWS) Range E1:O1]
       $range MergeCells [expr 1]
       set anchor [$worksheet($gpmiCoverageWS) Range E1]
       [$worksheet($gpmiCoverageWS) Hyperlinks] Add $anchor [join "https://www.cax-if.org/cax/cax_recommPractice.php"] [join ""] [join "Link to CAx-IF Recommended Practices"]
-      
+
       [$worksheet($gpmiCoverageWS) Range "A1"] Select
       $cells($gpmiCoverageWS) Item 1 1 [file tail $localName]
       $cells($gpmiCoverageWS) Item [expr {$gpmiRows+3}] 1 "See Help > Analyze > PMI Coverage Analysis"

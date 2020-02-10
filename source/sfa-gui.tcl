@@ -1,5 +1,5 @@
 # version numbers - SFA, software user guide (UG)
-proc getVersion {}   {return 3.92}
+proc getVersion {}   {return 3.94}
 proc getVersionUG {} {return 3.0}
 
 # IFCsvr version, depends on string entered when IFCsvr is repackaged for new STEP schemas
@@ -964,7 +964,7 @@ proc guiSpreadsheet {} {
 # some other options
   set fxlsc [ttk::labelframe $fxls.c -text " Other "]
   foreach item {{" Show all PMI Elements on PMI Representation Coverage worksheets" opt(SHOWALLPMI)} \
-                {" Hide links to STEP files and spreadsheets on File Summary worksheet for multiple files" opt(HIDELINKS)}} {
+                {" Do not generate links to STEP files and spreadsheets on File Summary worksheet for multiple files" opt(HIDELINKS)}} {
     regsub -all {[\(\)]} [lindex $item 1] "" idx
     set buttons($idx) [ttk::checkbutton $fxlsc.$cb -text [lindex $item 0] -variable [lindex $item 1] -command {checkValues}]
     pack $buttons($idx) -side top -anchor w -padx 5 -pady 0 -ipady 0
@@ -1055,7 +1055,7 @@ The CAx-IF Recommended Practices are checked for any of the Analyze options.
   validation properties are reported.
 
 View: Part geometry, graphical PMI annotations, tessellated part geometry in AP242 files, and AP209
-finite element models can be viewed in a web browser.
+finite element models can be shown in a web browser.
 
 Inverse Relationships: For some entities, Inverse relationships and backwards references (Used In)
 are shown on the worksheets.
@@ -1083,7 +1083,7 @@ with other users, including those on non-Windows systems.  Views can be generate
 generating a spreadsheet or CSV files.  See Output Format on the Options tab.
 
 For part geometry, a popup program stp2x3d.exe runs to process STEP geometry.  Please wait for that
-program to complete.  If smooth shaded is not selected then surfaces will appear faceted.  With
+program to complete.  If smooth shaded is not selected, then surfaces will appear faceted.  With
 faceted surfaces, the HTML file is smaller and faster to open in the web browser.
 
 Part geometry limitations:
@@ -1194,35 +1194,40 @@ The following types of supplemental geometry and associated text are supported.
 - Coordinate System: red/green/blue axes or by color assigned to axes
 - Plane: blue transparent outlined square
 - Cylinder: blue transparent cylinder
-- Line/Circle: purple line/circle
+- Line/Circle/Ellipse: purple line/circle/ellipse
 - Point: black dot
 - Tessellated Surface: faces outlined in black
 
 Lines and circles that are trimmed by cartesian_point will not be trimmed.  Bounding edges for
 planes and cylinders are not supported.  All bounded and unbounded planes are shown with a fixed
-size."
+size.
+
+Supplemental geometry can be switched on and off in the view."
     .tnb select .tnb.status
   }
 
   $helpView add command -label "Datum Targets" -command {
 outputMsg "\nDatum Targets --------------------------------------------------------------" blue
-outputMsg "Datum targets are shown only if Analyze for Semantic PMI is selected and Part Geometry or Graphical
-PMI is also viewed.  There are two methods to represent the position, orientation, and dimensions
-of a datum target.
+outputMsg "Datum targets are shown only if a spreadsheet is generated with Analyze for Semantic PMI selected
+and Part Geometry or Graphical PMI is also viewed.  There are two methods to represent and view the
+position, orientation, and dimensions of a datum target.
 
 1 - The position, orientation, and target length, width, and diameter are specified with the
 placed_datum_target_feature entity.  Point, line, circle, circular curve, and rectangle datum
-targets are supported.
+targets are supported.  A small coordinate axes is shown at the origin of a datum target except
+for point datum targets.
 
 2 - The shape and location of arbitrarily shaped area and curve datum targets is specified with
 geometric entities referred to by the datum_target entity.  Supported geometric entities, that lie
-in plane, are line, circle, trimmed_curve, and advanced_face bounded by lines or circles.  If other
-geometric entities are used, then either the datum target will not be shown or some of the datum
-targets edges will be missing.
+in plane, are line, circle, trimmed_curve, and advanced_face bounded by lines, circles, or ellipses.
+If other geometric entities are used, then either the datum target will not be shown or some of the
+edges of the datum targets will be missing.  Datum targets defined by multiple types of curves are
+not supported.  
 
-Datum targets are shown in red and can be switched on and off in the view.  Datum target feature
-geometry (feature_for_datum_target_relationship), also specified with geometric entities, is shown
-in green.
+Both types of datum targets are shown in red and can be switched on and off in the view.
+
+Datum target feature geometry (feature_for_datum_target_relationship), also specified with
+geometric entities similar to the second method, is shown in green.
 
 See Examples > View Part with PMI"
     .tnb select .tnb.status
@@ -1266,7 +1271,7 @@ used.
 
 The AP209 finite element model composed of bodes, mesh, elements, boundary conditions, loads, and
 displacments are shown and can be toggled on and off in the viewer.  Internal faces for solid
-elements are not shown.  Elements can be made transparent although it is only approximate.
+elements are not supported.  Elements can be made transparent although it is only approximate.
 
 Nodal loads and element surface pressures are shown.  Load vectors are colored by their magnitude.
 The length of load vectors can be scaled by their magnitude.  Forces use a single-headed arrow.
@@ -1282,7 +1287,7 @@ red, green, or blue circle around the X, Y, or Z axes depending on the constrain
 is used when all six DOF are constrained.  A gray pyramid is used when all three translation DOF
 are constrained.  A gray sphere is used when all three rotation DOF are constrained.
 
-Stresses and strains are not shown.  Multiple coordinate systems are not considered.
+Stresses, strains, and multiple coordinate systems are not support.
 
 Setting Maximum Rows (Spreadsheet tab) does not affect the view.  For large AP209 files, there
 might be insufficient memory to process all of the elements, loads, displacements, and boundary
@@ -1369,7 +1374,7 @@ geometry tool, tolerance zone, datum reference frame, and associated modifiers.
 If a Dimensional Tolerance refers to the same geometric element as a Geometric Tolerance, then it
 will be shown above the FCF.  If a Datum Feature refers to the same geometric face as a Geometric
 Tolerance, then it will be shown below the FCF.  If an expected Dimensional Tolerance is not shown
-above a Geometric Tolerance then the tolerances do not reference the same geometric element.  For
+above a Geometric Tolerance, then the tolerances do not reference the same geometric element.  For
 example, referencing the edge of a hole versus the surfaces of a hole.
 
 The association of the Datum Feature with a Geometric Tolerance is based on each referring to the

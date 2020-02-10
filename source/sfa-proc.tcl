@@ -916,10 +916,17 @@ proc getNextUnusedColumn {ent} {
 # -------------------------------------------------------------------------------
 proc formatComplexEnt {str {space 0}} {
   global andEntAP209 entCategory opt stepAP
-  
-  set str1 $str
+
+# check for an attribute name, i.e., a_and_b.attr
+  set attr ""
+  set c1 [string first "." $str]
+  if {$c1 != -1} {
+    set attr [string range $str $c1 end]
+    set str  [string range $str 0 $c1-1]
+  }
 
 # possibly format for _and_
+  set str1 $str
   if {[string first "_and_" $str1] != -1} {
 
 # check if _and_ is part of the entity name
@@ -940,6 +947,9 @@ proc formatComplexEnt {str {space 0}} {
       }
     }
   }
+  
+# add back attribute
+  if {$attr != ""} {append str1 $attr}
   return $str1
 }
 

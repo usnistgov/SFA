@@ -200,9 +200,9 @@ set spmiEntTypes [list \
 ]
 
 # max rows for PMI elements on PMI representation coverage worksheet, depends on number and order of items below
-set pmiElementsMaxRows 158
+set pmiElementsMaxRows 159
 # line breaks are above the row, depends on the grouping of PMI elements below
-set pmiHorizontalLineBreaks [list 19 34 45 50 66 72 82 [expr {$pmiElementsMaxRows-6}] $pmiElementsMaxRows]
+set pmiHorizontalLineBreaks [list 19 34 45 50 66 72 82 [expr {$pmiElementsMaxRows-7}]]
 
 # -----------------------------------------------------------------------------------------------------
 # dimensional_size names (Section 5.1.5, Table 4), controlled radius and square are not included
@@ -366,7 +366,7 @@ foreach item [lsort [array names pmiModifiers]] {
 
 # a few more overall PMI types
 set spmiTypes [concat $spmiTypes \
-  [list "editable text (7.4)" "document identification (3, see Header worksheet)" "ASME dimensioning standard (4, Fig. 1)" \
+  [list "saved views (9.4)" "editable text (7.4)" "document identification (3, see Header worksheet)" "ASME dimensioning standard (4, Fig. 1)" \
     "ASME modeling standard (4, Fig. 2)" "ISO dimensioning standard (4, Fig. 1)" "ISO modeling standard (4, Fig. 2)" "default tolerance decimal places (4.1)"]]
 
 # -----------------------------------------------------------------------------------------------------

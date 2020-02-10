@@ -164,7 +164,7 @@ proc gpmiAnnotation {entType} {
 proc gpmiAnnotationReport {objEntity} {
   global ao aoname ap242edition assocGeom badAttributes boxSize cells circleCenter col currx3dPID curveTrim dirRatio dirType
   global draughtingModels draftModelCameraNames draftModelCameras ent entAttrList entCount entLevel geomType gpmiEnts gpmiID gpmiIDRow
-  global gpmiPlacement gpmiRow gpmiTypes gpmiTypesInvalid gpmiTypesPerFile gpmiValProp iCompCurve iCompCurveSeg iPolyline
+  global gpmiName gpmiPlacement gpmiRow gpmiTypes gpmiTypesInvalid gpmiTypesPerFile gpmiValProp iCompCurve iCompCurveSeg iPolyline
   global nindex numCompCurve numCompCurveSeg numPolyline numx3dPID objEntity1 opt placeAnchor placeNCP placeOrigin
   global pmiCol pmiColumns pmiHeading pmiStartCol propDefIDS recPracNames savedViewCol savedViewName stepAP syntaxErr
   global tessCoord tessIndex tessIndexCoord tessPlacement tessRepo useXL
@@ -623,15 +623,15 @@ proc gpmiAnnotationReport {objEntity} {
                     for {set i 0} {$i < $ns} {incr i} {
                       if {[expr {abs($dirRatio(z,axis))}] > 0.99} {
                         set x3dPoint(x) [expr {$objValue*cos($angle)+[lindex $circleCenter 0]}]
-                        set x3dPoint(y) [expr {-1.*$objValue*sin($angle)+[lindex $circleCenter 1]}]
+                        set x3dPoint(y) [expr {$objValue*sin($angle)+[lindex $circleCenter 1]}]
                         set x3dPoint(z) [lindex $circleCenter 2]
                       } elseif {[expr {abs($dirRatio(y,axis))}] > 0.99} {
                         set x3dPoint(x) [expr {$objValue*cos($angle)+[lindex $circleCenter 0]}]
-                        set x3dPoint(z) [expr {-1.*$objValue*sin($angle)+[lindex $circleCenter 2]}]
+                        set x3dPoint(z) [expr {$objValue*sin($angle)+[lindex $circleCenter 2]}]
                         set x3dPoint(y) [lindex $circleCenter 1]
                       } elseif {[expr {abs($dirRatio(x,axis))}] > 0.99} {
                         set x3dPoint(z) [expr {$objValue*cos($angle)+[lindex $circleCenter 2]}]
-                        set x3dPoint(y) [expr {-1.*$objValue*sin($angle)+[lindex $circleCenter 1]}]
+                        set x3dPoint(y) [expr {$objValue*sin($angle)+[lindex $circleCenter 1]}]
                         set x3dPoint(x) [lindex $circleCenter 0]
                       } else {
                         #outputMsg "$dirRatio(x,axis) $dirRatio(y,axis) $dirRatio(z,axis) " red
@@ -639,7 +639,7 @@ proc gpmiAnnotationReport {objEntity} {
                         errorMsg " $msg"
                         if {[lsearch $x3dMsg $msg] == -1} {lappend x3dMsg $msg}
                         set x3dPoint(x) [expr {$objValue*cos($angle)+[lindex $circleCenter 0]}]
-                        set x3dPoint(y) [expr {-1.*$objValue*sin($angle)+[lindex $circleCenter 1]}]
+                        set x3dPoint(y) [expr {$objValue*sin($angle)+[lindex $circleCenter 1]}]
                         set x3dPoint(z) [lindex $circleCenter 2]
                       }
 
@@ -661,7 +661,7 @@ proc gpmiAnnotationReport {objEntity} {
                       set curveTrim([$a0 Name]) $val
                     }
                   }
-                  set msg "Some trimmed circles in PMI annotations might be incorrectly trimmed."
+                  set msg "Trimmed circles in PMI annotations might be incorrectly trimmed."
                   errorMsg " $msg"
                   if {[lsearch $x3dMsg $msg] == -1} {lappend x3dMsg $msg}
                 }
@@ -838,6 +838,7 @@ proc gpmiAnnotationReport {objEntity} {
                     $ent1 == "repositioned_tessellated_item_and_tessellated_geometric_set name" || \
                     $ent1 == "composite_curve name"} {
                   set ov [string tolower $objValue]
+                  set gpmiName $ov
 
 # look for invalid 'name' values
                   set invalid ""
@@ -1153,7 +1154,12 @@ proc gpmiAnnotationReport {objEntity} {
           ::tcom::foreach entDraughtingModel $entDraughtingModels {set okdm 1}
           if {!$okdm} {
             if {$opt(PMIGRF) && $opt(XLSCSV) != "None"} {
-                set msg "Syntax Error: Annotation not in a Saved View.  Check draughting_model.items for missing draughting_callout related to annotation.\n[string repeat " " 14]"
+
+# check for missing saved view only if not text, etc.
+              set oknm 1
+              foreach str {note title block label text} {if {[string first $str $gpmiName] != -1} {set oknm 0}}
+              if {$oknm} {
+                set msg "Syntax Error: Annotation not found in a Saved View.  If the annotation should be in a Saved View, then check draughting_model.items for a missing draughting_callout related to the annotation.  Also check the View for Graphical PMI to see the annotations are not in a Saved View.\n[string repeat " " 14]"
                 if {$stepAP == "AP242"} {
                   append msg "($recPracNames(pmi242), Sec. 9.4.2.1, Fig. 86)"
                 } else {
@@ -1161,6 +1167,7 @@ proc gpmiAnnotationReport {objEntity} {
                 }
                 errorMsg $msg
                 lappend syntaxErr($ao) [list $objID "Saved Views" $msg]
+              }
             }
             set msg "Some PMI might not be in a Saved View."
             if {[lsearch $x3dMsg $msg] == -1} {lappend x3dMsg $msg}
@@ -1360,7 +1367,7 @@ proc gpmiAnnotationReport {objEntity} {
 proc pmiGetCamerasAndProperties {} {
   global objDesign
   global draughtingModels draftModelCameraNames draftModelCameras entCount gpmiValProp mytemp opt propDefIDS recPracNames savedViewFile
-  global savedViewFileName savedViewItems savedViewName savedViewNames savedViewpoint stepAP syntaxErr
+  global savedViewFileName savedViewItems savedViewName savedViewNames savedViewpoint spmiTypesPerFile stepAP syntaxErr
 
   set aolist {}
   foreach ao [list annotation_occurrence annotation_curve_occurrence annotation_curve_occurrence_and_geometric_representation_item \
@@ -1503,16 +1510,19 @@ proc pmiGetCamerasAndProperties {} {
               }
 
 # keep track of saved views for graphic PMI
-              if {$opt(VIZPMI)} {
+              if {$opt(VIZPMI) || $opt(PMISEM)} {
                 set dmcn $draftModelCameraNames([$entDraughtingModel P21ID])
                 if {[lsearch $savedViewName $dmcn] == -1} {lappend savedViewName $dmcn}
                 if {[lsearch $savedViewNames $name1] == -1 && $annForDM([$entDraughtingModel P21ID])} {
-                  catch {file delete -force $savedViewFileName($name1)}
-                  set fn [file join $mytemp $name1.txt]
-                  set savedViewFile($name1) [open $fn w]
-                  set savedViewFileName($name1) $fn
                   lappend savedViewNames $name1
-                  if {[string length $dmitems([$entDraughtingModel P21ID])] > 0} {set savedViewItems($dmcn) $dmitems([$entDraughtingModel P21ID])}
+                  if {$opt(PMISEM)} {lappend spmiTypesPerFile "saved views"}
+                  if {$opt(VIZPMI)} {
+                    catch {file delete -force $savedViewFileName($name1)}
+                    set fn [file join $mytemp $name1.txt]
+                    set savedViewFile($name1) [open $fn w]
+                    set savedViewFileName($name1) $fn
+                    if {[string length $dmitems([$entDraughtingModel P21ID])] > 0} {set savedViewItems($dmcn) $dmitems([$entDraughtingModel P21ID])}
+                  }
                 }
               }
             }
@@ -1525,6 +1535,14 @@ proc pmiGetCamerasAndProperties {} {
     }
   } elseif {[info exists entCount(annotation_text_occurrence)]} {
     errorMsg "Using 'annotation_text_occurrence' is not valid for PMI Presentation.\n ($recPracNames(pmi242), Sec. 1)"
+    return
+  }
+
+# clean up if only semantic pmi
+  if {$opt(PMISEM) && !$opt(PMIGRF) && !$opt(VIZPMI)} {
+    foreach var {draughtingModels draftModelCameraNames draftModelCameras savedViewFileName savedViewItems savedViewName savedViewNames savedViewpoint} {
+      if {[info exists $var]} {unset $var}
+    }
     return
   }
 

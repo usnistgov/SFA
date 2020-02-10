@@ -101,7 +101,6 @@ proc genExcel {{numFile 0}} {
       set colsum [expr {$col1(Summary)+1}]
       set range [$worksheet1(Summary) Range [cellRange 4 $colsum]]
       $cells1(Summary) Item 4 $colsum $fn
-      if {!$opt(HIDELINKS)} {[$worksheet1(Summary) Hyperlinks] Add $range [join $fname] [join ""] [join "Link to STEP file"]}
     }
 
 # open file with IFCsvr
@@ -864,7 +863,7 @@ foreach dm [list draughting_model \
     set dimRepeatDiv 2
 
 # find camera models used in draughting model items and annotation_occurrence used in property_definition and datums
-    if {$opt(PMIGRF) || $viz(PMI)} {pmiGetCamerasAndProperties}
+    if {$opt(PMIGRF) || $opt(PMISEM) || $viz(PMI)} {pmiGetCamerasAndProperties}
 
 # no entities to process
     if {[llength $entsToProcess] == 0} {
@@ -1215,7 +1214,6 @@ foreach dm [list draughting_model \
           $cells1(Summary) Item 3 $colsum "Link ($numFile)"
           set range [$worksheet1(Summary) Range [cellRange 3 $colsum]]
           regsub -all {\\} $xlFileName "/" xls
-          [$worksheet1(Summary) Hyperlinks] Add $range [join $xls] [join ""] [join "Link to Spreadsheet"]
         } else {
           $cells1(Summary) Item 3 $colsum "$numFile"
         }
@@ -1845,7 +1843,7 @@ proc sumAddFileName {sum sumLinks} {
     set range [$worksheet($sum) Range "B1:K1"]
     $range MergeCells [expr 1]
     set anchor [$worksheet($sum) Range "B1"]
-    if {!$opt(HIDELINKS)} {
+    if {!$opt(HIDELINKS) && [string first "#" $localName] == -1} {
       regsub -all {\\} $localName "/" ln
       $sumLinks Add $anchor [join $ln] [join ""] [join "Link to STEP file"]
     }
@@ -1888,13 +1886,17 @@ proc sumAddColorLinks {sum sumHeaderRow sumLinks sheetSort sumRow} {
 
 # link from summary to entity worksheet
       set anchor [$worksheet($sum) Range "A$sumRow"]
-      set hlsheet $ent
-      if {[string length $ent] > 31} {
-        foreach item [array names entName] {
-          if {$entName($item) == $ent} {set hlsheet $item}
+      if {[string first "#" $xlFileName] == -1} {
+        set hlsheet $ent
+        if {[string length $ent] > 31} {
+          foreach item [array names entName] {
+            if {$entName($item) == $ent} {set hlsheet $item}
+          }
         }
+        $sumLinks Add $anchor $xlFileName "$hlsheet!A1" "Go to $ent"
+      } else {
+        errorMsg " When the STEP file name or directory contains a '#', links between the File Summary worksheet and entity worksheets are not generated." red
       }
-      $sumLinks Add $anchor $xlFileName "$hlsheet!A1" "Go to $ent"
 
 # color cells
       set cidx [setColorIndex $ent]
@@ -2084,7 +2086,7 @@ proc formatWorksheets {sheetSort sumRow inverseEnts} {
 
 # link back to summary
       set anchor [$worksheet($thisEntType) Range "A1"]
-      $hlink Add $anchor $xlFileName "Summary!A$sumRow" "Return to Summary"
+      if {[string first "#" $xlFileName] == -1} {$hlink Add $anchor $xlFileName "Summary!A$sumRow" "Return to Summary"}
 
 # check width of columns, wrap text
       if {[catch {
