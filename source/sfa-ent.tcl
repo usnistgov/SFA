@@ -395,7 +395,7 @@ proc setIDRow {entType p21id} {
 # -------------------------------------------------------------------------------------------------
 # read entity and write to CSV file
 proc getEntityCSV {objEntity} {
-  global badAttributes count csvdirnam csvfile csvstr entCount fcsv localName roseLogical row rowmax skipEntities skipPerm thisEntType
+  global badAttributes count csvdirnam csvfile csvintemp csvstr entCount fcsv localName mydocs roseLogical row rowmax skipEntities skipPerm thisEntType
   
 # get entity type
   set thisEntType [$objEntity Type]
@@ -417,9 +417,13 @@ proc getEntityCSV {objEntity} {
 # open csv file
     set csvfile($thisEntType) 1
     set csvfname [file join $csvdirnam $thisEntType.csv]
+    if {[string length $csvfname] > 218} {
+      set csvfname [file nativename [file join $mydocs $thisEntType.csv]]
+      errorMsg " Some CSV files are saved in the home directory." red
+      set csvintemp 1
+    }
     set fcsv [open $csvfname w]
     puts $fcsv "[formatComplexEnt $thisEntType] ($entCount($thisEntType))"
-    #outputMsg $fcsv red
 
 # headings in first row
     set csvstr "ID"

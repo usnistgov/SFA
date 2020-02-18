@@ -80,7 +80,7 @@ proc checkValues {} {
       if {[string first "PR_STEP" $item] == 0} {lappend butDisabled "opt$item"}
     }
     foreach b {optPMIGRF optPMIGRFCOV optPMISEM optPMISEMDIM optVALPROP optPR_USER optINVERSE} {lappend butDisabled $b}
-    foreach b {allNone0 allNone1 allNone2} {lappend butDisabled $b}
+    foreach b {allNone0 allNone2} {lappend butDisabled $b}
     foreach b {userentity userentityopen} {lappend butDisabled $b}
     set userEntityList {}
     if {$opt(VIZFEA) == 0 && $opt(VIZPMI) == 0 && $opt(VIZTPG) == 0 && $opt(VIZBRP) == 0} {
@@ -306,27 +306,15 @@ proc setColorIndex {ent {multi 0}} {
     foreach i [array names entCategory] {
       if {[info exist entColorIndex($i)]} {
         set ent1 [string range $ent 0 $c1-1]
-        if {[lsearch $entCategory($i) $ent1] != -1} {
-          #outputMsg "1 AND $ent  $ent1  $i  $entColorIndex($i)"
-          set tc1 $entColorIndex($i)
-        }
+        if {[lsearch $entCategory($i) $ent1] != -1} {set tc1 $entColorIndex($i)}
         if {$c2 == $c1} {
           set ent2 [string range $ent $c1+5 end]
-          if {[lsearch $entCategory($i) $ent2] != -1} {
-            #outputMsg "2 AND $ent  $ent2  $i  $entColorIndex($i)"
-            set tc2 $entColorIndex($i)
-          } 
+          if {[lsearch $entCategory($i) $ent2] != -1} {set tc2 $entColorIndex($i)} 
         } elseif {$c2 != $c1} {
           set ent2 [string range $ent $c1+5 $c2-1]
-          if {[lsearch $entCategory($i) $ent2] != -1} {
-            #outputMsg "2 AND $ent  $ent2  $i  $entColorIndex($i)"
-            set tc2 $entColorIndex($i)
-          } 
+          if {[lsearch $entCategory($i) $ent2] != -1} {set tc2 $entColorIndex($i)} 
           set ent3 [string range $ent $c2+5 end]
-          if {[lsearch $entCategory($i) $ent3] != -1} {
-            #outputMsg "3 AND $ent  $ent3  $i  $entColorIndex($i)"
-            set tc3 $entColorIndex($i)
-          }
+          if {[lsearch $entCategory($i) $ent3] != -1} {set tc3 $entColorIndex($i)}
         }
       }
     }
@@ -340,7 +328,6 @@ proc setColorIndex {ent {multi 0}} {
 # fix some AP209 entities with '_and_'
     if {[string first "AP209" $stepAP] != -1} {foreach str $andEntAP209 {if {[string first $str $ent] != -1} {set tc 19}}}
 
-    #outputMsg "TC $tc"
     if {$tc < 1000} {return $tc}
   }
 
@@ -507,56 +494,13 @@ proc saveState {{ok 1}} {
   if {[catch {
     if {![file exists $optionsFile]} {outputMsg "\nCreating options file: [file nativename $optionsFile]"}
     set fileOptions [open $optionsFile w]
-    puts $fileOptions "# Options file for the NIST STEP File Analyzer and Viewer v[getVersion] ([string trim [clock format [clock seconds]]])\n#\n# DO NOT EDIT OR DELETE FROM USER HOME DIRECTORY $mydocs\n# DOING SO WILL CORRUPT THE CURRENT SETTINGS OR CAUSE ERRORS IN THE SOFTWARE\n#"
-    set varlist [list fileDir fileDir1 userWriteDir userEntityFile openFileList dispCmd dispCmds lastXLS lastXLS1 lastX3DOM \
-                      statusFont upgrade upgradeIFCsvr sfaVersion filesProcessed]
+    puts $fileOptions "# Options file for the NIST STEP File Analyzer and Viewer v[getVersion] ([string trim [clock format [clock seconds]]])"
+    puts $fileOptions "# Do not edit or delete this file from the home directory $mydocs  Doing so might corrupt the current settings or cause errors in the software.\n"
 
-    foreach var $varlist {
-      if {[info exists $var]} {
-        set vartmp [set $var]
-        if {[string first "/" $vartmp] != -1 || [string first "\\" $vartmp] != -1 || [string first " " $vartmp] != -1} {
-          if {$var != "dispCmds" && $var != "openFileList"} {
-            regsub -all {\\} $vartmp "/" vartmp
-            puts $fileOptions "set $var \"$vartmp\""
-          } else {
-            regsub -all {\\} $vartmp "/" vartmp
-            regsub -all {\[} $vartmp "\\\[" vartmp
-            regsub -all {\]} $vartmp "\\\]" vartmp
-            for {set i 0} {$i < [llength $vartmp]} {incr i} {
-              if {$i == 0} {
-                if {[llength $vartmp] > 1} {
-                  puts $fileOptions "set $var \"\{[lindex $vartmp $i]\} \\"
-                } else {
-                  puts $fileOptions "set $var \"\{[lindex $vartmp $i]\}\""
-                }
-              } elseif {$i == [expr {[llength $vartmp]-1}]} {
-                puts $fileOptions "       \{[lindex $vartmp $i]\}\""
-              } else {
-                puts $fileOptions "       \{[lindex $vartmp $i]\} \\"
-              }
-            }
-          }
-        } else {
-          if {$vartmp != ""} {
-            puts $fileOptions "set $var [set $var]"
-          } else {
-            puts $fileOptions "set $var \"\""
-          }
-        }
-      }
-    }
-    
-    set winpos "+300+200"
-    catch {
-      set wg [winfo geometry .]
-      set winpos [string range $wg [string first "+" $wg] end]
-      set wingeo [string range $wg 0 [expr {[string first "+" $wg]-1}]]
-    }
-    catch {puts $fileOptions "set wingeo \"$wingeo\""}
-    catch {puts $fileOptions "set winpos \"$winpos\""}
-
+# opt variables
     foreach idx [lsort [array names opt]] {
-      if {([string first "PR_" $idx] == -1 || [string first "PR_STEP" $idx] == 0 || [string first "PR_USER" $idx] == 0) && [string first "DEBUG" $idx] == -1} {
+      if {([string first "PR_" $idx] == -1 || [string first "PR_STEP" $idx] == 0 || [string first "PR_USER" $idx] == 0) && \
+           [string first "DEBUG" $idx] == -1 && [string first "indent" $idx] == -1} {
         set var opt($idx)
         set vartmp [set $var]
         if {[string first "/" $vartmp] != -1 || [string first "\\" $vartmp] != -1 || [string first " " $vartmp] != -1} {
@@ -570,6 +514,59 @@ proc saveState {{ok 1}} {
           }
         }
       }
+    }
+    puts $fileOptions "\n# The lines below can be deleted for a command-line version (sfa-cl.exe) custom options file.\n"
+
+# window position
+    set winpos "+300+200"
+    catch {
+      set wg [winfo geometry .]
+      set winpos [string range $wg [string first "+" $wg] end]
+      set wingeo [string range $wg 0 [expr {[string first "+" $wg]-1}]]
+    }
+    catch {puts $fileOptions "set wingeo \"$wingeo\""}
+    catch {puts $fileOptions "set winpos \"$winpos\""}
+
+# variables in varlist, handle variables with [ or ]
+    set varlist(1) [list statusFont upgrade upgradeIFCsvr sfaVersion filesProcessed]
+    set varlist(2) [list fileDir fileDir1 userWriteDir userEntityFile lastXLS lastXLS1 lastX3DOM]
+    set varlist(3) [list openFileList dispCmd dispCmds]
+    foreach idx {1 2 3} {
+      foreach var $varlist($idx) {
+        if {[info exists $var]} {
+          set vartmp [set $var]
+          if {[string first "/" $vartmp] != -1 || [string first "\\" $vartmp] != -1 || [string first " " $vartmp] != -1} {
+            regsub -all {\\} $vartmp "/" vartmp
+            regsub -all {\[} $vartmp "\\\[" vartmp
+            regsub -all {\]} $vartmp "\\\]" vartmp
+            if {$var != "dispCmds" && $var != "openFileList"} {
+              puts $fileOptions "set $var \"$vartmp\""
+            } else {
+              for {set i 0} {$i < [llength $vartmp]} {incr i} {
+                if {$i == 0} {
+                  if {[llength $vartmp] > 1} {
+                    puts $fileOptions "set $var \"\{[lindex $vartmp $i]\} \\"
+                  } else {
+                    puts $fileOptions "set $var \"\{[lindex $vartmp $i]\}\""
+                  }
+                } elseif {$i == [expr {[llength $vartmp]-1}]} {
+                  puts $fileOptions "  \{[lindex $vartmp $i]\}\""
+                } else {
+                  puts $fileOptions "  \{[lindex $vartmp $i]\} \\"
+                }
+              }
+            }
+          } else {
+            if {$vartmp != ""} {
+              puts $fileOptions "set $var [set $var]"
+            } else {
+              puts $fileOptions "set $var \"\""
+            }
+          }
+        }
+        if {$var == "openFileList"} {puts $fileOptions " "}
+      }
+      if {$idx < 3} {puts $fileOptions " "}
     }
 
     close $fileOptions
@@ -1037,7 +1034,6 @@ proc colorBadCells {ent} {
   outputMsg " [formatComplexEnt $ent]" red
   set syntaxErr($ent) [lsort -integer -index 0 [lrmdups $syntaxErr($ent)]]
   foreach err $syntaxErr($ent) {
-    #outputMsg "$ent $err" red
     set lastr 4
     if {[catch {
 
@@ -1072,7 +1068,6 @@ proc colorBadCells {ent} {
 
 # column is attribute name
       } else {
-        #outputMsg "$ent / $r / $c / [string is integer $c]" red
 
 # find column based on heading text
         set lastCol [[[$worksheet($ent) UsedRange] Columns] Count]
@@ -1301,9 +1296,28 @@ proc incrFileName {fn} {
   set fext [file extension $fn]
   set c1 [string last "." $fn]
   for {set i 1} {$i < 100} {incr i} {
-    set fn "[string range $fn 0 $c1-1] ($i)$fext"
+    set fn "[string range $fn 0 $c1-1]-$i$fext"
     catch {[file delete -force -- $fn]}
     if {![file exists $fn]} {break}
+  }
+  return $fn
+}
+
+#-------------------------------------------------------------------------------
+# check file name for bad characters
+proc checkFileName {fn} {
+  global mydocs
+
+  set fnt [file tail $fn]
+  set fnd [file dirname $fn]
+  if {[string first "\[" $fnd] != -1 || [string first "\]" $fnd] != -1} {
+    set fn [file nativename [file join $mydocs $fnt]]
+    errorMsg "Saving Spreadsheet to the home directory instead of the STEP file directory because of the \[ and \] in the directory name." red
+  }
+  if {[string first "\[" $fnt] != -1 || [string first "\]" $fnt] != -1} {
+    regsub -all {\[} $fn "(" fn
+    regsub -all {\]} $fn ")" fn
+    errorMsg "\[ and \] are replaced by ( and ) in the Spreadsheet file name." red
   }
   return $fn
 }

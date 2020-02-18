@@ -192,12 +192,10 @@ for {set i 1} {$i <= 10} {incr i} {
   if {$arg != "" && $arg1 != "csv" && $arg1 != "viz" && $arg1 != "noopen" && $arg1 != "stats"} {
     if {[file exists $arg]} {
       set customFile [file nativename $arg]
-      puts "\n*** Using custom options file: [truncFileName $customFile]"
-      append endMsg "\nA custom options file was used: [truncFileName $customFile]"
+      puts "Using custom options file: [truncFileName $customFile]"
       set optionsFile $customFile
     } else {
       puts "\n*** Bad command-line argument: $arg"
-      append endMsg "Bad command-line argument: $arg"
     }
   }
 }
@@ -208,13 +206,10 @@ if {[file exists $optionsFile]} {
     source $optionsFile
     puts "Reading options file: [truncFileName $optionsFile]"
   } emsg]} {
-    set msg "\nError reading options file: [truncFileName $optionsFile]\n $emsg\nFix or delete the file."
-    append endMsg $msg
-    puts $msg
+    puts "\n*** Error reading options file [truncFileName $optionsFile]: $emsg"
   }
 } else {
   puts "\n*** No options file was found.  Default options will be used."
-  append endMsg "\nNo options file was found.  Default options were used."
 }
 
 # adjust some variables
@@ -259,9 +254,3 @@ set sfaPID [twapi::get_process_ids -name "sfa-cl.exe"]
 # -----------------------------------------------------------------------------------------------------
 # generate spreadsheet or CSV files
 genExcel
-
-# repeat options file messages
-if {[info exists endMsg]} {
-  puts "\n*** Options file messages"
-  puts $endMsg
-}

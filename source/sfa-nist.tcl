@@ -90,7 +90,7 @@ proc nistReadExpectedPMI {} {
           for {set i 0} {$i < 20} {incr i} {catch {twapi::end_process $pid2 -force}}
         }
       } else {
-        errorMsg " Color-coding by the NIST CAD model expected PMI on the PMI Representation Summary worksheet is not available with older versions of Excel." red
+        errorMsg " Color-coding by the Expected PMI for the NIST CAD model, on the PMI Representation Summary worksheet, is not supported with older versions of Excel." red
       }
     }
 
@@ -901,7 +901,6 @@ proc nistGetName {} {
           set tmp1 "$tmp$i1"
           if {[string first $tmp1 $ftail] != -1 && !$ok1} {
             set nistName $tmp1
-            #outputMsg $nistName green
             set ok1 1
           }
         }
@@ -922,13 +921,11 @@ proc nistGetName {} {
               set k $i
             }
             set c {""}
-            #outputMsg "$i1  [string first $i1 $ftail]  [string last $i1 $ftail]" blue
             if {[string first $i1 $ftail] != [string last $i1 $ftail]} {set c {"_" "-"}}
             foreach c1 $c {
               for {set j 0} {$j < 2} {incr j} {
                 if {$j == 0} {set i2 "$c1$i1"}
                 if {$j == 1} {set i2 "$i1$c1"}
-                #outputMsg "[string first $i2 $ftail]  $i2  $ftail" green
                 if {[string first $i2 $ftail] != -1 && !$ok} {
                   if {$ctcftc} {
                     append tmp $k
@@ -939,7 +936,6 @@ proc nistGetName {} {
                   }
                   set nistName $tmp
                   set ok 1
-                  #outputMsg $nistName red
                 }
               }
             }
@@ -975,7 +971,6 @@ proc pmiRemoveZeros {pmi} {
 # split pmi into individual strings
     foreach spmi [split $pmi " "] {
       set spmi " $spmi "
-      #outputMsg A$spmi\A
       if {[string first "." $spmi] != -1} {
 
 # trailing zeros
@@ -999,7 +994,6 @@ proc pmiRemoveZeros {pmi} {
         }
 # reference dimension
         if {[string first "0\]" $spmi] != -1} {for {set j 0} {$j < 4} {incr j} {regsub {0\]} $spmi "\]" spmi}}
-        #outputMsg $spmi
         if {[string first ".\]" $spmi] != -1} {regsub {.\]} $spmi "\]" spmi}
 
 # basic dimension
@@ -1025,7 +1019,6 @@ proc pmiRemoveZeros {pmi} {
   if {[string first "-0" $pmi] != -1} {regsub -all {\-0} $pmi "\-" pmi}
   for {set j 0} {$j < 6} {incr j} {regsub -all "  " $pmi " " pmi}
 
-  #outputMsg $pmi green
   return $pmi
 }
 

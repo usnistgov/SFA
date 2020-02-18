@@ -97,7 +97,7 @@ foreach id { \
 
 # set opt to 0
 foreach id { \
-  DEBUG1 DEBUGINV DEBUGX3D HIDELINKS indentGeomtry indentStyledItem INVERSE PMIGRFCOV PMISEMDIM PR_STEP_CPNT PR_STEP_GEOM \
+  DEBUG1 DEBUGINV DEBUGX3D HIDELINKS indentGeometry indentStyledItem INVERSE PMIGRFCOV PMISEMDIM PR_STEP_CPNT PR_STEP_GEOM \
   PR_USER SHOWALLPMI SYNCHK VIZBRPCLR VIZBRPEDG VIZBRPNRM VIZFEADSntail VIZFEALVS VIZTPGMSH writeDirType XL_FPREC XL_SORT \
 } {set opt($id) 0}
 
@@ -142,8 +142,6 @@ if {[file exists $optionsFile]} {
     source $optionsFile
 
 # rename and unset old variable names from old options file
-    if {[info exists verite]} {set sfaVersion $verite}
-
     if {[info exists opt(VIZTES)]}    {set opt(VIZTPG)    $opt(VIZTES);    unset opt(VIZTES)}
     if {[info exists opt(VIZTESMSH)]} {set opt(VIZTPGMSH) $opt(VIZTESMSH); unset opt(VIZTESMSH)}
     if {[info exists opt(CRASH)]}     {set filesProcessed 1}
@@ -162,7 +160,7 @@ if {[file exists $optionsFile]} {
       VIZBRPmsg VIZFEADStail VPDBG VIZPMIVP XL_KEEPOPEN XL_LINK1 XL_LINK2 XL_LINK3 XL_ORIENT XL_SCROLL XL_XLSX XLSBUG XLSBUG1} {catch {unset opt($item)}
     }
   } emsg]} {
-    set endMsg "Error reading options file: [truncFileName $optionsFile]\n $emsg\nFix or delete the file."
+    set endMsg "Error reading Options file [truncFileName $optionsFile]: $emsg"
   }
 }
 
@@ -263,6 +261,13 @@ guiButtons
 .tnb select .tnb.options
 
 if {$developer} {if {$filesProcessed > 0} {outputMsg $filesProcessed} else {errorMsg $filesProcessed}}
+
+# error messages from before GUI was available
+if {[info exists endMsg]} {
+  outputMsg " "
+  errorMsg $endMsg
+  .tnb select .tnb.status
+}
 
 #-------------------------------------------------------------------------------
 # first time user
@@ -389,13 +394,6 @@ if {$opt(XLSCSV) == "CSV"} {
 } elseif {$opt(XLSCSV) == "None"} {
   outputMsg " "
   errorMsg "No Spreadsheet will be generated, only Views (Options tab)"
-  .tnb select .tnb.status
-}
-
-# error messages from before GUI was available
-if {[info exists endMsg]} {
-  outputMsg " "
-  errorMsg $endMsg
   .tnb select .tnb.status
 }
   

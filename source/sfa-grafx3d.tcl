@@ -22,8 +22,7 @@ proc x3dFileStart {} {
   set title [file tail $localName]
   if {$stepAP != "" && [string range $stepAP 0 1] == "AP"} {append title " | $stepAP"}
   puts $x3dFile "<!DOCTYPE html>\n<html>\n<head>\n<title>$title</title>\n<base target=\"_blank\">\n<meta http-equiv='Content-Type' content='text/html;charset=utf-8'/>"
-  #puts $x3dFile "<meta http-equiv=\"Cache-Control\" content=\"no-cache, no-store, must-revalidate\" />\n<meta http-equiv=\"Pragma\" content=\"no-cache\" />\n<meta http-equiv=\"Expires\" content=\"0\" />"
-  puts $x3dFile "<link rel='stylesheet' type='text/css' href='https://www.x3dom.org/x3dom/release/x3dom.css'/>\n<script type='text/javascript' src='https://www.x3dom.org/x3dom/release/x3dom.js'></script>\n</head>"
+  puts $x3dFile "<link rel='stylesheet' type='text/css' href='https://www.x3dom.org/x3dom/release/x3dom.css'/>\n<script type='text/javascript' src='https://www.x3dom.org/x3dom/release/x3dom.js'></script>\n<style>x3d \{border:1px solid black;\}</style>\n</head>"
 
   set x3dTitle [file tail $localName]
   if {$stepAP != "" && [string range $stepAP 0 1] == "AP"} {append x3dTitle "&nbsp;&nbsp;&nbsp;$stepAP"}
@@ -36,8 +35,10 @@ proc x3dFileStart {} {
     append x3dTitle "&nbsp;&nbsp;&nbsp;$cs"
   }
   puts $x3dFile "\n<body><font face=\"arial\">\n<h3>$x3dTitle</h3>"
-  puts $x3dFile "\n<table><tr><td valign='top' width='85%'>"
+  puts $x3dFile "\n<table>"
 
+# messages above the x3d
+  set msg ""
   if {$opt(VIZBRP)} {
     set ok 0
     foreach item $brepEnts {if {[info exists entCount($item)]} {set ok 1}}
@@ -54,18 +55,20 @@ proc x3dFileStart {} {
           append colormsg "Overriding colors ($x3dColorOverriding)"
         }
       }
-      if {$colormsg != ""} {puts $x3dFile "$colormsg are not supported.  "}
+      if {$colormsg != ""} {append msg "$colormsg are not supported.  "}
     }
   }
+
   if {$viz(PMI)} {
-    puts $x3dFile "$viz(PMIMSG)  "
+    append msg "$viz(PMIMSG)  "
   } elseif {$opt(VIZPMI)} {
-    if {[string first "Some Graphical PMI" $viz(PMIMSG)] == 0} {puts $x3dFile "The STEP file contains only Semantic PMI and no Graphical PMI.  "}
+    if {[string first "Some Graphical PMI" $viz(PMIMSG)] == 0} {append msg "The STEP file contains only Semantic PMI and no Graphical PMI.  "}
   }
-  if {$viz(TPG) && [info exist entCount(next_assembly_usage_occurrence)]} {puts $x3dFile "Tessellated parts in an assembly might have the wrong position and orientation or be missing."}
-  puts $x3dFile "</td><td></td></tr><tr><td valign='top' width='85%'>"
+  if {$viz(TPG) && [info exist entCount(next_assembly_usage_occurrence)]} {append msg "Tessellated parts in an assembly might have the wrong position and orientation or be missing."}
+  if {$msg != ""} {puts $x3dFile "<tr><td valign='top' width='85%'>[string trim $msg]</td><td></td></tr>"}
 
 # x3d window size
+  puts $x3dFile "<tr><td valign='top' width='85%'>"
   set height 900
   set width [expr {int($height*1.78)}]
   catch {
@@ -98,7 +101,6 @@ proc x3dTessGeom {objID objEntity1 ent1} {
   global ao defaultColor draftModelCameras entCount nshape opt recPracNames savedViewFile savedViewNames shapeRepName shellSuppGeom srNames
   global tessCoord tessCoordID tessIndex tessIndexCoord tessPartFile tessPlacement tessRepo tessSuppGeomFile
   global x3dColor x3dColorFile x3dColors x3dColorsUsed x3dCoord x3dFile x3dIndex x3dMsg
-  #outputMsg "x3dTessGeom $objID"
 
   set x3dIndex $tessIndex($objID)
   set x3dCoord $tessCoord($tessIndexCoord($objID))
@@ -1375,14 +1377,13 @@ proc x3dBrepUnits {} {
 # -------------------------------------------------------------------------------
 # placed datum targets
 proc x3dDatumTarget {maxxyz} {
-  global datumTargetView developer dttype viz x3dFile x3dMsg
+  global datumTargetView dttype viz x3dFile x3dMsg
 
   outputMsg " Processing datum targets" green
   puts $x3dFile "\n<!-- DATUM TARGETS -->\n<Switch whichChoice='0' id='swDTR'><Group>"
 
   set dttype ""
   foreach idx [array names datumTargetView] {
-    #outputMsg "$idx $datumTargetView($idx)"
     set shape [lindex $datumTargetView($idx) 0]
     set color "1 0 0"
     if {[string first "feature" $idx] != -1} {set color "0 .5 0"}
@@ -1530,8 +1531,6 @@ proc x3dDatumTarget {maxxyz} {
             ::tcom::foreach e2 $e2s {
               set e3 [[[$e2 Attributes] Item [expr 2]] Value]
               set e4s [[[$e3 Attributes] Item [expr 2]] Value]
-              #outputMsg e2[$e2 P21ID][$e2 Type]
-              #outputMsg " e3[$e3 P21ID][$e3 Type]"
 
 # get number and types of geometric entities defining the edges
               set ngeom 0
@@ -1551,10 +1550,6 @@ proc x3dDatumTarget {maxxyz} {
                 set e5 [[[$e4 Attributes] Item [expr 4]] Value]
                 set e6 [[[$e5 Attributes] Item [expr 4]] Value]
                 incr igeom
-                #outputMsg "$nbound $ngeom"
-                #outputMsg "  e4[$e4 P21ID][$e4 Type]"
-                #outputMsg "   e5[$e5 P21ID][$e5 Type]"
-                #outputMsg "    e6[$e6 P21ID][$e6 Type]"
 
 # advanced face circle and ellipse edges
                 if {[$e6 Type] == "circle" || [$e6 Type] == "ellipse"} {
@@ -1730,12 +1725,10 @@ proc x3dSuppGeom {maxxyz} {
                 errorMsg " ERROR getting color for '$ename' supplemental geometry: $emsg"
               }
 
-              set closeTransform 1
               if {$axisColor == ""} {
                 set id [lsearch $axesDef $size]
                 if {$id != -1} {
-                  puts $x3dFile "$transform<Group USE='axes$id'></Group></Transform>"
-                  set closeTransform 0
+                  puts $x3dFile "$transform<Group USE='axes$id'></Group>"
                 } else {
                   lappend axesDef $size
                   puts $x3dFile $transform
@@ -1746,8 +1739,7 @@ proc x3dSuppGeom {maxxyz} {
               } else {
                 set id [lsearch $axesDef "$size $axisColor"]
                 if {$id != -1} {
-                  puts $x3dFile "$transform<Group USE='axes$id'></Group></Transform>"
-                  set closeTransform 0
+                  puts $x3dFile "$transform<Group USE='axes$id'></Group>"
                 } else {
                   lappend axesDef "$size $axisColor"
                   set sz [trimNum [expr {$size*1.5}]]
@@ -1767,8 +1759,11 @@ proc x3dSuppGeom {maxxyz} {
               set tcolor "1 0 0"
               set name [[[$e2 Attributes] Item [expr 1]] Value]
               if {$axisColor != ""} {set tcolor $axisColor}
-              if {$name != ""} {puts $x3dFile " <Transform scale='$nsize $nsize $nsize'><Billboard axisOfRotation='0 0 0'><Shape><Text string='\"$name\"'><FontStyle family='\"SANS\"' justify='\"BEGIN\"'></FontStyle></Text><Appearance><Material diffuseColor='$tcolor'></Material></Appearance></Shape></Billboard></Transform>"}
-              if {$closeTransform} {puts $x3dFile "</Transform>"}
+              if {$name != ""} {
+                regsub -all "'" $name "" name
+                puts $x3dFile " <Transform scale='$nsize $nsize $nsize'><Billboard axisOfRotation='0 0 0'><Shape><Text string='\"$name\"'><FontStyle family='\"SANS\"' justify='\"BEGIN\"'></FontStyle></Text><Appearance><Material diffuseColor='$tcolor'></Material></Appearance></Shape></Billboard></Transform>"
+              }
+              puts $x3dFile "</Transform>"
               set viz(SMG) 1
 
 # plane
@@ -1782,7 +1777,6 @@ proc x3dSuppGeom {maxxyz} {
           geometric_curve_set {
 
 # get all trimmed curves
-            #outputMsg "$ename [$e2 P21ID]" red
             catch {unset trimVal}
             set trimmedCurves {}
             if {$ename == "trimmed_curve"} {
@@ -2251,7 +2245,6 @@ proc x3dHoles {maxxyz} {
 
 # hole geometry
           if {[info exists holeDefinitions($defID)]} {
-            #outputMsg "$defID $holeDefinitions($defID)" red
 
 # hole origin and axis transform
             set a2p3d [x3dGetA2P3D $e3]
@@ -2471,7 +2464,6 @@ proc x3dColorName {color} {
       if {$ok} {set name Gray}
     }
   }
-  #outputMsg "$savcolor  $name"
   return $name
 }
 

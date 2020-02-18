@@ -5,7 +5,6 @@ proc feaModel {entType} {
   global sfaPID stepAP timeStamp x3dAxesSize x3dFile x3dFileName x3dMax x3dMin x3dMsg x3dStartFile x3dTitle
 
   if {$opt(DEBUG1)} {outputMsg "START feaModel $entType\n" red}
-  #outputMsg "START feaModel $entType" red
 
 # finite elements
   set node            [list node name]
@@ -94,7 +93,7 @@ proc feaModel {entType} {
     set title [file tail $localName]
     if {$stepAP != "" && [string range $stepAP 0 1] == "AP"} {append title " | $stepAP"}
     puts $x3dFile "<!DOCTYPE html>\n<html>\n<head>\n<title>$title</title>\n<base target=\"_blank\">\n<meta http-equiv='Content-Type' content='text/html;charset=utf-8'/>"
-    puts $x3dFile "<link rel='stylesheet' type='text/css' href='https://www.x3dom.org/x3dom/release/x3dom.css'/>\n<script type='text/javascript' src='https://www.x3dom.org/x3dom/release/x3dom.js'></script>\n</head>"
+    puts $x3dFile "<link rel='stylesheet' type='text/css' href='https://www.x3dom.org/x3dom/release/x3dom.css'/>\n<script type='text/javascript' src='https://www.x3dom.org/x3dom/release/x3dom.js'></script>\n<style>x3d \{border:1px solid black;\}</style>\n</head>"
 
     set x3dTitle [file tail $localName]
     if {$stepAP != "" && [string range $stepAP 0 1] == "AP"} {append x3dTitle "&nbsp;&nbsp;&nbsp;$stepAP"}

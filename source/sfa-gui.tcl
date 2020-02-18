@@ -1,5 +1,5 @@
 # version numbers - SFA, software user guide (UG)
-proc getVersion {}   {return 3.94}
+proc getVersion {}   {return 3.96}
 proc getVersionUG {} {return 3.0}
 
 # IFCsvr version, depends on string entered when IFCsvr is repackaged for new STEP schemas
@@ -424,7 +424,7 @@ proc guiProcessAndReports {} {
   pack $fopta3 -side left -anchor w -pady 0 -padx 0 -fill y
 
   set fopta4 [frame $fopta.4 -bd 0]
-  set anbut [list {"All" 0} {"None" 1} {"For Analysis" 2} {"For Views" 3}]
+  set anbut [list {"All" 0} {"For Analysis" 2} {"For Views" 3} {"None" 1}]
   foreach item $anbut {
     set bn "allNone[lindex $item 1]"
     set buttons($bn) [ttk::radiobutton $fopta4.$cb -variable allNone -text [lindex $item 0] -value [lindex $item 1] \
@@ -437,6 +437,9 @@ proc guiProcessAndReports {} {
           foreach item [array names opt] {if {[string first "PR_STEP" $item] == 0} {set opt($item) 0}}
           foreach item {VIZBRP VIZFEA VIZPMI VIZTPG PMISEM PMIGRF VALPROP INVERSE PR_USER} {set opt($item) 0}
           set opt(PR_STEP_COMM) 1
+          set opt(XLSCSV) "Excel"
+          set ofNone 0
+          set ofExcel 1
         } elseif {$allNone == 2} {
           foreach item {PMISEM PMIGRF VALPROP} {set opt($item) 1}
         } elseif {$allNone == 3} {
@@ -811,6 +814,7 @@ proc guiOpenSTEPFile {} {
         set ofExcel 0
         set ofCSV 0
         set opt(XLSCSV) "None"
+        set allNone -1
         if {$useXL && $xlInstalled} {$buttons(ofExcel) configure -state normal}
       }
       if {$ofExcel && $opt(XLSCSV) != "Excel"} {
@@ -854,7 +858,7 @@ proc guiOpenSTEPFile {} {
   }
 
   pack $foptk -side top -anchor w -pady {5 2} -padx 10 -fill both
-  catch {tooltip::tooltip $foptk "If Excel is installed, then Spreadsheets and CSV files can be generated.  If CSV Files\nis selected, the Spreadsheet is also generated.  CSV files do not contain any cell\ncolors, comments, or links.  GD&T symbols will look correct only with Excel 2016\nor newer.\n\nIf Excel is not installed, only CSV files can be generated.  Options for Analyze and\nInverse Relationships are disabled.\n\nView Only does not generate any Spreadsheets or CSV files.  All options except\nView are disabled.\n\nIf output files are not opened after they have been generated, use F2 to open a\nSpreadsheet and F3 to open a View.  Use F7 to open the File Summary spreadsheet \nwhen processing multiple files.\n\nIf possible, existing output files are always overwritten by new files.  Output files\ncan be written to a user-defined directory.  See Spreadsheet tab.\n\nSee Help > User Guide (section 4.4.1)"}
+  catch {tooltip::tooltip $foptk "If Excel is installed, then Spreadsheets and CSV files can be generated.  If CSV Files\nis selected, the Spreadsheet is also generated.  CSV files do not contain any cell\ncolors, comments, or links.  GD&T symbols in CSV files are only supported with\nExcel 2016 or newer.\n\nIf Excel is not installed, only CSV files can be generated.  Options for Analyze and\nInverse Relationships are disabled.\n\nView Only does not generate any Spreadsheets or CSV files.  All options except\nView are disabled.\n\nIf output files are not opened after they have been generated, use F2 to open a\nSpreadsheet and F3 to open a View.  Use F7 to open the File Summary spreadsheet \nwhen processing multiple files.\n\nIf possible, existing output files are always overwritten by new files.  Output files\ncan be written to a user-defined directory.  See Spreadsheet tab.\n\nSee Help > User Guide (section 4.4.1)"}
 
 # syntax checker
   set foptl [ttk::labelframe $fopt.l -text " Syntax Checker "]
@@ -943,7 +947,7 @@ proc guiSpreadsheet {} {
     focus $buttons(userdir)
   }
   pack $fxls1.$cb -side left -anchor w -padx {5 0}
-  catch {tooltip::tooltip $fxls1.$cb "This option is useful when the directory containing the STEP file is\nprotected (read-only) and none of the output can be written to it."}
+  catch {tooltip::tooltip $fxls1.$cb "This option is useful when the directory containing the STEP file is\nprotected (read-only) and none of the output can be written to it.\nDo not select a directory name containing bracket \[\] characters."}
   incr cb
 
   set buttons(userentry) [ttk::entry $fxls1.entry -width 38 -textvariable userWriteDir]
@@ -959,7 +963,7 @@ proc guiSpreadsheet {} {
   pack $fxls1 -side top -anchor w
 
   pack $fxlsd -side top -anchor w -pady {5 2} -padx 10 -fill both
-  catch {tooltip::tooltip $fxlsd "If possible, existing output files are always overwritten by new files."}
+  catch {tooltip::tooltip $fxlsd "If possible, existing output files are always overwritten by new files.\nIf spreadsheets cannot be overwritten, a number is appended to the\nfile name: myfile-sfa-1.xlsx"}
 
 # some other options
   set fxlsc [ttk::labelframe $fxls.c -text " Other "]
@@ -1061,7 +1065,7 @@ Inverse Relationships: For some entities, Inverse relationships and backwards re
 are shown on the worksheets.
 
 Output Format: Generate Excel spreadsheets, CSV files, or only Views.  If Excel is not installed,
-CSV files are automatically generated.  Some options are not available with CSV files.  The View
+CSV files are automatically generated.  Some options are not supported with CSV files.  The View
 Only option does not generate spreadsheets or CSV files.  The Syntax Checker can also be run when
 processing a STEP file.
 
@@ -1222,7 +1226,7 @@ geometric entities referred to by the datum_target entity.  Supported geometric 
 in plane, are line, circle, trimmed_curve, and advanced_face bounded by lines, circles, or ellipses.
 If other geometric entities are used, then either the datum target will not be shown or some of the
 edges of the datum targets will be missing.  Datum targets defined by multiple types of curves are
-not supported.  
+not supported.
 
 Both types of datum targets are shown in red and can be switched on and off in the view.
 
@@ -2018,6 +2022,7 @@ proc getOpenPrograms {} {
       [list {*}[glob -nocomplain -directory [file join $pf Kubotek] -join "Spectrum*" Spectrum.exe] Spectrum] \
       [list {*}[glob -nocomplain -directory [file join $pf] -join "3D-Tool V*" 3D-Tool.exe] 3D-Tool] \
       [list {*}[glob -nocomplain -directory [file join $pf] -join "VariCADViewer *" bin varicad-x64.exe] "VariCAD Viewer"] \
+      [list {*}[glob -nocomplain -directory [file join $pf] -join Clari3D "Lite*" lite.exe] "Clari3D Lite"] \
       [list {*}[glob -nocomplain -directory [file join $pf] -join ZWSOFT "CADbro *" CADbro.exe] CADbro] \
     ]
     if {$pf64 == ""} {

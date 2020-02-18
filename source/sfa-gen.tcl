@@ -1,9 +1,9 @@
 # generate an Excel spreadsheet from a STEP file
 proc genExcel {{numFile 0}} {
-  global allEntity aoEntTypes ap203all ap214all ap242all badAttributes brepEnts buttons cells cells1 col col1 count csvdirnam csvfile currLogFile developer
+  global allEntity aoEntTypes ap203all ap214all ap242all badAttributes brepEnts buttons cells cells1 col col1 count csvdirnam csvfile csvintemp currLogFile developer
   global dim dimRepeatDiv draughtingModels editorCmd entCategories entCategory entColorIndex entCount entityCount entsIgnored entsWithErrors errmsg
   global excel excelVersion fcsv feaFirstEntity feaLastEntity File fileEntity filesProcessed gpmiTypesInvalid gpmiTypesPerFile guid idxColor ifcsvrDir inverses
-  global lastXLS lenfilelist localName localNameList logFile matrixList multiFile multiFileDir mytemp nistCoverageLegend nistName nistPMIexpected nistPMImaster
+  global lastXLS lenfilelist localName localNameList logFile matrixList multiFile multiFileDir mydocs mytemp nistCoverageLegend nistName nistPMIexpected nistPMImaster
   global nprogBarEnts nshape ofCSV ofExcel opt pf32 p21e3 p21e3Section row rowmax savedViewButtons savedViewName savedViewNames scriptName
   global sheetLast skipEntities skipPerm spmiEntity spmiSumName spmiSumRow spmiTypesPerFile startrow statsOnly stepAP tessColor thisEntType tlast
   global tolNames tolStandard tolStandards totalEntity userEntityFile userEntityList useXL viz workbook workbooks
@@ -12,7 +12,6 @@ proc genExcel {{numFile 0}} {
   global objDesign
 
   if {[info exists errmsg]} {set errmsg ""}
-  #outputMsg "genExcel" red
 
 # initialize for X3DOM geometry
   if {$opt(VIZPMI) || $opt(VIZTPG) ||$opt(VIZFEA) || $opt(VIZBRP)} {
@@ -329,6 +328,7 @@ proc genExcel {{numFile 0}} {
 # connect to Excel
   set useXL 1
   set xlInstalled 1
+  set csvintemp 0
   if {$opt(XLSCSV) != "None"} {
     if {[catch {
       set pid1 [checkForExcel $multiFile]
@@ -437,11 +437,10 @@ proc genExcel {{numFile 0}} {
 
 # file name too long
     if {[string length $xlFileName] > 218} {
-      append xlsmsg "Pathname of Spreadsheet file is too long for Excel ([string length $xlFileName])"
-      set xlFileName "[file nativename [file join $writeDir [file rootname [file tail $fname]]]]-sfa.$extXLS"
-      set xlFileNameOld "[file nativename [file join $writeDir [file rootname [file tail $fname]]]]_stp.$extXLS"
+      append xlsmsg "Spreadsheet file name is too long for Excel ([string length $xlFileName])."
+      set xlFileName "[file nativename [file join $mydocs [file rootname [file tail $fname]]]]-sfa.$extXLS"
       if {[string length $xlFileName] < 219} {
-        append xlsmsg "\nSpreadsheet file written to User-defined directory (Spreadsheet tab)"
+        append xlsmsg "  Spreadsheet written to the home directory."
       }
     }
 
@@ -1134,11 +1133,7 @@ foreach dm [list draughting_model \
     if {[catch {
       outputMsg " "
       if {$xlsmsg != ""} {outputMsg $xlsmsg red}
-      if {[string first "\[" $xlFileName] != -1} {
-        regsub -all {\[} $xlFileName "(" xlFileName
-        regsub -all {\]} $xlFileName ")" xlFileName
-        outputMsg "In the spreadsheet file name, the characters \'\[\' and \'\]\' have been\n substituted by \'\(\' and \'\)\'" red
-      }
+      set xlFileName [checkFileName $xlFileName]
       set xlfn $xlFileName
 
 # create new file name if spreadsheet already exists, delete new file name spreadsheets if possible
@@ -1147,7 +1142,7 @@ foreach dm [list draughting_model \
 # always save as spreadsheet
       outputMsg "Saving Spreadsheet to:"
       outputMsg " [truncFileName $xlfn 1]" blue
-      if {$excelVersion < 12} {outputMsg " Some Spreadsheet formatting is not available with older versions of Excel." red}
+      if {$excelVersion < 12} {outputMsg " Some Spreadsheet formatting is not supported with older versions of Excel." red}
       if {[catch {
         catch {$excel DisplayAlerts False}
         if {$xlFormat == 51} {
@@ -1165,14 +1160,24 @@ foreach dm [list draughting_model \
 # save worksheets as CSV files
       if {$saveCSV} {
         if {[catch {
+          
+# set directory for CSV files          
           set csvdirnam "[file join [file dirname $localName] [file rootname [file tail $localName]]]-sfa-csv"
           if {$opt(writeDirType) == 2} {set csvdirnam [file join $writeDir [file rootname [file tail $localName]]-sfa-csv]}
+          if {[string first "\[" [file dirname $localName]] != -1 || [string first "\]" [file dirname $localName]] != -1} {
+            set csvdirnam "[file join $mydocs [file rootname [file tail $localName]]]-sfa-csv"
+          }
+          if {[string first "\[" $csvdirnam] != -1 || [string first "\]" $csvdirnam] != -1} {
+            regsub -all {\[} $csvdirnam "(" csvdirnam
+            regsub -all {\]} $csvdirnam ")" csvdirnam
+          }
           file mkdir $csvdirnam
           outputMsg "Saving Spreadsheet as multiple CSV files to directory:"
           outputMsg " [truncFileName [file nativename $csvdirnam]]" blue
           set csvFormat [expr 6]
           if {$excelVersion > 15} {set csvFormat [expr 62]}
 
+          set csvintemp 0
           set nprogBarEnts 0
           for {set i 1} {$i <= [$worksheets Count]} {incr i} {
             set ws [$worksheets Item [expr $i]]
@@ -1182,14 +1187,20 @@ foreach dm [list draughting_model \
             } else {
               set wsname $wsn
             }
+
             $worksheet($wsname) Activate
             regsub -all " " $wsname "-" wsname
             set csvfname [file nativename [file join $csvdirnam $wsname.csv]]
+            if {[string length $csvfname] > 218} {
+              set csvfname [file nativename [file join $mydocs $wsname.csv]]
+              errorMsg " Some CSV files are saved in the home directory." red
+              set csvintemp 1
+            }
             catch {file delete -force -- $csvfname}
             if {[file exists $csvfname]} {set csvfname [incrFileName $csvfname]}
-            if {[string first "PMI-Representation" $csvfname] != -1 && $excelVersion < 16} {
-              errorMsg "PMI symbols written to CSV files will look correct only with Excel 2016 or newer." red
-            }
+            set csvfname [checkFileName $csvfname]
+
+            if {[string first "PMI-Representation" $csvfname] != -1 && $excelVersion < 16} {errorMsg "GD&T symbols in CSV files are only supported with Excel 2016 or newer." red}
             $workbook -namedarg SaveAs Filename [file rootname $csvfname] FileFormat $csvFormat
             incr nprogBarEnts
             update
@@ -1272,16 +1283,18 @@ foreach dm [list draughting_model \
     }
     if {$ok} {
       set dir [file nativename $csvdirnam]
+      outputMsg "Opening directory of CSV files"
       if {[string first " " $dir] == -1} {
-        outputMsg "Opening directory of CSV files"
         if {[catch {
           exec {*}[auto_execok start] $dir
+          if {[info exists csvintemp]} {if {$csvintemp} {exec {*}[auto_execok start] $mydocs}}
         } emsg]} {
           if {[string first "UNC" $emsg] != -1} {set emsg [fixErrorMsg $emsg]}
           if {$emsg != ""} {errorMsg "ERROR opening directory of CSV files: $emsg"}
         }
       } else {
         exec C:/Windows/explorer.exe $dir &
+        if {[info exists csvintemp]} {if {$csvintemp} {exec C:/Windows/explorer.exe $mydocs &}}
       }
     }
   }
@@ -1872,7 +1885,6 @@ proc sumAddColorLinks {sum sumHeaderRow sumLinks sheetSort sumRow} {
   global cells col entName entsIgnored entsWithErrors excel row worksheet xlFileName
 
   if {[catch {
-    #outputMsg " Adding links on Summary to Entity worksheets"
     set row($sum) [expr {$sumHeaderRow+2}]
 
     foreach ent $sheetSort {
@@ -1886,7 +1898,7 @@ proc sumAddColorLinks {sum sumHeaderRow sumLinks sheetSort sumRow} {
 
 # link from summary to entity worksheet
       set anchor [$worksheet($sum) Range "A$sumRow"]
-      if {[string first "#" $xlFileName] == -1} {
+      if {[string first "#" $xlFileName] == -1 && [string first "\[" $xlFileName] == -1 && [string first "\]" $xlFileName] == -1} {
         set hlsheet $ent
         if {[string length $ent] > 31} {
           foreach item [array names entName] {
@@ -1895,7 +1907,7 @@ proc sumAddColorLinks {sum sumHeaderRow sumLinks sheetSort sumRow} {
         }
         $sumLinks Add $anchor $xlFileName "$hlsheet!A1" "Go to $ent"
       } else {
-        errorMsg " When the STEP file name or directory contains a '#', links between the File Summary worksheet and entity worksheets are not generated." red
+        errorMsg " When the STEP file or directory contains (# \[ \]) links between the Summary worksheet and entity worksheets are not generated." red
       }
 
 # color cells
@@ -2086,7 +2098,9 @@ proc formatWorksheets {sheetSort sumRow inverseEnts} {
 
 # link back to summary
       set anchor [$worksheet($thisEntType) Range "A1"]
-      if {[string first "#" $xlFileName] == -1} {$hlink Add $anchor $xlFileName "Summary!A$sumRow" "Return to Summary"}
+      if {[string first "#" $xlFileName] == -1 && [string first "\[" $xlFileName] == -1 && [string first "\]" $xlFileName] == -1} {
+        $hlink Add $anchor $xlFileName "Summary!A$sumRow" "Return to Summary"
+      }
 
 # check width of columns, wrap text
       if {[catch {

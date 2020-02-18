@@ -132,7 +132,6 @@ proc spmiGeotolReport {objEntity} {
     set objID   [$objEntity P21ID]
     set objAttributes [$objEntity Attributes]
     set ent($entLevel) $objType
-    #outputMsg "$objEntity $objType $objID" red
 
     if {$opt(DEBUG1)} {outputMsg "$ind ENT $entLevel #$objID=$objType (ATR=[$objAttributes Count])" blue}
 
@@ -705,7 +704,6 @@ proc spmiGeotolReport {objEntity} {
 # write tolerance with modifier
                   set ov $objValue
                   set val [[$cells($gt) Item $r $c] Value]
-                  #outputMsg "(20) $c  $r -- $ov -- $val" green
 
                   if {$val == ""} {
                     $cells($gt) Item $r $c $ov
@@ -778,32 +776,40 @@ proc spmiGeotolReport {objEntity} {
                         set id [$datum P21ID]
 
 # check for multiple datum identification
-                        if {[info exists datumIDs]} {
-                          if {[lsearch $datumIDs $letter] != -1} {
-                            set msg "Multiple 'datum' entities use the same letter for the 'identification' attribute."
+                        if {[string length $letter] > 0} {
+                          if {[info exists datumIDs]} {
+                            if {[lsearch $datumIDs $letter] != -1} {
+                              set msg "Multiple 'datum' entities use the same letter for the 'identification' attribute."
+                              errorMsg $msg
+                              lappend syntaxErr(datum) [list $id identification $msg]
+                            }
+                          }
+                          lappend datumIDs $letter
+
+# check for datum identification with too many letters
+                          set nlet 2
+                          if {$tolStandard(type) == "ISO"} {set nlet 3}
+                          if {![string is alpha $letter] || [string length $letter] > $nlet} {
+                            set msg "Datum 'identification' attribute cannot be more than $nlet letters (no numbers) based on the tolerancing standard."
                             errorMsg $msg
                             lappend syntaxErr(datum) [list $id identification $msg]
                           }
-                        }
-                        lappend datumIDs $letter
-
-# check for datum identification with too many letters
-                        set nlet 2
-                        if {$tolStandard(type) == "ISO"} {set nlet 3}
-                        if {![string is alpha $letter] || [string length $letter] > $nlet} {
-                          set msg "Datum 'identification' attribute cannot be more than $nlet letters (no numbers) based on the tolerancing standard."
-                          errorMsg $msg
-                          lappend syntaxErr(datum) [list $id identification $msg]
-                        }
 
 # check for datum in SAR related_shape_aspect
-                        set e1s [$datum GetUsedIn [string trim shape_aspect_relationship] [string trim related_shape_aspect]]
-                        set n 0
-                        ::tcom::foreach e1 $e1s {incr n}
-                        if {$n == 0} {
-                          set msg "Syntax Error: Datum is not referenced by 'related_shape_aspect' on 'shape_aspect_relationship'.\n[string repeat " " 14]\($recPracNames(pmi242), Sec. 6.5, Figure 35)"
+                          set e1s [$datum GetUsedIn [string trim shape_aspect_relationship] [string trim related_shape_aspect]]
+                          set n 0
+                          ::tcom::foreach e1 $e1s {incr n}
+                          if {$n == 0} {
+                            set msg "Syntax Error: Datum is not referenced by 'related_shape_aspect' on 'shape_aspect_relationship'.\n[string repeat " " 14]\($recPracNames(pmi242), Sec. 6.5, Figure 35)"
+                            errorMsg $msg
+                            lappend syntaxErr(datum) [list $id ID $msg]
+                          }
+
+# missing identification
+                        } else {
+                          set msg "Missing datum 'identification' attribute."
                           errorMsg $msg
-                          lappend syntaxErr(datum) [list $id ID $msg]
+                          lappend syntaxErr(datum) [list $id identification $msg]
                         }
                       }
                     }
@@ -859,7 +865,6 @@ proc spmiGeotolReport {objEntity} {
                       }
                       set datumGeomEnts [join [lsort $datumGeomEnts]]
                       set datumEntType($datumGeomEnts) "[formatComplexEnt [$gtEntity Type]] [$gtEntity P21ID]"
-                      #outputMsg $datumGeom green
 
                       set e1s [$gtEntity GetUsedIn [string trim shape_aspect_relationship] [string trim relating_shape_aspect]]
                       ::tcom::foreach e1 $e1s {
@@ -1317,7 +1322,6 @@ proc spmiGeotolReport {objEntity} {
                 if {$ok && [info exists spmiID]} {
                   set c [string index [cellRange 1 $col($gt)] 0]
                   set r $spmiIDRow($gt,$spmiID)
-                  #outputMsg "$r $gt $spmiID" green
 
 # column name
                   if {$colName != ""} {
@@ -1334,7 +1338,6 @@ proc spmiGeotolReport {objEntity} {
 
                   set ov $objValue
                   set val [[$cells($gt) Item $r $c] Value]
-                  #outputMsg "(5) $c  $r -- $ov -- $val" green
 
                   if {$val == ""} {
                     $cells($gt) Item $r $c $ov

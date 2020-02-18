@@ -1,12 +1,10 @@
 # process multiple files in a directory
 proc openMultiFile {{ask 1}} {
-  global allEntity andEntAP209 buttons cells1 col1 coverageSTEP developer entCategory excel1 fileDir fileDir1 fileEntity fileList
+  global allEntity andEntAP209 buttons cells1 col1 coverageSTEP entCategory excel1 fileDir fileDir1 fileEntity fileList
   global gpmiCoverageWS gpmiRows gpmiTotals gpmiTypes gpmiTypesInvalid lastXLS1 lenfilelist localName localNameList multiFileDir mydocs nfile
   global nistCoverageStyle nistVersion nprogBarFiles opt pmiElementsMaxRows row1 spmiCoverageWS startrow stepAP totalEntity totalPMI totalPMIrows
-  global useXL worksheet1 worksheets1 writeDir xlFileNames
+  global useXL worksheet1 worksheets1 xlFileNames
 
-  set maxfiles 1000
-  if {$developer} {set maxfiles 10000}
   set multiFileDir ""
 
 # select directory of files (default)
@@ -52,10 +50,6 @@ proc openMultiFile {{ask 1}} {
 # find all files in directory and subdirectories
       set fileList {}
       findFile $multiFileDir $recurse
-
-# limit by maxfiles
-      if {[llength $fileList] > $maxfiles} {outputMsg "File list limited to first $maxfiles of [llength $fileList] files" red}
-      set fileList [lrange $fileList 0 [expr {$maxfiles-1}]]
       set lenfilelist [llength $fileList]
 
 # list files and size
@@ -507,7 +501,7 @@ proc openMultiFile {{ask 1}} {
 
 # -------------------------------------------------------------------------------------------------
 # save spreadsheet
-        if {$lenfilelist > 1 && $useXL  && $opt(XLSCSV) != "None"} {
+        if {$lenfilelist > 1 && $useXL && $opt(XLSCSV) != "None"} {
           if {[catch {
 
 # set file name for analysis spreadsheet
@@ -515,11 +509,9 @@ proc openMultiFile {{ask 1}} {
             regsub -all " " $enddir "_" enddir
             set aname [file nativename [file join $multiFileDir SFA-Summary-$enddir-$lenfilelist.$extXLS]]
             if {[string length $aname] > 218} {
-              errorMsg "Pathname of Spreadsheet file is too long for Excel ([string length $aname])"
-              set aname [file nativename [file join $writeDir SFA-Summary-$enddir-$lenfilelist.$extXLS]]
-              if {[string length $aname] < 219} {
-                errorMsg "Spreadsheet file written to User-defined directory (Spreadsheet tab)"
-              }
+              errorMsg "Spreadsheet file name is too long for Excel ([string length $aname])."
+              set aname [file nativename [file join $mydocs SFA-Summary-$enddir-$lenfilelist.$extXLS]]
+              if {[string length $aname] < 219} {errorMsg " Spreadsheet file written to the home directory."}
             }
             catch {file delete -force $aname}
 
@@ -527,11 +519,15 @@ proc openMultiFile {{ask 1}} {
             if {[file exists $aname]} {set aname [incrFileName $aname]}
 
 # save spreadsheet
+            set aname [checkFileName $aname]
             outputMsg "Saving File Summary Spreadsheet to:"
             outputMsg " [truncFileName $aname 1]" blue
-            update
             catch {$excel1 DisplayAlerts False}
-            $workbook1 -namedarg SaveAs Filename [file rootname $aname] FileFormat $xlFormat
+            if {$xlFormat == 51} {
+              $workbook1 -namedarg SaveAs Filename $aname FileFormat $xlFormat
+            } else {
+              $workbook1 -namedarg SaveAs Filename $aname
+            }
             catch {$excel1 DisplayAlerts True}
             set lastXLS1 $aname
 

@@ -146,6 +146,7 @@ set auto_index(stringSimilarity) [list source [file join $dir sfa-nist.tcl]]
 
 set auto_index(addCellComment) [list source [file join $dir sfa-proc.tcl]]
 set auto_index(cellRange) [list source [file join $dir sfa-proc.tcl]]
+set auto_index(checkFileName) [list source [file join $dir sfa-proc.tcl]]
 set auto_index(checkForExcel) [list source [file join $dir sfa-proc.tcl]]
 set auto_index(checkTempDir) [list source [file join $dir sfa-proc.tcl]]
 set auto_index(checkValues) [list source [file join $dir sfa-proc.tcl]]
