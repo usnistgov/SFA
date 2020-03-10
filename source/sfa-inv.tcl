@@ -335,7 +335,7 @@ proc invSetCheck {entType} {
 
 # entities in other APs that are not in AP203, 214, 242
   set checkInv 0
-  if {[string first "AP203" $stepAP] == -1 && [string first "AP214" $stepAP] == -1 && $stepAP != "AP242"} {
+  if {[string first "AP203" $stepAP] == -1 && [string first "AP214" $stepAP] == -1 && [string first "AP242" $stepAP] == -1} {
     if {[lsearch $ap203all $entType] == -1 && [lsearch $ap214all $entType] == -1 && [lsearch $ap242all $entType] == -1} {
       set checkInv 1
     }

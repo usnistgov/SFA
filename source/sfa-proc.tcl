@@ -1,5 +1,5 @@
 proc checkValues {} {
-  global allNone appName appNames buttons developer edmWhereRules edmWriteToFile eeWriteToFile opt userEntityList useXL
+  global allNone appName appNames buttons developer edmWhereRules edmWriteToFile eeWriteToFile ofCSV opt userEntityList useXL
 
   set butNormal {}
   set butDisabled {}
@@ -43,13 +43,19 @@ proc checkValues {} {
   }
 
 # configure Excel, CSV, Viz only, Excel or not
+  set btext "Generate "
   if {$opt(XLSCSV) == "Excel"} {
-    catch {$buttons(genExcel) configure -text "Generate Spreadsheet"}
+    append btext "Spreadsheet"
   } elseif {$opt(XLSCSV) == "CSV"} {
-    catch {$buttons(genExcel) configure -text "Generate CSV Files"}
+    if {$ofCSV} {append btext "Spreadsheet and "}
+    append btext "CSV Files"
   } elseif {$opt(XLSCSV) == "None"} {
-    catch {$buttons(genExcel) configure -text "Generate View"}
+    append btext "View"
   }
+  if {$opt(XLSCSV) != "None" && ($opt(VIZBRP) || $opt(VIZFEA) || $opt(VIZPMI) || $opt(VIZTPG))} {
+    append btext " and View"
+  }
+  catch {$buttons(genExcel) configure -text $btext}
   if {![info exists useXL]} {set useXL 1}
 
 # no Excel
@@ -60,7 +66,7 @@ proc checkValues {} {
       if {[string first "PR_STEP" $item] == 0} {lappend butNormal "opt$item"}
     }
     foreach b {optHIDELINKS optINVERSE optPMIGRF optPMISEM optVALPROP optXL_FPREC optXL_SORT allNone2} {lappend butDisabled $b}
-    foreach b {optVIZFEA optVIZPMI optVIZTPG optVIZBRP optVIZBRPCLR optVIZBRPEDG optVIZBRPNRM} {lappend butNormal $b}
+    foreach b {optVIZFEA optVIZPMI optVIZTPG optVIZBRP} {lappend butNormal $b}
     foreach b {allNone0 allNone1 allNone3 optPR_USER} {lappend butNormal $b}
 
 # Excel
@@ -69,13 +75,12 @@ proc checkValues {} {
       if {[string first "PR_STEP" $item] == 0} {lappend butNormal "opt$item"}
     }
     foreach b {optHIDELINKS optINVERSE optPMIGRF optPMISEM optVALPROP optXL_FPREC optXL_SORT} {lappend butNormal $b}
-    foreach b {optVIZFEA optVIZPMI optVIZTPG optVIZBRP optVIZBRPCLR optVIZBRPEDG optVIZBRPNRM} {lappend butNormal $b}
+    foreach b {optVIZFEA optVIZPMI optVIZTPG optVIZBRP} {lappend butNormal $b}
     foreach b {allNone0 allNone1 allNone2 allNone3 optPR_USER} {lappend butNormal $b}
   }
 
 # viz only
   if {$opt(XLSCSV) == "None"} {
-    set opt(PMIGRF) 0
     foreach item [array names opt] {
       if {[string first "PR_STEP" $item] == 0} {lappend butDisabled "opt$item"}
     }
@@ -87,7 +92,14 @@ proc checkValues {} {
       foreach item {VIZFEA VIZPMI VIZTPG VIZBRP} {set opt($item) 1}
     }
   }
-  
+
+# part geometry
+  if {$opt(VIZBRP)} {
+    foreach b {x3dqual x3dQuality7 x3dQuality9} {lappend butNormal $b}
+  } else {
+    foreach b {x3dqual x3dQuality7 x3dQuality9} {lappend butDisabled $b}
+  }
+
 # graphical PMI report
   if {$opt(PMIGRF)} {
     if {$opt(XLSCSV) != "None"} {
@@ -100,7 +112,7 @@ proc checkValues {} {
   } else {
     lappend butNormal optPR_STEP_PRES
     if {!$opt(VALPROP)} {lappend butNormal optPR_STEP_QUAN}
-    if {!$opt(PMISEM)}  {foreach b {optPR_STEP_AP242 optPR_STEP_COMM optPR_STEP_SHAP optPR_STEP_REPR} {lappend butNormal $b}}
+    if {!$opt(PMISEM)}  {foreach b {optPR_STEP_AP242 optPR_STEP_SHAP optPR_STEP_REPR} {lappend butNormal $b}}
     lappend butDisabled optPMIGRFCOV
   }
 
@@ -144,40 +156,22 @@ proc checkValues {} {
 
 # semantic PMI report
   if {$opt(PMISEM)} {
-    foreach b {optPR_STEP_AP242 optPR_STEP_REPR optPR_STEP_SHAP optPR_STEP_TOLR optPR_STEP_QUAN optPR_STEP_FEAT} {
+    foreach b {optPR_STEP_AP242 optPR_STEP_REPR optPR_STEP_SHAP optPR_STEP_TOLR optPR_STEP_QUAN} {
       set opt([string range $b 3 end]) 1
       lappend butDisabled $b
     }
     lappend butNormal optPMISEMDIM
   } else {
-    foreach b {optPR_STEP_REPR optPR_STEP_TOLR optPR_STEP_FEAT} {lappend butNormal $b}
+    foreach b {optPR_STEP_REPR optPR_STEP_TOLR} {lappend butNormal $b}
     if {!$opt(PMIGRF)} {
       if {!$opt(VALPROP)} {lappend butNormal optPR_STEP_QUAN}
-      foreach b {optPR_STEP_AP242 optPR_STEP_COMM optPR_STEP_SHAP} {lappend butNormal $b}
+      foreach b {optPR_STEP_AP242 optPR_STEP_SHAP} {lappend butNormal $b}
     }
     lappend butDisabled optPMISEMDIM
   }
 
-# part geometry view
-  if {$opt(VIZBRP)} {
-    if {$opt(XLSCSV) != "None"} {
-      set opt(PR_STEP_PRES) 1
-      lappend butDisabled optPR_STEP_PRES
-    }
-    foreach b {optVIZBRPCLR optVIZBRPNRM} {lappend butNormal $b}
-    if {$opt(VIZBRPCLR)} {
-      lappend butNormal optVIZBRPEDG
-    } else {
-      lappend butDisabled optVIZBRPEDG
-      set opt(VIZBRPEDG) 0
-    }
-  } else {
-    catch {
-      if {!$opt(PMISEM) && !$opt(PMIGRF)} {lappend butNormal optPR_STEP_COMM}
-      if {!$opt(PMISEM)} {lappend butNormal optPR_STEP_PRES}
-    }
-    foreach b {optVIZBRPCLR optVIZBRPEDG optVIZBRPNRM} {lappend butDisabled $b}
-  }
+# not part geometry view
+  if {!$opt(VIZBRP) && !$opt(PMISEM)} {lappend butNormal optPR_STEP_PRES}
 
 # tessellated geometry view
   if {$opt(VIZTPG)} {
@@ -187,10 +181,7 @@ proc checkValues {} {
     }
     foreach b {optVIZTPGMSH} {lappend butNormal $b}
   } else {
-    catch {
-      if {!$opt(PMISEM) && !$opt(PMIGRF)} {lappend butNormal optPR_STEP_COMM}
-      if {!$opt(PMISEM)} {lappend butNormal optPR_STEP_PRES}
-    }
+    catch {if {!$opt(PMISEM)} {lappend butNormal optPR_STEP_PRES}}
     foreach b {optVIZTPGMSH} {lappend butDisabled $b}
   }
   
@@ -200,14 +191,6 @@ proc checkValues {} {
   } else {
     foreach b {userentity userentityopen} {lappend butDisabled $b}
     set userEntityList {}
-  }
-  
-# common for any report  
-  if {$opt(PMISEM) || $opt(PMIGRF) || $opt(VALPROP)} {
-    set opt(PR_STEP_COMM) 1
-    lappend butDisabled optPR_STEP_COMM
-  } else {
-    lappend butNormal optPR_STEP_COMM
   }
   
   if {$developer} {
@@ -228,7 +211,7 @@ proc checkValues {} {
 # make sure there is some entity type to process
   set nopt 0
   foreach idx [lsort [array names opt]] {
-    if {([string first "PR_" $idx] == 0 || $idx == "VALPROP" || $idx == "PMIGRF" || $idx == "PMISEM") && [string first "FEAT" $idx] == -1} {
+    if {[string first "PR_" $idx] == 0 || $idx == "VALPROP" || $idx == "PMIGRF" || $idx == "PMISEM"} {
       incr nopt $opt($idx)
     }
   }
@@ -240,22 +223,23 @@ proc checkValues {} {
     
 # configure all, none, for buttons
   if {[info exists allNone]} {
-    if {($allNone == 2 && ($opt(PMISEM) != 1 || $opt(PMIGRF) != 1 || $opt(VALPROP) != 1)) ||
-        ($allNone == 3 && ($opt(VIZPMI) != 1 || $opt(VIZTPG) != 1 || $opt(VIZFEA)  != 1 || $opt(VIZBRP) != 1))} {
+    if {$allNone == 1} {
+      foreach item [array names opt] {
+        if {[string first "PR_STEP" $item] == 0 && $item != "PR_STEP_COMM"} {
+          if {$opt($item) == 1} {set allNone -1; break}
+        }
+        if {[string length $item] == 6 && ([string first "PMI" $item] == 0 || [string first "VIZ" $item] == 0)} {
+          if {$opt($item) == 1} {set allNone -1; break}
+        }
+      }
+    } elseif {($allNone == 2 && ($opt(PMISEM) != 1 || $opt(PMIGRF) != 1 || $opt(VALPROP) != 1)) ||
+              ($allNone == 3 && ($opt(VIZPMI) != 1 || $opt(VIZTPG) != 1 || $opt(VIZFEA)  != 1 || $opt(VIZBRP) != 1))} {
       set allNone -1
     } elseif {$allNone == 0} {
       foreach item [array names opt] {
         if {[string first "PR_STEP" $item] == 0} {
           if {$item != "PR_STEP_GEOM" && $item != "PR_STEP_CPNT"} {
             if {$opt($item) == 0} {set allNone -1}
-          }
-        }
-      }
-    } elseif {$allNone == 1} {
-      foreach item [array names opt] {
-        if {[string first "PR_STEP" $item] == 0} {
-          if {$item != "PR_STEP_COMM" && $item != "PR_STEP_FEAT"} {
-            if {$opt($item) == 1} {set allNone -1}
           }
         }
       }
@@ -990,7 +974,7 @@ proc addCellComment {ent r c comment} {
 
     foreach idx [array names recPracNames] {
       if {[string first $recPracNames($idx) $comment] != -1} {
-        append comment "  See Websites > Recommended Practices"
+        append comment "  See Websites > CAx Recommended Practices"
         break
       }
     }

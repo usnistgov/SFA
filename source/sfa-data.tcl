@@ -2,9 +2,9 @@ proc initData {} {
 
 global ap203all ap214all ap242all ap242only
 global allVendor andEntAP209 aoEntTypes badAttributes brepEnts cadApps datumTargetDesc defaultColor dimModNames dimSizeNames DTR
-global entCategory entColorIndex feaElemFace feaIndex gpmiTypes ifcsvrKey ifcsvrVer legendColor letters nistModelPictures nistModelURLs nistNumSavedViews
+global entCategory entColorIndex feaElemFace feaIndex gpmiTypes ifcsvrKey ifcsvrVer legendColor letters nistModelPictures nistModelURLs
 global pmiElementsMaxRows pmiHorizontalLineBreaks pmiModifiers pmiModifiersRP pmiUnicode recPracNames roseLogical
-global schemaLinks spmiEntTypes spmiTypes stepAPs tolNames tzfNames
+global schemaLinks spaces spmiEntTypes spmiTypes stepAPs tolNames tzfNames
 
 set ifcsvrKey "HKEY_LOCAL_MACHINE\\SOFTWARE\\Classes\\IFCsvr.R300\\CLSID"
 set ifcsvrVer "HKEY_LOCAL_MACHINE\\SOFTWARE\\WOW6432Node\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\{3C8CE0A4-803B-48A6-96A0-A3DDD5AE5596}"
@@ -12,6 +12,7 @@ set ifcsvrVer "HKEY_LOCAL_MACHINE\\SOFTWARE\\WOW6432Node\\Microsoft\\Windows\\Cu
 set DTR [expr {3.1415927/180.}]
 set letters ABCDEFGHIJKLMNOPQRSTUVWXYZ
 set defaultColor [list ".55 .55 .6" gray]
+set spaces "\n[string repeat " " 14]"
 
 set roseLogical(0) "FALSE"
 set roseLogical(1) "TRUE"
@@ -23,7 +24,7 @@ set andEntAP209 [list "_and_location" "_and_volume_location" "_and_coefficient" 
 # entities with b-rep geometry
 set brepEnts [list advanced_brep_shape_representation manifold_surface_shape_representation manifold_solid_brep shell_based_surface_model]
 
-# STEP AP names for those that do not start with APnnn
+# STEP AP names for those that do not start with AP2nn
 set stepAPs(CONFIGURATION_CONTROL_3D_DESIGN_ED2_MIM_LF) AP203
 set stepAPs(CCD_CLA_GVP_AST) AP203e1
 set stepAPs(CONFIG_CONTROL_DESIGN) AP203e1
@@ -41,16 +42,6 @@ set stepAPs(MODEL_BASED_INTEGRATED_MANUFACTURING_SCHEMA) AP238
 set stepAPs(INTEGRATED_CNC_SCHEMA) AP238e1
 set stepAPs(PROCESS_PLANNING_SCHEMA) AP240
 
-# other schemas
-#set stepAPs(EXPLICIT_DRAUGHTING) AP201
-#set stepAPs(ASSOCIATIVE_DRAUGHTING) AP202
-#set stepAPs(SHIP_ARRANGEMENT_SCHEMA) AP215
-#set stepAPs(SHIP_MOULDED_FORM_SCHEMA) AP216
-#set stepAPs(SHIP_STRUCTURES_SCHEMA) AP218
-#set stepAPs(DIMENSIONAL_INSPECTION_SCHEMA) AP219
-#set stepAPs(FUNCTIONAL_DATA_AND_SCHEMATIC_REPRESENTATION_MIM_LF) AP221
-#set stepAPs(FURNITURE_CATALOG_AND_INTERIOR_DESIGN) AP236
-
 # links to schema documentation
 set schemaLinks(AP203)   "https://www.cax-if.org/documents/AP203e2_html/AP203e2.htm"
 set schemaLinks(AP203e1) "http://web.archive.org/web/20160322005246/www.steptools.com/support/stdev_docs/express/ap203/html/index.html"
@@ -62,6 +53,8 @@ set schemaLinks(AP238)   "http://ap238.org/ap238e2/"
 set schemaLinks(AP238e1) "http://web.archive.org/web/20160322005246/www.steptools.com/support/stdev_docs/express/ap238/html/index.html"
 set schemaLinks(AP239)   "http://web.archive.org/web/20160322005246/www.steptools.com/support/stdev_docs/express/ap239/html/index.html"
 set schemaLinks(AP242)   "https://www.cax-if.org/documents/AP242ed2_HTML/AP242ed2.htm"
+set schemaLinks(AP242e1) "https://www.cax-if.org/documents/AP242ed2_HTML/AP242ed2.htm"
+set schemaLinks(AP242e2) "https://www.cax-if.org/documents/AP242ed2_HTML/AP242ed2.htm"
 set schemaLinks(CIS/2)   "http://web.archive.org/web/20160322005246/www.steptools.com/support/stdev_docs/express/cis/html/index.html"
 
 # -----------------------------------------------------------------------------------------------------
@@ -143,7 +136,7 @@ set cadApps {"3D_Evolution" ACIS "Alias - OpenModel" "Alias AutoStudio" "Alias O
   "UGS - NX" "UGS-NX" Unigraphics CoCreate Adobe Elysium ASFALIS CAPVIDIA 3DTransVidia MBDVidia NAFEMS COM209 CADCAM-E 3DEXPERIENCE ECCO SimDM \
   SDS/2 Tekla Revit RISA SAP2000 ETABS SmartPlant CADWorx "Advance Steel" ProSteel STAAD RAM Cype Parabuild RFEM RSTAB BuiltWorks EDMsix Mastercam \
   "3D Reviewer" "3D Converter" "HOOPS Exchange" HOOPS MicroStation SolidWorks Solidworks SOLIDWORKS "SOLIDWORKS MBD" ASCON PSStep Anark XStep \
-  Spatial "Spatial InterOp 3D" "STEP-NC Maker" CADverter Autodesk "ITI STEP" pdelib}
+  Spatial "Spatial InterOp 3D" "STEP-NC Maker" CADverter Autodesk "ITI STEP" pdelib kicad KiCad}
 
 # sort cadApps by string length
 set cadApps [sortlength2 $cadApps]
@@ -447,18 +440,6 @@ set nistModelURLs [list \
   nist_ftc_09_asme1_rd.pdf \
   nist_ftc_10_asme1_rb.pdf \
   nist_ftc_11_asme1_rb.pdf]
-
-set nistNumSavedViews(nist_ctc_01) 1
-set nistNumSavedViews(nist_ctc_02) 3
-set nistNumSavedViews(nist_ctc_03) 1
-set nistNumSavedViews(nist_ctc_04) 1
-set nistNumSavedViews(nist_ctc_05) 2
-set nistNumSavedViews(nist_ftc_06) 3
-set nistNumSavedViews(nist_ftc_07) 4
-set nistNumSavedViews(nist_ftc_08) 4
-set nistNumSavedViews(nist_ftc_09) 4
-set nistNumSavedViews(nist_ftc_10) 5
-set nistNumSavedViews(nist_ftc_11) 2
 
 # -----------------------------------------------------------------------------------------------------
 # AP209 element index based on ISO 10303 Part 104 ordering

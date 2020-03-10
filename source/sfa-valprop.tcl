@@ -245,11 +245,10 @@ proc valPropStart {} {
 # -------------------------------------------------------------------------------
 proc valPropReport {objEntity} {
   global cells col entLevel ent entAttrList maxelem maxrep ncartpt nelem nrep opt pd pdcol pdheading pmivalprop prefix propDefID propDefIDRow propDefName
-  global propDefOK propDefRow recPracNames repName stepAP syntaxErr tessCoord tessCoordName valName valPropEnts valPropLink valPropNames valProps
+  global propDefOK propDefRow recPracNames repName spaces stepAP syntaxErr tessCoord tessCoordName valName valPropEnts valPropLink valPropNames valProps
 
   if {$opt(DEBUG1)} {outputMsg "valPropReport" red}
   if {[info exists propDefOK]} {if {$propDefOK == 0} {return}}
-  set lf "\n[string repeat " " 14]"
 
   incr entLevel
   set ind [string repeat " " [expr {4*($entLevel-1)}]]
@@ -318,8 +317,8 @@ proc valPropReport {objEntity} {
             if {$objName == "unit_component"} {
               if {[string length $objValue] == 0 && \
                   ([string first "volume" $valName] == -1 || [string first "area" $valName] == -1 || [string first "length" $valName] == -1)} {
-                set msg "Syntax Error: Missing 'unit_component' attribute on $ent($entLevel).  No units assigned to validation property values."
-                if {$propDefName == "geometric_validation_property"} {append msg "$lf\($recPracNames(valprop))"}
+                set msg "Syntax Error: Missing 'unit_component' attribute on $ent($entLevel).  No units set for validation property values."
+                if {$propDefName == "geometric_validation_property"} {append msg "$spaces\($recPracNames(valprop))"}
                 errorMsg $msg
                 lappend syntaxErr($ent($entLevel)) [list $objID unit_component $msg]
                 lappend syntaxErr(property_definition) [list $propDefID 9 $msg]
@@ -349,7 +348,6 @@ proc valPropReport {objEntity} {
                   set ok 1
                   set col($pd) 9
                   addValProps 2 $objValue "#$objID [formatComplexEnt $ent2]"
-                  #outputMsg "  VALUE    [llength [lindex $valProps 2]]  $valProps" red
                 }
 
                 "*measure_representation_item* unit_component" {
@@ -380,7 +378,7 @@ proc valPropReport {objEntity} {
                   if {[string first "validation_property" $propDefName] != -1} {
                     if {[string length $objValue] == 0} {
                       set msg "Syntax Error: Missing property_definition 'definition' attribute."
-                      if {$propDefName == "geometric_validation_property"} {append msg "\n[string repeat " " 14]\($recPracNames(valprop), Sec. 4)"}
+                      if {$propDefName == "geometric_validation_property"} {append msg "$spaces\($recPracNames(valprop), Sec. 4)"}
                       errorMsg $msg
                       lappend syntaxErr(property_definition) [list $propDefID 4 $msg]
                     }
@@ -429,7 +427,14 @@ proc valPropReport {objEntity} {
                   set col($pd) 9
                   set colName "value"
                   addValProps 2 $objValue "#$objID $ent2"
-                  #outputMsg "  VALUE    [llength [lindex $valProps 2]]  $valProps" red
+                  if {$ent1 == "direction direction_ratios"} {
+                    if {[veclen $objValue] == 0} {
+                      set msg "Syntax Error: The validation property direction vector is '0 0 0'."
+                      errorMsg $msg
+                      lappend syntaxErr(direction) [list $objID direction_ratios $msg]
+                      lappend syntaxErr(property_definition) [list $propDefID 9 $msg]
+                    }
+                  }
                 }
 
                 "representation items" -
@@ -481,7 +486,7 @@ proc valPropReport {objEntity} {
                 set id [$val1 P21ID]
                 if {[$val1 Type] == "coordinates_list" && ![info exists tessCoord($id)]} {tessReadGeometry 1}
                 if {[llength $tessCoord($id)] != 24} {
-                  set msg "Syntax Error: Bad number of points ([expr {[llength $tessCoord($id)]/3}]) in coordinates_list for saved view validation property.\n[string repeat " " 14]\($recPracNames(pmi242), Sec. 10.2.2)"
+                  set msg "Syntax Error: Bad number of points ([expr {[llength $tessCoord($id)]/3}]) in coordinates_list for saved view validation property.$spaces\($recPracNames(pmi242), Sec. 10.2.2)"
                   errorMsg $msg
                   lappend syntaxErr(property_definition) [list $propDefID 9 $msg]
                 }
@@ -510,7 +515,6 @@ proc valPropReport {objEntity} {
                   set col($pd) 9
                   set colName "value"
                   addValProps 2 $objValue "#$objID [formatComplexEnt $ent2]"
-                  #outputMsg "  VALUE    [llength [lindex $valProps 2]]  $valProps" red
                 }
 
                 "*_unit_and_si_unit prefix" -
@@ -518,19 +522,33 @@ proc valPropReport {objEntity} {
 
                 "*_unit_and_si_unit name" -
                 "si_unit_and_*_unit name" {
+# check density recommended practice
+                  #if {([string tolower $propDefName] == "density" || [string tolower $repName] == "density") && $objValue == "metre"} {
+                  #  set msg "Syntax Error: For density, mass per 'cubic metre' should be used.$spaces\($recPracNames(uda), Annex C.4.2)"
+                  #  errorMsg $msg
+                  #  lappend syntaxErr(property_definition) [list $propDefID 11 $msg]
+                  #}
+
                   set ok 1
                   set col($pd) 11
                   set colName "units"
                   set objValue "$prefix$objValue"
                   addValProps 3 $objValue "#$objID [formatComplexEnt $ent2]"
-                  #outputMsg "   UNITS    [llength [lindex $valProps 3]]  $valProps" red
+
+# check mass recommended practice
+                  if {[string first "mass" $ent1] != -1 && $objValue != "kilogram"} {
+                    set msg "Syntax Error: For mass units, '$prefix' is not a valid prefix for 'gram', only 'kilo' is allowed.$spaces\($recPracNames(uda), Annex C.4.1)"
+                    errorMsg $msg
+                    lappend syntaxErr($ent($entLevel)) [list $objID prefix $msg]
+                    lappend syntaxErr(property_definition) [list $propDefID 11 $msg]
+                  }
                 }
+
                 "conversion_based_unit_and_*_unit name" {
                   set ok 1
                   set col($pd) 11
                   set colName "units"
                   addValProps 3 $objValue "#$objID [formatComplexEnt $ent2]"
-                  #outputMsg "   UNITS    [llength [lindex $valProps 3]]  $valProps" red
                 }
 
                 "derived_unit_element exponent" {
@@ -538,7 +556,6 @@ proc valPropReport {objEntity} {
                   set col($pd) 13
                   set colName "exponent"
                   addValProps 4 $objValue "#$objID $ent2"
-                  #outputMsg "    EXP      [llength [lindex $valProps 4]]  $valProps" red
 
 # wrong exponent
                   catch {
@@ -550,6 +567,12 @@ proc valPropReport {objEntity} {
                       lappend syntaxErr($ent($entLevel)) [list $objID exponent $msg]
                       lappend syntaxErr(property_definition) [list $propDefID 13 $msg]
                     }
+                  }
+                  if {([string tolower $propDefName] == "density" || [string tolower $repName] == "density") && $objValue == 3} {
+                    set msg "Syntax Error: For density, the length unit exponent should be -3"
+                    errorMsg $msg
+                    lappend syntaxErr($ent($entLevel)) [list $objID exponent $msg]
+                    lappend syntaxErr(property_definition) [list $propDefID 13 $msg]
                   }
                 }
 
@@ -587,6 +610,43 @@ proc valPropReport {objEntity} {
                     }
                     set valPropLink 1
                   }
+
+# check general property association
+                  if {[string first "validation property" $objValue] == -1 && [info exists entCount(general_property_association)]} {
+                    set e0s [$objEntity GetUsedIn [string trim general_property_association] [string trim derived_definition]]
+
+# check for gpa entity
+                    set ngpa 0
+                    ::tcom::foreach e0 $e0s {incr ngpa}
+                    if {$ngpa == 0} {
+                      set msg "Syntax Error: Missing corresponding general_property_association entity for the property_definition.$spaces\($recPracNames(uda), Sec. 5)"
+                      errorMsg $msg
+                      set invalid $msg
+                      lappend syntaxErr([lindex [split $ent1 " "] 0]) [list $objID [lindex [split $ent1 " "] 1] $msg]
+                    }
+                    ::tcom::foreach e0 $e0s {
+                      set e1 [[[$e0 Attributes] Item [expr 3]] Value]
+
+# check gpa.name vs pd.name
+                      if {[string first "handle" $e1] != -1} {
+                        set gpname [[[$e1 Attributes] Item [expr 2]] Value]
+                        if {$gpname != $objValue} {
+                          set msg "Syntax Error: property_definition 'name' attribute is not the same as the associated general_property 'name' attribute.$spaces\($recPracNames(uda), Sec. 5)"
+                          errorMsg $msg
+                          set invalid $msg
+                          lappend syntaxErr([lindex [split $ent1 " "] 0]) [list $objID [lindex [split $ent1 " "] 1] $msg]
+                          lappend syntaxErr(general_property) [list [$e1 P21ID] name $msg]
+                        }
+
+# missing gp entity
+                      } else {
+                        set msg "Syntax Error: Missing associated general_property entity for the property_definition.$spaces\($recPracNames(uda), Sec. 5)"
+                        errorMsg $msg
+                        set invalid $msg
+                        lappend syntaxErr([lindex [split $ent1 " "] 0]) [list $objID [lindex [split $ent1 " "] 1] $msg]
+                      }
+                    }
+                  }
                 }
 
                 "representation name" -
@@ -600,7 +660,6 @@ proc valPropReport {objEntity} {
 
 # add representation name to valProps
                   addValProps 0 $objValue "#$objID $ent2"
-                  #outputMsg "REPNAME  [llength [lindex $valProps 0]]  $valProps" red
 
                   if {[info exists propDefName]} {
                     if {$entLevel == 2 && [info exists valPropNames($propDefName)]} {
@@ -625,17 +684,17 @@ proc valPropReport {objEntity} {
                         set emsg "Syntax Error: Bad '$ent2' attribute for '$propDefName'."
                         switch $propDefName {
                           geometric_validation_property -
-                          assembly_validation_property {append emsg "$lf\($recPracNames(valprop), Sec. 8)"}
+                          assembly_validation_property {append emsg "$spaces\($recPracNames(valprop), Sec. 8)"}
                           pmi_validation_property {
-                            if {$stepAP == "AP242"} {
-                              append emsg "$lf\($recPracNames(pmi242), Sec. 10)"
+                            if {[string first "AP242" $stepAP] == 0} {
+                              append emsg "$spaces\($recPracNames(pmi242), Sec. 10)"
                             } else {
-                              append emsg "$lf\($recPracNames(pmi203), Sec. 6)"
+                              append emsg "$spaces\($recPracNames(pmi203), Sec. 6)"
                             }
                           }
-                          tessellated_validation_property {append emsg "$lf\($recPracNames(tessgeom), Sec. 8.4)"}
-                          attribute_validation_property   {append emsg "$lf\($recPracNames(uda), Sec. 8)"}
-                          composite_validation_property   {append emsg "$lf\($recPracNames(comp), Sec. 3)"}
+                          tessellated_validation_property {append emsg "$spaces\($recPracNames(tessgeom), Sec. 8.4)"}
+                          attribute_validation_property   {append emsg "$spaces\($recPracNames(uda), Sec. 8)"}
+                          composite_validation_property   {append emsg "$spaces\($recPracNames(comp), Sec. 3)"}
                         }
                         errorMsg $emsg
                         set invalid $emsg
@@ -655,7 +714,6 @@ proc valPropReport {objEntity} {
                   set valName $objValue
                   if {[info exists nrep]} {incr nrep}
                   addValProps 1 $objValue "#$objID [formatComplexEnt $ent2]"
-                  #outputMsg " VALNAME  [llength [lindex $valProps 1]]  $valProps" red
 
 # RP allows for blank representation.name (repName) except for sampling points
                   if {[info exists propDefName]} {
@@ -668,7 +726,7 @@ proc valPropReport {objEntity} {
                             if {$objValue == $repItemName} {
                               set ok1 1
                               if {$objValue == "sampling point" && [string trim $repName] == ""} {
-                                set emsg "Syntax Error: Bad representation 'name' attribute for '$objValue'.\n[string repeat " " 14]($recPracNames(valprop), Sec. 4.11)"
+                                set emsg "Syntax Error: Bad representation 'name' attribute for '$objValue'.$spaces\($recPracNames(valprop), Sec. 4.11)"
                                 errorMsg $emsg
                               }
                               break
@@ -697,17 +755,17 @@ proc valPropReport {objEntity} {
                         append emsg "'[formatComplexEnt $ent2]' attribute for '$propDefName'."
                         switch $propDefName {
                           geometric_validation_property -
-                          assembly_validation_property {append emsg "$lf\($recPracNames(valprop), Sec. 8)"}
+                          assembly_validation_property {append emsg "$spaces\($recPracNames(valprop), Sec. 8)"}
                           pmi_validation_property {
-                            if {$stepAP == "AP242"} {
-                              append emsg "$lf\($recPracNames(pmi242), Sec. 10)"
+                            if {[string first "AP242" $stepAP] == 0} {
+                              append emsg "$spaces\($recPracNames(pmi242), Sec. 10)"
                             } else {
-                              append emsg "$lf\($recPracNames(pmi203), Sec. 6)"
+                              append emsg "$spaces\($recPracNames(pmi203), Sec. 6)"
                             }
                           }
-                          tessellated_validation_property {append emsg "$lf\($recPracNames(tessgeom), Sec. 8.4)"}
-                          attribute_validation_property   {append emsg "$lf\($recPracNames(uda), Sec. 8)"}
-                          composite_validation_property   {append emsg "$lf\($recPracNames(comp), Sec. 3)"}
+                          tessellated_validation_property {append emsg "$spaces\($recPracNames(tessgeom), Sec. 8.4)"}
+                          attribute_validation_property   {append emsg "$spaces\($recPracNames(uda), Sec. 8)"}
+                          composite_validation_property   {append emsg "$spaces\($recPracNames(comp), Sec. 3)"}
                         }
                         errorMsg $emsg
                         set invalid $emsg
@@ -720,7 +778,6 @@ proc valPropReport {objEntity} {
                 "camera_model_d3 name" -
                 "characterized_representation_and_draughting_model name" {
 # saved view name
-                  #outputMsg "$ent1 $objValue" red
                   set ok 1
                   set col($pd) 15
                   set colName "saved view"
@@ -763,7 +820,7 @@ proc valPropReport {objEntity} {
       set msg ""
       if {[info exists objName]} {
         if {$objName == "unit_component" && $objValue == ""} {
-          set msg "Syntax Error: Missing 'unit_component' attribute on [formatComplexEnt $ent($entLevel)].  No units assigned to validation property values."
+          set msg "Syntax Error: Missing 'unit_component' attribute on [formatComplexEnt $ent($entLevel)].  No units set for validation property values."
           errorMsg $msg
           lappend syntaxErr($ent($entLevel)) [list $objID unit_component $msg]
         }
@@ -782,7 +839,6 @@ proc valPropFormat {} {
   global cells col entCount excelVersion opt propDefRow row thisEntType worksheet valPropLink
 
   if {[info exists cells($thisEntType)] && $col($thisEntType) > 4} {
-    outputMsg " property_definition"
 
 # delete unused columns
     set delcol 0

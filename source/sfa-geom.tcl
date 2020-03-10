@@ -1,9 +1,10 @@
 # tolType = 1 for non-geometric tolerance (dimension, datum target, annotations)
 proc getAssocGeom {entDef {tolType 0} {tolName ""}} {
-  global syntaxErr
-  
+  global syntaxErr debugAG
+
+  set debugAG 0
   set entDefType [$entDef Type]
-  #outputMsg "getAssocGeom $tolType $entDefType [$entDef P21ID]" blue
+  if {$debugAG} {outputMsg "getAssocGeom $tolType $entDefType [$entDef P21ID]" blue}
 
   if {[catch {
     if {$entDefType == "shape_aspect" || $entDefType == "all_around_shape_aspect" || $entDefType == "centre_of_symmetry" || \
@@ -34,7 +35,7 @@ proc getAssocGeom {entDef {tolType 0} {tolName ""}} {
     }
 
 # look at SAR with CSA, CGSA, AASA, COS to find SAs, possibly nested
-    #outputMsg " $entDefType [$entDef P21ID] D" red
+    if {$debugAG} {outputMsg " $entDefType [$entDef P21ID] D" red}
     set type [appendAssocGeom $entDef D]
     set e0s [$entDef GetUsedIn [string trim shape_aspect_relationship] [string trim relating_shape_aspect]]
     ::tcom::foreach e0 $e0s {
@@ -56,7 +57,7 @@ proc getAssocGeom {entDef {tolType 0} {tolName ""}} {
               if {$type == "advanced_face"} {getFaceGeom [$a0 Value] $tolType E}
     
               set a0val {}
-              if {[string first "composite_shape_aspect" $relatedSA] != -1 || $relatedSA == "composite_group_shape_aspect"} {
+              if {[string first "composite_shape_aspect" $relatedSA] != -1 || [string first "composite_group_shape_aspect" $relatedSA] != -1} {
                 set e1s [[$a0 Value] GetUsedIn [string trim shape_aspect_relationship] [string trim relating_shape_aspect]]
                 ::tcom::foreach e1 $e1s {
                   if {[string first "relationship" [$e1 Type]] != -1} {
@@ -86,8 +87,8 @@ proc getAssocGeom {entDef {tolType 0} {tolName ""}} {
 
 # -------------------------------------------------------------------------------
 proc getAssocGeomFace {entDef tolType} {
-  global entCount syntaxErr
-  #outputMsg "getAssocGeomFace [$entDef Type] [$entDef P21ID]" green
+  global debugAG entCount syntaxErr
+  if {$debugAG} {outputMsg "getAssocGeomFace [$entDef Type] [$entDef P21ID]" green}
   
 # look at GISU and IIRU for geometry associated with shape_aspect
   set usages {}
@@ -130,11 +131,11 @@ proc getAssocGeomFace {entDef tolType} {
 
 # -------------------------------------------------------------------------------
 proc appendAssocGeom {ent {id ""}} {
-  global assocGeom
+  global assocGeom debugAG
   
   set p21id [$ent P21ID]
   set type  [$ent Type]
-  #outputMsg " appendAssocGeom $type $p21id $id" red
+  if {$debugAG} {outputMsg " appendAssocGeom $type $p21id $id" red}
   
   if {[string first "annotation" $type] == -1 && [string first "callout" $type] == -1} {
     if {![info exists assocGeom($type)]} {
@@ -148,7 +149,7 @@ proc appendAssocGeom {ent {id ""}} {
 
 # -------------------------------------------------------------------------------
 proc getFaceGeom {e0 tolType {id ""}} {
-  global assocGeom cylSurfBounds
+  global assocGeom debugAG cylSurfBounds
   
   if {$tolType} {set debug 0}
   
@@ -159,7 +160,7 @@ proc getFaceGeom {e0 tolType {id ""}} {
         set type  [[$a1 Value] Type]
         lappend assocGeom($type) $p21id
         set currEnt ""
-        #outputMsg "  getFaceGeom $type $p21id $id / [$e0 Type] [$e0 P21ID]" red
+        if {$debugAG} {outputMsg "  getFaceGeom $type $p21id $id / [$e0 Type] [$e0 P21ID]" red}
 
 # for cylindrical or conical surfaces with dimensional tolerances (tolType = 1)
 #  set cylSurfBounds to 180 or 360 depending on bounds of the surfaces
@@ -231,8 +232,8 @@ proc getFaceGeom {e0 tolType {id ""}} {
 # -------------------------------------------------------------------------------
 proc reportAssocGeom {entType {row ""}} {
   global objDesign
-  global assocGeom cells cgrObjects cylSurfBounds dimRepeat dimRepeatDiv entCount opt recPracNames suppGeomEnts syntaxErr
-  #outputMsg "reportAssocGeom $entType" red
+  global assocGeom cells cgrObjects cylSurfBounds debugAG dimRepeat dimRepeatDiv entCount opt recPracNames spaces suppGeomEnts syntaxErr
+  if {$debugAG} {outputMsg "reportAssocGeom $entType" red}
   
   set str ""
   set dimRepeat 0
@@ -291,7 +292,7 @@ proc reportAssocGeom {entType {row ""}} {
   } else {
     set str1 "Sec. 6.5, Fig. 35"
     set str2 "Toleranced"
-    if {$entType == "datum_feature"} {set str2 "Associated"}
+    if {[string first "datum_feature" $entType] != -1} {set str2 "Associated"}
   }
   if {[string length $str] == 0} {
     if {$dimtol || [string first "occurrence" $entType] != -1} {
@@ -300,7 +301,7 @@ proc reportAssocGeom {entType {row ""}} {
     } else {
       set str1 "Sec. 6.5, Fig. 35"
       set str2 "Toleranced"
-      if {$entType == "datum_feature"} {set str2 "Associated"}
+      if {[string first "datum_feature" $entType] != -1} {set str2 "Associated"}
     }
 
     set ok 1
@@ -324,8 +325,7 @@ proc reportAssocGeom {entType {row ""}} {
       if {[string first "dimension"  $entType] != -1} {set etyp "dimension"}
       if {[string first "datum_feature" $entType] != -1} {set etyp "datum feature"}
 
-      set msg "Syntax Error: $str2 Geometry not found for a [formatComplexEnt $entType].  If the $etyp should have $str2 Geometry, then check GISU or IIRU 'definition' attribute or shape_aspect_relationship 'relating_shape_aspect' attribute."
-      append msg "\n[string repeat " " 14]\($recPracNames(pmi242), $str1)"
+      set msg "$str2 Geometry not found for a [formatComplexEnt $entType].  If the $etyp should have $str2 Geometry, then check GISU or IIRU 'definition' attribute or shape_aspect_relationship 'relating_shape_aspect' attribute.  Select Inverse Relationships on the Options tab to check relationships.\n  ($recPracNames(pmi242), $str1)"
       errorMsg $msg
       if {$row != ""} {
         set idx $entType
@@ -352,15 +352,15 @@ proc reportAssocGeom {entType {row ""}} {
   set ncsa 0
   set nsa 0
   foreach item [array names assocGeom] {
-    if {$item == "composite_group_shape_aspect" || $item == "all_around_shape_aspect" || $item == " between_shape_aspect"} {
+    if {[string first "composite_group_shape_aspect" $item] != -1 || [string first "composite_shape_aspect" $item] != -1 || \
+        $item == "all_around_shape_aspect" || $item == " between_shape_aspect"} {
       set ncsa [llength $assocGeom($item)]
       set csaEnt $item
     } elseif {$item == "shape_aspect" || $item == "centre_of_symmetry" || $item == "datum_feature"} {
       incr nsa [llength $assocGeom($item)]
     }
-    if {$ncsa == 1 && $nsa < 2} {
-      set msg "Syntax Error: '$csaEnt' must relate to at least two 'shape_aspect' or similar entities."
-      if {$item == "all_around_shape_aspect"} {append msg "\n[string repeat " " 14]\($recPracNames(pmi242), Sec. 6.4, Fig. 31)"}
+    if {($ncsa == 1 && $nsa < 2) || ($ncsa > 1 && $ncsa == $nsa)} {
+      set msg "Syntax Error: '[formatComplexEnt $csaEnt]' must relate to at least two 'shape_aspect' or similar entities.  Check shape_aspect_relationship 'relating_shape_aspect' attribute.$spaces\($recPracNames(pmi242), Sec. 6.3, 6.4, 6.5)"
       errorMsg $msg
       if {$row != ""} {
         set typ $entType
@@ -407,7 +407,7 @@ proc reportAssocGeom {entType {row ""}} {
                 lappend suppGeomEnts [[$ii Value] P21ID]
                 if {[lsearch $crgItems $p21id] == -1} {
                   set okcgr 0
-                  set msg "Syntax Error: 'constructive_geometry_representation' is missing some 'items' based on GISU 'identified_item' attribute.\n[string repeat " " 14]\($recPracNames(suppgeom), Sec. 4.3, Fig. 4)"
+                  set msg "Syntax Error: 'constructive_geometry_representation' is missing some 'items' based on GISU 'identified_item' attribute.$spaces\($recPracNames(suppgeom), Sec. 4.3, Fig. 4)"
                   errorMsg $msg
                   lappend syntaxErr(geometric_item_specific_usage) [list [$gisu P21ID] identified_item $msg]
                 }
@@ -422,7 +422,7 @@ proc reportAssocGeom {entType {row ""}} {
         }
 
         if {!$okcgr} {
-          set msg "Syntax Error: 'constructive_geometry_representation' is missing some 'items' based on GISU 'identified_item' attribute.\n[string repeat " " 14]\($recPracNames(suppgeom), Sec. 4.3, Fig. 4)"
+          set msg "Syntax Error: 'constructive_geometry_representation' is missing some 'items' based on GISU 'identified_item' attribute.$spaces\($recPracNames(suppgeom), Sec. 4.3, Fig. 4)"
           errorMsg $msg
           lappend syntaxErr(constructive_geometry_representation) [list [$e0 P21ID] items $msg]
         }

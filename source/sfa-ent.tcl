@@ -144,7 +144,7 @@ proc getEntity {objEntity checkInverse} {
                 position_coords {if {[info exists coordinatesList($p21id)]} {set objValue $coordinatesList($p21id); set ok1 1}}
                 line_strips     {if {[info exists lineStrips($p21id)]}      {set objValue $lineStrips($p21id); set ok1 1}}
               }
-              if {!$ok1} {errorMsg " Skipping attribute '$attrName' on [formatComplexEnt $thisEntType] - '???' will appear in spreadsheet for this attribute.  See User Guide section 3.3.1" red}
+              if {!$ok1} {errorMsg " Reporting [formatComplexEnt $thisEntType] '$attrName' attribute is not supported.  '???' will appear in spreadsheet for this attribute.  See User Guide section 3.3.1" red}
             } else {
               #switch -- $attrName {
               #  normals    {if {[info exists normals($p21id)]}   {set objValue $normals($p21id); set ok1 1}}
@@ -152,7 +152,7 @@ proc getEntity {objEntity checkInverse} {
               #}
               set str $badAttributes($thisEntType)
               regsub -all " " $str "' '" str
-              errorMsg " Skipping attributes '$str' on [formatComplexEnt $thisEntType]\n '???' will appear in spreadsheet for these attributes.  See User Guide section 3.3.1" red
+              errorMsg " Reporting [formatComplexEnt $thisEntType] '$str' attribute is not supported.  '???' will appear in spreadsheet for these attributes.  See User Guide section 3.3.1" red
             }
           }
         }
@@ -491,7 +491,7 @@ proc getEntityCSV {objEntity} {
             set objValue [$objAttribute Value]
           } else {
             set objValue "???"
-            errorMsg " Skipping '$attrName' attribute on [formatComplexEnt $thisEntType] - '???' will appear in the CSV file for this attribute" red
+            errorMsg " Reporting [formatComplexEnt $thisEntType] '$attrName' attribute is not supported.  '???' will appear in CSV file for this attribute.  See User Guide section 3.3.1" red
           }
         }
 

@@ -98,10 +98,11 @@ foreach id { \
 # set opt to 0
 foreach id { \
   DEBUG1 DEBUGINV DEBUGX3D HIDELINKS indentGeometry indentStyledItem INVERSE PMIGRFCOV PMISEMDIM PR_STEP_CPNT PR_STEP_GEOM \
-  PR_USER SHOWALLPMI SYNCHK VIZBRPCLR VIZBRPEDG VIZBRPNRM VIZFEADSntail VIZFEALVS VIZTPGMSH writeDirType XL_FPREC XL_SORT \
+  PR_USER SHOWALLPMI SYNCHK VIZFEADSntail VIZFEALVS VIZTPGMSH writeDirType XL_FPREC XL_SORT \
 } {set opt($id) 0}
 
 set opt(gpmiColor) 3
+set opt(x3dQuality) 7
 set opt(XL_ROWLIM) 1003
 set opt(XLSCSV) Excel
 
@@ -157,7 +158,7 @@ if {[file exists $optionsFile]} {
     foreach item {COUNT CRASH DELCOVROWS DISPGUIDE1 EX_A2P3D EX_ANAL EX_ARBP EX_LP feaNodeType FIRSTTIME FN_APPEND indentGeomtry GENX3DOM PMIP PMIPROP PMIVRML \
       PR_STEP_AP203 PR_STEP_AP209 PR_STEP_AP210 PR_STEP_AP214 PR_STEP_AP238 PR_STEP_AP239 PR_STEP_AP242_CONS PR_STEP_AP242_GEOM PR_STEP_AP242_KINE PR_STEP_AP242_MATH \
       PR_STEP_AP242_OTHER PR_STEP_AP242_QUAL PR_STEP_ASPECT PR_STEP_BAD PR_STEP_GEO PR_STEP_OTHER PR_STEP_REP PR_STEP_UNIT PR_TYPE ROWLIM SEMPROP SORT VIZ209 \
-      VIZBRPmsg VIZFEADStail VPDBG VIZPMIVP XL_KEEPOPEN XL_LINK1 XL_LINK2 XL_LINK3 XL_ORIENT XL_SCROLL XL_XLSX XLSBUG XLSBUG1} {catch {unset opt($item)}
+      VIZBRPCLR VIZBRPEDG VIZBRPNRM VIZBRPmsg VIZFEADStail VPDBG VIZPMIVP XL_KEEPOPEN XL_LINK1 XL_LINK2 XL_LINK3 XL_ORIENT XL_SCROLL XL_XLSX XLSBUG XLSBUG1} {catch {unset opt($item)}
     }
   } emsg]} {
     set endMsg "Error reading Options file [truncFileName $optionsFile]: $emsg"
@@ -383,17 +384,6 @@ set sfaPID [twapi::get_process_ids -name "STEP-File-Analyzer.exe"]
 if {$opt(writeDirType) == 2} {
   outputMsg " "
   errorMsg "All output files will be written to a user-defined directory (Spreadsheet tab)"
-  .tnb select .tnb.status
-}
-
-# warn about output type
-if {$opt(XLSCSV) == "CSV"} {
-  outputMsg " "
-  errorMsg "CSV files will be generated (Options tab)"
-  .tnb select .tnb.status
-} elseif {$opt(XLSCSV) == "None"} {
-  outputMsg " "
-  errorMsg "No Spreadsheet will be generated, only Views (Options tab)"
   .tnb select .tnb.status
 }
   

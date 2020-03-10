@@ -66,6 +66,7 @@ Optional command line settings:
   viz     Only generate Views and no Spreadsheet or CSV files
   stats   Only report characteristics of the STEP file, no output files are generated
   noopen  Do not open the Spreadsheet or View after it has been generated
+  nolog   Do not generate a Log file
   file    Name of custom options file, e.g., C:/mydir/myoptions.dat  This file should
           be similar to STEP-File-Analyzer-options.dat in your home directory.
 
@@ -148,10 +149,11 @@ foreach id { \
 # set opt to 0
 foreach id { \
   DEBUG1 DEBUGINV DEBUGX3D HIDELINKS indentGeometry indentStyledItem INVERSE PMIGRFCOV PMISEMDIM PR_STEP_CPNT PR_STEP_GEOM PR_USER \
-  SHOWALLPMI SYNCHK VIZBRP VIZBRPCLR VIZBRPEDG VIZBRPNRM VIZFEA VIZFEADSntail VIZFEALVS VIZPMI VIZTPG VIZTPGMSH writeDirType XL_FPREC XL_SORT \
+  SHOWALLPMI SYNCHK VIZBRP VIZFEA VIZFEADSntail VIZFEALVS VIZPMI VIZTPG VIZTPGMSH writeDirType XL_FPREC XL_SORT \
 } {set opt($id) 0}
 
 set opt(gpmiColor) 3
+set opt(x3dQuality) 7
 set opt(XL_ROWLIM) 1003
 set opt(XLSCSV) Excel
 
@@ -189,7 +191,7 @@ set customFile ""
 for {set i 1} {$i <= 10} {incr i} {
   set arg [lindex $argv $i]
   set arg1 [string tolower $arg]
-  if {$arg != "" && $arg1 != "csv" && $arg1 != "viz" && $arg1 != "noopen" && $arg1 != "stats"} {
+  if {$arg != "" && $arg1 != "csv" && $arg1 != "viz" && $arg1 != "noopen" && $arg1 != "stats" && $arg1 != "nolog"} {
     if {[file exists $arg]} {
       set customFile [file nativename $arg]
       puts "Using custom options file: [truncFileName $customFile]"
@@ -239,6 +241,7 @@ for {set i 1} {$i <= 10} {incr i} {
       foreach id {PMIGRF PMISEM VALPROP VIZFEADSntail VIZFEALVS VIZTPGMSH} {set opt($id) 0}
     }
     if {[string first "sta" $arg] == 0} {set statsOnly 1}
+    if {[string first "nol" $arg] == 0} {set opt(LOGFILE) 0}
   }
 }
 

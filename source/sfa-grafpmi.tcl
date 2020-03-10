@@ -1,7 +1,7 @@
 proc gpmiAnnotation {entType} {
   global objDesign
   global ao aoEntTypes col ent entAttrList entLevel geomType gpmiRow gtEntity nindex opt pmiCol
-  global pmiHeading pmiStartCol recPracNames stepAP syntaxErr tessCoordID useXL x3dShape
+  global pmiHeading pmiStartCol recPracNames spaces stepAP syntaxErr tessCoordID useXL x3dShape
 
   if {$opt(DEBUG1)} {outputMsg "START gpmiAnnotation $entType" red}
 
@@ -88,21 +88,21 @@ proc gpmiAnnotation {entType} {
   }
 
 # look for syntax errors with entity usage
-  if {$stepAP == "AP242"} {
+  if {[string first "AP242" $stepAP] == 0} {
     set c1 [string first "_and_characterized_object" $ao]
     set c2 [string first "characterized_object_and_" $ao]
     if {$c1 != -1} {
-      set msg "Syntax Error: Using 'characterized_object' with '[string range $ao 0 $c1-1]' is not valid for PMI Presentation.\n[string repeat " " 14]\($recPracNames(pmi242), Sec. 10.2, 10.3)"
+      set msg "Syntax Error: Using 'characterized_object' with '[string range $ao 0 $c1-1]' is not valid for PMI Presentation.$spaces\($recPracNames(pmi242), Sec. 10.2, 10.3)"
       errorMsg $msg
       lappend syntaxErr($ao) [list 1 1 $msg]
     } elseif {$c2 != -1} {
-      set msg "Syntax Error: Using 'characterized_object' with '[string range $ao 25 end]' is not valid for PMI Presentation.\n[string repeat " " 14]\($recPracNames(pmi242), Sec. 10.2, 10.3)"
+      set msg "Syntax Error: Using 'characterized_object' with '[string range $ao 25 end]' is not valid for PMI Presentation.$spaces\($recPracNames(pmi242), Sec. 10.2, 10.3)"
       errorMsg $msg
       lappend syntaxErr($ao) [list 1 1 $msg]
     }
 
     if {[string first "annotation_occurrence" $ao] != -1 && [string first "tessellated" $ao] == -1 && [string first "draughting_annotation_occurrence" $ao] == -1} {
-      set msg "Syntax Error: Using 'annotation_occurrence' with $stepAP is not valid for PMI Presentation.\n[string repeat " " 14]\($recPracNames(pmi242), Sec. 8.1.1)"
+      set msg "Syntax Error: Using 'annotation_occurrence' with $stepAP is not valid for PMI Presentation.$spaces\($recPracNames(pmi242), Sec. 8.1.1)"
       errorMsg $msg
       lappend syntaxErr($ao) [list 1 1 $msg]
     }
@@ -110,15 +110,15 @@ proc gpmiAnnotation {entType} {
 
   if {[string first "AP203" $stepAP] == 0 || [string first "AP214" $stepAP] == 0} {
     if {[string first "annotation_curve_occurrence" $ao] != -1} {
-      set msg "Syntax Error: Using 'annotation_curve_occurrence' with $stepAP is not valid for PMI Presentation.\n[string repeat " " 14]\($recPracNames(pmi203), Sec. 4.1.1)"
+      set msg "Syntax Error: Using 'annotation_curve_occurrence' with $stepAP is not valid for PMI Presentation.$spaces\($recPracNames(pmi203), Sec. 4.1.1)"
       errorMsg $msg
       lappend syntaxErr($ao) [list 1 1 $msg]
     }
   }
 
   if {[string first "draughting" $ao] != -1} {
-    set msg "Syntax Error: Using 'draughting_annotation_*_occurrence' is not valid for PMI Presentation.\n[string repeat " " 14]"
-    if {$stepAP == "AP242"} {
+    set msg "Syntax Error: Using 'draughting_annotation_*_occurrence' is not valid for PMI Presentation.$spaces"
+    if {[string first "AP242" $stepAP] == 0} {
       append msg "($recPracNames(pmi242), Sec. 8.1)"
     } else {
       append msg "($recPracNames(pmi203), Sec. 4.1)"
@@ -162,12 +162,12 @@ proc gpmiAnnotation {entType} {
 
 # -------------------------------------------------------------------------------
 proc gpmiAnnotationReport {objEntity} {
-  global ao aoname ap242edition assocGeom badAttributes boxSize cells circleCenter col currx3dPID curveTrim dirRatio dirType
+  global ao aoname assocGeom badAttributes boxSize cells circleCenter col currx3dPID curveTrim dirRatio dirType
   global draughtingModels draftModelCameraNames draftModelCameras ent entAttrList entCount entLevel geomType gpmiEnts gpmiID gpmiIDRow
   global gpmiName gpmiPlacement gpmiRow gpmiTypes gpmiTypesInvalid gpmiTypesPerFile gpmiValProp iCompCurve iCompCurveSeg iPolyline
   global nindex numCompCurve numCompCurveSeg numPolyline numx3dPID objEntity1 opt placeAnchor placeNCP placeOrigin
-  global pmiCol pmiColumns pmiHeading pmiStartCol propDefIDS recPracNames savedViewCol savedViewName stepAP syntaxErr
-  global tessCoord tessIndex tessIndexCoord tessPlacement tessRepo useXL
+  global pmiCol pmiColumns pmiHeading pmiStartCol propDefIDS recPracNames savedViewCol savedViewName spaces stepAP syntaxErr
+  global tessCoord tessIndex tessIndexCoord tessPlacement tessPlacementID tessRepo useXL
   global x3dColor x3dCoord x3dFile x3dFileName x3dIndex x3dIndexType x3dMax x3dMin x3dMsg x3dPID x3dPoint x3dShape x3dStartFile
   #outputMsg "gpmiAnnotationReport" red
 
@@ -209,8 +209,8 @@ proc gpmiAnnotationReport {objEntity} {
       if {$entLevel == 2 && \
           $objType != "geometric_curve_set" && $objType != "annotation_fill_area" && $objType != "presentation_style_assignment" && \
           $objType != "geometric_set" && [string first "tessellated_geometric_set" $objType] == -1} {
-        set msg "Syntax Error: '[formatComplexEnt $objType]' is not allowed as an 'item' attribute of: [formatComplexEnt $ao]\n[string repeat " " 14]"
-        if {$stepAP == "AP242"} {
+        set msg "Syntax Error: '[formatComplexEnt $objType]' is not allowed as an 'item' attribute of: [formatComplexEnt $ao]$spaces"
+        if {[string first "AP242" $stepAP] == 0} {
           append msg "($recPracNames(pmi242), Sec. 8.1.1, 8.1.2, 8.2)"
         } else {
           append msg "($recPracNames(pmi203), Sec. 4.1.1, 4.1.2)"
@@ -249,8 +249,8 @@ proc gpmiAnnotationReport {objEntity} {
               switch -glob $ent1 {
                 "trimmed_curve basis_curve" {
                   if {[$objValue Type] != "circle"} {
-                    set msg "Syntax Error: '[$objValue Type]' is not allowed as a 'basis_curve' for trimmed_curve\n[string repeat " " 14]"
-                    if {$stepAP == "AP242"} {
+                    set msg "Syntax Error: '[$objValue Type]' is not allowed as a 'basis_curve' for trimmed_curve$spaces"
+                    if {[string first "AP242" $stepAP] == 0} {
                       append msg "($recPracNames(pmi242), Sec. 8.1.1, 8.1.2)"
                     } else {
                       append msg "($recPracNames(pmi203), Sec. 4.1.1, 4.1.2)"
@@ -309,7 +309,9 @@ proc gpmiAnnotationReport {objEntity} {
               if {[string first "handle" $objEntity] != -1} {gpmiAnnotationReport $objValue}
             }
           } emsg3]} {
-            errorMsg "ERROR processing PMI Presentation ($objNodeType $ent2): $emsg3"
+            set msg "ERROR processing Graphical PMI ($objNodeType $ent2): $emsg3"
+            errorMsg $msg
+            lappend syntaxErr([lindex $ent1 0]) [list $objID [lindex $ent1 1] $msg]
           }
 
 # --------------
@@ -343,9 +345,10 @@ proc gpmiAnnotationReport {objEntity} {
 # cartesian_point is need to generated X3DOM
               set ok 0
               switch -glob $ent1 {
+                "composite_curve segments" {set numCompCurveSeg $objSize}
+
                 "cartesian_point coordinates" {
                   set coord [vectrim $objValue]
-                  #set coord "[trimNum [lindex $objValue 0]] [trimNum [lindex $objValue 1]] [trimNum [lindex $objValue 2]]"
 
 # save origin for tessellated placement, convert Z = -Y, Y = Z
                   if {[info exists tessRepo]} {
@@ -395,7 +398,7 @@ proc gpmiAnnotationReport {objEntity} {
                   set ok 1
                   if {$opt(PMIGRF) && $opt(XLSCSV) != "None"} {
                     set col($ao) [expr {$pmiStartCol($ao)+1}]
-                    if {$stepAP == "AP242"} {
+                    if {[string first "AP242" $stepAP] == 0} {
                       set colName "elements[format "%c" 10](Sec. 8.1.1)"
                     } else {
                       set colName "elements[format "%c" 10](Sec. 4.1.1)"
@@ -419,7 +422,7 @@ proc gpmiAnnotationReport {objEntity} {
                     set colName "elements[format "%c" 10](Sec. "
                     if {[string first "placeholder" $ao] != -1} {
                       append colName "7.2.2"
-                    } elseif {$stepAP == "AP242"} {
+                    } elseif {[string first "AP242" $stepAP] == 0} {
                       append colName "8.1.1"
                     } else {
                       append colName "4.1.1"
@@ -447,7 +450,7 @@ proc gpmiAnnotationReport {objEntity} {
                     if {[string length $msg] < 15 && [lsearch $elements "planar_box"] == -1} {set msg "Optional 'planar_box' not used for '$ao'."}
                     if {[string length $msg] > 14} {
                       if {[string first "Syntax" $msg] == 0} {
-                        append msg " in 'geometric_set.elements'.\n[string repeat " " 14]\($recPracNames(pmi242), Sec. 7.2.2)"
+                        append msg " in 'geometric_set.elements'.$spaces\($recPracNames(pmi242), Sec. 7.2.2)"
                       }
                       errorMsg $msg
                       lappend syntaxErr($ao) [list $gpmiID "elements" $msg]
@@ -458,7 +461,7 @@ proc gpmiAnnotationReport {objEntity} {
                   set ok 1
                   if {$opt(PMIGRF) && $opt(XLSCSV) != "None"} {
                     set col($ao) [expr {$pmiStartCol($ao)+1}]
-                    if {$stepAP == "AP242"} {
+                    if {[string first "AP242" $stepAP] == 0} {
                       set colName "boundaries[format "%c" 10](Sec. 8.1.2)"
                     } else {
                       set colName "boundaries[format "%c" 10](Sec. 4.1.2)"
@@ -484,10 +487,26 @@ proc gpmiAnnotationReport {objEntity} {
                   set dirRatio(x,$dirType) [format "%.3f" [lindex $dir 0]]
                   set dirRatio(y,$dirType) [format "%.3f" [lindex $dir 1]]
                   set dirRatio(z,$dirType) [format "%.3f" [lindex $dir 2]]
-                  if {[info exists tessRepo]} {if {$tessRepo} {lappend tessPlacement($dirType) $dir}}
+                  if {[info exists tessRepo]} {
+                    if {$tessRepo} {
+                      lappend tessPlacement($dirType) $dir
+
+# check for bad directions
+                      set msg ""
+                      if {[veclen $dir] == 0} {
+                        set msg "Syntax Error: The orientation axis or ref_direction vector is '0 0 0' for a repositioned_tessellated_item."
+                      } elseif {$dirType == "refdir" && [veclen [veccross [join $tessPlacement(axis)] [join $tessPlacement(refdir)]]] == 0} {
+                        set msg "Syntax Error: The orientation axis and ref_direction vectors are congruent for a repositioned_tessellated_item."
+                      }
+                      if {$msg != ""} {
+                        errorMsg $msg
+                        lappend syntaxErr(direction) [list $objID direction_ratios $msg]
+                        lappend syntaxErr(repositioned_tessellated_item_and_tessellated_geometric_set) [list $tessPlacementID location $msg]
+                      }
+                    }
+                  }
                   if {[string first "placeholder" $ao] != -1} {set gpmiPlacement($dirType) $dir}
                 }
-                "composite_curve segments" {set numCompCurveSeg $objSize}
               }
 
 # value in spreadsheet
@@ -512,13 +531,13 @@ proc gpmiAnnotationReport {objEntity} {
                     append cellval([$val Type]) "[$val P21ID] "
                     incr nval
                     if {[string first "tessellated_geometric_set" $ent1] != -1 && [$val Type] != "tessellated_curve_set" && [$val Type] != "complex_triangulated_surface_set"} {
-                      set msg "Syntax Error: Bad '[$val Type]' attribute for tessellated_geometric_set.children\n[string repeat " " 14]\($recPracNames(pmi242), Sec. 8.2)"
+                      set msg "Syntax Error: Bad '[$val Type]' attribute for tessellated_geometric_set.children$spaces\($recPracNames(pmi242), Sec. 8.2)"
                       errorMsg $msg
                       lappend syntaxErr($objType) [list $objID children $msg]
                     }
                   }
                   if {$nval == 0 && [string first "tessellated_geometric_set" $ent1] != -1} {
-                    set msg "Syntax Error: Missing 'children' attribute on [formatComplexEnt $objType].\n[string repeat " " 14]\($recPracNames(pmi242), Sec. 8.2)"
+                    set msg "Syntax Error: Missing 'children' attribute on [formatComplexEnt $objType].$spaces\($recPracNames(pmi242), Sec. 8.2)"
                     errorMsg $msg
                     lappend syntaxErr($objType) [list $objID children $msg]
                     lappend syntaxErr(tessellated_annotation_occurrence) [list $gpmiID children $msg]
@@ -527,8 +546,8 @@ proc gpmiAnnotationReport {objEntity} {
                   foreach val [$objAttribute Value] {
                     append cellval([$val Type]) "[$val P21ID] "
                     if {$ent1 == "geometric_curve_set items" && [$val Type] != "polyline" && [$val Type] != "trimmed_curve" && [$val Type] != "circle"} {
-                      set msg "Syntax Error: Bad '[$val Type]' attribute for geometric_curve_set.items\n[string repeat " " 14]"
-                      if {$stepAP == "AP242"} {
+                      set msg "Syntax Error: Bad '[$val Type]' attribute for geometric_curve_set 'items'$spaces"
+                      if {[string first "AP242" $stepAP] == 0} {
                         append msg "($recPracNames(pmi242), Sec. 8.1.1, 8.1.2)"
                       } else {
                         append msg "($recPracNames(pmi203), Sec. 4.1.1, 4.1.2)"
@@ -582,7 +601,9 @@ proc gpmiAnnotationReport {objEntity} {
               }
             }
           } emsg3]} {
-            errorMsg "ERROR processing PMI Presentation ($objNodeType $ent2): $emsg3"
+            set msg "ERROR processing Graphical PMI ($objNodeType $ent2): $emsg3"
+            errorMsg $msg
+            lappend syntaxErr([lindex $ent1 0]) [list $objID [lindex $ent1 1] $msg]
           }
 
 # ---------------------
@@ -635,8 +656,8 @@ proc gpmiAnnotationReport {objEntity} {
                         set x3dPoint(x) [lindex $circleCenter 0]
                       } else {
                         #outputMsg "$dirRatio(x,axis) $dirRatio(y,axis) $dirRatio(z,axis) " red
-                        set msg "Some circles in PMI annotations might be shown with the wrong orientation."
-                        errorMsg " $msg"
+                        set msg "Circles in PMI annotations might be shown with the wrong orientation."
+                        errorMsg " $msg" red
                         if {[lsearch $x3dMsg $msg] == -1} {lappend x3dMsg $msg}
                         set x3dPoint(x) [expr {$objValue*cos($angle)+[lindex $circleCenter 0]}]
                         set x3dPoint(y) [expr {$objValue*sin($angle)+[lindex $circleCenter 1]}]
@@ -662,7 +683,7 @@ proc gpmiAnnotationReport {objEntity} {
                     }
                   }
                   set msg "Trimmed circles in PMI annotations might be incorrectly trimmed."
-                  errorMsg " $msg"
+                  errorMsg " $msg" red
                   if {[lsearch $x3dMsg $msg] == -1} {lappend x3dMsg $msg}
                 }
                 "cartesian_point name" {
@@ -678,7 +699,7 @@ proc gpmiAnnotationReport {objEntity} {
                   set ok 1
                   if {$opt(PMIGRF) && $opt(XLSCSV) != "None"} {
                     set col($ao) $pmiStartCol($ao)
-                    if {$stepAP == "AP242"} {
+                    if {[string first "AP242" $stepAP] == 0} {
                       set colName "name[format "%c" 10](Sec. 8.4)"
                     } else {
                       set colName "name[format "%c" 10](Sec. 4.3)"
@@ -687,6 +708,7 @@ proc gpmiAnnotationReport {objEntity} {
                   set tessRepo 0
                   if {[string first "repositioned" $ent1] != -1} {
                     set tessRepo 1
+                    set tessPlacementID $objID
                     catch {unset tessPlacement}
                   }
                 }
@@ -709,7 +731,7 @@ proc gpmiAnnotationReport {objEntity} {
                     set ok 1
                     foreach ann [list annotation_curve_occurrence_and_geometric_representation_item annotation_curve_occurrence] {
                       if {[info exist entCount($ann)] && $ok} {
-                        set msg "Syntax Error: Using both '[formatComplexEnt $ann]' and 'tessellated_annotation_occurrence' is not recommended.\n[string repeat " " 14]($recPracNames(pmi242), Sec. 8.3, Important Note)"
+                        set msg "Syntax Error: Using both '[formatComplexEnt $ann]' and 'tessellated_annotation_occurrence' is not recommended.$spaces\($recPracNames(pmi242), Sec. 8.3, Important Note)"
                         errorMsg $msg
                         addCellComment $ann 1 1 $msg
                         lappend syntaxErr($ann) [list 1 1 $msg]
@@ -718,10 +740,10 @@ proc gpmiAnnotationReport {objEntity} {
                     }
 
 # check new rule with AP242 edition 2
-                    if {$ap242edition == 2 && \
+                    if {$stepAP == "AP242e2" && \
                         ![info exists entCount(draughting_model_and_tessellated_shape_representation)] && \
                         ![info exists entCount(characterized_representation_and_draughting_model_and_tessellated_shape_representation)]} {
-                      errorMsg "Syntax Error: Missing (draughting_model)(tessellated_shape_representation) entity\n[string repeat " " 14]\($recPracNames(pmi242), Sec. 8.2, note for AP242 Edition 2)"
+                      errorMsg "Syntax Error: Missing (draughting_model)(tessellated_shape_representation) entity$spaces\($recPracNames(pmi242), Sec. 8.2, note for AP242 Edition 2)"
                     }
                   }
                 }
@@ -730,11 +752,7 @@ proc gpmiAnnotationReport {objEntity} {
                 "tessellated_curve_set name" {
 # write tessellated coords and index for pmi and part geometry
                   if {$opt(VIZPMI) && $ao == "tessellated_annotation_occurrence"} {
-                    if {[info exists tessIndex($objID)] && [info exists tessCoord($tessIndexCoord($objID))]} {
-                      x3dTessGeom $objID $objEntity1 $ent1
-                    } else {
-                      errorMsg "Missing tessellated coordinates and index for \#$objID"
-                    }
+                    if {[info exists tessIndex($objID)] && [info exists tessCoord($tessIndexCoord($objID))]} {x3dTessGeom $objID $objEntity1 $ent1}
                   }
                 }
                 "curve_style name" -
@@ -742,7 +760,7 @@ proc gpmiAnnotationReport {objEntity} {
                   set ok 1
                   if {$opt(PMIGRF) && $opt(XLSCSV) != "None"} {
                     set col($ao) [expr {$pmiStartCol($ao)+2}]
-                    if {$stepAP == "AP242"} {
+                    if {[string first "AP242" $stepAP] == 0} {
                       set colName "presentation style[format "%c" 10](Sec. 8.5)"
                     } else {
                       set colName "presentation style[format "%c" 10](Sec. 4.4)"
@@ -772,7 +790,7 @@ proc gpmiAnnotationReport {objEntity} {
                     if {$opt(PMIGRF) && $opt(XLSCSV) != "None"} {
                       set ok 1
                       set col($ao) [expr {$pmiStartCol($ao)+3}]
-                      if {$stepAP == "AP242"} {
+                      if {[string first "AP242" $stepAP] == 0} {
                         set colName "color[format "%c" 10](Sec. 8.5)"
                       } else {
                         set colName "color[format "%c" 10](Sec. 4.4)"
@@ -788,7 +806,7 @@ proc gpmiAnnotationReport {objEntity} {
                     if {$opt(PMIGRF) && $opt(XLSCSV) != "None"} {
                       set ok 1
                       set col($ao) [expr {$pmiStartCol($ao)+3}]
-                      if {$stepAP == "AP242"} {
+                      if {[string first "AP242" $stepAP] == 0} {
                         set colName "color[format "%c" 10](Sec. 8.5)"
                       } else {
                         set colName "color[format "%c" 10](Sec. 4.4)"
@@ -849,7 +867,7 @@ proc gpmiAnnotationReport {objEntity} {
                       } else {
                         set msg "The [formatComplexEnt [lindex $ent1 0]] 'name' attribute is not a recommended name for presented PMI type."
                       }
-                      if {$stepAP == "AP242"} {
+                      if {[string first "AP242" $stepAP] == 0} {
                         append msg " ($recPracNames(pmi242), Sec. 8.4, Table 14)"
                       } else {
                         append msg " ($recPracNames(pmi203), Sec. 4.3, Table 1)"
@@ -930,7 +948,9 @@ proc gpmiAnnotationReport {objEntity} {
               }
             }
           } emsg3]} {
-            errorMsg "ERROR processing PMI Presentation ($objNodeType $ent2): $emsg3"
+            set msg "ERROR processing Graphical PMI ($objNodeType $ent2): $emsg3"
+            errorMsg $msg
+            lappend syntaxErr([lindex $ent1 0]) [list $objID [lindex $ent1 1] $msg]
             set entLevel 2
           }
         }
@@ -988,7 +1008,7 @@ proc gpmiAnnotationReport {objEntity} {
                     lappend assocSPMI($dmiaDefType) $spmi_p21id
                   }
                 } elseif {[string first "property_definition" $dmiaDefType] == -1} {
-                  set msg "Syntax Error: Bad 'definition' attribute on draughting_model_item_association when 'name' attribute is 'PMI representation to presentation link'.\n[string repeat " " 14]($recPracNames(pmi242), Sec. 7.3)"
+                  set msg "Syntax Error: Bad 'definition' attribute on draughting_model_item_association when 'name' attribute is 'PMI representation to presentation link'.$spaces\($recPracNames(pmi242), Sec. 7.3)"
                   errorMsg $msg
                   lappend syntaxErr(draughting_model_item_association) [list [$objGuiEntity P21ID] definition $msg]
                 }
@@ -998,8 +1018,8 @@ proc gpmiAnnotationReport {objEntity} {
                 getAssocGeom $dmiaDef 1 $ao
               }
             } elseif {$opt(XLSCSV) != "None"} {
-              set msg "Syntax Error: Missing 'definition' attribute on draughting_model_item_association\n[string repeat " " 14]"
-              if {$stepAP == "AP242"} {
+              set msg "Syntax Error: Missing 'definition' attribute on draughting_model_item_association$spaces"
+              if {[string first "AP242" $stepAP] == 0} {
                 append msg "($recPracNames(pmi242), Sec. 9.3.1, Fig. 80)"
               } else {
                 append msg "($recPracNames(pmi203), Sec. 5.3.1, Fig. 12)"
@@ -1012,12 +1032,12 @@ proc gpmiAnnotationReport {objEntity} {
             if {[string first "handle" $dmiaDef] != -1} {
               set dmiaDefType [$dmiaDef Type]
               if {[string first "draughting_model" $dmiaDefType] == -1} {
-                set msg "Syntax Error: Bad 'used_representation' attribute ($dmiaDefType) on draughting_model_item_association.\n[string repeat " " 14]\($recPracNames(pmi242), Sec. 7.3)"
+                set msg "Syntax Error: Bad 'used_representation' attribute ($dmiaDefType) on draughting_model_item_association.$spaces\($recPracNames(pmi242), Sec. 7.3)"
                 errorMsg $msg
                 lappend syntaxErr([$objGuiEntity Type]) [list [$objGuiEntity P21ID] "used_representation" $msg]
               }
             } else {
-              set msg "Syntax Error: Missing 'used_representation' attribute on draughting_model_item_association.\n[string repeat " " 14]\($recPracNames(pmi242), Sec. 7.3)"
+              set msg "Syntax Error: Missing 'used_representation' attribute on draughting_model_item_association.$spaces\($recPracNames(pmi242), Sec. 7.3)"
               errorMsg $msg
               lappend syntaxErr([$objGuiEntity Type]) [list [$objGuiEntity P21ID] "used_representation" $msg]
             }
@@ -1041,7 +1061,7 @@ proc gpmiAnnotationReport {objEntity} {
         if {[info exists ents1]} {::tcom::foreach ap $ents1 {lappend aps $ap}}
       }
       if {[llength $aps] == 0 && $opt(XLSCSV) != "None"} {
-        set msg "Syntax Error: Annotation missing a required 'annotation_plane'.\n[string repeat " " 14]($recPracNames(pmi242), Sec. 9.1, Fig. 77)"
+        set msg "Syntax Error: Annotation missing a required 'annotation_plane'.$spaces\($recPracNames(pmi242), Sec. 9.1, Fig. 77)"
         errorMsg $msg
         lappend syntaxErr($ao) [list $objID "plane" $msg]
       }
@@ -1053,7 +1073,7 @@ proc gpmiAnnotationReport {objEntity} {
             set nam [$attrAP Value]
             if {$nam != ""} {append str "[format "%c" 10]($nam)"}
             if {![info exists pmiColumns(aplane)]} {set pmiColumns(aplane) [getNextUnusedColumn $ao]}
-            if {$stepAP == "AP242"} {
+            if {[string first "AP242" $stepAP] == 0} {
               set colName "plane[format "%c" 10](Sec. 9.1)"
             } else {
               set colName "plane[format "%c" 10](Sec. 5.1)"
@@ -1079,7 +1099,7 @@ proc gpmiAnnotationReport {objEntity} {
         set str [reportAssocGeom $ao $gpmiIDRow($ao,$gpmiID)]
         if {$str != ""  } {
           if {![info exists pmiColumns(ageom)]} {set pmiColumns(ageom) [getNextUnusedColumn $ao]}
-          if {$stepAP == "AP242"} {
+          if {[string first "AP242" $stepAP] == 0} {
             set colName "Associated Geometry[format "%c" 10](Sec. 9.3.1)"
           } else {
             set colName "Associated Geometry[format "%c" 10](Sec. 5.3.1)"
@@ -1159,8 +1179,8 @@ proc gpmiAnnotationReport {objEntity} {
               set oknm 1
               foreach str {note title block label text} {if {[string first $str $gpmiName] != -1} {set oknm 0}}
               if {$oknm} {
-                set msg "Syntax Error: Annotation not found in a Saved View.  If the annotation should be in a Saved View, then check draughting_model.items for a missing draughting_callout related to the annotation.  Also check the View for Graphical PMI to see the annotations are not in a Saved View.\n[string repeat " " 14]"
-                if {$stepAP == "AP242"} {
+                set msg "Annotation not found in a Saved View.  If the annotation should be in a Saved View, then check draughting_model 'items' for a missing draughting_callout related to the annotation.  Also check the View for Graphical PMI to see if the annotations are not in a Saved View.\n  "
+                if {[string first "AP242" $stepAP] == 0} {
                   append msg "($recPracNames(pmi242), Sec. 9.4.2.1, Fig. 86)"
                 } else {
                   append msg "($recPracNames(pmi203), Sec. 5.4.2, Fig. 14)"
@@ -1169,8 +1189,6 @@ proc gpmiAnnotationReport {objEntity} {
                 lappend syntaxErr($ao) [list $objID "Saved Views" $msg]
               }
             }
-            set msg "Some PMI might not be in a Saved View."
-            if {[lsearch $x3dMsg $msg] == -1} {lappend x3dMsg $msg}
           }
 
 # get save view names
@@ -1185,7 +1203,7 @@ proc gpmiAnnotationReport {objEntity} {
               lappend savedViewName $draftModelCameraNames([$entDraughtingModel P21ID])
 
               if {$opt(PMIGRF) && $opt(XLSCSV) != "None"} {
-                if {$stepAP == "AP242"} {
+                if {[string first "AP242" $stepAP] == 0} {
                   set colName "Saved Views[format "%c" 10](Sec. 9.4)"
                 } else {
                   set colName "Saved Views[format "%c" 10](Sec. 5.4)"
@@ -1203,8 +1221,8 @@ proc gpmiAnnotationReport {objEntity} {
                 if {$nsv == 1} {set str "camera_model_d3 [string trim $savedViews]"}
                 $cells($ao) Item $r $c $str
                 if {[string first "()" $savedViews] != -1 && $opt(XLSCSV) != "None"} {
-                  set msg "Syntax Error: For Saved Views, missing required 'name' attribute on camera_model_d3\n[string repeat " " 14]"
-                  if {$stepAP == "AP242"} {
+                  set msg "Syntax Error: For Saved Views, missing required 'name' attribute on camera_model_d3$spaces"
+                  if {[string first "AP242" $stepAP] == 0} {
                     append msg "($recPracNames(pmi242), Sec. 9.4.2.1, Fig. 86)"
                   } else {
                     append msg "($recPracNames(pmi203), Sec. 5.4.2.1, Fig. 14)"
@@ -1215,7 +1233,7 @@ proc gpmiAnnotationReport {objEntity} {
                 if {[lsearch $gpmiRow($ao) $r] == -1} {lappend gpmiRow($ao) $r}
               }
 
-# check for a mapped_item in draughting_model.items, do not check style_item (see old code)
+# check for a mapped_item in draughting_model 'items', do not check style_item (see old code)
               set attrsDraughtingModel [$entDraughtingModel Attributes]
               ::tcom::foreach attrDraughtingModel $attrsDraughtingModel {
                 if {[$attrDraughtingModel Name] == "name"} {set nameDraughtingModel [$attrDraughtingModel Value]}
@@ -1231,8 +1249,8 @@ proc gpmiAnnotationReport {objEntity} {
 
                   if {$okcm} {
                     if {$okmi == 0 && $opt(XLSCSV) != "None"} {
-                      set msg "Syntax Error: For Saved Views, missing required reference to 'mapped_item' on [formatComplexEnt [$entDraughtingModel Type]].items\n[string repeat " " 14]"
-                      if {$stepAP == "AP242"} {
+                      set msg "Syntax Error: For Saved Views, missing required reference to 'mapped_item' on [formatComplexEnt [$entDraughtingModel Type]] 'items'$spaces"
+                      if {[string first "AP242" $stepAP] == 0} {
                         append msg "($recPracNames(pmi242), Sec. 9.4.2.1, Fig. 86)"
                       } else {
                         append msg "($recPracNames(pmi203), Sec. 5.4.2, Fig. 14)"
@@ -1245,7 +1263,7 @@ proc gpmiAnnotationReport {objEntity} {
               }
 
 # check MDADR (or RR) rep_1 vs. rep_2
-              if {$stepAP == "AP242"} {
+              if {[string first "AP242" $stepAP] == 0} {
                 set relType ""
                 foreach item [list mechanical_design_and_draughting_relationship representation_relationship] {
                   if {[info exists entCount($item)]} {if {$entCount($item) > 0} {set relType $item}}
@@ -1255,7 +1273,7 @@ proc gpmiAnnotationReport {objEntity} {
                   set rep1Ents [$entDraughtingModel GetUsedIn [string trim $relType] [string trim rep_1]]
                   ::tcom::foreach rep1Ent $rep1Ents {set ok 0}
                   if {$ok && $opt(XLSCSV) != "None"} {
-                    set msg "Syntax Error: For Saved Views, '$relType' reference to '[formatComplexEnt [$entDraughtingModel Type]]' uses rep_2 instead of rep_1\n[string repeat " " 14]"
+                    set msg "Syntax Error: For Saved Views, '$relType' reference to '[formatComplexEnt [$entDraughtingModel Type]]' uses rep_2 instead of rep_1$spaces"
                     append msg "($recPracNames(pmi242), Sec. 9.4.4 Note 1, Fig. 93, Table 16)"
                     errorMsg $msg
                     set rep2Ents [$entDraughtingModel GetUsedIn [string trim $relType] [string trim rep_2]]
@@ -1263,8 +1281,8 @@ proc gpmiAnnotationReport {objEntity} {
                     lappend syntaxErr($relType) [list $mdadrID rep_2 $msg]
                   }
                   if {$relType == "representation_relationship" && $opt(XLSCSV) != "None"} {
-                    set msg "Syntax Error: For Saved Views, use 'mechanical_design_and_draughting_relationship' instead of 'representation_relationship' to relate draughting models\n[string repeat " " 14]"
-                    if {$stepAP == "AP242"} {
+                    set msg "Syntax Error: For Saved Views, use 'mechanical_design_and_draughting_relationship' instead of 'representation_relationship' to relate draughting models$spaces"
+                    if {[string first "AP242" $stepAP] == 0} {
                       append msg "($recPracNames(pmi242), Sec. 9.4.4 Note 2)"
                     } else {
                       append msg "($recPracNames(pmi203), Sec. 5.4.4 Note 2)"
@@ -1288,8 +1306,8 @@ proc gpmiAnnotationReport {objEntity} {
         if {$relType == "" && $opt(XLSCSV) != "None"} {
           set str "mechanical_design_and_draughting_relationship"
           if {[string first "AP214" $stepAP] == 0} {set str "representation_relationship"}
-          set msg "Syntax Error: For Saved Views, missing '$str' to relate 'draughting_model'\n[string repeat " " 14]"
-          if {$stepAP == "AP242"} {
+          set msg "Syntax Error: For Saved Views, missing '$str' to relate 'draughting_model'$spaces"
+          if {[string first "AP242" $stepAP] == 0} {
             append msg "($recPracNames(pmi242), Sec. 9.4.4 Note 1, Fig. 93)"
           } else {
             append msg "($recPracNames(pmi203), Sec. 5.4.4 Note 1, Fig. 20)"
@@ -1340,7 +1358,7 @@ proc gpmiAnnotationReport {objEntity} {
 # add valprop info to spreadsheet
       if {[info exists gpmiValProp($objID)]} {
         if {![info exists pmiColumns(vp)]} {set pmiColumns(vp) [getNextUnusedColumn $ao]}
-        if {$stepAP == "AP242"} {
+        if {[string first "AP242" $stepAP] == 0} {
           set colName "Validation Properties[format "%c" 10](Sec. 10.3)"
         } else {
           set colName "Validation Properties[format "%c" 10](Sec. 6.3)"
@@ -1367,7 +1385,7 @@ proc gpmiAnnotationReport {objEntity} {
 proc pmiGetCamerasAndProperties {} {
   global objDesign
   global draughtingModels draftModelCameraNames draftModelCameras entCount gpmiValProp mytemp opt propDefIDS recPracNames savedViewFile
-  global savedViewFileName savedViewItems savedViewName savedViewNames savedViewpoint spmiTypesPerFile stepAP syntaxErr
+  global savedViewFileName savedViewItems savedViewName savedViewNames savedViewpoint spaces spmiTypesPerFile stepAP syntaxErr
 
   set aolist {}
   foreach ao [list annotation_occurrence annotation_curve_occurrence annotation_curve_occurrence_and_geometric_representation_item \
@@ -1390,8 +1408,8 @@ proc pmiGetCamerasAndProperties {} {
       }
 
       if {[info exists entCount(camera_model_d2)]} {
-        set msg "Syntax Error: For Saved Views, 'camera_model_d2' is not allowed.\n[string repeat " " 14]"
-        if {$stepAP == "AP242"} {
+        set msg "Syntax Error: For Saved Views, 'camera_model_d2' is not allowed.$spaces"
+        if {[string first "AP242" $stepAP] == 0} {
           append msg "($recPracNames(pmi242), Sec. 9.4.2)"
         } else {
           append msg "($recPracNames(pmi203), Sec. 5.4.2)"
@@ -1413,9 +1431,6 @@ proc pmiGetCamerasAndProperties {} {
               set annForDM([$entDraughtingModel P21ID]) 0
 
 # DM name attribute
-              #set ok 0
-              #if {[llength $draughtingModels] == 1 || [string first "characterized" $dm] != -1} {set ok 1}
-              #set ok 1
               set nattr 0
               set iattr 1
               if {[string first "object" $dm] != -1} {set iattr 3}
@@ -1425,8 +1440,8 @@ proc pmiGetCamerasAndProperties {} {
                 if {$nameDraughtingModel == "name" && $nattr == $iattr} {
                   set name [$attrDraughtingModel Value]
                   if {$name == ""} {
-                    set msg "Syntax Error: For Saved Views, missing required 'name' attribute on [formatComplexEnt $dm]\n[string repeat " " 14]"
-                    if {$stepAP == "AP242"} {
+                    set msg "Syntax Error: For Saved Views, missing required 'name' attribute on [formatComplexEnt $dm]$spaces"
+                    if {[string first "AP242" $stepAP] == 0} {
                       append msg "($recPracNames(pmi242), Sec. 9.4.2)"
                     } else {
                       append msg "($recPracNames(pmi203), Sec. 5.4.2)"
@@ -1453,19 +1468,12 @@ proc pmiGetCamerasAndProperties {} {
                 set nameCameraModel [$attrCameraModel Name]
                 if {$nameCameraModel == "name"} {
                   set name [$attrCameraModel Value]
-
-# clean up the camera name
-                  regsub -all " " [string trim $name] "_" name1
-                  regsub -all {\(} [string trim $name1] "_" name1
-                  regsub -all {\)} [string trim $name1] "" name1
-                  regsub -all {:~$%&*<>?/+\|\"\#\\\{\}\-} [string trim $name1] "_" name1
-                  regsub -all {\-} $name1 "_" name1
-                  regsub -all {\.} $name1 "_" name1
-                  if {$name1 == ""} {set name1 "Missing_name"}
+                  set name1 [string trim $name]
+                  if {$name1 == ""} {set name1 "Missing name"}
 
                   if {$name == ""} {
-                    set msg "Syntax Error: For Saved Views, missing required 'name' attribute on $cm\n[string repeat " " 14]"
-                    if {$stepAP == "AP242"} {
+                    set msg "Syntax Error: For Saved Views, missing required 'name' attribute on $cm$spaces"
+                    if {[string first "AP242" $stepAP] == 0} {
                       append msg "($recPracNames(pmi242), Sec. 9.4.2.1, Fig. 86)"
                     } else {
                       append msg "($recPracNames(pmi203), Sec. 5.4.2.1, Fig. 14)"
@@ -1516,11 +1524,14 @@ proc pmiGetCamerasAndProperties {} {
                 if {[lsearch $savedViewNames $name1] == -1 && $annForDM([$entDraughtingModel P21ID])} {
                   lappend savedViewNames $name1
                   if {$opt(PMISEM)} {lappend spmiTypesPerFile "saved views"}
+
+# create temp file ViewN.txt for saved view graphical PMI x3d, where 'N' is an integer
                   if {$opt(VIZPMI)} {
-                    catch {file delete -force $savedViewFileName($name1)}
-                    set fn [file join $mytemp $name1.txt]
-                    set savedViewFile($name1) [open $fn w]
-                    set savedViewFileName($name1) $fn
+                    set name2 "View[lsearch $savedViewNames $name1]"
+                    catch {file delete -force $savedViewFileName($name2)}
+                    set fn [file join $mytemp $name2.txt]
+                    set savedViewFile($name2) [open $fn w]
+                    set savedViewFileName($name2) $fn
                     if {[string length $dmitems([$entDraughtingModel P21ID])] > 0} {set savedViewItems($dmcn) $dmitems([$entDraughtingModel P21ID])}
                   }
                 }

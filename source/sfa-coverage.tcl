@@ -240,14 +240,7 @@ proc spmiCoverageWrite {{fn ""} {sum ""} {multi 1}} {
         ::tcom::foreach attr [$thisEnt Attributes] {
           if {[$attr Name] == "name"} {
             set val [$attr Value]
-            if {$val == "semantic text"} {
-              lappend spmiTypesPerFile "editable text"
-              if {$opt(VALPROP)} {
-                errorMsg " See 'property_definition' worksheet for 'semantic text'" red
-              } else {
-                errorMsg " See 'descriptive_representation_item' worksheet for 'editable text'" red
-              }
-            }
+            if {$val == "semantic text"} {lappend spmiTypesPerFile "editable text"}
           }
         }
       }

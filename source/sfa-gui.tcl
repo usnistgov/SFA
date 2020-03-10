@@ -1,5 +1,5 @@
 # version numbers - SFA, software user guide (UG)
-proc getVersion {}   {return 3.96}
+proc getVersion {}   {return 4.0}
 proc getVersionUG {} {return 3.0}
 
 # IFCsvr version, depends on string entered when IFCsvr is repackaged for new STEP schemas
@@ -18,8 +18,8 @@ proc whatsNew {} {
     outputMsg "\nWelcome to the NIST STEP File Analyzer and Viewer ----------------------" blue
     outputMsg "Please take a few minutes to read some the Help text so that you understand the options available
 in this software.  Also explore the Examples and Websites menus.  The User Guide is based on
-version [getVersionUG] of this software.  New and updated features are documented in the Help menu, tooltips,
-and Changelog.
+version [getVersionUG] of this software and might not be up-to-date for the current version.  New and updated
+features are documented in the Help menu, tooltips, and Changelog.
 
 You will be prompted to install the IFCsvr toolkit which is required to read STEP files.  After the
 toolkit is installed, you are ready to process a STEP file.  Go to the File menu, select a STEP
@@ -34,6 +34,7 @@ Use F9 and F10 to change the font size here.  See Help > Function Keys"
 
 # messages if SFA has already been run
   if {$sfaVersion > 0} {
+    if {$sfaVersion  < 4.0}  {outputMsg "- The viewer for part geometry now supports color and is much faster.  See Help > Viewer"}
     if {$sfaVersion <= 3.70} {outputMsg "- Run the new Syntax Checker with the Options tab selection or function key F8.  See Help > Syntax Checker"}
     if {$sfaVersion < [getVersionUG]} {
       outputMsg "- A new User Guide, based on version [getVersionUG] of this software, is available.  Sections 5.1.5, 6, 7, and 8.1 have new or updated content."
@@ -336,7 +337,7 @@ proc guiFileMenu {} {
 #-------------------------------------------------------------------------------
 # options tab, process and report
 proc guiProcessAndReports {} {
-  global allNone buttons cb developer entCategory fopt fopta nb opt
+  global allNone buttons cb entCategory fopt fopta nb opt
 
   set cb 0
   set wopt [ttk::panedwindow $nb.options -orient horizontal]
@@ -437,9 +438,10 @@ proc guiProcessAndReports {} {
           foreach item [array names opt] {if {[string first "PR_STEP" $item] == 0} {set opt($item) 0}}
           foreach item {VIZBRP VIZFEA VIZPMI VIZTPG PMISEM PMIGRF VALPROP INVERSE PR_USER} {set opt($item) 0}
           set opt(PR_STEP_COMM) 1
-          set opt(XLSCSV) "Excel"
           set ofNone 0
           set ofExcel 1
+          if {$opt(XLSCSV) == "None"} {set opt(XLSCSV) "Excel"}
+          if {!$ofCSV} {$buttons(ofExcel) configure -state normal}
         } elseif {$allNone == 2} {
           foreach item {PMISEM PMIGRF VALPROP} {set opt($item) 1}
         } elseif {$allNone == 3} {
@@ -483,7 +485,7 @@ proc guiProcessAndReports {} {
   catch {
     tooltip::tooltip $buttons(optVALPROP) "Geometric, assembly, PMI, annotation, attribute, tessellated, composite,\nand FEA validation properties are reported.  All properties are shown on\nthe 'property_definition' entity.  Some properties might not be shown\ndepending on the value of Maximum Rows (Spreadsheet tab).\n\nSee Help > Analyze > Validation Properties\nSee Help > User Guide (section 5.3)\nSee Help > Analyze > Syntax Errors\nSee Examples > PMI Presentation, Validation Properties"
     tooltip::tooltip $buttons(optPMISEM)  "Semantic PMI is the information necessary to represent geometric\nand dimensional tolerances without any graphical PMI.  It is shown\non dimension, tolerance, datum target, and datum entities.\nSemantic PMI is found mainly in STEP AP242 files.\n\nSee Help > Analyze > PMI Representation\nSee Help > User Guide (section 5.1)\nSee Help > Analyze > Syntax Errors\nSee Examples > Spreadsheet - PMI Representation\nSee Examples > Sample STEP Files\nSee Websites > AP242"
-    tooltip::tooltip $buttons(optPMIGRF)  "Graphical PMI is the geometric elements necessary to draw annotations.\nThe information is shown on 'annotation occurrence' entities.\n\nSee Help > Analyze > PMI Presentation\nSee Help > User Guide (section 5.2)\nSee Help > Analyze > Syntax Errors\nSee Examples > PMI Presentation, Validation Properties\nSee Examples > View Part with PMI\nSee Examples > AP242 Tessellated Part with PMI\nSee Examples > Sample STEP Files"
+    tooltip::tooltip $buttons(optPMIGRF)  "Graphical PMI is the geometric elements necessary to draw annotations.\nThe information is shown on 'annotation occurrence' entities.\n\nSee Help > Analyze > PMI Presentation\nSee Help > User Guide (section 5.2)\nSee Help > Analyze > Syntax Errors\nSee Examples > PMI Presentation, Validation Properties\nSee Examples > Part with PMI\nSee Examples > AP242 Tessellated Part with PMI\nSee Examples > Sample STEP Files"
     tooltip::tooltip $buttons(optPMIGRFCOV) "The PMI Presentation Coverage worksheet counts the number of recommended names used from the\nRecommended Practice for Representation and Presentation of PMI (AP242), Section 8.4, Table 14.  The\nnames do not have any semantic PMI meaning.  This worksheet was always generated before version\n3.62 when PMI Presentation was selected.\n\nSee Help > Analyze > PMI Coverage Analysis"
     tooltip::tooltip $buttons(optPMISEMDIM) "Analyze only dimensional tolerances and no\ngeometric tolerances, datums, or datum targets."
   }
@@ -491,23 +493,28 @@ proc guiProcessAndReports {} {
 #-------------------------------------------------------------------------------
 # view
   set foptv [ttk::labelframe $foptrv.9 -text " View "]
-  set foptv20 [frame $foptv.20 -bd 0]
 
 # part geometry
-  foreach item {{" Part Geometry" opt(VIZBRP)} \
-                {" Smooth Shaded" opt(VIZBRPNRM)} \
-                {" Color" opt(VIZBRPCLR)} \
-                {" Edges" opt(VIZBRPEDG)}} {
+  set foptv20 [frame $foptv.20 -bd 0]
+  foreach item {{" Part Geometry" opt(VIZBRP)}} {
     regsub -all {[\(\)]} [lindex $item 1] "" idx
-    if {$developer || ($idx != "optVIZBRPEDG" && $idx != "optVIZBRPCLR")} {
-      set buttons($idx) [ttk::checkbutton $foptv20.$cb -text [lindex $item 0] -variable [lindex $item 1] -command {checkValues}]
-      set px 2
-      if {$idx == "optVIZBRP"} {set px 5}
-      pack $buttons($idx) -side left -anchor w -padx $px -pady 0 -ipady 0
-      incr cb
-    }
+    set buttons($idx) [ttk::checkbutton $foptv20.$cb -text [lindex $item 0] -variable [lindex $item 1] -command {checkValues}]
+    pack $buttons($idx) -side left -anchor w -padx 5 -pady 0 -ipady 0
+    incr cb
   }
   pack $foptv20 -side top -anchor w -pady 0 -padx 0 -fill y
+
+# part quality
+  set foptv21 [frame $foptv.21 -bd 0]
+  set buttons(x3dqual) [label $foptv21.l3 -text "Quality:"]
+  pack $foptv21.l3 -side left -anchor w -padx 0 -pady 0 -ipady 0
+  foreach item {{Normal 7} {High 9}} {
+    set bn "x3dQuality[lindex $item 1]"
+    set buttons($bn) [ttk::radiobutton $foptv21.$cb -variable opt(x3dQuality) -text [lindex $item 0] -value [lindex $item 1]]
+    pack $buttons($bn) -side left -anchor w -padx 2 -pady 0 -ipady 0
+    incr cb
+  }
+  pack $foptv21 -side top -anchor w -pady 0 -padx 25 -fill y
 
 # graphical pmi
   set foptv3 [frame $foptv.3 -bd 0]
@@ -573,14 +580,14 @@ proc guiProcessAndReports {} {
   pack $foptv -side left -anchor w -pady {5 2} -padx 10 -fill both -expand true
   pack $foptrv -side top -anchor w -pady 0 -fill x
   catch {
-    tooltip::tooltip $buttons(optVIZBRP) "Views are shown in the default web browser.  See Help > Viewer\n\nViews can be generated without generating a spreadsheet or CSV\nfiles.  See the Output Format option below.\n\nSee Help > View for other viewing features\nSee Examples > View Part with PMI\nSee Websites > STEP File Viewers (for other part geometry viewers)"
-    tooltip::tooltip $buttons(optVIZBRPNRM) "Surfaces will appear smooth instead of faceted.  For large STEP files,\nfaceted surfaces will reduce the time to display the part geometry."
-    tooltip::tooltip $buttons(optVIZPMI) "Graphical PMI is supported in AP242, AP203, and AP214 files.\n\nSee Help > View > Graphical PMI\nSee Help > Viewer\nSee Help > User Guide (section 7.1.1)\nSee Examples > View Part with PMI\nSee Examples > AP242 Tessellated Part with PMI\nSee Examples > Sample STEP Files"
+    tooltip::tooltip $buttons(optVIZBRP) "Views are shown in the default web browser.  See Help > Viewer\n\nViews can be generated without generating a spreadsheet or CSV\nfiles.  See the Output Format option below.\n\nSee Help > View for other viewing features\nSee Examples > View Simple Assembly and others\nSee Websites > STEP File Viewers (for other part geometry viewers)"
+    tooltip::tooltip $buttons(optVIZPMI) "Graphical PMI is supported in AP242, AP203, and AP214 files.\n\nSee Help > View > Graphical PMI\nSee Help > Viewer\nSee Help > User Guide (section 7.1.1)\nSee Examples > Part with PMI\nSee Examples > AP242 Tessellated Part with PMI\nSee Examples > Sample STEP Files"
     tooltip::tooltip $buttons(optVIZTPG) "** Parts in an assembly might have the wrong\nposition and orientation or be missing. **\n\nTessellated edges (lines) are also shown.  Faces\nin tessellated shells are outlined in black.\n\nSee Help > View > AP242 Tessellated Part Geometry\nSee Help > Viewer\nSee Help > User Guide (section 7.1.2, 7.1.3)\nSee Examples > AP242 Tessellated Part with PMI"
     tooltip::tooltip $buttons(optVIZTPGMSH) "Generate a wireframe mesh based on the tessellated faces and surfaces."
     tooltip::tooltip $buttons(optVIZFEALVS) "The length of load vectors can be scaled by their magnitude.\nLoad vectors are always colored by their magnitude."
     tooltip::tooltip $buttons(optVIZFEADSntail) "The length of displacement vectors with a tail are scaled by\ntheir magnitude.  Vectors without a tail are not.\nDisplacement vectors are always colored by their magnitude.\nLoad vectors always have a tail."
-    tooltip::tooltip $foptv4 "For 'By View' PMI colors, each Saved View is assigned a different color.\nIf there are one or no Saved Views, then 'Random' PMI colors are used.\n\nFor 'Random' PMI colors, each 'annotation occurrence' is assigned a\ndifferent color to help differentiate one from another."
+    tooltip::tooltip $foptv21 "Quality controls the number of facets used for curved surfaces.\nNormal quality uses 18 segments around the circumference of\na cylinder.  High quality uses 24 segments and takes slightly\nlonger to generate and display."
+    tooltip::tooltip $foptv4  "For 'By View' PMI colors, each Saved View is set to a different color.\nIf there are one or no Saved Views, then 'Random' PMI colors are used.\n\nFor 'Random' PMI colors, each 'annotation occurrence' is set to a\ndifferent color to help differentiate one from another."
     set tt "FEM nodes, elements, boundary conditions,\nloads, and displacements are shown.\n\nSee Help > View > AP209 Finite Element Model\nSee Help > Viewer\nSee Help > User Guide (section 7.1.4)\nSee Examples > AP209 Finite Element Model"
     tooltip::tooltip $foptv7 $tt
     tooltip::tooltip $foptv8 $tt
@@ -1080,23 +1087,37 @@ Spreadsheet tab:
 # general viewer help
   $Help add command -label "Viewer" -command {
 outputMsg "\nViewer ---------------------------------------------------------------------" blue
-outputMsg "A View is written to an HTML file 'myfile-sfa.html' and is shown in the default web browser, if the
-web browser supports x3dom (x3dom.org).  All current major web browsers support x3dom.  An Internet
-connection is required to open the HTML file.  The HTML file is self-contained and can be shared
-with other users, including those on non-Windows systems.  Views can be generated without
-generating a spreadsheet or CSV files.  See Output Format on the Options tab.
+outputMsg "A View is written to an HTML file 'myfile-sfa.html' and is shown in the default web browser.
+x3dom (x3dom.org) is used to show and navigate 3D models in a web browser which requires an
+Internet connection.  The HTML file is self-contained and can be shared with other users, including
+those on non-Windows systems.  Views can be generated without generating a spreadsheet or CSV files.
+See the Output Format on the Options tab.
 
-For part geometry, a popup program stp2x3d.exe runs to process STEP geometry.  Please wait for that
-program to complete.  If smooth shaded is not selected, then surfaces will appear faceted.  With
-faceted surfaces, the HTML file is smaller and faster to open in the web browser.
+The new viewer in version 4.0 now supports color for part geometry, processes STEP files much
+faster, and the resulting HTML files are smaller, therefore faster to show in the web browser.
+Parts with the same color can be switched on and off.  Sometimes parts have multiple colors.  The
+bounding box for the STEP part geometry is also reported.
 
-Part geometry limitations:
-- Multiple part colors and overriding colors are not supported.
-- In some rare cases, curved surfaces might appear jagged or incomplete.
-- For large STEP files, a view might take several minutes or more to generate and show in the web
-  browser.
-- For large HTML files, Firefox can open the file faster than other web browsers.  Select Wait if
-  the web browser prompts that it is running slowly when opening the HTML file.
+Quality controls the number of facets used for curved surfaces.  Normal quality uses 18 segments
+around the circumference of a cylinder.  High quality uses 24 segments and takes slightly longer
+to generate and display.
+
+The location of the origin at '0 0 0' is shown with a small XYZ coordinate axis that can be
+switched off.  The background color can be changed between white, gray, and black.
+
+In the web browser, use key 'a' to view all and 'r' to restore to the original view.  Sometimes the
+part geometry or PMI might be far away from the origin.  In this case, turn off the Origin and use
+'a' to view all as expected.  The function of other keys is described in the link 'Use the mouse'.
+Navigation uses the Examine Mode.  Use Page Up/Down to switch between perspective and orthographic
+projection modes.  Navigation is easier in perspective mode.
+
+Transparency for parts and finite element models is only approximate.  This is a limitation of
+x3dom.
+
+For very large STEP files, it might take several minutes to process the STEP part geometry.  The
+resulting HTML file also might several minutes to display in the web browser.  Firefox can display
+large HTML files faster than Chrome.  Select 'Wait' if the web browser prompts that it is running
+slowly when opening the HTML file.
 
 See Help > View for more information about viewing:
 - Supplemental Geometry
@@ -1105,13 +1126,13 @@ See Help > View for more information about viewing:
 - AP242 Tessellated Geometry
 - AP209 Finite Element Models
 
-See Examples > View Part with PMI and others
+See Examples > View Simple Assembly and others
 
 Other STEP file viewers are available.  See Websites > STEP File Viewers
 
-Many of the other viewers are faster and have better features for viewing and measuring part
-geometry.  However, most of the other viewers cannot view graphical PMI, supplemental geometry,
-datum targets, AP242 tessellated part geometry, and AP209 finite element models."
+Many of the other viewers have better features for viewing and measuring part geometry.  However,
+most of the other viewers cannot view graphical PMI, supplemental geometry, datum targets, AP242
+tessellated part geometry, and AP209 finite element models."
     .tnb select .tnb.status
   }
 
@@ -1195,7 +1216,7 @@ outputMsg "Supplemental geometry is shown only if Part Geometry or Graphical PMI
 geometry is not associated with graphical PMI Saved Views.
 
 The following types of supplemental geometry and associated text are supported.
-- Coordinate System: red/green/blue axes or by color assigned to axes
+- Coordinate System: red/green/blue axes or by axes color
 - Plane: blue transparent outlined square
 - Cylinder: blue transparent cylinder
 - Line/Circle/Ellipse: purple line/circle/ellipse
@@ -1206,7 +1227,9 @@ Lines and circles that are trimmed by cartesian_point will not be trimmed.  Boun
 planes and cylinders are not supported.  All bounded and unbounded planes are shown with a fixed
 size.
 
-Supplemental geometry can be switched on and off in the view."
+Supplemental geometry can be switched on and off in the view.
+
+See Websites > CAx Recommended Practices (Supplemental Geometry)"
     .tnb select .tnb.status
   }
 
@@ -1233,7 +1256,8 @@ Both types of datum targets are shown in red and can be switched on and off in t
 Datum target feature geometry (feature_for_datum_target_relationship), also specified with
 geometric entities similar to the second method, is shown in green.
 
-See Examples > View Part with PMI"
+See Examples > Part with PMI
+See Websites > CAx Recommended Practices (Representation and Presentation of PMI for AP242, Sec. 6.6)"
     .tnb select .tnb.status
   }
 
@@ -1245,10 +1269,12 @@ characters are not filled.  PMI associated with Saved Views can be switched on a
 Graphical PMI might not have equivalent or any Semantic PMI in the STEP file.  Some STEP files with
 Semantic PMI might not have any Graphical PMI.
 
-See Help > User Guide (sections 7.1.1)
+See Help > User Guide (section 7.1.1)
 See Help > Analyze > PMI Presentation
-See Examples > View Part with PMI
-See Examples > Sample STEP Files"
+See Examples > Part with PMI
+See Examples > Sample STEP Files
+See Websites > CAx Recommended Practices (Representation and Presentation of PMI for AP242,
+  PMI Polyline Presentation for AP203 and AP214)"
     .tnb select .tnb.status
   }
 
@@ -1260,11 +1286,12 @@ outputMsg "Tessellated part geometry is supported by AP242 and is usually supple
 
 Faces in a tessellated shell are outlined in black.  Lines generated from tessellated edges are
 also shown.  A wireframe mesh, outlining the facets of the tessellated surfaces can also be shown.
-If both are present, tessellated edges might be obscured by the wireframe mesh.  [string totitle [lindex $defaultColor 1]] is used as
-the color assigned to tessellated solids, shells, or faces that do not have colors assigned to them.
+If both are present, tessellated edges might be obscured by the wireframe mesh.  [string totitle [lindex $defaultColor 1]] is used for
+tessellated solids, shells, or faces that do not have colors specified.
 
 See Help > User Guide (section 7.1.3)
-See Examples > AP242 Tessellated Part with PMI"
+See Examples > AP242 Tessellated Part with PMI
+See Websites > CAx Recommended Practices (Tessellated 3D Geometry)"
     .tnb select .tnb.status
   }
 
@@ -1275,7 +1302,7 @@ used.
 
 The AP209 finite element model composed of bodes, mesh, elements, boundary conditions, loads, and
 displacments are shown and can be toggled on and off in the viewer.  Internal faces for solid
-elements are not supported.  Elements can be made transparent although it is only approximate.
+elements are not supported.
 
 Nodal loads and element surface pressures are shown.  Load vectors are colored by their magnitude.
 The length of load vectors can be scaled by their magnitude.  Forces use a single-headed arrow.
@@ -1316,6 +1343,9 @@ properties might not be shown depending on the value of Maximum Rows (Spreadshee
 
 See Help > User Guide (section 5.3)
 See Examples > PMI Presentation, Validation Properties
+See Websites > CAx Recommended Practices (Geometric and Assembly Validation Properties,
+  User Defined Attributes, Representation and Presentation of PMI for AP242, Tessellated 3D
+  Geometry)
 
 Other properties and User-Defined Attributes are also reported.
 
@@ -1327,10 +1357,7 @@ Clicking on the plus '+' symbols above the columns shows other columns that cont
 and attribute name of the validation property value.  All of the other columns can be shown or
 hidden by clicking the '1' or '2' in the upper right corner of the spreadsheet.
 
-The Summary worksheet indicates on the property_definition entity if properties are reported.
-
-Validation properties are defined by the CAx-IF.  See Websites > Recommended Practices to access
-documentation."
+The Summary worksheet indicates on the property_definition entity if properties are reported."
     .tnb select .tnb.status
   }
 
@@ -1340,16 +1367,13 @@ outputMsg "PMI Representation (Semantic PMI) includes all information necessary 
 dimensional tolerances (GD&T) without any graphical presentation elements.  PMI Representation is
 associated with CAD model geometry and is computer-interpretable to facilitate automated
 consumption by downstream applications for manufacturing, measurement, inspection, and other
-processes.
+processes.  PMI Representation is found mainly in AP242 files.
 
 See Help > User Guide (section 5.1)
 See Help > Analyze > PMI Coverage Analysis
 See Examples > Spreadsheet - PMI Representation
 See Examples > Sample STEP Files
-
-PMI Representation is found mainly in AP242 files and is defined by the CAx-IF Recommended Practice
-for Representation and Presentation of Product Manufacturing Information (AP242)
-See Websites > Recommended Practices to access documentation.
+See Websites > CAx Recommended Practices (Representation and Presentation of PMI for AP242)
 
 Worksheets for the analysis of PMI Representation show a visual recreation of the representation
 for Dimensional Tolerances, Geometric Tolerances, and Datum Features.  The results are in columns,
@@ -1389,7 +1413,7 @@ Some syntax errors that indicate non-conformance to a CAx-IF Recommended Practic
 Representation are also reported in the Status tab and the relevant worksheet cells.  Syntax errors
 are highlighted in red.  See Help > Analyze > Syntax Errors
 
-A PMI Representation Coverage Analysis worksheet is generated.
+A PMI Representation Coverage Analysis worksheet is also generated.
 See Help > Analyze > PMI Coverage Analysis"
     .tnb select .tnb.status
   }
@@ -1401,21 +1425,19 @@ the exact appearance (color, shape, positioning) of the geometric and dimensiona
 annotations.  PMI Presentation is not intended to be computer-interpretable and does not have any
 representation information, although it can be linked to its corresponding PMI Representation.
 
-See Help > User Guide (sections 5.2)
+See Help > User Guide (section 5.2)
 See Help > View > Graphical PMI
-See Examples > View Part with PMI
+See Examples > Part with PMI
 See Examples > PMI Presentation, Validation Properties
 See Examples > Sample STEP Files
+See Websites > CAx Recommended Practices (Representation and Presentation of PMI for AP242,
+  PMI Polyline Presentation for AP203 and AP214)
 
 The analysis of Graphical PMI on annotation_curve_occurrence, annotation_curve,
 annotation_fill_area_occurrence, and tessellated_annotation_occurrence entities is supported.
 Geometric entities used for PMI Presentation annotations are reported in columns, highlighted in
 yellow and green, on those worksheets.  Presentation Style, Saved Views, Validation Properties,
 Annotation Plane, Associated Geometry, and Associated Representation are also reported.
-
-PMI Presentation is defined by the CAx-IF Recommended Practices for Representation and Presentation
-of Product Manufacturing Information (AP242) and PMI Polyline Presentation (AP203/AP242)
-See Websites > Recommended Practices to access documentation.
 
 The Summary worksheet indicates on which worksheets PMI Presentation is reported.  Some syntax
 errors related to PMI Presentation are also reported in the Status tab and the relevant worksheet
@@ -1550,7 +1572,7 @@ Summary might show less than exact matches.
 Missing PMI annotations on the Summary worksheet or PMI elements on the Coverage worksheet might
 mean that the CAD system or translator:
 - did not or cannot correctly create in the CAD model a PMI annotation defined in a NIST test case
-- did not follow CAx-IF Recommended Practices for PMI (See Websites > Recommended Practices)
+- did not follow CAx-IF Recommended Practices for PMI (See Websites > CAx Recommended Practices)
 - has not implemented exporting a PMI element to a STEP file
 - mapped an internal PMI element to the wrong STEP PMI element
 
@@ -1690,8 +1712,9 @@ dialogs might appear that say 'Unable to alloc xxx bytes'.  See the Help > Crash
         outputMsg "  [string range $item 0 $c1][string toupper [string range $item $c1+1 end]]"
       }
     }
-    outputMsg "\nAP238 files with a .stpnc file extension are supported if the file extension is changed to .stp
-See the Websites menu for information about the STEP Format, EXPRESS Schemas, AP242, and more."
+    outputMsg "\nThere are two editions of AP242.  AP238 files with a .stpnc file extension are supported if the
+file extension is changed to .stp  See the Websites menu for information about the STEP Format,
+EXPRESS Schemas, AP242, and more."
 
     .tnb select .tnb.status
   }
@@ -1725,8 +1748,7 @@ Credits
 - Reading and parsing STEP files: IFCsvr ActiveX Component, Copyright \u00A9 1999, 2005 SECOM Co., Ltd. All Rights Reserved
                                   IFCsvr has been modified by NIST to include STEP schemas.
                                   The license agreement can be found in C:\\Program Files (x86)\\IFCsvrR300\\doc
-- Viewing B-rep part geometry:    pythonOCC (https://github.com/tpaviot/pythonocc)
-                                  With modifications by William Bernstein at NIST"
+- Viewing B-rep part geometry:    Developed by Soonjo Kwon at NIST based on the Open Cascade STEP Processor (See Websites > STEP Software)"
     } else {
       outputMsg "\nThis version was built from the NIST STEP File Analyzer and Viewer source\ncode available on GitHub.  https://github.com/usnistgov/SFA"
     }
@@ -1771,7 +1793,8 @@ Credits
   $Examples0 add command -label "AP214e1 Files" -command {openURL http://web.archive.org/web/20160903141712/http://www.steptools.com/support/stdev_docs/stpfiles/ap214/index.html}
 
   $Examples add separator
-  $Examples add command -label "View Part with PMI"              -command {openURL https://pages.nist.gov/CAD-PMI-Testing/graphical-pmi-viewer.html}
+  $Examples add command -label "View Simple Assembly"            -command {openURL https://pages.nist.gov/CAD-PMI-Testing/simple-assembly.html}
+  $Examples add command -label "Part with PMI"                   -command {openURL https://pages.nist.gov/CAD-PMI-Testing/graphical-pmi-viewer.html}
   $Examples add command -label "AP242 Tessellated Part with PMI" -command {openURL https://pages.nist.gov/CAD-PMI-Testing/tessellated-part-geometry.html}
   $Examples add command -label "AP209 Finite Element Model"      -command {openURL https://pages.nist.gov/CAD-PMI-Testing/ap209-viewer.html}
   $Examples add separator
@@ -1793,13 +1816,13 @@ proc guiWebsitesMenu {} {
   $Websites add command -label "STEP: The Grand Experience"                -command {openURL https://www.nist.gov/publications/step-grand-experience}
 
   $Websites add separator
-  $Websites add command -label "MBx Interoperability Forum (MBx-IF)" -command {openURL https://www.cax-if.org}
-  $Websites add command -label "STEP File Viewers"         -command {openURL https://www.cax-if.org/cax/step_viewers.php}
+  $Websites add command -label "CAx Interoperability Forum (CAx-IF)" -command {openURL https://www.cax-if.org/cax/cax_introduction.php}
+  $Websites add command -label "STEP File Viewers"         -command {openURL https://www.cax-if.org/step_viewers.php}
   $Websites add command -label "CAx Recommended Practices" -command {openURL https://www.cax-if.org/cax/cax_recommPractice.php}
   $Websites add command -label "CAD Implementations"       -command {openURL https://www.cax-if.org/cax/vendor_info.php}
 
   $Websites add separator
-  $Websites add command -label "CAE-IF" -command {openURL https://www.cax-if.org/cae/cae_testround.php}
+  $Websites add command -label "CAE-IF" -command {openURL https://www.cax-if.org/cae/cae_introduction.php}
   $Websites add command -label "PDM-IF" -command {openURL http://www.pdm-if.org/}
   $Websites add command -label "Digital Manufacturing-IF" -command {openURL http://www.ap238.org/dmif/}
 
@@ -1836,7 +1859,6 @@ proc guiWebsitesMenu {} {
   set Websites4 [menu $Websites.4 -tearoff 1]
   $Websites4 add command -label "Source code on GitHub"      -command {openURL https://github.com/usnistgov/SFA}
   $Websites4 add command -label "Open Cascade STEP Processor" -command {openURL https://dev.opencascade.org/doc/overview/html/occt_user_guides__step.html}
-  $Websites4 add command -label "pythonOCC"                  -command {openURL https://github.com/tpaviot/pythonocc}
   $Websites4 add command -label "STEPcode"                   -command {openURL http://stepcode.github.io/}
   $Websites4 add command -label "STEP Class Library"         -command {openURL https://www.nist.gov/services-resources/software/step-class-library-scl}
   $Websites4 add command -label "Express Engine"             -command {openURL http://exp-engine.sourceforge.net/}
@@ -1956,7 +1978,7 @@ proc getOpenPrograms {} {
   global drive editorCmd developer myhome pf32 pf64
 
 # Including any of the CAD viewers and software does not imply a recommendation or endorsement of them by NIST https://www.nist.gov/disclaimer
-# For more STEP viewers, go to https://www.cax-if.org/cax/step_viewers.php
+# For more STEP viewers, go to https://www.cax-if.org/step_viewers.php
 
   regsub {\\} $pf32 "/" p32
   lappend pflist $p32

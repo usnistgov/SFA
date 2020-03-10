@@ -69,8 +69,8 @@ proc indentPutLine {line {comment ""} {putstat 1}} {
 # write short lines
   if {$ll <= 120} {
     #if {$comment != ""} {puts $indentWriteFile [string range $line 0 [expr {$t1-1}]]$comment}
-    
-# check for styled_item    
+
+# check for styled_item
     set ok 1
     if {[info exists opt(indentStyledItem)]} {if {!$opt(indentStyledItem) && [string first "STYLED_ITEM" $line] != -1} {set ok 0}}
     if {$ok} {puts $indentWriteFile $line}
@@ -285,7 +285,7 @@ proc indentFile {ifile} {
     if {[string first "\#" $line1] != -1} {
       foreach idx $indentdat1 {
         if {[string first $idx $line] != -1} {
-          puts $indentWriteFile \n
+          puts $indentWriteFile "\n"
           #outputMsg "PUT LINE 2"
           set stat [indentPutLine $line]
           if {$stat == 0} {break}
@@ -302,7 +302,7 @@ proc indentFile {ifile} {
   if {[llength $indentMissing] > 0} {errorMsg "Missing STEP entities: [lsort $indentMissing]"}
 
   set fs [expr {[file size $indentFileName]/1024}]
-  if {$editorCmd != "" && $fs < 30000} {
+  if {$editorCmd != "" && $fs < 100000} {
     outputMsg "Opening Tree View STEP file:"
     exec $editorCmd [file nativename $indentFileName] &
   } else {

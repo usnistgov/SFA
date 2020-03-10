@@ -2,7 +2,7 @@
 proc openMultiFile {{ask 1}} {
   global allEntity andEntAP209 buttons cells1 col1 coverageSTEP entCategory excel1 fileDir fileDir1 fileEntity fileList
   global gpmiCoverageWS gpmiRows gpmiTotals gpmiTypes gpmiTypesInvalid lastXLS1 lenfilelist localName localNameList multiFileDir mydocs nfile
-  global nistCoverageStyle nistVersion nprogBarFiles opt pmiElementsMaxRows row1 spmiCoverageWS startrow stepAP totalEntity totalPMI totalPMIrows
+  global nistCoverageStyle nistVersion nprogBarFiles ofCSV opt pmiElementsMaxRows row1 spmiCoverageWS startrow stepAP totalEntity totalPMI totalPMIrows
   global useXL worksheet1 worksheets1 xlFileNames
 
   set multiFileDir ""
@@ -60,9 +60,18 @@ proc openMultiFile {{ask 1}} {
 
     if {$lenfilelist > 0} {
       if {$ask != 2} {outputMsg "($lenfilelist) STEP files found" blue}
-      set askstr "Spreadsheets"
-      if {$opt(XLSCSV) == "CSV"}  {set askstr "CSV files"}
-      if {$opt(XLSCSV) == "None"} {set askstr "Views"}
+      set askstr ""
+      if {$opt(XLSCSV) == "Excel"} {
+        append askstr "Spreadsheets"
+      } elseif {$opt(XLSCSV) == "CSV"} {
+        if {$ofCSV} {append askstr "Spreadsheets and "}
+        append askstr "CSV Files"
+      } elseif {$opt(XLSCSV) == "None"} {
+        append askstr "Views"
+      }
+      if {$opt(XLSCSV) != "None" && ($opt(VIZBRP) || $opt(VIZFEA) || $opt(VIZPMI) || $opt(VIZTPG))} {
+        append askstr " and Views"
+      }
 
       if {$ask != 2} {
         set choice [tk_messageBox -title "Generate $askstr?" -type yesno -default yes -message "Do you want to Generate $askstr for ($lenfilelist) STEP files ?" -icon question]
@@ -511,7 +520,7 @@ proc openMultiFile {{ask 1}} {
             if {[string length $aname] > 218} {
               errorMsg "Spreadsheet file name is too long for Excel ([string length $aname])."
               set aname [file nativename [file join $mydocs SFA-Summary-$enddir-$lenfilelist.$extXLS]]
-              if {[string length $aname] < 219} {errorMsg " Spreadsheet file written to the home directory."}
+              if {[string length $aname] < 219} {errorMsg " Spreadsheet written to the home directory."}
             }
             catch {file delete -force $aname}
 
@@ -546,7 +555,7 @@ proc openMultiFile {{ask 1}} {
 # open spreadsheet
           if {$opt(XL_OPEN)} {
             openXLS $aname 0 1
-            if {!$opt(HIDELINKS)} {outputMsg " Click on the Links in Row 3 to access individual spreadsheets." blue}
+            if {!$opt(HIDELINKS)} {outputMsg " Click on the Links in Row 3 to open individual spreadsheets." blue}
           } else {
             outputMsg " Use F7 to open the spreadsheet (see Options tab)" red
           }

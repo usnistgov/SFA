@@ -174,7 +174,8 @@ proc tessPartGeometry {objEntity} {
 # generate coordinates and faces by reading tessellated geometry entities line-by-line from STEP file, necessary because of limitations of the IFCsvr toolkit
 # if coordOnly=1, then only read coordinates_list, used for saved view pmi validation properties
 proc tessReadGeometry {{coordOnly 0}} {
-  global coordinatesList entCount lineStrips localName normals opt tessCoord tessCoordName tessIndex tessIndexCoord triangles x3dMax x3dMin
+  global coordinatesList entCount lineStrips localName normals opt recPracNames syntaxErr spaces
+  global tessCoord tessCoordName tessIndex tessIndexCoord triangles x3dMax x3dMin
   
   set tg [open $localName r]
   set ncl  0
@@ -300,9 +301,15 @@ proc tessReadGeometry {{coordOnly 0}} {
 
 # error reading line strips
           } else {
-            set str "reading"
-            if {[string first "$,$" $line] != -1} {set str "missing"}
-            errorMsg "ERROR $str line_strips on \#$id=TESSELLATED_CURVE_SET"
+            catch {unset lineStrips($id)}
+            if {[string first "$,$" $line] != -1} {
+              set msg "Syntax Error: Missing 'coordinates' and 'line_strips' on tessellated_curve_set.$spaces\($recPracNames(pmi242), Sec. 8.2)"
+              errorMsg $msg
+              lappend syntaxErr(tessellated_curve_set) [list $id coordinates $msg]
+              lappend syntaxErr(tessellated_curve_set) [list $id line_strips $msg]
+            } else {
+              errorMsg "ERROR reading line_strips on \#$id=TESSELLATED_CURVE_SET"
+            }
           }
 
 # *triangulated surface set, *triangulated face
@@ -403,7 +410,7 @@ proc tessReadGeometry {{coordOnly 0}} {
 
 # -------------------------------------------------------------------------------
 proc tessSetColor {objEntity tsID} {
-  global defaultColor entCount recPracNames tessColor x3dColor
+  global defaultColor entCount recPracNames spaces tessColor x3dColor
   #outputMsg "tessSetColor [$objEntity Type] [$objEntity P21ID] ($tsID)" red
 
   set ok  0
@@ -487,13 +494,13 @@ proc tessSetColor {objEntity tsID} {
       set tessColor($tsID) [lindex $defaultColor 0]
     }
   } else {
-    errorMsg "Syntax Error: No 'styled_item' found for tessellated geometry color (using [lindex $defaultColor 1])\n[string repeat " " 14]($recPracNames(model), Sec. 4.2.2, Fig. 2)"
+    errorMsg "Syntax Error: No 'styled_item' found for tessellated geometry color (using [lindex $defaultColor 1])$spaces\($recPracNames(model), Sec. 4.2.2, Fig. 2)"
   }
   
 # color not found in styled_item.item
   if {![info exists tessColor($tsID)]} {
     if {[info exists missingStyledItem]} {
-      errorMsg "Syntax Error: '$missingStyledItem' was not found in 'styled_item.item' (using [lindex $defaultColor 1])\n[string repeat " " 14]($recPracNames(model), Sec. 4.2.2, Fig. 2)"
+      errorMsg "Syntax Error: '$missingStyledItem' was not found in 'styled_item.item' (using [lindex $defaultColor 1])$spaces\($recPracNames(model), Sec. 4.2.2, Fig. 2)"
     }
   }
 }
@@ -576,7 +583,7 @@ proc tessSetPlacement {objEntity tsID} {
             set a5 [[$e5 Attributes] Item [expr 3]]
             set e6 [$a5 Value]
             if {$debug} {errorMsg "    [$e6 Type] [$e6 P21ID] ([$a5 Name])" green}
-            foreach rel {relating_product_defintion related_product_definition} {
+            foreach rel {relating_product_definition related_product_definition} {
               set e7s [$e6 GetUsedIn [string trim next_assembly_usage_occurrence] [string trim $rel]]
               ::tcom::foreach e7 $e7s {
                 set a7 [[$e7 Attributes] Item [expr 5]]

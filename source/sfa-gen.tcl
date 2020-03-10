@@ -1,6 +1,6 @@
 # generate an Excel spreadsheet from a STEP file
 proc genExcel {{numFile 0}} {
-  global allEntity aoEntTypes ap203all ap214all ap242all badAttributes brepEnts buttons cells cells1 col col1 count csvdirnam csvfile csvintemp currLogFile developer
+  global allEntity aoEntTypes ap203all ap214all ap242all badAttributes brepEnts buttons cells cells1 col col1 count csvdirnam csvfile csvintemp currLogFile
   global dim dimRepeatDiv draughtingModels editorCmd entCategories entCategory entColorIndex entCount entityCount entsIgnored entsWithErrors errmsg
   global excel excelVersion fcsv feaFirstEntity feaLastEntity File fileEntity filesProcessed gpmiTypesInvalid gpmiTypesPerFile guid idxColor ifcsvrDir inverses
   global lastXLS lenfilelist localName localNameList logFile matrixList multiFile multiFileDir mydocs mytemp nistCoverageLegend nistName nistPMIexpected nistPMImaster
@@ -154,10 +154,13 @@ proc genExcel {{numFile 0}} {
 
           } elseif {[lsearch $entCategory(PR_STEP_COMP) $entType] != -1} {
             lappend characteristics "Composites"
+            if {$opt(XLSCSV) != "None"} {set opt(PR_STEP_COMP) 1}
           } elseif {[lsearch $entCategory(PR_STEP_KINE) $entType] != -1} {
             lappend characteristics "Kinematics"
+            if {$opt(XLSCSV) != "None"} {set opt(PR_STEP_KINE) 1}
           } elseif {[lsearch $entCategory(PR_STEP_FEAT) $entType] != -1} {
             lappend characteristics "Features"
+            if {$opt(XLSCSV) != "None"} {set opt(PR_STEP_FEAT) 1}
           } else {
             foreach tol $tolNames {
               if {[string first $tol $entType] != -1} {
@@ -374,9 +377,9 @@ proc genExcel {{numFile 0}} {
         set opt(XLSCSV) "CSV"
         catch {raise .}
       }
-      checkValues
       set ofExcel 0
       set ofCSV 1
+      checkValues
       catch {$buttons(ofExcel) configure -state disabled}
     }
 
@@ -532,7 +535,7 @@ proc genExcel {{numFile 0}} {
       if {$ok == 0} {set ok $ok1}
 
 # entities in unsupported APs that are not AP203, AP214, AP242 - if not using a user-defined list or not generating a spreadsheet
-      if {[string first "AP203" $stepAP] == -1 && [string first "AP214" $stepAP] == -1 && $stepAP != "AP242"} {
+      if {[string first "AP203" $stepAP] == -1 && [string first "AP214" $stepAP] == -1 && [string first "AP242" $stepAP] == -1} {
         if {!$opt(PR_USER) || $opt(XLSCSV) == "None"} {
           set et $entType
           set c1 [string first "_and_" $et]
@@ -556,20 +559,8 @@ proc genExcel {{numFile 0}} {
         }
       }
 
-# always process composite entities
-      if {[lsearch $entCategory(PR_STEP_COMP) $entType] != -1} {
-        set ok 1
-        if {!$opt(PR_STEP_COMP)} {
-          set opt(PR_STEP_COMP) 1
-          outputMsg "\nComposites entities will be processed." red
-        }
-      }
-
 # check for composite entities with "_11"
-      if {$opt(PR_STEP_COMP) && $ok == 0} {if {[string first "_11" $entType] != -1} {set ok 1}}
-
-# new AP242 entities in a ROSE file, but not yet in ap242all or any entity category, for testing new schemas
-      #if {$developer} {if {$stepAP == "AP242" && [lsearch $ap242all $entType] == -1} {set ok 1}}
+      if {[string first "_11" $entType] != -1} {if {$opt(PR_STEP_COMP) && [lsearch $entCategory(PR_STEP_COMP) $entType] != -1} {set ok 1}}
 
 # handle '_and_' due to a complex entity, entType_1 is the first part before the '_and_'
       set entType_1 $entType
@@ -622,8 +613,8 @@ proc genExcel {{numFile 0}} {
   if {$opt(VIZTPG)} {if {[info exists entCount(tessellated_solid)] || [info exists entCount(tessellated_shell)]} {set viz(TPG) 1}}
   if {$opt(VIZFEA) && [string first "AP209" $stepAP] == 0} {set viz(FEA) 1}
 
-# open expected PMI worksheet (once) if PMI representation and correct file name
-  if {$opt(PMISEM) && $stepAP == "AP242" && $nistName != "" && $opt(XLSCSV) != "None"} {
+# read expected PMI worksheet (once) if PMI representation and correct file name
+  if {$opt(PMISEM) && [string first "AP242" $stepAP] == 0 && $nistName != "" && $opt(XLSCSV) != "None"} {
     set tols [concat $tolNames [list dimensional_characteristic_representation datum datum_feature datum_reference_compartment datum_reference_element datum_system placed_datum_target_feature]]
     foreach tol $tols {if {[info exist entCount($tol)]} {set ok 1; break}}
     if {$ok && ![info exists nistPMImaster($nistName)]} {nistReadExpectedPMI}
@@ -642,14 +633,14 @@ proc genExcel {{numFile 0}} {
   }
 
 # check draughting model entities for PMI saved views
-set draughtingModels {}
-foreach dm [list draughting_model \
-                 characterized_object_and_draughting_model \
-                 characterized_representation_and_draughting_model \
-                 characterized_representation_and_draughting_model_and_representation \
-                 characterized_representation_and_draughting_model_and_tessellated_shape_representation] {
-  if {[info exists entCount($dm)]} {if {$entCount($dm) > 0} {lappend draughtingModels $dm}}
-}
+  set draughtingModels {}
+  foreach dm [list draughting_model \
+                   characterized_object_and_draughting_model \
+                   characterized_representation_and_draughting_model \
+                   characterized_representation_and_draughting_model_and_representation \
+                   characterized_representation_and_draughting_model_and_tessellated_shape_representation] {
+    if {[info exists entCount($dm)]} {if {$entCount($dm) > 0} {lappend draughtingModels $dm}}
+  }
 
 # -------------------------------------------------------------------------------------------------
 # list entities not processed based on fix file
@@ -917,7 +908,7 @@ foreach dm [list draughting_model \
                     catch {raise .}
                     incr nerr1
                     if {$nerr1 > 20} {
-                      errorMsg "Processing of $entType entities has stopped" red
+                      errorMsg "Processing of [formatComplexEnt $entType] entities has stopped" red
                       set nprogBarEnts [expr {$nprogBarEnts + $entCount($thisEntType) - $count($thisEntType)}]
                       break
                     }
@@ -963,10 +954,9 @@ foreach dm [list draughting_model \
   } emsg2]} {
     catch {raise .}
     if {[llength $entsToProcess] > 0} {
-      set msg "ERROR processing STEP file: "
-      if {[info exists objEntity]} {if {[string first "handle" $objEntity] != -1} {append msg " \#[$objEntity P21ID]=[$objEntity Type]"}}
-      append msg "\n $emsg2"
-      append msg "\nProcessing of the STEP file has stopped"
+      set msg "ERROR processing STEP file"
+      if {[info exists objEntity]} {if {[string first "handle" $objEntity] != -1} {append msg " with entity \#[$objEntity P21ID]=[$objEntity Type]"}}
+      append msg ": $emsg2\nProcessing of the STEP file has stopped"
       errorMsg $msg
     } else {
       return
@@ -1039,9 +1029,12 @@ foreach dm [list draughting_model \
     if {$opt(PMISEM)} {
       if {[info exists spmiTypesPerFile]} {
 
-# do not generate if only 'document identification' or '... standard'
+# do not generate if only certain PMI types were counted
         set ok 0
-        foreach type $spmiTypesPerFile {if {$type != "document identification" && [string first "standard" $type] == -1} {set ok 1; break}}
+        foreach type $spmiTypesPerFile {
+          if {[string first "saved views" $type] == -1 && [string first "editable text" $type] == -1 && [string first "document identification" $type] == -1 &&
+              [string first "standard" $type] == -1 && [string first "default tolerance decimal places" $type] == -1} {set ok 1; break}
+        }
 
         if {$ok} {
           set spmiCoverageWS "PMI Representation Coverage"
@@ -1160,8 +1153,8 @@ foreach dm [list draughting_model \
 # save worksheets as CSV files
       if {$saveCSV} {
         if {[catch {
-          
-# set directory for CSV files          
+
+# set directory for CSV files
           set csvdirnam "[file join [file dirname $localName] [file rootname [file tail $localName]]]-sfa-csv"
           if {$opt(writeDirType) == 2} {set csvdirnam [file join $writeDir [file rootname [file tail $localName]]-sfa-csv]}
           if {[string first "\[" [file dirname $localName]] != -1 || [string first "\]" [file dirname $localName]] != -1} {
@@ -1300,7 +1293,7 @@ foreach dm [list draughting_model \
   }
 
 # -------------------------------------------------------------------------------------------------
-# open X3DOM file of graphical PMI or FEM
+# open X3DOM file for views
   openX3DOM "" $numFile
 
 # save log file
@@ -1356,7 +1349,7 @@ foreach dm [list draughting_model \
 # -------------------------------------------------------------------------------------------------
 proc addHeaderWorksheet {numFile fname} {
   global objDesign
-  global ap242edition cadApps cadSystem cells cells1 col1 csvdirnam excel excel1 fileSchema legendColor
+  global cadApps cadSystem cells cells1 col1 csvdirnam excel excel1 fileSchema legendColor
   global localName opt p21e3 row spmiTypesPerFile timeStamp useXL writeDir worksheet worksheet1 worksheets
 
   if {[catch {
@@ -1417,13 +1410,11 @@ proc addHeaderWorksheet {numFile fname} {
         set str "$attr:  $sn"
 
 # check edition of AP242
-        set ap242edition 1
         if {[string first "1 0 10303 442" $sn] != -1} {
           if {[string first "442 1 1 4" $sn] != -1} {
-            append str " (edition $ap242edition)"
+            append str " (edition 1)"
           } elseif {[string first "442 2 1 4" $sn] != -1 || [string first "442 3 1 4" $sn] != -1} {
-            set ap242edition 2
-            append str " (edition $ap242edition)"
+            append str " (edition 2)"
           }
         }
         outputMsg $str blue
@@ -1431,21 +1422,21 @@ proc addHeaderWorksheet {numFile fname} {
 # check unknown edition of AP242
         if {[string first "1 0 10303 442" $sn] != -1} {
           if {[string first "442 1 1 4" $sn] == -1 && [string first "442 2 1 4" $sn] == -1 && [string first "442 3 1 4" $sn] == -1} {
-            errorMsg "This file uses an unknown edition ([string trim [string range $sn [string first "442" $sn]+4 end-1]]) of AP242."
+            errorMsg "This file uses an unknown edition ([string trim [string range $sn [string first "442" $sn]+4 end-1]]) of AP242." red
           }
+          if {[string first "442 2 1 4" $sn] != -1} {errorMsg "AP242 edition 2 should be identified with '3 1 4'" red}
 
 # check old version of AP203, AP214
         } elseif {[string first "CONFIG_CONTROL_DESIGN" $sn] == 0 || [string first "CONFIGURATION_CONTROL_3D_DESIGN" $sn] == 0} {
-          errorMsg "This file uses an older version of STEP AP203.  See Help > Supported STEP APs"
+          errorMsg "This file uses an older version of STEP AP203.  See Help > Supported STEP APs" red
         } elseif {[string first "AUTOMOTIVE_DESIGN_CC2" $sn] == 0} {
-          errorMsg "This file uses an older version of STEP AP214.  See Help > Supported STEP APs"
+          errorMsg "This file uses an older version of STEP AP214.  See Help > Supported STEP APs" red
         }
 
 # check for IFC or CIS/2 files
         set fschema [string toupper [string range $objAttr 0 5]]
         if {[string first "IFC" $fschema] == 0} {
           errorMsg "Use the IFC File Analyzer with IFC files."
-          after 1000
           openURL https://www.nist.gov/services-resources/software/ifc-file-analyzer
         } elseif {$objAttr == "STRUCTURAL_FRAME_SCHEMA"} {
           errorMsg "Use SteelVis to view CIS/2 files.  https://go.usa.gov/s8fm"
@@ -2116,7 +2107,7 @@ proc formatWorksheets {sheetSort sumRow inverseEnts} {
           }
         }
       } emsg]} {
-        errorMsg "ERROR setting column widths: $emsg\n  $thisEntType"
+        errorMsg "ERROR setting column widths for [formatComplexEnt $thisEntType]: $emsg"
         catch {raise .}
       }
 
@@ -2144,7 +2135,7 @@ proc formatWorksheets {sheetSort sumRow inverseEnts} {
 
 # errors
     } emsg]} {
-      errorMsg "ERROR formatting Spreadsheet for: $thisEntType\n$emsg"
+      errorMsg "ERROR formatting Spreadsheet for [formatComplexEnt $thisEntType]: $emsg"
       catch {raise .}
     }
   }
