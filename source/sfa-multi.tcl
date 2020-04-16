@@ -69,7 +69,7 @@ proc openMultiFile {{ask 1}} {
       } elseif {$opt(XLSCSV) == "None"} {
         append askstr "Views"
       }
-      if {$opt(XLSCSV) != "None" && ($opt(VIZBRP) || $opt(VIZFEA) || $opt(VIZPMI) || $opt(VIZTPG))} {
+      if {$opt(XLSCSV) != "None" && ($opt(VIZPRT) || $opt(VIZFEA) || $opt(VIZPMI) || $opt(VIZTPG))} {
         append askstr " and Views"
       }
 
@@ -364,7 +364,7 @@ proc openMultiFile {{ask 1}} {
               set url "https://github.com/usnistgov/SFA"
             }
             set c [expr {[llength $allEntity]+$startrow+2}]
-            $cells1($sum) Item $c 1 "$str\STEP File Analyzer and Viewer (v[getVersion])"
+            $cells1($sum) Item $c 1 "$str\STEP File Analyzer and Viewer [getVersion]"
             set anchor [$worksheet1($sum) Range [cellRange $c 1]]
             [$worksheet1($sum) Hyperlinks] Add $anchor [join $url] [join ""] [join "Link to $str\STEP File Analyzer and Viewer"]
             $cells1($sum) Item [expr {[llength $allEntity]+$startrow+3}] 1 "[clock format [clock seconds]]"

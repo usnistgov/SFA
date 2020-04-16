@@ -771,7 +771,7 @@ proc gpmiAnnotationReport {objEntity} {
                   if {$entLevel == 4 || $entLevel == 8} {
                     set colorRGB [trimNum $objValue]
                     if {$opt(gpmiColor) > 0} {
-                      set x3dColor [x3dSetColor $opt(gpmiColor)]
+                      set x3dColor [x3dSetPMIColor $opt(gpmiColor)]
                     } else {
                       set x3dColor $objValue
                     }
@@ -802,7 +802,7 @@ proc gpmiAnnotationReport {objEntity} {
                 "draughting_pre_defined_colour name" {
                   if {$entLevel == 4 || $entLevel == 8} {
                     set x3dColor [x3dPreDefinedColor $objValue]
-                    if {$opt(gpmiColor) > 0} {set x3dColor [x3dSetColor $opt(gpmiColor)]}
+                    if {$opt(gpmiColor) > 0} {set x3dColor [x3dSetPMIColor $opt(gpmiColor)]}
                     if {$opt(PMIGRF) && $opt(XLSCSV) != "None"} {
                       set ok 1
                       set col($ao) [expr {$pmiStartCol($ao)+3}]

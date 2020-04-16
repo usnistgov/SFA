@@ -1,41 +1,34 @@
 # generate an Excel spreadsheet from a STEP file
 proc genExcel {{numFile 0}} {
-  global allEntity aoEntTypes ap203all ap214all ap242all badAttributes brepEnts buttons cells cells1 col col1 count csvdirnam csvfile csvintemp currLogFile
+  global allEntity aoEntTypes ap203all ap214all ap242all badAttributes buttons cells cells1 col col1 count csvdirnam csvfile csvintemp currLogFile
   global dim dimRepeatDiv draughtingModels editorCmd entCategories entCategory entColorIndex entCount entityCount entsIgnored entsWithErrors errmsg
   global excel excelVersion fcsv feaFirstEntity feaLastEntity File fileEntity filesProcessed gpmiTypesInvalid gpmiTypesPerFile guid idxColor ifcsvrDir inverses
   global lastXLS lenfilelist localName localNameList logFile matrixList multiFile multiFileDir mydocs mytemp nistCoverageLegend nistName nistPMIexpected nistPMImaster
   global nprogBarEnts nshape ofCSV ofExcel opt pf32 p21e3 p21e3Section row rowmax savedViewButtons savedViewName savedViewNames scriptName
   global sheetLast skipEntities skipPerm spmiEntity spmiSumName spmiSumRow spmiTypesPerFile startrow statsOnly stepAP tessColor thisEntType tlast
   global tolNames tolStandard tolStandards totalEntity userEntityFile userEntityList useXL viz workbook workbooks
-  global worksheet worksheet1 worksheets writeDir wsCount wsNames x3dAxes x3dColor x3dColorFile x3dColors x3dColorsUsed x3dFileName x3dIndex
-  global x3dMax x3dMin x3dMsg x3dStartFile xlFileName xlFileNames xlInstalled
+  global worksheet worksheet1 worksheets writeDir wsCount wsNames x3dAxes x3dColor x3dColorFile x3dColors x3dFileName x3dIndex
+  global x3dMax x3dMin x3dMsg x3dMsgColor x3dStartFile xlFileName xlFileNames xlInstalled
   global objDesign
 
   if {[info exists errmsg]} {set errmsg ""}
 
 # initialize for X3DOM geometry
-  if {$opt(VIZPMI) || $opt(VIZTPG) ||$opt(VIZFEA) || $opt(VIZBRP)} {
+  set x3dMsgColor green
+  if {$opt(VIZPMI) || $opt(VIZTPG) ||$opt(VIZFEA) || $opt(VIZPRT)} {
     set x3dStartFile 1
     set x3dAxes 1
     set x3dFileName ""
     set x3dColor ""
     set x3dColors  {}
-    set x3dColorsUsed {}
-    foreach idx {x y z} {
-      set x3dMax($idx) -1.e10
-      set x3dMin($idx)  1.e10
-    }
+    foreach idx {x y z} {set x3dMax($idx) -1.e8; set x3dMin($idx) 1.e8}
     catch {unset tessColor}
     catch {unset x3dColorFile}
   }
 
-# check if IFCsvr is installed
-  if {![info exists ifcsvrDir]} {set ifcsvrDir [file join $pf32 IFCsvrR300 dll]}
-  if {![file exists [file join $ifcsvrDir IFCsvrR300.dll]]} {
-    if {[info exists buttons]} {$buttons(genExcel) configure -state disable}
-    installIFCsvr
-    return
-  }
+# multiFile
+  set multiFile 0
+  if {$numFile > 0} {set multiFile 1}
 
   if {[info exists buttons]} {
     $buttons(genExcel) configure -state disable
@@ -43,8 +36,65 @@ proc genExcel {{numFile 0}} {
   }
   set lasttime [clock clicks -milliseconds]
 
-  set multiFile 0
-  if {$numFile > 0} {set multiFile 1}
+# open log file
+  if {$opt(LOGFILE)} {
+    set lfile [file rootname $localName]
+    if {$opt(writeDirType) == 2} {set lfile [file join $writeDir [file rootname [file tail $localName]]]}
+    append lfile "-sfa.log"
+    set logFile [open $lfile w]
+    puts $logFile "NIST STEP File Analyzer and Viewer [getVersion] ([string trim [clock format [clock seconds]]])"
+  }
+
+# -------------------------------------------------------------------------------------------------
+# view part geometry only, does not require opening STEP file with IFCsvr
+  if {$opt(VIZPRTONLY)} {
+    outputMsg "\nGenerating View"
+
+# add file name to menu
+    set ok 0
+    if {$numFile <= 1} {set ok 1}
+    if {[info exists localNameList]} {if {[llength $localNameList] > 1} {set ok 1}}
+    if {$ok} {addFileToMenu}
+
+# initialize
+    foreach idx {TED HOL SMG DTR PMI TPG FEA} {set viz($idx) 0}
+    set viz(PRT) 1
+    set x3dMsgColor blue
+    set lasttime [clock clicks -milliseconds]
+
+# generate x3d
+    x3dFileStart
+    x3dFileEnd
+
+# processing time
+    set cc [clock clicks -milliseconds]
+    set proctime [expr {($cc - $lasttime)/1000}]
+    if {$proctime <= 60} {set proctime [expr {(($cc - $lasttime)/100)/10.}]}
+    outputMsg "Processing time: $proctime seconds"
+
+# view file
+    if {$viz(PRT)} {openX3DOM "" $numFile}
+
+# save log file
+    if {[info exists logFile]} {
+      saveLogFile $lfile
+      unset lfile
+    }
+
+# clean up and return
+    foreach var {x3dCoord x3dFile x3dFileName x3dIndex x3dMax x3dMin x3dStartFile} {if {[info exists $var]} {unset $var}}
+    if {[info exists buttons]} {$buttons(genExcel) configure -state normal}
+    return
+  }
+
+# -------------------------------------------------------------------------------------------------
+# check if IFCsvr is installed
+  if {![info exists ifcsvrDir]} {set ifcsvrDir [file join $pf32 IFCsvrR300 dll]}
+  if {![file exists [file join $ifcsvrDir IFCsvrR300.dll]]} {
+    if {[info exists buttons]} {$buttons(genExcel) configure -state disable}
+    installIFCsvr
+    return
+  }
 
 # run syntax checker too
   if {$opt(SYNCHK) && [info exist buttons]} {syntaxChecker $localName}
@@ -70,15 +120,6 @@ proc genExcel {{numFile 0}} {
     set nprogBarEnts 0
     set fname $localName
     set stepAP [getStepAP $fname]
-
-# open log file
-    if {$opt(LOGFILE)} {
-      set lfile [file rootname $fname]
-      if {$opt(writeDirType) == 2} {set lfile [file join $writeDir [file rootname [file tail $fname]]]}
-      append lfile "-sfa.log"
-      set logFile [open $lfile w]
-      puts $logFile "NIST STEP File Analyzer and Viewer (v[getVersion])  [clock format [clock seconds]]"
-    }
 
 # check for Part 21 edition 3 files and strip out sections
     set fname [checkP21e3 $fname]
@@ -184,14 +225,7 @@ proc genExcel {{numFile 0}} {
 
 # exit if stats only from command-line version
     if {[info exists statsOnly]} {
-      if {[info exists logFile]} {
-        update idletasks
-        outputMsg "\nSaving Log file to:"
-        outputMsg " [truncFileName [file nativename $lfile]]" blue
-        close $logFile
-        unset lfile
-        unset logFile
-      }
+      if {[info exists logFile]} {saveLogFile $lfile}
       exit
     }
 
@@ -302,7 +336,7 @@ proc genExcel {{numFile 0}} {
       }
 
 # open STEP file in editor
-      if {$editorCmd != ""} {
+      if {$editorCmd != "" && [file size $localName] < 100000000} {
         outputMsg " "
         errorMsg "Opening STEP file in text editor"
         if {[catch {
@@ -861,7 +895,7 @@ proc genExcel {{numFile 0}} {
         errorMsg "Select some other entity types to Process in the Options tab."
         catch {unset entsIgnored}
       } else {
-        errorMsg "There is nothing in the STEP file to view based on the View selections (Options tab)."
+        errorMsg "There is nothing in the STEP file to View based on the selections on the Options tab."
       }
       break
     }
@@ -986,19 +1020,14 @@ proc genExcel {{numFile 0}} {
 
 # -------------------------------------------------------------------------------------------------
 # generate b-rep part geometry if no other viz exists
-  set vizbrp 0
-  if {$opt(VIZBRP) && !$viz(PMI) && !$viz(FEA) && !$viz(TPG)} {
-    set ok 0
-    foreach item $brepEnts {if {[info exists entCount($item)]} {set ok 1}}
-    if {$ok} {
-      x3dFileStart
-      set vizbrp 1
-      update
-    }
+  set vizprt 0
+  if {$opt(VIZPRT) && !$viz(PMI) && !$viz(FEA) && !$viz(TPG)} {
+    x3dFileStart
+    set vizprt 1
   }
 
 # generate b-rep part geom, set viewpoints, and close X3DOM geometry file
-  if {($viz(PMI) || $viz(FEA) || $viz(TPG) || $vizbrp) && $x3dFileName != ""} {x3dFileEnd}
+  if {($viz(PMI) || $viz(FEA) || $viz(TPG) || $vizprt) && $x3dFileName != ""} {x3dFileEnd}
 
 # -------------------------------------------------------------------------------------------------
 # add summary worksheet
@@ -1299,20 +1328,8 @@ proc genExcel {{numFile 0}} {
 # save log file
   if {[info exists logFile]} {
     update idletasks
-    outputMsg "\nSaving Log file to:"
-    outputMsg " [truncFileName [file nativename $lfile]]" blue
-    close $logFile
-    if {!$multiFile && [info exists buttons]} {
-      set currLogFile $lfile
-      bind . <Key-F4> {
-        if {[file exists $currLogFile]} {
-          outputMsg "\nOpening Log file: [file tail $currLogFile]"
-          exec $editorCmd [file nativename $currLogFile] &
-        }
-      }
-    }
+    saveLogFile $lfile
     unset lfile
-    unset logFile
   } elseif {[info exists buttons]} {
     if {[info exists currLogFile]} {unset currLogFile}
     bind . <Key-F4> {}
@@ -1334,7 +1351,7 @@ proc genExcel {{numFile 0}} {
   foreach var {cells cgrObjects colColor coordinatesList count currx3dPID datumGeom datumIDs datumSymbol dimrep dimrepID dimtolEnt dimtolEntID dimtolGeom \
                entName entsIgnored feaDOFR feaDOFT feaNodes gpmiID gpmiIDRow gpmiRow heading idRow invCol invGroup lineStrips nrep numx3dPID \
                pmiCol pmiColumns pmiStartCol pmivalprop propDefID propDefIDRow propDefName propDefOK propDefRow savedsavedViewNames savedViewFile savedViewFileName \
-               savedViewNames shapeRepName srNames suppGeomEnts syntaxErr tessCoord tessCoordName tessIndex tessIndexCoord tessPlacement tessRepo \
+               savedViewNames shapeRepName srNames suppGeomEnts syntaxErr tessCoord tessCoordName tessIndex tessIndexCoord tessPlacement tessRepo viz \
                workbook workbooks worksheet worksheets x3dCoord x3dFile x3dFileName x3dIndex x3dMax x3dMin x3dStartFile} {
     if {[info exists $var]} {unset $var}
   }
@@ -1737,7 +1754,7 @@ proc sumAddWorksheet {} {
       set str ""
       set url "https://github.com/usnistgov/SFA"
     }
-    $cells($sum) Item [expr {$row($sum)+2}] 1 "$str\STEP File Analyzer and Viewer (v[getVersion])"
+    $cells($sum) Item [expr {$row($sum)+2}] 1 "$str\STEP File Analyzer and Viewer [getVersion]"
     set anchor [$worksheet($sum) Range [cellRange [expr {$row($sum)+2}] 1]]
     [$worksheet($sum) Hyperlinks] Add $anchor [join $url] [join ""] [join "Link to $str\STEP File Analyzer and Viewer"]
     $cells($sum) Item [expr {$row($sum)+3}] 1 "[clock format [clock seconds]]"

@@ -1,7 +1,7 @@
 proc initData {} {
 
 global ap203all ap214all ap242all ap242only
-global allVendor andEntAP209 aoEntTypes badAttributes brepEnts cadApps datumTargetDesc defaultColor dimModNames dimSizeNames DTR
+global allVendor andEntAP209 aoEntTypes badAttributes cadApps datumTargetDesc defaultColor dimModNames dimSizeNames DTR
 global entCategory entColorIndex feaElemFace feaIndex gpmiTypes ifcsvrKey ifcsvrVer legendColor letters nistModelPictures nistModelURLs
 global pmiElementsMaxRows pmiHorizontalLineBreaks pmiModifiers pmiModifiersRP pmiUnicode recPracNames roseLogical
 global schemaLinks spaces spmiEntTypes spmiTypes stepAPs tolNames tzfNames
@@ -20,9 +20,6 @@ set roseLogical(2) "UNKNOWN"
 
 # AP209 entities with a specific '_and_' in the entity name
 set andEntAP209 [list "_and_location" "_and_volume_location" "_and_coefficient" "_and_frequencies" "_and_parameters" "_and_value_definition" "_and_freedom"]
-
-# entities with b-rep geometry
-set brepEnts [list advanced_brep_shape_representation manifold_surface_shape_representation manifold_solid_brep shell_based_surface_model]
 
 # STEP AP names for those that do not start with AP2nn
 set stepAPs(CONFIGURATION_CONTROL_3D_DESIGN_ED2_MIM_LF) AP203

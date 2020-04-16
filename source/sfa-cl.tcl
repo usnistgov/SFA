@@ -30,7 +30,7 @@ foreach fname [glob -nocomplain -directory $wdir *.tcl] {
 }
 
 puts "\n--------------------------------------------------------------------------------"
-puts "NIST STEP File Analyzer and Viewer (v[getVersion] - Updated: [string trim [clock format $progtime -format "%e %b %Y"]])"
+puts "NIST STEP File Analyzer and Viewer [getVersion] (Updated [string trim [clock format $progtime -format "%e %b %Y"]])"
 
 # for building your own version with freewrap, uncomment and modify C:/Tcl/lib/teapot directory if necessary
 # the lappend commands add package locations to auto_path, must be before package commands below
@@ -75,17 +75,15 @@ Optional command line settings:
 
  If 'myfile.stp' has spaces, put quotes around the file name \"C:/mydir/my file.stp\"
 
- It is recommended to run the GUI version of the software first.  If not already
- installed, the IFCsvr toolkit used to read STEP files will be installed the first
- time this software is run.
+ You should run the GUI version of the software first.  If not already installed, the
+ IFCsvr toolkit used to read STEP files will be installed the first time this software
+ is run.
  
  Existing Spreadsheets and View files are always overwritten.  An Internet connection
- is required to show View files.
+ is required to show View files in the web browser.
 
  When the STEP file is opened, errors and warnings might appear in the output between
- the 'Begin ST-Developer output' and 'End ST-Developer output' messages.  Use the
- 'stats' option to only check for the errors and warnings without generating a
- spreadsheet.
+ the 'Begin ST-Developer output' and 'End ST-Developer output' messages.
 
 Disclaimers
  This software was developed at the National Institute of Standards and Technology by
@@ -101,8 +99,8 @@ Credits
 - Reading and parsing STEP files: IFCsvr ActiveX Component, Copyright \u00A9 1999, 2005 SECOM Co., Ltd. All Rights Reserved
                                   IFCsvr has been modified by NIST to include STEP schemas.
                                   The license agreement can be found in C:\\Program Files (x86)\\IFCsvrR300\\doc
-- Viewing B-rep part geometry:    pythonOCC (https://github.com/tpaviot/pythonocc)
-                                  With modifications by William Bernstein at NIST"
+- Viewing part geometry:          Developed by Soonjo Kwon at NIST based on the Open CASCADE STEP Processor
+                                  Open CASCADE License https://www.opencascade.com/content/licensing"
 
 if {$argc == 1} {set arg [string tolower [lindex $argv 0]]}
 if {$argc == 0 || ($argc == 1 && ($arg == "help" || $arg == "-help" || $arg == "-h" || $arg == "-v"))} {
@@ -142,17 +140,17 @@ if {![file exists $localName]} {
 # -----------------------------------------------------------------------------------------------------
 # initialize variables, set opt to 1
 foreach id { \
-  LOGFILE PMIGRF PMISEM PR_STEP_AP242 PR_STEP_COMM PR_STEP_COMP PR_STEP_FEAT PR_STEP_KINE \
-  PR_STEP_PRES PR_STEP_QUAN PR_STEP_REPR PR_STEP_SHAP PR_STEP_TOLR VALPROP VIZFEABC VIZFEADS VIZFEALV XL_OPEN \
+  LOGFILE PMIGRF PMISEM PR_STEP_AP242 PR_STEP_COMM PR_STEP_COMP PR_STEP_FEAT PR_STEP_KINE PR_STEP_PRES PR_STEP_QUAN \
+  PR_STEP_REPR PR_STEP_SHAP PR_STEP_TOLR VALPROP VIZFEABC VIZFEADS VIZFEALV VIZPRTEDGE VIZPRTWIRE XL_OPEN \
 } {set opt($id) 1}
 
 # set opt to 0
 foreach id { \
   DEBUG1 DEBUGINV DEBUGX3D HIDELINKS indentGeometry indentStyledItem INVERSE PMIGRFCOV PMISEMDIM PR_STEP_CPNT PR_STEP_GEOM PR_USER \
-  SHOWALLPMI SYNCHK VIZBRP VIZFEA VIZFEADSntail VIZFEALVS VIZPMI VIZTPG VIZTPGMSH writeDirType XL_FPREC XL_SORT \
+  SHOWALLPMI SYNCHK VIZPRT VIZPRTONLY VIZFEA VIZFEADSntail VIZFEALVS VIZPMI VIZTPG VIZTPGMSH writeDirType XL_FPREC XL_SORT \
 } {set opt($id) 0}
 
-set opt(gpmiColor) 3
+set opt(gpmiColor) 0
 set opt(x3dQuality) 7
 set opt(XL_ROWLIM) 1003
 set opt(XLSCSV) Excel
@@ -237,7 +235,7 @@ for {set i 1} {$i <= 10} {incr i} {
     }                              
     if {[string first "viz" $arg] == 0} {
       set opt(XLSCSV) "None"
-      foreach id {VIZBRP VIZFEA VIZFEABC VIZFEADS VIZFEALV VIZPMI VIZTPG} {set opt($id) 1}
+      foreach id {VIZPRT VIZFEA VIZFEABC VIZFEADS VIZFEALV VIZPMI VIZTPG} {set opt($id) 1}
       foreach id {PMIGRF PMISEM VALPROP VIZFEADSntail VIZFEALVS VIZTPGMSH} {set opt($id) 0}
     }
     if {[string first "sta" $arg] == 0} {set statsOnly 1}

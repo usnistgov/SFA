@@ -960,8 +960,15 @@ proc spmiDimtolReport {objEntity} {
 # +- range
             if {[$attrPMT Name] == "range"} {
               set subEntity [$attrPMT Value]
-              set subType [$subEntity Type]
-              set tolvalID [$subEntity P21ID]
+              if {$subEntity != ""} {
+                set subType [$subEntity Type]
+                set tolvalID [$subEntity P21ID]
+              } else {
+                set msg "Syntax Error: Missing 'range' attribute on plus_minus_tolerance.$spaces\($recPracNames(pmi242), Sec. 5.2.3)"
+                errorMsg $msg
+                lappend syntaxErr(plus_minus_tolerance) [list [$objGuiEntity P21ID] range $msg]
+                set subType ""
+              }
               set tolQual {}
               set tolQualEnt {}
 

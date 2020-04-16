@@ -155,8 +155,8 @@ proc nistCheckExpectedPMI {val entstr} {
 # modify (composite ..) from value to just (composite)
   set c1 [string first "(composite" $val]
   if {$c1 > 0} {
-    set val [string range $val 0 $c1+9]
-    append val ")"
+    set c2 [string first ")" $val]
+    set val [string range $val 0 $c1+9][string range $val $c2 end]
   }
 
 # remove (oriented)

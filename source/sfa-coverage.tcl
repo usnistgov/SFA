@@ -1,7 +1,7 @@
 # PMI Representation Summary worksheet
 proc spmiSummary {} {
   global allPMI cells entName localName nistName nistPMIexpected recPracNames row sheetLast
-  global spmiSumName spmiSumRow spmiSumRowID thisEntType worksheet worksheets xlFileName
+  global spmiSumName spmiSumRow spmiSumRowID thisEntType timeStamp worksheet worksheets xlFileName
 
 # first time through, start worksheet
   if {$spmiSumRow == 1} {
@@ -18,7 +18,7 @@ proc spmiSummary {} {
     for {set i 2} {$i <= 3} {incr i} {[$worksheet($spmiSumName) Range [cellRange -1 $i]] ColumnWidth [expr 48]}
     for {set i 1} {$i <= 4} {incr i} {[$worksheet($spmiSumName) Range [cellRange -1 $i]] VerticalAlignment [expr -4160]}
 
-    $cells($spmiSumName) Item $spmiSumRow 2 [file tail $localName]
+    $cells($spmiSumName) Item $spmiSumRow 2 "[file tail $localName]  ($timeStamp)"
     incr spmiSumRow 2
     $cells($spmiSumName) Item $spmiSumRow 1 "ID"
     $cells($spmiSumName) Item $spmiSumRow 2 "Entity"
@@ -360,7 +360,7 @@ proc spmiCoverageWrite {{fn ""} {sum ""} {multi 1}} {
 # format PMI Representation Coverage analysis worksheet, also PMI totals
 proc spmiCoverageFormat {sum {multi 1}} {
   global cells cells1 col1 excel1 lenfilelist localName nistCoverageLegend nistCoverageStyle nistName opt pmiElementsMaxRows
-  global pmiHorizontalLineBreaks recPracNames spmiCoverageWS totalPMI totalPMIrows usedPMIrows worksheet worksheet1
+  global pmiHorizontalLineBreaks recPracNames spmiCoverageWS timeStamp totalPMI totalPMIrows usedPMIrows worksheet worksheet1
 
 # delete worksheet if no semantic PMI
   if {$multi && ![info exists totalPMIrows]} {
@@ -500,7 +500,7 @@ proc spmiCoverageFormat {sum {multi 1}} {
       [$worksheet($spmiCoverageWS) Hyperlinks] Add $anchor [join "https://www.cax-if.org/cax/cax_recommPractice.php"] [join ""] [join "Link to CAx-IF Recommended Practices"]
 
       [$worksheet($spmiCoverageWS) Range "A1"] Select
-      $cells($spmiCoverageWS) Item 1 1 [file tail $localName]
+      $cells($spmiCoverageWS) Item 1 1 "[file tail $localName]  ($timeStamp)"
     }
 
 # errors
@@ -678,7 +678,7 @@ proc gpmiCoverageWrite {{fn ""} {sum ""} {multi 1}} {
 # format PMI Presentation Coverage analysis worksheet, also PMI totals
 proc gpmiCoverageFormat {{sum ""} {multi 1}} {
   global cells cells1 col1 excel excel1 lenfilelist localName nistName
-  global gpmiCoverageWS gpmiRows gpmiTotals recPracNames stepAP worksheet worksheet1
+  global gpmiCoverageWS gpmiRows gpmiTotals recPracNames stepAP timeStamp worksheet worksheet1
 
 # delete worksheet if no graphical PMI
   if {$multi && ![info exists gpmiTotals]} {
@@ -765,7 +765,7 @@ proc gpmiCoverageFormat {{sum ""} {multi 1}} {
       [$worksheet($gpmiCoverageWS) Hyperlinks] Add $anchor [join "https://www.cax-if.org/cax/cax_recommPractice.php"] [join ""] [join "Link to CAx-IF Recommended Practices"]
 
       [$worksheet($gpmiCoverageWS) Range "A1"] Select
-      $cells($gpmiCoverageWS) Item 1 1 [file tail $localName]
+      $cells($gpmiCoverageWS) Item 1 1 "[file tail $localName]  ($timeStamp)"
       $cells($gpmiCoverageWS) Item [expr {$gpmiRows+3}] 1 "See Help > Analyze > PMI Coverage Analysis"
 
 # add images for the CAx-IF and NIST PMI models

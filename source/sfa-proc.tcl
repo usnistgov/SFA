@@ -52,7 +52,7 @@ proc checkValues {} {
   } elseif {$opt(XLSCSV) == "None"} {
     append btext "View"
   }
-  if {$opt(XLSCSV) != "None" && ($opt(VIZBRP) || $opt(VIZFEA) || $opt(VIZPMI) || $opt(VIZTPG))} {
+  if {$opt(XLSCSV) != "None" && ($opt(VIZPRT) || $opt(VIZFEA) || $opt(VIZPMI) || $opt(VIZTPG))} {
     append btext " and View"
   }
   catch {$buttons(genExcel) configure -text $btext}
@@ -66,7 +66,7 @@ proc checkValues {} {
       if {[string first "PR_STEP" $item] == 0} {lappend butNormal "opt$item"}
     }
     foreach b {optHIDELINKS optINVERSE optPMIGRF optPMISEM optVALPROP optXL_FPREC optXL_SORT allNone2} {lappend butDisabled $b}
-    foreach b {optVIZFEA optVIZPMI optVIZTPG optVIZBRP} {lappend butNormal $b}
+    foreach b {optVIZFEA optVIZPMI optVIZTPG optVIZPRT} {lappend butNormal $b}
     foreach b {allNone0 allNone1 allNone3 optPR_USER} {lappend butNormal $b}
 
 # Excel
@@ -75,7 +75,7 @@ proc checkValues {} {
       if {[string first "PR_STEP" $item] == 0} {lappend butNormal "opt$item"}
     }
     foreach b {optHIDELINKS optINVERSE optPMIGRF optPMISEM optVALPROP optXL_FPREC optXL_SORT} {lappend butNormal $b}
-    foreach b {optVIZFEA optVIZPMI optVIZTPG optVIZBRP} {lappend butNormal $b}
+    foreach b {optVIZFEA optVIZPMI optVIZTPG optVIZPRT} {lappend butNormal $b}
     foreach b {allNone0 allNone1 allNone2 allNone3 optPR_USER} {lappend butNormal $b}
   }
 
@@ -88,16 +88,26 @@ proc checkValues {} {
     foreach b {allNone0 allNone2} {lappend butDisabled $b}
     foreach b {userentity userentityopen} {lappend butDisabled $b}
     set userEntityList {}
-    if {$opt(VIZFEA) == 0 && $opt(VIZPMI) == 0 && $opt(VIZTPG) == 0 && $opt(VIZBRP) == 0} {
-      foreach item {VIZFEA VIZPMI VIZTPG VIZBRP} {set opt($item) 1}
+    if {$opt(VIZFEA) == 0 && $opt(VIZPMI) == 0 && $opt(VIZTPG) == 0 && $opt(VIZPRT) == 0} {
+      foreach item {VIZFEA VIZPMI VIZTPG VIZPRT} {set opt($item) 1}
     }
+  } else {
+    set opt(VIZPRTONLY) 0
+    lappend butDisabled optVIZPRTONLY
   }
 
 # part geometry
-  if {$opt(VIZBRP)} {
-    foreach b {x3dqual x3dQuality7 x3dQuality9} {lappend butNormal $b}
+  if {$opt(VIZPRT)} {
+    foreach b {optVIZPRTONLY optVIZPRTEDGE optVIZPRTWIRE x3dqual x3dQuality4 x3dQuality7 x3dQuality9} {lappend butNormal $b}
+    if {$opt(VIZPRTONLY) && $opt(XLSCSV) == "None"} {
+      foreach b {optVIZFEA optVIZPMI optVIZTPG allNone3} {lappend butDisabled $b}
+      foreach item {VIZFEA VIZPMI VIZTPG} {set opt($item) 0}
+    } else {
+      foreach b {optVIZFEA optVIZPMI optVIZTPG allNone3} {lappend butNormal $b}
+    }
   } else {
-    foreach b {x3dqual x3dQuality7 x3dQuality9} {lappend butDisabled $b}
+    foreach b {optVIZPRTONLY optVIZPRTEDGE optVIZPRTWIRE x3dqual x3dQuality4 x3dQuality7 x3dQuality9} {lappend butDisabled $b}
+    set opt(VIZPRTONLY) 0
   }
 
 # graphical PMI report
@@ -171,7 +181,7 @@ proc checkValues {} {
   }
 
 # not part geometry view
-  if {!$opt(VIZBRP) && !$opt(PMISEM)} {lappend butNormal optPR_STEP_PRES}
+  if {!$opt(VIZPRT) && !$opt(PMISEM)} {lappend butNormal optPR_STEP_PRES}
 
 # tessellated geometry view
   if {$opt(VIZTPG)} {
@@ -233,7 +243,7 @@ proc checkValues {} {
         }
       }
     } elseif {($allNone == 2 && ($opt(PMISEM) != 1 || $opt(PMIGRF) != 1 || $opt(VALPROP) != 1)) ||
-              ($allNone == 3 && ($opt(VIZPMI) != 1 || $opt(VIZTPG) != 1 || $opt(VIZFEA)  != 1 || $opt(VIZBRP) != 1))} {
+              ($allNone == 3 && ($opt(VIZPMI) != 1 || $opt(VIZTPG) != 1 || $opt(VIZFEA)  != 1 || $opt(VIZPRT) != 1))} {
       set allNone -1
     } elseif {$allNone == 0} {
       foreach item [array names opt] {
@@ -380,6 +390,7 @@ proc openFile {{openName ""}} {
     set fileDir [file dirname [lindex $localNameList 0]]
 
     outputMsg "\nReady to process [llength $localNameList] STEP files" green
+    if {[string length $fileDir] <= 3} {outputMsg "There might be problems processing STEP files in the $fileDir directory.  Move the files to a different directory." red}
     if {[info exists buttons]} {
       $buttons(genExcel) configure -state normal
       if {[info exists buttons(appOpen)]} {$buttons(appOpen) configure -state normal}
@@ -396,6 +407,7 @@ proc openFile {{openName ""}} {
     set fileDir [file dirname $localName]
     if {[string first "z" [string tolower [file extension $localName]]] == -1} {
       outputMsg "\nReady to process: [file tail $localName] ([expr {[file size $localName]/1024}] Kb)" green
+      if {[string length $fileDir] <= 3} {outputMsg "There might be problems processing a STEP file in the $fileDir directory.  Move the file to a different directory." red}
       if {[info exists buttons]} {
         $buttons(genExcel) configure -state normal
         if {[info exists buttons(appOpen)]} {$buttons(appOpen) configure -state normal}
@@ -478,7 +490,7 @@ proc saveState {{ok 1}} {
   if {[catch {
     if {![file exists $optionsFile]} {outputMsg "\nCreating options file: [file nativename $optionsFile]"}
     set fileOptions [open $optionsFile w]
-    puts $fileOptions "# Options file for the NIST STEP File Analyzer and Viewer v[getVersion] ([string trim [clock format [clock seconds]]])"
+    puts $fileOptions "# Options file for the NIST STEP File Analyzer and Viewer [getVersion] ([string trim [clock format [clock seconds]]])"
     puts $fileOptions "# Do not edit or delete this file from the home directory $mydocs  Doing so might corrupt the current settings or cause errors in the software.\n"
 
 # opt variables
@@ -599,7 +611,7 @@ proc runOpenProgram {} {
     } emsg]} {
       if {[string first "UNC" $emsg] != -1} {set emsg [fixErrorMsg $emsg]}
       if {$emsg != ""} {
-        errorMsg "No application is associated with STEP files."
+        errorMsg "No app is associated with STEP files."
         errorMsg " See Websites > STEP File Viewers"
       }
     }
@@ -851,6 +863,25 @@ proc openXLS {filename {check 0} {multiFile 0}} {
     set filename ""
   }
   return $filename
+}
+
+#-------------------------------------------------------------------------------
+proc saveLogFile {lfile} {
+  global buttons currLogFile editorCmd logFile multiFile
+
+  outputMsg "\nSaving Log file to:"
+  outputMsg " [truncFileName [file nativename $lfile]]" blue
+  close $logFile
+  if {!$multiFile && [info exists buttons]} {
+    set currLogFile $lfile
+    bind . <Key-F4> {
+      if {[file exists $currLogFile]} {
+        outputMsg "\nOpening Log file: [file tail $currLogFile]"
+        exec $editorCmd [file nativename $currLogFile] &
+      }
+    }
+  }
+  unset logFile
 }
 
 #-------------------------------------------------------------------------------
@@ -1496,7 +1527,7 @@ proc setShortcuts {} {
     }
     if {[file exists [file join $mydesk [file tail [info nameofexecutable]]]]} {set ok 0}
 
-    set msg "Do you want to create or overwrite shortcuts to the $progstr (v[getVersion])"
+    set msg "Do you want to create or overwrite shortcuts to the $progstr [getVersion]"
     if {[info exists mydesk]} {
       append msg " on the Desktop"
       if {[info exists mymenu]} {append msg " and"}
@@ -1748,9 +1779,9 @@ proc vecrev {v1} {
 }
 
 # trim - truncate values in a vector
-proc vectrim {v1} {
+proc vectrim {v1 {precision 3}} {
   foreach c1 $v1 {
-    set prec 3
+    set prec $precision
     if {[expr {abs($c1)}] < 0.01} {set prec 4}
     lappend v2 [trimNum $c1 $prec]
   }

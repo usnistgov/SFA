@@ -522,13 +522,6 @@ proc valPropReport {objEntity} {
 
                 "*_unit_and_si_unit name" -
                 "si_unit_and_*_unit name" {
-# check density recommended practice
-                  #if {([string tolower $propDefName] == "density" || [string tolower $repName] == "density") && $objValue == "metre"} {
-                  #  set msg "Syntax Error: For density, mass per 'cubic metre' should be used.$spaces\($recPracNames(uda), Annex C.4.2)"
-                  #  errorMsg $msg
-                  #  lappend syntaxErr(property_definition) [list $propDefID 11 $msg]
-                  #}
-
                   set ok 1
                   set col($pd) 11
                   set colName "units"

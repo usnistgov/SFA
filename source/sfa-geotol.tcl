@@ -117,7 +117,7 @@ proc spmiGeotolStart {entType} {
 proc spmiGeotolReport {objEntity} {
   global all_around all_over assocGeom ATR axisval badAttributes between cells col datsys datumCompartment datumFeature datumModValue datumTargetDesc datumSymbol
   global datumSystem dim datumEntType datumGeom datumIDs datumTargetType datumTargetView dimtolEntType dimtolGeom entLevel ent entAttrList entCount gt
-  global gtEntity nistName objID opt pmiCol pmiHeading pmiModifiers pmiStartCol pmiUnicode ptz recPracNames spaces spmiEnts spmiID spmiIDRow
+  global gtEntity nistName objID opt pmiCol pmiHeading pmiModifiers pmiStartCol pmiUnicode ptz ptzError recPracNames spaces spmiEnts spmiID spmiIDRow
   global spmiRow spmiTypesPerFile stepAP syntaxErr tolNames tolStandard tolStandards tolval tzf1 tzfNames tzWithDatum worksheet
   global objDesign
 
@@ -382,25 +382,47 @@ proc spmiGeotolReport {objEntity} {
                       }
 
 # get projected tolerance zone
-                      set objPZDEntities [$objGuiEntity GetUsedIn [string trim projected_zone_definition] [string trim zone]]
-                      ::tcom::foreach objPZDEntity $objPZDEntities {
-                        ::tcom::foreach attrPZD [$objPZDEntity Attributes] {
-                          if {[$attrPZD Name] == "projected_length"} {
-                            ::tcom::foreach attrLEN [[$attrPZD Value] Attributes] {
-                              if {[$attrLEN Name] == "value_component"} {
-                                set ptz [$attrLEN Value]
+                      set e0s [$objGuiEntity GetUsedIn [string trim projected_zone_definition] [string trim zone]]
+                      ::tcom::foreach e0 $e0s {
+                        ::tcom::foreach a0 [$e0 Attributes] {
+
+# length
+                          if {[$a0 Name] == "projected_length"} {
+                            ::tcom::foreach a1 [[$a0 Value] Attributes] {
+                              if {[$a1 Name] == "value_component"} {
+                                set ptz [$a1 Value]
                                 if {$ptz < 0.} {
                                   set msg "Syntax Error: Negative projected tolerance zone: $ptz$spaces\($recPracNames(pmi242), Sec. 6.9.2.2)"
                                   errorMsg $msg
-                                  lappend syntaxErr(projected_zone_definition) [list [$objPZDEntity P21ID] "projected_length" $msg]
+                                  lappend syntaxErr(projected_zone_definition) [list [$e0 P21ID] "projected_length" $msg]
                                 }
                               }
                             }
-                          } elseif {[$attrPZD Name] == "projection_end"} {
-                            if {[$attrPZD Value] == ""} {
+
+# projection_end
+                          } elseif {[$a0 Name] == "projection_end"} {
+                            if {[$a0 Value] != ""} {
+                              set e1 [$a0 Value]
+                              set e2s [$e1 GetUsedIn [string trim geometric_item_specific_usage] [string trim definition]]
+                              set ngisu 0
+                              ::tcom::foreach e2 $e2s {
+                                incr ngisu
+                                set e3 [[[$e2 Attributes] Item [expr 5]] Value]
+                                set e4 [[[$e3 Attributes] Item [expr 3]] Value]
+                                #outputMsg "[$e1 P21ID][$e1 Type]  [$e2 P21ID][$e2 Type]  [$e3 P21ID][$e3 Type]  [$e4 P21ID][$e4 Type]" green
+                                errorMsg " Projected tolerance zone 'projection_end' refers to a '[$e4 Type]' through GISU ($recPracNames(pmi242), Sec. 6.9.2.2)"
+                              }
+                              if {$ngisu == 0 && [$e1 Type] == "shape_aspect"} {
+                                set msg "Syntax Error: projection_end attribute '[$e1 Type]' is not referred to by a GISU.$spaces\($recPracNames(pmi242), Sec. 6.9.2.2)"
+                                errorMsg $msg
+                                lappend syntaxErr(projected_zone_definition) [list [$e0 P21ID] "projection_end" $msg]
+                                set ptzError 1
+                              }
+                            } else {
                               set msg "Syntax Error: Missing required 'projection_end' attribute on 'projected_zone_definition'.$spaces\($recPracNames(pmi242), Sec. 6.9.2.2)"
                               errorMsg $msg
-                              lappend syntaxErr(projected_zone_definition) [list [$objPZDEntity P21ID] "projection_end" $msg]
+                              lappend syntaxErr(projected_zone_definition) [list [$e0 P21ID] "projection_end" $msg]
+                              set ptzError 1
                             }
                           }
                         }
@@ -1074,9 +1096,9 @@ proc spmiGeotolReport {objEntity} {
 
 # origin
                                   set axisval [x3dGetA2P3D $e4]
-                                  set origin [vectrim [lindex $axisval 0]]
-                                  append datumTargetRep "[format "%c" 10]origin  $origin"
-                                  append datumTargetRep "[format "%c" 10]  (axis2_placement_3d [$e4 P21ID])"
+                                  set origin [vectrim [lindex $axisval 0] 1]
+                                  append datumTargetRep "[format "%c" 10]axis2_placement_3d [$e4 P21ID]"
+                                  append datumTargetRep "[format "%c" 10]  origin  $origin"
 
 # check if values are ok
                                   set msg ""
@@ -1128,9 +1150,9 @@ proc spmiGeotolReport {objEntity} {
                                         if {$datumTargetType == "circle"} {
                                           set objValue $pmiUnicode(diameter)$dtv[format "%c" 10]$objValue
                                         } elseif {$datumTargetType == "line"} {
-                                          set objValue "$objValue[format "%c" 10](L = [trimNum $dtv])"
+                                          append objValue "[format "%c" 10](L = [trimNum $dtv])"
                                         } elseif {$datumTargetType == "circular curve"} {
-                                          set objValue "$objValue[format "%c" 10](D = [trimNum $dtv])"
+                                          append objValue "[format "%c" 10](D = [trimNum $dtv])"
 
 # rectangular, smaller value first
                                         } elseif {$datumTargetType == "rectangle"} {
@@ -1146,6 +1168,7 @@ proc spmiGeotolReport {objEntity} {
                                             set objValue $dtv1[format "%c" 10]$objValue
                                           }
                                         }
+                                        if {$origin == "0. 0. 0."} {append objValue "[format "%c" 10](origin = 0 0 0)"}
                                       }
 
 # save datum target for view
@@ -1692,6 +1715,15 @@ proc spmiGeotolReport {objEntity} {
       set nval "$val[format "%c" 10]$pmiModifiers(between)"
       $cells($gt) Item $r $c $nval
       unset between
+    }
+
+# projected tolerance zone error
+    if {[info exists ptzError]} {
+      if {$ptzError} {
+        set val [[$cells($gt) Item $r $c] Value]
+        $cells($gt) Item $r $c "$val[format "%c" 10](projection_end error)"
+        unset ptzError
+      }
     }
 
 # associated dimensional tolerance for geometric tolerances

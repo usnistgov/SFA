@@ -92,16 +92,16 @@ foreach item $auto_path {if {[string first "STEP-File-Analyzer" $item] != -1} {s
 # initialize variables, set opt to 1
 foreach id { \
   LOGFILE PMIGRF PMISEM PR_STEP_AP242 PR_STEP_COMM PR_STEP_COMP PR_STEP_FEAT PR_STEP_KINE PR_STEP_PRES PR_STEP_QUAN \
-  PR_STEP_REPR PR_STEP_SHAP PR_STEP_TOLR VALPROP VIZBRP VIZFEA VIZFEABC VIZFEADS VIZFEALV VIZPMI VIZTPG XL_OPEN \
+  PR_STEP_REPR PR_STEP_SHAP PR_STEP_TOLR VALPROP VIZFEA VIZFEABC VIZFEADS VIZFEALV VIZPMI VIZPRT VIZPRTEDGE VIZPRTWIRE VIZTPG XL_OPEN \
 } {set opt($id) 1}
 
 # set opt to 0
 foreach id { \
   DEBUG1 DEBUGINV DEBUGX3D HIDELINKS indentGeometry indentStyledItem INVERSE PMIGRFCOV PMISEMDIM PR_STEP_CPNT PR_STEP_GEOM \
-  PR_USER SHOWALLPMI SYNCHK VIZFEADSntail VIZFEALVS VIZTPGMSH writeDirType XL_FPREC XL_SORT \
+  PR_USER SHOWALLPMI SYNCHK VIZPRTONLY VIZFEADSntail VIZFEALVS VIZTPGMSH writeDirType XL_FPREC XL_SORT \
 } {set opt($id) 0}
 
-set opt(gpmiColor) 3
+set opt(gpmiColor) 0
 set opt(x3dQuality) 7
 set opt(XL_ROWLIM) 1003
 set opt(XLSCSV) Excel
@@ -143,8 +143,9 @@ if {[file exists $optionsFile]} {
     source $optionsFile
 
 # rename and unset old variable names from old options file
-    if {[info exists opt(VIZTES)]}    {set opt(VIZTPG)    $opt(VIZTES);    unset opt(VIZTES)}
-    if {[info exists opt(VIZTESMSH)]} {set opt(VIZTPGMSH) $opt(VIZTESMSH); unset opt(VIZTESMSH)}
+    if {[info exists opt(VIZBRP)]}    {set opt(VIZPRT)    $opt(VIZBRP)}
+    if {[info exists opt(VIZTES)]}    {set opt(VIZTPG)    $opt(VIZTES)}
+    if {[info exists opt(VIZTESMSH)]} {set opt(VIZTPGMSH) $opt(VIZTESMSH)}
     if {[info exists opt(CRASH)]}     {set filesProcessed 1}
 
     if {[info exists gpmiColor]}        {set opt(gpmiColor) $gpmiColor}
@@ -158,7 +159,7 @@ if {[file exists $optionsFile]} {
     foreach item {COUNT CRASH DELCOVROWS DISPGUIDE1 EX_A2P3D EX_ANAL EX_ARBP EX_LP feaNodeType FIRSTTIME FN_APPEND indentGeomtry GENX3DOM PMIP PMIPROP PMIVRML \
       PR_STEP_AP203 PR_STEP_AP209 PR_STEP_AP210 PR_STEP_AP214 PR_STEP_AP238 PR_STEP_AP239 PR_STEP_AP242_CONS PR_STEP_AP242_GEOM PR_STEP_AP242_KINE PR_STEP_AP242_MATH \
       PR_STEP_AP242_OTHER PR_STEP_AP242_QUAL PR_STEP_ASPECT PR_STEP_BAD PR_STEP_GEO PR_STEP_OTHER PR_STEP_REP PR_STEP_UNIT PR_TYPE ROWLIM SEMPROP SORT VIZ209 \
-      VIZBRPCLR VIZBRPEDG VIZBRPNRM VIZBRPmsg VIZFEADStail VPDBG VIZPMIVP XL_KEEPOPEN XL_LINK1 XL_LINK2 XL_LINK3 XL_ORIENT XL_SCROLL XL_XLSX XLSBUG XLSBUG1} {catch {unset opt($item)}
+      VIZBRP VIZBRPCLR VIZBRPEDG VIZBRPNRM VIZBRPmsg VIZFEADStail VIZTES VIZTESMESH VPDBG VIZPMIVP XL_KEEPOPEN XL_LINK1 XL_LINK2 XL_LINK3 XL_ORIENT XL_SCROLL XL_XLSX XLSBUG XLSBUG1} {catch {unset opt($item)}
     }
   } emsg]} {
     set endMsg "Error reading Options file [truncFileName $optionsFile]: $emsg"
@@ -339,6 +340,10 @@ if {$argv != ""} {
     if {[file exists $localName]} {
       set localNameList [list $localName]
       outputMsg "Ready to process: [file tail $localName] ([expr {[file size $localName]/1024}] Kb)" green
+
+      set fileDir [file dirname $localName]
+      if {[string length $fileDir] <= 3} {outputMsg "There might be problems processing a STEP file in the $fileDir directory.  Move the file to a different directory." red}
+
       if {[info exists buttons(appOpen)]} {$buttons(appOpen) configure -state normal}
       if {[info exists buttons(genExcel)]} {
         $buttons(genExcel) configure -state normal

@@ -1,5 +1,5 @@
 # version numbers - SFA, software user guide (UG)
-proc getVersion {}   {return 4.0}
+proc getVersion {}   {return 4.10}
 proc getVersionUG {} {return 3.0}
 
 # IFCsvr version, depends on string entered when IFCsvr is repackaged for new STEP schemas
@@ -15,7 +15,7 @@ proc whatsNew {} {
 
 # new user welcome message
   if {$sfaVersion == 0} {
-    outputMsg "\nWelcome to the NIST STEP File Analyzer and Viewer ----------------------" blue
+    outputMsg "\nWelcome to the NIST STEP File Analyzer and Viewer\n" blue
     outputMsg "Please take a few minutes to read some the Help text so that you understand the options available
 in this software.  Also explore the Examples and Websites menus.  The User Guide is based on
 version [getVersionUG] of this software and might not be up-to-date for the current version.  New and updated
@@ -23,8 +23,8 @@ features are documented in the Help menu, tooltips, and Changelog.
 
 You will be prompted to install the IFCsvr toolkit which is required to read STEP files.  After the
 toolkit is installed, you are ready to process a STEP file.  Go to the File menu, select a STEP
-file, and click the Generate Spreadsheet button.  If you only want to generate a View of the STEP
-file, go to the Output Format section on the Options tab and check View Only.
+file, and click the Generate Spreadsheet and View button.  If you only want to generate a View of
+the STEP file, go to the Output Format section on the Options tab and check View Only.
 
 Use F9 and F10 to change the font size here.  See Help > Function Keys"
   }
@@ -34,7 +34,7 @@ Use F9 and F10 to change the font size here.  See Help > Function Keys"
 
 # messages if SFA has already been run
   if {$sfaVersion > 0} {
-    if {$sfaVersion  < 4.0}  {outputMsg "- The viewer for part geometry now supports color and is much faster.  See Help > Viewer"}
+    if {$sfaVersion  < 4.1}  {outputMsg "- The viewer for part geometry is faster and supports color, edges, sketch geometry, and assemblies.  See Help > Viewer"}
     if {$sfaVersion <= 3.70} {outputMsg "- Run the new Syntax Checker with the Options tab selection or function key F8.  See Help > Syntax Checker"}
     if {$sfaVersion < [getVersionUG]} {
       outputMsg "- A new User Guide, based on version [getVersionUG] of this software, is available.  Sections 5.1.5, 6, 7, and 8.1 have new or updated content."
@@ -99,7 +99,7 @@ proc showFileURL {type} {
 proc guiStartWindow {} {
   global fout editorCmd lastX3DOM lastXLS lastXLS1 localName localNameList wingeo winpos
 
-  wm title . "STEP File Analyzer and Viewer  (v[getVersion])"
+  wm title . "STEP File Analyzer and Viewer [getVersion]"
   wm protocol . WM_DELETE_WINDOW {exit}
 
 # check that the saved window dimensions do not exceed the screen size
@@ -436,7 +436,7 @@ proc guiProcessAndReports {} {
           }
         } elseif {$allNone == 1} {
           foreach item [array names opt] {if {[string first "PR_STEP" $item] == 0} {set opt($item) 0}}
-          foreach item {VIZBRP VIZFEA VIZPMI VIZTPG PMISEM PMIGRF VALPROP INVERSE PR_USER} {set opt($item) 0}
+          foreach item {VIZPRT VIZFEA VIZPMI VIZTPG PMISEM PMIGRF VALPROP INVERSE PR_USER} {set opt($item) 0}
           set opt(PR_STEP_COMM) 1
           set ofNone 0
           set ofExcel 1
@@ -445,7 +445,7 @@ proc guiProcessAndReports {} {
         } elseif {$allNone == 2} {
           foreach item {PMISEM PMIGRF VALPROP} {set opt($item) 1}
         } elseif {$allNone == 3} {
-          foreach item {VIZBRP VIZFEA VIZPMI VIZTPG} {set opt($item) 1}
+          foreach item {VIZPRT VIZFEA VIZPMI VIZTPG} {set opt($item) 1}
         }
         checkValues
       }]
@@ -456,7 +456,7 @@ proc guiProcessAndReports {} {
     tooltip::tooltip $buttons(allNone0) "Selects most Process categories\nSee Help > User Guide (section 4.4.2)"
     tooltip::tooltip $buttons(allNone1) "Deselects most Process categories and all Analyze and View options\nSee Help > User Guide (section 4.4.2)"
     tooltip::tooltip $buttons(allNone2) "Selects all Analyze options and associated Process categories\nSee Help > User Guide (section 5)"
-    tooltip::tooltip $buttons(allNone3) "Selects all View options and associated Process categories\nSee Help > User Guide (section 7)"
+    tooltip::tooltip $buttons(allNone3) "Selects all View options and associated Process categories\nSee View Only in Output Format below\nSee Help > User Guide (section 7)"
   }
   pack $fopta4 -side left -anchor w -pady 0 -padx 0 -fill y
   pack $fopta -side top -anchor w -pady {5 2} -padx 10 -fill both
@@ -496,7 +496,9 @@ proc guiProcessAndReports {} {
 
 # part geometry
   set foptv20 [frame $foptv.20 -bd 0]
-  foreach item {{" Part Geometry" opt(VIZBRP)}} {
+  foreach item {{" Part Geometry" opt(VIZPRT)} \
+                {" Edges" opt(VIZPRTEDGE)} \
+                {" Sketch" opt(VIZPRTWIRE)}} {
     regsub -all {[\(\)]} [lindex $item 1] "" idx
     set buttons($idx) [ttk::checkbutton $foptv20.$cb -text [lindex $item 0] -variable [lindex $item 1] -command {checkValues}]
     pack $buttons($idx) -side left -anchor w -padx 5 -pady 0 -ipady 0
@@ -508,7 +510,7 @@ proc guiProcessAndReports {} {
   set foptv21 [frame $foptv.21 -bd 0]
   set buttons(x3dqual) [label $foptv21.l3 -text "Quality:"]
   pack $foptv21.l3 -side left -anchor w -padx 0 -pady 0 -ipady 0
-  foreach item {{Normal 7} {High 9}} {
+  foreach item {{Low 4} {Normal 7} {High 9}} {
     set bn "x3dQuality[lindex $item 1]"
     set buttons($bn) [ttk::radiobutton $foptv21.$cb -variable opt(x3dQuality) -text [lindex $item 0] -value [lindex $item 1]]
     pack $buttons($bn) -side left -anchor w -padx 2 -pady 0 -ipady 0
@@ -529,7 +531,7 @@ proc guiProcessAndReports {} {
   set foptv4 [frame $foptv.4 -bd 0]
   set buttons(linecolor) [label $foptv4.l3 -text "PMI Color:"]
   pack $foptv4.l3 -side left -anchor w -padx 0 -pady 0 -ipady 0
-  set gpmiColorVal {{"By View" 3} {"Random" 2} {"From File" 0} {"Black" 1}}
+  set gpmiColorVal {{"From File" 0} {"Black" 1} {"By View" 3} {"Random" 2}}
   foreach item $gpmiColorVal {
     set bn "gpmiColor[lindex $item 1]"
     set buttons($bn) [ttk::radiobutton $foptv4.$cb -variable opt(gpmiColor) -text [lindex $item 0] -value [lindex $item 1]]
@@ -580,14 +582,14 @@ proc guiProcessAndReports {} {
   pack $foptv -side left -anchor w -pady {5 2} -padx 10 -fill both -expand true
   pack $foptrv -side top -anchor w -pady 0 -fill x
   catch {
-    tooltip::tooltip $buttons(optVIZBRP) "Views are shown in the default web browser.  See Help > Viewer\n\nViews can be generated without generating a spreadsheet or CSV\nfiles.  See the Output Format option below.\n\nSee Help > View for other viewing features\nSee Examples > View Simple Assembly and others\nSee Websites > STEP File Viewers (for other part geometry viewers)"
+    tooltip::tooltip $buttons(optVIZPRT) "Views are shown in the default web browser.  See Help > Viewer\n\nViews can be generated without generating a spreadsheet or CSV\nfiles.  See the Output Format option below.\n\nSee Help > View for other viewing features\nSee Examples > View Simple Assembly and others\nSee Websites > STEP File Viewers (for other part geometry viewers)"
     tooltip::tooltip $buttons(optVIZPMI) "Graphical PMI is supported in AP242, AP203, and AP214 files.\n\nSee Help > View > Graphical PMI\nSee Help > Viewer\nSee Help > User Guide (section 7.1.1)\nSee Examples > Part with PMI\nSee Examples > AP242 Tessellated Part with PMI\nSee Examples > Sample STEP Files"
     tooltip::tooltip $buttons(optVIZTPG) "** Parts in an assembly might have the wrong\nposition and orientation or be missing. **\n\nTessellated edges (lines) are also shown.  Faces\nin tessellated shells are outlined in black.\n\nSee Help > View > AP242 Tessellated Part Geometry\nSee Help > Viewer\nSee Help > User Guide (section 7.1.2, 7.1.3)\nSee Examples > AP242 Tessellated Part with PMI"
     tooltip::tooltip $buttons(optVIZTPGMSH) "Generate a wireframe mesh based on the tessellated faces and surfaces."
     tooltip::tooltip $buttons(optVIZFEALVS) "The length of load vectors can be scaled by their magnitude.\nLoad vectors are always colored by their magnitude."
     tooltip::tooltip $buttons(optVIZFEADSntail) "The length of displacement vectors with a tail are scaled by\ntheir magnitude.  Vectors without a tail are not.\nDisplacement vectors are always colored by their magnitude.\nLoad vectors always have a tail."
-    tooltip::tooltip $foptv21 "Quality controls the number of facets used for curved surfaces.\nNormal quality uses 18 segments around the circumference of\na cylinder.  High quality uses 24 segments and takes slightly\nlonger to generate and display."
-    tooltip::tooltip $foptv4  "For 'By View' PMI colors, each Saved View is set to a different color.\nIf there are one or no Saved Views, then 'Random' PMI colors are used.\n\nFor 'Random' PMI colors, each 'annotation occurrence' is set to a\ndifferent color to help differentiate one from another."
+    tooltip::tooltip $foptv21 "Quality controls the number of facets used for curved surfaces.\nFor example, the higher the quality the more facets around the\ncircumference of a cylinder.  Also, the higher the quality the longer\nit takes to generate the view and show in a web browser."
+    tooltip::tooltip $foptv4  "For 'By View' PMI colors, each Saved View is set to a different color.  If there\nis only one or no Saved Views, then 'Random' PMI colors are used.\nFor 'Random' PMI colors, each 'annotation occurrence' is set to a different\ncolor to help differentiate one from another."
     set tt "FEM nodes, elements, boundary conditions,\nloads, and displacements are shown.\n\nSee Help > View > AP209 Finite Element Model\nSee Help > Viewer\nSee Help > User Guide (section 7.1.4)\nSee Examples > AP209 Finite Element Model"
     tooltip::tooltip $foptv7 $tt
     tooltip::tooltip $foptv8 $tt
@@ -686,7 +688,7 @@ proc guiOpenSTEPFile {} {
   global appName appNames buttons cb developer dispApps dispCmds edmWhereRules edmWriteToFile eeWriteToFile
   global fopt foptf useXL xlInstalled
 
-  set foptf [ttk::labelframe $fopt.f -text " Open STEP File in "]
+  set foptf [ttk::labelframe $fopt.f -text " Open STEP File in App"]
 
   set buttons(appCombo) [ttk::combobox $foptf.spinbox -values $appNames -width 40]
   pack $foptf.spinbox -side left -anchor w -padx 7 -pady {0 3}
@@ -793,7 +795,7 @@ proc guiOpenSTEPFile {} {
     }
   }
 
-  catch {tooltip::tooltip $foptf "This option is a convenient way to open a STEP file in other applications.\nThe pull-down menu contains some applications that can open a STEP\nfile such as STEP viewers and browsers, however, only if they are installed\nin their default location.\n\nSee Help > Open STEP File in Apps\nSee Websites > STEP File Viewers\n\nThe 'Tree View (for debugging)' option rearranges and indents the entities\nto show the hierarchy of information in a STEP file.  The 'tree view' file\n(myfile-sfa.txt) is written to the same directory as the STEP file or to the\nsame user-defined directory specified in the Spreadsheet tab.  Including\nGeometry or Styled_item can make the 'tree view' file very large.  The\n'tree view' might not process /*comments*/ in a STEP file correctly.\n\nThe 'Default STEP Viewer' option opens the STEP file in whatever\napplication is associated with STEP (.stp, .step, .p21) files.\n\nUse F5 to open the STEP file in a text editor."}
+  catch {tooltip::tooltip $foptf "This option is a convenient way to open a STEP file in other apps.  The\npull-down menu contains some apps that can open a STEP file such as\nSTEP viewers and browsers, however, only if they are installed in their\ndefault location.\n\nSee Help > Open STEP File in App\nSee Websites > STEP File Viewers\n\nThe 'Tree View (for debugging)' option rearranges and indents the entities\nto show the hierarchy of information in a STEP file.  The 'tree view' file\n(myfile-sfa.txt) is written to the same directory as the STEP file or to the\nsame user-defined directory specified in the Spreadsheet tab.  Including\nGeometry or Styled_item can make the 'tree view' file very large.  The\n'tree view' might not process /*comments*/ in a STEP file correctly.\n\nThe 'Default STEP Viewer' option opens the STEP file in whatever\napp is associated with STEP (.stp, .step, .p21) files.\n\nUse F5 to open the STEP file in a text editor."}
   pack $foptf -side top -anchor w -pady {5 2} -padx 10 -fill both
 
 # output format
@@ -806,7 +808,7 @@ proc guiOpenSTEPFile {} {
 
 # checkbuttons are used for pseudo-radiobuttons
   foreach item {{" Spreadsheet" ofExcel} \
-                {" CSV Files" ofCSV} \
+                {" CSV Files  " ofCSV} \
                 {" View Only" ofNone}} {
     regsub -all {[\(\)]} [lindex $item 1] "" idx
     set buttons($idx) [ttk::checkbutton $foptk.$cb -text [lindex $item 0] -variable [lindex $item 1] -command {
@@ -864,8 +866,15 @@ proc guiOpenSTEPFile {} {
     incr cb
   }
 
+# part only
+  set item {" Part Only" opt(VIZPRTONLY)}
+  regsub -all {[\(\)]} [lindex $item 1] "" idx
+  set buttons($idx) [ttk::checkbutton $foptk.$cb -text [lindex $item 0] -variable [lindex $item 1] -command {checkValues}]
+  pack $buttons($idx) -side left -anchor w -padx 5 -pady 0 -ipady 0
+  incr cb
+
   pack $foptk -side top -anchor w -pady {5 2} -padx 10 -fill both
-  catch {tooltip::tooltip $foptk "If Excel is installed, then Spreadsheets and CSV files can be generated.  If CSV Files\nis selected, the Spreadsheet is also generated.  CSV files do not contain any cell\ncolors, comments, or links.  GD&T symbols in CSV files are only supported with\nExcel 2016 or newer.\n\nIf Excel is not installed, only CSV files can be generated.  Options for Analyze and\nInverse Relationships are disabled.\n\nView Only does not generate any Spreadsheets or CSV files.  All options except\nView are disabled.\n\nIf output files are not opened after they have been generated, use F2 to open a\nSpreadsheet and F3 to open a View.  Use F7 to open the File Summary spreadsheet \nwhen processing multiple files.\n\nIf possible, existing output files are always overwritten by new files.  Output files\ncan be written to a user-defined directory.  See Spreadsheet tab.\n\nSee Help > User Guide (section 4.4.1)"}
+  catch {tooltip::tooltip $foptk "If Excel is installed, then Spreadsheets and CSV files can be generated.  If CSV Files\nis selected, the Spreadsheet is also generated.  CSV files do not contain any cell\ncolors, comments, or links.  GD&T symbols in CSV files are only supported with\nExcel 2016 or newer.\n\nIf Excel is not installed, only CSV files can be generated.  Options for Analyze and\nInverse Relationships are disabled.\n\nView Only does not generate any Spreadsheets or CSV files.  All options except\nthose for View are disabled.  Part Only generates only Part Geometry.  This is\nuseful when no other View features of the software are needed and for large STEP files.\n\nIf output files are not opened after they have been generated, use F2 to open a\nSpreadsheet and F3 to open a View.  Use F7 to open the File Summary spreadsheet \nwhen processing multiple files.\n\nIf possible, existing output files are always overwritten by new files.  Output files\ncan be written to a user-defined directory.  See Spreadsheet tab.\n\nSee Help > User Guide (section 4.4.1)"}
 
 # syntax checker
   set foptl [ttk::labelframe $fopt.l -text " Syntax Checker "]
@@ -999,7 +1008,7 @@ proc guiSpreadsheet {} {
       incr cb
     }
     pack $fxlsx -side top -anchor w -pady {5 2} -padx 10 -fill both
-    catch {tooltip::tooltip $fxlsx "These features are only available on NIST computers."}
+    catch {tooltip::tooltip $fxlsx "The Debug options are only available on computers in the NIST domain."}
   }
 
   pack $fxls -side top -fill both -expand true -anchor nw
@@ -1088,36 +1097,51 @@ Spreadsheet tab:
   $Help add command -label "Viewer" -command {
 outputMsg "\nViewer ---------------------------------------------------------------------" blue
 outputMsg "A View is written to an HTML file 'myfile-sfa.html' and is shown in the default web browser.
-x3dom (x3dom.org) is used to show and navigate 3D models in a web browser which requires an
+x3dom (x3dom.org) is used to show and navigate 3D models in a web browser.  x3dom requires an
 Internet connection.  The HTML file is self-contained and can be shared with other users, including
-those on non-Windows systems.  Views can be generated without generating a spreadsheet or CSV files.
-See the Output Format on the Options tab.
+those on non-Windows systems.
 
-The new viewer in version 4.0 now supports color for part geometry, processes STEP files much
-faster, and the resulting HTML files are smaller, therefore faster to show in the web browser.
-Parts with the same color can be switched on and off.  Sometimes parts have multiple colors.  The
-bounding box for the STEP part geometry is also reported.
+Views can be generated without generating a spreadsheet or CSV files.  See the Output Format on the
+Options tab.  The Part Only option is useful when no other View features of this software are
+needed and for large STEP files.
 
-Quality controls the number of facets used for curved surfaces.  Normal quality uses 18 segments
-around the circumference of a cylinder.  High quality uses 24 segments and takes slightly longer
-to generate and display.
+The new viewer in version 4.0 now supports part geometry with color, part edges, and sketch
+geometry.  STEP files are processed faster and the resulting HTML files are smaller and therefore
+faster to show in a web browser.  New features:
 
-The location of the origin at '0 0 0' is shown with a small XYZ coordinate axis that can be
-switched off.  The background color can be changed between white, gray, and black.
+- Part edges are shown in black.  Use the transparency slider to show only edges.  Transparency
+  for parts is only approximate.  Parts inside of assemblies may not be visible.  This is a
+  limitation of x3dom.
 
-In the web browser, use key 'a' to view all and 'r' to restore to the original view.  Sometimes the
-part geometry or PMI might be far away from the origin.  In this case, turn off the Origin and use
-'a' to view all as expected.  The function of other keys is described in the link 'Use the mouse'.
-Navigation uses the Examine Mode.  Use Page Up/Down to switch between perspective and orthographic
-projection modes.  Navigation is easier in perspective mode.
+- Sketch geometry is supplemental lines created when generating a CAD model.  This is not same as
+  actual supplemental geometry.  See Help > Supplemental Geometry.
 
-Transparency for parts and finite element models is only approximate.  This is a limitation of
-x3dom.
+- Quality controls the number of facets used for curved surfaces.  For example, the higher the
+  quality the more facets used around the circumference of a cylinder.
+
+- Most assemblies and parts can switched on and off depending on the assembly structure.  Clicking
+  on the model will show the part name.  The name shown may not be in the list of assemblies and
+  parts that can be switched on and off.  The part should be contained in a higher level assembly
+  that is in the list.  Some names in the list might have an underscore and number appended to
+  their name.
+
+- The part bounding box min and max XYZ coordinates are based on the faceted geometry being shown
+  and not the exact geometry in the STEP file.  There might be a variation in the coordinates
+  depending on the quality option.  The bounding box also accounts for any sketch geometry if it is
+  displayed but does not account for graphical PMI and supplemental geometry.
+
+The origin of the model at '0 0 0' is shown with a small XYZ coordinate axis that can be switched
+off.  The background color can be changed between white, gray, and black.
+
+In the web browser, use key 'a' to view all (+Y axis up) and 'r' to restore to the original view
+(+Z axis up).  Sometimes the part geometry or PMI might be far away from the origin.  In this case,
+turn off the Origin and use 'a' to view all.  The function of other keys is described in the link
+'Use the mouse'.  Navigation uses the Examine Mode.  Use Page Up/Down to switch between perspective
+and orthographic projection modes.  Navigation is easier in perspective mode.
 
 For very large STEP files, it might take several minutes to process the STEP part geometry.  The
-resulting HTML file also might several minutes to display in the web browser.  Firefox can display
-large HTML files faster than Chrome.  Select 'Wait' if the web browser prompts that it is running
-slowly when opening the HTML file.
+resulting HTML file also might several minutes to display in the web browser.  Select 'Wait' if the
+web browser prompts that it is running slowly when opening the HTML file.
 
 See Help > View for more information about viewing:
 - Supplemental Geometry
@@ -1130,8 +1154,8 @@ See Examples > View Simple Assembly and others
 
 Other STEP file viewers are available.  See Websites > STEP File Viewers
 
-Many of the other viewers have better features for viewing and measuring part geometry.  However,
-most of the other viewers cannot view graphical PMI, supplemental geometry, datum targets, AP242
+Some of the other viewers have better features for viewing and measuring part geometry.  However,
+many of the other viewers cannot view graphical PMI, supplemental geometry, datum targets, AP242
 tessellated part geometry, and AP209 finite element models."
     .tnb select .tnb.status
   }
@@ -1146,7 +1170,7 @@ F1 - Generate Spreadsheets and/or Views from the current or last STEP file
 F2 - Open current or last Spreadsheet
 F3 - Open current or last View file
 F4 - Open Log file
-F5 - Open STEP file in a text editor  (See Help > Open STEP File in Apps)
+F5 - Open STEP file in a text editor  (See Help > Open STEP File in App)
 
 F6 - Generate Speadsheets and/or Views from current or last set of multiple STEP files
 F7 - Open current or last File Summary Spreadsheet from set of multiple STEP files
@@ -1163,11 +1187,11 @@ to select the file.  F2 and F3 function similarly for Spreadsheets and Views."
   }
 
 # open STEP files help
-  $Help add command -label "Open STEP File in Apps" -command {
-outputMsg "\nOpen STEP File in Apps -----------------------------------------------------" blue
-outputMsg "STEP files can be opened in other applications.  If applications are installed in their default
-directory, then the pull-down menu in the Options tab will contain applications that can open a
-STEP file such as STEP viewers, browsers, and conformance checkers.
+  $Help add command -label "Open STEP File in App" -command {
+outputMsg "\nOpen STEP File in App ------------------------------------------------------" blue
+outputMsg "STEP files can be opened in other apps.  If apps are installed in their default directory, then the
+pull-down menu in the Options tab will contain apps that can open a STEP file such as STEP viewers,
+browsers, and conformance checkers.
 
 See Help > User Guide (section 4.4.6)
 
@@ -1176,9 +1200,8 @@ information in a STEP file.  The 'tree view' file (myfile-sfa.txt) is written to
 as the STEP file or to the same user-defined directory specified in the Spreadsheet tab.  It is
 useful for debugging STEP files but is not recommended for large STEP files.
 
-The 'Default STEP Viewer' option opens the STEP file in whatever application is associated with
-STEP files.  A text editor always appear in the menu.  Use F5 to open the STEP file in the text
-editor."
+The 'Default STEP Viewer' option opens the STEP file in whatever app is associated with STEP files.
+A text editor always appear in the menu.  Use F5 to open the STEP file in the text editor."
     .tnb select .tnb.status
   }
 
@@ -1494,6 +1517,10 @@ Syntax errors are highlighted in red in the Status tab.  Other informative messa
 in yellow.  Syntax errors that refer to section, figure, and table numbers might use numbers that
 are in a newer version of a recommended practice that has not been publicly released.
 
+Some syntax errors use abbreviations for STEP entities:
+ GISU - geometric_item_specific_usage
+ IIRU - identified_item_representation_usage
+
 On the File Summary worksheet in column A, most entity types that have syntax errors are colored
 gray.  A comment indicating that there are errors is also shown with a small red triangle in the
 upper right corner of a cell in column A.
@@ -1744,11 +1771,12 @@ about NIST.
 See Help > Disclaimers and NIST Disclaimer
 
 Credits
-- Generating spreadsheets:        Microsoft Excel (https://products.office.com/excel)
+- Generating spreadsheets:        Microsoft Excel https://products.office.com/excel
 - Reading and parsing STEP files: IFCsvr ActiveX Component, Copyright \u00A9 1999, 2005 SECOM Co., Ltd. All Rights Reserved
                                   IFCsvr has been modified by NIST to include STEP schemas.
                                   The license agreement can be found in C:\\Program Files (x86)\\IFCsvrR300\\doc
-- Viewing B-rep part geometry:    Developed by Soonjo Kwon at NIST based on the Open Cascade STEP Processor (See Websites > STEP Software)"
+- Viewing part geometry:          Developed by Soonjo Kwon at NIST based on the Open CASCADE STEP Processor (See Websites > STEP Software)
+                                  Open CASCADE License https://www.opencascade.com/content/licensing"
     } else {
       outputMsg "\nThis version was built from the NIST STEP File Analyzer and Viewer source\ncode available on GitHub.  https://github.com/usnistgov/SFA"
     }
@@ -1858,7 +1886,7 @@ proc guiWebsitesMenu {} {
   $Websites add cascade -label "STEP Software" -menu $Websites.4
   set Websites4 [menu $Websites.4 -tearoff 1]
   $Websites4 add command -label "Source code on GitHub"      -command {openURL https://github.com/usnistgov/SFA}
-  $Websites4 add command -label "Open Cascade STEP Processor" -command {openURL https://dev.opencascade.org/doc/overview/html/occt_user_guides__step.html}
+  $Websites4 add command -label "Open CASCADE STEP Processor" -command {openURL https://dev.opencascade.org/doc/overview/html/occt_user_guides__step.html}
   $Websites4 add command -label "STEPcode"                   -command {openURL http://stepcode.github.io/}
   $Websites4 add command -label "STEP Class Library"         -command {openURL https://www.nist.gov/services-resources/software/step-class-library-scl}
   $Websites4 add command -label "Express Engine"             -command {openURL http://exp-engine.sourceforge.net/}
@@ -2241,6 +2269,9 @@ proc getFirstFile {} {
   set localName [lindex $openFileList 0]
   if {$localName != ""} {
     outputMsg "\nReady to process: [file tail $localName] ([expr {[file size $localName]/1024}] Kb)" green
+    set fileDir [file dirname $localName]
+    if {[string length $fileDir] <= 3} {outputMsg "There might be problems processing a STEP file in the $fileDir directory.  Move the file to a different directory." red}
+
     if {[info exists buttons(appOpen)]} {
       $buttons(appOpen) configure -state normal
       if {$editorCmd != ""} {
