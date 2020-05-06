@@ -343,8 +343,8 @@ proc invSetCheck {entType} {
 
 # tolerance, user-defined entities
   if {!$checkInv} {
-    if {($opt(PR_STEP_TOLR)  && [lsearch $entCategory(PR_STEP_TOLR)  $entType] != -1) || \
-        ($opt(PR_USER) && [lsearch $userEntityList $entType] != -1)} {
+    if {($opt(stepTOLR)  && [lsearch $entCategory(stepTOLR)  $entType] != -1) || \
+        ($opt(stepUSER) && [lsearch $userEntityList $entType] != -1)} {
       set checkInv 1
 
 # other types of entities (should be more selective to make it faster)
@@ -398,7 +398,7 @@ proc invSetCheck {entType} {
   }
 
 # inverses with property_definition are not allowed with validation properties  
-  if {$entType == "property_definition" && $opt(VALPROP)} {set checkInv 0}
+  if {$entType == "property_definition" && $opt(valProp)} {set checkInv 0}
 
   return $checkInv
 }

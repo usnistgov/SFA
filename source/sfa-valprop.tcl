@@ -530,7 +530,7 @@ proc valPropReport {objEntity} {
 
 # check mass recommended practice
                   if {[string first "mass" $ent1] != -1 && $objValue != "kilogram"} {
-                    set msg "Syntax Error: For mass units, '$prefix' is not a valid prefix for 'gram', only 'kilo' is allowed.$spaces\($recPracNames(uda), Annex C.4.1)"
+                    set msg "For mass units, '$prefix' is not a valid prefix for 'gram', only 'kilo' is allowed."
                     errorMsg $msg
                     lappend syntaxErr($ent($entLevel)) [list $objID prefix $msg]
                     lappend syntaxErr(property_definition) [list $propDefID 11 $msg]
@@ -924,7 +924,7 @@ proc valPropFormat {} {
 # bold lines top and bottom
     set colrange [[[$worksheet($thisEntType) UsedRange] Columns] Count]
     set r $row($thisEntType)
-    if {$opt(XL_ROWLIM) < $entCount($thisEntType) && $r > $opt(XL_ROWLIM)} {set r $opt(XL_ROWLIM)}
+    if {$opt(xlMaxRows) < $entCount($thisEntType) && $r > $opt(xlMaxRows)} {set r $opt(xlMaxRows)}
     set range [$worksheet($thisEntType) Range [cellRange $r 5] [cellRange $r $colrange]]
     catch {[[$range Borders] Item [expr 9]] Weight [expr -4138]}
     set range [$worksheet($thisEntType) Range [cellRange 2 5] [cellRange 2 $colrange]]

@@ -163,7 +163,7 @@ proc feaModel {entType} {
 
   ::tcom::foreach objEntity [$objDesign FindObjects [join $startent]] {
     if {[$objEntity Type] == $startent && (!$skipElements || [string first "element_representation" $startent] == -1)} {
-      if {$opt(XLSCSV) == "None"} {incr nprogBarEnts}
+      if {$opt(xlFormat) == "None"} {incr nprogBarEnts}
 
       if {$nfeaElem < 10000000} {
         if {[expr {$nfeaElem%2000}] == 0} {
@@ -183,7 +183,7 @@ proc feaModel {entType} {
             update
           }
         }
-        if {$nfeaElem > $rowmax && $opt(XLSCSV) != "None"} {incr nprogBarEnts}
+        if {$nfeaElem > $rowmax && $opt(xlFormat) != "None"} {incr nprogBarEnts}
 
 # process the entity
         feaEntities $objEntity
@@ -277,7 +277,7 @@ proc feaModel {entType} {
 # write loads after all load entity types are processed
   set ecload3 0
   set ecload4 0
-  if {[info exists feaLoad] && $opt(VIZFEALV)} {
+  if {[info exists feaLoad] && $opt(feaLoads)} {
     set ecload3 [info exists entCount(surface_3d_element_boundary_constant_specified_surface_variable_value)]
     set ecload4 [info exists entCount(volume_3d_element_boundary_constant_specified_variable_value)]
 
@@ -289,10 +289,10 @@ proc feaModel {entType} {
   }
 
 # write displacements
-  if {[info exists feaDisp] && $opt(VIZFEADS) && $entType == "nodal_freedom_values"} {feaLoads $entType}
+  if {[info exists feaDisp] && $opt(feaDisp) && $entType == "nodal_freedom_values"} {feaLoads $entType}
 
 # write boundary conditions
-  if {[info exists feaBoundary] && $opt(VIZFEABC) && $entType == "single_point_constraint_element_values"} {feaBCs $entType}
+  if {[info exists feaBoundary] && $opt(feaBounds) && $entType == "single_point_constraint_element_values"} {feaBCs $entType}
 
 # ------------------------------------------------------------------------------------------------
 # write mesh, elements, loads, bcs after last element type is processed
@@ -834,13 +834,13 @@ proc feaLoads {entType} {
         set nsize [trimNum $size]
 
 # vector scale
-        if {$opt(VIZFEALVS) && $type == "loads"} {
+        if {$opt(feaLoadScale) && $type == "loads"} {
           if {$feaLoadMag(max) != 0} {
             set nsize [trimNum [expr {($mag/abs($feaLoadMag(max)))*$size}]]
             set nsize [trimNum [expr {$nsize*0.9+$size*0.1}]]
           }
         } elseif {$type == "displacements"} {
-          if {$feaDispMag(max) != 0 && !$opt(VIZFEADSntail)} {
+          if {$feaDispMag(max) != 0 && !$opt(feaDispNoTail)} {
             set nsize [trimNum [expr {($mag/abs($feaDispMag(max)))*$size}] 5]
           }
         }
@@ -941,7 +941,7 @@ proc feaArrow {r g b type num} {
   switch -- $type {
     npressure -
     displacement {
-      if {!$opt(VIZFEADSntail) || $type == "npressure"} {
+      if {!$opt(feaDispNoTail) || $type == "npressure"} {
         set t1 0
         set t2 1
         set h1 [expr {$t2+$h1}]
@@ -958,7 +958,7 @@ proc feaArrow {r g b type num} {
   set arrow \n
 
 # tail
-  if {!$opt(VIZFEADSntail) || $type != "displacement"} {
+  if {!$opt(feaDispNoTail) || $type != "displacement"} {
     append arrow "  <Shape><Appearance><Material emissiveColor='$r $g $b'></Material></Appearance>"
     append arrow "<IndexedLineSet coordIndex='0 1 -1'><Coordinate point='$t1 0 0 $t2 0 0'></Coordinate></IndexedLineSet></Shape>"
   }
@@ -1137,7 +1137,7 @@ proc feaButtons {type} {
     if {[info exists entCount(volume_3d_element_representation)]}  {puts $x3dFile "<input type='checkbox' checked onclick='tog3DElements(this.value)'/>3D Elements<br>"}
 
 # boundary condition checkboxes
-    if {[info exists feaBoundary] && $opt(VIZFEABC)} {
+    if {[info exists feaBoundary] && $opt(feaBounds)} {
       puts $x3dFile "\n<!-- BC checkbox and slider -->\n<p>Boundary Conditions<br>"
       set n 0
       set checked ""
@@ -1150,7 +1150,7 @@ proc feaButtons {type} {
     }
 
 # loads
-    if {[info exists feaLoad] && $opt(VIZFEALV)} {
+    if {[info exists feaLoad] && $opt(feaLoads)} {
       puts $x3dFile "\n<!-- LOAD checkbox and slider -->\n<p>"
       set n 0
       if {$feaLoadMag(min) != $feaLoadMag(max)} {
@@ -1179,7 +1179,7 @@ proc feaButtons {type} {
     catch {unset feaLoadMag}
 
 # displacements
-    if {[info exists feaDisp] && $opt(VIZFEADS)} {
+    if {[info exists feaDisp] && $opt(feaDisp)} {
       puts $x3dFile "\n<!-- DISPLACEMENT checkbox and slider -->\n<p>"
       set n 0
       if {$feaDispMag(min) != $feaDispMag(max)} {
@@ -1207,7 +1207,7 @@ proc feaButtons {type} {
 
 # functions for BC switches and scale
   } elseif {$type == 2} {
-    if {[info exists feaBoundary] && $opt(VIZFEABC)} {
+    if {[info exists feaBoundary] && $opt(feaBounds)} {
       puts $x3dFile "\n<!-- BC switch -->\n<script>function togSPC(val)\{"
       puts $x3dFile "  for(var i=1; i<=[llength [array names feaBoundary]]; i++) \{"
       puts $x3dFile "    if (!document.getElementById('SPC' + i).checked) \{document.getElementById('spc' + i).setAttribute('whichChoice', -1);\} else \{document.getElementById('spc' + i).setAttribute('whichChoice', 0);\}"
@@ -1224,7 +1224,7 @@ proc feaButtons {type} {
     }
 
 # functions for load toggle switch
-    if {[info exists feaLoad] && $opt(VIZFEALV)} {
+    if {[info exists feaLoad] && $opt(feaLoads)} {
       puts $x3dFile "\n<!-- LOAD switch -->\n<script>function togLOAD(val)\{"
       puts $x3dFile "  for(var i=1; i<=[llength [array names feaLoad]]; i++) \{"
       puts $x3dFile "    if (!document.getElementById('LOAD' + i).checked) \{document.getElementById('load' + i).setAttribute('whichChoice', -1);\} else \{document.getElementById('load' + i).setAttribute('whichChoice', 0);\}"
@@ -1241,7 +1241,7 @@ proc feaButtons {type} {
     }
 
 # functions for displacement toggle switch
-    if {[info exists feaDisp] && $opt(VIZFEADS)} {
+    if {[info exists feaDisp] && $opt(feaDisp)} {
       puts $x3dFile "\n<!-- DISPLACEMENT switch -->\n<script>function togDISPLACEMENT(val)\{"
       puts $x3dFile "  for(var i=1; i<=[llength [array names feaDisp]]; i++) \{"
       puts $x3dFile "    if (!document.getElementById('DISP' + i).checked) \{document.getElementById('disp' + i).setAttribute('whichChoice', -1);\} else \{document.getElementById('disp' + i).setAttribute('whichChoice', 0);\}"

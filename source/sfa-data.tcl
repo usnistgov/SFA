@@ -56,18 +56,18 @@ set schemaLinks(CIS/2)   "http://web.archive.org/web/20160322005246/www.steptool
 
 # -----------------------------------------------------------------------------------------------------
 # colors, the number determines the order that the group of entities is processed, do not use numbers less than 10 (dmcritchie.mvps.org/excel/colors.htm)
-set entColorIndex(PR_STEP_FEAT) 19	
-set entColorIndex(PR_STEP_KINE) 34	
-set entColorIndex(PR_STEP_COMP) 35
-set entColorIndex(PR_STEP_AP242) 36	
-set entColorIndex(PR_STEP_TOLR) 37			
-set entColorIndex(PR_STEP_PRES) 38			
-set entColorIndex(PR_STEP_REPR) 39			
-set entColorIndex(PR_STEP_SHAP) 40			
-set entColorIndex(PR_STEP_COMM) 42			
-set entColorIndex(PR_STEP_GEOM) 43			
-set entColorIndex(PR_STEP_CPNT) 43			
-set entColorIndex(PR_STEP_QUAN) 44
+set entColorIndex(stepFEAT) 19	
+set entColorIndex(stepKINE) 34	
+set entColorIndex(stepCOMP) 35
+set entColorIndex(stepAP242) 36	
+set entColorIndex(stepTOLR) 37			
+set entColorIndex(stepPRES) 38			
+set entColorIndex(stepREPR) 39			
+set entColorIndex(stepSHAP) 40			
+set entColorIndex(stepCOMM) 42			
+set entColorIndex(stepGEOM) 43			
+set entColorIndex(stepCPNT) 43			
+set entColorIndex(stepQUAN) 44
 
 # PMI coverage colors (B, G, R)
 set legendColor(green)   [expr {int (128) << 16 | int (255) << 8 | int(128)}]
@@ -133,7 +133,7 @@ set cadApps {"3D_Evolution" ACIS "Alias - OpenModel" "Alias AutoStudio" "Alias O
   "UGS - NX" "UGS-NX" Unigraphics CoCreate Adobe Elysium ASFALIS CAPVIDIA 3DTransVidia MBDVidia NAFEMS COM209 CADCAM-E 3DEXPERIENCE ECCO SimDM \
   SDS/2 Tekla Revit RISA SAP2000 ETABS SmartPlant CADWorx "Advance Steel" ProSteel STAAD RAM Cype Parabuild RFEM RSTAB BuiltWorks EDMsix Mastercam \
   "3D Reviewer" "3D Converter" "HOOPS Exchange" HOOPS MicroStation SolidWorks Solidworks SOLIDWORKS "SOLIDWORKS MBD" ASCON PSStep Anark XStep \
-  Spatial "Spatial InterOp 3D" "STEP-NC Maker" CADverter Autodesk "ITI STEP" pdelib kicad KiCad}
+  Spatial "Spatial InterOp 3D" "STEP-NC Maker" CADverter Autodesk "ITI STEP" pdelib kicad KiCad PLIBEditor GraphicalInstance "J-EXPRESS"}
 
 # sort cadApps by string length
 set cadApps [sortlength2 $cadApps]
@@ -516,7 +516,7 @@ foreach i {4 10} {
 
 # -----------------------------------------------------------------------------------------------------
 # STEP geometry entities
-set entCategory(PR_STEP_GEOM) [lsort [list \
+set entCategory(stepGEOM) [lsort [list \
 advanced_face axis1_placement axis2_placement_2d axis2_placement_3d b_spline_basis b_spline_curve b_spline_curve_knot_locator b_spline_curve_segment \
 b_spline_curve_with_knots b_spline_function b_spline_surface b_spline_surface_knot_locator b_spline_surface_patch b_spline_surface_strip \
 b_spline_surface_with_knots b_spline_volume b_spline_volume_with_knots bezier_curve bezier_surface bezier_volume block block_volume boolean_result \
@@ -553,11 +553,11 @@ triangulated_face triangulated_point_cloud_dataset triangulated_surface_set trim
 vertex_on_edge vertex_point vertex_shell volume_with_faces volume_with_parametric_boundary volume_with_shell wedge_volume wire_shell]]
 
 # STEP cartesian point, etc.
-set entCategory(PR_STEP_CPNT) [list cartesian_point coordinates_list]
+set entCategory(stepCPNT) [list cartesian_point coordinates_list]
 
 # -----------------------------------------------------------------------------------------------------
 # STEP shape aspect
-set entCategory(PR_STEP_SHAP) [lsort [list \
+set entCategory(stepSHAP) [lsort [list \
 all_around_shape_aspect apex assembly_bond_definition assembly_joint assembly_shape_constraint assembly_shape_joint between_shape_aspect centre_of_symmetry \
 component_feature component_feature_joint component_mating_constraint_condition component_path_shape_aspect component_terminal composite_group_shape_aspect \
 composite_shape_aspect composite_unit_shape_aspect connection_zone_based_assembly_joint connection_zone_interface_plane_relationship connectivity_definition \
@@ -573,7 +573,7 @@ symmetric_shape_aspect tangent terminal_feature terminal_location_group transpor
 
 # -----------------------------------------------------------------------------------------------------
 # STEP presentation, annotation
-set entCategory(PR_STEP_PRES) [lsort [list \
+set entCategory(stepPRES) [lsort [list \
 angular_dimension annotation_curve_occurrence annotation_fill_area annotation_fill_area_occurrence annotation_occurrence annotation_occurrence_associativity \
 annotation_occurrence_relationship annotation_placeholder_occurrence annotation_plane annotation_point_occurrence annotation_subfigure_occurrence annotation_symbol \
 annotation_symbol_occurrence annotation_text annotation_text_character annotation_text_occurrence area_in_set background_colour camera_image \
@@ -611,7 +611,7 @@ vector_style view_volume]]
 
 # -----------------------------------------------------------------------------------------------------
 # STEP tolerance
-set entCategory(PR_STEP_TOLR) [lsort [list \
+set entCategory(stepTOLR) [lsort [list \
 angular_location angular_size angularity_tolerance circular_runout_tolerance coaxiality_tolerance common_datum concentricity_tolerance cylindricity_tolerance \
 datum datum_feature datum_reference datum_reference_compartment datum_reference_element datum_reference_modifier_with_value datum_system datum_target \
 default_tolerance_table default_tolerance_table_cell dimensional_characteristic_representation dimensional_location dimensional_location_with_datum_feature \
@@ -627,7 +627,7 @@ total_runout_tolerance unequally_disposed_geometric_tolerance]]
 
 # -----------------------------------------------------------------------------------------------------
 # STEP composites
-set entCategory(PR_STEP_COMP) [lsort [list \
+set entCategory(stepCOMP) [lsort [list \
 angle_direction_reference cartesian_11 composite_assembly_definition composite_assembly_sequence_definition composite_assembly_table composite_material_designation \
 composite_sheet_representation curve_11 cylindrical_11 draped_defined_transformation draped_orientation_angle flat_pattern_ply_representation_relationship \
 laid_defined_transformation laid_orientation_angle laminate_table min_and_major_ply_orientation_basis part_laminate_table percentage_laminate_definition \
@@ -637,7 +637,7 @@ zone_structural_makeup]]
 
 # -----------------------------------------------------------------------------------------------------
 # STEP kinematics
-set entCategory(PR_STEP_KINE) [lsort [list \
+set entCategory(stepKINE) [lsort [list \
 actuated_kinematic_pair circular_path constrained_kinematic_motion_representation context_dependent_kinematic_link_representation curve_based_path \
 curve_based_path_with_orientation curve_based_path_with_orientation_and_parameters cylindrical_pair cylindrical_pair_range cylindrical_pair_value \
 cylindrical_pair_with_range externally_defined_feature_definition founded_kinematic_path free_kinematic_motion_representation fully_constrained_pair gear_pair \
@@ -665,7 +665,7 @@ universal_pair_range universal_pair_value universal_pair_with_range]]
 
 # -----------------------------------------------------------------------------------------------------
 # STEP measure and unit (quantity)
-set entCategory(PR_STEP_QUAN) [lsort [list \
+set entCategory(stepQUAN) [lsort [list \
 absorbed_dose_measure_with_unit absorbed_dose_unit acceleration_measure_with_unit acceleration_unit amount_of_substance_measure_with_unit amount_of_substance_unit \
 area_measure_with_unit area_unit binary_representation_item boolean_representation_item bytes_representation_item capacitance_measure_with_unit capacitance_unit \
 celsius_temperature_measure_with_unit conductance_measure_with_unit conductance_unit context_dependent_unit conversion_based_unit currency_measure_with_unit \
@@ -691,7 +691,7 @@ volume_measure_with_unit volume_unit]]
 
 # -----------------------------------------------------------------------------------------------------
 # STEP representation
-set entCategory(PR_STEP_REPR) [lsort [list \
+set entCategory(stepREPR) [lsort [list \
 advanced_brep_shape_representation auxiliary_geometric_representation_item characterized_item_within_representation characterized_representation \
 compound_representation_item compound_shape_representation constructive_geometry_representation constructive_geometry_representation_relationship \
 context_dependent_shape_representation csg_2d_shape_representation csg_shape_representation curve_swept_solid_shape_representation definitional_representation \
@@ -713,7 +713,7 @@ value_range variational_representation_item visual_appearance_representation]]
 
 # -----------------------------------------------------------------------------------------------------
 # STEP feature
-set entCategory(PR_STEP_FEAT) [lsort [list \
+set entCategory(stepFEAT) [lsort [list \
 applied_area barring_hole bead bead_end boss boss_top chamfer chamfer_offset circular_closed_profile circular_pattern closed_path_profile composite_hole \
 compound_feature counterbore_hole_definition counterdrill_hole_definition countersink_hole_definition edge_round explicit_composite_hole explicit_round_hole \
 externally_defined_feature_definition feature_component_definition feature_component_relationship feature_definition feature_in_panel feature_pattern \
@@ -726,7 +726,7 @@ thread_runout transition_feature turned_knurl vee_profile]]
 
 # -----------------------------------------------------------------------------------------------------
 # STEP AP242
-set entCategory(PR_STEP_AP242) [lsort [list \
+set entCategory(stepAP242) [lsort [list \
 a3m_equivalence_accuracy_association a3m_equivalence_assessment_by_logical_test a3m_equivalence_assessment_by_numerical_test a3m_equivalence_criteria_representation \
 a3m_equivalence_criterion a3m_equivalence_criterion_for_assembly a3m_equivalence_criterion_for_shape a3m_equivalence_criterion_of_assembly_data_structure \
 a3m_equivalence_criterion_of_component_property_difference a3m_equivalence_criterion_of_detailed_assembly_data_content \
@@ -870,7 +870,7 @@ wrongly_placed_void zero_surface_normal zone_breakdown_context zone_element_usag
 
 # -----------------------------------------------------------------------------------------------------
 # STEP common
-set entCategory(PR_STEP_COMM) [lsort [list \
+set entCategory(stepCOMM) [lsort [list \
 abs_function abstract_variable acos_function action action_actual action_assignment action_directive action_happening action_method action_method_assignment \
 action_method_relationship action_method_role action_property action_property_representation action_relationship action_request_assignment action_request_solution \
 action_request_status action_resource action_resource_requirement action_resource_type action_status address alternate_product_relationship and_expression \

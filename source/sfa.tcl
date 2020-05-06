@@ -91,27 +91,27 @@ foreach item $auto_path {if {[string first "STEP-File-Analyzer" $item] != -1} {s
 # -----------------------------------------------------------------------------------------------------
 # initialize variables, set opt to 1
 foreach id { \
-  LOGFILE PMIGRF PMISEM PR_STEP_AP242 PR_STEP_COMM PR_STEP_COMP PR_STEP_FEAT PR_STEP_KINE PR_STEP_PRES PR_STEP_QUAN \
-  PR_STEP_REPR PR_STEP_SHAP PR_STEP_TOLR VALPROP VIZFEA VIZFEABC VIZFEADS VIZFEALV VIZPMI VIZPRT VIZPRTEDGE VIZPRTWIRE VIZTPG XL_OPEN \
+  logFile outputOpen partEdges partSketch PMIGRF PMISEM stepAP242 stepCOMM stepCOMP \
+  stepPRES stepQUAN stepREPR stepSHAP stepTOLR valProp viewFEA viewPart viewPMI viewTessPart \
 } {set opt($id) 1}
 
 # set opt to 0
 foreach id { \
-  DEBUG1 DEBUGINV DEBUGX3D HIDELINKS indentGeometry indentStyledItem INVERSE PMIGRFCOV PMISEMDIM PR_STEP_CPNT PR_STEP_GEOM \
-  PR_USER SHOWALLPMI SYNCHK VIZPRTONLY VIZFEADSntail VIZFEALVS VIZTPGMSH writeDirType XL_FPREC XL_SORT \
+  feaBounds feaDisp feaDispNoTail feaLoads feaLoadScale indentGeometry indentStyledItem INVERSE partNormals partOnly PMIGRFCOV \
+  PMISEMDIM SHOWALLPMI stepCPNT stepFEAT stepGEOM stepKINE stepUSER syntaxChecker tessPartMesh writeDirType xlHideLinks xlNoRound xlSort \
 } {set opt($id) 0}
 
 set opt(gpmiColor) 0
-set opt(x3dQuality) 7
-set opt(XL_ROWLIM) 1003
-set opt(XLSCSV) Excel
+set opt(partQuality) 7
+set opt(xlMaxRows) 1003
+set opt(xlFormat) Excel
 
 set coverageSTEP 0
 set dispCmd "Default"
 set dispCmds {}
 set edmWhereRules 0
 set edmWriteToFile 0
-set eeWriteToFile  0
+set stepToolsWriteToFile  0
 set excelVersion 1000
 set filesProcessed 0
 set lastX3DOM ""
@@ -129,7 +129,12 @@ set userWriteDir $mydocs
 set writeDir $userWriteDir
 
 set developer 0
-if {$env(USERDOMAIN) == "NIST" || $env(USERDOMAIN) == "Cassie"} {set developer 1}
+if {$env(USERDOMAIN) == "NIST" || $env(USERDOMAIN) == "Cassie"} {
+  set developer 1
+  set opt(DEBUG1) 0
+  set opt(DEBUGINV) 0
+  set opt(DEBUGX3D) 0
+}
 
 # initialize data
 initData
@@ -142,25 +147,28 @@ if {[file exists $optionsFile]} {
   if {[catch {
     source $optionsFile
 
-# rename and unset old variable names from old options file
-    if {[info exists opt(VIZBRP)]}    {set opt(VIZPRT)    $opt(VIZBRP)}
-    if {[info exists opt(VIZTES)]}    {set opt(VIZTPG)    $opt(VIZTES)}
-    if {[info exists opt(VIZTESMSH)]} {set opt(VIZTPGMSH) $opt(VIZTESMSH)}
-    if {[info exists opt(CRASH)]}     {set filesProcessed 1}
+# rename and unset old opt variables
+    foreach pair [list {HIDELINKS xlHideLinks} {LOGFILE logFile} {SYNCHK syntaxChecker} {VALPROP valProp} {VIZBRP VIZPRT} {VIZFEA viewFEA} {VIZFEABC feaBounds} \
+      {VIZFEADS feaDisp} {VIZFEADSntail feaDispNoTail} {VIZFEALV feaLoads} {VIZFEALVS feaLoadScale} {VIZPMI viewPMI} {VIZPRT viewPart} {VIZPRTEDGE partEdges} \
+      {VIZPRTNORMAL partNormals} {VIZPRTONLY partOnly} {VIZPRTWIRE partSketch} {VIZTES viewTessPart} {VIZTESMSH tessPartMesh} {VIZTPG viewTessPart} \
+      {VIZTPGMSH tessPartMesh} {x3dQuality partQuality} {XL_FPREC xlNoRound} {XL_OPEN outputOpen} {XL_ROWLIM xlMaxRows} {XL_SORT xlSort} {XLSCSV xlFormat} \
+    ] {
+      set old [lindex $pair 0]
+      set new [lindex $pair 1]
+      if {[info exists opt($old)]} {set opt($new) $opt($old); unset opt($old)}
+    }
 
-    if {[info exists gpmiColor]}        {set opt(gpmiColor) $gpmiColor}
-    if {[info exists indentGeometry]}   {set opt(indentGeometry) $indentGeometry}
-    if {[info exists indentStyledItem]} {set opt(indentStyledItem) $indentStyledItem}
-    if {[info exists row_limit]}        {set opt(XL_ROWLIM) $row_limit}
-    if {[info exists writeDirType]}     {set opt(writeDirType) $writeDirType}
-    if {$opt(writeDirType) == 1}        {set opt(writeDirType) 0}
+    if {[info exists opt(CRASH)]}   {set filesProcessed 1}
+    if {[info exists gpmiColor]}    {set opt(gpmiColor) $gpmiColor}
+    if {[info exists row_limit]}    {set opt(xlMaxRows) $row_limit}
+    if {[info exists writeDirType]} {set opt(writeDirType) $writeDirType}
+    if {$opt(writeDirType) == 1}    {set opt(writeDirType) 0}
   
 # unset old unused opt variables
-    foreach item {COUNT CRASH DELCOVROWS DISPGUIDE1 EX_A2P3D EX_ANAL EX_ARBP EX_LP feaNodeType FIRSTTIME FN_APPEND indentGeomtry GENX3DOM PMIP PMIPROP PMIVRML \
-      PR_STEP_AP203 PR_STEP_AP209 PR_STEP_AP210 PR_STEP_AP214 PR_STEP_AP238 PR_STEP_AP239 PR_STEP_AP242_CONS PR_STEP_AP242_GEOM PR_STEP_AP242_KINE PR_STEP_AP242_MATH \
-      PR_STEP_AP242_OTHER PR_STEP_AP242_QUAL PR_STEP_ASPECT PR_STEP_BAD PR_STEP_GEO PR_STEP_OTHER PR_STEP_REP PR_STEP_UNIT PR_TYPE ROWLIM SEMPROP SORT VIZ209 \
-      VIZBRP VIZBRPCLR VIZBRPEDG VIZBRPNRM VIZBRPmsg VIZFEADStail VIZTES VIZTESMESH VPDBG VIZPMIVP XL_KEEPOPEN XL_LINK1 XL_LINK2 XL_LINK3 XL_ORIENT XL_SCROLL XL_XLSX XLSBUG XLSBUG1} {catch {unset opt($item)}
+    foreach item {COUNT CRASH DELCOVROWS DISPGUIDE1 feaNodeType FIRSTTIME FN_APPEND indentGeomtry GENX3DOM \
+      PMIP PMIPROP PMIVRML ROWLIM SEMPROP SORT feaDisptail VPDBG XLSBUG XLSBUG1} {catch {unset opt($item)}
     }
+    foreach id [array names opt] {foreach str {EX_ PR_ XL_ VIZ} {if {[string first $str $id] == 0} {unset opt($id)}}}
   } emsg]} {
     set endMsg "Error reading Options file [truncFileName $optionsFile]: $emsg"
   }
@@ -173,19 +181,19 @@ if {[info exists fileDir1]}     {if {![file exists $fileDir1]}     {set fileDir1
 if {[info exists userEntityFile]} {
   if {![file exists $userEntityFile]} {
     set userEntityFile ""
-    set opt(PR_USER) 0
+    set opt(stepUSER) 0
   }
 }
 
 # fix row limit
-if {$opt(XL_ROWLIM) < 103 || ([string range $opt(XL_ROWLIM) end-1 end] != "03" && \
-   [string range $opt(XL_ROWLIM) end-1 end] != "76" && [string range $opt(XL_ROWLIM) end-1 end] != "36")} {set opt(XL_ROWLIM) 103}
+if {$opt(xlMaxRows) < 103 || ([string range $opt(xlMaxRows) end-1 end] != "03" && \
+   [string range $opt(xlMaxRows) end-1 end] != "76" && [string range $opt(xlMaxRows) end-1 end] != "36")} {set opt(xlMaxRows) 103}
 
 # for output format buttons
 set ofExcel 0
 set ofCSV 0
 set ofNone 0
-switch -- $opt(XLSCSV) {
+switch -- $opt(xlFormat) {
   Excel   {set ofExcel 1}
   CSV     {set ofExcel 1; set ofCSV 1}
   None    {set ofNone 1}

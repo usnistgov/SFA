@@ -1,5 +1,5 @@
 proc checkValues {} {
-  global allNone appName appNames buttons developer edmWhereRules edmWriteToFile eeWriteToFile ofCSV opt userEntityList useXL
+  global allNone appName appNames buttons developer edmWhereRules edmWriteToFile stepToolsWriteToFile ofCSV opt userEntityList useXL
 
   set butNormal {}
   set butDisabled {}
@@ -25,9 +25,9 @@ proc checkValues {} {
 # STEP Tools
     catch {
       if {[string first "Conformance Checker" $appName] != -1} {
-        pack $buttons(eeWriteToFile) -side left -anchor w -padx 5
+        pack $buttons(stepToolsWriteToFile) -side left -anchor w -padx 5
       } else {
-        pack forget $buttons(eeWriteToFile)
+        pack forget $buttons(stepToolsWriteToFile)
       }
     }
     
@@ -44,15 +44,15 @@ proc checkValues {} {
 
 # configure Excel, CSV, Viz only, Excel or not
   set btext "Generate "
-  if {$opt(XLSCSV) == "Excel"} {
+  if {$opt(xlFormat) == "Excel"} {
     append btext "Spreadsheet"
-  } elseif {$opt(XLSCSV) == "CSV"} {
+  } elseif {$opt(xlFormat) == "CSV"} {
     if {$ofCSV} {append btext "Spreadsheet and "}
     append btext "CSV Files"
-  } elseif {$opt(XLSCSV) == "None"} {
+  } elseif {$opt(xlFormat) == "None"} {
     append btext "View"
   }
-  if {$opt(XLSCSV) != "None" && ($opt(VIZPRT) || $opt(VIZFEA) || $opt(VIZPMI) || $opt(VIZTPG))} {
+  if {$opt(xlFormat) != "None" && ($opt(viewPart) || $opt(viewFEA) || $opt(viewPMI) || $opt(viewTessPart))} {
     append btext " and View"
   }
   catch {$buttons(genExcel) configure -text $btext}
@@ -60,143 +60,143 @@ proc checkValues {} {
 
 # no Excel
   if {!$useXL} {
-    foreach item {INVERSE PMIGRF PMISEM VALPROP} {set opt($item) 0}
-    set opt(XL_OPEN) 1
+    foreach item {INVERSE PMIGRF PMISEM valProp} {set opt($item) 0}
+    set opt(outputOpen) 1
     foreach item [array names opt] {
-      if {[string first "PR_STEP" $item] == 0} {lappend butNormal "opt$item"}
+      if {[string first "step" $item] == 0} {lappend butNormal $item}
     }
-    foreach b {optHIDELINKS optINVERSE optPMIGRF optPMISEM optVALPROP optXL_FPREC optXL_SORT allNone2} {lappend butDisabled $b}
-    foreach b {optVIZFEA optVIZPMI optVIZTPG optVIZPRT} {lappend butNormal $b}
-    foreach b {allNone0 allNone1 allNone3 optPR_USER} {lappend butNormal $b}
+    foreach b {xlHideLinks INVERSE PMIGRF PMISEM valProp xlNoRound xlSort allNone2} {lappend butDisabled $b}
+    foreach b {viewFEA viewPMI viewTessPart viewPart} {lappend butNormal $b}
+    foreach b {allNone0 allNone1 allNone3 stepUSER} {lappend butNormal $b}
 
 # Excel
   } else {
     foreach item [array names opt] {
-      if {[string first "PR_STEP" $item] == 0} {lappend butNormal "opt$item"}
+      if {[string first "step" $item] == 0} {lappend butNormal $item}
     }
-    foreach b {optHIDELINKS optINVERSE optPMIGRF optPMISEM optVALPROP optXL_FPREC optXL_SORT} {lappend butNormal $b}
-    foreach b {optVIZFEA optVIZPMI optVIZTPG optVIZPRT} {lappend butNormal $b}
-    foreach b {allNone0 allNone1 allNone2 allNone3 optPR_USER} {lappend butNormal $b}
+    foreach b {xlHideLinks INVERSE PMIGRF PMISEM valProp xlNoRound xlSort} {lappend butNormal $b}
+    foreach b {viewFEA viewPMI viewTessPart viewPart} {lappend butNormal $b}
+    foreach b {allNone0 allNone1 allNone2 allNone3 stepUSER} {lappend butNormal $b}
   }
 
 # viz only
-  if {$opt(XLSCSV) == "None"} {
+  if {$opt(xlFormat) == "None"} {
     foreach item [array names opt] {
-      if {[string first "PR_STEP" $item] == 0} {lappend butDisabled "opt$item"}
+      if {[string first "step" $item] == 0} {lappend butDisabled $item}
     }
-    foreach b {optPMIGRF optPMIGRFCOV optPMISEM optPMISEMDIM optVALPROP optPR_USER optINVERSE} {lappend butDisabled $b}
+    foreach b {PMIGRF PMIGRFCOV PMISEM PMISEMDIM valProp stepUSER INVERSE} {lappend butDisabled $b}
     foreach b {allNone0 allNone2} {lappend butDisabled $b}
     foreach b {userentity userentityopen} {lappend butDisabled $b}
     set userEntityList {}
-    if {$opt(VIZFEA) == 0 && $opt(VIZPMI) == 0 && $opt(VIZTPG) == 0 && $opt(VIZPRT) == 0} {
-      foreach item {VIZFEA VIZPMI VIZTPG VIZPRT} {set opt($item) 1}
+    if {$opt(viewFEA) == 0 && $opt(viewPMI) == 0 && $opt(viewTessPart) == 0 && $opt(viewPart) == 0} {
+      foreach item {viewFEA viewPMI viewTessPart viewPart} {set opt($item) 1}
     }
   } else {
-    set opt(VIZPRTONLY) 0
-    lappend butDisabled optVIZPRTONLY
+    set opt(partOnly) 0
+    lappend butDisabled partOnly
   }
 
 # part geometry
-  if {$opt(VIZPRT)} {
-    foreach b {optVIZPRTONLY optVIZPRTEDGE optVIZPRTWIRE x3dqual x3dQuality4 x3dQuality7 x3dQuality9} {lappend butNormal $b}
-    if {$opt(VIZPRTONLY) && $opt(XLSCSV) == "None"} {
-      foreach b {optVIZFEA optVIZPMI optVIZTPG allNone3} {lappend butDisabled $b}
-      foreach item {VIZFEA VIZPMI VIZTPG} {set opt($item) 0}
+  if {$opt(viewPart)} {
+    foreach b {partOnly partEdges partSketch partNormals partqual partQuality4 partQuality7 partQuality9} {lappend butNormal $b}
+    if {$opt(partOnly) && $opt(xlFormat) == "None"} {
+      foreach b {syntaxChecker viewFEA viewPMI viewTessPart allNone3} {lappend butDisabled $b}
+      foreach item {syntaxChecker viewFEA viewPMI viewTessPart} {set opt($item) 0}
     } else {
-      foreach b {optVIZFEA optVIZPMI optVIZTPG allNone3} {lappend butNormal $b}
+      foreach b {syntaxChecker viewFEA viewPMI viewTessPart allNone3} {lappend butNormal $b}
     }
   } else {
-    foreach b {optVIZPRTONLY optVIZPRTEDGE optVIZPRTWIRE x3dqual x3dQuality4 x3dQuality7 x3dQuality9} {lappend butDisabled $b}
-    set opt(VIZPRTONLY) 0
+    foreach b {partOnly partEdges partSketch partNormals partqual partQuality4 partQuality7 partQuality9} {lappend butDisabled $b}
+    set opt(partOnly) 0
   }
 
 # graphical PMI report
   if {$opt(PMIGRF)} {
-    if {$opt(XLSCSV) != "None"} {
-      foreach b {optPR_STEP_AP242 optPR_STEP_PRES optPR_STEP_REPR optPR_STEP_SHAP} {
-        set opt([string range $b 3 end]) 1
+    if {$opt(xlFormat) != "None"} {
+      foreach b {stepAP242 stepPRES stepREPR stepSHAP} {
+        set opt($b) 1
         lappend butDisabled $b
       }
     }
-    lappend butNormal optPMIGRFCOV
+    lappend butNormal PMIGRFCOV
   } else {
-    lappend butNormal optPR_STEP_PRES
-    if {!$opt(VALPROP)} {lappend butNormal optPR_STEP_QUAN}
-    if {!$opt(PMISEM)}  {foreach b {optPR_STEP_AP242 optPR_STEP_SHAP optPR_STEP_REPR} {lappend butNormal $b}}
-    lappend butDisabled optPMIGRFCOV
+    lappend butNormal stepPRES
+    if {!$opt(valProp)} {lappend butNormal stepQUAN}
+    if {!$opt(PMISEM)}  {foreach b {stepAP242 stepSHAP stepREPR} {lappend butNormal $b}}
+    lappend butDisabled PMIGRFCOV
   }
 
 # validation properties
-  if {$opt(VALPROP)} {
-    foreach b {optPR_STEP_AP242 optPR_STEP_QUAN optPR_STEP_REPR optPR_STEP_SHAP} {
-      set opt([string range $b 3 end]) 1
+  if {$opt(valProp)} {
+    foreach b {stepAP242 stepQUAN stepREPR stepSHAP} {
+      set opt($b) 1
       lappend butDisabled $b
     }
   } elseif {!$opt(PMIGRF)} {
-    lappend butNormal optPR_STEP_QUAN
+    lappend butNormal stepQUAN
   }
 
 # graphical PMI view
-  if {$opt(VIZPMI)} {
+  if {$opt(viewPMI)} {
     foreach b {gpmiColor0 gpmiColor1 gpmiColor2 gpmiColor3 linecolor} {lappend butNormal $b}
-    if {$opt(XLSCSV) != "None"} {
-      set opt(PR_STEP_PRES) 1
-      lappend butDisabled optPR_STEP_PRES
+    if {$opt(xlFormat) != "None"} {
+      set opt(stepPRES) 1
+      lappend butDisabled stepPRES
     }
   } else {
     foreach b {gpmiColor0 gpmiColor1 gpmiColor2 gpmiColor3 linecolor} {lappend butDisabled $b}
   }
 
 # FEM view
-  if {$opt(VIZFEA)} {
-    foreach b {optVIZFEABC optVIZFEALV optVIZFEADS} {lappend butNormal $b}
-    if {$opt(VIZFEALV)} {
-      foreach b {optVIZFEALVS} {lappend butNormal $b}
+  if {$opt(viewFEA)} {
+    foreach b {feaBounds feaLoads feaDisp} {lappend butNormal $b}
+    if {$opt(feaLoads)} {
+      lappend butNormal feaLoadScale
     } else {
-      foreach b {optVIZFEALVS} {lappend butDisabled $b}
+      lappend butDisabled feaLoadScale
     }
-    if {$opt(VIZFEADS)} {
-      foreach b {optVIZFEADSntail} {lappend butNormal $b}
+    if {$opt(feaDisp)} {
+      lappend butNormal feaDispNoTail
     } else {
-      foreach b {optVIZFEADSntail} {lappend butDisabled $b}
+      lappend butDisabled feaDispNoTail
     }
   } else {
-    foreach b {optVIZFEABC optVIZFEALV optVIZFEALVS optVIZFEADS optVIZFEADSntail} {lappend butDisabled $b}
+    foreach b {feaBounds feaLoads feaLoadScale feaDisp feaDispNoTail} {lappend butDisabled $b}
   }
 
 # semantic PMI report
   if {$opt(PMISEM)} {
-    foreach b {optPR_STEP_AP242 optPR_STEP_REPR optPR_STEP_SHAP optPR_STEP_TOLR optPR_STEP_QUAN} {
-      set opt([string range $b 3 end]) 1
+    foreach b {stepAP242 stepREPR stepSHAP stepTOLR stepQUAN} {
+      set opt($b) 1
       lappend butDisabled $b
     }
-    lappend butNormal optPMISEMDIM
+    lappend butNormal PMISEMDIM
   } else {
-    foreach b {optPR_STEP_REPR optPR_STEP_TOLR} {lappend butNormal $b}
+    foreach b {stepREPR stepTOLR} {lappend butNormal $b}
     if {!$opt(PMIGRF)} {
-      if {!$opt(VALPROP)} {lappend butNormal optPR_STEP_QUAN}
-      foreach b {optPR_STEP_AP242 optPR_STEP_SHAP} {lappend butNormal $b}
+      if {!$opt(valProp)} {lappend butNormal stepQUAN}
+      foreach b {stepAP242 stepSHAP} {lappend butNormal $b}
     }
-    lappend butDisabled optPMISEMDIM
+    lappend butDisabled PMISEMDIM
   }
 
 # not part geometry view
-  if {!$opt(VIZPRT) && !$opt(PMISEM)} {lappend butNormal optPR_STEP_PRES}
+  if {!$opt(viewPart) && !$opt(PMISEM)} {lappend butNormal stepPRES}
 
 # tessellated geometry view
-  if {$opt(VIZTPG)} {
-    if {$opt(XLSCSV) != "None"} {
-      set opt(PR_STEP_PRES) 1
-      lappend butDisabled optPR_STEP_PRES
+  if {$opt(viewTessPart)} {
+    if {$opt(xlFormat) != "None"} {
+      set opt(stepPRES) 1
+      lappend butDisabled stepPRES
     }
-    foreach b {optVIZTPGMSH} {lappend butNormal $b}
+    lappend butNormal tessPartMesh
   } else {
-    catch {if {!$opt(PMISEM)} {lappend butNormal optPR_STEP_PRES}}
-    foreach b {optVIZTPGMSH} {lappend butDisabled $b}
+    catch {if {!$opt(PMISEM)} {lappend butNormal stepPRES}}
+    lappend butDisabled tessPartMesh
   }
   
 # user-defined entity list
-  if {$opt(PR_USER)} {
+  if {$opt(stepUSER)} {
     foreach b {userentity userentityopen} {lappend butNormal $b}
   } else {
     foreach b {userentity userentityopen} {lappend butDisabled $b}
@@ -205,9 +205,9 @@ proc checkValues {} {
   
   if {$developer} {
     if {$opt(INVERSE)} {
-      foreach b {optDEBUGINV} {lappend butNormal $b}
+      lappend butNormal DEBUGINV
     } else {
-      foreach b {optDEBUGINV} {lappend butDisabled $b}
+      lappend butDisabled DEBUGINV
     }
   }
   
@@ -221,11 +221,11 @@ proc checkValues {} {
 # make sure there is some entity type to process
   set nopt 0
   foreach idx [lsort [array names opt]] {
-    if {[string first "PR_" $idx] == 0 || $idx == "VALPROP" || $idx == "PMIGRF" || $idx == "PMISEM"} {
+    if {[string first "step" $idx] == 0 || $idx == "valProp" || $idx == "PMIGRF" || $idx == "PMISEM"} {
       incr nopt $opt($idx)
     }
   }
-  if {$nopt == 0 && $opt(XLSCSV) != "None"} {set opt(PR_STEP_COMM) 1}
+  if {$nopt == 0 && $opt(xlFormat) != "None"} {set opt(stepCOMM) 1}
   
 # configure buttons
   if {[llength $butNormal]   > 0} {foreach but $butNormal   {catch {$buttons($but) configure -state normal}}}
@@ -235,20 +235,20 @@ proc checkValues {} {
   if {[info exists allNone]} {
     if {$allNone == 1} {
       foreach item [array names opt] {
-        if {[string first "PR_STEP" $item] == 0 && $item != "PR_STEP_COMM"} {
+        if {[string first "step" $item] == 0 && $item != "stepCOMM"} {
           if {$opt($item) == 1} {set allNone -1; break}
         }
         if {[string length $item] == 6 && ([string first "PMI" $item] == 0 || [string first "VIZ" $item] == 0)} {
           if {$opt($item) == 1} {set allNone -1; break}
         }
       }
-    } elseif {($allNone == 2 && ($opt(PMISEM) != 1 || $opt(PMIGRF) != 1 || $opt(VALPROP) != 1)) ||
-              ($allNone == 3 && ($opt(VIZPMI) != 1 || $opt(VIZTPG) != 1 || $opt(VIZFEA)  != 1 || $opt(VIZPRT) != 1))} {
+    } elseif {($allNone == 2 && ($opt(PMISEM) != 1 || $opt(PMIGRF) != 1 || $opt(valProp) != 1)) ||
+              ($allNone == 3 && ($opt(viewPMI) != 1 || $opt(viewTessPart) != 1 || $opt(viewFEA)  != 1 || $opt(viewPart) != 1))} {
       set allNone -1
     } elseif {$allNone == 0} {
       foreach item [array names opt] {
-        if {[string first "PR_STEP" $item] == 0} {
-          if {$item != "PR_STEP_GEOM" && $item != "PR_STEP_CPNT"} {
+        if {[string first "step" $item] == 0} {
+          if {$item != "stepGEOM" && $item != "stepCPNT"} {
             if {$opt($item) == 0} {set allNone -1}
           }
         }
@@ -315,8 +315,8 @@ proc setColorIndex {ent {multi 0}} {
     set tc [expr {min($tc1,$tc2,$tc3)}]
 
 # exception for STEP measures    
-    if {$tc1 == $entColorIndex(PR_STEP_QUAN) || $tc2 == $entColorIndex(PR_STEP_QUAN) || $tc3 == $entColorIndex(PR_STEP_QUAN)} {
-      set tc $entColorIndex(PR_STEP_QUAN)
+    if {$tc1 == $entColorIndex(stepQUAN) || $tc2 == $entColorIndex(stepQUAN) || $tc3 == $entColorIndex(stepQUAN)} {
+      set tc $entColorIndex(stepQUAN)
     }
 
 # fix some AP209 entities with '_and_'
@@ -399,7 +399,7 @@ proc openFile {{openName ""}} {
 
 # single file selected
   } elseif {[file exists $localName]} {
-    catch {pack forget $buttons(pgb1)}
+    catch {pack forget $buttons(progressBarMulti)}
   
 # check for zipped file
     if {[string first ".stpz" [string tolower $localName]] != -1} {unzipFile}  
@@ -495,8 +495,7 @@ proc saveState {{ok 1}} {
 
 # opt variables
     foreach idx [lsort [array names opt]] {
-      if {([string first "PR_" $idx] == -1 || [string first "PR_STEP" $idx] == 0 || [string first "PR_USER" $idx] == 0) && \
-           [string first "DEBUG" $idx] == -1 && [string first "indent" $idx] == -1} {
+      if {[string first "DEBUG" $idx] == -1 && [string first "indent" $idx] == -1} {
         set var opt($idx)
         set vartmp [set $var]
         if {[string first "/" $vartmp] != -1 || [string first "\\" $vartmp] != -1 || [string first " " $vartmp] != -1} {
@@ -580,7 +579,7 @@ proc saveState {{ok 1}} {
 
 #-------------------------------------------------------------------------------
 proc runOpenProgram {} {
-  global appName dispCmd editorCmd edmWhereRules edmWriteToFile eeWriteToFile File localName
+  global appName dispCmd editorCmd edmWhereRules edmWriteToFile stepToolsWriteToFile File localName
 
   set dispFile $localName
   set idisp [file rootname [file tail $dispCmd]]
@@ -633,7 +632,7 @@ proc runOpenProgram {} {
     cd [file dirname $stfile]
 
 # gui version
-    if {[string first "gui" $dispCmd] != -1 && !$eeWriteToFile} {
+    if {[string first "gui" $dispCmd] != -1 && !$stepToolsWriteToFile} {
       if {[catch {exec $dispCmd $stfile &} err]} {outputMsg "Conformance Checker error:\n $err" red}
 
 # non-gui version
@@ -891,7 +890,7 @@ proc checkForExcel {{multFile 0}} {
   set pid1 [twapi::get_process_ids -name "EXCEL.EXE"]
   if {![info exists useXL]} {set useXL 1}
   
-  if {[llength $pid1] > 0 && $opt(XLSCSV) != "None"} {
+  if {[llength $pid1] > 0 && $opt(xlFormat) != "None"} {
     if {[info exists buttons]} {
       if {!$multFile} {
         set msg "There are at least ([llength $pid1]) Excel spreadsheets already opened.\n\nDo you want to close the spreadsheets?"
@@ -943,7 +942,7 @@ proc formatComplexEnt {str {space 0}} {
 
 # check if _and_ is part of the entity name
     set ok 1
-    foreach cat {PR_STEP_AP242 PR_STEP_COMM PR_STEP_TOLR PR_STEP_PRES PR_STEP_KINE PR_STEP_COMP} {
+    foreach cat {stepAP242 stepCOMM stepTOLR stepPRES stepKINE stepCOMP} {
       if {$opt($cat)} {if {[lsearch $entCategory($cat) $str] != -1} {set ok 0; break}}
     }
     if {[info exists stepAP]} {
@@ -1168,15 +1167,15 @@ proc outputMsg {msg {color "black"}} {
   } else {
     puts $msg
   }
-  if {$opt(LOGFILE) && [info exists logFile]} {puts $logFile $msg}
+  if {$opt(logFile) && [info exists logFile]} {puts $logFile $msg}
 }
 
 #-------------------------------------------------------------------------------
 proc errorMsg {msg {color ""}} {
-  global errmsg logFile opt outputWin stepAP
+  global clTextColor errmsg logFile opt outputWin stepAP
 
   set oklog 0
-  if {$opt(LOGFILE) && [info exists logFile]} {set oklog 1}
+  if {$opt(logFile) && [info exists logFile]} {set oklog 1}
   
 # check if error message has already been used
   if {![info exists errmsg]} {set errmsg ""}
@@ -1197,7 +1196,9 @@ proc errorMsg {msg {color ""}} {
           if {[info exists outputWin]} { 
             $outputWin issue "$msg " syntax
           } else {
+            catch {twapi::set_console_default_attr stdout -fgyellow 1}
             puts $logmsg
+            catch {eval twapi::set_console_default_attr stdout $clTextColor}
           }
         }
 
@@ -1211,7 +1212,9 @@ proc errorMsg {msg {color ""}} {
         if {[info exists outputWin]} { 
           $outputWin issue "$msg$ilevel " error
         } else {
+          catch {twapi::set_console_default_attr stdout -fgyellow 1}
           puts $logmsg
+          catch {eval twapi::set_console_default_attr stdout $clTextColor}
         }
       }
 
@@ -1221,7 +1224,9 @@ proc errorMsg {msg {color ""}} {
       if {[info exists outputWin]} { 
         $outputWin issue "$msg " $color
       } else {
+        catch {twapi::set_console_default_attr stdout -fgyellow 1}
         puts $logmsg
+        catch {eval twapi::set_console_default_attr stdout $clTextColor}
       }
     }
     update idletasks

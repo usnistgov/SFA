@@ -58,12 +58,15 @@ catch {
   package require vfs::zip
 }
 
+# text color
+set clTextColor [lindex [twapi::get_console_screen_buffer_info stdout -textattr] 1]
+
 # no arguments, no file, print help, and exit
-set helpText "\nUsage: sfa-cl.exe myfile.stp \[csv\] \[viz\] \[stats\] \[noopen\] \[file\]
+set helpText "\nUsage: sfa-cl.exe myfile.stp \[csv\] \[view\] \[stats\] \[noopen\] \[file\]
 
 Optional command line settings:
   csv     Generate CSV files
-  viz     Only generate Views and no Spreadsheet or CSV files
+  view    Only generate Views and no Spreadsheet or CSV files
   stats   Only report characteristics of the STEP file, no output files are generated
   noopen  Do not open the Spreadsheet or View after it has been generated
   nolog   Do not generate a Log file
@@ -78,7 +81,7 @@ Optional command line settings:
  You should run the GUI version of the software first.  If not already installed, the
  IFCsvr toolkit used to read STEP files will be installed the first time this software
  is run.
- 
+
  Existing Spreadsheets and View files are always overwritten.  An Internet connection
  is required to show View files in the web browser.
 
@@ -93,14 +96,22 @@ Disclaimers
  system.  NIST assumes no responsibility whatsoever for its use by other parties, and
  makes no guarantees, expressed or implied, about its quality, reliability, or any
  other characteristic.  NIST Disclaimer: https://www.nist.gov/disclaimer
- 
+
+ This software is provided by NIST as a public service.  You may use, copy and
+ distribute copies of the software in any medium, provided that you keep intact this
+ entire notice.  You may improve, modify and create derivative works of the software
+ or any portion of the software, and you may copy and distribute such modifications
+ or works.  Modified works should carry a notice stating that you changed the software
+ and should note the date and nature of any such change.  Please explicitly
+ acknowledge NIST as the source of the software.
+
 Credits
-- Generating spreadsheets:        Microsoft Excel (https://products.office.com/excel)
+- Generating spreadsheets:        Microsoft Excel  https://products.office.com/excel
 - Reading and parsing STEP files: IFCsvr ActiveX Component, Copyright \u00A9 1999, 2005 SECOM Co., Ltd. All Rights Reserved
                                   IFCsvr has been modified by NIST to include STEP schemas.
-                                  The license agreement can be found in C:\\Program Files (x86)\\IFCsvrR300\\doc
-- Viewing part geometry:          Developed by Soonjo Kwon at NIST based on the Open CASCADE STEP Processor
-                                  Open CASCADE License https://www.opencascade.com/content/licensing"
+                                  The license agreement can be found in  C:\\Program Files (x86)\\IFCsvrR300\\doc
+- Translating STEP to X3D:        Developed by Soonjo Kwon at NIST based on the Open CASCADE STEP Processor
+                                  Open CASCADE License  https://www.opencascade.com/content/licensing"
 
 if {$argc == 1} {set arg [string tolower [lindex $argv 0]]}
 if {$argc == 0 || ($argc == 1 && ($arg == "help" || $arg == "-help" || $arg == "-h" || $arg == "-v"))} {
@@ -128,32 +139,28 @@ if {[string first ":" $localName] == -1} {set localName [file join [pwd] $localN
 set localName [file nativename $localName]
 
 # check for zipped file
-set opt(LOGFILE) 0
+set opt(logFile) 0
 if {[string first ".stpz" [string tolower $localName]] != -1} {unzipFile}  
 
 if {![file exists $localName]} {
   puts "\n*** STEP file not found: [truncFileName $localName]"
-  puts $helpText
   exit
 }
 
 # -----------------------------------------------------------------------------------------------------
 # initialize variables, set opt to 1
-foreach id { \
-  LOGFILE PMIGRF PMISEM PR_STEP_AP242 PR_STEP_COMM PR_STEP_COMP PR_STEP_FEAT PR_STEP_KINE PR_STEP_PRES PR_STEP_QUAN \
-  PR_STEP_REPR PR_STEP_SHAP PR_STEP_TOLR VALPROP VIZFEABC VIZFEADS VIZFEALV VIZPRTEDGE VIZPRTWIRE XL_OPEN \
-} {set opt($id) 1}
+foreach id {logFile outputOpen PMIGRF PMISEM stepAP242 stepCOMM stepCOMP stepFEAT stepKINE stepPRES stepQUAN stepREPR stepSHAP stepTOLR valProp} {set opt($id) 1}
 
 # set opt to 0
 foreach id { \
-  DEBUG1 DEBUGINV DEBUGX3D HIDELINKS indentGeometry indentStyledItem INVERSE PMIGRFCOV PMISEMDIM PR_STEP_CPNT PR_STEP_GEOM PR_USER \
-  SHOWALLPMI SYNCHK VIZPRT VIZPRTONLY VIZFEA VIZFEADSntail VIZFEALVS VIZPMI VIZTPG VIZTPGMSH writeDirType XL_FPREC XL_SORT \
+  DEBUG1 DEBUGINV DEBUGX3D feaBounds feaDisp feaDispNoTail feaLoads feaLoadScale indentGeometry indentStyledItem INVERSE partEdges partNormals partOnly partSketch \
+  PMIGRFCOV PMISEMDIM SHOWALLPMI stepCPNT stepGEOM stepUSER syntaxChecker tessPartMesh viewFEA viewPart viewPMI viewTessPart writeDirType xlHideLinks xlNoRound xlSort \
 } {set opt($id) 0}
 
 set opt(gpmiColor) 0
-set opt(x3dQuality) 7
-set opt(XL_ROWLIM) 1003
-set opt(XLSCSV) Excel
+set opt(partQuality) 7
+set opt(xlMaxRows) 1003
+set opt(xlFormat) Excel
 
 set coverageSTEP 0
 set dispCmd ""
@@ -205,6 +212,18 @@ if {[file exists $optionsFile]} {
   if {[catch {
     source $optionsFile
     puts "Reading options file: [truncFileName $optionsFile]"
+
+# rename and unset old opt variables
+    foreach pair [list {HIDELINKS xlHideLinks} {LOGFILE logFile} {SYNCHK syntaxChecker} {VALPROP valProp} {VIZBRP VIZPRT} {VIZFEA viewFEA} {VIZFEABC feaBounds} \
+      {VIZFEADS feaDisp} {VIZFEADSntail feaDispNoTail} {VIZFEALV feaLoads} {VIZFEALVS feaLoadScale} {VIZPMI viewPMI} {VIZPRT viewPart} {VIZPRTEDGE partEdges} \
+      {VIZPRTNORMAL partNormals} {VIZPRTONLY partOnly} {VIZPRTWIRE partSketch} {VIZTES viewTessPart} {VIZTESMSH tessPartMesh} {VIZTPG viewTessPart} \
+      {VIZTPGMSH tessPartMesh} {x3dQuality partQuality} {XL_FPREC xlNoRound} {XL_OPEN outputOpen} {XL_ROWLIM xlMaxRows} {XL_SORT xlSort} {XLSCSV xlFormat} \
+    ] {
+      set old [lindex $pair 0]
+      set new [lindex $pair 1]
+      if {[info exists opt($old)]} {set opt($new) $opt($old); unset opt($old)}
+    }
+    foreach id [array names opt] {foreach str {EX_ PR_ XL_ VIZ} {if {[string first $str $id] == 0} {unset opt($id)}}}
   } emsg]} {
     puts "\n*** Error reading options file [truncFileName $optionsFile]: $emsg"
   }
@@ -216,7 +235,7 @@ if {[file exists $optionsFile]} {
 if {[info exists userEntityFile]} {
   if {![file exists $userEntityFile]} {
     set userEntityFile ""
-    set opt(PR_USER) 0
+    set opt(stepUSER) 0
   }
 }
 
@@ -229,17 +248,21 @@ installIFCsvr 1
 for {set i 1} {$i <= 10} {incr i} {
   set arg [string tolower [lindex $argv $i]]
   if {$arg != ""} {
-    if {[string first "noo" $arg] == 0} {set opt(XL_OPEN) 0}                              
+    if {[string first "noo" $arg] == 0} {set opt(outputOpen) 0}                              
     if {[string first "csv" $arg] == 0} {
-      if {[lsearch [string tolower $argv] "viz"] == -1} {set opt(XLSCSV) "CSV"}
+      if {[lsearch [string tolower $argv] "vi"] == -1} {set opt(xlFormat) "CSV"}
     }                              
-    if {[string first "viz" $arg] == 0} {
-      set opt(XLSCSV) "None"
-      foreach id {VIZPRT VIZFEA VIZFEABC VIZFEADS VIZFEALV VIZPMI VIZTPG} {set opt($id) 1}
-      foreach id {PMIGRF PMISEM VALPROP VIZFEADSntail VIZFEALVS VIZTPGMSH} {set opt($id) 0}
+    if {[string first "vi" $arg] == 0} {
+      set opt(xlFormat) "None"
+      set ofExcel 0
+      set ofCSV 0
+      set allNone -1
+      foreach id {feaBounds feaDisp feaLoads viewFEA viewPart viewPMI viewTessPart} {set opt($id) 1}
+      foreach id {feaDispNoTail feaLoadScale PMIGRF PMISEM tessPartMesh valProp} {set opt($id) 0}
+      checkValues 
     }
     if {[string first "sta" $arg] == 0} {set statsOnly 1}
-    if {[string first "nol" $arg] == 0} {set opt(LOGFILE) 0}
+    if {[string first "nol" $arg] == 0} {set opt(logFile) 0}
   }
 }
 

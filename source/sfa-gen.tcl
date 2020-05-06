@@ -15,7 +15,7 @@ proc genExcel {{numFile 0}} {
 
 # initialize for X3DOM geometry
   set x3dMsgColor green
-  if {$opt(VIZPMI) || $opt(VIZTPG) ||$opt(VIZFEA) || $opt(VIZPRT)} {
+  if {$opt(viewPMI) || $opt(viewTessPart) ||$opt(viewFEA) || $opt(viewPart)} {
     set x3dStartFile 1
     set x3dAxes 1
     set x3dFileName ""
@@ -37,7 +37,7 @@ proc genExcel {{numFile 0}} {
   set lasttime [clock clicks -milliseconds]
 
 # open log file
-  if {$opt(LOGFILE)} {
+  if {$opt(logFile)} {
     set lfile [file rootname $localName]
     if {$opt(writeDirType) == 2} {set lfile [file join $writeDir [file rootname [file tail $localName]]]}
     append lfile "-sfa.log"
@@ -47,8 +47,9 @@ proc genExcel {{numFile 0}} {
 
 # -------------------------------------------------------------------------------------------------
 # view part geometry only, does not require opening STEP file with IFCsvr
-  if {$opt(VIZPRTONLY)} {
+  if {$opt(partOnly) && ![info exists statsOnly]} {
     outputMsg "\nGenerating View"
+    catch {unset entCount}
 
 # add file name to menu
     set ok 0
@@ -97,7 +98,7 @@ proc genExcel {{numFile 0}} {
   }
 
 # run syntax checker too
-  if {$opt(SYNCHK) && [info exist buttons]} {syntaxChecker $localName}
+  if {$opt(syntaxChecker) && [info exist buttons]} {syntaxChecker $localName}
 
 # -------------------------------------------------------------------------------------------------
 # connect to IFCsvr
@@ -185,7 +186,7 @@ proc genExcel {{numFile 0}} {
             lappend characteristics "Graphical PMI (polyline)"
 
           } elseif {$entType == "advanced_brep_shape_representation" || $entType == "manifold_surface_shape_representation" || $entType == "manifold_solid_brep" || $entType == "shell_based_surface_model"} {
-            lappend characteristics "B-rep geometry"
+            lappend characteristics "Part geometry"
           } elseif {$entType == "constructive_geometry_representation"} {
             lappend characteristics "Supplemental geometry"
           } elseif {$entType == "tessellated_solid" || $entType == "tessellated_shell"} {
@@ -193,15 +194,15 @@ proc genExcel {{numFile 0}} {
           } elseif {$entType == "property_definition_representation"} {
             lappend characteristics "Properties"
 
-          } elseif {[lsearch $entCategory(PR_STEP_COMP) $entType] != -1} {
+          } elseif {[lsearch $entCategory(stepCOMP) $entType] != -1} {
             lappend characteristics "Composites"
-            if {$opt(XLSCSV) != "None"} {set opt(PR_STEP_COMP) 1}
-          } elseif {[lsearch $entCategory(PR_STEP_KINE) $entType] != -1} {
+            if {$opt(xlFormat) != "None"} {set opt(stepCOMP) 1}
+          } elseif {[lsearch $entCategory(stepKINE) $entType] != -1} {
             lappend characteristics "Kinematics"
-            if {$opt(XLSCSV) != "None"} {set opt(PR_STEP_KINE) 1}
-          } elseif {[lsearch $entCategory(PR_STEP_FEAT) $entType] != -1} {
+            if {$opt(xlFormat) != "None"} {set opt(stepKINE) 1}
+          } elseif {[lsearch $entCategory(stepFEAT) $entType] != -1} {
             lappend characteristics "Features"
-            if {$opt(XLSCSV) != "None"} {set opt(PR_STEP_FEAT) 1}
+            if {$opt(xlFormat) != "None"} {set opt(stepFEAT) 1}
           } else {
             foreach tol $tolNames {
               if {[string first $tol $entType] != -1} {
@@ -216,7 +217,7 @@ proc genExcel {{numFile 0}} {
         set str ""
         foreach item [lrmdups $characteristics] {append str "$item, "}
         set str [string range $str 0 end-2]
-        if {$str != "B-rep geometry"} {outputMsg "This file contains: $str" red}
+        if {$str != "Part geometry"} {outputMsg "This file contains: $str" red}
       }
     } else {
       errorMsg "The number of entities could not be counted or there are no entities in the STEP file.\n See Examples menu for sample STEP files.\n See Help > Syntax Checker"
@@ -231,7 +232,16 @@ proc genExcel {{numFile 0}} {
 
 # add AP, file size, entity count to multi file summary
     if {$numFile != 0 && [info exists cells1(Summary)]} {
-      $cells1(Summary) Item [expr {$startrow-2}] $colsum $stepAP
+      set ap $stepAP
+
+# fix ISO13584 schemas to fit
+      if {[string first "ISO13584" $ap] == 0} {
+        foreach str {"_LONG_FORM_SCHEMA" "_LIBRARY_IMPLICIT_SCHEMA"} {
+          set c1 [string first $str $ap]
+          if {$c1 != -1} {set ap [string range $ap 0 $c1-1]}
+        }
+      }
+      $cells1(Summary) Item [expr {$startrow-2}] $colsum $ap
 
       set fsize [expr {[file size $fname]/1024}]
       if {$fsize > 10240} {
@@ -366,7 +376,7 @@ proc genExcel {{numFile 0}} {
   set useXL 1
   set xlInstalled 1
   set csvintemp 0
-  if {$opt(XLSCSV) != "None"} {
+  if {$opt(xlFormat) != "None"} {
     if {[catch {
       set pid1 [checkForExcel $multiFile]
       set excel [::tcom::ref createobject Excel.Application]
@@ -388,7 +398,7 @@ proc genExcel {{numFile 0}} {
 
 # generate with Excel but save as CSV
       set saveCSV 0
-      if {$opt(XLSCSV) == "CSV"} {
+      if {$opt(xlFormat) == "CSV"} {
         set saveCSV 1
         catch {$buttons(ofExcel) configure -state disabled}
       } else {
@@ -400,15 +410,15 @@ proc genExcel {{numFile 0}} {
       catch {$excel ScreenUpdating 0}
 
       set rowmax [expr {$rowmax-2}]
-      if {$opt(XL_ROWLIM) < $rowmax} {set rowmax $opt(XL_ROWLIM)}
+      if {$opt(xlMaxRows) < $rowmax} {set rowmax $opt(xlMaxRows)}
 
 # no Excel, use CSV instead
     } emsg]} {
       set useXL 0
       set xlInstalled 0
-      if {$opt(XLSCSV) == "Excel"} {
+      if {$opt(xlFormat) == "Excel"} {
         errorMsg "Excel is not installed or cannot be started: $emsg\n CSV files will be generated instead of a spreadsheet.  See the Output Format option.  Some options are disabled."
-        set opt(XLSCSV) "CSV"
+        set opt(xlFormat) "CSV"
         catch {raise .}
       }
       set ofExcel 0
@@ -448,7 +458,7 @@ proc genExcel {{numFile 0}} {
 # CSV files or viz only
   } else {
     set rowmax [expr {2**20}]
-    if {$opt(XL_ROWLIM) < $rowmax} {set rowmax $opt(XL_ROWLIM)}
+    if {$opt(xlMaxRows) < $rowmax} {set rowmax $opt(xlMaxRows)}
   }
 
 # -------------------------------------------------------------------------------------------------
@@ -517,7 +527,7 @@ proc genExcel {{numFile 0}} {
 
 # user-defined entity list
   catch {set userEntityList {}}
-  if {$opt(PR_USER) && [llength $userEntityList] == 0 && [info exists userEntityFile]} {
+  if {$opt(stepUSER) && [llength $userEntityList] == 0 && [info exists userEntityFile]} {
     set userEntityList {}
     set fileUserEnt [open $userEntityFile r]
     while {[gets $fileUserEnt line] != -1} {
@@ -526,7 +536,7 @@ proc genExcel {{numFile 0}} {
     }
     close $fileUserEnt
     if {[llength $userEntityList] == 0} {
-      set opt(PR_USER) 0
+      set opt(stepUSER) 0
       checkValues
     }
   }
@@ -538,7 +548,7 @@ proc genExcel {{numFile 0}} {
 
   if {![info exists entityTypeNames]} {
     set msg "The STEP file cannot be processed."
-    if {!$opt(SYNCHK)} {append msg "\n Use F8 to run the Syntax Checker to check for errors in the STEP file.\n See Help > Syntax Checker"}
+    if {!$opt(syntaxChecker)} {append msg "\n Use F8 to run the Syntax Checker to check for errors in the STEP file.\n See Help > Syntax Checker"}
     errorMsg $msg
     return
   }
@@ -562,7 +572,7 @@ proc genExcel {{numFile 0}} {
 
 # user-defined entities
       set ok 0
-      if {$opt(PR_USER) && [lsearch $userEntityList $entType] != -1} {set ok 1}
+      if {$opt(stepUSER) && [lsearch $userEntityList $entType] != -1} {set ok 1}
 
 # STEP entities that are translated depending on the options
       set ok1 [setEntsToProcess $entType]
@@ -570,7 +580,7 @@ proc genExcel {{numFile 0}} {
 
 # entities in unsupported APs that are not AP203, AP214, AP242 - if not using a user-defined list or not generating a spreadsheet
       if {[string first "AP203" $stepAP] == -1 && [string first "AP214" $stepAP] == -1 && [string first "AP242" $stepAP] == -1} {
-        if {!$opt(PR_USER) || $opt(XLSCSV) == "None"} {
+        if {!$opt(stepUSER) || $opt(xlFormat) == "None"} {
           set et $entType
           set c1 [string first "_and_" $et]
           if {$c1 != -1} {set et [string range $et 0 $c1-1]}
@@ -585,16 +595,16 @@ proc genExcel {{numFile 0}} {
           }
 
 # user-defined list and AP209 views are not allowed when generating a spreadsheet
-        } elseif {[string first "AP209" $stepAP] != -1 && $opt(VIZFEA) && $opt(XLSCSV) != "None"} {
+        } elseif {[string first "AP209" $stepAP] != -1 && $opt(viewFEA) && $opt(xlFormat) != "None"} {
           outputMsg " "
           errorMsg "Viewing the AP209 FEM is not allowed when a User-Defined List is selected in the Options tab."
-          set opt(VIZFEA) 0
+          set opt(viewFEA) 0
           checkValues
         }
       }
 
 # check for composite entities with "_11"
-      if {[string first "_11" $entType] != -1} {if {$opt(PR_STEP_COMP) && [lsearch $entCategory(PR_STEP_COMP) $entType] != -1} {set ok 1}}
+      if {[string first "_11" $entType] != -1} {if {$opt(stepCOMP) && [lsearch $entCategory(stepCOMP) $entType] != -1} {set ok 1}}
 
 # handle '_and_' due to a complex entity, entType_1 is the first part before the '_and_'
       set entType_1 $entType
@@ -635,7 +645,7 @@ proc genExcel {{numFile 0}} {
 # -------------------------------------------------------------------------------------------------
 # check if there is anything to view
   foreach typ {PMI TPG FEA} {set viz($typ) 0}
-  if {$opt(VIZPMI)} {
+  if {$opt(viewPMI)} {
     foreach ao $aoEntTypes {
       if {[info exists entCount($ao)]}  {if {$entCount($ao)  > 0} {set viz(PMI) 1}}
       set ao1 "$ao\_and_characterized_object"
@@ -644,11 +654,11 @@ proc genExcel {{numFile 0}} {
       if {[info exists entCount($ao1)]} {if {$entCount($ao1) > 0} {set viz(PMI) 1}}
     }
   }
-  if {$opt(VIZTPG)} {if {[info exists entCount(tessellated_solid)] || [info exists entCount(tessellated_shell)]} {set viz(TPG) 1}}
-  if {$opt(VIZFEA) && [string first "AP209" $stepAP] == 0} {set viz(FEA) 1}
+  if {$opt(viewTessPart)} {if {[info exists entCount(tessellated_solid)] || [info exists entCount(tessellated_shell)]} {set viz(TPG) 1}}
+  if {$opt(viewFEA) && [string first "AP209" $stepAP] == 0} {set viz(FEA) 1}
 
 # read expected PMI worksheet (once) if PMI representation and correct file name
-  if {$opt(PMISEM) && [string first "AP242" $stepAP] == 0 && $nistName != "" && $opt(XLSCSV) != "None"} {
+  if {$opt(PMISEM) && [string first "AP242" $stepAP] == 0 && $nistName != "" && $opt(xlFormat) != "None"} {
     set tols [concat $tolNames [list dimensional_characteristic_representation datum datum_feature datum_reference_compartment datum_reference_element datum_system placed_datum_target_feature]]
     foreach tol $tols {if {[info exist entCount($tol)]} {set ok 1; break}}
     if {$ok && ![info exists nistPMImaster($nistName)]} {nistReadExpectedPMI}
@@ -685,7 +695,7 @@ proc genExcel {{numFile 0}} {
     }
     if {$ok} {
       outputMsg " "
-      if {$opt(XLSCSV) != "None"} {
+      if {$opt(xlFormat) != "None"} {
         set msg "Worksheets"
         if {!$useXL} {set msg "CSV files"}
         append msg " will not be generated for the entity types listed in"
@@ -717,8 +727,8 @@ proc genExcel {{numFile 0}} {
       for {set i 0} {$i < [llength $entsToProcess]} {incr i} {
         set str1 [lindex $entsToProcess $i]
         set tc [string range [lindex $entsToProcess $i] 0 1]
-        if {$tc == $entColorIndex(PR_STEP_TOLR)} {set itmp 1}
-        if {[string first $entColorIndex(PR_STEP_TOLR) $str1] == 0 && ([string first "datum" $str1] == 2 || [string first "dimensional" $str1] == 2)} {
+        if {$tc == $entColorIndex(stepTOLR)} {set itmp 1}
+        if {[string first $entColorIndex(stepTOLR) $str1] == 0 && ([string first "datum" $str1] == 2 || [string first "dimensional" $str1] == 2)} {
           lappend entsToProcessDatum $str1
         } else {
           lappend entsToProcessTmp($itmp) $str1
@@ -731,7 +741,7 @@ proc genExcel {{numFile 0}} {
 
 # move dimensional_characteristic_representation to the beginning
     if {[info exists entCount(dimensional_characteristic_representation)]} {
-      set dcr "$entColorIndex(PR_STEP_TOLR)\dimensional_characteristic_representation"
+      set dcr "$entColorIndex(stepTOLR)\dimensional_characteristic_representation"
       set c1 [lsearch $entsToProcess $dcr]
       set entsToProcess [lreplace $entsToProcess $c1 $c1]
       set entsToProcess [linsert $entsToProcess 0 $dcr]
@@ -777,13 +787,13 @@ proc genExcel {{numFile 0}} {
 
 # find last entity type that will be processed, order is very important
     set ents [list curve_3d_element_representation surface_3d_element_representation volume_3d_element_representation]
-    if {$opt(VIZFEALV)} {
+    if {$opt(feaLoads)} {
       lappend ents "nodal_freedom_action_definition"
       lappend ents "surface_3d_element_boundary_constant_specified_surface_variable_value"
       lappend ents "volume_3d_element_boundary_constant_specified_variable_value"
     }
-    if {$opt(VIZFEADS)} {lappend ents "nodal_freedom_values"}
-    if {$opt(VIZFEABC)} {lappend ents "single_point_constraint_element_values"}
+    if {$opt(feaDisp)} {lappend ents "nodal_freedom_values"}
+    if {$opt(feaBounds)} {lappend ents "single_point_constraint_element_values"}
     foreach ent $ents {if {[info exists entCount($ent)]} {set feaFirstEntity $ent; break}}
     foreach ent $ents {if {[info exists entCount($ent)]} {set feaLastEntity $ent}}
   }
@@ -796,13 +806,13 @@ proc genExcel {{numFile 0}} {
 # -------------------------------------------------------------------------------------------------
 # max progress bar - number of entities or finite elements
   if {[info exists buttons]} {
-    $buttons(pgb) configure -maximum $numEnts
-    if {[string first "AP209" $stepAP] == 0 && $opt(XLSCSV) == "None"} {
+    $buttons(progressBar) configure -maximum $numEnts
+    if {[string first "AP209" $stepAP] == 0 && $opt(xlFormat) == "None"} {
       set n 0
       foreach elem {curve_3d_element_representation surface_3d_element_representation volume_3d_element_representation} {
         if {[info exists entCount($elem)]} {incr n $entCount($elem)}
       }
-      $buttons(pgb) configure -maximum $n
+      $buttons(progressBar) configure -maximum $n
     }
   }
 
@@ -852,9 +862,9 @@ proc genExcel {{numFile 0}} {
   outputMsg " "
   if {$useXL} {
     outputMsg "Generating STEP Entity worksheets" blue
-  } elseif {$opt(XLSCSV) == "CSV"} {
+  } elseif {$opt(xlFormat) == "CSV"} {
     outputMsg "Generating STEP Entity CSV files" blue
-  } elseif {$opt(XLSCSV) == "None"} {
+  } elseif {$opt(xlFormat) == "None"} {
     outputMsg "Generating View"
   }
 
@@ -891,7 +901,7 @@ proc genExcel {{numFile 0}} {
 
 # no entities to process
     if {[llength $entsToProcess] == 0} {
-      if {$opt(XLSCSV) != "None"} {
+      if {$opt(xlFormat) != "None"} {
         errorMsg "Select some other entity types to Process in the Options tab."
         catch {unset entsIgnored}
       } else {
@@ -903,7 +913,7 @@ proc genExcel {{numFile 0}} {
 
 # loop over list of entities in file
     foreach entType $entsToProcess {
-      if {$opt(XLSCSV) != "None"} {
+      if {$opt(xlFormat) != "None"} {
         set nerr1 0
         set lastEnt $entType
 
@@ -963,7 +973,7 @@ proc genExcel {{numFile 0}} {
 # max rows exceeded
             if {$stat != 1} {
               set ok 1
-              if {[string first "element_representation" $thisEntType] != -1 && $opt(VIZFEA)} {set ok 0}
+              if {[string first "element_representation" $thisEntType] != -1 && $opt(viewFEA)} {set ok 0}
               if {$ok} {set nprogBarEnts [expr {$nprogBarEnts + $entCount($thisEntType) - $count($thisEntType)}]}
               break
             }
@@ -1021,7 +1031,7 @@ proc genExcel {{numFile 0}} {
 # -------------------------------------------------------------------------------------------------
 # generate b-rep part geometry if no other viz exists
   set vizprt 0
-  if {$opt(VIZPRT) && !$viz(PMI) && !$viz(FEA) && !$viz(TPG)} {
+  if {$opt(viewPart) && !$viz(PMI) && !$viz(FEA) && !$viz(TPG) && ![info exists statsOnly]} {
     x3dFileStart
     set vizprt 1
   }
@@ -1086,7 +1096,7 @@ proc genExcel {{numFile 0}} {
     }
 
 # add PMI Pres. Coverage Analysis worksheet for a single file
-    if {$opt(PMIGRF) && $opt(XLSCSV) != "None" && $opt(PMIGRFCOV)} {
+    if {$opt(PMIGRF) && $opt(xlFormat) != "None" && $opt(PMIGRFCOV)} {
       if {[info exists gpmiTypesPerFile]} {
         set gpmiCoverageWS "PMI Presentation Coverage"
         if {![info exists worksheet($gpmiCoverageWS)]} {
@@ -1243,7 +1253,7 @@ proc genExcel {{numFile 0}} {
 # add Link(n) text to multi file summary
       if {$numFile != 0 && [info exists cells1(Summary)]} {
         set colsum [expr {$col1(Summary)+1}]
-        if {!$opt(HIDELINKS)} {
+        if {!$opt(xlHideLinks)} {
           $cells1(Summary) Item 3 $colsum "Link ($numFile)"
           set range [$worksheet1(Summary) Range [cellRange 3 $colsum]]
           regsub -all {\\} $xlFileName "/" xls
@@ -1263,7 +1273,7 @@ proc genExcel {{numFile 0}} {
 # -------------------------------------------------------------------------------------------------
 # open spreadsheet or directory of CSV files
     set ok 0
-    if {$openxl && $opt(XL_OPEN)} {
+    if {$openxl && $opt(outputOpen)} {
       if {$numFile == 0} {
         set ok 1
       } elseif {[info exists lenfilelist]} {
@@ -1275,7 +1285,7 @@ proc genExcel {{numFile 0}} {
     if {$useXL} {
       if {$ok} {
         openXLS $xlfn
-      } elseif {!$opt(XL_OPEN) && $numFile == 0 && [string first "STEP-File-Analyzer.exe" $scriptName] != -1} {
+      } elseif {!$opt(outputOpen) && $numFile == 0 && [string first "STEP-File-Analyzer.exe" $scriptName] != -1} {
         outputMsg " Use F2 to open the Spreadsheet (see Options tab, Help > Function Keys)" red
       }
     }
@@ -1284,19 +1294,19 @@ proc genExcel {{numFile 0}} {
     if {$saveCSV} {set csvOpenDir 1}
 
 # open directory of CSV files
-  } elseif {$opt(XLSCSV) != "None"} {
+  } elseif {$opt(xlFormat) != "None"} {
     set csvOpenDir 1
     unset csvfile
     outputMsg "\nCSV files written to:"
     outputMsg " [truncFileName [file nativename $csvdirnam]]" blue
   }
 
-  if {$opt(XLSCSV) == "None"} {set useXL 1}
+  if {$opt(xlFormat) == "None"} {set useXL 1}
 
 # open directory of CSV files
   if {$csvOpenDir} {
     set ok 0
-    if {$opt(XL_OPEN)} {
+    if {$opt(outputOpen)} {
       if {$numFile == 0} {
         set ok 1
       } elseif {[info exists lenfilelist]} {
@@ -1343,13 +1353,13 @@ proc genExcel {{numFile 0}} {
   update idletasks
 
 # unset variables to release memory and/or to reset them
-  global cgrObjects colColor coordinatesList currx3dPID datumGeom datumIDs datumSymbol dimrep dimrepID dimtolEnt dimtolEntID dimtolGeom entName
+  global cgrObjects colColor coordinatesList currx3dPID datumGeom datumIDs datumSymbol datumSystem dimrep dimrepID dimtolEnt dimtolEntID dimtolGeom entName
   global feaDOFR feaDOFT feaNodes gpmiID gpmiIDRow gpmiRow heading idRow invCol invGroup lineStrips nrep numx3dPID pmiColumns pmiStartCol
   global propDefID propDefIDRow propDefName propDefOK propDefRow savedsavedViewNames savedViewFile savedViewFileName shapeRepName
   global srNames suppGeomEnts syntaxErr tessCoord tessCoordName tessIndex tessIndexCoord tessPlacement tessRepo
 
-  foreach var {cells cgrObjects colColor coordinatesList count currx3dPID datumGeom datumIDs datumSymbol dimrep dimrepID dimtolEnt dimtolEntID dimtolGeom \
-               entName entsIgnored feaDOFR feaDOFT feaNodes gpmiID gpmiIDRow gpmiRow heading idRow invCol invGroup lineStrips nrep numx3dPID \
+  foreach var {cells cgrObjects colColor coordinatesList count currx3dPID datumGeom datumIDs datumSymbol datumSystem dimrep dimrepID dimtolEnt dimtolEntID dimtolGeom \
+               entCount entName entsIgnored feaDOFR feaDOFT feaNodes gpmiID gpmiIDRow gpmiRow heading idRow invCol invGroup lineStrips nrep numx3dPID \
                pmiCol pmiColumns pmiStartCol pmivalprop propDefID propDefIDRow propDefName propDefOK propDefRow savedsavedViewNames savedViewFile savedViewFileName \
                savedViewNames shapeRepName srNames suppGeomEnts syntaxErr tessCoord tessCoordName tessIndex tessIndexCoord tessPlacement tessRepo viz \
                workbook workbooks worksheet worksheets x3dCoord x3dFile x3dFileName x3dIndex x3dMax x3dMin x3dStartFile} {
@@ -1383,7 +1393,7 @@ proc addHeaderWorksheet {numFile fname} {
       set cells($hdr) [$worksheet($hdr) Cells]
 
 # create directory for CSV files
-    } elseif {$opt(XLSCSV) != "None"} {
+    } elseif {$opt(xlFormat) != "None"} {
       outputMsg "Generating Header CSV file" blue
       foreach var {csvdirnam csvfname fcsv} {catch {unset $var}}
       set csvdirnam "[file join [file dirname $localName] [file rootname [file tail $localName]]]-sfa-csv"
@@ -1400,7 +1410,7 @@ proc addHeaderWorksheet {numFile fname} {
       incr row($hdr)
       if {$useXL} {
         $cells($hdr) Item $row($hdr) 1 $attr
-      } elseif {$opt(XLSCSV) != "None"} {
+      } elseif {$opt(xlFormat) != "None"} {
         set csvstr $attr
       }
       set objAttr [string trim [join [$objDesign $attr]]]
@@ -1409,7 +1419,7 @@ proc addHeaderWorksheet {numFile fname} {
       if {$attr == "FileDirectory"} {
         if {$useXL} {
           $cells($hdr) Item $row($hdr) 2 [$objDesign $attr]
-        } elseif {$opt(XLSCSV) != "None"} {
+        } elseif {$opt(xlFormat) != "None"} {
           append csvstr ",[$objDesign $attr]"
           puts $fcsv $csvstr
         }
@@ -1420,7 +1430,7 @@ proc addHeaderWorksheet {numFile fname} {
         set sn $fileSchema
         if {$useXL} {
           $cells($hdr) Item $row($hdr) 2 $sn
-        } elseif {$opt(XLSCSV) != "None"} {
+        } elseif {$opt(xlFormat) != "None"} {
           append csvstr ",$sn"
           puts $fcsv $csvstr
         }
@@ -1468,7 +1478,7 @@ proc addHeaderWorksheet {numFile fname} {
             append str1 "[string trim $item], "
             if {$useXL} {
               append str2 "[string trim $item][format "%c" 10]"
-            } elseif {$opt(XLSCSV) != "None"} {
+            } elseif {$opt(xlFormat) != "None"} {
               append str2 ",[string trim $item]"
             }
           }
@@ -1477,7 +1487,7 @@ proc addHeaderWorksheet {numFile fname} {
             $cells($hdr) Item $row($hdr) 2 "'[string trim $str2]"
             set range [$worksheet($hdr) Range "$row($hdr):$row($hdr)"]
             $range VerticalAlignment [expr -4108]
-          } elseif {$opt(XLSCSV) != "None"} {
+          } elseif {$opt(xlFormat) != "None"} {
             append csvstr [string trim $str2]
             puts $fcsv $csvstr
           }
@@ -1487,7 +1497,7 @@ proc addHeaderWorksheet {numFile fname} {
             $cells($hdr) Item $row($hdr) 2 "'$objAttr"
             set range [$worksheet($hdr) Range "$row($hdr):$row($hdr)"]
             $range VerticalAlignment [expr -4108]
-          } elseif {$opt(XLSCSV) != "None"} {
+          } elseif {$opt(xlFormat) != "None"} {
             append csvstr ",$objAttr"
             puts $fcsv $csvstr
           }
@@ -1610,7 +1620,7 @@ proc addHeaderWorksheet {numFile fname} {
     if {$cadSystem == ""} {set cadSystem [setCAXIFvendor]}
 
 # close csv file
-    if {!$useXL && $opt(XLSCSV) != "None"} {close $fcsv}
+    if {!$useXL && $opt(xlFormat) != "None"} {close $fcsv}
 
   } emsg]} {
     errorMsg "ERROR adding Header worksheet: $emsg"
@@ -1679,7 +1689,7 @@ proc sumAddWorksheet {} {
 
 # for STEP add [Properties], [PMI Presentation], [PMI Representation] text string
         set okao 0
-        if {$entType == "property_definition" && $col($entType) > 4 && $opt(VALPROP)} {
+        if {$entType == "property_definition" && $col($entType) > 4 && $opt(valProp)} {
           $cells($sum) Item $sumRow 1 "property_definition  \[Properties\]"
         } elseif {$entType == "dimensional_characteristic_representation" && $col($entType) > 3 && $opt(PMISEM)} {
           $cells($sum) Item $sumRow 1 "dimensional_characteristic_representation  \[PMI Representation\]"
@@ -1864,7 +1874,7 @@ proc sumAddFileName {sum sumLinks} {
     set range [$worksheet($sum) Range "B1:K1"]
     $range MergeCells [expr 1]
     set anchor [$worksheet($sum) Range "B1"]
-    if {!$opt(HIDELINKS) && [string first "#" $localName] == -1} {
+    if {!$opt(xlHideLinks) && [string first "#" $localName] == -1} {
       regsub -all {\\} $localName "/" ln
       $sumLinks Add $anchor [join $ln] [join ""] [join "Link to STEP file"]
     }
@@ -1985,7 +1995,7 @@ proc formatWorksheets {sheetSort sumRow inverseEnts} {
   global row rowmax spmiEnts stepAP syntaxErr thisEntType viz worksheet xlFileName
   outputMsg "Formatting Worksheets" blue
 
-  if {[info exists buttons]} {$buttons(pgb) configure -maximum [llength $sheetSort]}
+  if {[info exists buttons]} {$buttons(progressBar) configure -maximum [llength $sheetSort]}
   set nprogBarEnts 0
   set nsort 0
 
@@ -2051,7 +2061,7 @@ proc formatWorksheets {sheetSort sumRow inverseEnts} {
       if {$opt(INVERSE)} {if {[lsearch $inverseEnts $thisEntType] != -1} {invFormat $rancol}}
 
 # STEP Property_definition (Validation Properties)
-      if {$thisEntType == "property_definition" && $opt(VALPROP)} {
+      if {$thisEntType == "property_definition" && $opt(valProp)} {
         valPropFormat
 
 # color STEP annotation occurrence (Graphical PMI)
@@ -2135,13 +2145,13 @@ proc formatWorksheets {sheetSort sumRow inverseEnts} {
 # add table for sorting and filtering
       if {$excelVersion > 11} {
         if {[catch {
-          if {$opt(XL_SORT) && $thisEntType != "property_definition"} {
+          if {$opt(xlSort) && $thisEntType != "property_definition"} {
             if {$ranrow > 8} {
               set range [$worksheet($thisEntType) Range [cellRange 3 1] [cellRange $ranrow $rancol]]
               set tname [string trim "TABLE-$thisEntType"]
               [[$worksheet($thisEntType) ListObjects] Add 1 $range] Name $tname
               [[$worksheet($thisEntType) ListObjects] Item $tname] TableStyle "TableStyleLight1"
-              if {[incr ntable] == 1 && $opt(XL_SORT)} {outputMsg " Generating Tables for Sorting" blue}
+              if {[incr ntable] == 1 && $opt(xlSort)} {outputMsg " Generating Tables for Sorting" blue}
             }
           }
         } emsg]} {

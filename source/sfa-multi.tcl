@@ -61,15 +61,15 @@ proc openMultiFile {{ask 1}} {
     if {$lenfilelist > 0} {
       if {$ask != 2} {outputMsg "($lenfilelist) STEP files found" blue}
       set askstr ""
-      if {$opt(XLSCSV) == "Excel"} {
+      if {$opt(xlFormat) == "Excel"} {
         append askstr "Spreadsheets"
-      } elseif {$opt(XLSCSV) == "CSV"} {
+      } elseif {$opt(xlFormat) == "CSV"} {
         if {$ofCSV} {append askstr "Spreadsheets and "}
         append askstr "CSV Files"
-      } elseif {$opt(XLSCSV) == "None"} {
+      } elseif {$opt(xlFormat) == "None"} {
         append askstr "Views"
       }
-      if {$opt(XLSCSV) != "None" && ($opt(VIZPRT) || $opt(VIZFEA) || $opt(VIZPMI) || $opt(VIZTPG))} {
+      if {$opt(xlFormat) != "None" && ($opt(viewPart) || $opt(viewFEA) || $opt(viewPMI) || $opt(viewTessPart))} {
         append askstr " and Views"
       }
 
@@ -86,7 +86,7 @@ proc openMultiFile {{ask 1}} {
 
 # start Excel for summary of all files
         set fileDir $multiFileDir
-        if {$lenfilelist > 1 && $useXL && $opt(XLSCSV) != "None"} {
+        if {$lenfilelist > 1 && $useXL && $opt(xlFormat) != "None"} {
           if {[catch {
             set pid2 [twapi::get_process_ids -name "EXCEL.EXE"]
             set excel1 [::tcom::ref createobject Excel.Application]
@@ -114,9 +114,9 @@ proc openMultiFile {{ask 1}} {
 # errors
           } emsg]} {
             set useXL 0
-            if {$opt(XLSCSV) == "Excel"} {
+            if {$opt(xlFormat) == "Excel"} {
               errorMsg "Excel is not installed or cannot start Excel: $emsg\n CSV files will be generated instead of a spreadsheet.  See the Output Format option.  Some options are disabled."
-              set opt(XLSCSV) "CSV"
+              set opt(xlFormat) "CSV"
               catch {raise .}
             }
             checkValues
@@ -197,7 +197,7 @@ proc openMultiFile {{ask 1}} {
               errorMsg "ERROR opening Excel workbooks and worksheets for file summary: $emsg"
               catch {raise .}
             }
-          } elseif {$useXL && $opt(XLSCSV) != "None"} {
+          } elseif {$useXL && $opt(xlFormat) != "None"} {
             errorMsg "For only one STEP file, no File Summary spreadsheet is generated."
           }
         }
@@ -215,8 +215,8 @@ proc openMultiFile {{ask 1}} {
         set sum "Summary"
 
         set nprogBarFiles 0
-        pack $buttons(pgb1) -side top -padx 10 -pady {5 0} -expand true -fill x
-        $buttons(pgb1) configure -maximum $lenfilelist
+        pack $buttons(progressBarMulti) -side top -padx 10 -pady {5 0} -expand true -fill x
+        $buttons(progressBarMulti) configure -maximum $lenfilelist
         update
 
 # start loop over multiple files
@@ -243,7 +243,7 @@ proc openMultiFile {{ask 1}} {
           }
 
 # set fn from file name (file1), change \ to linefeed
-          if {$lenfilelist > 1 && $useXL && $opt(XLSCSV) != "None"} {
+          if {$lenfilelist > 1 && $useXL && $opt(xlFormat) != "None"} {
             set fn [string range [file nativename [truncFileName $file1]] $dlen end]
             regsub -all {\\} $fn [format "%c" 10] fn
             incr col1($sum)
@@ -276,11 +276,11 @@ proc openMultiFile {{ask 1}} {
           set ptime "[trimNum [expr {double($ptime)/3600.}] 1] hours"
         }
         set msg "\n($nfile) "
-        if {$opt(XLSCSV) == "None"} {
+        if {$opt(xlFormat) == "None"} {
           append msg "Views"
         } elseif {$useXL} {
           append msg "Spreadsheets"
-        } elseif {$opt(XLSCSV) == "CSV"} {
+        } elseif {$opt(xlFormat) == "CSV"} {
           append msg "CSV files"
         }
         append msg " generated in $ptime"
@@ -289,7 +289,7 @@ proc openMultiFile {{ask 1}} {
 
 # -------------------------------------------------------------------------------------------------
 # file summary ws, entity names
-        if {$lenfilelist > 1 && $useXL && $opt(XLSCSV) != "None"} {
+        if {$lenfilelist > 1 && $useXL && $opt(xlFormat) != "None"} {
           catch {$excel1 ScreenUpdating 0}
           outputMsg "\nWriting File Summary information" blue
           if {[catch {
@@ -437,7 +437,7 @@ proc openMultiFile {{ask 1}} {
               if {$stat([expr {$nf-1}]) != 0} {
 
 # link to file
-                if {!$opt(HIDELINKS) && [string first "#" $file1] == -1} {
+                if {!$opt(xlHideLinks) && [string first "#" $file1] == -1} {
                   set range [$worksheet1($sum) Range [cellRange 4 $nf]]
                   $links Add $range [join $file1] [join ""] [join "Link to STEP file"]
                 }
@@ -446,7 +446,7 @@ proc openMultiFile {{ask 1}} {
                 set range [$worksheet1($sum) Range [cellRange 3 $nf]]
                 incr idx
                 regsub -all {\\} [lindex $xlFileNames $idx] "/" xls
-                if {!$opt(HIDELINKS) && [string first "#" $file1] == -1} {$links Add $range [join $xls] [join ""] [join "Link to Spreadsheet"]}
+                if {!$opt(xlHideLinks) && [string first "#" $file1] == -1} {$links Add $range [join $xls] [join ""] [join "Link to Spreadsheet"]}
 
 # add vertical border when directory changes from column to column
                 if {[lsearch $dirchange $nf] != -1} {
@@ -510,7 +510,7 @@ proc openMultiFile {{ask 1}} {
 
 # -------------------------------------------------------------------------------------------------
 # save spreadsheet
-        if {$lenfilelist > 1 && $useXL && $opt(XLSCSV) != "None"} {
+        if {$lenfilelist > 1 && $useXL && $opt(xlFormat) != "None"} {
           if {[catch {
 
 # set file name for analysis spreadsheet
@@ -553,9 +553,9 @@ proc openMultiFile {{ask 1}} {
           }
 
 # open spreadsheet
-          if {$opt(XL_OPEN)} {
+          if {$opt(outputOpen)} {
             openXLS $aname 0 1
-            if {!$opt(HIDELINKS)} {outputMsg " Click on the Links in Row 3 to open individual spreadsheets." blue}
+            if {!$opt(xlHideLinks)} {outputMsg " Click on the Links in Row 3 to open individual spreadsheets." blue}
           } else {
             outputMsg " Use F7 to open the spreadsheet (see Options tab)" red
           }

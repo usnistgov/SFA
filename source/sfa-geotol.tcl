@@ -401,6 +401,7 @@ proc spmiGeotolReport {objEntity} {
 
 # projection_end
                           } elseif {[$a0 Name] == "projection_end"} {
+                            set msg ""
                             if {[$a0 Value] != ""} {
                               set e1 [$a0 Value]
                               set e2s [$e1 GetUsedIn [string trim geometric_item_specific_usage] [string trim definition]]
@@ -408,18 +409,20 @@ proc spmiGeotolReport {objEntity} {
                               ::tcom::foreach e2 $e2s {
                                 incr ngisu
                                 set e3 [[[$e2 Attributes] Item [expr 5]] Value]
+                                set e3type [$e3 Type]
+                                if {$e3type != "advanced_face" && $e3type != "edge_curve" && $e3type != "edge_loop" && $e3type != "path"} {
+                                  set msg "Syntax Error: Projected tolerance zone 'projection_end' refers to invalid GISU identified_item '$e3type'.$spaces\($recPracNames(pmi242), Sec. 6.9.2.2)"
+                                }
                                 set e4 [[[$e3 Attributes] Item [expr 3]] Value]
-                                #outputMsg "[$e1 P21ID][$e1 Type]  [$e2 P21ID][$e2 Type]  [$e3 P21ID][$e3 Type]  [$e4 P21ID][$e4 Type]" green
-                                errorMsg " Projected tolerance zone 'projection_end' refers to a '[$e4 Type]' through GISU ($recPracNames(pmi242), Sec. 6.9.2.2)"
+                                errorMsg "Projected tolerance zone 'projection_end' refers to a '[$e4 Type]' through GISU ($recPracNames(pmi242), Sec. 6.9.2.2)"
                               }
                               if {$ngisu == 0 && [$e1 Type] == "shape_aspect"} {
                                 set msg "Syntax Error: projection_end attribute '[$e1 Type]' is not referred to by a GISU.$spaces\($recPracNames(pmi242), Sec. 6.9.2.2)"
-                                errorMsg $msg
-                                lappend syntaxErr(projected_zone_definition) [list [$e0 P21ID] "projection_end" $msg]
-                                set ptzError 1
                               }
                             } else {
                               set msg "Syntax Error: Missing required 'projection_end' attribute on 'projected_zone_definition'.$spaces\($recPracNames(pmi242), Sec. 6.9.2.2)"
+                            }
+                            if {$msg != ""} {
                               errorMsg $msg
                               lappend syntaxErr(projected_zone_definition) [list [$e0 P21ID] "projection_end" $msg]
                               set ptzError 1
@@ -805,7 +808,7 @@ proc spmiGeotolReport {objEntity} {
                         if {[string length $letter] > 0} {
                           if {[info exists datumIDs]} {
                             if {[lsearch $datumIDs $letter] != -1} {
-                              set msg "Multiple 'datum' entities use the same letter for the 'identification' attribute."
+                              set msg "Multiple 'datum' entities use the same letter for the 'identification' attribute.  They should be unique."
                               errorMsg $msg
                               lappend syntaxErr(datum) [list $id identification $msg]
                             }
@@ -1464,6 +1467,20 @@ proc spmiGeotolReport {objEntity} {
 # write a few more things at the end of processing a semantic PMI entity
   if {$entLevel == 0} {
     if {[catch {
+
+# check for unique datum systems
+    #if {$gt == "datum_system" && [llength [array names datumSystem]] == $entCount(datum_system)} {
+    #  foreach id [array names datumSystem] {lappend ds($datumSystem($id)) $id}
+    #  foreach id [array names ds] {
+    #    if {[llength $ds($id)] > 1} {
+    #      foreach id1 $ds($id) {
+    #        set msg "Multiple 'datum_system' entities have identical Datum Reference Frames.  They should be unique."
+    #        errorMsg $msg
+    #        lappend syntaxErr(datum_system) [list $id1 "Datum Reference Frame" $msg]
+    #      }
+    #    }
+    #  }
+    #}
 
 # check for tolerances that require a datum system (section 6.8, table 10), don't check if using old method of datum_reference
       if {![info exists datsys] && [string first "_tolerance" [$gtEntity Type]] != -1 && ![info exists entCount(datum_reference)]} {

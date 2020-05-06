@@ -124,7 +124,6 @@ proc getEntity {objEntity checkInverse} {
 
     ::tcom::foreach objAttribute $objAttributes {
       set attrName [$objAttribute Name]
-      #outputMsg "$p21id $attrName [$objAttribute NodeType]" red
 
       if {[catch {
         if {![info exists badAttributes($thisEntType)]} {
@@ -196,7 +195,7 @@ proc getEntity {objEntity checkInverse} {
 
 # check if showing numbers without rounding
         catch {
-          if {!$opt(XL_FPREC)} {
+          if {!$opt(xlNoRound)} {
             lappend rowList $ov
           } elseif {$attrType($col($thisEntType)) != "double" && $attrType($col($thisEntType)) != "measure_value"} {
             lappend rowList $ov
@@ -377,7 +376,6 @@ proc getEntity {objEntity checkInverse} {
 # keep track of the entity ID for a row
 proc setIDRow {entType p21id} {
   global gpmiEnts gpmiIDRow idRow propDefIDRow row spmiEnts spmiIDRow
-  #outputMsg "setIDRow [info exists spmiEnts($entType)] $entType $p21id $row($entType)" red
   
 # row id for an entity id
   set idRow($entType,$p21id) $row($entType)
@@ -477,7 +475,6 @@ proc getEntityCSV {objEntity} {
     set objAttributes [$objEntity Attributes]
     ::tcom::foreach objAttribute $objAttributes {
       set attrName [$objAttribute Name]
-      #outputMsg "$p21id $attrName [$objAttribute NodeType]" red
   
       if {[catch {
         if {![info exists badAttributes($thisEntType)]} {

@@ -5,7 +5,7 @@ proc tessPart {entType} {
 
   if {$opt(DEBUG1)} {outputMsg "START tessPart $entType" red}
   set msg " Adding Tessellated Part View"
-  if {$opt(XLSCSV) == "None"} {append msg " ($entType)"}
+  if {$opt(xlFormat) == "None"} {append msg " ($entType)"}
 
 # edge, faces
   set tessellated_edge            [list tessellated_edge name coordinates line_strip]
@@ -225,7 +225,7 @@ proc tessReadGeometry {{coordOnly 0}} {
         set c2 [string last  "'" $line]
         if {$c2 != [expr {$c1+1}]} {set tessCoordName($id) [string range $line $c1+1 $c2-1]} 
         
-        if {$opt(PR_STEP_CPNT)} {regsub -all " " [string range $line [string first "((" $line]+1 end-3] "" coordinatesList($id)}
+        if {$opt(stepCPNT)} {regsub -all " " [string range $line [string first "((" $line]+1 end-3] "" coordinatesList($id)}
         
         set ncoord [string range $line [string first "," $line]+1 [string first "((" $line]-2]
         if {$ncoord > 50000} {errorMsg "COORDINATES_LIST #$id has $ncoord coordinates."}
@@ -286,7 +286,7 @@ proc tessReadGeometry {{coordOnly 0}} {
 
 # tessellated curve set
         if {[string first "TESSELLATED_CURVE_SET" $line] != -1} {
-          if {$opt(PR_STEP_GEOM) || $opt(PMIGRF)} {regsub -all " " [string range $line [string first "((" $line]+1 end-3] "" lineStrips($id)}
+          if {$opt(stepGEOM) || $opt(PMIGRF)} {regsub -all " " [string range $line [string first "((" $line]+1 end-3] "" lineStrips($id)}
           
 # regsub is very important to distill line into something usable
           set c1 [string last "((" $line]
@@ -316,7 +316,7 @@ proc tessReadGeometry {{coordOnly 0}} {
         } else {
 
 # try to read normals and triangles for spreadsheet
-          #if {$opt(PR_STEP_GEOM)} {
+          #if {$opt(stepGEOM)} {
           #  if {[string first "_FACE" $line] != -1} {
           #    set c1 [string first "))" $line]
           #    regsub -all " " [string range $line [string first "((" $line]+1 $c1] "" normals($id)
@@ -411,7 +411,6 @@ proc tessReadGeometry {{coordOnly 0}} {
 # -------------------------------------------------------------------------------
 proc tessSetColor {objEntity tsID} {
   global defaultColor entCount recPracNames spaces tessColor x3dColor
-  #outputMsg "tessSetColor [$objEntity Type] [$objEntity P21ID] ($tsID)" red
 
   set ok  0
   set ok1 1
@@ -542,8 +541,6 @@ proc tessSetPlacement {objEntity tsID} {
   global shapeRepName tessPlacement tessRepo
 
   set debug 0
-  #outputMsg "[$objEntity Type] $tsID" blue
-  
   if {[catch {
     set tessRepo 0
     catch {unset tessPlacement}

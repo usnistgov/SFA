@@ -382,13 +382,17 @@ proc reportAssocGeom {entType {row ""}} {
         ::tcom::foreach e0 $cgrObjects {
           set a1 [[$e0 Attributes] Item [expr 2]]
           ::tcom::foreach e2 [$a1 Value] {
-            lappend crgItems [$e2 P21ID]
+            lappend cgrItems [$e2 P21ID]
 
-# find trimmed_curve for composite_curve and add to crgItems
+# find trimmed_curve for composite_curve and add to cgrItems
             if {[$e2 Type] == "composite_curve"} {
               ::tcom::foreach ccs [[[$e2 Attributes] Item [expr 2]] Value] {
-                lappend crgItems [[[[$ccs Attributes] Item [expr 3]] Value] P21ID]
+                lappend cgrItems [[[[$ccs Attributes] Item [expr 3]] Value] P21ID]
               }
+
+# find items in geometric_curve_set
+            } elseif {[$e2 Type] == "geometric_curve_set"} {
+              foreach e3 [[[$e2 Attributes] Item [expr 2]] Value] {lappend cgrItems [$e3 P21ID]}
             }
           }
         }
@@ -405,7 +409,7 @@ proc reportAssocGeom {entType {row ""}} {
               if {[$ii Value] != ""} {
                 set p21id [[$ii Value] P21ID]
                 lappend suppGeomEnts [[$ii Value] P21ID]
-                if {[lsearch $crgItems $p21id] == -1} {
+                if {[lsearch $cgrItems $p21id] == -1} {
                   set okcgr 0
                   set msg "Syntax Error: 'constructive_geometry_representation' is missing some 'items' based on GISU 'identified_item' attribute.$spaces\($recPracNames(suppgeom), Sec. 4.3, Fig. 4)"
                   errorMsg $msg

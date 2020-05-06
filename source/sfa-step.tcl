@@ -167,7 +167,7 @@ proc gpmiCheckEnt {ent} {
   if {[string first "over_riding_styled_item" $ent] != -1} {set ok 0}
   if {[string first "annotation_occurrence_associativity" $ent] != -1} {set ok 0}
   if {[string first "annotation_occurrence_relationship"  $ent] != -1} {set ok 0}
-    
+
   return $ok
 }
  
@@ -182,7 +182,7 @@ proc setEntsToProcess {entType} {
   set spmiEnts($entType) 0
 
 # for validation properties
-  if {$opt(VALPROP)} {
+  if {$opt(valProp)} {
     if {$entType == "boolean_representation_item" || \
         $entType == "conversion_based_unit_and_length_unit" || \
         $entType == "derived_unit_element" || \
@@ -201,7 +201,7 @@ proc setEntsToProcess {entType} {
   }
 
 # for PMI (graphical) presentation report and viz
-  if {($opt(PMIGRF) || $opt(VIZPMI)) && $ok == 0} {
+  if {($opt(PMIGRF) || $opt(viewPMI)) && $ok == 0} {
     set ok [gpmiCheckEnt $entType]
     set gpmiEnts($entType) $ok
     if {$entType == "advanced_face" || \
@@ -250,9 +250,8 @@ proc setEntsToProcess {entType} {
   }
 
 # for tessellated geometry
-  if {$opt(VIZTPG) && $ok == 0} {if {[string first "tessellated" $entType] != -1} {set ok 1}}
+  if {$opt(viewTessPart) && $ok == 0} {if {[string first "tessellated" $entType] != -1} {set ok 1}}
 
-  #outputMsg "$ok  $entType"
   return $ok
 }
 
@@ -264,8 +263,8 @@ proc checkForReports {entType} {
 # check for validation properties report, call valPropStart
   if {$entType == "property_definition_representation"} {
     if {[catch {
-      if {[info exists opt(VALPROP)]} {
-        if {$opt(VALPROP)} {
+      if {[info exists opt(valProp)]} {
+        if {$opt(valProp)} {
           if {[lsearch $skipEntities "representation"] == -1} {
             if {[info exists cells(property_definition)]} {valPropStart}
           }
@@ -280,9 +279,9 @@ proc checkForReports {entType} {
     if {[catch {
       set ok 0
       if {[info exists opt(PMIGRF)]} {if {$opt(PMIGRF)} {set ok 1}}
-      if {[info exists opt(VIZPMI)]} {if {$opt(VIZPMI)} {set ok 1}}
+      if {[info exists opt(viewPMI)]} {if {$opt(viewPMI)} {set ok 1}}
       if {$ok} {
-        if {[info exists cells($entType)] || $opt(VIZPMI)} {gpmiAnnotation $entType}
+        if {[info exists cells($entType)] || $opt(viewPMI)} {gpmiAnnotation $entType}
         catch {unset savedViewCol}
         catch {unset pmiColumns}
       }
@@ -293,7 +292,7 @@ proc checkForReports {entType} {
 # viz tessellated part geometry, call tessPart
   } elseif {$entType == "tessellated_solid" || $entType == "tessellated_shell" || $entType == "tessellated_wire"} {
     if {[catch {
-      if {[info exists opt(VIZTPG)]} {if {$opt(VIZTPG)} {tessPart $entType}}
+      if {[info exists opt(viewTessPart)]} {if {$opt(viewTessPart)} {tessPart $entType}}
     } emsg]} {
       errorMsg "ERROR adding Tessellated Part Geometry: $emsg"
     }
@@ -334,15 +333,15 @@ proc checkForReports {entType} {
             $entType == "volume_3d_element_boundary_constant_specified_variable_value" || \
             $entType == "single_point_constraint_element_values"} {
     if {[catch {
-      if {[info exists opt(VIZFEA)]} {
-        if {$opt(VIZFEA)} {
+      if {[info exists opt(viewFEA)]} {
+        if {$opt(viewFEA)} {
           if {[string first "element_representation" $entType] != -1 || \
-              ($opt(VIZFEABC) && $entType == "single_point_constraint_element_values") || \
-              ($opt(VIZFEALV) && \
+              ($opt(feaBounds) && $entType == "single_point_constraint_element_values") || \
+              ($opt(feaLoads) && \
                 ($entType == "nodal_freedom_action_definition" || \
                  $entType == "surface_3d_element_boundary_constant_specified_surface_variable_value" || \
                  $entType == "volume_3d_element_boundary_constant_specified_variable_value")) || \
-              ($opt(VIZFEADS) && $entType == "nodal_freedom_values")
+              ($opt(feaDisp) && $entType == "nodal_freedom_values")
           } {
             feaModel $entType
           }
@@ -351,7 +350,7 @@ proc checkForReports {entType} {
       
 # for results at element nodes      
       #$entType == "element_nodal_freedom_actions"
-      #($opt(VIZFEALV) && ($entType == "nodal_freedom_action_definition" || $entType == "element_nodal_freedom_actions"))
+      #($opt(feaLoads) && ($entType == "nodal_freedom_action_definition" || $entType == "element_nodal_freedom_actions"))
     } emsg]} {
       errorMsg "ERROR adding FEM for [formatComplexEnt $entType]: $emsg"
     }
@@ -434,7 +433,7 @@ proc syntaxChecker {fileName} {
         outputMsg [string range $sfaerr 0 end-1] red
 
 # output to log file
-        if {$opt(LOGFILE)} {
+        if {$opt(logFile)} {
           set lfile [file rootname $fileName]
           if {$opt(writeDirType) == 2} {set lfile [file join $writeDir [file rootname [file tail $fileName]]]}
           append lfile "-sfa-err.log"
