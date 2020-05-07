@@ -1,5 +1,5 @@
 # version numbers - SFA, software user guide (UG)
-proc getVersion {}   {return 4.12}
+proc getVersion {}   {return 4.13}
 proc getVersionUG {} {return 3.0}
 
 # IFCsvr version, depends on string entered when IFCsvr is repackaged for new STEP schemas

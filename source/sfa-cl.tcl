@@ -59,7 +59,7 @@ catch {
 }
 
 # text color
-set clTextColor [lindex [twapi::get_console_screen_buffer_info stdout -textattr] 1]
+catch {set clTextColor [lindex [twapi::get_console_screen_buffer_info stdout -textattr] 1]}
 
 # no arguments, no file, print help, and exit
 set helpText "\nUsage: sfa-cl.exe myfile.stp \[csv\] \[view\] \[stats\] \[noopen\] \[file\]
