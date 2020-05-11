@@ -99,6 +99,7 @@ foreach id { \
 foreach id { \
   feaBounds feaDisp feaDispNoTail feaLoads feaLoadScale indentGeometry indentStyledItem INVERSE partNormals partOnly PMIGRFCOV \
   PMISEMDIM SHOWALLPMI stepCPNT stepFEAT stepGEOM stepKINE stepUSER syntaxChecker tessPartMesh writeDirType xlHideLinks xlNoRound xlSort \
+  DEBUG1 DEBUGINV DEBUGX3D \
 } {set opt($id) 0}
 
 set opt(gpmiColor) 0
@@ -129,12 +130,7 @@ set userWriteDir $mydocs
 set writeDir $userWriteDir
 
 set developer 0
-if {$env(USERDOMAIN) == "NIST" || $env(USERDOMAIN) == "Cassie"} {
-  set developer 1
-  set opt(DEBUG1) 0
-  set opt(DEBUGINV) 0
-  set opt(DEBUGX3D) 0
-}
+if {$env(USERDOMAIN) == "NIST"} {set developer 1}
 
 # initialize data
 initData

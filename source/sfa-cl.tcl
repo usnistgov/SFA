@@ -182,7 +182,7 @@ set userWriteDir $mydocs
 set writeDir $userWriteDir
 
 set developer 0
-if {$env(USERDOMAIN) == "NIST" || $env(USERDOMAIN) == "Cassie"} {set developer 1}
+if {$env(USERDOMAIN) == "NIST"} {set developer 1}
 
 # initialize other data
 initData

@@ -666,8 +666,9 @@ proc x3dBrepGeom {} {
       if {[string first "STEP to X3D completed!" $errs] != -1} {
         if {[file exists $stpx3dFileName]} {
           if {[file size $stpx3dFileName] > 0} {
-            set x3dApps {}
             set sketch 0
+            set nind {}
+            set x3dApps {}
 
 # check for conversion units, mm > inch
             set sc [x3dBrepUnits]

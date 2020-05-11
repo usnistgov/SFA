@@ -145,10 +145,6 @@ proc getEntity {objEntity checkInverse} {
               }
               if {!$ok1} {errorMsg " Reporting [formatComplexEnt $thisEntType] '$attrName' attribute is not supported.  '???' will appear in spreadsheet for this attribute.  See User Guide section 3.3.1" red}
             } else {
-              #switch -- $attrName {
-              #  normals    {if {[info exists normals($p21id)]}   {set objValue $normals($p21id); set ok1 1}}
-              #  triangles  {if {[info exists triangles($p21id)]} {set objValue $triangles($p21id); set ok1 1}}
-              #}
               set str $badAttributes($thisEntType)
               regsub -all " " $str "' '" str
               errorMsg " Reporting [formatComplexEnt $thisEntType] '$str' attribute is not supported.  '???' will appear in spreadsheet for these attributes.  See User Guide section 3.3.1" red

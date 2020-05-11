@@ -83,7 +83,7 @@ proc genExcel {{numFile 0}} {
     }
 
 # clean up and return
-    foreach var {x3dCoord x3dFile x3dFileName x3dIndex x3dMax x3dMin x3dStartFile} {if {[info exists $var]} {unset $var}}
+    foreach var {stepAP x3dCoord x3dFile x3dFileName x3dIndex x3dMax x3dMin x3dStartFile} {if {[info exists $var]} {unset $var}}
     if {[info exists buttons]} {$buttons(genExcel) configure -state normal}
     return
   }

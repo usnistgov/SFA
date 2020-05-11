@@ -1,5 +1,5 @@
 # version numbers - SFA, software user guide (UG)
-proc getVersion {}   {return 4.13}
+proc getVersion {}   {return 4.14}
 proc getVersionUG {} {return 3.0}
 
 # IFCsvr version, depends on string entered when IFCsvr is repackaged for new STEP schemas
@@ -1020,7 +1020,10 @@ The four different types of output can be selected in the Options tab.  Help is 
 User Guide or in tooltip help.  Some newer features might not be described in the User Guide.
 Check the Changelog for recent updates to the software.
 
-AP238 files with a .stpnc file extension are supported if the file extension is changed to .stp"
+Notes:
+- AP238 files with a .stpnc file extension are supported if the file extension is changed to .stp
+- Unicode characters using the \\X\\ and \\S\\ encodings are supported.  For example, \\X\\E9 encodes the
+  character é.  However, the \\X2\\ and \\X4\\ encodings are not supported."
     .tnb select .tnb.status
   }
 
