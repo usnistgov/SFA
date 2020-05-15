@@ -1,8 +1,6 @@
 # NIST STEP File Analyzer and Viewer
 
-A pre-built Windows version of NIST STEP File Analyzer and Viewer (SFA) is available [here](https://www.nist.gov/services-resources/software/step-file-analyzer-and-viewer).  
-
-These are the instructions for building the NIST STEP File Analyzer and Viewer from the source code.  SFA generates a spreadsheet and visualization from an ISO 10303 Part 21 STEP file.  More information, sample spreadsheets and visualizations, and documentation about SFA is available on the website including the [STEP File Analyzer and Viewer User Guide](https://www.nist.gov/publications/step-file-analyzer-and-viewer-user-guide-update-5).
+With these instructions you can build the NIST STEP File Analyzer and Viewer (SFA) from the source code.  SFA generates a spreadsheet and visualization from an ISO 10303 Part 21 STEP file.  A pre-built Windows version of NIST STEP File Analyzer and Viewer is available [here](https://www.nist.gov/services-resources/software/step-file-analyzer-and-viewer).  More information, sample spreadsheets and visualizations, and documentation about SFA is available on the website including the [STEP File Analyzer and Viewer User Guide](https://www.nist.gov/publications/step-file-analyzer-and-viewer-user-guide-update-5).
 
 STEP files are used to represent Product and Manufacturing Information (PMI) for data exchange and interoperability between Computer-Aided Design (CAD), Manufacturing (CAM), Analysis (CAE), and Inspection (CMM) software.  STEP is also used for the long-term archiving and retrieval product data (LOTAR).
 
@@ -23,7 +21,7 @@ Download the SFA files from the GitHub 'source' directory to a directory on your
 
 freeWrap wraps the SFA Tcl code to create an executable.
 
-- Download freewrap651.zip from <https://sourceforge.net/projects/freewrap/files/freewrap/freeWrap%206.51/>.  More recent versions of freeWrap will **not** work with the SFA.
+- Download freewrap651.zip from <https://sourceforge.net/projects/freewrap/files/freewrap/freeWrap%206.51/>.  More recent versions of freeWrap will **not** work with wrapping SFA.
 - Extract freewrap.exe and put it in the same directory as the SFA files that were downloaded from the 'source' directory.
 
 Install the ActiveTcl **8.5 32-bit** version of Tcl.
@@ -68,8 +66,6 @@ Some features are not available in the user-built version including: tooltips, u
 Replace the Tcl package [tcom](http://wiki.tcl.tk/1821) (COM) with the COM features in [twapi](http://twapi.magicsplat.com/).  This will allow upgrading to Tcl 8.6.
 
 Replace the home-grown code to interact with Excel spreadsheets with [CAWT](http://www.cawt.tcl3d.org/).
-
-Replace the IFCsvr toolkit with [STEPcode toolkit](https://github.com/stepcode/stepcode) or another toolkit that can read STEP and IFC files.
 
 ## Contact
 
