@@ -795,11 +795,9 @@ proc runOpenProgram {} {
     outputMsg "You have to manually import the STEP file to $idisp." red
     exec $dispCmd &
   }
-  
-    
+
 # add file to menu
   addFileToMenu
-  saveState
 }
 
 #-------------------------------------------------------------------------------
@@ -1391,21 +1389,24 @@ proc installIFCsvr {{exit 0}} {
 # first time installation
   if {!$reinstall} {
     errorMsg "The IFCsvr toolkit must be installed to read and process STEP files (User Guide section 2.2.1)."
-    outputMsg "- You might need administrator privileges (Run as administrator) to install the toolkit.
-  Antivirus software might respond that there is a security issue with the toolkit.  The
-  toolkit is safe to install.  Use the default installation folder for the toolkit.
+    outputMsg "- You might need administrator privileges (Run as administrator) to install the toolkit.  Antivirus
+  software might respond that there is a security issue with the toolkit.  The toolkit is safe to
+  install.  Use the default installation folder for the toolkit.
 - To reinstall the toolkit, run the installation file ifcsvrr300_setup_1008_en-update.msi
   in $mytemp
-- If there are problems with this procedure, contact [lindex $contact 0] ([lindex $contact 1])."
+- If you choose to Cancel the IFCsvr toolkit installation, you will still be able to use the Viewer
+  for Part Geometry.  Select View Only and Part Only in the Output Format section of the Options tab.
+- If there are problems with the installation, contact [lindex $contact 0] ([lindex $contact 1])."
 
     if {[file exists $ifcsvrInst] && [info exists buttons]} {
       set msg "The IFCsvr toolkit must be installed to read and process STEP files (User Guide section 2.2.1).  After clicking OK the IFCsvr toolkit installation will start."
       append msg "\n\nYou might need administrator privileges (Run as administrator) to install the toolkit.  Antivirus software might respond that there is a security issue with the toolkit.  The toolkit is safe to install.  Use the default installation folder for the toolkit."
-      append msg "\n\nIf there are problems with this procedure, contact [lindex $contact 0] ([lindex $contact 1])."
+      append msg "\n\nIf you choose to Cancel the IFCsvr toolkit installation, you will still be able to use the Viewer for Part Geometry.  Select View Only and Part Only in the Output Format section of the Options tab."
+      append msg "\n\nIf there are problems with the installation, contact [lindex $contact 0] ([lindex $contact 1])."
       set choice [tk_messageBox -type ok -message $msg -icon info -title "Install IFCsvr"]
       outputMsg "\nWait for the installation to finish before processing a STEP file." red
     } elseif {![info exists buttons]} {
-      outputMsg "\nRerun this program after the installation has finished to process a STEP file."
+      outputMsg "\nRerun this software after the installation has finished to process a STEP file."
     }
 
 # reinstall
@@ -1476,8 +1477,9 @@ proc installIFCsvr {{exit 0}} {
 
 # manual install instructions
     if {$nistVersion} {
-      outputMsg "To manually install the IFCsvr toolkit:
-- The installation file ifcsvrr300_setup_1008_en-update.msi can be found in $mytemp
+      outputMsg " "
+      errorMsg "To manually install the IFCsvr toolkit:"
+      outputMsg "- The installation file ifcsvrr300_setup_1008_en-update.msi can be found in $mytemp
 - Run the installer and follow the instructions.  Use the default installation folder for IFCsvr.
   You might need administrator privileges (Run as administrator) to install the toolkit.
 - If there are problems with the IFCsvr installation, contact [lindex $contact 0] ([lindex $contact 1])\n"
@@ -1491,10 +1493,11 @@ proc installIFCsvr {{exit 0}} {
         if {$emsg != ""} {errorMsg "ERROR opening directory: $emsg"}
       }
     } else {
-      outputMsg "To install the IFCsvr toolkit you must run the NIST version of the STEP File Analyzer and Viewer."
-      outputMsg "1 - Go to https://concrete.nist.gov/cgi-bin/ctv/sfa_request.cgi"
-      outputMsg "2 - Fill out the form, submit it, and follow the instructions."
-      outputMsg "3 - The IFCsvr toolkit will be installed when the NIST STEP File Analyzer and Viewer is run."
+      outputMsg " "
+      errorMsg "To install the IFCsvr toolkit you must first run the NIST version of the STEP File Analyzer and Viewer."
+      outputMsg "- Go to https://concrete.nist.gov/cgi-bin/ctv/sfa_request.cgi
+- Fill out the form, submit it, and follow the instructions.
+- The IFCsvr toolkit will be installed when the NIST STEP File Analyzer and Viewer is run."
       after 1000
       openURL https://concrete.nist.gov/cgi-bin/ctv/sfa_request.cgi
     }
@@ -1511,9 +1514,6 @@ proc setShortcuts {} {
     errorMsg "For the STEP File Analyzer and Viewer to run properly, it is recommended that you first\n extract all of the files from the ZIP file and run the extracted executable."
     return
   }
-
-  set progstr  "STEP File Analyzer and Viewer"
-  if {!$nistVersion} {set progstr "SFA"}
   
   if {[info exists mydesk] || [info exists mymenu]} {
     set ok 1
@@ -1532,6 +1532,7 @@ proc setShortcuts {} {
     }
     if {[file exists [file join $mydesk [file tail [info nameofexecutable]]]]} {set ok 0}
 
+    set progstr  "STEP File Analyzer and Viewer"
     set msg "Do you want to create or overwrite shortcuts to the $progstr [getVersion]"
     if {[info exists mydesk]} {
       append msg " on the Desktop"
@@ -1544,7 +1545,7 @@ proc setShortcuts {} {
       set choice [tk_messageBox -type yesno -icon question -title "Shortcuts" -message $msg]
       if {$choice == "yes"} {
         outputMsg " "
-        if {$nistVersion} {catch {[file copy -force -- [file join $wdir images NIST.ico] [file join $mytemp NIST.ico]]}}
+        catch {[file copy -force -- [file join $wdir images NIST.ico] [file join $mytemp NIST.ico]]}
         catch {
           if {[info exists mymenu]} {
             if {[file exists [file join $mymenu "$progstr.lnk"]]} {outputMsg "Existing Start Menu shortcut will be overwritten" red}

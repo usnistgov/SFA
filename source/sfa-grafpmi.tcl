@@ -492,9 +492,9 @@ proc gpmiAnnotationReport {objEntity} {
 # check for bad directions
                       set msg ""
                       if {[veclen $dir] == 0} {
-                        set msg "Syntax Error: The orientation axis or ref_direction vector is '0 0 0' for a repositioned_tessellated_item."
+                        set msg "Syntax Error: The axis2_placement_3d axis or ref_direction vector is '0 0 0' for a repositioned_tessellated_item."
                       } elseif {$dirType == "refdir" && [veclen [veccross [join $tessPlacement(axis)] [join $tessPlacement(refdir)]]] == 0} {
-                        set msg "Syntax Error: The orientation axis and ref_direction vectors are congruent for a repositioned_tessellated_item."
+                        set msg "Syntax Error: The axis2_placement_3d axis and ref_direction vectors '[join $tessPlacement(refdir)]' are congruent for a repositioned_tessellated_item."
                       }
                       if {$msg != ""} {
                         errorMsg $msg
@@ -838,6 +838,10 @@ proc gpmiAnnotationReport {objEntity} {
                       $cells($ao) Item 3 $c $colName
                       set pmiHeading($col($ao)) 1
                       set pmiCol [expr {max($col($ao),$pmiCol)}]
+                      if {[string first "name" $colName] == 0} {
+                        set comment "Section numbers refer to the CAx-IF Recommended Practice for Representation and Presentation of PMI (AP242)."
+                        addCellComment $ao 3 $c $comment
+                      }
                     }
                   }
 
@@ -866,7 +870,7 @@ proc gpmiAnnotationReport {objEntity} {
                         set msg "The [formatComplexEnt [lindex $ent1 0]] 'name' attribute is not a recommended name for presented PMI type."
                       }
                       if {[string first "AP242" $stepAP] == 0} {
-                        append msg " ($recPracNames(pmi242), Sec. 8.4, Table 14)"
+                        append msg " ($recPracNames(pmi242), Sec. 8.4, Table 15)"
                       } else {
                         append msg " ($recPracNames(pmi203), Sec. 4.3, Table 1)"
                       }
@@ -1018,7 +1022,7 @@ proc gpmiAnnotationReport {objEntity} {
             } elseif {$opt(xlFormat) != "None"} {
               set msg "Syntax Error: Missing 'definition' attribute on draughting_model_item_association$spaces"
               if {[string first "AP242" $stepAP] == 0} {
-                append msg "($recPracNames(pmi242), Sec. 9.3.1, Fig. 80)"
+                append msg "($recPracNames(pmi242), Sec. 9.3.1, Fig. 86)"
               } else {
                 append msg "($recPracNames(pmi203), Sec. 5.3.1, Fig. 12)"
               }
@@ -1059,7 +1063,7 @@ proc gpmiAnnotationReport {objEntity} {
         if {[info exists ents1]} {::tcom::foreach ap $ents1 {lappend aps $ap}}
       }
       if {[llength $aps] == 0 && $opt(xlFormat) != "None"} {
-        set msg "Syntax Error: Annotation missing a required 'annotation_plane'.$spaces\($recPracNames(pmi242), Sec. 9.1, Fig. 77)"
+        set msg "Syntax Error: Annotation missing a required 'annotation_plane'.$spaces\($recPracNames(pmi242), Sec. 9.1, Fig. 84)"
         errorMsg $msg
         lappend syntaxErr($ao) [list $objID "plane" $msg]
       }
@@ -1160,7 +1164,7 @@ proc gpmiAnnotationReport {objEntity} {
         foreach dm $draughtingModels {
           set entDraughtingModels [$objEntity GetUsedIn [string trim $dm] [string trim items]]
 
-# check for draughting_callout.contents -> ao (PMI RP, section 9.4.4, figure 93)
+# check for draughting_callout.contents -> ao (PMI RP, section 9.4.4, figure 102)
           set entDraughtingCallouts [$objEntity GetUsedIn [string trim draughting_callout] [string trim contents]]
           ::tcom::foreach entDraughtingCallout $entDraughtingCallouts {
             set entDraughtingModels [$entDraughtingCallout GetUsedIn [string trim $dm] [string trim items]]
@@ -1178,7 +1182,7 @@ proc gpmiAnnotationReport {objEntity} {
               if {$oknm} {
                 set msg "Annotation not found in a Saved View.  If the annotation should be in a Saved View, then check draughting_model 'items' for a missing draughting_callout related to the annotation.  Also check the View for Graphical PMI to see if the annotations are not in a Saved View.\n  "
                 if {[string first "AP242" $stepAP] == 0} {
-                  append msg "($recPracNames(pmi242), Sec. 9.4.2.1, Fig. 86)"
+                  append msg "($recPracNames(pmi242), Sec. 9.4.2.1, Fig. 93)"
                 } else {
                   append msg "($recPracNames(pmi203), Sec. 5.4.2, Fig. 14)"
                 }
@@ -1219,7 +1223,7 @@ proc gpmiAnnotationReport {objEntity} {
                 if {[string first "()" $savedViews] != -1 && $opt(xlFormat) != "None"} {
                   set msg "Syntax Error: For Saved Views, missing required 'name' attribute on camera_model_d3$spaces"
                   if {[string first "AP242" $stepAP] == 0} {
-                    append msg "($recPracNames(pmi242), Sec. 9.4.2.1, Fig. 86)"
+                    append msg "($recPracNames(pmi242), Sec. 9.4.2.1, Fig. 93)"
                   } else {
                     append msg "($recPracNames(pmi203), Sec. 5.4.2.1, Fig. 14)"
                   }
@@ -1247,7 +1251,7 @@ proc gpmiAnnotationReport {objEntity} {
                     if {$okmi == 0 && $opt(xlFormat) != "None"} {
                       set msg "Syntax Error: For Saved Views, missing required reference to 'mapped_item' on [formatComplexEnt [$entDraughtingModel Type]] 'items'$spaces"
                       if {[string first "AP242" $stepAP] == 0} {
-                        append msg "($recPracNames(pmi242), Sec. 9.4.2.1, Fig. 86)"
+                        append msg "($recPracNames(pmi242), Sec. 9.4.2.1, Fig. 93)"
                       } else {
                         append msg "($recPracNames(pmi203), Sec. 5.4.2, Fig. 14)"
                       }
@@ -1270,7 +1274,7 @@ proc gpmiAnnotationReport {objEntity} {
                   ::tcom::foreach rep1Ent $rep1Ents {set ok 0}
                   if {$ok && $opt(xlFormat) != "None"} {
                     set msg "Syntax Error: For Saved Views, '$relType' reference to '[formatComplexEnt [$entDraughtingModel Type]]' uses rep_2 instead of rep_1$spaces"
-                    append msg "($recPracNames(pmi242), Sec. 9.4.4 Note 1, Fig. 93, Table 16)"
+                    append msg "($recPracNames(pmi242), Sec. 9.4.4 Note 1, Fig. 102, Table 17)"
                     errorMsg $msg
                     set rep2Ents [$entDraughtingModel GetUsedIn [string trim $relType] [string trim rep_2]]
                     ::tcom::foreach rep2Ent $rep2Ents {set mdadrID [$rep2Ent P21ID]}
@@ -1304,7 +1308,7 @@ proc gpmiAnnotationReport {objEntity} {
           if {[string first "AP214" $stepAP] == 0} {set str "representation_relationship"}
           set msg "Syntax Error: For Saved Views, missing '$str' to relate 'draughting_model'$spaces"
           if {[string first "AP242" $stepAP] == 0} {
-            append msg "($recPracNames(pmi242), Sec. 9.4.4 Note 1, Fig. 93)"
+            append msg "($recPracNames(pmi242), Sec. 9.4.4 Note 1, Fig. 102)"
           } else {
             append msg "($recPracNames(pmi203), Sec. 5.4.4 Note 1, Fig. 20)"
           }
@@ -1470,7 +1474,7 @@ proc pmiGetCamerasAndProperties {} {
                   if {$name == ""} {
                     set msg "Syntax Error: For Saved Views, missing required 'name' attribute on $cm$spaces"
                     if {[string first "AP242" $stepAP] == 0} {
-                      append msg "($recPracNames(pmi242), Sec. 9.4.2.1, Fig. 86)"
+                      append msg "($recPracNames(pmi242), Sec. 9.4.2.1, Fig. 93)"
                     } else {
                       append msg "($recPracNames(pmi203), Sec. 5.4.2.1, Fig. 14)"
                     }

@@ -8,13 +8,14 @@ proc genExcel {{numFile 0}} {
   global sheetLast skipEntities skipPerm spmiEntity spmiSumName spmiSumRow spmiTypesPerFile startrow statsOnly stepAP tessColor thisEntType tlast
   global tolNames tolStandard tolStandards totalEntity userEntityFile userEntityList useXL viz workbook workbooks
   global worksheet worksheet1 worksheets writeDir wsCount wsNames x3dAxes x3dColor x3dColorFile x3dColors x3dFileName x3dIndex
-  global x3dMax x3dMin x3dMsg x3dMsgColor x3dStartFile xlFileName xlFileNames xlInstalled
+  global x3dMax x3dMin x3dMsg x3dMsgColor x3dStartFile x3dViewOK xlFileName xlFileNames xlInstalled
   global objDesign
 
   if {[info exists errmsg]} {set errmsg ""}
 
 # initialize for X3DOM geometry
   set x3dMsgColor green
+  set x3dViewOK 0
   if {$opt(viewPMI) || $opt(viewTessPart) ||$opt(viewFEA) || $opt(viewPart)} {
     set x3dStartFile 1
     set x3dAxes 1
@@ -65,24 +66,29 @@ proc genExcel {{numFile 0}} {
 
 # generate x3d
     x3dFileStart
-    x3dFileEnd
+    if {$x3dViewOK} {
+      x3dFileEnd
 
 # processing time
-    set cc [clock clicks -milliseconds]
-    set proctime [expr {($cc - $lasttime)/1000}]
-    if {$proctime <= 60} {set proctime [expr {(($cc - $lasttime)/100)/10.}]}
-    outputMsg "Processing time: $proctime seconds"
+      set cc [clock clicks -milliseconds]
+      set proctime [expr {($cc - $lasttime)/1000}]
+      if {$proctime <= 60} {set proctime [expr {(($cc - $lasttime)/100)/10.}]}
+      outputMsg "Processing time: $proctime seconds"
 
 # view file
-    if {$viz(PRT)} {openX3DOM "" $numFile}
+      if {$viz(PRT)} {openX3DOM "" $numFile}
 
 # save log file
-    if {[info exists logFile]} {
-      saveLogFile $lfile
-      unset lfile
-    }
+      if {[info exists logFile]} {
+        saveLogFile $lfile
+        unset lfile
+      }
 
 # clean up and return
+      incr filesProcessed
+      saveState
+    }
+
     foreach var {stepAP x3dCoord x3dFile x3dFileName x3dIndex x3dMax x3dMin x3dStartFile} {if {[info exists $var]} {unset $var}}
     if {[info exists buttons]} {$buttons(genExcel) configure -state normal}
     return
@@ -1153,10 +1159,8 @@ proc genExcel {{numFile 0}} {
   set proctime [expr {($cc - $lasttime)/1000}]
   if {$proctime <= 60} {set proctime [expr {(($cc - $lasttime)/100)/10.}]}
   outputMsg "Processing time: $proctime seconds"
-  update
-
   incr filesProcessed
-  saveState
+  update
 
 # -------------------------------------------------------------------------------------------------
 # save spreadsheet
@@ -1333,7 +1337,7 @@ proc genExcel {{numFile 0}} {
 
 # -------------------------------------------------------------------------------------------------
 # open X3DOM file for views
-  openX3DOM "" $numFile
+  if {$x3dViewOK} {openX3DOM "" $numFile}
 
 # save log file
   if {[info exists logFile]} {
@@ -1631,8 +1635,7 @@ proc addHeaderWorksheet {numFile fname} {
 #-------------------------------------------------------------------------------------------------
 # add summary worksheet
 proc sumAddWorksheet {} {
-  global andEntAP209 cells col entCategory entCount entsIgnored excel gpmiEnts nistVersion
-  global opt row sheetLast sheetSort spmiEntity stepAP sum worksheet worksheets
+  global andEntAP209 cells col entCategory entCount entsIgnored excel gpmiEnts opt row sheetLast sheetSort spmiEntity stepAP sum worksheet worksheets
 
   outputMsg "\nGenerating Summary worksheet" blue
   set sum "Summary"
@@ -1758,15 +1761,10 @@ proc sumAddWorksheet {} {
     $range AutoFormat
 
 # name and link to program website that generated the spreadsheet
-    set str "NIST "
-    set url "https://www.nist.gov/services-resources/software/step-file-analyzer-and-viewer"
-    if {!$nistVersion} {
-      set str ""
-      set url "https://github.com/usnistgov/SFA"
-    }
-    $cells($sum) Item [expr {$row($sum)+2}] 1 "$str\STEP File Analyzer and Viewer [getVersion]"
+    $cells($sum) Item [expr {$row($sum)+2}] 1 "NIST STEP File Analyzer and Viewer [getVersion]"
     set anchor [$worksheet($sum) Range [cellRange [expr {$row($sum)+2}] 1]]
-    [$worksheet($sum) Hyperlinks] Add $anchor [join $url] [join ""] [join "Link to $str\STEP File Analyzer and Viewer"]
+    [$worksheet($sum) Hyperlinks] Add $anchor [join "https://www.nist.gov/services-resources/software/step-file-analyzer-and-viewer"] [join ""] \
+      [join "Link to NIST STEP File Analyzer and Viewer"]
     $cells($sum) Item [expr {$row($sum)+3}] 1 "[clock format [clock seconds]]"
 
 # print errors
@@ -2227,7 +2225,9 @@ proc addP21e3Section {idType} {
 
 # add to worksheet
       incr r
-      $cells($sect) Item $r 1 $line
+      set line1 $line
+      if {$r == 1} {append line1 "  (See Help > User Guide section 5.9)"}
+      $cells($sect) Item $r 1 $line1
 
 # process anchor section persistent IDs
       if {$sect == "ANCHOR"} {
@@ -2240,27 +2240,47 @@ proc addP21e3Section {idType} {
           set badEnt 0
           set anchorID [string range $line $c1+1 end]
           if {[string is integer $anchorID]} {
-            set anchorEnt [[$objDesign FindObjectByP21Id [expr {int($anchorID)}]] Type]
+            if {[catch {
+              set objValue  [$objDesign FindObjectByP21Id [expr {int($anchorID)}]]
+              set anchorEnt [$objValue Type]
 
 # add anchor ID to entity worksheet and representation summary
-            if {$anchorEnt != ""} {
-              $cells($sect) Item $r 2 $anchorEnt
-              if {[info exists worksheet($anchorEnt)]} {
-                set c3 [string first ">" $line]
-                if {$c3 == -1} {set c3 [string first "=" $line]}
-                set uuid [string range $line 1 $c3-1]
-                if {![info exists urow($anchorEnt)]} {set urow($anchorEnt) [[[$worksheet($anchorEnt) UsedRange] Rows] Count]}
-                if {![info exists ucol($anchorEnt)]} {set ucol($anchorEnt) [getNextUnusedColumn $anchorEnt]}
-                if {[info exists idRow($anchorEnt,$anchorID)]} {
-                  set ur $idRow($anchorEnt,$anchorID)
-                  $cells($anchorEnt) Item $ur $ucol($anchorEnt) $uuid
+              if {$anchorEnt != ""} {
+                $cells($sect) Item $r 2 $anchorEnt
+                if {[info exists worksheet($anchorEnt)]} {
+                  set c3 [string first ">" $line]
+                  if {$c3 == -1} {set c3 [string first "=" $line]}
+                  set uuid [string range $line 1 $c3-1]
+                  if {![info exists urow($anchorEnt)]} {set urow($anchorEnt) [[[$worksheet($anchorEnt) UsedRange] Rows] Count]}
+                  if {![info exists ucol($anchorEnt)]} {set ucol($anchorEnt) [getNextUnusedColumn $anchorEnt]}
+                  if {[info exists idRow($anchorEnt,$anchorID)]} {
+                    set ur $idRow($anchorEnt,$anchorID)
+                    $cells($anchorEnt) Item $ur $ucol($anchorEnt) $uuid
+                  }
+
+# representation summary
+                  if {[info exists spmiSumRowID($anchorID)]} {
+                    set anchorSum($spmiSumRowID($anchorID)) $uuid
+                  } elseif {[string first "dimensional_size" $anchorEnt] != -1 || [string first "dimensional_location" $anchorEnt] != -1} {
+                    set dcrs [$objValue GetUsedIn [string trim dimensional_characteristic_representation] [string trim dimension]]
+                    ::tcom::foreach dcr $dcrs {
+                      set id1 [[[[$dcr Attributes] Item [expr 1]] Value] P21ID]
+                      if {$id1 == $anchorID} {
+                        set id2 [$dcr P21ID]
+                        if {[info exists spmiSumRowID($id2)]} {
+                          set anchorSum($spmiSumRowID($id2)) $uuid
+                        }
+                      }
+                    }
+                  }
+                } else {
+                  lappend noanchor $anchorEnt
                 }
-                if {[info exists spmiSumRowID($anchorID)]} {set anchorSum($spmiSumRowID($anchorID)) $uuid}
               } else {
-                lappend noanchor $anchorEnt
+                set badEnt 1
               }
-            } else {
-              set badEnt 1
+            } emsg]} {
+              errorMsg "ERROR: Missing entity #$anchorID for ANCHOR section."
             }
           } else {
             set badEnt 1
@@ -2273,7 +2293,6 @@ proc addP21e3Section {idType} {
           }
         }
       }
-
       if {$line == "ENDSEC"} {[$worksheet($sect) Columns] AutoFit}
     }
 
@@ -2314,6 +2333,7 @@ proc addP21e3Section {idType} {
 
     $cells($spmiSumName) Item 3 $c $heading
     set range [$worksheet($spmiSumName) Range [cellRange 3 $c]]
+    addCellComment $spmiSumName 3 $c "See Help > User Guide (section 5.7)  IDs for dimensional_characteristic_representation are for the corresponding dimensional_location or dimensional_size."
     catch {foreach i {8 9} {[[$range Borders] Item $i] Weight [expr 2]}}
     [$range Font] Bold [expr 1]
     $range HorizontalAlignment [expr -4108]
@@ -2340,6 +2360,7 @@ proc addP21e3Section {idType} {
   }
   foreach ent [array names urow] {
     $cells($ent) Item 3 $ucol($ent) $heading
+    addCellComment $ent 3 $ucol($ent) "See Help > User Guide (section 5.7)"
     set range [$worksheet($ent) Range [cellRange 3 $ucol($ent)] [cellRange $urow($ent) $ucol($ent)]]
     [$range Columns] AutoFit
     [$range Interior] ColorIndex [expr 40]

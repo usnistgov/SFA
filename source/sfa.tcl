@@ -1,15 +1,18 @@
-# This software was developed at the National Institute of Standards and Technology by employees of 
-# the Federal Government in the course of their official duties.  Pursuant to Title 17 Section 105 
-# of the United States Code this software is not subject to copyright protection and is in the 
-# public domain. This software is an experimental system.  NIST assumes no responsibility whatsoever 
-# for its use by other parties, and makes no guarantees, expressed or implied, about its quality, 
-# reliability, or any other characteristic.  We would appreciate acknowledgement if the software is 
-# used.
-# 
-# This software can be redistributed and/or modified freely provided that any derivative works bear 
-# some notice that they are derived from it, and any modified versions bear some notice that they 
-# have been modified. 
+# This software was developed at the National Institute of Standards and Technology by employees of
+# the Federal Government in the course of their official duties.  Pursuant to Title 17 Section 105 of
+# the United States Code this software is not subject to copyright protection and is in the public
+# domain.  This software is an experimental system.  NIST assumes no responsibility whatsoever for
+# its use by other parties, and makes no guarantees, expressed or implied, about its quality,
+# reliability, or any other characteristic.
 
+# This software is provided by NIST as a public service.  You may use, copy and distribute copies of
+# the software in any medium, provided that you keep intact this entire notice.  You may improve,
+# modify and create derivative works of the software or any portion of the software, and you may copy
+# and distribute such modifications or works.  Modified works should carry a notice stating that you
+# changed the software and should note the date and nature of any such change.  Please explicitly
+# acknowledge NIST as the source of the software.
+
+# See the NIST Disclaimer at https://www.nist.gov/disclaimer
 # The latest version of the source code is available at: https://github.com/usnistgov/SFA
 
 # This is the main routine for the STEP File Analyzer and Viewer GUI version
@@ -55,11 +58,11 @@ if {[catch {
   set c1 [string first [file tail [info nameofexecutable]] $dir]
   if {$c1 != -1} {set dir [string range $dir 0 $c1-1]}
   if {[string first "couldn't load library" $emsg] != -1} {
-    append emsg "\n\nThere might be a problem running this software from a directory with accented, non-English, or symbol characters in the pathname."
-    append emsg "\n     [file nativename $dir]\nTry running the software from a directory without any of the special characters in the pathname."
+    append emsg "\n\nThere might be a problem running this software from a directory with accented, non-English, or symbol characters in the pathname or from the C:\\ directory."
+    append emsg "\n\n[file nativename $dir]\n\nTry running the software from a directory without any of the special characters in the pathname or from your home directory or desktop."
   }
   append emsg "\n\nContact [lindex $contact 0] ([lindex $contact 1]) if you cannot run the STEP File Analyzer and Viewer."
-  set choice [tk_messageBox -type ok -icon error -title "ERROR starting the STEP File Analyzer and Viewer" -message $emsg]
+  set choice [tk_messageBox -type ok -icon error -title "ERROR running the STEP File Analyzer and Viewer" -message $emsg]
   exit
 }
 
@@ -102,7 +105,7 @@ foreach id { \
   DEBUG1 DEBUGINV DEBUGX3D \
 } {set opt($id) 0}
 
-set opt(gpmiColor) 0
+set opt(gpmiColor) 3
 set opt(partQuality) 7
 set opt(xlMaxRows) 1003
 set opt(xlFormat) Excel
@@ -272,6 +275,12 @@ if {$developer} {if {$filesProcessed > 0} {outputMsg $filesProcessed} else {erro
 if {[info exists endMsg]} {
   outputMsg " "
   errorMsg $endMsg
+  .tnb select .tnb.status
+}
+
+# non-NIST version
+if {!$nistVersion} {
+  outputMsg "\nThis is a user-built version of the NIST STEP File Analyzer and Viewer."
   .tnb select .tnb.status
 }
 

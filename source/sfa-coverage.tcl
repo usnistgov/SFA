@@ -24,9 +24,9 @@ proc spmiSummary {} {
     $cells($spmiSumName) Item $spmiSumRow 2 "Entity"
     $cells($spmiSumName) Item $spmiSumRow 3 "PMI Representation"
 
-    set comment "PMI Representation is collected here from the datum systems, dimensions, tolerances, and datum target entities in column B."
+    set comment "PMI Representation is collected here from the datum system, dimension, tolerance, and datum target entities in column B.  See Help > User Guide (section 6.1.6)"
     if {$nistName != ""} {
-      append comment "\n\nIt is color-coded by the expected PMI in the NIST test case drawing to the right.  The color-coding is explained at the bottom of the column.  Determining if the PMI is Partial and Possible match and corresponding Similar PMI depends on leading and trailing zeros, number precision, associated datum features and dimensions, and repetitive dimensions.\n\nSee Help > User Guide (section 8)"
+      append comment "\n\nIt is color-coded by the expected PMI in the NIST test case drawing to the right.  The color-coding is explained at the bottom of the column.  Determining if the PMI is Partial and Possible match and corresponding Similar PMI depends on leading and trailing zeros, number precision, associated datum features and dimensions, and repetitive dimensions.  See Help > User Guide (section 6.5.1)"
     }
     append comment "."
     addCellComment $spmiSumName $spmiSumRow 3 $comment
@@ -132,7 +132,7 @@ proc spmiSummary {} {
 # -------------------------------------------------------------------------------
 # start PMI Representation Coverage analysis worksheet
 proc spmiCoverageStart {{multi 1}} {
-  global allPMIelements cells cells1 multiFileDir pmiElements pmiElements1 pmiModifiers pmiModifiersRP
+  global allPMIelements cells cells1 multiFileDir nistName pmiElements pmiElements1 pmiModifiers pmiModifiersRP
   global pmiUnicode sheetLast spmiCoverageWS spmiTypes worksheet worksheet1 worksheets worksheets1 
 
   if {[catch {
@@ -148,6 +148,11 @@ proc spmiCoverageStart {{multi 1}} {
 
       $cells($spmiCoverageWS) Item 3 1 "PMI Element  (See Help > Analyze > PMI Coverage Analysis)"
       $cells($spmiCoverageWS) Item 3 2 "Count"
+      if {$nistName == ""} {
+        addCellComment $spmiCoverageWS 3 2 "See Help > User Guide (section 6.1.7)"
+      } else {
+        addCellComment $spmiCoverageWS 3 2 "See Help > User Guide (section 6.5.2)"
+      }
       set range [$worksheet($spmiCoverageWS) Range "1:3"]
       [$range Font] Bold [expr 1]
       set range [$worksheet($spmiCoverageWS) Range B3]
@@ -727,7 +732,7 @@ proc gpmiCoverageFormat {{sum ""} {multi 1}} {
     }
 
 # rec prac
-    set rp "$recPracNames(pmi242), Sec. 8.4, Table 14"
+    set rp "$recPracNames(pmi242), Sec. 8.4, Table 15"
     if {[string first "AP203" $stepAP] == 0} {set rp "$recPracNames(pmi203), Sec. 4.3, Table 1"}
 
 # vertical line(s)
@@ -758,9 +763,9 @@ proc gpmiCoverageFormat {{sum ""} {multi 1}} {
       }
       [$worksheet($gpmiCoverageWS) Columns] AutoFit        
 
-      catch {$cells($gpmiCoverageWS) Item 1 5 "Presentation Names defined in $rp"}
       set range [$worksheet($gpmiCoverageWS) Range E1:O1]
       $range MergeCells [expr 1]
+      $cells($gpmiCoverageWS) Item 1 E "Presentation Names defined in $rp"
       set anchor [$worksheet($gpmiCoverageWS) Range E1]
       [$worksheet($gpmiCoverageWS) Hyperlinks] Add $anchor [join "https://www.cax-if.org/cax/cax_recommPractice.php"] [join ""] [join "Link to CAx-IF Recommended Practices"]
 

@@ -1,7 +1,7 @@
 # read entity and write to spreadsheet
 proc getEntity {objEntity checkInverse} {
   global attrType badAttributes cells col coordinatesList count developer entComment entCount entName heading invMsg invVals lineStrips localName
-  global matrixList normals opt roseLogical row rowmax sheetLast skipEntities skipPerm syntaxErr thisEntType triangles worksheet worksheets
+  global matrixList opt roseLogical row rowmax sheetLast skipEntities skipPerm syntaxErr thisEntType worksheet worksheets
   global wsCount wsNames
   
 # get entity type
@@ -143,11 +143,11 @@ proc getEntity {objEntity checkInverse} {
                 position_coords {if {[info exists coordinatesList($p21id)]} {set objValue $coordinatesList($p21id); set ok1 1}}
                 line_strips     {if {[info exists lineStrips($p21id)]}      {set objValue $lineStrips($p21id); set ok1 1}}
               }
-              if {!$ok1} {errorMsg " Reporting [formatComplexEnt $thisEntType] '$attrName' attribute is not supported.  '???' will appear in spreadsheet for this attribute.  See User Guide section 3.3.1" red}
+              if {!$ok1} {errorMsg " Reporting [formatComplexEnt $thisEntType] '$attrName' attribute is not supported.  '???' will appear in spreadsheet for this attribute.  See User Guide section 5.4" red}
             } else {
               set str $badAttributes($thisEntType)
               regsub -all " " $str "' '" str
-              errorMsg " Reporting [formatComplexEnt $thisEntType] '$str' attribute is not supported.  '???' will appear in spreadsheet for these attributes.  See User Guide section 3.3.1" red
+              errorMsg " Reporting [formatComplexEnt $thisEntType] '$str' attribute is not supported.  '???' will appear in spreadsheet for these attributes.  See User Guide section 5.4" red
             }
           }
         }
@@ -484,7 +484,7 @@ proc getEntityCSV {objEntity} {
             set objValue [$objAttribute Value]
           } else {
             set objValue "???"
-            errorMsg " Reporting [formatComplexEnt $thisEntType] '$attrName' attribute is not supported.  '???' will appear in CSV file for this attribute.  See User Guide section 3.3.1" red
+            errorMsg " Reporting [formatComplexEnt $thisEntType] '$attrName' attribute is not supported.  '???' will appear in CSV file for this attribute.  See User Guide section 5.4" red
           }
         }
 

@@ -2,7 +2,7 @@ proc feaModel {entType} {
   global objDesign
   global cadSystem ent entAttrList entCount entLevel feaBoundary feaDisp feaFaceList feaFaceOrig feaFile feaFileName
   global feaFirstEntity feaLastEntity feaLoad feaMeshIndex feaType feaTypes localName mytemp nfeaElem nprogBarEnts opt rowmax
-  global sfaPID stepAP timeStamp x3dAxesSize x3dFile x3dFileName x3dMax x3dMin x3dMsg x3dStartFile x3dTitle
+  global sfaPID stepAP timeStamp x3dAxesSize x3dFile x3dFileName x3dMax x3dMin x3dMsg x3dStartFile x3dTitle x3dViewOK
 
   if {$opt(DEBUG1)} {outputMsg "START feaModel $entType\n" red}
 
@@ -84,6 +84,7 @@ proc feaModel {entType} {
 # start X3DOM file
   if {$x3dStartFile} {
     set x3dStartFile 0
+    set x3dViewOK 1
     catch {file delete -force -- "[file rootname $localName]_x3dom.html"}
     catch {file delete -force -- "[file rootname $localName]-x3dom.html"}
     set x3dFileName [file rootname $localName]-sfa.html
@@ -105,7 +106,7 @@ proc feaModel {entType} {
       regsub -all "_" $cadSystem " " cs
       append x3dTitle "&nbsp;&nbsp;&nbsp;$cs"
     }
-    puts $x3dFile "\n<body><font face=\"arial\">\n<h3>$x3dTitle</h3>"
+    puts $x3dFile "\n<body><font face=\"sans-serif\">\n<h3>$x3dTitle</h3>"
     puts $x3dFile "\n<table><tr><td valign='top' width='85%'>"
 
 # x3d window size

@@ -218,13 +218,16 @@ set tolNames [list \
   flatness_tolerance line_profile_tolerance parallelism_tolerance perpendicularity_tolerance position_tolerance \
   roundness_tolerance straightness_tolerance surface_profile_tolerance symmetry_tolerance total_runout_tolerance]
 
-# tolerance zone form names (Section 6.9.2, Tables 11, 12)
+# tolerance zone form names (Section 6.9.2, Table 12)
 set tzfNames [list \
-  "cylindrical or circular" "spherical" "within a circle" "within a sphere" "between two concentric circles" "between two equidistant curves" \
-  "within a cylinder" "between two coaxial cylinders" "between two equidistant surfaces" "non uniform" "unknown"]
+  "cylindrical or circular" "within a cylinder" "within a circle" "spherical" "within a sphere" "within a cone" "within a single complex surface" \
+  "between two coaxial cylinders" "between two concentric circles" "between two equidistant complex lines of two parallel straight lines" \
+  "between two equidistant complex surfaces or two parallel planes" "between two equidistant curves" "between two equidistant surfaces" \
+  "between two non-equidistant complex lines or two non-parallel straight lines" "between two non-equidistant complex surfaces or two non-parallel straight planes" \
+  "between two parallel circles of the same diameter" "between two parallel circles on a conical surface" "non uniform" "unknown"]
 
 # -----------------------------------------------------------------------------------------------------
-# *Graphical PMI* names (Section 8.2, Table 13)
+# *Graphical PMI* names (Section 8.4, Table 15)
 set gpmiTypes [list \
   "angularity" "circular runout" "circularity" "coaxiality" "concentricity" "cylindricity" "flatness" "parallelism" "perpendicularity" "position" "profile of line" \
   "profile of surface" "roundness" "straightness" "symmetry" "total runout" "general tolerance" "linear dimension" "radial dimension" "diameter dimension" \
@@ -236,21 +239,22 @@ set gpmiTypes [list \
 set spmiTypes $tolNames
 
 foreach item [list \
-  "tolerance zone diameter (6.9.2, Table 11)" "tolerance zone within a cylinder (6.9.2, Table 12)" "tolerance zone spherical diameter (6.9.2, Table 11)" \
-  "tolerance zone other (6.9.2, Table 12)" "all_over \u2b69\u25CE (6.3)" "all_around \u232E (6.4.2)" "between \u2194 (6.4.3)" "affected plane tolerance zone (6.9.2.1)" \
+  "tolerance zone diameter (6.9.2)" "tolerance zone within a cylinder (6.9.2)" "tolerance zone spherical diameter (6.9.2)" "tolerance zone other (6.9.2)" \
+  "all_over \u2b69\u25CE (6.3)" "all_around \u232E (6.4.2)" "between \u2194 (6.4.3)" "affected plane tolerance zone (6.9.2.1)" \
   "projected \u24C5 (6.9.2.2)" "non-uniform tolerance zone (6.9.2.3)" "unequally_disposed \u24CA or UZ (6.9.4)" "tolerance with max value (6.9.5)" \
   "unit-basis tolerance (6.9.6)" "composite tolerance (6.9.9)" "intersection/orientation plane indicator" \
   "dimensions (location+size)" "dimensional location (5.1.1)" "dimensional size (5.1.5)" "angular location (5.1.2)" "angular size (5.1.6)" \
   "directed dimension \u2331 (5.1.1)" "oriented dimensional location (5.1.3)" "derived shapes dimensional location (5.1.4)" "location with path (5.1.7)" \
-  "repetitive dimensions 'nX' (5.1, User Guide 5.1.3)" "dimension association to geometric tolerance (5.1)" \
+  "repetitive dimensions 'nX' (5.1, User Guide 6.1.3)" "dimension association to geometric tolerance (5.1)" \
   "bilateral tolerance (5.2.3)" "non-bilateral tolerance (5.2.3)" "type qualifier (5.2.2)" "value range (5.2.4)" "limits and fits (5.2.5)" \
   "diameter \u2205 (5.1.5)" "radius R (5.1.5)" "spherical diameter S\u2205 (5.1.5)" "spherical radius SR (5.1.5)" "curved distance (5.1.1)" \
   "linear distance (5.1.1)" "linear distance inner/outer (5.1.1)" "curve length (5.1.5)" "thickness (5.1.5)" "toroidal radius/diameter (5.1.5)" \
   "controlled radius CR (5.3)" "dimension basic (5.3)" "reference dimension (5.3)" "square \u25A1 (5.3)" "dimension qualifier (5.4)" "measure qualifier" \
   "datum (6.5)" "datum system (6.9.7)" "datum with axis system (6.9.7)" "datum with modifiers (6.9.7)" "multiple datum features (6.9.8)" \
   "datum feature association to geometric tolerance (6.1)" \
-  "all datum targets" "point datum target (6.6)" "line datum target (6.6)" "rectangle datum target (6.6)" "circle datum target (6.6)" \
-  "circular curve datum target (6.6)" "curve datum target (6.6)" "area datum target (6.6)" "placed datum target geometry (6.6.2)" "movable datum target (6.6.3)" \
+  "all datum targets" "point datum target (6.6.1)" "line datum target (6.6.1)" "rectangle datum target (6.6.1)" "circle datum target (6.6.1)" \
+  "circular curve datum target (6.6.1)" "curve datum target (6.6.2)" "area datum target (6.6.2)" "placed datum target geometry (6.6.3)" \
+  "movable datum target (6.6.4)" \
 ] {lappend spmiTypes $item}
 
 # not included "linear distance (5.1.1)" because it is most common for dimensional_location
@@ -354,7 +358,7 @@ foreach item [lsort [array names pmiModifiers]] {
   if {[lsearch $pmnot $idx] == -1} {lappend spmiTypes $item}
 }
 
-# a few more overall PMI types
+# a few more overall PMI 'types'
 set spmiTypes [concat $spmiTypes \
   [list "saved views (9.4)" "editable text (7.4)" "document identification (3, see Header worksheet)" "ASME dimensioning standard (4, Fig. 1)" \
     "ASME modeling standard (4, Fig. 2)" "ISO dimensioning standard (4, Fig. 1)" "ISO modeling standard (4, Fig. 2)" "default tolerance decimal places (4.1)"]]

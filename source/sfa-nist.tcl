@@ -560,7 +560,7 @@ proc nistAddExpectedPMIPercent {nf} {
   catch {foreach i {8 10 11} {[[$range Borders] Item $i] Weight [expr 2]}}
   set range [$worksheet($spmiCoverageWS) Range B$r]
   $range HorizontalAlignment [expr -4108]
-  addCellComment $spmiCoverageWS $r 1 "This table has color-coded percentages of Exact, Partial, Possible, Missing, and No matches from the PMI Representation Summary worksheet.  The Total PMI on which the percentages are based on is also shown.  The percentages for all matches except 'No match' should total 100.\n\nCoverage Analysis is only based on individual PMI elements.  The PMI Representation Summary is based on the entire PMI annotation and provides a better understanding of the PMI.  The Coverage Analysis might show that there is an Exact match (all green above) for all of the PMI elements, however, the Representation Summary might show less than Exact matches."
+  addCellComment $spmiCoverageWS $r 1 "This table has color-coded percentages of Exact, Partial, Possible, Missing, and No matches from the PMI Representation Summary worksheet.  The Total PMI on which the percentages are based on is also shown.  The percentages for all matches except 'No match' should total 100.\n\nCoverage Analysis is only based on individual PMI elements.  The PMI Representation Summary is based on the entire PMI annotation and provides a better understanding of the PMI.  The Coverage Analysis might show that there is an Exact match (all green above) for all of the PMI elements, however, the Representation Summary might show less than Exact matches.\n\nSee Help > User Guide (section 6.5.2.1)"
   
 # for multiple files, add more formatting
   if {[info exists lenfilelist]} {

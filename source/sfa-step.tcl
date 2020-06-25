@@ -617,10 +617,8 @@ proc checkP21e3 {fname} {
           errorMsg "The STEP file uses ISO 10303 Part 21 Edition *3* '$sects' section(s)."
           outputMsg " This software cannot directly process Edition 3 files.  A new Part 21 Edition *2* file:" red
           outputMsg "   [truncFileName $nname]"
-          set msg " without those sections will be written and processed."
-          append msg "\n The '$sects' section(s) from the original file will be processed separately for the spreadsheet."
-          append msg "\n See Websites > STEP Format and Schemas > ISO 10303 Part 21 Edition 3"
-          outputMsg $msg red
+          outputMsg " without those sections will be written and processed." red
+          outputMsg " The '$sects' section(s) from the original file will be processed separately for the spreadsheet.\n See Help > User Guide (section 5.7)\n See Websites > STEP Format and Schemas > ISO 10303 Part 21 Edition 3"
           
 # check for part 21 edition 3 content
         } elseif {[string first "ANCHOR\;" $line] == 0 || \
