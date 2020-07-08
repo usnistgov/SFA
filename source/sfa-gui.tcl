@@ -1,5 +1,5 @@
 # SFA version number
-proc getVersion {} {return 4.2}
+proc getVersion {} {return 4.21}
 
 # version of SFA that the User Guide is based on
 proc getVersionUG {} {return 4.2}
@@ -63,7 +63,7 @@ proc showFileURL {type} {
 # update for new versions, local and online
       set localFile "SFA-User-Guide-v6.pdf"
       set URL https://doi.org/10.6028/NIST.AMS.200-10
-      if {$sfaVersion > [expr {[getVersionUG]+0.4}]} {
+      if {$sfaVersion > [expr {[getVersionUG]+0.1}]} {
         outputMsg "\nThe User Guide is based on version [getVersionUG] of this software."
         .tnb select .tnb.status
       }
@@ -249,7 +249,7 @@ proc guiButtons {} {
 #-------------------------------------------------------------------------------
 # status tab
 proc guiStatusTab {} {
-  global fout nb outputWin statusFont tcl_platform wout
+  global fout nb outputWin statusFont wout
 
   set wout [ttk::panedwindow $nb.status -orient horizontal]
   $nb add $wout -text " Status " -padding 2
@@ -268,15 +268,13 @@ proc guiStatusTab {} {
   $outputWin type add error -foreground black -background "#ffff99"
   $outputWin type add syntax -foreground black -background "#ff9999"
 
-# windows 7 or greater
-  if {$tcl_platform(osVersion) >= 6.0} {
-    if {![info exists statusFont]} {
-      set statusFont [$outputWin type cget black -font]
-    }
-    if {[string first "Courier" $statusFont] != -1} {
-      regsub "Courier" $statusFont "Consolas" statusFont
-      regsub "120" $statusFont "140" statusFont
-    }
+# font type
+  if {![info exists statusFont]} {
+    set statusFont [$outputWin type cget black -font]
+  }
+  if {[string first "Courier" $statusFont] != -1} {
+    regsub "Courier" $statusFont "Consolas" statusFont
+    regsub "120" $statusFont "140" statusFont
   }
 
   if {[info exists statusFont]} {
@@ -577,7 +575,7 @@ proc guiProcessAndReports {} {
   pack $foptv -side left -anchor w -pady {5 2} -padx 10 -fill both -expand true
   pack $foptrv -side top -anchor w -pady 0 -fill x
   catch {
-    tooltip::tooltip $foptv20 "The view for part geometry supports color, edges, and sketch geometry.\nThe viewer does not support measurements.\n\nNormals improve the default smooth shading at the expense of slower\nprocessing and display.  Using High Quality and Normals results in the\nbest appearance for part geometry.\n\nSee Help > Viewer\n\nViews are shown in the default web browser.\nViews can be generated without generating a spreadsheet or CSV files.\nSee the Output Format option below.\n\nSee Help > View for other viewing features\nSee Examples > View Simple Assembly and others\nSee Websites > STEP File Viewers (for other part geometry viewers)"
+    tooltip::tooltip $foptv20 "The view for part geometry supports color, edges, and sketch geometry.\nThe viewer does not support measurements.\n\nNormals improve the default smooth shading at the expense of slower\nprocessing and display.  Using High Quality and Normals results in the\nbest appearance for part geometry.\n\nSee Help > Viewer\n\nViews are shown in the default web browser.\nViews can be generated without generating a spreadsheet or CSV files.\nSee the Output Format option below.\n\nSee Help > View for other viewing features\nSee Examples > View Box Assembly and others\nSee Websites > STEP File Viewers (for other part geometry viewers)"
     tooltip::tooltip $buttons(viewPMI) "Graphical PMI is supported in AP242, AP203, and AP214 files.\n\nSee Help > View > Graphical PMI\nSee Help > Viewer\nSee Help > User Guide (section 4.2)\nSee Examples > Part with PMI\nSee Examples > AP242 Tessellated Part with PMI\nSee Examples > Sample STEP Files"
     tooltip::tooltip $buttons(viewTessPart) "** Parts in an assembly might have the wrong\nposition and orientation or be missing. **\n\nTessellated edges (lines) are also shown.  Faces\nin tessellated shells are outlined in black.\n\nSee Help > View > AP242 Tessellated Part Geometry\nSee Help > Viewer\nSee Help > User Guide (section 4.3)\nSee Examples > AP242 Tessellated Part with PMI"
     tooltip::tooltip $buttons(tessPartMesh) "Generate a wireframe mesh based on the tessellated faces and surfaces."
@@ -1110,8 +1108,10 @@ Part geometry viewer features:
   higher-level assembly that is in the list.  Some names in the list might have an underscore and
   number appended to their name.  Processing sketch geometry might also affect the list of names.
   Some assemblies have no unique names assigned to parts, therefore there is no list of part names.
-  Names that use non-English characters might have different or missing characters or cause the
-  viewer to crash.
+
+- Part names with illegal characters might have different or missing characters or cause the viewer
+  to crash.  Use the Syntax Checker to check for illegal characters.  Names using Unicode encoding
+  with \\X\\ and \\X2\\ are supported.
 
 - The part bounding box min and max XYZ coordinates are based on the faceted geometry being shown
   and not the exact geometry in the STEP file.  There might be a variation in the coordinates
@@ -1139,9 +1139,10 @@ See Help > View for more information about viewing:
 - AP242 Tessellated Geometry
 - AP209 Finite Element Models
 
-See Examples > View Simple Assembly and others
+See Examples > View Box Assembly and others
 
-The viewer for part geometry is based on the STEP to X3D Translator.  See Websites > STEP Software
+The viewer for part geometry is based on the NIST STEP to X3D Translator.
+See Websites > STEP Software
 
 Other STEP file viewers are available.  See Websites > STEP File Viewers.  Some of the other
 viewers have better features for viewing and measuring part geometry.  However, many of the other
@@ -1503,7 +1504,7 @@ Validation Properties is selected.  The errors refer to specific sections, figur
 the relevant CAx-IF Recommended Practice.  Errors should be fixed so that the STEP file can
 interoperate with other CAx software.  See Websites > CAx Recommended Practices
 
-Syntax errors are highlighted in red in the Status tab.  Other informative messages are highlighted
+Syntax errors are highlighted in red in the Status tab.  Other informative warnings are highlighted
 in yellow.  Syntax errors that refer to section, figure, and table numbers might use numbers that
 are in a newer version of a recommended practice that has not been publicly released.
 
@@ -1604,7 +1605,8 @@ outputMsg "\nSyntax Checker ----------------------------------------------------
 outputMsg "The Syntax Checker checks for basic syntax errors and warnings in the STEP file related to missing
 or extra attributes, incompatible and unresolved entity references, select value types, illegal and
 unexpected characters, and other problems with entity attributes.  Some errors might prevent this
-software and others from processing a STEP file.
+software and others from processing a STEP file.  Characters that are identified as illegal or
+unexpected might not be shown in a spreadsheet or in the viewer.
 
 There should not be any of these types of syntax errors in a STEP file.  Errors should be fixed to
 ensure that the STEP file conforms to the STEP schema and can interoperate with other software.
@@ -1766,8 +1768,7 @@ Credits
 - Reading and parsing STEP files: IFCsvr ActiveX Component, Copyright \u00A9 1999, 2005 SECOM Co., Ltd. All Rights Reserved
                                   IFCsvr has been modified by NIST to include STEP schemas.
                                   The license agreement can be found in  C:\\Program Files (x86)\\IFCsvrR300\\doc
-- Translating STEP to X3D:        Developed by Soonjo Kwon at NIST based on the Open CASCADE STEP Processor (See Websites > STEP Software)
-                                  Open CASCADE License  https://www.opencascade.com/content/licensing"
+- Translating STEP to X3D:        Developed by Soonjo Kwon at NIST, see Websites > STEP Software"
 
 # debug
     if {$opt(xlMaxRows) == 100003} {
@@ -1809,7 +1810,7 @@ Credits
   $Examples0 add command -label "AP214e1 Files" -command {openURL http://web.archive.org/web/20160903141712/http://www.steptools.com/support/stdev_docs/stpfiles/ap214/index.html}
 
   $Examples add separator
-  $Examples add command -label "View Simple Assembly"            -command {openURL https://pages.nist.gov/CAD-PMI-Testing/simple-assembly.html}
+  $Examples add command -label "View Box Assembly"               -command {openURL https://pages.nist.gov/CAD-PMI-Testing/step-file-viewer.html}
   $Examples add command -label "Part with PMI"                   -command {openURL https://pages.nist.gov/CAD-PMI-Testing/graphical-pmi-viewer.html}
   $Examples add command -label "AP242 Tessellated Part with PMI" -command {openURL https://pages.nist.gov/CAD-PMI-Testing/tessellated-part-geometry.html}
   $Examples add command -label "AP209 Finite Element Model"      -command {openURL https://pages.nist.gov/CAD-PMI-Testing/ap209-viewer.html}
@@ -1875,7 +1876,7 @@ proc guiWebsitesMenu {} {
   $Websites add cascade -label "STEP Software" -menu $Websites.3
   set Websites3 [menu $Websites.3 -tearoff 1]
   $Websites3 add command -label "SFA source code"             -command {openURL https://github.com/usnistgov/SFA}
-  $Websites3 add command -label "STEP to X3D Translator source code" -command {openURL https://github.com/usnistgov/STP2X3D}
+  $Websites3 add command -label "NIST STEP to X3D Translator" -command {openURL https://www.nist.gov/services-resources/software/step-x3d-translator}
   $Websites3 add command -label "Open CASCADE STEP Processor" -command {openURL https://dev.opencascade.org/doc/overview/html/occt_user_guides__step.html}
   $Websites3 add command -label "STEPcode"                    -command {openURL http://stepcode.github.io/}
   $Websites3 add command -label "STEP Class Library"          -command {openURL https://www.nist.gov/services-resources/software/step-class-library-scl}
@@ -2002,7 +2003,7 @@ proc guiToolTip {ttmsg tt} {
 
 #-------------------------------------------------------------------------------
 proc getOpenPrograms {} {
-  global dispApps dispCmds dispCmd appNames appName env
+  global dispApps dispCmds dispCmd appNames appName
   global drive editorCmd developer myhome pf32 pf64
 
 # Including any of the CAD viewers and software does not imply a recommendation or endorsement of them by NIST https://www.nist.gov/disclaimer
@@ -2156,12 +2157,16 @@ proc getOpenPrograms {} {
   set editorName ""
 
 # Notepad++ or Notepad
-  set editorCmd [file join $pf32 Notepad++ notepad++.exe]
-  if {[file exists $editorCmd]} {
-    set editorName "Notepad++"
-    set dispApps($editorCmd) $editorName
-  } elseif {[info exists env(windir)]} {
-    set editorCmd [file join $env(windir) system32 Notepad.exe]
+  foreach pf $pflist {
+    set editorCmd [file join $pf Notepad++ notepad++.exe]
+    if {[file exists $editorCmd]} {
+      set editorName "Notepad++"
+      set dispApps($editorCmd) $editorName
+      break
+    }
+  }
+  if {$editorName == ""} {
+    set editorCmd [file join Windows system32 Notepad.exe]
     set editorName "Notepad"
     set dispApps($editorCmd) $editorName
   }

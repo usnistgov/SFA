@@ -393,6 +393,7 @@ proc x3dFileEnd {} {
 # part geometry checkbox
   if {$viz(PRT)} {
     puts $x3dFile "\n<!-- Part geometry checkbox -->\n<input type='checkbox' checked onclick='togPRT(this.value)'/>Part Geometry"
+    if {$opt(partEdges)} {puts $x3dFile "<!-- Edges checkbox -->\n<br><input type='checkbox' checked onclick='togEDG(this.value)' id='swEDG'/>Edges"}
     if {[info exists x3dBbox]} {if {$x3dBbox != ""} {puts $x3dFile "<p>$x3dBbox"}}
 
 # part checkboxes
@@ -511,9 +512,14 @@ proc x3dFileEnd {} {
   puts $x3dFile "</td></tr></table>"
 
 # -------------------------------------------------------------------------------
-# function for PRT, part names
+# function for PRT, EDG, part names
   if {$viz(PRT)} {
     x3dSwitchScript PRT
+
+    if {$opt(partEdges)} {
+      puts $x3dFile "\n<!-- EDG switch -->\n<script>function togEDG\(choice\)\{"
+      puts $x3dFile " if \(!document.getElementById\('swEDG'\).checked\) \{document.getElementById\('mat1'\).setAttribute\('transparency', 1\);\} else \{document.getElementById\('mat1'\).setAttribute\('transparency', 0\);\}\n\}</script>"
+    }
 
     if {[info exists x3dParts]} {
       if {[llength [array names x3dParts]] > 1} {
@@ -578,7 +584,11 @@ proc x3dFileEnd {} {
 
 # part geometry
     if {$viz(PRT)} {
-      if {[info exists x3dApps]} {foreach n [lrmdups [lsort -integer $x3dApps]] {puts $x3dFile " document.getElementById('mat$n').setAttribute('transparency', trans);"}}
+      if {[info exists x3dApps]} {
+        foreach n [lrmdups [lsort -integer $x3dApps]] {
+          if {!$opt(partEdges) || $n != 1} {puts $x3dFile " document.getElementById('mat$n').setAttribute('transparency', trans);"}
+        }
+      }
     }
 
 # tessellated geometry
@@ -782,6 +792,17 @@ proc x3dBrepGeom {} {
 
 # write
               if {$write} {
+
+# handle Unicode characters on Shape id with x and x2 encoding
+                if {[string first "<Shape" $line] != -1 && [string first "\\X" $line] != -1} {
+                  set c1 [string first "'" $line]
+                  set c2 [string first "'" [string range $line $c1+1 end]]
+                  set id [string range $line $c1+1 $c1+$c2]
+                  set cx [string first "\\X" $id]
+                  if {$cx != -1} {set id [x3dUnicode $id "Shape id"]}
+                  set line [string range $line 0 $c1]$id[string range $line [expr {$c1+$c2+1}] end]
+                }
+
                 if {[string first $space $line] == 0} {
 
 # close the Switch-Group
@@ -799,7 +820,9 @@ proc x3dBrepGeom {} {
                       errorMsg " ERROR reading Transform text string in the X3D file.  The View might be missing parts."
                     }
                     incr npart
-                    set id [string range $line $c1+1 [expr {$c1+$c2}]]
+                    set id [string range $line $c1+1 $c1+$c2]
+                    set cx [string first "\\X" $id]
+                    if {$cx != -1} {set id [x3dUnicode $id "part name"]}
                     if {$opt(DEBUGX3D)} {outputMsg $id blue}
                     set parts($id) $npart
                     set line "$space\Switch id='swPart$npart' whichChoice='0'><Group>\n$line"
@@ -832,6 +855,9 @@ proc x3dBrepGeom {} {
                         }
                       }
                     }
+
+                    set cx [string first "\\X" $id]
+                    if {$cx != -1} {set id [x3dUnicode $id "part name"]}
                     set parts($id) $npart
                     set line "$space\Switch id='swPart$npart' whichChoice='0'><Group>\n$line"
                     if {$close1} {
@@ -934,6 +960,46 @@ proc x3dBrepGeom {} {
   } emsg]} {
     errorMsg " ERROR generating Part Geometry: $emsg"
   }
+}
+
+# -------------------------------------------------------------------------------
+# process X and X2 Unicode characters
+proc x3dUnicode {id name} {
+  global developer
+
+  foreach x {X X2} {
+    set cx [string first "\\$x\\" $id]
+    if {$cx != -1} {
+      switch -- $x {
+        X {
+          while {$cx != -1} {
+            set xu "&#x[string range $id $cx+3 $cx+4];"
+            set id [string range $id 0 $cx-1]$xu[string range $id $cx+5 end]
+            set cx [string first "\\$x\\" $id]
+            if {$developer} {errorMsg " Unicode \\$x\\ for $name" red}
+          }
+        }
+        X2 {
+          while {$cx != -1} {
+            set xu ""
+            for {set i 4} {$i < 200} {incr i 4} {
+              set uc [string range $id $cx+$i [expr {$cx+$i+3}]]
+              if {[string first "\\" $uc] == -1} {
+                append xu "&#x$uc;"
+              } else {
+                set cx0 [string first "\\X0\\" $id]
+                set id [string range $id 0 $cx-1]$xu[string range $id $cx0+4 end]
+                break
+              }
+            }
+            set cx [string first "\\$x\\" $id]
+            if {$developer} {errorMsg " Unicode \\$x\\ for $name" red}
+          }
+        }
+      }
+    }
+  }
+  return $id
 }
 
 # -------------------------------------------------------------------------------

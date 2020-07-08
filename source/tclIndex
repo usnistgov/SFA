@@ -84,6 +84,7 @@ set auto_index(x3dSuppGeomPoint) [list source [file join $dir sfa-grafx3d.tcl]]
 set auto_index(x3dTessGeom) [list source [file join $dir sfa-grafx3d.tcl]]
 set auto_index(x3dTransform) [list source [file join $dir sfa-grafx3d.tcl]]
 set auto_index(x3dSwitchScript) [list source [file join $dir sfa-grafx3d.tcl]]
+set auto_index(x3dUnicode) [list source [file join $dir sfa-grafx3d.tcl]]
 
 set auto_index(addFileToMenu) [list source [file join $dir sfa-gui.tcl]]
 set auto_index(getContact) [list source [file join $dir sfa-gui.tcl]]

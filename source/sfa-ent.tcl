@@ -40,7 +40,6 @@ proc getEntity {objEntity checkInverse} {
       for {set i 1} {$i < 10} {incr i} {
         if {[info exists entName($name)]} {set name "[string range $name 0 29]$i"}
       }
-      errorMsg " Worksheet names are truncated to the first 31 characters" red
     }
     set wsNames($name) $thisEntType
     set ws_name($thisEntType) [$worksheet($thisEntType) Name $name]

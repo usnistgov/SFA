@@ -17,7 +17,7 @@
 
 # This is the main routine for the STEP File Analyzer and Viewer GUI version
 
-global env tcl_platform
+global env
 
 set scriptName [info script]
 set wdir [file dirname $scriptName]
@@ -61,7 +61,7 @@ if {[catch {
     append emsg "\n\nThere might be a problem running this software from a directory with accented, non-English, or symbol characters in the pathname or from the C:\\ directory."
     append emsg "\n\n[file nativename $dir]\n\nTry running the software from a directory without any of the special characters in the pathname or from your home directory or desktop."
   }
-  append emsg "\n\nContact [lindex $contact 0] ([lindex $contact 1]) if you cannot run the STEP File Analyzer and Viewer."
+  append emsg "\n\nPlease send a screenshot of this dialog to [lindex $contact 0] ([lindex $contact 1]) if you cannot run the STEP File Analyzer and Viewer."
   set choice [tk_messageBox -type ok -icon error -title "ERROR running the STEP File Analyzer and Viewer" -message $emsg]
   exit
 }
@@ -215,16 +215,14 @@ foreach m {File Websites Examples Help} {
   .menubar add cascade -label $m -menu .menubar.m$m
 }
 
-# check if menu font is Segoe UI for windows 7 or greater
+# check if menu font is Segoe UI
 catch {
-  if {$tcl_platform(osVersion) >= 6.0} {
-    set ff [join [$File cget -font]]
-    if {[string first "Segoe" $ff] == -1} {
-      $File     configure -font [list {Segoe UI}]
-      $Websites configure -font [list {Segoe UI}]
-      $Examples configure -font [list {Segoe UI}]
-      $Help     configure -font [list {Segoe UI}]
-    }
+  set ff [join [$File cget -font]]
+  if {[string first "Segoe" $ff] == -1} {
+    $File     configure -font [list {Segoe UI}]
+    $Websites configure -font [list {Segoe UI}]
+    $Examples configure -font [list {Segoe UI}]
+    $Help     configure -font [list {Segoe UI}]
   }
 }
 

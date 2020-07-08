@@ -4,7 +4,7 @@ proc getAssocGeom {entDef {tolType 0} {tolName ""}} {
 
   set debugAG 0
   set entDefType [$entDef Type]
-  if {$debugAG} {outputMsg "getAssocGeom $tolType $entDefType [$entDef P21ID]" blue}
+  if {$debugAG} {outputMsg "\ngetAssocGeom $tolType $entDefType [$entDef P21ID]" blue}
 
   if {[catch {
     if {$entDefType == "shape_aspect" || $entDefType == "all_around_shape_aspect" || $entDefType == "centre_of_symmetry" || \
@@ -149,7 +149,7 @@ proc appendAssocGeom {ent {id ""}} {
 
 # -------------------------------------------------------------------------------
 proc getFaceGeom {e0 tolType {id ""}} {
-  global assocGeom debugAG cylSurfBounds
+  global assocGeom cylSurfBounds debugAG dimName
   
   if {$tolType} {set debug 0}
   
@@ -160,11 +160,16 @@ proc getFaceGeom {e0 tolType {id ""}} {
         set type  [[$a1 Value] Type]
         lappend assocGeom($type) $p21id
         set currEnt ""
-        if {$debugAG} {outputMsg "  getFaceGeom $type $p21id $id / [$e0 Type] [$e0 P21ID]" red}
+        if {$debugAG} {
+          outputMsg "  getFaceGeom $type $p21id $id / [$e0 Type] [$e0 P21ID]" red
+          if {$tolType} {outputMsg "   dimName $dimName" red}
+        }
 
-# for cylindrical or conical surfaces with dimensional tolerances (tolType = 1)
+# for cylindrical, conical, or spherical surfaces with dimensional tolerances (tolType = 1)
 #  set cylSurfBounds to 180 or 360 depending on bounds of the surfaces
-        if {$tolType && ($type == "cylindrical_surface" || $type == "conical_surface")} {
+        set ok 0
+        if {$tolType != 1 || [string first "diameter" $dimName] != -1} {set ok 1}
+        if {$tolType && $ok && ($type == "cylindrical_surface" || $type == "conical_surface" || $type == "spherical_surface")} {
   
 # face bounds
           set a2 [[$e0 Attributes] Item [expr 2]]
@@ -232,13 +237,19 @@ proc getFaceGeom {e0 tolType {id ""}} {
 # -------------------------------------------------------------------------------
 proc reportAssocGeom {entType {row ""}} {
   global objDesign
-  global assocGeom cells cgrObjects cylSurfBounds debugAG dimRepeat dimRepeatDiv entCount opt recPracNames spaces suppGeomEnts syntaxErr
-  if {$debugAG} {outputMsg "reportAssocGeom $entType" red}
+  global assocGeom cells cgrObjects cylSurfBounds debugAG dimName dimRepeat dimRepeatDiv entCount opt recPracNames spaces suppGeomEnts syntaxErr
+  if {$debugAG} {outputMsg "reportAssocGeom $entType" green}
   
   set str ""
   set dimRepeat 0
   set dimtol 0
-  if {[string first "dimensional_" $entType] != -1 || [string first "angular_" $entType] != -1} {set dimtol 1}
+  if {[string first "dimensional_" $entType] != -1 || [string first "angular_" $entType] != -1} {
+    set dimtol 1
+
+# set divider based on cylinders, assume two half cylinders, but different if dim is a radius because cylinders are not closed
+    set dimRepeatDiv 2
+    if {$dimName == "radius"} {set dimRepeatDiv 1}
+  }
   
 # geometric entities
   foreach item [array names assocGeom] {
@@ -253,7 +264,7 @@ proc reportAssocGeom {entType {row ""}} {
         if {$item == "cylindrical_surface" || $item == "conical_surface" || $item == "spherical_surface" || $item == "toroidal_surface"} {
           if {![info exists cylSurfBounds]} {
   
-# set divider based on cylinders, assume two half cylinders, but if odd number of cylinders, then one complete cylinder
+# set divider if odd number of cylinders, then one complete cylinder
             if {$dc == 1} {set dimRepeatDiv 1}
   
             if {$dimRepeatDiv == 1} {
@@ -343,7 +354,6 @@ proc reportAssocGeom {entType {row ""}} {
       if {[string first "tolerance" $entType] != -1 && $item == "datum_feature" && [llength $assocGeom($item)] > 1} {
         set msg "Associated Geometry has multiple ([llength $assocGeom($item)]) $item for a [formatComplexEnt $entType]."
         errorMsg $msg
-        #if {$row != ""} {lappend syntaxErr($entType) [list "-$row" "Toleranced Geometry" $msg]}
       }
     }
   }

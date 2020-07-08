@@ -113,8 +113,7 @@ Credits
 - Reading and parsing STEP files: IFCsvr ActiveX Component, Copyright \u00A9 1999, 2005 SECOM Co., Ltd. All Rights Reserved
                                   IFCsvr has been modified by NIST to include STEP schemas.
                                   The license agreement can be found in  C:\\Program Files (x86)\\IFCsvrR300\\doc
-- Translating STEP to X3D:        Developed by Soonjo Kwon at NIST based on the Open CASCADE STEP Processor
-                                  Open CASCADE License  https://www.opencascade.com/content/licensing"
+- Translating STEP to X3D:        Developed by Soonjo Kwon at NIST  https://www.nist.gov/services-resources/software/step-x3d-translator"
 
 if {$argc == 1} {set arg [string tolower [lindex $argv 0]]}
 if {$argc == 0 || ($argc == 1 && ($arg == "help" || $arg == "-help" || $arg == "-h" || $arg == "-v"))} {
@@ -146,7 +145,7 @@ set opt(logFile) 0
 if {[string first ".stpz" [string tolower $localName]] != -1} {unzipFile}  
 
 if {![file exists $localName]} {
-  puts "\n*** STEP file not found: [truncFileName $localName]"
+  errorMsg "STEP file not found: [truncFileName $localName]"
   exit
 }
 
@@ -199,13 +198,13 @@ set customFile ""
 for {set i 1} {$i <= 10} {incr i} {
   set arg [lindex $argv $i]
   set arg1 [string tolower $arg]
-  if {$arg != "" && $arg1 != "csv" && $arg1 != "viz" && $arg1 != "noopen" && $arg1 != "stats" && $arg1 != "nolog"} {
+  if {$arg != "" && $arg1 != "csv" && [string first "vi" $arg1] == -1 && [string first "noo" $arg1] == -1 && [string first "sta" $arg1] == -1 && [string first "nol" $arg1] == -1} {
     if {[file exists $arg]} {
       set customFile [file nativename $arg]
       puts "Using custom options file: [truncFileName $customFile]"
       set optionsFile $customFile
     } else {
-      puts "\n*** Bad command-line argument: $arg"
+      errorMsg "Unexpected command-line argument: $arg"
     }
   }
 }
@@ -228,10 +227,10 @@ if {[file exists $optionsFile]} {
     }
     foreach id [array names opt] {foreach str {EX_ PR_ XL_ VIZ} {if {[string first $str $id] == 0} {unset opt($id)}}}
   } emsg]} {
-    puts "\n*** Error reading options file [truncFileName $optionsFile]: $emsg"
+    errorMsg "Error reading options file [truncFileName $optionsFile]: $emsg"
   }
 } else {
-  puts "\n*** No options file was found.  Default options will be used."
+  errorMsg "No options file was found.  Default options will be used."
 }
 
 # adjust some variables

@@ -372,10 +372,23 @@ proc openMultiFile {{ask 1}} {
               if {$col1($sum) > $scrollcol} {[$excel1 ActiveWindow] ScrollColumn [expr {$col1($sum)-$scrollcol}]}
               foreach item $fileEntity($idx) {
                 set val [split $item " "]
-                $cells1($sum) Item $entrow([lindex $val 0]) $col1($sum) [lindex $val 1]
+                $cells1($sum) Item $entrow([lindex $val 0]) $col1($sum) [expr {abs([lindex $val 1])}]
+
+# color entity count gray if there are errors associated with the entity
+                if {[lindex $val 1] < 0} {
+                  set cr [cellRange $entrow([lindex $val 0]) $col1($sum)]
+                  [[$worksheet1($sum) Range $cr] Interior] ColorIndex [expr 15]
+                  if {![info exists addcomm]} {
+                    set comm [[$worksheet1($sum) Range $cr] AddComment]
+                    $comm Text "There are Errors or Warnings for at least one entity of this type."
+                    catch {[[$comm Shape] TextFrame] AutoSize [expr 1]}
+                    set addcomm 1
+                  }
+                }
                 incr infiles($entrow([lindex $val 0]))
               }
             }
+            catch {unset addcomm}
 
 # entity totals
             set col1($sum) [expr {$lenfilelist+2}]

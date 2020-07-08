@@ -1587,7 +1587,7 @@ proc setShortcuts {} {
 #-------------------------------------------------------------------------------
 # set home, docs, desktop, menu directories
 proc setHomeDir {} {
-  global drive env mydesk mydocs myhome mymenu mytemp tcl_platform
+  global drive env mydesk mydocs myhome mymenu mytemp
 
   set drive "C:/"
   if {[info exists env(SystemDrive)]} {
@@ -1602,25 +1602,21 @@ proc setHomeDir {} {
     
     catch {
       set reg_personal [registry get {HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\User Shell Folders} {Personal}]
-      if {[string first "%USERPROFILE%" $reg_personal] == 0} {regsub "%USERPROFILE%" $reg_personal $env(USERPROFILE) mydocs}
+      if {[string first "%USERPROFILE%" $reg_personal] == 0} {set mydocs "$env(USERPROFILE)\\[string range $reg_personal 14 end]"}
     }
     catch {
       set reg_desktop  [registry get {HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\User Shell Folders} {Desktop}]
-      if {[string first "%USERPROFILE%" $reg_desktop] == 0} {regsub "%USERPROFILE%" $reg_desktop $env(USERPROFILE) mydesk}
+      if {[string first "%USERPROFILE%" $reg_desktop] == 0} {set mydesk "$env(USERPROFILE)\\[string range $reg_desktop 14 end]"}
     }
     catch {
       set reg_menu [registry get {HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\User Shell Folders} {Programs}]
-      if {[string first "%USERPROFILE%" $reg_menu] == 0} {regsub "%USERPROFILE%" $reg_menu $env(USERPROFILE) mymenu}
+      if {[string first "%USERPROFILE%" $reg_menu] == 0} {set mymenu "$env(USERPROFILE)\\[string range $reg_menu 14 end]"}
     }
     
 # set mytemp
     catch {
-      if {$tcl_platform(osVersion) >= 6.0} {
-        set reg_temp [registry get {HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\User Shell Folders} {Local AppData}]
-      } else {
-        set reg_temp [registry get {HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\User Shell Folders} {Local Settings}]
-      }
-      if {[string first "%USERPROFILE%" $reg_temp] == 0} {regsub "%USERPROFILE%" $reg_temp $env(USERPROFILE) mytemp}
+      set reg_temp [registry get {HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\User Shell Folders} {Local AppData}]
+      if {[string first "%USERPROFILE%" $reg_temp] == 0} {set mytemp "$env(USERPROFILE)\\[string range $reg_temp 14 end]"}
       set mytemp [file join $mytemp Temp]
 
 # make mytemp dir
@@ -1631,28 +1627,23 @@ proc setHomeDir {} {
 # create myhome if USERPROFILE does not exist 
   } elseif {[info exists env(USERNAME)]} {
     set myhome [file join $drive Users $env(USERNAME)]
-    if {$tcl_platform(osVersion) < 6.0} {set myhome [file join $drive "Documents and Settings" $env(USERNAME)]}
   }
 
   if {![info exists mydocs]} {
     set mydocs $myhome
-    set docs "Documents"
-    if {$tcl_platform(osVersion) < 6.0} {set docs "My Documents"}
-    set docs [file join $mydocs $docs]
+    set docs [file join $mydocs "Documents"]
     if {[file exists $docs]} {if {[file isdirectory $docs]} {set mydocs $docs}}
   }
 
   if {![info exists mydesk]} {
     set mydesk $myhome
-    set desk "Desktop"
-    set desk [file join $mydesk $desk]
+    set desk [file join $mydesk "Desktop"]
     if {[file exists $desk]} {if {[file isdirectory $desk]} {set mydesk $desk}}
   }
   
   if {![info exists mytemp]} {
     set mytemp $myhome
     set temp [file join AppData Local Temp SFA]
-    if {$tcl_platform(osVersion) < 6.0} {set temp [file join "Local Settings" Temp SFA]}
     set mytemp [file join $mytemp $temp]
     checkTempDir
   }

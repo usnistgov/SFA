@@ -1,7 +1,7 @@
 # generate an Excel spreadsheet from a STEP file
 proc genExcel {{numFile 0}} {
   global allEntity aoEntTypes ap203all ap214all ap242all badAttributes buttons cells cells1 col col1 count csvdirnam csvfile csvintemp currLogFile
-  global dim dimRepeatDiv draughtingModels editorCmd entCategories entCategory entColorIndex entCount entityCount entsIgnored entsWithErrors errmsg
+  global dim draughtingModels editorCmd entCategories entCategory entColorIndex entCount entityCount entsIgnored entsWithErrors errmsg
   global excel excelVersion fcsv feaFirstEntity feaLastEntity File fileEntity filesProcessed gpmiTypesInvalid gpmiTypesPerFile guid idxColor ifcsvrDir inverses
   global lastXLS lenfilelist localName localNameList logFile matrixList multiFile multiFileDir mydocs mytemp nistCoverageLegend nistName nistPMIexpected nistPMImaster
   global nprogBarEnts nshape ofCSV ofExcel opt pf32 p21e3 p21e3Section row rowmax savedViewButtons savedViewName savedViewNames scriptName
@@ -160,7 +160,10 @@ proc genExcel {{numFile 0}} {
     outputMsg "\nOpening $str file"
 
     set openStage 2
-    if {![info exists buttons]} {outputMsg "\n*** Begin ST-Developer output\n*** Check for error or warning messages up to 'End ST-Developer output' below"}
+    if {![info exists buttons]} {
+      outputMsg "\n*** Begin ST-Developer output"
+      errorMsg "Check for error or warning messages up to 'End ST-Developer output' below" red
+    }
     set objDesign [$objIFCsvr OpenDesign [file nativename $fname]]
     if {![info exists buttons]} {outputMsg "*** End ST-Developer output\n"}
 
@@ -900,7 +903,6 @@ proc genExcel {{numFile 0}} {
     set dim(prec,max) 0
     set dim(unit) ""
     set dim(unitOK) 1
-    set dimRepeatDiv 2
 
 # find camera models used in draughting model items and annotation_occurrence used in property_definition and datums
     if {$opt(PMIGRF) || $opt(PMISEM) || $viz(PMI)} {pmiGetCamerasAndProperties}
@@ -1898,7 +1900,7 @@ proc sumAddFileName {sum sumLinks} {
 #-------------------------------------------------------------------------------------------------
 # add file name and other info to top of Summary
 proc sumAddColorLinks {sum sumHeaderRow sumLinks sheetSort sumRow} {
-  global cells col entName entsIgnored entsWithErrors excel row worksheet xlFileName
+  global cells col entCount entName entsIgnored entsWithErrors excel fileEntity nfile row worksheet xlFileName
 
   if {[catch {
     set row($sum) [expr {$sumHeaderRow+2}]
@@ -1937,11 +1939,15 @@ proc sumAddColorLinks {sum sumHeaderRow sumLinks sheetSort sumRow} {
 # color entities on summary gray and add comment that there are CAx-IF RP errors
         } else {
           [$anchor Interior] ColorIndex [expr 15]
-          if {$ent != "dimensional_characteristic_representation"} {
-            addCellComment $sum $sumRow 1 "There are errors or warnings for this entity based on CAx-IF Recommended Practices.  See Help > Analyze > Syntax Errors"
-          } else {
-            addCellComment $sum $sumRow 1 "There are errors or warnings for this entity based on CAx-IF Recommended Practices.  Check for cell comments in the Associated Geometry column.  See Help > Analyze > Syntax Errors"
+          if {[info exists nfile]} {
+            if {$nfile != 0} {
+              set nent [lsearch $fileEntity($nfile) "$ent $entCount($ent)"]
+              set fileEntity($nfile) [lreplace $fileEntity($nfile) $nent $nent "$ent -$entCount($ent)"]
+            }
           }
+          set comm "There are Errors or Warnings for at least one entity of this type.  See Help > Analyze > Syntax Errors"
+          if {$ent == "dimensional_characteristic_representation"} {append comm ".  Check for cell comments in the Associated Geometry column."}
+          addCellComment $sum $sumRow 1 $comm
         }
         catch {foreach i {8 9} {[[$anchor Borders] Item $i] Weight [expr 1]}}
       }

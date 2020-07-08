@@ -995,10 +995,12 @@ proc pmiRemoveZeros {pmi} {
 # reference dimension
         if {[string first "0\]" $spmi] != -1} {for {set j 0} {$j < 4} {incr j} {regsub {0\]} $spmi "\]" spmi}}
         if {[string first ".\]" $spmi] != -1} {regsub {.\]} $spmi "\]" spmi}
+        if {[string first "\[0" $spmi]  == 1} {regsub {\[0} $spmi "\[" spmi}
 
 # basic dimension
         if {[string first "0)" $spmi] != -1} {for {set j 0} {$j < 3} {incr j} {regsub {0\)} $spmi "\)" spmi}}
         if {[string first ".)" $spmi] != -1} {regsub {\.\)} $spmi ")" spmi}
+        if {[string first "\(0" $spmi] == 1} {regsub {\(0}  $spmi "(" spmi}
 
 # radius < 1
         if {[string first "R0" $spmi] != -1} {regsub "R0" $spmi "R" spmi}
