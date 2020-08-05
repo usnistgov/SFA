@@ -25,7 +25,7 @@ set auto_path [linsert $auto_path 0 $wdir]
 set contact [getContact]
 
 #-------------------------------------------------------------------------------
-# start 
+# start
 set progtime 0
 foreach fname [glob -nocomplain -directory $wdir *.tcl] {
   set mtime [file mtime $fname]
@@ -142,7 +142,7 @@ set localName [file nativename $localName]
 
 # check for zipped file
 set opt(logFile) 0
-if {[string first ".stpz" [string tolower $localName]] != -1} {unzipFile}  
+if {[string first ".stpz" [string tolower $localName]] != -1} {unzipFile}
 
 if {![file exists $localName]} {
   errorMsg "STEP file not found: [truncFileName $localName]"
@@ -155,8 +155,9 @@ foreach id {logFile outputOpen PMIGRF PMISEM stepAP242 stepCOMM stepCOMP stepFEA
 
 # set opt to 0
 foreach id { \
-  DEBUG1 DEBUGINV DEBUGX3D feaBounds feaDisp feaDispNoTail feaLoads feaLoadScale indentGeometry indentStyledItem INVERSE partEdges partNormals partOnly partSketch \
-  PMIGRFCOV PMISEMDIM SHOWALLPMI stepCPNT stepGEOM stepUSER syntaxChecker tessPartMesh viewFEA viewPart viewPMI viewTessPart writeDirType xlHideLinks xlNoRound xlSort \
+  DEBUG1 DEBUGINV DEBUGX3D feaBounds feaDisp feaDispNoTail feaLoads feaLoadScale indentGeometry indentStyledItem INVERSE partEdges partNormals \
+  partOnly partSketch PMIGRFCOV PMISEMDIM SHOWALLPMI stepCPNT stepGEOM stepUSER syntaxChecker tessPartMesh viewFEA viewPart viewPMI viewTessPart \
+  writeDirType xlHideLinks xlNoRound xlSort x3dKeep \
 } {set opt($id) 0}
 
 set opt(gpmiColor) 3
@@ -250,10 +251,10 @@ installIFCsvr 1
 for {set i 1} {$i <= 10} {incr i} {
   set arg [string tolower [lindex $argv $i]]
   if {$arg != ""} {
-    if {[string first "noo" $arg] == 0} {set opt(outputOpen) 0}                              
+    if {[string first "noo" $arg] == 0} {set opt(outputOpen) 0}
     if {[string first "csv" $arg] == 0} {
       if {[lsearch [string tolower $argv] "vi"] == -1} {set opt(xlFormat) "CSV"}
-    }                              
+    }
     if {[string first "vi" $arg] == 0} {
       set opt(xlFormat) "None"
       set ofExcel 0
@@ -261,7 +262,7 @@ for {set i 1} {$i <= 10} {incr i} {
       set allNone -1
       foreach id {feaBounds feaDisp feaLoads viewFEA viewPart viewPMI viewTessPart} {set opt($id) 1}
       foreach id {feaDispNoTail feaLoadScale PMIGRF PMISEM tessPartMesh valProp} {set opt($id) 0}
-      checkValues 
+      checkValues
     }
     if {[string first "sta" $arg] == 0} {set statsOnly 1}
     if {[string first "nol" $arg] == 0} {set opt(logFile) 0}

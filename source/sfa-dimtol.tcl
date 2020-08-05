@@ -906,7 +906,6 @@ proc spmiDimtolReport {objEntity} {
           if {[string first "*" $str] != -1} {
             set comment "Geometry IDs marked with an asterisk (*) are also Supplemental Geometry.  ($recPracNames(suppgeom), Sec. 4.3, Fig. 4)"
             addCellComment $dt $r $pmiColumns(ch) $comment
-            errorMsg "Some Associated Geometry associated with a Dimension is also Supplemental Geometry."
           }
 
 # check for unexpected associated geometry for diameters and radius
@@ -920,13 +919,16 @@ proc spmiDimtolReport {objEntity} {
               }
               foreach item $badGeom {
                 if {$okSurf} {
-                  errorMsg "Associated Geometry for a '[lindex $item 0]' dimension also refers to '[lindex $item 1]'.  Check that this is the intended association."
-                  addCellComment $dt $r $pmiColumns(ch) "[string totitle $dimName] dimension (column E) also refers to '[lindex $item 1]'.  Check that this is the intended association."
+                  if {[lindex $item 1] != "edge_curve"} {
+                    errorMsg "Associated Geometry for a '[lindex $item 0]' dimension also refers to '[lindex $item 1]'.  Check that this is the intended association."
+                    addCellComment $dt $r $pmiColumns(ch) "[string totitle $dimName] dimension (column E) also refers to '[lindex $item 1]'.  Check that this is the intended association."
+                    lappend entsWithErrors "dimensional_characteristic_representation"
+                  }
                 } else {
                   errorMsg "Associated Geometry for a '[lindex $item 0]' dimension is only a '[lindex $item 1]'.  Check that this is the intended association."
                   addCellComment $dt $r $pmiColumns(ch) "[string totitle $dimName] dimension (column E) is not associated with curved surfaces.  Check that this is the intended association."
+                  lappend entsWithErrors "dimensional_characteristic_representation"
                 }
-                lappend entsWithErrors "dimensional_characteristic_representation"
               }
             }
           }

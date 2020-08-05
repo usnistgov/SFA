@@ -959,7 +959,9 @@ proc spmiGeotolReport {objEntity} {
                     if {[lsearch $datumTargetDesc $ov] != -1} {
                       lappend spmiTypesPerFile "$ov datum target ($sect)"
                       if {$nistName != ""} {lappend spmiTypesPerFile "all datum targets"}
-                      if {[$gtEntity Type] == "datum_target" && $ov != "area" && $ov != "curve"} {set msg $dtemsg}
+                      if {([$gtEntity Type] == "datum_target" && $ov != "area" && $ov != "curve") || \
+                          ([$gtEntity Type] == "placed_datum_target_feature" && $ov != "point" && $ov != "line" && \
+                            $ov != "rectangle" && $ov != "circle" && $ov != "circular curve")} {set msg $dtemsg}
                     } else {
                       set msg $dtemsg
                     }
@@ -1182,7 +1184,9 @@ proc spmiGeotolReport {objEntity} {
                                             set objValue $dtv1[format "%c" 10]$objValue
                                           }
                                         }
-                                        if {$origin == "0. 0. 0."} {append objValue "[format "%c" 10](origin = 0 0 0)"}
+                                        if {$origin == "0. 0. 0." && [string first "(origin" $objValue] == -1} {
+                                          append objValue "[format "%c" 10](origin = 0 0 0)"
+                                        }
                                       }
 
 # save datum target for view
@@ -1400,7 +1404,7 @@ proc spmiGeotolReport {objEntity} {
                   } else {
                     if {[info exists all_over]} {
                       $cells($gt) Item $r $c "$pmiModifiers(all_over) | $val"
-                      errorMsg "The All Over symbol is approximated with $pmiModifiers(all_over) ($recPracNames(pmi242), Sec. 6.3)"
+                      addCellComment $gt $r $c "The All Over symbol is approximated with two symbols. ($recPracNames(pmi242), Sec. 6.3)"
                       unset all_over
 
 # common or multiple datum features (section 6.9.8)
@@ -1822,9 +1826,6 @@ proc spmiGeotolReport {objEntity} {
         if {[string first "*" $geotolGeom] != -1} {
           set comment "Geometry IDs marked with an asterisk (*) are also Supplemental Geometry.  ($recPracNames(suppgeom), Sec. 4.3, Fig. 4)"
           addCellComment $gt 3 $c $comment
-          set str "Datum"
-          if {[string first "tolerance" $gt] != -1} {set str "Tolerance"}
-          errorMsg "Some Toleranced Geometry for a $str is also Supplemental Geometry."
         }
 
         if {[string first "manifold_solid_brep" $geotolGeom] != -1 && [string first "surface" $gt] == -1} {

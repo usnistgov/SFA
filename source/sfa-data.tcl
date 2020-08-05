@@ -119,7 +119,7 @@ set badAttributes(tessellated_surface_set) {normals}
 set badAttributes(triangulated_face) {normals triangles}
 set badAttributes(triangulated_point_cloud_dataset) {triangles}
 set badAttributes(triangulated_surface_set) {normals triangles}
- 
+
 # -----------------------------------------------------------------------------------------------------
 # all app names for STEP and IFC software that might appear in header section
 set cadApps {"3D_Evolution" ACIS "Alias - OpenModel" "Alias AutoStudio" "Alias OpenModel" "Alias Studio" Alibre AutoCAD "Autodesk Inventor" \
@@ -133,7 +133,7 @@ set cadApps {"3D_Evolution" ACIS "Alias - OpenModel" "Alias AutoStudio" "Alias O
   "UGS - NX" "UGS-NX" Unigraphics CoCreate Adobe Elysium ASFALIS CAPVIDIA 3DTransVidia MBDVidia NAFEMS COM209 CADCAM-E 3DEXPERIENCE ECCO SimDM \
   SDS/2 Tekla Revit RISA SAP2000 ETABS SmartPlant CADWorx "Advance Steel" ProSteel STAAD RAM Cype Parabuild RFEM RSTAB BuiltWorks EDMsix Mastercam \
   "3D Reviewer" "3D Converter" "HOOPS Exchange" HOOPS MicroStation SolidWorks Solidworks SOLIDWORKS "SOLIDWORKS MBD" ASCON PSStep Anark XStep \
-  Spatial "Spatial InterOp 3D" "STEP-NC Maker" CADverter Autodesk "ITI STEP" pdelib kicad KiCad PLIBEditor GraphicalInstance "J-EXPRESS"}
+  Spatial "Spatial InterOp 3D" "STEP-NC Maker" CADverter Autodesk "ITI STEP" pdelib kicad KiCad PLIBEditor GraphicalInstance "J-EXPRESS" VariCAD}
 
 # sort cadApps by string length
 set cadApps [sortlength2 $cadApps]

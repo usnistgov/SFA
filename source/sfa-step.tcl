@@ -3,10 +3,10 @@ proc pmiFormatColumns {str} {
 
   if {![info exists pmiStartCol($thisEntType)]} {
     return
-  } else {  
+  } else {
     set c1 [expr {$pmiStartCol($thisEntType)-1}]
   }
-  
+
 # delete unused columns
   set delcol 0
   set colrange [[[$worksheet($thisEntType) UsedRange] Columns] Count]
@@ -24,7 +24,7 @@ proc pmiFormatColumns {str} {
   if {[info exists cells($thisEntType)] && $col($thisEntType) > $c1} {
     set c2 [expr {$c1+1}]
     set c3 $col($thisEntType)
-    
+
 # PMI heading
     outputMsg " [formatComplexEnt $thisEntType]"
     $cells($thisEntType) Item 2 $c2 $str
@@ -66,7 +66,7 @@ proc pmiFormatColumns {str} {
         set r1 [lindex $r 0]
         set r2 [lindex $r 1]
 
-# cell color (yellow or green)        
+# cell color (yellow or green)
         set range [$worksheet($thisEntType) Range [cellRange $r1 $i] [cellRange $r2 $i]]
         [$range Interior] ColorIndex [lindex [list 36 35] [expr {$j%2}]]
 
@@ -81,7 +81,7 @@ proc pmiFormatColumns {str} {
       }
       incr j
     }
-    
+
 # left and right borders in header
     catch {
       for {set i $c2} {$i <= $col($thisEntType)} {incr i} {
@@ -96,7 +96,7 @@ proc pmiFormatColumns {str} {
       set range [$worksheet($thisEntType) Range [cellRange 1 2] [cellRange [expr {$row($thisEntType)+2}] $c1]]
       [$range Columns] Group
     }
-    
+
 # fix column widths
     set colrange [[[$worksheet($thisEntType) UsedRange] Columns] Count]
     for {set i 1} {$i <= $colrange} {incr i} {
@@ -105,7 +105,7 @@ proc pmiFormatColumns {str} {
     }
     [$worksheet($thisEntType) Columns] AutoFit
     [$worksheet($thisEntType) Rows] AutoFit
-    
+
 # link to RP
     set str1 "pmi242"
     if {[string first "AP203" $stepAP] == 0} {set str1 "pmi203"}
@@ -131,13 +131,13 @@ proc spmiCheckEnt {ent} {
   if {!$opt(PMISEMDIM)} {
     foreach sp $spmiEntTypes {if {[string first $sp $ent] ==  0} {set ok 1}}
     foreach sp $tolNames     {if {[string first $sp $ent] != -1} {set ok 1}}
-      
+
 # only dimensions
   } elseif {$ent == "dimensional_characteristic_representation"} {
     set ok 1
   }
 
-# counter holes  
+# counter holes
   if {([string first "counter" $ent] != -1 || [string first "spotface" $ent] != -1) && [string first "occurrence" $ent] == -1} {
     if {$ent != "spotface_definition"} {set ok 1}
   }
@@ -162,7 +162,7 @@ proc gpmiCheckEnt {ent} {
       if {[string first $item $ent] != -1} {set ok 1}
     }
   }
-  
+
   if {[string first "leader" $ent] != -1} {set ok 0}
   if {[string first "over_riding_styled_item" $ent] != -1} {set ok 0}
   if {[string first "annotation_occurrence_associativity" $ent] != -1} {set ok 0}
@@ -170,13 +170,13 @@ proc gpmiCheckEnt {ent} {
 
   return $ok
 }
- 
+
 # -------------------------------------------------------------------------------
 # which STEP entities are processed depending on options
 proc setEntsToProcess {entType} {
   global objDesign
   global gpmiEnts spmiEnts opt
-  
+
   set ok 0
   set gpmiEnts($entType) 0
   set spmiEnts($entType) 0
@@ -224,7 +224,7 @@ proc setEntsToProcess {entType} {
     if {!$ok} {if {[string first "representation" $entType] == -1 && [string first "presentation_" $entType] != -1} {set ok 1}}
   }
 
-# for PMI (semantic) representation  
+# for PMI (semantic) representation
   if {$opt(PMISEM) && $ok == 0} {
     set spmiEnts($entType) [spmiCheckEnt $entType]
     if {$entType == "advanced_face" || \
@@ -259,7 +259,7 @@ proc setEntsToProcess {entType} {
 # check for all types of reports
 proc checkForReports {entType} {
   global cells gpmiEnts opt pmiColumns savedViewCol skipEntities spmiEnts
-  
+
 # check for validation properties report, call valPropStart
   if {$entType == "property_definition_representation"} {
     if {[catch {
@@ -288,7 +288,7 @@ proc checkForReports {entType} {
     } emsg]} {
       errorMsg "ERROR adding PMI Presentation for [formatComplexEnt $entType]: $emsg"
     }
-  
+
 # viz tessellated part geometry, call tessPart
   } elseif {$entType == "tessellated_solid" || $entType == "tessellated_shell" || $entType == "tessellated_wire"} {
     if {[catch {
@@ -303,12 +303,12 @@ proc checkForReports {entType} {
       if {[info exists opt(PMISEM)]} {
         if {$opt(PMISEM)} {
           if {[info exists cells($entType)]} {
-            
-# dimensions        
+
+# dimensions
             if {$entType == "dimensional_characteristic_representation"} {
               spmiDimtolStart $entType
 
-# counter holes, spotface            
+# counter holes, spotface
             } elseif {([string first "counter" $entType] != -1 || [string first "spotface" $entType] != -1) && [string first "occurrence" $entType] == -1} {
               if {$entType != "spotface_definition"} {spmiHoleStart $entType}
 
@@ -347,8 +347,8 @@ proc checkForReports {entType} {
           }
         }
       }
-      
-# for results at element nodes      
+
+# for results at element nodes
       #$entType == "element_nodal_freedom_actions"
       #($opt(feaLoads) && ($entType == "nodal_freedom_action_definition" || $entType == "element_nodal_freedom_actions"))
     } emsg]} {
@@ -388,18 +388,18 @@ proc setEntAttrList {abc} {
     }
   }
   incr entLevel -1
-}  
+}
 
 #-------------------------------------------------------------------------------
 # run syntax checker with the command-line version (sfa-cl.exe) and output filtered result
 proc syntaxChecker {fileName} {
   global sfacl opt writeDir
-  
+
   outputMsg "\n[string repeat "-" 29]\nRunning Syntax Checker"
 
-# check header  
-  getSchemaFromFile $fileName  
-  
+# check header
+  getSchemaFromFile $fileName
+
 # get syntax errors and warnings by running command-line version with stats option
   if {[file exists $sfacl]} {
     .tnb select .tnb.status
@@ -428,7 +428,7 @@ proc syntaxChecker {fileName} {
         }
       }
 
-# done        
+# done
       if {[info exists sfaerr]} {
         outputMsg [string range $sfaerr 0 end-1] red
 
@@ -465,11 +465,11 @@ proc syntaxChecker {fileName} {
 # get STEP AP name
 proc getStepAP {fname} {
   global fileSchema stepAPs
-  
+
   set ap ""
   set fs [string toupper [getSchemaFromFile $fname]]
   set fileSchema $fs
-  
+
   set c1 [string first " " $fs]
   if {$c1 != -1} {set fs [string range $fs 0 $c1-1]}
   if {[string first "AP2" $fs] == 0} {
@@ -479,7 +479,7 @@ proc getStepAP {fname} {
   } else {
     set ap $fileSchema
   }
-  
+
 # check AP242 edition
   if {$ap == "AP242"} {
     if {[string first "442 2 1 4" $fileSchema] != -1 || [string first "442 3 1 4" $fileSchema] != -1} {
@@ -494,7 +494,7 @@ proc getStepAP {fname} {
 #-------------------------------------------------------------------------------
 proc getSchemaFromFile {fname {msg 0}} {
   global p21e3
-  
+
   set p21e3 0
   set schema ""
   set ok 0
@@ -503,8 +503,8 @@ proc getSchemaFromFile {fname {msg 0}} {
   set niderr 0
   set nendsec 0
   set stepfile [open $fname r]
-  
-# read first 100 lines  
+
+# read first 100 lines
   while {[gets $stepfile line] != -1 && $nline < 100} {
     if {$msg} {
       foreach item {"MIME-Version" "Content-Type" "X-MimeOLE" "DOCTYPE HTML" "META content"} {
@@ -517,7 +517,19 @@ proc getSchemaFromFile {fname {msg 0}} {
 
 # check file
     if {[string first "ISO-10303-21;" $line] != -1} {set ok1 1}
+
+# check for X and X2 control directives
+    if {[string first "\\X\\" $line] != -1 || [string first "\\X2\\" $line] != -1} {
+      errorMsg "\\X2\\ or \\X\\ control directives are used in some text strings.  See Help > Text Strings" red
+    }
     
+# check for OPTIONS from ST-Developer toolkit
+    if {[string first "/* OPTION:" $line] == 0} {
+      set emsg "HEADER section comment: [string range $line 11 end-3]"
+      if {[string first "raw bytes" $emsg] != -1} {append emsg " (See Help > Text Strings)"}
+      errorMsg $emsg red
+    }
+
 # look for FILE_SCHEMA
     if {[string first "FILE_SCHEMA" $line] != -1} {
       set ok 1
@@ -552,7 +564,7 @@ proc getSchemaFromFile {fname {msg 0}} {
         errorMsg "An entity ID (#$id) >= 2147483648 (2^31)\n Very large IDs are valid but will appear as different numbers in the spreadsheet."
         incr niderr
       }
-      
+
 # check for part 21 edition 3 files
     } elseif {[string first "4\;1" $line] != -1 || [string first "ANCHOR\;" $line] != -1 || \
               [string first "REFERENCE\;" $line] != -1 || [string first "SIGNATURE\;" $line] != -1} {
@@ -564,7 +576,7 @@ proc getSchemaFromFile {fname {msg 0}} {
     }
   }
   close $stepfile
-  
+
 # not a STEP file
   if {!$ok1} {errorMsg "ERROR: The STEP file does not start with ISO-10303-21;"}
   return $schema
@@ -573,12 +585,12 @@ proc getSchemaFromFile {fname {msg 0}} {
 #-------------------------------------------------------------------------------
 proc checkP21e3 {fname} {
   global p21e3Section
-  
+
   set p21e3Section {}
   set p21e3 0
   set nline 0
   set f1 [open $fname r]
-      
+
 # check for part 21 edition 3 file
   while {[gets $f1 line] != -1} {
     if {[string first "DATA\;" $line] == 0} {
@@ -592,7 +604,7 @@ proc checkP21e3 {fname} {
     }
   }
   close $f1
-  
+
 # part 21 edition 3 file
   if {$p21e3} {
 
@@ -605,7 +617,7 @@ proc checkP21e3 {fname} {
     set write 1
     set data 0
     set sects {}
-    
+
     set f1 [open $fname r]
     while {[gets $f1 line] != -1} {
       if {!$data} {
@@ -619,7 +631,7 @@ proc checkP21e3 {fname} {
           outputMsg "   [truncFileName $nname]"
           outputMsg " without those sections will be written and processed." red
           outputMsg " The '$sects' section(s) from the original file will be processed separately for the spreadsheet.\n See Help > User Guide (section 5.7)\n See Websites > STEP Format and Schemas > ISO 10303 Part 21 Edition 3"
-          
+
 # check for part 21 edition 3 content
         } elseif {[string first "ANCHOR\;" $line] == 0 || \
                   [string first "REFERENCE\;" $line] == 0 || \
@@ -627,7 +639,7 @@ proc checkP21e3 {fname} {
           set write 0
           lappend sects [string range $line 0 end-1]
         }
-  
+
 # write new file w/o part 21 edition 3 content, change 4;1 to 2;1
         if {$write} {
           set c1 [string first "4\;1" $line]

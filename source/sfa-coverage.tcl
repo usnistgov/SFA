@@ -1,6 +1,6 @@
 # PMI Representation Summary worksheet
 proc spmiSummary {} {
-  global allPMI cells entName localName nistName nistPMIexpected recPracNames row sheetLast
+  global allPMI cells entName localName nistName nistPMIexpected pmiModifiers recPracNames row sheetLast
   global spmiSumName spmiSumRow spmiSumRowID thisEntType timeStamp worksheet worksheets xlFileName
 
 # first time through, start worksheet
@@ -93,8 +93,8 @@ proc spmiSummary {} {
 
           set val [[$cells($thisEntType) Item $i $pmiCol] Value]
 
-# remove (TZF: ...)
-          set c1 [string first "(TZF:" $val]
+# remove (Invalid TZF: ...)
+          set c1 [string first "(Invalid TZF:" $val]
           if {$c1 != -1} {
             set c2 [string first ")" $val]
             if {$c2 > $c1} {
@@ -106,7 +106,11 @@ proc spmiSummary {} {
           $cells($spmiSumName) Item $spmiSumRow 3 "'$val"
           set cellval $val
 
-# allPMI used to count some modifiers for coverage analysis          
+          if {[string first $pmiModifiers(all_over) $val] == 0} {
+            addCellComment $spmiSumName $spmiSumRow 3 "The All Over symbol is approximated with two symbols. ($recPracNames(pmi242), Sec. 6.3)"
+          }
+
+# allPMI used to count some modifiers for coverage analysis
           if {[string first "tolerance" $thisEntType] != -1} {append allPMI $val}
 
 # check actual vs. expected PMI for NIST files
@@ -133,7 +137,7 @@ proc spmiSummary {} {
 # start PMI Representation Coverage analysis worksheet
 proc spmiCoverageStart {{multi 1}} {
   global allPMIelements cells cells1 multiFileDir nistName pmiElements pmiElements1 pmiModifiers pmiModifiersRP
-  global pmiUnicode sheetLast spmiCoverageWS spmiTypes worksheet worksheet1 worksheets worksheets1 
+  global pmiUnicode sheetLast spmiCoverageWS spmiTypes worksheet worksheet1 worksheets worksheets1
 
   if {[catch {
     set spmiCoverageWS "PMI Representation Coverage"
@@ -447,7 +451,7 @@ proc spmiCoverageFormat {sum {multi 1}} {
         }
       }
 
-# add color legend for NIST files      
+# add color legend for NIST files
       if {[info exists nistCoverageStyle]} {nistAddCoverageLegend $multi}
 
 # final formatting (multi file)
@@ -493,7 +497,7 @@ proc spmiCoverageFormat {sum {multi 1}} {
         unset usedPMIrows
       }
 
-# add color legend for NIST files      
+# add color legend for NIST files
       if {$nistCoverageLegend} {nistAddCoverageLegend}
 
 # final formatting (single file)
@@ -517,7 +521,7 @@ proc spmiCoverageFormat {sum {multi 1}} {
 # -------------------------------------------------------------------------------
 # start PMI Presentation Coverage analysis worksheet
 proc gpmiCoverageStart {{multi 1}} {
-  global cells cells1 gpmiCoverageWS gpmiTypes multiFileDir opt sheetLast worksheet worksheet1 worksheets worksheets1 
+  global cells cells1 gpmiCoverageWS gpmiTypes multiFileDir opt sheetLast worksheet worksheet1 worksheets worksheets1
 
   if {[catch {
     set gpmiCoverageWS "PMI Presentation Coverage"
@@ -627,7 +631,7 @@ proc gpmiCoverageWrite {{fn ""} {sum ""} {multi 1}} {
               if {$r1 > $gpmiRows} {set gpmiRows $r1}
             }
           }
-          set ok 0      
+          set ok 0
         }
       }
     }
@@ -761,7 +765,7 @@ proc gpmiCoverageFormat {{sum ""} {multi 1}} {
         set range [$worksheet($gpmiCoverageWS) Range [cellRange 3 [expr {$i+1}]] [cellRange [expr {[lindex $idx1 end]-1}] [expr {$i+1}]]]
         catch {[[$range Borders] Item [expr 7]] Weight [expr 2]}
       }
-      [$worksheet($gpmiCoverageWS) Columns] AutoFit        
+      [$worksheet($gpmiCoverageWS) Columns] AutoFit
 
       set range [$worksheet($gpmiCoverageWS) Range E1:O1]
       $range MergeCells [expr 1]

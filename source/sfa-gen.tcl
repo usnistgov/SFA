@@ -4,7 +4,7 @@ proc genExcel {{numFile 0}} {
   global dim draughtingModels editorCmd entCategories entCategory entColorIndex entCount entityCount entsIgnored entsWithErrors errmsg
   global excel excelVersion fcsv feaFirstEntity feaLastEntity File fileEntity filesProcessed gpmiTypesInvalid gpmiTypesPerFile guid idxColor ifcsvrDir inverses
   global lastXLS lenfilelist localName localNameList logFile matrixList multiFile multiFileDir mydocs mytemp nistCoverageLegend nistName nistPMIexpected nistPMImaster
-  global nprogBarEnts nshape ofCSV ofExcel opt pf32 p21e3 p21e3Section row rowmax savedViewButtons savedViewName savedViewNames scriptName
+  global nprogBarEnts ofCSV ofExcel opt pf32 p21e3 p21e3Section row rowmax savedViewButtons savedViewName savedViewNames scriptName
   global sheetLast skipEntities skipPerm spmiEntity spmiSumName spmiSumRow spmiTypesPerFile startrow statsOnly stepAP tessColor thisEntType tlast
   global tolNames tolStandard tolStandards totalEntity userEntityFile userEntityList useXL viz workbook workbooks
   global worksheet worksheet1 worksheets writeDir wsCount wsNames x3dAxes x3dColor x3dColorFile x3dColors x3dFileName x3dIndex
@@ -59,7 +59,7 @@ proc genExcel {{numFile 0}} {
     if {$ok} {addFileToMenu}
 
 # initialize
-    foreach idx {TED HOL SMG DTR PMI TPG FEA} {set viz($idx) 0}
+    foreach idx {TED HOL SMG DTR PMI TPG FEA EDG} {set viz($idx) 0}
     set viz(PRT) 1
     set x3dMsgColor blue
     set lasttime [clock clicks -milliseconds]
@@ -887,7 +887,6 @@ proc genExcel {{numFile 0}} {
     set inverseEnts {}
     set lastEnt ""
     set nprogBarEnts 0
-    set nshape 0
     set ntable 0
     set savedViewName {}
     set savedViewNames {}
@@ -1592,6 +1591,7 @@ proc addHeaderWorksheet {numFile fname} {
 
           if {[string first "CATIA SOLUTIONS V4"      $fos] != -1} {set app1 "CATIA V4"}
           if {[string first "Autodesk Inventor"       $fos] != -1} {set app1 $fos}
+          if {[string first "SolidWorks 2"            $fos] != -1} {set app1 $fos}
           if {[string first "FreeCAD"                 $fos] != -1} {set app1 "FreeCAD"}
           if {[string first "SIEMENS PLM Software NX" $fos] ==  0} {set app1 "Siemens NX_[string range $fos 24 end]"}
 

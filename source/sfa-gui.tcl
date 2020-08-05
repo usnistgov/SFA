@@ -1,5 +1,5 @@
 # SFA version number
-proc getVersion {} {return 4.21}
+proc getVersion {} {return 4.22}
 
 # version of SFA that the User Guide is based on
 proc getVersionUG {} {return 4.2}
@@ -11,22 +11,26 @@ proc getContact {} {return [list "Robert Lipman" "robert.lipman@nist.gov"]}
 
 # -------------------------------------------------------------------------------
 proc whatsNew {} {
-  global progtime sfaVersion
+  global progtime sfaVersion upgrade
 
-  if {$sfaVersion > 0 && $sfaVersion < [getVersion]} {outputMsg "\nThe previous version of the STEP File Analyzer and Viewer was: $sfaVersion" red}
+  if {$sfaVersion > 0 && $sfaVersion < [getVersion]} {
+    outputMsg "\nThe previous version of the STEP File Analyzer and Viewer was: $sfaVersion" red
+    set upgrade [clock seconds]
+  }
 
 # new user welcome message
   if {$sfaVersion == 0} {
     outputMsg "\nWelcome to the NIST STEP File Analyzer and Viewer\n" blue
-    outputMsg "Please take a few minutes to read some the Help text so that you understand the options available
-with the software.  Also explore the Examples and Websites menus.  The User Guide is based on
-version [getVersionUG] of the software and might not be up-to-date for the current version.  New and updated
-features are documented in the Help menu, tooltips, and Changelog.
+    outputMsg "Please take a few minutes to read some the Help text so that you understand the options
+available with the software.  Also explore the Examples and Websites menus.  The User
+Guide is based on version [getVersionUG] of the software.  New and updated features are
+documented in the Help menu, tooltips, and Changelog.
 
-You will be prompted to install the IFCsvr toolkit which is required to read STEP files.  After the
-toolkit is installed, you are ready to process a STEP file.  Go to the File menu, select a STEP
-file, and click the Generate Spreadsheet and View button.  If you only want to generate a View of
-the STEP file, go to the Output Format section on the Options tab and check View Only.
+You will be prompted to install the IFCsvr toolkit which is required to read STEP files.
+After the toolkit is installed, you are ready to process a STEP file.  Go to the File
+menu, select a STEP file, and click the Generate Spreadsheet and View button.  If you
+only want to generate a View of the STEP file, go to the Output Format section on the
+Options tab and check View Only.
 
 Use F9 and F10 to change the font size here.  See Help > Function Keys"
   }
@@ -40,10 +44,11 @@ Use F9 and F10 to change the font size here.  See Help > Function Keys"
       outputMsg "- A new User Guide is available based on version [getVersionUG] of this software."
       showFileURL UserGuide
     }
-    if {$sfaVersion  < 4.12} {outputMsg "- The viewer for part geometry is faster and supports color, edges, sketch geometry, normals, and\n  nested assemblies.  See Help > Viewer"}
-    if {$sfaVersion <= 3.70} {outputMsg "- Run the new Syntax Checker with function key F8 or the Options tab selection.\n  See Help > Syntax Checker"}
+    if {$sfaVersion  < 4.22} {outputMsg "- See Help > Text Strings for information that supplements the User Guide section 5.5\n  on Unicode Characters"}
+    if {$sfaVersion  < 4.12} {outputMsg "- The Viewer for part geometry is faster and supports color, edges, sketch geometry,\n  normals, and nested assemblies.  See Help > Viewer"}
+    if {$sfaVersion <= 3.70} {outputMsg "- Run the Syntax Checker with function key F8 or the Options tab selection.\n  See Help > Syntax Checker"}
     if {$sfaVersion <= 2.60} {outputMsg "- Renamed output files: Spreadsheets from 'myfile_stp.xlsx' to 'myfile-sfa.xlsx' and\n  Views from 'myfile-x3dom.html' to 'myfile-sfa.html'"}
-    if {$sfaVersion  < 2.30} {outputMsg "- The command-line version has been renamed: sfa-cl.exe  The old version STEP-File-Analyzer-CL.exe can be deleted."}
+    if {$sfaVersion  < 2.30} {outputMsg "- The command-line version has been renamed: sfa-cl.exe\n  The old version STEP-File-Analyzer-CL.exe can be deleted."}
 
 # update the version number when IFCsvr is repackaged to include updated STEP schemas
     if {$sfaVersion  < 4.12} {outputMsg "- The IFCsvr toolkit might need to be reinstalled.  Please follow the directions carefully." red}
@@ -63,7 +68,7 @@ proc showFileURL {type} {
 # update for new versions, local and online
       set localFile "SFA-User-Guide-v6.pdf"
       set URL https://doi.org/10.6028/NIST.AMS.200-10
-      if {$sfaVersion > [expr {[getVersionUG]+0.1}]} {
+      if {$sfaVersion >= [expr {[getVersionUG]+0.1}]} {
         outputMsg "\nThe User Guide is based on version [getVersionUG] of this software."
         .tnb select .tnb.status
       }
@@ -367,7 +372,7 @@ proc guiProcessAndReports {} {
       if {$idx != "stepCOMM"} {
         set ttmsg [guiToolTip $ttmsg $idx]
       } else {
-        append ttmsg "All AP-specific entities from APs other than AP203, AP214, and AP242 are always processed,\nincluding AP209, AP210, AP238, and AP239.\n\nThe entity categories are used to group and color-code entities on the File Summary worksheet.\n\nSee Help > User Guide (section 3.4.2)"
+        append ttmsg "All AP-specific entities from APs other than AP203, AP214, and AP242 are always processed,\nincluding AP209, AP210, AP238, and AP239.\n\nThe entity categories are used to group and color-code entities on the Summary worksheet.\n\nSee Help > User Guide (section 3.4.2)"
       }
       catch {tooltip::tooltip $buttons($idx) $ttmsg}
     }
@@ -461,8 +466,8 @@ proc guiProcessAndReports {} {
 
 #-------------------------------------------------------------------------------
 # report
-  set foptrv [frame $fopt.rv -bd 0]
-  set foptd [ttk::labelframe $foptrv.1 -text " Analyze "]
+  set foptRV [frame $fopt.rv -bd 0]
+  set foptd [ttk::labelframe $foptRV.1 -text " Analyze "]
 
   set foptd1 [frame $foptd.1 -bd 0]
   foreach item {{" Validation Properties" opt(valProp)} \
@@ -472,9 +477,11 @@ proc guiProcessAndReports {} {
                 {" Generate Presentation Coverage worksheet" opt(PMIGRFCOV)}} {
     set idx [string range [lindex $item 1] 4 end-1]
     set buttons($idx) [ttk::checkbutton $foptd1.$cb -text [lindex $item 0] -variable [lindex $item 1] -command {checkValues}]
-    set padx 5
-    if {$idx == "PMISEMDIM" || $idx == "PMIGRFCOV"} {set padx 27}
-    pack $buttons($idx) -side top -anchor w -padx $padx -pady 0 -ipady 0
+    if {$idx == "PMISEMDIM" || $idx == "PMIGRFCOV"} {
+      pack $buttons($idx) -side top -anchor w -padx {26 10} -pady 0 -ipady 0
+    } else {
+      pack $buttons($idx) -side top -anchor w -padx {5 10} -pady 0 -ipady 0
+    }
     incr cb
   }
   pack $foptd1 -side top -anchor w -pady 0 -padx 0 -fill y
@@ -490,7 +497,7 @@ proc guiProcessAndReports {} {
 
 #-------------------------------------------------------------------------------
 # view
-  set foptv [ttk::labelframe $foptrv.9 -text " View "]
+  set foptv [ttk::labelframe $foptRV.9 -text " View "]
 
 # part geometry
   set foptv20 [frame $foptv.20 -bd 0]
@@ -515,7 +522,7 @@ proc guiProcessAndReports {} {
     pack $buttons($bn) -side left -anchor w -padx 2 -pady 0 -ipady 0
     incr cb
   }
-  pack $foptv21 -side top -anchor w -pady 0 -padx 25 -fill y
+  pack $foptv21 -side top -anchor w -pady 0 -padx {26 10} -fill y
 
 # graphical pmi
   set foptv3 [frame $foptv.3 -bd 0]
@@ -536,7 +543,7 @@ proc guiProcessAndReports {} {
     pack $buttons($bn) -side left -anchor w -padx 2 -pady 0 -ipady 0
     incr cb
   }
-  pack $foptv4 -side top -anchor w -pady 0 -padx 25 -fill y
+  pack $foptv4 -side top -anchor w -pady 0 -padx {26 10} -fill y
 
 # tessellated geometry
   set foptv6 [frame $foptv.6 -bd 0]
@@ -570,10 +577,10 @@ proc guiProcessAndReports {} {
     pack $buttons($idx) -side left -anchor w -padx 2 -pady 0 -ipady 0
     incr cb
   }
-  pack $foptv8 -side top -anchor w -pady 0 -padx 25 -fill y
+  pack $foptv8 -side top -anchor w -pady 0 -padx {26 10} -fill y
 
   pack $foptv -side left -anchor w -pady {5 2} -padx 10 -fill both -expand true
-  pack $foptrv -side top -anchor w -pady 0 -fill x
+  pack $foptRV -side top -anchor w -pady 0 -fill x
   catch {
     tooltip::tooltip $foptv20 "The view for part geometry supports color, edges, and sketch geometry.\nThe viewer does not support measurements.\n\nNormals improve the default smooth shading at the expense of slower\nprocessing and display.  Using High Quality and Normals results in the\nbest appearance for part geometry.\n\nSee Help > Viewer\n\nViews are shown in the default web browser.\nViews can be generated without generating a spreadsheet or CSV files.\nSee the Output Format option below.\n\nSee Help > View for other viewing features\nSee Examples > View Box Assembly and others\nSee Websites > STEP File Viewers (for other part geometry viewers)"
     tooltip::tooltip $buttons(viewPMI) "Graphical PMI is supported in AP242, AP203, and AP214 files.\n\nSee Help > View > Graphical PMI\nSee Help > Viewer\nSee Help > User Guide (section 4.2)\nSee Examples > Part with PMI\nSee Examples > AP242 Tessellated Part with PMI\nSee Examples > Sample STEP Files"
@@ -675,9 +682,10 @@ proc guiOpenSTEPFile {} {
   global appName appNames buttons cb developer dispApps dispCmds edmWhereRules edmWriteToFile stepToolsWriteToFile
   global fopt foptf useXL xlInstalled
 
-  set foptf [ttk::labelframe $fopt.f -text " Open STEP File in App"]
+  set foptOP [frame $fopt.op -bd 0]
+  set foptf [ttk::labelframe $foptOP.f -text " Open STEP File in App"]
 
-  set buttons(appCombo) [ttk::combobox $foptf.spinbox -values $appNames -width 40]
+  set buttons(appCombo) [ttk::combobox $foptf.spinbox -values $appNames -width 30]
   pack $foptf.spinbox -side left -anchor w -padx 7 -pady {0 3}
   bind $buttons(appCombo) <<ComboboxSelected>> {
     set appName [$buttons(appCombo) get]
@@ -686,8 +694,8 @@ proc guiOpenSTEPFile {} {
     if {$developer} {
       catch {
         if {[string first "EDM Model Checker" $appName] == 0} {
-          pack $buttons(edmWriteToFile) -side left -anchor w -padx 5
-          pack $buttons(edmWhereRules) -side left -anchor w -padx 5
+          pack $buttons(edmWriteToFile) -side left -anchor w -padx {5 0}
+          pack $buttons(edmWhereRules) -side left -anchor w -padx {5 0}
         } else {
           pack forget $buttons(edmWriteToFile)
           pack forget $buttons(edmWhereRules)
@@ -697,7 +705,7 @@ proc guiOpenSTEPFile {} {
 # STEP Tools
     catch {
       if {[string first "Conformance Checker" $appName] != -1} {
-        pack $buttons(stepToolsWriteToFile) -side left -anchor w -padx 5
+        pack $buttons(stepToolsWriteToFile) -side left -anchor w -padx {5 0}
       } else {
         pack forget $buttons(stepToolsWriteToFile)
       }
@@ -705,8 +713,8 @@ proc guiOpenSTEPFile {} {
 # file tree view
     catch {
       if {$appName == "Tree View (for debugging)"} {
-        pack $buttons(indentStyledItem) -side left -anchor w -padx 5
-        pack $buttons(indentGeometry) -side left -anchor w -padx 5
+        pack $buttons(indentStyledItem) -side left -anchor w -padx {5 0}
+        pack $buttons(indentGeometry) -side left -anchor w -padx {5 0}
       } else {
         pack forget $buttons(indentStyledItem)
         pack forget $buttons(indentGeometry)
@@ -745,8 +753,8 @@ proc guiOpenSTEPFile {} {
   if {$developer} {
     foreach item $appNames {
       if {[string first "EDM Model Checker" $item] == 0} {
-        foreach item {{" Write results to file" edmWriteToFile} \
-                      {" Check rules" edmWhereRules}} {
+        foreach item {{"Check rules" edmWhereRules} \
+                      {"Write to file" edmWriteToFile}} {
           set idx [lindex $item 1]
           set buttons($idx) [ttk::checkbutton $foptf.$cb -text [lindex $item 0] -variable [lindex $item 1] -command {checkValues}]
           pack forget $buttons($idx)
@@ -756,10 +764,20 @@ proc guiOpenSTEPFile {} {
     }
   }
 
+# STEP Tools
+  if {[lsearch -glob $appNames "*Conformance Checker*"] != -1} {
+    foreach item {{"Write to file" stepToolsWriteToFile}} {
+      regsub -all {[\(\)]} [lindex $item 1] "" idx
+      set buttons($idx) [ttk::checkbutton $foptf.$cb -text [lindex $item 0] -variable [lindex $item 1] -command {checkValues}]
+      pack forget $buttons($idx)
+      incr cb
+    }
+  }
+
 # built-in file tree view
   if {[lsearch $appNames "Tree View (for debugging)"] != -1} {
-    foreach item {{" Include Styled_item" indentStyledItem} \
-                  {" Include Geometry" indentGeometry}} {
+    foreach item {{"Include Geometry" indentGeometry} \
+                  {"Include styled_item" indentStyledItem}} {
       set idx [lindex $item 1]
       set buttons($idx) [ttk::checkbutton $foptf.$cb -text [lindex $item 0] -variable opt([lindex $item 1]) -command {checkValues}]
       pack forget $buttons($idx)
@@ -768,10 +786,24 @@ proc guiOpenSTEPFile {} {
   }
 
   catch {tooltip::tooltip $foptf "This option is a convenient way to open a STEP file in other apps.  The\npull-down menu contains some apps that can open a STEP file such as\nSTEP viewers and browsers, however, only if they are installed in their\ndefault location.\n\nSee Help > Open STEP File in App\nSee Websites > STEP File Viewers\n\nThe 'Tree View (for debugging)' option rearranges and indents the entities\nto show the hierarchy of information in a STEP file.  The 'tree view' file\n(myfile-sfa.txt) is written to the same directory as the STEP file or to the\nsame user-defined directory specified in the Spreadsheet tab.  Including\nGeometry or Styled_item can make the 'tree view' file very large.  The\n'tree view' might not process /*comments*/ in a STEP file correctly.\n\nThe 'Default STEP Viewer' option opens the STEP file in whatever\napp is associated with STEP (.stp, .step, .p21) files.\n\nUse F5 to open the STEP file in a text editor."}
-  pack $foptf -side top -anchor w -pady {5 2} -padx 10 -fill both
+  pack $foptf -side left -anchor w -pady {5 2} -padx 10 -fill both -expand true
 
+#-------------------------------------------------------------------------------
+# syntax checker
+  set foptl [ttk::labelframe $foptOP.l -text " Syntax Checker "]
+  set txt " Run Syntax Checker"
+  set idx syntaxChecker
+  set buttons($idx) [ttk::checkbutton $foptl.$cb -text $txt -variable opt($idx) -command {checkValues}]
+  pack $buttons($idx) -side left -anchor w -padx 5 -pady 0 -ipady 0
+  incr cb
+  pack $foptl -side left -anchor w -pady {5 2} -padx 10 -fill both -expand true
+  catch {tooltip::tooltip $foptl "Select this option to run the Syntax Checker when generating a Spreadsheet\nor View.  The Syntax Check can also be run with function key F8.\n\nIt checks for basic syntax errors and warnings in the STEP file related to\nmissing or extra attributes, incompatible and unresolved\ entity references,\nselect value types, illegal and unexpected characters, and other problems\nwith entity attributes.\n\nSee Help > Syntax Checker\nSee Help > User Guide (section 7)"}
+  pack $foptOP -side top -anchor w -pady 0 -fill x
+
+#-------------------------------------------------------------------------------
 # output format
-  set foptk [ttk::labelframe $fopt.k -text " Output Format "]
+  set foptOF [frame $fopt.of -bd 0]
+  set foptk [ttk::labelframe $foptOF.k -text " Output Format "]
   set idx outputOpen
   set buttons($idx) [ttk::checkbutton $foptk.$cb -text " Open Output Files" -variable opt(outputOpen)]
   pack $buttons($idx) -side bottom -anchor w -padx 5 -pady 0 -ipady 0
@@ -843,27 +875,18 @@ proc guiOpenSTEPFile {} {
   set buttons($idx) [ttk::checkbutton $foptk.$cb -text [lindex $item 0] -variable [lindex $item 1] -command {checkValues}]
   pack $buttons($idx) -side left -anchor w -padx 5 -pady 0 -ipady 0
   incr cb
+  pack $foptk -side left -anchor w -pady {5 2} -padx 10 -fill both -expand true
 
-  pack $foptk -side top -anchor w -pady {5 2} -padx 10 -fill both
   catch {tooltip::tooltip $foptk "If Excel is installed, then Spreadsheets and CSV files can be generated.  If CSV Files\nis selected, the Spreadsheet is also generated.  CSV files do not contain any cell\ncolors, comments, or links.  GD&T symbols in CSV files are only supported with\nExcel 2016 or newer.\n\nIf Excel is not installed, only CSV files can be generated.  Options for Analyze and\nInverse Relationships are disabled.\n\nView Only does not generate any Spreadsheets or CSV files.  All options except\nthose for View are disabled.  Part Only generates only Part Geometry.  This is\nuseful when no other View features of the software are needed and for large STEP\nfiles.\n\nIf output files are not opened after they have been generated, use F2 to open a\nSpreadsheet and F3 to open a View.  Use F7 to open the File Summary spreadsheet \nwhen processing multiple files.\n\nIf possible, existing output files are always overwritten by new files.  Output files\ncan be written to a user-defined directory.  See Spreadsheet tab.\n\nSee Help > User Guide (section 3.4.1)"}
 
-# syntax checker
-  set foptl [ttk::labelframe $fopt.l -text " Syntax Checker "]
-  set txt " Run Syntax Checker"
-  set idx syntaxChecker
-  set buttons($idx) [ttk::checkbutton $foptl.$cb -text $txt -variable opt($idx) -command {checkValues}]
-  pack $buttons($idx) -side left -anchor w -padx 5 -pady 0 -ipady 0
-  incr cb
-  pack $foptl -side top -anchor w -pady {5 2} -padx 10 -fill both
-  catch {tooltip::tooltip $foptl "Select this option to run the Syntax Checker when generating a Spreadsheet\nor View.  The Syntax Check can also be run with function key F8.\n\nIt checks for basic syntax errors and warnings in the STEP file related to\nmissing or extra attributes, incompatible and unresolved\ entity references,\nselect value types, illegal and unexpected characters, and other problems\nwith entity attributes.\n\nSee Help > Syntax Checker\nSee Help > User Guide (section 7)"}
-
 # log file
-  set foptm [ttk::labelframe $fopt.m -text " Log File "]
+  set foptm [ttk::labelframe $foptOF.m -text " Log File "]
   set txt " Generate a Log File of the text in the Status tab"
   set idx logFile
   set buttons($idx) [ttk::checkbutton $foptm.$cb -text $txt -variable opt($idx)]
-  pack $buttons($idx) -side left -anchor w -padx 5 -pady 0 -ipady 0
-  pack $foptm -side top -anchor w -pady {5 2} -padx 10 -fill both
+  pack $buttons($idx) -side top -anchor w -padx 5 -pady 0 -ipady 0
+  pack $foptm -side left -anchor w -pady {5 2} -padx 10 -fill both -expand true
+  pack $foptOF -side top -anchor w -pady 0 -fill x
   catch {tooltip::tooltip $buttons(optlogFile)  "The Log file is written to myfile-sfa.log  Use F4 to open the Log file.\nSyntax Checker results are written to myfile-sfa-err.log  See Help > Syntax Checker\nAll text in the Status tab can be saved by right-clicking and selecting Save."}
 }
 
@@ -953,7 +976,8 @@ proc guiSpreadsheet {} {
 # some other options
   set fxlsc [ttk::labelframe $fxls.c -text " Other "]
   foreach item {{" Show all PMI Elements on PMI Representation Coverage worksheets" opt(SHOWALLPMI)} \
-                {" Do not generate links to STEP files and spreadsheets on File Summary worksheet for multiple files" opt(xlHideLinks)}} {
+                {" Do not generate links to STEP files and spreadsheets on File Summary worksheet for multiple files" opt(xlHideLinks)} \
+                {" Keep part geometry X3D file" opt(x3dKeep)}} {
     set idx [string range [lindex $item 1] 4 end-1]
     set buttons($idx) [ttk::checkbutton $fxlsc.$cb -text [lindex $item 0] -variable [lindex $item 1] -command {checkValues}]
     pack $buttons($idx) -side top -anchor w -padx 5 -pady 0 -ipady 0
@@ -963,6 +987,7 @@ proc guiSpreadsheet {} {
   catch {
     tooltip::tooltip $buttons(SHOWALLPMI)  "The complete list of [expr {$pmiElementsMaxRows-3}] PMI Elements, including those that are not found in\nthe STEP file, will be shown on the PMI Representation Coverage worksheet.\n\nSee Help > Analyze > PMI Coverage Analysis\nSee Help > User Guide (section 6.1.7)"
     tooltip::tooltip $buttons(xlHideLinks) "This option is useful when sharing a Spreadsheet with another user."
+    tooltip::tooltip $buttons(x3dKeep)     "The X3D file can be shown in an X3D viewer."
   }
 
 # developer only options
@@ -1021,12 +1046,8 @@ The four different types of output can be selected in the Options tab.  Help is 
 User Guide or in tooltip help.  Some newer features might not be described in the User Guide.
 Check the Changelog for recent updates to the software.
 
-Notes:
-- AP238 files with a .stpnc file extension are supported if the file extension is changed to .stp
-- Unicode characters using the \\X\\ and \\S\\ encodings are supported.  For example, \\X\\E9 encodes the
-  character é.  However, the \\X2\\ and \\X4\\ encodings are not supported.
-- Non-English characters in text strings, that are not Unicode, might have different or missing
-  characters."
+See Help > Text Strings for information that supplements the User Guide section 5.5 on Unicode
+Characters."
     .tnb select .tnb.status
   }
 
@@ -1087,7 +1108,7 @@ Part geometry viewer features:
   limitation of x3dom.
 
 - Sketch geometry is supplemental lines created when generating a CAD model.  This is not same as
-  actual supplemental geometry.  See Help > Supplemental Geometry
+  actual supplemental geometry.  See Help > View > Supplemental Geometry
 
 - A nested assembly has one STEP file that contains the assembly structure with external file
   references to individual assembly components that contain part geometry.
@@ -1109,9 +1130,8 @@ Part geometry viewer features:
   number appended to their name.  Processing sketch geometry might also affect the list of names.
   Some assemblies have no unique names assigned to parts, therefore there is no list of part names.
 
-- Part names with illegal characters might have different or missing characters or cause the viewer
-  to crash.  Use the Syntax Checker to check for illegal characters.  Names using Unicode encoding
-  with \\X\\ and \\X2\\ are supported.
+- Part names with non-English characters might have different or missing characters or cause the
+  viewer to crash.  See Help > Text Strings
 
 - The part bounding box min and max XYZ coordinates are based on the faceted geometry being shown
   and not the exact geometry in the STEP file.  There might be a variation in the coordinates
@@ -1512,9 +1532,9 @@ Some syntax errors use abbreviations for STEP entities:
  GISU - geometric_item_specific_usage
  IIRU - identified_item_representation_usage
 
-On the File Summary worksheet in column A, most entity types that have syntax errors are colored
-gray.  A comment indicating that there are errors is also shown with a small red triangle in the
-upper right corner of a cell in column A.
+On the Summary worksheet in column A, most entity types that have syntax errors are colored gray.
+A comment indicating that there are errors is also shown with a small red triangle in the upper
+right corner of a cell in column A.
 
 On an entity worksheet, most syntax errors are highlighted in red and have a cell comment with the
 text of the syntax error that was shown in the Status tab.
@@ -1600,6 +1620,38 @@ might be ambiguities in counting the number of PMI elements."
   }
 
   $Help add separator
+  $Help add command -label "Text Strings" -command {
+outputMsg "\nText Strings --------------------------------------------------------------------------------------" blue
+outputMsg "The following supplements the User Guide section 5.5 on Unicode Characters.
+
+Text strings in STEP files might use non-English characters.  Some examples are accented characters
+in European languages (for example é), and Asian languages that use different characters sets such
+as Russian or Chinese.  Text strings with non-English characters are usually found on entities with
+name, description, or id attributes.
+
+According to ISO 10303 Part 21 section 6.4.3, non-English characters can be encoded with the
+control directives \\X\\, \\X2\\, and \\S\\.  For example, \\X\\E9 or \\X2\\00E9\\X0\\ is used for the accented
+character é.  Definitions of Unicode characters, such as E9, can be found at www.unicode.org/charts
+Some CAD software supports these control directives when exporting or importing a STEP file.
+
+In this software for a spreadsheet, due to limitations of the toolkit used to read STEP files, only
+the \\X\\ and \\S\\ control directives are supported.  Characters using the \\X2\\ control directive and
+other non-English characters are ignored and will be missing in the spreadsheet.
+
+For the viewer, only the \\X\\ and \\X2\\ are supported for part and assembly names.  Non-English
+characters are supported depending STEP file encoding, e.g., UTF-8 or ANSI.
+
+When a STEP file is opened there might be a message that the file uses \\X2\\ or \\X\\ control
+directives in some text strings.  The \\X4\\ control directive is not supported.  Some non-English
+characters might cause the software to crash or prevent a view from being generated.
+
+The Syntax Checker identifies non-English characters as 'illegal characters'.  You will have to
+test your CAD software to see if it supports non-English characters or control directives.
+
+See Websites > STEP Format and Schemas > ISO 10303 Part 21 Standard"
+    .tnb select .tnb.status
+  }
+
   $Help add command -label "Syntax Checker" -command {
 outputMsg "\nSyntax Checker ------------------------------------------------------------------------------------" blue
 outputMsg "The Syntax Checker checks for basic syntax errors and warnings in the STEP file related to missing
@@ -1757,9 +1809,9 @@ See the Websites menu for information about the STEP Format, EXPRESS Schemas, AP
     outputMsg "Updated:  [string trim [clock format $progtime -format "%e %b %Y"]]"
     outputMsg "Contact:  [lindex $contact 0], [lindex $contact 1]\n$sysvar
 
-The STEP File Analyzer and Viewer was first released in April 2012 and is developed at NIST in the
-Systems Integration Division of the Engineering Laboratory.  Click the logo below for information
-about NIST.
+The STEP File Analyzer and Viewer was first released in April 2012 and is developed at
+NIST in the Systems Integration Division of the Engineering Laboratory.  Click the logo
+below for information about NIST.
 
 See Help > Disclaimers and NIST Disclaimer
 
@@ -1784,6 +1836,7 @@ Credits
       if {$pf64 != ""} {outputMsg " pf64  $pf64"}
       catch {outputMsg " scriptName $scriptName"}
       outputMsg " Tcl [info patchlevel], twapi [package versions twapi]"
+      outputMsg " S [winfo screenwidth  .]x[winfo screenheight  .], M [winfo reqwidth .]x[expr {int([winfo reqheight .]*1.05)}]"
 
       outputMsg "Registry values" red
       catch {outputMsg " Personal  [registry get {HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\User Shell Folders} {Personal}]"}
@@ -1843,7 +1896,6 @@ proc guiWebsitesMenu {} {
   $Websites add cascade -label "AP242" -menu $Websites.0
   set Websites0 [menu $Websites.0 -tearoff 1]
   $Websites0 add command -label "AP242 Project"        -command {openURL http://www.ap242.org}
-  $Websites0 add command -label "Edition 2"            -command {openURL http://www.ap242.org/edition-2}
   $Websites0 add command -label "Schema Documentation" -command {openURL https://www.cax-if.org/documents/AP242ed2_HTML/AP242ed2.htm}
   $Websites0 add command -label "EXPRESS Schema"       -command {openURL https://www.cax-if.org/documents/ap242ed2_mim_lf_v1.101.exp}
   $Websites0 add command -label "ISO 10303-242"        -command {openURL https://www.iso.org/standard/66654.html}
@@ -1856,6 +1908,7 @@ proc guiWebsitesMenu {} {
   set Websites2 [menu $Websites.2 -tearoff 1]
   $Websites2 add command -label "STEP Format"                 -command {openURL https://www.loc.gov/preservation/digital/formats/fdd/fdd000448.shtml}
   $Websites2 add command -label "ISO 10303 Part 21"           -command {openURL https://en.wikipedia.org/wiki/ISO_10303-21}
+  $Websites2 add command -label "ISO 10303 Part 21 Standard"  -command {openURL http://www.steptools.com/stds/step/IS_final_p21e3.html}
   $Websites2 add command -label "ISO 10303 Part 21 Edition 3" -command {openURL https://www.steptools.com/stds/step/}
   $Websites2 add separator
   $Websites2 add command -label "EXPRESS Schemas"                -command {openURL https://www.cax-if.org/cax/cax_express.php}
@@ -1875,12 +1928,11 @@ proc guiWebsitesMenu {} {
 
   $Websites add cascade -label "STEP Software" -menu $Websites.3
   set Websites3 [menu $Websites.3 -tearoff 1]
-  $Websites3 add command -label "SFA source code"             -command {openURL https://github.com/usnistgov/SFA}
-  $Websites3 add command -label "NIST STEP to X3D Translator" -command {openURL https://www.nist.gov/services-resources/software/step-x3d-translator}
-  $Websites3 add command -label "Open CASCADE STEP Processor" -command {openURL https://dev.opencascade.org/doc/overview/html/occt_user_guides__step.html}
-  $Websites3 add command -label "STEPcode"                    -command {openURL http://stepcode.github.io/}
-  $Websites3 add command -label "STEP Class Library"          -command {openURL https://www.nist.gov/services-resources/software/step-class-library-scl}
-  $Websites3 add command -label "Express Engine"              -command {openURL https://sourceforge.net/projects/exp-engine/}
+  $Websites3 add command -label "SFA source code"        -command {openURL https://github.com/usnistgov/SFA}
+  $Websites3 add command -label "STEP to X3D Translator" -command {openURL https://www.nist.gov/services-resources/software/step-x3d-translator}
+  $Websites3 add command -label "STEPcode"               -command {openURL http://stepcode.github.io/}
+  $Websites3 add command -label "STEP Class Library"     -command {openURL https://www.nist.gov/services-resources/software/step-class-library-scl}
+  $Websites3 add command -label "Express Engine"         -command {openURL https://sourceforge.net/projects/exp-engine/}
 
   $Websites add cascade -label "STEP Related Organizations" -menu $Websites.4
   set Websites4 [menu $Websites.4 -tearoff 1]
@@ -1895,7 +1947,6 @@ proc guiWebsitesMenu {} {
   $Websites add separator
   $Websites add command -label "CAE-IF" -command {openURL https://www.cax-if.org/cae/cae_introduction.php}
   $Websites add command -label "PDM-IF" -command {openURL http://www.pdm-if.org/}
-  $Websites add command -label "DM-IF"  -command {openURL http://www.ap238.org/dmif/}
 }
 
 #-------------------------------------------------------------------------------
@@ -2064,7 +2115,7 @@ proc getOpenPrograms {} {
     set applist [list \
       [list {*}[glob -nocomplain -directory [file join $pf] -join "Afanche3D*" "Afanche3D*.exe"] Afanche3D] \
       [list {*}[glob -nocomplain -directory [file join $pf "Common Files"] -join "eDrawings*" eDrawings.exe] "eDrawings Viewer"] \
-      [list {*}[glob -nocomplain -directory [file join $pf "SOLIDWORKS Corp"] -join "eDrawings (*)" eDrawings.exe] "eDrawings Viewer"] \
+      [list {*}[glob -nocomplain -directory [file join $pf "SOLIDWORKS Corp"] -join "eDrawings (*)" eDrawings.exe] "eDrawings Pro"] \
       [list {*}[glob -nocomplain -directory [file join $pf "Stratasys Direct Manufacturing"] -join "SolidView Pro RP *" bin SldView.exe] SolidView] \
       [list {*}[glob -nocomplain -directory [file join $pf "TransMagic Inc"] -join "TransMagic *" System code bin TransMagic.exe] TransMagic] \
       [list {*}[glob -nocomplain -directory [file join $pf Actify SpinFire] -join "*" SpinFire.exe] SpinFire] \
@@ -2085,6 +2136,8 @@ proc getOpenPrograms {} {
         set match [join [lindex $app 0]]
         if {$match != "" && ![info exists dispApps($match)]} {
           set dispApps($match) [lindex $app 1]
+          set c1 [string first "eDrawings20" $match]
+          if {$c1 != -1} {set dispApps($match) "[lindex $app 1] [string range $match $c1+9 $c1+12]"}
         }
       }
     }
@@ -2244,90 +2297,4 @@ proc getOpenPrograms {} {
   if {$dispCmd != ""} {
     if {[info exists dispApps($dispCmd)]} {set appName $dispApps($dispCmd)}
   }
-}
-
-# -------------------------------------------------------------------------------------------------
-proc getFirstFile {} {
-  global editorCmd openFileList buttons
-
-  set localName [lindex $openFileList 0]
-  if {$localName != ""} {
-    outputMsg "\nReady to process: [file tail $localName] ([expr {[file size $localName]/1024}] Kb)" green
-    set fileDir [file dirname $localName]
-    if {[string length $fileDir] <= 3} {outputMsg "There might be problems processing a STEP file in the $fileDir directory.  Move the file to a different directory." red}
-
-    if {[info exists buttons(appOpen)]} {
-      $buttons(appOpen) configure -state normal
-      if {$editorCmd != ""} {
-        bind . <Key-F5> {
-          if {[file exists $localName]} {
-            outputMsg "\nOpening STEP file: [file tail $localName]"
-            exec $editorCmd [file nativename $localName] &
-          }
-        }
-      }
-    }
-  }
-  return $localName
-}
-
-#-------------------------------------------------------------------------------
-proc addFileToMenu {} {
-  global openFileList localName File buttons
-
-  set lenlist 25
-  set filemenuinc 4
-
-  if {![info exists buttons]} {return}
-
-# change backslash to forward slash, if necessary
-  regsub -all {\\} $localName "/" localName
-
-# remove duplicates
-  set newlist {}
-  set dellist {}
-  for {set i 0} {$i < [llength $openFileList]} {incr i} {
-    set name [lindex $openFileList $i]
-    set ifile [lsearch -all $openFileList $name]
-    if {[llength $ifile] == 1 || [lindex $ifile 0] == $i} {
-      lappend newlist $name
-    } else {
-      lappend dellist $i
-    }
-  }
-  set openFileList $newlist
-
-# check if file name is already in the menu, if so, delete
-  set ifile [lsearch $openFileList $localName]
-  if {$ifile > 0} {
-    set openFileList [lreplace $openFileList $ifile $ifile]
-    $File delete [expr {$ifile+$filemenuinc}] [expr {$ifile+$filemenuinc}]
-  }
-
-# insert file name at top of list
-  set fext [string tolower [file extension $localName]]
-  if {$ifile != 0 && ($fext == ".stp" || $fext == ".step" || $fext == ".p21")} {
-    set openFileList [linsert $openFileList 0 $localName]
-    $File insert $filemenuinc command -label [truncFileName [file nativename $localName] 1] \
-      -command [list openFile $localName] -accelerator "F1"
-    catch {$File entryconfigure 5 -accelerator {}}
-  }
-
-# check length of file list, delete from the end of the list
-  if {[llength $openFileList] > $lenlist} {
-    set openFileList [lreplace $openFileList $lenlist $lenlist]
-    $File delete [expr {$lenlist+$filemenuinc}] [expr {$lenlist+$filemenuinc}]
-  }
-
-# compare file list and menu list
-  set llen [llength $openFileList]
-  for {set i 0} {$i < $llen} {incr i} {
-    set f1 [file tail [lindex $openFileList $i]]
-    set f2 ""
-    catch {set f2 [file tail [lindex [$File entryconfigure [expr {$i+$filemenuinc}] -label] 4]]}
-  }
-
-# save the state so that if the program crashes the file list will be already saved
-  saveState
-  return
 }

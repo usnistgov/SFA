@@ -13,8 +13,8 @@ proc checkValues {} {
     if {$developer} {
       catch {
         if {[string first "EDM Model Checker" $appName] == 0} {
-          pack $buttons(edmWriteToFile) -side left -anchor w -padx 5
-          pack $buttons(edmWhereRules) -side left -anchor w -padx 5
+          pack $buttons(edmWhereRules) -side left -anchor w -padx {5 0}
+          pack $buttons(edmWriteToFile) -side left -anchor w -padx {5 0}
         } else {
           pack forget $buttons(edmWriteToFile)
           pack forget $buttons(edmWhereRules)
@@ -25,16 +25,16 @@ proc checkValues {} {
 # STEP Tools
     catch {
       if {[string first "Conformance Checker" $appName] != -1} {
-        pack $buttons(stepToolsWriteToFile) -side left -anchor w -padx 5
+        pack $buttons(stepToolsWriteToFile) -side left -anchor w -padx {5 0}
       } else {
         pack forget $buttons(stepToolsWriteToFile)
       }
     }
-    
+
     catch {
       if {$appName == "Tree View (for debugging)"} {
-        pack $buttons(indentGeometry) -side left -anchor w -padx 5
-        pack $buttons(indentStyledItem) -side left -anchor w -padx 5
+        pack $buttons(indentGeometry) -side left -anchor w -padx {5 0}
+        pack $buttons(indentStyledItem) -side left -anchor w -padx {5 0}
       } else {
         pack forget $buttons(indentGeometry)
         pack forget $buttons(indentStyledItem)
@@ -42,12 +42,13 @@ proc checkValues {} {
     }
   }
 
-# configure Excel, CSV, Viz only, Excel or not
+# configure Excel, CSV, Viz only, Excel or not button
+  if {![info exists useXL]} {set useXL 1}
   set btext "Generate "
   if {$opt(xlFormat) == "Excel"} {
     append btext "Spreadsheet"
   } elseif {$opt(xlFormat) == "CSV"} {
-    if {$ofCSV} {append btext "Spreadsheet and "}
+    if {$ofCSV && $useXL} {append btext "Spreadsheet and "}
     append btext "CSV Files"
   } elseif {$opt(xlFormat) == "None"} {
     append btext "View"
@@ -56,7 +57,6 @@ proc checkValues {} {
     append btext " and View"
   }
   catch {$buttons(genExcel) configure -text $btext}
-  if {![info exists useXL]} {set useXL 1}
 
 # no Excel
   if {!$useXL} {
@@ -194,7 +194,7 @@ proc checkValues {} {
     catch {if {!$opt(PMISEM)} {lappend butNormal stepPRES}}
     lappend butDisabled tessPartMesh
   }
-  
+
 # user-defined entity list
   if {$opt(stepUSER)} {
     foreach b {userentity userentityopen} {lappend butNormal $b}
@@ -202,7 +202,7 @@ proc checkValues {} {
     foreach b {userentity userentityopen} {lappend butDisabled $b}
     set userEntityList {}
   }
-  
+
   if {$developer} {
     if {$opt(INVERSE)} {
       lappend butNormal DEBUGINV
@@ -210,7 +210,7 @@ proc checkValues {} {
       lappend butDisabled DEBUGINV
     }
   }
-  
+
 # user-defined directory text entry and browse button
   if {$opt(writeDirType) == 0} {
     foreach b {userdir userentry} {lappend butDisabled $b}
@@ -226,11 +226,11 @@ proc checkValues {} {
     }
   }
   if {$nopt == 0 && $opt(xlFormat) != "None"} {set opt(stepCOMM) 1}
-  
+
 # configure buttons
   if {[llength $butNormal]   > 0} {foreach but $butNormal   {catch {$buttons($but) configure -state normal}}}
   if {[llength $butDisabled] > 0} {foreach but $butDisabled {catch {$buttons($but) configure -state disabled}}}
-    
+
 # configure all, none, for buttons
   if {[info exists allNone]} {
     if {$allNone == 1} {
@@ -276,10 +276,10 @@ proc setCoordMinMax {coord} {
 # set color based on entColorIndex variable
 proc setColorIndex {ent {multi 0}} {
   global andEntAP209 entCategory entColorIndex stepAP
-  
+
 # special case
   if {[string first "geometric_representation_context" $ent] != -1} {set ent "geometric_representation_context"}
-  
+
 # simple entity, not compound with _and_
   foreach i [array names entCategory] {
     if {[info exist entColorIndex($i)]} {
@@ -288,7 +288,7 @@ proc setColorIndex {ent {multi 0}} {
       }
     }
   }
-  
+
 # compound entity with _and_
   set c1 [string first "\_and\_" $ent]
   if {$c1 != -1} {
@@ -296,17 +296,17 @@ proc setColorIndex {ent {multi 0}} {
     set tc1 "1000"
     set tc2 "1000"
     set tc3 "1000"
-    
+
     foreach i [array names entCategory] {
       if {[info exist entColorIndex($i)]} {
         set ent1 [string range $ent 0 $c1-1]
         if {[lsearch $entCategory($i) $ent1] != -1} {set tc1 $entColorIndex($i)}
         if {$c2 == $c1} {
           set ent2 [string range $ent $c1+5 end]
-          if {[lsearch $entCategory($i) $ent2] != -1} {set tc2 $entColorIndex($i)} 
+          if {[lsearch $entCategory($i) $ent2] != -1} {set tc2 $entColorIndex($i)}
         } elseif {$c2 != $c1} {
           set ent2 [string range $ent $c1+5 $c2-1]
-          if {[lsearch $entCategory($i) $ent2] != -1} {set tc2 $entColorIndex($i)} 
+          if {[lsearch $entCategory($i) $ent2] != -1} {set tc2 $entColorIndex($i)}
           set ent3 [string range $ent $c2+5 end]
           if {[lsearch $entCategory($i) $ent3] != -1} {set tc3 $entColorIndex($i)}
         }
@@ -314,7 +314,7 @@ proc setColorIndex {ent {multi 0}} {
     }
     set tc [expr {min($tc1,$tc2,$tc3)}]
 
-# exception for STEP measures    
+# exception for STEP measures
     if {$tc1 == $entColorIndex(stepQUAN) || $tc2 == $entColorIndex(stepQUAN) || $tc3 == $entColorIndex(stepQUAN)} {
       set tc $entColorIndex(stepQUAN)
     }
@@ -326,12 +326,12 @@ proc setColorIndex {ent {multi 0}} {
   }
 
 # entity not in any category, color by AP
-  if {[string first "AP209" $stepAP] != -1} {return 19} 
-  if {$stepAP == "AP210"} {return 15} 
+  if {[string first "AP209" $stepAP] != -1} {return 19}
+  if {$stepAP == "AP210"} {return 15}
   if {$stepAP == "AP238"} {return 24}
 
 # entity from other APs (no color)
-  return -2      
+  return -2
 }
 
 #-------------------------------------------------------------------------------
@@ -349,7 +349,7 @@ proc openURL {url} {
       }
     }
 
-# find web browser command  
+# find web browser command
   } else {
     set webCmd ""
     catch {
@@ -364,10 +364,10 @@ proc openURL {url} {
 
 #-------------------------------------------------------------------------------
 proc openFile {{openName ""}} {
-  global buttons editorCmd fileDir localName localNameList
+  global buttons drive editorCmd fileDir localName localNameList
 
   if {$openName == ""} {
-  
+
 # file types for file select dialog (removed .stpnc)
     set typelist [list {"STEP Files" {".stp" ".step" ".p21" ".stpZ"}} {"IFC Files" {".ifc"}}]
 
@@ -390,7 +390,6 @@ proc openFile {{openName ""}} {
     set fileDir [file dirname [lindex $localNameList 0]]
 
     outputMsg "\nReady to process [llength $localNameList] STEP files" green
-    if {[string length $fileDir] <= 3} {outputMsg "There might be problems processing STEP files in the $fileDir directory.  Move the files to a different directory." red}
     if {[info exists buttons]} {
       $buttons(genExcel) configure -state normal
       if {[info exists buttons(appOpen)]} {$buttons(appOpen) configure -state normal}
@@ -400,14 +399,14 @@ proc openFile {{openName ""}} {
 # single file selected
   } elseif {[file exists $localName]} {
     catch {pack forget $buttons(progressBarMulti)}
-  
+
 # check for zipped file
-    if {[string first ".stpz" [string tolower $localName]] != -1} {unzipFile}  
+    if {[string first ".stpz" [string tolower $localName]] != -1} {unzipFile}
 
     set fileDir [file dirname $localName]
     if {[string first "z" [string tolower [file extension $localName]]] == -1} {
       outputMsg "\nReady to process: [file tail $localName] ([expr {[file size $localName]/1024}] Kb)" green
-      if {[string length $fileDir] <= 3} {outputMsg "There might be problems processing a STEP file in the $fileDir directory.  Move the file to a different directory." red}
+      if {$fileDir == $drive} {outputMsg "There might be problems processing the STEP file directly in the $fileDir directory." red}
       if {[info exists buttons]} {
         $buttons(genExcel) configure -state normal
         if {[info exists buttons(appOpen)]} {$buttons(appOpen) configure -state normal}
@@ -422,12 +421,97 @@ proc openFile {{openName ""}} {
         }
       }
     }
-  
+
 # not found
   } else {
     if {$localName != ""} {errorMsg "File not found: [truncFileName [file nativename $localName]]"}
   }
   catch {.tnb select .tnb.status}
+}
+
+# -------------------------------------------------------------------------------------------------
+proc getFirstFile {} {
+  global editorCmd openFileList buttons
+
+  set localName [lindex $openFileList 0]
+  if {$localName != ""} {
+    outputMsg "\nReady to process: [file tail $localName] ([expr {[file size $localName]/1024}] Kb)" green
+
+    if {[info exists buttons(appOpen)]} {
+      .tnb select .tnb.status
+      $buttons(appOpen) configure -state normal
+      if {$editorCmd != ""} {
+        bind . <Key-F5> {
+          if {[file exists $localName]} {
+            outputMsg "\nOpening STEP file: [file tail $localName]"
+            exec $editorCmd [file nativename $localName] &
+          }
+        }
+      }
+    }
+  }
+  return $localName
+}
+
+#-------------------------------------------------------------------------------
+proc addFileToMenu {} {
+  global openFileList localName File buttons
+
+  set lenlist 25
+  set filemenuinc 4
+
+  if {![info exists buttons]} {return}
+
+# change backslash to forward slash, if necessary
+  regsub -all {\\} $localName "/" localName
+
+# remove duplicates
+  set newlist {}
+  set dellist {}
+  for {set i 0} {$i < [llength $openFileList]} {incr i} {
+    set name [lindex $openFileList $i]
+    set ifile [lsearch -all $openFileList $name]
+    if {[llength $ifile] == 1 || [lindex $ifile 0] == $i} {
+      lappend newlist $name
+    } else {
+      lappend dellist $i
+    }
+  }
+  set openFileList $newlist
+
+# check if file name is already in the menu, if so, delete
+  set ifile [lsearch $openFileList $localName]
+  if {$ifile > 0} {
+    set openFileList [lreplace $openFileList $ifile $ifile]
+    $File delete [expr {$ifile+$filemenuinc}] [expr {$ifile+$filemenuinc}]
+  }
+
+# insert file name at top of list
+  set fext [string tolower [file extension $localName]]
+  if {$ifile != 0 && ($fext == ".stp" || $fext == ".step" || $fext == ".p21")} {
+    set openFileList [linsert $openFileList 0 $localName]
+    $File insert $filemenuinc command -label [truncFileName [file nativename $localName] 1] \
+      -command [list openFile $localName] -accelerator "F1"
+    catch {$File entryconfigure 5 -accelerator {}}
+  }
+
+# check length of file list, delete from the end of the list
+  if {[llength $openFileList] > $lenlist} {
+    set openFileList [lreplace $openFileList $lenlist $lenlist]
+    $File delete [expr {$lenlist+$filemenuinc}] [expr {$lenlist+$filemenuinc}]
+  }
+
+# compare file list and menu list
+  set llen [llength $openFileList]
+  for {set i 0} {$i < $llen} {incr i} {
+    set f1 [file tail [lindex $openFileList $i]]
+    set f2 ""
+    catch {set f2 [file tail [lindex [$File entryconfigure [expr {$i+$filemenuinc}] -label] 4]]}
+  }
+
+# save the state so that if the program crashes the file list will be already saved
+  saveState
+  return
 }
 
 #-------------------------------------------------------------------------------
@@ -484,9 +568,9 @@ proc saveState {{ok 1}} {
   global buttons developer dispCmd dispCmds fileDir fileDir1 filesProcessed lastX3DOM lastXLS lastXLS1 mydocs openFileList
   global opt optionsFile sfaVersion statusFont upgrade upgradeIFCsvr userEntityFile userWriteDir
 
-# ok = 0 only after installing IFCsvr from the command-line version  
+# ok = 0 only after installing IFCsvr from the command-line version
   if {![info exists buttons] && $ok} {return}
-  
+
   if {[catch {
     if {![file exists $optionsFile]} {outputMsg "\nCreating options file: [file nativename $optionsFile]"}
     set fileOptions [open $optionsFile w]
@@ -650,7 +734,7 @@ proc runOpenProgram {} {
         if {[catch {exec $dispCmd1 -syntax -required -unique -bounds -aggruni -arrnotopt -inverse -strwidth -binwidth -realprec -atttypes -refdom $stfile >> $stlog &} err]} {outputMsg "Conformance Checker error:\n $err" red}
       } else {
         if {[catch {exec $dispCmd1 $stfile >> $stlog &} err]} {outputMsg "Conformance Checker error:\n $err" red}
-      }  
+      }
       if {[string first "Notepad++" $editorCmd] != -1} {
         outputMsg "Opening log file in editor"
         exec $editorCmd $stlog &
@@ -676,7 +760,7 @@ proc runOpenProgram {} {
     set i [lsearch $edmDir "bin"]
     set edmDir [join [lrange $edmDir 0 [expr {$i-1}]] [file separator]]
     set edmDBopen "ACCUMULATING_COMMAND_OUTPUT,OPEN_SESSION"
-    
+
 # open file to find STEP schema name
     set edmPW "NIST@edm[string range $idisp end end]"
     set fschema [getSchemaFromFile $filename]
@@ -814,14 +898,14 @@ proc openXLS {filename {check 0} {multiFile 0}} {
 
 # check if instances of Excel are already running
     if {$check} {checkForExcel}
-    
+
 # start Excel
     set notok 0
     if {[catch {
       set xl [::tcom::ref createobject Excel.Application]
       [$xl ErrorCheckingOptions] TextDate False
 
-# check old version of Excel      
+# check old version of Excel
       set xlver [expr {int([$xl Version])}]
       if {$xlver < 12 && [file extension $filename] == ".xlsx"} {
         errorMsg "[file tail $filename] cannot be opened with this version of Excel."
@@ -833,7 +917,7 @@ proc openXLS {filename {check 0} {multiFile 0}} {
       errorMsg "ERROR starting Excel: $emsg"
     }
     if {$notok} {return $filename}
-    
+
 # open spreadsheet in Excel, works even if Excel not already started above although slower
     if {[catch {
       outputMsg "\nOpening Spreadsheet: [file tail $filename]"
@@ -884,10 +968,10 @@ proc saveLogFile {lfile} {
 #-------------------------------------------------------------------------------
 proc checkForExcel {{multFile 0}} {
   global buttons lastXLS localName opt
-  
+
   set pid1 [twapi::get_process_ids -name "EXCEL.EXE"]
   if {![info exists useXL]} {set useXL 1}
-  
+
   if {[llength $pid1] > 0 && $opt(xlFormat) != "None"} {
     if {[info exists buttons]} {
       if {!$multFile} {
@@ -956,7 +1040,7 @@ proc formatComplexEnt {str {space 0}} {
       }
     }
   }
-  
+
 # add back attribute
   if {$attr != ""} {append str1 $attr}
   return $str1
@@ -965,7 +1049,7 @@ proc formatComplexEnt {str {space 0}} {
 #-------------------------------------------------------------------------------
 proc cellRange {r c} {
   global letters
-  
+
 # correct if 'c' is passed in as a letter
   set cf [string first $c $letters]
   if {$cf != -1} {set c [expr {$cf+1}]}
@@ -983,7 +1067,7 @@ proc cellRange {r c} {
   } else {
     append cr ":$cr"
   }
-  
+
   return $cr
 }
 
@@ -993,7 +1077,7 @@ proc addCellComment {ent r c comment} {
 
   if {![info exists worksheet($ent)] || [string length $comment] < 2} {return}
 
-# modify comment      
+# modify comment
   if {[catch {
     while {[string first "  " $comment] != -1} {regsub -all "  " $comment " " comment}
     if {[string first "Syntax" $comment] == 0} {set comment "[string range $comment 14 end]"}
@@ -1006,7 +1090,7 @@ proc addCellComment {ent r c comment} {
         break
       }
     }
-    
+
 # add linefeeds for line length
     set ncomment ""
     set j 0
@@ -1020,7 +1104,7 @@ proc addCellComment {ent r c comment} {
         append ncomment $char
       }
     }
-      
+
 # add comment
     set comm [[$worksheet($ent) Range [cellRange $r $c]] AddComment]
     $comm Text $ncomment
@@ -1036,13 +1120,13 @@ proc addCellComment {ent r c comment} {
 # color bad cells red, add cell comment with message
 proc colorBadCells {ent} {
   global cells count entsWithErrors excelVersion idRow legendColor stepAP syntaxErr worksheet
-  
+
   if {$stepAP == "" || $excelVersion < 11} {return}
-      
+
 # color red for syntax errors
   set rmax [expr {$count($ent)+3}]
   set okcomment 0
-  
+
   outputMsg " [formatComplexEnt $ent]" red
   set syntaxErr($ent) [lsort -integer -index 0 [lrmdups $syntaxErr($ent)]]
   foreach err $syntaxErr($ent) {
@@ -1053,7 +1137,7 @@ proc colorBadCells {ent} {
       set r [lindex $err 0]
       set c [lindex $err 1]
       if {$r > 0 && ![info exists idRow($ent,$r)]} {return}
-      
+
 # r is entity ID, get row
       if {$r > 0} {
         if {[info exists idRow($ent,$r)]} {
@@ -1066,7 +1150,7 @@ proc colorBadCells {ent} {
       } else {
         set r [expr {abs($r)}]
       }
-      
+
 # get message for cell comment
       set msg ""
       set msg [lindex $err 2]
@@ -1092,8 +1176,8 @@ proc colorBadCells {ent} {
             }
           }
         }
-        
-# cannot find heading, use first column        
+
+# cannot find heading, use first column
         if {![info exists nc($c)]} {set nc($c) 1}
         set c $nc($c)
 
@@ -1103,12 +1187,12 @@ proc colorBadCells {ent} {
           set okcomment 1
         }
       }
-      
+
 # add cell comment
       if {$msg != "" && $okcomment} {if {$r <= $rmax} {addCellComment $ent $r $c $msg}}
       if {$okcomment} {lappend entsWithErrors [formatComplexEnt $ent]}
 
-# error      
+# error
     } emsg]} {
       if {$emsg != ""} {
         errorMsg "ERROR setting cell color (red) or comment: $emsg\n  $ent"
@@ -1121,17 +1205,17 @@ proc colorBadCells {ent} {
 #-------------------------------------------------------------------------------
 proc trimNum {num {prec 3}} {
   global unq_num
-  
+
 # check for already trimmed number
   set numsav $num
   if {[info exists unq_num($numsav)]} {
     set num $unq_num($numsav)
   } else {
-    
-# trim number    
+
+# trim number
     if {[catch {
-      
-# format number with 'prec' 
+
+# format number with 'prec'
       set form "\%."
       append form $prec
       append form "f"
@@ -1174,14 +1258,14 @@ proc errorMsg {msg {color ""}} {
 
   set oklog 0
   if {$opt(logFile) && [info exists logFile]} {set oklog 1}
-  
+
 # check if error message has already been used
   if {![info exists errmsg]} {set errmsg ""}
   if {[string first $msg $errmsg] == -1} {
 
 # save current message to the beginning of errmsg
     set errmsg "$msg\n$errmsg"
-    
+
 # this fix is necessary to handle messages related to inverses
     set c1 [string first "DELETETHIS" $msg]
     if {$c1 != -1} {set msg [string range $msg 0 $c1-1]}
@@ -1191,7 +1275,7 @@ proc errorMsg {msg {color ""}} {
       if {[string first "syntax error" [string tolower $msg]] != -1} {
         if {$stepAP != ""} {
           set logmsg "*** $msg"
-          if {[info exists outputWin]} { 
+          if {[info exists outputWin]} {
             $outputWin issue "$msg " syntax
           } else {
             catch {twapi::set_console_default_attr stdout -fgyellow 1}
@@ -1205,9 +1289,9 @@ proc errorMsg {msg {color ""}} {
         set ilevel ""
         catch {set ilevel "  \[[lindex [info level [expr {[info level]-1}]] 0]\]"}
         if {$ilevel == "  \[errorMsg\]"} {set ilevel ""}
-        
+
         set logmsg "*** $msg$ilevel"
-        if {[info exists outputWin]} { 
+        if {[info exists outputWin]} {
           $outputWin issue "$msg$ilevel " error
         } else {
           catch {twapi::set_console_default_attr stdout -fgyellow 1}
@@ -1219,7 +1303,7 @@ proc errorMsg {msg {color ""}} {
 # error message with color
     } else {
       set logmsg "*** $msg"
-      if {[info exists outputWin]} { 
+      if {[info exists outputWin]} {
         $outputWin issue "$msg " $color
       } else {
         catch {twapi::set_console_default_attr stdout -fgyellow 1}
@@ -1266,7 +1350,13 @@ proc truncFileName {fname {compact 0}} {
   if {[string first $mydocs $fname] == 0} {
     set nname "[string range $fname 0 2]...[string range $fname [string length $mydocs] end]"
   } elseif {[string first $mydesk $fname] == 0 && $mydesk != $fname} {
-    set nname "[string range $fname 0 2]...[string range $fname [string length $mydesk] end]"
+    set nname "[string range $fname 0 2]...[string range $fname [expr {[string length $mydesk]-8}] end]"
+  } elseif {[string first "Downloads" $fname] != -1} {
+    set indices [regexp -inline -all -indices {\\} $mydocs]
+    set mydown "[string range $mydocs 0 [lindex [lindex $indices 2] 0]]Downloads"
+    if {[string first $mydown $fname] == 0} {
+      set nname "[string range $fname 0 2]...[string range $fname [expr {[string length $mydown]-10}] end]"
+    }
   }
 
   if {[info exists nname]} {
@@ -1347,7 +1437,7 @@ proc installIFCsvr {{exit 0}} {
 
 # if IFCsvr is alreadly installed, get version from registry, decide to reinstall newer version
   if {[catch {
-    
+
 # check IFCsvr CLSID and get version registry value "1.0.0 (NIST Update yyyy-mm-dd)"
 # if either fails, then install or reinstall
     set clsid [registry get $ifcsvrKey {}]
@@ -1362,22 +1452,22 @@ proc installIFCsvr {{exit 0}} {
       set verIFCsvr 0
     }
 
-# old version, reinstall      
+# old version, reinstall
     if {$verIFCsvr < [getVersionIFCsvr]} {
       set reinstall 1
 
-# up-to-date, do nothing    
+# up-to-date, do nothing
     } else {
       set reinstall 2
       set upgradeIFCsvr [clock seconds]
     }
-    
-# IFCsvr not installed or can't read registry    
+
+# IFCsvr not installed or can't read registry
   } emsg]} {
     set reinstall 0
   }
 
-# up-to-date  
+# up-to-date
   if {$reinstall == 2} {return}
 
   set ifcsvr     "ifcsvrr300_setup_1008_en-update.msi"
@@ -1385,7 +1475,7 @@ proc installIFCsvr {{exit 0}} {
 
   if {[info exists buttons]} {.tnb select .tnb.status}
   outputMsg " "
-  
+
 # first time installation
   if {!$reinstall} {
     errorMsg "The IFCsvr toolkit must be installed to read and process STEP files (User Guide section 2.2.1)."
@@ -1453,7 +1543,7 @@ proc installIFCsvr {{exit 0}} {
       }
     }
   }
-  
+
 # delete old installer
   catch {file delete -force -- [file join $mytemp ifcsvrr300_setup_1008_en.msi]}
 
@@ -1508,18 +1598,18 @@ proc installIFCsvr {{exit 0}} {
 # shortcuts
 proc setShortcuts {} {
   global mydesk mymenu mytemp nistVersion tcl_platform wdir
-  
+
   set progname [info nameofexecutable]
   if {[string first "AppData/Local/Temp" $progname] != -1 || [string first ".zip" $progname] != -1} {
     errorMsg "For the STEP File Analyzer and Viewer to run properly, it is recommended that you first\n extract all of the files from the ZIP file and run the extracted executable."
     return
   }
-  
+
   if {[info exists mydesk] || [info exists mymenu]} {
     set ok 1
     set app ""
-    
-# delete old shortcuts    
+
+# delete old shortcuts
     set progstr1 "STEP File Analyzer"
     foreach scut [list "Shortcut to $progstr1.exe.lnk" "$progstr1.exe.lnk" "$progstr1.lnk"] {
       catch {
@@ -1540,7 +1630,7 @@ proc setShortcuts {} {
     }
     if {[info exists mymenu]} {append msg " in the Start Menu"}
     append msg "?"
-      
+
     if {[info exists mydesk] || [info exists mymenu]} {
       set choice [tk_messageBox -type yesno -icon question -title "Shortcuts" -message $msg]
       if {$choice == "yes"} {
@@ -1561,7 +1651,7 @@ proc setShortcuts {} {
             outputMsg " Shortcut created in Start Menu to [truncFileName [file nativename [info nameofexecutable]]]"
           }
         }
-  
+
         if {$ok} {
           catch {
             if {[info exists mydesk]} {
@@ -1599,7 +1689,7 @@ proc setHomeDir {} {
 # set mydocs, mydesk, mymenu based on USERPROFILE and registry entries
   if {[info exists env(USERPROFILE)]} {
     set myhome $env(USERPROFILE)
-    
+
     catch {
       set reg_personal [registry get {HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\User Shell Folders} {Personal}]
       if {[string first "%USERPROFILE%" $reg_personal] == 0} {set mydocs "$env(USERPROFILE)\\[string range $reg_personal 14 end]"}
@@ -1612,7 +1702,7 @@ proc setHomeDir {} {
       set reg_menu [registry get {HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\User Shell Folders} {Programs}]
       if {[string first "%USERPROFILE%" $reg_menu] == 0} {set mymenu "$env(USERPROFILE)\\[string range $reg_menu 14 end]"}
     }
-    
+
 # set mytemp
     catch {
       set reg_temp [registry get {HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\User Shell Folders} {Local AppData}]
@@ -1624,7 +1714,7 @@ proc setHomeDir {} {
       checkTempDir
     }
 
-# create myhome if USERPROFILE does not exist 
+# create myhome if USERPROFILE does not exist
   } elseif {[info exists env(USERNAME)]} {
     set myhome [file join $drive Users $env(USERNAME)]
   }
@@ -1640,7 +1730,7 @@ proc setHomeDir {} {
     set desk [file join $mydesk "Desktop"]
     if {[file exists $desk]} {if {[file isdirectory $desk]} {set mydesk $desk}}
   }
-  
+
   if {![info exists mytemp]} {
     set mytemp $myhome
     set temp [file join AppData Local Temp SFA]
