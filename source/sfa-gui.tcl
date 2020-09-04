@@ -1,5 +1,5 @@
 # SFA version number
-proc getVersion {} {return 4.22}
+proc getVersion {} {return 4.24}
 
 # version of SFA that the User Guide is based on
 proc getVersionUG {} {return 4.2}
@@ -44,6 +44,7 @@ Use F9 and F10 to change the font size here.  See Help > Function Keys"
       outputMsg "- A new User Guide is available based on version [getVersionUG] of this software."
       showFileURL UserGuide
     }
+    if {$sfaVersion  < 4.24} {outputMsg "- In the Viewer use Page Down to switch between Viewpoints."}
     if {$sfaVersion  < 4.22} {outputMsg "- See Help > Text Strings for information that supplements the User Guide section 5.5\n  on Unicode Characters"}
     if {$sfaVersion  < 4.12} {outputMsg "- The Viewer for part geometry is faster and supports color, edges, sketch geometry,\n  normals, and nested assemblies.  See Help > Viewer"}
     if {$sfaVersion <= 3.70} {outputMsg "- Run the Syntax Checker with function key F8 or the Options tab selection.\n  See Help > Syntax Checker"}
@@ -1123,12 +1124,13 @@ Part geometry viewer features:
   the Normals option results in the best appearance for part geometry.
 
 - Switching parts and assemblies on and off is a work-in-progress.  Most assemblies and parts can
-  be switched on and off depending on the assembly structure.  The list of part and assembly names
-  is shown on the right.  Clicking on the model shows the part name in the upper left.  The part
-  name shown may not be in the list of assemblies and parts.  The part might be contained in a
-  higher-level assembly that is in the list.  Some names in the list might have an underscore and
-  number appended to their name.  Processing sketch geometry might also affect the list of names.
-  Some assemblies have no unique names assigned to parts, therefore there is no list of part names.
+  be switched on and off depending on the assembly structure.  The alphabetic list of part and
+  assembly names is shown on the right.  Parts with the same shape are usually grouped with the
+  same checkbox.  Clicking on the model shows the part name in the upper left.  The part name shown
+  may not be in the list of assemblies and parts.  The part might be contained in a higher-level
+  assembly that is in the list.  Some names in the list might have an underscore and number
+  appended to their name.  Processing sketch geometry might also affect the list of names.  Some
+  assemblies have no unique names assigned to parts, therefore there is no list of part names.
 
 - Part names with non-English characters might have different or missing characters or cause the
   viewer to crash.  See Help > Text Strings
@@ -1141,11 +1143,11 @@ Part geometry viewer features:
 The origin of the model at '0 0 0' is shown with a small XYZ coordinate axis that can be switched
 off.  The background color can be changed between white, blue, gray, and black.
 
-In the web browser, use key 'a' to view all (+Y axis up) and 'r' to restore to the original view
-(+Z axis up).  Sometimes the part or PMI might be located far away from the origin.  In this case,
-turn off the Origin and use 'a' to view all.  The function of other keys is described in the link
-'Use the mouse'.  Navigation uses the Examine Mode.  Use Page Up/Down to switch between perspective
-and orthographic projection modes.  Navigation is easier in perspective mode.
+In the web browser, use Page Down to switch between front, side, top, and orthographic viewpoints.
+Use key 'a' to view all and 'r' to restore to the original view.  The function of other keys is
+described in the link 'Use the mouse'.  Navigation uses the Examine Mode.  Sometimes the part or
+PMI might be located far away from the origin.  In this case, turn off the Origin and use 'a' to
+view all.
 
 For very large STEP files, it might take several minutes to process the STEP part geometry.  The
 resulting HTML file also might several minutes to display in the web browser.  Select 'Wait' if the
@@ -2070,16 +2072,8 @@ proc getOpenPrograms {} {
 
 # Jotne EDM Model Checker
   if {$developer} {
-    set edms [glob -nocomplain -directory [file join $drive edm] -join edm* bin Edms.exe]
-    foreach match $edms {
-      set name "EDM Model Checker"
-      if {[string first "edm5" $match] != -1} {
-        set num 5
-      } elseif {[string first "edmsix" $match] != -1} {
-        set num 6
-      }
-      set dispApps($match) "$name $num"
-    }
+    foreach match [glob -nocomplain -directory [file join $drive edm] -join edm* bin Edms.exe] {set dispApps($match) "EDM Model Checker 5"}
+    foreach match [glob -nocomplain -directory [file join $pf64 Jotne] -join EDMsdk6* bin edms.exe] {set dispApps($match) "EDM Model Checker 6"}
   }
 
 # STEP Tools apps
@@ -2148,8 +2142,6 @@ proc getOpenPrograms {} {
       [list [file join $pf "CAD Assistant" CADAssistant.exe] "CAD Assistant"] \
       [list [file join $pf "CAD Exchanger" bin Exchanger.exe] "CAD Exchanger"] \
       [list [file join $pf "SOLIDWORKS Corp" eDrawings eDrawings.exe] "eDrawings Pro"] \
-      [list [file join $pf "STEP Tools" "STEP-NC Machine Personal Edition" STEPNCExplorer.exe] "STEP-NC Machine"] \
-      [list [file join $pf "STEP Tools" "STEP-NC Machine Personal Edition" STEPNCExplorer_x86.exe] "STEP-NC Machine"] \
       [list [file join $pf "STEP Tools" "STEP-NC Machine" STEPNCExplorer.exe] "STEP-NC Machine"] \
       [list [file join $pf "STEP Tools" "STEP-NC Machine" STEPNCExplorer_x86.exe] "STEP-NC Machine"] \
       [list [file join $pf CadFaster QuickStep QuickStep.exe] QuickStep] \
@@ -2182,18 +2174,15 @@ proc getOpenPrograms {} {
 # others
   set b1 [file join $myhome AppData Local IDA-STEP ida-step.exe]
   if {[file exists $b1]} {
-    set name "IDA-STEP Viewer"
-    set dispApps($b1) $name
+    set dispApps($b1) "IDA-STEP Viewer"
   }
   set b1 [file join $drive CCELabs EnSuite-View Bin EnSuite-View.exe]
   if {[file exists $b1]} {
-    set name "EnSuite-View"
-    set dispApps($b1) $name
+    set dispApps($b1) "EnSuite-View"
   } else {
     set b1 [file join $drive CCE EnSuite-View Bin EnSuite-View.exe]
     if {[file exists $b1]} {
-      set name "EnSuite-View"
-      set dispApps($b1) $name
+      set dispApps($b1) "EnSuite-View"
     }
   }
 

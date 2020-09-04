@@ -6,6 +6,12 @@ proc getAssocGeom {entDef {tolType 0} {tolName ""}} {
   set entDefType [$entDef Type]
   if {$debugAG} {outputMsg "\ngetAssocGeom $tolType $entDefType [$entDef P21ID]" blue}
 
+  set dimSize 0
+  if {$tolType == 2} {
+    set tolType 1
+    set dimSize 1
+  }
+
   if {[catch {
     if {$entDefType == "shape_aspect" || $entDefType == "all_around_shape_aspect" || $entDefType == "centre_of_symmetry" || \
       ([string first "datum" $entDefType] != -1 && [string first "_and_" $entDefType] == -1)} {
@@ -14,6 +20,9 @@ proc getAssocGeom {entDef {tolType 0} {tolName ""}} {
       if {$tolType && ($entDefType == "shape_aspect" || $entDefType == "centre_of_symmetry" || $entDefType == "datum_feature" || \
                   [string first "datum_target" $entDefType] != -1)} {
         set type [appendAssocGeom $entDef A]
+
+# for dimensional_size, check applies_to > shape_aspect > product_definitional attribute
+        if {$dimSize} {checkShapeAspect $entDef}
       }
 
 # find datum_feature for datum
@@ -55,7 +64,8 @@ proc getAssocGeom {entDef {tolType 0} {tolName ""}} {
             if {[info exists relatedSA]} {
               set type [appendAssocGeom [$a0 Value] E]
               if {$type == "advanced_face"} {getFaceGeom [$a0 Value] $tolType E}
-    
+              if {$dimSize} {checkShapeAspect [$a0 Value]}
+
               set a0val {}
               if {[string first "composite_shape_aspect" $relatedSA] != -1 || [string first "composite_group_shape_aspect" $relatedSA] != -1} {
                 set e1s [[$a0 Value] GetUsedIn [string trim shape_aspect_relationship] [string trim relating_shape_aspect]]
@@ -65,6 +75,7 @@ proc getAssocGeom {entDef {tolType 0} {tolName ""}} {
                       if {[$a1 Name] == "related_shape_aspect"} {
                         lappend a0val [$a1 Value]
                         set type [appendAssocGeom [$a1 Value] F]
+                        if {$dimSize} {checkShapeAspect [$a1 Value]}
                       }
                     }
                   }
@@ -72,7 +83,7 @@ proc getAssocGeom {entDef {tolType 0} {tolName ""}} {
               } else {
                 lappend a0val [$a0 Value]
               }
-  
+
 # find AF for SA with GISU or IIRU, check all around
               foreach val $a0val {getAssocGeomFace $val $tolType}
             }
@@ -89,13 +100,13 @@ proc getAssocGeom {entDef {tolType 0} {tolName ""}} {
 proc getAssocGeomFace {entDef tolType} {
   global debugAG entCount syntaxErr
   if {$debugAG} {outputMsg "getAssocGeomFace [$entDef Type] [$entDef P21ID]" green}
-  
+
 # look at GISU and IIRU for geometry associated with shape_aspect
   set usages {}
   foreach str {geometric_item_specific_usage item_identified_representation_usage} {
     if {[info exists entCount($str)]} {if {$entCount($str) > 0} {lappend usages $str}}
   }
-  
+
   foreach usage $usages {
     set e1s [$entDef GetUsedIn [string trim $usage] [string trim definition]]
     ::tcom::foreach e1 $e1s {
@@ -103,7 +114,7 @@ proc getAssocGeomFace {entDef tolType} {
 # prevent double counting GISU and IIRU
       set ok 1
       if {[$e1 Type] == "geometric_item_specific_usage" && $usage == "item_identified_representation_usage"} {set ok 0}
-        
+
       if {$ok} {
         ::tcom::foreach a1 [$e1 Attributes] {
           if {[$a1 Name] == "identified_item"} {
@@ -132,11 +143,11 @@ proc getAssocGeomFace {entDef tolType} {
 # -------------------------------------------------------------------------------
 proc appendAssocGeom {ent {id ""}} {
   global assocGeom debugAG
-  
+
   set p21id [$ent P21ID]
   set type  [$ent Type]
   if {$debugAG} {outputMsg " appendAssocGeom $type $p21id $id" red}
-  
+
   if {[string first "annotation" $type] == -1 && [string first "callout" $type] == -1} {
     if {![info exists assocGeom($type)]} {
       lappend assocGeom($type) $p21id
@@ -150,9 +161,9 @@ proc appendAssocGeom {ent {id ""}} {
 # -------------------------------------------------------------------------------
 proc getFaceGeom {e0 tolType {id ""}} {
   global assocGeom cylSurfBounds debugAG dimName
-  
+
   if {$tolType} {set debug 0}
-  
+
   if {[catch {
     ::tcom::foreach a1 [$e0 Attributes] {
       if {[$a1 Name] == "face_geometry"} {
@@ -162,15 +173,16 @@ proc getFaceGeom {e0 tolType {id ""}} {
         set currEnt ""
         if {$debugAG} {
           outputMsg "  getFaceGeom $type $p21id $id / [$e0 Type] [$e0 P21ID]" red
-          if {$tolType} {outputMsg "   dimName $dimName" red}
+          if {$tolType && [info exists dimName]} {outputMsg "   dimName $dimName" red}
         }
 
 # for cylindrical, conical, or spherical surfaces with dimensional tolerances (tolType = 1)
 #  set cylSurfBounds to 180 or 360 depending on bounds of the surfaces
         set ok 0
-        if {$tolType != 1 || [string first "diameter" $dimName] != -1} {set ok 1}
+        if {$tolType != 1} {set ok 1}
+        if {[info exists dimName]} {if {[string first "diameter" $dimName] != -1} {set ok 1}}
         if {$tolType && $ok && ($type == "cylindrical_surface" || $type == "conical_surface" || $type == "spherical_surface")} {
-  
+
 # face bounds
           set a2 [[$e0 Attributes] Item [expr 2]]
           ::tcom::foreach e3 [$a2 Value] {
@@ -181,7 +193,7 @@ proc getFaceGeom {e0 tolType {id ""}} {
             set e4 [$a4 Value]
             set currEnt [$e4 Type]
             if {$debug} {outputMsg "e4   [$e4 Type] [$e4 P21ID]"}
-            
+
             if {[$e4 Type] == "edge_loop"} {
               set a5s [[$e4 Attributes] Item [expr 2]]
 # oriented edge
@@ -239,7 +251,7 @@ proc reportAssocGeom {entType {row ""}} {
   global objDesign
   global assocGeom cells cgrObjects cylSurfBounds debugAG dimName dimRepeat dimRepeatDiv entCount opt recPracNames spaces suppGeomEnts syntaxErr
   if {$debugAG} {outputMsg "reportAssocGeom $entType" green}
-  
+
   set str ""
   set dimRepeat 0
   set dimtol 0
@@ -248,9 +260,9 @@ proc reportAssocGeom {entType {row ""}} {
 
 # set divider based on cylinders, assume two half cylinders, but different if dim is a radius because cylinders are not closed
     set dimRepeatDiv 2
-    if {$dimName == "radius"} {set dimRepeatDiv 1}
+    if {[info exists dimName]} {if {$dimName == "radius"} {set dimRepeatDiv 1}}
   }
-  
+
 # geometric entities
   foreach item [array names assocGeom] {
     if {[string first "shape_aspect" $item] == -1 && [string first "centre" $item] == -1 && \
@@ -263,10 +275,10 @@ proc reportAssocGeom {entType {row ""}} {
       if {[string first "_size" $entType] != -1 || [string first "angular_location" $entType] != -1} {
         if {$item == "cylindrical_surface" || $item == "conical_surface" || $item == "spherical_surface" || $item == "toroidal_surface"} {
           if {![info exists cylSurfBounds]} {
-  
+
 # set divider if odd number of cylinders, then one complete cylinder
             if {$dc == 1} {set dimRepeatDiv 1}
-  
+
             if {$dimRepeatDiv == 1} {
               if {$dc > 1} {incr dimRepeat $dc}
             } else {
@@ -295,8 +307,8 @@ proc reportAssocGeom {entType {row ""}} {
       append str "([llength $assocGeom(advanced_face)]) $item [lsort -integer $assocGeom(advanced_face)]"
     }
   }
-  
-# missing geometry  
+
+# missing geometry
   if {$dimtol || [string first "occurrence" $entType] != -1} {
     set str1 "Sec. 5.1, Figs. 5, 6, 12"
     set str2 "Associated"
@@ -357,7 +369,7 @@ proc reportAssocGeom {entType {row ""}} {
       }
     }
   }
-  
+
 # check CGSA, all around, and between with less than 2 SA
   set ncsa 0
   set nsa 0
@@ -443,7 +455,7 @@ proc reportAssocGeom {entType {row ""}} {
       }
     }
   }
-  
+
 # check for supplemental geometry in associated geometry
   foreach id $suppGeomEnts {
     set c1 [string first $id $str]
@@ -454,4 +466,17 @@ proc reportAssocGeom {entType {row ""}} {
     }
   }
   return $str
+}
+
+# -------------------------------------------------------------------------------
+proc checkShapeAspect {ent} {
+  global syntaxErr recPracNames spaces
+
+  if {[string first "datum" [$ent Type]] == -1} {
+    if {[[[$ent Attributes] Item [expr 4]] Value] == 0} {
+      set msg "Syntax Error: For dimensional_size, the related [$ent Type] 'product_definitional' attribute should be TRUE.$spaces\($recPracNames(pmi242), Sec. 3.4)"
+      errorMsg $msg
+      lappend syntaxErr([$ent Type]) [list [$ent P21ID] "product_definitional" $msg]
+    }
+  }
 }

@@ -579,7 +579,7 @@ proc saveState {{ok 1}} {
 
 # opt variables
     foreach idx [lsort [array names opt]] {
-      if {[string first "DEBUG" $idx] == -1 && [string first "indent" $idx] == -1} {
+      if {[string first "DEBUG" $idx] == -1 && [string first "indent" $idx] == -1 && [string first "x3dKeep" $idx] == -1} {
         set var opt($idx)
         set vartmp [set $var]
         if {[string first "/" $vartmp] != -1 || [string first "\\" $vartmp] != -1 || [string first " " $vartmp] != -1} {
@@ -663,7 +663,7 @@ proc saveState {{ok 1}} {
 
 #-------------------------------------------------------------------------------
 proc runOpenProgram {} {
-  global appName dispCmd editorCmd edmWhereRules edmWriteToFile stepToolsWriteToFile File localName
+  global appName dispCmd drive editorCmd edmIds edmr edmw edmWhereRules edmWriteToFile stepToolsWriteToFile File localName
 
   set dispFile $localName
   set idisp [file rootname [file tail $dispCmd]]
@@ -750,8 +750,12 @@ proc runOpenProgram {} {
     outputMsg "Ready to validate: [file tail $filename]" blue
     cd [file dirname $filename]
 
+# set password
+    set edmVer [string index $idisp end]
+    set edmPW "NIST@edm$edmVer"
+
 # write script file to open database
-    set edmScript [file join [file dirname $filename] edm-validate-script.txt]
+    set edmScript [file join [file dirname $filename] edm$edmVer-script.txt]
     catch {file delete -force -- $edmScript}
     set scriptFile [open $edmScript w]
     set okschema 1
@@ -762,21 +766,28 @@ proc runOpenProgram {} {
     set edmDBopen "ACCUMULATING_COMMAND_OUTPUT,OPEN_SESSION"
 
 # open file to find STEP schema name
-    set edmPW "NIST@edm[string range $idisp end end]"
     set fschema [getSchemaFromFile $filename]
 
+# set database dir
+    set edmVer [string index $idisp end]
+    if {$edmVer == 5} {
+      set edmDB [file nativename [file join $edmDir db]]
+    } elseif {$edmVer == 6} {
+      set edmDB [file nativename [file join $drive edm edm6 db]]
+    }
+
     if {[string first "AP203_CONFIGURATION_CONTROLLED_3D_DESIGN_OF_MECHANICAL_PARTS_AND_ASSEMBLIES_MIM_LF" $fschema] == 0} {
-      puts $scriptFile "Database>Open([file nativename [file join $edmDir Db]], ap203, $edmPW, \"$edmDBopen\")"
+      puts $scriptFile "Database>Open($edmDB, ap203, $edmPW, \"$edmDBopen\")"
     } elseif {$fschema == "CONFIG_CONTROL_DESIGN"} {
-      puts $scriptFile "Database>Open([file nativename [file join $edmDir Db]], ap203e1, $edmPW, \"$edmDBopen\")"
+      puts $scriptFile "Database>Open($edmDB, ap203e1, $edmPW, \"$edmDBopen\")"
     } elseif {[string first "AP209_MULTIDISCIPLINARY_ANALYSIS_AND_DESIGN_MIM_LF" $fschema] == 0} {
-      puts $scriptFile "Database>Open([file nativename [file join $edmDir Db]], ap209, $edmPW, \"$edmDBopen\")"
+      puts $scriptFile "Database>Open($edmDB, ap209, $edmPW, \"$edmDBopen\")"
     } elseif {$fschema == "AUTOMOTIVE_DESIGN"} {
-      puts $scriptFile "Database>Open([file nativename [file join $edmDir Db]], ap214, $edmPW, \"$edmDBopen\")"
+      puts $scriptFile "Database>Open($edmDB, ap214, $edmPW, \"$edmDBopen\")"
     } elseif {[string first "AP242_MANAGED_MODEL_BASED_3D_ENGINEERING_MIM_LF" $fschema] == 0} {
       set ap242 "ap242"
       if {[string first "442 2 1 4" $fschema] != -1 || [string first "442 3 1 4" $fschema] != -1} {append ap242 "e2"}
-      puts $scriptFile "Database>Open([file nativename [file join $edmDir Db]], $ap242, $edmPW, \"$edmDBopen\")"
+      puts $scriptFile "Database>Open($edmDB, $ap242, $edmPW, \"$edmDBopen\")"
     } else {
       outputMsg "$idisp cannot be used with:\n $fschema" red
       set okschema 0
@@ -819,8 +830,8 @@ proc runOpenProgram {} {
 
 # write script file if writing output to file, create file names, import model, validate, and exit
       } else {
-        set edmLog  "[file rootname $filename]_edm.log"
-        set edmLogImport "[file rootname $filename]_edm_import.log"
+        set edmLog  "[file rootname $filename]-edm$edmVer.log"
+        set edmLogImport "[file rootname $filename]-edm$edmVer\_import.log"
         puts $scriptFile "Data>ImportModel(DataRepository, $fileRoot, DataRepository, $fileRoot\_HeaderModel, \"[file nativename $edmFile]\", \"[file nativename $edmLogImport]\", \$, \$, \"$edmImport,LOG_TO_FILE\")"
         puts $scriptFile "Data>Validate>Model(DataRepository, $fileRoot, \$, \"[file nativename $edmLog]\", \$, \"ACCUMULATING_COMMAND_OUTPUT,$edmValidate,FULL_OUTPUT\")"
         puts $scriptFile "Data>Close>Model(DataRepository, $fileRoot, \" ACCUMULATING_COMMAND_OUTPUT\")"
@@ -834,10 +845,33 @@ proc runOpenProgram {} {
 
 # run EDM Model Checker with the script file
       outputMsg "Running $idisp"
-      eval exec {$dispCmd} $edmScript &
+      eval exec {$dispCmd} $edmScript
 
 # if results are written to a file, open output file from the validation (edmLog) and output file if there are import errors (edmLogImport)
       if {$edmWriteToFile} {
+
+# compact log file
+        set edmtmp "[file rootname $filename]-edm$edmVer-tmp.log"
+        file copy -force $edmLog $edmtmp
+        set edmr [open $edmtmp  r]
+        set edmw [open $edmLog w]
+
+# read the results of the validation and count errors and warnings
+        while {[gets $edmr line] != -1} {
+          set ok 0
+          set num [string trim [string range $line 0 7]]
+          if {$num != ""} {if {[string is digit $num] && $num > 1} {set ok 1}}
+          if {$ok} {
+            set edmIds {}
+            set eedErrs {}
+            set line [edmGetErrors $line]
+          }
+          puts $edmw $line
+        }
+        close $edmr
+        close $edmw
+        file delete -force -- $edmtmp
+
         if {[string first "Notepad++" $editorCmd] != -1} {
           outputMsg "Opening log file(s) in editor"
           exec $editorCmd $edmLog &
@@ -882,6 +916,60 @@ proc runOpenProgram {} {
 
 # add file to menu
   addFileToMenu
+}
+
+#-------------------------------------------------------------------------------
+# get errors and warnings in EDM output file
+proc edmGetErrors {line} {
+  global edmErrs edmIds edmr edmw
+
+# entity, check for messages
+  puts $edmw $line
+  foreach i {0 1} {gets $edmr line1}
+
+# not Instance
+  if {[string first "Instance" $line1] == -1} {
+    set ok 0
+    set num [string trim [string range $line1 0 7]]
+    if {$num != ""} {if {[string is digit $num] && $num > 1} {set ok 1}}
+    if {$ok} {
+      set edmIds {}
+      set edmErrs {}
+      set line1 [edmGetErrors $line1]
+    }
+
+# Instance - count errors and warnings
+  } else {
+    lappend edmIds [string range $line1 [string first "#" $line1] end-1]
+    set ok1 1
+    while {$ok1} {
+      gets $edmr line2
+      if {[string first "ERROR:" $line2] != -1 || [string first "WARNING:" $line2] != -1} {
+        if {[lsearch $edmErrs [string trim $line2]] == -1} {lappend edmErrs [string trim $line2]}
+        set ok2 1
+        while {$ok2} {
+          gets $edmr line3
+          if {[string first "ERROR:" $line3] != -1 || [string first "WARNING:" $line3] != -1} {
+            if {[lsearch $edmErrs [string trim $line3]] == -1} {lappend edmErrs [string trim $line3]}
+          }
+          if {$line3 == ""} {set ok2 0}
+        }
+      } elseif {[string first "Instance" $line2] != -1} {
+        lappend edmIds [string range $line2 [string first "#" $line2] end-1]
+      }
+      if {$line2 == ""} {
+        set ok1 0
+        set str "\n   Instance stepIds ([llength $edmIds]): [join [lrange $edmIds 0 99]]"
+        if {[llength $edmIds] > 100} {append str " ... [expr {[llength $edmIds]-100}] more stepIds"}
+        puts $edmw $str
+        foreach err $edmErrs {puts $edmw "          $err"}
+        set edmIds {}
+        set edmErrs {}
+        set line1 $line2
+      }
+    }
+  }
+  return $line1
 }
 
 #-------------------------------------------------------------------------------

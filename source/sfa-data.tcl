@@ -38,6 +38,7 @@ set stepAPs(ENGINEERING_PROPERTIES_SCHEMA) AP235
 set stepAPs(MODEL_BASED_INTEGRATED_MANUFACTURING_SCHEMA) AP238
 set stepAPs(INTEGRATED_CNC_SCHEMA) AP238e1
 set stepAPs(PROCESS_PLANNING_SCHEMA) AP240
+set stepAPs(STRUCTURAL_FRAME_SCHEMA) CIS/2
 
 # links to schema documentation
 set schemaLinks(AP203)   "https://www.cax-if.org/documents/AP203e2_html/AP203e2.htm"
@@ -121,19 +122,12 @@ set badAttributes(triangulated_point_cloud_dataset) {triangles}
 set badAttributes(triangulated_surface_set) {normals triangles}
 
 # -----------------------------------------------------------------------------------------------------
-# all app names for STEP and IFC software that might appear in header section
-set cadApps {"3D_Evolution" ACIS "Alias - OpenModel" "Alias AutoStudio" "Alias OpenModel" "Alias Studio" Alibre AutoCAD "Autodesk Inventor" \
-  CADDS CADfix CADIF CATIA "CATIA V4" "CATIA V5" "CATIA V6" "CATIA Version 5" CgiStepCamp CoreTechnologie Creo "CV - CADDS 5" \
-  DATAKIT Datakit "Datakit CrossCad" DATAVISION Elysium EXPRESSO FEMAP FiberSim HiCAD IDA-STEP "I-DEAS" "Implementor Forum Team" "ITI TranscenData" \
-  "jt_step translator" Kubotek "Kubotek KeyCreator" "Mechanical Desktop" "Mentor Graphics" NX "OneSpace Designer" "Open CASCADE" \
-  Parasolid Patran PlanetCAD PolyTrans "PRO/ENGINEER" Siemens "SIEMENS PLM Software NX 10.0" "SIEMENS PLM Software NX 11.0" "SIEMENS PLM Software NX 12.0" \
-  "SIEMENS PLM Software NX 7.0" "SIEMENS PLM Software NX 7.5" "SIEMENS PLM Software NX 8.0" "SIEMENS PLM Software NX 8.5" \
-  "SIEMENS PLM Software NX 9.0" "SIEMENS PLM Software NX" "Solid Edge" SolidEdge "ST-ACIS" "STEP Caselib" \
-  "STEP-NC Explorer" "STEP-NC Maker" "T3D tool generator" THEOREM Theorem "THEOREM SOLUTIONS" "Theorem Solutions" "T-Systems" \
-  "UGS - NX" "UGS-NX" Unigraphics CoCreate Adobe Elysium ASFALIS CAPVIDIA 3DTransVidia MBDVidia NAFEMS COM209 CADCAM-E 3DEXPERIENCE ECCO SimDM \
-  SDS/2 Tekla Revit RISA SAP2000 ETABS SmartPlant CADWorx "Advance Steel" ProSteel STAAD RAM Cype Parabuild RFEM RSTAB BuiltWorks EDMsix Mastercam \
-  "3D Reviewer" "3D Converter" "HOOPS Exchange" HOOPS MicroStation SolidWorks Solidworks SOLIDWORKS "SOLIDWORKS MBD" ASCON PSStep Anark XStep \
-  Spatial "Spatial InterOp 3D" "STEP-NC Maker" CADverter Autodesk "ITI STEP" pdelib kicad KiCad PLIBEditor GraphicalInstance "J-EXPRESS" VariCAD}
+# app names for STEP software that might appear in header section
+set cadApps {3D_Evolution 3DEXPERIENCE Alibre "Anark CORE" "ASCON STEP Converter" AutoCAD Autodesk "Autodesk Inventor" "Autodesk Translation Framework" \
+  "Autodesk Translator Framework" CADfix CADverter CATIA "CATIA V4" "CATIA V5" "CATIA V6" CoCreate CoreTechnologie Creo CREO CrossCAD Datakit \
+  "Datakit CrossCad" DATAKIT DEX EDMsix Elysium "Elysium ASFALIS" Eurostep FiberSim FreeCAD "kicad StepUp" Kubotek "Kubotek KeyCreator" "OneSpace Designer" \
+  "OneSpace Modeling" PRO/ENGINEER PSStep "SIEMENS PLM Software NX" Solidworks SolidWorks SOLIDWORKS "SOLIDWORKS MBD" "Spatial InterOp 3D" ST-ACIS \
+  STEP-NC Theorem THEOREM "Theorem Solutions" T-Systems Unigraphics VariCAD XStep}
 
 # sort cadApps by string length
 set cadApps [sortlength2 $cadApps]
@@ -143,15 +137,16 @@ set pairs [list {3DE "3D Evolution"} {3de "3D Evolution"} {a3 "Acrobat 3D"} {a5 
   {ap "Acrobat_3D (Pro/E)"} {au "Acrobat_3D (NX)"} {c3e "3D Experience"} {c4 "CATIA V4"} {c5 "CATIA V5"} {c6 "CATIA V6"} {cg "CgiStepCamp"} \
   {cm "PTC CoCreate Modeling"} {cr "PTC Creo"} {ct5 "3D Evolution (CATIA_V5)"} {cti "3D Evolution (Inventor)"} {cto "3D Evolution (Creo)"} \
   {ctw "3D Evolution (SolidWorks)"} {ctx "3D Evolution (NX)"} {d5 "Datakit CrossCad (CATIA_V5)"} {dc "Datakit CrossCad"} {di "Datakit CrossCad (Inventor)"} \
-  {do "Datakit CrossCad (Creo)"} {dp "Datakit CrossCad (PRO/E)"} {dw "Datakit CrossCad (SolidWorks)"} {dx "Datakit CrossCad (NX)"} {eb "Electric Boat"} \
-  {ec "Elysium CadDoctor"} {e5 "Elysium Asfalis (CATIA_V5)"} {ei "Elysium Asfalis (Inventor)"} {eo "Elysium Asfalis (Creo)"} {ew "Elysium Asfalis (SolidWorks)"} \
-  {ex "Elysium Asfalis (NX)"} {fs "Vistagy FiberSim"} {h3 "HOOPS 3D Exchange"} {h5 "HOOPS 3D (CATIA_V5)"} {hc "HOOPS 3D (Creo)"} {hx "HOOPS 3D (NX)"} \
-  {i4 "ITI CADifx (CATIA_V4)"} {i5 "ITI CADfix (CATIA_V5)"} {ic "ITI CADfix (Creo)"} {id "NX I-DEAS"} {if "ITI CADfix"} {in "Autodesk Inventor"} {iq "ITI CADfix"} \
-  {iw "ITI CADfix (SolidWorks)"} {ix "ITI CADfix (NX)"} {jn "Jotne EPM NASTRAN"} {jo "Jotne EPM openSimDM"} {kc "Kubotek KeyCreator"} {kr "Kubotek REALyze"} \
-  {lk "LKSoft IDA-STEP"} {mp "MSC Patran"} {nas "NASTRAN"} {nx "Siemens NX"} {oc "Datakit CrossCad (OpenCascade)"} {pc "PTC CADDS"} {pe "PTC Pro/E"} \
-  {s4 "T-Systems COM/STEP (CATIA_V4)"} {s5 "T-Systems COM/FOX (CATIA_V5)"} {se "SolidEdge"} {sp "Spatial ACIS"} {sw "SolidWorks"} {t3d "TechSoft3D"} \
-  {t4 "Theorem Cadverter (CATIA_V4)"} {t5 "Theorem Cadverter (CATIA_V5)"} {tc "Theorem Cadverter (CADDS)"} {td "Theorem Solutions (CATIA_AP209)"} \
-  {to "Theorem Cadverter (Creo)"} {tp "Theorem Cadverter (PRO/E)"} {ts "Theorem Cadverter (I-DEAS)"} {tx "Theorem Cadverter (NX)"} {ug "Unigraphics"}]
+  {do "Datakit CrossCad (Creo)"} {dp "Datakit CrossCad (Pro/E)"} {dw "Datakit CrossCad (SolidWorks)"} {dx "Datakit CrossCad (NX)"} {eb "Electric Boat"} \
+  {ec "Elysium CadDoctor"} {e5 "Elysium Asfalis (CATIA_V5)"} {ei "Elysium Asfalis (Inventor)"} {eo "Elysium Asfalis (Creo)"} \
+  {ew "Elysium Asfalis (SolidWorks)"} {ex "Elysium Asfalis (NX)"} {fs "Vistagy FiberSim"} {h3 "HOOPS 3D Exchange"} {h5 "HOOPS 3D (CATIA_V5)"} \
+  {hc "HOOPS 3D (Creo)"} {hx "HOOPS 3D (NX)"} {i4 "ITI CADifx (CATIA_V4)"} {i5 "ITI CADfix (CATIA_V5)"} {ic "ITI CADfix (Creo)"} {id "NX I-DEAS"} \
+  {if "ITI CADfix"} {in "Autodesk Inventor"} {iq "ITI CADfix"} {iw "ITI CADfix (SolidWorks)"} {ix "ITI CADfix (NX)"} {jn "Jotne EPM NASTRAN"} \
+  {jo "Jotne EPM openSimDM"} {kc "Kubotek KeyCreator"} {kr "Kubotek REALyze"} {lk "LKSoft IDA-STEP"} {mp "MSC Patran"} {nas "NASTRAN"} {nx "Siemens NX"} \
+  {oc "Datakit CrossCad (OpenCascade)"} {pc "PTC CADDS"} {pe "PTC Pro/E"} {s4 "T-Systems COM/STEP (CATIA_V4)"} {s5 "T-Systems COM/FOX (CATIA_V5)"} \
+  {se "SolidEdge"} {sp "Spatial ACIS"} {sw "SolidWorks"} {t3d "TechSoft3D"} {t4 "Theorem Cadverter (CATIA_V4)"} {t5 "Theorem Cadverter (CATIA_V5)"} \
+  {tc "Theorem Cadverter (CADDS)"} {td "Theorem Solutions (CATIA)"} {to "Theorem Cadverter (Creo)"} {tp "Theorem Cadverter (Pro/E)"} \
+  {ts "Theorem Cadverter (I-DEAS)"} {tx "Theorem Cadverter (NX)"} {ug "Unigraphics"}]
 foreach pair $pairs {set allVendor([lindex $pair 0]) [lindex $pair 1]}
 
 # names of CAx-IF Recommended Practices
@@ -184,15 +179,18 @@ set spmiEntTypes [list \
   datum_feature \
   composite_shape_aspect_and_datum_feature \
   composite_group_shape_aspect_and_datum_feature \
+  datum_feature_and_derived_shape_aspect \
+  dimensional_size_with_datum_feature \
+  composite_unit_shape_aspect_and_dimensional_size_with_datum_feature \
   placed_datum_target_feature \
   datum_target \
   dimensional_characteristic_representation \
 ]
 
 # max rows for PMI elements on PMI representation coverage worksheet, depends on number and order of items below
-set pmiElementsMaxRows 159
+set pmiElementsMaxRows 160
 # line breaks are above the row, depends on the grouping of PMI elements below
-set pmiHorizontalLineBreaks [list 19 34 45 50 66 72 82 [expr {$pmiElementsMaxRows-7}]]
+set pmiHorizontalLineBreaks [list 19 35 47 53 67 73 83 [expr {$pmiElementsMaxRows-7}]]
 
 # -----------------------------------------------------------------------------------------------------
 # dimensional_size names (Section 5.1.5, Table 4), controlled radius and square are not included
@@ -223,16 +221,17 @@ set tzfNames [list \
   "cylindrical or circular" "within a cylinder" "within a circle" "spherical" "within a sphere" "within a cone" "within a single complex surface" \
   "between two coaxial cylinders" "between two concentric circles" "between two equidistant complex lines of two parallel straight lines" \
   "between two equidistant complex surfaces or two parallel planes" "between two equidistant curves" "between two equidistant surfaces" \
-  "between two non-equidistant complex lines or two non-parallel straight lines" "between two non-equidistant complex surfaces or two non-parallel straight planes" \
-  "between two parallel circles of the same diameter" "between two parallel circles on a conical surface" "non uniform" "unknown"]
+  "between two non-equidistant complex lines or two non-parallel straight lines" \
+  "between two non-equidistant complex surfaces or two non-parallel straight planes" "between two parallel circles of the same diameter" \
+  "between two parallel circles on a conical surface" "non uniform" "unknown"]
 
 # -----------------------------------------------------------------------------------------------------
 # *Graphical PMI* names (Section 8.4, Table 15)
 set gpmiTypes [list \
-  "angularity" "circular runout" "circularity" "coaxiality" "concentricity" "cylindricity" "flatness" "parallelism" "perpendicularity" "position" "profile of line" \
-  "profile of surface" "roundness" "straightness" "symmetry" "total runout" "general tolerance" "linear dimension" "radial dimension" "diameter dimension" \
-  "angular dimension" "ordinate dimension" "curve dimension" "general dimension" "datum" "datum target" "note" "label" "surface roughness" "weld symbol" \
-  "general note" "over riding style set"]
+  "angularity" "circular runout" "circularity" "coaxiality" "concentricity" "cylindricity" "flatness" "parallelism" "perpendicularity" "position" \
+  "profile of line" "profile of surface" "roundness" "straightness" "symmetry" "total runout" "general tolerance" "linear dimension" "radial dimension" \
+  "diameter dimension" "angular dimension" "ordinate dimension" "curve dimension" "general dimension" "datum" "datum target" "note" "label" \
+  "surface roughness" "weld symbol" "general note" "over riding style set"]
 
 # -----------------------------------------------------------------------------------------------------
 # Semantic PMI types for coverage analysis, order is important
@@ -240,21 +239,20 @@ set spmiTypes $tolNames
 
 foreach item [list \
   "tolerance zone diameter (6.9.2)" "tolerance zone within a cylinder (6.9.2)" "tolerance zone spherical diameter (6.9.2)" "tolerance zone other (6.9.2)" \
-  "all_over \u2b69\u25CE (6.3)" "all_around \u232E (6.4.2)" "between \u2194 (6.4.3)" "affected plane tolerance zone (6.9.2.1)" \
-  "projected \u24C5 (6.9.2.2)" "non-uniform tolerance zone (6.9.2.3)" "unequally_disposed \u24CA or UZ (6.9.4)" "tolerance with max value (6.9.5)" \
-  "unit-basis tolerance (6.9.6)" "composite tolerance (6.9.9)" "intersection/orientation plane indicator" \
+  "tolerance zone precision (6.9)" "all_over \u2b69\u25CE (6.3)" "all_around \u232E (6.4.2)" "between \u2194 (6.4.3)" \
+  "affected plane tolerance zone (6.9.2.1)" "projected \u24C5 (6.9.2.2)" "non-uniform tolerance zone (6.9.2.3)" "unequally_disposed \u24CA or UZ (6.9.4)" \
+  "tolerance with max value (6.9.5)" "unit-basis tolerance (6.9.6)" "composite tolerance (6.9.9)" "intersection/orientation plane indicator" \
   "dimensions (location+size)" "dimensional location (5.1.1)" "dimensional size (5.1.5)" "angular location (5.1.2)" "angular size (5.1.6)" \
   "directed dimension \u2331 (5.1.1)" "oriented dimensional location (5.1.3)" "derived shapes dimensional location (5.1.4)" "location with path (5.1.7)" \
-  "repetitive dimensions 'nX' (5.1, User Guide 6.1.3)" "dimension association to geometric tolerance (5.1)" \
-  "bilateral tolerance (5.2.3)" "non-bilateral tolerance (5.2.3)" "type qualifier (5.2.2)" "value range (5.2.4)" "limits and fits (5.2.5)" \
-  "diameter \u2205 (5.1.5)" "radius R (5.1.5)" "spherical diameter S\u2205 (5.1.5)" "spherical radius SR (5.1.5)" "curved distance (5.1.1)" \
-  "linear distance (5.1.1)" "linear distance inner/outer (5.1.1)" "curve length (5.1.5)" "thickness (5.1.5)" "toroidal radius/diameter (5.1.5)" \
-  "controlled radius CR (5.3)" "dimension basic (5.3)" "reference dimension (5.3)" "square \u25A1 (5.3)" "dimension qualifier (5.4)" "measure qualifier" \
+  "repetitive dimensions 'nX' (5.1, User Guide 6.1.3)" "dimension association to geometric tolerance (5.1)" "dimension precision (5.4)" \
+  "bilateral tolerance (5.2.3)" "non-bilateral tolerance (5.2.3)" "tolerance precision (5.2.3)" "type qualifier (5.2.2)" "value range (5.2.4)" \
+  "limits and fits (5.2.5)" "diameter \u2205 (5.1.5)" "radius R (5.1.5)" "spherical diameter S\u2205 (5.1.5)" "spherical radius SR (5.1.5)" \
+  "curved distance (5.1.1)" "linear distance (5.1.1)" "linear distance inner/outer (5.1.1)" "curve length (5.1.5)" "thickness (5.1.5)" \
+  "toroidal radius/diameter (5.1.5)" "controlled radius CR (5.3)" "dimension basic (5.3)" "reference dimension (5.3)" "square \u25A1 (5.3)" \
   "datum (6.5)" "datum system (6.9.7)" "datum with axis system (6.9.7)" "datum with modifiers (6.9.7)" "multiple datum features (6.9.8)" \
-  "datum feature association to geometric tolerance (6.1)" \
-  "all datum targets" "point datum target (6.6.1)" "line datum target (6.6.1)" "rectangle datum target (6.6.1)" "circle datum target (6.6.1)" \
-  "circular curve datum target (6.6.1)" "curve datum target (6.6.2)" "area datum target (6.6.2)" "placed datum target geometry (6.6.3)" \
-  "movable datum target (6.6.4)" \
+  "datum feature association to geometric tolerance (6.1)" "all datum targets" "point datum target (6.6.1)" "line datum target (6.6.1)" \
+  "rectangle datum target (6.6.1)" "circle datum target (6.6.1)" "circular curve datum target (6.6.1)" "curve datum target (6.6.2)" \
+  "area datum target (6.6.2)" "placed datum target geometry (6.6.3)" "movable datum target (6.6.4)" \
 ] {lappend spmiTypes $item}
 
 # not included "linear distance (5.1.1)" because it is most common for dimensional_location
@@ -341,7 +339,7 @@ set pmiModifiersArray(tangent_plane,6.9.3)                  "\u24C9"
 set pmiModifiersArray(translation,6.9.7)                    "\u25B7"
 set pmiModifiersArray(two_point_size,5.3)                   "(LP)"
 set pmiModifiersArray(unequally_disposed,6.9.4)             "\u24CA"
-set pmiModifiersArray(united_feature,6.9.3)                 "UF"
+set pmiModifiersArray(united_feature_of_size,6.9.3)         "UF"
 set pmiModifiersArray(volume_diameter_calculated_size,5.3)  "(CV)"
 
 # set pmiModifiersRP

@@ -5,25 +5,37 @@ proc spmiGeotolStart {entType} {
 
   if {$opt(DEBUG1)} {outputMsg "START spmiGeotolStart $entType" red}
 
+  set qualifier1 [list type_qualifier name]
+  set qualifier2 [list value_format_type_qualifier format_type]
+
   set len1 [list length_measure_with_unit value_component]
   set len2 [list length_measure_with_unit_and_measure_representation_item value_component]
-  set len3 [list length_measure_with_unit_and_measure_representation_item_and_qualified_representation_item value_component]
+  set len3 [list length_measure_with_unit_and_measure_representation_item_and_qualified_representation_item value_component qualifiers $qualifier1 $qualifier2]
   set len4 [list plane_angle_measure_with_unit value_component]
 
   set dtm [list datum identification]
   set cdt [list common_datum identification]
+
   set df1 [list datum_feature name product_definitional]
   set df2 [list composite_shape_aspect_and_datum_feature name product_definitional]
   set df3 [list composite_group_shape_aspect_and_datum_feature name product_definitional]
+  set df4 [list datum_feature_and_derived_shape_aspect name product_definitional]
+  set df5 [list dimensional_size_with_datum_feature name product_definitional]
+  set df6 [list composite_unit_shape_aspect_and_dimensional_size_with_datum_feature name product_definitional]
+
   set dr  [list datum_reference precedence referenced_datum $dtm $cdt]
   set drm [list datum_reference_modifier_with_value modifier_type modifier_value $len1 $len2 $len3]
   set dre [list datum_reference_element name product_definitional base $dtm modifiers $drm]
   set drc [list datum_reference_compartment name product_definitional base $dtm $dre modifiers $drm]
   set rmd [list referenced_modified_datum referenced_datum $dtm modifier]
 
+# adding a new index here should also be added to spmiEntTypes in sfa-data.tcl
   set PMIP(datum_feature)                                  $df1
   set PMIP(composite_shape_aspect_and_datum_feature)       $df2
   set PMIP(composite_group_shape_aspect_and_datum_feature) $df3
+  set PMIP(datum_feature_and_derived_shape_aspect)         $df4
+  set PMIP(dimensional_size_with_datum_feature)            $df5
+  set PMIP(composite_unit_shape_aspect_and_dimensional_size_with_datum_feature) $df6
 
   set PMIP(datum_reference)             $dr
   set PMIP(datum_reference_element)     $dre
@@ -37,7 +49,7 @@ proc spmiGeotolStart {entType} {
   foreach tol $tolNames {set PMIP($tol) \
     [list $tol magnitude $len1 $len2 $len3 $len4 \
       toleranced_shape_aspect \
-        $df1 $df2 $df3 [list centre_of_symmetry_and_datum_feature name] \
+        $df1 $df2 $df3 $df4 $df5 $df6 [list centre_of_symmetry_and_datum_feature name] \
         [list composite_group_shape_aspect name] [list composite_shape_aspect name] \
         [list composite_unit_shape_aspect name] [list composite_unit_shape_aspect_and_datum_feature name] \
         [list all_around_shape_aspect name] [list between_shape_aspect name] [list shape_aspect name] [list product_definition_shape name] \
@@ -116,8 +128,8 @@ proc spmiGeotolStart {entType} {
 # -------------------------------------------------------------------------------
 proc spmiGeotolReport {objEntity} {
   global all_around all_over assocGeom ATR axisval badAttributes between cells col datsys datumCompartment datumFeature datumModValue datumTargetDesc datumSymbol
-  global datumSystem dim datumEntType datumGeom datumIDs datumTargetType datumTargetView developer dimtolEntType dimtolGeom entLevel ent entAttrList entCount gt
-  global gtEntity nistName objID opt pmiCol pmiHeading pmiModifiers pmiStartCol pmiUnicode ptz ptzError recPracNames spaces spmiEnts spmiID spmiIDRow
+  global datumSystem dim datumEntType datumGeom datumIDs datumTargetType datumTargetView dimtolEntType dimtolGeom entLevel ent entAttrList entCount gt
+  global gtEntity magQualified nistName objID opt pmiCol pmiHeading pmiModifiers pmiStartCol pmiUnicode ptz ptzError recPracNames spaces spmiEnts spmiID spmiIDRow
   global spmiRow spmiTypesPerFile stepAP syntaxErr tolNames tolStandard tolStandards tolval tzf1 tzfNames tzWithDatum worksheet
   global objDesign
 
@@ -308,6 +320,25 @@ proc spmiGeotolReport {objEntity} {
                   "plane_angle_measure_with_unit* value_component" -
                   "length_measure_with_unit* value_component" {
 
+# get qualifier (in the form of NR2 x.y defined in ISO 13584-42 section D.4.2, table D.3), format tolerance zone magnitude
+                    set magQualified 0
+                    ::tcom::foreach attr $objAttributes {
+                      if {[$attr Name] == "qualifiers"} {
+                        if {[string first "handle" [$attr Value]] != -1} {
+                          foreach ent2 [$attr Value] {
+                            if {[$ent2 Type] == "value_format_type_qualifier"} {
+                              set objValue [valueQualifier $ent2 $objValue "magnitude"]
+                              set magQualified 1
+                            }
+                          }
+                        } else {
+                          set msg "Syntax Error: Missing 'qualifier' attribute on [formatComplexEnt $objType]$spaces\($recPracNames(pmi242), Sec. 6.9)"
+                          errorMsg $msg
+                          lappend syntaxErr($objType) [list $objID "qualifiers" $msg]
+                        }
+                      }
+                    }
+
 # datum reference modifier (not commonly used)
                     if {[info exists datumModValue]} {
                       if {$datumModValue != ""} {
@@ -396,6 +427,16 @@ proc spmiGeotolReport {objEntity} {
                                   errorMsg $msg
                                   lappend syntaxErr(projected_zone_definition) [list [$e0 P21ID] "projected_length" $msg]
                                 }
+                              } elseif {[$a1 Name] == "qualifiers"} {
+                                if {[string first "handle" [$a1 Value]] != -1} {
+                                  foreach ent2 [$a1 Value] {
+                                    if {[$ent2 Type] == "value_format_type_qualifier"} {set ptz [valueQualifier $ent2 $ptz "projected"]}
+                                  }
+                                } else {
+                                  set msg "Syntax Error: Missing 'qualifier' attribute on [formatComplexEnt $objType]$spaces\($recPracNames(pmi242), Sec. 6.9.2.2)"
+                                  errorMsg $msg
+                                  lappend syntaxErr($objType) [list $objID "qualifiers" $msg]
+                                }
                               }
                             }
 
@@ -466,11 +507,6 @@ proc spmiGeotolReport {objEntity} {
                           set c1 [string first "_tolerance" $tol]
                           set tname [string range $tol 0 $c1-1]
                           if {[info exists pmiUnicode($tname)]} {set tname $pmiUnicode($tname)}
-                          if {[info exists dim(unit)]} {
-                            if {$dim(unit) == "INCH"} {
-                              if {$objValue < 1} {set objValue [string range $objValue 1 end]}
-                            }
-                          }
 
 # truncate tolerance zone magnitude value
                           if {[getPrecision $objValue] > 6} {set objValue [string trimright [format "%.6f" $objValue] "0"]}
@@ -535,7 +571,7 @@ proc spmiGeotolReport {objEntity} {
 
 # write to spreadsheet
                 if {$ok && [info exists spmiID]} {
-                  set c [string index [cellRange 1 $col($gt)] 0]
+                  set c $pmiStartCol($gt)
                   set r $spmiIDRow($gt,$spmiID)
 
 # column name
@@ -564,6 +600,7 @@ proc spmiGeotolReport {objEntity} {
                   if {[lsearch $spmiRow($gt) $r] == -1} {lappend spmiRow($gt) $r}
                   if {$invalid != ""} {lappend syntaxErr($gt) [list "-$r" $col($gt) $invalid]}
 
+# ---------------------
 # value in spreadsheet
                   set val [[$cells($gt) Item $r $c] Value]
 
@@ -691,7 +728,7 @@ proc spmiGeotolReport {objEntity} {
 # reference to datum_reference_modifier_with_value
                       } else {
                         set datumModValue "\["
-                        lappend spmiTypesPerFile "datum with modifiers (6.9.7)"
+                        lappend spmiTypesPerFile "datum with modifiers"
                         if {[catch {
                           ::tcom::foreach val1 $val {spmiGeotolReport $val1}
                         } emsg2]} {
@@ -716,6 +753,7 @@ proc spmiGeotolReport {objEntity} {
                   }
                 }
 
+# ---------------------
 # value in spreadsheet
                 if {$ok && [info exists spmiID]} {
                   set c [string index [cellRange 1 $col($gt)] 0]
@@ -922,6 +960,10 @@ proc spmiGeotolReport {objEntity} {
                         set objValue $datumSymbol($datumGeomEnts)
                         set col($gt) $pmiStartCol($gt)
                         set colName "Datum[format "%c" 10](Sec. 6.5)"
+                      } else {
+                        set msg "Syntax Error: Missing relationship between '[$gtEntity Type]' and 'datum'.$spaces\($recPracNames(pmi242), Sec. 6.5.1, Fig. 36)"
+                        errorMsg $msg
+                        lappend syntaxErr([$gtEntity Type]) [list [$gtEntity P21ID] "Datum" $msg]
                       }
                     }
                   }
@@ -999,7 +1041,7 @@ proc spmiGeotolReport {objEntity} {
                         set col($gt) [expr {$pmiStartCol($gt)+2}]
                         set colName "Target Feature[format "%c" 10](Sec. 6.6.3)"
                         set objValue $datumTargetGeom
-                        lappend spmiTypesPerFile "placed datum target geometry (6.6.3)"
+                        lappend spmiTypesPerFile "placed datum target geometry"
 
 # target geometry should be an advanced_face
                         if {[string first "advanced_face" $datumTargetGeom] == -1} {
@@ -1162,13 +1204,17 @@ proc spmiGeotolReport {objEntity} {
 # add target dimensions to PMI
                                       } else {
                                         set dtv $datumTargetValue
-                                        if {[string range $dtv end-1 end] == ".0"} {set dtv [string range $dtv 0 end-2]}
+                                        if {[string range $dtv end-1 end] == ".0"} {
+                                          set dtv [string range $dtv 0 end-2]
+                                        } else {
+                                          set dtv [trimNum $dtv 2]
+                                        }
                                         if {$datumTargetType == "circle"} {
                                           set objValue $pmiUnicode(diameter)$dtv[format "%c" 10]$objValue
                                         } elseif {$datumTargetType == "line"} {
-                                          append objValue "[format "%c" 10](L = [trimNum $dtv])"
+                                          append objValue "[format "%c" 10](L = $dtv)"
                                         } elseif {$datumTargetType == "circular curve"} {
-                                          append objValue "[format "%c" 10](D = [trimNum $dtv])"
+                                          append objValue "[format "%c" 10](D = $dtv)"
 
 # rectangular, smaller value first
                                         } elseif {$datumTargetType == "rectangle"} {
@@ -1297,7 +1343,7 @@ proc spmiGeotolReport {objEntity} {
                   "datum_reference_compartment product_definitional" {
 # product_definitional should be false
                     if {$objValue == 1 && $objType == [lindex $ent1 0]} {
-                      set msg "The $objType 'product_definitional' attribute should be FALSE."
+                      set msg "Syntax Error: The $objType 'product_definitional' attribute should be FALSE.$spaces\($recPracNames(pmi242), Sec. 3.4)"
                       errorMsg $msg
                       lappend syntaxErr($objType) [list $objID "product_definitional" $msg]
                     }
@@ -1305,7 +1351,7 @@ proc spmiGeotolReport {objEntity} {
                   "*datum_feature* product_definitional"  {
 # product_definitional should be true
                     if {$objValue == 0 && [$gtEntity Type] == [lindex $ent1 0]} {
-                      set msg "The [$gtEntity Type] 'product_definitional' attribute should be TRUE."
+                      set msg "Syntax Error: The [$gtEntity Type] 'product_definitional' attribute should be TRUE.$spaces\($recPracNames(pmi242), Sec. 3.4)"
                       errorMsg $msg
                       lappend syntaxErr([$gtEntity Type]) [list [$gtEntity P21ID] "product_definitional" $msg]
                     }
@@ -1368,8 +1414,15 @@ proc spmiGeotolReport {objEntity} {
                       lappend syntaxErr([lindex [split $ent1 " "] 0]) [list [$gtEntity P21ID] [lindex [split $ent1 " "] 1] $msg]
                     }
                   }
+                  "value_format_type_qualifier format_type" {
+                    set ok 1
+                    set col($gt) [expr {$pmiStartCol($gt)+1}]
+                    set colName "magnitude precision[format "%c" 10](Sec. 6.9)"
+                    lappend spmiTypesPerFile "tolerance zone precision"
+                  }
                 }
 
+# ---------------------
 # value in spreadsheet
                 if {$ok && [info exists spmiID]} {
                   set c [string index [cellRange 1 $col($gt)] 0]
@@ -1381,10 +1434,13 @@ proc spmiGeotolReport {objEntity} {
                       $cells($gt) Item 3 $c $colName
                       set pmiHeading($col($gt)) 1
                       set pmiCol [expr {max($col($gt),$pmiCol)}]
+                      set comment ""
                       if {[string first "Datum" $colName] == 0 || [string first "compartment" $colName] == 0} {
                         set comment "Section numbers refer to the CAx-IF Recommended Practice for Representation and Presentation of PMI (AP242)."
-                        addCellComment $gt 3 $c $comment
+                      } elseif {[string first "magnitude precision" $colName] == 0} {
+                        set comment "The precision might truncate or add trailing zeros to the magnitude in column D.  The GD&T Annotation column shows the value with the precision applied."
                       }
+                      if {$comment != ""} {addCellComment $gt 3 $c $comment}
                     }
                   }
 
@@ -1446,7 +1502,8 @@ proc spmiGeotolReport {objEntity} {
                     } elseif {$ov == "circular"} {
                       regsub -all "/ " $val "/ $pmiUnicode(diameter)" nval
                       $cells($gt) Item $r $c $nval
-                    } elseif {$ov != "rectangular" && $ov != "cylindrical" && $ov != "spherical"} {
+                    } elseif {$ov != "rectangular" && $ov != "cylindrical" && $ov != "spherical" && \
+                              [string first "dimensional_size_with_datum_feature" $gt] == -1} {
                       $cells($gt) Item $r $c "$val[format "%c" 10]$ov"
                     }
                   }
@@ -1488,16 +1545,14 @@ proc spmiGeotolReport {objEntity} {
     if {[catch {
 
 # check for unique datum systems
-    if {$developer} {
-      if {$gt == "datum_system" && [llength [array names datumSystem]] == $entCount(datum_system)} {
-        foreach id [array names datumSystem] {lappend ds($datumSystem($id)) $id}
-        foreach id [array names ds] {
-          if {[llength $ds($id)] > 1} {
-            foreach id1 $ds($id) {
-              set msg "Multiple 'datum_system' entities have identical Datum Reference Frames.  They should be unique."
-              errorMsg $msg
-              lappend syntaxErr(datum_system) [list $id1 "Datum Reference Frame" $msg]
-            }
+    if {$gt == "datum_system" && [llength [array names datumSystem]] == $entCount(datum_system)} {
+      foreach id [array names datumSystem] {lappend ds($datumSystem($id)) $id}
+      foreach id [array names ds] {
+        if {[llength $ds($id)] > 1} {
+          foreach id1 $ds($id) {
+            set msg "Syntax Error: Datum Reference Frames for 'datum_system' entities must be unique.$spaces\($recPracNames(pmi242), Sec. 6.9.7)"
+            errorMsg $msg
+            lappend syntaxErr(datum_system) [list $id1 "Datum Reference Frame" $msg]
           }
         }
       }
@@ -1519,7 +1574,7 @@ proc spmiGeotolReport {objEntity} {
 
 # add datum reference frame (datum_system)
       if {[info exists datsys]} {
-        set c  [lindex $datsys 0]
+        set c  $pmiStartCol($gt)
         set r  [lindex $datsys 1]
         set ds [lindex $datsys 2]
         set val [[$cells($gt) Item $r $c] Value]
@@ -1556,7 +1611,7 @@ proc spmiGeotolReport {objEntity} {
     set compositeID ""
     if {[catch {
       if {[string first "tolerance" $gt] != -1} {
-        set c [string index [cellRange 1 $col($gt)] 0]
+        set c  $pmiStartCol($gt)
         set r $spmiIDRow($gt,$spmiID)
         set val [[$cells($gt) Item $r $c] Value]
         set e1s [$objEntity GetUsedIn [string trim geometric_tolerance_relationship] [string trim related_geometric_tolerance]]
@@ -1577,7 +1632,6 @@ proc spmiGeotolReport {objEntity} {
                 lappend syntaxErr(geometric_tolerance_relationship) [list [$e1 P21ID] "name" $msg]
               }
             } elseif {[$a1 Name] == "relating_geometric_tolerance"} {
-              #$cells($gt) Item $r $c "$val[format "%c" 10](composite with [[$a1 Value] P21ID])"
               set compositeID [[$a1 Value] P21ID]
               lappend spmiTypesPerFile "composite tolerance"
             }
@@ -1626,12 +1680,12 @@ proc spmiGeotolReport {objEntity} {
 
 # add dimensional tolerance
       if {[info exists tolDimrep] && [string first "tolerance" $gt] != -1} {
-        set c [string index [cellRange 1 $col($gt)] 0]
+        set c  $pmiStartCol($gt)
         set r $spmiIDRow($gt,$spmiID)
         set val [[$cells($gt) Item $r $c] Value]
 
 # modify tolerance zone to the same precision as the dimension
-        if {[info exists dim(unit)] && $dim(unitOK)} {
+        if {[info exists dim(unit)] && $dim(unitOK) && !$magQualified} {
           if {$dim(unit) == "INCH"} {
             if {[info exists tolDimprec]} {
               set ntol $tolval
@@ -1720,10 +1774,12 @@ proc spmiGeotolReport {objEntity} {
       }
       catch {
         set val [[$cells($gt) Item $r $c] Value]
-        set c1 [string first "SEP REQT" $val]
-        if {$c1 != -1} {
-          set val [string range $val 0 $c1-1][string range $val $c1+9 end]
-          $cells($gt) Item $r $c "$val[format "%c" 10]SEP REQT"
+        foreach mod {"SEP REQT" "SIM REQT"} {
+          set c1 [string first $mod $val]
+          if {$c1 != -1} {
+            set val [string range $val 0 $c1-1][string range $val $c1+9 end]
+            $cells($gt) Item $r $c "$val[format "%c" 10]$mod"
+          }
         }
       }
 
@@ -1767,14 +1823,13 @@ proc spmiGeotolReport {objEntity} {
 # associated dimensional tolerance for geometric tolerances
     if {[info exists geotolGeomEnts] && [string first "datum_feature" $gt] == -1} {
       if {[info exists dimtolEntType($geotolGeomEnts)]} {
-        set c1 [expr {$col($gt)+1}]
-        set c [string index [cellRange 1 $c1] 0]
+        set c [expr {$pmiStartCol($gt)+2}]
         set r $spmiIDRow($gt,$spmiID)
         set heading "Dimensional Tolerance[format "%c" 10](Sec. 6.2)"
-        if {![info exists pmiHeading($c1)]} {
+        if {![info exists pmiHeading($c)]} {
           $cells($gt) Item 3 $c $heading
-          set pmiHeading($c1) 1
-          set pmiCol [expr {max($c1,$pmiCol)}]
+          set pmiHeading($c) 1
+          set pmiCol [expr {max($c,$pmiCol)}]
           set comment "Section numbers refer to the CAx-IF Recommended Practice for Representation and Presentation of PMI (AP242)."
           addCellComment $gt 3 $c $comment
         }
@@ -1785,14 +1840,13 @@ proc spmiGeotolReport {objEntity} {
 # datum feature entity
     if {[info exists geotolGeomEnts] && [string first "datum_feature" $gt] == -1} {
       if {[info exists datumEntType($geotolGeomEnts)]} {
-        set c1 [expr {$col($gt)+2}]
-        set c [string index [cellRange 1 $c1] 0]
+        set c [expr {$pmiStartCol($gt)+3}]
         set r $spmiIDRow($gt,$spmiID)
         set heading "Datum Feature[format "%c" 10](Sec. 6.5)"
-        if {![info exists pmiHeading($c1)]} {
+        if {![info exists pmiHeading($c)]} {
           $cells($gt) Item 3 $c $heading
-          set pmiHeading($c1) 1
-          set pmiCol [expr {max($c1,$pmiCol)}]
+          set pmiHeading($c) 1
+          set pmiCol [expr {max($c,$pmiCol)}]
           set comment "Section numbers refer to the CAx-IF Recommended Practice for Representation and Presentation of PMI (AP242)."
           addCellComment $gt 3 $c $comment
         }
@@ -1803,8 +1857,7 @@ proc spmiGeotolReport {objEntity} {
 # report toleranced geometry
     if {[info exists geotolGeom]} {
       if {$geotolGeom != ""} {
-        set c1 [expr {$col($gt)+3}]
-        set c [string index [cellRange 1 $c1] 0]
+        set c [expr {$pmiStartCol($gt)+4}]
         set r $spmiIDRow($gt,$spmiID)
         if {[string first "datum_feature" [$gtEntity Type]] == -1} {
           set head1 "Toleranced"
@@ -1813,10 +1866,10 @@ proc spmiGeotolReport {objEntity} {
           set head1 "Associated"
           set heading "$head1 Geometry[format "%c" 10](Sec. 6.5)"
         }
-        if {![info exists pmiHeading($c1)]} {
+        if {![info exists pmiHeading($c)]} {
           $cells($gt) Item 3 $c $heading
-          set pmiHeading($c1) 1
-          set pmiCol [expr {max($c1,$pmiCol)}]
+          set pmiHeading($c) 1
+          set pmiCol [expr {max($c,$pmiCol)}]
           set comment "See Help > User Guide (section 6.1.5) for an explanation of $head1 Geometry."
           addCellComment $gt 3 $c $comment
         }

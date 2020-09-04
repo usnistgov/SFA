@@ -1,11 +1,11 @@
 # generate an Excel spreadsheet from a STEP file
 proc genExcel {{numFile 0}} {
-  global allEntity aoEntTypes ap203all ap214all ap242all badAttributes buttons cells cells1 col col1 count csvdirnam csvfile csvintemp currLogFile
+  global allEntity aoEntTypes ap203all ap214all ap242all badAttributes buttons cadSystem cells cells1 col col1 count csvdirnam csvfile csvintemp currLogFile
   global dim draughtingModels editorCmd entCategories entCategory entColorIndex entCount entityCount entsIgnored entsWithErrors errmsg
   global excel excelVersion fcsv feaFirstEntity feaLastEntity File fileEntity filesProcessed gpmiTypesInvalid gpmiTypesPerFile guid idxColor ifcsvrDir inverses
   global lastXLS lenfilelist localName localNameList logFile matrixList multiFile multiFileDir mydocs mytemp nistCoverageLegend nistName nistPMIexpected nistPMImaster
   global nprogBarEnts ofCSV ofExcel opt pf32 p21e3 p21e3Section row rowmax savedViewButtons savedViewName savedViewNames scriptName
-  global sheetLast skipEntities skipPerm spmiEntity spmiSumName spmiSumRow spmiTypesPerFile startrow statsOnly stepAP tessColor thisEntType tlast
+  global sheetLast skipEntities skipPerm spmiEntity spmiSumName spmiSumRow spmiTypesPerFile startrow statsOnly stepAP tessColor thisEntType timeStamp tlast
   global tolNames tolStandard tolStandards totalEntity userEntityFile userEntityList useXL viz workbook workbooks
   global worksheet worksheet1 worksheets writeDir wsCount wsNames x3dAxes x3dColor x3dColorFile x3dColors x3dFileName x3dIndex
   global x3dMax x3dMin x3dMsg x3dMsgColor x3dStartFile x3dViewOK xlFileName xlFileNames xlInstalled
@@ -50,7 +50,7 @@ proc genExcel {{numFile 0}} {
 # view part geometry only, does not require opening STEP file with IFCsvr
   if {$opt(partOnly) && ![info exists statsOnly]} {
     outputMsg "\nGenerating View"
-    catch {unset entCount}
+    foreach var {cadSystem entCount stepAP timeStamp} {if {[info exists $var]} {unset $var}}
 
 # add file name to menu
     set ok 0
@@ -89,7 +89,7 @@ proc genExcel {{numFile 0}} {
       saveState
     }
 
-    foreach var {stepAP x3dCoord x3dFile x3dFileName x3dIndex x3dMax x3dMin x3dStartFile} {if {[info exists $var]} {unset $var}}
+    foreach var {cadSystem stepAP timeStamp x3dCoord x3dFile x3dFileName x3dIndex x3dMax x3dMin x3dStartFile} {if {[info exists $var]} {unset $var}}
     if {[info exists buttons]} {$buttons(genExcel) configure -state normal}
     return
   }
@@ -326,12 +326,7 @@ proc genExcel {{numFile 0}} {
             }
             if {[info exists buttons]} {append msg "\n See Help > Supported STEP APs"}
             errorMsg $msg red
-
-            if {[string first "IFC" $fs] == 0} {
-              errorMsg "Use the IFC File Analyzer with IFC files."
-              after 1000
-              openURL https://www.nist.gov/services-resources/software/ifc-file-analyzer
-            }
+            if {[string first "IFC" $fs] == 0} {errorMsg "Use the IFC File Analyzer with IFC files.  https://go.usa.gov/xK9gh"}
 
 # other possible errors
           } else {
@@ -1361,12 +1356,12 @@ proc genExcel {{numFile 0}} {
   global cgrObjects colColor coordinatesList currx3dPID datumGeom datumIDs datumSymbol datumSystem dimrep dimrepID dimtolEnt dimtolEntID dimtolGeom entName
   global feaDOFR feaDOFT feaNodes gpmiID gpmiIDRow gpmiRow heading idRow invCol invGroup lineStrips nrep numx3dPID pmiColumns pmiStartCol
   global propDefID propDefIDRow propDefName propDefOK propDefRow savedsavedViewNames savedViewFile savedViewFileName shapeRepName
-  global srNames suppGeomEnts syntaxErr tessCoord tessCoordName tessIndex tessIndexCoord tessPlacement tessRepo
+  global srNames suppGeomEnts syntaxErr tessCoord tessCoordName tessIndex tessIndexCoord tessPlacement tessRepo unicode
 
   foreach var {cells cgrObjects colColor coordinatesList count currx3dPID datumGeom datumIDs datumSymbol datumSystem dimrep dimrepID dimtolEnt dimtolEntID dimtolGeom \
                entCount entName entsIgnored feaDOFR feaDOFT feaNodes gpmiID gpmiIDRow gpmiRow heading idRow invCol invGroup lineStrips nrep numx3dPID \
                pmiCol pmiColumns pmiStartCol pmivalprop propDefID propDefIDRow propDefName propDefOK propDefRow savedsavedViewNames savedViewFile savedViewFileName \
-               savedViewNames shapeRepName srNames suppGeomEnts syntaxErr tessCoord tessCoordName tessIndex tessIndexCoord tessPlacement tessRepo viz \
+               savedViewNames shapeRepName srNames suppGeomEnts syntaxErr tessCoord tessCoordName tessIndex tessIndexCoord tessPlacement tessRepo unicode viz \
                workbook workbooks worksheet worksheets x3dCoord x3dFile x3dFileName x3dIndex x3dMax x3dMin x3dStartFile} {
     if {[info exists $var]} {unset $var}
   }
@@ -1468,8 +1463,7 @@ proc addHeaderWorksheet {numFile fname} {
 # check for IFC or CIS/2 files
         set fschema [string toupper [string range $objAttr 0 5]]
         if {[string first "IFC" $fschema] == 0} {
-          errorMsg "Use the IFC File Analyzer with IFC files."
-          openURL https://www.nist.gov/services-resources/software/ifc-file-analyzer
+          errorMsg "Use the IFC File Analyzer with IFC files.  https://go.usa.gov/xK9gh"
         } elseif {$objAttr == "STRUCTURAL_FRAME_SCHEMA"} {
           errorMsg "Use SteelVis to view CIS/2 files.  https://go.usa.gov/s8fm"
         }
@@ -1563,7 +1557,7 @@ proc addHeaderWorksheet {numFile fname} {
     set app2 ""
     set fos [$objDesign FileOriginatingSystem]
     set fpv [$objDesign FilePreprocessorVersion]
-    foreach attr {FileOriginatingSystem FilePreprocessorVersion FileDescription FileAuthorisation FileOrganization} {
+    foreach attr {FileOriginatingSystem FilePreprocessorVersion FileOrganization} {
       foreach app $cadApps {
         set app1 $app
         if {$cadSystem == "" && [string first [string tolower $app] [string tolower [join [$objDesign $attr]]]] != -1} {
@@ -1574,16 +1568,14 @@ proc addHeaderWorksheet {numFile fname} {
           if {$app == "CoreTechnologie"}        {set app1 "CT 3D Evolution"}
           if {$app == "DATAKIT"}                {set app1 "Datakit"}
           if {$app == "EDMsix"}                 {set app1 "Jotne EDMsix"}
-          if {$app == "Implementor Forum Team"} {set app1 "CAx-IF"}
           if {$app == "PRO/ENGINEER"}           {set app1 "Pro/E"}
           if {$app == "SOLIDWORKS"}             {set app1 "SolidWorks"}
           if {$app == "SOLIDWORKS MBD"}         {set app1 "SolidWorks MBD"}
-          if {$app == "3D Reviewer"}            {set app1 "TechSoft3D 3D_Reviewer"}
-
-          if {$app == "UGS - NX"}                {set app1 "UGS-NX"}
-          if {$app == "UNIGRAPHICS"}             {set app1 "Unigraphics"}
-          if {$app == "jt_step translator"}      {set app1 "Siemens NX"}
           if {$app == "SIEMENS PLM Software NX"} {set app1 "Siemens NX"}
+          if {$app == "CREO"} {
+            set app1 "Creo"
+            if {[string index $cadSystem 28] == 2} {append app1 [string range $cadSystem 27 35]}
+          }
 
           if {[string first "CATIA Version" $app] == 0} {set app1 "CATIA V[string range $app 14 end]"}
           if {$app == "3D EXPERIENCE"} {set app1 "3D Experience"}
@@ -1592,11 +1584,8 @@ proc addHeaderWorksheet {numFile fname} {
           if {[string first "CATIA SOLUTIONS V4"      $fos] != -1} {set app1 "CATIA V4"}
           if {[string first "Autodesk Inventor"       $fos] != -1} {set app1 $fos}
           if {[string first "SolidWorks 2"            $fos] != -1} {set app1 $fos}
-          if {[string first "FreeCAD"                 $fos] != -1} {set app1 "FreeCAD"}
-          if {[string first "SIEMENS PLM Software NX" $fos] ==  0} {set app1 "Siemens NX_[string range $fos 24 end]"}
-
-          if {[string first "THEOREM"   $fpv] != -1} {set app1 "Theorem Solutions"}
-          if {[string first "T-Systems" $fpv] != -1} {set app1 "T-Systems"}
+          if {[string first "SIEMENS PLM Software NX" $fos] ==  0} {set app1 "Siemens NX [string range $fos 24 end]"}
+          if {[string first "THEOREM"                 $fpv] != -1} {set app1 "Theorem Solutions"}
 
 # set caxifVendor based on CAx-IF vendor notation used in testing rounds, use for app if appropriate
           set caxifVendor [setCAXIFvendor]
@@ -1613,6 +1602,11 @@ proc addHeaderWorksheet {numFile fname} {
         }
       }
     }
+
+# app name not found in cadApps
+    if {$app2 == ""} {set app2 $fos}
+    if {$app2 == "" || $app2 == "UNIX" || $app2 == "Windows"} {set app2 $fpv}
+    if {$app2 != ""} {set ok 1}
 
 # add app2 to multiple file summary worksheet
     if {$numFile != 0 && $useXL && [info exists cells1(Summary)]} {

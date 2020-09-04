@@ -493,7 +493,7 @@ proc getStepAP {fname} {
 
 #-------------------------------------------------------------------------------
 proc getSchemaFromFile {fname {msg 0}} {
-  global p21e3
+  global cadApps cadSystem developer p21e3 timeStamp unicode
 
   set p21e3 0
   set schema ""
@@ -502,6 +502,7 @@ proc getSchemaFromFile {fname {msg 0}} {
   set nline 0
   set niderr 0
   set nendsec 0
+  set filename 0
   set stepfile [open $fname r]
 
 # read first 100 lines
@@ -518,16 +519,54 @@ proc getSchemaFromFile {fname {msg 0}} {
 # check file
     if {[string first "ISO-10303-21;" $line] != -1} {set ok1 1}
 
+# check for filename
+    if {[string first "FILE_NAME" $line] != -1} {set filename 1}
+
+# check for CAD apps
+    if {$filename && $nendsec == 0} {
+      if {![info exists cadSystem]} {
+        foreach app $cadApps {
+          if {[string first $app $line] != -1} {
+            set cadSystem $app
+            if {$app == "SolidWorks"} {
+              set c1 [string first "SolidWorks 20" $line]
+              if {$c1 != -1} {set cadSystem [string range $line $c1 $c1+14]}
+            } elseif {$app == "Autodesk Inventor"} {
+              set c1 [string first "Autodesk Inventor 20" $line]
+              if {$c1 != -1} {set cadSystem [string range $line $c1 $c1+21]}
+            }
+            break
+          }
+        }
+      }
+
+# check for time stamp
+      if {![info exists timeStamp]} {
+        foreach year {199 200 201 202 203} {
+          set c1 [string first "'$year" $line]
+          if {$c1 != -1} {
+            set c2 [string first "'" [string range $line $c1+1 end]]
+            set timeStamp [string range $line $c1+1 $c1+$c2]
+            if {[string index $timeStamp 4] != "-"} {unset timeStamp}
+          }
+        }
+      }
+    }
+
 # check for X and X2 control directives
     if {[string first "\\X\\" $line] != -1 || [string first "\\X2\\" $line] != -1} {
       errorMsg "\\X2\\ or \\X\\ control directives are used in some text strings.  See Help > Text Strings" red
+      set unicode 1
     }
-    
+
 # check for OPTIONS from ST-Developer toolkit
     if {[string first "/* OPTION:" $line] == 0} {
-      set emsg "HEADER section comment: [string range $line 11 end-3]"
-      if {[string first "raw bytes" $emsg] != -1} {append emsg " (See Help > Text Strings)"}
-      errorMsg $emsg red
+      set emsg "HEADER section comment: "
+      if {[string first "raw bytes" $line] != -1 || ($developer && [string first "custom schema-name" $line] == -1)} {
+        set emsg "HEADER section comment: [string range $line 11 end-3]"
+        if {[string first "raw bytes" $emsg] != -1} {append emsg " (See Help > Text Strings)"}
+        errorMsg $emsg red
+      }
     }
 
 # look for FILE_SCHEMA

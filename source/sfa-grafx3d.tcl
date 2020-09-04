@@ -57,18 +57,16 @@ function handleSingleClick(shape) {
 # x3d title
   set x3dTitle [file tail $localName]
   if {$stepAP != "" && [string range $stepAP 0 1] == "AP"} {append x3dTitle "&nbsp;&nbsp;&nbsp;$stepAP"}
-  if {!$opt(partOnly)} {
-    if {[info exists timeStamp]} {
-      if {$timeStamp != ""} {
-        set ts [fixTimeStamp $timeStamp]
-        append x3dTitle "&nbsp;&nbsp;&nbsp;$ts"
-      }
+  if {[info exists timeStamp]} {
+    if {$timeStamp != ""} {
+      set ts [fixTimeStamp $timeStamp]
+      append x3dTitle "&nbsp;&nbsp;&nbsp;$ts"
     }
-    if {[info exists cadSystem]} {
-      if {$cadSystem != ""} {
-        regsub -all "_" $cadSystem " " cs
-        append x3dTitle "&nbsp;&nbsp;&nbsp;$cs"
-      }
+  }
+  if {[info exists cadSystem]} {
+    if {$cadSystem != ""} {
+      regsub -all "_" $cadSystem " " cs
+      append x3dTitle "&nbsp;&nbsp;&nbsp;$cs"
     }
   }
   puts $x3dFile "\n<body><font face=\"sans-serif\">\n<h3>$x3dTitle</h3>"
@@ -114,9 +112,7 @@ function handleSingleClick(shape) {
       set delt($xyz) [expr {$x3dMax($xyz)-$x3dMin($xyz)}]
       set xyzcen($xyz) [format "%.4f" [expr {0.5*$delt($xyz) + $x3dMin($xyz)}]]
     }
-    set maxxyz $delt(x)
-    if {$delt(y) > $maxxyz} {set maxxyz $delt(y)}
-    if {$delt(z) > $maxxyz} {set maxxyz $delt(z)}
+    set maxxyz [expr {max($delt(x),$delt(y),$delt(z))}]
   }
   update idletasks
 }
@@ -156,10 +152,7 @@ proc x3dFileEnd {} {
     set delt($idx) [expr {$x3dMax($idx)-$x3dMin($idx)}]
     set xyzcen($idx) [trimNum [format "%.4f" [expr {0.5*$delt($idx) + $x3dMin($idx)}]]]
   }
-  set maxxyz $delt(x)
-  if {$delt(z) > $maxxyz} {set maxxyz $delt(z)}
-  set maxxz $maxxyz
-  if {$delt(y) > $maxxyz} {set maxxyz $delt(y)}
+  set maxxyz [expr {max($delt(x),$delt(y),$delt(z))}]
 
 # -------------------------------------------------------------------------------
 # PMI not in a saved view
@@ -341,11 +334,24 @@ proc x3dFileEnd {} {
 # default viewpoint
   puts $x3dFile "\n<!-- VIEWPOINTS -->"
   set cor "centerOfRotation='$xyzcen(x) $xyzcen(y) $xyzcen(z)'"
-  set fov [trimNum [expr {$delt(x)*0.5 + $delt(z)*0.5}]]
-  set psy [trimNum [expr {$x3dMin(y) - 1.4*$maxxz}]]
 
-  puts $x3dFile "<Viewpoint id='Front' position='$xyzcen(x) $psy $xyzcen(z)' orientation='1 0 0 1.5708' $cor></Viewpoint>"
-  puts $x3dFile "<OrthoViewpoint id='Ortho' position='$xyzcen(x) $psy $xyzcen(z)' orientation='1 0 0 1.5708' $cor fieldOfView='\[-$fov,-$fov,$fov,$fov\]'></OrthoViewpoint>"
+# z axis up
+  set psy [trimNum [expr {$x3dMin(y) - 1.4*max($delt(x),$delt(z))}]]
+  puts $x3dFile "<Viewpoint id='View 1' position='$xyzcen(x) [trimNum [expr {$x3dMin(y) - 1.4*max($delt(x),$delt(z))}]] $xyzcen(z)' $cor orientation='1 0 0 1.5708'></Viewpoint>"
+  puts $x3dFile "<Viewpoint id='View 1' position='[trimNum [expr {$x3dMax(x) + 1.4*max($delt(y),$delt(z))}]] $xyzcen(y) $xyzcen(z)' $cor orientation='1 1 1 2.094'></Viewpoint>"
+  puts $x3dFile "<Viewpoint id='View 1' position='$xyzcen(x) $xyzcen(y) [trimNum [expr {$x3dMax(z) + 1.4*max($delt(x),$delt(y))}]]' $cor></Viewpoint>"
+  puts $x3dFile "<Viewpoint id='View 1' position='$xyzcen(x) $xyzcen(y) [trimNum [expr {$x3dMin(z) - 1.4*max($delt(x),$delt(y))}]]' $cor orientation='0 1 0 3.1416'></Viewpoint>"
+
+# y axis up
+  puts $x3dFile "<Viewpoint id='View 1' position='[trimNum [expr {$x3dMax(x) + 1.4*max($delt(y),$delt(z))}]] $xyzcen(y) $xyzcen(z)' $cor orientation='0 1 0 1.5708'></Viewpoint>"
+  puts $x3dFile "<Viewpoint id='View 1' position='$xyzcen(x) [trimNum [expr {$x3dMax(y) + 1.4*max($delt(x),$delt(z))}]] $xyzcen(z)' $cor orientation='1 0 0 -1.5708'></Viewpoint>"
+  puts $x3dFile "<Viewpoint id='View 1' position='[trimNum [expr {$x3dMin(x) - 1.4*max($delt(y),$delt(z))}]] $xyzcen(y) $xyzcen(z)' $cor orientation='0 -1 0 1.5708'></Viewpoint>"
+  puts $x3dFile "<Viewpoint id='View 1' position='$xyzcen(x) [trimNum [expr {$x3dMin(y) - 1.4*max($delt(x),$delt(z))}]] $xyzcen(z)' $cor orientation='1 0 0 1.5708'></Viewpoint>"
+  #puts $x3dFile "<Viewpoint id='View 1' position='[trimNum [expr {$x3dMin(x) - 1.4*max($delt(y),$delt(z))}]] $xyzcen(y) $xyzcen(z)' $cor orientation='1 -1 -1 2.094'></Viewpoint>"
+
+# orthographic
+  set fov [trimNum [expr {0.55*max($delt(x),$delt(z))}]]
+  puts $x3dFile "<OrthoViewpoint id='Front-Z Ortho' position='$xyzcen(x) [trimNum [expr {$x3dMin(y) - 1.4*max($delt(x),$delt(z))}]] $xyzcen(z)' $cor orientation='1 0 0 1.5708' fieldOfView='\[-$fov,-$fov,$fov,$fov\]'></OrthoViewpoint>"
 
 # background color, navigation
   set skyBlue ".53 .81 .92"
@@ -357,7 +363,7 @@ proc x3dFileEnd {} {
     set bgcheck1 "checked"
     set bgcheck3 ""
     set bgcolor "1 1 1"
-  } elseif {!$viz(PMI) && !$viz(FEA) && !$viz(TPG) && !$viz(SMG) && !$viz(DTR) && !$viz(HOL)} {
+  } elseif {!$viz(PMI) && !$viz(SMG) && !$viz(DTR) && !$viz(HOL)} {
     set bgcheck2 "checked"
     set bgcheck3 ""
     set bgcolor $skyBlue
@@ -520,7 +526,7 @@ proc x3dFileEnd {} {
   }
 
 # mouse message
-  puts $x3dFile "\n<p>Key 'a' to view all, 'r' to restore, Page Up for orthographic.  <a href=\"https://www.x3dom.org/documentation/interaction/\">Use the mouse</a> in 'Examine Mode' to rotate, pan, zoom."
+  puts $x3dFile "\n<p><b>Page Down for Viewpoints.</b>  Key 'r' to restore, 'a' to view all.  <a href=\"https://www.x3dom.org/documentation/interaction/\">Use the mouse</a> in 'Examine Mode' to rotate, pan, zoom."
   puts $x3dFile "</td></tr></table>"
 
 # -------------------------------------------------------------------------------
@@ -1027,6 +1033,7 @@ proc x3dBrepGeom {} {
 # -------------------------------------------------------------------------------
 # process X and X2 control directives with Unicode characters
 proc x3dUnicode {id} {
+  global unicode
 
   foreach x {X X2} {
     set cx [string first "\\$x\\" $id]
@@ -1037,7 +1044,7 @@ proc x3dUnicode {id} {
             set xu "&#x[string range $id $cx+3 $cx+4];"
             set id [string range $id 0 $cx-1]$xu[string range $id $cx+5 end]
             set cx [string first "\\$x\\" $id]
-            errorMsg " Unicode characters are used for some part or assembly names.  See Help > Text Strings" red
+            if {[info exists unicode] == 0} {errorMsg " Unicode characters are used for some part or assembly names.  See Help > Text Strings" red}
           }
         }
         X2 {
@@ -1054,7 +1061,7 @@ proc x3dUnicode {id} {
               }
             }
             set cx [string first "\\$x\\" $id]
-            errorMsg " Unicode characters are used for some part or assembly names.  See Help > Text Strings" red
+            if {[info exists unicode] == 0} {errorMsg " Unicode characters are used for some part or assembly names.  See Help > Text Strings" red}
           }
         }
       }
@@ -1096,7 +1103,7 @@ proc x3dBrepUnits {} {
 # -------------------------------------------------------------------------------
 # write tessellated geometry for annotations and parts
 proc x3dTessGeom {objID objEntity1 ent1} {
-  global ao defaultColor draftModelCameras entCount nshape opt recPracNames savedViewFile savedViewNames savedViewNone shapeRepName shellSuppGeom spaces srNames
+  global ao defaultColor draftModelCameras entCount opt recPracNames savedViewFile savedViewNames savedViewNone shapeRepName shellSuppGeom spaces srNames
   global tessCoord tessCoordID tessIndex tessIndexCoord tessPartFile tessPlacement tessRepo tessSuppGeomFile
   global x3dColor x3dColorFile x3dColors x3dCoord x3dFile x3dIndex x3dMsg
 
