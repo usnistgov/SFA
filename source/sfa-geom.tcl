@@ -67,7 +67,8 @@ proc getAssocGeom {entDef {tolType 0} {tolName ""}} {
               if {$dimSize} {checkShapeAspect [$a0 Value]}
 
               set a0val {}
-              if {[string first "composite_shape_aspect" $relatedSA] != -1 || [string first "composite_group_shape_aspect" $relatedSA] != -1} {
+              if {[string first "composite_shape_aspect" $relatedSA] != -1 || [string first "composite_group_shape_aspect" $relatedSA] != -1 || \
+                  [string first "centre_of_symmetry" $relatedSA] != -1} {
                 set e1s [[$a0 Value] GetUsedIn [string trim shape_aspect_relationship] [string trim relating_shape_aspect]]
                 ::tcom::foreach e1 $e1s {
                   if {[string first "relationship" [$e1 Type]] != -1} {
@@ -80,6 +81,7 @@ proc getAssocGeom {entDef {tolType 0} {tolName ""}} {
                     }
                   }
                 }
+                if {[string first "centre_of_symmetry" $relatedSA] != -1} {lappend a0val [$a0 Value]}
               } else {
                 lappend a0val [$a0 Value]
               }
@@ -249,7 +251,7 @@ proc getFaceGeom {e0 tolType {id ""}} {
 # -------------------------------------------------------------------------------
 proc reportAssocGeom {entType {row ""}} {
   global objDesign
-  global assocGeom cells cgrObjects cylSurfBounds debugAG dimName dimRepeat dimRepeatDiv entCount opt recPracNames spaces suppGeomEnts syntaxErr
+  global assocGeom cells cgrObjects cylSurfBounds debugAG dimName dimRepeat dimRepeatDiv entCount multipleDatumFeature opt recPracNames spaces suppGeomEnts syntaxErr
   if {$debugAG} {outputMsg "reportAssocGeom $entType" green}
 
   set str ""
@@ -268,7 +270,8 @@ proc reportAssocGeom {entType {row ""}} {
     if {[string first "shape_aspect" $item] == -1 && [string first "centre" $item] == -1 && \
         [string first "datum" $item] == -1 && [string first "_callout" $item] == -1 && $item != "advanced_face"} {
       if {[string length $str] > 0} {append str [format "%c" 10]}
-      append str "([llength $assocGeom($item)]) [formatComplexEnt $item] [lsort -integer $assocGeom($item)]"
+      set nstr "([llength $assocGeom($item)]) [formatComplexEnt $item] [lsort -integer $assocGeom($item)]"
+      if {[string first $nstr $str] == -1} {append str $nstr}
 
 # repetitive hole dimension count, e.g. 4X
       set dc [llength $assocGeom($item)]
@@ -359,13 +362,15 @@ proc reportAssocGeom {entType {row ""}} {
   }
 
 # shape aspect
+  set multipleDatumFeature 0
   foreach item [array names assocGeom] {
     if {[string first "shape_aspect" $item] != -1 || [string first "centre" $item] != -1 || [string first "datum_feature" $item] != -1} {
       if {[string length $str] > 0} {append str [format "%c" 10]}
       append str "([llength $assocGeom($item)]) [formatComplexEnt $item] [lsort -integer $assocGeom($item)]"
-      if {[string first "tolerance" $entType] != -1 && $item == "datum_feature" && [llength $assocGeom($item)] > 1} {
+      if {[string first "tolerance" $entType] != -1 && [string first "datum_feature" $item] != -1 && [llength $assocGeom($item)] > 1} {
         set msg "Associated Geometry has multiple ([llength $assocGeom($item)]) $item for a [formatComplexEnt $entType]."
         errorMsg $msg
+        set multipleDatumFeature 1
       }
     }
   }

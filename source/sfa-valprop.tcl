@@ -31,8 +31,9 @@ proc valPropStart {} {
       "number of geometric tolerances" "number of linked annotations" "number of other annotations" "number of PMI presentation elements" \
       "number of segments" "number of semantic pmi elements" "number of semantic text notes on geometry" "number of semantic text notes on part" \
       "number of semantic text notes on PMI" "number of semantic text notes" "number of tolerance annotations" "number of views" "polyline centre point" \
-      "polyline curve length" "saved view camera coordinates" "saved view world coordinates" "tessellated curve centre point" "tessellated curve length" \
-      "tessellated surface area" "tessellated surface centre point" "visible geometry curve length" "visible geometry surface area"]]]
+      "polyline curve length" "saved view camera coordinates" "saved view scale" "saved view world coordinates" "tessellated curve centre point" \
+      "tessellated curve length" "tessellated surface area" "tessellated surface centre point" "visible geometry curve length" \
+      "visible geometry surface area"]]]
 
 # CAx-IF RP User Defined Attributes, section 8
   set valPropNames(attribute_validation_property) [list \
@@ -530,7 +531,7 @@ proc valPropReport {objEntity} {
 
 # check mass recommended practice
                   if {[string first "mass" $ent1] != -1 && $objValue != "kilogram"} {
-                    set msg "For mass units, '$prefix' is not a valid prefix for 'gram', only 'kilo' is allowed."
+                    set msg "Syntax Error: For mass units, '$prefix' is not a valid prefix for 'gram', only 'kilo' is allowed.$spaces\($recPracNames(uda), Annex C.1)"
                     errorMsg $msg
                     lappend syntaxErr($ent($entLevel)) [list $objID prefix $msg]
                     lappend syntaxErr(property_definition) [list $propDefID 11 $msg]

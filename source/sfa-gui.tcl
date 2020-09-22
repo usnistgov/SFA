@@ -1,5 +1,5 @@
 # SFA version number
-proc getVersion {} {return 4.24}
+proc getVersion {} {return 4.26}
 
 # version of SFA that the User Guide is based on
 proc getVersionUG {} {return 4.2}
@@ -36,7 +36,7 @@ Use F9 and F10 to change the font size here.  See Help > Function Keys"
   }
 
   outputMsg "\nWhat's New (Version: [getVersion]  Updated: [string trim [clock format $progtime -format "%e %b %Y"]])" blue
-  outputMsg "- New features and bug fixes are listed in the Changelog.  See Help > Changelog"
+  outputMsg "- All new features and bug fixes are listed in the Changelog.  See Help > Changelog"
 
 # messages if SFA has already been run
   if {$sfaVersion > 0} {
@@ -44,7 +44,7 @@ Use F9 and F10 to change the font size here.  See Help > Function Keys"
       outputMsg "- A new User Guide is available based on version [getVersionUG] of this software."
       showFileURL UserGuide
     }
-    if {$sfaVersion  < 4.24} {outputMsg "- In the Viewer use Page Down to switch between Viewpoints."}
+    if {$sfaVersion  < 4.24} {outputMsg "- In the Viewer use Page Down/Up to switch between Viewpoints."}
     if {$sfaVersion  < 4.22} {outputMsg "- See Help > Text Strings for information that supplements the User Guide section 5.5\n  on Unicode Characters"}
     if {$sfaVersion  < 4.12} {outputMsg "- The Viewer for part geometry is faster and supports color, edges, sketch geometry,\n  normals, and nested assemblies.  See Help > Viewer"}
     if {$sfaVersion <= 3.70} {outputMsg "- Run the Syntax Checker with function key F8 or the Options tab selection.\n  See Help > Syntax Checker"}
@@ -492,7 +492,7 @@ proc guiProcessAndReports {} {
     tooltip::tooltip $buttons(valProp) "Geometric, assembly, PMI, annotation, attribute, tessellated, composite,\nand FEA validation properties are reported.  All properties are shown on\nthe 'property_definition' entity.  Some properties might not be shown\ndepending on the value of Maximum Rows (Spreadsheet tab).\n\nSee Help > Analyze > Validation Properties\nSee Help > User Guide (section 6.3)\nSee Help > Analyze > Syntax Errors\nSee Examples > PMI Presentation, Validation Properties"
     tooltip::tooltip $buttons(PMISEM)  "Semantic PMI is the information necessary to represent geometric\nand dimensional tolerances without any graphical PMI.  It is shown\non dimension, tolerance, datum target, and datum entities.\nSemantic PMI is found mainly in STEP AP242 files.\n\nSee Help > Analyze > PMI Representation\nSee Help > User Guide (section 6.1)\nSee Help > Analyze > Syntax Errors\nSee Examples > Spreadsheet - PMI Representation\nSee Examples > Sample STEP Files\nSee Websites > AP242"
     tooltip::tooltip $buttons(PMIGRF)  "Graphical PMI is the geometric elements necessary to draw annotations.\nThe information is shown on 'annotation occurrence' entities.\n\nSee Help > Analyze > PMI Presentation\nSee Help > User Guide (section 6.2)\nSee Help > Analyze > Syntax Errors\nSee Examples > PMI Presentation, Validation Properties\nSee Examples > Part with PMI\nSee Examples > AP242 Tessellated Part with PMI\nSee Examples > Sample STEP Files"
-    tooltip::tooltip $buttons(PMIGRFCOV) "The PMI Presentation Coverage worksheet counts the number of recommended names used from the\nRecommended Practice for Representation and Presentation of PMI (AP242), Section 8.4, Table 15.  The\nnames do not have any semantic PMI meaning.  This worksheet was always generated before version\n3.62 when PMI Presentation was selected.\n\nSee Help > Analyze > PMI Coverage Analysis"
+    tooltip::tooltip $buttons(PMIGRFCOV) "The PMI Presentation Coverage worksheet counts the number of recommended names used from the\nRecommended Practice for Representation and Presentation of PMI (AP242), Section 8.4.  The names\ndo not have any semantic PMI meaning.  This worksheet was always generated before version 3.62\nwhen PMI Presentation was selected.\n\nSee Help > Analyze > PMI Coverage Analysis"
     tooltip::tooltip $buttons(PMISEMDIM) "Analyze only dimensional tolerances and no\ngeometric tolerances, datums, or datum targets."
   }
 
@@ -1012,7 +1012,7 @@ proc guiSpreadsheet {} {
 #-------------------------------------------------------------------------------
 # help menu
 proc guiHelpMenu {} {
-  global contact defaultColor Examples excelVersion filesProcessed Help ifcsvrDir ifcsvrVer mytemp nistVersion opt scriptName stepAPs
+  global contact defaultColor Examples excelVersion filesProcessed Help ifcsvrDir ifcsvrVer mytemp nistVersion opt recPracNames scriptName stepAPs
 
   $Help add command -label "User Guide" -command {showFileURL UserGuide}
   $Help add command -label "What's New" -command {whatsNew}
@@ -1688,7 +1688,7 @@ Practices are checked with one of the Analyze options.  See Help > Analyze > Syn
   $Help add command -label "Crash Recovery" -command {
 outputMsg "\nCrash Recovery ------------------------------------------------------------------------------------" blue
 outputMsg "Sometimes the STEP File Analyzer and Viewer crashes after a STEP file has been successfully opened
-and the processing of entities has started. Popup dialogs might appear that say
+and the processing of entities has started.  Popup dialogs might appear that say
 \"ActiveState Basekit has stopped working\" or \"Runtime Error!\".
 
 Run the Syntax Checker with the Output Format option on the Options tab or function key F8 to check
@@ -1709,14 +1709,20 @@ STEP File Analyzer and Viewer and use F1 to process the last STEP file or use F6
 multiple files.  The type of entity that caused the crash will be skipped.  The list of bad entity
 types that will not be processed is stored in myfile-skip.dat.
 
-NOTE - If syntax errors related to the bad entities are corrected, then delete the *-skip.dat file
-so that the corrected entities are processed.  When the STEP file is processed, the list of
-specific entities that are not processed is reported.
+NOTE - When the STEP file is processed again, the list of specific entities that are not processed
+is reported.  If syntax errors related to the bad entities are corrected, then delete the
+*-skip.dat file so that the corrected entities are processed.
 
-2 - Processing of the type of entity that caused the error can be deselected in the Options tab
+2 - STEP files generated by Creo or Pro/Engineer might cause the software to crash.  This is due to
+a problem with some of the PRESENTATION_STYLE_ASSIGNMENT entities.  To fix the problem, change all
+PRESENTATION_STYLE_ASSIGNMENT((.NULL.)); to PRESENTATION_STYLE_ASSIGNMENT((NULL_STYLE(.NULL.))); in
+the STEP file.  Then follow the instructions in the NOTE above.  See Websites > CAx-IF Recommended
+Practices for the Recommended Practice for $recPracNames(pmi242), sec. 9.1.
+
+3 - Processing of the type of entity that caused the error can be deselected in the Options tab
 under Process.  However, this will prevent processing of other entities that do not cause a crash.
 
-3 - Deselect all Analyze, View, and Inverse Relationships options."
+4 - Deselect all Analyze, View, and Inverse Relationships options."
     .tnb select .tnb.status
   }
 

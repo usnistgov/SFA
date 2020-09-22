@@ -334,24 +334,30 @@ proc x3dFileEnd {} {
 # default viewpoint
   puts $x3dFile "\n<!-- VIEWPOINTS -->"
   set cor "centerOfRotation='$xyzcen(x) $xyzcen(y) $xyzcen(z)'"
+  set xmin [trimNum [expr {$x3dMin(x) - 1.4*max($delt(y),$delt(z))}]]
+  set xmax [trimNum [expr {$x3dMax(x) + 1.4*max($delt(y),$delt(z))}]]
+  set ymin [trimNum [expr {$x3dMin(y) - 1.4*max($delt(x),$delt(z))}]]
+  set ymax [trimNum [expr {$x3dMax(y) + 1.4*max($delt(x),$delt(z))}]]
+  set zmin [trimNum [expr {$x3dMin(z) - 1.4*max($delt(x),$delt(y))}]]
+  set zmax [trimNum [expr {$x3dMax(z) + 1.4*max($delt(x),$delt(y))}]]
 
 # z axis up
-  set psy [trimNum [expr {$x3dMin(y) - 1.4*max($delt(x),$delt(z))}]]
-  puts $x3dFile "<Viewpoint id='View 1' position='$xyzcen(x) [trimNum [expr {$x3dMin(y) - 1.4*max($delt(x),$delt(z))}]] $xyzcen(z)' $cor orientation='1 0 0 1.5708'></Viewpoint>"
-  puts $x3dFile "<Viewpoint id='View 1' position='[trimNum [expr {$x3dMax(x) + 1.4*max($delt(y),$delt(z))}]] $xyzcen(y) $xyzcen(z)' $cor orientation='1 1 1 2.094'></Viewpoint>"
-  puts $x3dFile "<Viewpoint id='View 1' position='$xyzcen(x) $xyzcen(y) [trimNum [expr {$x3dMax(z) + 1.4*max($delt(x),$delt(y))}]]' $cor></Viewpoint>"
-  puts $x3dFile "<Viewpoint id='View 1' position='$xyzcen(x) $xyzcen(y) [trimNum [expr {$x3dMin(z) - 1.4*max($delt(x),$delt(y))}]]' $cor orientation='0 1 0 3.1416'></Viewpoint>"
+  puts $x3dFile "<Viewpoint id='Z up 1' position='$xyzcen(x) $ymin $xyzcen(z)' $cor orientation='1 0 0 1.5708'></Viewpoint>"
+  puts $x3dFile "<Viewpoint id='Z up 2' position='$xmax $xyzcen(y) $xyzcen(z)' $cor orientation='1 1 1 2.094'></Viewpoint>"
+  puts $x3dFile "<Viewpoint id='Z up 3' position='$xyzcen(x) $xyzcen(y) $zmax' $cor></Viewpoint>"
+  puts $x3dFile "<Viewpoint id='Z up 5' position='$xyzcen(x) $xyzcen(y) $zmin' $cor orientation='0 1 0 3.1416'></Viewpoint>"
 
 # y axis up
-  puts $x3dFile "<Viewpoint id='View 1' position='[trimNum [expr {$x3dMax(x) + 1.4*max($delt(y),$delt(z))}]] $xyzcen(y) $xyzcen(z)' $cor orientation='0 1 0 1.5708'></Viewpoint>"
-  puts $x3dFile "<Viewpoint id='View 1' position='$xyzcen(x) [trimNum [expr {$x3dMax(y) + 1.4*max($delt(x),$delt(z))}]] $xyzcen(z)' $cor orientation='1 0 0 -1.5708'></Viewpoint>"
-  puts $x3dFile "<Viewpoint id='View 1' position='[trimNum [expr {$x3dMin(x) - 1.4*max($delt(y),$delt(z))}]] $xyzcen(y) $xyzcen(z)' $cor orientation='0 -1 0 1.5708'></Viewpoint>"
-  puts $x3dFile "<Viewpoint id='View 1' position='$xyzcen(x) [trimNum [expr {$x3dMin(y) - 1.4*max($delt(x),$delt(z))}]] $xyzcen(z)' $cor orientation='1 0 0 1.5708'></Viewpoint>"
-  #puts $x3dFile "<Viewpoint id='View 1' position='[trimNum [expr {$x3dMin(x) - 1.4*max($delt(y),$delt(z))}]] $xyzcen(y) $xyzcen(z)' $cor orientation='1 -1 -1 2.094'></Viewpoint>"
+  puts $x3dFile "<Viewpoint id='Y up 1' position='$xmax $xyzcen(y) $xyzcen(z)' $cor orientation='0 1 0 1.5708'></Viewpoint>"
+  puts $x3dFile "<Viewpoint id='Y up 2' position='$xyzcen(x) $ymax $xyzcen(z)' $cor orientation='1 0 0 -1.5708'></Viewpoint>"
+  puts $x3dFile "<Viewpoint id='Y up 3' position='$xmin $xyzcen(y) $xyzcen(z)' $cor orientation='0 -1 0 1.5708'></Viewpoint>"
+
+# iso
+  puts $x3dFile "<Viewpoint id='Iso 1'  position='[trimNum [expr {$xmax*0.733}]] [trimNum [expr {$ymax*0.7}]] [trimNum [expr {$zmax*1.0}]]' $cor orientation='-0.6335 0.7486 0.1956 0.7825'></Viewpoint>"
 
 # orthographic
   set fov [trimNum [expr {0.55*max($delt(x),$delt(z))}]]
-  puts $x3dFile "<OrthoViewpoint id='Front-Z Ortho' position='$xyzcen(x) [trimNum [expr {$x3dMin(y) - 1.4*max($delt(x),$delt(z))}]] $xyzcen(z)' $cor orientation='1 0 0 1.5708' fieldOfView='\[-$fov,-$fov,$fov,$fov\]'></OrthoViewpoint>"
+  puts $x3dFile "<OrthoViewpoint id='Ortho 1' position='$xyzcen(x) [trimNum [expr {$x3dMin(y) - 1.4*max($delt(x),$delt(z))}]] $xyzcen(z)' $cor orientation='1 0 0 1.5708' fieldOfView='\[-$fov,-$fov,$fov,$fov\]'></OrthoViewpoint>"
 
 # background color, navigation
   set skyBlue ".53 .81 .92"
@@ -526,7 +532,7 @@ proc x3dFileEnd {} {
   }
 
 # mouse message
-  puts $x3dFile "\n<p><b>Page Down for Viewpoints.</b>  Key 'r' to restore, 'a' to view all.  <a href=\"https://www.x3dom.org/documentation/interaction/\">Use the mouse</a> in 'Examine Mode' to rotate, pan, zoom."
+  puts $x3dFile "\n<p><b>Page Down/Up for Viewpoints.</b>  Key 'r' to restore, 'a' to view all.  <a href=\"https://www.x3dom.org/documentation/interaction/\">Use the mouse</a> in 'Examine Mode' to rotate, pan, zoom."
   puts $x3dFile "</td></tr></table>"
 
 # -------------------------------------------------------------------------------
@@ -1113,7 +1119,7 @@ proc x3dTessGeom {objID objEntity1 ent1} {
   if {$x3dColor == ""} {
     set x3dColor "0 0 0"
     if {[string first "annotation" [$objEntity1 Type]] != -1} {
-      errorMsg "Syntax Error: Missing PMI Presentation color (using black).$spaces\($recPracNames(pmi242), Sec. 8.4, Fig. 75)"
+      errorMsg "Syntax Error: Missing PMI Presentation color (using black).$spaces\($recPracNames(pmi242), Sec. 8.5, Fig. 84)"
     }
   }
   set x3dIndexType "line"
@@ -2404,7 +2410,7 @@ proc x3dPolylinePMI {} {
             puts $f "<Shape><Appearance><Material emissiveColor='$x3dColor'></Material></Appearance>"
           } else {
             puts $f "<Shape><Appearance><Material emissiveColor='0 0 0'></Material></Appearance>"
-            errorMsg "Syntax Error: Missing PMI Presentation color for [formatComplexEnt $ao] (using black)$spaces\($recPracNames(pmi242), Sec. 8.4, Fig. 75)"
+            errorMsg "Syntax Error: Missing PMI Presentation color for [formatComplexEnt $ao] (using black)$spaces\($recPracNames(pmi242), Sec. 8.5, Fig. 84)"
           }
 
 # index and coordinates

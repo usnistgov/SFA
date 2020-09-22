@@ -943,13 +943,13 @@ proc spmiDimtolReport {objEntity} {
           }
 
           foreach item [split $str "\n"] {
-            if {[string first "shape_aspect" $item] == -1 && \
-                [string first "advanced_face" $item] == -1 && \
-                [string first "centre_of_symmetry" $item] == -1 && \
-                [string first "datum_feature" $item] == -1} {lappend nstr $item}
+            if {[string first "shape_aspect" $item] == -1 && [string first "advanced_face" $item] == -1 && \
+                [string first "centre_of_symmetry" $item] == -1 && [string first "datum_feature" $item] == -1} {
+              foreach str [split $item " "] {if {[string is integer $str]} {lappend nstr $str}}
+            }
           }
           if {[info exists nstr]} {
-            set dimtolGeomEnts [join [lsort $nstr]]
+            set dimtolGeomEnts [join [lrmdups $nstr]]
             set dimtolEntType($dimtolGeomEnts) "$dimtolType $dimtolID"
           }
         }
@@ -1443,6 +1443,8 @@ proc valueQualifier {ent1 val {type "length/angle"} {equal "equal"}} {
     set prec1 [expr {abs([lindex $tmp 0])}]
     set prec2 [lindex $tmp 1]
     if {$type != "magnitude" && $type != "projected"} {set dim(qual) $prec2}
+    set mult "1[string repeat "0" $prec2]."
+    set five ".[string repeat "0" $prec2]5"
 
     if {$prec1 != 0 || $prec2 != 0} {
       set val [string trimright [format "%.4f" $val] "0"]
@@ -1477,6 +1479,13 @@ proc valueQualifier {ent1 val {type "length/angle"} {equal "equal"}} {
         set dec [string range $val2 0 $prec2-1]
         if {$dec != ""} {
           set newval "$val1.$dec"
+
+# check if truncating removes a trailing 5, then cheat and round instead
+          if {$type == "length/angle"} {
+            set rval [expr {round($val*$mult)/double($mult)}]
+            set diff [expr {abs($val-$rval)-$five}]
+            if {$diff > 0. && $diff < 1.e-5} {set newval $rval}
+          }
         } else {
           set newval $val1
         }
@@ -1485,6 +1494,13 @@ proc valueQualifier {ent1 val {type "length/angle"} {equal "equal"}} {
       } else {
         set newval ".[string range $val2 0 $prec2-1]"
         if {$val < 0.} {set newval "-$newval"}
+
+# check if truncating removes a trailing 5, then cheat and round instead
+        if {$type == "length/angle"} {
+          set rval [expr {round($val*$mult)/double($mult)}]
+          set diff [expr {abs($val-$rval)-$five}]
+          if {$diff > 0. && $diff < 1.e-5} {set newval [string range $rval 1 end]}
+        }
       }
 
 # add + sign for positive tolerances

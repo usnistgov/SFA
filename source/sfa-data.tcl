@@ -226,7 +226,7 @@ set tzfNames [list \
   "between two parallel circles on a conical surface" "non uniform" "unknown"]
 
 # -----------------------------------------------------------------------------------------------------
-# *Graphical PMI* names (Section 8.4, Table 15)
+# *Graphical PMI* names (Section 8.4)
 set gpmiTypes [list \
   "angularity" "circular runout" "circularity" "coaxiality" "concentricity" "cylindricity" "flatness" "parallelism" "perpendicularity" "position" \
   "profile of line" "profile of surface" "roundness" "straightness" "symmetry" "total runout" "general tolerance" "linear dimension" "radial dimension" \

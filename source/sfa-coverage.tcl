@@ -736,8 +736,8 @@ proc gpmiCoverageFormat {{sum ""} {multi 1}} {
     }
 
 # rec prac
-    set rp "$recPracNames(pmi242), Sec. 8.4, Table 15"
-    if {[string first "AP203" $stepAP] == 0} {set rp "$recPracNames(pmi203), Sec. 4.3, Table 1"}
+    set rp "$recPracNames(pmi242), Sec. 8.4"
+    if {[string first "AP203" $stepAP] == 0} {set rp "$recPracNames(pmi203), Sec. 4.3"}
 
 # vertical line(s)
     if {$multi} {
