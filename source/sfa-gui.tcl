@@ -1,11 +1,11 @@
 # SFA version number
-proc getVersion {} {return 4.26}
+proc getVersion {} {return 4.30}
 
 # version of SFA that the User Guide is based on
 proc getVersionUG {} {return 4.2}
 
 # IFCsvr version, depends on string entered when IFCsvr is repackaged for new STEP schemas
-proc getVersionIFCsvr {} {return 20200501}
+proc getVersionIFCsvr {} {return 20201015}
 
 proc getContact {} {return [list "Robert Lipman" "robert.lipman@nist.gov"]}
 
@@ -344,7 +344,7 @@ proc guiFileMenu {} {
 #-------------------------------------------------------------------------------
 # options tab, process and report
 proc guiProcessAndReports {} {
-  global allNone buttons cb entCategory fopt fopta nb opt
+  global allNone buttons cb entCategory fopt fopta nb opt recPracNames
 
   set cb 0
   set wopt [ttk::panedwindow $nb.options -orient horizontal]
@@ -373,7 +373,7 @@ proc guiProcessAndReports {} {
       if {$idx != "stepCOMM"} {
         set ttmsg [guiToolTip $ttmsg $idx]
       } else {
-        append ttmsg "All AP-specific entities from APs other than AP203, AP214, and AP242 are always processed,\nincluding AP209, AP210, AP238, and AP239.\n\nThe entity categories are used to group and color-code entities on the Summary worksheet.\n\nSee Help > User Guide (section 3.4.2)"
+        append ttmsg "Entity types from any selected Process category that are found in a STEP file are written\nto the Spreadsheet.  All AP-specific entities from APs other than AP203, AP214, and AP242\nare always written to the Spreadsheet, including AP209, AP210, AP238, and AP239.  The\nProcess categories are used to group and color-code entities on the Summary worksheet.\n\nSee Help > User Guide (section 3.4.2)"
       }
       catch {tooltip::tooltip $buttons($idx) $ttmsg}
     }
@@ -457,9 +457,9 @@ proc guiProcessAndReports {} {
     incr cb
   }
   catch {
-    tooltip::tooltip $buttons(allNone0) "Selects most Process categories\nSee Help > User Guide (section 3.4.2)"
+    tooltip::tooltip $buttons(allNone0) "Selects most Process categories to write to the Spreadsheet\nSee Help > User Guide (section 3.4.2)"
     tooltip::tooltip $buttons(allNone1) "Deselects most Process categories and all Analyze and View options\nSee Help > User Guide (section 3.4.2)"
-    tooltip::tooltip $buttons(allNone2) "Selects all Analyze options and associated Process categories\nSee Help > User Guide (section 6)"
+    tooltip::tooltip $buttons(allNone2) "Selects all Analyze options and associated Process categories to write to the Spreadsheet\nSee Help > User Guide (section 6)"
     tooltip::tooltip $buttons(allNone3) "Selects all View options and associated Process categories\nSee View Only in Output Format below\nSee Help > User Guide (section 4)"
   }
   pack $fopta4 -side left -anchor w -pady 0 -padx 0 -fill y
@@ -473,12 +473,13 @@ proc guiProcessAndReports {} {
   set foptd1 [frame $foptd.1 -bd 0]
   foreach item {{" Validation Properties" opt(valProp)} \
                 {" AP242 PMI Representation (Semantic PMI)" opt(PMISEM)} \
+                {" Round dimensions and geometric tolerances" opt(PMISEMRND)} \
                 {" Only Dimensions" opt(PMISEMDIM)} \
                 {" PMI Presentation (Graphical PMI)" opt(PMIGRF)} \
                 {" Generate Presentation Coverage worksheet" opt(PMIGRFCOV)}} {
     set idx [string range [lindex $item 1] 4 end-1]
     set buttons($idx) [ttk::checkbutton $foptd1.$cb -text [lindex $item 0] -variable [lindex $item 1] -command {checkValues}]
-    if {$idx == "PMISEMDIM" || $idx == "PMIGRFCOV"} {
+    if {$idx == "PMISEMDIM" || $idx == "PMIGRFCOV" || $idx == "PMISEMRND"} {
       pack $buttons($idx) -side top -anchor w -padx {26 10} -pady 0 -ipady 0
     } else {
       pack $buttons($idx) -side top -anchor w -padx {5 10} -pady 0 -ipady 0
@@ -493,6 +494,7 @@ proc guiProcessAndReports {} {
     tooltip::tooltip $buttons(PMISEM)  "Semantic PMI is the information necessary to represent geometric\nand dimensional tolerances without any graphical PMI.  It is shown\non dimension, tolerance, datum target, and datum entities.\nSemantic PMI is found mainly in STEP AP242 files.\n\nSee Help > Analyze > PMI Representation\nSee Help > User Guide (section 6.1)\nSee Help > Analyze > Syntax Errors\nSee Examples > Spreadsheet - PMI Representation\nSee Examples > Sample STEP Files\nSee Websites > AP242"
     tooltip::tooltip $buttons(PMIGRF)  "Graphical PMI is the geometric elements necessary to draw annotations.\nThe information is shown on 'annotation occurrence' entities.\n\nSee Help > Analyze > PMI Presentation\nSee Help > User Guide (section 6.2)\nSee Help > Analyze > Syntax Errors\nSee Examples > PMI Presentation, Validation Properties\nSee Examples > Part with PMI\nSee Examples > AP242 Tessellated Part with PMI\nSee Examples > Sample STEP Files"
     tooltip::tooltip $buttons(PMIGRFCOV) "The PMI Presentation Coverage worksheet counts the number of recommended names used from the\nRecommended Practice for Representation and Presentation of PMI (AP242), Section 8.4.  The names\ndo not have any semantic PMI meaning.  This worksheet was always generated before version 3.62\nwhen PMI Presentation was selected.\n\nSee Help > Analyze > PMI Coverage Analysis"
+    tooltip::tooltip $buttons(PMISEMRND) "The number of decimal places for dimensions and geometric tolerances can be specified with\nvalue_format_type_qualifier in the STEP file.  By definition the qualifier always truncates the value.  This\noption rounds the value instead.\n\nFor example with the value 0.5625, the qualifier 'NR2 1.3' will truncate it to 0.562  However, rounding\nwill show 0.563\n\nRounding values might result in a better match to graphical PMI shown by the Viewer or to expected\nPMI in the NIST models (FTC 8).\n\nSee Websites > Recommended Practice for $recPracNames(pmi242), section 5.4"
     tooltip::tooltip $buttons(PMISEMDIM) "Analyze only dimensional tolerances and no\ngeometric tolerances, datums, or datum targets."
   }
 
@@ -585,7 +587,7 @@ proc guiProcessAndReports {} {
   catch {
     tooltip::tooltip $foptv20 "The view for part geometry supports color, edges, and sketch geometry.\nThe viewer does not support measurements.\n\nNormals improve the default smooth shading at the expense of slower\nprocessing and display.  Using High Quality and Normals results in the\nbest appearance for part geometry.\n\nSee Help > Viewer\n\nViews are shown in the default web browser.\nViews can be generated without generating a spreadsheet or CSV files.\nSee the Output Format option below.\n\nSee Help > View for other viewing features\nSee Examples > View Box Assembly and others\nSee Websites > STEP File Viewers (for other part geometry viewers)"
     tooltip::tooltip $buttons(viewPMI) "Graphical PMI is supported in AP242, AP203, and AP214 files.\n\nSee Help > View > Graphical PMI\nSee Help > Viewer\nSee Help > User Guide (section 4.2)\nSee Examples > Part with PMI\nSee Examples > AP242 Tessellated Part with PMI\nSee Examples > Sample STEP Files"
-    tooltip::tooltip $buttons(viewTessPart) "** Parts in an assembly might have the wrong\nposition and orientation or be missing. **\n\nTessellated edges (lines) are also shown.  Faces\nin tessellated shells are outlined in black.\n\nSee Help > View > AP242 Tessellated Part Geometry\nSee Help > Viewer\nSee Help > User Guide (section 4.3)\nSee Examples > AP242 Tessellated Part with PMI"
+    tooltip::tooltip $buttons(viewTessPart) "** Parts in an assembly might have the wrong\nposition and orientation or be missing. **\n\nTessellated edges (lines) are also shown.\n\nSee Help > View > AP242 Tessellated Part Geometry\nSee Help > Viewer\nSee Help > User Guide (section 4.3)\nSee Examples > AP242 Tessellated Part with PMI"
     tooltip::tooltip $buttons(tessPartMesh) "Generate a wireframe mesh based on the tessellated faces and surfaces."
     tooltip::tooltip $buttons(feaLoadScale) "The length of load vectors can be scaled by their magnitude.\nLoad vectors are always colored by their magnitude."
     tooltip::tooltip $buttons(feaDispNoTail) "The length of displacement vectors with a tail are scaled by\ntheir magnitude.  Vectors without a tail are not.\nDisplacement vectors are always colored by their magnitude.\nLoad vectors always have a tail."
@@ -694,7 +696,7 @@ proc guiOpenSTEPFile {} {
 # Jotne EDM Model Checker
     if {$developer} {
       catch {
-        if {[string first "EDM Model Checker" $appName] == 0} {
+        if {[string first "EDM Model Checker" $appName] == 0 || [string first "EDMsdk" $appName] != -1} {
           pack $buttons(edmWriteToFile) -side left -anchor w -padx {5 0}
           pack $buttons(edmWhereRules) -side left -anchor w -padx {5 0}
         } else {
@@ -753,7 +755,7 @@ proc guiOpenSTEPFile {} {
 # Jotne EDM Model Checker
   if {$developer} {
     foreach item $appNames {
-      if {[string first "EDM Model Checker" $item] == 0} {
+      if {[string first "EDM Model Checker" $item] == 0 || [string first "EDMsdk" $item] != -1} {
         foreach item {{"Check rules" edmWhereRules} \
                       {"Write to file" edmWriteToFile}} {
           set idx [lindex $item 1]
@@ -786,7 +788,7 @@ proc guiOpenSTEPFile {} {
     }
   }
 
-  catch {tooltip::tooltip $foptf "This option is a convenient way to open a STEP file in other apps.  The\npull-down menu contains some apps that can open a STEP file such as\nSTEP viewers and browsers, however, only if they are installed in their\ndefault location.\n\nSee Help > Open STEP File in App\nSee Websites > STEP File Viewers\n\nThe 'Tree View (for debugging)' option rearranges and indents the entities\nto show the hierarchy of information in a STEP file.  The 'tree view' file\n(myfile-sfa.txt) is written to the same directory as the STEP file or to the\nsame user-defined directory specified in the Spreadsheet tab.  Including\nGeometry or Styled_item can make the 'tree view' file very large.  The\n'tree view' might not process /*comments*/ in a STEP file correctly.\n\nThe 'Default STEP Viewer' option opens the STEP file in whatever\napp is associated with STEP (.stp, .step, .p21) files.\n\nUse F5 to open the STEP file in a text editor."}
+  catch {tooltip::tooltip $buttons(appCombo) "This option is a convenient way to open a STEP file in other apps.  The\npull-down menu contains some apps that can open a STEP file such as\nSTEP viewers and browsers, however, only if they are installed in their\ndefault location.\n\nSee Help > Open STEP File in App\nSee Websites > STEP File Viewers\n\nThe 'Tree View (for debugging)' option rearranges and indents the entities\nto show the hierarchy of information in a STEP file.  The 'tree view' file\n(myfile-sfa.txt) is written to the same directory as the STEP file or to the\nsame user-defined directory specified in the Spreadsheet tab.  Including\nGeometry or Styled_item can make the 'tree view' file very large.  The\n'tree view' might not process /*comments*/ in a STEP file correctly.\n\nThe 'Default STEP Viewer' option opens the STEP file in whatever\napp is associated with STEP (.stp, .step, .p21) files.\n\nUse F5 to open the STEP file in a text editor."}
   pack $foptf -side left -anchor w -pady {5 2} -padx 10 -fill both -expand true
 
 #-------------------------------------------------------------------------------
@@ -911,16 +913,17 @@ proc guiSpreadsheet {} {
   set msg "Worksheets can be sorted by column values.\nThe worksheet with Properties is always sorted.\n\nSee Help > User Guide (section 5.6.2)"
   catch {tooltip::tooltip $fxlsz $msg}
 
-# number format to round real numbers
+# number format
   set fxlsa [ttk::labelframe $fxls.a -text " Number Format "]
-  set item {" Do not round Real Numbers" opt(xlNoRound)}
+  set item {" Do not round real numbers in spreadsheet cells" opt(xlNoRound)}
   set idx [string range [lindex $item 1] 4 end-1]
   set buttons($idx) [ttk::checkbutton $fxlsa.$cb -text [lindex $item 0] -variable [lindex $item 1]]
   pack $buttons($idx) -side top -anchor w -padx 5 -pady 0 -ipady 0
   incr cb
   pack $fxlsa -side top -anchor w -pady {5 2} -padx 10 -fill both
-  set msg "Excel rounds real numbers if there are more than 11 characters in the number string.  For example,\nthe number 0.1249999999997 in the STEP file is shown as 0.125\n\nClicking in a cell with a rounded number shows all of the digits in the formula bar.\n\nThis option shows most real numbers exactly as they appear in the STEP file.  This applies\nonly to single real numbers.  Lists of real numbers, such as cartesian point coordinates, are\nalways shown exactly as they appear in the STEP file.\n\nSee Help > User Guide (section 5.6.3)"
-  catch {tooltip::tooltip $fxlsa $msg}
+  catch {
+    tooltip::tooltip $buttons(xlNoRound) "Excel rounds real numbers if there are more than 11 characters in the number string.\nFor example, the number 0.1249999999997 in a STEP file is shown as 0.125 in a\nspreadsheet cell.  Clicking in a cell with a rounded number shows all of the digits\nin the formula bar.\n\nSelecting this option will show most single real numbers exactly as they appear in\nthe STEP file.  Numbers not rounded are left-justified in a cell.  Lists of real numbers,\nsuch as cartesian points, are always shown exactly as they appear in the STEP file.\n\nSee Help > User Guide (section 5.6.3)"
+  }
 
 # maximum rows
   set fxlsb [ttk::labelframe $fxls.b -text " Maximum Rows for any worksheet"]
@@ -934,7 +937,7 @@ proc guiSpreadsheet {} {
     incr cb
   }
   pack $fxlsb -side top -anchor w -pady 5 -padx 10 -fill both
-  set msg "This option limits the number of rows (entities) written to any one worksheet or CSV file.\nIf the maximum number of rows is exceeded, the number of entities processed will be\nreported as, for example, 'property_definition (100 of 147)'.\n\nFor large STEP files, setting a low maximum can speed up processing at the expense of\nnot processing all of the entities.  This is useful when processing Geometry entities.\n\nSyntax Errors might be missed if some entities are not processed due to a small value\nof maximum rows.  Maximum rows does not affect generating Views.  The maximum\nnumber of rows depends on the version of Excel.\n\nSee Help > User Guide (section 5.6.4)"
+  set msg "This option limits the number of rows (entities) written to any one worksheet or CSV file.\nIf the maximum number of rows is exceeded, the number of entities processed will be\nreported as, for example, 'property_definition (100 of 147)'.\n\nFor large STEP files, setting a low maximum can speed up processing at the expense of\nnot processing all of the entities.  This is useful when processing Geometry entities.\n\nSyntax Errors might be missed if some entities are not processed due to a smaller value\nof maximum rows.  Maximum rows does not affect generating Views.  The maximum\nnumber of rows depends on the version of Excel.\n\nSee Help > User Guide (section 5.6.4)"
   catch {tooltip::tooltip $fxlsb $msg}
 
 # output directory (opt(writeDirType) = 1 no longer used)
@@ -959,7 +962,7 @@ proc guiSpreadsheet {} {
   catch {tooltip::tooltip $fxls1 "This option is useful when the directory containing the STEP file is\nprotected (read-only) and none of the output can be written to it.\nDo not use a directory name containing bracket \[\] characters."}
   incr cb
 
-  set buttons(userentry) [ttk::entry $fxls1.entry -width 38 -textvariable userWriteDir]
+  set buttons(userentry) [ttk::entry $fxls1.entry -width 50 -textvariable userWriteDir]
   pack $fxls1.entry -side left -anchor w -pady 2
   set buttons(userdir) [ttk::button $fxls1.button -text " Browse " -command {
     set uwd [tk_chooseDirectory -title "Select directory"]
@@ -978,7 +981,7 @@ proc guiSpreadsheet {} {
   set fxlsc [ttk::labelframe $fxls.c -text " Other "]
   foreach item {{" Show all PMI Elements on PMI Representation Coverage worksheets" opt(SHOWALLPMI)} \
                 {" Do not generate links to STEP files and spreadsheets on File Summary worksheet for multiple files" opt(xlHideLinks)} \
-                {" Keep part geometry X3D file" opt(x3dKeep)}} {
+                {" Keep part geometry X3D file generated by the Viewer" opt(x3dKeep)}} {
     set idx [string range [lindex $item 1] 4 end-1]
     set buttons($idx) [ttk::checkbutton $fxlsc.$cb -text [lindex $item 0] -variable [lindex $item 1] -command {checkValues}]
     pack $buttons($idx) -side top -anchor w -padx 5 -pady 0 -ipady 0
@@ -1123,14 +1126,14 @@ Part geometry viewer features:
   quality the more facets used around the circumference of a cylinder.  Using High Quality and
   the Normals option results in the best appearance for part geometry.
 
-- Switching parts and assemblies on and off is a work-in-progress.  Most assemblies and parts can
-  be switched on and off depending on the assembly structure.  The alphabetic list of part and
-  assembly names is shown on the right.  Parts with the same shape are usually grouped with the
-  same checkbox.  Clicking on the model shows the part name in the upper left.  The part name shown
-  may not be in the list of assemblies and parts.  The part might be contained in a higher-level
-  assembly that is in the list.  Some names in the list might have an underscore and number
-  appended to their name.  Processing sketch geometry might also affect the list of names.  Some
-  assemblies have no unique names assigned to parts, therefore there is no list of part names.
+- Most assemblies and parts can be switched on and off depending on the assembly structure.  The
+  alphabetic list of part and assembly names is shown on the right.  Parts with the same shape are
+  usually grouped with the same checkbox.  Clicking on the model shows the part name in the upper
+  left.  The part name shown may not be in the list of assemblies and parts.  The part might be
+  contained in a higher-level assembly that is in the list.  Some names in the list might have an
+  underscore and number appended to their name.  Processing sketch geometry might also affect the
+  list of names.  Some assemblies have no unique names assigned to parts, therefore there is no
+  list of part names.
 
 - Part names with non-English characters might have different or missing characters or cause the
   viewer to crash.  See Help > Text Strings
@@ -1257,7 +1260,7 @@ The following types of supplemental geometry and associated text are supported.
 - Cylinder: blue transparent cylinder
 - Line/Circle/Ellipse: purple line/circle/ellipse
 - Point: black dot
-- Tessellated Surface: faces outlined in black
+- Tessellated Surface: assigned color
 
 Lines and circles that are trimmed by cartesian_point will not be trimmed.  Bounding edges for
 planes and cylinders are not supported.  All bounded and unbounded planes are shown with a fixed
@@ -1314,16 +1317,37 @@ See Websites > CAx Recommended Practices (Representation and Presentation of PMI
     .tnb select .tnb.status
   }
 
+  $helpView add command -label "Holes" -command {
+outputMsg "\nHoles ---------------------------------------------------------------------------------------------" blue
+outputMsg "Hole features, including basic round, counterbore, and countersink holes, and spotface are
+supported in AP242 edition 2.  Semantic information related to holes is reported on
+*_hole_definition and basic_round_hole worksheets.
+
+If the Analyze report for Semantic PMI is not generated, then holes are shown only with a drill
+entry point.  If the report is generated, then cylindrical or conical surfaces are used to view the
+depth and diameter of the hole, counterbore, and countersink.  If there is no depth associated with
+the hole (a through hole), then a very thin cylindrical surface with the correct diameter is shown.
+The bottom of a hole is also shown if the hole is not a through hole and the hole has a depth.
+Usually, only the counterbore or countersink is shown for through holes.
+
+Holes can be switched on and off in the view.  Cylindrical surfaces are green and conical surfaces
+are blue.  Holes are viewed regardless of whether they were explicitly modeled in the part geometry.
+
+In the Process section on the Options tab, Features is automatically selected when holes are found
+in the STEP file."
+    .tnb select .tnb.status
+  }
+
   $helpView add command -label "AP242 Tessellated Part Geometry" -command {
 outputMsg "\nAP242 Tessellated Part Geometry -------------------------------------------------------------------" blue
 outputMsg "Tessellated part geometry is supported by AP242 and is usually supplementary to part geometry.
 
 ** Parts in an assembly might have the wrong position and orientation or be missing. **
 
-Faces in a tessellated shell are outlined in black.  Lines generated from tessellated edges are
-also shown.  A wireframe mesh, outlining the facets of the tessellated surfaces can also be shown.
-If both are present, tessellated edges might be obscured by the wireframe mesh.  [string totitle [lindex $defaultColor 1]] is used for
-tessellated solids, shells, or faces that do not have colors specified.
+Lines generated from tessellated edges are also shown.  A wireframe mesh, outlining the facets of
+the tessellated surfaces can also be shown.  If both are present, tessellated edges might be
+obscured by the wireframe mesh.  [string totitle [lindex $defaultColor 1]] is used for tessellated solids, shells, or faces that do not
+have colors specified.
 
 See Help > User Guide (section 4.3)
 See Examples > AP242 Tessellated Part with PMI
@@ -1427,6 +1451,7 @@ model.  See Help > Analyze > NIST CAD Models
 Dimensional Tolerances are reported on the dimensional_characteristic_representation worksheet.
 The dimension name, representation name, length/angle, length/angle name, and plus minus bounds are
 reported.  The relevant section in the Recommended Practice is shown in the column headings.
+Dimensional tolerances for holes are reported on *_hole_definition worksheets.
 
 Datum Features are reported on datum_* entities.  Datum_system will show the complete Datum
 Reference Frame.  Datum Targets are reported on placed_datum_target_feature.
@@ -1444,6 +1469,12 @@ example, referencing the edge of a hole versus the surfaces of a hole.
 The association of the Datum Feature with a Geometric Tolerance is based on each referring to the
 same geometric element.  However, the PMI Presentation might show the Geometric Tolerance and
 Datum Feature as two separate annotations with leader lines attached to the same geometric element.
+
+The number of decimal places for dimension and geometric tolerance values can be specified in the
+STEP file.  By definition the value is always truncated, however, the values can be rounded instead.
+For example with the value 0.5625, the qualifier 'NR2 1.3' will truncate it to 0.562  Rounding will
+show 0.563  Rounding values might result in a better match to graphical PMI shown by the Viewer or
+to expected PMI in the NIST models.  See Options tab > Analyze
 
 Some syntax errors that indicate non-conformance to a CAx-IF Recommended Practices related to PMI
 Representation are also reported in the Status tab and the relevant worksheet cells.  Syntax errors
@@ -1644,8 +1675,10 @@ For the viewer, only the \\X\\ and \\X2\\ are supported for part and assembly na
 characters are supported depending STEP file encoding, e.g., UTF-8 or ANSI.
 
 When a STEP file is opened there might be a message that the file uses \\X2\\ or \\X\\ control
-directives in some text strings.  The \\X4\\ control directive is not supported.  Some non-English
-characters might cause the software to crash or prevent a view from being generated.
+directives in some text strings.  The \\X4\\ control directive is not supported.
+
+Some non-English characters might cause the software to crash or prevent a view from being
+generated.  See Help > Crash Recovery
 
 The Syntax Checker identifies non-English characters as 'illegal characters'.  You will have to
 test your CAD software to see if it supports non-English characters or control directives.
@@ -1938,6 +1971,7 @@ proc guiWebsitesMenu {} {
   set Websites3 [menu $Websites.3 -tearoff 1]
   $Websites3 add command -label "SFA source code"        -command {openURL https://github.com/usnistgov/SFA}
   $Websites3 add command -label "STEP to X3D Translator" -command {openURL https://www.nist.gov/services-resources/software/step-x3d-translator}
+  $Websites3 add command -label "STEP to OWL Translator" -command {openURL https://github.com/usnistgov/stp2owl}
   $Websites3 add command -label "STEPcode"               -command {openURL http://stepcode.github.io/}
   $Websites3 add command -label "STEP Class Library"     -command {openURL https://www.nist.gov/services-resources/software/step-class-library-scl}
   $Websites3 add command -label "Express Engine"         -command {openURL https://sourceforge.net/projects/exp-engine/}
@@ -2079,7 +2113,10 @@ proc getOpenPrograms {} {
 # Jotne EDM Model Checker
   if {$developer} {
     foreach match [glob -nocomplain -directory [file join $drive edm] -join edm* bin Edms.exe] {set dispApps($match) "EDM Model Checker 5"}
-    foreach match [glob -nocomplain -directory [file join $pf64 Jotne] -join EDMsdk6* bin edms.exe] {set dispApps($match) "EDM Model Checker 6"}
+    foreach match [glob -nocomplain -directory [file join $pf64 Jotne] -join EDMsdk6* bin edms.exe] {
+      set ver [lindex [split $match "/"] 3]
+      set dispApps($match) [string range $ver 0 [string last "." $ver]-1]
+    }
   }
 
 # STEP Tools apps

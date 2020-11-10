@@ -6,7 +6,7 @@ proc genExcel {{numFile 0}} {
   global lastXLS lenfilelist localName localNameList logFile matrixList multiFile multiFileDir mydocs mytemp nistCoverageLegend nistName nistPMIexpected nistPMImaster
   global nprogBarEnts ofCSV ofExcel opt pf32 p21e3 p21e3Section row rowmax savedViewButtons savedViewName savedViewNames scriptName
   global sheetLast skipEntities skipPerm spmiEntity spmiSumName spmiSumRow spmiTypesPerFile startrow statsOnly stepAP tessColor thisEntType timeStamp tlast
-  global tolNames tolStandard tolStandards totalEntity userEntityFile userEntityList useXL viz workbook workbooks
+  global tolNames tolStandard tolStandards totalEntity userEntityFile userEntityList useXL valRounded viz workbook workbooks
   global worksheet worksheet1 worksheets writeDir wsCount wsNames x3dAxes x3dColor x3dColorFile x3dColors x3dFileName x3dIndex
   global x3dMax x3dMin x3dMsg x3dMsgColor x3dStartFile x3dViewOK xlFileName xlFileNames xlInstalled
   global objDesign
@@ -251,18 +251,12 @@ proc genExcel {{numFile 0}} {
         }
       }
       $cells1(Summary) Item [expr {$startrow-2}] $colsum $ap
-
-      set fsize [expr {[file size $fname]/1024}]
-      if {$fsize > 10240} {
-        set fsize "[expr {$fsize/1024}] Mb"
-      } else {
-        append fsize " Kb"
-      }
-      $cells1(Summary) Item [expr {$startrow-1}] $colsum $fsize
+      $cells1(Summary) Item [expr {$startrow-1}] $colsum [fileSize $fname]
       $cells1(Summary) Item $startrow $colsum $entityCount
     }
 
 # open file of entities (-skip.dat) not to process (skipEntities), skipPerm are entities always to skip
+    set skipEntities {}
     set cfile [file rootname $fname]
     append cfile "-skip.dat"
     set skipPerm {}
@@ -334,7 +328,7 @@ proc genExcel {{numFile 0}} {
             append msg "\n1 - Syntax errors in the STEP file"
             append msg "\n    Use F8 to run the Syntax Checker to check for errors in the STEP file.  See Help > Syntax Checker"
             append msg "\n    Try opening the file in a STEP viewer.  See Websites > STEP File Viewers"
-            append msg "\n2 - File or directory name contains accented, non-English, or symbol characters"
+            append msg "\n2 - File or directory name contains accented, non-English, or symbol characters.  See Help > Text Strings"
             append msg "\n     [file nativename $fname]"
             append msg "\n    Change the file or directory name"
             append msg "\n3 - If the problem is not with the STEP file, then restart this software and try again."
@@ -889,6 +883,7 @@ proc genExcel {{numFile 0}} {
     set spmiEntity {}
     set spmiSumRow 1
     set stat 1
+    set valRounded 0
     set wsCount 0
     set x3dMsg {}
     foreach f {elements mesh meshIndex faceIndex} {catch {file delete -force -- [file join $mytemp $f.txt]}}
@@ -1068,10 +1063,21 @@ proc genExcel {{numFile 0}} {
 # -------------------------------------------------------------------------------------------------
 # add PMI Rep. Coverage Analysis worksheet for a single file
     if {$opt(PMISEM)} {
+
+# check for datum and datum_system
+      if {!$opt(PMISEMDIM)} {
+        if {[info exists entCount(datum)]} {
+          for {set i 0} {$i < $entCount(datum)} {incr i} {lappend spmiTypesPerFile "datum (6.5)"}
+        }
+        if {[info exists entCount(datum_system)] && [lsearch $spmiTypesPerFile "datum system"] == -1} {
+          for {set i 0} {$i < $entCount(datum_system)} {incr i} {lappend spmiTypesPerFile "datum system"}
+        }
+      }
+
       if {[info exists spmiTypesPerFile]} {
+        set ok 0
 
 # do not generate if only certain PMI types were counted
-        set ok 0
         foreach type $spmiTypesPerFile {
           if {[string first "saved views" $type] == -1 && [string first "editable text" $type] == -1 && [string first "document identification" $type] == -1 &&
               [string first "standard" $type] == -1 && [string first "default tolerance decimal places" $type] == -1} {set ok 1; break}
@@ -1154,7 +1160,9 @@ proc genExcel {{numFile 0}} {
   set cc [clock clicks -milliseconds]
   set proctime [expr {($cc - $lasttime)/1000}]
   if {$proctime <= 60} {set proctime [expr {(($cc - $lasttime)/100)/10.}]}
-  outputMsg "Processing time: $proctime seconds"
+  set clr "black"
+  if {!$useXL} {set clr "blue"}
+  outputMsg "Processing time: $proctime seconds" $clr
   incr filesProcessed
   update
 
@@ -1542,7 +1550,7 @@ proc addHeaderWorksheet {numFile fname} {
       if {$c1 != -1} {lappend caxifrp [string trim [string range $fd $c1+20 end]]}
     }
     if {[llength $caxifrp] > 0} {
-      outputMsg "\nCAx-IF Recommended Practices: (https://www.cax-if.org/cax/cax_recommPractice.php)" blue
+      outputMsg "\nCAx-IF Recommended Practices (See Websites):" blue
       foreach item $caxifrp {
         outputMsg " $item"
         lappend spmiTypesPerFile "document identification"

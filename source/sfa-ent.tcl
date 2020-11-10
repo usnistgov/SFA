@@ -9,8 +9,8 @@ proc getEntity {objEntity checkInverse} {
   #if {$developer} {if {$thisEntType != $expectedEnt} {errorMsg "Mismatch: $thisEntType  $expectedEnt"}}
 
   if {[info exists invVals]} {unset invVals}
-  set cellLimit1 200
-  set cellLimit2 500
+  set cellLimit1 500
+  set cellLimit2 3000
 
 # -------------------------------------------------------------------------------------------------
 # open worksheet for each entity if it does not already exist
@@ -393,16 +393,16 @@ proc getEntityCSV {objEntity} {
 # get entity type
   set thisEntType [$objEntity Type]
   set cellLimit1 500
-  set cellLimit2 1000
+  set cellLimit2 3000
 
 # -------------------------------------------------------------------------------------------------
 # csv file for each entity if it does not already exist
   if {![info exists csvfile($thisEntType)]} {
-    set msg "[formatComplexEnt $thisEntType] ("
+    set countMsg "[formatComplexEnt $thisEntType] ("
     set rm [expr {$rowmax-3}]
-    if {$entCount($thisEntType) > $rm} {append msg "$rm of "}
-    append msg "$entCount($thisEntType))"
-    outputMsg $msg
+    if {$entCount($thisEntType) > $rm} {append countMsg "$rm of "}
+    append countMsg "$entCount($thisEntType))"
+    outputMsg $countMsg
     
     if {$entCount($thisEntType) > $rm} {errorMsg " Maximum Rows ($rm) exceeded (see Spreadsheet tab)" red}
     if {$entCount($thisEntType) > 10000 && $rm > 10000} {errorMsg " Number of entities > 10000.  Consider using the Maximum Rows option." red}
@@ -416,7 +416,7 @@ proc getEntityCSV {objEntity} {
       set csvintemp 1
     }
     set fcsv [open $csvfname w]
-    puts $fcsv "[formatComplexEnt $thisEntType] ($entCount($thisEntType))"
+    puts $fcsv $countMsg
 
 # headings in first row
     set csvstr "ID"
@@ -489,7 +489,7 @@ proc getEntityCSV {objEntity} {
 
 # error getting attribute value
       } emsgv]} {
-        set msg "ERROR processing #[$objEntity P21ID]=[$objEntity Type] '$attrName' attribute: $emsgv"
+        set msg "ERROR processing [$objEntity Type] '$attrName' attribute: $emsgv"
         if {[string first "datum_reference_compartment 'modifiers' attribute" $msg] != -1 || \
             [string first "datum_reference_element 'modifiers' attribute" $msg] != -1 || \
             [string first "annotation_plane 'elements' attribute" $msg] != -1} {

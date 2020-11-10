@@ -301,14 +301,13 @@ proc indentFile {ifile} {
 
   if {[llength $indentMissing] > 0} {errorMsg "Missing STEP entities: [lsort $indentMissing]"}
 
-  set fs [expr {[file size $indentFileName]/1024}]
-  if {$editorCmd != "" && $fs < 100000} {
+  if {$editorCmd != "" && [file size $indentFileName] < 100000000} {
     outputMsg "Opening Tree View STEP file:"
     exec $editorCmd [file nativename $indentFileName] &
   } else {
     outputMsg "Tree View STEP file written:"
   }
-  outputMsg " [truncFileName [file nativename $indentFileName] 1] ($fs Kb)" blue
+  outputMsg " [truncFileName [file nativename $indentFileName] 1] ([fileSize $indentFileName])" blue
 }
 
 #-------------------------------------------------------------------------------

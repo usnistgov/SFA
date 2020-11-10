@@ -8,7 +8,7 @@ proc nistReadExpectedPMI {} {
 
 # check mytemp dir
       checkTempDir
-      
+
 # first mount NIST zip file with images and expected PMI
       if {$nistVersion} {
         set fn [file join $wdir SFA-NIST-files.zip]
@@ -54,7 +54,7 @@ proc nistReadExpectedPMI {} {
         close $f
       }
     }
-          
+
 # get expected PMI
     if {![info exists nistPMImaster($nistName)]} {
       if {$excelVersion > 11} {
@@ -62,18 +62,18 @@ proc nistReadExpectedPMI {} {
         set fn "SFA-PMI-$nistName.xlsx"
         if {[file exists NIST/$fn]} {file copy -force NIST/$fn $mytemp}
         set fname [file nativename [file join $mytemp $fn]]
-  
+
         if {[file exists $fname]} {
           if {$lf} {outputMsg " "}
           outputMsg "Reading Expected PMI for: $nistName (See Help > Analyze > NIST CAD Models)" blue
           set pid1 [twapi::get_process_ids -name "EXCEL.EXE"]
           set excel2 [::tcom::ref createobject Excel.Application]
           set pid2 [lindex [intersect3 $pid1 [twapi::get_process_ids -name "EXCEL.EXE"]] 2]
-      
+
           $excel2 Visible 0
           set workbooks2  [$excel2 Workbooks]
           set worksheets2 [[$workbooks2 Open $fname] Worksheets]
-  
+
           set matrix [GetWorksheetAsMatrix [$worksheets2 Item [expr 1]]]
           set r1 [llength $matrix]
           for {set r 0} {$r < $r1} {incr r} {
@@ -81,7 +81,7 @@ proc nistReadExpectedPMI {} {
             set pmi [lindex [lindex $matrix $r] 1]
             if {$typ != "" && $pmi != ""} {lappend nistPMImaster($nistName) "$typ\\$pmi"}
           }
-      
+
           $workbooks2 Close
           $excel2 Quit
           update idletasks
@@ -124,7 +124,7 @@ proc nistGetSummaryPMI {} {
         set pmi [string range $item $c1+1 end]
         set newpmi [pmiRemoveZeros $pmi]
         lappend nistPMIexpected($nistName) $newpmi
-      
+
 # look for 'nX' in expected
         set c1 [string first "X" $newpmi]
         if {$c1 < 3} {
@@ -133,7 +133,7 @@ proc nistGetSummaryPMI {} {
         } else {
           lappend nistPMIexpectedNX($nistName) $newpmi
         }
-        
+
         if {[string first "tolerance" $typ] != -1} {
           foreach nam $tolNames {if {[string first $nam $typ] != -1} {set pmiType($newpmi) $nam}}
         } else {
@@ -166,6 +166,16 @@ proc nistCheckExpectedPMI {val entstr} {
 # remove between
   set c1 [string first $pmiModifiers(between) $val]
   if {$c1 > 0} {set val [string range $val 0 $c1-2]}
+  
+# remove circle (I)
+  set c1 [string first "\u24BE" $val]
+  if {$c1 > 0} {regsub "\u24BE" $val "" val}
+
+# remove datum feature
+  if {$entstr == "dimensional_characteristic_representation"} {
+    set c1 [string first "\u25BD" $val]
+    if {$c1 != -1} {set val [string range $val 0 $c1-5]}
+  }
 
 # remove zeros from val
   set val [pmiRemoveZeros $val]
@@ -199,7 +209,7 @@ proc nistCheckExpectedPMI {val entstr} {
 
 # check each value in nistPMIexpected
     foreach pmi $nistPMIexpected($nistName) {
-      
+
 # simple match, remove from nistPMIexpected
       if {$val == $pmi && $pmiMatch != 1} {
         set pmiMatch 1
@@ -210,9 +220,9 @@ proc nistCheckExpectedPMI {val entstr} {
         #outputMsg " simple match  $val $pmiMatch $valType($val)" green
       }
     }
-    
+
 # -------------------------------------------------------------------------------
-# try match dimensions to expected without 'nX'              
+# try match dimensions to expected without 'nX'
     if {$pmiMatch == 0 && $entstr == "dimensional_characteristic_representation"} {
       set c1 [string first "X" $val]
       if {$c1 < 3} {
@@ -227,8 +237,8 @@ proc nistCheckExpectedPMI {val entstr} {
           set nistPMIexpectedNX($nistName) [lreplace $nistPMIexpectedNX($nistName) $pmiMatchNX $pmiMatchNX]
           set pf $val
         }
-        
-# try simple match as above        
+
+# try simple match as above
         if {$pmiMatch != 0.95} {
           foreach pmi $nistPMIexpectedNX($nistName) {
             if {$valnx == $pmi && $pmiMatch != 1} {
@@ -257,7 +267,7 @@ proc nistCheckExpectedPMI {val entstr} {
         set look 0
         if {$valType($val) == $pmiType($pmi) && $val != "" && $pmiMatch < 0.9} {set look 1}
         if {$valType($val) == "datum_target" && $pmiType($pmi) == "placed_datum_target_feature" && $val != "" && $pmiMatch < 0.9} {set look 1}
-        
+
         if {$look} {
           set ok 1
 
@@ -328,7 +338,7 @@ proc nistCheckExpectedPMI {val entstr} {
             if {$pmiSim < 0.6} {
               if {[string first $val $pmi] != -1 || [string first $pmi $val] != -1 || $valType($val) == "flatness_tolerance"} {set pmiSim 0.6}
             }
-          
+
 # -------------------------------------------------------------------------------
 # keep best match
             if {$pmiSim > $pmiMatch} {
@@ -355,13 +365,12 @@ proc nistCheckExpectedPMI {val entstr} {
                         set val1 [string range $val 0 $c1-1]
                         set pmi1 [string range $pmi 0 $c2-1]
                         if {[string index $val1 0] == [string index $pmi1 0]} {
-                          set c3 0  
+                          set c3 0
                           if {[string index $val 0] == $pmiUnicode(diameter)} {set c3 1}
                           set val1 [string range $val1 $c3 end]
                           set pmi1 [string range $pmi1 $c3 end]
                           set diff 1.
                           catch {set diff [expr {abs($val1-$pmi1)}]}
-                          #outputMsg $diff green
                           if {$diff < 0.00101} {
                             set pmiSim 1.
                             set pmiMatch $pmiSim
@@ -435,13 +444,13 @@ proc nistCheckExpectedPMI {val entstr} {
 proc nistPMICoverage {nf} {
   global cells legendColor nistCoverageLegend nistCoverageStyle nistPMIexpected nistName
   global pmiElementsMaxRows spmiCoverages spmiCoverageWS totalPMIrows usedPMIrows worksheet
-  
+ 
   foreach idx [lsort [array names spmiCoverages]] {
     set tval [lindex [split $idx ","] 0]
     set fnam [lindex [split $idx ","] 1]
     if {$fnam == $nistName} {set coverage($tval) $spmiCoverages($idx)}
   }
-  
+
 # check values for color-coding
   for {set r 4} {$r <= $pmiElementsMaxRows} {incr r} {
     set ttyp [[$cells($spmiCoverageWS) Item $r 1] Value]
@@ -449,15 +458,15 @@ proc nistPMICoverage {nf} {
       set tval [[$cells($spmiCoverageWS) Item $r 2] Value]
       if {$tval == ""} {set tval 0}
       set tval [expr {int($tval)}]
-  
+
       foreach item [array names coverage] {
         if {[string first $item $ttyp] == 0} {
           set ok 0
-  
+
 # these words appear in other PMI elements and need to be handled separately
           if {$item != "datum" && $item != "line" && $item != "spherical" && $item != "basic" && $item != "point"} {
             set ok 1
-  
+
 # special cases
           } else {
             set str [string range $ttyp 0 [expr {[string last " " $ttyp]-1}]]
@@ -471,7 +480,7 @@ proc nistPMICoverage {nf} {
               if {$item == $str} {set ok 1}
             }
           }
-  
+
 # need better fix for free_state_condition conflict with free_state
           if {[string first "free_state_condition" $ttyp] != -1} {set ok 0}
 
@@ -484,7 +493,7 @@ proc nistPMICoverage {nf} {
             set skip 0
             if {$item == "tolerance zone diameter" &&          $tval == 0 && [[$cells($spmiCoverageWS) Item 20 2] Value] != ""} {set skip 1}
             if {$item == "tolerance zone within a cylinder" && $tval == 0 && [[$cells($spmiCoverageWS) Item 19 2] Value] != ""} {set skip 1}
-            
+
 # too few - yellow or red
             if {!$skip} {
               if {$tval < $ci} {
@@ -506,7 +515,7 @@ proc nistPMICoverage {nf} {
                 }
                 [[$worksheet($spmiCoverageWS) Range B$r] Interior] Color $legendColor($clr)
                 lappend nistCoverageStyle "$r $nf $clr $str"
-  
+
 # too many - cyan or magenta
               } elseif {$tval > $ci && $tval != 0} {
                 set ci1 $coverage($item)
@@ -521,7 +530,7 @@ proc nistPMICoverage {nf} {
                 [$worksheet($spmiCoverageWS) Range B$r] NumberFormat "@"
                 set nistCoverageLegend 1
                 lappend nistCoverageStyle "$r $nf $clr $str"
-  
+
 # just right - green
               } elseif {$tval != 0} {
                 [[$worksheet($spmiCoverageWS) Range B$r] Interior] Color $legendColor(green)
@@ -534,7 +543,7 @@ proc nistPMICoverage {nf} {
       }
     }
   }
-  
+
 # summarize PMI Representation Summary on PMI Representation Coverage worksheet
   if {[info exists nistPMIexpected($nistName)]} {nistAddExpectedPMIPercent $nf}
 }
@@ -544,7 +553,7 @@ proc nistPMICoverage {nf} {
 proc nistAddExpectedPMIPercent {nf} {
   global cells cells1 legendColor lenfilelist nistCoverageStyle nistName nistExpectedPMI
   global nistPMIexpected nistPMIfound pmiElementsMaxRows spmiCoverageWS worksheet worksheet1
-  
+
 # compute missing and total expected PMI
   set nistExpectedPMI(missing) [llength [lindex [intersect3 $nistPMIexpected($nistName) $nistPMIfound] 0]]
   set nistExpectedPMI(total) 0
@@ -561,7 +570,7 @@ proc nistAddExpectedPMIPercent {nf} {
   set range [$worksheet($spmiCoverageWS) Range B$r]
   $range HorizontalAlignment [expr -4108]
   addCellComment $spmiCoverageWS $r 1 "This table has color-coded percentages of Exact, Partial, Possible, Missing, and No matches from the PMI Representation Summary worksheet.  The Total PMI on which the percentages are based on is also shown.  The percentages for all matches except 'No match' should total 100.\n\nCoverage Analysis is only based on individual PMI elements.  The PMI Representation Summary is based on the entire PMI annotation and provides a better understanding of the PMI.  The Coverage Analysis might show that there is an Exact match (all green above) for all of the PMI elements, however, the Representation Summary might show less than Exact matches.\n\nSee Help > User Guide (section 6.5.2.1)"
-  
+
 # for multiple files, add more formatting
   if {[info exists lenfilelist]} {
     if {$lenfilelist > 1 && ![info exists nistPMIexpectedFormat]} {
@@ -594,11 +603,11 @@ proc nistAddExpectedPMIPercent {nf} {
     }
     $cells($spmiCoverageWS) Item $r 1 $str
     $cells($spmiCoverageWS) Item $r 2 $pct
-      
-# formatting      
+
+# formatting
     set range [$worksheet($spmiCoverageWS) Range B$r]
     catch {foreach i {7 10} {[[$range Borders] Item $i] Weight [expr 2]}}
-  
+
 # for multiple files, add more formatting
     if {[info exists lenfilelist]} {
       if {$lenfilelist > 1 && $nistPMIexpectedFormat >= 1} {
@@ -612,7 +621,7 @@ proc nistAddExpectedPMIPercent {nf} {
         incr nistPMIexpectedFormat
       }
     }
-    
+
 # color-code percentages
     set clr "white"
     if {$idx != "total"} {
@@ -646,7 +655,7 @@ proc nistAddExpectedPMIPercent {nf} {
     lappend nistCoverageStyle "$r $nf $clr $pct"
   }
   unset nistExpectedPMI
-  
+
 # more formatting
   set r2 [expr {$r-1}]
   foreach row [list $r $r2] {
@@ -658,7 +667,7 @@ proc nistAddExpectedPMIPercent {nf} {
 # -------------------------------------------------------------------------------
 proc nistAddCoverageStyle {} {
   global cells1 legendColor nistCoverageStyle spmiCoverageWS worksheet1
-  
+
   foreach item $nistCoverageStyle {
     set r [lindex [split $item " "] 0]
     set c [expr {[lindex [split $item " "] 1]+1}]
@@ -700,7 +709,7 @@ proc nistPMISummaryFormat {} {
         [[$range Borders] Item [expr 9]] Weight [expr 2]
       }
     }
-    incr r    
+    incr r
   }
 
 # add missing pmi
@@ -726,7 +735,7 @@ proc nistPMISummaryFormat {} {
 # add coverage legend
 proc nistAddCoverageLegend {{multi 0}} {
   global cells cells1 legendColor lenfilelist spmiCoverageWS worksheet worksheet1
-  
+
   if {$multi == 0} {
     set cl $cells($spmiCoverageWS)
     set ws $worksheet($spmiCoverageWS)
@@ -738,7 +747,7 @@ proc nistAddCoverageLegend {{multi 0}} {
     set r 4
     set c [expr {$lenfilelist+4}]
   }
-  
+
   set n 0
   set legend {{"Values as Compared to NIST Test Case Drawing" ""} \
               {"See Help > Analyze > NIST CAD Models" ""} \
@@ -769,7 +778,7 @@ proc nistAddCoverageLegend {{multi 0}} {
         [[$range Borders] Item [expr 9]] Weight [expr 2]
       }
     }
-    incr r    
+    incr r
   }
 }
 
@@ -779,7 +788,7 @@ proc nistAddModelPictures {ent} {
   global cells excel localName nistModelPictures nistModelURLs mytemp nistName worksheet
 
   set ftail [string tolower [file tail $localName]]
-  
+
   if {[catch {
     set nlink 0
     set fl ""
@@ -811,11 +820,11 @@ proc nistAddModelPictures {ent} {
             if {[string first "Representation" $ent] != -1} {
               [$worksheet($ent) Range "E4"] Select
             } else {
-              [$worksheet($ent) Range "C4"] Select            
+              [$worksheet($ent) Range "C4"] Select
             }
           }
           catch {[$excel ActiveWindow] FreezePanes [expr 1]}
-          [$worksheet($ent) Range "A1"] Select            
+          [$worksheet($ent) Range "A1"] Select
 
 # link to test model drawings (doesn't always work)
           if {[string first "nist_" $fl] == 0 && $nlink < 2} {
@@ -842,7 +851,7 @@ proc nistAddModelPictures {ent} {
 # -------------------------------------------------------------------------------------------------
 proc nistGetName {} {
   global developer localName
-  
+
   set nistName ""
   set filePrefix {}
   set prefixes {}
@@ -859,7 +868,7 @@ proc nistGetName {} {
   set c 3
   if {[string first "tgp" $ftail] == 0} {set c 4}
   foreach str {asme1 ap203 ap214 ap242 242 c3e} {regsub $str $ftail "" ftail}
-  
+
 # first check some specific names, CAx-IF ISO PMI models
   foreach part [list base cheek pole spindle] {
     if {[string first "sp" $ftail1] == 0} {
@@ -872,14 +881,14 @@ proc nistGetName {} {
 
   if {$developer && [string first "step-file-analyzer" $ftail] == 0} {set nistName "nist_ctc_01"}
 
-# specific name found  
+# specific name found
   if {$nistName != ""} {return $nistName}
 
 # check for a NIST CTC or FTC
   set ctcftc 0
   set ok  0
   set ok1 0
-  
+
   if {[lsearch $filePrefix [string range $ftail 0 $c]] != -1 || [string first "nist" $ftail] != -1 || \
       [string first "ctc" $ftail] != -1 || [string first "ftc" $ftail] != -1} {
     if {[lsearch $filePrefix [string range $ftail 0 $c]] != -1} {set ftail [string range $ftail $c+1 end]}
@@ -892,7 +901,7 @@ proc nistGetName {} {
       }
     }
 
-# find nist_ctc_01 directly        
+# find nist_ctc_01 directly
     if {$ctcftc} {
       foreach zero {"0" ""} {
         for {set i 1} {$i <= 11} {incr i} {
@@ -907,7 +916,7 @@ proc nistGetName {} {
       }
     }
 
-# find the number in the string            
+# find the number in the string
     if {!$ok1} {
       foreach zero {"0" ""} {
         for {set i 1} {$i <= 11} {incr i} {
@@ -944,10 +953,7 @@ proc nistGetName {} {
       }
     }
   }
-  
-# other files
-#  if {!$ok} {}
-  
+ 
   return $nistName
 }
 
@@ -957,12 +963,12 @@ proc pmiRemoveZeros {pmi} {
 
 # line feeds
   regsub -all \n $pmi " " pmi
-  
-# |  
+
+# |
   regsub -all "\u23B9" $pmi "" pmi
   regsub -all {\|} $pmi "" pmi
-  
-# extra spaces  
+
+# extra spaces
   for {set j 0} {$j < 6} {incr j} {regsub -all "  " $pmi " " pmi}
 
   if {[string first "." $pmi] != -1} {
@@ -992,6 +998,7 @@ proc pmiRemoveZeros {pmi} {
           if {[string first ". " $spmi] != -1} {regsub {\. } $spmi " " spmi}
           set spmi "[string range $spmi 0 end-1]$pmiUnicode(degree) "
         }
+
 # reference dimension
         if {[string first "0\]" $spmi] != -1} {for {set j 0} {$j < 4} {incr j} {regsub {0\]} $spmi "\]" spmi}}
         if {[string first ".\]" $spmi] != -1} {regsub {.\]} $spmi "\]" spmi}

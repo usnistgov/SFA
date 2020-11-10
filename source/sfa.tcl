@@ -100,8 +100,8 @@ foreach id { \
 
 # set opt to 0
 foreach id { \
-  feaBounds feaDisp feaDispNoTail feaLoads feaLoadScale indentGeometry indentStyledItem INVERSE partNormals partOnly PMIGRFCOV \
-  PMISEMDIM SHOWALLPMI stepCPNT stepFEAT stepGEOM stepKINE stepUSER syntaxChecker tessPartMesh writeDirType xlHideLinks xlNoRound xlSort x3dKeep \
+  feaBounds feaDisp feaDispNoTail feaLoads feaLoadScale indentGeometry indentStyledItem INVERSE partNormals partOnly PMIGRFCOV PMISEMDIM PMISEMRND \
+  SHOWALLPMI stepCPNT stepFEAT stepGEOM stepKINE stepUSER syntaxChecker tessPartMesh writeDirType xlHideLinks xlNoRound xlSort x3dKeep \
   DEBUG1 DEBUGINV DEBUGX3D \
 } {set opt($id) 0}
 
@@ -250,11 +250,7 @@ guiStatusTab
 
 # options tab
 guiProcessAndReports
-
-# inverse relationships
 guiInverse
-
-# open option, output format
 guiOpenSTEPFile
 pack $fopt -side top -fill both -expand true -anchor nw
 
@@ -350,7 +346,7 @@ if {$argv != ""} {
     .tnb select .tnb.status
     if {[file exists $localName]} {
       set localNameList [list $localName]
-      outputMsg "Ready to process: [file tail $localName] ([expr {[file size $localName]/1024}] Kb)" green
+      outputMsg "Ready to process: [file tail $localName] ([fileSize $localName])" green
 
       set fileDir [file dirname $localName]
       if {$fileDir == $drive} {outputMsg "There might be problems processing a STEP file directly in the $fileDir directory." red}
@@ -410,8 +406,8 @@ set rh [expr {int([winfo reqheight .]*1.05)}]
 if {$rh > [winfo screenheight  .]} {set rh [winfo screenheight .]}
 wm minsize . $rw $rh
 
-# debug
-#compareLists "AP242" $ap242all $ap242e1
+# debug lists of entities in sfa-data.tcl
+#compareLists "AP242" $ap242all $ap242new
 
 #set all [lrmdups [concat $ap203all $ap214all $ap242all]]
 #foreach idx [array names entCategory] {compareLists "$idx" $all $entCategory($idx); outputMsg "--------------"}

@@ -138,7 +138,7 @@ proc spmiCheckEnt {ent} {
   }
 
 # counter holes
-  if {([string first "counter" $ent] != -1 || [string first "spotface" $ent] != -1) && [string first "occurrence" $ent] == -1} {
+  if {([string first "counter" $ent] != -1 || [string first "spotface" $ent] != -1 || [string first "basic_round" $ent] != -1) && [string first "occurrence" $ent] == -1} {
     if {$ent != "spotface_definition"} {set ok 1}
   }
   return $ok
@@ -308,8 +308,8 @@ proc checkForReports {entType} {
             if {$entType == "dimensional_characteristic_representation"} {
               spmiDimtolStart $entType
 
-# counter holes, spotface
-            } elseif {([string first "counter" $entType] != -1 || [string first "spotface" $entType] != -1) && [string first "occurrence" $entType] == -1} {
+# hole occurrences
+            } elseif {([string first "counter" $entType] != -1 || [string first "spotface" $entType] != -1 || [string first "basic_round" $entType] != -1) && [string first "occurrence" $entType] == -1} {
               if {$entType != "spotface_definition"} {spmiHoleStart $entType}
 
 # geometric tolerances
@@ -425,6 +425,8 @@ proc syntaxChecker {fileName} {
           if {[string first "warning: Couldn't find schema" $line] != -1} {
             errorMsg "See Help > Supported STEP APs"
           }
+        } elseif {[string first "ERROR opening" $line] != -1} {
+          append sfaerr "$line "
         }
       }
 

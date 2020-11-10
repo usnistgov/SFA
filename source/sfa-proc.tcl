@@ -1,3 +1,4 @@
+# turn on/off values and enable/disable buttons depending on values
 proc checkValues {} {
   global allNone appName appNames buttons developer edmWhereRules edmWriteToFile stepToolsWriteToFile ofCSV opt userEntityList useXL
 
@@ -12,7 +13,7 @@ proc checkValues {} {
 # Jotne EDM Model Checker
     if {$developer} {
       catch {
-        if {[string first "EDM Model Checker" $appName] == 0} {
+        if {[string first "EDM Model Checker" $appName] == 0 || [string first "EDMsdk" $appName] != -1} {
           pack $buttons(edmWhereRules) -side left -anchor w -padx {5 0}
           pack $buttons(edmWriteToFile) -side left -anchor w -padx {5 0}
         } else {
@@ -84,7 +85,7 @@ proc checkValues {} {
     foreach item [array names opt] {
       if {[string first "step" $item] == 0} {lappend butDisabled $item}
     }
-    foreach b {PMIGRF PMIGRFCOV PMISEM PMISEMDIM valProp stepUSER INVERSE} {lappend butDisabled $b}
+    foreach b {PMIGRF PMIGRFCOV PMISEM PMISEMDIM PMISEMRND valProp stepUSER INVERSE} {lappend butDisabled $b}
     foreach b {allNone0 allNone2} {lappend butDisabled $b}
     foreach b {userentity userentityopen} {lappend butDisabled $b}
     set userEntityList {}
@@ -170,14 +171,14 @@ proc checkValues {} {
       set opt($b) 1
       lappend butDisabled $b
     }
-    lappend butNormal PMISEMDIM
+    foreach b {PMISEMDIM PMISEMRND} {lappend butNormal $b}
   } else {
     foreach b {stepREPR stepTOLR} {lappend butNormal $b}
     if {!$opt(PMIGRF)} {
       if {!$opt(valProp)} {lappend butNormal stepQUAN}
       foreach b {stepAP242 stepSHAP} {lappend butNormal $b}
     }
-    lappend butDisabled PMISEMDIM
+    foreach b {PMISEMDIM PMISEMRND} {lappend butDisabled $b}
   }
 
 # not part geometry view
@@ -258,6 +259,7 @@ proc checkValues {} {
 }
 
 # -------------------------------------------------------------------------------------------------
+# set the min/max xyz coordinates
 proc setCoordMinMax {coord} {
   global x3dMax x3dMin x3dPoint
 
@@ -335,6 +337,7 @@ proc setColorIndex {ent {multi 0}} {
 }
 
 #-------------------------------------------------------------------------------
+# open a URL
 proc openURL {url} {
   global pf32
 
@@ -363,6 +366,7 @@ proc openURL {url} {
 }
 
 #-------------------------------------------------------------------------------
+# file open dialog
 proc openFile {{openName ""}} {
   global buttons drive editorCmd fileDir localName localNameList
 
@@ -405,7 +409,7 @@ proc openFile {{openName ""}} {
 
     set fileDir [file dirname $localName]
     if {[string first "z" [string tolower [file extension $localName]]] == -1} {
-      outputMsg "\nReady to process: [file tail $localName] ([expr {[file size $localName]/1024}] Kb)" green
+      outputMsg "\nReady to process: [file tail $localName] ([fileSize $localName])" green
       if {$fileDir == $drive} {outputMsg "There might be problems processing the STEP file directly in the $fileDir directory." red}
       if {[info exists buttons]} {
         $buttons(genExcel) configure -state normal
@@ -430,12 +434,13 @@ proc openFile {{openName ""}} {
 }
 
 # -------------------------------------------------------------------------------------------------
+# get first file from file menu
 proc getFirstFile {} {
   global editorCmd openFileList buttons
 
   set localName [lindex $openFileList 0]
   if {$localName != ""} {
-    outputMsg "\nReady to process: [file tail $localName] ([expr {[file size $localName]/1024}] Kb)" green
+    outputMsg "\nReady to process: [file tail $localName] ([fileSize $localName])" green
 
     if {[info exists buttons(appOpen)]} {
       .tnb select .tnb.status
@@ -454,6 +459,7 @@ proc getFirstFile {} {
 }
 
 #-------------------------------------------------------------------------------
+# add to the file menu
 proc addFileToMenu {} {
   global openFileList localName File buttons
 
@@ -515,11 +521,12 @@ proc addFileToMenu {} {
 }
 
 #-------------------------------------------------------------------------------
+# unzip a STEP file
 proc unzipFile {} {
   global localName mytemp wdir
 
   if {[catch {
-    outputMsg "\nUnzipping: [file tail $localName] ([expr {[file size $localName]/1024}] Kb)"
+    outputMsg "\nUnzipping: [file tail $localName] ([fileSize $localName])"
 
 # copy gunzip to TEMP
     if {[file exists [file join $wdir exe gunzip.exe]]} {file copy -force -- [file join $wdir exe gunzip.exe] $mytemp}
@@ -564,6 +571,19 @@ proc unzipFile {} {
 }
 
 #-------------------------------------------------------------------------------
+# file size in KB or MB
+proc fileSize {fn} {
+  set fs [expr {[file size $fn]/1024}]
+  if {$fs < 10000} {
+    return "$fs KB"
+  } else {
+    set fs [expr {round(double($fs)/1024.)}]
+    return "$fs MB"
+  }
+}
+
+#-------------------------------------------------------------------------------
+# save the state of variables to STEP-File-Analyzer-options.dat
 proc saveState {{ok 1}} {
   global buttons developer dispCmd dispCmds fileDir fileDir1 filesProcessed lastX3DOM lastXLS lastXLS1 mydocs openFileList
   global opt optionsFile sfaVersion statusFont upgrade upgradeIFCsvr userEntityFile userWriteDir
@@ -662,6 +682,7 @@ proc saveState {{ok 1}} {
 }
 
 #-------------------------------------------------------------------------------
+# open a STEP file in an app
 proc runOpenProgram {} {
   global appName dispCmd drive editorCmd edmIds edmr edmw edmWhereRules edmWriteToFile stepToolsWriteToFile File localName
 
@@ -669,7 +690,6 @@ proc runOpenProgram {} {
   set idisp [file rootname [file tail $dispCmd]]
   if {[info exists appName]} {if {$appName != ""} {set idisp $appName}}
 
-  .tnb select .tnb.status
   outputMsg "\nOpening STEP file in: $idisp"
 
 # open file
@@ -678,7 +698,8 @@ proc runOpenProgram {} {
       [string first "Tree View"         $idisp] == -1 && \
       [string first "Default"           $idisp] == -1 && \
       [string first "QuickStep"         $idisp] == -1 && \
-      [string first "EDM Model Checker" $idisp] == -1} {
+      [string first "EDM Model Checker" $idisp] == -1 && \
+      [string first "EDMsdk"            $idisp] == -1} {
 
 # start up with a file
     if {[catch {
@@ -694,6 +715,7 @@ proc runOpenProgram {} {
     } emsg]} {
       if {[string first "UNC" $emsg] != -1} {set emsg [fixErrorMsg $emsg]}
       if {$emsg != ""} {
+        .tnb select .tnb.status
         errorMsg "No app is associated with STEP files."
         errorMsg " See Websites > STEP File Viewers"
       }
@@ -701,6 +723,7 @@ proc runOpenProgram {} {
 
 # file tree view
   } elseif {[string first "Tree View" $idisp] != -1} {
+    .tnb select .tnb.status
     indentFile $dispFile
 
 # QuickStep
@@ -711,6 +734,7 @@ proc runOpenProgram {} {
 #-------------------------------------------------------------------------------
 # validate file with ST-Developer Conformance Checkers
   } elseif {[string first "Conformance" $idisp] != -1} {
+    .tnb select .tnb.status
     set stfile $dispFile
     outputMsg "Ready to validate: [file tail $stfile]" blue
     cd [file dirname $stfile]
@@ -745,13 +769,14 @@ proc runOpenProgram {} {
 
 #-------------------------------------------------------------------------------
 # Jotne EDM Model Checker (only for developer)
-  } elseif {[string first "EDM Model Checker" $idisp] != -1} {
+  } elseif {[string first "EDM Model Checker" $idisp] != -1 || [string first "EDMsdk" $idisp] != -1} {
     set filename $dispFile
     outputMsg "Ready to validate: [file tail $filename]" blue
     cd [file dirname $filename]
 
-# set password
-    set edmVer [string index $idisp end]
+# set version and password
+    set edmVer 5
+    if {[string first "EDMsdk6" $idisp] != -1} {set edmVer 6}
     set edmPW "NIST@edm$edmVer"
 
 # write script file to open database
@@ -769,28 +794,28 @@ proc runOpenProgram {} {
     set fschema [getSchemaFromFile $filename]
 
 # set database dir
-    set edmVer [string index $idisp end]
     if {$edmVer == 5} {
       set edmDB [file nativename [file join $edmDir db]]
     } elseif {$edmVer == 6} {
       set edmDB [file nativename [file join $drive edm edm6 db]]
     }
 
-    if {[string first "AP203_CONFIGURATION_CONTROLLED_3D_DESIGN_OF_MECHANICAL_PARTS_AND_ASSEMBLIES_MIM_LF" $fschema] == 0} {
+    if {[string first "AP203_CONFIGURATION_CONTROLLED_3D_DESIGN_OF_MECHANICAL_PARTS_AND_ASSEMBLIES_MIM_LF" $fschema] == 0 && $edmVer == 5} {
       puts $scriptFile "Database>Open($edmDB, ap203, $edmPW, \"$edmDBopen\")"
-    } elseif {$fschema == "CONFIG_CONTROL_DESIGN"} {
+    } elseif {[string first "CONFIG_CONTROL_DESIGN" $fschema] == 0 && $edmVer == 5} {
       puts $scriptFile "Database>Open($edmDB, ap203e1, $edmPW, \"$edmDBopen\")"
-    } elseif {[string first "AP209_MULTIDISCIPLINARY_ANALYSIS_AND_DESIGN_MIM_LF" $fschema] == 0} {
+    } elseif {[string first "AP209_MULTIDISCIPLINARY_ANALYSIS_AND_DESIGN_MIM_LF" $fschema] == 0 && $edmVer == 5} {
       puts $scriptFile "Database>Open($edmDB, ap209, $edmPW, \"$edmDBopen\")"
-    } elseif {$fschema == "AUTOMOTIVE_DESIGN"} {
+    } elseif {[string first "AUTOMOTIVE_DESIGN" $fschema] == 0 && $edmVer == 5} {
       puts $scriptFile "Database>Open($edmDB, ap214, $edmPW, \"$edmDBopen\")"
     } elseif {[string first "AP242_MANAGED_MODEL_BASED_3D_ENGINEERING_MIM_LF" $fschema] == 0} {
       set ap242 "ap242"
       if {[string first "442 2 1 4" $fschema] != -1 || [string first "442 3 1 4" $fschema] != -1} {append ap242 "e2"}
       puts $scriptFile "Database>Open($edmDB, $ap242, $edmPW, \"$edmDBopen\")"
     } else {
-      outputMsg "$idisp cannot be used with:\n $fschema" red
+      outputMsg "$idisp cannot be used with: $fschema" red
       set okschema 0
+      .tnb select .tnb.status
     }
 
 # create a temporary file if certain characters appear in the name, copy original to temporary and process that one
@@ -853,7 +878,7 @@ proc runOpenProgram {} {
 # compact log file
         set edmtmp "[file rootname $filename]-edm$edmVer-tmp.log"
         file copy -force $edmLog $edmtmp
-        set edmr [open $edmtmp  r]
+        set edmr [open $edmtmp r]
         set edmw [open $edmLog w]
 
 # read the results of the validation and count errors and warnings
@@ -868,14 +893,15 @@ proc runOpenProgram {} {
           }
           puts $edmw $line
         }
+        update idletasks
         close $edmr
         close $edmw
-        file delete -force -- $edmtmp
+        #file delete -force -- $edmtmp
 
+        .tnb select .tnb.status
         if {[string first "Notepad++" $editorCmd] != -1} {
           outputMsg "Opening log file(s) in editor"
           exec $editorCmd $edmLog &
-          after 1000
           if {[file size $edmLogImport] > 0} {
             exec $editorCmd $edmLogImport &
           } else {
@@ -892,7 +918,7 @@ proc runOpenProgram {} {
         catch {file delete -force -- $edmScript}
         after 1000
         incr nerr
-        if {$nerr > 60} {break}
+        if {$nerr > 10} {break}
       }
 
 # if using a temporary file, attempt to delete it
@@ -902,7 +928,7 @@ proc runOpenProgram {} {
           catch {file delete -force -- $edmFile}
           after 1000
           incr nerr
-          if {$nerr > 60} {break}
+          if {$nerr > 10} {break}
         }
       }
     }
@@ -1035,6 +1061,7 @@ proc openXLS {filename {check 0} {multiFile 0}} {
 }
 
 #-------------------------------------------------------------------------------
+# save the log file of messages from the Status tab
 proc saveLogFile {lfile} {
   global buttons currLogFile editorCmd logFile multiFile
 
@@ -1054,6 +1081,7 @@ proc saveLogFile {lfile} {
 }
 
 #-------------------------------------------------------------------------------
+# check if there are instances of Excel already open
 proc checkForExcel {{multFile 0}} {
   global buttons lastXLS localName opt
 
@@ -1095,6 +1123,7 @@ proc getNextUnusedColumn {ent} {
 }
 
 # -------------------------------------------------------------------------------
+# format a complex entity name, e.g., first_and_second > (first)(second)
 proc formatComplexEnt {str {space 0}} {
   global andEntAP209 entCategory opt stepAP
 
@@ -1135,6 +1164,7 @@ proc formatComplexEnt {str {space 0}} {
 }
 
 #-------------------------------------------------------------------------------
+# generate cell, e.g., 2 4 > D2
 proc cellRange {r c} {
   global letters
 
@@ -1160,6 +1190,7 @@ proc cellRange {r c} {
 }
 
 #-------------------------------------------------------------------------------
+# add comment to cell
 proc addCellComment {ent r c comment} {
   global recPracNames worksheet
 
@@ -1291,6 +1322,7 @@ proc colorBadCells {ent} {
 }
 
 #-------------------------------------------------------------------------------
+# trim the precision of a number, probably an easier way to do this, but it's old code
 proc trimNum {num {prec 3}} {
   global unq_num
 
@@ -1328,6 +1360,7 @@ proc trimNum {num {prec 3}} {
 }
 
 #-------------------------------------------------------------------------------
+# write message to the Status tab with the correct color
 proc outputMsg {msg {color "black"}} {
   global logFile opt outputWin
 
@@ -1341,6 +1374,7 @@ proc outputMsg {msg {color "black"}} {
 }
 
 #-------------------------------------------------------------------------------
+# write error message to the Status tab with the correct color
 proc errorMsg {msg {color ""}} {
   global clTextColor errmsg logFile opt outputWin stepAP
 
@@ -1421,6 +1455,7 @@ proc errorMsg {msg {color ""}} {
 }
 
 # -------------------------------------------------------------------------------------------------
+# fix the error message when it contains "UNC"
 proc fixErrorMsg {emsg} {
   set emsg [split $emsg "\n"]
   if {[llength $emsg] > 3} {
@@ -1432,25 +1467,27 @@ proc fixErrorMsg {emsg} {
 }
 
 # -------------------------------------------------------------------------------------------------
+# truncate the file name to be shorter
 proc truncFileName {fname {compact 0}} {
   global mydesk mydocs
 
-  if {[string first $mydocs $fname] == 0} {
-    set nname "[string range $fname 0 2]...[string range $fname [string length $mydocs] end]"
-  } elseif {[string first $mydesk $fname] == 0 && $mydesk != $fname} {
-    set nname "[string range $fname 0 2]...[string range $fname [expr {[string length $mydesk]-8}] end]"
-  } elseif {[string first "Downloads" $fname] != -1} {
-    set indices [regexp -inline -all -indices {\\} $mydocs]
-    set mydown "[string range $mydocs 0 [lindex [lindex $indices 2] 0]]Downloads"
-    if {[string first $mydown $fname] == 0} {
-      set nname "[string range $fname 0 2]...[string range $fname [expr {[string length $mydown]-10}] end]"
+# if file is in Documents, Desktop, or Downloads, then shorten name
+  catch {
+    if {[string first $mydocs $fname] == 0} {
+      set nname "[string range $fname 0 2]...[string range $fname [string length $mydocs] end]"
+    } elseif {[string first $mydesk $fname] == 0 && $mydesk != $fname} {
+      set nname "[string range $fname 0 2]...[string range $fname [expr {[string length $mydesk]-8}] end]"
+    } elseif {[string first "Downloads" $fname] != -1} {
+      set indices [regexp -inline -all -indices {\\} $mydocs]
+      set mydown "[string range $mydocs 0 [lindex [lindex $indices 2] 0]]Downloads"
+      if {[string first $mydown $fname] == 0} {
+        set nname "[string range $fname 0 2]...[string range $fname [expr {[string length $mydown]-10}] end]"
+      }
     }
   }
+  if {[info exists nname]} {if {$nname != "C:\\..."} {set fname $nname}}
 
-  if {[info exists nname]} {
-    if {$nname != "C:\\..."} {set fname $nname}
-  }
-
+# compact name if longer than 80 characters
   if {$compact} {
     catch {
       while {[string length $fname] > 80} {
@@ -1846,6 +1883,7 @@ proc checkTempDir {} {
 }
 
 #-------------------------------------------------------------------------------
+# reformat timestamp in the HEADER section
 proc fixTimeStamp {ts} {
   set c1 [string last "+" $ts]
   if {$c1 != -1} {set ts [string range $ts 0 $c1-1]}
@@ -1859,6 +1897,7 @@ proc fixTimeStamp {ts} {
 }
 
 #-------------------------------------------------------------------------------
+# get timing for the code, getTiming is always commented out, uncomment to debug
 proc getTiming {{str ""}} {
   global tlast
 
@@ -1907,6 +1946,7 @@ proc ColumnIntToChar {col} {
 }
 
 #-------------------------------------------------------------------------------
+# compare two lists of similar values for debugging, see sfa.tcl
 proc compareLists {str l1 l2} {
   set l3 [intersect3 $l1 $l2]
   outputMsg "\n$str" red

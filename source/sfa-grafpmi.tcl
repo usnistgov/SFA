@@ -167,7 +167,7 @@ proc gpmiAnnotationReport {objEntity} {
   global gpmiName gpmiPlacement gpmiRow gpmiTypes gpmiTypesInvalid gpmiTypesPerFile gpmiValProp iCompCurve iCompCurveSeg iPolyline
   global nindex numCompCurve numCompCurveSeg numPolyline numx3dPID objEntity1 opt placeAnchor placeNCP placeOrigin
   global pmiCol pmiColumns pmiHeading pmiStartCol propDefIDS recPracNames savedViewCol savedViewName spaces stepAP syntaxErr
-  global tessCoord tessIndex tessIndexCoord tessPlacement tessPlacementID tessRepo useXL
+  global tessCoord tessIndex tessIndexCoord tessPlacement tessPlacementID tessRepo useXL whiteColor
   global x3dColor x3dCoord x3dFile x3dFileName x3dIndex x3dIndexType x3dMax x3dMin x3dMsg x3dPID x3dPoint x3dShape x3dStartFile
 
 # entLevel is very important, keeps track level of entity in hierarchy
@@ -767,7 +767,8 @@ proc gpmiAnnotationReport {objEntity} {
                 }
                 "colour_rgb red" {
                   if {$entLevel == 4 || $entLevel == 8} {
-                    set colorRGB [trimNum $objValue]
+                    set objValue [trimNum $objValue]
+                    set colorRGB $objValue
                     if {$opt(gpmiColor) > 0} {
                       set x3dColor [x3dSetPMIColor $opt(gpmiColor)]
                     } else {
@@ -777,14 +778,19 @@ proc gpmiAnnotationReport {objEntity} {
                 }
                 "colour_rgb green" {
                   if {$entLevel == 4 || $entLevel == 8} {
-                    append colorRGB " [trimNum $objValue]"
+                    set objValue [trimNum $objValue]
+                    append colorRGB " $objValue"
                     if {$opt(gpmiColor) == 0} {append x3dColor " $objValue"}
                   }
                 }
                 "colour_rgb blue" {
                   if {$entLevel == 4 || $entLevel == 8} {
-                    append colorRGB " [trimNum $objValue]"
-                    if {$opt(gpmiColor) == 0} {append x3dColor " $objValue"}
+                    set objValue [trimNum $objValue]
+                    append colorRGB " $objValue"
+                    if {$opt(gpmiColor) == 0} {
+                      append x3dColor " $objValue"
+                      if {[expr {([lindex $x3dColor 0]+[lindex $x3dColor 1]+[lindex $x3dColor 2])/3.}] > 0.93} {set whiteColor 1}
+                    }
                     if {$opt(PMIGRF) && $opt(xlFormat) != "None"} {
                       set ok 1
                       set col($ao) [expr {$pmiStartCol($ao)+3}]
@@ -800,7 +806,11 @@ proc gpmiAnnotationReport {objEntity} {
                 "draughting_pre_defined_colour name" {
                   if {$entLevel == 4 || $entLevel == 8} {
                     set x3dColor [x3dPreDefinedColor $objValue]
-                    if {$opt(gpmiColor) > 0} {set x3dColor [x3dSetPMIColor $opt(gpmiColor)]}
+                    if {$opt(gpmiColor) > 0} {
+                      set x3dColor [x3dSetPMIColor $opt(gpmiColor)]
+                    } elseif {$objValue == "white"} {
+                      set whiteColor 1
+                    }
                     if {$opt(PMIGRF) && $opt(xlFormat) != "None"} {
                       set ok 1
                       set col($ao) [expr {$pmiStartCol($ao)+3}]

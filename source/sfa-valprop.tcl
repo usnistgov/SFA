@@ -50,14 +50,26 @@ proc valPropStart {} {
     [list "number of segments" [list "number of segments"]] \
     [list "surface area" [list "tessellated surface area"]]]
 
-# composite recommended practice (version 0.14 of RP)
+# composite recommended practice (version 0.16 of RP)
   set valPropNames(composite_validation_property) [list \
-    [list "" [list "centre point of all plies" "centre point" "curve centre point" "curve length measure" "notational centre point" "notational centroid" \
-      "number of composite materials per laminate table" "number of composite materials per part" "number of composite orientations per laminate table" \
-      "number of composite sequences per laminate table" "number of composite tables" "number of cores" "number of materials" "number of orientations per part" \
-      "number of orientations" "number of plies per laminate table" "number of plies per part" "number of plies" "number of ply pieces per ply" "number of rosettes" \
-      "number of sequences" "number of tables" "ordered list of orientation names" "ordered list of orientation values" "ordered sequences per laminate table" \
-      "sum of all core volumes" "sum of all ply surfaces areas" "sum of all ply volumes" "surface area measure" "volume measure"]]]
+    [list "" [list "notational centroid" "number of composite materials per laminate table" \
+      "number of composite materials per part" "number of composite orientations per laminate table" "number of composite sequences per laminate table" \
+      "number of composite tables" "number of cores" "number of materials" "number of orientations per part" "number of orientations" \
+      "number of plies per laminate table" "number of plies per part" "number of plies" "number of ply pieces per ply" "number of rosettes" \
+      "number of sequences" "number of tables" "ordered list of orientation names" "ordered list of orientation values" \
+      "ordered sequences per laminate table"]] \
+    [list "centroid" [list "centre point"]] \
+    [list "curve centroid" [list "curve centre point"]] \
+    [list "curve length" [list "curve length measure"]] \
+    [list "guide curve length" [list "curve length measure"]] \
+    [list "notional rosette centroid" [list "notational centre point"]] \
+    [list "ply centroid" [list "centre point of all plies"]] \
+    [list "sum of all core volumes" [list "volume measure"]] \
+    [list "sum of all geometric boundary curve length" [list "curve length measure"]] \
+    [list "sum of all ply surfaces areas" [list "surface area measure"]] \
+    [list "sum of all ply volumes" [list "volume measure"]] \
+    [list "surface area" [list "surface area measure"]] \
+    [list "volume" [list "volume measure"]]]
 
 # FEA validation properties
   set valPropNames(FEA_validation_property) [list \

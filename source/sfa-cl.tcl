@@ -156,8 +156,8 @@ foreach id {logFile outputOpen PMIGRF PMISEM stepAP242 stepCOMM stepCOMP stepFEA
 # set opt to 0
 foreach id { \
   DEBUG1 DEBUGINV DEBUGX3D feaBounds feaDisp feaDispNoTail feaLoads feaLoadScale indentGeometry indentStyledItem INVERSE partEdges partNormals \
-  partOnly partSketch PMIGRFCOV PMISEMDIM SHOWALLPMI stepCPNT stepGEOM stepUSER syntaxChecker tessPartMesh viewFEA viewPart viewPMI viewTessPart \
-  writeDirType xlHideLinks xlNoRound xlSort x3dKeep \
+  partOnly partSketch PMIGRFCOV PMISEMDIM PMISEMRND SHOWALLPMI stepCPNT stepGEOM stepUSER syntaxChecker tessPartMesh viewFEA viewPart viewPMI \
+  viewTessPart writeDirType xlHideLinks xlNoRound xlSort x3dKeep \
 } {set opt($id) 0}
 
 set opt(gpmiColor) 3

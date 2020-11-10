@@ -1,7 +1,7 @@
 # PMI Representation Summary worksheet
 proc spmiSummary {} {
   global allPMI cells entName localName nistName nistPMIexpected pmiModifiers recPracNames row sheetLast
-  global spmiSumName spmiSumRow spmiSumRowID thisEntType timeStamp worksheet worksheets xlFileName
+  global spmiSumName spmiSumRow spmiSumRowID thisEntType timeStamp valRounded worksheet worksheets xlFileName
 
 # first time through, start worksheet
   if {$spmiSumRow == 1} {
@@ -25,6 +25,7 @@ proc spmiSummary {} {
     $cells($spmiSumName) Item $spmiSumRow 3 "PMI Representation"
 
     set comment "PMI Representation is collected here from the datum system, dimension, tolerance, and datum target entities in column B.  See Help > User Guide (section 6.1.6)"
+    if {$valRounded} {append comment "\n\nSome dimension or tolerance values are rounded."}
     if {$nistName != ""} {
       append comment "\n\nIt is color-coded by the expected PMI in the NIST test case drawing to the right.  The color-coding is explained at the bottom of the column.  Determining if the PMI is Partial and Possible match and corresponding Similar PMI depends on leading and trailing zeros, number precision, associated datum features and dimensions, and repetitive dimensions.  See Help > User Guide (section 6.5.1)"
     }
@@ -218,9 +219,11 @@ proc spmiCoverageStart {{multi 1}} {
 # -------------------------------------------------------------------------------
 # write PMI Representation Coverage analysis worksheet
 proc spmiCoverageWrite {{fn ""} {sum ""} {multi 1}} {
-  global allPMI allPMIelements cells cells1 col1 developer entCount fileList nfile nistCoverageStyle nistName opt
+  global allPMI allPMIelements cells cells1 col1 developer entCount fileList nfile nistCoverageStyle nistName
   global pmiModifiers spmiCoverageWS spmiTypesPerFile totalPMI totalPMIrows usedPMIrows worksheet worksheet1
   global objDesign
+
+  if {![info exists allPMIelements] && ![info exists entCount(datum)]} {return}
 
 # return if only 'document identification' or '... standard'
   if {[info exists spmiTypesPerFile]} {
@@ -235,12 +238,6 @@ proc spmiCoverageWrite {{fn ""} {sum ""} {multi 1}} {
       $range Orientation [expr 90]
       $range HorizontalAlignment [expr -4108]
       $cells1($spmiCoverageWS) Item 3 $col1($sum) $fn
-    }
-
-# datums handled differently (don't remember why)
-    if {[info exists entCount(datum)] && !$opt(PMISEMDIM)} {
-      for {set i 0} {$i < $entCount(datum)} {incr i} {lappend spmiTypesPerFile1 "datum (6.5)"}
-      if {$multi} {unset entCount(datum)}
     }
 
 # check for 'semantic text'
@@ -273,11 +270,6 @@ proc spmiCoverageWrite {{fn ""} {sum ""} {multi 1}} {
     if {[info exists spmiTypesPerFile]} {
       foreach id $spmiTypesPerFile {if {$id != ""} {incr num($id)}}
       foreach id [array names num] {lappend stpf [list $id $num($id)]}
-    }
-    set stpf1 {}
-    if {[info exists spmiTypesPerFile1]} {
-      foreach id $spmiTypesPerFile1 {incr num1($id)}
-      foreach id [array names num1] {lappend stpf1 [list $id $num1($id)]}
     }
 
 # search all PMI elements with stpf
@@ -319,30 +311,7 @@ proc spmiCoverageWrite {{fn ""} {sum ""} {multi 1}} {
         errorMsg "  $idx not found in allPMIelements" red
       }
     }
-
-# search all PMI elements with stpf1 (just datum)
-    foreach item $stpf1 {
-      set r [expr {[lsearch -glob $allPMIelements [lindex $item 0]*]+4}]
-      set idx [lindex $item 0]
-
-# add number of pmi to worksheet
-      set npmi [lindex $item 1]
-
-# write npmi
-      if {!$multi} {
-        $cells($spmiCoverageWS) Item $r 2 $npmi
-        set range [$worksheet($spmiCoverageWS) Range [cellRange $r 2] [cellRange $r 2]]
-        lappend usedPMIrows $r
-      } else {
-        $cells1($spmiCoverageWS) Item $r $col1($sum) $npmi
-        set range [$worksheet1($spmiCoverageWS) Range [cellRange $r $col1($sum)] [cellRange $r $col1($sum)]]
-        incr totalPMI($r) $npmi
-      }
-      $range HorizontalAlignment [expr -4108]
-      if {$multi} {set totalPMIrows($r) 1}
-    }
     catch {if {$multi} {unset spmiTypesPerFile}}
-    catch {if {$multi} {unset spmiTypesPerFile1}}
 
 # get spmiCoverages (see sfa-gen.tcl to make sure nistReadExpectedPMI is called)
     if {![info exists nfile]} {

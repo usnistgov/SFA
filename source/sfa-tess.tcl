@@ -10,18 +10,18 @@ proc tessPart {entType} {
 # edge, faces
   set tessellated_edge            [list tessellated_edge name coordinates line_strip]
   set tessellated_connecting_edge [list tessellated_connecting_edge name coordinates line_strip]
-  
+
   set triangulated_face                [list triangulated_face name]
   set triangulated_surface_set         [list triangulated_surface_set name]
   set complex_triangulated_face        [list complex_triangulated_face name]
   set complex_triangulated_surface_set [list complex_triangulated_surface_set name]
-  
+
   set PMIP(tessellated_solid) [list tessellated_solid name items \
     $tessellated_edge $tessellated_connecting_edge $triangulated_face $complex_triangulated_face $complex_triangulated_surface_set $triangulated_surface_set]
   set PMIP(tessellated_shell) [list tessellated_shell name items \
     $tessellated_edge $tessellated_connecting_edge $triangulated_face $complex_triangulated_face $complex_triangulated_surface_set $triangulated_surface_set]
   set PMIP(tessellated_wire)  [list tessellated_wire name items $tessellated_edge $tessellated_connecting_edge]
-   
+
 # initialize
   set ao $entType
   set entAttrList {}
@@ -30,7 +30,7 @@ proc tessPart {entType} {
   set entLevel 0
   setEntAttrList $PMIP($ao)
   if {$opt(DEBUG1)} {outputMsg "entattrlist $entAttrList"}
-  
+
 # open file for tessellated parts
   checkTempDir
   foreach tess {tessellated_solid tessellated_shell tessellated_wire} {
@@ -42,7 +42,7 @@ proc tessPart {entType} {
       }
     }
   }
-  
+
 # open file for tessellated supplemental geometry, might not be used
   foreach wire {tessellated_wire tessellated_shell} {
     if {[info exist entCount($wire)] && ![info exists tessSuppGeomFileName]} {
@@ -76,15 +76,15 @@ proc tessPartGeometry {objEntity} {
     set ent($entLevel) $objType
     if {$entLevel == 1} {
       set objEntity1 $objEntity
-      
-# check if tessellated shell is an item of constructive_geometry_representation (supplemental geometry)     
+
+# check if tessellated shell is an item of constructive_geometry_representation (supplemental geometry)
       set shellSuppGeom 0
       if {[$objEntity1 Type] == "tessellated_shell"} {
         set e0s [$objEntity1 GetUsedIn [string trim constructive_geometry_representation] [string trim items]]
         ::tcom::foreach e0 $e0s {set shellSuppGeom 1}
       }
     }
-  
+
     if {$opt(DEBUG1)} {outputMsg "$ind ENT $entLevel #$objID=$objType (ATR=[$objAttributes Count])" blue}
 
     ::tcom::foreach objAttribute $objAttributes {
@@ -101,7 +101,7 @@ proc tessPartGeometry {objEntity} {
         set objSize     [$objAttribute Size]
         set objAttrType [$objAttribute Type]
         set idx [lsearch $entAttrList $ent1]
-        
+
         if {$objNodeType == 20} {
           if {$idx != -1} {
             if {$opt(DEBUG1)} {outputMsg "$ind   ATR $entLevel $objName - $objValue ($objNodeType, $objSize, $objAttrType)"}
@@ -126,7 +126,7 @@ proc tessPartGeometry {objEntity} {
           if {[catch {
             if {$idx != -1} {
               if {$opt(DEBUG1)} {outputMsg "$ind   ATR $entLevel $objName - $objValue ($objNodeType, $objAttrType)  ($ent1)"}
-    
+
 # get values for these entity and attribute pairs
               switch -glob $ent1 {
                 "tessellated_shell name" -
@@ -176,13 +176,13 @@ proc tessPartGeometry {objEntity} {
 proc tessReadGeometry {{coordOnly 0}} {
   global coordinatesList entCount lineStrips localName normals opt recPracNames syntaxErr spaces
   global tessCoord tessCoordName tessIndex tessIndexCoord triangles x3dMax x3dMin
-  
+
   set tg [open $localName r]
   set ncl  0
   set ntc  0
   set ntc1 0
   set tessellated 0
-  
+
 # read everything
   if {$coordOnly == 0} {
     foreach ent {tessellated_curve_set complex_triangulated_surface_set triangulated_surface_set complex_triangulated_face triangulated_face} {
@@ -197,7 +197,7 @@ proc tessReadGeometry {{coordOnly 0}} {
     set ents [list COORDINATES_LIST]
     outputMsg " Reading coordinates_list" green
   }
-  
+
 # read step
   while {[gets $tg line] >= 0} {
     set ok 0
@@ -213,23 +213,23 @@ proc tessReadGeometry {{coordOnly 0}} {
           break
         }
       }
-      
+
 # entity ID
       set id [string range $line 1 [string first "=" $line]-1]
-      if {[string first "TRIANGULATED" $line] != -1 || [string first "CURVE" $line] != -1} {set tessellated 1}      
+      if {[string first "TRIANGULATED" $line] != -1 || [string first "CURVE" $line] != -1} {set tessellated 1}
 
 # coordinates_list
       if {[string first "COORDINATES_LIST" $line] != -1} {
         set tessCoordName($id) ""
         set c1 [string first "'" $line]
         set c2 [string last  "'" $line]
-        if {$c2 != [expr {$c1+1}]} {set tessCoordName($id) [string range $line $c1+1 $c2-1]} 
-        
+        if {$c2 != [expr {$c1+1}]} {set tessCoordName($id) [string range $line $c1+1 $c2-1]}
+
         if {$opt(stepCPNT)} {regsub -all " " [string range $line [string first "((" $line]+1 end-3] "" coordinatesList($id)}
-        
+
         set ncoord [string range $line [string first "," $line]+1 [string first "((" $line]-2]
         if {$ncoord > 50000} {errorMsg "COORDINATES_LIST #$id has $ncoord coordinates."}
-        
+
         if {$ncoord > 0} {
           set line [string range $line [string first "((" $line] end-1]
 
@@ -274,7 +274,7 @@ proc tessReadGeometry {{coordOnly 0}} {
         set tessIndexCoord($id) [string range $line $c1+2 $c2-2]
         set c1 [string first "," $tessIndexCoord($id)]
         if {$c1 != -1} {set tessIndexCoord($id) [string range $tessIndexCoord($id) 0 $c1-1]}
-        
+
 # pnindex (optional)
         catch {unset pnindex}
         set c1 [string first "))" $line]
@@ -287,7 +287,7 @@ proc tessReadGeometry {{coordOnly 0}} {
 # tessellated curve set
         if {[string first "TESSELLATED_CURVE_SET" $line] != -1} {
           if {$opt(stepGEOM) || $opt(PMIGRF)} {regsub -all " " [string range $line [string first "((" $line]+1 end-3] "" lineStrips($id)}
-          
+
 # regsub is very important to distill line into something usable
           set c1 [string last "((" $line]
           if {$c1 != -1} {
@@ -324,10 +324,10 @@ proc tessReadGeometry {{coordOnly 0}} {
           #    regsub -all " " [string range $nline [string first "((" $nline]+1 [string first "))" $nline]] "" triangles($id)
           #  }
           #}
-          
+
           set line [string range $line [string first "((" $line]+2 end-1]
           set line [string trim [string range $line [string first "((" $line] end]]
-          
+
 # regsub is very important to distill line into something usable
           regsub -all " " $line "" line
           regsub -all {[(),]} $line "x" line
@@ -376,7 +376,7 @@ proc tessReadGeometry {{coordOnly 0}} {
                 }
               }
 
-# triangle face              
+# triangle face
             } else {
               if {[llength [array names pnindex]] > 0} {set pnindex(0) 0}
               set fan [split $fan " "]
@@ -393,7 +393,7 @@ proc tessReadGeometry {{coordOnly 0}} {
         incr ntc
       }
     }
-    
+
 # done reading tessellated geometry
     if {$ncl == $entCount(coordinates_list)} {
       if {($coordOnly == 0 && $ntc == $ntc1) || $coordOnly} {
@@ -424,12 +424,12 @@ proc tessSetColor {objEntity tsID} {
   } elseif {$ok} {
     if {[catch {
       set debug 0
-      
+
 # get styled_item.item for tessellated_solid/shell or triangulated faces
       ::tcom::foreach e0 [$objEntity GetUsedIn [string trim styled_item] [string trim item]] {
         if {$debug} {errorMsg "[$e0 Type] [$e0 P21ID]" green}
         set ok1 0
-        
+
 # styled_item.styles
         set a1 [[$e0 Attributes] Item [expr 2]]
 # presentation_style.styles
@@ -438,46 +438,48 @@ proc tessSetColor {objEntity tsID} {
           if {$debug} {errorMsg " [$e2 Type] [$e2 P21ID]" red}
 
           set e3 [$a2 Value]
-          set a3 [[$e3 Attributes] Item [expr 2]]
-          if {$debug} {errorMsg "  [$e3 Type] [$e3 P21ID]" red}
+          if {$e3 != "null" && $e3 != ""} {
+            set a3 [[$e3 Attributes] Item [expr 2]]
+            if {$debug} {errorMsg "  [$e3 Type] [$e3 P21ID]" red}
 # surface side style
-          set e4 [$a3 Value]
-          set a4s [[$e4 Attributes] Item [expr 2]]
+            set e4 [$a3 Value]
+            set a4s [[$e4 Attributes] Item [expr 2]]
 # surface style fill area
-          foreach e5 [$a4s Value] {
-            if {$debug} {errorMsg "   [$e5 Type] [$e5 P21ID]" red}
-            if {[$e5 Type] == "surface_style_fill_area"} {
-              set a5 [[$e5 Attributes] Item [expr 1]]
+            foreach e5 [$a4s Value] {
+              if {$debug} {errorMsg "   [$e5 Type] [$e5 P21ID]" red}
+              if {[$e5 Type] == "surface_style_fill_area"} {
+                set a5 [[$e5 Attributes] Item [expr 1]]
 # fill area style
-              set e6 [$a5 Value]
-              set a6 [[$e6 Attributes] Item [expr 2]]
+                set e6 [$a5 Value]
+                set a6 [[$e6 Attributes] Item [expr 2]]
 # fill area style colour
-              set e7 [$a6 Value]
-              set a7 [[$e7 Attributes] Item [expr 2]]
+                set e7 [$a6 Value]
+                set a7 [[$e7 Attributes] Item [expr 2]]
 # color
-              set e8 [$a7 Value]
-              if {[$e8 Type] == "colour_rgb"} {
-                set x3dColor ""
-                set j 0
-                ::tcom::foreach a8 [$e8 Attributes] {
-                  if {$j > 0} {append x3dColor "[trimNum [$a8 Value] 3] "}
-                  incr j
+                set e8 [$a7 Value]
+                if {[$e8 Type] == "colour_rgb"} {
+                  set x3dColor ""
+                  set j 0
+                  ::tcom::foreach a8 [$e8 Attributes] {
+                    if {$j > 0} {append x3dColor "[trimNum [$a8 Value] 3] "}
+                    incr j
+                  }
+                  set x3dColor [string trim $x3dColor]
+                  set tessColor($tsID) $x3dColor
+                } elseif {[$e8 Type] == "draughting_pre_defined_colour"} {
+                  set x3dColor [x3dPreDefinedColor [[[$e8 Attributes] Item [expr 1]] Value]]
+                  set tessColor($tsID) $x3dColor
+                } else {
+                  errorMsg "  Tessellated part color type '[$e8 Type]' is not supported."
+                  set tessColor($tsID) $x3dColor
                 }
-                set x3dColor [string trim $x3dColor]
-                set tessColor($tsID) $x3dColor
-              } elseif {[$e8 Type] == "draughting_pre_defined_colour"} {
-                set x3dColor [x3dPreDefinedColor [[[$e8 Attributes] Item [expr 1]] Value]]
-                set tessColor($tsID) $x3dColor
-              } else {
-                errorMsg "  Tessellated part color type '[$e8 Type]' is not supported."
-                set tessColor($tsID) $x3dColor
               }
             }
           }
         }
       }
-      
-# tessellated_solid and _shell not found in styled_item.item, try the first item of TS, usually a face      
+
+# tessellated_solid and _shell not found in styled_item.item, try the first item of TS, usually a face
       if {$ok1} {
         if {[string first "tessellated" [$objEntity Type]] == 0} {set missingStyledItem [$objEntity Type]}
         set n 0
@@ -489,13 +491,13 @@ proc tessSetColor {objEntity tsID} {
         }
       }
     } emsg]} {
-      errorMsg " ERROR setting Tessellated Geometry Color for [$objEntity Type] (using [lindex $defaultColor 1])\n $emsg"
+      errorMsg " ERROR setting Tessellated Geometry Color for [$objEntity Type] (using [lindex $defaultColor 1]): $emsg"
       set tessColor($tsID) [lindex $defaultColor 0]
     }
   } else {
     errorMsg "Syntax Error: No 'styled_item' found for tessellated geometry color (using [lindex $defaultColor 1])$spaces\($recPracNames(model), Sec. 4.2.2, Fig. 2)"
   }
-  
+
 # color not found in styled_item.item
   if {![info exists tessColor($tsID)]} {
     if {[info exists missingStyledItem]} {
@@ -506,8 +508,8 @@ proc tessSetColor {objEntity tsID} {
 
 # -------------------------------------------------------------------------------
 proc tessCountColors {} {
-  global objDesign
   global defaultColor entCount
+  global objDesign
 
 # count unique colors in colour_rgb and draughting_pre_defined_colour
   set colors {}
@@ -544,7 +546,7 @@ proc tessSetPlacement {objEntity tsID} {
   if {[catch {
     set tessRepo 0
     catch {unset tessPlacement}
-    
+
 # find tessellated_solid in tessellated_shape_representation.items
     ::tcom::foreach e0 [$objEntity GetUsedIn [string trim tessellated_shape_representation] [string trim items]] {
       if {$debug} {errorMsg "[$e0 Type] [$e0 P21ID]" green}
@@ -591,7 +593,7 @@ proc tessSetPlacement {objEntity tsID} {
               }
             }
           }
-          
+
           foreach repRRWT {rep_1 rep_2} {
             set e4s [$e3 GetUsedIn [string trim representation_relationship_with_transformation_and_shape_representation_relationship] [string trim $repRRWT]]
             ::tcom::foreach e4 $e4s {
