@@ -1,5 +1,5 @@
 proc pmiFormatColumns {str} {
-  global cells col gpmiRow pmiStartCol recPracNames row spmiRow stepAP thisEntType worksheet
+  global cells col env gpmiRow pmiStartCol recPracNames row spmiRow stepAP thisEntType vpmiRow worksheet
 
   if {![info exists pmiStartCol($thisEntType)]} {
     return
@@ -27,13 +27,15 @@ proc pmiFormatColumns {str} {
 
 # PMI heading
     outputMsg " [formatComplexEnt $thisEntType]"
-    $cells($thisEntType) Item 2 $c2 $str
-    set range [$worksheet($thisEntType) Range [cellRange 2 $c2]]
-    $range HorizontalAlignment [expr -4108]
-    [$range Font] Bold [expr 1]
-    [$range Interior] ColorIndex [expr 36]
-    set range [$worksheet($thisEntType) Range [cellRange 2 $c2] [cellRange 2 $c3]]
-    $range MergeCells [expr 1]
+    if {$str != "Validation Properties" || $thisEntType == "property_definition"} {
+      $cells($thisEntType) Item 2 $c2 $str
+      set range [$worksheet($thisEntType) Range [cellRange 2 $c2]]
+      $range HorizontalAlignment [expr -4108]
+      [$range Font] Bold [expr 1]
+      [$range Interior] ColorIndex [expr 36]
+      set range [$worksheet($thisEntType) Range [cellRange 2 $c2] [cellRange 2 $c3]]
+      $range MergeCells [expr 1]
+    }
 
 # set rows for colors and borders
     set r1 1
@@ -41,9 +43,12 @@ proc pmiFormatColumns {str} {
     set r3 {}
     if {[string first "PMI Presentation" $str] != -1} {
       set rs $gpmiRow($thisEntType)
+    } elseif {[string first "Validation Properties" $str] != -1} {
+      set rs $vpmiRow($thisEntType)
     } elseif {[string first "PMI Representation" $str] != -1} {
       set rs $spmiRow($thisEntType)
-      if {![file exists [file nativename C:/Windows/Fonts/ARIALUNI.TTF]]} {
+      if {![file exists [file nativename C:/Windows/Fonts/ARIALUNI.TTF]] && \
+          ![file exists [file join $env(USERPROFILE) AppData Local Microsoft Windows Fonts ARIALUNI.TTF]]} {
         errorMsg "Excel might not show some GD&T symbols correctly in PMI Representation analysis.  The missing\nsymbols will appear as question mark inside a square.  The likely cause is a missing font\n'Arial Unicode MS' from the font file 'ARIALUNI.TTF'.  Find a copy of this font file and install it."
       }
     }
@@ -466,10 +471,12 @@ proc syntaxChecker {fileName} {
 # -------------------------------------------------------------------------------
 # get STEP AP name
 proc getStepAP {fname} {
-  global fileSchema stepAPs
+  global fileSchema opt stepAPs
 
   set ap ""
-  set fs [string toupper [getSchemaFromFile $fname]]
+  set limit 0
+  if {$opt(xlFormat) == "Excel"} {set limit 1}
+  set fs [string toupper [getSchemaFromFile $fname $limit]]
   set fileSchema $fs
 
   set c1 [string first " " $fs]
@@ -494,8 +501,8 @@ proc getStepAP {fname} {
 }
 
 #-------------------------------------------------------------------------------
-proc getSchemaFromFile {fname {msg 0}} {
-  global cadApps cadSystem developer p21e3 timeStamp unicode
+proc getSchemaFromFile {fname {limit 0}} {
+  global cadApps cadSystem developer opt p21e3 timeStamp unicodeInFile
 
   set p21e3 0
   set schema ""
@@ -505,17 +512,14 @@ proc getSchemaFromFile {fname {msg 0}} {
   set niderr 0
   set nendsec 0
   set filename 0
+  set unicodeInFile 0
   set stepfile [open $fname r]
 
-# read first 100 lines
-  while {[gets $stepfile line] != -1 && $nline < 100} {
-    if {$msg} {
-      foreach item {"MIME-Version" "Content-Type" "X-MimeOLE" "DOCTYPE HTML" "META content"} {
-        if {[string first $item $line] != -1} {
-          errorMsg "Syntax Error: The STEP file was probably saved as an EMAIL or HTML file.  The STEP file cannot be translated.\n In the email client, save the STEP file as a TEXT file and try again.\n The first line in the STEP file should be 'ISO-10301-21\;'"
-        }
-      }
-    }
+  set ulimit 100
+  if {$limit} {set ulimit 100000}
+
+# read first N lines, all HEADER section information should be in the first 100 lines, reading more detects \X2\ unicode characters
+  while {[gets $stepfile line] != -1 && $nline < $ulimit} {
     incr nline
 
 # check file
@@ -555,10 +559,12 @@ proc getSchemaFromFile {fname {msg 0}} {
       }
     }
 
-# check for X and X2 control directives
-    if {[string first "\\X\\" $line] != -1 || [string first "\\X2\\" $line] != -1} {
-      errorMsg "\\X2\\ or \\X\\ control directives are used in some text strings.  See Help > Text Strings" red
-      set unicode 1
+# check for X2 unicode control directives when generating a spreadsheet, set xlUnicode if possible
+    if {[string first "\\X2\\" $line] != -1 && $opt(xlFormat) == "Excel"} {
+      if {[info exists schema]} {if {$schema == "CUTTING_TOOL_SCHEMA_ARM" || [string first "ISO13" $schema] == 0} {set opt(xlUnicode) 1}}
+      if {[file size $fname] <= 10000000} {set opt(xlUnicode) 1}
+      set unicodeInFile 1
+      if {!$opt(xlUnicode) && $limit} {errorMsg "Symbols or non-English text found for some entity attributes.  See the Spreadsheets Tab > Other to process those symbols and characters.  Also see Help > Text Strings." red}
     }
 
 # check for OPTIONS from ST-Developer toolkit
@@ -621,6 +627,125 @@ proc getSchemaFromFile {fname {msg 0}} {
 # not a STEP file
   if {!$ok1} {errorMsg "ERROR: The STEP file does not start with ISO-10303-21;"}
   return $schema
+}
+
+#-------------------------------------------------------------------------------
+# convert \X2\ in strings, see sfa-data.tcl
+proc unicodeStrings {unicodeEnts} {
+  global localName unicodeAttributes unicodeNumEnts unicodeString
+
+  if {[catch {
+    set nent 0
+    set okread 1
+    set uents {}
+    set sf [open $localName r]
+
+    while {[gets $sf line] >= 0 && $okread} {
+      set ok 0
+      foreach ent $unicodeEnts {
+        set c1 [string first "=" $line]
+        set c2 [string first "(" $line]
+        set str [string trim [string range $line $c1+1 $c2-1]]
+        if {$str == $ent} {
+          set ok 1
+          incr nent
+          set ent1 [string tolower $ent]
+          break
+        }
+      }
+
+# process unicode
+      if {$ok} {
+        set lattr [llength $unicodeAttributes($ent1)]
+
+# if multi line, get rest of the line
+        while {1} {if {[string first ";" $line] == -1} {gets $sf line1; append line $line1} else {break}}
+
+# check for unicode X2
+        if {[string first "\\X2\\" $line] != -1} {
+          errorMsg "Processing symbols and non-English characters (See Help > Text Strings and Spreadsheet > Other)" red
+
+          set id [string trim [string range $line 1 [string first "=" $line]-1]]
+          set idx "$ent1,[lindex $unicodeAttributes($ent1) 0],$id"
+
+# get strings that have unicode and convert
+          switch -- $ent1 {
+            item_names {
+# entity attributes from iso13...
+              if {[string first "LABEL" $line] != -1} {
+                set str [string range $line [string first "'" $line]+1 [string first ")" $line]-2]
+              } else {
+                set str [string range $line [string first "'" $line]+1 [string first "," $line]-2]
+              }
+              set unicodeString($idx) [x3dUnicode $str "attr"]
+              if {[lsearch $uents $ent1] == -1} {lappend uents $ent1}
+            }
+            string_with_language {
+              set str [string range $line [string first "'" $line]+1 [string last "'" $line]-1]
+              set unicodeString($idx) [x3dUnicode $str "attr"]
+              if {[lsearch $uents $ent1] == -1} {lappend uents $ent1}
+            }
+            translated_label -
+            translated_text {
+              set str1 [string range $line [string first "('" $line]+2 [string first "')" $line]-1]
+              set str1 [x3dUnicode $str1 "attr"]
+              set str {}
+              set len [string length $str1]
+              for {set i 0} {$i < $len} {incr i} {
+                if {[string index $str1 $i] == "'" && [string index $str1 $i+1] == ","} {
+                  lappend str [string range $str1 0 $i-1]
+                  lappend str [string range $str1 $i+3 end]
+                  break
+                }
+              }
+              regsub -all "''" $str "'" str
+              set unicodeString($idx) $str
+              if {[lsearch $uents $ent1] == -1} {lappend uents $ent1}
+            }
+
+            default {
+# entity attributes from ap2..
+              catch {unset attr}
+              set na 0
+              set line1 [x3dUnicode $line "attr"]
+              set i1 [expr {[string first "(" $line1]+1}]
+              set i2 [string last  ")" $line1]
+              for {set i $i1} {$i < $i2} {incr i} {
+                append attr($na) [string index $line1 $i]
+                if {([string index $line1 $i] == "'" && [string index $line1 $i+1] == ",") || \
+                    ($i == $i1 && [string index $line1 $i] == "$")} {
+                  incr i
+                  incr na
+                  if {$na > $lattr} {break}
+                }
+              }
+              foreach ia [array names attr] {
+                set str [string trim $attr($ia)]
+                set c0 [string index $str 0]
+                if {$c0 != "$" && $c0 != "#"} {
+                  set c1 [string first "'" $str]
+                  set c2 [string last  "'" $str]
+                  if {$c1 != -1 && $c2 != -2} {set str [string range $str $c1+1 $c2-1]}
+                  set idx "$ent1,[lindex $unicodeAttributes($ent1) $ia],$id"
+                  set unicodeString($idx) $str
+                }
+              }
+              if {[lsearch $uents $ent1] == -1} {lappend uents $ent1}
+            }
+          }
+        }
+
+# stop reading
+        if {$nent == $unicodeNumEnts} {set okread 0}
+      }
+    }
+
+# report entities
+    if {[llength $uents] > 0} {outputMsg " Found on: [lsort $uents]" red}
+
+  } emsg]} {
+    errorMsg "ERROR processing Unicode string attribute: $emsg"
+  }
 }
 
 #-------------------------------------------------------------------------------

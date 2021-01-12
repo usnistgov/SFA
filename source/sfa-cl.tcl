@@ -50,9 +50,18 @@ if {[catch {
   set dir $wdir
   set c1 [string first [file tail [info nameofexecutable]] $dir]
   if {$c1 != -1} {set dir [string range $dir 0 $c1-1]}
-  puts "\nERROR: $emsg\n\nThere might be a problem running this software from a directory with accented, non-English, or symbol characters in the pathname or from the C:\\ directory."
-  puts "  [file nativename $dir]\nTry running the software from a directory without any of the special characters in the pathname or from your home directory or desktop."
-  puts "\nContact [lindex $contact 0] ([lindex $contact 1]) if you cannot run the STEP File Analyzer and Viewer."
+  if {[string first "couldn't load library" $emsg] != -1} {
+    append emsg "\n\nAlthough the message above indicates that a library is missing, that is NOT the root cause of the problem.  The problem is usually related to:"
+    append emsg "\n1 - the directory you are running the software from has accented, non-English, or symbol characters in the pathname\n    [file nativename $dir]"
+    append emsg "\n2 - permissions to run the software in the directory"
+    append emsg "\n3 - other computer configuration problems"
+    append emsg "\n\nTry the following workarounds to run the software:"
+    append emsg "\n1 - from a directory without any special characters in the pathname, or from your home directory, or desktop"
+    append emsg "\n2 - as Administrator"
+    append emsg "\n3 - on a different computer"
+  }
+  append emsg "\n\nContact [lindex $contact 0] ([lindex $contact 1]) if you cannot run the STEP File Analyzer and Viewer."
+  puts "\nERROR: $emsg"
   exit
 }
 
@@ -113,7 +122,8 @@ Credits
 - Reading and parsing STEP files: IFCsvr ActiveX Component, Copyright \u00A9 1999, 2005 SECOM Co., Ltd. All Rights Reserved
                                   IFCsvr has been modified by NIST to include STEP schemas.
                                   The license agreement can be found in  C:\\Program Files (x86)\\IFCsvrR300\\doc
-- Translating STEP to X3D:        Developed by Soonjo Kwon at NIST  https://www.nist.gov/services-resources/software/step-x3d-translator"
+- Translating STEP to X3D:        Developed by Soonjo Kwon (former NIST Guest Researcher)
+                                  https://www.nist.gov/services-resources/software/step-x3d-translator"
 
 if {$argc == 1} {set arg [string tolower [lindex $argv 0]]}
 if {$argc == 0 || ($argc == 1 && ($arg == "help" || $arg == "-help" || $arg == "-h" || $arg == "-v"))} {
@@ -157,7 +167,7 @@ foreach id {logFile outputOpen PMIGRF PMISEM stepAP242 stepCOMM stepCOMP stepFEA
 foreach id { \
   DEBUG1 DEBUGINV DEBUGX3D feaBounds feaDisp feaDispNoTail feaLoads feaLoadScale indentGeometry indentStyledItem INVERSE partEdges partNormals \
   partOnly partSketch PMIGRFCOV PMISEMDIM PMISEMRND SHOWALLPMI stepCPNT stepGEOM stepUSER syntaxChecker tessPartMesh viewFEA viewPart viewPMI \
-  viewTessPart writeDirType xlHideLinks xlNoRound xlSort x3dKeep \
+  viewTessPart writeDirType xlHideLinks xlNoRound xlSort xlUnicode x3dKeep \
 } {set opt($id) 0}
 
 set opt(gpmiColor) 3

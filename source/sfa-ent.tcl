@@ -1,9 +1,9 @@
 # read entity and write to spreadsheet
-proc getEntity {objEntity checkInverse} {
+proc getEntity {objEntity checkInverse checkBadAttributes unicodeCheck} {
   global attrType badAttributes cells col coordinatesList count developer entComment entCount entName heading invMsg invVals lineStrips localName
-  global matrixList opt roseLogical row rowmax sheetLast skipEntities skipPerm syntaxErr thisEntType worksheet worksheets
+  global matrixList opt roseLogical row rowmax sheetLast skipEntities skipPerm syntaxErr thisEntType unicodeString worksheet worksheets
   global wsCount wsNames
-  
+
 # get entity type
   set thisEntType [$objEntity Type]
   #if {$developer} {if {$thisEntType != $expectedEnt} {errorMsg "Mismatch: $thisEntType  $expectedEnt"}}
@@ -20,7 +20,7 @@ proc getEntity {objEntity checkInverse} {
     if {$entCount($thisEntType) > $rm} {append msg "$rm of "}
     append msg "$entCount($thisEntType))"
     outputMsg $msg
-    
+
     if {$entCount($thisEntType) > $rm} {errorMsg " Maximum Rows ($rm) exceeded (see Spreadsheet tab)" red}
     if {$entCount($thisEntType) > 10000 && $rm > 10000} {errorMsg " Number of entities > 10000.  Consider using the Maximum Rows option." red}
 
@@ -31,7 +31,7 @@ proc getEntity {objEntity checkInverse} {
       set worksheet($thisEntType) [$worksheets Add [::tcom::na] $sheetLast]
     }
     $worksheet($thisEntType) Activate
-    
+
     set sheetLast $worksheet($thisEntType)
 
     set name $thisEntType
@@ -59,7 +59,7 @@ proc getEntity {objEntity checkInverse} {
 # color tab, not available in very old versions of Excel
     catch {
       set cidx [setColorIndex $thisEntType]
-      if {$cidx > 0} {[$worksheet($thisEntType) Tab] ColorIndex [expr $cidx]}      
+      if {$cidx > 0} {[$worksheet($thisEntType) Tab] ColorIndex [expr $cidx]}
     }
 
     set wsCount [$worksheets Count]
@@ -86,13 +86,13 @@ proc getEntity {objEntity checkInverse} {
   }
 
 # -------------------------------------------------------------------------------------------------
-# if less than max allowed rows, append attribute values to rowList, append rowList to matrixList 
+# if less than max allowed rows, append attribute values to rowList, append rowList to matrixList
 # originally, values where written directly one-by-one to a worksheet, now writing a matrix of values
 # to a worksheet is much faster than writing values to cells one at a time
   if {$row($thisEntType) <= $rowmax} {
     set col($thisEntType) 1
     incr count($thisEntType)
-    
+
 # show progress with > 50000 entities
     if {$entCount($thisEntType) >= 50000} {
       set c1 [expr {$count($thisEntType)%20000}]
@@ -106,7 +106,7 @@ proc getEntity {objEntity checkInverse} {
     set p21id [$objEntity P21ID]
     lappend rowList $p21id
     [$worksheet($thisEntType) Range A$row($thisEntType)] NumberFormat "0"
-      
+
 # keep track of the entity ID for a row
     setIDRow $thisEntType $p21id
 
@@ -125,13 +125,19 @@ proc getEntity {objEntity checkInverse} {
       set attrName [$objAttribute Name]
 
       if {[catch {
-        if {![info exists badAttributes($thisEntType)]} {
+        if {!$checkBadAttributes} {
           set objValue [$objAttribute Value]
+
+# substitute correct unicode
+          if {$unicodeCheck} {
+            set idx "$thisEntType,$attrName,$p21id"
+            if {[info exists unicodeString($idx)]} {set objValue $unicodeString($idx)}
+          }
 
 # look for bad attributes that cause a crash
         } else {
           set ok 1
-          foreach ba $badAttributes($thisEntType) {if {$ba == $attrName} {set ok 0}}
+          if {[lsearch $badAttributes($thisEntType) $attrName] != -1} {set ok 0}
           if {$ok} {
             set objValue [$objAttribute Value]
           } else {
@@ -156,12 +162,15 @@ proc getEntity {objEntity checkInverse} {
         set msg "ERROR processing '$attrName' attribute on '[$objEntity Type]': $emsgv"
         errorMsg $msg
         lappend syntaxErr([$objEntity Type]) [list -$row($thisEntType) $attrName $msg]
-        if {[string first "datum_reference_compartment 'modifiers' attribute" $msg] != -1 || \
-            [string first "datum_reference_element 'modifiers' attribute" $msg] != -1 || \
-            [string first "annotation_plane 'elements' attribute" $msg] != -1} {
-          set msg "Syntax Error: On '[$objEntity Type]' entities change the '$attrName' attribute with\n '()' to '$' where applicable.  The attribute is an OPTIONAL SET\[1:?\] and '()' is not valid."
-          errorMsg $msg
-          lappend syntaxErr([$objEntity Type]) [list -$row($thisEntType) $attrName $msg]
+        if {[string first "Bad variable type" $emsgv] != -1} {
+          if {[string first "'modifiers' attribute on 'datum_reference_compartment'" $msg] != -1 || \
+              [string first "'modifiers' attribute on 'datum_reference_element'" $msg] != -1 || \
+              [string first "'elements' attribute on 'annotation_plane'" $msg] != -1 || \
+              [string first "'synonymous_names' attribute on 'item_names'" $msg] != -1} {
+            set msg "Syntax Error: On '[$objEntity Type]' entities change the '$attrName' attribute with '()' to '$' where applicable.  The attribute is an OPTIONAL SET\[1:?\] and '()' is not valid."
+            errorMsg $msg
+            lappend syntaxErr([$objEntity Type]) [list -$row($thisEntType) $attrName $msg]
+          }
         }
         set objValue ""
         catch {raise .}
@@ -184,7 +193,7 @@ proc getEntity {objEntity checkInverse} {
 # not a handle, just a single value
       if {[string first "handle" $objValue] == -1} {
         set ov $objValue
-    
+
 # if value is a boolean, substitute string roseLogical
         if {([$objAttribute Type] == "RoseBoolean" || [$objAttribute Type] == "RoseLogical") && [info exists roseLogical($ov)]} {set ov $roseLogical($ov)}
 
@@ -202,7 +211,7 @@ proc getEntity {objEntity checkInverse} {
             lappend rowList "'$ov"
           }
         }
-        
+
 # -------------------------------------------------------------------------------------------------
 # node type 18=ENTITY, 19=SELECT TYPE  (node type is 20 for SET or LIST is processed below)
       } elseif {[$objAttribute NodeType] == 18 || [$objAttribute NodeType] == 19} {
@@ -243,7 +252,7 @@ proc getEntity {objEntity checkInverse} {
               }
             }
           }
-          
+
           lappend rowList [string trim $str]
           set valnotlist 0
         }
@@ -340,7 +349,7 @@ proc getEntity {objEntity checkInverse} {
             }
           }
         }
-        
+
         lappend rowList [string trim $str]
         if {$strMeasure != "" && $entComment($attrName)} {
           addCellComment $thisEntType 3 $col($thisEntType) "The values of *_measure_with_unit are also shown."
@@ -353,13 +362,13 @@ proc getEntity {objEntity checkInverse} {
     lappend matrixList $rowList
 
 # -------------------------------------------------------------------------------------------------
-# report inverses    
+# report inverses
     if {$invLen > 0} {invReport}
 
 # rows exceeded, return of 0 will break the loop to process an entity type
   } else {
     return 0
-  }  
+  }
 
 # clean up variables to hopefully release some memory
   foreach var {objAttributes attrName refEntity refType} {if {[info exists $var]} {unset $var}}
@@ -371,10 +380,10 @@ proc getEntity {objEntity checkInverse} {
 # keep track of the entity ID for a row
 proc setIDRow {entType p21id} {
   global gpmiEnts gpmiIDRow idRow propDefIDRow row spmiEnts spmiIDRow
-  
+
 # row id for an entity id
   set idRow($entType,$p21id) $row($entType)
-  
+
 # specific arrays for properties and PMI
   if {$entType == "property_definition"} {
     set propDefIDRow($p21id) $row($entType)
@@ -387,9 +396,9 @@ proc setIDRow {entType p21id} {
 
 # -------------------------------------------------------------------------------------------------
 # read entity and write to CSV file
-proc getEntityCSV {objEntity} {
-  global badAttributes count csvdirnam csvfile csvintemp csvstr entCount fcsv localName mydocs roseLogical row rowmax skipEntities skipPerm thisEntType
-  
+proc getEntityCSV {objEntity checkBadAttributes unicodeCheck} {
+  global badAttributes count csvdirnam csvfile csvintemp csvstr entCount fcsv localName mydocs roseLogical row rowmax skipEntities skipPerm thisEntType unicodeString
+
 # get entity type
   set thisEntType [$objEntity Type]
   set cellLimit1 500
@@ -403,7 +412,7 @@ proc getEntityCSV {objEntity} {
     if {$entCount($thisEntType) > $rm} {append countMsg "$rm of "}
     append countMsg "$entCount($thisEntType))"
     outputMsg $countMsg
-    
+
     if {$entCount($thisEntType) > $rm} {errorMsg " Maximum Rows ($rm) exceeded (see Spreadsheet tab)" red}
     if {$entCount($thisEntType) > 10000 && $rm > 10000} {errorMsg " Number of entities > 10000.  Consider using the Maximum Rows option." red}
 
@@ -450,7 +459,7 @@ proc getEntityCSV {objEntity} {
   update idletasks
   if {$row($thisEntType) <= $rowmax} {
     incr count($thisEntType)
-  
+
 # show progress with > 50000 entities
     if {$entCount($thisEntType) >= 50000} {
       set c1 [expr {$count($thisEntType)%20000}]
@@ -470,10 +479,16 @@ proc getEntityCSV {objEntity} {
     set objAttributes [$objEntity Attributes]
     ::tcom::foreach objAttribute $objAttributes {
       set attrName [$objAttribute Name]
-  
+
       if {[catch {
-        if {![info exists badAttributes($thisEntType)]} {
+        if {!$checkBadAttributes} {
           set objValue [$objAttribute Value]
+
+# substitute correct unicode
+          if {$unicodeCheck} {
+            set idx "$thisEntType,$attrName,$p21id"
+            if {[info exists unicodeString($idx)]} {set objValue $unicodeString($idx)}
+          }
 
 # look for bad attributes that cause a crash
         } else {
@@ -489,13 +504,16 @@ proc getEntityCSV {objEntity} {
 
 # error getting attribute value
       } emsgv]} {
-        set msg "ERROR processing [$objEntity Type] '$attrName' attribute: $emsgv"
-        if {[string first "datum_reference_compartment 'modifiers' attribute" $msg] != -1 || \
-            [string first "datum_reference_element 'modifiers' attribute" $msg] != -1 || \
-            [string first "annotation_plane 'elements' attribute" $msg] != -1} {
-          errorMsg "Syntax Error: On '[$objEntity Type]' entities change the '$attrName' attribute with\n '()' to '$' where applicable.  The attribute is an OPTIONAL SET\[1:?\] and '()' is not valid."
-        }
+        set msg "ERROR processing '$attrName' attribute on '[$objEntity Type]': $emsgv"
         errorMsg $msg
+        if {[string first "Bad variable type" $emsgv] != -1} {
+          if {[string first "'modifiers' attribute on 'datum_reference_compartment'" $msg] != -1 || \
+              [string first "'modifiers' attribute on 'datum_reference_element'" $msg] != -1 || \
+              [string first "'elements' attribute on 'annotation_plane'" $msg] != -1} {
+            set msg "Syntax Error: On '[$objEntity Type]' entities change the '$attrName' attribute with '()' to '$' where applicable.  The attribute is an OPTIONAL SET\[1:?\] and '()' is not valid."
+            errorMsg $msg
+          }
+        }
         set objValue ""
         catch {raise .}
       }
@@ -505,7 +523,7 @@ proc getEntityCSV {objEntity} {
 # not a handle, just a single value
       if {[string first "handle" $objValue] == -1} {
         set ov $objValue
-  
+
 # if value is a boolean, substitute string roseLogical
         if {([$objAttribute Type] == "RoseBoolean" || [$objAttribute Type] == "RoseLogical") && [info exists roseLogical($ov)]} {set ov $roseLogical($ov)}
         append csvstr ",$ov"

@@ -82,7 +82,6 @@ proc spmiDimtolStart {entType} {
 
 # get next unused column by checking if there is a colName
   set pmiStartCol($dt) [expr {[getNextUnusedColumn $startent]+1}]
-  #outputMsg pmiStartCol$pmiStartCol($dt)
 
 # process all, call spmiDimtolReport
   ::tcom::foreach objEntity [$objDesign FindObjects [join $startent]] {
@@ -105,9 +104,9 @@ proc spmiDimtolStart {entType} {
 # -------------------------------------------------------------------------------
 proc spmiDimtolReport {objEntity} {
   global angDegree assocGeom badAttributes cells col datsym dim dimBasic dimRepeat dimDirected dimName dimModNames dimOrient dimReference dimrep dimrepID
-  global dimSizeNames dimtolAttr dimtolEnt dimtolEntType dimtolGeom dimtolID dimtolPM dimtolType dimval dt entLevel ent entAttrList entCount entlevel2 entsWithErrors
-  global lastEnt nistName numDSnames opt pmiCol pmiColumns pmiHeading pmiModifiers pmiStartCol
-  global pmiUnicode recPracNames savedModifier spaces spmiEnts spmiID spmiIDRow spmiRow spmiTypesPerFile syntaxErr tolStandard
+  global dimSizeNames dimtolAttr dimtolEnt dimtolEntType dimtolGeom dimtolID dimtolPM dimtolType dimval dt entLevel ent entAttrList entCount entlevel2
+  global entsWithErrors lastEnt nistName numDSnames opt pmiCol pmiColumns pmiHeading pmiModifiers pmiStartCol pmiUnicode propDefIDs recPracNames
+  global savedModifier spaces spmiEnts spmiID spmiIDRow spmiRow spmiTypesPerFile syntaxErr tolStandard
 
   if {$opt(DEBUG1)} {outputMsg "spmiDimtolReport" red}
 
@@ -1005,6 +1004,13 @@ proc spmiDimtolReport {objEntity} {
       errorMsg "ERROR adding Dimension Associated Geometry: $emsg"
     }
 
+# add valprop column to spreadsheet
+    if {[info exists propDefIDs($dimrepID)]} {
+      set c [expr {$pmiStartCol($dt)+13}]
+      set r $spmiIDRow($dt,$spmiID)
+      valPropColumn $dt $r $c $propDefIDs($dimrepID)
+    }
+
 # -------------------------------------------------------------------------------
 # plus minus tolerance on dimtolEnt
     if {[catch {
@@ -1488,7 +1494,7 @@ proc spmiDimtolReport {objEntity} {
 #-------------------------------------------------------------------------------
 # format values according to NR2 x.y qualifier
 proc valueQualifier {ent1 val {type "length/angle"} {equal "equal"}} {
-  global developer dim dt gt opt recPracNames spaces spmiID spmiIDRow syntaxErr valRounded
+  global dim dt gt opt recPracNames spaces spmiID spmiIDRow syntaxErr valRounded
 
   set head "$type precision"
   switch -- $type {
@@ -1559,7 +1565,6 @@ proc valueQualifier {ent1 val {type "length/angle"} {equal "equal"}} {
             if {$rval != $newval} {
               set newval $rval
               set valRounded 1
-              if {$developer} {errorMsg " $type value rounded A" red}
             }
           }
         } else {
@@ -1574,7 +1579,6 @@ proc valueQualifier {ent1 val {type "length/angle"} {equal "equal"}} {
           if {$rval != $newval} {
             set newval $rval
             set valRounded 1
-            if {$developer} {errorMsg " $type value rounded B" red}
           }
         }
         if {$val < 0.} {set newval "-$newval"}

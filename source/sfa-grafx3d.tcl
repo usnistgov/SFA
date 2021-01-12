@@ -6,8 +6,10 @@ proc x3dFileStart {} {
   set x3dViewOK 1
   if {$x3dStartFile == 0} {return}
   if {![info exists stepAP]} {set stepAP [getStepAP $localName]}
-  if {[string first "IFC" $stepAP] == 0 || [string first "ISO" $stepAP] == 0 || [string first "STRUCTURAL_FRAME_SCHEMA" $stepAP] == 0} {
-    errorMsg "The Viewer only works with AP203, AP214, AP242, AP209, and other similar STEP APs.\n The $stepAP schema is not supported for Views."
+  if {[string first "IFC" $stepAP] == 0 || [string first "ISO" $stepAP] == 0 || $stepAP == "CIS/2"} {
+    set msg "The Viewer only works with AP203, AP214, AP242, AP209, and other similar STEP APs.  See Help > Support STEP APs"
+    if {$stepAP == "CIS/2"} {append msg "\n Use SteelVis to view CIS/2 files.  https://www.nist.gov/services-resources/software/steelvis-aka-cis2-viewer"}
+    errorMsg $msg
     set x3dViewOK 0
     return
   }
@@ -43,10 +45,10 @@ proc x3dFileStart {} {
     puts $x3dFile "\n<script type='text/javascript' src='https://code.jquery.com/jquery-2.1.0.min.js'></script>"
     puts $x3dFile "<script>\n// Mark selection point"
     puts $x3dFile "function handleGroupClick(event) {\$('#marker').attr('translation', event.hitPnt);}"
-    
+
     puts $x3dFile "// Handle click on '[join $callback]'"
     foreach type $callback {puts $x3dFile "function handleSingleClick($type) {\$('#lastClickedObject').html(\$($type).attr('id'));}"}
-    
+
     puts $x3dFile "// Add onclick callback to every '[join $callback]'"
     puts $x3dFile "\$(document).ready(function() \{"
     foreach type $callback {
@@ -735,7 +737,7 @@ proc x3dFileEnd {} {
 # part checkboxes
 proc x3dPartCheckbox {type} {
   global x3dFile x3dHeight x3dParts x3dTessParts x3dWidth
-  
+
   switch -- $type {
     Part {
       set name "Assembly/Part"
@@ -1203,19 +1205,25 @@ proc x3dBrepGeom {} {
 
 # -------------------------------------------------------------------------------
 # process X and X2 control directives with Unicode characters
-proc x3dUnicode {id} {
-  global unicode
+proc x3dUnicode {id {type "view"}} {
+  set x "&#x"
+  set u "\\u"
+  set z "00"
 
-  foreach x {X X2} {
-    set cx [string first "\\$x\\" $id]
+  foreach xl [list X X2] {
+    set cx [string first "\\$xl\\" $id]
     if {$cx != -1} {
-      switch -- $x {
+      switch -- $xl {
         X {
           while {$cx != -1} {
-            set xu "&#x[string range $id $cx+3 $cx+4];"
+            set xu ""
+            set uc [string range $id $cx+3 $cx+4]
+            switch -- $type {
+              view {append xu "$x$uc;"}
+              attr {append xu [eval list $u$z$uc]}
+            }
             set id [string range $id 0 $cx-1]$xu[string range $id $cx+5 end]
-            set cx [string first "\\$x\\" $id]
-            if {[info exists unicode] == 0} {errorMsg " Unicode characters are used for some part or assembly names.  See Help > Text Strings" red}
+            set cx [string first "\\$xl\\" $id]
           }
         }
         X2 {
@@ -1223,16 +1231,20 @@ proc x3dUnicode {id} {
             set xu ""
             for {set i 4} {$i < 200} {incr i 4} {
               set uc [string range $id $cx+$i [expr {$cx+$i+3}]]
-              if {[string first "\\" $uc] == -1} {
-                append xu "&#x$uc;"
+              if {$type == "attr" && $uc == "000A"} {
+                set xu [format "%c" 10]
+              } elseif {[string first "\\" $uc] == -1} {
+                switch -- $type {
+                  view {append xu "$x$uc;"}
+                  attr {append xu [eval list $u$uc]}
+                }
               } else {
                 set cx0 [string first "\\X0\\" $id]
-                set id [string range $id 0 $cx-1]$xu[string range $id $cx0+4 end]
+                set id "[string range $id 0 $cx-1]$xu[string range $id $cx0+4 end]"
                 break
               }
             }
-            set cx [string first "\\$x\\" $id]
-            if {[info exists unicode] == 0} {errorMsg " Unicode characters are used for some part or assembly names.  See Help > Text Strings" red}
+            set cx [string first "\\$xl\\" $id]
           }
         }
       }
@@ -1352,9 +1364,11 @@ proc x3dTessGeom {objID objEntity1 ent1} {
   if {[info exists draftModelCameras] && $ao == "tessellated_annotation_occurrence"} {
     set savedViewName [getSavedViewName $objEntity1]
     if {[llength $savedViewName] > 0} {
+      set numView {}
+      foreach svn $savedViewName {lappend numView [lsearch $savedViewNames $svn]}
       set flist {}
-      foreach svn $savedViewName {
-        set svn1 "View[lsearch $savedViewNames $svn]"
+      foreach num [lsort $numView] {
+        set svn1 "View$num"
         if {[info exists savedViewFile($svn1)]} {lappend flist $savedViewFile($svn1)}
       }
       set nosv 0
@@ -2362,7 +2376,7 @@ proc x3dSuppGeomCylinder {e2 size} {
 # -------------------------------------------------------------------------------
 # holes counter and spotface
 proc x3dHoles {maxxyz} {
-  global dim DTR entCount holeDefinitions ofNone opt syntaxErr viz x3dFile
+  global dim DTR entCount holeDefinitions ofNone opt recPracNames spaces syntaxErr viz x3dFile
   global objDesign
 
   set drillPoint [trimNum [expr {$maxxyz*0.02}]]
@@ -2565,6 +2579,10 @@ proc x3dHoles {maxxyz} {
   }
   if {$viz(HOL)} {puts $x3dFile "</Group></Switch>\n"}
   catch {unset holeDefinitions}
+
+  set ok 0
+  if {![info exists entCount(item_identified_representation_usage)]} {set ok 1} elseif {$entCount(item_identified_representation_usage) == 0} {set ok 1}
+  if {$ok} {errorMsg "Syntax Error: Missing IIRU to link hole with explicit geometry.$spaces\($recPracNames(holes), Sec. 5.1.1.2)"}
 }
 
 # -------------------------------------------------------------------------------

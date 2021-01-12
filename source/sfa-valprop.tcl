@@ -113,6 +113,7 @@ proc valPropStart {} {
 # semantic text, section 7.4.2 (not a traditional valprop)
   set valPropNames(semantic_text) [list [list "" [list ""]]]
 
+# -------------------------------------------------------------------------------------------------
   set derived_unit_element [list derived_unit_element unit \
     [list conversion_based_unit_and_length_unit dimensions name conversion_factor] \
     [list conversion_based_unit_and_mass_unit dimensions name conversion_factor] \
@@ -257,8 +258,9 @@ proc valPropStart {} {
 
 # -------------------------------------------------------------------------------
 proc valPropReport {objEntity} {
-  global cells col entLevel ent entAttrList maxelem maxrep ncartpt nelem nrep opt pd pdcol pdheading pmivalprop prefix propDefID propDefIDRow propDefName
-  global propDefOK propDefRow recPracNames repName spaces stepAP syntaxErr tessCoord tessCoordName valName valPropEnts valPropLink valPropNames valProps
+  global cells col entLevel ent entAttrList maxelem maxrep ncartpt nelem nrep opt pd pdcol pdheading pmivalprop prefix
+  global propDefID propDefIDRow propDefName propDefOK propDefRow recPracNames repName spaces stepAP syntaxErr tessCoord tessCoordName
+  global unicodeEnts unicodeString valName valPropEnts valPropLink valPropNames valProps
 
   if {$opt(DEBUG1)} {outputMsg "valPropReport" red}
   if {[info exists propDefOK]} {if {$propDefOK == 0} {return}}
@@ -358,6 +360,7 @@ proc valPropReport {objEntity} {
                 "*measure_representation_item* value_component" -
                 "value_representation_item value_component" -
                 "descriptive_representation_item description" {
+# descriptive_representation_item is generally handled below with nodeType=5
                   set ok 1
                   set col($pd) 9
                   addValProps 2 $objValue "#$objID [formatComplexEnt $ent2]"
@@ -527,6 +530,10 @@ proc valPropReport {objEntity} {
                   set ok 1
                   set col($pd) 9
                   set colName "value"
+                  if {[lsearch $unicodeEnts "DESCRIPTIVE_REPRESENTATION_ITEM"] != -1} {
+                    set idx "descriptive_representation_item,description,$objID"
+                    if {[info exists unicodeString($idx)]} {set objValue $unicodeString($idx)}
+                  }
                   addValProps 2 $objValue "#$objID [formatComplexEnt $ent2]"
                 }
 
@@ -1031,5 +1038,183 @@ proc setValProps {idx {val ""} {ent ""}} {
     set vn [lindex $valPropEnts $idx]
     lappend vn $ent
     lset valPropEnts $idx $vn
+  }
+}
+
+# -------------------------------------------------------------------------------
+# get validation properties
+proc getValProps {} {
+  global gpmiValProp propDefIDs spmiValProp unicodeString
+  global objDesign
+
+# get validation properties association to PMI, etc.
+  foreach var {gpmiValProp propDefIDs spmiValProp} {if {[info exists $var]} {unset $var}}
+
+  if {[catch {
+
+# get all property_definitions attributes
+    ::tcom::foreach e0 [$objDesign FindObjects [string trim property_definition]] {
+      if {[$e0 Type] == "property_definition"} {
+        set a0s [$e0 Attributes]
+        set pid ""
+
+# check name and definition attributes
+        ::tcom::foreach a0 $a0s {
+          set a0val  [$a0 Value]
+          switch -- [$a0 Name] {
+            name {
+# property_definition name attribute
+              set vpname $a0val
+              if {([string first "validation property" $vpname] != -1 && [string first "geometric" $vpname] == -1 && [string first "tessellated" $vpname] == -1) || \
+                $vpname == "semantic text"} {set pid [$e0 P21ID]}
+            }
+
+            definition {
+# property_definition definition attribute
+              if {$pid != "" && [string first "handle" $a0val] != -1} {
+
+# get names of validation properties, add to vpname
+                set names ""
+                set e1s [$e0 GetUsedIn [string trim property_definition_representation] [string trim definition]]
+                ::tcom::foreach e1 $e1s {
+                  set e2  [[[$e1 Attributes] Item [expr 2]] Value]
+                  set e3s [[[$e2 Attributes] Item [expr 2]] Value]
+                  ::tcom::foreach e3 $e3s {
+                    set a3s [$e3 Attributes]
+                    ::tcom::foreach a3 $a3s {
+                      if {[$a3 Name] == "name" && $vpname != "semantic text"} {
+                        set name [$a3 Value]
+                        if {$name != ""} {append names "$name, "}
+
+# semantic text
+                      } elseif {[$a3 Name] == "description" && $vpname == "semantic text"} {
+                        set name [$a3 Value]
+                        if {$name != ""} {
+                          set idx "descriptive_representation_item,description,[$e3 P21ID]"
+                          if {[info exists unicodeString($idx)]} {set name $unicodeString($idx)}
+                          append names $name
+                        }
+                      }
+                    }
+                  }
+                }
+
+# set propDefIDs
+                if {$names != ""} {
+                  if {$vpname != "semantic text"} {
+                    append vpname " - [string range $names 0 end-2]"
+                  } else {
+                    append vpname "[format "%c" 10]$names"
+                  }
+                }
+                set a0id [$a0val P21ID]
+                if {![info exists propDefIDs($a0id)]} {
+                  set propDefIDs($a0id) [list $pid $vpname]
+                } else {
+                  set propDefIDs($a0id) [concat $propDefIDs($a0id) [list $pid $vpname]]
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  } emsg]} {
+    errorMsg "ERROR getting PMI validation properities: $emsg"
+    catch {raise .}
+  }
+}
+
+# -------------------------------------------------------------------------------
+# report validation properties to some worksheets that are not associated with any PMI analysis
+proc reportValProps {} {
+  global cells col entCount opt pmiCol pmiHeading pmiStartCol propDefIDs vpEnts vpmiRow worksheet
+
+# entities to check
+  set vpEnts {}
+  set vpCheck [list characterized_representation_and_draughting_model characterized_representation_and_draughting_model_and_tessellated_shape_representation \
+                composite_group_shape_aspect datum model_geometric_view shape_aspect composite_assembly_sequence_definition composite_assembly_table \
+                ply_laminate_table ply_laminate_sequence_definition reinforcement_orientation_basis]
+
+  foreach ent $vpCheck {
+    if {[info exists entCount($ent)]} {
+      if {$entCount($ent) > 0} {
+        set c [getNextUnusedColumn $ent]
+        set pmiCol $c
+        set pmiStartCol($ent) $c
+        set col($ent) $c
+
+        set vpmiRow($ent) {}
+        set r1 [expr {[[[$worksheet($ent) UsedRange] Rows] Count]+2}]
+
+# read ids in column 1
+        for {set r 4} {$r <= $r1} {incr r} {
+          set id [string range [[$cells($ent) Item $r 1] Value] 0 end-2]
+
+# check for a vp
+          if {[info exists propDefIDs($id)]} {
+            if {![info exists pmiHeading($ent$c)]} {
+              set heading "Validation Properties[format "%c" 10](Sec. 10.3)"
+              $cells($ent) Item 3 $c $heading
+              set pmiHeading($ent$c) 1
+              if {$opt(valProp)} {
+                set comment "See the property_definition worksheet for validation property values."
+              } else {
+                set comment "Select 'Validation Properties' on the Options tab to see the validation property values."
+              }
+              addCellComment $ent 3 $c $comment
+            }
+
+# add to new column
+            set str ""
+            set llen [llength $propDefIDs($id)]
+            if {$llen > 2} {append str ([expr {$llen/2)}])}
+            append str "property definition"
+            for {set i 0} {$i < $llen} {incr i 2} {append str " [lindex $propDefIDs($id) $i]"}
+            for {set i 1} {$i < $llen} {incr i 2} {append str "[format "%c" 10]([lindex $propDefIDs($id) $i])"}
+            $cells($ent) Item $r $c [string trim $str]
+
+            if {[lsearch $vpmiRow($ent) $r] == -1} {lappend vpmiRow($ent) $r}
+            if {[lsearch $vpEnts $ent] == -1} {lappend vpEnts $ent}
+          }
+        }
+      }
+    }
+  }
+
+  if {[llength $vpEnts] > 0} {
+    set str ""
+    foreach ent $vpEnts {append str " [formatComplexEnt $ent]"}
+    outputMsg "\nAdding Validation Properties to:$str" blue
+  }
+}
+
+# -------------------------------------------------------------------------------
+# add column of validation properties to worksheet
+proc valPropColumn {ent r c propID} {
+  global cells opt pmiCol pmiHeading
+
+  if {[catch {
+    if {![info exists pmiHeading($c)]} {
+      set heading "Validation Properties[format "%c" 10](Sec. 10.3)"
+      $cells($ent) Item 3 $c $heading
+      set pmiHeading($c) 1
+      set pmiCol [expr {max($c,$pmiCol)}]
+      if {$opt(valProp)} {
+        set comment "See the property_definition worksheet for validation property values."
+      } else {
+        set comment "Select 'Validation Properties' on the Options tab to see the validation property values."
+      }
+      addCellComment $ent 3 $c $comment
+    }
+    set str ""
+    set llen [llength $propID]
+    if {$llen > 2} {append str "([expr {$llen/2}]) "}
+    append str "property definition"
+    for {set i 0} {$i < $llen} {incr i 2} {append str " [lindex $propID $i]"}
+    for {set i 1} {$i < $llen} {incr i 2} {append str "[format "%c" 10]([lindex $propID $i])"}
+    $cells($ent) Item $r $c [string trim $str]
+  } emsg]} {
+    errorMsg "ERROR adding PMI Representation Validation Properties: $emsg"
   }
 }

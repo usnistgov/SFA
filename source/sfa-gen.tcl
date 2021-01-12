@@ -2,13 +2,13 @@
 proc genExcel {{numFile 0}} {
   global allEntity aoEntTypes ap203all ap214all ap242all badAttributes buttons cadSystem cells cells1 col col1 count csvdirnam csvfile csvintemp currLogFile
   global dim draughtingModels editorCmd entCategories entCategory entColorIndex entCount entityCount entsIgnored entsWithErrors errmsg
-  global excel excelVersion fcsv feaFirstEntity feaLastEntity File fileEntity filesProcessed gpmiTypesInvalid gpmiTypesPerFile guid idxColor ifcsvrDir inverses
-  global lastXLS lenfilelist localName localNameList logFile matrixList multiFile multiFileDir mydocs mytemp nistCoverageLegend nistName nistPMIexpected nistPMImaster
-  global nprogBarEnts ofCSV ofExcel opt pf32 p21e3 p21e3Section row rowmax savedViewButtons savedViewName savedViewNames scriptName
-  global sheetLast skipEntities skipPerm spmiEntity spmiSumName spmiSumRow spmiTypesPerFile startrow statsOnly stepAP tessColor thisEntType timeStamp tlast
-  global tolNames tolStandard tolStandards totalEntity userEntityFile userEntityList useXL valRounded viz workbook workbooks
-  global worksheet worksheet1 worksheets writeDir wsCount wsNames x3dAxes x3dColor x3dColorFile x3dColors x3dFileName x3dIndex
-  global x3dMax x3dMin x3dMsg x3dMsgColor x3dStartFile x3dViewOK xlFileName xlFileNames xlInstalled
+  global excel excelVersion fcsv feaFirstEntity feaLastEntity File fileEntity filesProcessed gpmiTypesInvalid gpmiTypesPerFile guid idxColor ifcsvrDir
+  global inverses lastXLS lenfilelist localName localNameList logFile matrixList multiFile multiFileDir mydocs mytemp nistCoverageLegend nistName
+  global nistPMIexpected nistPMImaster nprogBarEnts ofCSV ofExcel opt pf32 p21e3 p21e3Section pmiCol row rowmax savedViewButtons savedViewName
+  global savedViewNames scriptName sheetLast skipEntities skipPerm spmiEntity spmiSumName spmiSumRow spmiTypesPerFile startrow statsOnly stepAP tessColor
+  global thisEntType timeStamp tlast tolNames tolStandard tolStandards totalEntity unicodeAttributes unicodeEnts unicodeInFile unicodeNumEnts unicodeString
+  global userEntityFile userEntityList useXL valRounded viz workbook workbooks worksheet worksheet1 worksheets writeDir wsCount wsNames x3dAxes
+  global x3dColor x3dColorFile x3dColors x3dFileName x3dIndex x3dMax x3dMin x3dMsg x3dMsgColor x3dStartFile x3dViewOK xlFileName xlFileNames xlInstalled
   global objDesign
 
   if {[info exists errmsg]} {set errmsg ""}
@@ -176,6 +176,8 @@ proc genExcel {{numFile 0}} {
     if {$entityCount > 0} {
       outputMsg " $entityCount entities"
       set entityTypeNames [$objDesign EntityTypeNames [expr 2]]
+
+# set which types of characteristics are in the file
       set characteristics {}
       foreach entType $entityTypeNames {
         set ecount [$objDesign CountEntities "$entType"]
@@ -203,6 +205,7 @@ proc genExcel {{numFile 0}} {
           } elseif {$entType == "property_definition_representation"} {
             lappend characteristics "Properties"
 
+# make sure composites, kinematics, and feature entities are always processed
           } elseif {[lsearch $entCategory(stepCOMP) $entType] != -1} {
             lappend characteristics "Composites"
             if {$opt(xlFormat) != "None"} {set opt(stepCOMP) 1}
@@ -222,6 +225,8 @@ proc genExcel {{numFile 0}} {
           }
         }
       }
+
+# report characteristics
       if {[llength $characteristics] > 0} {
         set str ""
         foreach item [lrmdups $characteristics] {append str "$item, "}
@@ -239,22 +244,26 @@ proc genExcel {{numFile 0}} {
       exit
     }
 
+# -------------------------------------------------------------------------------------------------
 # add AP, file size, entity count to multi file summary
     if {$numFile != 0 && [info exists cells1(Summary)]} {
       set ap $stepAP
 
 # fix ISO13584 schemas to fit
       if {[string first "ISO13584" $ap] == 0} {
-        foreach str {"_LONG_FORM_SCHEMA" "_LIBRARY_IMPLICIT_SCHEMA"} {
+        foreach str {"_2_LONG_FORM_SCHEMA" "_IEC61360_5_LIBRARY_IMPLICIT_SCHEMA"} {
           set c1 [string first $str $ap]
           if {$c1 != -1} {set ap [string range $ap 0 $c1-1]}
         }
       }
+      if {$ap == "CUTTING_TOOL_SCHEMA_ARM"} {set ap "ISO13399"}
+
       $cells1(Summary) Item [expr {$startrow-2}] $colsum $ap
       $cells1(Summary) Item [expr {$startrow-1}] $colsum [fileSize $fname]
       $cells1(Summary) Item $startrow $colsum $entityCount
     }
 
+# -------------------------------------------------------------------------------------------------
 # open file of entities (-skip.dat) not to process (skipEntities), skipPerm are entities always to skip
     set skipEntities {}
     set cfile [file rootname $fname]
@@ -320,17 +329,17 @@ proc genExcel {{numFile 0}} {
             }
             if {[info exists buttons]} {append msg "\n See Help > Supported STEP APs"}
             errorMsg $msg red
-            if {[string first "IFC" $fs] == 0} {errorMsg "Use the IFC File Analyzer with IFC files.  https://go.usa.gov/xK9gh"}
+            if {[string first "IFC" $fs] == 0} {errorMsg "Use the IFC File Analyzer with IFC files.  https://www.nist.gov/services-resources/software/ifc-file-analyzer"}
 
 # other possible errors
           } else {
             set msg "\nPossible causes of the ERROR:"
-            append msg "\n1 - Syntax errors in the STEP file"
+            append msg "\n1 - File or directory name contains accented, non-English, or symbol characters.  See Help > Text Strings"
+            append msg "\n     [file nativename $fname]"
+            append msg "\n    Change the file name or directory name"
+            append msg "\n2 - Syntax errors in the STEP file"
             append msg "\n    Use F8 to run the Syntax Checker to check for errors in the STEP file.  See Help > Syntax Checker"
             append msg "\n    Try opening the file in a STEP viewer.  See Websites > STEP File Viewers"
-            append msg "\n2 - File or directory name contains accented, non-English, or symbol characters.  See Help > Text Strings"
-            append msg "\n     [file nativename $fname]"
-            append msg "\n    Change the file or directory name"
             append msg "\n3 - If the problem is not with the STEP file, then restart this software and try again."
             append msg "\n\nFor other problems, contact: [join [getContact]]"
             errorMsg $msg red
@@ -526,15 +535,21 @@ proc genExcel {{numFile 0}} {
 # user-defined entity list
   catch {set userEntityList {}}
   if {$opt(stepUSER) && [llength $userEntityList] == 0 && [info exists userEntityFile]} {
-    set userEntityList {}
-    set fileUserEnt [open $userEntityFile r]
-    while {[gets $fileUserEnt line] != -1} {
-      set line [split [string trim $line] " "]
-      foreach ent $line {lappend userEntityList [string tolower $ent]}
-    }
-    close $fileUserEnt
-    if {[llength $userEntityList] == 0} {
-      set opt(stepUSER) 0
+    if {$userEntityFile != ""} {
+      set userEntityList {}
+      set fileUserEnt [open $userEntityFile r]
+      while {[gets $fileUserEnt line] != -1} {
+        set line [string trim $line]
+        if {[string first " " $line] != -1} {set line [split $line " "]}
+        foreach ent $line {lappend userEntityList [string trim [string tolower $ent]]}
+      }
+      close $fileUserEnt
+      if {[llength $userEntityList] == 0} {
+        set opt(stepUSER) 0
+        checkValues
+      }
+    } else {
+      errorMsg "No file is selected for the User-Defined List in the Options tab."
       checkValues
     }
   }
@@ -602,7 +617,7 @@ proc genExcel {{numFile 0}} {
       }
 
 # check for composite entities with "_11"
-      if {[string first "_11" $entType] != -1} {if {$opt(stepCOMP) && [lsearch $entCategory(stepCOMP) $entType] != -1} {set ok 1}}
+      if {$opt(stepCOMP) && [string first "_11" $entType] != -1} {set ok 1}
 
 # handle '_and_' due to a complex entity, entType_1 is the first part before the '_and_'
       set entType_1 $entType
@@ -893,9 +908,6 @@ proc genExcel {{numFile 0}} {
     set dim(unit) ""
     set dim(unitOK) 1
 
-# find camera models used in draughting model items and annotation_occurrence used in property_definition and datums
-    if {$opt(PMIGRF) || $opt(PMISEM) || $viz(PMI)} {pmiGetCamerasAndProperties}
-
 # no entities to process
     if {[llength $entsToProcess] == 0} {
       if {$opt(xlFormat) != "None"} {
@@ -908,6 +920,27 @@ proc genExcel {{numFile 0}} {
     }
     set tlast [clock clicks -milliseconds]
 
+# check for entities in unicodeAttributes that might have unicode strings
+    catch {unset unicodeString}
+    set unicodeEnts {}
+    if {$opt(xlUnicode) && $opt(xlFormat) != "None"} {
+      set unicodeNumEnts 0
+      foreach ent [array names unicodeAttributes] {
+        if {[lsearch $entsToProcess $ent] != -1} {
+          if {([string first "AP2" $stepAP] == 0 && $unicodeInFile) || [string first "ISO13" $stepAP] == 0 || [string first "CUTTING_TOOL_" $stepAP] == 0} {
+            lappend unicodeEnts [string toupper $ent]
+            if {[lsearch $entsToProcess $ent] != -1} {incr unicodeNumEnts $entCount($ent)}
+          }
+        }
+      }
+      if {[llength $unicodeEnts] > 0} {unicodeStrings $unicodeEnts}
+    }
+
+# find camera models used in draughting model items and items used in property_definition and datums
+    if {$opt(PMIGRF) || $opt(PMISEM) || $viz(PMI)} {pmiGetCameras}
+    if {$opt(PMIGRF) || $opt(PMISEM)} {getValProps}
+
+# -------------------------------------------------------------------------------------------------
 # loop over list of entities in file
     foreach entType $entsToProcess {
       if {$opt(xlFormat) != "None"} {
@@ -918,7 +951,13 @@ proc genExcel {{numFile 0}} {
         set checkInv 0
         if {$opt(INVERSE)} {set checkInv [invSetCheck $entType]}
         if {$checkInv} {lappend inverseEnts $entType}
+
+# check for bad attributes
         set badAttr [info exists badAttributes($entType)]
+
+# check for unicode strings
+        set unicodeCheck 0
+        if {[llength $unicodeEnts] > 0} {if {[lsearch $unicodeEnts [string toupper $entType]] != -1} {set unicodeCheck 1}}
 
 # process the entity type
         catch {unset matrixList}
@@ -929,9 +968,9 @@ proc genExcel {{numFile 0}} {
 
             if {[catch {
               if {$useXL} {
-                set stat [getEntity $objEntity $checkInv]
+                set stat [getEntity $objEntity $checkInv $badAttr $unicodeCheck]
               } else {
-                set stat [getEntityCSV $objEntity]
+                set stat [getEntityCSV $objEntity $badAttr $unicodeCheck]
               }
             } emsg1]} {
 
@@ -1037,6 +1076,20 @@ proc genExcel {{numFile 0}} {
   if {($viz(PMI) || $viz(FEA) || $viz(TPG) || $vizprt) && $x3dFileName != ""} {x3dFileEnd}
 
 # -------------------------------------------------------------------------------------------------
+# add validation properties to some worksheets that are not associated with any PMI analysis
+    if {$opt(xlFormat) == "Excel"} {
+      set ok 0
+      if {$opt(PMISEM)} {
+        foreach item [list Dimensions Datums "Datum Targets" "Geometric Tolerances"] {if {[lsearch $characteristics $item] != -1} {set ok 1}}
+      }
+      if {$opt(PMIGRF)} {
+        foreach item $characteristics {if {[string first "Graphical PMI" $item] != -1} {set ok 1}}
+      }
+      if {[lsearch $characteristics "Composites"] != -1} {set ok 1}
+      if {$ok} {reportValProps}
+    }
+
+# -------------------------------------------------------------------------------------------------
 # add summary worksheet
   if {$useXL} {
     set tmp [sumAddWorksheet]
@@ -1116,9 +1169,11 @@ proc genExcel {{numFile 0}} {
       }
     }
 
+# -------------------------------------------------------------------------------------------------
 # add ANCHOR and other sections from Part 21 Edition 3
     if {[info exists p21e3Section]} {if {[llength $p21e3Section] > 0} {addP21e3Section 1}}
 
+# -------------------------------------------------------------------------------------------------
 # add persistent IDs (UUID) from id_attribute
     if {[info exists entCount(id_attribute)]} {
       set okid 0
@@ -1361,19 +1416,15 @@ proc genExcel {{numFile 0}} {
   update idletasks
 
 # unset variables to release memory and/or to reset them
-  global cgrObjects colColor coordinatesList currx3dPID datumGeom datumIDs datumSymbol datumSystem dimrep dimrepID dimtolEnt dimtolEntID dimtolGeom entName
-  global feaDOFR feaDOFT feaNodes gpmiID gpmiIDRow gpmiRow heading idRow invCol invGroup lineStrips nrep numx3dPID pmiColumns pmiStartCol
-  global propDefID propDefIDRow propDefName propDefOK propDefRow savedsavedViewNames savedViewFile savedViewFileName shapeRepName
-  global srNames suppGeomEnts syntaxErr tessCoord tessCoordName tessIndex tessIndexCoord tessPlacement tessRepo unicode
-
-  foreach var {cells cgrObjects colColor coordinatesList count currx3dPID datumGeom datumIDs datumSymbol datumSystem dimrep dimrepID dimtolEnt dimtolEntID dimtolGeom \
-               entCount entName entsIgnored feaDOFR feaDOFT feaNodes gpmiID gpmiIDRow gpmiRow heading idRow invCol invGroup lineStrips nrep numx3dPID \
-               pmiCol pmiColumns pmiStartCol pmivalprop propDefID propDefIDRow propDefName propDefOK propDefRow savedsavedViewNames savedViewFile savedViewFileName \
-               savedViewNames shapeRepName srNames suppGeomEnts syntaxErr tessCoord tessCoordName tessIndex tessIndexCoord tessPlacement tessRepo unicode viz \
-               workbook workbooks worksheet worksheets x3dCoord x3dFile x3dFileName x3dIndex x3dMax x3dMin x3dStartFile} {
+  foreach var {cells cgrObjects colColor coordinatesList count currx3dPID datumGeom datumIDs datumSymbol datumSystem dimrep dimrepID dimtolEnt dimtolEntID \
+      dimtolGeom entCount entName entsIgnored feaDOFR feaDOFT feaNodes gpmiID gpmiIDRow gpmiRow heading idRow invCol invGroup lineStrips nrep numx3dPID \
+      pmiCol pmiColumns pmiStartCol pmivalprop propDefID propDefIDRow propDefName propDefOK propDefRow savedsavedViewNames savedViewFile savedViewFileName \
+      savedViewNames shapeRepName srNames suppGeomEnts syntaxErr tessCoord tessCoordName tessIndex tessIndexCoord tessPlacement tessRepo unicode viz \
+      vpEnts workbook workbooks worksheet worksheets x3dCoord x3dFile x3dFileName x3dIndex x3dMax x3dMin x3dStartFile} {
+    catch {global $var}
     if {[info exists $var]} {unset $var}
   }
-  if {!$multiFile} {foreach var {gpmiTypesPerFile spmiTypesPerFile} {if {[info exists $var]} {unset $var}}}
+  if {!$multiFile} {foreach var {gpmiTypesPerFile spmiTypesPerFile} {catch {global $var}; if {[info exists $var]} {unset $var}}}
 
 # delete leftover text files
   foreach f [glob -nocomplain -directory $mytemp *.txt] {catch {file delete -force -- $f}}
@@ -1468,13 +1519,9 @@ proc addHeaderWorksheet {numFile fname} {
           errorMsg "This file uses an older version of STEP AP214.  See Help > Supported STEP APs" red
         }
 
-# check for IFC or CIS/2 files
+# check for IFC files
         set fschema [string toupper [string range $objAttr 0 5]]
-        if {[string first "IFC" $fschema] == 0} {
-          errorMsg "Use the IFC File Analyzer with IFC files.  https://go.usa.gov/xK9gh"
-        } elseif {$objAttr == "STRUCTURAL_FRAME_SCHEMA"} {
-          errorMsg "Use SteelVis to view CIS/2 files.  https://go.usa.gov/s8fm"
-        }
+        if {[string first "IFC" $fschema] == 0} {errorMsg "Use the IFC File Analyzer with IFC files.  https://www.nist.gov/services-resources/software/ifc-file-analyzer"}
 
 # other File attributes
       } else {
@@ -1639,10 +1686,11 @@ proc addHeaderWorksheet {numFile fname} {
 #-------------------------------------------------------------------------------------------------
 # add summary worksheet
 proc sumAddWorksheet {} {
-  global andEntAP209 cells col entCategory entCount entsIgnored excel gpmiEnts opt row sheetLast sheetSort spmiEntity stepAP sum worksheet worksheets
+  global andEntAP209 cells col entCategory entCount entsIgnored excel gpmiEnts opt row sheetLast sheetSort spmiEntity stepAP sum vpEnts worksheet worksheets
 
   outputMsg "\nGenerating Summary worksheet" blue
   set sum "Summary"
+  if {![info exists vpEnts]} {set vpEnts {}}
 
   set sheetSort {}
   foreach entType [lsort [array names worksheet]] {
@@ -1654,7 +1702,6 @@ proc sumAddWorksheet {} {
   for {set i 0} {$i < [llength $sheetSort]} {incr i} {
     lset sheetSort $i [string range [lindex $sheetSort $i] 2 end]
   }
-  #set ws_nsort [lsort $sheetSort]
 
   if {[catch {
     set worksheet($sum) [$worksheets Add [::tcom::na] $sheetLast]
@@ -1704,10 +1751,10 @@ proc sumAddWorksheet {} {
           $cells($sum) Item $sumRow 1 "$entType  \[PMI Representation\]"
         } elseif {[string first "annotation" $entType] != -1 && $opt(PMIGRF)} {
           if {$gpmiEnts($entType) && $col($entType) > 5} {set okao 1}
+        } elseif {[lsearch $vpEnts $entType] != -1} {
+          $cells($sum) Item $sumRow 1 "$entType  \[Properties\]"
         }
-        if {$okao} {
-          $cells($sum) Item $sumRow 1 "$entType  \[PMI Presentation\]"
-        }
+        if {$okao} {$cells($sum) Item $sumRow 1 "$entType  \[PMI Presentation\]"}
 
 # for '_and_' (complex entity) split on multiple lines
 # '10' is the ascii character for a linefeed
@@ -1722,6 +1769,8 @@ proc sumAddWorksheet {} {
           if {$gpmiEnts($entType) && $col($entType) > 7} {set okao 1}
         } elseif {[lsearch $spmiEntity $entType] != -1} {
           $cells($sum) Item $sumRow 1 "$entType_multiline  \[PMI Representation\]"
+        } elseif {[lsearch $vpEnts $entType] != -1} {
+          $cells($sum) Item $sumRow 1 "$entType_multiline  \[Properties\]"
         }
         if {$okao} {
           $cells($sum) Item $sumRow 1 "$entType_multiline  \[PMI Presentation\]"
@@ -1998,7 +2047,7 @@ proc sumAddColorLinks {sum sumHeaderRow sumLinks sheetSort sumRow} {
 # format worksheets
 proc formatWorksheets {sheetSort sumRow inverseEnts} {
   global buttons cells col count entCount excel excelVersion gpmiEnts nprogBarEnts opt pmiStartCol
-  global row rowmax spmiEnts stepAP syntaxErr thisEntType viz worksheet xlFileName
+  global row rowmax spmiEnts stepAP syntaxErr thisEntType viz vpEnts worksheet xlFileName
   outputMsg "Formatting Worksheets" blue
 
   if {[info exists buttons]} {$buttons(progressBar) configure -maximum [llength $sheetSort]}
@@ -2066,7 +2115,7 @@ proc formatWorksheets {sheetSort sumRow inverseEnts} {
 # set column color, border, group for INVERSES and Used In
       if {$opt(INVERSE)} {if {[lsearch $inverseEnts $thisEntType] != -1} {invFormat $rancol}}
 
-# STEP Property_definition (Validation Properties)
+# property_definition (Validation Properties)
       if {$thisEntType == "property_definition" && $opt(valProp)} {
         valPropFormat
 
@@ -2080,6 +2129,10 @@ proc formatWorksheets {sheetSort sumRow inverseEnts} {
 
 # add PMI Representation Summary worksheet
         spmiSummary
+
+# extra validation properties
+      } elseif {[lsearch $vpEnts $thisEntType] != -1} {
+        pmiFormatColumns "Validation Properties"
       }
 
 # -------------------------------------------------------------------------------------------------

@@ -4,7 +4,7 @@ global ap203all ap214all ap242all ap242only
 global allVendor andEntAP209 aoEntTypes badAttributes cadApps datumTargetDesc defaultColor dimModNames dimSizeNames DTR
 global entCategory entColorIndex feaElemFace feaIndex gpmiTypes ifcsvrKey ifcsvrVer legendColor letters nistModelPictures nistModelURLs
 global pmiElementsMaxRows pmiHorizontalLineBreaks pmiModifiers pmiModifiersRP pmiUnicode recPracNames roseLogical
-global schemaLinks spaces spmiEntTypes spmiTypes stepAPs tolNames tzfNames
+global schemaLinks spaces spmiEntTypes spmiTypes stepAPs tolNames tzfNames unicodeAttributes
 
 set ifcsvrKey "HKEY_LOCAL_MACHINE\\SOFTWARE\\Classes\\IFCsvr.R300\\CLSID"
 set ifcsvrVer "HKEY_LOCAL_MACHINE\\SOFTWARE\\WOW6432Node\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\{3C8CE0A4-803B-48A6-96A0-A3DDD5AE5596}"
@@ -81,7 +81,7 @@ set legendColor(magenta) [expr {int (255) << 16 | int (128) << 8 | int(255)}]
 set legendColor(gray)    [expr {int (208) << 16 | int (208) << 8 | int(208)}]
 
 # -----------------------------------------------------------------------------------------------------
-# entity attributes that cause a crash like 'LIST of LIST' or something of something, this is caused by a limitation of the IFCsvr toolkit
+# entity attributes (mostly geometry) that cause a crash like 'LIST of LIST' or something of something, this is caused by a limitation of the IFCsvr toolkit
 set badattributes(axisymmetric_curve_2d_element_descriptor) {purpose}
 set badattributes(axisymmetric_surface_2d_element_descriptor) {purpose}
 set badAttributes(axisymmetric_volume_2d_element_descriptor) {purpose}
@@ -121,13 +121,35 @@ set badAttributes(triangulated_face) {normals triangles}
 set badAttributes(triangulated_point_cloud_dataset) {triangles}
 set badAttributes(triangulated_surface_set) {normals triangles}
 
+# entity attributes that might have text strings with unicode \x2\ that have to handled separately
+# in AP2.., not all but a few commonly used, all would be any entity with a name, etc. attribute
+set unicodeAttributes(advanced_brep_shape_representation) {name}
+set unicodeAttributes(brep_with_voids) {name}
+set unicodeAttributes(descriptive_representation_item) {name description}
+set unicodeAttributes(item_defined_transformation) {name description}
+set unicodeAttributes(manifold_solid_brep) {name}
+set unicodeAttributes(next_assembly_usage_occurrence) {id name description reference_designator}
+set unicodeAttributes(open_shell) {name}
+set unicodeAttributes(product) {id name description}
+set unicodeAttributes(product_definition) {id description}
+set unicodeAttributes(product_definition_shape) {name description}
+set unicodeAttributes(product_related_product_category) {name description}
+set unicodeAttributes(representation_context) {context_identifier context_type}
+set unicodeAttributes(representation_relationship) {name description}
+set unicodeAttributes(shape_representation) {name}
+# in ISO13...
+set unicodeAttributes(item_names) {preferred_name}
+set unicodeAttributes(string_with_language) {contents}
+set unicodeAttributes(translated_label) {labels}
+set unicodeAttributes(translated_text) {texts}
+
 # -----------------------------------------------------------------------------------------------------
 # app names for STEP software that might appear in header section
 set cadApps {3D_Evolution 3DEXPERIENCE Alibre "Anark CORE" "ASCON STEP Converter" AutoCAD Autodesk "Autodesk Inventor" "Autodesk Translation Framework" \
   "Autodesk Translator Framework" CADfix CADverter CATIA "CATIA V4" "CATIA V5" "CATIA V6" CoCreate CoreTechnologie Creo CREO CrossCAD Datakit \
   "Datakit CrossCad" DATAKIT DEX EDMsix Elysium "Elysium ASFALIS" Eurostep FiberSim FreeCAD "kicad StepUp" Kubotek "Kubotek KeyCreator" "OneSpace Designer" \
   "OneSpace Modeling" PRO/ENGINEER PSStep "SIEMENS PLM Software NX" Solidworks SolidWorks SOLIDWORKS "SOLIDWORKS MBD" "Spatial InterOp 3D" ST-ACIS \
-  STEP-NC Theorem THEOREM "Theorem Solutions" T-Systems Unigraphics VariCAD XStep}
+  STEP-NC Theorem THEOREM "Theorem Solutions" T-Systems Unigraphics VariCAD XStep Area21}
 
 # sort cadApps by string length
 set cadApps [sortlength2 $cadApps]
@@ -158,7 +180,7 @@ set recPracNames(tessgeom) "3D Tessellated Geometry"
 set recPracNames(uda)      "User Defined Attributes"
 set recPracNames(comp)     "Composite Structure Validation Properties"
 set recPracNames(suppgeom) "Supplemental Geometry"
-set recPracnames(holes)    "Representation of Hole and Fastener Information (AP242)"
+set recPracNames(holes)    "Representation of Hole and Fastener Information (AP242)"
 
 # -----------------------------------------------------------------------------------------------------
 # list of annotation occurrence entities, *order is important*
@@ -189,7 +211,7 @@ set spmiEntTypes [list \
 ]
 
 # max rows for PMI elements on PMI representation coverage worksheet, depends on number and order of items below
-set pmiElementsMaxRows 174
+set pmiElementsMaxRows 175
 # line breaks are above the row, depends on the grouping of PMI elements below
 set pmiHorizontalLineBreaks [list 19 35 47 53 67 74 84 [expr {$pmiElementsMaxRows-7}]]
 
@@ -316,6 +338,7 @@ set pmiModifiersArray(statistical_tolerance,6.9.3)            "<ST>"
 set pmiModifiersArray(tangent_plane,6.9.3)                    "\u24C9"
 
 # geometric tolerance modifiers from ISO 1101, not in RP but in schema(?)
+set pmiModifiersArray(circle_a)                                "\u24B6"
 set pmiModifiersArray(derived_feature)                         "\u24B6"
 set pmiModifiersArray(associated_minmax_feature)               "\u24B8"
 set pmiModifiersArray(associated_least_square_feature)         "\u24BC"

@@ -95,8 +95,8 @@ proc spmiHoleStart {entType} {
 
 # -------------------------------------------------------------------------------
 proc spmiHoleReport {objEntity} {
-  global badAttributes cells col dim DTR hole holerep holeDim holeDimType holeDefinitions holeEntity ht entLevel ent entAttrList
-  global lastEnt opt pmiCol pmiColumns pmiHeading pmiModifiers pmiUnicode spmiEnts spmiID spmiIDRow spmiRow spmiTypesPerFile syntaxErr thruHole
+  global badAttributes cells col dim DTR hole holerep holeDim holeDimType holeDefinitions holeEntity holeType ht entLevel ent entAttrList lastEnt
+  global numBore opt pmiCol pmiColumns pmiHeading pmiModifiers pmiUnicode recPracNames spaces spmiEnts spmiID spmiIDRow spmiRow spmiTypesPerFile syntaxErr thruHole
 
   if {$opt(DEBUG1)} {outputMsg "spmiHoleReport" red}
 
@@ -117,6 +117,7 @@ proc spmiHoleReport {objEntity} {
     if {$entLevel == 1} {
       set holeEntity $objEntity
       set holeType [$objEntity Type]
+      set numBore 0
     }
 
 # check if there are rows with hole features
@@ -174,6 +175,12 @@ proc spmiHoleReport {objEntity} {
                   "spotface_definition s*" {
 # get type of hole dimension or tolerance
                     set holeDimType $objName
+
+# check for multiple counterbore
+                    if {$ent1 == "explicit_round_hole depth"} {
+                      incr numBore
+                      if {$numBore > 1} {errorMsg "Multiple counterbores for a '$holeType' ($recPracNames(holes), Sec. 5.1.3, Fig. 8)"}
+                    }
                   }
 
                   "*length_measure_with_unit* value_component" -
@@ -184,6 +191,11 @@ proc spmiHoleReport {objEntity} {
                       set invalid ""
                       if {[string first "angle" $ent1] != -1} {
                         set aunit [[[[$objEntity Attributes] Item [expr 2]] Value] Type]
+                        if {[string first "length_unit" $aunit] != -1} {
+                          set msg "Syntax Error: Bad units [formatComplexEnt $aunit] for a '$objType'."
+                          errorMsg $msg
+                          lappend syntaxErr([lindex $ent1 0]) [list [$objEntity P21ID] "unit_component" $msg]
+                        }
                         if {[string first "conversion" $aunit] == -1} {set objValue [trimNum [expr {$objValue/$DTR}]]}
                       }
 # first value
@@ -196,10 +208,15 @@ proc spmiHoleReport {objEntity} {
                           if {$objValue == [expr {abs($holeDim($holeDimType))}] && $objValue > $holeDim($holeDimType)} {
                             set holeDim($holeDimType) "$pmiUnicode(plusminus) $objValue"
                             lappend spmiTypesPerFile "bilateral tolerance"
-                          } else {
+                          } elseif {$objValue != [expr {abs($holeDim($holeDimType))}]} {
                             append holeDim($holeDimType) " $objValue"
                             errorMsg "Non-bilateral tolerance for '$holeDimType'"
                             lappend spmiTypesPerFile "non-bilateral tolerance"
+                          } else {
+                            set msg "Syntax Error: Tolerance lower and upper bounds ($objValue) are equal."
+                            errorMsg $msg
+                            lappend syntaxErr(tolerance_value) [list "-$spmiIDRow($ht,$spmiID)" "lower_bound" $msg]
+                            lappend syntaxErr(tolerance_value) [list "-$spmiIDRow($ht,$spmiID)" "upper_bound" $msg]
                           }
                         } else {
                           append holeDim($holeDimType) " $objValue"
@@ -339,7 +356,7 @@ proc spmiHoleReport {objEntity} {
       lappend spmiTypesPerFile "depth"
       append hd " $holeDim(drilled_hole_depth)"
       if {$thruHole} {
-        set msg "Syntax Error: through_hole should be FALSE if drilled_hole_depth is specified OR if though_hole is TRUE then the drilled_hole_depth should not be specified."
+        set msg "Syntax Error: through_hole should be FALSE if drilled_hole_depth is specified OR if though_hole is TRUE then the drilled_hole_depth should not be specified.$spaces\($recPracNames(hole), Sec. 5.1.1.1)"
         errorMsg $msg
         lappend syntaxErr([$holeEntity Type]) [list [$holeEntity P21ID] "through_hole" $msg]
         lappend syntaxErr([$holeEntity Type]) [list [$holeEntity P21ID] "drilled_hole_depth" $msg]
@@ -349,9 +366,9 @@ proc spmiHoleReport {objEntity} {
     } elseif {!$thruHole} {
       set msg ""
       if {[string first "basic_round" [$holeEntity Type]] == -1} {
-        set msg "Syntax Error: through_hole should be TRUE if drilled_hole_depth is not specified."
+        set msg "Syntax Error: through_hole should be TRUE if drilled_hole_depth is not specified.$spaces\($recPracNames(hole), Sec. 5.1.1.1)"
       } elseif {![info exists holeDim(depth)]} {
-        set msg "Syntax Error: through_hole should be TRUE if depth is not specified."
+        set msg "Syntax Error: through_hole should be TRUE if depth is not specified.$spaces\($recPracNames(hole), Sec. 5.1.1.1)"
       }
       if {$msg != ""} {
         errorMsg $msg
@@ -371,31 +388,36 @@ proc spmiHoleReport {objEntity} {
       lappend holeDefinitions([$holeEntity P21ID]) "countersink $holeDim(countersink_diameter) $holeDim(countersink_angle)"
     }
 
-# basic, counterbore, or spotface diameter, depth, and tolerances
+# basic, (multiple) counterbore, or spotface diameter, depth, and tolerances
     if {[info exists holeDim(diameter)]} {
-      append holerep [format "%c" 10]
-      if {[string first "counterbore" [$holeEntity Type]] != -1} {
-        append holerep $pmiModifiers(counterbore)
-        lappend spmiTypesPerFile "counterbore"
-        set type "counterbore"
-      } elseif {[string first "spotface" [$holeEntity Type]] != -1} {
-        append holerep "$pmiModifiers(spotface) "
-        lappend spmiTypesPerFile "spotface"
-        set type "spotface"
-      } elseif {[string first "basic_round" [$holeEntity Type]] != -1} {
-        lappend spmiTypesPerFile "round_hole"
-        set type "round_hole"
-      }
-      append holerep "$pmiUnicode(diameter)$holeDim(diameter)"
-      if {[info exists holeDim(diameter_tolerance)]} {append holerep " $holeDim(diameter_tolerance)"}
-      lappend spmiTypesPerFile "diameter"
-      if {[info exists holeDim(depth)]} {
-        append holerep "  $pmiModifiers(depth)$holeDim(depth)"
-        if {[info exists holeDim(depth_tolerance)]} {append holerep " $holeDim(depth_tolerance)"}
-        lappend spmiTypesPerFile "depth"
-        lappend holeDefinitions([$holeEntity P21ID]) "$type $holeDim(diameter) $holeDim(depth)"
-      } else {
-        lappend holeDefinitions([$holeEntity P21ID]) "$type $holeDim(diameter)"
+      set nhdim 0
+      foreach hdim $holeDim(diameter) {
+        if {$holerep != ""} {append holerep [format "%c" 10]}
+        if {[string first "counterbore" [$holeEntity Type]] != -1} {
+          append holerep $pmiModifiers(counterbore)
+          lappend spmiTypesPerFile "counterbore"
+          set type "counterbore"
+        } elseif {[string first "spotface" [$holeEntity Type]] != -1} {
+          append holerep "$pmiModifiers(spotface) "
+          lappend spmiTypesPerFile "spotface"
+          set type "spotface"
+        } elseif {[string first "basic_round" [$holeEntity Type]] != -1} {
+          lappend spmiTypesPerFile "round_hole"
+          set type "round_hole"
+        }
+
+        append holerep "$pmiUnicode(diameter)$hdim"
+        if {[info exists holeDim(diameter_tolerance)]} {append holerep " $holeDim(diameter_tolerance)"}
+        lappend spmiTypesPerFile "diameter"
+        if {[info exists holeDim(depth)]} {
+          append holerep "  $pmiModifiers(depth)[lindex $holeDim(depth) $nhdim]"
+          if {[info exists holeDim(depth_tolerance)]} {append holerep " $holeDim(depth_tolerance)"}
+          lappend spmiTypesPerFile "depth"
+          lappend holeDefinitions([$holeEntity P21ID]) "$type $hdim [lindex $holeDim(depth) $nhdim]"
+        } else {
+          lappend holeDefinitions([$holeEntity P21ID]) "$type $hdim"
+        }
+        incr nhdim
       }
     }
 

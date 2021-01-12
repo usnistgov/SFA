@@ -127,10 +127,11 @@ proc spmiGeotolStart {entType} {
 
 # -------------------------------------------------------------------------------
 proc spmiGeotolReport {objEntity} {
-  global all_around all_over assocGeom ATR axisval badAttributes between cells col datsys datumCompartment datumFeature datumModValue datumTargetDesc datumSymbol
-  global datumSystem dim datumEntType datumGeom datumIDs datumTargetType datumTargetView dimtolEntType dimtolGeom entLevel ent entAttrList entCount gt
-  global gtEntity magQualified magType multipleDatumFeature nistName objID opt pmiCol pmiHeading pmiModifiers pmiStartCol pmiUnicode ptz ptzError recPracNames spaces spmiEnts spmiID spmiIDRow
-  global spmiRow spmiTypesPerFile stepAP syntaxErr tolNames tolStandard tolStandards tolval tzf1 tzfNames tzWithDatum worksheet
+  global all_around all_over assocGeom ATR axisval badAttributes between cells col datsys datumCompartment datumFeature datumModValue datumTargetDesc
+  global datumSymbol datumSystem dim datumEntType datumGeom datumIDs datumTargetType datumTargetView dimtolEntType dimtolGeom entLevel ent entAttrList
+  global entCount gt gtEntity magQualified magType multipleDatumFeature nistName objID opt pmiCol pmiHeading pmiModifiers pmiStartCol pmiUnicode propDefIDs
+  global ptz ptzError recPracNames spaces spmiEnts spmiID spmiIDRow spmiRow spmiTypesPerFile stepAP syntaxErr tolNames tolStandard tolStandards tolval
+  global tzf1 tzfNames tzWithDatum worksheet
   global objDesign
 
   if {$opt(DEBUG1)} {outputMsg "spmiGeotolReport" red}
@@ -2015,6 +2016,13 @@ proc spmiGeotolReport {objEntity} {
         errorMsg $msg
         lappend syntaxErr($gt) [list "-$spmiIDRow($gt,$spmiID)" "Toleranced Geometry" $msg]
       }
+    }
+
+# add valprop column to spreadsheet
+    if {[info exists propDefIDs($spmiID)]} {
+      set c [expr {$pmiStartCol($gt)+5}]
+      set r $spmiIDRow($gt,$spmiID)
+      valPropColumn $gt $r $c $propDefIDs($spmiID)
     }
   }
 

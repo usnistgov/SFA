@@ -243,10 +243,12 @@ proc spmiCoverageWrite {{fn ""} {sum ""} {multi 1}} {
 # check for 'semantic text'
     if {!$multi} {
       ::tcom::foreach thisEnt [$objDesign FindObjects [string trim property_definition]] {
-        ::tcom::foreach attr [$thisEnt Attributes] {
-          if {[$attr Name] == "name"} {
-            set val [$attr Value]
-            if {$val == "semantic text"} {lappend spmiTypesPerFile "editable text"}
+        if {[$thisEnt Type] == "property_definition"} {
+          ::tcom::foreach attr [$thisEnt Attributes] {
+            if {[$attr Name] == "name"} {
+              set val [$attr Value]
+              if {$val == "semantic text"} {lappend spmiTypesPerFile "editable text"}
+            }
           }
         }
       }

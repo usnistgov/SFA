@@ -166,7 +166,7 @@ proc gpmiAnnotationReport {objEntity} {
   global draughtingModels draftModelCameraNames draftModelCameras ent entAttrList entCount entLevel geomType gpmiEnts gpmiID gpmiIDRow
   global gpmiName gpmiPlacement gpmiRow gpmiTypes gpmiTypesInvalid gpmiTypesPerFile gpmiValProp iCompCurve iCompCurveSeg iPolyline
   global nindex numCompCurve numCompCurveSeg numPolyline numx3dPID objEntity1 opt placeAnchor placeNCP placeOrigin
-  global pmiCol pmiColumns pmiHeading pmiStartCol propDefIDS recPracNames savedViewCol savedViewName spaces stepAP syntaxErr
+  global pmiCol pmiColumns pmiHeading pmiStartCol propDefIDs recPracNames savedViewCol savedViewName spaces stepAP syntaxErr
   global tessCoord tessIndex tessIndexCoord tessPlacement tessPlacementID tessRepo useXL whiteColor
   global x3dColor x3dCoord x3dFile x3dFileName x3dIndex x3dIndexType x3dMax x3dMin x3dMsg x3dPID x3dPoint x3dShape x3dStartFile
 
@@ -1328,71 +1328,46 @@ proc gpmiAnnotationReport {objEntity} {
     }
   }
 
-# check if there are PMI validation properties (propDefIDS) associated with the annotation_occurrence
+# check if there are PMI validation properties (propDefIDs) associated with the annotation_occurrence
   if {$entLevel == 0 && $opt(PMIGRF) && $opt(xlFormat) != "None" && [info exists gpmiIDRow($ao,$gpmiID)]} {
-    if {[catch {
-      if {[info exists propDefIDS]} {
+    if {[info exists propDefIDs]} {
 
 # look for annotation_occurrence used in property_definition.definition
-        set objGuiEntities [$objEntity GetUsedIn [string trim property_definition] [string trim definition]]
-        ::tcom::foreach objGuiEntity $objGuiEntities {
-          set GuiID [$objGuiEntity P21ID]
-          foreach item [lsort [array names propDefIDS]] {
-            if {$item == $GuiID && $propDefIDS($item) == $objID} {append gpmiValProp($objID) "$GuiID "}
-          }
-        }
+      if {[info exists propDefIDs($objID)]} {append gpmiValProp($objID) "$propDefIDs($objID) "}
 
 # look for annotation_occurrence used in characterized_item_within_representation.item
-        set objGuiEntities [$objEntity GetUsedIn [string trim characterized_item_within_representation] [string trim item]]
-        ::tcom::foreach objGuiEntity $objGuiEntities {
-          set GuiID [$objGuiEntity P21ID]
-          foreach item [lsort [array names propDefIDS]] {
-            if {$propDefIDS($item) == $GuiID} {append gpmiValProp($objID) "$item "}
-          }
-        }
+      set e0s [$objEntity GetUsedIn [string trim characterized_item_within_representation] [string trim item]]
+      ::tcom::foreach e0 $e0s {
+        set e0id [$e0 P21ID]
+        if {[info exists propDefIDs($e0id)]} {append gpmiValProp($objID) "$propDefIDs($e0id) "}
+      }
 
 # look for annotation_occurrence used in draughting_callout.contents
-        set objGuiEntities [$objEntity GetUsedIn [string trim draughting_callout] [string trim contents]]
-        ::tcom::foreach objGuiEntity $objGuiEntities {
-          set refGuiEntities [$objGuiEntity GetUsedIn [string trim characterized_item_within_representation] [string trim item]]
-          ::tcom::foreach refGuiEntity $refGuiEntities {
-            foreach item [lsort [array names propDefIDS]] {
-              if {$propDefIDS($item) == [$refGuiEntity P21ID]} {append gpmiValProp($objID) "$item "}
-            }
-          }
+      set e0s [$objEntity GetUsedIn [string trim draughting_callout] [string trim contents]]
+      ::tcom::foreach e0 $e0s {
+        set e1s [$e0 GetUsedIn [string trim characterized_item_within_representation] [string trim item]]
+        ::tcom::foreach e1 $e1s {
+          set e1id [$e1 P21ID]
+          if {[info exists propDefIDs($e1id)]} {append gpmiValProp($objID) "$propDefIDs($e1id) "}
         }
       }
+    }
 
 # add valprop info to spreadsheet
-      if {[info exists gpmiValProp($objID)]} {
-        if {![info exists pmiColumns(vp)]} {set pmiColumns(vp) [getNextUnusedColumn $ao]}
-        if {[string first "AP242" $stepAP] == 0} {
-          set colName "Validation Properties[format "%c" 10](Sec. 10.3)"
-        } else {
-          set colName "Validation Properties[format "%c" 10](Sec. 6.3)"
-        }
-        set c [string index [cellRange 1 $pmiColumns(vp)] 0]
-        set r $gpmiIDRow($ao,$gpmiID)
-        if {![info exists pmiHeading($pmiColumns(vp))]} {
-          $cells($ao) Item 3 $c $colName
-          set pmiHeading($pmiColumns(vp)) 1
-          set pmiCol [expr {max($pmiColumns(vp),$pmiCol)}]
-        }
-        set str "([llength $gpmiValProp($objID)]) property_definition [string trim $gpmiValProp($objID)]"
-        if {[llength $gpmiValProp($objID)] == 1} {set str "property_definition [string trim $gpmiValProp($objID)]"}
-        $cells($ao) Item $r $pmiColumns(vp) $str
-      }
-    } emsg]} {
-      errorMsg "ERROR adding PMI Presentation Validation Properties: $emsg"
+    if {[info exists gpmiValProp($objID)]} {
+      if {![info exists pmiColumns(vp)]} {set pmiColumns(vp) [getNextUnusedColumn $ao]}
+      set c $pmiColumns(vp)
+      set r $gpmiIDRow($ao,$gpmiID)
+      valPropColumn $ao $r $c $gpmiValProp($objID)
     }
   }
 }
 
 # -------------------------------------------------------------------------------
-# get camera models and validation properties
-proc pmiGetCamerasAndProperties {} {
+# get camera models
+proc pmiGetCameras {} {
   global objDesign
-  global draughtingModels draftModelCameraNames draftModelCameras entCount gpmiValProp mytemp opt propDefIDS recPracNames savedViewFile
+  global draughtingModels draftModelCameraNames draftModelCameras entCount mytemp opt recPracNames savedViewFile
   global savedViewFileName savedViewItems savedViewName savedViewNames savedViewpoint spaces spmiTypesPerFile stepAP syntaxErr
 
   set aolist {}
@@ -1428,119 +1403,121 @@ proc pmiGetCamerasAndProperties {} {
 # loop over camera model entities
       foreach cm $cmlist {
         ::tcom::foreach entCameraModel [$objDesign FindObjects [string trim $cm]] {
-          set attrCameraModels [$entCameraModel Attributes]
+          if {[$entCameraModel Type] == $cm} {
+            set attrCameraModels [$entCameraModel Attributes]
 
 # loop over draughting model entities
-          foreach dm $draughtingModels {
-            set entDraughtingModels [$entCameraModel GetUsedIn [string trim $dm] [string trim items]]
-            ::tcom::foreach entDraughtingModel $entDraughtingModels {
-              set attrDraughtingModels [$entDraughtingModel Attributes]
-              set dmitems([$entDraughtingModel P21ID]) ""
-              set annForDM([$entDraughtingModel P21ID]) 0
+            foreach dm $draughtingModels {
+              set entDraughtingModels [$entCameraModel GetUsedIn [string trim $dm] [string trim items]]
+              ::tcom::foreach entDraughtingModel $entDraughtingModels {
+                set attrDraughtingModels [$entDraughtingModel Attributes]
+                set dmitems([$entDraughtingModel P21ID]) ""
+                set annForDM([$entDraughtingModel P21ID]) 0
 
 # DM name attribute
-              set nattr 0
-              set iattr 1
-              if {[string first "object" $dm] != -1} {set iattr 3}
-              ::tcom::foreach attrDraughtingModel $attrDraughtingModels {
-                incr nattr
-                set nameDraughtingModel [$attrDraughtingModel Name]
-                if {$nameDraughtingModel == "name" && $nattr == $iattr} {
-                  set name [$attrDraughtingModel Value]
-                  if {$name == ""} {
-                    set msg "Syntax Error: For Saved Views, missing required 'name' attribute on [formatComplexEnt $dm]$spaces"
-                    if {[string first "AP242" $stepAP] == 0} {
-                      append msg "($recPracNames(pmi242), Sec. 9.4.2)"
-                    } else {
-                      append msg "($recPracNames(pmi203), Sec. 5.4.2)"
-                    }
-                    errorMsg $msg
-                    lappend syntaxErr($dm) [list [$entDraughtingModel P21ID] name $msg]
-                  }
-                }
-                if {$nameDraughtingModel == "items"} {
-                  ::tcom::foreach item [$attrDraughtingModel Value] {
-                    set itype [$item Type]
-                    if {$itype != "mapped_item" && [string first "camera_model_d3" $itype] == -1} {
-                      append dmitems([$entDraughtingModel P21ID]) "[$item P21ID] "
-                    }
-                    if {[string first "annotation" $itype] != -1 || [string first "_callout" $itype] != -1} {
-                      set annForDM([$entDraughtingModel P21ID]) 1
+                set nattr 0
+                set iattr 1
+                if {[string first "object" $dm] != -1} {set iattr 3}
+                ::tcom::foreach attrDraughtingModel $attrDraughtingModels {
+                  incr nattr
+                  set nameDraughtingModel [$attrDraughtingModel Name]
+                  if {$nameDraughtingModel == "name" && $nattr == $iattr} {
+                    set name [$attrDraughtingModel Value]
+                    if {$name == ""} {
+                      set msg "Syntax Error: For Saved Views, missing required 'name' attribute on [formatComplexEnt $dm]$spaces"
+                      if {[string first "AP242" $stepAP] == 0} {
+                        append msg "($recPracNames(pmi242), Sec. 9.4.2)"
+                      } else {
+                        append msg "($recPracNames(pmi203), Sec. 5.4.2)"
+                      }
+                      errorMsg $msg
+                      lappend syntaxErr($dm) [list [$entDraughtingModel P21ID] name $msg]
                     }
                   }
-                }
-              }
-
-# CM name attribute
-              ::tcom::foreach attrCameraModel $attrCameraModels {
-                set nameCameraModel [$attrCameraModel Name]
-                if {$nameCameraModel == "name"} {
-                  set name [$attrCameraModel Value]
-                  set name1 [string trim $name]
-                  if {$name1 == ""} {set name1 "Missing name"}
-
-                  if {$name == ""} {
-                    set msg "Syntax Error: For Saved Views, missing required 'name' attribute on $cm$spaces"
-                    if {[string first "AP242" $stepAP] == 0} {
-                      append msg "($recPracNames(pmi242), Sec. 9.4.2.1, Fig. 95)"
-                    } else {
-                      append msg "($recPracNames(pmi203), Sec. 5.4.2.1, Fig. 14)"
-                    }
-                    errorMsg $msg
-                    lappend syntaxErr($cm) [list [$entCameraModel P21ID] name $msg]
-                  }
-
-# get axis2_placement_3d for camera viewpoint
-                } elseif {$nameCameraModel == "view_reference_system"} {
-                  catch {unset savedViewpoint($name1)}
-                  if {[catch {
-                    set a2p3d [[$attrCameraModel Value] Attributes]
-                    set origin [[[[[$a2p3d Item 2] Value] Attributes] Item [expr 2]] Value]
-                    set axis   [[[[[$a2p3d Item 3] Value] Attributes] Item [expr 2]] Value]
-                    ::tcom::foreach attr $a2p3d {
-                      if {[$attr Name] == "ref_direction"} {
-                        set refdir [[[[$attr Value] Attributes] Item [expr 2]] Value]
+                  if {$nameDraughtingModel == "items"} {
+                    ::tcom::foreach item [$attrDraughtingModel Value] {
+                      set itype [$item Type]
+                      if {$itype != "mapped_item" && [string first "camera_model_d3" $itype] == -1} {
+                        append dmitems([$entDraughtingModel P21ID]) "[$item P21ID] "
+                      }
+                      if {[string first "annotation" $itype] != -1 || [string first "_callout" $itype] != -1} {
+                        set annForDM([$entDraughtingModel P21ID]) 1
                       }
                     }
-                    lappend savedViewpoint($name1) [vectrim $origin]
-                    lappend savedViewpoint($name1) [x3dGetRotation $axis $refdir]
-                  } emsg]} {
-                    errorMsg "ERROR getting Saved View position and orientation: $emsg"
-                    catch {raise .}
                   }
                 }
-              }
+
+# CM name attribute
+                ::tcom::foreach attrCameraModel $attrCameraModels {
+                  set nameCameraModel [$attrCameraModel Name]
+                  if {$nameCameraModel == "name"} {
+                    set name [$attrCameraModel Value]
+                    set name1 [string trim $name]
+                    if {$name1 == ""} {set name1 "Missing name"}
+
+                    if {$name == ""} {
+                      set msg "Syntax Error: For Saved Views, missing required 'name' attribute on $cm$spaces"
+                      if {[string first "AP242" $stepAP] == 0} {
+                        append msg "($recPracNames(pmi242), Sec. 9.4.2.1, Fig. 95)"
+                      } else {
+                        append msg "($recPracNames(pmi203), Sec. 5.4.2.1, Fig. 14)"
+                      }
+                      errorMsg $msg
+                      lappend syntaxErr($cm) [list [$entCameraModel P21ID] name $msg]
+                    }
+
+# get axis2_placement_3d for camera viewpoint
+                  } elseif {$nameCameraModel == "view_reference_system"} {
+                    catch {unset savedViewpoint($name1)}
+                    if {[catch {
+                      set a2p3d [[$attrCameraModel Value] Attributes]
+                      set origin [[[[[$a2p3d Item 2] Value] Attributes] Item [expr 2]] Value]
+                      set axis   [[[[[$a2p3d Item 3] Value] Attributes] Item [expr 2]] Value]
+                      ::tcom::foreach attr $a2p3d {
+                        if {[$attr Name] == "ref_direction"} {
+                          set refdir [[[[$attr Value] Attributes] Item [expr 2]] Value]
+                        }
+                      }
+                      lappend savedViewpoint($name1) [vectrim $origin]
+                      lappend savedViewpoint($name1) [x3dGetRotation $axis $refdir]
+                    } emsg]} {
+                      errorMsg "ERROR getting Saved View position and orientation: $emsg"
+                      catch {raise .}
+                    }
+                  }
+                }
 
 # cameras associated with draughting models
-              set str "[$entCameraModel P21ID] ($name)  "
-              set id [$entDraughtingModel P21ID]
-              if {![info exists draftModelCameras($id)]} {
-                set draftModelCameras($id) $str
-              } elseif {[string first $str $draftModelCameras($id)] == -1} {
-                append draftModelCameras($id) "[$entCameraModel P21ID] ($name)  "
-              }
-              if {![info exists draftModelCameraNames($id)]} {
-                set draftModelCameraNames($id) $name1
-              } elseif {[string first $name $draftModelCameraNames($id)] == -1 && [string first $name1 $draftModelCameraNames($id)] == -1} {
-                append draftModelCameraNames($id) " $name1"
-              }
+                set str "[$entCameraModel P21ID] ($name)  "
+                set id [$entDraughtingModel P21ID]
+                if {![info exists draftModelCameras($id)]} {
+                  set draftModelCameras($id) $str
+                } elseif {[string first $str $draftModelCameras($id)] == -1} {
+                  append draftModelCameras($id) "[$entCameraModel P21ID] ($name)  "
+                }
+                if {![info exists draftModelCameraNames($id)]} {
+                  set draftModelCameraNames($id) $name1
+                } elseif {[string first $name $draftModelCameraNames($id)] == -1 && [string first $name1 $draftModelCameraNames($id)] == -1} {
+                  append draftModelCameraNames($id) " $name1"
+                }
 
 # keep track of saved views for graphic PMI
-              if {$opt(viewPMI) || $opt(PMISEM)} {
-                set dmcn $draftModelCameraNames([$entDraughtingModel P21ID])
-                if {[lsearch $savedViewName $dmcn] == -1} {lappend savedViewName $dmcn}
-                if {[lsearch $savedViewNames $name1] == -1 && $annForDM([$entDraughtingModel P21ID])} {
-                  lappend savedViewNames $name1
-                  if {$opt(PMISEM)} {lappend spmiTypesPerFile "saved views"}
+                if {$opt(viewPMI) || $opt(PMISEM)} {
+                  set dmcn $draftModelCameraNames([$entDraughtingModel P21ID])
+                  if {[lsearch $savedViewName $dmcn] == -1} {lappend savedViewName $dmcn}
+                  if {[lsearch $savedViewNames $name1] == -1 && $annForDM([$entDraughtingModel P21ID])} {
+                    lappend savedViewNames $name1
+                    if {$opt(PMISEM)} {lappend spmiTypesPerFile "saved views"}
 
 # create temp file ViewN.txt for saved view graphical PMI x3d, where 'N' is an integer
-                  if {$opt(viewPMI)} {
-                    set name2 "View[lsearch $savedViewNames $name1]"
-                    catch {file delete -force $savedViewFileName($name2)}
-                    set fn [file join $mytemp $name2.txt]
-                    set savedViewFile($name2) [open $fn w]
-                    set savedViewFileName($name2) $fn
-                    if {[string length $dmitems([$entDraughtingModel P21ID])] > 0} {set savedViewItems($dmcn) $dmitems([$entDraughtingModel P21ID])}
+                    if {$opt(viewPMI)} {
+                      set name2 "View[lsearch $savedViewNames $name1]"
+                      catch {file delete -force $savedViewFileName($name2)}
+                      set fn [file join $mytemp $name2.txt]
+                      set savedViewFile($name2) [open $fn w]
+                      set savedViewFileName($name2) $fn
+                      if {[string length $dmitems([$entDraughtingModel P21ID])] > 0} {set savedViewItems($dmcn) $dmitems([$entDraughtingModel P21ID])}
+                    }
                   }
                 }
               }
@@ -1563,27 +1540,5 @@ proc pmiGetCamerasAndProperties {} {
       if {[info exists $var]} {unset $var}
     }
     return
-  }
-
-# get pmi validation properties so that they can be annotation_occurrence
-  catch {unset gpmiValProp}
-  catch {unset propDefIDS}
-
-  if {[catch {
-    ::tcom::foreach objPDEntity [$objDesign FindObjects [string trim property_definition]] {
-      set objPDAttributes [$objPDEntity Attributes]
-      set idx ""
-      ::tcom::foreach objPDAttribute $objPDAttributes {
-        set objPDName [$objPDAttribute Name]
-        if {$objPDName == "name" && [string first "pmi validation property" [$objPDAttribute Value]] != -1} {
-          set idx [$objPDEntity P21ID]
-        } elseif {$objPDName == "definition" && $idx != "" && [string first "handle" [$objPDAttribute Value]] != -1} {
-          set propDefIDS($idx) [[$objPDAttribute Value] P21ID]
-        }
-      }
-    }
-  } emsg]} {
-    errorMsg "ERROR getting PMI validation properities: $emsg"
-    catch {raise .}
   }
 }

@@ -58,8 +58,14 @@ if {[catch {
   set c1 [string first [file tail [info nameofexecutable]] $dir]
   if {$c1 != -1} {set dir [string range $dir 0 $c1-1]}
   if {[string first "couldn't load library" $emsg] != -1} {
-    append emsg "\n\nThere might be a problem running this software from a directory with accented, non-English, or symbol characters in the pathname or from the C:\\ directory."
-    append emsg "\n\n[file nativename $dir]\n\nTry running the software from a directory without any of the special characters in the pathname or from your home directory or desktop."
+    append emsg "\n\nAlthough the message above indicates that a library is missing, that is NOT the root cause of the problem.  The problem is usually related to:"
+    append emsg "\n\n1 - the directory you are running the software from has accented, non-English, or symbol characters in the pathname\n    [file nativename $dir]"
+    append emsg "\n2 - permissions to run the software in the directory"
+    append emsg "\n3 - other computer configuration problems"
+    append emsg "\n\nTry the following workarounds to run the software:"
+    append emsg "\n\n1 - from a directory without any special characters in the pathname, or from your home directory, or desktop"
+    append emsg "\n2 - as Administrator"
+    append emsg "\n3 - on a different computer"
   }
   append emsg "\n\nPlease send a screenshot of this dialog to [lindex $contact 0] ([lindex $contact 1]) if you cannot run the STEP File Analyzer and Viewer."
   set choice [tk_messageBox -type ok -icon error -title "ERROR running the STEP File Analyzer and Viewer" -message $emsg]
@@ -101,7 +107,7 @@ foreach id { \
 # set opt to 0
 foreach id { \
   feaBounds feaDisp feaDispNoTail feaLoads feaLoadScale indentGeometry indentStyledItem INVERSE partNormals partOnly PMIGRFCOV PMISEMDIM PMISEMRND \
-  SHOWALLPMI stepCPNT stepFEAT stepGEOM stepKINE stepUSER syntaxChecker tessPartMesh writeDirType xlHideLinks xlNoRound xlSort x3dKeep \
+  SHOWALLPMI stepCPNT stepFEAT stepGEOM stepKINE stepUSER syntaxChecker tessPartMesh writeDirType xlHideLinks xlNoRound xlSort xlUnicode x3dKeep \
   DEBUG1 DEBUGINV DEBUGX3D \
 } {set opt($id) 0}
 
