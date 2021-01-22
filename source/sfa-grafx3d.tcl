@@ -123,7 +123,7 @@ proc x3dFileStart {} {
 # -------------------------------------------------------------------------------
 # finish x3d file, write tessellated edges, PMI saved view geometry, set viewpoints, add navigation and background color, and close X3DOM file
 proc x3dFileEnd {} {
-  global ao brepFile brepFileName datumTargetView entCount nistModelURLs nistName nsketch
+  global ao brepFile brepFileName datumTargetView entCount matTrans nistModelURLs nistName nsketch
   global numTessColor opt savedViewButtons savedViewFile savedViewFileName savedViewItems savedViewNames savedViewNone sphereDef stepAP
   global tessCoord tessEdges tessPartFile tessPartFileName tessRepo tsName viz whiteColor x3dApps x3dAxes x3dBbox x3dCoord x3dFile
   global x3dIndex x3dMax x3dMin x3dMsg x3dParts x3dShape x3dStartFile x3dTessParts x3dTitle x3dViewOK
@@ -208,6 +208,7 @@ proc x3dFileEnd {} {
     append msg ".  See Help > View > Datum Targets"
     outputMsg $msg red
   }
+  catch {unset datumTargetView}
 
 # -------------------------------------------------------------------------------
 # write any PMI saved view geometry for multiple saved views
@@ -700,19 +701,25 @@ proc x3dFileEnd {} {
   if {$transFunc} {
     puts $x3dFile "\n<!-- Transparency function -->\n<script>function matTrans(trans){"
 
-# part geometry
+# part transparency
     if {$viz(PRT)} {
       if {[info exists x3dApps]} {
         foreach n [lrmdups [lsort -integer $x3dApps]] {
-          if {!$opt(partEdges) || $n != 1} {puts $x3dFile " document.getElementById('mat$n').setAttribute('transparency', trans);"}
+          if {!$opt(partEdges) || $n != 1} {
+            if {![info exists matTrans($n)]} {
+              puts $x3dFile " document.getElementById('mat$n').setAttribute('transparency', trans);"
+            } elseif {$matTrans($n) < 1.} {
+              puts $x3dFile " if (trans > $matTrans($n)) {document.getElementById('mat$n').setAttribute('transparency', trans);} else {document.getElementById('mat$n').setAttribute('transparency', $matTrans($n));}"
+            }
+          }
         }
       }
     }
 
-# tessellated geometry
+# tessellated geometry transparency
     for {set i 1} {$i <= $numTessColor} {incr i} {puts $x3dFile " document.getElementById('matTess$i').setAttribute('transparency', trans);"}
 
-# finite element model
+# finite element model transparency
     if {$viz(FEA)} {
       if {[info exists entCount(surface_3d_element_representation)]} {
         puts $x3dFile " document.getElementById('mat2Dfem').setAttribute('transparency', trans);"
@@ -773,7 +780,7 @@ proc x3dPartCheckbox {type} {
 # -------------------------------------------------------------------------------
 # B-rep part geometry
 proc x3dBrepGeom {} {
-  global brepFile brepFileName buttons defaultColor localName mytemp nistVersion nsketch opt viz wdir whiteColor
+  global brepFile brepFileName buttons defaultColor developer localName matTrans mytemp nistVersion nsketch opt viz wdir whiteColor
   global x3dApps x3dBbox x3dMax x3dMin x3dMsg x3dMsgColor x3dParts
 
 # copy stp2x3d files to temp directory, DLLs in sp2x3d-dll.zip, exe in stp2x3d-part.exe
@@ -934,6 +941,7 @@ proc x3dBrepGeom {} {
             set oksketch 0
             set close 0
             catch {unset parts}
+            catch {unset matTrans}
             if {![info exists viz(EDG)]} {set viz(EDG) 0}
 
 # process all lines in file
@@ -968,15 +976,30 @@ proc x3dBrepGeom {} {
                       set oksketch 1
                     }
                   }
+                }
 
-# handle Unicode characters on Shape id with X and X2 control directive
-                  if {[string first "\\X" $line] != -1} {
-                    set c1 [string first "'" $line]
-                    set c2 [string first "'" [string range $line $c1+1 end]]
-                    set id [string range $line $c1+1 $c1+$c2]
-                    set cx [string first "\\X" $id]
-                    if {$cx != -1} {set id [x3dUnicode $id]}
-                    set line [string range $line 0 $c1]$id[string range $line [expr {$c1+$c2+1}] end]
+# check for transparency
+                if {[string first "<Appearance DEF" $line] != -1} {
+                  set c1 [string first "transparency=" $line]
+                  if {$c1 != -1} {
+                    set trans [string range $line $c1+14 end]
+                    set trans [string range $trans 0 [string first "'" $trans]-1]
+                    set c2 [string first "'mat" $line]
+                    set id [string range $line $c2+4 $c2+7]
+                    set id [string range $id 0 [string first "'" $id]-1]
+                    if {$trans == 1} {
+                      set msg "  Some surfaces are clear and not visible"
+                      if {$opt(partEdges)} {
+                        append msg " except for their edges."
+                      } else {
+                        append msg ".  To view the surfaces, select 'Edges' in the View section on the Options tab."
+                      }
+                      errorMsg $msg red
+                    }
+                    if {$trans > 0.} {
+                      set matTrans($id) $trans
+                      if {$developer && $trans != 1} {errorMsg "  Some surfaces are transparent" red}
+                    }
                   }
                 }
 

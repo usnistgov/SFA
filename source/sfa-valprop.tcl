@@ -1137,7 +1137,7 @@ proc reportValProps {} {
                 ply_laminate_table ply_laminate_sequence_definition reinforcement_orientation_basis]
 
   foreach ent $vpCheck {
-    if {[info exists entCount($ent)]} {
+    if {[info exists entCount($ent)] && [info exists worksheet($ent)]} {
       if {$entCount($ent) > 0} {
         set c [getNextUnusedColumn $ent]
         set pmiCol $c
@@ -1168,7 +1168,7 @@ proc reportValProps {} {
 # add to new column
             set str ""
             set llen [llength $propDefIDs($id)]
-            if {$llen > 2} {append str ([expr {$llen/2)}])}
+            if {$llen > 2} {append str ([expr {$llen/2}])}
             append str "property definition"
             for {set i 0} {$i < $llen} {incr i 2} {append str " [lindex $propDefIDs($id) $i]"}
             for {set i 1} {$i < $llen} {incr i 2} {append str "[format "%c" 10]([lindex $propDefIDs($id) $i])"}

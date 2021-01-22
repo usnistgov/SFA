@@ -195,7 +195,7 @@ proc tessReadGeometry {{coordOnly 0}} {
   } else {
     foreach ent {coordinates_list} {if {[info exists entCount($ent)]} {set ntc1 [expr {$ntc1+$entCount($ent)}]}}
     set ents [list COORDINATES_LIST]
-    outputMsg " Reading coordinates_list" green
+    outputMsg " Reading coordinates list" green
   }
 
 # read step
@@ -269,6 +269,7 @@ proc tessReadGeometry {{coordOnly 0}} {
         if {[string first "COMPLEX" $line] != -1} {set complex 1}
 
 # id of coordinate list
+        regsub -all " " $line "" line
         set c1 [string first "," $line]
         set c2 [string first "((" $line]
         set tessIndexCoord($id) [string range $line $c1+2 $c2-2]
@@ -293,7 +294,6 @@ proc tessReadGeometry {{coordOnly 0}} {
           if {$c1 != -1} {
             set tessIndex($id) ""
             set line [string range $line $c1 end-1]
-            regsub -all " " $line "" line
             regsub -all {[(),]} $line "x" line
             regsub -all "xxx" $line " 0 " line
             regsub -all "x" $line " " line
@@ -314,22 +314,10 @@ proc tessReadGeometry {{coordOnly 0}} {
 
 # *triangulated surface set, *triangulated face
         } else {
-
-# try to read normals and triangles for spreadsheet
-          #if {$opt(stepGEOM)} {
-          #  if {[string first "_FACE" $line] != -1} {
-          #    set c1 [string first "))" $line]
-          #    regsub -all " " [string range $line [string first "((" $line]+1 $c1] "" normals($id)
-          #    set nline [string range $line $c1+2 end]
-          #    regsub -all " " [string range $nline [string first "((" $nline]+1 [string first "))" $nline]] "" triangles($id)
-          #  }
-          #}
-
           set line [string range $line [string first "((" $line]+2 end-1]
           set line [string trim [string range $line [string first "((" $line] end]]
 
 # regsub is very important to distill line into something usable
-          regsub -all " " $line "" line
           regsub -all {[(),]} $line "x" line
           regsub -all "xxx" $line " 0 " line
           regsub -all "x" $line " " line

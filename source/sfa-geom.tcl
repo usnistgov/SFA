@@ -435,7 +435,7 @@ proc reportAssocGeom {entType {row ""}} {
               set ii [$attr Item [expr 5]]
               if {[$ii Value] != ""} {
                 set p21id [[$ii Value] P21ID]
-                lappend suppGeomEnts [[$ii Value] P21ID]
+                if {[lsearch $suppGeomEnts $p21id] == -1} {lappend suppGeomEnts $p21id}
                 if {[lsearch $cgrItems $p21id] == -1} {
                   set okcgr 0
                   set msg "Syntax Error: 'constructive_geometry_representation' is missing some 'items' based on GISU 'identified_item' attribute.$spaces\($recPracNames(suppgeom), Sec. 4.3, Fig. 4)"

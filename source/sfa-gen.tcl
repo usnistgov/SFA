@@ -1077,7 +1077,7 @@ proc genExcel {{numFile 0}} {
 
 # -------------------------------------------------------------------------------------------------
 # add validation properties to some worksheets that are not associated with any PMI analysis
-    if {$opt(xlFormat) == "Excel"} {
+    if {$opt(xlFormat) == "Excel" && [lsearch $characteristics "Properties"] != -1} {
       set ok 0
       if {$opt(PMISEM)} {
         foreach item [list Dimensions Datums "Datum Targets" "Geometric Tolerances"] {if {[lsearch $characteristics $item] != -1} {set ok 1}}
@@ -1584,12 +1584,6 @@ proc addHeaderWorksheet {numFile fname} {
       }
     }
 
-    if {$useXL} {
-      [[$worksheet($hdr) Range "A:A"] Font] Bold [expr 1]
-      [$worksheet($hdr) Columns] AutoFit
-      [$worksheet($hdr) Rows] AutoFit
-    }
-
 # check for CAx-IF Recommended Practices in the file description
     set caxifrp {}
     foreach fd [$objDesign "FileDescription"] {
@@ -1826,7 +1820,6 @@ proc sumAddWorksheet {} {
     catch {raise .}
   }
   return [list $sumLinks $sheetSort $sumRow]
-  #return [list $sumLinks $sumDocCol $sheetSort $sumRow]
 }
 
 #-------------------------------------------------------------------------------------------------
@@ -1955,6 +1948,13 @@ proc sumAddColorLinks {sum sumHeaderRow sumLinks sheetSort sumRow} {
 
   if {[catch {
     set row($sum) [expr {$sumHeaderRow+2}]
+
+# header worksheet
+    set hdr "Header"
+    set range [$worksheet($hdr) Range A1 A11]
+    [$range Font] Bold [expr 1]
+    [$worksheet($hdr) Columns] AutoFit
+    [$worksheet($hdr) Rows] AutoFit
 
     foreach ent $sheetSort {
       update idletasks

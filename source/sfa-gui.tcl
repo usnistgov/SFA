@@ -1,5 +1,5 @@
 # SFA version number
-proc getVersion {} {return 4.32}
+proc getVersion {} {return 4.34}
 
 # version of SFA that the User Guide is based on
 proc getVersionUG {} {return 4.2}
@@ -23,8 +23,8 @@ proc whatsNew {} {
     outputMsg "\nWelcome to the NIST STEP File Analyzer and Viewer\n" blue
     outputMsg "Please take a few minutes to read some the Help text so that you understand the options
 available with the software.  Also explore the Examples and Websites menus.  The User
-Guide is based on version [getVersionUG] of the software.  New and updated features are
-documented in the Help menu, tooltips, and Changelog.
+Guide is based on version [getVersionUG] of the software.  New and updated features are documented
+in the Changelog and Help menu.
 
 You will be prompted to install the IFCsvr toolkit which is required to read STEP files.
 After the toolkit is installed, you are ready to process a STEP file.  Go to the File
@@ -36,24 +36,24 @@ Use F9 and F10 to change the font size here.  See Help > Function Keys"
   }
 
   outputMsg "\nWhat's New (Version: [getVersion]  Updated: [string trim [clock format $progtime -format "%e %b %Y"]])" blue
-  outputMsg "- All new features and bug fixes are listed in the Changelog.  See Help > Changelog"
 
 # messages if SFA has already been run
   if {$sfaVersion > 0} {
+
+# update the version number when IFCsvr is repackaged to include updated STEP schemas
+    if {$sfaVersion < 4.32} {outputMsg "- The IFCsvr toolkit might need to be reinstalled.  Please follow the directions carefully." red}
+
     if {$sfaVersion < [getVersionUG]} {
       outputMsg "- A new User Guide is available based on version [getVersionUG] of this software."
       showFileURL UserGuide
     }
-    if {$sfaVersion  < 4.24} {outputMsg "- In the Viewer use Page Down/Up to switch between Viewpoints."}
-    if {$sfaVersion  < 4.22} {outputMsg "- See Help > Text Strings for information that supplements the User Guide section 5.5\n  on Unicode Characters"}
-    if {$sfaVersion  < 4.12} {outputMsg "- The Viewer for part geometry is faster and supports color, edges, sketch geometry,\n  normals, and nested assemblies.  See Help > Viewer"}
-    if {$sfaVersion <= 3.70} {outputMsg "- Run the Syntax Checker with function key F8 or the Options tab selection.\n  See Help > Syntax Checker"}
-    if {$sfaVersion <= 2.60} {outputMsg "- Renamed output files: Spreadsheets from 'myfile_stp.xlsx' to 'myfile-sfa.xlsx' and\n  Views from 'myfile-x3dom.html' to 'myfile-sfa.html'"}
-    if {$sfaVersion  < 2.30} {outputMsg "- The command-line version has been renamed: sfa-cl.exe\n  The old version STEP-File-Analyzer-CL.exe can be deleted."}
-
-# update the version number when IFCsvr is repackaged to include updated STEP schemas
-    if {$sfaVersion  < 4.12} {outputMsg "- The IFCsvr toolkit might need to be reinstalled.  Please follow the directions carefully." red}
+    if {$sfaVersion < 4.12} {outputMsg "- The Viewer for part geometry is faster and supports color, edges, sketch geometry, normals, and nested assemblies.  See Help > Viewer"}
+    if {$sfaVersion < 4.32} {outputMsg "- See Help > Text Strings for information that supplements the User Guide section 5.5 on Unicode Characters"}
+    if {$sfaVersion < 3.80} {outputMsg "- Run the Syntax Checker with function key F8 or the Options tab selection.  See Help > Syntax Checker"}
+    if {$sfaVersion < 2.62} {outputMsg "- Renamed output files: Spreadsheets from 'myfile_stp.xlsx' to 'myfile-sfa.xlsx' and Views from 'myfile-x3dom.html' to 'myfile-sfa.html'"}
+    if {$sfaVersion < 2.30} {outputMsg "- The command-line version has been renamed: sfa-cl.exe  The old version STEP-File-Analyzer-CL.exe can be deleted."}
   }
+  outputMsg "- All new features and bug fixes are listed in the Changelog.  See Help > Changelog"
 
   .tnb select .tnb.status
   update idletasks
@@ -578,7 +578,7 @@ proc guiProcessAndReports {} {
   pack $foptv -side left -anchor w -pady {5 2} -padx 10 -fill both -expand true
   pack $foptRV -side top -anchor w -pady 0 -fill x
   catch {
-    tooltip::tooltip $foptv20 "The view for part geometry supports color, edges, and sketch geometry.\nThe viewer does not support measurements.\n\nNormals improve the default smooth shading at the expense of slower\nprocessing and display.  Using High Quality and Normals results in the\nbest appearance for part geometry.\n\nSee Help > Viewer\n\nViews are shown in the default web browser.\nViews can be generated without generating a spreadsheet or CSV files.\nSee the Output Format option below.\n\nSee Help > View for other viewing features\nSee Examples > View Box Assembly and others\nSee Websites > STEP File Viewers (for other part geometry viewers)"
+    tooltip::tooltip $foptv20 "The view for part geometry supports color, transparency, edges, and\nsketch geometry.  The viewer does not support measurements.\n\nNormals improve the default smooth shading at the expense of slower\nprocessing and display.  Using High Quality and Normals results in the\nbest appearance for part geometry.\n\nSee Help > Viewer\n\nViews are shown in the default web browser.\nViews can be generated without generating a spreadsheet or CSV files.\nSee the Output Format option below.\n\nSee Help > View for other viewing features\nSee Examples > View Box Assembly and others\nSee Websites > STEP File Viewers (for other part geometry viewers)"
     tooltip::tooltip $buttons(viewPMI) "Graphical PMI is supported in AP242, AP203, and AP214 files.\n\nSee Help > View > Graphical PMI\nSee Help > Viewer\nSee Help > User Guide (section 4.2)\nSee Examples > Part with PMI\nSee Examples > AP242 Tessellated Part with PMI\nSee Examples > Sample STEP Files"
     tooltip::tooltip $buttons(viewTessPart) "** Parts in an assembly might have the wrong\nposition and orientation or be missing. **\n\nTessellated edges (lines) are also shown.\n\nSee Help > View > AP242 Tessellated Part Geometry\nSee Help > Viewer\nSee Help > User Guide (section 4.3)\nSee Examples > AP242 Tessellated Part with PMI"
     tooltip::tooltip $buttons(tessPartMesh) "Generate a wireframe mesh based on the tessellated faces and surfaces."
@@ -1099,8 +1099,8 @@ Views can be generated without generating a spreadsheet or CSV files.  See the O
 Options tab.  The Part Only option is useful when no other View features of the software are needed
 and for large STEP files.
 
-The viewer supports part geometry with color, part edges, sketch geometry, and nested assemblies.
-Part geometry viewer features:
+The viewer supports part geometry with color, transparency, part edges, sketch geometry, and nested
+assemblies.  Part geometry viewer features:
 
 - Part edges are shown in black.  Use the transparency slider to show only edges.  Transparency
   for parts is only approximate.  Parts inside of assemblies may not be visible.  This is a
