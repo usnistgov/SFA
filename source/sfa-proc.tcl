@@ -339,7 +339,7 @@ proc setColorIndex {ent {multi 0}} {
 #-------------------------------------------------------------------------------
 # open a URL
 proc openURL {url} {
-  global pf32
+  global webCmd
 
 # open in whatever is registered for the file extension, except for .cgi for upgrade url
   if {[string first ".cgi" $url] == -1} {
@@ -352,28 +352,25 @@ proc openURL {url} {
       }
     }
 
-# find web browser command
+# open with web browser command
   } else {
-    set webCmd ""
-    catch {
-      set reg_wb [registry get {HKEY_CURRENT_USER\Software\Classes\http\shell\open\command} {}]
-      set reg_wb [lindex [split $reg_wb "\""] 1]
-      set webCmd $reg_wb
+    if {$webCmd != ""} {
+      exec $webCmd $url &
+    } else {
+      errorMsg "No web browser to open URL: $url"
     }
-    if {$webCmd == "" || ![file exists $webCmd]} {set webCmd [file join $pf32 "Internet Explorer" IEXPLORE.EXE]}
-    exec $webCmd $url &
   }
 }
 
 #-------------------------------------------------------------------------------
 # file open dialog
 proc openFile {{openName ""}} {
-  global buttons drive editorCmd fileDir localName localNameList
+  global allNone buttons drive editorCmd fileDir localName localNameList ofCSV ofExcel ofNone opt
 
   if {$openName == ""} {
 
 # file types for file select dialog (removed .stpnc)
-    set typelist [list {"STEP Files" {".stp" ".step" ".p21" ".stpZ"}} {"IFC Files" {".ifc"}}]
+    set typelist [list {"STEP Files" {".stp" ".step" ".p21" ".stpZ"}} {"IFC Files" {".ifc"}} {"ASCII STL Files" {".stl"}}]
 
 # file open dialog
     set localNameList [tk_getOpenFile -title "Open STEP File(s)" -filetypes $typelist -initialdir $fileDir -multiple true]
@@ -389,11 +386,31 @@ proc openFile {{openName ""}} {
     set localNameList [list $localName]
   }
 
+# STL file
+  set ok 0
+  if {[llength $localNameList] > 1} {
+    if {[string tolower [file extension [lindex $localNameList 0]]] == ".stl"} {set ok 1}
+  } elseif {[file exists $localName]} {
+    if {[string tolower [file extension $localName]] == ".stl"} {set ok 1}
+  }
+  if {$ok} {
+    set opt(partOnly) 0
+    set opt(xlFormat) None
+    set opt(viewTessPart) 1
+    set ofExcel 0
+    set ofCSV 0
+    set ofNone 1
+    set allNone -1
+    checkValues
+  }
+
 # multiple files selected
   if {[llength $localNameList] > 1} {
     set fileDir [file dirname [lindex $localNameList 0]]
+    set str "STEP"
+    if {$ok} {set str "STL"}
 
-    outputMsg "\nReady to process [llength $localNameList] STEP files" green
+    outputMsg "\nReady to process [llength $localNameList] $str files" green
     if {[info exists buttons]} {
       $buttons(genExcel) configure -state normal
       if {[info exists buttons(appOpen)]} {$buttons(appOpen) configure -state normal}
@@ -599,7 +616,7 @@ proc saveState {{ok 1}} {
 
 # opt variables
     foreach idx [lsort [array names opt]] {
-      if {[string first "DEBUG" $idx] == -1 && [string first "indent" $idx] == -1 && [string first "x3dKeep" $idx] == -1} {
+      if {[string first "DEBUG" $idx] == -1 && [string first "indent" $idx] == -1 && [string first "x3dSave" $idx] == -1} {
         set var opt($idx)
         set vartmp [set $var]
         if {[string first "/" $vartmp] != -1 || [string first "\\" $vartmp] != -1 || [string first " " $vartmp] != -1} {
@@ -1800,10 +1817,34 @@ proc setShortcuts {} {
 }
 
 #-------------------------------------------------------------------------------
-# set home, docs, desktop, menu directories
+# set web browser and home, docs, desktop, menu directories
 proc setHomeDir {} {
-  global drive env mydesk mydocs myhome mymenu mytemp
+  global drive env mydesk mydocs myhome mymenu mytemp pf32 pf64 webCmd
 
+# web browser command
+  set webCmd ""
+  catch {
+    set reg_wb [registry get {HKEY_CURRENT_USER\Software\Classes\http\shell\open\command} {}]
+    set reg_wb [lindex [split $reg_wb "\""] 1]
+    set webCmd $reg_wb
+  }
+  if {$webCmd == "" || ![file exists $webCmd]} {
+    foreach cmd [list \
+        [file join $pf64 Google Chrome Application chrome.exe] \
+        [file join $pf32 Google Chrome Application chrome.exe] \
+        [file join $pf64 "Mozilla Firefox" firefox.exe] \
+        [file join $pf32 "Mozilla Firefox" firefox.exe] \
+        [file join $pf64 Microsoft Edge Application chrome.exe] \
+        [file join $pf32 Microsoft Edge Application chrome.exe] \
+        [file join $pf32 "Internet Explorer" IEXPLORE.EXE]] {
+      if {[file exists $cmd]} {
+        set webCmd $cmd
+        break
+      }
+    }
+  }
+
+# C drive
   set drive "C:/"
   if {[info exists env(SystemDrive)]} {
     set drive $env(SystemDrive)

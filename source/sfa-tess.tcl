@@ -174,8 +174,8 @@ proc tessPartGeometry {objEntity} {
 # generate coordinates and faces by reading tessellated geometry entities line-by-line from STEP file, necessary because of limitations of the IFCsvr toolkit
 # if coordOnly=1, then only read coordinates_list, used for saved view pmi validation properties
 proc tessReadGeometry {{coordOnly 0}} {
-  global coordinatesList entCount lineStrips localName normals opt recPracNames syntaxErr spaces
-  global tessCoord tessCoordName tessIndex tessIndexCoord triangles x3dMax x3dMin
+  global coordinatesList entCount lineStrips localName opt recPracNames syntaxErr spaces
+  global tessCoord tessCoordName tessIndex tessIndexCoord x3dMax x3dMin
 
   set tg [open $localName r]
   set ncl  0

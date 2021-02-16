@@ -663,7 +663,7 @@ proc unicodeStrings {unicodeEnts} {
 
 # check for unicode X2
         if {[string first "\\X2\\" $line] != -1} {
-          errorMsg "Processing symbols and non-English characters (See Help > Text Strings and Spreadsheet > Other)" red
+          errorMsg "Processing non-English characters on some entities (See Help > Text Strings)" blue
 
           set id [string trim [string range $line 1 [string first "=" $line]-1]]
           set idx "$ent1,[lindex $unicodeAttributes($ent1) 0],$id"
@@ -741,7 +741,7 @@ proc unicodeStrings {unicodeEnts} {
     }
 
 # report entities
-    if {[llength $uents] > 0} {outputMsg " Found on: [lsort $uents]" red}
+    if {[llength $uents] > 0} {outputMsg " ([llength $uents]) entities: [lsort $uents]" red}
 
   } emsg]} {
     errorMsg "ERROR processing Unicode string attribute: $emsg"

@@ -17,8 +17,7 @@ proc getAssocGeom {entDef {tolType 0} {tolName ""}} {
       ([string first "datum" $entDefType] != -1 && [string first "_and_" $entDefType] == -1)} {
 
 # add shape_aspect to AG for dimtol (tolType = 1)
-      if {$tolType && ($entDefType == "shape_aspect" || $entDefType == "centre_of_symmetry" || $entDefType == "datum_feature" || \
-                  [string first "datum_target" $entDefType] != -1)} {
+      if {$tolType && ($entDefType == "shape_aspect" || $entDefType == "centre_of_symmetry" || $entDefType == "datum_feature" || [string first "datum_target" $entDefType] != -1)} {
         set type [appendAssocGeom $entDef A]
 
 # for dimensional_size, check applies_to > shape_aspect > product_definitional attribute
@@ -364,7 +363,7 @@ proc reportAssocGeom {entType {row ""}} {
 # shape aspect
   set multipleDatumFeature 0
   foreach item [array names assocGeom] {
-    if {[string first "shape_aspect" $item] != -1 || [string first "centre" $item] != -1 || [string first "datum_feature" $item] != -1} {
+    if {[string first "shape_aspect" $item] != -1 || [string first "centre" $item] != -1 || [string first "datum_feature" $item] != -1 || [string first "datum_target" $item] != -1} {
       if {[string length $str] > 0} {append str [format "%c" 10]}
       append str "([llength $assocGeom($item)]) [formatComplexEnt $item] [lsort -integer $assocGeom($item)]"
       if {[string first "tolerance" $entType] != -1 && [string first "datum_feature" $item] != -1 && [llength $assocGeom($item)] > 1} {
@@ -383,7 +382,7 @@ proc reportAssocGeom {entType {row ""}} {
         $item == "all_around_shape_aspect" || $item == " between_shape_aspect"} {
       set ncsa [llength $assocGeom($item)]
       set csaEnt $item
-    } elseif {$item == "shape_aspect" || $item == "centre_of_symmetry" || $item == "datum_feature"} {
+    } elseif {$item == "shape_aspect" || $item == "centre_of_symmetry" || $item == "datum_feature" || [string first "datum_target" $item] != -1} {
       incr nsa [llength $assocGeom($item)]
     }
     if {($ncsa == 1 && $nsa < 2) || ($ncsa > 1 && $ncsa == $nsa)} {

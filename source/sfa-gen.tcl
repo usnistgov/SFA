@@ -13,6 +13,13 @@ proc genExcel {{numFile 0}} {
 
   if {[info exists errmsg]} {set errmsg ""}
 
+# generate STEP AP242 tessellated geometry from STL file
+  if {[string tolower [file extension $localName]] == ".stl"} {
+    set viz(PMIMSG) ""
+    stl2STEP
+    if {$localName == ""} {return}
+  }
+
 # initialize for X3DOM geometry
   set x3dMsgColor green
   set x3dViewOK 0
@@ -1654,7 +1661,7 @@ proc addHeaderWorksheet {numFile fname} {
 
 # app name not found in cadApps
     if {$app2 == ""} {set app2 $fos}
-    if {$app2 == "" || $app2 == "UNIX" || $app2 == "Windows"} {set app2 $fpv}
+    if {$app2 == "" || $app2 == "UNIX" || $app2 == "Windows" || $app2 == "Unspecified"} {set app2 $fpv}
     if {$app2 != ""} {set ok 1}
 
 # add app2 to multiple file summary worksheet

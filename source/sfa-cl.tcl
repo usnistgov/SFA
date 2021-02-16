@@ -132,14 +132,14 @@ if {$argc == 0 || ($argc == 1 && ($arg == "help" || $arg == "-help" || $arg == "
 }
 
 # -----------------------------------------------------------------------------------------------------
-# set drive, myhome, mydocs, mydesk
-setHomeDir
-
 # set program files, environment variables will be in the correct language
 set pf32 "C:\\Program Files (x86)"
 if {[info exists env(ProgramFiles)]} {set pf32 $env(ProgramFiles)}
 set pf64 ""
 if {[info exists env(ProgramW6432)]} {set pf64 $env(ProgramW6432)}
+
+# set drive, myhome, mydocs, mydesk
+setHomeDir
 
 # detect if NIST version
 set nistVersion 1
@@ -167,7 +167,7 @@ foreach id {logFile outputOpen PMIGRF PMISEM stepAP242 stepCOMM stepCOMP stepFEA
 foreach id { \
   DEBUG1 DEBUGINV DEBUGX3D feaBounds feaDisp feaDispNoTail feaLoads feaLoadScale indentGeometry indentStyledItem INVERSE partEdges partNormals \
   partOnly partSketch PMIGRFCOV PMISEMDIM PMISEMRND SHOWALLPMI stepCPNT stepGEOM stepUSER syntaxChecker tessPartMesh viewFEA viewPart viewPMI \
-  viewTessPart writeDirType xlHideLinks xlNoRound xlSort xlUnicode x3dKeep \
+  viewTessPart writeDirType xlHideLinks xlNoRound xlSort xlUnicode x3dSave \
 } {set opt($id) 0}
 
 set opt(gpmiColor) 3
@@ -284,9 +284,6 @@ if {$sfaVersion < [getVersion]} {
   set sfaVersion [getVersion]
   saveState
 }
-
-# set process id used to check memory usage for AP209 files
-set sfaPID [twapi::get_process_ids -name "sfa-cl.exe"]
 
 # -----------------------------------------------------------------------------------------------------
 # generate spreadsheet or CSV files

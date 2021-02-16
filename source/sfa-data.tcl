@@ -121,10 +121,12 @@ set badAttributes(triangulated_face) {normals triangles}
 set badAttributes(triangulated_point_cloud_dataset) {triangles}
 set badAttributes(triangulated_surface_set) {normals triangles}
 
-# entity attributes that might have text strings with unicode \x2\ that have to handled separately
+# entity attributes that might have text strings with unicode \x2\ that have to be handled separately
 # in AP2.., not all but a few commonly used, all would be any entity with a name, etc. attribute
 set unicodeAttributes(advanced_brep_shape_representation) {name}
 set unicodeAttributes(brep_with_voids) {name}
+set unicodeAttributes(centre_of_symmetry) {name}
+set unicodeAttributes(composite_group_shape_aspect) {name}
 set unicodeAttributes(descriptive_representation_item) {name description}
 set unicodeAttributes(item_defined_transformation) {name description}
 set unicodeAttributes(manifold_solid_brep) {name}
@@ -136,6 +138,7 @@ set unicodeAttributes(product_definition_shape) {name description}
 set unicodeAttributes(product_related_product_category) {name description}
 set unicodeAttributes(representation_context) {context_identifier context_type}
 set unicodeAttributes(representation_relationship) {name description}
+set unicodeAttributes(shape_aspect) {name}
 set unicodeAttributes(shape_representation) {name}
 # in ISO13...
 set unicodeAttributes(item_names) {preferred_name}
@@ -147,7 +150,7 @@ set unicodeAttributes(translated_text) {texts}
 # app names for STEP software that might appear in header section
 set cadApps {3D_Evolution 3DEXPERIENCE Alibre "Anark CORE" "ASCON STEP Converter" AutoCAD Autodesk "Autodesk Inventor" "Autodesk Translation Framework" \
   "Autodesk Translator Framework" CADfix CADverter CATIA "CATIA V4" "CATIA V5" "CATIA V6" CoCreate CoreTechnologie Creo CREO CrossCAD Datakit \
-  "Datakit CrossCad" DATAKIT DEX EDMsix Elysium "Elysium ASFALIS" Eurostep FiberSim FreeCAD "kicad StepUp" Kubotek "Kubotek KeyCreator" "OneSpace Designer" \
+  "Datakit CrossCad" DATAKIT EDMsix Elysium "Elysium ASFALIS" Eurostep FiberSim FreeCAD "kicad StepUp" Kubotek "Kubotek KeyCreator" "OneSpace Designer" \
   "OneSpace Modeling" PRO/ENGINEER PSStep "SIEMENS PLM Software NX" Solidworks SolidWorks SOLIDWORKS "SOLIDWORKS MBD" "Spatial InterOp 3D" ST-ACIS \
   STEP-NC Theorem THEOREM "Theorem Solutions" T-Systems Unigraphics VariCAD XStep Area21}
 

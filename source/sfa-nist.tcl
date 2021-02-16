@@ -149,8 +149,11 @@ proc nistGetSummaryPMI {} {
 # -------------------------------------------------------------------------------
 # check actual vs. expected PMI for NIST files
 proc nistCheckExpectedPMI {val entstr} {
-  global cells legendColor nistExpectedPMI nistName nistPMIactual nistPMIexpected nistPMIexpectedNX
-  global nistPMIfound pmiModifiers pmiType pmiUnicode spmiSumName spmiSumRow tolNames worksheet
+  global cells legendColor nistExpectedPMI nistName nistPMIactual nistPMIexpected nistPMIexpectedNX nistPMIfound
+  global opt pmiModifiers pmiType pmiUnicode resetRound spmiSumName spmiSumRow tolNames worksheet
+
+# reset rounding
+  if {[info exists resetRound]} {set opt(PMISEMRND) $resetRound}
 
 # modify (composite ..) from value to just (composite)
   set c1 [string first "(composite" $val]
@@ -166,12 +169,16 @@ proc nistCheckExpectedPMI {val entstr} {
 # remove between
   set c1 [string first $pmiModifiers(between) $val]
   if {$c1 > 0} {set val [string range $val 0 $c1-2]}
-  
-# remove circle (I)
+
+# remove circle (I) (typically found in CATIA files)
   set c1 [string first "\u24BE" $val]
   if {$c1 > 0} {regsub "\u24BE" $val "" val}
 
-# remove datum feature
+# remove <CF> (typically found in CATIA files)
+  set c1 [string first "<CF>" $val]
+  if {$c1 > 0} {regsub "<CF>" $val "" val}
+
+# remove datum feature on a dimension (typically found in CATIA files)
   if {$entstr == "dimensional_characteristic_representation"} {
     set c1 [string first "\u25BD" $val]
     if {$c1 != -1} {set val [string range $val 0 $c1-5]}
@@ -444,7 +451,7 @@ proc nistCheckExpectedPMI {val entstr} {
 proc nistPMICoverage {nf} {
   global cells legendColor nistCoverageLegend nistCoverageStyle nistPMIexpected nistName
   global pmiElementsMaxRows spmiCoverages spmiCoverageWS totalPMIrows usedPMIrows worksheet
- 
+
   foreach idx [lsort [array names spmiCoverages]] {
     set tval [lindex [split $idx ","] 0]
     set fnam [lindex [split $idx ","] 1]
@@ -850,7 +857,7 @@ proc nistAddModelPictures {ent} {
 
 # -------------------------------------------------------------------------------------------------
 proc nistGetName {} {
-  global developer localName
+  global developer localName opt resetRound
 
   set nistName ""
   set filePrefix {}
@@ -953,7 +960,18 @@ proc nistGetName {} {
       }
     }
   }
- 
+
+# check required rounding for ftc 6,7,8
+  catch {unset resetRound}
+  if {$opt(PMISEM)} {
+    if {$opt(PMISEMRND) && $nistName == "nist_ftc_06"} {
+      set resetRound $opt(PMISEMRND)
+      set opt(PMISEMRND) 0
+    } elseif {!$opt(PMISEMRND) && ($nistName == "nist_ftc_07" || $nistName == "nist_ftc_08")} {
+      set resetRound $opt(PMISEMRND)
+      set opt(PMISEMRND) 1
+    }
+  }
   return $nistName
 }
 
@@ -987,10 +1005,19 @@ proc pmiRemoveZeros {pmi} {
           regsub -all " 0" $spmi " " spmi
           if {[string first $pmiUnicode(diameter) $spmi] != -1} {regsub -all -- "$pmiUnicode(diameter)0" $spmi $pmiUnicode(diameter) spmi}
 
+# rectangular defined unit area. i.e., 0.50x0.50
+          set c1 [string first "x" $spmi]
+          if {$c1 != -1} {
+            if {[string index $spmi $c1+1] != " "} {
+              regsub "0x" $spmi "x" spmi
+              regsub "x0" $spmi "x" spmi
+            }
+          }
+
 # trailing .
           if {[string first ". " $spmi] != -1} {regsub {\. } $spmi " " spmi}
 
-# simlar thing for degrees
+# similar check for degrees
         } else {
           set spmi "[string range $spmi 0 end-2] "
           for {set j 0} {$j < 4} {incr j} {if {[string first "0 " $spmi] != -1} {regsub -all "0 " $spmi " " spmi}}

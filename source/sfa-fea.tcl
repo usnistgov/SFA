@@ -2,7 +2,7 @@ proc feaModel {entType} {
   global objDesign
   global cadSystem ent entAttrList entCount entLevel feaBoundary feaDisp feaFaceList feaFaceOrig feaFile feaFileName
   global feaFirstEntity feaLastEntity feaLoad feaMeshIndex feaType feaTypes localName mytemp nfeaElem nprogBarEnts opt rowmax
-  global sfaPID stepAP timeStamp x3dAxesSize x3dFile x3dFileName x3dMax x3dMin x3dMsg x3dStartFile x3dTitle x3dViewOK
+  global stepAP timeStamp x3dAxesSize x3dFile x3dFileName x3dMax x3dMin x3dMsg x3dStartFile x3dTitle x3dViewOK
 
   if {$opt(DEBUG1)} {outputMsg "START feaModel $entType\n" red}
 
@@ -165,24 +165,19 @@ proc feaModel {entType} {
   ::tcom::foreach objEntity [$objDesign FindObjects [join $startent]] {
     if {[$objEntity Type] == $startent && (!$skipElements || [string first "element_representation" $startent] == -1)} {
       if {$opt(xlFormat) == "None"} {incr nprogBarEnts}
-
       if {$nfeaElem < 10000000} {
-        if {[expr {$nfeaElem%2000}] == 0} {
 
 # check memory and gracefully exit
-          if {[info exists sfaPID] && $sfaPID != ""} {
-            set mem [expr {[lindex [twapi::get_process_info $sfaPID -pagefilebytes] 1]/1048576}]
-            if {$mem > 1600} {
-              errorMsg "Insufficient memory to process all elements"
-              if {[lsearch $x3dMsg $memMsg] == -1} {
-                lappend x3dMsg $memMsg
-                set skipElements 1
-              }
-              update idletasks
-              #break
+        if {[expr {$nfeaElem%2000}] == 0} {
+          set mem [expr {[lindex [twapi::get_process_info [pid] -pagefilebytes] 1]/1048576}]
+          if {$mem > 1700} {
+            errorMsg "Insufficient memory to process all elements"
+            if {[lsearch $x3dMsg $memMsg] == -1} {
+              lappend x3dMsg $memMsg
+              set skipElements 1
             }
-            update
           }
+          update idletasks
         }
         if {$nfeaElem > $rowmax && $opt(xlFormat) != "None"} {incr nprogBarEnts}
 
@@ -201,30 +196,30 @@ proc feaModel {entType} {
     puts $feaFile(elements) "\n<!-- [string toupper $feaType] ELEMENTS -->"
     if {$feaType == "curve_3d"} {
       puts $feaFile(elements) "<Switch whichChoice='0' id='sw1DElements'>"
-      puts $feaFile(elements) " <Shape><Appearance><Material emissiveColor='1 0 1'></Material></Appearance>"
+      puts $feaFile(elements) " <Shape><Appearance><Material emissiveColor='1 0 1'/></Appearance>"
       puts $feaFile(elements) "  <IndexedLineSet coordIndex='"
       feaWriteIndex meshIndex elements
-      puts $feaFile(elements) "  '><Coordinate USE='nodes'></Coordinate></IndexedLineSet></Shape>"
+      puts $feaFile(elements) "  '><Coordinate USE='nodes'/></IndexedLineSet></Shape>"
       puts $feaFile(elements) "</Switch>"
 
 # 2D, 3D elements
     } else {
 
 # write index file to mesh file
-      puts $feaFile(mesh) " <Shape id='$feaType'><Appearance><Material emissiveColor='0 0 0'></Material></Appearance>"
+      puts $feaFile(mesh) " <Shape id='$feaType'><Appearance><Material emissiveColor='0 0 0'/></Appearance>"
       puts $feaFile(mesh) "  <IndexedLineSet coordIndex='"
       feaWriteIndex meshIndex mesh
       puts $feaFile(mesh) "  '>"
-      puts $feaFile(mesh) "   <Coordinate USE='nodes'></Coordinate></IndexedLineSet></Shape>"
+      puts $feaFile(mesh) "   <Coordinate USE='nodes'/></IndexedLineSet></Shape>"
 
 # write faces index file to elements file
       if {$feaType == "surface_3d"} {
         puts $feaFile(elements) "<Switch whichChoice='0' id='sw2DElements'>"
-        puts $feaFile(elements) " <Shape><Appearance><Material id='mat2Dfem' diffuseColor='0 1 1'></Material></Appearance>"
+        puts $feaFile(elements) " <Shape><Appearance><Material id='mat2Dfem' diffuseColor='0 1 1'/></Appearance>"
         puts $feaFile(elements) "  <IndexedFaceSet solid='false' coordIndex='"
       } else {
         puts $feaFile(elements) "<Switch whichChoice='0' id='sw3DElements'>"
-        puts $feaFile(elements) " <Shape><Appearance><Material id='mat3Dfem' diffuseColor='1 1 0'></Material></Appearance>"
+        puts $feaFile(elements) " <Shape><Appearance><Material id='mat3Dfem' diffuseColor='1 1 0'/></Appearance>"
         puts $feaFile(elements) "  <IndexedFaceSet id='faces' solid='false' coordIndex='"
       }
       if {[info exists feaFaceList]} {
@@ -269,7 +264,7 @@ proc feaModel {entType} {
       }
       feaWriteIndex faceIndex elements
       puts $feaFile(elements) "  '>"
-      puts $feaFile(elements) "   <Coordinate USE='nodes'></Coordinate></IndexedFaceSet></Shape>"
+      puts $feaFile(elements) "   <Coordinate USE='nodes'/></IndexedFaceSet></Shape>"
       puts $feaFile(elements) "</Switch>"
     }
   }
@@ -819,13 +814,11 @@ proc feaLoads {entType} {
     set size [expr {($x3dAxesSize*0.15)/0.12}]
     set range [expr {$magMax-$magMin}]
     set n 0
-    set choice -1
-    if {[llength [array names fld]] == 1} {set choice 0}
 
     puts $feaFile(loads) "\n<!-- [string toupper $type] -->"
     foreach load [lsort [array names fld]] {
       incr n
-      puts $feaFile(loads) "<Switch whichChoice='$choice' id='[string range $type 0 3]$n'><Group>"
+      puts $feaFile(loads) "<Switch whichChoice='-1' id='[string range $type 0 3]$n'><Group>"
 
       foreach fl $fld($load) {
         set fl [split $fl ","]
@@ -960,16 +953,16 @@ proc feaArrow {r g b type num} {
 
 # tail
   if {!$opt(feaDispNoTail) || $type != "displacement"} {
-    append arrow "  <Shape><Appearance><Material emissiveColor='$r $g $b'></Material></Appearance>"
-    append arrow "<IndexedLineSet coordIndex='0 1 -1'><Coordinate point='$t1 0 0 $t2 0 0'></Coordinate></IndexedLineSet></Shape>"
+    append arrow "  <Shape><Appearance><Material emissiveColor='$r $g $b'/></Appearance>"
+    append arrow "<IndexedLineSet coordIndex='0 1 -1'><Coordinate point='$t1 0 0 $t2 0 0'/></IndexedLineSet></Shape>"
   }
 
 # head
   append arrow "\n  <Shape"
   if {$type == "moment"} {append arrow " DEF='head$num'"}
   append arrow ">"
-  append arrow "<Appearance><Material diffuseColor='$r $g $b'></Material></Appearance>"
-  append arrow "<IndexedFaceSet coordIndex='0 1 2 -1 0 2 3 -1 0 3 4 -1 0 4 1 -1' solid='FALSE'><Coordinate point='$t2 0 0 $h1 .1 0 $h1 0 .1 $h1 -.1 0 $h1 0 -.1'></Coordinate></IndexedFaceSet></Shape>"
+  append arrow "<Appearance><Material diffuseColor='$r $g $b'/></Appearance>"
+  append arrow "<IndexedFaceSet coordIndex='0 1 2 -1 0 2 3 -1 0 3 4 -1 0 4 1 -1' solid='FALSE'><Coordinate point='$t2 0 0 $h1 .1 0 $h1 0 .1 $h1 -.1 0 $h1 0 -.1'/></IndexedFaceSet></Shape>"
 
 # second head
   if {$type == "moment"} {append arrow "\n  <Transform translation='-.1 0 0'><Shape USE='head$num'></Shape></Transform>"}
@@ -1007,12 +1000,10 @@ proc feaBCs {entType} {
     append circleIndex "0 -1 "
 
     set n 0
-    set choice -1
-    if {[llength [array names feaBoundary]] == 1} {set choice 0}
     set bctxt "<!-- BOUNDARY CONDITIONS -->"
     foreach spc [lsort [array names feaBoundary]] {
       incr n
-      append bctxt "\n<Switch whichChoice='$choice' id='spc$n'><Group>"
+      append bctxt "\n<Switch whichChoice='-1' id='spc$n'><Group>"
 
       foreach fbc $feaBoundary($spc) {
         set fbc [split $fbc ","]
@@ -1026,12 +1017,12 @@ proc feaBCs {entType} {
           if {[string length $bctrn] == 3 && [string length $bcrot] == 3} {
             if {$defUSEt($bctrn) == 0} {
               append bctxt "\n <Group DEF='BCfixed'><Transform id='BCfixedScale'>"
-              append bctxt "<Shape><Appearance><Material diffuseColor='.7 .7 .7'></Material></Appearance><Box size='$size $size $size'></Box></Shape>"
+              append bctxt "<Shape><Appearance><Material diffuseColor='.7 .7 .7'/></Appearance><Box size='$size $size $size'></Box></Shape>"
               append bctxt "</Transform></Group>\n"
               incr defUSEt(xyz)
               lappend bcScaleSwitch "BCfixedScale"
             } else {
-              append bctxt "<Group USE='BCfixed'></Group>"
+              append bctxt "<Group USE='BCfixed'/>"
             }
           } else {
 
@@ -1044,12 +1035,12 @@ proc feaBCs {entType} {
                   set num(2) $size
                   set num(1) [expr {$size*0.5}]
                   append bctxt "\n <Group DEF='BCT$bctrn'><Transform id='BCTxyzScale'>"
-                  append bctxt "<Shape><Appearance><Material diffuseColor='.7 .7 .7'></Material></Appearance><IndexedFaceSet coordIndex='0 1 2 -1 0 2 3 -1 0 3 4 -1 0 4 1 -1 1 4 3 2 -1'><Coordinate point='0 0 0 $num(1) $num(1) -$num(2) -$num(1) $num(1) -$num(2) -$num(1) -$num(1) -$num(2) $num(1) -$num(1) -$num(2)'></Coordinate></IndexedFaceSet></Shape>"
+                  append bctxt "<Shape><Appearance><Material diffuseColor='.7 .7 .7'/></Appearance><IndexedFaceSet coordIndex='0 1 2 -1 0 2 3 -1 0 3 4 -1 0 4 1 -1 1 4 3 2 -1'><Coordinate point='0 0 0 $num(1) $num(1) -$num(2) -$num(1) $num(1) -$num(2) -$num(1) -$num(1) -$num(2) $num(1) -$num(1) -$num(2)'/></IndexedFaceSet></Shape>"
                   append bctxt "</Transform></Group>\n"
                   incr defUSEt(xyz)
                   lappend bcScaleSwitch "BCTxyzScale"
                 } else {
-                  append bctxt "<Group USE='BCT$bctrn'></Group>"
+                  append bctxt "<Group USE='BCT$bctrn'/>"
                 }
 
 # other translation DOF constraints
@@ -1058,12 +1049,12 @@ proc feaBCs {entType} {
                   set t [string index $bctrn $j]
                   if {$defUSEt($t) == 0} {
                     append bctxt "\n <Group DEF='BCT$t'><Transform id='BCT$t\Scale'>"
-                    append bctxt "<Shape><Appearance><Material emissiveColor='$clr($t)'></Material></Appearance><IndexedLineSet coordIndex='0 1 -1'><Coordinate point='0 0 0 $crd($t)'></Coordinate></IndexedLineSet></Shape>"
+                    append bctxt "<Shape><Appearance><Material emissiveColor='$clr($t)'/></Appearance><IndexedLineSet coordIndex='0 1 -1'><Coordinate point='0 0 0 $crd($t)'/></IndexedLineSet></Shape>"
                     append bctxt "</Transform></Group>\n"
                     incr defUSEt($t)
                     lappend bcScaleSwitch "BCT$t\Scale"
                   } else {
-                    append bctxt "<Group USE='BCT$t'></Group>"
+                    append bctxt "<Group USE='BCT$t'/>"
                   }
                 }
               }
@@ -1076,12 +1067,12 @@ proc feaBCs {entType} {
 # fixed rotation (sphere) all three DOF
                 if {$defUSEr($bcrot) == 0} {
                   append bctxt "\n <Group DEF='BCR$bcrot'><Transform id='BCRxyzScale'>"
-                  append bctxt "<Shape><Appearance><Material diffuseColor='.7 .7 .7'></Material></Appearance><Sphere radius='[expr {0.3*$size}]'></Sphere></Shape>"
+                  append bctxt "<Shape><Appearance><Material diffuseColor='.7 .7 .7'/></Appearance><Sphere radius='[expr {0.3*$size}]'></Sphere></Shape>"
                   append bctxt "</Transform></Group>\n"
                   incr defUSEr(xyz)
                   lappend bcScaleSwitch "BCRxyzScale"
                 } else {
-                  append bctxt "<Group USE='BCR$bcrot'></Group>"
+                  append bctxt "<Group USE='BCR$bcrot'/>"
                 }
 
 # other rotation DOF constraints
@@ -1101,12 +1092,12 @@ proc feaBCs {entType} {
                       set angle [expr {$angle+$dlt}]
                     }
                     append bctxt "\n <Group DEF='BCR$r'><Transform id='BCR$r\Scale'>"
-                    append bctxt "<Shape><Appearance><Material emissiveColor='$clr($r)'></Material></Appearance><IndexedLineSet coordIndex='$circleIndex'><Coordinate point='$circlePoints'></Coordinate></IndexedLineSet></Shape>"
+                    append bctxt "<Shape><Appearance><Material emissiveColor='$clr($r)'/></Appearance><IndexedLineSet coordIndex='$circleIndex'><Coordinate point='$circlePoints'/></IndexedLineSet></Shape>"
                     append bctxt "</Transform></Group>\n"
                     incr defUSEr($r)
                     lappend bcScaleSwitch "BCR$r\Scale"
                   } else {
-                    append bctxt "<Group USE='BCR$r'></Group>"
+                    append bctxt "<Group USE='BCR$r'/>"
                   }
                 }
               }
@@ -1141,11 +1132,9 @@ proc feaButtons {type} {
     if {[info exists feaBoundary] && $opt(feaBounds)} {
       puts $x3dFile "\n<!-- BC checkbox and slider -->\n<p>Boundary Conditions<br>"
       set n 0
-      set checked ""
-      if {[llength [array names feaBoundary]] == 1} {set checked "checked"}
       foreach spc [lsort [array names feaBoundary]] {
         incr n
-        puts $x3dFile "<input type='checkbox' $checked name='spc' id='SPC$n' onclick='togSPC(this.value)'/>$spc<br>"
+        puts $x3dFile "<input type='checkbox' name='spc' id='SPC$n' onclick='togSPC(this.value)'/>$spc<br>"
       }
       puts $x3dFile "<input style='width:80px' type='range' min='-2' max='4' step='0.25' value='1' onchange='bcScale(this.value)'/> Scale"
     }
@@ -1163,11 +1152,9 @@ proc feaButtons {type} {
       }
 
 # load checkboxes
-      set checked ""
-      if {[llength [array names feaLoad]] == 1} {set checked "checked"}
       foreach load [lsort [array names feaLoad]] {
         incr n
-        puts $x3dFile "<tr><td><input type='checkbox' $checked name='load' id='LOAD$n' onclick='togLOAD(this.value)'/>$load</td></tr>"
+        puts $x3dFile "<tr><td><input type='checkbox' name='load' id='LOAD$n' onclick='togLOAD(this.value)'/>$load</td></tr>"
       }
 
 # load color scale
@@ -1190,11 +1177,9 @@ proc feaButtons {type} {
       }
 
 # displacement checkboxes
-      set checked ""
-      if {[llength [array names feaDisp]] == 1} {set checked "checked"}
       foreach disp [lsort [array names feaDisp]] {
         incr n
-        puts $x3dFile "<tr><td><input type='checkbox' $checked name='DISP' id='DISP$n' onclick='togDISPLACEMENT(this.value)'/>$disp</td></tr>"
+        puts $x3dFile "<tr><td><input type='checkbox' name='DISP' id='DISP$n' onclick='togDISPLACEMENT(this.value)'/>$disp</td></tr>"
       }
 
 # displacement color scale
@@ -1336,7 +1321,7 @@ proc feaGetNodes {} {
 
 # start node output
   puts $x3dFile "\n<!-- NODES -->\n<Switch whichChoice='0' id='swNodes'>"
-  puts $x3dFile " <Shape><Appearance><Material emissiveColor='0 0 1'></Material></Appearance>"
+  puts $x3dFile " <Shape><Appearance><Material emissiveColor='0 0 1'/></Appearance>"
   puts $x3dFile "  <PointSet><Coordinate DEF='nodes' point='"
 
 # get all nodes
@@ -1377,7 +1362,7 @@ proc feaGetNodes {} {
   if {[string length $nline] > 0} {puts $x3dFile $nline}
 
 # finish node output
-  puts $x3dFile "  '></Coordinate></PointSet></Shape>"
+  puts $x3dFile "  '/></PointSet></Shape>"
   puts $x3dFile "</Switch>"
 
   lappend x3dMsg "$entCount(node) - nodes"

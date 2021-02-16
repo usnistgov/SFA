@@ -84,14 +84,14 @@ catch {
 }
 
 # -----------------------------------------------------------------------------------------------------
-# set drive, myhome, mydocs, mydesk
-setHomeDir
-
 # set program files, environment variables will be in the correct language
 set pf32 "C:\\Program Files (x86)"
 if {[info exists env(ProgramFiles)]} {set pf32 $env(ProgramFiles)}
 set pf64 ""
 if {[info exists env(ProgramW6432)]} {set pf64 $env(ProgramW6432)}
+
+# set drive, myhome, mydocs, mydesk
+setHomeDir
 
 # detect if NIST version
 set nistVersion 0
@@ -107,7 +107,7 @@ foreach id { \
 # set opt to 0
 foreach id { \
   feaBounds feaDisp feaDispNoTail feaLoads feaLoadScale indentGeometry indentStyledItem INVERSE partNormals partOnly PMIGRFCOV PMISEMDIM PMISEMRND \
-  SHOWALLPMI stepCPNT stepFEAT stepGEOM stepKINE stepUSER syntaxChecker tessPartMesh writeDirType xlHideLinks xlNoRound xlSort xlUnicode x3dKeep \
+  SHOWALLPMI stepCPNT stepFEAT stepGEOM stepKINE stepUSER syntaxChecker tessPartMesh writeDirType xlHideLinks xlNoRound xlSort xlUnicode x3dSave \
   DEBUG1 DEBUGINV DEBUGX3D \
 } {set opt($id) 0}
 
@@ -354,6 +354,18 @@ if {$argv != ""} {
       set localNameList [list $localName]
       outputMsg "Ready to process: [file tail $localName] ([fileSize $localName])" green
 
+# check for STL file
+      if {[string tolower [file extension $localName]] == ".stl"} {
+        set opt(partOnly) 0
+        set opt(xlFormat) None
+        set opt(viewTessPart) 1
+        set ofExcel 0
+        set ofCSV 0
+        set ofNone 1
+        set allNone -1
+        checkValues
+      }
+
       set fileDir [file dirname $localName]
       if {$fileDir == $drive} {outputMsg "There might be problems processing a STEP file directly in the $fileDir directory." red}
 
@@ -380,23 +392,24 @@ set writeDir $userWriteDir
 checkValues
 
 # other STEP File Analyzer and Viewers already running
-set pid2 [twapi::get_process_ids -name "STEP-File-Analyzer.exe"]
-set pid2 [concat $pid2 [twapi::get_process_ids -name "sfa.exe"]]
-
-if {[llength $pid2] > 1} {
-  set msg "There are at least ([expr {[llength $pid2]-1}]) other instances of the STEP File Analyzer and Viewer already running.\n\nDo you want to close them?"
-  set choice [tk_messageBox -type yesno -default yes -message $msg -icon question -title "Close?"]
-  if {$choice == "yes"} {
-    foreach pid $pid2 {
-      if {$pid != [pid]} {catch {twapi::end_process $pid -force}}
+set pids {}
+catch {
+  foreach proc [list "STEP-File-Analyzer.exe"] {
+    foreach id [twapi::get_process_ids -name $proc] {
+      if {$id != [pid]} {if {[string first "unknown" [twapi::get_process_info $id -commandline]] == -1} {lappend pids $id}}
     }
-    outputMsg "Other STEP File Analyzer and Viewers closed" red
-    .tnb select .tnb.status
   }
 }
 
-# set process id used to check memory usage for AP209 files
-set sfaPID [twapi::get_process_ids -name "STEP-File-Analyzer.exe"]
+if {[llength $pids] > 0} {
+  set msg "There are ([llength $pids]) other STEP File Analyzer and Viewers already running.  Do you want to close them?"
+  set choice [tk_messageBox -type yesno -default yes -message $msg -icon question -title "Close?"]
+  if {$choice == "yes"} {
+    foreach pid $pids {catch {twapi::end_process $pid -force}}
+    outputMsg "Closed other STEP File Analyzer and Viewers" red
+    .tnb select .tnb.status
+  }
+}
 
 # warn if spreadsheets not written to default directory
 if {$opt(writeDirType) == 2} {
