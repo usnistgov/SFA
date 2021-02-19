@@ -862,10 +862,10 @@ proc nistGetName {} {
   set nistName ""
   set filePrefix {}
   set prefixes {}
-  for {set i 4} {$i < 20} {incr i} {lappend prefixes "sp$i"}
-  for {set i 1} {$i < 20} {incr i} {lappend prefixes "tgp$i"}
-  for {set i 3} {$i < 5}  {incr i} {lappend prefixes "tp$i"}
-  set prefixes [concat $prefixes [list lsp lpp ltg ltp]]
+  for {set i 4} {$i < 9} {incr i} {lappend prefixes "sp$i"}
+  for {set i 1} {$i < 3} {incr i} {lappend prefixes "tgp$i"}
+  for {set i 3} {$i < 4} {incr i} {lappend prefixes "tp$i"}
+  lappend prefixes "pmi"
   foreach fp $prefixes {
     lappend filePrefix "$fp\_"
     lappend filePrefix "$fp\-"

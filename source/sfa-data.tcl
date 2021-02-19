@@ -167,7 +167,8 @@ set pairs [list {3DE "3D Evolution"} {3de "3D Evolution"} {a3 "Acrobat 3D"} {a5 
   {ew "Elysium Asfalis (SolidWorks)"} {ex "Elysium Asfalis (NX)"} {fs "Vistagy FiberSim"} {h3 "HOOPS 3D Exchange"} {h5 "HOOPS 3D (CATIA_V5)"} \
   {hc "HOOPS 3D (Creo)"} {hx "HOOPS 3D (NX)"} {i4 "ITI CADifx (CATIA_V4)"} {i5 "ITI CADfix (CATIA_V5)"} {ic "ITI CADfix (Creo)"} {id "NX I-DEAS"} \
   {if "ITI CADfix"} {in "Autodesk Inventor"} {iq "ITI CADfix"} {iw "ITI CADfix (SolidWorks)"} {ix "ITI CADfix (NX)"} {jn "Jotne EPM NASTRAN"} \
-  {jo "Jotne EPM openSimDM"} {kc "Kubotek KeyCreator"} {kr "Kubotek REALyze"} {lk "LKSoft IDA-STEP"} {mp "MSC Patran"} {nas "NASTRAN"} {nx "Siemens NX"} \
+  {jo "Jotne EPM openSimDM"} {k5 "Kubotek (CATIA_V5)"} {kc "Kubotek KeyCreator"} {kk "Kubotek KOSMOS"} {ko "Kubotek (Creo)"} {kr "Kubotek REALyze"} \
+  {kx "Kubotek (SolidWorks)"} {kx "Kubotek (NX)"} {lk "LKSoft IDA-STEP"} {mp "MSC Patran"} {nas "NASTRAN"} {nx "Siemens NX"} \
   {oc "Datakit CrossCad (OpenCascade)"} {pc "PTC CADDS"} {pe "PTC Pro/E"} {s4 "T-Systems COM/STEP (CATIA_V4)"} {s5 "T-Systems COM/FOX (CATIA_V5)"} \
   {se "SolidEdge"} {sp "Spatial ACIS"} {sw "SolidWorks"} {t3d "TechSoft3D"} {t4 "Theorem Cadverter (CATIA_V4)"} {t5 "Theorem Cadverter (CATIA_V5)"} \
   {tc "Theorem Cadverter (CADDS)"} {td "Theorem Solutions (CATIA)"} {to "Theorem Cadverter (Creo)"} {tp "Theorem Cadverter (Pro/E)"} \

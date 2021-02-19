@@ -885,12 +885,15 @@ proc spmiGeotolReport {objEntity} {
                             lappend syntaxErr(datum) [list $id identification $msg]
                           }
 
-# check for datum in SAR related_shape_aspect
+# check for datum in SAR to relate to datum_feature
                           set e1s [$datum GetUsedIn [string trim shape_aspect_relationship] [string trim related_shape_aspect]]
                           set n 0
-                          ::tcom::foreach e1 $e1s {incr n}
+                          ::tcom::foreach e1 $e1s {
+                            set e2 [[[$e1 Attributes] Item [expr 3]] Value]
+                            if {[string first "datum_feature" [$e2 Type]] != -1} {incr n}
+                          }
                           if {$n == 0} {
-                            set msg "Syntax Error: Datum is not referenced by 'related_shape_aspect' on 'shape_aspect_relationship'.$spaces\($recPracNames(pmi242), Sec. 6.5, Fig. 35)"
+                            set msg "Syntax Error: Datum is not related to 'datum_feature' on 'shape_aspect_relationship'.$spaces\($recPracNames(pmi242), Sec. 6.5.1, Fig. 36)"
                             errorMsg $msg
                             lappend syntaxErr(datum) [list $id ID $msg]
                           }
