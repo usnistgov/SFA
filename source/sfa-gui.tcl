@@ -1,5 +1,5 @@
 # SFA version number
-proc getVersion {} {return 4.36}
+proc getVersion {} {return 4.37}
 
 # version of SFA that the User Guide is based on
 proc getVersionUG {} {return 4.2}
@@ -47,9 +47,10 @@ Use F9 and F10 to change the font size here.  See Help > Function Keys"
       outputMsg "- A new User Guide is available based on version [getVersionUG] of this software."
       showFileURL UserGuide
     }
-    if {$sfaVersion < 4.12} {outputMsg "- The Viewer for part geometry is faster and supports color, transparency, edges, sketch geometry, normals, and nested assemblies.  See Help > Viewer"}
-    if {$sfaVersion < 4.35} {outputMsg "- Removed Viewer support for Internet Explorer"}
+    if {$sfaVersion < 4.37} {outputMsg "- Updated Sample STEP Files on the Examples menu"}
+    if {$sfaVersion < 4.35} {outputMsg "- Removed support in the Viewer for Internet Explorer"}
     if {$sfaVersion < 4.32} {outputMsg "- See Help > Text Strings for information that supplements the User Guide section 5.5 on Unicode Characters"}
+    if {$sfaVersion < 4.12} {outputMsg "- The Viewer for part geometry is faster and supports color, transparency, edges, sketch geometry, normals, and nested assemblies.  See Help > Viewer"}
     if {$sfaVersion < 3.80} {outputMsg "- Run the Syntax Checker with function key F8 or the Options tab selection.  See Help > Syntax Checker"}
     if {$sfaVersion < 2.62} {outputMsg "- Renamed output files: Spreadsheets from 'myfile_stp.xlsx' to 'myfile-sfa.xlsx' and Views from 'myfile-x3dom.html' to 'myfile-sfa.html'"}
     if {$sfaVersion < 2.30} {outputMsg "- The command-line version has been renamed: sfa-cl.exe  The old version STEP-File-Analyzer-CL.exe can be deleted."}
@@ -1985,7 +1986,6 @@ proc guiWebsitesMenu {} {
   $Websites3 add command -label "Source Code"            -command {openURL https://github.com/usnistgov/SFA}
   $Websites3 add command -label "STEP to X3D Translator" -command {openURL https://www.nist.gov/services-resources/software/step-x3d-translator}
   $Websites3 add command -label "STEP to OWL Translator" -command {openURL https://github.com/usnistgov/stp2owl}
-  $Websites3 add command -label "STEPcode"               -command {openURL http://stepcode.github.io/}
   $Websites3 add command -label "STEP Class Library"     -command {openURL https://www.nist.gov/services-resources/software/step-class-library-scl}
   $Websites3 add command -label "Express Engine"         -command {openURL https://sourceforge.net/projects/exp-engine/}
 
@@ -2105,8 +2105,8 @@ proc guiToolTip {ttmsg tt} {
 
 #-------------------------------------------------------------------------------
 proc getOpenPrograms {} {
-  global dispApps dispCmds dispCmd appNames appName
-  global drive editorCmd developer myhome pf32 pf64
+  global env dispApps dispCmds dispCmd appNames appName
+  global drive editorCmd developer myhome pf32 pf64 pflist
 
 # Including any of the CAD viewers and software does not imply a recommendation or endorsement of them by NIST https://www.nist.gov/disclaimer
 # For more STEP viewers, go to https://www.cax-if.org/step_viewers.php
@@ -2247,23 +2247,29 @@ proc getOpenPrograms {} {
   set dispApps(Indent) "Tree View (for debugging)"
 
 #-------------------------------------------------------------------------------
-# set text editor command and name
+# set text editor command and name for Notepad++ or Notepad
   set editorCmd ""
-  set editorName ""
-
-# Notepad++ or Notepad
   foreach pf $pflist {
-    set editorCmd [file join $pf Notepad++ notepad++.exe]
-    if {[file exists $editorCmd]} {
-      set editorName "Notepad++"
-      set dispApps($editorCmd) $editorName
+    set cmd [file join $pf Notepad++ notepad++.exe]
+    if {[file exists $cmd]} {
+      set editorCmd $cmd
+      set dispApps($editorCmd) "Notepad++"
       break
     }
   }
-  if {$editorName == ""} {
-    set editorCmd [file join Windows system32 Notepad.exe]
-    set editorName "Notepad"
-    set dispApps($editorCmd) $editorName
+  if {$editorCmd == ""} {
+    if {[info exists env(windir)]} {
+      set cmds [list [file join $env(windir) system32 notepad.exe] [file join $env(windir) notepad.exe]]
+    } else {
+      set cmds [list [file join C:/ Windows system32 notepad.exe] [file join C:/ Windows notepad.exe]]
+    }
+    foreach cmd $cmds {
+      if {[file exists $cmd]} {
+        set editorCmd $cmd
+        set dispApps($editorCmd) "Notepad"
+        break
+      }
+    }
   }
 
 #-------------------------------------------------------------------------------

@@ -391,9 +391,14 @@ proc valPropReport {objEntity} {
                 }
 
                 "property_definition definition" {
-                  if {[string first "validation_property" $propDefName] != -1} {
+                  if {[string first "validation_property" $propDefName] != -1 || $propDefName == "semantic_text"} {
                     if {[string length $objValue] == 0} {
                       set msg "Syntax Error: Missing property_definition 'definition' attribute."
+                      switch $propDefName {
+                        "geometric_validation_property" {append msg "$spaces\($recPracNames(valprop), Sec. 4)"}
+                        "pmi_validation_property" {append msg "$spaces\($recPracNames(pmi242), Sec. 10)"}
+                        "semantic_text" {append msg "$spaces\($recPracNames(pmi242), Sec. 7.4.2)"}
+                      }
                       if {$propDefName == "geometric_validation_property"} {append msg "$spaces\($recPracNames(valprop), Sec. 4)"}
                       errorMsg $msg
                       lappend syntaxErr(property_definition) [list $propDefID 4 $msg]

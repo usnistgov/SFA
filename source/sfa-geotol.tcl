@@ -885,15 +885,15 @@ proc spmiGeotolReport {objEntity} {
                             lappend syntaxErr(datum) [list $id identification $msg]
                           }
 
-# check for datum in SAR to relate to datum_feature
+# check for datum in SAR to relate to datum_feature or datum_target
                           set e1s [$datum GetUsedIn [string trim shape_aspect_relationship] [string trim related_shape_aspect]]
                           set n 0
                           ::tcom::foreach e1 $e1s {
                             set e2 [[[$e1 Attributes] Item [expr 3]] Value]
-                            if {[string first "datum_feature" [$e2 Type]] != -1} {incr n}
+                            if {[string first "datum_feature" [$e2 Type]] != -1 || [string first "datum_target" [$e2 Type]] != -1} {incr n}
                           }
                           if {$n == 0} {
-                            set msg "Syntax Error: Datum is not related to 'datum_feature' on 'shape_aspect_relationship'.$spaces\($recPracNames(pmi242), Sec. 6.5.1, Fig. 36)"
+                            set msg "Syntax Error: Datum is not related to 'datum_feature' or 'datum_target' on 'shape_aspect_relationship'.$spaces\($recPracNames(pmi242), Sec. 6.5.1, Fig. 36)"
                             errorMsg $msg
                             lappend syntaxErr(datum) [list $id ID $msg]
                           }
@@ -1250,39 +1250,43 @@ proc spmiGeotolReport {objEntity} {
                                         set msg "Syntax Error: Bad datum target 'name' ($datumTargetName) on [formatComplexEnt [$e4 Type]], use 'target length' or 'target width' for a '$datumTargetType' target$spaces\($recPracNames(pmi242), Sec. 6.6.1)"
                                       } elseif {$datumTargetType == "point"} {
                                         set msg "Syntax Error: No length_measure attribute on shape_representation_with_parameters is required for a 'point' datum target$spaces\($recPracNames(pmi242), Sec. 6.6.1)"
+                                      }
+                                      if {$msg != ""} {
+                                        errorMsg $msg
+                                        lappend syntaxErr([$gtEntity Type]) [list [$gtEntity P21ID] "Target Representation" $msg]
+                                        lappend syntaxErr([$e4 Type]) [list [$e4 P21ID] "name" $msg]
+                                      }
 
 # add target dimensions to PMI
+                                      set dtv $datumTargetValue
+                                      if {[string range $dtv end-1 end] == ".0"} {
+                                        set dtv [string range $dtv 0 end-2]
                                       } else {
-                                        set dtv $datumTargetValue
-                                        if {[string range $dtv end-1 end] == ".0"} {
-                                          set dtv [string range $dtv 0 end-2]
-                                        } else {
-                                          set dtv [trimNum $dtv 2]
-                                        }
-                                        if {$datumTargetType == "circle"} {
-                                          set objValue $pmiUnicode(diameter)$dtv[format "%c" 10]$objValue
-                                        } elseif {$datumTargetType == "line"} {
-                                          append objValue "[format "%c" 10](L = $dtv)"
-                                        } elseif {$datumTargetType == "circular curve"} {
-                                          append objValue "[format "%c" 10](D = $dtv)"
+                                        set dtv [trimNum $dtv 2]
+                                      }
+                                      if {$datumTargetType == "circle"} {
+                                        set objValue $pmiUnicode(diameter)$dtv[format "%c" 10]$objValue
+                                      } elseif {$datumTargetType == "line"} {
+                                        append objValue "[format "%c" 10](L = $dtv)"
+                                      } elseif {$datumTargetType == "circular curve"} {
+                                        append objValue "[format "%c" 10](D = $dtv)"
 
 # rectangular, smaller value first
-                                        } elseif {$datumTargetType == "rectangle"} {
-                                          incr ndtv
-                                          if {$ndtv == 1} {
-                                            set dtv1 $dtv
-                                          } elseif {$ndtv == 2} {
-                                            if {$dtv > $dtv1} {
-                                              append dtv1 "x$dtv"
-                                            } else {
-                                              set dtv1 "$dtv\x$dtv1"
-                                            }
-                                            set objValue $dtv1[format "%c" 10]$objValue
+                                      } elseif {$datumTargetType == "rectangle"} {
+                                        incr ndtv
+                                        if {$ndtv == 1} {
+                                          set dtv1 $dtv
+                                        } elseif {$ndtv == 2} {
+                                          if {$dtv > $dtv1} {
+                                            append dtv1 "x$dtv"
+                                          } else {
+                                            set dtv1 "$dtv\x$dtv1"
                                           }
+                                          set objValue $dtv1[format "%c" 10]$objValue
                                         }
-                                        if {$origin == "0. 0. 0." && [string first "(origin" $objValue] == -1} {
-                                          append objValue "[format "%c" 10](origin = 0 0 0)"
-                                        }
+                                      }
+                                      if {$origin == "0. 0. 0." && [string first "(origin" $objValue] == -1} {
+                                        append objValue "[format "%c" 10](origin = 0 0 0)"
                                       }
 
 # save datum target for view
@@ -1294,12 +1298,6 @@ proc spmiGeotolReport {objEntity} {
                                           lappend datumTargetView([$gtEntity P21ID]) [list $datumTargetName $dtv]
                                           if {[info exists datumTarget]} {lappend datumTargetView([$gtEntity P21ID]) $datumTarget}
                                         }
-                                      }
-
-# error message
-                                      if {$msg != ""} {
-                                        errorMsg $msg
-                                        lappend syntaxErr([$gtEntity Type]) [list [$gtEntity P21ID] "Target Representation" $msg]
                                       }
 
 # bad size

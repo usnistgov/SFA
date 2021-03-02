@@ -699,6 +699,7 @@ proc genExcel {{numFile 0}} {
 # check draughting model entities for PMI saved views
   set draughtingModels {}
   foreach dm [list draughting_model \
+                   draughting_model_and_tessellated_shape_representation \
                    characterized_object_and_draughting_model \
                    characterized_representation_and_draughting_model \
                    characterized_representation_and_draughting_model_and_representation \

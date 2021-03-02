@@ -50,9 +50,9 @@ proc gpmiAnnotation {entType} {
   set PMIP(tessellated_annotation_occurrence) [list tessellated_annotation_occurrence name styles $curve_style $fill_style item $tessellated_geometric_set $repo_tessellated_geometric_set]
 
 # annotation placeholder
-  set planar_box    [list planar_box size_in_x size_in_y placement $a2p3d]
-  set geometric_set [list geometric_set name elements $cartesian_point $a2p3d $planar_box]
-  set PMIP(annotation_placeholder_occurrence) [list annotation_placeholder_occurrence name styles $curve_style item $geometric_set]
+  set planar_box      [list planar_box size_in_x size_in_y placement $a2p3d]
+  set geometric_set   [list geometric_set name elements $cartesian_point $a2p3d $planar_box]
+  set PMIP(annotation_placeholder_occurrence) [list annotation_placeholder_occurrence name styles $curve_style item $geometric_set line_spacing]
 
 # generate correct PMIP variable accounting for variations like characterized_object
   if {![info exists PMIP($entType)]} {
@@ -745,6 +745,13 @@ proc gpmiAnnotationReport {objEntity} {
                     }
                   }
                 }
+                "annotation_placeholder_occurrence* line_spacing" {
+                  if {$objValue <= 0.} {
+                    set msg "Syntax Error: annotation_placeholder_occurrence 'line_spacing' attribute must be greater that zero.$spaces\($recPracNames(pmi242), Sec. 7.2.2)"
+                    errorMsg $msg
+                    lappend syntaxErr(annotation_placeholder_occurrence) [list $objID "line_spacing" $msg]
+                  }
+                }
                 "*triangulated_face name" -
                 "*triangulated_surface_set name" -
                 "tessellated_curve_set name" {
@@ -1169,6 +1176,7 @@ proc gpmiAnnotationReport {objEntity} {
       if {[info exists draftModelCameras]} {
 
 # get used draughting_model entities
+        set okdm 0
         foreach dm $draughtingModels {
           set entDraughtingModels [$objEntity GetUsedIn [string trim $dm] [string trim items]]
 
@@ -1179,9 +1187,8 @@ proc gpmiAnnotationReport {objEntity} {
           }
 
 # check if there are any entDraughtingModel, if none then there are no camera models for the annotation
-          set okdm 0
-          ::tcom::foreach entDraughtingModel $entDraughtingModels {set okdm 1}
-          if {!$okdm} {
+          ::tcom::foreach entDraughtingModel $entDraughtingModels {incr okdm}
+          if {$okdm == 0} {
             if {$opt(PMIGRF) && $opt(xlFormat) != "None"} {
 
 # check for missing saved view only if not text, etc.

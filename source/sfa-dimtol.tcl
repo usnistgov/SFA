@@ -1471,9 +1471,11 @@ proc spmiDimtolReport {objEntity} {
                   append dtg " and "
                 }
               }
-              errorMsg "Multiple ([llength $dimtolGeom($dimtolGeomEnts)]) dimensions $dtg are associated with the same geometry. $dimtolGeomEnts"
-              addCellComment $dt $r $pmiColumns(ch) "Multiple dimensions are associated with the same geometry.  The identical information in this cell should appear in another Associated Geometry cell above."
-              lappend entsWithErrors "dimensional_characteristic_representation"
+              if {$nistName != "nist_ftc_07" || [string first ".875 ±" $dtg] == -1} {
+                errorMsg "Multiple ([llength $dimtolGeom($dimtolGeomEnts)]) dimensions $dtg are associated with the same geometry. $dimtolGeomEnts"
+                addCellComment $dt $r $pmiColumns(ch) "Multiple dimensions are associated with the same geometry.  The identical information in this cell should appear in another Associated Geometry cell above."
+                lappend entsWithErrors "dimensional_characteristic_representation"
+              }
             }
           }
         }
