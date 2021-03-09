@@ -1,5 +1,5 @@
 # SFA version number
-proc getVersion {} {return 4.37}
+proc getVersion {} {return 4.38}
 
 # version of SFA that the User Guide is based on
 proc getVersionUG {} {return 4.2}

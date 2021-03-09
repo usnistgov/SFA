@@ -1257,10 +1257,22 @@ proc x3dBrepGeom {} {
         }
       } else {
         outputMsg $errs red
-        errorMsg "Error generating X3D from the STEP part geometry.\n Try another STEP file viewer.  See Websites > STEP File Viewers\n Use F8 to run the Syntax Checker to check for STEP file errors.  See Help > Syntax Checker"
+
+# missing Microsoft Visual C++ Redistributable
+        if {$errs == "child killed: unknown signal"} {
+          set msg "To process part geometry by the Viewer, you have to install the Microsoft Visual C++ Redistributable\n from a file included with the SFA zip file that you downloaded from the NIST website.  Double click\n on VC_redist.x64.exe from the zip file.  After the Redistributable is installed the Viewer should\n be able to process part geometry."
+
+# other errors
+        } else {
+          set msg "Error generating X3D from the STEP part geometry.\n Use F8 to run the Syntax Checker to check for STEP file errors.  See Help > Syntax Checker\n Try another STEP file viewer.  See Websites > STEP File Viewers"
+        }
+        append msg "\n If the problem cannot be resolved, email the Contact from Help > About"
+        errorMsg $msg
         outputMsg " "
         lappend x3dMsg "<b>Error generating STEP part geometry</b>"
       }
+
+# missing stp2x3d
     } else {
       set msg " ERROR: The program (stp2x3d-part.exe) to convert STEP part geometry to X3D was not found in $mytemp"
       if {!$nistVersion} {append msg "\n  You must first run the NIST version of the STEP File Analyzer and Viewer before generating a View."}

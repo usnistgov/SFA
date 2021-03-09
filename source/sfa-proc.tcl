@@ -1819,7 +1819,7 @@ proc setShortcuts {} {
 #-------------------------------------------------------------------------------
 # set web browser and home, docs, desktop, menu directories
 proc setHomeDir {} {
-  global drive env mydesk mydocs myhome mymenu mytemp pf32 pf64 webCmd
+  global drive env mydesk mydocs myhome mymenu mytemp pf32 pf64 wdir webCmd
 
 # web browser command
   set webCmd ""
@@ -1908,6 +1908,9 @@ proc setHomeDir {} {
   set mydocs [file nativename $mydocs]
   set mydesk [file nativename $mydesk]
   set mytemp [file nativename $mytemp]
+
+# copy font file
+  if {![file exists [file join $mytemp ARIALUNI.TTF]]} {catch {[file copy -force -- [file join $wdir images ARIALUNI.TTF] [file join $mytemp ARIALUNI.TTF]]}}
 }
 
 #-------------------------------------------------------------------------------

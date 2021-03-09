@@ -132,6 +132,7 @@ proc spmiDimtolReport {objEntity} {
 
     if {$entLevel == 1} {
       foreach var {dimtolAttr dimtolEnt dimtolPM entlevel2 assocGeom} {if {[info exists $var]} {unset $var}}
+      foreach idx {nominal upper lower} {if {[info exists dim($idx)]} {unset dim($idx)}}
       set numDSnames 0
     } elseif {$entLevel == 2} {
       if {![info exists entlevel2]} {set entlevel2 [list $objID $objType]}
@@ -294,7 +295,7 @@ proc spmiDimtolReport {objEntity} {
                       }
 
 # if type_qualifier is maximum or minimum, substitute upper or lower limit
-                      if {[info exists tqual]} {
+                      if {[info exists tqual] && [info exists dim(nominal)]} {
                         if {$tqual == "maximum" && [info exists dim(upper)] && $dim(upper) != $dim(nominal)} {
                           regsub $dim(nominal) $dimrep($dimrepID) $dim(upper) dimrep($dimrepID)
                         } elseif {$tqual == "minimum" && [info exists dim(lower)] && $dim(lower) != $dim(nominal)} {
@@ -326,9 +327,6 @@ proc spmiDimtolReport {objEntity} {
                           set invalid $msg
                           lappend syntaxErr(dimensional_characteristic_representation) [list "-$spmiIDRow($dt,$spmiID)" "representation" $msg]
                         }
-                        catch {unset dim(nominal)}
-                        unset dim(lower)
-                        unset dim(upper)
                       }
 
 # add degree symbol for an angle

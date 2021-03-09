@@ -1,5 +1,5 @@
 proc pmiFormatColumns {str} {
-  global cells col env gpmiRow pmiStartCol recPracNames row spmiRow stepAP thisEntType vpmiRow worksheet
+  global cells col env gpmiRow mytemp pmiStartCol recPracNames row spmiRow stepAP thisEntType vpmiRow wdir worksheet
 
   if {![info exists pmiStartCol($thisEntType)]} {
     return
@@ -47,9 +47,10 @@ proc pmiFormatColumns {str} {
       set rs $vpmiRow($thisEntType)
     } elseif {[string first "PMI Representation" $str] != -1} {
       set rs $spmiRow($thisEntType)
+      if {![file exists [file join $mytemp ARIALUNI.TTF]]} {catch {[file copy -force -- [file join $wdir images ARIALUNI.TTF] [file join $mytemp ARIALUNI.TTF]]}}
       if {![file exists [file nativename C:/Windows/Fonts/ARIALUNI.TTF]] && \
           ![file exists [file join $env(USERPROFILE) AppData Local Microsoft Windows Fonts ARIALUNI.TTF]]} {
-        errorMsg "Excel might not show some GD&T symbols correctly in PMI Representation analysis.  The missing\nsymbols will appear as question mark inside a square.  The likely cause is a missing font\n'Arial Unicode MS' from the font file 'ARIALUNI.TTF'.  Find a copy of this font file and install it."
+        errorMsg "Some GD&T symbols might appear as a question mark inside a small square on the PMI Representation\n worksheet.  To fix the problem, copy the font file that contains the symbols\n [file join $mytemp ARIALUNI.TTF] to C:/Windows/Fonts to install the fonts.\n You might need administrator privileges."
       }
     }
     foreach r $rs {

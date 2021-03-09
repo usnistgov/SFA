@@ -485,7 +485,7 @@ set nistModelURLs [list \
   nist_ctc_04_asme1_rd.pdf \
   nist_ctc_05_asme1_rd.pdf \
   nist_ftc_06_asme1_rd.pdf \
-  nist_ftc_07_asme1_rc.pdf \
+  nist_ftc_07_asme1_rd.pdf \
   nist_ftc_08_asme1_rc.pdf \
   nist_ftc_09_asme1_rd.pdf \
   nist_ftc_10_asme1_rb.pdf \
