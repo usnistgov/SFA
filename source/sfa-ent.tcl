@@ -160,18 +160,16 @@ proc getEntity {objEntity checkInverse checkBadAttributes unicodeCheck} {
 # error getting attribute value
       } emsgv]} {
         set msg "ERROR processing '$attrName' attribute on '[$objEntity Type]': $emsgv"
-        errorMsg $msg
-        lappend syntaxErr([$objEntity Type]) [list -$row($thisEntType) $attrName $msg]
         if {[string first "Bad variable type" $emsgv] != -1} {
           if {[string first "'modifiers' attribute on 'datum_reference_compartment'" $msg] != -1 || \
               [string first "'modifiers' attribute on 'datum_reference_element'" $msg] != -1 || \
               [string first "'elements' attribute on 'annotation_plane'" $msg] != -1 || \
               [string first "'synonymous_names' attribute on 'item_names'" $msg] != -1} {
-            set msg "Syntax Error: On '[$objEntity Type]' entities change the '$attrName' attribute with '()' to '$' where applicable.  The attribute is an OPTIONAL SET\[1:?\] and '()' is not valid."
-            errorMsg $msg
-            lappend syntaxErr([$objEntity Type]) [list -$row($thisEntType) $attrName $msg]
+            set msg "For '[$objEntity Type]' change the '$attrName' attribute with '()' to '$' where applicable.  The attribute is an OPTIONAL SET\[1:?\] and '()' is not valid."
           }
         }
+        errorMsg $msg
+        lappend syntaxErr([$objEntity Type]) [list -$row($thisEntType) $attrName $msg]
         set objValue ""
         catch {raise .}
       }
@@ -397,7 +395,7 @@ proc setIDRow {entType p21id} {
 # -------------------------------------------------------------------------------------------------
 # read entity and write to CSV file
 proc getEntityCSV {objEntity checkBadAttributes unicodeCheck} {
-  global badAttributes count csvdirnam csvfile csvintemp csvstr entCount fcsv localName mydocs roseLogical row rowmax skipEntities skipPerm thisEntType unicodeString
+  global badAttributes count csvdirnam csvfile csvinhome csvstr entCount fcsv localName mydocs roseLogical row rowmax skipEntities skipPerm thisEntType unicodeString
 
 # get entity type
   set thisEntType [$objEntity Type]
@@ -422,7 +420,7 @@ proc getEntityCSV {objEntity checkBadAttributes unicodeCheck} {
     if {[string length $csvfname] > 218} {
       set csvfname [file nativename [file join $mydocs $thisEntType.csv]]
       errorMsg " Some CSV files are saved in the home directory." red
-      set csvintemp 1
+      set csvinhome 1
     }
     set fcsv [open $csvfname w]
     puts $fcsv $countMsg
@@ -505,15 +503,15 @@ proc getEntityCSV {objEntity checkBadAttributes unicodeCheck} {
 # error getting attribute value
       } emsgv]} {
         set msg "ERROR processing '$attrName' attribute on '[$objEntity Type]': $emsgv"
-        errorMsg $msg
         if {[string first "Bad variable type" $emsgv] != -1} {
           if {[string first "'modifiers' attribute on 'datum_reference_compartment'" $msg] != -1 || \
               [string first "'modifiers' attribute on 'datum_reference_element'" $msg] != -1 || \
-              [string first "'elements' attribute on 'annotation_plane'" $msg] != -1} {
-            set msg "Syntax Error: On '[$objEntity Type]' entities change the '$attrName' attribute with '()' to '$' where applicable.  The attribute is an OPTIONAL SET\[1:?\] and '()' is not valid."
-            errorMsg $msg
+              [string first "'elements' attribute on 'annotation_plane'" $msg] != -1 || \
+              [string first "'synonymous_names' attribute on 'item_names'" $msg] != -1} {
+            set msg "For '[$objEntity Type]' change the '$attrName' attribute with '()' to '$' where applicable.  The attribute is an OPTIONAL SET\[1:?\] and '()' is not valid."
           }
         }
+        errorMsg $msg
         set objValue ""
         catch {raise .}
       }
@@ -526,6 +524,13 @@ proc getEntityCSV {objEntity checkBadAttributes unicodeCheck} {
 
 # if value is a boolean, substitute string roseLogical
         if {([$objAttribute Type] == "RoseBoolean" || [$objAttribute Type] == "RoseLogical") && [info exists roseLogical($ov)]} {set ov $roseLogical($ov)}
+
+# check for commas and double quotes
+        if {[string first "," $ov]  != -1} {
+          if {[string first "\"" $ov] != -1} {regsub -all "\"" $ov "\"\"" ov}
+          set ov "\"$ov\""
+        }
+
         append csvstr ",$ov"
 
 # -------------------------------------------------------------------------------------------------

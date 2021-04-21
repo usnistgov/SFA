@@ -194,7 +194,7 @@ proc gpmiAnnotationReport {objEntity} {
       }
 
 # write geometry polyline annotations
-      if {$opt(viewPMI)} {x3dPolylinePMI}
+      if {$opt(viewPMI) && [string first "tessellated" $objType] == -1} {x3dPolylinePMI $objEntity1}
     }
 
 # keep track of the number of c_c or c_c_s, if not polyline
@@ -694,6 +694,7 @@ proc gpmiAnnotationReport {objEntity} {
                 "geometric_curve_set name" -
                 "annotation_fill_area name" -
                 "*tessellated_geometric_set name" {
+# do not delete this comment
                   set ok 1
                   if {$opt(PMIGRF) && $opt(xlFormat) != "None"} {
                     set col($ao) $pmiStartCol($ao)
@@ -720,11 +721,7 @@ proc gpmiAnnotationReport {objEntity} {
                     set msg "Filled characters are not filled."
                     if {[lsearch $x3dMsg $msg] == -1} {lappend x3dMsg $msg}
                   }
-                  if {[string first "placeholder" $ent1] != -1} {
-                    set placeNCP 0
-                    #set msg "Annotation placeholder leaders lines might not have the correct anchor points."
-                    #if {[lsearch $x3dMsg $msg] == -1} {lappend x3dMsg $msg}
-                  }
+                  if {[string first "placeholder" $ent1] != -1} {set placeNCP 0}
                   if {[string first "tessellated" $ent1] != -1 && $opt(xlFormat) != "None"} {
                     set ok 1
                     foreach ann [list annotation_curve_occurrence_and_geometric_representation_item annotation_curve_occurrence] {
@@ -1128,11 +1125,15 @@ proc gpmiAnnotationReport {objEntity} {
             $cells($ao) Item 3 $c $colName
             set pmiHeading($pmiColumns(ageom)) 1
             set pmiCol [expr {max($pmiColumns(ageom),$pmiCol)}]
+            set comment "See Help > User Guide (section 6.1.5) for an explanation of Associated Geometry."
+            addCellComment $ao 3 $c $comment
           }
           $cells($ao) Item $r $pmiColumns(ageom) [string trim $str]
+
+# supplemental geometry comment
           if {[string first "*" $str] != -1} {
-            set comment "Geometry IDs marked with an asterisk (*) are also Supplemental Geometry.  ($recPracNames(suppgeom), Sec. 4.3, Fig. 4)"
-            addCellComment $ao $r $pmiColumns(ageom) $comment
+            set comment "See Help > User Guide (section 6.1.5) for an explanation of Associated Geometry.  IDs marked with an asterisk (*) are also Supplemental Geometry."
+            addCellComment $ao 3 $pmiColumns(ageom) $comment
           }
           if {[lsearch $gpmiRow($ao) $r] == -1} {lappend gpmiRow($ao) $r}
         }
@@ -1167,48 +1168,32 @@ proc gpmiAnnotationReport {objEntity} {
     }
   }
 
-# report camera models associated with the annotation occurrence through draughting_model
+# report camera models associated with the annotation occurrence (not placeholder) through draughting_model
   if {$entLevel == 0 && (($opt(PMIGRF) && $opt(xlFormat) != "None" && [info exists gpmiIDRow($ao,$gpmiID)]) || ($opt(viewPMI) && !$opt(PMIGRF)))} {
     if {[catch {
       set savedViews ""
       set savedViewName {}
       set nsv 0
-      if {[info exists draftModelCameras]} {
 
 # get used draughting_model entities
+      if {[info exists draftModelCameras] && [string first "placeholder" $ao] == -1} {
         set okdm 0
+        set entDraughtingModels {}
         foreach dm $draughtingModels {
-          set entDraughtingModels [$objEntity GetUsedIn [string trim $dm] [string trim items]]
+          ::tcom::foreach e0 [$objEntity GetUsedIn [string trim $dm] [string trim items]] {lappend entDraughtingModels $e0}
 
 # check for draughting_callout.contents -> ao (PMI RP, section 9.4.4, figure 102)
-          set entDraughtingCallouts [$objEntity GetUsedIn [string trim draughting_callout] [string trim contents]]
-          ::tcom::foreach entDraughtingCallout $entDraughtingCallouts {
-            set entDraughtingModels [$entDraughtingCallout GetUsedIn [string trim $dm] [string trim items]]
+          ::tcom::foreach entDraughtingCallout [$objEntity GetUsedIn [string trim draughting_callout] [string trim contents]] {
+            ::tcom::foreach e0 [$entDraughtingCallout GetUsedIn [string trim $dm] [string trim items]] {lappend entDraughtingModels $e0}
           }
 
 # check if there are any entDraughtingModel, if none then there are no camera models for the annotation
-          ::tcom::foreach entDraughtingModel $entDraughtingModels {incr okdm}
-          if {$okdm == 0} {
-            if {$opt(PMIGRF) && $opt(xlFormat) != "None"} {
+          foreach entDraughtingModel $entDraughtingModels {incr okdm}
+        }
 
-# check for missing saved view only if not text, etc.
-              set oknm 1
-              foreach str {note title block label text} {if {[string first $str $gpmiName] != -1} {set oknm 0}}
-              if {$oknm} {
-                set msg "Annotation not found in a Saved View.  If the annotation should be in a Saved View, then check draughting_model 'items' for a missing draughting_callout related to the annotation.  Also check the View for Graphical PMI to see if the annotations are not in a Saved View.\n  "
-                if {[string first "AP242" $stepAP] == 0} {
-                  append msg "($recPracNames(pmi242), Sec. 9.4.2.1, Fig. 95)"
-                } else {
-                  append msg "($recPracNames(pmi203), Sec. 5.4.2, Fig. 14)"
-                }
-                errorMsg $msg
-                lappend syntaxErr($ao) [list $objID "Saved Views" $msg]
-              }
-            }
-          }
-
-# get save view names
-          ::tcom::foreach entDraughtingModel $entDraughtingModels {
+# get saved view names
+        if {$okdm > 0} {
+          foreach entDraughtingModel $entDraughtingModels {
             if {[info exists draftModelCameras([$entDraughtingModel P21ID])]} {
               set str $draftModelCameras([$entDraughtingModel P21ID])
               if {[string first $str $savedViews] == -1} {
@@ -1308,6 +1293,23 @@ proc gpmiAnnotationReport {objEntity} {
                 }
               }
             }
+          }
+
+# not in a saved view
+        } elseif {$opt(PMIGRF) && $opt(xlFormat) != "None"} {
+
+# report missing saved view only if not text, etc.
+          set oknm 1
+          foreach str {note title block label text} {if {[string first $str $gpmiName] != -1} {set oknm 0}}
+          if {$oknm} {
+            set msg "An [$objEntity Type] is not in a Saved View.  If the annotation should be in a Saved View, then check draughting_model 'items' for a missing draughting_callout related to the annotation.  Also check the View for Graphical PMI to see if the annotations are not in a Saved View.\n  "
+            if {[string first "AP242" $stepAP] == 0} {
+              append msg "($recPracNames(pmi242), Sec. 9.4.2.1, Fig. 95)"
+            } else {
+              append msg "($recPracNames(pmi203), Sec. 5.4.2, Fig. 14)"
+            }
+            errorMsg $msg
+            lappend syntaxErr($ao) [list $objID "Saved Views" $msg]
           }
         }
         catch {unset entDraughtingModel}
@@ -1471,6 +1473,11 @@ proc pmiGetCameras {} {
                       }
                       errorMsg $msg
                       lappend syntaxErr($cm) [list [$entCameraModel P21ID] name $msg]
+                    }
+
+# check for default saved view
+                    ::tcom::foreach e0 [$entCameraModel GetUsedIn [string trim default_model_geometric_view] [string trim item]] {
+                      if {[$e0 Type] == "default_model_geometric_view"} {append name " (default)"; append name1 " (default)"}
                     }
 
 # get axis2_placement_3d for camera viewpoint

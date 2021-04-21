@@ -1,7 +1,7 @@
 # PMI Representation Summary worksheet
 proc spmiSummary {} {
-  global allPMI cells entName localName nistName nistPMIexpected pmiModifiers recPracNames row sheetLast
-  global spmiSumName spmiSumRow spmiSumRowID thisEntType timeStamp valRounded worksheet worksheets xlFileName
+  global allPMI cells entName env localName mytemp nistName nistPMIexpected opt pmiModifiers recPracNames row sheetLast
+  global spmiSumName spmiSumRow spmiSumRowID spmiTypesPerFile thisEntType timeStamp valRounded wdir worksheet worksheets xlFileName
 
 # first time through, start worksheet
   if {$spmiSumRow == 1} {
@@ -18,7 +18,7 @@ proc spmiSummary {} {
     for {set i 2} {$i <= 3} {incr i} {[$worksheet($spmiSumName) Range [cellRange -1 $i]] ColumnWidth [expr 48]}
     for {set i 1} {$i <= 4} {incr i} {[$worksheet($spmiSumName) Range [cellRange -1 $i]] VerticalAlignment [expr -4160]}
 
-    $cells($spmiSumName) Item $spmiSumRow 2 "[file tail $localName]  ($timeStamp)"
+    $cells($spmiSumName) Item $spmiSumRow 2 "[file tail $localName][format "%c" 10]  ($timeStamp)"
     incr spmiSumRow 2
     $cells($spmiSumName) Item $spmiSumRow 1 "ID"
     $cells($spmiSumName) Item $spmiSumRow 2 "Entity"
@@ -48,6 +48,21 @@ proc spmiSummary {} {
 
 # get expected PMI for a NIST model
     if {$nistName != ""} {nistGetSummaryPMI}
+
+# check for font file with GD&T symbols (ARIALUNI.TTF), needed only for certain symbols in pmiTypes
+    if {![file exists [file nativename C:/Windows/Fonts/ARIALUNI.TTF]] && \
+        ![file exists [file join $env(USERPROFILE) AppData Local Microsoft Windows Fonts ARIALUNI.TTF]]} {
+      if {![file exists [file join $mytemp ARIALUNI.TTF]]} {catch {[file copy -force -- [file join $wdir images ARIALUNI.TTF] [file join $mytemp ARIALUNI.TTF]]}}
+      set pmiTypes [list cylindricity_tolerance symmetry_tolerance all_around projected unequally_disposed free_state tangent_plane least_material_requirement \
+        envelope_requirement independency reciprocity_requirement regardless_of_feature_size derived_feature associated_least_square_feature \
+        associated_maximum_inscribed_feature associated_minimum_inscribed_feature associated_minmax_feature associated_tangent_feature circle_a]
+      set ok 0
+      set str ""
+      foreach pmi $pmiTypes {if {[lsearch $spmiTypesPerFile $pmi] != -1} {set ok 1; set str " ($pmi)"; break}}
+      if {$opt(SHOWALLPMI) || $ok} {
+        errorMsg "Some GD&T symbols$str will appear as a question mark on the PMI Representation\n Summary and Coverage worksheets.  To fix the problem, copy the font file that contains the symbols\n [file join $mytemp ARIALUNI.TTF]  to  C:/Windows/Fonts  to install the fonts.\n You might need administrator privileges."
+      }
+    }
   }
 
 # add to PMI summary worksheet
@@ -151,7 +166,7 @@ proc spmiCoverageStart {{multi 1}} {
       set wsCount [$worksheets Count]
       [$worksheets Item [expr $wsCount]] -namedarg Move Before [$worksheets Item [expr 4]]
 
-      $cells($spmiCoverageWS) Item 3 1 "PMI Element  (See Help > Analyze > PMI Coverage Analysis)"
+      $cells($spmiCoverageWS) Item 3 1 "PMI Element[format "%c" 10]  (See Help > Analyze > PMI Coverage Analysis)"
       $cells($spmiCoverageWS) Item 3 2 "Count"
       if {$nistName == ""} {
         addCellComment $spmiCoverageWS 3 2 "See Help > User Guide (section 6.1.7)"
@@ -173,7 +188,7 @@ proc spmiCoverageStart {{multi 1}} {
       $worksheet1($spmiCoverageWS) Name $spmiCoverageWS
       set cells1($spmiCoverageWS) [$worksheet1($spmiCoverageWS) Cells]
       $cells1($spmiCoverageWS) Item 1 2 "[file nativename $multiFileDir]"
-      $cells1($spmiCoverageWS) Item 3 1 "PMI Element  (See Help > Analyze > PMI Coverage Analysis)"
+      $cells1($spmiCoverageWS) Item 3 1 "PMI Element[format "%c" 10]  (See Help > Analyze > PMI Coverage Analysis)"
       set range [$worksheet1($spmiCoverageWS) Range A3]
       [$range Font] Bold [expr 1]
 
@@ -480,7 +495,7 @@ proc spmiCoverageFormat {sum {multi 1}} {
       [$worksheet($spmiCoverageWS) Hyperlinks] Add $anchor [join "https://www.cax-if.org/cax/cax_recommPractice.php"] [join ""] [join "Link to CAx-IF Recommended Practices"]
 
       [$worksheet($spmiCoverageWS) Range "A1"] Select
-      $cells($spmiCoverageWS) Item 1 1 "[file tail $localName]  ($timeStamp)"
+      $cells($spmiCoverageWS) Item 1 1 "[file tail $localName][format "%c" 10]  ($timeStamp)"
     }
 
 # errors
@@ -745,7 +760,7 @@ proc gpmiCoverageFormat {{sum ""} {multi 1}} {
       [$worksheet($gpmiCoverageWS) Hyperlinks] Add $anchor [join "https://www.cax-if.org/cax/cax_recommPractice.php"] [join ""] [join "Link to CAx-IF Recommended Practices"]
 
       [$worksheet($gpmiCoverageWS) Range "A1"] Select
-      $cells($gpmiCoverageWS) Item 1 1 "[file tail $localName]  ($timeStamp)"
+      $cells($gpmiCoverageWS) Item 1 1 "[file tail $localName][format "%c" 10]  ($timeStamp)"
       $cells($gpmiCoverageWS) Item [expr {$gpmiRows+3}] 1 "See Help > Analyze > PMI Coverage Analysis"
 
 # add images for the CAx-IF and NIST PMI models

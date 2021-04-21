@@ -1,5 +1,5 @@
 proc pmiFormatColumns {str} {
-  global cells col env gpmiRow mytemp pmiStartCol recPracNames row spmiRow stepAP thisEntType vpmiRow wdir worksheet
+  global cells col gpmiRow pmiStartCol recPracNames row spmiRow stepAP thisEntType vpmiRow worksheet
 
   if {![info exists pmiStartCol($thisEntType)]} {
     return
@@ -47,11 +47,6 @@ proc pmiFormatColumns {str} {
       set rs $vpmiRow($thisEntType)
     } elseif {[string first "PMI Representation" $str] != -1} {
       set rs $spmiRow($thisEntType)
-      if {![file exists [file join $mytemp ARIALUNI.TTF]]} {catch {[file copy -force -- [file join $wdir images ARIALUNI.TTF] [file join $mytemp ARIALUNI.TTF]]}}
-      if {![file exists [file nativename C:/Windows/Fonts/ARIALUNI.TTF]] && \
-          ![file exists [file join $env(USERPROFILE) AppData Local Microsoft Windows Fonts ARIALUNI.TTF]]} {
-        errorMsg "Some GD&T symbols might appear as a question mark inside a small square on the PMI Representation\n worksheet.  To fix the problem, copy the font file that contains the symbols\n [file join $mytemp ARIALUNI.TTF] to C:/Windows/Fonts to install the fonts.\n You might need administrator privileges."
-      }
     }
     foreach r $rs {
       set r [expr {$r-2}]
@@ -341,6 +336,7 @@ proc checkForReports {entType} {
     if {[catch {
       if {[info exists opt(viewFEA)]} {
         if {$opt(viewFEA)} {
+          set opt(x3dSave) 0
           if {[string first "element_representation" $entType] != -1 || \
               ($opt(feaBounds) && $entType == "single_point_constraint_element_values") || \
               ($opt(feaLoads) && \

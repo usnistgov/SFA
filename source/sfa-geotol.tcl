@@ -79,9 +79,7 @@ proc spmiGeotolStart {entType} {
   set entAttrList {}
   set pmiCol 0
   set spmiRow($gt) {}
-
-  if {[info exists pmiHeading]} {unset pmiHeading}
-  if {[info exists ent]}        {unset ent}
+  foreach var {ent pmiHeading} {if {[info exists $var]} {unset $var}}
 
   outputMsg " Adding PMI Representation Analysis" blue
   lappend spmiEntity $entType
@@ -127,11 +125,11 @@ proc spmiGeotolStart {entType} {
 
 # -------------------------------------------------------------------------------
 proc spmiGeotolReport {objEntity} {
-  global all_around all_over assocGeom ATR axisval badAttributes between cells col datsys datumCompartment datumFeature datumModValue datumTargetDesc
-  global datumSymbol datumSystem dim datumEntType datumGeom datumIDs datumTargetType datumTargetView dimtolEntType dimtolGeom entLevel ent entAttrList
-  global entCount gt gtEntity magQualified magType multipleDatumFeature nistName objID opt pmiCol pmiHeading pmiModifiers pmiStartCol pmiUnicode propDefIDs
-  global ptz ptzError recPracNames spaces spmiEnts spmiID spmiIDRow spmiRow spmiTypesPerFile stepAP syntaxErr tolNames tolStandard tolStandards tolval
-  global tzf1 tzfNames tzWithDatum worksheet
+  global all_around all_over assocGeom ATR badAttributes between cells col datsys datumCompartment datumFeature datumModValue datumTargetDesc
+  global datumSymbol datumSystem dim datumEntType datumGeom datumIDs datumTarget datumTargetType datumTargetView dimtolEntType dimtolGeom
+  global entLevel ent entAttrList entCount gt gtEntity head1 magQualified magType multipleDatumFeature nistName objID opt pmiCol pmiHeading
+  global pmiModifiers pmiStartCol pmiUnicode propDefIDs ptz ptzError recPracNames spaces spmiEnts spmiID spmiIDRow spmiRow spmiTypesPerFile
+  global stepAP syntaxErr tolNames tolStandard tolStandards tolval tzf1 tzfNames tzWithDatum worksheet
   global objDesign
 
   if {$opt(DEBUG1)} {outputMsg "spmiGeotolReport" red}
@@ -351,6 +349,7 @@ proc spmiGeotolReport {objEntity} {
                       }
                     }
 
+# -------------------------------------------------------------------------------
 # get tolerance zone form, usually 'cylindrical or circular', 'spherical'
                     set tzf  ""
                     set tzf1 ""
@@ -415,67 +414,11 @@ proc spmiGeotolReport {objEntity} {
                         }
                       }
 
-# get projected tolerance zone
-                      set e0s [$objGuiEntity GetUsedIn [string trim projected_zone_definition] [string trim zone]]
-                      ::tcom::foreach e0 $e0s {
-                        ::tcom::foreach a0 [$e0 Attributes] {
-
-# projected length
-                          if {[$a0 Name] == "projected_length"} {
-                            ::tcom::foreach a1 [[$a0 Value] Attributes] {
-                              if {[$a1 Name] == "value_component"} {
-                                set ptz [$a1 Value]
-                                if {$ptz < 0.} {
-                                  set msg "Syntax Error: Negative projected tolerance zone: $ptz$spaces\($recPracNames(pmi242), Sec. 6.9.2.2)"
-                                  errorMsg $msg
-                                  lappend syntaxErr(projected_zone_definition) [list [$e0 P21ID] "projected_length" $msg]
-                                }
-                              } elseif {[$a1 Name] == "qualifiers"} {
-                                if {[string first "handle" [$a1 Value]] != -1} {
-                                  foreach ent2 [$a1 Value] {
-                                    if {[$ent2 Type] == "value_format_type_qualifier"} {set ptz [valueQualifier $ent2 $ptz "projected"]}
-                                  }
-                                } else {
-                                  set msg "Syntax Error: Missing 'qualifier' attribute on [formatComplexEnt $objType]$spaces\($recPracNames(pmi242), Sec. 6.9.2.2)"
-                                  errorMsg $msg
-                                  lappend syntaxErr($objType) [list $objID "qualifiers" $msg]
-                                }
-                              }
-                            }
-
-# projection_end
-                          } elseif {[$a0 Name] == "projection_end"} {
-                            set msg ""
-                            if {[$a0 Value] != ""} {
-                              set e1 [$a0 Value]
-                              set e2s [$e1 GetUsedIn [string trim geometric_item_specific_usage] [string trim definition]]
-                              set ngisu 0
-                              ::tcom::foreach e2 $e2s {
-                                incr ngisu
-                                set e3 [[[$e2 Attributes] Item [expr 5]] Value]
-                                set e3type [$e3 Type]
-                                if {$e3type != "advanced_face" && $e3type != "edge_curve" && $e3type != "edge_loop" && $e3type != "path"} {
-                                  set msg "Syntax Error: Projected tolerance zone 'projection_end' refers to invalid GISU identified_item '$e3type'.$spaces\($recPracNames(pmi242), Sec. 6.9.2.2)"
-                                }
-                                set e4 [[[$e3 Attributes] Item [expr 3]] Value]
-                                errorMsg "Projected tolerance zone 'projection_end' refers to a '[$e4 Type]' through GISU ($recPracNames(pmi242), Sec. 6.9.2.2)"
-                              }
-                              if {$ngisu == 0 && [$e1 Type] == "shape_aspect"} {
-                                set msg "Syntax Error: projection_end attribute '[$e1 Type]' is not referred to by a GISU.$spaces\($recPracNames(pmi242), Sec. 6.9.2.2)"
-                              }
-                            } else {
-                              set msg "Syntax Error: Missing required 'projection_end' attribute on 'projected_zone_definition'.$spaces\($recPracNames(pmi242), Sec. 6.9.2.2)"
-                            }
-                            if {$msg != ""} {
-                              errorMsg $msg
-                              lappend syntaxErr(projected_zone_definition) [list [$e0 P21ID] "projection_end" $msg]
-                              set ptzError 1
-                            }
-                          }
-                        }
-                      }
+# get projected tolerance zone (6.9.2.2)
+                      spmiProjectedToleranceZone $objGuiEntity
                     }
 
+# -------------------------------------------------------------------------------
 # get directed or oriented tolerance zone (AP242e2 for ISO 1101 intersection and orientation plane)
                     foreach tz [list directed oriented] {
                       set e0s [$gtEntity GetUsedIn [string trim $tz\_tolerance_zone] [string trim defining_tolerance]]
@@ -499,9 +442,9 @@ proc spmiGeotolReport {objEntity} {
                         }
                       }
                     }
-
                     set col($gt) $pmiStartCol($gt)
 
+# -------------------------------------------------------------------------------
 # set tolerance symbol from pmiUnicode for the geometric tolerance
                     if {$ATR(1) == "magnitude"} {
                       set ok 1
@@ -575,6 +518,7 @@ proc spmiGeotolReport {objEntity} {
                   }
                 }
 
+# -------------------------------------------------------------------------------
 # write to spreadsheet
                 if {$ok && [info exists spmiID]} {
                   set c $pmiStartCol($gt)
@@ -606,7 +550,6 @@ proc spmiGeotolReport {objEntity} {
                   if {[lsearch $spmiRow($gt) $r] == -1} {lappend spmiRow($gt) $r}
                   if {$invalid != ""} {lappend syntaxErr($gt) [list "-$r" $col($gt) $invalid]}
 
-# ---------------------
 # value in spreadsheet
                   set val [[$cells($gt) Item $r $c] Value]
 
@@ -676,7 +619,7 @@ proc spmiGeotolReport {objEntity} {
             set entLevel 1
           }
 
-# --------------
+# -------------------------------------------------------------------------------
 # nodeType = 20
         } elseif {$objNodeType == 20} {
           if {[catch {
@@ -771,7 +714,7 @@ proc spmiGeotolReport {objEntity} {
                   }
                 }
 
-# ---------------------
+# -------------------------------------------------------------------------------
 # value in spreadsheet
                 if {$ok && [info exists spmiID]} {
                   set c [string index [cellRange 1 $col($gt)] 0]
@@ -831,7 +774,7 @@ proc spmiGeotolReport {objEntity} {
             set entLevel 1
           }
 
-# ---------------------
+# -------------------------------------------------------------------------------
 # nodeType = 5 (!= 18,19,20)
         } else {
           if {[catch {
@@ -1033,6 +976,7 @@ proc spmiGeotolReport {objEntity} {
                   "placed_datum_target_feature description" -
                   "datum_target description" {
 # datum target description (Section 6.6)
+                    catch {unset datumTarget}
                     catch {unset datumTargetGeom}
                     set datumTargetType $ov
                     set oktarget 1
@@ -1061,6 +1005,7 @@ proc spmiGeotolReport {objEntity} {
                       lappend syntaxErr([lindex [split $ent1 " "] 0]) [list $objID [lindex [split $ent1 " "] 1] $msg]
                     }
 
+# -------------------------------------------------------------------------------
 # placed datum target feature geometry (feature_for_datum_target_relationship)
                     if {[$gtEntity Type] == "placed_datum_target_feature"} {
                       set e0s [$gtEntity GetUsedIn [string trim feature_for_datum_target_relationship] [string trim related_shape_aspect]]
@@ -1076,7 +1021,7 @@ proc spmiGeotolReport {objEntity} {
                                   append datumTargetGeom "[$e2 Type] [$e2 P21ID]"
 
 # save datum target feature geometric entity for view
-                                  set datumTargetView([$gtEntity P21ID]-feature) [list $e2]
+                                  set datumTargetView([$gtEntity P21ID]-feature) [list $datumTargetType $e2]
                                 }
                               }
                             }
@@ -1094,7 +1039,7 @@ proc spmiGeotolReport {objEntity} {
 
 # target geometry should be an advanced_face
                         if {[string first "advanced_face" $datumTargetGeom] == -1} {
-                          set msg "Syntax Error: Target feature should be an advanced_face.$spaces\($recPracNames(pmi242), Sec. 6.6.3, Fig. 45)"
+                          set msg "Syntax Error: Placed datum target feature geometry should use an 'advanced_face'.$spaces\($recPracNames(pmi242), Sec. 6.6.3, Fig. 45)"
                           errorMsg $msg
                           lappend syntaxErr([$gtEntity Type]) [list [$gtEntity P21ID] "Target Feature" $msg]
                         }
@@ -1110,7 +1055,7 @@ proc spmiGeotolReport {objEntity} {
                             append datumTargetGeom "[$e2 Type] [$e2 P21ID]"
 
 # save datum target geometric entity for view
-                            set datumTargetView([$gtEntity P21ID]) [list $e2]
+                            set datumTargetView([$gtEntity P21ID]) [list $datumTargetType $e2]
                           }
                         }
                       }
@@ -1119,6 +1064,11 @@ proc spmiGeotolReport {objEntity} {
                         set col($gt) [expr {$pmiStartCol($gt)+2}]
                         set colName "Target Geometry[format "%c" 10](Sec. 6.6.1, 6.6.2)"
                         set objValue $datumTargetGeom
+                        if {$ov == "area" && [string first "advanced_face" $datumTargetGeom] == -1} {
+                          set msg "Syntax Error: [string totitle $ov] datum target defined by '[lindex [split $datumTargetGeom " "] 0]' should use an 'advanced_face'.$spaces\($recPracNames(pmi242), Sec. 6.6.2, Fig. 44)"
+                          errorMsg $msg
+                          lappend syntaxErr([$gtEntity Type]) [list [$gtEntity P21ID] "Target Geometry" $msg]
+                        }
                       } elseif {$ov == "curve" || $ov == "area"} {
                         set msg "Syntax Error: Missing '$ov' target geometry for [$gtEntity Type].$spaces\($recPracNames(pmi242), Sec. 6.6.2)"
                         errorMsg $msg
@@ -1146,7 +1096,7 @@ proc spmiGeotolReport {objEntity} {
 
 # add datumTarget to datumTargetView
                                 if {[info exists datumTargetView([$gtEntity P21ID])]} {
-                                  if {[string first "handle" [lindex $datumTargetView([$gtEntity P21ID]) 0]] != -1} {
+                                  if {[string first "handle" [lindex $datumTargetView([$gtEntity P21ID]) 1]] != -1} {
                                     lappend datumTargetView([$gtEntity P21ID]) $datumTarget
                                   }
                                 }
@@ -1177,197 +1127,7 @@ proc spmiGeotolReport {objEntity} {
 
 # datum target shape representation (Section 6.6.1)
                     set datumTargetRep ""
-                    set ndtv 0
-                    if {[$gtEntity Type] == "placed_datum_target_feature"} {
-                      if {[catch {
-                        set nval 0
-                        set e1s [$objEntity GetUsedIn [string trim property_definition] [string trim definition]]
-                        ::tcom::foreach e1 $e1s {
-                          set e2s [$e1 GetUsedIn [string trim shape_definition_representation] [string trim definition]]
-                          ::tcom::foreach e2 $e2s {
-                            set a2 [[$e2 Attributes] Item [expr 2]]
-                            set e3 [$a2 Value]
-
-# values in shape_representation_with_parameters
-                            if {[$e3 Type] == "shape_representation_with_parameters"} {
-                              set a3 [[$e3 Attributes] Item [expr 2]]
-                              ::tcom::foreach e4 [$a3 Value] {
-
-# get datum target position first
-                                if {[$e4 Type] == "axis2_placement_3d"} {
-                                  set a4 [[$e4 Attributes] Item [expr 1]]
-                                  if {[$a4 Value] != "orientation"} {
-                                    set msg "Syntax Error: Bad 'name' ([$a4 Value]) on axis2_placement_3d for a placed datum target, must be 'orientation'.$spaces\($recPracNames(pmi242), Sec. 6.6.1)"
-                                    errorMsg $msg
-                                    lappend syntaxErr(axis2_placement_3d) [list [$e4 P21ID] name $msg]
-                                  }
-
-# origin
-                                  set axisval [x3dGetA2P3D $e4]
-                                  set origin [vectrim [lindex $axisval 0] 1]
-                                  append datumTargetRep "[format "%c" 10]axis2_placement_3d [$e4 P21ID]"
-                                  append datumTargetRep "[format "%c" 10]  origin  $origin"
-
-# check if values are ok
-                                  set msg ""
-                                  if {$origin == "0. 0. 0."} {
-                                    append msg "[string totitle $datumTargetType] datum target located at '0 0 0'  "
-                                  }
-                                  set axis   [lindex $axisval 1]
-                                  set refdir [lindex $axisval 2]
-                                  if {[veclen $axis] == 0 || [veclen $refdir] == 0} {
-                                    append msg "Syntax Error: The axis2_placement_3d axis or ref_direction is '0 0 0' for a $datumTargetType datum target.  "
-                                  } elseif {[veclen [veccross $axis $refdir]] == 0} {
-                                    append msg "Syntax Error: The axis2_placement_3d axis and ref_direction vectors '$refdir' are congruent for a $datumTargetType datum target.  "
-                                  }
-                                  if {$msg != ""} {
-                                    set msg [string trim $msg]
-                                    errorMsg $msg
-                                    lappend syntaxErr([$gtEntity Type]) [list [$gtEntity P21ID] "Target Representation" $msg]
-                                  }
-
-# point datum target view
-                                  if {$datumTargetType == "point"} {set datumTargetView([$gtEntity P21ID]) [list $datumTargetType $axisval $datumTarget]}
-                                }
-                              }
-
-# datum target dimensions - length_measure
-                              ::tcom::foreach e4 [$a3 Value] {
-                                if {[string first "length_measure_with_unit_and_measure_representation_item" [$e4 Type]] != -1} {
-                                  ::tcom::foreach a4 [$e4 Attributes] {
-                                    if {[$a4 Name] == "name"} {
-                                      set datumTargetName [$a4 Value]
-                                      regsub -all "  " $datumTargetName " " datumTargetName
-                                      append datumTargetRep "[format "%c" 10]$datumTargetName   $datumTargetValue"
-
-# bad target attributes
-                                      set msg ""
-                                      if {$datumTargetType == "line" && $datumTargetName != "target length"} {
-                                        set msg "Syntax Error: Bad datum target 'name' ($datumTargetName) on [formatComplexEnt [$e4 Type]], use 'target length' for a '$datumTargetType' target$spaces\($recPracNames(pmi242), Sec. 6.6.1)"
-                                      } elseif {$datumTargetType == "circle" && $datumTargetName != "target diameter"} {
-                                        set msg "Syntax Error: Bad datum target 'name' ($datumTargetName) on [formatComplexEnt [$e4 Type]], use 'target diameter' for a '$datumTargetType' target$spaces\($recPracNames(pmi242), Sec. 6.6.1)"
-                                      } elseif {$datumTargetType == "rectangle" && ($datumTargetName != "target length" && $datumTargetName != "target width")} {
-                                        set msg "Syntax Error: Bad datum target 'name' ($datumTargetName) on [formatComplexEnt [$e4 Type]], use 'target length' or 'target width' for a '$datumTargetType' target$spaces\($recPracNames(pmi242), Sec. 6.6.1)"
-                                      } elseif {$datumTargetType == "point"} {
-                                        set msg "Syntax Error: No length_measure attribute on shape_representation_with_parameters is required for a 'point' datum target$spaces\($recPracNames(pmi242), Sec. 6.6.1)"
-                                      }
-                                      if {$msg != ""} {
-                                        errorMsg $msg
-                                        lappend syntaxErr([$gtEntity Type]) [list [$gtEntity P21ID] "Target Representation" $msg]
-                                        lappend syntaxErr([$e4 Type]) [list [$e4 P21ID] "name" $msg]
-                                      }
-
-# add target dimensions to PMI
-                                      set dtv $datumTargetValue
-                                      if {[string range $dtv end-1 end] == ".0"} {
-                                        set dtv [string range $dtv 0 end-2]
-                                      } else {
-                                        set dtv [trimNum $dtv 2]
-                                      }
-                                      if {$datumTargetType == "circle"} {
-                                        set objValue $pmiUnicode(diameter)$dtv[format "%c" 10]$objValue
-                                      } elseif {$datumTargetType == "line"} {
-                                        append objValue "[format "%c" 10](L = $dtv)"
-                                      } elseif {$datumTargetType == "circular curve"} {
-                                        append objValue "[format "%c" 10](D = $dtv)"
-
-# rectangular, smaller value first
-                                      } elseif {$datumTargetType == "rectangle"} {
-                                        incr ndtv
-                                        if {$ndtv == 1} {
-                                          set dtv1 $dtv
-                                        } elseif {$ndtv == 2} {
-                                          if {$dtv > $dtv1} {
-                                            append dtv1 "x$dtv"
-                                          } else {
-                                            set dtv1 "$dtv\x$dtv1"
-                                          }
-                                          set objValue $dtv1[format "%c" 10]$objValue
-                                        }
-                                      }
-                                      if {$origin == "0. 0. 0." && [string first "(origin" $objValue] == -1} {
-                                        append objValue "[format "%c" 10](origin = 0 0 0)"
-                                      }
-
-# save datum target for view
-                                      if {[info exists axisval]} {
-                                        if {$datumTargetType != "rectangle" || $ndtv == 1} {
-                                          set datumTargetView([$gtEntity P21ID]) [list $datumTargetType $axisval [list $datumTargetName $dtv]]
-                                          if {[info exists datumTarget] && $datumTargetType != "rectangle"} {lappend datumTargetView([$gtEntity P21ID]) $datumTarget}
-                                        } elseif {$ndtv == 2} {
-                                          lappend datumTargetView([$gtEntity P21ID]) [list $datumTargetName $dtv]
-                                          if {[info exists datumTarget]} {lappend datumTargetView([$gtEntity P21ID]) $datumTarget}
-                                        }
-                                      }
-
-# bad size
-                                    } elseif {[$a4 Name] == "value_component"} {
-                                      set datumTargetValue [$a4 Value]
-                                      if {$datumTargetValue <= 0. && $datumTargetType != "point"} {
-                                        set msg "Syntax Error: Datum target '$datumTargetType' dimension = 0$spaces\($recPracNames(pmi242), Sec. 6.6.1)"
-                                        errorMsg $msg
-                                        lappend syntaxErr([$gtEntity Type]) [list [$gtEntity P21ID] "Target Representation" $msg]
-                                      }
-                                    }
-                                  }
-
-# movable datum target direction (6.6.4)
-                                } elseif {[$e4 Type] == "direction"} {
-                                  ::tcom::foreach a4 [$e4 Attributes] {
-                                    if {[$a4 Name] == "name"} {
-                                      if {[$a4 Value] != "movable direction"} {
-                                        set msg "Syntax Error: Bad 'name' ([$a4 Value]) on 'direction' for a movable datum target, must be 'movable direction'$spaces\($recPracNames(pmi242), Sec. 6.6.4)"
-                                        errorMsg $msg
-                                        lappend syntaxErr(direction) [list [$e4 P21ID] "name" $msg]
-                                      }
-                                    } elseif {[$a4 Name] == "direction_ratios"} {
-                                      set dirrat [$a4 Value]
-                                    }
-                                  }
-                                  append datumTargetRep "[format "%c" 10]movable target direction   $dirrat[format "%c" 10]   (direction [$e4 P21ID])"
-                                  lappend spmiTypesPerFile "movable datum target"
-                                  append objValue " (movable)"
-
-# bad items
-                                } elseif {[$e4 Type] != "axis2_placement_3d"} {
-                                  set msg "Syntax Error: Bad 'item' ([formatComplexEnt [$e4 Type]]) on shape_representation_with_parameters for a datum target$spaces\($recPracNames(pmi242), Sec. 6.6)"
-                                  errorMsg $msg
-                                  lappend syntaxErr(shape_representation_with_parameters) [list [$e3 P21ID] "item" $msg]
-                                }
-                              }
-                            }
-                          }
-                        }
-
-# missing target length, width, or diameter
-                        if {$datumTargetType == "line" || $datumTargetType == "rectangle"} {
-                          if {[string first "target length" $datumTargetRep] == -1} {
-                            set msg "Syntax Error: Missing 'target length' for '$datumTargetType' on [$gtEntity Type].$spaces\($recPracNames(pmi242), Sec. 6.6.1, Table 9)"
-                            errorMsg $msg
-                            lappend syntaxErr([$gtEntity Type]) [list [$gtEntity P21ID] "Target Representation" $msg]
-                          }
-                          if {$datumTargetType == "rectangle" && [string first "target width" $datumTargetRep] == -1} {
-                            set msg "Syntax Error: Missing 'target width' for '$datumTargetType' on [$gtEntity Type].$spaces\($recPracNames(pmi242), Sec. 6.6.1, Table 9)"
-                            errorMsg $msg
-                            lappend syntaxErr([$gtEntity Type]) [list [$gtEntity P21ID] "Target Representation" $msg]
-                          }
-                        } elseif {$datumTargetType == "circle" || $datumTargetType == "circular curve"} {
-                          if {[string first "target diameter" $datumTargetRep] == -1} {
-                            set msg "Syntax Error: Missing 'target diameter' for '$datumTargetType' on [$gtEntity Type].$spaces\($recPracNames(pmi242), Sec. 6.6.1, Table 9)"
-                            errorMsg $msg
-                            lappend syntaxErr([$gtEntity Type]) [list [$gtEntity P21ID] "Target Representation" $msg]
-                          }
-
-# missing target representation
-                        } elseif {[string first "." $datumTargetRep] == -1 && $datumTargetType != "area" && $datumTargetType != "curve"} {
-                          set msg "Syntax Error: Missing target representation (shape_representation_with_parameters) for '$datumTargetType' on [$gtEntity Type].$spaces\($recPracNames(pmi242), Sec. 6.6.1, Fig. 38)"
-                          errorMsg $msg
-                          set invalid $msg
-                        }
-                      } emsg]} {
-                        errorMsg "ERROR processing datum target (placed_datum_target_feature): $emsg"
-                      }
-                    }
+                    if {[$gtEntity Type] == "placed_datum_target_feature"} {set objValue [spmiPlacedDatumTarget $objEntity $objValue]}
                   }
 
                   "product_definition_shape name" {
@@ -1481,7 +1241,7 @@ proc spmiGeotolReport {objEntity} {
                   }
                 }
 
-# ---------------------
+# -------------------------------------------------------------------------------
 # value in spreadsheet
                 if {$ok && [info exists spmiID]} {
                   set c [string index [cellRange 1 $col($gt)] 0]
@@ -1613,6 +1373,7 @@ proc spmiGeotolReport {objEntity} {
   }
   incr entLevel -1
 
+# -------------------------------------------------------------------------------
 # write a few more things at the end of processing a semantic PMI entity
   if {$entLevel == 0} {
     if {[catch {
@@ -1717,6 +1478,7 @@ proc spmiGeotolReport {objEntity} {
 
     if {[catch {
 
+# -------------------------------------------------------------------------------
 # get dimensional tolerance by checking dimtols for the same associated geometry
       if {[info exists assocGeom]} {
         catch {unset tolDimrep}
@@ -1762,6 +1524,7 @@ proc spmiGeotolReport {objEntity} {
         }
       }
 
+# -------------------------------------------------------------------------------
 # add dimensional tolerance
       if {[info exists tolDimrep] && [string first "tolerance" $gt] != -1} {
 
@@ -1804,6 +1567,7 @@ proc spmiGeotolReport {objEntity} {
         lappend spmiTypesPerFile "dimension association to geometric tolerance"
       }
 
+# -------------------------------------------------------------------------------
 # add datum feature with a triangle and line
       if {[string first "tolerance" $gt] != -1 && [info exists geotolGeomEnts]} {
         set ok 0
@@ -1829,6 +1593,7 @@ proc spmiGeotolReport {objEntity} {
         }
       }
 
+# -------------------------------------------------------------------------------
 # fix position of some modifiers to be under or over the FCF
       catch {
         set val [[$cells($gt) Item $r $c] Value]
@@ -1942,6 +1707,7 @@ proc spmiGeotolReport {objEntity} {
       }
     }
 
+# -------------------------------------------------------------------------------
 # datum feature entity
     if {[info exists geotolGeomEnts] && [string first "datum_feature" $gt] == -1} {
       set ok 0
@@ -1977,6 +1743,7 @@ proc spmiGeotolReport {objEntity} {
       }
     }
 
+# -------------------------------------------------------------------------------
 # report toleranced geometry
     if {[info exists geotolGeom]} {
       if {$geotolGeom != ""} {
@@ -2000,7 +1767,7 @@ proc spmiGeotolReport {objEntity} {
         if {[lsearch $spmiRow($gt) $r] == -1} {lappend spmiRow($gt) $r}
 
         if {[string first "*" $geotolGeom] != -1} {
-          set comment "Geometry IDs marked with an asterisk (*) are also Supplemental Geometry.  ($recPracNames(suppgeom), Sec. 4.3, Fig. 4)"
+          set comment "See Help > User Guide (section 6.1.5) for an explanation of $head1 Geometry.  IDs marked with an asterisk (*) are also Supplemental Geometry."
           addCellComment $gt 3 $c $comment
         }
 
@@ -2028,4 +1795,415 @@ proc spmiGeotolReport {objEntity} {
   }
 
   return 0
+}
+
+# -------------------------------------------------------------------------------
+# get projected tolerance zone (6.9.2.2)
+proc spmiProjectedToleranceZone {objGuiEntity} {
+  global developer gtEntity ptz ptzError recPracNames spaces syntaxErr
+
+  if {[catch {
+    set tzids {}
+    set e0s [$objGuiEntity GetUsedIn [string trim projected_zone_definition] [string trim zone]]
+    ::tcom::foreach e0 $e0s {
+      ::tcom::foreach a0 [$e0 Attributes] {
+
+# projected length
+        if {[$a0 Name] == "projected_length"} {
+          ::tcom::foreach a1 [[$a0 Value] Attributes] {
+            if {[$a1 Name] == "value_component"} {
+              set ptz [$a1 Value]
+              if {$ptz < 0.} {
+                set msg "Syntax Error: Negative projected tolerance zone: $ptz$spaces\($recPracNames(pmi242), Sec. 6.9.2.2)"
+                errorMsg $msg
+                lappend syntaxErr(projected_zone_definition) [list [$e0 P21ID] "projected_length" $msg]
+              }
+            } elseif {[$a1 Name] == "qualifiers"} {
+              if {[string first "handle" [$a1 Value]] != -1} {
+                foreach ent2 [$a1 Value] {
+                  if {[$ent2 Type] == "value_format_type_qualifier"} {set ptz [valueQualifier $ent2 $ptz "projected"]}
+                }
+              } else {
+                set msg "Syntax Error: Missing 'qualifier' attribute on [formatComplexEnt $objType]$spaces\($recPracNames(pmi242), Sec. 6.9.2.2)"
+                errorMsg $msg
+                lappend syntaxErr($objType) [list $objID "qualifiers" $msg]
+              }
+            }
+          }
+
+# projected length offset
+        } elseif {[$a0 Name] == "offset"} {
+          ::tcom::foreach a1 [[$a0 Value] Attributes] {
+            if {[$a1 Name] == "value_component"} {
+              set offset [$a1 Value]
+              if {$offset > 0.} {set ptz "$ptz-$offset"}
+            }
+          }
+
+# zone, check for duplicate tolerance_zone
+        } elseif {[$a0 Name] == "zone"} {
+          set id [[$a0 Value] P21ID]
+          if {[lsearch $tzids $id] != -1} {errorMsg "Multiple 'projected_zone_definition' entities refer to the same 'tolerance_zone'."}
+          lappend tzids $id
+
+# projection_end
+        } elseif {[$a0 Name] == "projection_end"} {
+          set msg ""
+          set idlist [list 1 2]
+          if {[$a0 Value] != ""} {
+
+# find projection_end GISU (pegisu)
+            set pe [$a0 Value]
+            set pesa {}
+            set pegisu {}
+            if {[$pe Type] == "composite_group_shape_aspect"} {
+              ::tcom::foreach e1 [$pe GetUsedIn [string trim shape_aspect_relationship] [string trim relating_shape_aspect]] {
+                set pe1 [[[$e1 Attributes] Item [expr 4]] Value]
+                set e2s [$pe1 GetUsedIn [string trim geometric_item_specific_usage] [string trim definition]]
+                ::tcom::foreach e2 $e2s {
+                  lappend pegisu $e2
+                  lappend pesa [[[$e2 Attributes] Item [expr 3]] Value]
+                }
+              }
+            } elseif {[$pe Type] == "shape_aspect" || [$pe Type] == "datum_feature"} {
+              set e2s [$pe GetUsedIn [string trim geometric_item_specific_usage] [string trim definition]]
+              ::tcom::foreach e2 $e2s {lappend pegisu $e2}
+            } else {
+              errorMsg "Projected end feature '[$pe Type]' not supported.  ($recPracNames(pmi242), Sec. 6.9.2.2)"
+            }
+            if {[llength $pesa] > 0} {set pe $pesa}
+
+# check the advanced face or other entities through GISU relationship to projection_end shape aspect
+            set ngisu 0
+            foreach e2 $pegisu {
+              incr ngisu
+              set e3 [[[$e2 Attributes] Item [expr 5]] Value]
+              set e3type [$e3 Type]
+              if {$e3type == "edge_curve"} {
+                set ec(2) [$e3 P21ID]
+                set idlist [list 1]
+              } elseif {$e3type != "advanced_face" && $e3type != "edge_curve" && $e3type != "edge_loop" && $e3type != "path"} {
+                set msg "Syntax Error: Projected tolerance zone 'projection_end' refers to invalid GISU identified_item '$e3type'.$spaces\($recPracNames(pmi242), Sec. 6.9.2.2)"
+              }
+              set e4 [[[$e3 Attributes] Item [expr 3]] Value]
+              errorMsg "Projected tolerance zone 'projection_end' refers to a '[$e4 Type]' through GISU ($recPracNames(pmi242), Sec. 6.9.2.2)"
+            }
+            if {$ngisu == 0 && [$pe Type] == "shape_aspect"} {
+              set msg "Syntax Error: projection_end attribute '[$pe Type]' is not referred to by a GISU.$spaces\($recPracNames(pmi242), Sec. 6.9.2.2)"
+            }
+          } else {
+            set msg "Syntax Error: Missing required 'projection_end' attribute on 'projected_zone_definition'.$spaces\($recPracNames(pmi242), Sec. 6.9.2.2)"
+          }
+          if {$msg != ""} {
+            errorMsg $msg
+            lappend syntaxErr(projected_zone_definition) [list [$e0 P21ID] "projection_end" $msg]
+            set ptzError 1
+          }
+
+# find shape aspects from the toleranced shape aspect
+          set sas {}
+          set sasid {}
+          set tsa [[[$gtEntity Attributes] Item [expr 4]] Value]
+
+# shape aspect
+          if {[$tsa Type] == "shape_aspect"} {
+            lappend sas $tsa
+            lappend sasid [$tsa P21ID]
+
+# composite shape aspects
+          } elseif {[$tsa Type] == "composite_group_shape_aspect" || [$tsa Type] == "composite_shape_aspect" || \
+                    [$tsa Type] == "composite_shape_aspect_and_datum_feature" || [$tsa Type] == "centre_of_symmetry" || \
+                    [$tsa Type] == "dimensional_size_with_datum_feature"} {
+            set e1s {}
+            ::tcom::foreach e1 [$tsa GetUsedIn [string trim shape_aspect_relationship] [string trim relating_shape_aspect]] {lappend e1s $e1}
+            foreach e1 $e1s {
+              set e2 [[[$e1 Attributes] Item [expr 4]] Value]
+              if {[$e2 Type] == "shape_aspect" || [$e2 Type] == "dimensional_size_with_datum_feature"} {
+                set id [$e2 P21ID]
+                if {[lsearch $sasid $id] == -1} {lappend sas $e2; lappend sasid $id}
+              } elseif {[$e2 Type] == "composite_shape_aspect" || [$e2 Type] == "centre_of_symmetry"} {
+                ::tcom::foreach e3 [$e2 GetUsedIn [string trim shape_aspect_relationship] [string trim relating_shape_aspect]] {
+                  set e4 [[[$e3 Attributes] Item [expr 4]] Value]
+                  if {[$e4 Type] == "shape_aspect"} {
+                    set id [$e4 P21ID]
+                    if {[lsearch $sasid $id] == -1} {lappend sas $e4; lappend sasid $id}
+                  }
+                }
+              } elseif {[$e2 Type] == "datum"} {
+                ::tcom::foreach e3 [$e2 GetUsedIn [string trim shape_aspect_relationship] [string trim related_shape_aspect]] {
+                  set e4 [[[$e3 Attributes] Item [expr 3]] Value]
+                  ::tcom::foreach e5 [$e4 GetUsedIn [string trim shape_aspect_relationship] [string trim relating_shape_aspect]] {
+                    set e6 [[[$e5 Attributes] Item [expr 4]] Value]
+                    if {[$e6 Type] == "shape_aspect"} {
+                      set id [$e6 P21ID]
+                      if {[lsearch $sasid $id] == -1} {lappend sas $e6; lappend sasid $id}
+                    }
+                  }
+                }
+              } else {
+                errorMsg "For projected tolerance zone, shape_aspect '[$e2 Type]' is not supported."
+              }
+            }
+
+# toleranced_shape_aspect not supported
+          } else {
+            errorMsg "For projected tolerance zone, toleranced_shape_aspect '[$tsa Type]' is not supported."
+          }
+
+# get the edge_curve that are shared between the shape aspects from (1) toleranced_shape_aspect and (2) projection_end
+          foreach idx $idlist {
+            set ec($idx) {}
+            if {$idx == 2} {set sas $pe}
+            if {[llength $sas] > 0} {
+              foreach sa $sas {
+                set e1s {}
+                ::tcom::foreach e1 [$sa GetUsedIn [string trim geometric_item_specific_usage] [string trim definition]] {lappend e1s $e1}
+                ::tcom::foreach e1 [$sa GetUsedIn [string trim item_identified_representation_usage] [string trim definition]] {lappend e1s $e1}
+                foreach e1 $e1s {
+                  set e2s {}
+                  set e2 [[[$e1 Attributes] Item [expr 5]] Value]
+                  if {[catch {
+                    set tmp [$e2 Type]
+                    lappend e2s $e2
+                  } emsg1]} {
+                    ::tcom::foreach e2 [[[$e1 Attributes] Item [expr 5]] Value] {lappend e2s $e2}
+                  }
+                  foreach e2 $e2s {
+                    if {[$e2 Type] == "advanced_face"} {
+                      ::tcom::foreach e3 [[[$e2 Attributes] Item [expr 2]] Value] {
+                        set e4 [[[$e3 Attributes] Item [expr 2]] Value]
+                        if {[$e4 Type] == "edge_loop"} {
+                          ::tcom::foreach e5 [[[$e4 Attributes] Item [expr 2]] Value] {
+                            set e6 [[[$e5 Attributes] Item [expr 4]] Value]
+                            lappend ec($idx) [$e6 P21ID]
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            } else {
+              errorMsg "No shape_aspect to find edge_curve ($idx)."
+            }
+          }
+
+# report shared edge curves
+          set ec1 [lindex [intersect3 $ec(1) $ec(2)] 1]
+          #outputMsg "#[$gtEntity P21ID]\n 1 edge_curve [lrmdups $ec(1)]\n 2 edge_curve [lrmdups $ec(2)]\n common $ec1"
+          if {[llength $ec1] == 0} {
+            if {![info exists ptzError]} {
+              set msg "Syntax Error: No shared 'edge_curve' for a projected tolerance zone.$spaces\($recPracNames(pmi242), Sec. 6.9.2.2, Fig. 56)"
+              errorMsg $msg
+              lappend syntaxErr(projected_zone_definition) [list [$e0 P21ID] "projection_end" $msg]
+            } else {
+              set ptzError 1
+            }
+          } elseif {$developer} {
+            #errorMsg " Shared 'edge_curve' ($ec1) for projected tolerance zone ([$gtEntity P21ID])"
+          }
+        }
+      }
+    }
+  } emsg]} {
+    errorMsg "ERROR processing project tolerance zone: $emsg"
+  }
+}
+
+# -------------------------------------------------------------------------------
+# datum target shape representation (Section 6.6.1)
+proc spmiPlacedDatumTarget {objEntity objValue} {
+  global axisval datumTarget datumTargetRep datumTargetType datumTargetValue datumTargetView gtEntity ndtv pmiUnicode recPracNames spaces spmiTypesPerFile syntaxErr
+
+  set ndtv 0
+  if {[catch {
+    set nval 0
+    set e1s [$objEntity GetUsedIn [string trim property_definition] [string trim definition]]
+    ::tcom::foreach e1 $e1s {
+      set e2s [$e1 GetUsedIn [string trim shape_definition_representation] [string trim definition]]
+      ::tcom::foreach e2 $e2s {
+        set a2 [[$e2 Attributes] Item [expr 2]]
+        set e3 [$a2 Value]
+
+# values in shape_representation_with_parameters
+        if {[$e3 Type] == "shape_representation_with_parameters"} {
+          set a3 [[$e3 Attributes] Item [expr 2]]
+          ::tcom::foreach e4 [$a3 Value] {
+
+# get datum target position first
+            if {[$e4 Type] == "axis2_placement_3d"} {
+              set a4 [[$e4 Attributes] Item [expr 1]]
+              if {[$a4 Value] != "orientation"} {
+                set msg "Syntax Error: Bad 'name' ([$a4 Value]) on axis2_placement_3d for a placed datum target, must be 'orientation'.$spaces\($recPracNames(pmi242), Sec. 6.6.1)"
+                errorMsg $msg
+                lappend syntaxErr(axis2_placement_3d) [list [$e4 P21ID] name $msg]
+              }
+
+# origin
+              set axisval [x3dGetA2P3D $e4]
+              set origin [vectrim [lindex $axisval 0] 1]
+              append datumTargetRep "[format "%c" 10]axis2_placement_3d [$e4 P21ID]"
+              append datumTargetRep "[format "%c" 10]  origin  $origin"
+
+# check if values are ok
+              set msg ""
+              if {$origin == "0. 0. 0."} {
+                append msg "[string totitle $datumTargetType] datum target located at '0 0 0'  "
+              }
+              set axis   [lindex $axisval 1]
+              set refdir [lindex $axisval 2]
+              if {[veclen $axis] == 0 || [veclen $refdir] == 0} {
+                append msg "Syntax Error: The axis2_placement_3d axis or ref_direction is '0 0 0' for a $datumTargetType datum target.  "
+              } elseif {[veclen [veccross $axis $refdir]] == 0} {
+                append msg "Syntax Error: The axis2_placement_3d axis and ref_direction vectors '$refdir' are congruent for a $datumTargetType datum target.  "
+              }
+              if {$msg != ""} {
+                set msg [string trim $msg]
+                errorMsg $msg
+                lappend syntaxErr([$gtEntity Type]) [list [$gtEntity P21ID] "Target Representation" $msg]
+              }
+
+# point datum target view
+              if {$datumTargetType == "point"} {set datumTargetView([$gtEntity P21ID]) [list $datumTargetType $axisval $datumTarget]}
+            }
+          }
+
+# datum target dimensions - length_measure
+          ::tcom::foreach e4 [$a3 Value] {
+            if {[string first "length_measure_with_unit_and_measure_representation_item" [$e4 Type]] != -1} {
+              ::tcom::foreach a4 [$e4 Attributes] {
+                if {[$a4 Name] == "name"} {
+                  set datumTargetName [$a4 Value]
+                  regsub -all "  " $datumTargetName " " datumTargetName
+                  append datumTargetRep "[format "%c" 10]$datumTargetName   $datumTargetValue"
+
+# bad target attributes
+                  set msg ""
+                  if {$datumTargetType == "line" && $datumTargetName != "target length"} {
+                    set msg "Syntax Error: Bad datum target 'name' ($datumTargetName) on [formatComplexEnt [$e4 Type]], use 'target length' for a '$datumTargetType' target$spaces\($recPracNames(pmi242), Sec. 6.6.1)"
+                  } elseif {$datumTargetType == "circle" && $datumTargetName != "target diameter"} {
+                    set msg "Syntax Error: Bad datum target 'name' ($datumTargetName) on [formatComplexEnt [$e4 Type]], use 'target diameter' for a '$datumTargetType' target$spaces\($recPracNames(pmi242), Sec. 6.6.1)"
+                  } elseif {$datumTargetType == "rectangle" && ($datumTargetName != "target length" && $datumTargetName != "target width")} {
+                    set msg "Syntax Error: Bad datum target 'name' ($datumTargetName) on [formatComplexEnt [$e4 Type]], use 'target length' or 'target width' for a '$datumTargetType' target$spaces\($recPracNames(pmi242), Sec. 6.6.1)"
+                  } elseif {$datumTargetType == "point"} {
+                    set msg "Syntax Error: No length_measure attribute on shape_representation_with_parameters is required for a 'point' datum target$spaces\($recPracNames(pmi242), Sec. 6.6.1)"
+                  }
+                  if {$msg != ""} {
+                    errorMsg $msg
+                    lappend syntaxErr([$gtEntity Type]) [list [$gtEntity P21ID] "Target Representation" $msg]
+                    lappend syntaxErr([$e4 Type]) [list [$e4 P21ID] "name" $msg]
+                  }
+
+# add target dimensions to PMI
+                  set dtv $datumTargetValue
+                  if {[string range $dtv end-1 end] == ".0"} {
+                    set dtv [string range $dtv 0 end-2]
+                  } else {
+                    set dtv [trimNum $dtv 2]
+                  }
+                  if {$datumTargetType == "circle"} {
+                    set objValue $pmiUnicode(diameter)$dtv[format "%c" 10]$objValue
+                  } elseif {$datumTargetType == "line"} {
+                    append objValue "[format "%c" 10](L = $dtv)"
+                  } elseif {$datumTargetType == "circular curve"} {
+                    append objValue "[format "%c" 10](D = $dtv)"
+
+# rectangular, smaller value first
+                  } elseif {$datumTargetType == "rectangle"} {
+                    incr ndtv
+                    if {$ndtv == 1} {
+                      set dtv1 $dtv
+                    } elseif {$ndtv == 2} {
+                      if {$dtv > $dtv1} {
+                        append dtv1 "x$dtv"
+                      } else {
+                        set dtv1 "$dtv\x$dtv1"
+                      }
+                      set objValue $dtv1[format "%c" 10]$objValue
+                    }
+                  }
+                  if {$origin == "0. 0. 0." && [string first "(origin" $objValue] == -1} {
+                    append objValue "[format "%c" 10](origin = 0 0 0)"
+                  }
+
+# save datum target for view
+                  if {[info exists axisval]} {
+                    if {$datumTargetType != "rectangle" || $ndtv == 1} {
+                      set datumTargetView([$gtEntity P21ID]) [list $datumTargetType $axisval [list $datumTargetName $dtv]]
+                      if {[info exists datumTarget] && $datumTargetType != "rectangle"} {lappend datumTargetView([$gtEntity P21ID]) $datumTarget}
+                    } elseif {$ndtv == 2} {
+                      lappend datumTargetView([$gtEntity P21ID]) [list $datumTargetName $dtv]
+                      if {[info exists datumTarget]} {lappend datumTargetView([$gtEntity P21ID]) $datumTarget}
+                    }
+                  }
+
+# bad size
+                } elseif {[$a4 Name] == "value_component"} {
+                  set datumTargetValue [$a4 Value]
+                  if {$datumTargetValue <= 0. && $datumTargetType != "point"} {
+                    set msg "Syntax Error: Datum target '$datumTargetType' dimension = 0$spaces\($recPracNames(pmi242), Sec. 6.6.1)"
+                    errorMsg $msg
+                    lappend syntaxErr([$gtEntity Type]) [list [$gtEntity P21ID] "Target Representation" $msg]
+                  }
+                }
+              }
+
+# movable datum target direction (6.6.4)
+            } elseif {[$e4 Type] == "direction"} {
+              ::tcom::foreach a4 [$e4 Attributes] {
+                if {[$a4 Name] == "name"} {
+                  if {[$a4 Value] != "movable direction"} {
+                    set msg "Syntax Error: Bad 'name' ([$a4 Value]) on 'direction' for a movable datum target, must be 'movable direction'$spaces\($recPracNames(pmi242), Sec. 6.6.4)"
+                    errorMsg $msg
+                    lappend syntaxErr(direction) [list [$e4 P21ID] "name" $msg]
+                  }
+                } elseif {[$a4 Name] == "direction_ratios"} {
+                  set dirrat [$a4 Value]
+                }
+              }
+              append datumTargetRep "[format "%c" 10]movable target direction   $dirrat[format "%c" 10]   (direction [$e4 P21ID])"
+              lappend spmiTypesPerFile "movable datum target"
+              append objValue " (movable)"
+
+# bad items
+            } elseif {[$e4 Type] != "axis2_placement_3d"} {
+              set msg "Syntax Error: Bad 'item' ([formatComplexEnt [$e4 Type]]) on shape_representation_with_parameters for a datum target$spaces\($recPracNames(pmi242), Sec. 6.6)"
+              errorMsg $msg
+              lappend syntaxErr(shape_representation_with_parameters) [list [$e3 P21ID] "item" $msg]
+            }
+          }
+        }
+      }
+    }
+
+# missing target length, width, or diameter
+    if {$datumTargetType == "line" || $datumTargetType == "rectangle"} {
+      if {[string first "target length" $datumTargetRep] == -1} {
+        set msg "Syntax Error: Missing 'target length' for '$datumTargetType' on [$gtEntity Type].$spaces\($recPracNames(pmi242), Sec. 6.6.1, Table 9)"
+        errorMsg $msg
+        lappend syntaxErr([$gtEntity Type]) [list [$gtEntity P21ID] "Target Representation" $msg]
+      }
+      if {$datumTargetType == "rectangle" && [string first "target width" $datumTargetRep] == -1} {
+        set msg "Syntax Error: Missing 'target width' for '$datumTargetType' on [$gtEntity Type].$spaces\($recPracNames(pmi242), Sec. 6.6.1, Table 9)"
+        errorMsg $msg
+        lappend syntaxErr([$gtEntity Type]) [list [$gtEntity P21ID] "Target Representation" $msg]
+      }
+    } elseif {$datumTargetType == "circle" || $datumTargetType == "circular curve"} {
+      if {[string first "target diameter" $datumTargetRep] == -1} {
+        set msg "Syntax Error: Missing 'target diameter' for '$datumTargetType' on [$gtEntity Type].$spaces\($recPracNames(pmi242), Sec. 6.6.1, Table 9)"
+        errorMsg $msg
+        lappend syntaxErr([$gtEntity Type]) [list [$gtEntity P21ID] "Target Representation" $msg]
+      }
+
+# missing target representation
+    } elseif {[string first "." $datumTargetRep] == -1 && $datumTargetType != "area" && $datumTargetType != "curve"} {
+      set msg "Syntax Error: Missing target representation (shape_representation_with_parameters) for '$datumTargetType' on [$gtEntity Type].$spaces\($recPracNames(pmi242), Sec. 6.6.1, Fig. 38)"
+      errorMsg $msg
+      set invalid $msg
+    }
+
+  } emsg]} {
+    errorMsg "ERROR processing datum target (placed_datum_target_feature): $emsg"
+  }
+  return $objValue
 }

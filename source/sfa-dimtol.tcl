@@ -957,8 +957,8 @@ proc spmiDimtolReport {objEntity} {
 
 # supplemental geometry comment
           if {[string first "*" $str] != -1} {
-            set comment "Geometry IDs marked with an asterisk (*) are also Supplemental Geometry.  ($recPracNames(suppgeom), Sec. 4.3, Fig. 4)"
-            addCellComment $dt $r $pmiColumns(ch) $comment
+            set comment "See Help > User Guide (section 6.1.5) for an explanation of Associated Geometry.  IDs marked with an asterisk (*) are also Supplemental Geometry."
+            addCellComment $dt 3 $pmiColumns(ch) $comment
           }
 
 # check for unexpected associated geometry for diameters and radius
@@ -1192,7 +1192,7 @@ proc spmiDimtolReport {objEntity} {
               if {$pmval(0) > $pmval(1)} {
                 set msg "Syntax Error: +/- tolerances are reversed.$spaces\($recPracNames(pmi242), Sec. 5.2.3)"
               } elseif {$pmval(0) == $pmval(1)} {
-                set msg "Syntax Error: +/- tolerances are equal.$spaces\($recPracNames(pmi242), Sec. 5.2.3)"
+                set msg "+/- tolerances are equal"
               }
               if {$msg != ""} {
                 errorMsg $msg
@@ -1594,7 +1594,6 @@ proc valueQualifier {ent1 val {type "length/angle"} {equal "equal"}} {
         if {$type == "+/-"} {if {$newval > 0.} {set newval "+$newval"}}
       } elseif {$type == "+/-" && $newval > 0. && $equal != "equal"} {
         set newval "+$newval"
-        errorMsg "Use signed qualifier 'NR2S x.y' for positive dimension tolerances  ($recPracNames(pmi242), Sec. $sect)"
       }
 
 # bad NR2 value

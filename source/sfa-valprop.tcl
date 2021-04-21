@@ -50,23 +50,21 @@ proc valPropStart {} {
     [list "number of segments" [list "number of segments"]] \
     [list "surface area" [list "tessellated surface area"]]]
 
-# composite recommended practice (version 0.16 of RP)
+# composite structures validation properties recommended practice
   set valPropNames(composite_validation_property) [list \
-    [list "" [list "notational centroid" "number of composite materials per laminate table" \
-      "number of composite materials per part" "number of composite orientations per laminate table" "number of composite sequences per laminate table" \
-      "number of composite tables" "number of cores" "number of materials" "number of orientations per part" "number of orientations" \
-      "number of plies per laminate table" "number of plies per part" "number of plies" "number of ply pieces per ply" "number of rosettes" \
-      "number of sequences" "number of tables" "ordered list of orientation names" "ordered list of orientation values" \
+    [list "" [list "number of cores" "number of materials" "number of orientations" "number of plies" "number of ply pieces per ply" \
+      "number of rosettes" "number of sequences" "number of tables" "ordered list of orientation names" "ordered list of orientation values" \
       "ordered sequences per laminate table"]] \
     [list "centroid" [list "centre point"]] \
     [list "curve centroid" [list "curve centre point"]] \
     [list "curve length" [list "curve length measure"]] \
     [list "guide curve length" [list "curve length measure"]] \
-    [list "notional rosette centroid" [list "notational centre point"]] \
+    [list "notional rosette centroid" [list "notional centre point"]] \
+    [list "number of facets" [list "number of facets"]] \
     [list "ply centroid" [list "centre point of all plies"]] \
     [list "sum of all core volumes" [list "volume measure"]] \
     [list "sum of all geometric boundary curve length" [list "curve length measure"]] \
-    [list "sum of all ply surfaces areas" [list "surface area measure"]] \
+    [list "sum of all ply surface areas" [list "surface area measure"]] \
     [list "sum of all ply volumes" [list "volume measure"]] \
     [list "surface area" [list "surface area measure"]] \
     [list "volume" [list "volume measure"]]]
@@ -152,13 +150,14 @@ proc valPropStart {} {
 
   set def1 [list characterized_representation_and_draughting_model name]
   set def2 [list model_geometric_view item [list camera_model_d3 name]]
+  set def3 [list default_model_geometric_view item [list camera_model_d3 name]]
 
   set rep1 [list representation name items $a2p3d $drep $vrep $brep $irep $rrep $mrep $len1 $len2 $mass $cartesian_point $ang $area $vol $forc $pres $rat]
   set rep2 [list shape_representation_with_parameters name items $a2p3d $drep $vrep $brep $irep $rrep $mrep $len1 $len2 $mass $cartesian_point $ang $area $vol $forc $pres $rat]
   set rep3 [list tessellated_shape_representation name items]
 
   set gvp [list property_definition_representation \
-    definition [list property_definition name description definition $def1 $def2] \
+    definition [list property_definition name description definition $def1 $def2 $def3] \
     used_representation $rep1 $rep2 $rep3]
 
   set entAttrList {}
@@ -166,8 +165,7 @@ proc valPropStart {} {
   set pdcol 0
   set propDefRow {}
   set valPropLink 0
-  catch {unset ent}
-  catch {unset pdheading}
+  foreach var {ent pdheading} {if {[info exists $var]} {unset $var}}
 
   outputMsg " Adding Properties to property_definition worksheet" blue
 
@@ -176,7 +174,6 @@ proc valPropStart {} {
   setEntAttrList $gvp
   if {$opt(DEBUG1)} {outputMsg "entAttrList $entAttrList"}
   if {$opt(DEBUG1)} {outputMsg \n}
-  unset ent
 
   set startent [lindex $gvp 0]
   set n 0
@@ -258,7 +255,7 @@ proc valPropStart {} {
 
 # -------------------------------------------------------------------------------
 proc valPropReport {objEntity} {
-  global cells col entLevel ent entAttrList maxelem maxrep ncartpt nelem nrep opt pd pdcol pdheading pmivalprop prefix
+  global cells col entLevel ent entAttrList maxelem maxrep ncartpt nelem nrep opt pd pdclass pdcol pdheading pmivalprop prefix
   global propDefID propDefIDRow propDefName propDefOK propDefRow recPracNames repName spaces stepAP syntaxErr tessCoord tessCoordName
   global unicodeEnts unicodeString valName valPropEnts valPropLink valPropNames valProps
 
@@ -302,9 +299,7 @@ proc valPropReport {objEntity} {
 
       if {$entLevel == 1} {
         set pmivalprop 0
-        catch {unset nelem}
-        catch {unset maxelem}
-        catch {unset repName}
+        foreach var {maxelem nelem pdclass repName} {if {[info exists $var]} {unset $var}}
         set valProps [list {} {} {} {} {}]
         set valPropEnts $valProps
       }
@@ -665,6 +660,11 @@ proc valPropReport {objEntity} {
                       }
                     }
                   }
+
+# check for classification
+                  ::tcom::foreach e0 [$objEntity GetUsedIn [string trim id_attribute] [string trim identified_item]] {
+                    set pdclass [list [[[$e0 Attributes] Item [expr 1]] Value] "#[$e0 P21ID] [$e0 Type].attribute_value"]
+                  }
                 }
 
                 "representation name" -
@@ -819,6 +819,20 @@ proc valPropReport {objEntity} {
                     $cells($pd) Item $r $c $objValue
                     $cells($pd) Item $r [expr {$col($pd)+1}] "#$objID [formatComplexEnt $ent2]"
                   }
+                }
+
+# classification
+                if {[info exists pdclass]} {
+                  set col($pd) 17
+                  set colName "classification"
+                  set c [string index [cellRange 1 $col($pd)] 0]
+                  if {![info exists pdheading($col($pd))]} {
+                    $cells($pd) Item 3 $c $colName
+                    $cells($pd) Item 3 [string index [cellRange 1 [expr {$col($pd)+1}]] 0] "attribute"
+                    set pdheading($col($pd)) 1
+                  }
+                  $cells($pd) Item $r $c [lindex $pdclass 0]
+                  $cells($pd) Item $r [expr {$col($pd)+1}] [lindex $pdclass 1]
                 }
 
 # keep track of rows with validation properties
@@ -1138,8 +1152,8 @@ proc reportValProps {} {
 # entities to check
   set vpEnts {}
   set vpCheck [list characterized_representation_and_draughting_model characterized_representation_and_draughting_model_and_tessellated_shape_representation \
-                composite_group_shape_aspect datum model_geometric_view shape_aspect composite_assembly_sequence_definition composite_assembly_table \
-                ply_laminate_table ply_laminate_sequence_definition reinforcement_orientation_basis]
+                composite_group_shape_aspect datum model_geometric_view default_model_geometric_view shape_aspect composite_assembly_sequence_definition \
+                composite_assembly_table ply_laminate_table ply_laminate_sequence_definition reinforcement_orientation_basis]
 
   foreach ent $vpCheck {
     if {[info exists entCount($ent)] && [info exists worksheet($ent)]} {

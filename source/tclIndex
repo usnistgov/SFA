@@ -56,6 +56,8 @@ set auto_index(reportAssocGeom) [list source [file join $dir sfa-geom.tcl]]
 
 set auto_index(spmiGeotolReport) [list source [file join $dir sfa-geotol.tcl]]
 set auto_index(spmiGeotolStart) [list source [file join $dir sfa-geotol.tcl]]
+set auto_index(spmiPlacedDatumTarget) [list source [file join $dir sfa-geotol.tcl]]
+set auto_index(spmiProjectToleranceZone) [list source [file join $dir sfa-geotol.tcl]]
 
 set auto_index(gpmiAnnotation) [list source [file join $dir sfa-grafpmi.tcl]]
 set auto_index(gpmiAnnotationReport) [list source [file join $dir sfa-grafpmi.tcl]]

@@ -38,7 +38,6 @@ set stepAPs(ENGINEERING_PROPERTIES_SCHEMA) AP235
 set stepAPs(MODEL_BASED_INTEGRATED_MANUFACTURING_SCHEMA) AP238
 set stepAPs(INTEGRATED_CNC_SCHEMA) AP238e1
 set stepAPs(PROCESS_PLANNING_SCHEMA) AP240
-set stepAPs(STRUCTURAL_FRAME_SCHEMA) CIS/2
 
 # links to schema documentation
 set schemaLinks(AP203)   "https://www.cax-if.org/documents/AP203e2_html/AP203e2.htm"
@@ -53,7 +52,7 @@ set schemaLinks(AP239)   "http://web.archive.org/web/20160322005246/www.steptool
 set schemaLinks(AP242)   "https://www.cax-if.org/documents/AP242ed2_HTML/AP242ed2.htm"
 set schemaLinks(AP242e1) "https://www.cax-if.org/documents/AP242ed2_HTML/AP242ed2.htm"
 set schemaLinks(AP242e2) "https://www.cax-if.org/documents/AP242ed2_HTML/AP242ed2.htm"
-set schemaLinks(CIS/2)   "http://web.archive.org/web/20160322005246/www.steptools.com/support/stdev_docs/express/cis/html/index.html"
+set schemaLinks(STRUCTURAL_FRAME_SCHEMA) "http://web.archive.org/web/20160322005246/www.steptools.com/support/stdev_docs/express/cis/html/index.html"
 
 # -----------------------------------------------------------------------------------------------------
 # colors, the number determines the order that the group of entities is processed, do not use numbers less than 10 (dmcritchie.mvps.org/excel/colors.htm)
@@ -128,6 +127,7 @@ set unicodeAttributes(brep_with_voids) {name}
 set unicodeAttributes(centre_of_symmetry) {name}
 set unicodeAttributes(composite_group_shape_aspect) {name}
 set unicodeAttributes(descriptive_representation_item) {name description}
+set unicodeAttributes(geometric_alignment) {name}
 set unicodeAttributes(item_defined_transformation) {name description}
 set unicodeAttributes(manifold_solid_brep) {name}
 set unicodeAttributes(next_assembly_usage_occurrence) {id name description reference_designator}
@@ -148,11 +148,11 @@ set unicodeAttributes(translated_text) {texts}
 
 # -----------------------------------------------------------------------------------------------------
 # app names for STEP software that might appear in header section
-set cadApps {3D_Evolution 3DEXPERIENCE Alibre "Anark CORE" "ASCON STEP Converter" AutoCAD Autodesk "Autodesk Inventor" "Autodesk Translation Framework" \
-  "Autodesk Translator Framework" CADfix CADverter CATIA "CATIA V4" "CATIA V5" "CATIA V6" CoCreate CoreTechnologie Creo CREO CrossCAD Datakit \
-  "Datakit CrossCad" DATAKIT EDMsix Elysium "Elysium ASFALIS" Eurostep FiberSim FreeCAD "kicad StepUp" Kubotek "Kubotek KeyCreator" "OneSpace Designer" \
-  "OneSpace Modeling" PRO/ENGINEER PSStep "SIEMENS PLM Software NX" Solidworks SolidWorks SOLIDWORKS "SOLIDWORKS MBD" "Spatial InterOp 3D" ST-ACIS \
-  STEP-NC Theorem THEOREM "Theorem Solutions" T-Systems Unigraphics VariCAD XStep Area21}
+set cadApps {3D_Evolution 3DEXPERIENCE Alibre "Anark CORE" Area21 "ASCON STEP Converter" AutoCAD Autodesk "Autodesk Inventor" \
+  "Autodesk Translation Framework" "Autodesk Translator Framework" CADfix CADverter CATIA "CATIA V4" "CATIA V5" "CATIA V6" CoCreate CoreTechnologie Creo \
+  CREO CrossCAD Datakit "Datakit CrossCad" DATAKIT EDMsix Elysium "Elysium ASFALIS" Eurostep FiberSim FreeCAD "kicad StepUp" Kubotek "Kubotek KeyCreator" \
+  "OneSpace Designer" "OneSpace Modeling" PRO/ENGINEER PSStep "SIEMENS PLM Software NX" "Solid Edge" Solidworks SolidWorks SOLIDWORKS "SOLIDWORKS MBD" \
+  "Spatial InterOp 3D" ST-ACIS STEP-NC Theorem THEOREM "Theorem Solutions" T-Systems Unigraphics VariCAD XStep}
 
 # sort cadApps by string length
 set cadApps [sortlength2 $cadApps]
@@ -618,8 +618,7 @@ component_feature component_feature_joint component_mating_constraint_condition 
 composite_shape_aspect composite_unit_shape_aspect connection_zone_based_assembly_joint connection_zone_interface_plane_relationship connectivity_definition \
 constituent_shape_aspect contact_feature contacting_feature continuous_shape_aspect \
 cross_sectional_alternative_shape_element cross_sectional_group_shape_element cross_sectional_group_shape_element_with_lacing \
-cross_sectional_group_shape_element_with_tubular_cover cross_sectional_occurrence_shape_element cross_sectional_part_shape_element default_model_geometric_view \
-derived_shape_aspect directed_angle extension geometric_alignment geometric_contact geometric_intersection geometric_item_specific_usage harness_node harness_segment \
+cross_sectional_group_shape_element_with_tubular_cover cross_sectional_occurrence_shape_element cross_sectional_part_shape_element derived_shape_aspect directed_angle extension geometric_alignment geometric_contact geometric_intersection geometric_item_specific_usage harness_node harness_segment \
 item_identified_representation_usage joggle_termination parallel_offset perpendicular_to physical_component_feature physical_component_interface_terminal \
 physical_component_terminal placed_feature shape_aspect shape_aspect_associativity shape_aspect_deriving_relationship shape_aspect_occurrence \
 shape_aspect_relationship shape_aspect_relationship_representation_association shape_aspect_transition \
@@ -828,6 +827,7 @@ data_quality_criterion_measurement_association data_quality_definition data_qual
 data_quality_inspection_criterion_report data_quality_inspection_criterion_report_item data_quality_inspection_instance_report \
 data_quality_inspection_instance_report_item data_quality_inspection_report data_quality_inspection_result data_quality_inspection_result_representation \
 data_quality_inspection_result_with_judgement data_quality_measurement_requirement data_quality_report_measurement_association data_quality_report_request \
+default_model_geometric_view \
 defined_constraint definite_integral_expression definite_integral_function definitional_product_definition_usage delete_element dependent_variable_definition \
 description_text description_text_assignment description_text_assignment_relationship detailed_equivalence_report_request \
 detailed_equivalence_report_request_with_number_of_instances detailed_report_request detailed_report_request_with_number_of_data \

@@ -13,11 +13,12 @@ proc getAssocGeom {entDef {tolType 0} {tolName ""}} {
   }
 
   if {[catch {
-    if {$entDefType == "shape_aspect" || $entDefType == "all_around_shape_aspect" || $entDefType == "centre_of_symmetry" || \
+    if {$entDefType == "shape_aspect" || $entDefType == "all_around_shape_aspect" || $entDefType == "centre_of_symmetry" || $entDefType == "geometric_alignment" || \
       ([string first "datum" $entDefType] != -1 && [string first "_and_" $entDefType] == -1)} {
 
 # add shape_aspect to AG for dimtol (tolType = 1)
-      if {$tolType && ($entDefType == "shape_aspect" || $entDefType == "centre_of_symmetry" || $entDefType == "datum_feature" || [string first "datum_target" $entDefType] != -1)} {
+      if {$tolType && ($entDefType == "shape_aspect" || $entDefType == "centre_of_symmetry" || $entDefType == "geometric_alignment" || \
+                       $entDefType == "datum_feature" || [string first "datum_target" $entDefType] != -1)} {
         set type [appendAssocGeom $entDef A]
 
 # for dimensional_size, check applies_to > shape_aspect > product_definitional attribute
@@ -234,7 +235,7 @@ proc getFaceGeom {e0 tolType {id ""}} {
                 }
               }
             } else {
-              errorMsg "Edges defined by '[$e4 Type]' for an associated geometry face are not supported."
+              errorMsg "Edges defined by '[$e4 Type]' for an Associated Geometry face are not supported."
             }
           }
         } else {
@@ -367,7 +368,7 @@ proc reportAssocGeom {entType {row ""}} {
       if {[string length $str] > 0} {append str [format "%c" 10]}
       append str "([llength $assocGeom($item)]) [formatComplexEnt $item] [lsort -integer $assocGeom($item)]"
       if {[string first "tolerance" $entType] != -1 && [string first "datum_feature" $item] != -1 && [llength $assocGeom($item)] > 1} {
-        set msg "Associated Geometry has multiple ([llength $assocGeom($item)]) $item for a [formatComplexEnt $entType]."
+        set msg "Associated Geometry has multiple ([llength $assocGeom($item)]) [formatComplexEnt $item] for a [formatComplexEnt $entType]."
         errorMsg $msg
         set multipleDatumFeature 1
       }

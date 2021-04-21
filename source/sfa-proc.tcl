@@ -369,16 +369,12 @@ proc openFile {{openName ""}} {
 
   if {$openName == ""} {
 
-# file types for file select dialog (removed .stpnc)
-    set typelist [list {"STEP Files" {".stp" ".step" ".p21" ".stpZ"}} {"IFC Files" {".ifc"}} {"ASCII STL Files" {".stl"}}]
+# file types for file select dialog
+    set typelist [list {"STEP Files" {".stp" ".step" ".p21" ".stpZ" ".stpnc" ".spf"}} {"IFC Files" {".ifc"}} {"ASCII STL Files" {".stl"}}]
 
 # file open dialog
     set localNameList [tk_getOpenFile -title "Open STEP File(s)" -filetypes $typelist -initialdir $fileDir -multiple true]
     if {[llength $localNameList] <= 1} {set localName [lindex $localNameList 0]}
-    catch {
-      set fext [string tolower [file extension $localName]]
-      if {$fext == ".stpnc"} {errorMsg "Rename the file extension to '.stp' to process STEP-NC files."}
-    }
 
 # file name passed in as openName
   } else {
@@ -427,6 +423,16 @@ proc openFile {{openName ""}} {
     set fileDir [file dirname $localName]
     if {[string first "z" [string tolower [file extension $localName]]] == -1} {
       outputMsg "\nReady to process: [file tail $localName] ([fileSize $localName])" green
+
+# check file extension
+      set fext ""
+      catch {set fext [string tolower [file extension $localName]]}
+      if {$fext == ".stpnc" || $fext == ".spf"} {
+        errorMsg "Change the file extension '$fext' to '.stp' to process the STEP file."
+        catch {.tnb select .tnb.status}
+        return
+      }
+
       if {$fileDir == $drive} {outputMsg "There might be problems processing the STEP file directly in the $fileDir directory." red}
       if {[info exists buttons]} {
         $buttons(genExcel) configure -state normal
@@ -437,6 +443,13 @@ proc openFile {{openName ""}} {
             if {[file exists $localName]} {
               outputMsg "\nOpening STEP file: [file tail $localName]"
               exec $editorCmd [file nativename $localName] &
+            }
+          }
+          bind . <Shift-F5> {
+            if {[file exists $localName]} {
+              set dir [file nativename [file dirname $localName]]
+              outputMsg "\nOpening STEP file directory: [truncFileName $dir]"
+              catch {exec C:/Windows/explorer.exe $dir &}
             }
           }
         }
@@ -467,6 +480,13 @@ proc getFirstFile {} {
           if {[file exists $localName]} {
             outputMsg "\nOpening STEP file: [file tail $localName]"
             exec $editorCmd [file nativename $localName] &
+          }
+        }
+        bind . <Shift-F5> {
+          if {[file exists $localName]} {
+            set dir [file nativename [file dirname $localName]]
+            outputMsg "\nOpening STEP file directory: [truncFileName $dir]"
+            catch {exec C:/Windows/explorer.exe $dir &}
           }
         }
       }
@@ -616,7 +636,7 @@ proc saveState {{ok 1}} {
 
 # opt variables
     foreach idx [lsort [array names opt]] {
-      if {[string first "DEBUG" $idx] == -1 && [string first "indent" $idx] == -1 && [string first "x3dSave" $idx] == -1} {
+      if {[string first "DEBUG" $idx] == -1 && [string first "indent" $idx] == -1} {
         set var opt($idx)
         set vartmp [set $var]
         if {[string first "/" $vartmp] != -1 || [string first "\\" $vartmp] != -1 || [string first " " $vartmp] != -1} {
@@ -733,8 +753,7 @@ proc runOpenProgram {} {
       if {[string first "UNC" $emsg] != -1} {set emsg [fixErrorMsg $emsg]}
       if {$emsg != ""} {
         .tnb select .tnb.status
-        errorMsg "No app is associated with STEP files."
-        errorMsg " See Websites > STEP File Viewers"
+        errorMsg "No app is associated with STEP files.  See Websites > STEP File Viewers"
       }
     }
 
@@ -1217,8 +1236,8 @@ proc addCellComment {ent r c comment} {
   if {[catch {
     while {[string first "  " $comment] != -1} {regsub -all "  " $comment " " comment}
     if {[string first "Syntax" $comment] == 0} {set comment "[string range $comment 14 end]"}
-    if {[string first "GISU" $comment] != -1} {regsub "GISU" $comment "geometric_item_specific_usage"  comment}
-    if {[string first "IIRU" $comment] != -1} {regsub "IIRU" $comment "item_identified_representation_usage" comment}
+    if {[string first "GISU" $comment]  != -1} {regsub "GISU" $comment "geometric_item_specific_usage"  comment}
+    if {[string first "IIRU" $comment]  != -1} {regsub "IIRU" $comment "item_identified_representation_usage" comment}
 
     foreach idx [array names recPracNames] {
       if {[string first $recPracNames($idx) $comment] != -1} {
@@ -1241,7 +1260,8 @@ proc addCellComment {ent r c comment} {
       }
     }
 
-# add comment
+# add comment, delete existing
+    catch {[[$worksheet($ent) Range [cellRange $r $c]] ClearComments]}
     set comm [[$worksheet($ent) Range [cellRange $r $c]] AddComment]
     $comm Text $ncomment
     catch {[[$comm Shape] TextFrame] AutoSize [expr 1]}
@@ -1413,7 +1433,8 @@ proc errorMsg {msg {color ""}} {
     if {$color == ""} {
       if {[string first "syntax error" [string tolower $msg]] != -1} {
         if {$stepAP != ""} {
-          set logmsg "*** $msg"
+          set stars "***"
+          set logmsg "$stars $msg"
           if {[info exists outputWin]} {
             $outputWin issue "$msg " syntax
           } else {
@@ -1429,7 +1450,8 @@ proc errorMsg {msg {color ""}} {
         catch {set ilevel "  \[[lindex [info level [expr {[info level]-1}]] 0]\]"}
         if {$ilevel == "  \[errorMsg\]"} {set ilevel ""}
 
-        set logmsg "*** $msg$ilevel"
+        set stars " **"
+        set logmsg "$stars $msg$ilevel"
         if {[info exists outputWin]} {
           $outputWin issue "$msg$ilevel " error
         } else {
@@ -1441,7 +1463,8 @@ proc errorMsg {msg {color ""}} {
 
 # error message with color
     } else {
-      set logmsg "*** $msg"
+      set stars " **"
+      set logmsg "$stars $msg"
       if {[info exists outputWin]} {
         $outputWin issue "$msg " $color
       } else {
@@ -1459,7 +1482,7 @@ proc errorMsg {msg {color ""}} {
       } else {
         set newmsg [split [string range $logmsg 4 end] "\n"]
         set logmsg ""
-        foreach str $newmsg {append logmsg "\n*** $str"}
+        foreach str $newmsg {append logmsg "\n$stars $str"}
         puts $logFile [string range $logmsg 1 end]
       }
     }
@@ -1717,13 +1740,8 @@ proc installIFCsvr {{exit 0}} {
 - If there are problems with the IFCsvr installation, contact [lindex $contact 0] ([lindex $contact 1])\n"
       after 1000
       errorMsg "Opening folder: $mytemp"
-      if {[catch {
-        exec {*}[auto_execok start] [file nativename $mytemp]
-        if {$exit} {exit}
-      } emsg]} {
-        if {[string first "UNC" $emsg] != -1} {set emsg [fixErrorMsg $emsg]}
-        if {$emsg != ""} {errorMsg "ERROR opening directory: $emsg"}
-      }
+      catch {exec C:/Windows/explorer.exe [file nativename $dir] &}
+      if {$exit} {exit}
     } else {
       outputMsg " "
       errorMsg "To install the IFCsvr toolkit you must first run the NIST version of the STEP File Analyzer and Viewer."
@@ -1819,7 +1837,7 @@ proc setShortcuts {} {
 #-------------------------------------------------------------------------------
 # set web browser and home, docs, desktop, menu directories
 proc setHomeDir {} {
-  global drive env mydesk mydocs myhome mymenu mytemp pf32 pf64 wdir webCmd
+  global drive env mydesk mydocs myhome mymenu mytemp pf32 pf64 webCmd
 
 # web browser command
   set webCmd ""
@@ -1830,12 +1848,12 @@ proc setHomeDir {} {
   }
   if {$webCmd == "" || ![file exists $webCmd]} {
     foreach cmd [list \
+        [file join $pf64 Microsoft Edge Application chrome.exe] \
+        [file join $pf32 Microsoft Edge Application chrome.exe] \
         [file join $pf64 Google Chrome Application chrome.exe] \
         [file join $pf32 Google Chrome Application chrome.exe] \
         [file join $pf64 "Mozilla Firefox" firefox.exe] \
         [file join $pf32 "Mozilla Firefox" firefox.exe] \
-        [file join $pf64 Microsoft Edge Application chrome.exe] \
-        [file join $pf32 Microsoft Edge Application chrome.exe] \
         [file join $pf32 "Internet Explorer" IEXPLORE.EXE]] {
       if {[file exists $cmd]} {
         set webCmd $cmd
@@ -1908,9 +1926,6 @@ proc setHomeDir {} {
   set mydocs [file nativename $mydocs]
   set mydesk [file nativename $mydesk]
   set mytemp [file nativename $mytemp]
-
-# copy font file
-  if {![file exists [file join $mytemp ARIALUNI.TTF]]} {catch {[file copy -force -- [file join $wdir images ARIALUNI.TTF] [file join $mytemp ARIALUNI.TTF]]}}
 }
 
 #-------------------------------------------------------------------------------

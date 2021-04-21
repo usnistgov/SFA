@@ -1,6 +1,6 @@
 # generate an Excel spreadsheet from a STEP file
 proc genExcel {{numFile 0}} {
-  global allEntity aoEntTypes ap203all ap214all ap242all badAttributes buttons cadSystem cells cells1 col col1 count csvdirnam csvfile csvintemp currLogFile
+  global allEntity aoEntTypes ap203all ap214all ap242all badAttributes buttons cadSystem cells cells1 col col1 count csvdirnam csvfile csvinhome currLogFile
   global dim draughtingModels editorCmd entCategories entCategory entColorIndex entCount entityCount entsIgnored entsWithErrors errmsg
   global excel excelVersion fcsv feaFirstEntity feaLastEntity File fileEntity filesProcessed gpmiTypesInvalid gpmiTypesPerFile guid idxColor ifcsvrDir
   global inverses lastXLS lenfilelist localName localNameList logFile matrixList multiFile multiFileDir mydocs mytemp nistCoverageLegend nistName
@@ -389,7 +389,7 @@ proc genExcel {{numFile 0}} {
 # connect to Excel
   set useXL 1
   set xlInstalled 1
-  set csvintemp 0
+  set csvinhome 0
   if {$opt(xlFormat) != "None"} {
     if {[catch {
       set pid1 [checkForExcel $multiFile]
@@ -1280,7 +1280,7 @@ proc genExcel {{numFile 0}} {
           set csvFormat [expr 6]
           if {$excelVersion > 15} {set csvFormat [expr 62]}
 
-          set csvintemp 0
+          set csvinhome 0
           set nprogBarEnts 0
           for {set i 1} {$i <= [$worksheets Count]} {incr i} {
             set ws [$worksheets Item [expr $i]]
@@ -1297,7 +1297,7 @@ proc genExcel {{numFile 0}} {
             if {[string length $csvfname] > 218} {
               set csvfname [file nativename [file join $mydocs $wsname.csv]]
               errorMsg " Some CSV files are saved in the home directory." red
-              set csvintemp 1
+              set csvinhome 1
             }
             catch {file delete -force -- $csvfname}
             if {[file exists $csvfname]} {set csvfname [incrFileName $csvfname]}
@@ -1385,19 +1385,10 @@ proc genExcel {{numFile 0}} {
       }
     }
     if {$ok} {
-      set dir [file nativename $csvdirnam]
       outputMsg "Opening directory of CSV files"
-      if {[string first " " $dir] == -1} {
-        if {[catch {
-          exec {*}[auto_execok start] $dir
-          if {[info exists csvintemp]} {if {$csvintemp} {exec {*}[auto_execok start] $mydocs}}
-        } emsg]} {
-          if {[string first "UNC" $emsg] != -1} {set emsg [fixErrorMsg $emsg]}
-          if {$emsg != ""} {errorMsg "ERROR opening directory of CSV files: $emsg"}
-        }
-      } else {
-        exec C:/Windows/explorer.exe $dir &
-        if {[info exists csvintemp]} {if {$csvintemp} {exec C:/Windows/explorer.exe $mydocs &}}
+      catch {
+        exec C:/Windows/explorer.exe [file nativename $csvdirnam] &
+        if {[info exists csvinhome]} {if {$csvinhome} {exec C:/Windows/explorer.exe $mydocs &}}
       }
     }
   }

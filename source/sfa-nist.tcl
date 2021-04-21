@@ -166,6 +166,10 @@ proc nistCheckExpectedPMI {val entstr} {
   set c1 [string first "(oriented)" $val]
   if {$c1 > 0} {set val [string range $val 0 $c1-2]}
 
+# remove (movable)
+  set c1 [string first "(movable)" $val]
+  if {$c1 > 0} {set val [string range $val 0 $c1-2]}
+
 # remove between
   set c1 [string first $pmiModifiers(between) $val]
   if {$c1 > 0} {set val [string range $val 0 $c1-2]}
@@ -569,7 +573,7 @@ proc nistAddExpectedPMIPercent {nf} {
   }
 
   set r [expr {$pmiElementsMaxRows+4}]
-  $cells($spmiCoverageWS) Item $r 1 "Expected PMI (See PMI Representation Summary worksheet)"
+  $cells($spmiCoverageWS) Item $r 1 "Expected PMI[format "%c" 10]  (See PMI Representation Summary worksheet)"
   $cells($spmiCoverageWS) Item $r 2 "%"
   set range [$worksheet($spmiCoverageWS) Range A$r:B$r]
   [$range Font] Bold [expr 1]
@@ -583,7 +587,7 @@ proc nistAddExpectedPMIPercent {nf} {
     if {$lenfilelist > 1 && ![info exists nistPMIexpectedFormat]} {
       incr nistPMIexpectedFormat
       set r1 [expr {$pmiElementsMaxRows+4}]
-      $cells1($spmiCoverageWS) Item $r1 1 "Expected PMI (% from PMI Representation Summary worksheets)"
+      $cells1($spmiCoverageWS) Item $r1 1 "Expected PMI[format "%c" 10]  (% from PMI Representation Summary worksheets)"
       set range [$worksheet1($spmiCoverageWS) Range A$r]
       [$range Font] Bold [expr 1]
       set range [$worksheet1($spmiCoverageWS) Range [cellRange [expr {$pmiElementsMaxRows+4}] 1] [cellRange [expr {$pmiElementsMaxRows+10}] [expr {$lenfilelist+1}]]]
@@ -610,6 +614,7 @@ proc nistAddExpectedPMIPercent {nf} {
     }
     $cells($spmiCoverageWS) Item $r 1 $str
     $cells($spmiCoverageWS) Item $r 2 $pct
+    if {$idx == "exact"} {outputMsg "  Expected PMI %: $pct"}
 
 # formatting
     set range [$worksheet($spmiCoverageWS) Range B$r]

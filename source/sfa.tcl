@@ -381,6 +381,13 @@ if {$argv != ""} {
             }
           }
         }
+        bind . <Shift-F5> {
+          if {[file exists $localName]} {
+            set dir [file nativename [file dirname $localName]]
+            outputMsg "\nOpening STEP file directory: [truncFileName $dir]"
+            catch {exec C:/Windows/explorer.exe $dir &}
+          }
+        }
       }
     } else {
       errorMsg "File not found: [truncFileName [file nativename $localName]]"
@@ -414,7 +421,7 @@ if {[llength $pids] > 0} {
 # warn if spreadsheets not written to default directory
 if {$opt(writeDirType) == 2} {
   outputMsg " "
-  errorMsg "All output files will be written to a user-defined directory (Spreadsheet tab)"
+  errorMsg "All output files will be written to a User-defined directory (Spreadsheet tab)"
   .tnb select .tnb.status
 }
 

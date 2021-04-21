@@ -1,5 +1,5 @@
 # SFA version number
-proc getVersion {} {return 4.38}
+proc getVersion {} {return 4.40}
 
 # version of SFA that the User Guide is based on
 proc getVersionUG {} {return 4.2}
@@ -48,12 +48,10 @@ Use F9 and F10 to change the font size here.  See Help > Function Keys"
       showFileURL UserGuide
     }
     if {$sfaVersion < 4.37} {outputMsg "- Updated Sample STEP Files on the Examples menu"}
-    if {$sfaVersion < 4.35} {outputMsg "- Removed support in the Viewer for Internet Explorer"}
-    if {$sfaVersion < 4.32} {outputMsg "- See Help > Text Strings for information that supplements the User Guide section 5.5 on Unicode Characters"}
-    if {$sfaVersion < 4.12} {outputMsg "- The Viewer for part geometry is faster and supports color, transparency, edges, sketch geometry, normals, and nested assemblies.  See Help > Viewer"}
+    if {$sfaVersion < 4.12} {outputMsg "- Viewer for part geometry is faster and supports color, transparency, edges, sketch geometry, normals, and nested assemblies.  See Help > Viewer"}
     if {$sfaVersion < 3.80} {outputMsg "- Run the Syntax Checker with function key F8 or the Options tab selection.  See Help > Syntax Checker"}
     if {$sfaVersion < 2.62} {outputMsg "- Renamed output files: Spreadsheets from 'myfile_stp.xlsx' to 'myfile-sfa.xlsx' and Views from 'myfile-x3dom.html' to 'myfile-sfa.html'"}
-    if {$sfaVersion < 2.30} {outputMsg "- The command-line version has been renamed: sfa-cl.exe  The old version STEP-File-Analyzer-CL.exe can be deleted."}
+    if {$sfaVersion < 2.30} {outputMsg "- Command-line version has been renamed: sfa-cl.exe  The old version STEP-File-Analyzer-CL.exe can be deleted."}
   }
   outputMsg "- All new features and bug fixes are listed in the Changelog.  See Help > Changelog"
 
@@ -72,7 +70,7 @@ proc showFileURL {type} {
       set localFile "SFA-User-Guide-v6.pdf"
       set URL https://doi.org/10.6028/NIST.AMS.200-10
       if {$sfaVersion >= [expr {[getVersionUG]+0.1}]} {
-        outputMsg "\nThe User Guide is based on version [getVersionUG] of this software."
+        outputMsg "\nThe User Guide is based on version [getVersionUG] of this software.  See Help > Text Strings for information\nthat supplements the User Guide section 5.5 on Unicode Characters."
         .tnb select .tnb.status
       }
     }
@@ -163,7 +161,8 @@ proc guiStartWindow {} {
   ttk::style map       TCheckbutton -background [list disabled $bgcolor]
   ttk::style configure TRadiobutton -background $bgcolor
   ttk::style map       TRadiobutton -background [list disabled $bgcolor]
-  ttk::style configure TLabelframe       -background $bgcolor
+  ttk::style configure TLabelframe  -background $bgcolor
+  ttk::style map       TLabelframe  -background [list disabled $bgcolor]
 
   font create fontBold {*}[font configure TkDefaultFont]
   font configure fontBold -weight bold
@@ -367,9 +366,9 @@ proc guiProcessAndReports {} {
     pack $buttons($idx) -side top -anchor w -padx 5 -pady 0 -ipady 0
     incr cb
     if {[info exists entCategory($idx)]} {
-      set mostSome "most"
-      if {$idx == "stepTOLR"} {set mostSome "some"}
-      set ttmsg "[string trim [lindex $item 0]] entities are found in $mostSome STEP APs."
+      set str "most STEP APs."
+      if {$idx == "stepTOLR"} {set str "AP214 and AP242."}
+      set ttmsg "[string trim [lindex $item 0]] entities are found in $str"
       append ttmsg "  See Help > Supported STEP APs  and  Websites > STEP Format and Schemas\n\n"
       if {$idx != "stepCOMM"} {
         set ttmsg [guiToolTip $ttmsg $idx]
@@ -410,12 +409,18 @@ proc guiProcessAndReports {} {
     pack $buttons($idx) -side top -anchor w -padx 5 -pady 0 -ipady 0
     incr cb
     if {[info exists entCategory($idx)]} {
-      set ttmsg "[string trim [lindex $item 0]] entities"
       if {$idx != "stepAP242"} {
-        append ttmsg " are found in some STEP APs.  See Help > Supported STEP APs  and  Websites > STEP Format and Schemas\n\n"
+        set ttmsg "[string trim [lindex $item 0]] entities"
+        append ttmsg " are found in"
+        if {$idx == "stepCOMP"} {
+          append ttmsg " AP203 and AP242"
+        } else {
+          append ttmsg " AP214 and AP242"
+        }
+        append ttmsg ".  See Help > Supported STEP APs  and  Websites > STEP Format and Schemas\n\n"
         set ttmsg [guiToolTip $ttmsg $idx]
       } else {
-        append ttmsg " are only in AP242 and not in AP203 or AP214.  Some AP242 entities are found in the other Process categories."
+        set ttmsg "These entities are only in AP242, however, the more commonly used AP242\nentities are found in the other Process categories."
         append ttmsg "\n\nSee Websites > AP242\nSee Help > Supported STEP APs  and  Websites > STEP Format and Schemas"
       }
       catch {tooltip::tooltip $buttons($idx) $ttmsg}
@@ -580,15 +585,15 @@ proc guiProcessAndReports {} {
   pack $foptv -side left -anchor w -pady {5 2} -padx 10 -fill both -expand true
   pack $foptRV -side top -anchor w -pady 0 -fill x
   catch {
-    tooltip::tooltip $foptv20 "The view for part geometry supports color, transparency, edges, and\nsketch geometry.  The viewer does not support measurements.\n\nNormals improve the default smooth shading at the expense of slower\nprocessing and display.  Using High Quality and Normals results in the\nbest appearance for part geometry.\n\nSee Help > Viewer\n\nViews are shown in the default web browser.\nViews can be generated without generating a spreadsheet or CSV files.\nSee the Output Format option below.\n\nSee Help > View for other viewing features\nSee Examples > View Box Assembly and others\nSee Websites > STEP File Viewers (for other part geometry viewers)"
+    tooltip::tooltip $foptv20 "The view for part geometry supports color, transparency, edges, and\nsketch geometry.  The viewer does not support measurements.\n\nNormals improve the default smooth shading at the expense of slower\nprocessing and display.  Using High Quality and Normals results in the\nbest appearance for part geometry.\n\nSee Help > Viewer\n\nViews are shown in the default web browser.\nViews can be generated without generating a spreadsheet or CSV files.\nSee the Output Format option below.\n\nSee Help > View for other viewing features\nSee Examples > View Box Assembly and others\nSee Websites > STEP File Viewers"
     tooltip::tooltip $buttons(viewPMI) "Graphical PMI is supported in AP242, AP203, and AP214 files.\n\nSee Help > View > Graphical PMI\nSee Help > Viewer\nSee Help > User Guide (section 4.2)\nSee Examples > Part with PMI\nSee Examples > AP242 Tessellated Part with PMI\nSee Examples > Sample STEP Files"
-    tooltip::tooltip $buttons(viewTessPart) "** Parts in an assembly might have the wrong\nposition and orientation or be missing. **\n\nTessellated edges (lines) are also shown.\n\nSee Help > View > AP242 Tessellated Part Geometry\nSee Help > Viewer\nSee Help > User Guide (section 4.3)\nSee Examples > AP242 Tessellated Part with PMI"
+    tooltip::tooltip $buttons(viewTessPart) "Tessellated part geometry is typically written to an AP242 file instead of\nor in addition to b-rep part geometry.  ** Parts in an assembly might\nhave the wrong position and orientation or be missing. **\n\nSee Help > View > AP242 Tessellated Part Geometry\nSee Help > Viewer\nSee Help > User Guide (section 4.3)\nSee Examples > AP242 Tessellated Part with PMI"
     tooltip::tooltip $buttons(tessPartMesh) "Generate a wireframe mesh based on the tessellated faces and surfaces."
     tooltip::tooltip $buttons(feaLoadScale) "The length of load vectors can be scaled by their magnitude.\nLoad vectors are always colored by their magnitude."
     tooltip::tooltip $buttons(feaDispNoTail) "The length of displacement vectors with a tail are scaled by\ntheir magnitude.  Vectors without a tail are not.\nDisplacement vectors are always colored by their magnitude.\nLoad vectors always have a tail."
     tooltip::tooltip $foptv21 "Quality controls the number of facets used for curved surfaces.\nFor example, the higher the quality the more facets around the\ncircumference of a cylinder.  Also, the higher the quality the longer\nit takes to generate the view and show in a web browser."
     tooltip::tooltip $foptv4  "For 'By View' PMI colors, each Saved View is set to a different color.  If there\nis only one or no Saved Views, then 'Random' PMI colors are used.\nFor 'Random' PMI colors, each 'annotation occurrence' is set to a different\ncolor to help differentiate one from another."
-    set tt "FEM nodes, elements, boundary conditions,\nloads, and displacements are shown.\n\nSee Help > View > AP209 Finite Element Model\nSee Help > Viewer\nSee Help > User Guide (section 4.4)\nSee Examples > AP209 Finite Element Model"
+    set tt "FEM nodes, elements, boundary conditions, loads, and\ndisplacements found in AP209 files are shown.\n\nSee Help > View > AP209 Finite Element Model\nSee Help > Viewer\nSee Help > User Guide (section 4.4)\nSee Examples > AP209 Finite Element Model"
     tooltip::tooltip $foptv7 $tt
     tooltip::tooltip $foptv8 $tt
   }
@@ -976,8 +981,8 @@ proc guiSpreadsheet {} {
   set fxlsc [ttk::labelframe $fxls.c -text " Other "]
   foreach item {{" Process text strings with symbols and non-English characters" opt(xlUnicode)} \
                 {" Show all PMI Elements on PMI Representation Coverage worksheets" opt(SHOWALLPMI)} \
-                {" Save X3D file generated by the Viewer" opt(x3dSave)} \
-                {" Do not generate links to STEP files and spreadsheets on File Summary worksheet for multiple files" opt(xlHideLinks)}} {
+                {" Do not generate links to STEP files and spreadsheets on File Summary worksheet for multiple files" opt(xlHideLinks)} \
+                {" Save X3D file generated by the Viewer" opt(x3dSave)}} {
     set idx [string range [lindex $item 1] 4 end-1]
     set buttons($idx) [ttk::checkbutton $fxlsc.$cb -text [lindex $item 0] -variable [lindex $item 1] -command {checkValues}]
     pack $buttons($idx) -side top -anchor w -padx 5 -pady 0 -ipady 0
@@ -1047,11 +1052,8 @@ Product model data) Part 21 file (.stp or .step or .p21 file extension) and
 The four different types of output can be selected in the Options tab.  If you are interested in
 only using the Viewer and not generating a spreadsheet, select View Only on the Options tab.
 
-Help is available in the User Guide or in tooltip help.  Some newer features might not be described
-in the User Guide. Check the Changelog for recent updates to the software.  See Help > Text Strings
-for information that supplements the User Guide section 5.5 on Unicode Characters.
-
-Files with a .stpnc or .spf file extension are supported if the file extension is changed to .stp"
+Help is available here, in the User Guide, and in tooltip help.  New features might not be
+described in the User Guide.  Check the Changelog for recent updates to the software."
     .tnb select .tnb.status
   }
 
@@ -1088,7 +1090,11 @@ Spreadsheet tab:
 - Table: Generate tables for each spreadsheet to facilitate sorting and filtering.
 - Number Format: Option to not round real numbers.
 - Maximum Rows: The maximum number of rows for any worksheet can be set lower than the normal
-  limits for Excel."
+  limits for Excel.
+
+All text in the Status tab can be written to a Log File when a STEP file is processed (Options tab).
+The log file is written to myfile-sfa.log.  In the log file, syntax errors are highlighted by ***
+and warnings and other messages are highlighted by **.  Use F4 to open the log file."
     .tnb select .tnb.status
   }
 
@@ -1142,7 +1148,9 @@ assemblies.  Part geometry viewer features:
 - The part bounding box min and max XYZ coordinates are based on the faceted geometry being shown
   and not the exact geometry in the STEP file.  There might be a variation in the coordinates
   depending on the Quality option.  The bounding box also accounts for any sketch geometry if it is
-  displayed but not graphical PMI and supplemental geometry.
+  displayed but not graphical PMI and supplemental geometry.  The bounding box can be shown in the
+  viewer to confirm that the min and max coordinates are correct.  If the part is too large to
+  rotate smoothly in the viewer, turn off the part and rotate the bounding box.
 
 - See Help > Text Strings for how non-English characters are handled in the Viewer.
 
@@ -1151,9 +1159,10 @@ assemblies.  Part geometry viewer features:
 
 In the web browser, use Page Down to switch between front, side, top, and orthographic viewpoints.
 Use key 'a' to view all and 'r' to restore to the original view.  The function of other keys is
-described in the link 'Use the mouse'.  Navigation uses the Examine Mode.  Sometimes the part or
-PMI might be located far away from the origin.  In this case, turn off the Origin and use 'a' to
-view all.
+described in the link 'Use the mouse'.  Navigation uses the Examine Mode.
+
+Sometimes a part might be located far away from the origin and not visible.  In this case, turn off
+the Origin and Sketch Geometry.  Then use 'a' to view all.
 
 For very large STEP files, it might take several minutes to process the STEP part geometry.  In the
 View section on the Options tab, uncheck Edges and Sketch, and select Quality Low.  For Output
@@ -1162,9 +1171,9 @@ display in the web browser.  Select 'Wait' if the web browser prompts that it is
 when opening the HTML file.
 
 The viewer generates an X3D file that is embedded in the HTML file, thus creating the x3dom file
-that is shown in the web browser.  Select 'Save X3D ...' on the Spreadsheet tab to keep the X3D
-file so that it can be shown in an X3D viewer or imported to other software.  Datum targets,
-supplemental geometry, and finite element models are not supported.
+that is shown in the web browser.  Select 'Save X3D ...' on the Spreadsheet tab to save the X3D
+file so that it can be shown in an X3D viewer or imported to other software.  Part geometry
+including tessellated geometry and graphical PMI is supported.
 
 The viewer can also be used with ASCII STL files used for 3D printing.  The STL file is first
 converted to a STEP file containing AP242 tessellated geometry and then processed by the viewer.
@@ -1216,17 +1225,14 @@ geometry is not associated with graphical PMI Saved Views.
 
 The following types of supplemental geometry and associated text are supported.
 - Coordinate System: red/green/blue axes or by axes color
-- Plane: blue transparent outlined square
+- Plane: blue transparent outlined surface
 - Cylinder: blue transparent cylinder
 - Line/Circle/Ellipse: purple line/circle/ellipse
 - Point: black dot
 - Tessellated Surface: assigned color
 
-Lines and circles that are trimmed by cartesian_point will not be trimmed.  Bounding edges for
-planes and cylinders are not supported.  All bounded and unbounded planes are shown with a fixed
-size.
-
-Supplemental geometry can be switched on and off in the viewer.
+Trimming lines and circles with cartesian_point is not supported.  Unbounded planes are with shown
+with a square surface.  Supplemental geometry can be switched on and off in the viewer.
 
 See Websites > CAx Recommended Practices (Supplemental Geometry)"
     .tnb select .tnb.status
@@ -1518,11 +1524,8 @@ A comment indicating that there are errors is also shown with a small red triang
 right corner of a cell in column A.
 
 On an entity worksheet, most syntax errors are highlighted in red and have a cell comment with the
-text of the syntax error that was shown in the Status tab.
-
-All text in the Status tab can be written to a Log File when a STEP file is processed (Options tab).
-The log file is written to myfile-sfa.log.  In a log file, error messages are highlighted by ***.
-Use F4 to open the log file.
+text of the syntax error that was shown in the Status tab.  Syntax errors are highlighted by *** in
+the log file.
 
 NOTE - Syntax Errors related to CAx-IF Recommended Practices are unrelated to errors detected with
 the Syntax Checker.  See Help > Syntax Checker
@@ -1612,6 +1615,7 @@ F2 - Open current or last Spreadsheet
 F3 - Open current or last View file
 F4 - Open Log file
 F5 - Open STEP file in a text editor  (See Help > Open STEP File in App)
+Shift-F5 - Open STEP file directory
 
 F6 - Generate Speadsheets and/or Views from current or last set of multiple STEP files
 F7 - Open current or last File Summary Spreadsheet generated from a set of multiple STEP files
@@ -1696,6 +1700,9 @@ Process categories and options in the Options tab.
 If the reports for PMI Representation or Presentation are selected, then Coverage Analysis
 worksheets are also generated.
 
+In some rare cases an error will be reported with an entity when processing multiple files that is
+not an error when processing it as a single file.  Reporting the error is a bug.
+
 See Help > User Guide (section 8)
 See Examples > PMI Coverage Analysis"
     .tnb select .tnb.status
@@ -1779,7 +1786,7 @@ automatically selected based on the file schema or size.  There is a warning mes
 detected in the STEP file and the option is not selected.  In this case the \\X2\\ characters are
 ignored and will be missing in the spreadsheet.
 
-For the viewer, only \\X\\ and \\X2\\ are supported for part and assembly names.  Non-English
+For the viewer, all control directives are supported for part and assembly names.  Non-English
 characters are supported depending STEP file encoding, e.g., UTF-8 or ANSI.
 
 Some non-English characters might cause the software to crash or prevent a view from being
@@ -1940,18 +1947,18 @@ proc guiWebsitesMenu {} {
 
   $Websites add separator
   $Websites add command -label "CAx Interoperability Forum (CAx-IF)" -command {openURL https://www.cax-if.org/cax/cax_introduction.php}
-  $Websites add command -label "STEP File Viewers"         -command {openURL https://www.cax-if.org/step_viewers.php}
-  $Websites add command -label "CAx Recommended Practices" -command {openURL https://www.cax-if.org/cax/cax_recommPractice.php}
-  $Websites add command -label "CAD Implementations"       -command {openURL https://www.cax-if.org/cax/vendor_info.php}
+  $Websites add command -label "CAx Recommended Practices"           -command {openURL https://www.cax-if.org/cax/cax_recommPractice.php}
+  $Websites add command -label "CAD Implementations"                 -command {openURL https://www.cax-if.org/cax/vendor_info.php}
+  $Websites add command -label "STEP File Viewers"                   -command {openURL https://www.cax-if.org/step_viewers.php}
 
   $Websites add separator
   $Websites add cascade -label "AP242" -menu $Websites.0
   set Websites0 [menu $Websites.0 -tearoff 1]
-  $Websites0 add command -label "AP242 Project"        -command {openURL http://www.ap242.org}
+  $Websites0 add command -label "AP242 Project"           -command {openURL http://www.ap242.org}
   $Websites0 add command -label "AP203 vs AP214 vs AP242" -command {openURL https://www.capvidia.com/blog/best-step-file-to-use-ap203-vs-ap214-vs-ap242}
-  $Websites0 add command -label "Schema Documentation" -command {openURL https://www.cax-if.org/documents/AP242ed2_HTML/AP242ed2.htm}
-  $Websites0 add command -label "EXPRESS Schema"       -command {openURL https://www.cax-if.org/documents/ap242ed2_mim_lf_v1.101.exp}
-  $Websites0 add command -label "ISO 10303-242"        -command {openURL https://www.iso.org/standard/66654.html}
+  $Websites0 add command -label "Schema Documentation"    -command {openURL https://www.cax-if.org/documents/AP242ed2_HTML/AP242ed2.htm}
+  $Websites0 add command -label "EXPRESS Schema"          -command {openURL https://www.cax-if.org/documents/ap242ed2_mim_lf_v1.101.exp}
+  $Websites0 add command -label "ISO 10303-242"           -command {openURL https://www.iso.org/standard/66654.html}
   $Websites0 add separator
   $Websites0 add command -label "Journal Article"    -command {openURL https://www.nist.gov/publications/portrait-iso-step-tolerancing-standard-enabler-smart-manufacturing-systems}
   $Websites0 add command -label "Presentation (pdf)" -command {openURL https://s3.amazonaws.com/nist-el/mfg_digitalthread/16_aBarnardFeeney.pdf}
