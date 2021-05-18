@@ -1,8 +1,6 @@
 # NIST STEP File Analyzer and Viewer
 
-With these instructions you can build the NIST STEP File Analyzer and Viewer (SFA) from the source code.  SFA generates a spreadsheet and visualization from an ISO 10303 Part 21 STEP file.  A pre-built Windows version of NIST STEP File Analyzer and Viewer is available [here](https://www.nist.gov/services-resources/software/step-file-analyzer-and-viewer).  More information, sample spreadsheets and visualizations, and documentation about SFA is available on the website including the [STEP File Analyzer and Viewer User Guide](https://www.nist.gov/publications/step-file-analyzer-and-viewer-user-guide-update-6).
-
-STEP files are used to represent Product and Manufacturing Information (PMI) for data exchange and interoperability between Computer-Aided Design (CAD), Manufacturing (CAM), Analysis (CAE), and Inspection (CMM) software.  STEP is also used for the long-term archiving and retrieval product data (LOTAR).
+With these instructions you can build the [NIST STEP File Analyzer and Viewer](https://www.nist.gov/services-resources/software/step-file-analyzer-and-viewer) (SFA) from the source code.  SFA generates a spreadsheet and visualization from an ISO 10303 Part 21 STEP file.  More information, sample spreadsheets and visualizations, and documentation about SFA is available on the website including the [STEP File Analyzer and Viewer User Guide](https://www.nist.gov/publications/step-file-analyzer-and-viewer-user-guide-update-6).  The [NIST STEP to X3D Translator](https://www.nist.gov/services-resources/software/step-x3d-translator) is used by SFA to convert STEP b-rep part geometry to X3D and has its own source code.
 
 ## Prerequisites
 
