@@ -1,5 +1,5 @@
 # SFA version number
-proc getVersion {} {return 4.40}
+proc getVersion {} {return 4.50}
 
 # version of SFA that the User Guide is based on
 proc getVersionUG {} {return 4.2}
@@ -21,16 +21,16 @@ proc whatsNew {} {
 # new user welcome message
   if {$sfaVersion == 0} {
     outputMsg "\nWelcome to the NIST STEP File Analyzer and Viewer\n" blue
-    outputMsg "Please take a few minutes to read some the Help text so that you understand the options
-available with the software.  Also explore the Examples and Websites menus.  The User
-Guide is based on version [getVersionUG] of the software.  New and updated features are documented
-in the Changelog and Help menu.
+    outputMsg "Please take a few minutes to read some of the Help text so that you understand the
+options available with the software.  Also explore the Examples and Websites menus.
+The User Guide is based on version [getVersionUG] of the software.  New and updated features
+are documented in the Changelog and Help menu.
 
 You will be prompted to install the IFCsvr toolkit which is required to read STEP files.
 After the toolkit is installed, you are ready to process a STEP file.  Go to the File
-menu, select a STEP file, and click the Generate Spreadsheet and View button.  If you
-only want to generate a View of the STEP file, go to the Output Format section on the
-Options tab and check View Only.
+menu, select a STEP file, and click the Generate button below.
+
+Please read the Disclaimers at the end of the Help menu.
 
 Use F9 and F10 to change the font size here.  See Help > Function Keys"
   }
@@ -47,13 +47,14 @@ Use F9 and F10 to change the font size here.  See Help > Function Keys"
       outputMsg "- A new User Guide is available based on version [getVersionUG] of this software."
       showFileURL UserGuide
     }
-    if {$sfaVersion < 4.37} {outputMsg "- Updated Sample STEP Files on the Examples menu"}
+    if {$sfaVersion < 4.50} {outputMsg "- Redesigned menus on Options tab"}
+    if {$sfaVersion < 4.37} {outputMsg "- Updated Sample STEP Files in the Examples menu"}
     if {$sfaVersion < 4.12} {outputMsg "- Viewer for part geometry is faster and supports color, transparency, edges, sketch geometry, normals, and nested assemblies.  See Help > Viewer"}
     if {$sfaVersion < 3.80} {outputMsg "- Run the Syntax Checker with function key F8 or the Options tab selection.  See Help > Syntax Checker"}
     if {$sfaVersion < 2.62} {outputMsg "- Renamed output files: Spreadsheets from 'myfile_stp.xlsx' to 'myfile-sfa.xlsx' and Views from 'myfile-x3dom.html' to 'myfile-sfa.html'"}
     if {$sfaVersion < 2.30} {outputMsg "- Command-line version has been renamed: sfa-cl.exe  The old version STEP-File-Analyzer-CL.exe can be deleted."}
   }
-  outputMsg "- All new features and bug fixes are listed in the Changelog.  See Help > Changelog"
+  outputMsg "- All new features and bug fixes are documented in the Changelog.  See Help > Changelog"
 
   .tnb select .tnb.status
   update idletasks
@@ -69,8 +70,8 @@ proc showFileURL {type} {
 # update for new versions, local and online
       set localFile "SFA-User-Guide-v6.pdf"
       set URL https://doi.org/10.6028/NIST.AMS.200-10
-      if {$sfaVersion >= [expr {[getVersionUG]+0.1}]} {
-        outputMsg "\nThe User Guide is based on version [getVersionUG] of this software.  See Help > Text Strings for information\nthat supplements the User Guide section 5.5 on Unicode Characters."
+      if {$sfaVersion >= [getVersionUG]} {
+        outputMsg "\nThe User Guide is based on version [getVersionUG] of this software.  See Help > Text Strings for\ninformation that supplements the User Guide section 5.5 on Unicode Characters.  The\nmenus on the Options tab in section 3.4 have been redesigned."
         .tnb select .tnb.status
       }
     }
@@ -152,17 +153,12 @@ proc guiStartWindow {} {
 
 # yellow background color
   set bgcolor  "#ffffbb"
-  catch {option add *Frame.background       $bgcolor}
-  catch {option add *Label.background       $bgcolor}
-  catch {option add *Checkbutton.background $bgcolor}
-  catch {option add *Radiobutton.background $bgcolor}
+  option add *Frame.background $bgcolor
+  option add *Label.background $bgcolor
 
   ttk::style configure TCheckbutton -background $bgcolor
-  ttk::style map       TCheckbutton -background [list disabled $bgcolor]
   ttk::style configure TRadiobutton -background $bgcolor
-  ttk::style map       TRadiobutton -background [list disabled $bgcolor]
   ttk::style configure TLabelframe  -background $bgcolor
-  ttk::style map       TLabelframe  -background [list disabled $bgcolor]
 
   font create fontBold {*}[font configure TkDefaultFont]
   font configure fontBold -weight bold
@@ -210,7 +206,7 @@ proc guiButtons {} {
   set ftrans [frame .ftrans1 -bd 2 -background "#F0F0F0"]
   set butstr "Spreadsheet"
   if {$opt(xlFormat) == "CSV"} {set butstr "CSV Files"}
-  set buttons(genExcel) [ttk::button $ftrans.generate1 -text "Generate $butstr" -padding 4 -state disabled -command {
+  set buttons(generate) [ttk::button $ftrans.generate1 -text "Generate $butstr" -padding 4 -state disabled -command {
     saveState
     if {![info exists localNameList]} {
       set localName [getFirstFile]
@@ -343,38 +339,148 @@ proc guiFileMenu {} {
 }
 
 #-------------------------------------------------------------------------------
-# options tab, process and report
-proc guiProcessAndReports {} {
-  global allNone buttons cb entCategory fopt fopta nb opt recPracNames
+# options tab
+proc guiOptionsTab {} {
+  global allNone buttons cb entCategory fopt fopta inverses nb opt recPracNames useXL xlInstalled
 
   set cb 0
   set wopt [ttk::panedwindow $nb.options -orient horizontal]
   $nb add $wopt -text " Options " -padding 2
   set fopt [frame $wopt.fopt -bd 2 -relief sunken]
+
+#-------------------------------------------------------------------------------
+# generate section
+  set foptOF [frame $fopt.of -bd 0]
+  set foptk [ttk::labelframe $foptOF.k -text " Generate "]
+
+# checkbuttons are used for pseudo-radiobuttons
+  foreach item {{"Spreadsheet"   gen(Excel)} \
+                {"CSV Files    " gen(CSV)} \
+                {"View"          gen(View)}} {
+    set idx "gen[string range [lindex $item 1] 4 end-1]"
+    set buttons($idx) [ttk::checkbutton $foptk.$cb -text [lindex $item 0] -variable [lindex $item 1] -command {
+      if {![info exists useXL]} {set useXL 1}
+      if {[info exists xlInstalled]} {
+        if {!$xlInstalled} {set useXL 0}
+      } else {
+        set xlInstalled 1
+      }
+
+# toggle spreadsheet and view
+      if {$gen(Excel) == 0 && $gen(View) == 0 && $gen(Excel1) == 0 && $gen(View1) == 1} {
+        set gen(Excel) 1
+      } else {
+        if {$gen(Excel) == 0} {set gen(View) 1; set gen(None) 1}
+        if {$gen(View) == 0} {set gen(Excel) 1; set gen(None) 0}
+      }
+
+# part only
+      if {$gen(None) && $opt(xlFormat) != "None"} {
+        set gen(Excel) 0
+        set gen(CSV) 0
+        set opt(xlFormat) "None"
+        set allNone -1
+        if {$useXL && $xlInstalled} {$buttons(genExcel) configure -state normal}
+      }
+
+# spreadsheet
+      if {$gen(Excel) && $opt(xlFormat) != "Excel"} {
+        set gen(None) 0
+        set opt(partOnly) 0
+        if {$useXL} {
+          set gen(CSV) 0
+          set opt(xlFormat) "Excel"
+        } else {
+          set gen(Excel) 0
+          set gen(CSV) 1
+          set opt(xlFormat) "CSV"
+        }
+      }
+
+# CSV
+      if {$gen(CSV)} {
+        if {$useXL} {
+          set gen(Excel) 1
+          $buttons(genExcel) configure -state disabled
+        }
+        if {$opt(xlFormat) != "CSV"} {
+          set gen(None) 0
+          set opt(xlFormat) "CSV"
+        }
+      } elseif {$xlInstalled} {
+        $buttons(genExcel) configure -state normal
+      }
+
+# none of the above
+      if {!$gen(Excel) && !$gen(CSV) && !$gen(None)} {
+        if {$useXL} {
+          set gen(Excel) 1
+          set opt(xlFormat) "Excel"
+          $buttons(genExcel) configure -state normal
+        } else {
+          set gen(CSV) 1
+          set opt(xlFormat) "CSV"
+          $buttons(genExcel) configure -state disabled
+        }
+      }
+      checkValues
+      set gen(Excel1) $gen(Excel)
+      set gen(View1) $gen(View)
+    }]
+
+    pack $buttons($idx) -side left -anchor w -padx {5 0} -pady {0 3} -ipady 0
+    incr cb
+  }
+
+# part only (do not delete spaces)
+  foreach item {{"Part Only    "       opt(partOnly)} \
+                {"Syntax Checking    " opt(syntaxChecker)} \
+                {"Log File    "        opt(logFile)} \
+                {"Open Output Files"   opt(outputOpen)}} {
+    set idx [string range [lindex $item 1] 4 end-1]
+    set buttons($idx) [ttk::checkbutton $foptk.$cb -text [lindex $item 0] -variable [lindex $item 1] -command {checkValues}]
+    pack $buttons($idx) -side left -anchor w -padx {5 0} -pady {0 3} -ipady 0
+    incr cb
+  }
+
+  pack $foptk -side left -anchor w -pady {5 2} -padx 10 -fill both -expand true
+
+  set txt "Spreadsheets contain one worksheet for each STEP entity type.  Process categories\nbelow control which STEP entity types are written to the Spreadsheet and/or CSV\nfiles.  Analyze options below also write information to the Spreadsheet.\n\nIf Excel is installed, then Spreadsheets and CSV files can be generated.  If CSV Files\nis selected, the Spreadsheet is also generated.  CSV files do not contain any cell\ncolors, comments, or links.  GD&T symbols in CSV files are only supported with\nExcel 2016 or newer.\n\nIf Excel is not installed, only CSV files can be generated.  Options for Analyze and\nInverse Relationships are disabled."
+  catch {tooltip::tooltip $buttons(genExcel) $txt}
+  catch {tooltip::tooltip $buttons(genCSV) $txt}
+  set txt "The Viewer supports b-rep and tessellated part geometry, graphical PMI, sketch\ngeometry, supplemental geometry, datum targets, and finite element models.\n\nUse the View options below to control what is displayed in the web browser.\n\nPart Only generates only Part Geometry.  This is useful when no other View\nfeatures are needed and for large STEP files.\n\nSee Help > Viewer"
+  catch {tooltip::tooltip $buttons(genView) $txt}
+  catch {tooltip::tooltip $buttons(partOnly) $txt}
+
+  catch {tooltip::tooltip $buttons(logFile) "Status tab text can be written to a Log file myfile-sfa.log  Use F4 to open the Log file.\nSyntax Checker results are written to myfile-sfa-err.log\nAll text in the Status tab can be saved by right-clicking and selecting Save."}
+  catch {tooltip::tooltip $buttons(syntaxChecker) "Use this option to run the Syntax Checker when generating a Spreadsheet\nor View.  The Syntax Checker can also be run with function key F8.\n\nThis checks for basic syntax errors and warnings in the STEP file related to\nmissing or extra attributes, incompatible and unresolved\ entity references,\nselect value types, illegal and unexpected characters, and other problems\nwith entity attributes.\n\nSee Help > Syntax Checker\nSee Help > User Guide (section 7)"}
+  catch {tooltip::tooltip $buttons(outputOpen) "If output files are not opened after they have been generated, they can be opened\nwith functions keys.  See Help > Function Keys\n\nIf possible, existing output files are always overwritten by new files.  Output files\ncan be written to a user-defined directory.  See Spreadsheet tab.\n\nSee Help > User Guide (section 3.4.1)"}
+  pack $foptOF -side top -anchor w -pady 0 -fill x
+
+#-------------------------------------------------------------------------------
+# process section
   set fopta [ttk::labelframe $fopt.a -text " Process "]
 
 # option to process user-defined entities
   guiUserDefinedEntities
 
+# entity categories
   set fopta1 [frame $fopta.1 -bd 0]
   foreach item {{" Common"         opt(stepCOMM)} \
                 {" Presentation"   opt(stepPRES)} \
-                {" Representation" opt(stepREPR)} \
-                {" Tolerance"      opt(stepTOLR)}} {
+                {" Representation" opt(stepREPR)}} {
     set idx [string range [lindex $item 1] 4 end-1]
     set buttons($idx) [ttk::checkbutton $fopta1.$cb -text [lindex $item 0] -variable [lindex $item 1] -command {checkValues}]
     pack $buttons($idx) -side top -anchor w -padx 5 -pady 0 -ipady 0
     incr cb
     if {[info exists entCategory($idx)]} {
-      set str "most STEP APs."
-      if {$idx == "stepTOLR"} {set str "AP214 and AP242."}
-      set ttmsg "[string trim [lindex $item 0]] entities are found in $str"
-      append ttmsg "  See Help > Supported STEP APs  and  Websites > STEP Format and Schemas\n\n"
       if {$idx != "stepCOMM"} {
-        set ttmsg [guiToolTip $ttmsg $idx]
+        set ttmsg "[string trim [lindex $item 0]] entities ([llength $entCategory($idx)]) are found in most STEP APs."
       } else {
-        append ttmsg "Entity types from any selected Process category that are found in a STEP file are written to the Spreadsheet.  All AP-specific\nentities from APs other than AP203, AP214, and AP242 are always written to the Spreadsheet, including AP209, AP210, AP238,\nand AP239.  The Process categories are used to group and color-code entities on the Summary worksheet.\n\nSee Help > User Guide (section 3.4.2)"
+        set ttmsg "Process categories control which entities from AP203, AP214, and AP242 are written to the Spreadsheet.\nAll entities specific to AP209, AP210, and AP238 are always written to the Spreadsheet.\nThe categories are used to group and color-code entities on the Summary worksheet."
+        append ttmsg "\n\nSee Websites > AP203 vs AP214 vs AP242\nSee Websites > STEP Format and Schemas\nSee Help > Supported STEP APs\nSee Help > User Guide (section 3.4.2)\n\n[string trim [lindex $item 0]] entities ([llength $entCategory($idx)]) are found in most STEP APs.  The following is a subset of Common entities."
       }
+      set ttmsg [guiToolTip $ttmsg $idx]
       catch {tooltip::tooltip $buttons($idx) $ttmsg}
     }
   }
@@ -383,16 +489,15 @@ proc guiProcessAndReports {} {
   set fopta2 [frame $fopta.2 -bd 0]
   foreach item {{" Measure"      opt(stepQUAN)} \
                 {" Shape Aspect" opt(stepSHAP)} \
-                {" Geometry"     opt(stepGEOM)} \
-                {" Coordinates"  opt(stepCPNT)}} {
+                {" Tolerance"    opt(stepTOLR)}} {
     set idx [string range [lindex $item 1] 4 end-1]
     set buttons($idx) [ttk::checkbutton $fopta2.$cb -text [lindex $item 0] -variable [lindex $item 1] -command {checkValues}]
     pack $buttons($idx) -side top -anchor w -padx 5 -pady 0 -ipady 0
     incr cb
     if {[info exists entCategory($idx)]} {
-      set ttmsg "[string trim [lindex $item 0]] entities"
-      if {$idx != "stepCPNT"} {append ttmsg " are found in most STEP APs."}
-      append ttmsg "  See Help > Supported STEP APs  and  Websites > STEP Format and Schemas\n\n"
+      set str "most"
+      if {$idx == "stepTOLR"} {set str "some"}
+      set ttmsg "[string trim [lindex $item 0]] entities ([llength $entCategory($idx)]) are found in $str STEP APs."
       set ttmsg [guiToolTip $ttmsg $idx]
       catch {tooltip::tooltip $buttons($idx) $ttmsg}
     }
@@ -400,28 +505,21 @@ proc guiProcessAndReports {} {
   pack $fopta2 -side left -anchor w -pady 0 -padx 0 -fill y
 
   set fopta3 [frame $fopta.3 -bd 0]
-  foreach item {{" AP242"      opt(stepAP242)} \
-                {" Composites" opt(stepCOMP)} \
-                {" Features"   opt(stepFEAT)} \
-                {" Kinematics" opt(stepKINE)}} {
+  foreach item {{" AP242"       opt(stepAP242)} \
+                {" Geometry"    opt(stepGEOM)} \
+                {" Coordinates" opt(stepCPNT)}} {
     set idx [string range [lindex $item 1] 4 end-1]
     set buttons($idx) [ttk::checkbutton $fopta3.$cb -text [lindex $item 0] -variable [lindex $item 1] -command {checkValues}]
     pack $buttons($idx) -side top -anchor w -padx 5 -pady 0 -ipady 0
     incr cb
     if {[info exists entCategory($idx)]} {
-      if {$idx != "stepAP242"} {
-        set ttmsg "[string trim [lindex $item 0]] entities"
-        append ttmsg " are found in"
-        if {$idx == "stepCOMP"} {
-          append ttmsg " AP203 and AP242"
-        } else {
-          append ttmsg " AP214 and AP242"
-        }
-        append ttmsg ".  See Help > Supported STEP APs  and  Websites > STEP Format and Schemas\n\n"
+      if {$idx == "stepGEOM"} {
+        set ttmsg "[string trim [lindex $item 0]] entities ([llength $entCategory($idx)]) are found in most STEP APs."
         set ttmsg [guiToolTip $ttmsg $idx]
+      } elseif {$idx == "stepCPNT"} {
+        set ttmsg "There are 2 entity types in this category.\n\ncartesian_point is found in most STEP APs\ncoordinates_list is found only in AP242"
       } else {
-        set ttmsg "These entities are only in AP242, however, the more commonly used AP242\nentities are found in the other Process categories."
-        append ttmsg "\n\nSee Websites > AP242\nSee Help > Supported STEP APs  and  Websites > STEP Format and Schemas"
+        set ttmsg "These entities ([llength $entCategory($idx)]) are found only in AP242.\nCommonly used AP242 entities are found in the other Process categories.\nSee Websites > AP242"
       }
       catch {tooltip::tooltip $buttons($idx) $ttmsg}
     }
@@ -429,10 +527,32 @@ proc guiProcessAndReports {} {
   pack $fopta3 -side left -anchor w -pady 0 -padx 0 -fill y
 
   set fopta4 [frame $fopta.4 -bd 0]
-  set anbut [list {"All" 0} {"For Analysis" 2} {"For Views" 3} {"Reset" 1}]
+  foreach item {{" Composites" opt(stepCOMP)} \
+                {" Features"   opt(stepFEAT)} \
+                {" Kinematics" opt(stepKINE)}} {
+    set idx [string range [lindex $item 1] 4 end-1]
+    set buttons($idx) [ttk::checkbutton $fopta4.$cb -text [lindex $item 0] -variable [lindex $item 1] -command {checkValues}]
+    pack $buttons($idx) -side top -anchor w -padx 5 -pady 0 -ipady 0
+    incr cb
+    if {[info exists entCategory($idx)]} {
+      set ttmsg "[string trim [lindex $item 0]] entities ([llength $entCategory($idx)])"
+      append ttmsg " are found in"
+      if {$idx == "stepCOMP"} {
+        append ttmsg " AP203 and AP242."
+      } else {
+        append ttmsg " AP214 and AP242."
+      }
+      set ttmsg [guiToolTip $ttmsg $idx]
+      catch {tooltip::tooltip $buttons($idx) $ttmsg}
+    }
+  }
+  pack $fopta4 -side left -anchor w -pady 0 -padx 0 -fill y
+
+  set fopta5 [frame $fopta.5 -bd 0]
+  set anbut [list {"All" 0} {"Reset" 1}]
   foreach item $anbut {
     set bn "allNone[lindex $item 1]"
-    set buttons($bn) [ttk::radiobutton $fopta4.$cb -variable allNone -text [lindex $item 0] -value [lindex $item 1] \
+    set buttons($bn) [ttk::radiobutton $fopta5.$cb -variable allNone -text [lindex $item 0] -value [lindex $item 1] \
       -command {
         if {$allNone == 0} {
           foreach item [array names opt] {
@@ -440,16 +560,12 @@ proc guiProcessAndReports {} {
           }
         } elseif {$allNone == 1} {
           foreach item [array names opt] {if {[string first "step" $item] == 0} {set opt($item) 0}}
-          foreach item {INVERSE PMIGRF PMISEM valProp viewFEA viewPart viewPMI viewTessPart stepUSER x3dSave} {set opt($item) 0}
+          foreach item {INVERSE PMIGRF PMISEM valProp stepUSER x3dSave} {set opt($item) 0}
           set opt(stepCOMM) 1
-          set ofNone 0
-          set ofExcel 1
+          set gen(None) 0
+          set gen(Excel) 1
           if {$opt(xlFormat) == "None"} {set opt(xlFormat) "Excel"}
-          if {!$ofCSV} {$buttons(ofExcel) configure -state normal}
-        } elseif {$allNone == 2} {
-          foreach item {PMISEM PMIGRF valProp} {set opt($item) 1}
-        } elseif {$allNone == 3} {
-          foreach item {viewFEA viewPart viewPMI viewTessPart} {set opt($item) 1}
+          if {!$gen(CSV)} {$buttons(genExcel) configure -state normal}
         }
         checkValues
       }]
@@ -457,26 +573,34 @@ proc guiProcessAndReports {} {
     incr cb
   }
   catch {
-    tooltip::tooltip $buttons(allNone0) "Selects most Process categories to write to the Spreadsheet\nSee Help > User Guide (section 3.4.2)"
-    tooltip::tooltip $buttons(allNone1) "Deselects most Process categories and all Analyze and View options\nSee Help > User Guide (section 3.4.2)"
-    tooltip::tooltip $buttons(allNone2) "Selects all Analyze options and associated Process categories to write to the Spreadsheet\nSee Help > User Guide (section 6)"
-    tooltip::tooltip $buttons(allNone3) "Selects all View options and associated Process categories\nSee View Only in Output Format below\nSee Help > User Guide (section 4)"
+    tooltip::tooltip $buttons(allNone0) "Selects most Process categories"
+    tooltip::tooltip $buttons(allNone1) "Deselects all categories except Common"
   }
-  pack $fopta4 -side left -anchor w -pady 0 -padx 0 -fill y
+  pack $fopta5 -side left -anchor w -pady 0 -padx 15 -fill y
   pack $fopta -side top -anchor w -pady {5 2} -padx 10 -fill both
 
 #-------------------------------------------------------------------------------
-# report
+# analyzer section
   set foptRV [frame $fopt.rv -bd 0]
   set foptd [ttk::labelframe $foptRV.1 -text " Analyze "]
-
   set foptd1 [frame $foptd.1 -bd 0]
+
+  set buttons(genAllAnalysis) [ttk::checkbutton $foptd1.$cb -variable gen(AllAnalysis) -text " All" \
+    -command {
+      foreach item {PMISEM PMIGRF valProp} {set opt($item) 1}
+      checkValues
+    }]
+  pack $buttons(genAllAnalysis) -side top -anchor w -padx 5 -pady 0 -ipady 0
+  incr cb
+  catch {tooltip::tooltip $buttons(genAllAnalysis) "Selects Analyze options (except Inverses) and required Process categories"}
+
   foreach item {{" Validation Properties" opt(valProp)} \
                 {" AP242 PMI Representation (Semantic PMI)" opt(PMISEM)} \
                 {" Round dimensions and geometric tolerances" opt(PMISEMRND)} \
                 {" Only Dimensions" opt(PMISEMDIM)} \
                 {" PMI Presentation (Graphical PMI)" opt(PMIGRF)} \
-                {" Generate Presentation Coverage worksheet" opt(PMIGRFCOV)}} {
+                {" Presentation Coverage" opt(PMIGRFCOV)} \
+                {" Inverse Relationships and Backwards References" opt(INVERSE)}} {
     set idx [string range [lindex $item 1] 4 end-1]
     set buttons($idx) [ttk::checkbutton $foptd1.$cb -text [lindex $item 0] -variable [lindex $item 1] -command {checkValues}]
     if {$idx == "PMISEMDIM" || $idx == "PMIGRFCOV" || $idx == "PMISEMRND"} {
@@ -487,23 +611,53 @@ proc guiProcessAndReports {} {
     incr cb
   }
   pack $foptd1 -side top -anchor w -pady 0 -padx 0 -fill y
-
   pack $foptd -side left -anchor w -pady {5 2} -padx 10 -fill both -expand true
+
   catch {
     tooltip::tooltip $buttons(valProp) "Geometric, assembly, PMI, annotation, attribute, tessellated, composite, and FEA\nvalidation properties, and semantic text are reported.  Properties are shown on\nthe 'property_definition' and other entities.  Some properties are reported only if\nthe analysis for Semantic PMI is selected.  Some properties might not be shown\ndepending on the value of Maximum Rows (Spreadsheet tab).\n\nSee Help > Analyze > Validation Properties\nSee Help > User Guide (section 6.3)\nSee Help > Analyze > Syntax Errors\nSee Examples > PMI Presentation, Validation Properties"
     tooltip::tooltip $buttons(PMISEM)  "Semantic PMI is the information necessary to represent geometric\nand dimensional tolerances without any graphical PMI.  It is shown\non dimension, tolerance, datum target, and datum entities.\nSemantic PMI is found mainly in STEP AP242 files.\n\nSee Help > Analyze > PMI Representation\nSee Help > User Guide (section 6.1)\nSee Help > Analyze > Syntax Errors\nSee Examples > Spreadsheet - PMI Representation\nSee Examples > Sample STEP Files\nSee Websites > AP242"
     tooltip::tooltip $buttons(PMIGRF)  "Graphical PMI is the geometric elements necessary to draw annotations.\nThe information is shown on 'annotation occurrence' entities.\n\nSee Help > Analyze > PMI Presentation\nSee Help > User Guide (section 6.2)\nSee Help > Analyze > Syntax Errors\nSee Examples > PMI Presentation, Validation Properties\nSee Examples > Part with PMI\nSee Examples > AP242 Tessellated Part with PMI\nSee Examples > Sample STEP Files"
     tooltip::tooltip $buttons(PMIGRFCOV) "The PMI Presentation Coverage worksheet counts the number of recommended names used from the\nRecommended Practice for Representation and Presentation of PMI (AP242), Section 8.4.  The names\ndo not have any semantic PMI meaning.  This worksheet was always generated before version 3.62\nwhen PMI Presentation was selected.\n\nSee Help > Analyze > PMI Coverage Analysis"
-    tooltip::tooltip $buttons(PMISEMRND) "The number of decimal places for dimensions and geometric tolerances can be specified with\nvalue_format_type_qualifier in the STEP file.  By definition the qualifier always truncates the value.  This\noption rounds the value instead.\n\nFor example with the value 0.5625, the qualifier 'NR2 1.3' will truncate it to 0.562  However, rounding\nwill show 0.563\n\nRounding values might result in a better match to graphical PMI shown by the Viewer or to expected\nPMI in the NIST models (FTC 7, 8).\n\nSee Websites > Recommended Practice for $recPracNames(pmi242), section 5.4"
+    tooltip::tooltip $buttons(PMISEMRND) "The number of decimal places for dimensions and geometric tolerances can be specified with\nvalue_format_type_qualifier in the STEP file.  By definition the qualifier always truncates the value.\nThis option rounds the value instead.\n\nFor example with the value 0.5625, the qualifier 'NR2 1.3' will truncate it to 0.562  However, rounding\nwill show 0.563\n\nRounding values might result in a better match to graphical PMI shown by the Viewer or to expected\nPMI in the NIST models (FTC 7, 8, 11).\n\nSee Websites > Recommended Practice for $recPracNames(pmi242), section 5.4"
     tooltip::tooltip $buttons(PMISEMDIM) "Analyze only dimensional tolerances and no\ngeometric tolerances, datums, or datum targets."
+
+    set ttmsg "Inverse Relationships and Backwards References (Used In) are reported for some attributes for the following entity types if they are selected in Process above.\nInverse or Used In values are shown in additional columns highlighted in light blue and purple.\nThis option is useful for debugging some Syntax Errors and finding missing relationships and references.\n\nSee Help > User Guide (section 5.6.1)\n\n"
+    set lent ""
+    set ttlen 0
+    if {[info exists inverses]} {
+      foreach item [lsort $inverses] {
+      set ent [lindex [split $item " "] 0]
+        if {$ent != $lent} {
+          set str [formatComplexEnt $ent]
+          incr ttlen [expr {[string length $str]+3}]
+          if {$ttlen <= 160} {
+            append ttmsg "$str   "
+          } else {
+            if {[string index $ttmsg end] != "\n"} {set ttmsg "[string range $ttmsg 0 end-3]\n$str   "}
+            set ttlen [expr {[string length $str]+3}]
+          }
+        }
+        set lent $ent
+      }
+      tooltip::tooltip $buttons(INVERSE) $ttmsg
+    }
   }
 
 #-------------------------------------------------------------------------------
-# view
+# view section
   set foptv [ttk::labelframe $foptRV.9 -text " View "]
+  set foptv20 [frame $foptv.20 -bd 0]
+
+  set buttons(genAllView) [ttk::checkbutton $foptv20.$cb -variable gen(AllView) -text " All" \
+    -command {
+      foreach item {viewFEA viewPart viewPMI viewTessPart} {set opt($item) 1}
+      checkValues
+    }]
+  pack $buttons(genAllView) -side top -anchor w -padx 5 -pady 0 -ipady 0
+  incr cb
+  catch {tooltip::tooltip $buttons(genAllView) "Selects all View options.  See Help > User Guide (section 4)"}
 
 # part geometry
-  set foptv20 [frame $foptv.20 -bd 0]
   foreach item {{" Part Geometry" opt(viewPart)} \
                 {" Edges" opt(partEdges)} \
                 {" Sketch" opt(partSketch)} \
@@ -551,7 +705,7 @@ proc guiProcessAndReports {} {
 # tessellated geometry
   set foptv6 [frame $foptv.6 -bd 0]
   foreach item {{" AP242 Tessellated Part Geometry" opt(viewTessPart)} \
-                {"Generate Wireframe" opt(tessPartMesh)}} {
+                {"Wireframe" opt(tessPartMesh)}} {
     set idx [string range [lindex $item 1] 4 end-1]
     set buttons($idx) [ttk::checkbutton $foptv6.$cb -text [lindex $item 0] -variable [lindex $item 1] -command {checkValues}]
     pack $buttons($idx) -side left -anchor w -padx 5 -pady 0 -ipady 0
@@ -577,7 +731,7 @@ proc guiProcessAndReports {} {
                 {"No vector tail" opt(feaDispNoTail)}} {
     set idx [string range [lindex $item 1] 4 end-1]
     set buttons($idx) [ttk::checkbutton $foptv8.$cb -text [lindex $item 0] -variable [lindex $item 1] -command {checkValues}]
-    pack $buttons($idx) -side left -anchor w -padx 2 -pady 0 -ipady 0
+    pack $buttons($idx) -side left -anchor w -padx 2 -pady {0 3} -ipady 0
     incr cb
   }
   pack $foptv8 -side top -anchor w -pady 0 -padx {26 10} -fill y
@@ -585,7 +739,7 @@ proc guiProcessAndReports {} {
   pack $foptv -side left -anchor w -pady {5 2} -padx 10 -fill both -expand true
   pack $foptRV -side top -anchor w -pady 0 -fill x
   catch {
-    tooltip::tooltip $foptv20 "The view for part geometry supports color, transparency, edges, and\nsketch geometry.  The viewer does not support measurements.\n\nNormals improve the default smooth shading at the expense of slower\nprocessing and display.  Using High Quality and Normals results in the\nbest appearance for part geometry.\n\nSee Help > Viewer\n\nViews are shown in the default web browser.\nViews can be generated without generating a spreadsheet or CSV files.\nSee the Output Format option below.\n\nSee Help > View for other viewing features\nSee Examples > View Box Assembly and others\nSee Websites > STEP File Viewers"
+    tooltip::tooltip $foptv20 "The view for part geometry supports color, transparency, edges, and\nsketch geometry.  The viewer does not support measurements.\n\nNormals improve the default smooth shading at the expense of slower\nprocessing and display.  Using High Quality and Normals results in the\nbest appearance for part geometry.\n\nViews are shown in the default web browser.\n\nSee Help > Viewer\nSee Help > View for other viewing features\nSee Examples > View Box Assembly and others"
     tooltip::tooltip $buttons(viewPMI) "Graphical PMI is supported in AP242, AP203, and AP214 files.\n\nSee Help > View > Graphical PMI\nSee Help > Viewer\nSee Help > User Guide (section 4.2)\nSee Examples > Part with PMI\nSee Examples > AP242 Tessellated Part with PMI\nSee Examples > Sample STEP Files"
     tooltip::tooltip $buttons(viewTessPart) "Tessellated part geometry is typically written to an AP242 file instead of\nor in addition to b-rep part geometry.  ** Parts in an assembly might\nhave the wrong position and orientation or be missing. **\n\nSee Help > View > AP242 Tessellated Part Geometry\nSee Help > Viewer\nSee Help > User Guide (section 4.3)\nSee Examples > AP242 Tessellated Part with PMI"
     tooltip::tooltip $buttons(tessPartMesh) "Generate a wireframe mesh based on the tessellated faces and surfaces."
@@ -646,44 +800,10 @@ proc guiUserDefinedEntities {} {
 }
 
 #-------------------------------------------------------------------------------
-# inverse relationships
-proc guiInverse {} {
-  global buttons cb fopt inverses opt
-
-  set foptc [ttk::labelframe $fopt.c -text " Inverse Relationships "]
-  set item {" Show Inverses and Backwards References (Used In) for PMI, Shape Aspect, Representation, Tolerance, and more" opt(INVERSE)}
-  set idx [string range [lindex $item 1] 4 end-1]
-  set buttons($idx) [ttk::checkbutton $foptc.$cb -text [lindex $item 0] -variable [lindex $item 1] -command {checkValues}]
-  pack $buttons($idx) -side left -anchor w -padx 5 -pady 0 -ipady 0
-  incr cb
-
-  pack $foptc -side top -anchor w -pady {5 2} -padx 10 -fill both
-  set ttmsg "Inverse Relationships and Backwards References (Used In) are reported for some attributes for the following entities.\nInverse or Used In values are shown in additional columns highlighted in light blue and purple.\n\nSee Help > User Guide (section 5.6.1)\n\n"
-  set lent ""
-  set ttlen 0
-  if {[info exists inverses]} {
-    foreach item [lsort $inverses] {
-    set ent [lindex [split $item " "] 0]
-      if {$ent != $lent} {
-        set str "[formatComplexEnt $ent]    "
-        append ttmsg $str
-        incr ttlen [string length $str]
-        if {$ttlen > 140} {
-          if {[string index $ttmsg end] != "\n"} {append ttmsg "\n"}
-          set ttlen 0
-        }
-      }
-      set lent $ent
-    }
-    catch {tooltip::tooltip $foptc $ttmsg}
-  }
-}
-
-#-------------------------------------------------------------------------------
-# open STEP file and output format
+# open STEP file
 proc guiOpenSTEPFile {} {
   global appName appNames buttons cb developer dispApps dispCmds edmWhereRules edmWriteToFile stepToolsWriteToFile
-  global fopt foptf useXL xlInstalled
+  global fopt foptf
 
   set foptOP [frame $fopt.op -bd 0]
   set foptf [ttk::labelframe $foptOP.f -text " Open STEP File in App"]
@@ -790,107 +910,7 @@ proc guiOpenSTEPFile {} {
 
   catch {tooltip::tooltip $buttons(appCombo) "This option is a convenient way to open a STEP file in other apps.  The\npull-down menu contains some apps that can open a STEP file such as\nSTEP viewers and browsers, however, only if they are installed in their\ndefault location.\n\nSee Help > Open STEP File in App\nSee Websites > STEP File Viewers\n\nThe 'Tree View (for debugging)' option rearranges and indents the entities\nto show the hierarchy of information in a STEP file.  The 'tree view' file\n(myfile-sfa.txt) is written to the same directory as the STEP file or to the\nsame user-defined directory specified in the Spreadsheet tab.  Including\nGeometry or Styled_item can make the 'tree view' file very large.  The\n'tree view' might not process /*comments*/ in a STEP file correctly.\n\nThe 'Default STEP Viewer' option opens the STEP file in whatever\napp is associated with STEP (.stp, .step, .p21) files.\n\nUse F5 to open the STEP file in a text editor."}
   pack $foptf -side left -anchor w -pady {5 2} -padx 10 -fill both -expand true
-
-#-------------------------------------------------------------------------------
-# syntax checker
-  set foptl [ttk::labelframe $foptOP.l -text " Syntax Checker "]
-  set txt " Run Syntax Checker"
-  set idx syntaxChecker
-  set buttons($idx) [ttk::checkbutton $foptl.$cb -text $txt -variable opt($idx) -command {checkValues}]
-  pack $buttons($idx) -side left -anchor w -padx 5 -pady 0 -ipady 0
-  incr cb
-  pack $foptl -side left -anchor w -pady {5 2} -padx 10 -fill both -expand true
-  catch {tooltip::tooltip $foptl "Select this option to run the Syntax Checker when generating a Spreadsheet\nor View.  The Syntax Check can also be run with function key F8.\n\nIt checks for basic syntax errors and warnings in the STEP file related to\nmissing or extra attributes, incompatible and unresolved\ entity references,\nselect value types, illegal and unexpected characters, and other problems\nwith entity attributes.\n\nSee Help > Syntax Checker\nSee Help > User Guide (section 7)"}
   pack $foptOP -side top -anchor w -pady 0 -fill x
-
-#-------------------------------------------------------------------------------
-# output format
-  set foptOF [frame $fopt.of -bd 0]
-  set foptk [ttk::labelframe $foptOF.k -text " Output Format "]
-  set idx outputOpen
-  set buttons($idx) [ttk::checkbutton $foptk.$cb -text " Open Output Files" -variable opt(outputOpen)]
-  pack $buttons($idx) -side bottom -anchor w -padx 5 -pady 0 -ipady 0
-  incr cb
-
-# checkbuttons are used for pseudo-radiobuttons
-  foreach item {{" Spreadsheet" ofExcel} \
-                {" CSV Files  " ofCSV} \
-                {" View Only" ofNone}} {
-    set idx [lindex $item 1]
-    set buttons($idx) [ttk::checkbutton $foptk.$cb -text [lindex $item 0] -variable [lindex $item 1] -command {
-      if {![info exists useXL]} {set useXL 1}
-      if {[info exists xlInstalled]} {
-        if {!$xlInstalled} {set useXL 0}
-      } else {
-        set xlInstalled 1
-      }
-
-      if {$ofNone && $opt(xlFormat) != "None"} {
-        set ofExcel 0
-        set ofCSV 0
-        set opt(xlFormat) "None"
-        set allNone -1
-        if {$useXL && $xlInstalled} {$buttons(ofExcel) configure -state normal}
-      }
-      if {$ofExcel && $opt(xlFormat) != "Excel"} {
-        set ofNone 0
-        if {$useXL} {
-          set ofCSV 0
-          set opt(xlFormat) "Excel"
-        } else {
-          set ofExcel 0
-          set ofCSV 1
-          set opt(xlFormat) "CSV"
-        }
-      }
-      if {$ofCSV} {
-        if {$useXL} {
-          set ofExcel 1
-          $buttons(ofExcel) configure -state disabled
-        }
-        if {$opt(xlFormat) != "CSV"} {
-          set ofNone 0
-          set opt(xlFormat) "CSV"
-        }
-      } elseif {$xlInstalled} {
-        $buttons(ofExcel) configure -state normal
-      }
-      if {!$ofExcel && !$ofCSV && !$ofNone} {
-        if {$useXL} {
-          set ofExcel 1
-          set opt(xlFormat) "Excel"
-          $buttons(ofExcel) configure -state normal
-        } else {
-          set ofCSV 1
-          set opt(xlFormat) "CSV"
-          $buttons(ofExcel) configure -state disabled
-        }
-      }
-      checkValues
-    }]
-    pack $buttons($idx) -side left -anchor w -padx 5 -pady 0 -ipady 0
-    incr cb
-  }
-
-# part only
-  set item {" Part Only" opt(partOnly)}
-  set idx [string range [lindex $item 1] 4 end-1]
-  set buttons($idx) [ttk::checkbutton $foptk.$cb -text [lindex $item 0] -variable [lindex $item 1] -command {checkValues}]
-  pack $buttons($idx) -side left -anchor w -padx 5 -pady 0 -ipady 0
-  incr cb
-  pack $foptk -side left -anchor w -pady {5 2} -padx 10 -fill both -expand true
-
-  catch {tooltip::tooltip $foptk "If Excel is installed, then Spreadsheets and CSV files can be generated.  If CSV Files\nis selected, the Spreadsheet is also generated.  CSV files do not contain any cell\ncolors, comments, or links.  GD&T symbols in CSV files are only supported with\nExcel 2016 or newer.\n\nIf Excel is not installed, only CSV files can be generated.  Options for Analyze and\nInverse Relationships are disabled.\n\nView Only does not generate any Spreadsheets or CSV files.  All options except\nthose for View are disabled.  Part Only generates only Part Geometry.  This is\nuseful when no other View features of the software are needed and for large STEP\nfiles.\n\nIf output files are not opened after they have been generated, use F2 to open a\nSpreadsheet and F3 to open a View.  Use F7 to open the File Summary spreadsheet \nwhen processing multiple files.\n\nIf possible, existing output files are always overwritten by new files.  Output files\ncan be written to a user-defined directory.  See Spreadsheet tab.\n\nSee Help > User Guide (section 3.4.1)"}
-
-# log file
-  set foptm [ttk::labelframe $foptOF.m -text " Log File "]
-  set txt " Generate a Log File of the text in the Status tab"
-  set idx logFile
-  set buttons($idx) [ttk::checkbutton $foptm.$cb -text $txt -variable opt($idx)]
-  pack $buttons($idx) -side top -anchor w -padx 5 -pady 0 -ipady 0
-  pack $foptm -side left -anchor w -pady {5 2} -padx 10 -fill both -expand true
-  pack $foptOF -side top -anchor w -pady 0 -fill x
-  catch {tooltip::tooltip $buttons(optlogFile)  "The Log file is written to myfile-sfa.log  Use F4 to open the Log file.\nSyntax Checker results are written to myfile-sfa-err.log  See Help > Syntax Checker\nAll text in the Status tab can be saved by right-clicking and selecting Save."}
 }
 
 #-------------------------------------------------------------------------------
@@ -1018,7 +1038,7 @@ proc guiSpreadsheet {} {
 # help menu
 proc guiHelpMenu {} {
   global contact defaultColor Examples excelVersion filesProcessed Help ifcsvrDir ifcsvrVer
-  global mytemp nistVersion opt recPracNames scriptName stepAPs webCmd
+  global mytemp nistVersion opt recPracNames scriptName stepAPs
 
   $Help add command -label "User Guide" -command {showFileURL UserGuide}
   $Help add command -label "What's New" -command {whatsNew}
@@ -1049,9 +1069,6 @@ Product model data) Part 21 file (.stp or .step or .p21 file extension) and
     to recommended practices, and
 4 - checks for basic syntax errors.
 
-The four different types of output can be selected in the Options tab.  If you are interested in
-only using the Viewer and not generating a spreadsheet, select View Only on the Options tab.
-
 Help is available here, in the User Guide, and in tooltip help.  New features might not be
 described in the User Guide.  Check the Changelog for recent updates to the software."
     .tnb select .tnb.status
@@ -1062,10 +1079,13 @@ described in the User Guide.  Check the Changelog for recent updates to the soft
 outputMsg "\nOptions -------------------------------------------------------------------------------------------" blue
 outputMsg "See Help > User Guide (sections 3.4, 3.5, 4, and 6)
 
+Generate: Generate Excel spreadsheets, CSV files, and/or Views.  If Excel is not installed, CSV
+files are automatically generated.  Some options are not supported with CSV files.  The Syntax
+Checker can also be run when processing a STEP file.
+
 Process: Select which types of entities are processed.  The tooltip help lists all the entities
 associated with that type.  Selectively process only the entities or views relevant to your
-analysis.  Entity types and views can also be selected with the All, For Analysis, and For Views
-buttons.
+analysis.
 
 The CAx-IF Recommended Practices are checked for any of the Analyze options.
 - PMI Representation Analysis: Dimensional tolerances, geometric tolerances, and datum features are
@@ -1074,17 +1094,11 @@ The CAx-IF Recommended Practices are checked for any of the Analyze options.
   Associated Saved Views, Validation Properties, and Geometry are also reported.
 - Validation Properties Analysis: Geometric, assembly, PMI, annotation, attribute, and tessellated
   validation properties are reported.
+- Inverse Relationships: For some entities, Inverse relationships and backwards references (Used In)
+  are shown on the worksheets.
 
 View: Part geometry, graphical PMI annotations, tessellated part geometry in AP242 files, and AP209
 finite element models can be shown in a web browser.
-
-Inverse Relationships: For some entities, Inverse relationships and backwards references (Used In)
-are shown on the worksheets.
-
-Output Format: Generate Excel spreadsheets, CSV files, or only Views.  If Excel is not installed,
-CSV files are automatically generated.  Some options are not supported with CSV files.  The View
-Only option does not generate spreadsheets or CSV files.  The Syntax Checker can also be run when
-processing a STEP file.
 
 Spreadsheet tab:
 - Table: Generate tables for each spreadsheet to facilitate sorting and filtering.
@@ -1106,9 +1120,9 @@ x3dom (x3dom.org) is used to show and navigate 3D models in a web browser.  x3do
 Internet connection.  The HTML file is self-contained and can be shared with other users, including
 those on non-Windows systems.  The viewer does not support measuring the model.
 
-Views can be generated without generating a spreadsheet or CSV files.  See the Output Format on the
-Options tab.  The Part Only option is useful when no other View features of the software are needed
-and for large STEP files.
+Views can be generated without generating a spreadsheet or CSV files.  See Generate on the Options
+tab.  The Part Only option is useful when no other View features of the software are needed and for
+large STEP files.
 
 The viewer supports part geometry with color, transparency, part edges, sketch geometry, and nested
 assemblies.  Part geometry viewer features:
@@ -1166,7 +1180,7 @@ the Origin and Sketch Geometry.  Then use 'a' to view all.
 
 For very large STEP files, it might take several minutes to process the STEP part geometry.  In the
 View section on the Options tab, uncheck Edges and Sketch, and select Quality Low.  For Output
-Format, select View Only and Part Only.  The resulting HTML file might also take several minutes to
+Format, select View and Part Only.  The resulting HTML file might also take several minutes to
 display in the web browser.  Select 'Wait' if the web browser prompts that it is running slowly
 when opening the HTML file.
 
@@ -1223,16 +1237,19 @@ outputMsg "\nSupplemental Geometry ---------------------------------------------
 outputMsg "Supplemental geometry is shown only if Part Geometry or Graphical PMI is also viewed.  Supplemental
 geometry is not associated with graphical PMI Saved Views.
 
-The following types of supplemental geometry and associated text are supported.
-- Coordinate System: red/green/blue axes or by axes color
+The following types of supplemental geometry and associated text are supported.  Colors defined in
+the STEP file override the default colors below.
+- Coordinate System: red/green/blue axes
 - Plane: blue transparent outlined surface
 - Cylinder: blue transparent cylinder
 - Line/Circle/Ellipse: purple line/circle/ellipse
 - Point: black dot
-- Tessellated Surface: assigned color
+- Tessellated Surface: defined color
 
 Trimming lines and circles with cartesian_point is not supported.  Unbounded planes are with shown
 with a square surface.  Supplemental geometry can be switched on and off in the viewer.
+
+Supplemental geometry is also counted on the PMI Coverage Analysis worksheet if a View is generated.
 
 See Websites > CAx Recommended Practices (Supplemental Geometry)"
     .tnb select .tnb.status
@@ -1527,6 +1544,8 @@ On an entity worksheet, most syntax errors are highlighted in red and have a cel
 text of the syntax error that was shown in the Status tab.  Syntax errors are highlighted by *** in
 the log file.
 
+The Inverse Relationships option in the Analyze section might be useful to debug Syntax Errors.
+
 NOTE - Syntax Errors related to CAx-IF Recommended Practices are unrelated to errors detected with
 the Syntax Checker.  See Help > Syntax Checker
 
@@ -1779,12 +1798,11 @@ the accented character é.  Definitions of Unicode characters, such as E9, can be
 www.unicode.org/charts  Some CAD software do not support these control directives when exporting or
 importing a STEP file.
 
-For a spreadsheet, the \\X\\ and \\S\\ control directives are supported by default.  To support
-non-English characters using the \\X2\\ control directive, use the option on the Spreadsheets tab.
-Processing a STEP file takes longer with the option selected.  In some cases the option will be
-automatically selected based on the file schema or size.  There is a warning message if \\X2\\ is
-detected in the STEP file and the option is not selected.  In this case the \\X2\\ characters are
-ignored and will be missing in the spreadsheet.
+For a spreadsheet, the \\X\\ and \\S\\ control directives are supported by default.  Use the option
+on the Spreadsheets tab to support non-English characters using the \\X2\\ control directive.  In
+some cases the option will be automatically selected based on the file schema or size.  There is a
+warning message if \\X2\\ is detected in the STEP file and the option is not selected.  In this
+case the \\X2\\ characters are ignored and will be missing in the spreadsheet.
 
 For the viewer, all control directives are supported for part and assembly names.  Non-English
 characters are supported depending STEP file encoding, e.g., UTF-8 or ANSI.
@@ -1895,7 +1913,6 @@ Credits
       catch {outputMsg " Temp  $mytemp  ([file exists $mytemp])"}
       outputMsg " pf32  $pf32"
       if {$pf64 != ""} {outputMsg " pf64  $pf64"}
-      catch {outputMsg " webCmd  $webCmd"}
       catch {outputMsg " scriptName $scriptName"}
       outputMsg " Tcl [info patchlevel], twapi [package versions twapi]"
       outputMsg " S [winfo screenwidth  .]x[winfo screenheight  .], M [winfo reqwidth .]x[expr {int([winfo reqheight .]*1.05)}]"
@@ -1952,13 +1969,13 @@ proc guiWebsitesMenu {} {
   $Websites add command -label "STEP File Viewers"                   -command {openURL https://www.cax-if.org/step_viewers.php}
 
   $Websites add separator
+  $Websites add command -label "AP203 vs AP214 vs AP242" -command {openURL https://www.capvidia.com/blog/best-step-file-to-use-ap203-vs-ap214-vs-ap242}
   $Websites add cascade -label "AP242" -menu $Websites.0
   set Websites0 [menu $Websites.0 -tearoff 1]
-  $Websites0 add command -label "AP242 Project"           -command {openURL http://www.ap242.org}
-  $Websites0 add command -label "AP203 vs AP214 vs AP242" -command {openURL https://www.capvidia.com/blog/best-step-file-to-use-ap203-vs-ap214-vs-ap242}
-  $Websites0 add command -label "Schema Documentation"    -command {openURL https://www.cax-if.org/documents/AP242ed2_HTML/AP242ed2.htm}
-  $Websites0 add command -label "EXPRESS Schema"          -command {openURL https://www.cax-if.org/documents/ap242ed2_mim_lf_v1.101.exp}
-  $Websites0 add command -label "ISO 10303-242"           -command {openURL https://www.iso.org/standard/66654.html}
+  $Websites0 add command -label "AP242 Project"        -command {openURL http://www.ap242.org}
+  $Websites0 add command -label "Schema Documentation" -command {openURL https://www.cax-if.org/documents/AP242ed2_HTML/AP242ed2.htm}
+  $Websites0 add command -label "EXPRESS Schema"       -command {openURL https://www.cax-if.org/documents/ap242ed2_mim_lf_v1.101.exp}
+  $Websites0 add command -label "ISO 10303-242"        -command {openURL https://www.iso.org/standard/66654.html}
   $Websites0 add separator
   $Websites0 add command -label "Journal Article"    -command {openURL https://www.nist.gov/publications/portrait-iso-step-tolerancing-standard-enabler-smart-manufacturing-systems}
   $Websites0 add command -label "Presentation (pdf)" -command {openURL https://s3.amazonaws.com/nist-el/mfg_digitalthread/16_aBarnardFeeney.pdf}
@@ -2009,13 +2026,11 @@ proc guiWebsitesMenu {} {
 }
 
 #-------------------------------------------------------------------------------
-proc showDisclaimer {} {
-  global sfaVersion
-
 # text disclaimer
-  if {$sfaVersion > 0} {
-    outputMsg "\nDisclaimer ----------------------------------------------------------------------------------------" blue
-    outputMsg "This software was developed at the National Institute of Standards and Technology by employees of
+proc showDisclaimer {} {
+
+  outputMsg "\nDisclaimer ----------------------------------------------------------------------------------------" blue
+  outputMsg "This software was developed at the National Institute of Standards and Technology by employees of
 the Federal Government in the course of their official duties.  Pursuant to Title 17 Section 105 of
 the United States Code this software is not subject to copyright protection and is in the public
 domain.  This software is an experimental system.  NIST assumes no responsibility whatsoever for
@@ -2043,24 +2058,7 @@ This software uses Microsoft Excel, IFCsvr, and software based on Open CASCADE t
 their own Software License Agreements.
 
 See Help > NIST Disclaimer and Help > About"
-    .tnb select .tnb.status
-
-# dialog box disclaimer
-  } else {
-set txt "This software was developed at the National Institute of Standards and Technology by employees of the Federal Government in the course of their official duties. Pursuant to Title 17 Section 105 of the United States Code this software is not subject to copyright protection and is in the public domain.  This software is an experimental system.  NIST assumes no responsibility whatsoever for its use by other parties, and makes no guarantees, expressed or implied, about its quality, reliability, or any other characteristic.
-
-This software is provided by NIST as a public service.  You may use, copy and distribute copies of the software in any medium, provided that you keep intact this entire notice.  You may improve, modify and create derivative works of the software or any portion of the software, and you may copy and distribute such modifications or works.  Modified works should carry a notice stating that you changed the software and should note the date and nature of any such change.  Please explicitly acknowledge NIST as the source of the software.
-
-The Examples menu of this software provides links to several sources of STEP files.  This software and other software might indicate that there are errors in some of the STEP files.  NIST assumes no responsibility whatsoever for the use of the STEP files by other parties, and makes no guarantees, expressed or implied, about their quality, reliability, or any other characteristic.
-
-Any mention of commercial products or references to web pages in this software is for information purposes only; it does not imply recommendation or endorsement by NIST.  For any of the web links in this software, NIST does not necessarily endorse the views expressed, or concur with the facts presented on those web sites.
-
-This software uses Microsoft Excel, IFCsvr and software based on Open CASCADE that are covered by their own Software License Agreements.
-
-See Help > NIST Disclaimer and Help > About"
-
-    tk_messageBox -type ok -icon info -title "Disclaimers" -message $txt
-  }
+  .tnb select .tnb.status
 }
 
 #-------------------------------------------------------------------------------
@@ -2069,9 +2067,7 @@ proc showCrashRecovery {} {
 
 set txt "Sometimes the STEP File Analyzer and Viewer crashes AFTER a file has been successfully opened and the processing of entities has started.
 
-A crash is most likely due to syntax errors in the STEP file or sometimes due to limitations of the toolkit used to read STEP files.  Run the Syntax Checker with the Output Format option on the Options tab or function key F8 to check for errors with entities that might have caused the crash.  See Help > Syntax Checker
-
-You can also restart the software and process the same STEP file again by using function key F1 or if processing multiple STEP files use F6.  The software keeps track of which entity type caused the error for a particular STEP file and won't process that type again.  The bad entities types are stored in a file *-skip.dat  If syntax errors related to the bad entities are corrected, then delete the *-skip.dat file so that the corrected entities are processed.
+A crash is most likely due to syntax errors in the STEP file or sometimes due to limitations of the toolkit used to read STEP files.  Run the Syntax Checker from the Options tab or function key F8 to check for errors with entities that might have caused the crash.  See Help > Syntax Checker
 
 The software might also crash when processing very large STEP files.  See Help > Large STEP Files
 
@@ -2085,11 +2081,47 @@ proc guiToolTip {ttmsg tt} {
   global ap242only entCategory
 
   set ttlim 120
-  if {$tt == "stepPRES" || $tt == "stepGEOM"} {set ttlim 150}
+  if {$tt == "stepPRES" || $tt == "stepGEOM" || $tt == "stepAP242"} {set ttlim 160}
+  
+  if {$tt != "stepCOMM" && $tt != "stepAP242"} {
+    set ents $entCategory($tt)
 
+# subset of common entities
+  } elseif {$tt == "stepCOMM"} {
+    set ents {}
+    foreach ent $entCategory($tt) {
+      if {[string first "product" $ent] == 0 || [string first "document" $ent] == 0} {
+        lappend ents $ent
+      } else {
+        foreach str [list application date time group person security \
+                     id_attribute name_attribute role_association make_from_usage_option next_assembly_usage_occurrence] {
+          if {[string first $str $ent] != -1 && [string first "auto_design" $ent] == -1 && [string first "cc_" $ent] == -1} {lappend ents $ent; break}
+        }
+      }
+    }
+
+# subset of ap242 entities
+  } elseif {$tt == "stepAP242"} {
+    set ents {}
+    set prefix {}
+    foreach ent $entCategory($tt) {
+      set c1 [string first "_" $ent]
+      if {$c1 != -1} {
+        set pre [string range $ent 0 $c1]
+        if {[lsearch $prefix $pre] == -1} {
+          lappend ents $ent
+          lappend prefix $pre
+        }
+      } else {
+        lappend ents $ent
+      }
+    }
+  }
+
+  append ttmsg "\n\n"
   foreach type {ap203 ap242} {
     set ttlen 0
-    foreach item [lsort $entCategory($tt)] {
+    foreach item $ents {
       set ok 0
       set ent $item
       switch -- $type {
@@ -2097,15 +2129,16 @@ proc guiToolTip {ttmsg tt} {
         ap242 {if {[lsearch $ap242only $ent] != -1} {set ok 1}}
       }
       if {$ok} {
-        append ttmsg "$ent   "
-        incr ttlen [string length $ent]
-        if {$ttlen > $ttlim} {
-          if {[string index $ttmsg end] != "\n"} {append ttmsg "\n"}
-          set ttlen 0
+        incr ttlen [expr {[string length $ent]+3}]
+        if {$ttlen <= $ttlim} {
+          append ttmsg "$ent   "
+        } else {
+          if {[string index $ttmsg end] != "\n"} {set ttmsg "[string range $ttmsg 0 end-3]\n$ent   "}
+          set ttlen [expr {[string length $ent]+3}]
         }
       }
     }
-    if {$type == "ap203"} {append ttmsg "\n\nThe following entities are found only in AP242.\n\n"}
+    if {$type == "ap203" && $tt != "stepCOMM"} {append ttmsg "\n\nThe following entities are found only in AP242.\n\n"}
   }
   return $ttmsg
 }
@@ -2138,16 +2171,7 @@ proc getOpenPrograms {} {
 # STEP Tools apps
   foreach pf $pflist {
     if {[file isdirectory [file join $pf "STEP Tools"]]} {
-      set applist [list \
-        [list ap203checkgui.exe "AP203 Conformance Checker"] \
-        [list ap209checkgui.exe "AP209 Conformance Checker"] \
-        [list ap214checkgui.exe "AP214 Conformance Checker"] \
-        [list apconformgui.exe "AP Conformance Checker"] \
-        [list stepbrws.exe "STEP File Browser"] \
-        [list stpcheckgui.exe "STEP Check and Browse"] \
-        [list stview.exe "ST-Viewer"] \
-      ]
-      foreach app $applist {
+      foreach app [list [list stepbrws.exe "STEP File Browser"] [list apconformgui.exe "AP Conformance Checker"]] {
         set stmatch ""
         foreach match [glob -nocomplain -directory $pf -join "STEP Tools" "ST-Developer*" bin [lindex $app 0]] {
           if {$stmatch == ""} {
@@ -2177,7 +2201,6 @@ proc getOpenPrograms {} {
       [list {*}[glob -nocomplain -directory [file join $pf Kubotek] -join "Spectrum*" Spectrum.exe] Spectrum] \
       [list {*}[glob -nocomplain -directory [file join $pf] -join "3D-Tool V*" 3D-Tool.exe] 3D-Tool] \
       [list {*}[glob -nocomplain -directory [file join $pf] -join "VariCADViewer *" bin varicad-x64.exe] "VariCAD Viewer"] \
-      [list {*}[glob -nocomplain -directory [file join $pf] -join Clari3D "Lite*" lite.exe] "Clari3D Lite"] \
       [list {*}[glob -nocomplain -directory [file join $pf] -join ZWSOFT "CADbro *" CADbro.exe] CADbro] \
     ]
     if {$pf64 == ""} {
@@ -2202,8 +2225,6 @@ proc getOpenPrograms {} {
       [list [file join $pf "CAD Exchanger" bin Exchanger.exe] "CAD Exchanger"] \
       [list [file join $pf "SOLIDWORKS Corp" eDrawings eDrawings.exe] "eDrawings Pro"] \
       [list [file join $pf "SOLIDWORKS Corp" "eDrawings X64 Edition" eDrawings.exe] "eDrawings Pro"] \
-      [list [file join $pf "STEP Tools" "STEP-NC Machine" STEPNCExplorer.exe] "STEP-NC Machine"] \
-      [list [file join $pf "STEP Tools" "STEP-NC Machine" STEPNCExplorer_x86.exe] "STEP-NC Machine"] \
       [list [file join $pf CadFaster QuickStep QuickStep.exe] QuickStep] \
       [list [file join $pf gCAD3D gCAD3D.bat] gCAD3D] \
       [list [file join $pf Glovius Glovius glovius.exe] Glovius] \
@@ -2337,6 +2358,18 @@ proc getOpenPrograms {} {
 # remove duplicates in dispCmds, again
   if {[llength $dispCmds] != [llength [lrmdups $dispCmds]]} {set dispCmds [lrmdups $dispCmds]}
 
+# remove old commands
+  set ndcs {}
+  foreach cmd $dispCmds {
+    set ok 1
+    foreach bcmd [list 3DPDFConverter 3DReviewer avwin BIMsight checkgui lite Magics roamer stepcleangui STEPNCExplorer_x86 STEPNCExplorer stview] {
+      append bcmd ".exe"
+      if {[string first $bcmd $cmd] != -1} {set ok 0}
+    }
+    if {$ok} {lappend ndcs $cmd}
+  }
+  set dispCmds $ndcs
+
 # set list of STEP viewer names, appNames
   set appNames {}
   set appName  ""
@@ -2345,7 +2378,7 @@ proc getOpenPrograms {} {
       lappend appNames $dispApps($cmd)
     } else {
       set name [file rootname [file tail $cmd]]
-      lappend appNames  $name
+      lappend appNames $name
       set dispApps($cmd) $name
     }
   }

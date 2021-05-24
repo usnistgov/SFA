@@ -1,7 +1,7 @@
 proc spmiGeotolStart {entType} {
   global objDesign
   global col entLevel ent entAttrList gt lastEnt opt pmiCol pmiHeading pmiStartCol
-  global spmiEntity spmiRow spmiTypesPerFile stepAP tolNames
+  global spmiEntity spmiRow spmiTypesPerFile tolNames
 
   if {$opt(DEBUG1)} {outputMsg "START spmiGeotolStart $entType" red}
 
@@ -83,10 +83,6 @@ proc spmiGeotolStart {entType} {
 
   outputMsg " Adding PMI Representation Analysis" blue
   lappend spmiEntity $entType
-
-  if {[string first "AP203" $stepAP] == 0 || [string first "AP214" $stepAP] == 0} {
-    errorMsg "There is no Recommended Practice for PMI Representation in $stepAP files.  Use AP242 for PMI Representation."
-  }
 
   if {$opt(DEBUG1)} {outputMsg \n}
   set entLevel 0
@@ -812,7 +808,7 @@ proc spmiGeotolReport {objEntity} {
                         if {[string length $letter] > 0} {
                           if {[info exists datumIDs]} {
                             if {[lsearch $datumIDs $letter] != -1} {
-                              set msg "Multiple 'datum' entities use the same letter for the 'identification' attribute.  They should be unique."
+                              set msg "Syntax Error: Multiple 'datum' entities use the same letter for the 'identification' attribute.  They should be unique.$spaces\($recPracNames(pmi242), Sec. 6.5)"
                               errorMsg $msg
                               lappend syntaxErr(datum) [list $id identification $msg]
                             }
@@ -1231,7 +1227,7 @@ proc spmiGeotolReport {objEntity} {
                   }
 
                   "value_format_type_qualifier format_type" {
-                    if {[info exist magType]} {
+                    if {[info exists magType]} {
                       set ok 1
                       set col($gt) [expr {$pmiStartCol($gt)+1}]
                       set colName "magnitude precision[format "%c" 10](Sec. 6.9)"
@@ -1328,7 +1324,6 @@ proc spmiGeotolReport {objEntity} {
                       set nval $val
                       append nval "x"
                       append nval [string range $val $c1+1 end]
-                      #regsub -all "/ " $val "/ $pmiUnicode(square)" nval
                       $cells($gt) Item $r $c $nval
                     } elseif {$ov == "circular"} {
                       regsub -all "/ " $val "/ $pmiUnicode(diameter)" nval

@@ -2,9 +2,9 @@
 proc genExcel {{numFile 0}} {
   global allEntity aoEntTypes ap203all ap214all ap242all badAttributes buttons cadSystem cells cells1 col col1 count csvdirnam csvfile csvinhome currLogFile
   global dim draughtingModels editorCmd entCategories entCategory entColorIndex entCount entityCount entsIgnored entsWithErrors errmsg
-  global excel excelVersion fcsv feaFirstEntity feaLastEntity File fileEntity filesProcessed gpmiTypesInvalid gpmiTypesPerFile guid idxColor ifcsvrDir
+  global excel excelVersion fcsv feaFirstEntity feaLastEntity File fileEntity filesProcessed gen gpmiTypesInvalid gpmiTypesPerFile guid idxColor ifcsvrDir
   global inverses lastXLS lenfilelist localName localNameList logFile matrixList multiFile multiFileDir mydocs mytemp nistCoverageLegend nistName
-  global nistPMIexpected nistPMImaster nprogBarEnts ofCSV ofExcel opt pf32 p21e3 p21e3Section pmiCol row rowmax savedViewButtons savedViewName
+  global nistPMIexpected nistPMImaster nprogBarEnts opt pf32 p21e3 p21e3Section pmiCol resetRound row rowmax savedViewButtons savedViewName
   global savedViewNames scriptName sheetLast skipEntities skipPerm spmiEntity spmiSumName spmiSumRow spmiTypesPerFile startrow statsOnly stepAP tessColor
   global thisEntType timeStamp tlast tolNames tolStandard tolStandards totalEntity unicodeAttributes unicodeEnts unicodeInFile unicodeNumEnts unicodeString
   global userEntityFile userEntityList useXL valRounded viz workbook workbooks worksheet worksheet1 worksheets writeDir wsCount wsNames x3dAxes
@@ -20,18 +20,20 @@ proc genExcel {{numFile 0}} {
     if {$localName == ""} {return}
   }
 
-# initialize for X3DOM geometry
-  set x3dMsgColor green
+# initialize for x3dom geometry
   set x3dViewOK 0
-  if {$opt(viewPMI) || $opt(viewTessPart) ||$opt(viewFEA) || $opt(viewPart)} {
-    set x3dStartFile 1
-    set x3dAxes 1
-    set x3dFileName ""
-    set x3dColor ""
-    set x3dColors  {}
-    foreach idx {x y z} {set x3dMax($idx) -1.e8; set x3dMin($idx) 1.e8}
-    catch {unset tessColor}
-    catch {unset x3dColorFile}
+  if {$gen(View)} {
+    set x3dMsgColor green
+    if {$opt(viewPMI) || $opt(viewTessPart) ||$opt(viewFEA) || $opt(viewPart)} {
+      set x3dStartFile 1
+      set x3dAxes 1
+      set x3dFileName ""
+      set x3dColor ""
+      set x3dColors  {}
+      foreach idx {x y z} {set x3dMax($idx) -1.e8; set x3dMin($idx) 1.e8}
+      catch {unset tessColor}
+      catch {unset x3dColorFile}
+    }
   }
 
 # multiFile
@@ -39,7 +41,7 @@ proc genExcel {{numFile 0}} {
   if {$numFile > 0} {set multiFile 1}
 
   if {[info exists buttons]} {
-    $buttons(genExcel) configure -state disable
+    $buttons(generate) configure -state disable
     .tnb select .tnb.status
   }
   set lasttime [clock clicks -milliseconds]
@@ -97,7 +99,7 @@ proc genExcel {{numFile 0}} {
     }
 
     foreach var {cadSystem stepAP timeStamp x3dCoord x3dFile x3dFileName x3dIndex x3dMax x3dMin x3dStartFile} {if {[info exists $var]} {unset $var}}
-    if {[info exists buttons]} {$buttons(genExcel) configure -state normal}
+    if {[info exists buttons]} {$buttons(generate) configure -state normal}
     return
   }
 
@@ -105,13 +107,13 @@ proc genExcel {{numFile 0}} {
 # check if IFCsvr is installed
   if {![info exists ifcsvrDir]} {set ifcsvrDir [file join $pf32 IFCsvrR300 dll]}
   if {![file exists [file join $ifcsvrDir IFCsvrR300.dll]]} {
-    if {[info exists buttons]} {$buttons(genExcel) configure -state disable}
+    if {[info exists buttons]} {$buttons(generate) configure -state disable}
     installIFCsvr
     return
   }
 
 # run syntax checker too
-  if {$opt(syntaxChecker) && [info exist buttons]} {syntaxChecker $localName}
+  if {$opt(syntaxChecker) && [info exists buttons]} {syntaxChecker $localName}
 
 # -------------------------------------------------------------------------------------------------
 # connect to IFCsvr
@@ -189,6 +191,16 @@ proc genExcel {{numFile 0}} {
       foreach entType $entityTypeNames {
         set ecount [$objDesign CountEntities "$entType"]
         if {$ecount > 0} {
+
+# complex entities
+          set c1 [string first "_and_" $entType]
+          set ent1 ""
+          set ent2 ""
+          if {$c1 != -1} {
+            set ent1 [string range $entType 0 $c1-1]
+            set ent2 [string range $entType 0 $c1+5]
+          }
+
           if {$entType == "dimensional_characteristic_representation"} {
             lappend characteristics "Dimensions"
             set viz(PMIMSG) "Some Graphical PMI might not have equivalent Semantic PMI in the STEP file."
@@ -212,16 +224,18 @@ proc genExcel {{numFile 0}} {
           } elseif {$entType == "property_definition_representation"} {
             lappend characteristics "Properties"
 
-# make sure composites, kinematics, and feature entities are always processed
+# make sure composites, kinematics, feature, and AP242 entities are always processed
           } elseif {[lsearch $entCategory(stepCOMP) $entType] != -1} {
             lappend characteristics "Composites"
             if {$opt(xlFormat) != "None"} {set opt(stepCOMP) 1}
           } elseif {[lsearch $entCategory(stepKINE) $entType] != -1} {
             lappend characteristics "Kinematics"
             if {$opt(xlFormat) != "None"} {set opt(stepKINE) 1}
-          } elseif {[lsearch $entCategory(stepFEAT) $entType] != -1} {
+          } elseif {[lsearch $entCategory(stepFEAT) $entType] != -1 || [lsearch $entCategory(stepFEAT) $ent1] != -1 || [lsearch $entCategory(stepFEAT) $ent2] != -1} {
             lappend characteristics "Features"
             if {$opt(xlFormat) != "None"} {set opt(stepFEAT) 1}
+          } elseif {[lsearch $entCategory(stepAP242) $entType] != -1} {
+            if {$opt(xlFormat) != "None"} {set opt(stepAP242) 1}
           } else {
             foreach tol $tolNames {
               if {[string first $tol $entType] != -1} {
@@ -366,7 +380,7 @@ proc genExcel {{numFile 0}} {
         if {[catch {
           exec $editorCmd [file nativename $localName] &
         } emsg1]} {
-          errorMsg "ERROR opening STEP file in text editor"
+          errorMsg "ERROR opening STEP file in text editor: $emsg1"
         }
       }
 
@@ -414,9 +428,9 @@ proc genExcel {{numFile 0}} {
       set saveCSV 0
       if {$opt(xlFormat) == "CSV"} {
         set saveCSV 1
-        catch {$buttons(ofExcel) configure -state disabled}
+        catch {$buttons(genExcel) configure -state disabled}
       } else {
-        catch {$buttons(ofExcel) configure -state normal}
+        catch {$buttons(genExcel) configure -state normal}
       }
 
 # turning off ScreenUpdating, saves A LOT of time
@@ -431,14 +445,14 @@ proc genExcel {{numFile 0}} {
       set useXL 0
       set xlInstalled 0
       if {$opt(xlFormat) == "Excel"} {
-        errorMsg "Excel is not installed or cannot be started: $emsg\n CSV files will be generated instead of a spreadsheet.  See the Output Format option.  Some options are disabled."
+        errorMsg "Excel is not installed or cannot be started: $emsg\n CSV files will be generated instead of a spreadsheet.  See the Generate options.  Some options are disabled."
         set opt(xlFormat) "CSV"
         catch {raise .}
       }
-      set ofExcel 0
-      set ofCSV 1
+      set gen(Excel) 0
+      set gen(CSV) 1
       checkValues
-      catch {$buttons(ofExcel) configure -state disabled}
+      catch {$buttons(genExcel) configure -state disabled}
     }
 
 # view only
@@ -469,7 +483,7 @@ proc genExcel {{numFile 0}} {
       return 0
     }
 
-# CSV files or viz only
+# CSV files or view only
   } else {
     set rowmax [expr {2**20}]
     if {$opt(xlMaxRows) < $rowmax} {set rowmax $opt(xlMaxRows)}
@@ -665,22 +679,24 @@ proc genExcel {{numFile 0}} {
 # -------------------------------------------------------------------------------------------------
 # check if there is anything to view
   foreach typ {PMI TPG FEA} {set viz($typ) 0}
-  if {$opt(viewPMI)} {
-    foreach ao $aoEntTypes {
-      if {[info exists entCount($ao)]}  {if {$entCount($ao)  > 0} {set viz(PMI) 1}}
-      set ao1 "$ao\_and_characterized_object"
-      if {[info exists entCount($ao1)]} {if {$entCount($ao1) > 0} {set viz(PMI) 1}}
-      set ao1 "$ao\_and_geometric_representation_item"
-      if {[info exists entCount($ao1)]} {if {$entCount($ao1) > 0} {set viz(PMI) 1}}
+  if {$gen(View)} {
+    if {$opt(viewPMI)} {
+      foreach ao $aoEntTypes {
+        if {[info exists entCount($ao)]}  {if {$entCount($ao)  > 0} {set viz(PMI) 1}}
+        set ao1 "$ao\_and_characterized_object"
+        if {[info exists entCount($ao1)]} {if {$entCount($ao1) > 0} {set viz(PMI) 1}}
+        set ao1 "$ao\_and_geometric_representation_item"
+        if {[info exists entCount($ao1)]} {if {$entCount($ao1) > 0} {set viz(PMI) 1}}
+      }
     }
+    if {$opt(viewTessPart)} {if {[info exists entCount(tessellated_solid)] || [info exists entCount(tessellated_shell)]} {set viz(TPG) 1}}
+    if {$opt(viewFEA) && [string first "AP209" $stepAP] == 0} {set viz(FEA) 1}
   }
-  if {$opt(viewTessPart)} {if {[info exists entCount(tessellated_solid)] || [info exists entCount(tessellated_shell)]} {set viz(TPG) 1}}
-  if {$opt(viewFEA) && [string first "AP209" $stepAP] == 0} {set viz(FEA) 1}
 
 # read expected PMI worksheet (once) if PMI representation and correct file name
   if {$opt(PMISEM) && [string first "AP242" $stepAP] == 0 && $nistName != "" && $opt(xlFormat) != "None"} {
     set tols [concat $tolNames [list dimensional_characteristic_representation datum datum_feature datum_reference_compartment datum_reference_element datum_system placed_datum_target_feature]]
-    foreach tol $tols {if {[info exist entCount($tol)]} {set ok 1; break}}
+    foreach tol $tols {if {[info exists entCount($tol)]} {set ok 1; break}}
     if {$ok && ![info exists nistPMImaster($nistName)]} {nistReadExpectedPMI}
   }
 
@@ -771,7 +787,7 @@ proc genExcel {{numFile 0}} {
 
 # -------------------------------------------------------------------------------------------------
 # move some entities to end of AP209 entities
-  if {$viz(FEA)} {
+  if {$gen(View) && $viz(FEA)} {
     set ok  1
     set ok1 0
     set etp {}
@@ -945,7 +961,7 @@ proc genExcel {{numFile 0}} {
     }
 
 # find camera models used in draughting model items and items used in property_definition and datums
-    if {$opt(PMIGRF) || $opt(PMISEM) || $viz(PMI)} {pmiGetCameras}
+    if {$opt(PMIGRF) || $opt(PMISEM) || ($viz(PMI) && $gen(View))} {pmiGetCameras}
     if {$opt(PMIGRF) || $opt(PMISEM)} {getValProps}
 
 # -------------------------------------------------------------------------------------------------
@@ -1075,27 +1091,29 @@ proc genExcel {{numFile 0}} {
 # -------------------------------------------------------------------------------------------------
 # generate b-rep part geometry if no other viz exists
   set vizprt 0
-  if {$opt(viewPart) && !$viz(PMI) && !$viz(FEA) && !$viz(TPG) && ![info exists statsOnly]} {
-    x3dFileStart
-    set vizprt 1
-  }
+  if {$gen(View)} {
+    if {$opt(viewPart) && !$viz(PMI) && !$viz(FEA) && !$viz(TPG) && ![info exists statsOnly]} {
+      x3dFileStart
+      set vizprt 1
+    }
 
-# generate b-rep part geom, set viewpoints, and close X3DOM geometry file
-  if {($viz(PMI) || $viz(FEA) || $viz(TPG) || $vizprt) && $x3dFileName != ""} {x3dFileEnd}
+# generate b-rep part geom, set viewpoints, and close x3dom geometry file
+    if {($viz(PMI) || $viz(FEA) || $viz(TPG) || $vizprt) && $x3dFileName != ""} {x3dFileEnd}
+  }
 
 # -------------------------------------------------------------------------------------------------
 # add validation properties to some worksheets that are not associated with any PMI analysis
-    if {$opt(xlFormat) == "Excel" && [lsearch $characteristics "Properties"] != -1} {
-      set ok 0
-      if {$opt(PMISEM)} {
-        foreach item [list Dimensions Datums "Datum Targets" "Geometric Tolerances"] {if {[lsearch $characteristics $item] != -1} {set ok 1}}
-      }
-      if {$opt(PMIGRF)} {
-        foreach item $characteristics {if {[string first "Graphical PMI" $item] != -1} {set ok 1}}
-      }
-      if {[lsearch $characteristics "Composites"] != -1} {set ok 1}
-      if {$ok} {reportValProps}
+  if {$opt(xlFormat) == "Excel" && [lsearch $characteristics "Properties"] != -1} {
+    set ok 0
+    if {$opt(PMISEM)} {
+      foreach item [list Dimensions Datums "Datum Targets" "Geometric Tolerances"] {if {[lsearch $characteristics $item] != -1} {set ok 1}}
     }
+    if {$opt(PMIGRF)} {
+      foreach item $characteristics {if {[string first "Graphical PMI" $item] != -1} {set ok 1}}
+    }
+    if {[lsearch $characteristics "Composites"] != -1} {set ok 1}
+    if {$ok} {reportValProps}
+  }
 
 # -------------------------------------------------------------------------------------------------
 # add summary worksheet
@@ -1141,7 +1159,8 @@ proc genExcel {{numFile 0}} {
 # do not generate if only certain PMI types were counted
         foreach type $spmiTypesPerFile {
           if {[string first "saved views" $type] == -1 && [string first "editable text" $type] == -1 && [string first "document identification" $type] == -1 &&
-              [string first "standard" $type] == -1 && [string first "default tolerance decimal places" $type] == -1} {set ok 1; break}
+              [string first "standard" $type] == -1 && [string first "default tolerance decimal places" $type] == -1 && \
+              [string first "supplemental geometry" $type] == -1} {set ok 1; break}
         }
 
         if {$ok} {
@@ -1175,6 +1194,12 @@ proc genExcel {{numFile 0}} {
           gpmiCoverageFormat "" 0
         }
       }
+    }
+
+# reset rounding
+    if {[info exists resetRound]} {
+      set opt(PMISEMRND) $resetRound
+      unset resetRound
     }
 
 # -------------------------------------------------------------------------------------------------
@@ -1275,7 +1300,7 @@ proc genExcel {{numFile 0}} {
             regsub -all {\]} $csvdirnam ")" csvdirnam
           }
           file mkdir $csvdirnam
-          outputMsg "Saving Spreadsheet as multiple CSV files to directory:"
+          outputMsg "Saving Spreadsheet as multiple CSV files to:"
           outputMsg " [truncFileName [file nativename $csvdirnam]]" blue
           set csvFormat [expr 6]
           if {$excelVersion > 15} {set csvFormat [expr 62]}
@@ -1394,7 +1419,7 @@ proc genExcel {{numFile 0}} {
   }
 
 # -------------------------------------------------------------------------------------------------
-# open X3DOM file for views
+# open x3dom file for views
   if {$x3dViewOK} {openX3DOM "" $numFile}
 
 # save log file
@@ -1411,7 +1436,7 @@ proc genExcel {{numFile 0}} {
 # save state
   if {[info exists errmsg]} {unset errmsg}
   saveState
-  if {!$multiFile && [info exists buttons]} {$buttons(genExcel) configure -state normal}
+  if {!$multiFile && [info exists buttons]} {$buttons(generate) configure -state normal}
   update idletasks
 
 # unset variables to release memory and/or to reset them
@@ -1845,8 +1870,6 @@ proc sumAddFileName {sum sumLinks} {
       $cells($sum) Item 1 1 "Standards"
       if {$tolStandard(num) != ""} {
         $cells($sum) Item 1 2 [string trim $tolStandard(num)]
-        #set range [$worksheet($sum) Range "1:1"]
-        #$range VerticalAlignment [expr -4108]
       } else {
         $cells($sum) Item 1 2 [string trim $tolStandard(type)]
       }

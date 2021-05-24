@@ -150,10 +150,7 @@ proc nistGetSummaryPMI {} {
 # check actual vs. expected PMI for NIST files
 proc nistCheckExpectedPMI {val entstr} {
   global cells legendColor nistExpectedPMI nistName nistPMIactual nistPMIexpected nistPMIexpectedNX nistPMIfound
-  global opt pmiModifiers pmiType pmiUnicode resetRound spmiSumName spmiSumRow tolNames worksheet
-
-# reset rounding
-  if {[info exists resetRound]} {set opt(PMISEMRND) $resetRound}
+  global pmiModifiers pmiType pmiUnicode spmiSumName spmiSumRow tolNames worksheet
 
 # modify (composite ..) from value to just (composite)
   set c1 [string first "(composite" $val]
@@ -614,7 +611,7 @@ proc nistAddExpectedPMIPercent {nf} {
     }
     $cells($spmiCoverageWS) Item $r 1 $str
     $cells($spmiCoverageWS) Item $r 2 $pct
-    if {$idx == "exact"} {outputMsg "  Expected PMI %: $pct"}
+    if {$idx == "exact"} {outputMsg " Expected PMI: $pct\%"}
 
 # formatting
     set range [$worksheet($spmiCoverageWS) Range B$r]
@@ -972,7 +969,7 @@ proc nistGetName {} {
     if {$opt(PMISEMRND) && $nistName == "nist_ftc_06"} {
       set resetRound $opt(PMISEMRND)
       set opt(PMISEMRND) 0
-    } elseif {!$opt(PMISEMRND) && ($nistName == "nist_ftc_07" || $nistName == "nist_ftc_08")} {
+    } elseif {!$opt(PMISEMRND) && ($nistName == "nist_ftc_07" || $nistName == "nist_ftc_08" || $nistName == "nist_ftc_11")} {
       set resetRound $opt(PMISEMRND)
       set opt(PMISEMRND) 1
     }

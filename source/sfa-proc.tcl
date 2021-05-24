@@ -1,6 +1,6 @@
 # turn on/off values and enable/disable buttons depending on values
 proc checkValues {} {
-  global allNone appName appNames buttons developer edmWhereRules edmWriteToFile stepToolsWriteToFile ofCSV opt userEntityList useXL
+  global allNone appName appNames buttons developer edmWhereRules edmWriteToFile gen stepToolsWriteToFile opt userEntityList useXL
 
   set butNormal {}
   set butDisabled {}
@@ -43,21 +43,41 @@ proc checkValues {} {
     }
   }
 
-# configure Excel, CSV, Viz only, Excel or not button
+# view
+  if {$gen(View)} {
+    foreach b {viewFEA viewPMI viewTessPart viewPart partOnly genAllView} {lappend butNormal $b}
+    if {!$opt(viewFEA) && !$opt(viewPMI) && !$opt(viewTessPart) && !$opt(viewPart)} {set opt(viewPart) 1}
+  } else {
+    foreach b {viewFEA viewPMI viewTessPart viewPart partOnly genAllView} {lappend butDisabled $b}
+    foreach b {gpmiColor0 gpmiColor1 gpmiColor2 gpmiColor3 linecolor} {lappend butDisabled $b}
+    foreach b {partEdges partSketch partNormals partqual partQuality4 partQuality7 partQuality9 tessPartMesh} {lappend butDisabled $b}
+    foreach b {feaBounds feaLoads feaLoadScale feaDisp feaDispNoTail} {lappend butDisabled $b}
+  }
+
+# part only
+  if {$opt(partOnly)} {
+    set opt(xlFormat) "None"
+    set gen(Excel) 0
+  }
+
+  if {!$gen(Excel)} {lappend butDisabled allNone1}
+  if {$gen(Excel) && $gen(CSV)} {lappend butDisabled genExcel}
+
+# configure generate button
   if {![info exists useXL]} {set useXL 1}
   set btext "Generate "
   if {$opt(xlFormat) == "Excel"} {
     append btext "Spreadsheet"
   } elseif {$opt(xlFormat) == "CSV"} {
-    if {$ofCSV && $useXL} {append btext "Spreadsheet and "}
+    if {$gen(CSV) && $useXL} {append btext "Spreadsheet and "}
     append btext "CSV Files"
-  } elseif {$opt(xlFormat) == "None"} {
+  } elseif {$gen(View) && $opt(xlFormat) == "None"} {
     append btext "View"
   }
-  if {$opt(xlFormat) != "None" && ($opt(viewPart) || $opt(viewFEA) || $opt(viewPMI) || $opt(viewTessPart))} {
+  if {$gen(View) && $opt(xlFormat) != "None" && ($opt(viewPart) || $opt(viewFEA) || $opt(viewPMI) || $opt(viewTessPart))} {
     append btext " and View"
   }
-  catch {$buttons(genExcel) configure -text $btext}
+  catch {$buttons(generate) configure -text $btext}
 
 # no Excel
   if {!$useXL} {
@@ -66,9 +86,9 @@ proc checkValues {} {
     foreach item [array names opt] {
       if {[string first "step" $item] == 0} {lappend butNormal $item}
     }
-    foreach b {xlHideLinks INVERSE PMIGRF PMISEM valProp xlNoRound xlSort allNone2} {lappend butDisabled $b}
+    foreach b {xlHideLinks INVERSE PMIGRF PMISEM valProp xlNoRound xlSort genAllAnalysis genExcel} {lappend butDisabled $b}
     foreach b {viewFEA viewPMI viewTessPart viewPart} {lappend butNormal $b}
-    foreach b {allNone0 allNone1 allNone3 stepUSER} {lappend butNormal $b}
+    foreach b {allNone0 allNone1 genAllView stepUSER} {lappend butNormal $b}
 
 # Excel
   } else {
@@ -77,44 +97,38 @@ proc checkValues {} {
     }
     foreach b {xlHideLinks INVERSE PMIGRF PMISEM valProp xlNoRound xlSort} {lappend butNormal $b}
     foreach b {viewFEA viewPMI viewTessPart viewPart} {lappend butNormal $b}
-    foreach b {allNone0 allNone1 allNone2 allNone3 stepUSER} {lappend butNormal $b}
+    foreach b {allNone0 allNone1 genAllAnalysis genAllView stepUSER} {lappend butNormal $b}
   }
 
-# viz only
+# view only
   if {$opt(xlFormat) == "None"} {
     foreach item [array names opt] {
       if {[string first "step" $item] == 0} {lappend butDisabled $item}
     }
     foreach b {PMIGRF PMIGRFCOV PMISEM PMISEMDIM PMISEMRND valProp stepUSER INVERSE} {lappend butDisabled $b}
-    foreach b {allNone0 allNone2} {lappend butDisabled $b}
+    foreach b {allNone0 genAllAnalysis} {lappend butDisabled $b}
     foreach b {userentity userentityopen} {lappend butDisabled $b}
     set userEntityList {}
-    if {$opt(viewFEA) == 0 && $opt(viewPMI) == 0 && $opt(viewTessPart) == 0 && $opt(viewPart) == 0} {
-      foreach item {viewFEA viewPMI viewTessPart viewPart} {set opt($item) 1}
-    }
-  } else {
-    set opt(partOnly) 0
-    lappend butDisabled partOnly
+    if {!$opt(viewFEA) && !$opt(viewPMI) && !$opt(viewTessPart) && !$opt(viewPart)} {set opt(viewPart) 1}
   }
 
 # part geometry
   if {$opt(viewPart)} {
     foreach b {partOnly partEdges partSketch partNormals partqual partQuality4 partQuality7 partQuality9} {lappend butNormal $b}
     if {$opt(partOnly) && $opt(xlFormat) == "None"} {
-      foreach b {syntaxChecker viewFEA viewPMI viewTessPart allNone3} {lappend butDisabled $b}
+      foreach b {syntaxChecker viewFEA viewPMI viewTessPart genAllView} {lappend butDisabled $b}
       foreach item {syntaxChecker viewFEA viewPMI viewTessPart} {set opt($item) 0}
     } else {
-      foreach b {syntaxChecker viewFEA viewPMI viewTessPart allNone3} {lappend butNormal $b}
+      foreach b {syntaxChecker viewFEA viewPMI viewTessPart genAllView} {lappend butNormal $b}
     }
   } else {
-    foreach b {partOnly partEdges partSketch partNormals partqual partQuality4 partQuality7 partQuality9} {lappend butDisabled $b}
-    set opt(partOnly) 0
+    foreach b {partEdges partSketch partNormals partqual partQuality4 partQuality7 partQuality9} {lappend butDisabled $b}
   }
 
 # graphical PMI report
   if {$opt(PMIGRF)} {
     if {$opt(xlFormat) != "None"} {
-      foreach b {stepAP242 stepPRES stepREPR stepSHAP} {
+      foreach b {stepPRES stepREPR stepSHAP} {
         set opt($b) 1
         lappend butDisabled $b
       }
@@ -123,13 +137,13 @@ proc checkValues {} {
   } else {
     lappend butNormal stepPRES
     if {!$opt(valProp)} {lappend butNormal stepQUAN}
-    if {!$opt(PMISEM)}  {foreach b {stepAP242 stepSHAP stepREPR} {lappend butNormal $b}}
+    if {!$opt(PMISEM)}  {foreach b {stepSHAP stepREPR} {lappend butNormal $b}}
     lappend butDisabled PMIGRFCOV
   }
 
 # validation properties
   if {$opt(valProp)} {
-    foreach b {stepAP242 stepQUAN stepREPR stepSHAP} {
+    foreach b {stepQUAN stepREPR stepSHAP} {
       set opt($b) 1
       lappend butDisabled $b
     }
@@ -140,7 +154,7 @@ proc checkValues {} {
 # graphical PMI view
   if {$opt(viewPMI)} {
     foreach b {gpmiColor0 gpmiColor1 gpmiColor2 gpmiColor3 linecolor} {lappend butNormal $b}
-    if {$opt(xlFormat) != "None"} {
+    if {$gen(View) && ($gen(Excel) || $gen(CSV)) && $opt(xlFormat) != "None"} {
       set opt(stepPRES) 1
       lappend butDisabled stepPRES
     }
@@ -167,7 +181,7 @@ proc checkValues {} {
 
 # semantic PMI report
   if {$opt(PMISEM)} {
-    foreach b {stepAP242 stepREPR stepSHAP stepTOLR stepQUAN} {
+    foreach b {stepREPR stepSHAP stepTOLR stepQUAN} {
       set opt($b) 1
       lappend butDisabled $b
     }
@@ -176,7 +190,7 @@ proc checkValues {} {
     foreach b {stepREPR stepTOLR} {lappend butNormal $b}
     if {!$opt(PMIGRF)} {
       if {!$opt(valProp)} {lappend butNormal stepQUAN}
-      foreach b {stepAP242 stepSHAP} {lappend butNormal $b}
+      lappend butNormal stepSHAP
     }
     foreach b {PMISEMDIM PMISEMRND} {lappend butDisabled $b}
   }
@@ -186,10 +200,6 @@ proc checkValues {} {
 
 # tessellated geometry view
   if {$opt(viewTessPart)} {
-    if {$opt(xlFormat) != "None"} {
-      set opt(stepPRES) 1
-      lappend butDisabled stepPRES
-    }
     lappend butNormal tessPartMesh
   } else {
     catch {if {!$opt(PMISEM)} {lappend butNormal stepPRES}}
@@ -232,30 +242,27 @@ proc checkValues {} {
   if {[llength $butNormal]   > 0} {foreach but $butNormal   {catch {$buttons($but) configure -state normal}}}
   if {[llength $butDisabled] > 0} {foreach but $butDisabled {catch {$buttons($but) configure -state disabled}}}
 
-# configure all, none, for buttons
+# configure all, reset, 'all' view and analyze buttons
   if {[info exists allNone]} {
     if {$allNone == 1} {
       foreach item [array names opt] {
         if {[string first "step" $item] == 0 && $item != "stepCOMM"} {
           if {$opt($item) == 1} {set allNone -1; break}
         }
-        if {[string length $item] == 6 && ([string first "PMI" $item] == 0 || [string first "VIZ" $item] == 0)} {
+        if {[string length $item] == 6 && ([string first "PMI" $item] == 0)} {
           if {$opt($item) == 1} {set allNone -1; break}
         }
       }
-    } elseif {($allNone == 2 && ($opt(PMISEM) != 1 || $opt(PMIGRF) != 1 || $opt(valProp) != 1)) ||
-              ($allNone == 3 && ($opt(viewPMI) != 1 || $opt(viewTessPart) != 1 || $opt(viewFEA)  != 1 || $opt(viewPart) != 1))} {
-      set allNone -1
     } elseif {$allNone == 0} {
       foreach item [array names opt] {
         if {[string first "step" $item] == 0} {
-          if {$item != "stepGEOM" && $item != "stepCPNT"} {
-            if {$opt($item) == 0} {set allNone -1}
-          }
+          if {$item != "stepGEOM" && $item != "stepCPNT" && $item != "stepUSER"} {if {$opt($item) == 0} {set allNone -1}}
         }
       }
     }
   }
+  if {$opt(PMISEM) != 1 || $opt(PMIGRF) != 1 || $opt(valProp) != 1} {set gen(AllAnalysis) 0}
+  if {$opt(viewPMI) != 1 || $opt(viewTessPart) != 1 || $opt(viewFEA)  != 1 || $opt(viewPart) != 1} {set gen(AllView) 0}
 }
 
 # -------------------------------------------------------------------------------------------------
@@ -284,7 +291,7 @@ proc setColorIndex {ent {multi 0}} {
 
 # simple entity, not compound with _and_
   foreach i [array names entCategory] {
-    if {[info exist entColorIndex($i)]} {
+    if {[info exists entColorIndex($i)]} {
       if {[lsearch $entCategory($i) $ent] != -1} {
         return $entColorIndex($i)
       }
@@ -300,7 +307,7 @@ proc setColorIndex {ent {multi 0}} {
     set tc3 "1000"
 
     foreach i [array names entCategory] {
-      if {[info exist entColorIndex($i)]} {
+      if {[info exists entColorIndex($i)]} {
         set ent1 [string range $ent 0 $c1-1]
         if {[lsearch $entCategory($i) $ent1] != -1} {set tc1 $entColorIndex($i)}
         if {$c2 == $c1} {
@@ -339,9 +346,9 @@ proc setColorIndex {ent {multi 0}} {
 #-------------------------------------------------------------------------------
 # open a URL
 proc openURL {url} {
-  global webCmd
+  global pf32 pf64
 
-# open in whatever is registered for the file extension, except for .cgi for upgrade url
+# open in whatever is associated for the file extension, except for .cgi for upgrade url
   if {[string first ".cgi" $url] == -1} {
     if {[catch {
       exec {*}[auto_execok start] "" $url
@@ -352,12 +359,20 @@ proc openURL {url} {
       }
     }
 
-# open with web browser command
+# open with web browser
   } else {
-    if {$webCmd != ""} {
-      exec $webCmd $url &
-    } else {
-      errorMsg "No web browser to open URL: $url"
+    foreach cmd [list \
+        [file join $pf64 Google Chrome Application chrome.exe] \
+        [file join $pf32 Google Chrome Application chrome.exe] \
+        [file join $pf64 Microsoft Edge Application chrome.exe] \
+        [file join $pf32 Microsoft Edge Application chrome.exe] \
+        [file join $pf64 "Mozilla Firefox" firefox.exe] \
+        [file join $pf32 "Mozilla Firefox" firefox.exe] \
+        [file join $pf32 "Internet Explorer" IEXPLORE.EXE]] {
+      if {[file exists $cmd]} {
+        exec $cmd $url &
+        break
+      }
     }
   }
 }
@@ -365,7 +380,7 @@ proc openURL {url} {
 #-------------------------------------------------------------------------------
 # file open dialog
 proc openFile {{openName ""}} {
-  global allNone buttons drive editorCmd fileDir localName localNameList ofCSV ofExcel ofNone opt
+  global allNone buttons drive editorCmd fileDir gen localName localNameList opt
 
   if {$openName == ""} {
 
@@ -390,13 +405,15 @@ proc openFile {{openName ""}} {
     if {[string tolower [file extension $localName]] == ".stl"} {set ok 1}
   }
   if {$ok} {
-    set opt(partOnly) 0
-    set opt(xlFormat) None
+    set opt(xlFormat) "Excel"
     set opt(viewTessPart) 1
-    set ofExcel 0
-    set ofCSV 0
-    set ofNone 1
+    set opt(viewPart) 0
+    set gen(Excel) 1
+    set gen(CSV) 0
+    set gen(None) 0
+    set gen(View) 1
     set allNone -1
+    foreach item [array names opt] {if {[string first "step" $item] == 0 && $item != "stepUSER"} {set opt($item) 1}}
     checkValues
   }
 
@@ -408,9 +425,9 @@ proc openFile {{openName ""}} {
 
     outputMsg "\nReady to process [llength $localNameList] $str files" green
     if {[info exists buttons]} {
-      $buttons(genExcel) configure -state normal
+      $buttons(generate) configure -state normal
       if {[info exists buttons(appOpen)]} {$buttons(appOpen) configure -state normal}
-      focus $buttons(genExcel)
+      focus $buttons(generate)
     }
 
 # single file selected
@@ -435,9 +452,9 @@ proc openFile {{openName ""}} {
 
       if {$fileDir == $drive} {outputMsg "There might be problems processing the STEP file directly in the $fileDir directory." red}
       if {[info exists buttons]} {
-        $buttons(genExcel) configure -state normal
+        $buttons(generate) configure -state normal
         if {[info exists buttons(appOpen)]} {$buttons(appOpen) configure -state normal}
-        focus $buttons(genExcel)
+        focus $buttons(generate)
         if {$editorCmd != ""} {
           bind . <Key-F5> {
             if {[file exists $localName]} {
@@ -622,7 +639,7 @@ proc fileSize {fn} {
 #-------------------------------------------------------------------------------
 # save the state of variables to STEP-File-Analyzer-options.dat
 proc saveState {{ok 1}} {
-  global buttons developer dispCmd dispCmds fileDir fileDir1 filesProcessed lastX3DOM lastXLS lastXLS1 mydocs openFileList
+  global buttons developer dispCmd dispCmds fileDir fileDir1 filesProcessed gen lastX3DOM lastXLS lastXLS1 mydocs openFileList
   global opt optionsFile sfaVersion statusFont upgrade upgradeIFCsvr userEntityFile userWriteDir
 
 # ok = 0 only after installing IFCsvr from the command-line version
@@ -636,7 +653,7 @@ proc saveState {{ok 1}} {
 
 # opt variables
     foreach idx [lsort [array names opt]] {
-      if {[string first "DEBUG" $idx] == -1 && [string first "indent" $idx] == -1} {
+      if {[string first "DEBUG" $idx] == -1 && [string first "indent" $idx] == -1 && $idx != "syntaxChecker"} {
         set var opt($idx)
         set vartmp [set $var]
         if {[string first "/" $vartmp] != -1 || [string first "\\" $vartmp] != -1 || [string first " " $vartmp] != -1} {
@@ -652,6 +669,7 @@ proc saveState {{ok 1}} {
       }
     }
     puts $fileOptions "\n# The lines below can be deleted for a command-line version (sfa-cl.exe) custom options file.\n"
+    puts $fileOptions "set gen(View) $gen(View)"
 
 # window position
     set winpos "+300+200"
@@ -706,11 +724,7 @@ proc saveState {{ok 1}} {
     }
 
     close $fileOptions
-    if {$developer} {
-      set f1 $optionsFile
-      append f1 " - Copy"
-      file copy -force -- $optionsFile $f1
-    }
+    catch {if {$developer && $filesProcessed > 100} {file copy -force -- $optionsFile [file join $mydocs Analyzer]}}
 
   } emsg]} {
     errorMsg "ERROR writing to options file: $emsg"
@@ -1644,19 +1658,20 @@ proc installIFCsvr {{exit 0}} {
 # first time installation
   if {!$reinstall} {
     errorMsg "The IFCsvr toolkit must be installed to read and process STEP files (User Guide section 2.2.1)."
-    outputMsg "- You might need administrator privileges (Run as administrator) to install the toolkit.  Antivirus
-  software might respond that there is a security issue with the toolkit.  The toolkit is safe to
-  install.  Use the default installation folder for the toolkit.
+    outputMsg "- You might need administrator privileges (Run as administrator) to install the toolkit.
+  Antivirus software might respond that there is a security issue with the toolkit.  The
+  toolkit is safe to install.  Use the default installation folder for the toolkit.
 - To reinstall the toolkit, run the installation file ifcsvrr300_setup_1008_en-update.msi
   in $mytemp
-- If you choose to Cancel the IFCsvr toolkit installation, you will still be able to use the Viewer
-  for Part Geometry.  Select View Only and Part Only in the Output Format section of the Options tab.
+- If you choose to Cancel the IFCsvr toolkit installation, you will still be able to use
+  the Viewer for Part Geometry.  Select View and Part Only in the Generate section of the
+  Options tab.
 - If there are problems with the installation, contact [lindex $contact 0] ([lindex $contact 1])."
 
     if {[file exists $ifcsvrInst] && [info exists buttons]} {
       set msg "The IFCsvr toolkit must be installed to read and process STEP files (User Guide section 2.2.1).  After clicking OK the IFCsvr toolkit installation will start."
       append msg "\n\nYou might need administrator privileges (Run as administrator) to install the toolkit.  Antivirus software might respond that there is a security issue with the toolkit.  The toolkit is safe to install.  Use the default installation folder for the toolkit."
-      append msg "\n\nIf you choose to Cancel the IFCsvr toolkit installation, you will still be able to use the Viewer for Part Geometry.  Select View Only and Part Only in the Output Format section of the Options tab."
+      append msg "\n\nIf you choose to Cancel the IFCsvr toolkit installation, you will still be able to use the Viewer for Part Geometry.  Select View and Part Only in the Generate section of the Options tab."
       append msg "\n\nIf there are problems with the installation, contact [lindex $contact 0] ([lindex $contact 1])."
       set choice [tk_messageBox -type ok -message $msg -icon info -title "Install IFCsvr"]
       outputMsg "\nWait for the installation to finish before processing a STEP file." red
@@ -1835,32 +1850,9 @@ proc setShortcuts {} {
 }
 
 #-------------------------------------------------------------------------------
-# set web browser and home, docs, desktop, menu directories
+# set home, docs, desktop, menu directories
 proc setHomeDir {} {
-  global drive env mydesk mydocs myhome mymenu mytemp pf32 pf64 webCmd
-
-# web browser command
-  set webCmd ""
-  catch {
-    set reg_wb [registry get {HKEY_CURRENT_USER\Software\Classes\http\shell\open\command} {}]
-    set reg_wb [lindex [split $reg_wb "\""] 1]
-    set webCmd $reg_wb
-  }
-  if {$webCmd == "" || ![file exists $webCmd]} {
-    foreach cmd [list \
-        [file join $pf64 Microsoft Edge Application chrome.exe] \
-        [file join $pf32 Microsoft Edge Application chrome.exe] \
-        [file join $pf64 Google Chrome Application chrome.exe] \
-        [file join $pf32 Google Chrome Application chrome.exe] \
-        [file join $pf64 "Mozilla Firefox" firefox.exe] \
-        [file join $pf32 "Mozilla Firefox" firefox.exe] \
-        [file join $pf32 "Internet Explorer" IEXPLORE.EXE]] {
-      if {[file exists $cmd]} {
-        set webCmd $cmd
-        break
-      }
-    }
-  }
+  global drive env mydesk mydocs myhome mymenu mytemp
 
 # C drive
   set drive "C:/"
@@ -2002,16 +1994,6 @@ proc ColumnIntToChar {col} {
     set dividend [expr {($dividend - $modulo) / 26}]
   }
   return $columnName
-}
-
-#-------------------------------------------------------------------------------
-# compare two lists of similar values for debugging, see sfa.tcl
-proc compareLists {str l1 l2} {
-  set l3 [intersect3 $l1 $l2]
-  outputMsg "\n$str" red
-  outputMsg "Unique to L1   ([llength [lindex $l3 0]])\n  [lindex $l3 0]"
-  outputMsg "Common to both ([llength [lindex $l3 1]])\n  [lindex $l3 1]"
-  outputMsg "Unique to L2   ([llength [lindex $l3 2]])\n  [lindex $l3 2]"
 }
 
 #-------------------------------------------------------------------------------

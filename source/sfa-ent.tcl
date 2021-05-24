@@ -159,15 +159,7 @@ proc getEntity {objEntity checkInverse checkBadAttributes unicodeCheck} {
 
 # error getting attribute value
       } emsgv]} {
-        set msg "ERROR processing '$attrName' attribute on '[$objEntity Type]': $emsgv"
-        if {[string first "Bad variable type" $emsgv] != -1} {
-          if {[string first "'modifiers' attribute on 'datum_reference_compartment'" $msg] != -1 || \
-              [string first "'modifiers' attribute on 'datum_reference_element'" $msg] != -1 || \
-              [string first "'elements' attribute on 'annotation_plane'" $msg] != -1 || \
-              [string first "'synonymous_names' attribute on 'item_names'" $msg] != -1} {
-            set msg "For '[$objEntity Type]' change the '$attrName' attribute with '()' to '$' where applicable.  The attribute is an OPTIONAL SET\[1:?\] and '()' is not valid."
-          }
-        }
+        set msg "ERROR processing '$attrName' attribute on '[formatComplexEnt [$objEntity Type]]': $emsgv"
         errorMsg $msg
         lappend syntaxErr([$objEntity Type]) [list -$row($thisEntType) $attrName $msg]
         set objValue ""
@@ -502,16 +494,7 @@ proc getEntityCSV {objEntity checkBadAttributes unicodeCheck} {
 
 # error getting attribute value
       } emsgv]} {
-        set msg "ERROR processing '$attrName' attribute on '[$objEntity Type]': $emsgv"
-        if {[string first "Bad variable type" $emsgv] != -1} {
-          if {[string first "'modifiers' attribute on 'datum_reference_compartment'" $msg] != -1 || \
-              [string first "'modifiers' attribute on 'datum_reference_element'" $msg] != -1 || \
-              [string first "'elements' attribute on 'annotation_plane'" $msg] != -1 || \
-              [string first "'synonymous_names' attribute on 'item_names'" $msg] != -1} {
-            set msg "For '[$objEntity Type]' change the '$attrName' attribute with '()' to '$' where applicable.  The attribute is an OPTIONAL SET\[1:?\] and '()' is not valid."
-          }
-        }
-        errorMsg $msg
+        errorMsg "ERROR processing '$attrName' attribute on '[formatComplexEnt [$objEntity Type]]': $emsgv"
         set objValue ""
         catch {raise .}
       }

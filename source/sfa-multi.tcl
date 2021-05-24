@@ -1,8 +1,8 @@
 # process multiple files in a directory
 proc openMultiFile {{ask 1}} {
-  global allEntity andEntAP209 buttons cells1 col1 coverageSTEP entCategory excel1 fileDir fileDir1 fileEntity fileList
+  global allEntity andEntAP209 buttons cells1 col1 coverageSTEP entCategory excel1 fileDir fileDir1 fileEntity fileList gen
   global gpmiCoverageWS gpmiRows gpmiTotals gpmiTypes gpmiTypesInvalid lastXLS1 lenfilelist localName localNameList multiFileDir mydocs nfile
-  global nistCoverageStyle nprogBarFiles ofCSV opt pmiElementsMaxRows row1 spmiCoverageWS startrow stepAP totalEntity totalPMI totalPMIrows
+  global nistCoverageStyle nprogBarFiles opt pmiElementsMaxRows row1 spmiCoverageWS startrow stepAP totalEntity totalPMI totalPMIrows
   global useXL worksheet1 worksheets1 xlFileNames
 
   set multiFileDir ""
@@ -64,7 +64,7 @@ proc openMultiFile {{ask 1}} {
       if {$opt(xlFormat) == "Excel"} {
         append askstr "Spreadsheets"
       } elseif {$opt(xlFormat) == "CSV"} {
-        if {$ofCSV} {append askstr "Spreadsheets and "}
+        if {$gen(CSV)} {append askstr "Spreadsheets and "}
         append askstr "CSV Files"
       } elseif {$opt(xlFormat) == "None"} {
         append askstr "Views"
@@ -115,7 +115,7 @@ proc openMultiFile {{ask 1}} {
           } emsg]} {
             set useXL 0
             if {$opt(xlFormat) == "Excel"} {
-              errorMsg "Excel is not installed or cannot start Excel: $emsg\n CSV files will be generated instead of a spreadsheet.  See the Output Format option.  Some options are disabled."
+              errorMsg "Excel is not installed or cannot start Excel: $emsg\n CSV files will be generated instead of a spreadsheet.  See the Generate options.  Some options are disabled."
               set opt(xlFormat) "CSV"
               catch {raise .}
             }
@@ -574,7 +574,7 @@ proc openMultiFile {{ask 1}} {
         update idletasks
 
         saveState
-        $buttons(genExcel) configure -state normal
+        $buttons(generate) configure -state normal
       }
 
 # no files found

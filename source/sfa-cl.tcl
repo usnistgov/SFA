@@ -51,14 +51,16 @@ if {[catch {
   set c1 [string first [file tail [info nameofexecutable]] $dir]
   if {$c1 != -1} {set dir [string range $dir 0 $c1-1]}
   if {[string first "couldn't load library" $emsg] != -1} {
-    append emsg "\n\nAlthough the message above indicates that a library is missing, that is NOT the root cause of the problem.  The problem is usually related to:"
-    append emsg "\n1 - the directory you are running the software from has accented, non-English, or symbol characters in the pathname\n    [file nativename $dir]"
-    append emsg "\n2 - permissions to run the software in the directory"
-    append emsg "\n3 - other computer configuration problems"
+    append emsg "\n\nAlthough the message above indicates that a library is missing, that is NOT the cause of the problem.\nThe problem is usually related to the directory where the software is installed.\n[file nativename $dir]"
+    append emsg "\n\n1 - The directory has accented, non-English, or symbol characters"
+    append emsg "\n2 - The directory is on a different computer"
+    append emsg "\n3 - No permissions to run the software in the directory"
+    append emsg "\n4 - Other computer configuration problems"
     append emsg "\n\nTry the following workarounds to run the software:"
-    append emsg "\n1 - from a directory without any special characters in the pathname, or from your home directory, or desktop"
-    append emsg "\n2 - as Administrator"
-    append emsg "\n3 - on a different computer"
+    append emsg "\n1 - From a directory without any special characters in the pathname, or from your home directory, or desktop"
+    append emsg "\n2 - Installed on your local computer"
+    append emsg "\n3 - As Administrator"
+    append emsg "\n4 - On a different computer"
   }
   append emsg "\n\nContact [lindex $contact 0] ([lindex $contact 1]) if you cannot run the STEP File Analyzer and Viewer."
   puts "\nERROR: $emsg"
@@ -252,6 +254,9 @@ if {[info exists userEntityFile]} {
   }
 }
 
+set gen(View) 0
+foreach item {viewFEA viewPMI viewTessPart viewPart} {if {$opt($item)} {set gen(View) 1}}
+
 #-------------------------------------------------------------------------------
 # install IFCsvr
 set ifcsvrDir [file join $pf32 IFCsvrR300 dll]
@@ -267,8 +272,8 @@ for {set i 1} {$i <= 10} {incr i} {
     }
     if {[string first "vi" $arg] == 0} {
       set opt(xlFormat) "None"
-      set ofExcel 0
-      set ofCSV 0
+      set gen(Excel) 0
+      set gen(CSV) 0
       set allNone -1
       foreach id {feaBounds feaDisp feaLoads viewFEA viewPart viewPMI viewTessPart} {set opt($id) 1}
       foreach id {feaDispNoTail feaLoadScale PMIGRF PMISEM tessPartMesh valProp} {set opt($id) 0}

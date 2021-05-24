@@ -176,7 +176,7 @@ proc gpmiCheckEnt {ent} {
 # which STEP entities are processed depending on options
 proc setEntsToProcess {entType} {
   global objDesign
-  global gpmiEnts spmiEnts opt
+  global gen gpmiEnts spmiEnts opt
 
   set ok 0
   set gpmiEnts($entType) 0
@@ -201,12 +201,11 @@ proc setEntsToProcess {entType} {
     }
   }
 
-# for PMI (graphical) presentation report and viz
-  if {($opt(PMIGRF) || $opt(viewPMI)) && $ok == 0} {
+# for PMI (graphical) presentation report and view
+  if {($opt(PMIGRF) || ($gen(View) && $opt(viewPMI))) && $ok == 0} {
     set ok [gpmiCheckEnt $entType]
     set gpmiEnts($entType) $ok
-    if {$entType == "advanced_face" || \
-        $entType == "characterized_item_within_representation" || \
+    if {$entType == "characterized_item_within_representation" || \
         $entType == "colour_rgb" || \
         $entType == "curve_style" || \
         $entType == "fill_area_style" || \
@@ -228,8 +227,7 @@ proc setEntsToProcess {entType} {
 # for PMI (semantic) representation
   if {$opt(PMISEM) && $ok == 0} {
     set spmiEnts($entType) [spmiCheckEnt $entType]
-    if {$entType == "advanced_face" || \
-        $entType == "compound_representation_item" || \
+    if {$entType == "compound_representation_item" || \
         $entType == "descriptive_representation_item" || \
         $entType == "dimensional_characteristic_representation" || \
         $entType == "draughting_model_item_association" || \
@@ -251,7 +249,7 @@ proc setEntsToProcess {entType} {
   }
 
 # for tessellated geometry
-  if {$opt(viewTessPart) && $ok == 0} {if {[string first "tessellated" $entType] != -1} {set ok 1}}
+  if {$gen(View) && $opt(viewTessPart) && $ok == 0} {if {[string first "tessellated" $entType] != -1} {set ok 1}}
 
   return $ok
 }
@@ -259,7 +257,7 @@ proc setEntsToProcess {entType} {
 # -------------------------------------------------------------------------------
 # check for all types of reports
 proc checkForReports {entType} {
-  global cells gpmiEnts opt pmiColumns savedViewCol skipEntities spmiEnts
+  global cells gen gpmiEnts opt pmiColumns savedViewCol skipEntities spmiEnts
 
 # check for validation properties report, call valPropStart
   if {$entType == "property_definition_representation"} {
@@ -275,7 +273,7 @@ proc checkForReports {entType} {
       errorMsg "ERROR adding Validation Properties for $entType: $emsg"
     }
 
-# check for PMI Presentation report or viz graphical PMI, call gpmiAnnotation
+# check for PMI Presentation report or view graphical PMI, call gpmiAnnotation
   } elseif {$gpmiEnts($entType)} {
     if {[catch {
       set ok 0
@@ -290,7 +288,7 @@ proc checkForReports {entType} {
       errorMsg "ERROR adding PMI Presentation for [formatComplexEnt $entType]: $emsg"
     }
 
-# viz tessellated part geometry, call tessPart
+# view tessellated part geometry, call tessPart
   } elseif {$entType == "tessellated_solid" || $entType == "tessellated_shell" || $entType == "tessellated_wire"} {
     if {[catch {
       if {[info exists opt(viewTessPart)]} {if {$opt(viewTessPart)} {tessPart $entType}}
@@ -335,7 +333,7 @@ proc checkForReports {entType} {
             $entType == "single_point_constraint_element_values"} {
     if {[catch {
       if {[info exists opt(viewFEA)]} {
-        if {$opt(viewFEA)} {
+        if {$gen(View) && $opt(viewFEA)} {
           set opt(x3dSave) 0
           if {[string first "element_representation" $entType] != -1 || \
               ($opt(feaBounds) && $entType == "single_point_constraint_element_values") || \

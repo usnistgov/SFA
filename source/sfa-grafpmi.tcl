@@ -1,6 +1,6 @@
 proc gpmiAnnotation {entType} {
   global objDesign
-  global ao aoEntTypes col ent entAttrList entLevel geomType gpmiRow gtEntity nindex opt pmiCol
+  global ao aoEntTypes col ent entAttrList entLevel gen geomType gpmiRow gtEntity nindex opt pmiCol
   global pmiHeading pmiStartCol recPracNames spaces stepAP syntaxErr tessCoordID useXL x3dShape
 
   if {$opt(DEBUG1)} {outputMsg "START gpmiAnnotation $entType" red}
@@ -10,7 +10,7 @@ proc gpmiAnnotation {entType} {
   set direction       [list direction name direction_ratios]
   set a2p3d           [list axis2_placement_3d location $cartesian_point axis $direction ref_direction $direction]
 
-  if {$opt(viewPMI)} {
+  if {$gen(View) && $opt(viewPMI)} {
     set polyline        [list polyline name points $cartesian_point]
     set circle          [list circle name position $a2p3d radius]
     set trimmed_curve   [list trimmed_curve name basis_curve $circle]
@@ -77,11 +77,11 @@ proc gpmiAnnotation {entType} {
   set tessCoordID {}
   catch {unset gtEntity}
 
-  if {[info exist pmiHeading]} {unset pmiHeading}
+  if {[info exists pmiHeading]} {unset pmiHeading}
   if {[info exists ent]} {unset ent}
 
   if {$opt(PMIGRF) && $opt(xlFormat) != "None"} {outputMsg " Adding PMI Presentation Analysis" blue}
-  if {$opt(viewPMI)} {
+  if {$gen(View) && $opt(viewPMI)} {
     set msg " Adding PMI Presentation View"
     if {$opt(xlFormat) == "None"} {append msg " ([formatComplexEnt $entType])"}
     outputMsg $msg green
@@ -157,18 +157,18 @@ proc gpmiAnnotation {entType} {
   set col($ao) $pmiCol
 
 # write any remaining geometry for polyline annotations
-  if {$opt(viewPMI)} {x3dPolylinePMI}
+  if {$gen(View) && $opt(viewPMI)} {x3dPolylinePMI}
 }
 
 # -------------------------------------------------------------------------------
 proc gpmiAnnotationReport {objEntity} {
   global ao aoname assocGeom badAttributes boxSize cells circleCenter col currx3dPID curveTrim dirRatio dirType
-  global draughtingModels draftModelCameraNames draftModelCameras ent entAttrList entCount entLevel geomType gpmiEnts gpmiID gpmiIDRow
-  global gpmiName gpmiPlacement gpmiRow gpmiTypes gpmiTypesInvalid gpmiTypesPerFile gpmiValProp iCompCurve iCompCurveSeg iPolyline
+  global draughtingModels draftModelCameraNames draftModelCameras ent entAttrList entCount entLevel gen geomType gpmiEnts gpmiID gpmiIDRow
+  global gpmiName gpmiPlacement gpmiRow gpmiTypes gpmiTypesInvalid gpmiTypesPerFile gpmiValProp grayBackground iCompCurve iCompCurveSeg iPolyline
   global nindex numCompCurve numCompCurveSeg numPolyline numx3dPID objEntity1 opt placeAnchor placeNCP placeOrigin
   global pmiCol pmiColumns pmiHeading pmiStartCol propDefIDs recPracNames savedViewCol savedViewName spaces stepAP syntaxErr
-  global tessCoord tessIndex tessIndexCoord tessPlacement tessPlacementID tessRepo useXL whiteColor
-  global x3dColor x3dCoord x3dFile x3dFileName x3dIndex x3dIndexType x3dMax x3dMin x3dMsg x3dPID x3dPoint x3dShape x3dStartFile
+  global tessCoord tessIndex tessIndexCoord tessPlacement tessPlacementID tessRepo useXL
+  global x3dColor x3dCoord x3dFile x3dFileName x3dIndex x3dIndexType x3dMax x3dMin x3dPID x3dPoint x3dShape x3dStartFile
 
 # entLevel is very important, keeps track level of entity in hierarchy
   incr entLevel
@@ -194,7 +194,7 @@ proc gpmiAnnotationReport {objEntity} {
       }
 
 # write geometry polyline annotations
-      if {$opt(viewPMI) && [string first "tessellated" $objType] == -1} {x3dPolylinePMI $objEntity1}
+      if {$gen(View) && $opt(viewPMI) && [string first "tessellated" $objType] == -1} {x3dPolylinePMI $objEntity1}
     }
 
 # keep track of the number of c_c or c_c_s, if not polyline
@@ -255,8 +255,6 @@ proc gpmiAnnotationReport {objEntity} {
                       append msg "($recPracNames(pmi203), Sec. 4.1.1, 4.1.2)"
                     }
                     errorMsg $msg
-                    set msg "PMI annotation curves for '[$objValue Type]' will be missing."
-                    if {[lsearch $x3dMsg $msg] == -1} {lappend x3dMsg $msg}
                   }
                 }
                 "axis2_placement_3d axis" {
@@ -340,7 +338,7 @@ proc gpmiAnnotationReport {objEntity} {
 
 # get values for these entity and attribute pairs
 # g_c_s and a_f_a both start keeping track of their polylines
-# cartesian_point is need to generated X3DOM
+# cartesian_point is need to generated x3dom
               set ok 0
               switch -glob $ent1 {
                 "composite_curve segments" {set numCompCurveSeg $objSize}
@@ -365,7 +363,7 @@ proc gpmiAnnotationReport {objEntity} {
                     }
                   }
 
-                  if {$opt(viewPMI) && $x3dFileName != ""} {
+                  if {$gen(View) && $opt(viewPMI) && $x3dFileName != ""} {
 
 # entLevel = 4 for polyline
                     if {$entLevel == 4 && $geomType == "polyline"} {
@@ -616,9 +614,8 @@ proc gpmiAnnotationReport {objEntity} {
               set colName ""
               switch -glob $ent1 {
                 "circle radius" {
-                  if {$opt(viewPMI) && $x3dFileName != ""} {
-# write circle to X3DOM
-                    #set ns 8
+                  if {$gen(View) && $opt(viewPMI) && $x3dFileName != ""} {
+# write circle to x3dom
                     set ns 24
                     set angle 0
                     set dlt [expr {6.28319/$ns}]
@@ -653,10 +650,7 @@ proc gpmiAnnotationReport {objEntity} {
                         set x3dPoint(y) [expr {$objValue*sin($angle)+[lindex $circleCenter 1]}]
                         set x3dPoint(x) [lindex $circleCenter 0]
                       } else {
-                        #outputMsg "$dirRatio(x,axis) $dirRatio(y,axis) $dirRatio(z,axis) " red
-                        set msg "Circles in PMI annotations might be shown with the wrong orientation."
-                        errorMsg " $msg" red
-                        if {[lsearch $x3dMsg $msg] == -1} {lappend x3dMsg $msg}
+                        errorMsg " Circles in PMI annotations might be shown with the wrong orientation."
                         set x3dPoint(x) [expr {$objValue*cos($angle)+[lindex $circleCenter 0]}]
                         set x3dPoint(y) [expr {$objValue*sin($angle)+[lindex $circleCenter 1]}]
                         set x3dPoint(z) [lindex $circleCenter 2]
@@ -680,9 +674,7 @@ proc gpmiAnnotationReport {objEntity} {
                       set curveTrim([$a0 Name]) $val
                     }
                   }
-                  set msg "Trimmed circles in PMI annotations might be incorrectly trimmed."
-                  errorMsg " $msg" red
-                  if {[lsearch $x3dMsg $msg] == -1} {lappend x3dMsg $msg}
+                  errorMsg " Trimmed circles in PMI annotations might be incorrectly trimmed."
                 }
                 "cartesian_point name" {
                   if {$entLevel == 4} {
@@ -717,15 +709,12 @@ proc gpmiAnnotationReport {objEntity} {
                 "annotation_occurrence* name" -
                 "*tessellated_annotation_occurrence* name" {
                   set aoname $objValue
-                  if {[string first "fill" $ent1] != -1} {
-                    set msg "Filled characters are not filled."
-                    if {[lsearch $x3dMsg $msg] == -1} {lappend x3dMsg $msg}
-                  }
+                  if {[string first "fill" $ent1] != -1 && $gen(View) && $opt(viewPMI)} {errorMsg " Annotations with filled characters are not filled."}
                   if {[string first "placeholder" $ent1] != -1} {set placeNCP 0}
                   if {[string first "tessellated" $ent1] != -1 && $opt(xlFormat) != "None"} {
                     set ok 1
                     foreach ann [list annotation_curve_occurrence_and_geometric_representation_item annotation_curve_occurrence] {
-                      if {[info exist entCount($ann)] && $ok} {
+                      if {[info exists entCount($ann)] && $ok} {
                         set msg "Syntax Error: Using both '[formatComplexEnt $ann]' and 'tessellated_annotation_occurrence' is not recommended.$spaces\($recPracNames(pmi242), Sec. 8.3, Important Note)"
                         errorMsg $msg
                         addCellComment $ann 1 1 $msg
@@ -753,7 +742,7 @@ proc gpmiAnnotationReport {objEntity} {
                 "*triangulated_surface_set name" -
                 "tessellated_curve_set name" {
 # write tessellated coords and index for pmi and part geometry
-                  if {$opt(viewPMI) && $ao == "tessellated_annotation_occurrence"} {
+                  if {$gen(View) && $opt(viewPMI) && $ao == "tessellated_annotation_occurrence"} {
                     if {[info exists tessIndex($objID)] && [info exists tessCoord($tessIndexCoord($objID))]} {x3dTessGeom $objID $objEntity1 $ent1}
                   }
                 }
@@ -793,7 +782,7 @@ proc gpmiAnnotationReport {objEntity} {
                     append colorRGB " $objValue"
                     if {$opt(gpmiColor) == 0} {
                       append x3dColor " $objValue"
-                      if {[expr {([lindex $x3dColor 0]+[lindex $x3dColor 1]+[lindex $x3dColor 2])/3.}] > 0.93} {set whiteColor 1}
+                      if {[expr {([lindex $x3dColor 0]+[lindex $x3dColor 1]+[lindex $x3dColor 2])/3.}] > 0.93} {set grayBackground 1}
                     }
                     if {$opt(PMIGRF) && $opt(xlFormat) != "None"} {
                       set ok 1
@@ -813,7 +802,7 @@ proc gpmiAnnotationReport {objEntity} {
                     if {$opt(gpmiColor) > 0} {
                       set x3dColor [x3dSetPMIColor $opt(gpmiColor)]
                     } elseif {$objValue == "white"} {
-                      set whiteColor 1
+                      set grayBackground 1
                     }
                     if {$opt(PMIGRF) && $opt(xlFormat) != "None"} {
                       set ok 1
@@ -917,8 +906,8 @@ proc gpmiAnnotationReport {objEntity} {
                   }
                   set ov $objValue
 
-# start X3DOM file, read tessellated geometry
-                  if {$opt(viewPMI) && [string first "occurrence" $ao] != -1} {
+# start x3dom file, read tessellated geometry
+                  if {$gen(View) && $opt(viewPMI) && [string first "occurrence" $ao] != -1} {
                     if {$x3dStartFile} {x3dFileStart}
 
 # moved (start shape node if not tessellated)
@@ -1169,7 +1158,7 @@ proc gpmiAnnotationReport {objEntity} {
   }
 
 # report camera models associated with the annotation occurrence (not placeholder) through draughting_model
-  if {$entLevel == 0 && (($opt(PMIGRF) && $opt(xlFormat) != "None" && [info exists gpmiIDRow($ao,$gpmiID)]) || ($opt(viewPMI) && !$opt(PMIGRF)))} {
+  if {$entLevel == 0 && (($opt(PMIGRF) && $opt(xlFormat) != "None" && [info exists gpmiIDRow($ao,$gpmiID)]) || ($gen(View) && $opt(viewPMI) && !$opt(PMIGRF)))} {
     if {[catch {
       set savedViews ""
       set savedViewName {}
@@ -1390,24 +1379,15 @@ proc pmiGetCameras {} {
   catch {unset draftModelCameraNames}
   checkTempDir
 
-  if {[llength $aolist] > 0} {
-    if {[catch {
-
 # camera list
-      set cmlist {}
-      foreach cms [list camera_model_d3 camera_model_d3_multi_clipping] {
-        if {[info exists entCount($cms)]} {if {$entCount($cms) > 0} {lappend cmlist $cms}}
-      }
+  set cmlist {}
+  foreach cms [list camera_model_d3 camera_model_d3_multi_clipping camera_model_d3_multi_clipping_intersection \
+                    camera_model_d3_multi_clipping_union camera_model_d3_with_hlhsr] {
+    if {[info exists entCount($cms)]} {if {$entCount($cms) > 0} {lappend cmlist $cms}}
+  }
 
-      if {[info exists entCount(camera_model_d2)]} {
-        set msg "Syntax Error: For Saved Views, 'camera_model_d2' is not allowed.$spaces"
-        if {[string first "AP242" $stepAP] == 0} {
-          append msg "($recPracNames(pmi242), Sec. 9.4.2)"
-        } else {
-          append msg "($recPracNames(pmi203), Sec. 5.4.2)"
-        }
-        errorMsg $msg
-      }
+  if {[llength $aolist] > 0 && [llength $cmlist] > 0} {
+    if {[catch {
 
 # loop over camera model entities
       foreach cm $cmlist {
@@ -1543,9 +1523,6 @@ proc pmiGetCameras {} {
       errorMsg "ERROR getting Camera Models: $emsg"
       catch {raise .}
     }
-  } elseif {[info exists entCount(annotation_text_occurrence)]} {
-    errorMsg "Using 'annotation_text_occurrence' is not valid for PMI Presentation.\n ($recPracNames(pmi242), Sec. 1)"
-    return
   }
 
 # clean up if only semantic pmi
@@ -1553,6 +1530,5 @@ proc pmiGetCameras {} {
     foreach var {draughtingModels draftModelCameraNames draftModelCameras savedViewFileName savedViewItems savedViewName savedViewNames savedViewpoint} {
       if {[info exists $var]} {unset $var}
     }
-    return
   }
 }

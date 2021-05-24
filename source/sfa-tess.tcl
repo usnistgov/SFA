@@ -34,7 +34,7 @@ proc tessPart {entType} {
 # open file for tessellated parts
   checkTempDir
   foreach tess {tessellated_solid tessellated_shell tessellated_wire} {
-    if {[info exist entCount($tess)] && ![info exists tessPartFileName]} {
+    if {[info exists entCount($tess)] && ![info exists tessPartFileName]} {
       if {$entCount($tess) > 0} {
         set tessPartFileName [file join $mytemp tessPart.txt]
         catch {file delete -force -- $tessPartFileName}
@@ -45,7 +45,7 @@ proc tessPart {entType} {
 
 # open file for tessellated supplemental geometry, might not be used
   foreach wire {tessellated_wire tessellated_shell} {
-    if {[info exist entCount($wire)] && ![info exists tessSuppGeomFileName]} {
+    if {[info exists entCount($wire)] && ![info exists tessSuppGeomFileName]} {
       if {$entCount($wire) > 0} {
         set tessSuppGeomFileName [file join $mytemp tessSuppGeom.txt]
         catch {file delete -force -- $tessSuppGeomFileName}
@@ -62,7 +62,7 @@ proc tessPart {entType} {
 
 # -------------------------------------------------------------------------------
 proc tessPartGeometry {objEntity} {
-  global ao badAttributes ent entAttrList entLevel objEntity1 opt shellSuppGeom tessCoord
+  global ao badAttributes ent entAttrList entLevel gen objEntity1 opt shellSuppGeom tessCoord
   global tessEdgeCoord tessEdges tessIndex tessIndexCoord x3dFile x3dStartFile
 
   if {$opt(DEBUG1)} {outputMsg "tessPartGeometry [$objEntity Type] [$objEntity P21ID]" red}
@@ -131,8 +131,8 @@ proc tessPartGeometry {objEntity} {
               switch -glob $ent1 {
                 "tessellated_shell name" -
                 "tessellated_solid name" {
-# start X3DOM file, read tessellated geometry
-                  if {$x3dStartFile} {x3dFileStart}
+# start x3dom file, read tessellated geometry
+                  if {$gen(View) && $x3dStartFile} {x3dFileStart}
                 }
                 "*triangulated_face name" -
                 "*triangulated_surface_set name" -
@@ -142,7 +142,7 @@ proc tessPartGeometry {objEntity} {
                     if {[info exists tessIndex($objID)] && [info exists tessCoord($tessIndexCoord($objID))]} {
                       x3dTessGeom $objID $objEntity1 $ent1
                     } else {
-                      errorMsg "Missing tessellated coordinates and index for \#$objID"
+                      errorMsg "Missing tessellated coordinates and index"
                     }
                   }
                 }

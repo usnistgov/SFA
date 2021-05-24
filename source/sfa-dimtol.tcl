@@ -120,7 +120,6 @@ proc spmiDimtolReport {objEntity} {
     set objAttributes [$objEntity Attributes]
     set ent($entLevel) $objType
 
-    #if {$entLevel == 1} {outputMsg "#$objID=$objType" blue}
     if {$opt(DEBUG1) && $objType != "cartesian_point"} {outputMsg "$ind ENT $entLevel #$objID=$objType (ATR=[$objAttributes Count])" blue}
 
 # do not follow referred entity when the entity refers to itself, results in infinite loop, unusual case with dimensional_*_and_datum_feature
@@ -308,7 +307,7 @@ proc spmiDimtolReport {objEntity} {
                         append dimrep($dimrepID) $dim($tmp)
 
 # limit dimensions
-                      } elseif {$dim(num) > 1 && [info exists dim(upper)] && [info exist dim(lower)]} {
+                      } elseif {$dim(num) > 1 && [info exists dim(upper)] && [info exists dim(lower)]} {
                         if {$tolStandard(type) == "ISO"} {
                           set dimrep($dimrepID) "$dim(symbol)$dim(upper)[format "%c" 10]$dim(symbol)$dim(lower)"
                         } else {
@@ -1190,11 +1189,12 @@ proc spmiDimtolReport {objEntity} {
 # errors with +/- values
               set msg ""
               if {$pmval(0) > $pmval(1)} {
-                set msg "Syntax Error: +/- tolerances are reversed.$spaces\($recPracNames(pmi242), Sec. 5.2.3)"
+                set msg "Syntax Error: +/- tolerances are reversed."
               } elseif {$pmval(0) == $pmval(1)} {
-                set msg "+/- tolerances are equal"
+                set msg "Syntax Error: +/- tolerances are equal."
               }
               if {$msg != ""} {
+                append msg "$spaces\($recPracNames(pmi242), Sec. 5.2.3)"
                 errorMsg $msg
                 lappend syntaxErr($dt) [list -$r "+/- tolerance" $msg]
                 lappend syntaxErr(tolerance_value) [list $tolvalID "upper_bound" $msg]
@@ -1202,8 +1202,8 @@ proc spmiDimtolReport {objEntity} {
               }
 
 # -------------------------------------------------------------------------------
-# EQUAL values
-              if {[string range $pmval(0) 1 end] == $pmval(1)} {
+# EQUAL absolute values, therefore +/-
+              if {[string index $pmval(0) 0] == "-" && [string range $pmval(0) 1 end] == $pmval(1)} {
 
 # get precision of +- and compare to dimension, if not qualified
                 if {[info exists dim(unit)] && $plusminusQualified == ""} {
@@ -1241,7 +1241,7 @@ proc spmiDimtolReport {objEntity} {
                 lappend spmiTypesPerFile "bilateral tolerance"
 
 # -------------------------------------------------------------------------------
-# NON EQUAL values
+# NON EQUAL values, therefore value range
               } elseif {$pmval(0) != $pmval(1)} {
 
 # inch units, if not qualified
@@ -1396,20 +1396,20 @@ proc spmiDimtolReport {objEntity} {
         }
 
 # saved modifiers to append to dimension
-        if {[info exist savedModifier]} {
+        if {[info exists savedModifier]} {
           append dr " $savedModifier"
           unset savedModifier
         }
 
 # directed
-        if {[info exist dimDirected]} {
+        if {[info exists dimDirected]} {
           append dr "[format "%c" 10](directed)"
           unset dimDirected
           set cellComment "For the definition of a 'directed' dimension, see the CAx-IF Recommended Practice for $recPracNames(pmi242), Sec. 5.1.1, 5.1.7"
         }
 
 # oriented
-        if {[info exist dimOrient]} {
+        if {[info exists dimOrient]} {
           append dr "[format "%c" 10](oriented)"
           unset dimOrient
           set cellComment "For the definition of an 'oriented' dimension, see the CAx-IF Recommended Practice for $recPracNames(pmi242), Sec. 5.1.3"

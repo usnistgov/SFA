@@ -58,16 +58,18 @@ if {[catch {
   set c1 [string first [file tail [info nameofexecutable]] $dir]
   if {$c1 != -1} {set dir [string range $dir 0 $c1-1]}
   if {[string first "couldn't load library" $emsg] != -1} {
-    append emsg "\n\nAlthough the message above indicates that a library is missing, that is NOT the root cause of the problem.  The problem is usually related to:"
-    append emsg "\n\n1 - the directory you are running the software from has accented, non-English, or symbol characters in the pathname\n    [file nativename $dir]"
-    append emsg "\n2 - permissions to run the software in the directory"
-    append emsg "\n3 - other computer configuration problems"
+    append emsg "\n\nAlthough the message above indicates that a library is missing, that is NOT the cause of the problem.  The problem is usually related to the directory where the software is installed.\n\n[file nativename $dir]"
+    append emsg "\n\n1 - The directory has accented, non-English, or symbol characters"
+    append emsg "\n2 - The directory is on a different computer"
+    append emsg "\n3 - No permissions to run the software in the directory"
+    append emsg "\n4 - Other computer configuration problems"
     append emsg "\n\nTry the following workarounds to run the software:"
-    append emsg "\n\n1 - from a directory without any special characters in the pathname, or from your home directory, or desktop"
-    append emsg "\n2 - as Administrator"
-    append emsg "\n3 - on a different computer"
+    append emsg "\n\n1 - From a directory without any special characters in the pathname, or from your home directory, or desktop"
+    append emsg "\n2 - Installed on your local computer"
+    append emsg "\n3 - As Administrator"
+    append emsg "\n4 - On a different computer"
   }
-  append emsg "\n\nPlease send a screenshot of this dialog to [lindex $contact 0] ([lindex $contact 1]) if you cannot run the STEP File Analyzer and Viewer."
+  append emsg "\n\nPlease send a screenshot of this window to [lindex $contact 0] ([lindex $contact 1]) if you cannot fix the problem."
   set choice [tk_messageBox -type ok -icon error -title "ERROR running the STEP File Analyzer and Viewer" -message $emsg]
   exit
 }
@@ -100,21 +102,24 @@ foreach item $auto_path {if {[string first "STEP-File-Analyzer" $item] != -1} {s
 # -----------------------------------------------------------------------------------------------------
 # initialize variables, set opt to 1
 foreach id { \
-  logFile outputOpen partEdges partSketch PMIGRF PMISEM stepAP242 stepCOMM stepCOMP \
-  stepPRES stepQUAN stepREPR stepSHAP stepTOLR valProp viewFEA viewPart viewPMI viewTessPart \
+  logFile outputOpen partEdges partSketch PMIGRF PMISEM stepCOMM stepPRES stepQUAN stepREPR stepSHAP stepTOLR valProp \
+  viewPart viewPMI \
 } {set opt($id) 1}
 
 # set opt to 0
 foreach id { \
-  feaBounds feaDisp feaDispNoTail feaLoads feaLoadScale indentGeometry indentStyledItem INVERSE partNormals partOnly PMIGRFCOV PMISEMDIM PMISEMRND \
-  SHOWALLPMI stepCPNT stepFEAT stepGEOM stepKINE stepUSER syntaxChecker tessPartMesh writeDirType xlHideLinks xlNoRound xlSort xlUnicode x3dSave \
-  DEBUG1 DEBUGINV DEBUGX3D \
+  feaBounds feaDisp feaDispNoTail feaLoads feaLoadScale indentGeometry indentStyledItem INVERSE partNormals partOnly \
+  PMIGRFCOV PMISEMDIM PMISEMRND SHOWALLPMI stepAP242 stepCOMP stepCPNT stepFEAT stepGEOM stepKINE stepUSER syntaxChecker \
+  tessPartMesh viewFEA viewTessPart writeDirType xlHideLinks xlNoRound xlSort xlUnicode x3dSave DEBUG1 DEBUGINV DEBUGX3D \
 } {set opt($id) 0}
 
 set opt(gpmiColor) 3
 set opt(partQuality) 7
 set opt(xlMaxRows) 1003
 set opt(xlFormat) Excel
+set gen(AllAnalysis) 0
+set gen(AllView) 0
+set gen(View) 1
 
 set coverageSTEP 0
 set dispCmd "Default"
@@ -194,18 +199,19 @@ if {[info exists userEntityFile]} {
 if {$opt(xlMaxRows) < 103 || ([string range $opt(xlMaxRows) end-1 end] != "03" && \
    [string range $opt(xlMaxRows) end-1 end] != "76" && [string range $opt(xlMaxRows) end-1 end] != "36")} {set opt(xlMaxRows) 103}
 
-# for output format buttons
-set ofExcel 0
-set ofCSV 0
-set ofNone 0
+# for generate buttons
+set gen(Excel) 0
+set gen(CSV) 0
+set gen(None) 0
 switch -- $opt(xlFormat) {
-  Excel   {set ofExcel 1}
-  CSV     {set ofExcel 1; set ofCSV 1}
-  None    {set ofNone 1}
-  default {set ofExcel 1}
+  Excel   {set gen(Excel) 1}
+  CSV     {set gen(Excel) 1; set gen(CSV) 1}
+  None    {set gen(None) 1}
+  default {set gen(Excel) 1}
 }
+set gen(View1) $gen(View)
+set gen(Excel1) $gen(Excel)
 
-# -------------------------------------------------------------------------------
 # get programs that can open STEP files
 getOpenPrograms
 
@@ -255,8 +261,7 @@ pack $nb -fill both -expand true
 guiStatusTab
 
 # options tab
-guiProcessAndReports
-guiInverse
+guiOptionsTab
 guiOpenSTEPFile
 pack $fopt -side top -fill both -expand true -anchor nw
 
@@ -289,10 +294,10 @@ if {!$nistVersion} {
 set save 0
 if {$sfaVersion == 0} {
   whatsNew
-  showDisclaimer
   set sfaVersion [getVersion]
-  showFileURL UserGuide
   setShortcuts
+  showCrashRecovery
+  showFileURL UserGuide
   set save 1
 
 # what's new message
@@ -306,10 +311,6 @@ if {$sfaVersion == 0} {
   set sfaVersion [getVersion]
   set save 1
 }
-
-#-------------------------------------------------------------------------------
-# crash recovery message
-if {$filesProcessed == 0} {showCrashRecovery}
 
 # save the variables
 if {$save} {saveState}
@@ -359,9 +360,9 @@ if {$argv != ""} {
         set opt(partOnly) 0
         set opt(xlFormat) None
         set opt(viewTessPart) 1
-        set ofExcel 0
-        set ofCSV 0
-        set ofNone 1
+        set gen(Excel) 0
+        set gen(CSV) 0
+        set gen(None) 1
         set allNone -1
         checkValues
       }
@@ -370,9 +371,9 @@ if {$argv != ""} {
       if {$fileDir == $drive} {outputMsg "There might be problems processing a STEP file directly in the $fileDir directory." red}
 
       if {[info exists buttons(appOpen)]} {$buttons(appOpen) configure -state normal}
-      if {[info exists buttons(genExcel)]} {
-        $buttons(genExcel) configure -state normal
-        focus $buttons(genExcel)
+      if {[info exists buttons(generate)]} {
+        $buttons(generate) configure -state normal
+        focus $buttons(generate)
         if {$editorCmd != ""} {
           bind . <Key-F5> {
             if {[file exists $localName]} {
@@ -433,12 +434,4 @@ if {$rh > [winfo screenheight  .]} {set rh [winfo screenheight .]}
 wm minsize . $rw $rh
 
 # debug lists of entities in sfa-data.tcl
-#compareLists "AP242" $ap242all $ap242new
-
-#set all [lrmdups [concat $ap203all $ap214all $ap242all]]
-#foreach idx [array names entCategory] {compareLists "$idx" $all $entCategory($idx); outputMsg "--------------"}
-
-#set apcat {}
-#foreach idx [array names entCategory] {set apcat [concat $apcat $entCategory($idx)]}
-#compareLists "cat" $apcat [lrmdups [concat $ap203all $ap214all $ap242all]]
-#foreach idx [array names entCategory] {if {[llength $entCategory($idx)] != [llength [lrmdups $entCategory($idx)]]} {outputMsg $idx}}
+#debugData
