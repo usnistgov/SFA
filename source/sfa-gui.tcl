@@ -1,5 +1,5 @@
 # SFA version number
-proc getVersion {} {return 4.50}
+proc getVersion {} {return 4.51}
 
 # version of SFA that the User Guide is based on
 proc getVersionUG {} {return 4.2}
@@ -370,8 +370,17 @@ proc guiOptionsTab {} {
       if {$gen(Excel) == 0 && $gen(View) == 0 && $gen(Excel1) == 0 && $gen(View1) == 1} {
         set gen(Excel) 1
       } else {
-        if {$gen(Excel) == 0} {set gen(View) 1; set gen(None) 1}
-        if {$gen(View) == 0} {set gen(Excel) 1; set gen(None) 0}
+        if {$gen(Excel) == 0} {
+          set gen(View) 1
+          set gen(View1) 1
+          set gen(None) 1
+        }
+        if {$gen(View) == 0} {
+          set gen(Excel) 1
+          set gen(Excel1) 1
+          set gen(None) 0
+          #set opt(partOnly) 0
+        }
       }
 
 # part only
@@ -478,7 +487,7 @@ proc guiOptionsTab {} {
         set ttmsg "[string trim [lindex $item 0]] entities ([llength $entCategory($idx)]) are found in most STEP APs."
       } else {
         set ttmsg "Process categories control which entities from AP203, AP214, and AP242 are written to the Spreadsheet.\nAll entities specific to AP209, AP210, and AP238 are always written to the Spreadsheet.\nThe categories are used to group and color-code entities on the Summary worksheet."
-        append ttmsg "\n\nSee Websites > AP203 vs AP214 vs AP242\nSee Websites > STEP Format and Schemas\nSee Help > Supported STEP APs\nSee Help > User Guide (section 3.4.2)\n\n[string trim [lindex $item 0]] entities ([llength $entCategory($idx)]) are found in most STEP APs.  The following is a subset of Common entities."
+        append ttmsg "\n\nSee Websites > AP203 vs AP214 vs AP242\nSee Websites > AP242\nSee Websites > STEP Format and Schemas\nSee Help > Supported STEP APs\nSee Help > User Guide (section 3.4.2)\n\n[string trim [lindex $item 0]] entities ([llength $entCategory($idx)]) are found in most STEP APs.  The following is a subset of Common entities."
       }
       set ttmsg [guiToolTip $ttmsg $idx]
       catch {tooltip::tooltip $buttons($idx) $ttmsg}
@@ -519,7 +528,8 @@ proc guiOptionsTab {} {
       } elseif {$idx == "stepCPNT"} {
         set ttmsg "There are 2 entity types in this category.\n\ncartesian_point is found in most STEP APs\ncoordinates_list is found only in AP242"
       } else {
-        set ttmsg "These entities ([llength $entCategory($idx)]) are found only in AP242.\nCommonly used AP242 entities are found in the other Process categories.\nSee Websites > AP242"
+        set ttmsg "Commonly used AP242 entities are found in the other Process categories.\n\nThese entities ([llength $entCategory($idx)]) are found only in AP242.  The following is a subset of AP242 entities."
+        set ttmsg [guiToolTip $ttmsg $idx]
       }
       catch {tooltip::tooltip $buttons($idx) $ttmsg}
     }
@@ -574,7 +584,7 @@ proc guiOptionsTab {} {
   }
   catch {
     tooltip::tooltip $buttons(allNone0) "Selects most Process categories"
-    tooltip::tooltip $buttons(allNone1) "Deselects all categories except Common"
+    tooltip::tooltip $buttons(allNone1) "Deselects all categories except Common and all Analyze options"
   }
   pack $fopta5 -side left -anchor w -pady 0 -padx 15 -fill y
   pack $fopta -side top -anchor w -pady {5 2} -padx 10 -fill both
@@ -1899,7 +1909,8 @@ Credits
                                   IFCsvr has been modified by NIST to include STEP schemas.
                                   The license agreement can be found in  C:\\Program Files (x86)\\IFCsvrR300\\doc
 - Translating STEP to X3D:        Developed by Soonjo Kwon (former NIST Guest Researcher)
-                                  See Websites > STEP Software"
+                                  See Websites > STEP Software
+- Some Tcl code is based on:      CAWT  http://www.cawt.tcl3d.org/"
 
 # debug
     if {$opt(xlMaxRows) == 100003} {
@@ -2093,7 +2104,7 @@ proc guiToolTip {ttmsg tt} {
       if {[string first "product" $ent] == 0 || [string first "document" $ent] == 0} {
         lappend ents $ent
       } else {
-        foreach str [list application date time group person security \
+        foreach str [list action application date time group person security \
                      id_attribute name_attribute role_association make_from_usage_option next_assembly_usage_occurrence] {
           if {[string first $str $ent] != -1 && [string first "auto_design" $ent] == -1 && [string first "cc_" $ent] == -1} {lappend ents $ent; break}
         }
@@ -2105,15 +2116,10 @@ proc guiToolTip {ttmsg tt} {
     set ents {}
     set prefix {}
     foreach ent $entCategory($tt) {
-      set c1 [string first "_" $ent]
-      if {$c1 != -1} {
-        set pre [string range $ent 0 $c1]
-        if {[lsearch $prefix $pre] == -1} {
-          lappend ents $ent
-          lappend prefix $pre
-        }
-      } else {
+      set pre [string range $ent 0 3]
+      if {[lsearch $prefix $pre] == -1} {
         lappend ents $ent
+        lappend prefix $pre
       }
     }
   }
@@ -2138,7 +2144,7 @@ proc guiToolTip {ttmsg tt} {
         }
       }
     }
-    if {$type == "ap203" && $tt != "stepCOMM"} {append ttmsg "\n\nThe following entities are found only in AP242.\n\n"}
+    if {$type == "ap203" && $tt != "stepCOMM" && $tt != "stepAP242"} {append ttmsg "\n\nThe following entities are found only in AP242.\n\n"}
   }
   return $ttmsg
 }

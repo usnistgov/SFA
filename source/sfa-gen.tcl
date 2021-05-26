@@ -7,7 +7,7 @@ proc genExcel {{numFile 0}} {
   global nistPMIexpected nistPMImaster nprogBarEnts opt pf32 p21e3 p21e3Section pmiCol resetRound row rowmax savedViewButtons savedViewName
   global savedViewNames scriptName sheetLast skipEntities skipPerm spmiEntity spmiSumName spmiSumRow spmiTypesPerFile startrow statsOnly stepAP tessColor
   global thisEntType timeStamp tlast tolNames tolStandard tolStandards totalEntity unicodeAttributes unicodeEnts unicodeInFile unicodeNumEnts unicodeString
-  global userEntityFile userEntityList useXL valRounded viz workbook workbooks worksheet worksheet1 worksheets writeDir wsCount wsNames x3dAxes
+  global userEntityFile userEntityList useXL valRounded viz wdir workbook workbooks worksheet worksheet1 worksheets writeDir wsCount wsNames x3dAxes
   global x3dColor x3dColorFile x3dColors x3dFileName x3dIndex x3dMax x3dMin x3dMsg x3dMsgColor x3dStartFile x3dViewOK xlFileName xlFileNames xlInstalled
   global objDesign
 
@@ -467,6 +467,10 @@ proc genExcel {{numFile 0}} {
       set workbooks  [$excel Workbooks]
       set workbook   [$workbooks Add]
       set worksheets [$workbook Worksheets]
+
+# load custom color theme that only changes the hyperlink color
+      catch {file copy -force -- [file join $wdir images sfa-excel-theme.xml] [file join $mytemp sfa-excel-theme.xml]}
+      catch {[[[$excel ActiveWorkbook] Theme] ThemeColorScheme] Load [file nativename [file join $mytemp sfa-excel-theme.xml]]}
 
 # delete all but one worksheet
       catch {$excel DisplayAlerts False}

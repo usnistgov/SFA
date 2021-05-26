@@ -58,6 +58,7 @@ proc checkValues {} {
   if {$opt(partOnly)} {
     set opt(xlFormat) "None"
     set gen(Excel) 0
+    set gen(Excel1) 0
   }
 
   if {!$gen(Excel)} {lappend butDisabled allNone1}
@@ -335,9 +336,7 @@ proc setColorIndex {ent {multi 0}} {
   }
 
 # entity not in any category, color by AP
-  if {[string first "AP209" $stepAP] != -1} {return 19}
-  if {$stepAP == "AP210"} {return 15}
-  if {$stepAP == "AP238"} {return 24}
+  if {[string first "AP209" $stepAP] != -1 || [string first "AP210" $stepAP] != -1 || [string first "AP238" $stepAP] != -1} {return 19}
 
 # entity from other APs (no color)
   return -2
@@ -1972,7 +1971,7 @@ proc sortlength2 {wordlist} {
 }
 
 #-------------------------------------------------------------------------------
-# Based on http://www.posoft.de/html/extCawt.html
+# Based on http://www.cawt.tcl3d.org/
 proc GetWorksheetAsMatrix {worksheetId} {
   set cellId [[$worksheetId Cells] Range [GetCellRange 1 1 [[[$worksheetId UsedRange] Rows] Count] [[[$worksheetId UsedRange] Columns] Count]]]
   set matrixList [$cellId Value2]

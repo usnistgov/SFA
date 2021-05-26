@@ -50,13 +50,13 @@ set schemaLinks(AP238)   "http://ap238.org/ap238e2/"
 set schemaLinks(AP238e1) "http://web.archive.org/web/20160322005246/www.steptools.com/support/stdev_docs/express/ap238/html/index.html"
 set schemaLinks(AP239)   "http://web.archive.org/web/20160322005246/www.steptools.com/support/stdev_docs/express/ap239/html/index.html"
 set schemaLinks(AP242)   "https://www.cax-if.org/documents/AP242ed2_HTML/AP242ed2.htm"
-set schemaLinks(AP242e1) "https://www.cax-if.org/documents/AP242ed2_HTML/AP242ed2.htm"
+set schemaLinks(AP242e1) "https://www.cax-if.org/documents/AP242/AP242_mim_lf_1.36.htm"
 set schemaLinks(AP242e2) "https://www.cax-if.org/documents/AP242ed2_HTML/AP242ed2.htm"
 set schemaLinks(STRUCTURAL_FRAME_SCHEMA) "http://web.archive.org/web/20160322005246/www.steptools.com/support/stdev_docs/express/cis/html/index.html"
 
 # -----------------------------------------------------------------------------------------------------
 # colors, the number determines the order that the group of entities is processed, do not use numbers less than 10 (dmcritchie.mvps.org/excel/colors.htm)
-set entColorIndex(stepFEAT) 19	
+set entColorIndex(stepFEAT) 24	
 set entColorIndex(stepKINE) 34	
 set entColorIndex(stepCOMP) 35
 set entColorIndex(stepAP242) 36	

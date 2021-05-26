@@ -464,7 +464,7 @@ proc x3dFileEnd {} {
 
 # orthographic
   set fov [trimNum [expr {0.55*max($delt(x),$delt(z))}]]
-  puts $x3dFile "<OrthoViewpoint id='Ortho 1' position='$xyzcen(x) [trimNum [expr {$x3dMin(y) - 1.4*max($delt(x),$delt(z))}]] $xyzcen(z)' $cor orientation='1 0 0 1.5708' fieldgen(View)='\[-$fov,-$fov,$fov,$fov\]'></OrthoViewpoint>"
+  puts $x3dFile "<OrthoViewpoint id='Ortho 1' position='$xyzcen(x) [trimNum [expr {$x3dMin(y) - 1.4*max($delt(x),$delt(z))}]] $xyzcen(z)' $cor orientation='1 0 0 1.5708' fieldOfView='\[-$fov,-$fov,$fov,$fov\]'></OrthoViewpoint>"
 
 # background color, default gray
   set skyBlue ".53 .81 .92"
