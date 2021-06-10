@@ -59,6 +59,7 @@ proc checkValues {} {
     set opt(xlFormat) "None"
     set gen(Excel) 0
     set gen(Excel1) 0
+    set gen(CSV) 0
   }
 
   if {!$gen(Excel)} {lappend butDisabled allNone1}
@@ -360,19 +361,19 @@ proc openURL {url} {
 
 # open with web browser
   } else {
-    foreach cmd [list \
-        [file join $pf64 Google Chrome Application chrome.exe] \
-        [file join $pf32 Google Chrome Application chrome.exe] \
-        [file join $pf64 Microsoft Edge Application chrome.exe] \
-        [file join $pf32 Microsoft Edge Application chrome.exe] \
-        [file join $pf64 "Mozilla Firefox" firefox.exe] \
-        [file join $pf32 "Mozilla Firefox" firefox.exe] \
-        [file join $pf32 "Internet Explorer" IEXPLORE.EXE]] {
-      if {[file exists $cmd]} {
-        exec $cmd $url &
-        break
+    set ok 1
+    foreach pf [list $pf32 $pf64] {
+      foreach cmd [list [file join $pf Google Chrome Application chrome.exe] \
+          [file join $pf Microsoft Edge Application msedge.exe] \
+          [file join $pf "Mozilla Firefox" firefox.exe]] {
+        if {[file exists $cmd] && $ok} {
+          exec $cmd $url &
+          set ok 0
+          break
+        }
       }
     }
+    if {$ok} {errorMsg "Cannot open web page to check for update."}
   }
 }
 
@@ -638,7 +639,7 @@ proc fileSize {fn} {
 #-------------------------------------------------------------------------------
 # save the state of variables to STEP-File-Analyzer-options.dat
 proc saveState {{ok 1}} {
-  global buttons developer dispCmd dispCmds fileDir fileDir1 filesProcessed gen lastX3DOM lastXLS lastXLS1 mydocs openFileList
+  global buttons commaSeparator developer dispCmd dispCmds fileDir fileDir1 filesProcessed gen lastX3DOM lastXLS lastXLS1 mydocs openFileList
   global opt optionsFile sfaVersion statusFont upgrade upgradeIFCsvr userEntityFile userWriteDir
 
 # ok = 0 only after installing IFCsvr from the command-line version
@@ -681,7 +682,7 @@ proc saveState {{ok 1}} {
     catch {puts $fileOptions "set winpos \"$winpos\""}
 
 # variables in varlist, handle variables with [ or ]
-    set varlist(1) [list statusFont upgrade upgradeIFCsvr sfaVersion filesProcessed]
+    set varlist(1) [list statusFont upgrade upgradeIFCsvr sfaVersion filesProcessed commaSeparator]
     set varlist(2) [list fileDir fileDir1 userWriteDir userEntityFile lastXLS lastXLS1 lastX3DOM]
     set varlist(3) [list openFileList dispCmd dispCmds]
     foreach idx {1 2 3} {
@@ -1611,7 +1612,7 @@ proc checkFileName {fn} {
 #-------------------------------------------------------------------------------
 # install IFCsvr (or remove to reinstall)
 proc installIFCsvr {{exit 0}} {
-  global buttons contact ifcsvrKey ifcsvrVer mydocs mytemp nistVersion upgradeIFCsvr wdir
+  global buttons contact developer ifcsvrKey ifcsvrVer mydocs mytemp nistVersion upgradeIFCsvr wdir
 
 # if IFCsvr is alreadly installed, get version from registry, decide to reinstall newer version
   if {[catch {
@@ -1628,6 +1629,10 @@ proc installIFCsvr {{exit 0}} {
       regsub -all {\-} $verIFCsvr "" verIFCsvr
     } else {
       set verIFCsvr 0
+    }
+    if {$developer && [string length $verIFCsvr] != [string length [getVersionIFCsvr]]} {
+      errorMsg "Problem with IFCsvr dates: $verIFCsvr [getVersionIFCsvr]"
+      .tnb select .tnb.status
     }
 
 # old version, reinstall
@@ -1671,7 +1676,6 @@ proc installIFCsvr {{exit 0}} {
       set msg "The IFCsvr toolkit must be installed to read and process STEP files (User Guide section 2.2.1).  After clicking OK the IFCsvr toolkit installation will start."
       append msg "\n\nYou might need administrator privileges (Run as administrator) to install the toolkit.  Antivirus software might respond that there is a security issue with the toolkit.  The toolkit is safe to install.  Use the default installation folder for the toolkit."
       append msg "\n\nIf you choose to Cancel the IFCsvr toolkit installation, you will still be able to use the Viewer for Part Geometry.  Select View and Part Only in the Generate section of the Options tab."
-      append msg "\n\nIf there are problems with the installation, contact [lindex $contact 0] ([lindex $contact 1])."
       set choice [tk_messageBox -type ok -message $msg -icon info -title "Install IFCsvr"]
       outputMsg "\nWait for the installation to finish before processing a STEP file." red
     } elseif {![info exists buttons]} {
@@ -1689,6 +1693,7 @@ proc installIFCsvr {{exit 0}} {
     } else {
       outputMsg "- Then run this software again to install the updated IFCsvr toolkit."
     }
+    outputMsg "- If you have to reinstall the toolkit every time you start the software, then REMOVE the IFCsvr\n  toolkit and download a new copy of the STEP File Analyzer and Viewer and start over."
     outputMsg "- If there are problems with this procedure, contact [lindex $contact 0] ([lindex $contact 1])."
 
     if {[file exists $ifcsvrInst] && [info exists buttons]} {
@@ -1696,7 +1701,7 @@ proc installIFCsvr {{exit 0}} {
       append msg "\n\nFirst REMOVE the current installation of the IFCsvr toolkit."
       append msg "\n\nIn the IFCsvr Setup Wizard (after clicking OK) select 'REMOVE IFCsvrR300 ActiveX Component' and Finish.  If the REMOVE was not successful, then manually uninstall the 'IFCsvrR300 ActiveX Component'"
       append msg "\n\nThen restart this software or process a STEP file to install the updated IFCsvr toolkit."
-      append msg "\n\nIf there are problems with this procedure, contact [lindex $contact 0] ([lindex $contact 1])."
+      append msg "\n\nIf you have to reinstall the toolkit every time you start the software, then REMOVE the IFCsvr toolkit and download a new copy of the STEP File Analyzer and Viewer and start over."
       set choice [tk_messageBox -type ok -message $msg -icon warning -title "Reinstall IFCsvr"]
       outputMsg "\nWait for the REMOVE process to finish, then restart this software or process a STEP file to install the updated IFCsvr toolkit." red
     }
@@ -1808,11 +1813,9 @@ proc setShortcuts {} {
     if {[info exists mydesk] || [info exists mymenu]} {
       set choice [tk_messageBox -type yesno -icon question -title "Shortcuts" -message $msg]
       if {$choice == "yes"} {
-        outputMsg " "
         catch {[file copy -force -- [file join $wdir images NIST.ico] [file join $mytemp NIST.ico]]}
         catch {
           if {[info exists mymenu]} {
-            if {[file exists [file join $mymenu "$progstr.lnk"]]} {outputMsg "Existing Start Menu shortcut will be overwritten" red}
             if {$nistVersion} {
               if {$tcl_platform(osVersion) >= 6.2} {
                 twapi::write_shortcut [file join $mymenu "$progstr.lnk"] -path [info nameofexecutable] -desc $progstr -iconpath [info nameofexecutable]
@@ -1822,14 +1825,12 @@ proc setShortcuts {} {
             } else {
               twapi::write_shortcut [file join $mymenu "$progstr.lnk"] -path [info nameofexecutable] -desc $progstr
             }
-            outputMsg " Shortcut created in Start Menu to [truncFileName [file nativename [info nameofexecutable]]]"
           }
         }
 
         if {$ok} {
           catch {
             if {[info exists mydesk]} {
-              if {[file exists [file join $mydesk "$progstr.lnk"]]} {outputMsg "Existing Desktop shortcut will be overwritten" red}
               if {$nistVersion} {
                 if {$tcl_platform(osVersion) >= 6.2} {
                   twapi::write_shortcut [file join $mydesk "$progstr.lnk"] -path [info nameofexecutable] -desc $progstr -iconpath [info nameofexecutable]
@@ -1839,7 +1840,6 @@ proc setShortcuts {} {
               } else {
                 twapi::write_shortcut [file join $mydesk "$progstr.lnk"] -path [info nameofexecutable] -desc $progstr
               }
-              outputMsg " Shortcut created on Desktop to [truncFileName [file nativename [info nameofexecutable]]]"
             }
           }
         }

@@ -1,5 +1,5 @@
 # SFA version number
-proc getVersion {} {return 4.51}
+proc getVersion {} {return 4.52}
 
 # version of SFA that the User Guide is based on
 proc getVersionUG {} {return 4.2}
@@ -21,18 +21,14 @@ proc whatsNew {} {
 # new user welcome message
   if {$sfaVersion == 0} {
     outputMsg "\nWelcome to the NIST STEP File Analyzer and Viewer\n" blue
-    outputMsg "Please take a few minutes to read some of the Help text so that you understand the
-options available with the software.  Also explore the Examples and Websites menus.
-The User Guide is based on version [getVersionUG] of the software.  New and updated features
-are documented in the Changelog and Help menu.
+    outputMsg "Please take a few minutes to read some of the Help text and User Guide so that you
+understand the options available with the software.  Also explore the Examples and
+Websites menus.  Please read the Disclaimers at the end of the Help menu.  Use F9 and
+F10 to change the font size here.  See Help > Function Keys
 
 You will be prompted to install the IFCsvr toolkit which is required to read STEP files.
 After the toolkit is installed, you are ready to process a STEP file.  Go to the File
-menu, select a STEP file, and click the Generate button below.
-
-Please read the Disclaimers at the end of the Help menu.
-
-Use F9 and F10 to change the font size here.  See Help > Function Keys"
+menu, select a STEP file, and click the Generate button below."
   }
 
   outputMsg "\nWhat's New (Version: [getVersion]  Updated: [string trim [clock format $progtime -format "%e %b %Y"]])" blue
@@ -379,7 +375,6 @@ proc guiOptionsTab {} {
           set gen(Excel) 1
           set gen(Excel1) 1
           set gen(None) 0
-          #set opt(partOnly) 0
         }
       }
 
@@ -397,7 +392,6 @@ proc guiOptionsTab {} {
         set gen(None) 0
         set opt(partOnly) 0
         if {$useXL} {
-          set gen(CSV) 0
           set opt(xlFormat) "Excel"
         } else {
           set gen(Excel) 0
@@ -408,6 +402,7 @@ proc guiOptionsTab {} {
 
 # CSV
       if {$gen(CSV)} {
+        set opt(partOnly) 0
         if {$useXL} {
           set gen(Excel) 1
           $buttons(genExcel) configure -state disabled
@@ -487,7 +482,7 @@ proc guiOptionsTab {} {
         set ttmsg "[string trim [lindex $item 0]] entities ([llength $entCategory($idx)]) are found in most STEP APs."
       } else {
         set ttmsg "Process categories control which entities from AP203, AP214, and AP242 are written to the Spreadsheet.\nAll entities specific to AP209, AP210, and AP238 are always written to the Spreadsheet.\nThe categories are used to group and color-code entities on the Summary worksheet."
-        append ttmsg "\n\nSee Websites > AP203 vs AP214 vs AP242\nSee Websites > AP242\nSee Websites > STEP Format and Schemas\nSee Help > Supported STEP APs\nSee Help > User Guide (section 3.4.2)\n\n[string trim [lindex $item 0]] entities ([llength $entCategory($idx)]) are found in most STEP APs.  The following is a subset of Common entities."
+        append ttmsg "\n\n[string trim [lindex $item 0]] entities ([llength $entCategory($idx)]) are found in most STEP APs.  The following is a subset of Common entities."
       }
       set ttmsg [guiToolTip $ttmsg $idx]
       catch {tooltip::tooltip $buttons($idx) $ttmsg}
@@ -528,7 +523,7 @@ proc guiOptionsTab {} {
       } elseif {$idx == "stepCPNT"} {
         set ttmsg "There are 2 entity types in this category.\n\ncartesian_point is found in most STEP APs\ncoordinates_list is found only in AP242"
       } else {
-        set ttmsg "Commonly used AP242 entities are found in the other Process categories.\n\nThese entities ([llength $entCategory($idx)]) are found only in AP242.  The following is a subset of AP242 entities."
+        set ttmsg "Commonly used AP242 entities are found in the other Process categories.\n\nThese entities ([llength $entCategory($idx)]) are found only in AP242.  The following is a subset of AP242 entities.  Entities marked with a * are only in AP242 edition 2."
         set ttmsg [guiToolTip $ttmsg $idx]
       }
       catch {tooltip::tooltip $buttons($idx) $ttmsg}
@@ -639,12 +634,12 @@ proc guiOptionsTab {} {
       set ent [lindex [split $item " "] 0]
         if {$ent != $lent} {
           set str [formatComplexEnt $ent]
-          incr ttlen [expr {[string length $str]+3}]
-          if {$ttlen <= 160} {
-            append ttmsg "$str   "
+          incr ttlen [expr {[string length $str]+1}]
+          if {$ttlen <= 180} {
+            append ttmsg "$str "
           } else {
-            if {[string index $ttmsg end] != "\n"} {set ttmsg "[string range $ttmsg 0 end-3]\n$str   "}
-            set ttlen [expr {[string length $str]+3}]
+            if {[string index $ttmsg end] != "\n"} {set ttmsg "[string range $ttmsg 0 end-1]\n$str "}
+            set ttlen [expr {[string length $str]+1}]
           }
         }
         set lent $ent
@@ -1188,11 +1183,11 @@ described in the link 'Use the mouse'.  Navigation uses the Examine Mode.
 Sometimes a part might be located far away from the origin and not visible.  In this case, turn off
 the Origin and Sketch Geometry.  Then use 'a' to view all.
 
-For very large STEP files, it might take several minutes to process the STEP part geometry.  In the
-View section on the Options tab, uncheck Edges and Sketch, and select Quality Low.  For Output
-Format, select View and Part Only.  The resulting HTML file might also take several minutes to
-display in the web browser.  Select 'Wait' if the web browser prompts that it is running slowly
-when opening the HTML file.
+For very large STEP files, it might take several minutes to process the STEP part geometry.  To
+speed up the process, on the Options tab in Generate section, select View and Part Only.  In the
+View section, uncheck Edges and Sketch, and select Quality Low.  The resulting HTML file might also
+take several minutes to process in the web browser.  Select 'Wait' if the web browser prompts that
+it is running slowly when opening the HTML file.
 
 The viewer generates an X3D file that is embedded in the HTML file, thus creating the x3dom file
 that is shown in the web browser.  Select 'Save X3D ...' on the Spreadsheet tab to save the X3D
@@ -1823,7 +1818,22 @@ generated.  See Help > Crash Recovery
 The Syntax Checker identifies non-English characters as 'illegal characters'.  You should test your
 CAD software to see if it supports non-English characters or control directives.
 
-See Websites > STEP Format and Schemas > ISO 10303 Part 21 Standard"
+See Websites > STEP Format and Schemas > ISO 10303 Part 21 Standard
+
+---------------------------------------------------------------------------------------------------
+NOTE - Some European language versions of Excel use a comma ',' as a decimal separator.  In a few
+cases, real numbers might be formatted as a date in a spreadsheet.  For example, 1.5 might appear
+as 1-Mai.  To check if the formatting is a problem, select the Geometry Process category and
+process the STEP file nist_ctc_05.stp included with the SFA zip file.  Check the radius attribute
+on the resulting 'circle' worksheet.
+
+To change the formatting in Excel, go to the Excel File menu > Options > Advanced.  Uncheck
+'Use system separators' and change 'Decimal separator' to a period . and 'Thousands separator' to a
+comma ,
+
+WARNING - This change applies to ALL Excel spreadsheets on your computer.  Change the separators
+back to their original values when finished.  You can always check the STEP file to see the actual
+value of the number."
     .tnb select .tnb.status
   }
 
@@ -2082,17 +2092,18 @@ A crash is most likely due to syntax errors in the STEP file or sometimes due to
 
 The software might also crash when processing very large STEP files.  See Help > Large STEP Files
 
-More details about recovering from a crash are explained in Help > Crash Recovery and in the User Guide."
+More details about recovering from a crash are explained in Help > Crash Recovery."
 
   tk_messageBox -type ok -icon error -title "What to do if the STEP File Analyzer and Viewer crashes?" -message $txt
 }
 
 #-------------------------------------------------------------------------------
 proc guiToolTip {ttmsg tt} {
-  global ap242only entCategory
+  global ap242only ap242e2only entCategory
 
-  set ttlim 120
-  if {$tt == "stepPRES" || $tt == "stepGEOM" || $tt == "stepAP242"} {set ttlim 160}
+  set space 2
+  set ttlim 130
+  if {$tt == "stepPRES" || $tt == "stepGEOM" || $tt == "stepAP242"} {set ttlim 180; set space 1}
   
   if {$tt != "stepCOMM" && $tt != "stepAP242"} {
     set ents $entCategory($tt)
@@ -2135,16 +2146,17 @@ proc guiToolTip {ttmsg tt} {
         ap242 {if {[lsearch $ap242only $ent] != -1} {set ok 1}}
       }
       if {$ok} {
-        incr ttlen [expr {[string length $ent]+3}]
+        if {$type == "ap242"} {if {[lsearch $ap242e2only $ent] != -1} {append ent "*"}}
+        incr ttlen [expr {[string length $ent]+$space}]
         if {$ttlen <= $ttlim} {
-          append ttmsg "$ent   "
+          append ttmsg "$ent[string repeat " " $space]"
         } else {
-          if {[string index $ttmsg end] != "\n"} {set ttmsg "[string range $ttmsg 0 end-3]\n$ent   "}
-          set ttlen [expr {[string length $ent]+3}]
+          if {[string index $ttmsg end] != "\n"} {set ttmsg "[string range $ttmsg 0 end-$space]\n$ent[string repeat " " $space]"}
+          set ttlen [expr {[string length $ent]+$space}]
         }
       }
     }
-    if {$type == "ap203" && $tt != "stepCOMM" && $tt != "stepAP242"} {append ttmsg "\n\nThe following entities are found only in AP242.\n\n"}
+    if {$type == "ap203" && $tt != "stepCOMM" && $tt != "stepAP242"} {append ttmsg "\n\nThe following entities are found only in AP242.  Entities marked with a * are only in AP242 edition 2.\n\n"}
   }
   return $ttmsg
 }

@@ -1,6 +1,6 @@
 # generate an Excel spreadsheet from a STEP file
 proc genExcel {{numFile 0}} {
-  global allEntity aoEntTypes ap203all ap214all ap242all badAttributes buttons cadSystem cells cells1 col col1 count csvdirnam csvfile csvinhome currLogFile
+  global allEntity aoEntTypes ap203all ap214all ap242all badAttributes buttons cadSystem cells cells1 col col1 commaSeparator count csvdirnam csvfile csvinhome currLogFile
   global dim draughtingModels editorCmd entCategories entCategory entColorIndex entCount entityCount entsIgnored entsWithErrors errmsg
   global excel excelVersion fcsv feaFirstEntity feaLastEntity File fileEntity filesProcessed gen gpmiTypesInvalid gpmiTypesPerFile guid idxColor ifcsvrDir
   global inverses lastXLS lenfilelist localName localNameList logFile matrixList multiFile multiFileDir mydocs mytemp nistCoverageLegend nistName
@@ -479,6 +479,20 @@ proc genExcel {{numFile 0}} {
       set sheetLast [$worksheets Item [$worksheets Count]]
       catch {$excel DisplayAlerts True}
       [$excel ActiveWindow] TabRatio [expr 0.7]
+  
+# check decimal separator
+      if {[$excel UseSystemSeparators] == 1 && [$excel DecimalSeparator] == ","} {
+        if {![info exists commaSeparator]} {
+          set cmsg "Your version of Excel uses a comma \",\" as a decimal separator.  In a few cases, real numbers might be formatted as a date in a spreadsheet.  For example, 1.5 might appear as 1-Mai.\n\nTo check if the formatting is a problem, select the Geometry Process category and process the STEP file nist_ctc_05.stp.  Check the radius attribute on the resulting 'circle' worksheet.\n\nTo change the formatting in Excel, go to the Excel File menu > Options > Advanced.  Uncheck 'Use system separators' and change 'Decimal separator' to a period \".\" and 'Thousands separator' to a comma \",\"\n\nWARNING - This applies to ALL Excel spreadsheets on your computer.  Change the separators back to their original values when finished.\n\nYou can always check the STEP file to see the actual value of the number."
+          if {[info exists buttons]} {
+            append cmsg "\n\nSee the NOTE at the end of Help > Text Strings."
+            tk_messageBox -title "Decimal Separator" -type ok -default ok -icon warning -message $cmsg
+          } else {
+            errorMsg $cmsg
+          }
+          set commaSeparator 1
+        }
+      }
 
 # print errors
     } emsg]} {

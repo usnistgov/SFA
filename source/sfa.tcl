@@ -296,8 +296,8 @@ if {$sfaVersion == 0} {
   whatsNew
   set sfaVersion [getVersion]
   setShortcuts
-  showCrashRecovery
   showFileURL UserGuide
+  showCrashRecovery
   set save 1
 
 # what's new message

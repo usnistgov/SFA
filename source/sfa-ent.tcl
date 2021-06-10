@@ -171,7 +171,11 @@ proc getEntity {objEntity checkInverse checkBadAttributes unicodeCheck} {
 # -------------------------------------------------------------------------------------------------
 # headings in first row only for first instance of an entity
       if {$heading($thisEntType) != 0} {
-        $cells($thisEntType) Item 3 [incr heading($thisEntType)] $attrName
+        incr heading($thisEntType)
+        $cells($thisEntType) Item 3 $heading($thisEntType) $attrName
+        if {[info exists badAttributes($thisEntType)]} {
+          if {[lsearch $badAttributes($thisEntType) $attrName] != -1} {addCellComment $thisEntType 3 $heading($thisEntType) "Reporting this attribute is not supported.  Check the STEP file for the actual values."}
+        }
         set attrType($heading($thisEntType)) [$objAttribute Type]
         set entComment($attrName) 1
       }
