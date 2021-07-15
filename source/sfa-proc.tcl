@@ -45,24 +45,36 @@ proc checkValues {} {
 
 # view
   if {$gen(View)} {
-    foreach b {viewFEA viewPMI viewTessPart viewPart partOnly genAllView} {lappend butNormal $b}
+    foreach b {viewFEA viewPMI viewPMIVP viewTessPart viewPart partOnly genAllView x3dSave} {lappend butNormal $b}
     if {!$opt(viewFEA) && !$opt(viewPMI) && !$opt(viewTessPart) && !$opt(viewPart)} {set opt(viewPart) 1}
+    if {$developer} {lappend butNormal DEBUGX3D}
   } else {
-    foreach b {viewFEA viewPMI viewTessPart viewPart partOnly genAllView} {lappend butDisabled $b}
+    set opt(x3dSave) 0
+    set opt(viewPMIVP) 0
+    foreach b {viewFEA viewPMI viewPMIVP viewTessPart viewPart partOnly genAllView x3dSave} {lappend butDisabled $b}
     foreach b {gpmiColor0 gpmiColor1 gpmiColor2 gpmiColor3 linecolor} {lappend butDisabled $b}
     foreach b {partEdges partSketch partNormals partqual partQuality4 partQuality7 partQuality9 tessPartMesh} {lappend butDisabled $b}
     foreach b {feaBounds feaLoads feaLoadScale feaDisp feaDispNoTail} {lappend butDisabled $b}
+    if {$developer} {lappend butDisabled DEBUGX3D; set opt(DEBUGX3D) 0}
   }
 
 # part only
   if {$opt(partOnly)} {
+    set opt(viewPart) 1
     set opt(xlFormat) "None"
     set gen(Excel) 0
     set gen(Excel1) 0
     set gen(CSV) 0
+    lappend butNormal genExcel
   }
 
-  if {!$gen(Excel)} {lappend butDisabled allNone1}
+  if {!$gen(Excel)} {
+    lappend butDisabled allNone1 xlHideLinks
+    set opt(xlHideLinks) 0
+  } else {
+    lappend butNormal xlHideLinks
+    if {$opt(PMISEM)} {lappend butNormal}
+  }
   if {$gen(Excel) && $gen(CSV)} {lappend butDisabled genExcel}
 
 # configure generate button
@@ -155,13 +167,14 @@ proc checkValues {} {
 
 # graphical PMI view
   if {$opt(viewPMI)} {
-    foreach b {gpmiColor0 gpmiColor1 gpmiColor2 gpmiColor3 linecolor} {lappend butNormal $b}
+    foreach b {gpmiColor0 gpmiColor1 gpmiColor2 gpmiColor3 linecolor viewPMIVP} {lappend butNormal $b}
     if {$gen(View) && ($gen(Excel) || $gen(CSV)) && $opt(xlFormat) != "None"} {
       set opt(stepPRES) 1
       lappend butDisabled stepPRES
     }
   } else {
-    foreach b {gpmiColor0 gpmiColor1 gpmiColor2 gpmiColor3 linecolor} {lappend butDisabled $b}
+    foreach b {gpmiColor0 gpmiColor1 gpmiColor2 gpmiColor3 linecolor viewPMIVP} {lappend butDisabled $b}
+    set opt(viewPMIVP) 0
   }
 
 # FEM view
@@ -196,6 +209,18 @@ proc checkValues {} {
     }
     foreach b {PMISEMDIM PMISEMRND} {lappend butDisabled $b}
   }
+  if {$opt(PMISEM) && $gen(Excel)} {
+    lappend butNormal SHOWALLPMI
+  } else {
+    set opt(SHOWALLPMI) 0
+    lappend butDisabled SHOWALLPMI
+  }
+
+# common entities
+  if {$opt(valProp) || $opt(PMISEM) || $opt(PMIGRF)} {
+    set opt(stepCOMM) 1
+    lappend butDisabled stepCOMM
+  }
 
 # not part geometry view
   if {!$opt(viewPart) && !$opt(PMISEM)} {lappend butNormal stepPRES}
@@ -217,10 +242,17 @@ proc checkValues {} {
   }
 
   if {$developer} {
-    if {$opt(INVERSE)} {
+    if {$opt(INVERSE) && $gen(Excel)} {
       lappend butNormal DEBUGINV
     } else {
       lappend butDisabled DEBUGINV
+      set opt(DEBUGINV) 0
+    }
+    if {($opt(PMISEM) || $opt(PMIGRF) || $opt(valProp)) && $gen(Excel)} {
+      lappend butNormal DEBUG1
+    } else {
+      lappend butDisabled DEBUG1
+      set opt(DEBUG1) 0
     }
   }
 
@@ -325,8 +357,8 @@ proc setColorIndex {ent {multi 0}} {
     }
     set tc [expr {min($tc1,$tc2,$tc3)}]
 
-# exception for STEP measures
-    if {$tc1 == $entColorIndex(stepQUAN) || $tc2 == $entColorIndex(stepQUAN) || $tc3 == $entColorIndex(stepQUAN)} {
+# exception for STEP measures (except *_11 composites entities)
+    if {($tc1 == $entColorIndex(stepQUAN) || $tc2 == $entColorIndex(stepQUAN) || $tc3 == $entColorIndex(stepQUAN)) && [string first "_11" $ent] == -1} {
       set tc $entColorIndex(stepQUAN)
     }
 
@@ -362,15 +394,17 @@ proc openURL {url} {
 # open with web browser
   } else {
     set ok 1
-    foreach pf [list $pf32 $pf64] {
-      foreach cmd [list [file join $pf Google Chrome Application chrome.exe] \
-          [file join $pf Microsoft Edge Application msedge.exe] \
-          [file join $pf "Mozilla Firefox" firefox.exe]] {
-        if {[file exists $cmd] && $ok} {
-          exec $cmd $url &
-          set ok 0
-          break
-        }
+    foreach cmd [list \
+        [file join $pf64 Google Chrome Application chrome.exe] \
+        [file join $pf32 Google Chrome Application chrome.exe] \
+        [file join $pf64 Microsoft Edge Application msedge.exe] \
+        [file join $pf32 Microsoft Edge Application msedge.exe] \
+        [file join $pf64 "Mozilla Firefox" firefox.exe] \
+        [file join $pf32 "Mozilla Firefox" firefox.exe]] {
+      if {[file exists $cmd] && $ok} {
+        exec $cmd $url &
+        set ok 0
+        break
       }
     }
     if {$ok} {errorMsg "Cannot open web page to check for update."}
@@ -1064,23 +1098,14 @@ proc openXLS {filename {check 0} {multiFile 0}} {
     if {$check} {checkForExcel}
 
 # start Excel
-    set notok 0
     if {[catch {
       set xl [::tcom::ref createobject Excel.Application]
       [$xl ErrorCheckingOptions] TextDate False
-
-# check old version of Excel
-      set xlver [expr {int([$xl Version])}]
-      if {$xlver < 12 && [file extension $filename] == ".xlsx"} {
-        errorMsg "[file tail $filename] cannot be opened with this version of Excel."
-        set notok 1
-      }
 
 # errors
     } emsg]} {
       errorMsg "ERROR starting Excel: $emsg"
     }
-    if {$notok} {return $filename}
 
 # open spreadsheet in Excel, works even if Excel not already started above although slower
     if {[catch {
@@ -1289,9 +1314,9 @@ proc addCellComment {ent r c comment} {
 #-------------------------------------------------------------------------------
 # color bad cells red, add cell comment with message
 proc colorBadCells {ent} {
-  global cells count entsWithErrors excelVersion idRow legendColor stepAP syntaxErr worksheet
+  global cells count entsWithErrors idRow legendColor stepAP syntaxErr worksheet
 
-  if {$stepAP == "" || $excelVersion < 11} {return}
+  if {$stepAP == ""} {return}
 
 # color red for syntax errors
   set rmax [expr {$count($ent)+3}]

@@ -1,6 +1,6 @@
 # read expected PMI from spreadsheets, (called from sfa-gen.tcl)
 proc nistReadExpectedPMI {} {
-  global excelVersion mytemp nistName nistPMImaster nistVersion spmiCoverages wdir
+  global mytemp nistName nistPMImaster nistVersion spmiCoverages wdir
 
   if {[catch {
     set lf 1
@@ -57,40 +57,36 @@ proc nistReadExpectedPMI {} {
 
 # get expected PMI
     if {![info exists nistPMImaster($nistName)]} {
-      if {$excelVersion > 11} {
-        catch {unset nistPMImaster($nistName)}
-        set fn "SFA-PMI-$nistName.xlsx"
-        if {[file exists NIST/$fn]} {file copy -force NIST/$fn $mytemp}
-        set fname [file nativename [file join $mytemp $fn]]
+      catch {unset nistPMImaster($nistName)}
+      set fn "SFA-PMI-$nistName.xlsx"
+      if {[file exists NIST/$fn]} {file copy -force NIST/$fn $mytemp}
+      set fname [file nativename [file join $mytemp $fn]]
 
-        if {[file exists $fname]} {
-          if {$lf} {outputMsg " "}
-          outputMsg "Reading Expected PMI for: $nistName (See Help > Analyze > NIST CAD Models)" blue
-          set pid1 [twapi::get_process_ids -name "EXCEL.EXE"]
-          set excel2 [::tcom::ref createobject Excel.Application]
-          set pid2 [lindex [intersect3 $pid1 [twapi::get_process_ids -name "EXCEL.EXE"]] 2]
+      if {[file exists $fname]} {
+        if {$lf} {outputMsg " "}
+        outputMsg "Reading Expected PMI for: $nistName (See Help > Analyze > NIST CAD Models)" blue
+        set pid1 [twapi::get_process_ids -name "EXCEL.EXE"]
+        set excel2 [::tcom::ref createobject Excel.Application]
+        set pid2 [lindex [intersect3 $pid1 [twapi::get_process_ids -name "EXCEL.EXE"]] 2]
 
-          $excel2 Visible 0
-          set workbooks2  [$excel2 Workbooks]
-          set worksheets2 [[$workbooks2 Open $fname] Worksheets]
+        $excel2 Visible 0
+        set workbooks2  [$excel2 Workbooks]
+        set worksheets2 [[$workbooks2 Open $fname] Worksheets]
 
-          set matrix [GetWorksheetAsMatrix [$worksheets2 Item [expr 1]]]
-          set r1 [llength $matrix]
-          for {set r 0} {$r < $r1} {incr r} {
-            set typ [lindex [lindex $matrix $r] 0]
-            set pmi [lindex [lindex $matrix $r] 1]
-            if {$typ != "" && $pmi != ""} {lappend nistPMImaster($nistName) "$typ\\$pmi"}
-          }
-
-          $workbooks2 Close
-          $excel2 Quit
-          update idletasks
-          catch {unset excel2}
-          after 100
-          for {set i 0} {$i < 20} {incr i} {catch {twapi::end_process $pid2 -force}}
+        set matrix [GetWorksheetAsMatrix [$worksheets2 Item [expr 1]]]
+        set r1 [llength $matrix]
+        for {set r 0} {$r < $r1} {incr r} {
+          set typ [lindex [lindex $matrix $r] 0]
+          set pmi [lindex [lindex $matrix $r] 1]
+          if {$typ != "" && $pmi != ""} {lappend nistPMImaster($nistName) "$typ\\$pmi"}
         }
-      } else {
-        errorMsg " Color-coding by the Expected PMI for the NIST CAD model, on the PMI Representation Summary worksheet, is not supported with older versions of Excel." red
+
+        $workbooks2 Close
+        $excel2 Quit
+        update idletasks
+        catch {unset excel2}
+        after 100
+        for {set i 0} {$i < 20} {incr i} {catch {twapi::end_process $pid2 -force}}
       }
     }
 

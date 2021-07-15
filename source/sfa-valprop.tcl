@@ -868,7 +868,7 @@ proc valPropReport {objEntity} {
 
 # -------------------------------------------------------------------------------
 proc valPropFormat {} {
-  global cells col entCount excelVersion opt propDefRow row thisEntType worksheet valPropLink
+  global cells col entCount opt propDefRow row thisEntType worksheet valPropLink
 
   if {[info exists cells($thisEntType)] && $col($thisEntType) > 4} {
 
@@ -886,7 +886,7 @@ proc valPropFormat {} {
     set col($thisEntType) [expr {$col($thisEntType)-$ndelcol}]
 
 # sort
-    if {$excelVersion > 11} {
+    catch {
       set ranrow $row($thisEntType)
       if {$ranrow > 8} {
         set range [$worksheet($thisEntType) Range [cellRange 3 1] [cellRange $ranrow $col($thisEntType)]]

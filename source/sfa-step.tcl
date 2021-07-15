@@ -173,7 +173,7 @@ proc gpmiCheckEnt {ent} {
 }
 
 # -------------------------------------------------------------------------------
-# which STEP entities are processed depending on options
+# which STEP entities are processed depending on options (most are already selected through Process categories)
 proc setEntsToProcess {entType} {
   global objDesign
   global gen gpmiEnts spmiEnts opt
@@ -182,69 +182,16 @@ proc setEntsToProcess {entType} {
   set gpmiEnts($entType) 0
   set spmiEnts($entType) 0
 
-# for validation properties
-  if {$opt(valProp)} {
-    if {$entType == "boolean_representation_item" || \
-        $entType == "conversion_based_unit_and_length_unit" || \
-        $entType == "derived_unit_element" || \
-        $entType == "descriptive_representation_item" || \
-        $entType == "integer_representation_item" || \
-        $entType == "length_unit_and_si_unit" || \
-        $entType == "mass_unit_and_si_unit" || \
-        $entType == "measure_representation_item" || \
-        $entType == "property_definition" || \
-        $entType == "property_definition_representation" || \
-        $entType == "real_representation_item" || \
-        $entType == "representation" || \
-        $entType == "value_representation_item"} {
-      set ok 1
-    }
-  }
-
 # for PMI (graphical) presentation report and view
   if {($opt(PMIGRF) || ($gen(View) && $opt(viewPMI))) && $ok == 0} {
     set ok [gpmiCheckEnt $entType]
     set gpmiEnts($entType) $ok
-    if {$entType == "characterized_item_within_representation" || \
-        $entType == "colour_rgb" || \
-        $entType == "curve_style" || \
-        $entType == "fill_area_style" || \
-        $entType == "fill_area_style_colour" || \
-        $entType == "geometric_curve_set" || \
-        $entType == "geometric_set" || \
-        $entType == "presentation_style_assignment" || \
-        $entType == "property_definition" || \
-        $entType == "representation_relationship" || \
-        $entType == "view_volume"} {
-      set ok 1
-    }
-    foreach ent {"annotation" "draughting" "_presentation" "camera" "constructive_geometry" "tessellated_geometric_set"} {
-      if {[string first $ent $entType] != -1} {set ok 1}
-    }
-    if {!$ok} {if {[string first "representation" $entType] == -1 && [string first "presentation_" $entType] != -1} {set ok 1}}
+    if {$entType == "geometric_curve_set" || [string first "geometric_set" $entType] != -1} {set ok 1}
   }
 
 # for PMI (semantic) representation
   if {$opt(PMISEM) && $ok == 0} {
     set spmiEnts($entType) [spmiCheckEnt $entType]
-    if {$entType == "compound_representation_item" || \
-        $entType == "descriptive_representation_item" || \
-        $entType == "dimensional_characteristic_representation" || \
-        $entType == "draughting_model_item_association" || \
-        $entType == "geometric_item_specific_usage" || \
-        $entType == "id_attribute" || \
-        $entType == "product_definition_shape" || \
-        $entType == "property_definition" || \
-        $entType == "shape_definition_representation" || \
-        $entType == "shape_dimension_representation" || \
-        $entType == "shape_representation_with_parameters" || \
-        $entType == "value_format_type_qualifier" || \
-        $entType == "value_range"} {
-      set ok 1
-    }
-    foreach ent {"shape_aspect" "measure_with_unit" "measure_representation_item" "constructive_geometry"} {
-      if {[string first $ent $entType] != -1} {set ok 1}
-    }
     if {$entType == "axis2_placement_3d" && [$objDesign CountEntities "placed_datum_target_feature"] > 0} {set ok 1}
   }
 
@@ -486,10 +433,10 @@ proc getStepAP {fname} {
 
 # check AP242 edition
   if {$ap == "AP242"} {
-    if {[string first "442 2 1 4" $fileSchema] != -1 || [string first "442 3 1 4" $fileSchema] != -1} {
-      append ap "e2"
-    } else {
+    if {[string first "442 1 1 4" $fileSchema] != -1} {
       append ap "e1"
+    } elseif {[string first "442" $fileSchema] != -1} {
+      append ap "e2"
     }
   }
   return $ap

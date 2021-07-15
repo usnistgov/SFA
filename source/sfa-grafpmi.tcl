@@ -1379,6 +1379,9 @@ proc pmiGetCameras {} {
   catch {unset draftModelCameraNames}
   checkTempDir
 
+  set scale 1.
+  if {[x3dBrepUnits] == 1.} {set scale 0.03937}
+
 # camera list
   set cmlist {}
   foreach cms [list camera_model_d3 camera_model_d3_multi_clipping camera_model_d3_multi_clipping_intersection \
@@ -1465,19 +1468,44 @@ proc pmiGetCameras {} {
                     catch {unset savedViewpoint($name1)}
                     if {[catch {
                       set a2p3d [[$attrCameraModel Value] Attributes]
-                      set origin [[[[[$a2p3d Item 2] Value] Attributes] Item [expr 2]] Value]
-                      set axis   [[[[[$a2p3d Item 3] Value] Attributes] Item [expr 2]] Value]
-                      ::tcom::foreach attr $a2p3d {
-                        if {[$attr Name] == "ref_direction"} {
-                          set refdir [[[[$attr Value] Attributes] Item [expr 2]] Value]
-                        }
+                      set origin [[[[[$a2p3d Item [expr 2]] Value] Attributes] Item [expr 2]] Value]
+                      set axis   [[[[[$a2p3d Item [expr 3]] Value] Attributes] Item [expr 2]] Value]
+                      set refdir [[[[[$a2p3d Item [expr 4]] Value] Attributes] Item [expr 2]] Value]
+                      if {$opt(viewPMIVP)} {
+                        lappend savedViewpoint($name1) [vectrim $origin]
+                        lappend savedViewpoint($name1) [x3dGetRotation $axis $refdir]
                       }
-                      lappend savedViewpoint($name1) [vectrim $origin]
-                      lappend savedViewpoint($name1) [x3dGetRotation $axis $refdir]
                     } emsg]} {
                       errorMsg "ERROR getting Saved View position and orientation: $emsg"
                       catch {raise .}
                     }
+
+# view_volume > view_plane_distance, projection_point, planar_box > x, y, a2p3d
+                  } elseif {$nameCameraModel == "perspective_of_volume" && [info exists savedViewpoint($name1)]} {
+
+# view volume, values scaled depending on units of brep geometry
+                    set vv [[$attrCameraModel Value] Attributes]
+                    set vpd [expr {[[$vv Item [expr 3]] Value]*$scale}]
+                    lappend savedViewpoint($name1) $vpd
+
+# projection point, should be 0 0 0
+                    set pp [vectrim [vecmult [[[[[$vv Item [expr 2]] Value] Attributes] Item [expr 2]] Value] $scale]]
+                    lappend savedViewpoint($name1) $pp
+
+# planar box dimensions
+                    set pb [[$vv Item [expr 9]] Value]
+                    set pbx [trimNum [expr {[[[$pb Attributes] Item [expr 2]] Value]*$scale}]]
+                    set pby [trimNum [expr {[[[$pb Attributes] Item [expr 3]] Value]*$scale}]]
+                    lappend savedViewpoint($name1) $pbx
+                    lappend savedViewpoint($name1) $pby
+
+# planar box a2p3d
+                    set a2p3d [[[$pb Attributes] Item [expr 4]] Value]
+                    lappend savedViewpoint($name1) [vectrim [vecmult [[[[[[$a2p3d Attributes] Item [expr 2]] Value] Attributes] Item [expr 2]] Value] $scale]]
+                    set axis   [[[[[[$a2p3d Attributes] Item [expr 3]] Value] Attributes] Item [expr 2]] Value]
+                    set refdir [[[[[[$a2p3d Attributes] Item [expr 4]] Value] Attributes] Item [expr 2]] Value]
+                    lappend savedViewpoint($name1) [x3dGetRotation $axis $refdir]
+                    lappend savedViewpoint($name1) $axis
                   }
                 }
 

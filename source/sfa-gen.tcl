@@ -22,6 +22,7 @@ proc genExcel {{numFile 0}} {
 
 # initialize for x3dom geometry
   set x3dViewOK 0
+  set x3dMsg {}
   if {$gen(View)} {
     set x3dMsgColor green
     if {$opt(viewPMI) || $opt(viewTessPart) ||$opt(viewFEA) || $opt(viewPart)} {
@@ -407,7 +408,9 @@ proc genExcel {{numFile 0}} {
   if {$opt(xlFormat) != "None"} {
     if {[catch {
       set pid1 [checkForExcel $multiFile]
-      set excel [::tcom::ref createobject Excel.Application]
+      set xlapp "Excel.Application"
+      if {$opt(DEBUGNOXL)} {set xlapp "null"}
+      set excel [::tcom::ref createobject $xlapp]
       set pidExcel [lindex [intersect3 $pid1 [twapi::get_process_ids -name "EXCEL.EXE"]] 2]
       [$excel ErrorCheckingOptions] TextDate False
       set excelVersion [expr {int([$excel Version])}]
@@ -422,6 +425,7 @@ proc genExcel {{numFile 0}} {
         set extXLS "xls"
         set xlFormat [expr 56]
         set rowmax [expr {2**16}]
+        outputMsg " Some spreadsheet features are not supported with Excel 2003 or lower." red
       }
 
 # generate with Excel but save as CSV
@@ -469,8 +473,10 @@ proc genExcel {{numFile 0}} {
       set worksheets [$workbook Worksheets]
 
 # load custom color theme that only changes the hyperlink color
-      catch {file copy -force -- [file join $wdir images sfa-excel-theme.xml] [file join $mytemp sfa-excel-theme.xml]}
-      catch {[[[$excel ActiveWorkbook] Theme] ThemeColorScheme] Load [file nativename [file join $mytemp sfa-excel-theme.xml]]}
+      catch {
+        file copy -force -- [file join $wdir images sfa-excel-theme.xml] [file join $mytemp sfa-excel-theme.xml]
+        [[[$excel ActiveWorkbook] Theme] ThemeColorScheme] Load [file nativename [file join $mytemp sfa-excel-theme.xml]]
+      }
 
 # delete all but one worksheet
       catch {$excel DisplayAlerts False}
@@ -479,11 +485,11 @@ proc genExcel {{numFile 0}} {
       set sheetLast [$worksheets Item [$worksheets Count]]
       catch {$excel DisplayAlerts True}
       [$excel ActiveWindow] TabRatio [expr 0.7]
-  
+
 # check decimal separator
       if {[$excel UseSystemSeparators] == 1 && [$excel DecimalSeparator] == ","} {
         if {![info exists commaSeparator]} {
-          set cmsg "Your version of Excel uses a comma \",\" as a decimal separator.  In a few cases, real numbers might be formatted as a date in a spreadsheet.  For example, 1.5 might appear as 1-Mai.\n\nTo check if the formatting is a problem, select the Geometry Process category and process the STEP file nist_ctc_05.stp.  Check the radius attribute on the resulting 'circle' worksheet.\n\nTo change the formatting in Excel, go to the Excel File menu > Options > Advanced.  Uncheck 'Use system separators' and change 'Decimal separator' to a period \".\" and 'Thousands separator' to a comma \",\"\n\nWARNING - This applies to ALL Excel spreadsheets on your computer.  Change the separators back to their original values when finished.\n\nYou can always check the STEP file to see the actual value of the number."
+          set cmsg "Numbers in a STEP file use a period \".\" as the decimal separator.  Your version of Excel uses a comma \",\" as a decimal separator.  This might cause some real numbers to be formatted as a date in a spreadsheet.  For example, 1.5 might appear as 1-Mai.\n\nTo change the formatting in Excel, go to the Excel File menu > Options > Advanced.  Uncheck 'Use system separators' and change 'Decimal separator' to a period \".\" and 'Thousands separator' to a comma \",\"\n\nWARNING - This applies to ALL Excel spreadsheets on your computer.  Change the separators back to their original values when finished.\n\nYou can always check the STEP file to see the actual value of the number."
           if {[info exists buttons]} {
             append cmsg "\n\nSee the NOTE at the end of Help > Text Strings."
             tk_messageBox -title "Decimal Separator" -type ok -default ok -icon warning -message $cmsg
@@ -942,7 +948,6 @@ proc genExcel {{numFile 0}} {
     set stat 1
     set valRounded 0
     set wsCount 0
-    set x3dMsg {}
     foreach f {elements mesh meshIndex faceIndex} {catch {file delete -force -- [file join $mytemp $f.txt]}}
 
     if {[info exists dim]} {unset dim}
@@ -1288,7 +1293,6 @@ proc genExcel {{numFile 0}} {
 # always save as spreadsheet
       outputMsg "Saving Spreadsheet to:"
       outputMsg " [truncFileName $xlfn 1]" blue
-      if {$excelVersion < 12} {outputMsg " Some Spreadsheet formatting is not supported with older versions of Excel." red}
       if {[catch {
         catch {$excel DisplayAlerts False}
         if {$xlFormat == 51} {
@@ -1537,25 +1541,25 @@ proc addHeaderWorksheet {numFile fname} {
         }
         set str "$attr:  $sn"
 
-# check edition of AP242
-        if {[string first "1 0 10303 442" $sn] != -1} {
-          if {[string first "442 1 1 4" $sn] != -1} {
-            append str " (edition 1)"
-          } elseif {[string first "442 2 1 4" $sn] != -1 || [string first "442 3 1 4" $sn] != -1} {
-            append str " (edition 2)"
+# check edition of AP242 (object identifier)
+        set c1 [string first "1 0 10303 442" $sn]
+        if {$c1 != -1} {
+          set id [lindex [split [string range $sn $c1+14 end] " "] 0]
+          if {$id == 1} {
+            append str " (Edition 1)"
+          } elseif {$id == 2 || $id == 3} {
+            append str " (Edition 2)"
+            if {$id == 2} {errorMsg "AP242 Edition 2 should be identified with '3 1 4'" red}
+          } elseif {$id == 4} {
+            append str " (Edition 2 Minor Revision)"
+          } elseif {$id > 9} {
+            errorMsg "This file uses an unknown identifier '$id 1 4' for AP242." red
           }
         }
         outputMsg $str blue
 
-# check unknown edition of AP242
-        if {[string first "1 0 10303 442" $sn] != -1} {
-          if {[string first "442 1 1 4" $sn] == -1 && [string first "442 2 1 4" $sn] == -1 && [string first "442 3 1 4" $sn] == -1} {
-            errorMsg "This file uses an unknown edition ([string trim [string range $sn [string first "442" $sn]+4 end-1]]) of AP242." red
-          }
-          if {[string first "442 2 1 4" $sn] != -1} {errorMsg "AP242 edition 2 should be identified with '3 1 4'" red}
-
 # check old version of AP203, AP214
-        } elseif {[string first "CONFIG_CONTROL_DESIGN" $sn] == 0 || [string first "CONFIGURATION_CONTROL_3D_DESIGN" $sn] == 0} {
+        if {[string first "CONFIG_CONTROL_DESIGN" $sn] == 0 || [string first "CONFIGURATION_CONTROL_3D_DESIGN" $sn] == 0} {
           errorMsg "This file uses an older version of STEP AP203.  See Help > Supported STEP APs" red
         } elseif {[string first "AUTOMOTIVE_DESIGN_CC2" $sn] == 0} {
           errorMsg "This file uses an older version of STEP AP214.  See Help > Supported STEP APs" red
@@ -2086,7 +2090,7 @@ proc sumAddColorLinks {sum sumHeaderRow sumLinks sheetSort sumRow} {
 #-------------------------------------------------------------------------------------------------
 # format worksheets
 proc formatWorksheets {sheetSort sumRow inverseEnts} {
-  global buttons cells col count entCount excel excelVersion gpmiEnts nprogBarEnts opt pmiStartCol
+  global buttons cells col count entCount excel gpmiEnts nprogBarEnts opt pmiStartCol
   global row rowmax spmiEnts stepAP syntaxErr thisEntType viz vpEnts worksheet xlFileName
   outputMsg "Formatting Worksheets" blue
 
@@ -2242,21 +2246,19 @@ proc formatWorksheets {sheetSort sumRow inverseEnts} {
 
 # -------------------------------------------------------------------------------------------------
 # add table for sorting and filtering
-      if {$excelVersion > 11} {
-        if {[catch {
-          if {$opt(xlSort) && $thisEntType != "property_definition"} {
-            if {$ranrow > 8} {
-              set range [$worksheet($thisEntType) Range [cellRange 3 1] [cellRange $ranrow $rancol]]
-              set tname [string trim "TABLE-$thisEntType"]
-              [[$worksheet($thisEntType) ListObjects] Add 1 $range] Name $tname
-              [[$worksheet($thisEntType) ListObjects] Item $tname] TableStyle "TableStyleLight1"
-              if {[incr ntable] == 1 && $opt(xlSort)} {outputMsg " Generating Tables for Sorting" blue}
-            }
+      if {[catch {
+        if {$opt(xlSort) && $thisEntType != "property_definition"} {
+          if {$ranrow > 8} {
+            set range [$worksheet($thisEntType) Range [cellRange 3 1] [cellRange $ranrow $rancol]]
+            set tname [string trim "TABLE-$thisEntType"]
+            [[$worksheet($thisEntType) ListObjects] Add 1 $range] Name $tname
+            [[$worksheet($thisEntType) ListObjects] Item $tname] TableStyle "TableStyleLight1"
+            if {[incr ntable] == 1 && $opt(xlSort)} {outputMsg " Generating Tables for Sorting" blue}
           }
-        } emsg]} {
-          errorMsg "ERROR adding Tables for Sorting: $emsg"
-          catch {raise .}
         }
+      } emsg]} {
+        errorMsg "ERROR adding Tables for Sorting: $emsg"
+        catch {raise .}
       }
 
 # errors
