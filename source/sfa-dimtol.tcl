@@ -1042,9 +1042,18 @@ proc spmiDimtolReport {objEntity} {
 # +- range lower/upper bound on tolerance_value
                 ::tcom::foreach subAttr [$subEntity Attributes] {
                   if {[string first "bound" [$subAttr Name]] != -1} {
-                    ::tcom::foreach measureAttr [[$subAttr Value] Attributes] {
+
+# check for correct lmwu
+                    set lenattr {}
+                    ::tcom::foreach a1 [[$subAttr Value] Attributes] {lappend lenattr [$a1 Name]}
+                    if {[lsearch $lenattr "name"] != -1 && [lsearch $lenattr "qualifiers"] == -1} {
+                      set msg "Syntax Error: For plus/minus bounds only 'length_measure_with_unit' is valid.$spaces\($recPracNames(pmi242), Sec. 5.2.3, Fig. 19)"
+                      errorMsg $msg
+                      lappend syntaxErr(tolerance_value) [list $tolvalID [$subAttr Name] $msg]
+                    }
 
 # get tolerance value
+                    ::tcom::foreach measureAttr [[$subAttr Value] Attributes] {
                       if {[$measureAttr Name] == "value_component"} {
                         append plusminus "[$measureAttr Value] "
 
@@ -1470,7 +1479,7 @@ proc spmiDimtolReport {objEntity} {
                 }
               }
               if {$nistName != "nist_ftc_07" || [string first ".875 ±" $dtg] == -1} {
-                errorMsg "Multiple ([llength $dimtolGeom($dimtolGeomEnts)]) dimensions $dtg are associated with the same geometry. $dimtolGeomEnts"
+                errorMsg "Multiple ([llength $dimtolGeom($dimtolGeomEnts)]) dimensions $dtg are associated with the same geometry. (IDs $dimtolGeomEnts)"
                 addCellComment $dt $r $pmiColumns(ch) "Multiple dimensions are associated with the same geometry.  The identical information in this cell should appear in another Associated Geometry cell above."
                 lappend entsWithErrors "dimensional_characteristic_representation"
               }

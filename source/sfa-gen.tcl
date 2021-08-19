@@ -368,10 +368,10 @@ proc genExcel {{numFile 0}} {
           }
         }
 
-# part 21 edition 3, but should not get to this point
+# part 21 edition 3, but should never get to this point
       } else {
         outputMsg " "
-        errorMsg "The STEP file uses ISO 10303 Part 21 Edition 3 and cannot be processed by this software.\n Edit the STEP file to delete the Edition 3 content such as the ANCHOR and REFERENCE sections."
+        errorMsg "The STEP file uses ISO 10303 Part 21 Edition 3 and cannot be processed by this software.  Edit the STEP file to delete the Edition 3 content such as the ANCHOR and REFERENCE sections.  See Websites > STEP Format and Schemas > ISO 10303 Part 21 Standard (sections 9, 10, 14)"
       }
 
 # open STEP file in editor
@@ -419,14 +419,6 @@ proc genExcel {{numFile 0}} {
       set extXLS "xlsx"
       set xlFormat [expr 51]
       set rowmax [expr {2**20}]
-
-# older Excel
-      if {$excelVersion < 12} {
-        set extXLS "xls"
-        set xlFormat [expr 56]
-        set rowmax [expr {2**16}]
-        outputMsg " Some spreadsheet features are not supported with Excel 2003 or lower." red
-      }
 
 # generate with Excel but save as CSV
       set saveCSV 0
@@ -1194,6 +1186,8 @@ proc genExcel {{numFile 0}} {
             spmiCoverageWrite "" "" 0
             spmiCoverageFormat "" 0
           }
+        } else {
+          unset spmiTypesPerFile
         }
       }
 
@@ -1569,6 +1563,12 @@ proc addHeaderWorksheet {numFile fname} {
         set fschema [string toupper [string range $objAttr 0 5]]
         if {[string first "IFC" $fschema] == 0} {errorMsg "Use the IFC File Analyzer with IFC files.  https://www.nist.gov/services-resources/software/ifc-file-analyzer"}
 
+# check for multiple schemas
+        if {[string first "," $sn] != -1} {
+          errorMsg "Multiple schema names are not supported.  See Header worksheet."
+          if {$useXL} {[[$worksheet($hdr) Range B11] Interior] Color $legendColor(red)}
+        }
+
 # other File attributes
       } else {
         if {$attr == "FileDescription" || $attr == "FileAuthor" || $attr == "FileOrganization"} {
@@ -1606,18 +1606,18 @@ proc addHeaderWorksheet {numFile fname} {
 # check implementation level
         if {$attr == "FileImplementationLevel"} {
           if {[string first "\;" $objAttr] == -1} {
-            errorMsg "FileImplementationLevel is usually '2\;1', see Header worksheet"
+            errorMsg "FileImplementationLevel is usually '2\;1'.  See Header worksheet."
             if {$useXL} {[[$worksheet($hdr) Range B4] Interior] Color $legendColor(red)}
           } elseif {$objAttr == "4\;1"} {
             set p21e3 1
-            if {[string first "p21e2" $fname] == -1} {errorMsg "This file uses ISO 10303 Part 21 Edition 3 with possible ANCHOR, REFERENCE, SIGNATURE, or TRACE sections."}
+            if {[string first "p21e2" $fname] == -1} {errorMsg "This file uses ISO 10303 Part 21 Edition 3 with possible ANCHOR, REFERENCE, or SIGNATURE sections.  See Websites > STEP Format and Schemas > ISO 10303 Part 21 Standard (sections 9, 10, 14)"}
           }
         }
 
 # check and add time stamp to multi file summary
         if {$attr == "FileTimeStamp"} {
-          if {([string first "-" $objAttr] == -1 || [string length $objAttr] < 17 || [string length $objAttr] > 25) && $objAttr != ""} {
-            errorMsg "FileTimeStamp has the wrong format, see Header worksheet"
+          if {([string first "-" $objAttr] == -1 || [string first "T" $objAttr] == -1 || [string length $objAttr] < 17 || [string length $objAttr] > 25) && $objAttr != ""} {
+            errorMsg "FileTimeStamp has the wrong format.  See Header worksheet.  See Websites > STEP Format and Schemas > ISO 10303 Part 21 Standard (section 8.2.3 example)"
             if {$useXL} {[[$worksheet($hdr) Range B5] Interior] Color $legendColor(red)}
           }
           set timeStamp $objAttr
@@ -1708,6 +1708,7 @@ proc addHeaderWorksheet {numFile fname} {
       if {$ok == 0} {set app2 [setCAXIFvendor]}
       set colsum [expr {$col1(Summary)+1}]
       if {$colsum > 16} {[$excel1 ActiveWindow] ScrollColumn [expr {$colsum-16}]}
+      if {[string length $app2] > 32} {set app2 "[string range $app2 0 31]..."}
       regsub -all " " $app2 [format "%c" 10] app2
       $cells1(Summary) Item 6 $colsum [string trim $app2]
     }
@@ -2329,7 +2330,7 @@ proc addP21e3Section {idType} {
 # add to worksheet
       incr r
       set line1 $line
-      if {$r == 1} {append line1 "  (See Help > User Guide section 5.9)"}
+      if {$r == 1} {addCellComment $sect 1 1 "See Help > User Guide section 5.7.  See Websites > STEP Format and Schemas > ISO 10303 Part 21 Standard (sections 9, 10, 14)"}
       $cells($sect) Item $r 1 $line1
 
 # process anchor section persistent IDs

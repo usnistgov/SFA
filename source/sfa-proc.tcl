@@ -1,6 +1,6 @@
 # turn on/off values and enable/disable buttons depending on values
 proc checkValues {} {
-  global allNone appName appNames buttons developer edmWhereRules edmWriteToFile gen stepToolsWriteToFile opt userEntityList useXL
+  global allNone appName appNames bits buttons developer edmWhereRules edmWriteToFile gen stepToolsWriteToFile opt userEntityList useXL
 
   set butNormal {}
   set butDisabled {}
@@ -42,7 +42,7 @@ proc checkValues {} {
       }
     }
   }
-
+  
 # view
   if {$gen(View)} {
     foreach b {viewFEA viewPMI viewPMIVP viewTessPart viewPart partOnly genAllView x3dSave} {lappend butNormal $b}
@@ -50,13 +50,13 @@ proc checkValues {} {
     if {$developer} {lappend butNormal DEBUGX3D}
   } else {
     set opt(x3dSave) 0
-    set opt(viewPMIVP) 0
     foreach b {viewFEA viewPMI viewPMIVP viewTessPart viewPart partOnly genAllView x3dSave} {lappend butDisabled $b}
     foreach b {gpmiColor0 gpmiColor1 gpmiColor2 gpmiColor3 linecolor} {lappend butDisabled $b}
-    foreach b {partEdges partSketch partNormals partqual partQuality4 partQuality7 partQuality9 tessPartMesh} {lappend butDisabled $b}
+    foreach b {partEdges partSketch partNormals partqual partQuality4 partQuality7 partQuality10 tessPartMesh} {lappend butDisabled $b}
     foreach b {feaBounds feaLoads feaLoadScale feaDisp feaDispNoTail} {lappend butDisabled $b}
     if {$developer} {lappend butDisabled DEBUGX3D; set opt(DEBUGX3D) 0}
   }
+  if {$bits == "32-bit"} {set opt(viewPart) 0; set opt(partOnly) 0; lappend butDisabled viewPart partOnly}
 
 # part only
   if {$opt(partOnly)} {
@@ -128,7 +128,7 @@ proc checkValues {} {
 
 # part geometry
   if {$opt(viewPart)} {
-    foreach b {partOnly partEdges partSketch partNormals partqual partQuality4 partQuality7 partQuality9} {lappend butNormal $b}
+    foreach b {partOnly partEdges partSketch partNormals partqual partQuality4 partQuality7 partQuality10} {lappend butNormal $b}
     if {$opt(partOnly) && $opt(xlFormat) == "None"} {
       foreach b {syntaxChecker viewFEA viewPMI viewTessPart genAllView} {lappend butDisabled $b}
       foreach item {syntaxChecker viewFEA viewPMI viewTessPart} {set opt($item) 0}
@@ -136,7 +136,7 @@ proc checkValues {} {
       foreach b {syntaxChecker viewFEA viewPMI viewTessPart genAllView} {lappend butNormal $b}
     }
   } else {
-    foreach b {partEdges partSketch partNormals partqual partQuality4 partQuality7 partQuality9} {lappend butDisabled $b}
+    foreach b {partEdges partSketch partNormals partqual partQuality4 partQuality7 partQuality10} {lappend butDisabled $b}
   }
 
 # graphical PMI report
@@ -174,7 +174,6 @@ proc checkValues {} {
     }
   } else {
     foreach b {gpmiColor0 gpmiColor1 gpmiColor2 gpmiColor3 linecolor viewPMIVP} {lappend butDisabled $b}
-    set opt(viewPMIVP) 0
   }
 
 # FEM view
@@ -954,7 +953,11 @@ proc runOpenProgram {} {
 
 # run EDM Model Checker with the script file
       outputMsg "Running $idisp"
-      eval exec {$dispCmd} $edmScript
+      if {[catch {
+        eval exec {$dispCmd} $edmScript
+      } emsg]} {
+        errorMsg $emsg
+      }
 
 # if results are written to a file, open output file from the validation (edmLog) and output file if there are import errors (edmLogImport)
       if {$edmWriteToFile} {
@@ -1644,7 +1647,6 @@ proc installIFCsvr {{exit 0}} {
 
 # check IFCsvr CLSID and get version registry value "1.0.0 (NIST Update yyyy-mm-dd)"
 # if either fails, then install or reinstall
-    set clsid [registry get $ifcsvrKey {}]
     set verIFCsvr [registry get $ifcsvrVer {DisplayVersion}]
 
 # format version to be yyyymmdd

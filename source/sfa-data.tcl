@@ -1,13 +1,20 @@
 proc initData {} {
 
 global ap203all ap214all ap242all ap242only ap242e2only
-global allVendor andEntAP209 aoEntTypes badAttributes cadApps datumTargetDesc defaultColor dimModNames dimSizeNames DTR
+global allVendor andEntAP209 aoEntTypes badAttributes bits cadApps datumTargetDesc defaultColor dimModNames dimSizeNames DTR
 global entCategory entColorIndex feaElemFace feaIndex gpmiTypes ifcsvrKey ifcsvrVer legendColor letters nistModelPictures nistModelURLs
 global pmiElementsMaxRows pmiHorizontalLineBreaks pmiModifiers pmiModifiersRP pmiUnicode recPracNames roseLogical
 global schemaLinks spaces spmiEntTypes spmiTypes stepAPs tolNames tzfNames unicodeAttributes
 
 set ifcsvrKey "HKEY_LOCAL_MACHINE\\SOFTWARE\\Classes\\IFCsvr.R300\\CLSID"
 set ifcsvrVer "HKEY_LOCAL_MACHINE\\SOFTWARE\\WOW6432Node\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\{3C8CE0A4-803B-48A6-96A0-A3DDD5AE5596}"
+
+set bits ""
+catch {
+  set bits [registry get {HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\Session Manager\Environment} {PROCESSOR_ARCHITECTURE}]
+  if {$bits == "AMD64"} {set bits "64-bit"}
+  if {$bits == "x86"}   {set bits "32-bit"}
+}
 
 set DTR [expr {3.1415927/180.}]
 set letters ABCDEFGHIJKLMNOPQRSTUVWXYZ
@@ -56,17 +63,17 @@ set schemaLinks(STRUCTURAL_FRAME_SCHEMA) "http://web.archive.org/web/20160322005
 
 # -----------------------------------------------------------------------------------------------------
 # colors, the number determines the order that the group of entities is processed, do not use numbers less than 10 (dmcritchie.mvps.org/excel/colors.htm)
-set entColorIndex(stepFEAT) 24	
-set entColorIndex(stepKINE) 34	
+set entColorIndex(stepFEAT) 24
+set entColorIndex(stepKINE) 34
 set entColorIndex(stepCOMP) 35
-set entColorIndex(stepAP242) 36	
-set entColorIndex(stepTOLR) 37			
-set entColorIndex(stepPRES) 38			
-set entColorIndex(stepREPR) 39			
-set entColorIndex(stepSHAP) 40			
-set entColorIndex(stepCOMM) 42			
-set entColorIndex(stepGEOM) 43			
-set entColorIndex(stepCPNT) 43			
+set entColorIndex(stepAP242) 36
+set entColorIndex(stepTOLR) 37
+set entColorIndex(stepPRES) 38
+set entColorIndex(stepREPR) 39
+set entColorIndex(stepSHAP) 40
+set entColorIndex(stepCOMM) 42
+set entColorIndex(stepGEOM) 43
+set entColorIndex(stepCPNT) 43
 set entColorIndex(stepQUAN) 44
 
 # PMI coverage colors (B, G, R)
@@ -192,6 +199,7 @@ set recPracNames(holes)    "Representation of Hole and Fastener Information (AP2
 set aoEntTypes [list \
   tessellated_annotation_occurrence \
   annotation_placeholder_occurrence \
+  annotation_placeholder_occurrence_with_leader_line \
   annotation_fill_area_occurrence \
   annotation_curve_occurrence \
   annotation_occurrence \
@@ -218,7 +226,7 @@ set spmiEntTypes [list \
 # max rows for PMI elements on PMI representation coverage worksheet, depends on number and order of items below
 set pmiElementsMaxRows 177
 # line breaks are above the row, depends on the grouping of PMI elements below
-set pmiHorizontalLineBreaks [list 19 35 47 53 67 74 84 [expr {$pmiElementsMaxRows-7}]]
+set pmiHorizontalLineBreaks [list 19 35 47 53 67 74 84 [expr {$pmiElementsMaxRows-9}]]
 
 # -----------------------------------------------------------------------------------------------------
 # dimensional_size names (Section 5.1.5, Table 4)

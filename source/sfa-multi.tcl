@@ -96,15 +96,10 @@ proc openMultiFile {{ask 1}} {
             set mf [expr {2**14}]
             set extXLS "xlsx"
             set xlFormat [expr 51]
-            if {[expr {int([$excel1 Version])}] < 12} {
-              set mf [expr {2**8}]
-              set extXLS "xls"
-              set xlFormat [expr 56]
-            }
 
             set mf [expr {$mf-3}]
             if {$lenfilelist > $mf} {
-              errorMsg "Only the first $mf files will be processed due to column limits\n in this version of Excel."
+              errorMsg "Only the first $mf files will be processed due to column limits in Excel."
               set lenfilelist $mf
               set fileList [lrange $fileList 0 [expr {$mf-1}]]
             }

@@ -53,6 +53,8 @@ proc gpmiAnnotation {entType} {
   set planar_box      [list planar_box size_in_x size_in_y placement $a2p3d]
   set geometric_set   [list geometric_set name elements $cartesian_point $a2p3d $planar_box]
   set PMIP(annotation_placeholder_occurrence) [list annotation_placeholder_occurrence name styles $curve_style item $geometric_set line_spacing]
+  set apowll "annotation_placeholder_occurrence_with_leader_line"
+  set PMIP($apowll) [lreplace $PMIP(annotation_placeholder_occurrence) 0 0 $apowll]
 
 # generate correct PMIP variable accounting for variations like characterized_object
   if {![info exists PMIP($entType)]} {
@@ -492,7 +494,7 @@ proc gpmiAnnotationReport {objEntity} {
                       if {[veclen $dir] == 0} {
                         set msg "Syntax Error: The axis2_placement_3d axis or ref_direction vector is '0 0 0' for a repositioned_tessellated_item."
                       } elseif {$dirType == "refdir" && [veclen [veccross [join $tessPlacement(axis)] [join $tessPlacement(refdir)]]] == 0} {
-                        set msg "Syntax Error: The axis2_placement_3d axis and ref_direction vectors '[join $tessPlacement(refdir)]' are congruent for a repositioned_tessellated_item."
+                        set msg "Syntax Error: The axis2_placement_3d axis and ref_direction vectors '[join $tessPlacement(refdir)]' are parallel for a repositioned_tessellated_item."
                       }
                       if {$msg != ""} {
                         errorMsg $msg
@@ -732,10 +734,10 @@ proc gpmiAnnotationReport {objEntity} {
                   }
                 }
                 "annotation_placeholder_occurrence* line_spacing" {
-                  if {$objValue <= 0.} {
-                    set msg "Syntax Error: annotation_placeholder_occurrence 'line_spacing' attribute must be greater that zero.$spaces\($recPracNames(pmi242), Sec. 7.2.2)"
+                  if {$objValue <= 1.E-6} {
+                    set msg "Syntax Error: [lindex $ent1 0] 'line_spacing' attribute must be greater that zero.$spaces\($recPracNames(pmi242), Sec. 7.2.2)"
                     errorMsg $msg
-                    lappend syntaxErr(annotation_placeholder_occurrence) [list $objID "line_spacing" $msg]
+                    lappend syntaxErr([lindex $ent1 0]) [list $objID "line_spacing" $msg]
                   }
                 }
                 "*triangulated_face name" -
@@ -1004,7 +1006,7 @@ proc gpmiAnnotationReport {objEntity} {
 # look for link to pmi representation
               if {$attrName == "PMI representation to presentation link"} {
                 if {([string first "shape_aspect" $dmiaDefType] == -1 && [string first "property_definition" $dmiaDefType] == -1) || \
-                     [string first "_and_datum_feature" $dmiaDefType] != -1} {
+                     [string first "_datum_feature" $dmiaDefType] != -1} {
                   set spmi_p21id [$dmiaDef P21ID]
                   if {![info exists assocSPMI($dmiaDefType)]} {
                     lappend assocSPMI($dmiaDefType) $spmi_p21id
@@ -1090,6 +1092,17 @@ proc gpmiAnnotationReport {objEntity} {
               set pmiCol [expr {max($pmiColumns(aplane),$pmiCol)}]
             }
             $cells($ao) Item $r $pmiColumns(aplane) [string trim $str]
+            
+# check plane for the annotation plane
+            set pl [[[$ap Attributes] Item [expr 3]] Value]
+            set a2p3d [[[$pl Attributes] Item [expr 2]] Value]
+            set axis [[[[[[$a2p3d Attributes] Item [expr 3]] Value] Attributes] Item [expr 2]] Value]
+            set refdir [[[[[[$a2p3d Attributes] Item [expr 4]] Value] Attributes] Item [expr 2]] Value]
+            if {[veclen [veccross $axis $refdir]] == 0} {
+              set msg "Syntax Error: The axis2_placement_3d axis and ref_direction vectors '$refdir' are parallel for the 'annotation_plane' plane."
+              errorMsg $msg
+              lappend syntaxErr([$objEntity Type]) [list [$objEntity P21ID] "plane" $msg]
+            }
           }
         }
       }
@@ -1380,7 +1393,7 @@ proc pmiGetCameras {} {
   checkTempDir
 
   set scale 1.
-  if {[x3dBrepUnits] == 1.} {set scale 0.03937}
+  #if {[x3dBrepUnits] == 1.} {set scale 0.03937}
 
 # camera list
   set cmlist {}

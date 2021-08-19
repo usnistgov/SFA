@@ -1805,6 +1805,16 @@ proc spmiProjectedToleranceZone {objGuiEntity} {
 
 # projected length
         if {[$a0 Name] == "projected_length"} {
+
+# check for correct lmwu
+          set ptzattr {}
+          ::tcom::foreach a1 [[$a0 Value] Attributes] {lappend ptzattr [$a1 Name]}
+          if {[lsearch $ptzattr "name"] != -1 && [lsearch $ptzattr "qualifiers"] == -1} {
+            set msg "Syntax Error: For projected tolerance zone only 'length_measure_with_unit' is valid.$spaces\($recPracNames(pmi242), Sec. 6.9.2.2)"
+            errorMsg $msg
+            lappend syntaxErr(projected_zone_definition) [list [$e0 P21ID] "projected_length" $msg]
+          }
+
           ::tcom::foreach a1 [[$a0 Value] Attributes] {
             if {[$a1 Name] == "value_component"} {
               set ptz [$a1 Value]
@@ -2050,12 +2060,12 @@ proc spmiPlacedDatumTarget {objEntity objValue} {
               if {[veclen $axis] == 0 || [veclen $refdir] == 0} {
                 append msg "Syntax Error: The axis2_placement_3d axis or ref_direction is '0 0 0' for a $datumTargetType datum target.  "
               } elseif {[veclen [veccross $axis $refdir]] == 0} {
-                append msg "Syntax Error: The axis2_placement_3d axis and ref_direction vectors '$refdir' are congruent for a $datumTargetType datum target.  "
+                append msg "Syntax Error: The axis2_placement_3d axis and ref_direction vectors '$refdir' are parallel for a $datumTargetType datum target.  "
               }
               if {$msg != ""} {
                 set msg [string trim $msg]
                 errorMsg $msg
-                lappend syntaxErr([$gtEntity Type]) [list [$gtEntity P21ID] "Target Representation" $msg]
+                lappend syntaxErr([$gtEntity Type]) [list [$gtEntity P21ID] "Datum Target" $msg]
               }
 
 # point datum target view

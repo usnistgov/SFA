@@ -140,7 +140,7 @@ proc x3dFileStart {} {
 # -------------------------------------------------------------------------------
 # finish x3d file, write tessellated edges, PMI saved view geometry, set viewpoints, add navigation and background color, and close x3dom file
 proc x3dFileEnd {} {
-  global ao brepFile brepFileName datumTargetView developer entCount grayBackground matTrans nistModelURLs nistName nsketch numTessColor opt recPracNames
+  global ao brepFile brepFileName datumTargetView developer entCount grayBackground matTrans nistModelURLs nistName nsketch numTessColor opt parts recPracNames
   global savedViewButtons savedViewFile savedViewFileName savedViewItems savedViewNames savedViewpoint spaces sphereDef stepAP tessCoord tessEdges tessPartFile
   global tessPartFileName tessRepo tsName viz x3dApps x3dAxes x3dBbox x3dCoord x3dFile x3dFileNameSave x3dFiles x3dFileSave x3dIndex x3dMax
   global x3dMin x3dMsg x3dParts x3dShape x3dStartFile x3dTessParts x3dTitle x3dViewOK
@@ -384,11 +384,11 @@ proc x3dFileEnd {} {
 # for parts with a transform, append to lines for each part name and transform to group by transform
     if {![info exists tessRepo]} {set tessRepo 0}
     if {$tessRepo} {
-      set parts {}
+      set tgparts {}
       while {[gets $f line] >= 0} {
         if {[string first "<!--" $line] == 0} {
           set part $line
-          lappend parts $line
+          lappend tgparts $line
         } elseif {[string first "<Transform" $line] == 0} {
           set transform $line
         } elseif {$line != "</Transform>"} {
@@ -400,7 +400,7 @@ proc x3dFileEnd {} {
 
 # write parts for each transform
       set items [lreverse [array names lines]]
-      foreach part $parts {
+      foreach part $tgparts {
         foreach xf $x3dFiles {puts $xf $part}
 
 # set partname
@@ -410,7 +410,7 @@ proc x3dFileEnd {} {
         set x3dTessParts($partname) $npart(TPG)
 
 # switch if more than one part
-        if {[llength $parts] > 1} {
+        if {[llength $tgparts] > 1} {
           regsub -all "'" $partname "\"" txt
           foreach xf $x3dFiles {puts $xf "<Switch id='swTessPart$npart(TPG)' whichChoice='0'><Group id='$txt'>"}
         }
@@ -424,7 +424,7 @@ proc x3dFileEnd {} {
             if {$transform != "<Transform>"} {foreach xf $x3dFiles {puts $xf "</Transform>"}}
           }
         }
-        if {[llength $parts] > 1} {foreach xf $x3dFiles {puts $xf "</Group></Switch>"}}
+        if {[llength $tgparts] > 1} {foreach xf $x3dFiles {puts $xf "</Group></Switch>"}}
       }
 
 # no grouping if no transforms, add switch
@@ -761,6 +761,14 @@ proc x3dFileEnd {} {
         foreach item [array names x3dParts] {x3dSwitchScript Part$x3dParts($item)}
       }
       catch {unset x3dParts}
+      if {[llength [array names parts]] > 2} {
+        puts $x3dFile "\n<!-- All Parts switch --><script>function togPartAll(choice)\{"
+        foreach name [lsort -nocase [array names parts]] {
+          puts $x3dFile " togPart[lindex $parts($name) 0](choice);"
+        }
+        puts $x3dFile "\}</script>"
+      }
+      catch {unset parts}
     }
 
     if {[info exists x3dBbox]} {if {$x3dBbox != ""} {x3dSwitchScript Bbox}}
@@ -926,8 +934,9 @@ proc x3dFileEnd {} {
 # -------------------------------------------------------------------------------
 # part checkboxes
 proc x3dPartCheckbox {type} {
-  global x3dFile x3dHeight x3dParts x3dTessParts x3dWidth
+  global parts x3dFile x3dHeight x3dParts x3dTessParts x3dWidth
 
+  catch {unset parts}
   switch -- $type {
     Part {
       set name "Assembly/Part"
@@ -941,8 +950,11 @@ proc x3dPartCheckbox {type} {
     }
   }
 
-  puts $x3dFile "\n<!-- $name checkboxes -->\n<p>$name\n<br><font size='-1'>"
+  set txt ""
   set nparts [llength [array names parts]]
+  if {$nparts > 2 && $type == "Part"} {set txt "&nbsp;<input type='checkbox' checked onclick='togPartAll\(this.value)'/>Show/Hide"}
+  puts $x3dFile "\n<!-- $name checkboxes -->\n<p>$name$txt\n<br><font size='-1'>"
+
   set lenname 0
   foreach name [array names parts] {if {[string length $name] > $lenname} {set lenname [string length $name]}}
   set div ""
@@ -954,7 +966,7 @@ proc x3dPartCheckbox {type} {
   }
   if {$div != ""} {puts $x3dFile "$div\n<div class='parts'>"}
   foreach name [lsort -nocase [array names parts]] {
-    puts $x3dFile "<nobr><input type='checkbox' checked onclick='$tog[lindex $parts($name) 0]\(this.value)'/>$name </nobr><br>"
+    puts $x3dFile "<nobr><input id='cbPart[lindex $parts($name) 0]' type='checkbox' checked onclick='$tog[lindex $parts($name) 0]\(this.value)'/>$name </nobr><br>"
   }
   if {$div != ""} {puts $x3dFile "</div>"}
   puts $x3dFile "</font>"
@@ -1394,7 +1406,7 @@ proc x3dBrepGeom {} {
         } elseif {[string first "No such file or directory" $errs] == 0} {
           set msg "Change the file or directory name and process the file again."
         } elseif {[string first "permission denied" $errs] != -1} {
-          set msg "Antivirus software might be blocking stp2x3d-part.exe from running in: $mytemp"
+          set msg "Antivirus software might be blocking stp2x3d-part.exe from running in $mytemp"
         } else {
           set msg "Error processing STEP part geometry.\n Use F8 to run the Syntax Checker to check for STEP file errors.  See Help > Syntax Checker\n Try another STEP file viewer.  See Websites > STEP File Viewers"
         }
@@ -2724,7 +2736,7 @@ proc x3dSuppGeomColor {e0 type} {
             }
 
             if {$type == "plane" || $type == "cylinder"} {
-              errorMsg "Syntax Error: Wrong type of style ([$e3 Type]) for a supplemental geometry '$type'.  ($recPracNames(model), Sec. 4)"
+              errorMsg "Syntax Error: Wrong type of style ([$e3 Type]) for a supplemental geometry '$type'.  ($recPracNames(model), Sec. 4.2.2)"
             }
 
 # surface style
@@ -2760,10 +2772,10 @@ proc x3dSuppGeomColor {e0 type} {
             }
 
             if {$type != "plane" && $type != "cylinder"} {
-              errorMsg "Syntax Error: Wrong type of style ([$e3 Type]) for a supplemental geometry '$type'.  ($recPracNames(model), Sec. 4)"
+              errorMsg "Syntax Error: Wrong type of style ([$e3 Type]) for a supplemental geometry '$type'.  ($recPracNames(model), Sec. 4.2.2)"
             }
           } else {
-            errorMsg "Syntax Error: Color defined with '[$e3 Type]' referred from 'presentation_style_assignment' for supplemental geometry '$type' is not allowed.  ($recPracNames(model), Sec. 4)"
+            errorMsg "Syntax Error: Color defined with '[$e3 Type]' referred from 'presentation_style_assignment' for supplemental geometry '$type' is not allowed.  ($recPracNames(model), Sec. 4.2.2)"
           }
         }
       }
@@ -3344,14 +3356,16 @@ proc x3dSwitchScript {name {name1 ""}} {
     puts $x3dFile "\n<!-- $name switch -->\n<script>function tog$name1[lindex $ids 0]\(choice)\{"
     if {[llength $ids] == 1} {
       puts $x3dFile " if (!document.getElementById('sw$name').checked) \{document.getElementById('sw$name').setAttribute('whichChoice', -1);\} else \{document.getElementById('sw$name').setAttribute('whichChoice', 0);\}"
-      puts $x3dFile " document.getElementById('sw$name').checked = !document.getElementById('sw$name').checked;\n\}</script>"
+      puts $x3dFile " document.getElementById('sw$name').checked = !document.getElementById('sw$name').checked;"
+      puts $x3dFile " document.getElementById('cb$name').checked = !document.getElementById('sw$name').checked;\n\}</script>"
     } else {
       puts $x3dFile " if (!document.getElementById('sw$name1[lindex $ids 0]').checked) \{"
       foreach id $ids {puts $x3dFile "  document.getElementById('sw$name1$id').setAttribute('whichChoice', -1);"}
       puts $x3dFile " \} else \{"
       foreach id $ids {puts $x3dFile "  document.getElementById('sw$name1$id').setAttribute('whichChoice', 0);"}
       puts $x3dFile " \}"
-      puts $x3dFile " document.getElementById('sw$name1[lindex $ids 0]').checked = !document.getElementById('sw$name1[lindex $ids 0]').checked;\n\}</script>"
+      puts $x3dFile " document.getElementById('sw$name1[lindex $ids 0]').checked = !document.getElementById('sw$name1[lindex $ids 0]').checked;"
+      puts $x3dFile " document.getElementById('cb$name1[lindex $ids 0]').checked = !document.getElementById('sw$name1[lindex $ids 0]').checked;\n\}</script>"
     }
   }
 }
@@ -3367,9 +3381,9 @@ proc x3dGetRotation {axis refdir {type ""}} {
     if {$type != ""} {append msg " for a $type"}
     append msg "."
 
-# check if axis and refdir are congruent
+# check if axis and refdir are parallel
   } elseif {[veclen [veccross $axis $refdir]] == 0} {
-    set msg "Syntax Error: The axis2_placement_3d axis and ref_direction vectors '$refdir' are congruent"
+    set msg "Syntax Error: The axis2_placement_3d axis and ref_direction vectors '$refdir' are parallel"
     if {$type != ""} {append msg " for a $type"}
     append msg "."
   }

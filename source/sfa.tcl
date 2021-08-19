@@ -24,15 +24,20 @@ foreach item $path {
 lappend sfacl "sfa-cl.exe"
 set sfacl [join $sfacl "/"]
 
-# for building your own version with freewrap, uncomment and modify C:/Tcl/lib/teapot directory if necessary
-# the lappend commands add package locations to auto_path, must be before package commands below
-# see 30 lines below for two more lappend commands
-#lappend auto_path C:/Tcl/lib/teapot/package/win32-ix86/lib/tcom3.9
-#lappend auto_path C:/Tcl/lib/teapot/package/win32-ix86/lib/twapi3.0.32
-#lappend auto_path C:/Tcl/lib/teapot/package/win32-ix86/lib/Tclx8.4
-#lappend auto_path C:/Tcl/lib/teapot/package/win32-ix86/lib/Itk3.4
-#lappend auto_path C:/Tcl/lib/teapot/package/win32-ix86/lib/Itcl3.4
-#lappend auto_path C:/Tcl/lib/teapot/package/tcl/lib/Iwidgets4.0.2
+# detect if NIST version
+set nistVersion 0
+foreach item $auto_path {if {[string first "STEP-File-Analyzer" $item] != -1} {set nistVersion 1}}
+
+# for building your own version with freewrap, the following are explicitly added to auto_path
+# change C:/Tcl if Tcl is installed in a different directory
+if {!$nistVersion} {
+  lappend auto_path C:/Tcl/lib/teapot/package/win32-ix86/lib/tcom3.9
+  lappend auto_path C:/Tcl/lib/teapot/package/win32-ix86/lib/twapi3.0.32
+  lappend auto_path C:/Tcl/lib/teapot/package/win32-ix86/lib/Tclx8.4
+  lappend auto_path C:/Tcl/lib/teapot/package/win32-ix86/lib/Itk3.4
+  lappend auto_path C:/Tcl/lib/teapot/package/win32-ix86/lib/Itcl3.4
+  lappend auto_path C:/Tcl/lib/teapot/package/tcl/lib/Iwidgets4.0.2
+}
 
 # Tcl packages, check if they will load
 if {[catch {
@@ -61,14 +66,13 @@ if {[catch {
   exit
 }
 
-# for building your own version with freewrap, also uncomment and modify the lappend commands
+# two more packages but they do not load in the non-NIST version
 catch {
-  #lappend auto_path C:/Tcl/lib/teapot/package/win32-ix86/lib/vfs1.4.2
+  if {!$nistVersion} {lappend auto_path C:/Tcl/lib/teapot/package/win32-ix86/lib/vfs1.4.2}
   package require vfs::zip
 }
-
 catch {
-  #lappend auto_path C:/Tcl/lib/teapot/package/tcl/lib/tooltip1.4.4
+  if {!$nistVersion} {lappend auto_path C:/Tcl/lib/teapot/package/tcl/lib/tooltip1.4.5}
   package require tooltip
 }
 
@@ -81,10 +85,6 @@ if {[info exists env(ProgramW6432)]} {set pf64 $env(ProgramW6432)}
 
 # set drive, myhome, mydocs, mydesk
 setHomeDir
-
-# detect if NIST version
-set nistVersion 0
-foreach item $auto_path {if {[string first "STEP-File-Analyzer" $item] != -1} {set nistVersion 1}}
 
 # -----------------------------------------------------------------------------------------------------
 # initialize variables, set opt to 1
@@ -114,7 +114,6 @@ set dispCmds {}
 set edmWhereRules 0
 set edmWriteToFile 0
 set stepToolsWriteToFile  0
-set excelVersion 1000
 set filesProcessed 0
 set lastX3DOM ""
 set lastXLS  ""
@@ -160,6 +159,7 @@ if {[file exists $optionsFile]} {
     if {[info exists row_limit]}    {set opt(xlMaxRows) $row_limit}
     if {[info exists writeDirType]} {set opt(writeDirType) $writeDirType}
     if {$opt(writeDirType) == 1}    {set opt(writeDirType) 0}
+    if {$opt(partQuality) == 9}     {set opt(partQuality) 10}
 
 # unset old unused opt variables
     foreach item {COUNT CRASH DELCOVROWS DISPGUIDE1 feaNodeType FIRSTTIME FN_APPEND indentGeomtry GENX3DOM \
@@ -267,12 +267,6 @@ if {$developer} {if {$filesProcessed > 0} {outputMsg $filesProcessed} else {erro
 if {[info exists endMsg]} {
   outputMsg " "
   errorMsg $endMsg
-  .tnb select .tnb.status
-}
-
-# non-NIST version
-if {!$nistVersion} {
-  outputMsg "\nThis is a user-built version of the NIST STEP File Analyzer and Viewer."
   .tnb select .tnb.status
 }
 
@@ -408,8 +402,13 @@ if {[llength $pids] > 0} {
 
 # warn if spreadsheets not written to default directory
 if {$opt(writeDirType) == 2} {
-  outputMsg " "
-  errorMsg "All output files will be written to a User-defined directory (Spreadsheet tab)"
+  errorMsg "Output files will be written to a User-Defined directory (Spreadsheet tab)"
+  .tnb select .tnb.status
+}
+
+# check bits for the viewer
+if {$bits == "32-bit"} {
+  errorMsg "The Viewer for Part Geometry does not run on 32-bit computers and will be disabled."
   .tnb select .tnb.status
 }
 

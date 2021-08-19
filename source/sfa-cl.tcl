@@ -107,12 +107,12 @@ Disclaimers
  acknowledge NIST as the source of the software.
 
 Credits
-- Generating spreadsheets:        Microsoft Excel  https://products.office.com/excel
 - Reading and parsing STEP files: IFCsvr ActiveX Component, Copyright \u00A9 1999, 2005 SECOM Co., Ltd. All Rights Reserved
                                   IFCsvr has been modified by NIST to include STEP schemas.
                                   The license agreement can be found in  C:\\Program Files (x86)\\IFCsvrR300\\doc
 - Translating STEP to X3D:        Developed by Soonjo Kwon (former NIST Guest Researcher)
-                                  https://www.nist.gov/services-resources/software/step-x3d-translator"
+                                  https://www.nist.gov/services-resources/software/step-x3d-translator
+- Generating spreadsheets:        Microsoft Excel"
 
 if {$argc == 1} {set arg [string tolower [lindex $argv 0]]}
 if {$argc == 0 || ($argc == 1 && ($arg == "help" || $arg == "-help" || $arg == "-h" || $arg == "-v"))} {
@@ -167,7 +167,6 @@ set opt(xlFormat) Excel
 set coverageSTEP 0
 set dispCmd ""
 set dispCmds {}
-set excelVersion 1000
 set filesProcessed 0
 set lastX3DOM ""
 set lastXLS  ""
@@ -240,6 +239,7 @@ if {[info exists userEntityFile]} {
     set opt(stepUSER) 0
   }
 }
+if {$opt(partQuality) == 9} {set opt(partQuality) 10}
 
 set gen(View) 0
 foreach item {viewFEA viewPMI viewTessPart viewPart} {if {$opt($item)} {set gen(View) 1}}

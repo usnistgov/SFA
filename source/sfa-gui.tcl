@@ -1,5 +1,5 @@
 # SFA version number
-proc getVersion {} {return 4.54}
+proc getVersion {} {return 4.55}
 
 # version of SFA that the User Guide is based on
 proc getVersionUG {} {return 4.2}
@@ -29,7 +29,7 @@ F10 to change the font size here.  See Help > Function Keys
 You will be prompted to install the IFCsvr toolkit which is required to read STEP files.
 After the toolkit is installed, you are ready to process a STEP file.  Go to the File
 menu, select a STEP file, and click the Generate button below.  The Viewer will run a
-separate program stp2x3d-part.exe from your temp directory."
+separate program stp2x3d-part.exe from your Temp directory."
   }
 
   outputMsg "\nWhat's New (Version: [getVersion]  Updated: [string trim [clock format $progtime -format "%e %b %Y"]])" blue
@@ -68,7 +68,10 @@ proc showFileURL {type} {
       set localFile "SFA-User-Guide-v6.pdf"
       set URL https://doi.org/10.6028/NIST.AMS.200-10
       if {$sfaVersion >= [getVersionUG]} {
-        outputMsg "\nThe User Guide is based on version [getVersionUG] of this software.  See Help > Text Strings for\ninformation that supplements the User Guide section 5.5 on Unicode Characters.  The\nmenus on the Options tab in section 3.4 have been redesigned."
+        outputMsg "\nThe User Guide is based on version [getVersionUG] of this software.  Some software features are not in the User Guide.
+Section 3.4 - The Options tab menus have been redesigned.
+Section 4.1 - The Part Geometry option only runs on 64-bit computers.
+Section 5.5 - See Help > Text Strings for more information about Unicode Characters."
         .tnb select .tnb.status
       }
     }
@@ -459,7 +462,7 @@ proc guiOptionsTab {} {
 
   catch {tooltip::tooltip $buttons(logFile) "Status tab text can be written to a Log file myfile-sfa.log  Use F4 to open the Log file.\nSyntax Checker results are written to myfile-sfa-err.log\nAll text in the Status tab can be saved by right-clicking and selecting Save."}
   catch {tooltip::tooltip $buttons(syntaxChecker) "Use this option to run the Syntax Checker when generating a Spreadsheet\nor View.  The Syntax Checker can also be run with function key F8.\n\nThis checks for basic syntax errors and warnings in the STEP file related to\nmissing or extra attributes, incompatible and unresolved\ entity references,\nselect value types, illegal and unexpected characters, and other problems\nwith entity attributes.\n\nSee Help > Syntax Checker\nSee Help > User Guide (section 7)"}
-  catch {tooltip::tooltip $buttons(outputOpen) "If output files are not opened after they have been generated, they can be opened\nwith functions keys.  See Help > Function Keys\n\nIf possible, existing output files are always overwritten by new files.  Output files\ncan be written to a user-defined directory.  See Spreadsheet tab.\n\nSee Help > User Guide (section 3.4.1)"}
+  catch {tooltip::tooltip $buttons(outputOpen) "If output files are not opened after they have been generated, they can be opened\nwith functions keys.  See Help > Function Keys\n\nIf possible, existing output files are always overwritten by new files.  Output files\ncan be written to a user-defined directory.  See Spreadsheet tab."}
   pack $foptOF -side top -anchor w -pady 0 -fill x
 
 #-------------------------------------------------------------------------------
@@ -579,8 +582,8 @@ proc guiOptionsTab {} {
     incr cb
   }
   catch {
-    tooltip::tooltip $buttons(allNone0) "Selects most Process categories"
-    tooltip::tooltip $buttons(allNone1) "Deselects all categories except Common and all Analyze options"
+    tooltip::tooltip $buttons(allNone0) "Select most Process categories"
+    tooltip::tooltip $buttons(allNone1) "Deselect all categories except Common and all Analyze options"
   }
   pack $fopta5 -side left -anchor w -pady 0 -padx 15 -fill y
   pack $fopta -side top -anchor w -pady {5 2} -padx 10 -fill both
@@ -679,7 +682,7 @@ proc guiOptionsTab {} {
   set foptv21 [frame $foptv.21 -bd 0]
   set buttons(partqual) [label $foptv21.l3 -text "Quality:"]
   pack $foptv21.l3 -side left -anchor w -padx 0 -pady 0 -ipady 0
-  foreach item {{Low 4} {Normal 7} {High 9}} {
+  foreach item {{Low 4} {Normal 7} {High 10}} {
     set bn "partQuality[lindex $item 1]"
     set buttons($bn) [ttk::radiobutton $foptv21.$cb -variable opt(partQuality) -text [lindex $item 0] -value [lindex $item 1]]
     pack $buttons($bn) -side left -anchor w -padx 2 -pady 0 -ipady 0
@@ -1042,23 +1045,21 @@ proc guiSpreadsheet {} {
 #-------------------------------------------------------------------------------
 # help menu
 proc guiHelpMenu {} {
-  global contact defaultColor Examples excelVersion filesProcessed Help ifcsvrDir ifcsvrVer
-  global mytemp nistVersion opt recPracNames scriptName stepAPs
+  global bits contact defaultColor Examples excelVersion filesProcessed Help ifcsvrDir ifcsvrVer
+  global mytemp opt recPracNames scriptName stepAPs
 
   $Help add command -label "User Guide" -command {showFileURL UserGuide}
   $Help add command -label "What's New" -command {whatsNew}
   $Help add command -label "Changelog"  -command {showFileURL Changelog}
 
-  if {$nistVersion} {
-    $Help add command -label "Check for Update" -command {
-      .tnb select .tnb.status
-      set lastupgrade [expr {round(([clock seconds] - $upgrade)/86400.)}]
-      outputMsg "The last check for an update was $lastupgrade days ago." red
-      set url "https://concrete.nist.gov/cgi-bin/ctv/sfa_upgrade.cgi?version=[getVersion]&auto=-$lastupgrade"
-      openURL $url
-      set upgrade [clock seconds]
-      saveState
-    }
+  $Help add command -label "Check for Update" -command {
+    .tnb select .tnb.status
+    set lastupgrade [expr {round(([clock seconds] - $upgrade)/86400.)}]
+    outputMsg "The last check for an update was $lastupgrade days ago." red
+    set url "https://concrete.nist.gov/cgi-bin/ctv/sfa_upgrade.cgi?version=[getVersion]&auto=-$lastupgrade"
+    openURL $url
+    set upgrade [clock seconds]
+    saveState
   }
 
   $Help add separator
@@ -1210,8 +1211,8 @@ See Help > View for more information about viewing:
 
 See Examples > View Box Assembly and others
 
-The viewer for part geometry is based on the NIST STEP to X3D Translator.
-See Websites > STEP Software
+The viewer for part geometry is based on the NIST STEP to X3D Translator and only runs on 64-bit
+computers.  See Websites > STEP Software
 
 Other STEP file viewers are available.  See Websites > STEP File Viewers.  Some of the other
 viewers have better features for viewing and measuring part geometry.  However, many of the other
@@ -1637,7 +1638,7 @@ See Examples > Spreadsheet - PMI Representation"
 outputMsg "\nFunction Keys -------------------------------------------------------------------------------------" blue
 outputMsg "Function keys can be used as shortcuts for several commands:
 
-F1 - Generate Spreadsheets and/or Views from the current or last STEP file
+F1 - Generate Spreadsheet and/or View from the current or last STEP file
 F2 - Open current or last Spreadsheet
 F3 - Open current or last View file
 F4 - Open Log file
@@ -1666,8 +1667,10 @@ unexpected characters, and other problems with entity attributes.  Some errors m
 software and others from processing a STEP file.  Characters that are identified as illegal or
 unexpected might not be shown in a spreadsheet or in the viewer.  See Help > Text Strings
 
-There should not be any of these types of syntax errors in a STEP file.  Errors should be fixed to
-ensure that the STEP file conforms to the STEP schema and can interoperate with other software.
+If errors and warnings are reported, the number in parentheses is the line number in the STEP file
+where the error or warning was detected.  There should not be any of these types of syntax errors
+in a STEP file.  Errors should be fixed to ensure that the STEP file conforms to the STEP schema
+and can interoperate with other software.
 
 There are other validation rules defined by STEP schemas (where, uniqueness, and global rules,
 inverses, derived attributes, and aggregates) that are NOT checked.  Conforming to the validation
@@ -1679,8 +1682,7 @@ Status tab might be grayed out when the Syntax Checker is running.
 
 Syntax checker results appear in the Status tab.  If the Log File option is selected, the results
 are also written to a log file (myfile-sfa-err.log).  The syntax checker errors and warnings are
-not reported in the spreadsheet.  If errors and warnings are reported, the number in parentheses is
-the line number in the STEP file where the error or warning was detected.
+not reported in the spreadsheet.
 
 The Syntax Checker works with any supported STEP schema.  See Help > Supported STEP APs
 
@@ -1744,7 +1746,6 @@ The name of the AP is found on the FILE_SCHEMA entity in the HEADER section of a
 The 'e1' notation after an AP number below refers to an older version of that AP.  There are
 multiple editions of AP242 all with the same name.  The edition is identified when a file is read.\n"
 
-    set nschema 0
     catch {file delete -force -- [file join $ifcsvrDir ap214e3_2010.rose]}
 
     set schemas {}
@@ -1761,10 +1762,9 @@ multiple editions of AP242 all with the same name.  The edition is identified wh
           lappend schemas "[string range $schema 0 4] - $schema"
         } elseif {[string first "IFC" $schema] == -1} {
           lappend schemas $schema
-        } elseif {$schema == "IFC2X3" || $schema == "IFC4"} {
+        } elseif {$schema == "IFC2X3" || [string first "IFC4" $schema] == 0 || [string first "IFC5" $schema] == 0} {
           lappend schemas $schema
         }
-        incr nschema
       }
     }
 
@@ -1821,7 +1821,7 @@ generated.  See Help > Crash Recovery
 The Syntax Checker identifies non-English characters as 'illegal characters'.  You should test your
 CAD software to see if it supports non-English characters or control directives.
 
-See Websites > STEP Format and Schemas > ISO 10303 Part 21 Standard
+See Websites > STEP Format and Schemas > ISO 10303 Part 21 Standard (sections 6.4.3.3 and 6.4.3.4)
 
 ---------------------------------------------------------------------------------------------------
 NOTE - Numbers in a STEP file use a '.' as the decimal separator.  Some non-English language
@@ -1887,13 +1887,15 @@ See Help > Large STEP Files
 Other fixes:
 
 1 - STEP files generated by Creo or Pro/Engineer might cause the software to crash.  This is due to
-a problem with some of the PRESENTATION_STYLE_ASSIGNMENT entities.  To fix the problem, change all
-PRESENTATION_STYLE_ASSIGNMENT((.NULL.)); to PRESENTATION_STYLE_ASSIGNMENT((NULL_STYLE(.NULL.))); in
-the STEP file.  Then follow the instructions in the NOTE above.  See Websites > CAx-IF Recommended
-Practices for the Recommended Practice for $recPracNames(pmi242), sec. 9.1.
+a problem with some of the PRESENTATION_STYLE_ASSIGNMENT entities.  The Syntax Checker shows the
+error as \"Could not determine type of select value.\"  To fix the problem in the STEP file change
+all PRESENTATION_STYLE_ASSIGNMENT((.NULL.)); to PRESENTATION_STYLE_ASSIGNMENT((NULL_STYLE(.NULL.)));
+Then follow the instructions in the NOTE above.  See Websites > CAx-IF Recommended Practices for the
+Recommended Practice for $recPracNames(pmi242), sec. 9.1.
 
 2 - Processing of the type of entity that caused the error can be deselected in the Options tab
-under Process.  However, this will prevent processing of other entities that do not cause a crash."
+under Process.  However, this will prevent processing of other entities that do not cause a crash.
+The User-Defined List can be used to process only the required entity types."
     .tnb select .tnb.status
   }
 
@@ -1902,7 +1904,8 @@ under Process.  However, this will prevent processing of other entities that do 
   $Help add command -label "NIST Disclaimer" -command {openURL https://www.nist.gov/disclaimer}
   $Help add command -label "About" -command {
     set sysvar "System:   $tcl_platform(os) $tcl_platform(osVersion)"
-    if {$excelVersion < 1000} {append sysvar ", Excel $excelVersion"}
+    if {$bits != ""} {append sysvar " $bits"}
+    if {[info exists excelVersion]} {append sysvar ", Excel $excelVersion"}
     catch {append sysvar ", IFCsvr [registry get $ifcsvrVer {DisplayVersion}]"}
     append sysvar ", Files processed: $filesProcessed"
     if {$opt(xlMaxRows) != 100003} {append sysvar "\n          For more System variables, set Maximum Rows to 100000 and repeat Help > About"}
@@ -1919,13 +1922,13 @@ below for information about NIST.
 See Help > Disclaimers and NIST Disclaimer
 
 Credits
-- Generating spreadsheets:        Microsoft Excel  https://products.office.com/excel
 - Reading and parsing STEP files: IFCsvr ActiveX Component, Copyright \u00A9 1999, 2005 SECOM Co., Ltd. All Rights Reserved
                                   IFCsvr has been modified by NIST to include STEP schemas.
                                   The license agreement can be found in  C:\\Program Files (x86)\\IFCsvrR300\\doc
 - Translating STEP to X3D:        Developed by Soonjo Kwon (former NIST Guest Researcher)
                                   See Websites > STEP Software
-- Some Tcl code is based on:      CAWT  http://www.cawt.tcl3d.org/"
+- Some Tcl code is based on:      CAWT  http://www.cawt.tcl3d.org/
+- Generating spreadsheets:        Microsoft Excel"
 
 # debug
     if {$opt(xlMaxRows) == 100003} {
@@ -2027,7 +2030,6 @@ proc guiWebsitesMenu {} {
 
   $Websites add cascade -label "STEP Software" -menu $Websites.3
   set Websites3 [menu $Websites.3 -tearoff 1]
-  $Websites3 add command -label "Source Code"            -command {openURL https://github.com/usnistgov/SFA}
   $Websites3 add command -label "STEP to X3D Translator" -command {openURL https://www.nist.gov/services-resources/software/step-x3d-translator}
   $Websites3 add command -label "STEP to OWL Translator" -command {openURL https://github.com/usnistgov/stp2owl}
   $Websites3 add command -label "STEP Class Library"     -command {openURL https://www.nist.gov/services-resources/software/step-class-library-scl}

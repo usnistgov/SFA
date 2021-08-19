@@ -39,9 +39,9 @@ teacup install Iwidgets
 
 ## Build the STEP File Analyzer and Viewer
 
-First, edit the source code file sfa.tcl and uncomment the lines at the top of the file that start with 'lappend auto_path C:/Tcl/lib/teapot/package/...'  Change 'C:/Tcl' if Tcl is installed in a different directory.
+If Tcl is installed in a different directory than 'C:/Tcl', then edit the source code file sfa.tcl with the lines that start with 'lappend auto_path C:/Tcl/lib/teapot/package/...'
 
-Then, open a command prompt window and change to the directory with the SFA Tcl files and freewrap.  To create the executable sfa.exe, enter the command:
+Then open a command prompt window and change to the directory with the SFA Tcl files and freewrap.  To create the executable sfa.exe, enter the command:
 
 ```
 freewrap -f sfa-files.txt
