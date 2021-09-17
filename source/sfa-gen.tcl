@@ -758,7 +758,7 @@ proc genExcel {{numFile 0}} {
       append msg " [truncFileName [file nativename $cfile]]"
       errorMsg $msg
       foreach item [lsort $fixlist] {outputMsg " [formatComplexEnt $item]" red}
-      errorMsg "See Help > Crash Recovery"
+      errorMsg "Use F8 to run the Syntax Checker and See Help > Crash Recovery"
     }
   }
 

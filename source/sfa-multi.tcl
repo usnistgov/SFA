@@ -576,9 +576,7 @@ proc openMultiFile {{ask 1}} {
     } elseif {[info exists recurse]} {
       set substr ""
       if {$recurse} {set substr " or subdirectories of"}
-      errorMsg "No STEP files were found in the directory$substr:\n  [truncFileName [file nativename $multiFileDir]]"
-      set choice [tk_messageBox -title "No STEP files found" -type ok -default ok -icon warning \
-        -message "No STEP files were found in the directory$substr\n\n[truncFileName [file nativename $multiFileDir]]"]
+      errorMsg "No STEP files were found in the directory$substr: [truncFileName [file nativename $multiFileDir]]"
     }
   }
   update idletasks
@@ -594,7 +592,7 @@ proc findFile {startDir {recurse 0}} {
     return
   }
 
-  set exts {".stp" ".step" ".p21" ".stpz"}
+  set exts {".stp" ".step" ".p21" ".stpz" ".ifc"}
   foreach match [glob -nocomplain -- *] {
     foreach ext $exts {
       if {[file extension [string tolower $match]] == $ext} {

@@ -1014,6 +1014,7 @@ proc spmiGeotolReport {objEntity} {
                               ::tcom::foreach a1 [$e1 Attributes] {
                                 if {[$a1 Name] == "identified_item"} {
                                   set e2 [$a1 Value]
+                                  if {[info exists datumTargetGeom]} {append datumTargetGeom [format "%c" 10]}
                                   append datumTargetGeom "[$e2 Type] [$e2 P21ID]"
 
 # save datum target feature geometric entity for view
@@ -1022,6 +1023,16 @@ proc spmiGeotolReport {objEntity} {
                               }
                             }
                           }
+                        }
+                      }
+
+# check for relating referring to placed_datum_target_feature instead of related
+                      set e0s [$gtEntity GetUsedIn [string trim feature_for_datum_target_relationship] [string trim relating_shape_aspect]]
+                      ::tcom::foreach e0 $e0s {
+                        if {[$e0 Type] == "feature_for_datum_target_relationship"} {
+                          set msg "Syntax Error: For [$e0 Type] the related_shape_aspect should be 'placed_datum_target_feature'.$spaces\($recPracNames(pmi242), Sec. 6.6.3, Fig. 45)"
+                          errorMsg $msg
+                          lappend syntaxErr([$e0 Type]) [list [$e0 P21ID] "related_shape_aspect" $msg]
                         }
                       }
 
@@ -1066,9 +1077,9 @@ proc spmiGeotolReport {objEntity} {
                           lappend syntaxErr([$gtEntity Type]) [list [$gtEntity P21ID] "Target Geometry" $msg]
                         }
                       } elseif {$ov == "curve" || $ov == "area"} {
-                        set msg "Syntax Error: Missing '$ov' target geometry for [$gtEntity Type].$spaces\($recPracNames(pmi242), Sec. 6.6.2)"
+                        set msg "Syntax Error: Missing [$gtEntity Type] on GISU 'definition' attribute for '$ov' target geometry.$spaces\($recPracNames(pmi242), Sec. 6.6.2)"
                         errorMsg $msg
-                        lappend syntaxErr(datum_target) [list $objID "Target Geometry" $msg]
+                        lappend syntaxErr(datum_target) [list $objID "Datum Target" $msg]
                       }
                     }
                   }

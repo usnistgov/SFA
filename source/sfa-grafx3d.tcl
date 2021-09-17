@@ -140,7 +140,7 @@ proc x3dFileStart {} {
 # -------------------------------------------------------------------------------
 # finish x3d file, write tessellated edges, PMI saved view geometry, set viewpoints, add navigation and background color, and close x3dom file
 proc x3dFileEnd {} {
-  global ao brepFile brepFileName datumTargetView developer entCount grayBackground matTrans nistModelURLs nistName nsketch numTessColor opt parts recPracNames
+  global ao brepFile brepFileName datumTargetView entCount grayBackground matTrans nistModelURLs nistName nsketch numTessColor opt parts recPracNames
   global savedViewButtons savedViewFile savedViewFileName savedViewItems savedViewNames savedViewpoint spaces sphereDef stepAP tessCoord tessEdges tessPartFile
   global tessPartFileName tessRepo tsName viz x3dApps x3dAxes x3dBbox x3dCoord x3dFile x3dFileNameSave x3dFiles x3dFileSave x3dIndex x3dMax
   global x3dMin x3dMsg x3dParts x3dShape x3dStartFile x3dTessParts x3dTitle x3dViewOK
@@ -284,8 +284,7 @@ proc x3dFileEnd {} {
                 lappend savedViewVP "<Transform translation='[lindex $savedViewpoint($svn2) 0]' rotation='[lindex $savedViewpoint($svn2) 1]'><Viewpoint id='$svn2' position='0 0 0' orientation='0 1 0 3.14156'/></Transform>"
 
 # view frustrum for debugging
-                #set developer 1
-                if {$developer} {
+                if {$opt(DEBUGVP)} {
                   set scale [trimNum [expr {$maxxyz*0.08}]]
                   puts $xf "<Transform translation='[lindex $savedViewpoint($svn2) 0]' rotation='[lindex $savedViewpoint($svn2) 1]' scale='$scale $scale $scale'>"
                   puts $xf " <Shape><Appearance><Material emissiveColor='1 0 0'/></Appearance><IndexedLineSet coordIndex='0 1 -1'><Coordinate point='0. 0. 0. 1. 0. 0.'/></IndexedLineSet></Shape>"
@@ -308,7 +307,6 @@ proc x3dFileEnd {} {
                   puts $xf " <Transform translation='$trans' scale='$scale $scale $scale'><Billboard axisOfRotation='0 0 0'><Shape><Text string='$svn2'><FontStyle family='SANS' justify='MIDDLE'/></Text><Appearance><Material diffuseColor='0 0 0'/></Appearance></Shape></Billboard></Transform>"
                   puts $xf "</Transform>\n"
                 }
-                #set developer 0
               }
             }
 
@@ -669,7 +667,7 @@ proc x3dFileEnd {} {
     }
     puts $x3dFile "\n<!-- Saved view checkboxes -->"
     if {$sv} {puts $x3dFile "Saved View Graphical PMI"}
-    if {[info exists savedViewVP]} {puts $x3dFile "<br><font size='-1'>(Use Page Down to switch between Saved Views.  Viewpoints might not be implemented correctly.)</font>"}
+    if {[info exists savedViewVP]} {puts $x3dFile "<br><font size='-1'>(Use Page Down to switch between Saved Views.)</font>"}
 
     foreach svn $savedViewButtons {
       set str ""

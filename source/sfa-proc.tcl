@@ -42,15 +42,15 @@ proc checkValues {} {
       }
     }
   }
-  
+
 # view
   if {$gen(View)} {
-    foreach b {viewFEA viewPMI viewPMIVP viewTessPart viewPart partOnly genAllView x3dSave} {lappend butNormal $b}
+    foreach b {viewFEA viewPMI viewPMIVP viewTessPart viewPart partOnly genAllView x3dSave DEBUGVP} {lappend butNormal $b}
     if {!$opt(viewFEA) && !$opt(viewPMI) && !$opt(viewTessPart) && !$opt(viewPart)} {set opt(viewPart) 1}
     if {$developer} {lappend butNormal DEBUGX3D}
   } else {
     set opt(x3dSave) 0
-    foreach b {viewFEA viewPMI viewPMIVP viewTessPart viewPart partOnly genAllView x3dSave} {lappend butDisabled $b}
+    foreach b {viewFEA viewPMI viewPMIVP viewTessPart viewPart partOnly genAllView x3dSave DEBUGVP} {lappend butDisabled $b}
     foreach b {gpmiColor0 gpmiColor1 gpmiColor2 gpmiColor3 linecolor} {lappend butDisabled $b}
     foreach b {partEdges partSketch partNormals partqual partQuality4 partQuality7 partQuality10 tessPartMesh} {lappend butDisabled $b}
     foreach b {feaBounds feaLoads feaLoadScale feaDisp feaDispNoTail} {lappend butDisabled $b}
@@ -173,7 +173,12 @@ proc checkValues {} {
       lappend butDisabled stepPRES
     }
   } else {
-    foreach b {gpmiColor0 gpmiColor1 gpmiColor2 gpmiColor3 linecolor viewPMIVP} {lappend butDisabled $b}
+    foreach b {gpmiColor0 gpmiColor1 gpmiColor2 gpmiColor3 linecolor viewPMIVP DEBUGVP} {lappend butDisabled $b}
+  }
+  if {$opt(viewPMIVP)} {
+    lappend butNormal DEBUGVP
+  } else {
+    lappend butDisabled DEBUGVP
   }
 
 # FEM view
@@ -418,7 +423,7 @@ proc openFile {{openName ""}} {
   if {$openName == ""} {
 
 # file types for file select dialog
-    set typelist [list {"STEP Files" {".stp" ".step" ".p21" ".stpZ" ".stpnc" ".spf"}} {"IFC Files" {".ifc"}} {"ASCII STL Files" {".stl"}}]
+    set typelist [list {"STEP Files" {".stp" ".step" ".p21" ".stpZ" ".stpnc" ".spf" ".ifc"}} {"ASCII STL Files" {".stl"}}]
 
 # file open dialog
     set localNameList [tk_getOpenFile -title "Open STEP File(s)" -filetypes $typelist -initialdir $fileDir -multiple true]
@@ -581,10 +586,9 @@ proc addFileToMenu {} {
 
 # insert file name at top of list
   set fext [string tolower [file extension $localName]]
-  if {$ifile != 0 && ($fext == ".stp" || $fext == ".step" || $fext == ".p21")} {
+  if {$ifile != 0 && ($fext == ".stp" || $fext == ".step" || $fext == ".p21" || $fext == ".ifc")} {
     set openFileList [linsert $openFileList 0 $localName]
-    $File insert $filemenuinc command -label [truncFileName [file nativename $localName] 1] \
-      -command [list openFile $localName] -accelerator "F1"
+    $File insert $filemenuinc command -label [truncFileName [file nativename $localName] 1] -command [list openFile $localName] -accelerator "F1"
     catch {$File entryconfigure 5 -accelerator {}}
   }
 
@@ -1640,7 +1644,7 @@ proc checkFileName {fn} {
 #-------------------------------------------------------------------------------
 # install IFCsvr (or remove to reinstall)
 proc installIFCsvr {{exit 0}} {
-  global buttons contact developer ifcsvrKey ifcsvrVer mydocs mytemp nistVersion upgradeIFCsvr wdir
+  global buttons contact developer ifcsvrVer mydocs mytemp nistVersion upgradeIFCsvr wdir
 
 # if IFCsvr is alreadly installed, get version from registry, decide to reinstall newer version
   if {[catch {

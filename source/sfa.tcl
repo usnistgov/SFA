@@ -90,14 +90,14 @@ setHomeDir
 # initialize variables, set opt to 1
 foreach id { \
   logFile outputOpen partEdges partSketch PMIGRF PMISEM stepCOMM stepPRES stepQUAN stepREPR stepSHAP stepTOLR valProp \
-  viewPart viewPMI \
+  viewPart viewPMI viewTessPart tessPartMesh \
 } {set opt($id) 1}
 
 # set opt to 0
 foreach id { \
   feaBounds feaDisp feaDispNoTail feaLoads feaLoadScale indentGeometry indentStyledItem INVERSE partNormals partOnly \
   PMIGRFCOV PMISEMDIM PMISEMRND SHOWALLPMI stepAP242 stepCOMP stepCPNT stepFEAT stepGEOM stepKINE stepUSER syntaxChecker \
-  tessPartMesh viewFEA viewPMIVP viewTessPart writeDirType xlHideLinks xlNoRound xlSort xlUnicode x3dSave DEBUG1 DEBUGINV DEBUGNOXL DEBUGX3D \
+  viewFEA viewPMIVP writeDirType xlHideLinks xlNoRound xlSort xlUnicode x3dSave DEBUG1 DEBUGINV DEBUGNOXL DEBUGVP DEBUGX3D \
 } {set opt($id) 0}
 
 set opt(gpmiColor) 3

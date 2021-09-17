@@ -67,7 +67,7 @@ Replace the home-grown code to interact with Excel spreadsheets with [CAWT](http
 
 ## Contact
 
-[Robert Lipman](https://www.nist.gov/people/robert-r-lipman), <robert.lipman@nist.gov>, 301-975-3829
+[Robert Lipman](https://www.nist.gov/people/robert-r-lipman), <robert.lipman@nist.gov>
 
 ## Disclaimers
 

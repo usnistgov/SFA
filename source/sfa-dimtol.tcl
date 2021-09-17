@@ -1443,12 +1443,7 @@ proc spmiDimtolReport {objEntity} {
 
 # write dimension to spreadsheet
         $cells($dt) Item $r $pmiColumns(dmrp) $dr
-        if {$cellComment != ""} {
-          addCellComment $dt $r $pmiColumns(dmrp) $cellComment
-          if {[string first "'directed'" $cellComment] == -1 && [string first "'oriented'" $cellComment] == -1} {
-            lappend entsWithErrors "dimensional_characteristic_representation"
-          }
-        }
+        if {$cellComment != ""} {addCellComment $dt $r $pmiColumns(dmrp) $cellComment}
 
 # -------------------------------------------------------------------------------
 # save dimension with associated geometry

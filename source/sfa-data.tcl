@@ -127,6 +127,20 @@ set badAttributes(triangulated_face) {normals triangles}
 set badAttributes(triangulated_point_cloud_dataset) {triangles}
 set badAttributes(triangulated_surface_set) {normals triangles}
 
+# IFC
+set badAttributes(IfcBSplineSurfaceWithKnots) {ControlPointsList}
+set badAttributes(IfcColourRgbList) {ColourList}
+set badAttributes(IfcCartesianPointList) {CoordList}
+set badAttributes(IfcCartesianPointList2D) {CoordList}
+set badAttributes(IfcCartesianPointList3D) {CoordList}
+set badAttributes(IfcDirectionList) {DirectionList}
+set badAttributes(IfcIndexedPolygonalFaceWithVoids) {InnerCoordIndices}
+set badAttributes(IfcIndexedTriangleTextureMap) {TexCoordIndex}
+set badAttributes(IfcRationalBSplineSurfaceWithKnots) {ControlPointsList WeightsData}
+set badAttributes(IfcStructuralLoadConfiguration) {Locations}
+set badAttributes(IfcTextureVertexList) {TexCoordsList}
+set badAttributes(IfcTriangulatedFaceSet) {CoordIndex Normals NormalIndex}
+
 # entity attributes that might have text strings with unicode \x2\ that have to be handled separately
 # in AP2.., not all but a few commonly used, all would be any entity with a name, etc. attribute
 set unicodeAttributes(advanced_brep_shape_representation) {name}
