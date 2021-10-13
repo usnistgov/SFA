@@ -525,7 +525,7 @@ proc spmiGeotolReport {objEntity} {
                     if {[info exists colName]} {
                       $cells($gt) Item 3 $c $colName
                       if {[string first "GD&T" $colName] != -1} {
-                        set comment "See Help > User Guide (sections 6.1.4) for an explanation of how the annotations below are constructed."
+                        set comment "See Help > User Guide (section 6.1.4) for an explanation of how the annotations below are constructed."
                         append comment "\n\nThe geometric tolerance might be shown with associated dimensions (above) and datum features (below).  That depends on any of the two referring to the same Associated Geometry as the Toleranced Geometry in the column to the right.  See the Associated Geometry columns on the 'dimensional_characteristic_representation' (DCR) and 'datum_feature' worksheets to see if they match the Toleranced Geometry."
                         append comment "\n\nSee the DCR worksheet for an explanation of Repetitive Dimensions."
                         if {$nistName != ""} {

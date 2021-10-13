@@ -69,10 +69,10 @@ proc checkValues {} {
   }
 
   if {!$gen(Excel)} {
-    lappend butDisabled allNone1 xlHideLinks
+    foreach b {allNone1 xlHideLinks xlUnicode xlSort xlNoRound} {lappend butDisabled $b}
     set opt(xlHideLinks) 0
   } else {
-    lappend butNormal xlHideLinks
+    foreach b {xlHideLinks xlUnicode xlSort xlNoRound} {lappend butNormal $b}
     if {$opt(PMISEM)} {lappend butNormal}
   }
   if {$gen(Excel) && $gen(CSV)} {lappend butDisabled genExcel}
@@ -100,7 +100,7 @@ proc checkValues {} {
     foreach item [array names opt] {
       if {[string first "step" $item] == 0} {lappend butNormal $item}
     }
-    foreach b {xlHideLinks INVERSE PMIGRF PMISEM valProp xlNoRound xlSort genAllAnalysis genExcel} {lappend butDisabled $b}
+    foreach b {xlHideLinks xlUnicode xlSort xlNoRound INVERSE PMIGRF PMISEM valProp genAllAnalysis genExcel} {lappend butDisabled $b}
     foreach b {viewFEA viewPMI viewTessPart viewPart} {lappend butNormal $b}
     foreach b {allNone0 allNone1 genAllView stepUSER} {lappend butNormal $b}
 
@@ -109,7 +109,7 @@ proc checkValues {} {
     foreach item [array names opt] {
       if {[string first "step" $item] == 0} {lappend butNormal $item}
     }
-    foreach b {xlHideLinks INVERSE PMIGRF PMISEM valProp xlNoRound xlSort} {lappend butNormal $b}
+    foreach b {xlHideLinks xlUnicode xlSort xlNoRound INVERSE PMIGRF PMISEM valProp} {lappend butNormal $b}
     foreach b {viewFEA viewPMI viewTessPart viewPart} {lappend butNormal $b}
     foreach b {allNone0 allNone1 genAllAnalysis genAllView stepUSER} {lappend butNormal $b}
   }
@@ -300,7 +300,7 @@ proc checkValues {} {
     }
   }
   if {$opt(PMISEM) != 1 || $opt(PMIGRF) != 1 || $opt(valProp) != 1} {set gen(AllAnalysis) 0}
-  if {$opt(viewPMI) != 1 || $opt(viewTessPart) != 1 || $opt(viewFEA)  != 1 || $opt(viewPart) != 1} {set gen(AllView) 0}
+  if {$opt(viewPMI) != 1 || $opt(viewTessPart) != 1 || $opt(viewFEA) != 1 || $opt(viewPart) != 1} {set gen(AllView) 0}
 }
 
 # -------------------------------------------------------------------------------------------------
@@ -427,7 +427,10 @@ proc openFile {{openName ""}} {
 
 # file open dialog
     set localNameList [tk_getOpenFile -title "Open STEP File(s)" -filetypes $typelist -initialdir $fileDir -multiple true]
-    if {[llength $localNameList] <= 1} {set localName [lindex $localNameList 0]}
+    if {[llength $localNameList] <= 1} {
+      set localName [lindex $localNameList 0]
+      if {$localName == ""} {errorMsg "No file selected.  Files cannot be selected from the Quick Access menu."}
+    }
 
 # file name passed in as openName
   } else {
@@ -690,7 +693,7 @@ proc saveState {{ok 1}} {
 
 # opt variables
     foreach idx [lsort [array names opt]] {
-      if {[string first "DEBUG" $idx] == -1 && [string first "indent" $idx] == -1 && $idx != "syntaxChecker"} {
+      if {[string first "DEBUG" $idx] == -1 && [string first "indent" $idx] == -1 && $idx != "PMISEMDIM"} {
         set var opt($idx)
         set vartmp [set $var]
         if {[string first "/" $vartmp] != -1 || [string first "\\" $vartmp] != -1 || [string first " " $vartmp] != -1} {
@@ -705,8 +708,9 @@ proc saveState {{ok 1}} {
         }
       }
     }
-    puts $fileOptions "\n# The lines below can be deleted for a command-line version (sfa-cl.exe) custom options file.\n"
+
     puts $fileOptions "set gen(View) $gen(View)"
+    puts $fileOptions "\n# The lines below can be deleted for a command-line version (sfa-cl.exe) custom options file.\n"
 
 # window position
     set winpos "+300+200"
@@ -1453,7 +1457,7 @@ proc outputMsg {msg {color "black"}} {
   } else {
     puts $msg
   }
-  if {$opt(logFile) && [info exists logFile]} {puts $logFile $msg}
+  if {$opt(logFile) && [info exists logFile] && [string first "ST-Developer" $msg] == -1} {puts $logFile $msg}
 }
 
 #-------------------------------------------------------------------------------
@@ -1529,7 +1533,7 @@ proc errorMsg {msg {color ""}} {
         set newmsg [split [string range $logmsg 4 end] "\n"]
         set logmsg ""
         foreach str $newmsg {append logmsg "\n$stars $str"}
-        puts $logFile [string range $logmsg 1 end]
+        if {[string first "ST-Developer" $logmsg] == -1} {puts $logFile [string range $logmsg 1 end]}
       }
     }
     return 1
@@ -1631,12 +1635,12 @@ proc checkFileName {fn} {
   set fnd [file dirname $fn]
   if {[string first "\[" $fnd] != -1 || [string first "\]" $fnd] != -1} {
     set fn [file nativename [file join $mydocs $fnt]]
-    errorMsg "Saving Spreadsheet to the home directory instead of the STEP file directory because of the \[ and \] in the directory name." red
+    errorMsg "Saving Spreadsheet to the home directory because of \[\] in the directory name." red
   }
   if {[string first "\[" $fnt] != -1 || [string first "\]" $fnt] != -1} {
     regsub -all {\[} $fn "(" fn
     regsub -all {\]} $fn ")" fn
-    errorMsg "\[ and \] are replaced by ( and ) in the Spreadsheet file name." red
+    errorMsg "For the Spreadsheet file name \[\] are replaced by ()" red
   }
   return $fn
 }
@@ -1811,7 +1815,7 @@ proc setShortcuts {} {
 
   set progname [info nameofexecutable]
   if {[string first "AppData/Local/Temp" $progname] != -1 || [string first ".zip" $progname] != -1} {
-    errorMsg "For the STEP File Analyzer and Viewer to run properly, it is recommended that you first\n extract all of the files from the ZIP file and run the extracted executable."
+    errorMsg "You should first extract all of the files from the ZIP file and run the extracted software."
     return
   }
 
@@ -1988,7 +1992,7 @@ proc getTiming {{str ""}} {
 }
 
 #-------------------------------------------------------------------------------
-# From http://wiki.tcl.tk/4021
+# From https://wiki.tcl-lang.org/page/Custom+sorting
 proc sortlength2 {wordlist} {
   set words {}
   foreach word $wordlist {

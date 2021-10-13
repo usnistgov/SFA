@@ -1,11 +1,11 @@
 # SFA version number
-proc getVersion {} {return 4.56}
+proc getVersion {} {return 4.60}
 
 # version of SFA that the User Guide is based on
-proc getVersionUG {} {return 4.2}
+proc getVersionUG {} {return 4.60}
 
 # IFCsvr version, depends on string entered when IFCsvr is repackaged for new STEP schemas
-proc getVersionIFCsvr {} {return 20201208}
+proc getVersionIFCsvr {} {return 20211004}
 
 proc getContact {} {return [list "Robert Lipman" "robert.lipman@nist.gov"]}
 
@@ -39,12 +39,13 @@ Use F9 and F10 to change the font size here.  See Help > Function Keys"
   if {$sfaVersion > 0} {
 
 # update the version number when IFCsvr is repackaged to include updated STEP schemas
-    if {$sfaVersion < 4.32} {outputMsg "- The IFCsvr toolkit might need to be reinstalled.  Please follow the directions carefully." red}
+    if {$sfaVersion < 4.60} {outputMsg "- The IFCsvr toolkit might need to be reinstalled.  Please follow the directions carefully." red}
 
     if {$sfaVersion < [getVersionUG]} {
       outputMsg "- A new User Guide is available based on version [getVersionUG] of this software."
       showFileURL UserGuide
     }
+    if {$sfaVersion < 4.60} {outputMsg "- Redesigned menus on Spreadsheet tab"}
     if {$sfaVersion < 4.50} {outputMsg "- Redesigned menus on Options tab"}
     if {$sfaVersion < 4.37} {outputMsg "- Updated Sample STEP Files in the Examples menu"}
     if {$sfaVersion < 4.12} {outputMsg "- Viewer for part geometry is faster and supports color, transparency, edges, sketch geometry, normals, and nested assemblies.  See Help > Viewer"}
@@ -66,11 +67,10 @@ proc showFileURL {type} {
   switch -- $type {
     UserGuide {
 # update for new versions, local and online
-      set localFile "SFA-User-Guide-v6.pdf"
-      set URL https://doi.org/10.6028/NIST.AMS.200-10
+      set localFile "SFA-User-Guide-v7.pdf"
+      set URL https://doi.org/10.6028/NIST.AMS.200-12
       if {$sfaVersion >= [getVersionUG]} {
-        outputMsg "\nThe User Guide is based on version [getVersionUG] of this software.  New features are not in the User Guide." blue
-        outputMsg "Section 3.4 - The Options tab menus have been redesigned.\nSection 4.1 - The Part Geometry option only runs on 64-bit computers.\nSection 5.5 - See Help > Text Strings for more information about Unicode Characters."
+        outputMsg "\nThe User Guide is based on version [getVersionUG] of this software." blue
         .tnb select .tnb.status
       }
     }
@@ -605,13 +605,12 @@ proc guiOptionsTab {} {
   foreach item {{" Validation Properties" opt(valProp)} \
                 {" AP242 PMI Representation (Semantic PMI)" opt(PMISEM)} \
                 {" Round dimensions and geometric tolerances" opt(PMISEMRND)} \
-                {" Only Dimensions" opt(PMISEMDIM)} \
                 {" PMI Presentation (Graphical PMI)" opt(PMIGRF)} \
                 {" Presentation Coverage" opt(PMIGRFCOV)} \
                 {" Inverse Relationships and Backwards References" opt(INVERSE)}} {
     set idx [string range [lindex $item 1] 4 end-1]
     set buttons($idx) [ttk::checkbutton $foptd1.$cb -text [lindex $item 0] -variable [lindex $item 1] -command {checkValues}]
-    if {$idx == "PMISEMDIM" || $idx == "PMIGRFCOV" || $idx == "PMISEMRND"} {
+    if {$idx == "PMIGRFCOV" || $idx == "PMISEMRND"} {
       pack $buttons($idx) -side top -anchor w -padx {26 10} -pady 0 -ipady 0
     } else {
       pack $buttons($idx) -side top -anchor w -padx {5 10} -pady 0 -ipady 0
@@ -626,10 +625,9 @@ proc guiOptionsTab {} {
     tooltip::tooltip $buttons(PMISEM)  "Semantic PMI is the information necessary to represent geometric\nand dimensional tolerances without any graphical PMI.  It is shown\non dimension, tolerance, datum target, and datum entities.\nSemantic PMI is found mainly in STEP AP242 files.\n\nSee Help > Analyze > PMI Representation\nSee Help > User Guide (section 6.1)\nSee Help > Analyze > Syntax Errors\nSee Examples > Spreadsheet - PMI Representation\nSee Examples > Sample STEP Files\nSee Websites > AP242"
     tooltip::tooltip $buttons(PMIGRF)  "Graphical PMI is the geometric elements necessary to draw annotations.\nThe information is shown on 'annotation occurrence' entities.\n\nSee Help > Analyze > PMI Presentation\nSee Help > User Guide (section 6.2)\nSee Help > Analyze > Syntax Errors\nSee Examples > PMI Presentation, Validation Properties\nSee Examples > Part with PMI\nSee Examples > AP242 Tessellated Part with PMI\nSee Examples > Sample STEP Files"
     tooltip::tooltip $buttons(PMIGRFCOV) "The PMI Presentation Coverage worksheet counts the number of recommended names used from the\nRecommended Practice for Representation and Presentation of PMI (AP242), Section 8.4.  The names\ndo not have any semantic PMI meaning.\n\nSee Help > Analyze > PMI Coverage Analysis"
-    tooltip::tooltip $buttons(PMISEMRND) "The number of decimal places for dimensions and geometric tolerances can be specified with\nvalue_format_type_qualifier in the STEP file.  By definition the qualifier always truncates the value.\nThis option rounds the value instead.\n\nFor example with the value 0.5625, the qualifier 'NR2 1.3' will truncate it to 0.562  However, rounding\nwill show 0.563\n\nRounding values might result in a better match to graphical PMI shown by the Viewer or to expected\nPMI in the NIST models (FTC 7, 8, 11).\n\nSee Websites > Recommended Practice for $recPracNames(pmi242), section 5.4"
-    tooltip::tooltip $buttons(PMISEMDIM) "Analyze only dimensional tolerances and no\ngeometric tolerances, datums, or datum targets."
+    tooltip::tooltip $buttons(PMISEMRND) "The number of decimal places for dimensions and geometric tolerances can be specified with\nvalue_format_type_qualifier in the STEP file.  By definition the qualifier always truncates the value.\nThis option rounds the value instead.\n\nFor example with the value 0.5625, the qualifier 'NR2 1.3' will truncate it to 0.562  However, rounding\nwill show 0.563\n\nRounding values might result in a better match to graphical PMI shown by the Viewer or to expected\nPMI in the NIST models (FTC 7, 8, 11).\n\nSee User Guide (section 6.1.3.1)\nSee Websites > Recommended Practice for $recPracNames(pmi242), section 5.4"
 
-    set ttmsg "Inverse Relationships and Backwards References (Used In) are reported for some attributes for the following entity types if they are selected in Process above.\nInverse or Used In values are shown in additional columns highlighted in light blue and purple.\nThis option is useful for debugging some Syntax Errors and finding missing relationships and references.\n\nSee Help > User Guide (section 5.6.1)\n\n"
+    set ttmsg "Inverse Relationships and Backwards References (Used In) are reported for some attributes for the following entity types if they are selected in Process above.\nInverse or Used In values are shown in additional columns highlighted in light blue and purple.\nThis option is useful for debugging some Syntax Errors and finding missing relationships and references.\n\nSee Help > User Guide (section 6.4)\n\n"
     set lent ""
     set ttlen 0
     if {[info exists inverses]} {
@@ -748,7 +746,7 @@ proc guiOptionsTab {} {
   catch {
     tooltip::tooltip $foptv20 "The view for part geometry supports color, transparency, edges, and\nsketch geometry.  The viewer does not support measurements.\n\nNormals improve the default smooth shading at the expense of slower\nprocessing and display.  Using High Quality and Normals results in the\nbest appearance for part geometry.\n\nViews are shown in the default web browser.\n\nSee Help > Viewer\nSee Help > View for other viewing features\nSee Examples > View Box Assembly and others"
     tooltip::tooltip $buttons(viewPMI) "Graphical PMI is supported in AP242, AP203, and AP214 files.\n\nSee Help > View > Graphical PMI\nSee Help > Viewer\nSee Help > User Guide (section 4.2)\nSee Examples > Part with PMI\nSee Examples > AP242 Tessellated Part with PMI\nSee Examples > Sample STEP Files"
-    tooltip::tooltip $buttons(viewPMIVP) "A Saved View is a subset of all graphical PMI which has its own viewpoint\nposition and orientation.  Use Page Down in the viewer to cycle through the\nsaved views to switch to the associated viewpoint and subset of graphical PMI.\n\nUse the option on the Spreadsheets tab to debug the viewpoint view frustrum.\nSaved view viewpoints might not be implemented correctly."
+    tooltip::tooltip $buttons(viewPMIVP) "A Saved View is a subset of all graphical PMI which has its own viewpoint\nposition and orientation.  Use PageDown in the viewer to cycle through the\nsaved views to switch to the associated viewpoint and subset of graphical PMI.\n\nUse the option on the Spreadsheets tab to debug the viewpoint view frustrum.\nSaved view viewpoints might not be implemented correctly.\n\nSee User Guide (section 4.2.1)"
     tooltip::tooltip $buttons(viewTessPart) "Tessellated part geometry is typically written to an AP242 file instead of\nor in addition to b-rep part geometry.  ** Parts in an assembly might\nhave the wrong position and orientation or be missing. **\n\nSee Help > View > AP242 Tessellated Part Geometry\nSee Help > Viewer\nSee Help > User Guide (section 4.3)\nSee Examples > AP242 Tessellated Part with PMI"
     tooltip::tooltip $buttons(tessPartMesh) "Generate a wireframe mesh based on the tessellated faces and surfaces."
     tooltip::tooltip $buttons(feaLoadScale) "The length of load vectors can be scaled by their magnitude.\nLoad vectors are always colored by their magnitude."
@@ -931,37 +929,51 @@ proc guiSpreadsheet {} {
   set fxls [frame $wxls.fxls -bd 2 -relief sunken]
 
 # maximum rows
-  set fxlsb [ttk::labelframe $fxls.b -text " Maximum Rows for any worksheet"]
+  set fxlsa [ttk::labelframe $fxls.a -text " Maximum Rows "]
   set rlimit {{" 100" 103} {" 500" 503} {" 1000" 1003} {" 5000" 5003} {" 10000" 10003} {" 50000" 50003} {" 100000" 100003} {" Maximum" 1048576}}
   foreach item $rlimit {
-    pack [ttk::radiobutton $fxlsb.$cb -variable opt(xlMaxRows) -text [lindex $item 0] -value [lindex $item 1]] -side left -anchor n -padx 5 -pady 0 -ipady 0
+    pack [ttk::radiobutton $fxlsa.$cb -variable opt(xlMaxRows) -text [lindex $item 0] -value [lindex $item 1]] -side left -anchor n -padx 5 -pady 0 -ipady 0
+    incr cb
+  }
+  pack $fxlsa -side top -anchor w -pady {5 2} -padx 10 -fill both
+  set msg "This option limits the number of rows (entities) written to any one worksheet or CSV file.\nIf the maximum number of rows is exceeded, the number of entities processed will be\nreported as, for example, 'property_definition (100 of 147)'.\n\nFor large STEP files, setting a low maximum can speed up processing at the expense of\nnot processing all of the entities.  This is useful when processing Geometry entities.\n\nSyntax Errors might be missed if some entities are not processed due to a smaller value\nof maximum rows.  Maximum rows does not affect generating Views.\n\nSee Help > User Guide (section 5.5.1)"
+  catch {tooltip::tooltip $fxlsa $msg}
+
+# formating options
+  set fxlsb [ttk::labelframe $fxls.b -text " Formatting "]
+  foreach item {{" Process Text Strings with symbols and non-English characters" opt(xlUnicode)} \
+                {" Generate Tables for sorting and filtering" opt(xlSort)} \
+                {" Do not round real numbers in spreadsheet cells" opt(xlNoRound)}} {
+    set idx [string range [lindex $item 1] 4 end-1]
+    set buttons($idx) [ttk::checkbutton $fxlsb.$cb -text [lindex $item 0] -variable [lindex $item 1] -command {checkValues}]
+    pack $buttons($idx) -side top -anchor w -padx 5 -pady 0 -ipady 0
     incr cb
   }
   pack $fxlsb -side top -anchor w -pady {5 2} -padx 10 -fill both
-  set msg "This option limits the number of rows (entities) written to any one worksheet or CSV file.\nIf the maximum number of rows is exceeded, the number of entities processed will be\nreported as, for example, 'property_definition (100 of 147)'.\n\nFor large STEP files, setting a low maximum can speed up processing at the expense of\nnot processing all of the entities.  This is useful when processing Geometry entities.\n\nSyntax Errors might be missed if some entities are not processed due to a smaller value\nof maximum rows.  Maximum rows does not affect generating Views.\n\nSee Help > User Guide (section 5.6.4)"
-  catch {tooltip::tooltip $fxlsb $msg}
 
-# tables for sorting
-  set fxlsz [ttk::labelframe $fxls.z -text " Tables "]
-  set item {" Generate Tables for Sorting and Filtering" opt(xlSort)}
-  set idx [string range [lindex $item 1] 4 end-1]
-  set buttons($idx) [ttk::checkbutton $fxlsz.$cb -text [lindex $item 0] -variable [lindex $item 1]]
-  pack $buttons($idx) -side top -anchor w -padx 5 -pady 0 -ipady 0
-  incr cb
-  pack $fxlsz -side top -anchor w -pady {5 2} -padx 10 -fill both
-  set msg "Worksheets can be sorted by column values.\nThe worksheet with Properties is always sorted.\n\nSee Help > User Guide (section 5.6.2)"
-  catch {tooltip::tooltip $fxlsz $msg}
+# other options
+  set fxlsc [ttk::labelframe $fxls.c -text " Other "]
+  foreach item {{" Save X3D file generated by the Viewer" opt(x3dSave)} \
+                {" Show frustrum for Saved View Viewpoints" opt(DEBUGVP)} \
+                {" Show all PMI Elements on PMI Representation Coverage worksheets" opt(SHOWALLPMI)} \
+                {" Process only Dimensions for the Semantic PMI Analysis report" opt(PMISEMDIM)} \
+                {" Do not generate links to STEP files and spreadsheets on File Summary worksheet for Multiple files" opt(xlHideLinks)}} {
+    set idx [string range [lindex $item 1] 4 end-1]
+    set buttons($idx) [ttk::checkbutton $fxlsc.$cb -text [lindex $item 0] -variable [lindex $item 1] -command {checkValues}]
+    pack $buttons($idx) -side top -anchor w -padx 5 -pady 0 -ipady 0
+    incr cb
+  }
+  pack $fxlsc -side top -anchor w -pady {5 2} -padx 10 -fill both
 
-# number format
-  set fxlsa [ttk::labelframe $fxls.a -text " Number Format "]
-  set item {" Do not round real numbers in spreadsheet cells" opt(xlNoRound)}
-  set idx [string range [lindex $item 1] 4 end-1]
-  set buttons($idx) [ttk::checkbutton $fxlsa.$cb -text [lindex $item 0] -variable [lindex $item 1]]
-  pack $buttons($idx) -side top -anchor w -padx 5 -pady 0 -ipady 0
-  incr cb
-  pack $fxlsa -side top -anchor w -pady {5 2} -padx 10 -fill both
   catch {
-    tooltip::tooltip $buttons(xlNoRound) "Excel rounds real numbers if there are more than 11 characters in the number string.\nFor example, the number 0.1249999999997 in a STEP file is shown as 0.125 in a\nspreadsheet cell.  Clicking in a cell with a rounded number shows all of the digits\nin the formula bar.\n\nSelecting this option will show most single real numbers exactly as they appear in\nthe STEP file.  Numbers not rounded are left-justified in a cell.  Lists of real numbers,\nsuch as cartesian points, are always shown exactly as they appear in the STEP file.\n\nSee Help > User Guide (section 5.6.3)"
+    tooltip::tooltip $buttons(xlUnicode)   "See Help > Text Strings and Numbers\nSee User Guide (section 5.5.2)\n\nOnly use this option if there are non-English characters\nencoded with the \\X2\\ control directive in the STEP file."
+    tooltip::tooltip $buttons(xlSort)      "Worksheets can be sorted by column values.\nThe worksheet with Properties is always sorted.\n\nSee Help > User Guide (section 5.5.3)"
+    tooltip::tooltip $buttons(xlNoRound)   "Excel rounds real numbers if there are more than 11 characters in the number string.\nFor example, the number 0.1249999999997 in a STEP file is shown as 0.125 in a\nspreadsheet cell.  Clicking in a cell with a rounded number shows all of the digits\nin the formula bar.\n\nSelecting this option will show most single real numbers exactly as they appear in\nthe STEP file.  Numbers not rounded are left-justified in a cell.  Lists of real numbers,\nsuch as cartesian points, are always shown exactly as they appear in the STEP file.\n\nSee Help > User Guide (section 5.5.4)"
+    tooltip::tooltip $buttons(x3dSave)     "The X3D file can be shown in an X3D viewer or imported to other software.\n\nSee Help > Viewer\nSee Websites > Product Definitions in Augmented Reality"
+    tooltip::tooltip $buttons(DEBUGVP)     "Use to debug Saved View Viewpoint view frustrum geometry.\nSee User Guide (section 4.2.1)"
+    tooltip::tooltip $buttons(SHOWALLPMI)  "The complete list of [expr {$pmiElementsMaxRows-3}] PMI Elements, including those that are not found in\nthe STEP file, will be shown on the PMI Representation Coverage worksheet.\n\nSee Help > Analyze > PMI Coverage Analysis\nSee Help > User Guide (section 6.1.7)"
+    tooltip::tooltip $buttons(PMISEMDIM)   "For the analysis report for AP242 PMI Representation (Semantic PMI),\nanalyze ONLY dimensional tolerances and NO geometric tolerances,\ndatums, or datum targets."
+    tooltip::tooltip $buttons(xlHideLinks) "This option is useful when sharing a Spreadsheet with another user."
   }
 
 # output directory (opt(writeDirType) = 1 no longer used)
@@ -1001,30 +1013,9 @@ proc guiSpreadsheet {} {
   pack $fxlsd -side top -anchor w -pady {5 2} -padx 10 -fill both
   catch {tooltip::tooltip $fxlsd "If possible, existing output files are always overwritten by new files.\nIf spreadsheets cannot be overwritten, a number is appended to the\nfile name: myfile-sfa-1.xlsx"}
 
-# some other options
-  set fxlsc [ttk::labelframe $fxls.c -text " Other "]
-  foreach item {{" Process text strings with symbols and non-English characters" opt(xlUnicode)} \
-                {" Show all PMI Elements on PMI Representation Coverage worksheets" opt(SHOWALLPMI)} \
-                {" Do not generate links to STEP files and spreadsheets on File Summary worksheet for Multiple files" opt(xlHideLinks)} \
-                {" Save X3D file generated by the Viewer" opt(x3dSave)} \
-                {" Show frustrum for Saved View Viewpoints" opt(DEBUGVP)}} {
-    set idx [string range [lindex $item 1] 4 end-1]
-    set buttons($idx) [ttk::checkbutton $fxlsc.$cb -text [lindex $item 0] -variable [lindex $item 1] -command {checkValues}]
-    pack $buttons($idx) -side top -anchor w -padx 5 -pady 0 -ipady 0
-    incr cb
-  }
-  pack $fxlsc -side top -anchor w -pady {5 2} -padx 10 -fill both
-  catch {
-    tooltip::tooltip $buttons(xlUnicode)   "See Help > Text Strings\n\nOnly use this option if there are non-English characters\nencoded with the \\X2\\ control directive in the STEP file."
-    tooltip::tooltip $buttons(SHOWALLPMI)  "The complete list of [expr {$pmiElementsMaxRows-3}] PMI Elements, including those that are not found in\nthe STEP file, will be shown on the PMI Representation Coverage worksheet.\n\nSee Help > Analyze > PMI Coverage Analysis\nSee Help > User Guide (section 6.1.7)"
-    tooltip::tooltip $buttons(x3dSave)     "The X3D file can be shown in an X3D viewer or imported to other software.\nSee Help > Viewer\nSee Websites > Product Definitions in Augmented Reality"
-    tooltip::tooltip $buttons(xlHideLinks) "This option is useful when sharing a Spreadsheet with another user."
-    tooltip::tooltip $buttons(DEBUGVP)     "Use to debug Saved View Viewpoint view frustrum geometry."
-  }
-
 # developer only options
   if {$developer} {
-    set fxlsx [ttk::labelframe $fxls.x -text " Debug "]
+    set fxlsx [ttk::labelframe $fxls.x -text " Developer "]
     foreach item {{" View" opt(DEBUGX3D)} \
                   {" Analysis" opt(DEBUG1)} \
                   {" Inverses" opt(DEBUGINV)} \
@@ -1109,10 +1100,9 @@ View: Part geometry, graphical PMI annotations, tessellated part geometry in AP2
 finite element models can be shown in a web browser.
 
 Spreadsheet tab:
-- Table: Generate tables for each spreadsheet to facilitate sorting and filtering.
-- Number Format: Option to not round real numbers.
 - Maximum Rows: The maximum number of rows for any worksheet can be set lower than the normal
   limits for Excel.
+- Formatting and Other options
 
 All text in the Status tab can be written to a Log File when a STEP file is processed (Options tab).
 The log file is written to myfile-sfa.log.  In the log file, syntax errors are highlighted by ***
@@ -1126,7 +1116,8 @@ outputMsg "\nViewer ------------------------------------------------------------
 outputMsg "A View is written to an HTML file 'myfile-sfa.html' and is shown in the default web browser.
 x3dom (x3dom.org) is used to show and navigate 3D models in a web browser.  x3dom requires an
 Internet connection.  The HTML file is self-contained and can be shared with other users, including
-those on non-Windows systems.  The viewer does not support measuring the model.
+those on non-Windows systems.  The viewer does not support measuring the model.  Internet Explorer
+is not supported.
 
 Views can be generated without generating a spreadsheet or CSV files.  See Generate on the Options
 tab.  The Part Only option is useful when no other View features of the software are needed and for
@@ -1165,7 +1156,7 @@ assemblies.  Part geometry viewer features:
   contained in a higher-level assembly that is in the list.  Some names in the list might have an
   underscore and number appended to their name.  Processing sketch geometry might also affect the
   list of names.  Some assemblies have no unique names assigned to parts, therefore there is no
-  list of part names.
+  list of part names.  See Help > Text Strings and Numbers.
 
 - The part bounding box min and max XYZ coordinates are based on the faceted geometry being shown
   and not the exact geometry in the STEP file.  There might be a variation in the coordinates
@@ -1174,12 +1165,12 @@ assemblies.  Part geometry viewer features:
   viewer to confirm that the min and max coordinates are correct.  If the part is too large to
   rotate smoothly in the viewer, turn off the part and rotate the bounding box.
 
-- See Help > Text Strings for how non-English characters are handled in the Viewer.
+- See Help > Text Strings and Numbers for how non-English characters are handled in the Viewer.
 
 - The origin of the model at '0 0 0' is shown with a small XYZ coordinate axis that can be switched
   off.  The background color can be changed between white, blue, gray, and black.
 
-In the web browser, use Page Down to switch between front, side, top, and orthographic viewpoints.
+In the web browser, use PageDown to switch between front, side, top, and orthographic viewpoints.
 Use key 'a' to view all and 'r' to restore to the original view.  The function of other keys is
 described in the link 'Use the mouse'.  Navigation uses the Examine Mode.
 
@@ -1362,7 +1353,9 @@ surfaces are blue.  Holes are viewed regardless of whether they were explicitly 
 geometry.
 
 In the Process section on the Options tab, Features is automatically selected when holes are found
-in the STEP file."
+in the STEP file.
+
+See User Guide (section 4.2.3)"
     .tnb select .tnb.status
   }
 
@@ -1669,7 +1662,7 @@ outputMsg "The Syntax Checker checks for basic syntax errors and warnings in the
 or extra attributes, incompatible and unresolved entity references, select value types, illegal and
 unexpected characters, and other problems with entity attributes.  Some errors might prevent this
 software and others from processing a STEP file.  Characters that are identified as illegal or
-unexpected might not be shown in a spreadsheet or in the viewer.  See Help > Text Strings
+unexpected might not be shown in a spreadsheet or in the viewer.  See Help > Text Strings and Numbers
 
 If errors and warnings are reported, the number in parentheses is the line number in the STEP file
 where the error or warning was detected.  There should not be any of these types of syntax errors
@@ -1687,6 +1680,9 @@ Status tab might be grayed out when the Syntax Checker is running.
 Syntax checker results appear in the Status tab.  If the Log File option is selected, the results
 are also written to a log file (myfile-sfa-err.log).  The syntax checker errors and warnings are
 not reported in the spreadsheet.
+
+The Syntax Checker can also be run from the command-line version with the command-line argument
+'syntax'.  For example: sfa-cl.exe myfile.stp syntax
 
 The Syntax Checker works with any supported STEP schema.  See Help > Supported STEP APs
 
@@ -1795,11 +1791,9 @@ multiple editions of AP242 all with the same name.  The edition is identified wh
     .tnb select .tnb.status
   }
 
-  $Help add command -label "Text Strings" -command {
-outputMsg "\nText Strings --------------------------------------------------------------------------------------" blue
-outputMsg "The following supplements the User Guide section 5.5 on Unicode Characters.
-
-Text strings in STEP files might use non-English characters or symbols.  Some examples are accented
+  $Help add command -label "Text Strings and Numbers" -command {
+outputMsg "\nText Strings and Numbers --------------------------------------------------------------------------" blue
+outputMsg "Text strings in STEP files might use non-English characters or symbols.  Some examples are accented
 characters in European languages (for example é), and Asian languages that use different characters
 sets such as Russian or Chinese.  Text strings with non-English characters or symbols are usually
 found on descriptive measure or product related entities with name, description, or id attributes.
@@ -1808,27 +1802,28 @@ According to ISO 10303 Part 21 section 6.4.3, Unicode can be used for non-Englis
 symbols with the control directives \\X\\ and \\X2\\.  For example, \\X\\E9 or \\X2\\00E9\\X0\\ is used for
 the accented character é.  Definitions of Unicode characters, such as E9, can be found at
 www.unicode.org/charts  Some CAD software does not support these control directives when exporting
-or importing a STEP file.
+or importing a STEP file.  See Websites > Schemas > ISO 10303 Part 21 Standard (sections 6.4.3)
 
-For a spreadsheet, the \\X\\ and \\S\\ control directives are supported by default.  Use the option
-on the Spreadsheets tab to support non-English characters using the \\X2\\ control directive.  In
-some cases the option will be automatically selected based on the file schema or size.  There is a
+Spreadsheet - The \\X\\ and \\S\\ control directives are supported by default.  Use the option on
+the Spreadsheets tab to support non-English characters using the \\X2\\ control directive.  In some
+cases the option will be automatically selected based on the file schema or size.  There is a
 warning message if \\X2\\ is detected in the STEP file and the option is not selected.  In this
-case the \\X2\\ characters are ignored and will be missing in the spreadsheet.
+case the \\X2\\ characters are ignored and will be missing in the spreadsheet.  Non-English
+characters that do not use the control directives might be missing in the spreadsheet.
 
-For the viewer, all control directives are supported for part and assembly names.  Non-English
-characters are supported depending STEP file encoding, e.g., UTF-8 or ANSI.
+Viewer - All control directives are supported for part and assembly names.  Non-English characters
+that do not use the control directives might be shown with the wrong characters.
 
-Some non-English characters might cause the software to crash or prevent a view from being
-generated.  See Help > Crash Recovery
+Support for non-English characters that do not use the control directives can be improved by
+converting the encoding of the STEP file to UTF-8 with the Notepad++ text editor or other software.
+Regardless, some non-English characters might cause the software to crash or prevent a view from
+being generated.  See Help > Crash Recovery
 
 The Syntax Checker identifies non-English characters as 'illegal characters'.  You should test your
 CAD software to see if it supports non-English characters or control directives.
 
-See Websites > STEP Format and Schemas > ISO 10303 Part 21 Standard (sections 6.4.3.3 and 6.4.3.4)
-
 ---------------------------------------------------------------------------------------------------
-NOTE - Numbers in a STEP file use a period '.' as the decimal separator.  Some non-English language
+Numbers in a STEP file use a period '.' as the decimal separator.  Some non-English language
 versions of Excel use a comma ',' as a decimal separator.  This might cause some real numbers to be
 formatted as a date in a spreadsheet.  For example, the number 1.5 might appear as 1-Mai.
 
@@ -1840,9 +1835,11 @@ To change the formatting in Excel, go to the Excel File menu > Options > Advance
 'Use system separators' and change 'Decimal separator' to a period . and 'Thousands separator' to a
 comma ,
 
-WARNING - This change applies to ALL Excel spreadsheets on your computer.  Change the separators
-back to their original values when finished.  You can always check the STEP file to see the actual
-value of the number."
+This change applies to ALL Excel spreadsheets on your computer.  Change the separators back to
+their original values when finished.  You can always check the STEP file to see the actual value of
+the number.
+
+See Help > User Guide (section 5.5.2)"
     .tnb select .tnb.status
   }
 
@@ -1855,13 +1852,14 @@ See Help > Viewer for viewing large STEP files.
 
 To reduce the amount of time to process large STEP files and to reduce the size of the resulting
 spreadsheet, several options are available:
-- In the Process section, deselect entity types Geometry and Coordinates
+- In the Process section, deselect entity types that might not need to be processed like Geometry
 - In the Process section, select only a User-Defined List of required entities
 - In the Spreadsheet tab, select a smaller value for the Maximum Rows
 - In the Options tab, deselect Analyze options and Inverse Relationships
 
 The STEP File Analyzer and Viewer might also crash when processing very large STEP files.  Popup
-dialogs might appear that say 'Unable to alloc xxx bytes'.  See the Help > Crash Recovery."
+dialogs might appear that say 'Unable to alloc xxx bytes'.  Try some of the options above and see
+Help > Crash Recovery."
     .tnb select .tnb.status
   }
 
@@ -1905,7 +1903,28 @@ under Process.  However, this will prevent processing of other entities that do 
   }
 
   $Help add separator
-  $Help add command -label "Disclaimers"     -command {showDisclaimer}
+  $Help add command -label "Disclaimers" -command {
+outputMsg "\nDisclaimer ----------------------------------------------------------------------------------------" blue
+outputMsg "Please see Help > NIST Disclaimer for the Software Disclaimer.
+
+The Examples menu of this software provides links to several sources of STEP files.  This software
+and other software might indicate that there are errors in some of the STEP files.  NIST assumes
+no responsibility whatsoever for the use of the STEP files by other parties, and makes no
+guarantees, expressed or implied, about their quality, reliability, or any other characteristic.
+
+Any mention of commercial products or references to web pages in this software is for information
+purposes only; it does not imply recommendation or endorsement by NIST.  For any of the web links
+in this software, NIST does not necessarily endorse the views expressed, or concur with the facts
+presented on those web sites.
+
+This software uses IFCsvr, Microsoft Excel, and software based on Open CASCADE that are covered by
+their own Software License Agreements.  See Help > About.
+
+If you are using this software in your own application, please explicitly acknowledge NIST as the
+source of the software."
+  .tnb select .tnb.status
+  }
+
   $Help add command -label "NIST Disclaimer" -command {openURL https://www.nist.gov/disclaimer}
   $Help add command -label "About" -command {
     set sysvar "System:   $tcl_platform(os) $tcl_platform(osVersion)"
@@ -2014,24 +2033,24 @@ proc guiWebsitesMenu {} {
   $Websites2 add command -label "STEP Format"                 -command {openURL https://www.loc.gov/preservation/digital/formats/fdd/fdd000448.shtml}
   $Websites2 add command -label "ISO 10303 Part 21"           -command {openURL https://en.wikipedia.org/wiki/ISO_10303-21}
   $Websites2 add command -label "ISO 10303 Part 21 Edition 3" -command {openURL https://www.steptools.com/stds/step/}
-  $Websites2 add command -label "ISO 10303 Part 21 Standard"  -command {openURL http://www.steptools.com/stds/step/IS_final_p21e3.html}
+  $Websites2 add command -label "ISO 10303 Part 21 Standard"  -command {openURL https://www.steptools.com/stds/step/IS_final_p21e3.html}
   $Websites2 add separator
   $Websites2 add command -label "EXPRESS Schemas"                -command {openURL https://www.cax-if.org/cax/cax_express.php}
-  $Websites2 add command -label "Archived EXPRESS Schemas"       -command {openURL http://web.archive.org/web/20160322005246/www.steptools.com/support/stdev_docs/express/}
+  $Websites2 add command -label "Archived EXPRESS Schemas"       -command {openURL https://web.archive.org/web/20160322005246/www.steptools.com/support/stdev_docs/express/}
   $Websites2 add command -label "STEP AIM Model"                 -command {openURL https://www.steptools.com/stds/stp_expg/aim.html}
   $Websites2 add command -label "ISO 10303 Part 11 EXPRESS"      -command {openURL https://www.loc.gov/preservation/digital/formats/fdd/fdd000449.shtml}
   $Websites2 add command -label "EXPRESS data modeling language" -command {openURL https://en.wikipedia.org/wiki/EXPRESS_(data_modeling_language)}
   $Websites2 add separator
-  $Websites2 add command -label "AP238 Machining"  -command {openURL http://www.ap238.org}
+  $Websites2 add command -label "AP238 Machining"  -command {openURL https://www.ap238.org}
   $Websites2 add command -label "AP239 PLCS"       -command {openURL http://www.ap239.org}
   $Websites2 add command -label "PDM-IF"           -command {openURL http://www.pdm-if.org/}
   $Websites2 add command -label "AP209 FEA"        -command {openURL http://www.ap209.org}
   $Websites2 add command -label "CAE-IF"           -command {openURL https://www.cax-if.org/cae/cae_introduction.php}
   $Websites2 add command -label "AP243 MoSSEC"     -command {openURL http://www.mossec.org/}
-  $Websites2 add command -label "AP235 Properties" -command {openURL http://www.ap235.org}
+  $Websites2 add command -label "AP235 Properties" -command {openURL https://www.ap235.org}
   $Websites2 add separator
   $Websites2 add command -label "AP203 Recommended Practice (1998)" -command {openURL https://www.oasis-open.org/committees/download.php/11728/recprac8.pdf}
-  $Websites2 add command -label "STEP Application Handbook (2006)"  -command {openURL http://pdesinc.org/wp-content/uploads/2020/04/STEP-application-handbook-63006-BF.pdf}
+  $Websites2 add command -label "STEP Application Handbook (2006)"  -command {openURL https://pdesinc.org/wp-content/uploads/2020/04/STEP-application-handbook-63006-BF.pdf}
 
   $Websites add cascade -label "STEP Software" -menu $Websites.3
   set Websites3 [menu $Websites.3 -tearoff 1]
@@ -2042,50 +2061,14 @@ proc guiWebsitesMenu {} {
 
   $Websites add cascade -label "STEP Related Organizations" -menu $Websites.4
   set Websites4 [menu $Websites.4 -tearoff 1]
-  $Websites4 add command -label "PDES, Inc. (US)"        -command {openURL https://pdesinc.org/}
+  $Websites4 add command -label "PDES, Inc. (U.S.)"      -command {openURL https://pdesinc.org/}
   $Websites4 add command -label "prostep ivip (Germany)" -command {openURL https://www.prostep.org/en/projects/}
-  $Websites4 add command -label "AFNeT (France)"         -command {openURL http://afnet.fr/dotank/sps/plm-committee/}
+  $Websites4 add command -label "AFNeT (France)"         -command {openURL https://legacy.afnet.fr/dotank/sps/plm-committee/}
   $Websites4 add command -label "KStep (Korea)"          -command {openURL https://www.kstep.or.kr/}
   $Websites4 add separator
   $Websites4 add command -label "LOTAR (LOng Term Archiving and Retrieval)" -command {openURL https://lotar-international.org/}
   $Websites4 add command -label "ASD Strategic Standardisation Group"       -command {openURL http://www.asd-ssg.org/}
-  $Websites4 add command -label "ISO TC184/SC4"                             -command {openURL https://committee.iso.org/home/tc184sc4}
-}
-
-#-------------------------------------------------------------------------------
-# text disclaimer
-proc showDisclaimer {} {
-
-  outputMsg "\nDisclaimer ----------------------------------------------------------------------------------------" blue
-  outputMsg "This software was developed at the National Institute of Standards and Technology by employees of
-the Federal Government in the course of their official duties.  Pursuant to Title 17 Section 105 of
-the United States Code this software is not subject to copyright protection and is in the public
-domain.  This software is an experimental system.  NIST assumes no responsibility whatsoever for
-its use by other parties, and makes no guarantees, expressed or implied, about its quality,
-reliability, or any other characteristic.
-
-This software is provided by NIST as a public service.  You may use, copy and distribute copies of
-the software in any medium, provided that you keep intact this entire notice.  You may improve,
-modify and create derivative works of the software or any portion of the software, and you may copy
-and distribute such modifications or works.  Modified works should carry a notice stating that you
-changed the software and should note the date and nature of any such change.  Please explicitly
-acknowledge NIST as the source of the software.
-
-The Examples menu of this software provides links to several sources of STEP files.  This software
-and other software might indicate that there are errors in some of the STEP files.  NIST assumes
-no responsibility whatsoever for the use of the STEP files by other parties, and makes no
-guarantees, expressed or implied, about their quality, reliability, or any other characteristic.
-
-Any mention of commercial products or references to web pages in this software is for information
-purposes only; it does not imply recommendation or endorsement by NIST.  For any of the web links
-in this software, NIST does not necessarily endorse the views expressed, or concur with the facts
-presented on those web sites.
-
-This software uses Microsoft Excel, IFCsvr, and software based on Open CASCADE that are covered by
-their own Software License Agreements.
-
-See Help > NIST Disclaimer and Help > About"
-  .tnb select .tnb.status
+  $Websites4 add command -label "ISO/TC 184/SC 4"                           -command {openURL https://committee.iso.org/home/tc184sc4}
 }
 
 #-------------------------------------------------------------------------------

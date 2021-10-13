@@ -111,7 +111,6 @@ set auto_index(guiToolTip) [list source [file join $dir sfa-gui.tcl]]
 set auto_index(guiUserDefinedEntities) [list source [file join $dir sfa-gui.tcl]]
 set auto_index(guiWebsitesMenu) [list source [file join $dir sfa-gui.tcl]]
 set auto_index(showCrashRecovery) [list source [file join $dir sfa-gui.tcl]]
-set auto_index(showDisclaimer) [list source [file join $dir sfa-gui.tcl]]
 set auto_index(showFileURL) [list source [file join $dir sfa-gui.tcl]]
 set auto_index(whatsNew) [list source [file join $dir sfa-gui.tcl]]
 

@@ -340,22 +340,42 @@ proc setEntAttrList {abc} {
 #-------------------------------------------------------------------------------
 # run syntax checker with the command-line version (sfa-cl.exe) and output filtered result
 proc syntaxChecker {fileName} {
-  global sfacl opt writeDir
+  global buttons opt wdir writeDir
 
-  outputMsg "\n[string repeat "-" 29]\nRunning Syntax Checker"
+  if {[info exists buttons]} {
+    outputMsg "\n[string repeat "-" 29]\nRunning Syntax Checker"
+    set exe "STEP-File-Analyzer.exe"
+  } else {
+    outputMsg "\nRunning Syntax Checker"
+    set exe "sfa-cl.exe"
+  }
 
 # check header
   getSchemaFromFile $fileName
 
+# get path for command-line version to run syntax checker
+  set path [split $wdir "/"]
+  set sfacl {}
+  foreach item $path {
+    if {$item != $exe} {
+      lappend sfacl $item
+    } else {
+      break
+    }
+  }
+  lappend sfacl "sfa-cl.exe"
+  set sfacl [join $sfacl "/"]
+
 # get syntax errors and warnings by running command-line version with stats option
   if {[file exists $sfacl]} {
-    .tnb select .tnb.status
+    if {[info exists buttons]} {.tnb select .tnb.status}
     outputMsg "Syntax Checker results for: [file tail $fileName]"
     if {[catch {
       set sfaout [exec $sfacl [file nativename $fileName] stats nolog]
       set sfaout [split $sfaout "\n"]
       catch {unset sfaerr}
       set lineLast ""
+      set paren 0
       foreach line $sfaout {
 
 # get lines with errors and warnings
@@ -372,6 +392,7 @@ proc syntaxChecker {fileName} {
           if {[string first "warning: Couldn't find schema" $line] != -1} {
             errorMsg "See Help > Supported STEP APs"
           }
+          if {[string first "(" $line] != -1 && [string first ")" $line] != -1} {set paren 1}
         } elseif {[string first "ERROR opening" $line] != -1} {
           append sfaerr "$line "
         }
@@ -380,7 +401,7 @@ proc syntaxChecker {fileName} {
 # done
       if {[info exists sfaerr]} {
         outputMsg [string range $sfaerr 0 end-1] red
-        outputMsg "The number in parentheses is the line number in the STEP file where the error or warning was detected."
+        if {$paren} {outputMsg "The number in parentheses is the line number in the file where the error or warning was detected."}
 
 # output to log file
         if {$opt(logFile)} {
@@ -398,7 +419,7 @@ proc syntaxChecker {fileName} {
       } else {
         outputMsg " No syntax errors or warnings" green
       }
-      outputMsg "See Help > Syntax Checker"
+      if {[info exists buttons]} {outputMsg "See Help > Syntax Checker"}
 
 # error running syntax checker
     } emsg]} {
@@ -408,7 +429,7 @@ proc syntaxChecker {fileName} {
     outputMsg " Syntax Checker cannot be run.  Make sure the command-line version 'sfa-cl.exe' is in the same directory as 'STEP-File-Analyzer.exe" red
   }
 
-  outputMsg "[string repeat "-" 29]"
+  if {[info exists buttons]} {outputMsg "[string repeat "-" 29]"}
 }
 
 # -------------------------------------------------------------------------------
@@ -507,7 +528,7 @@ proc getSchemaFromFile {fname {limit 0}} {
       if {[info exists schema]} {if {$schema == "CUTTING_TOOL_SCHEMA_ARM" || [string first "ISO13" $schema] == 0} {set opt(xlUnicode) 1}}
       if {[file size $fname] <= 10000000} {set opt(xlUnicode) 1}
       set unicodeInFile 1
-      if {!$opt(xlUnicode) && $limit} {errorMsg "Symbols or non-English text found for some entity attributes.  See the Spreadsheets Tab > Other to process those symbols and characters.  Also see Help > Text Strings." red}
+      if {!$opt(xlUnicode) && $limit} {errorMsg "Symbols or non-English text found for some entity attributes.  See the Spreadsheets Tab > Other to process those symbols and characters.  Also see Help > Text Strings and Numbers." red}
     }
 
 # check for OPTIONS from ST-Developer toolkit
@@ -515,7 +536,7 @@ proc getSchemaFromFile {fname {limit 0}} {
       set emsg "HEADER section comment: "
       if {[string first "raw bytes" $line] != -1 || ($developer && [string first "custom schema-name" $line] == -1)} {
         set emsg "HEADER section comment: [string range $line 11 end-3]"
-        if {[string first "raw bytes" $emsg] != -1} {append emsg " (See Help > Text Strings)"}
+        if {[string first "raw bytes" $emsg] != -1} {append emsg " (See Help > Text Strings and Numbers)"}
         errorMsg $emsg red
       }
     }
@@ -606,7 +627,7 @@ proc unicodeStrings {unicodeEnts} {
 
 # check for unicode X2
         if {[string first "\\X2\\" $line] != -1} {
-          errorMsg "Processing non-English characters on some entities (See Help > Text Strings)" blue
+          errorMsg "Processing Unicode characters on some entities (See Help > Text Strings and Numbers)" blue
 
           set id [string trim [string range $line 1 [string first "=" $line]-1]]
           set idx "$ent1,[lindex $unicodeAttributes($ent1) 0],$id"
@@ -670,6 +691,7 @@ proc unicodeStrings {unicodeEnts} {
                   set c2 [string last  "'" $str]
                   if {$c1 != -1 && $c2 != -2} {set str [string range $str $c1+1 $c2-1]}
                   set idx "$ent1,[lindex $unicodeAttributes($ent1) $ia],$id"
+                  if {[string index $str 0] == "="} {set str " $str"}
                   set unicodeString($idx) $str
                 }
               }

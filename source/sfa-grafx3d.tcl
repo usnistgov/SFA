@@ -32,7 +32,7 @@ proc x3dFileStart {} {
   catch {file delete -force -- "$x3dir\-x3dom.html"}
 
 # start x3d file
-  set title [file tail $localName]
+  set title [encoding convertto utf-8 [file tail $localName]]
   if {$stepAP != "" && [string range $stepAP 0 1] == "AP"} {append title " | $stepAP"}
   puts $x3dFile "<!DOCTYPE html>\n<html>\n<head>\n<title>$title</title>\n<base target=\"_blank\">\n<meta http-equiv='Content-Type' content='text/html;charset=utf-8'/>"
 
@@ -68,7 +68,7 @@ proc x3dFileStart {} {
   puts $x3dFile "</head>"
 
 # x3d title
-  set x3dTitle [file tail $localName]
+  set x3dTitle [encoding convertto utf-8 [file tail $localName]]
   if {$stepAP != "" && [string range $stepAP 0 1] == "AP"} {append x3dTitle "&nbsp;&nbsp;&nbsp;$stepAP"}
   if {[info exists timeStamp]} {
     if {$timeStamp != ""} {
@@ -667,7 +667,7 @@ proc x3dFileEnd {} {
     }
     puts $x3dFile "\n<!-- Saved view checkboxes -->"
     if {$sv} {puts $x3dFile "Saved View Graphical PMI"}
-    if {[info exists savedViewVP]} {puts $x3dFile "<br><font size='-1'>(Use Page Down to switch between Saved Views.)</font>"}
+    if {[info exists savedViewVP]} {puts $x3dFile "<br><font size='-1'>(Use PageDown to switch between Saved Views.)</font>"}
 
     foreach svn $savedViewButtons {
       set str ""
@@ -732,7 +732,7 @@ proc x3dFileEnd {} {
   }
 
 # mouse message
-  puts $x3dFile "\n<p>Page Down for Viewpoints.  Key 'r' to restore, 'a' to view all.  <a href=\"https://www.x3dom.org/documentation/interaction/\">Use the mouse</a> in 'Examine Mode' to rotate, pan, zoom."
+  puts $x3dFile "\n<p>PageDown for Viewpoints.  Key 'r' to restore, 'a' to view all.  <a href=\"https://www.x3dom.org/documentation/interaction/\">Use the mouse</a> in 'Examine Mode' to rotate, pan, zoom."
   puts $x3dFile "</td></tr></table>"
 
 # -------------------------------------------------------------------------------
@@ -973,7 +973,7 @@ proc x3dPartCheckbox {type} {
 # -------------------------------------------------------------------------------
 # B-rep part geometry
 proc x3dBrepGeom {} {
-  global brepFile brepFileName buttons defaultColor developer grayBackground localName matTrans mytemp nistVersion nsketch opt viz wdir
+  global brepFile brepFileName buttons cadSystem defaultColor developer grayBackground localName matTrans mytemp nistVersion nsketch opt viz wdir
   global x3dApps x3dBbox x3dMax x3dMin x3dMsg x3dMsgColor x3dParts
 
 # copy stp2x3d files to temp directory, DLLs in sp2x3d-dll.zip, exe in stp2x3d-part.exe
@@ -1039,6 +1039,7 @@ proc x3dBrepGeom {} {
 # run stp2x3d-part.exe
       if {$opt(DEBUGX3D)} {getTiming stp2x3d}
       catch {exec $stp2x3d --input [file nativename $localName] --quality $opt(partQuality) --edge $opt(partEdges) --sketch $opt(partSketch) --normal $opt(partNormals)} errs
+      #catch {exec $stp2x3d --input [file nativename $localName] --gdt 1 --quality $opt(partQuality) --edge $opt(partEdges) --sketch $opt(partSketch) --normal $opt(partNormals)} errs
       if {$opt(DEBUGX3D)} {getTiming done; outputMsg $errs}
 
 # done processing
@@ -1135,6 +1136,7 @@ proc x3dBrepGeom {} {
             set nsketch -1
             set oksketch 0
             set close 0
+            set gdt 0
             catch {unset parts}
             catch {unset matTrans}
             if {![info exists viz(EDG)]} {set viz(EDG) 0}
@@ -1250,7 +1252,7 @@ proc x3dBrepGeom {} {
                   } elseif {[string first "Group" $line] != -1} {
                     set close1 0
                     if {[string first "Group" $line] != [string last "Group" $line]} {set close1 1}
-                    set c1 [string first "'" $line]
+                    set c1 [expr {[string first "DEF" $line]+4}]
                     set c2 [string last  "'" $line]
                     if {$c1 == $c2} {
                       errorMsg " ERROR reading a text string in the X3D file.  The View might be missing parts.\n$line"
@@ -1258,33 +1260,40 @@ proc x3dBrepGeom {} {
                       set c2 [string first "'" [string range $line $c1+1 end]]
                       lappend x3dMsg "Some part geometry might be missing"
                     }
-                    incr npart(PRT)
+
+# get the DEF name, GD&T is reserved in stp2x3d output
                     set id [string range $line $c1+1 $c2-1]
+                    if {$id == "GD&T"} {set gdt 1}
+                    if {!$gdt} {
+                      incr npart(PRT)
 
 # increment Group name _n
-                    if {[info exists parts($id)]} {
-                      if {$opt(DEBUGX3D)} {outputMsg $id green}
-                      for {set i 1} {$i < 99} {incr i} {
-                        set c1 [string last "_" $id]
-                        if {$c1 != -1} {
-                          set nid "[string range $id 0 $c1]$i"
-                        } else {
-                          set nid "$id\_$i"
-                        }
-                        if {![info exists parts($nid)]} {
-                          set id $nid
-                          #if {$opt(DEBUGX3D)} {outputMsg $id red}
-                          break
+                      if {[info exists parts($id)]} {
+                        if {$opt(DEBUGX3D)} {outputMsg $id green}
+                        for {set i 1} {$i < 99} {incr i} {
+                          set c1 [string last "_" $id]
+                          if {$c1 != -1} {
+                            set nid "[string range $id 0 $c1]$i"
+                          } else {
+                            set nid "$id\_$i"
+                          }
+                          if {![info exists parts($nid)]} {
+                            set id $nid
+                            #if {$opt(DEBUGX3D)} {outputMsg $id red}
+                            break
+                          }
                         }
                       }
                     }
 
-                    if {[string first "swSketch" $line] == -1} {
+                    if {[string first "swSketch" $line] == -1 && !$gdt} {
                       set cx [string first "\\X" $id]
                       if {$cx != -1} {set id [x3dUnicode $id]}
                       set parts($id) $npart(PRT)
                       set line "$space\Switch id='swPart$npart(PRT)' whichChoice='0'><Group>\n$line"
                     }
+
+# close group, switch
                     if {$close1} {
                       append line "\n$space\/Group></Switch>"
                     } else {
@@ -1337,7 +1346,7 @@ proc x3dBrepGeom {} {
                 if {$opt(DEBUGX3D)} {outputMsg "$name $parts($name)"}
 
 # S control directive
-                if {[string first "\\S\\" $name] != -1} {errorMsg " The \\S\\ control directive is not supported for accented characters.  See Help > Text Strings" red}
+                if {[string first "\\S\\" $name] != -1} {errorMsg " The \\S\\ control directive is not supported for accented characters.  See Help > Text Strings and Numbers" red}
 
 # check for _n at end of name
                 if {[string index $name end-1] == "_" || [string index $name end-2] == "_" || [string index $name end-3] == "_"} {
@@ -1361,6 +1370,34 @@ proc x3dBrepGeom {} {
                   set x3dParts($name) $parts($name)
                 }
               }
+            }
+
+# check for non-English characters due to STEP file not having utf-8 encoding
+            set okcad 1
+            if {[info exists cadSystem]} {
+              if {[string first "Autodesk" $cadSystem] != -1 || [string first "Siemens" $cadSystem] != -1} {set okcad 0}
+            }
+            if {[llength [array names x3dParts]] > 1 && $okcad} {
+              set err 0
+              foreach idx [array names x3dParts] {
+                if {!$err} {
+                  if {[string first "\;" $idx] != -1} {
+                    set lnames [split $idx "\;"]
+                    foreach name $lnames {
+                      set c1 [string first "&" $name]
+                      if {$c1 != -1} {set name [string range $name $c1 end]}
+                      if {[string length $name] == 7 && [string range $name 0 2] == "&#5"} {
+                        set err 1
+                        break
+                      }
+                    }
+                  } elseif {[regexp -all {[§¥Œ¿œ»º¤‡‰]} $idx] > 0} {
+                    set err 1
+                    break
+                  }
+                }
+              }
+              if {$err} {errorMsg "The list of Assembly/Part names in the Viewer might have some wrong characters.  This is due to the\nencoding of the STEP file.  If possible convert the encoding of the STEP file to UTF-8 with the\nNotepad++ text editor or other software.  See Text Strings and Numbers"}
             }
             if {$opt(DEBUGX3D)} {foreach idx [array names x3dParts] {outputMsg "$idx $x3dParts($idx)" blue}}
 
@@ -1619,15 +1656,17 @@ proc x3dTessGeom {objID objEntity1 ent1} {
   foreach f $flist {
 
 # group annotations
+    catch {unset idshape}
+    set txt [[[$objEntity1 Attributes] Item [expr 1]] Value]
+    regsub -all "'" $txt "\"" idshape
+
     if {[string first "annotation" $ao] != -1} {
       set aoID [$objEntity1 P21ID]
       if {![info exists lastID($f)] || $aoID != $lastID($f)} {
         if {[info exists lastID($f)] && !$tessRepo} {puts $f "</Group>"}
         set tessGeomTxt "TAO $aoID | "
         set e0 [[[$objEntity1 Attributes] Item [expr 3]] Value]
-        set txt [[[$objEntity1 Attributes] Item [expr 1]] Value]
-        regsub -all "'" $txt "\"" txt
-        append tessGeomTxt "[[[$e0 Attributes] Item [expr 1]] Value] | $txt"
+        append tessGeomTxt "[[[$e0 Attributes] Item [expr 1]] Value] | $idshape"
         if {!$tessRepo} {puts $f "<Group id='$tessGeomTxt'>"}
       }
       set lastID($f) $aoID
@@ -1681,20 +1720,22 @@ proc x3dTessGeom {objID objEntity1 ent1} {
         if {$nplace > 1} {set defstr " DEF='$shapeRepName$objID'"}
 
 # shape
+        set idstr ""
+        if {[info exists idshape]} {if {$idshape != ""} {set idstr " id='$idshape'"}}
         if {$emit == ""} {
           set matID ""
           set colorID [lsearch $x3dColors $x3dColor]
           if {$colorID == -1} {
             lappend x3dColors $x3dColor
-            puts $f "<Shape$defstr><Appearance DEF='appTess[llength $x3dColors]'><Material id='matTess[llength $x3dColors]' diffuseColor='$x3dColor' $spec/></Appearance>"
+            puts $f "<Shape$idstr$defstr><Appearance DEF='appTess[llength $x3dColors]'><Material id='matTess[llength $x3dColors]' diffuseColor='$x3dColor' $spec/></Appearance>"
           } else {
-            puts $f "<Shape$defstr><Appearance USE='appTess[incr colorID]'></Appearance>"
+            puts $f "<Shape$idstr$defstr><Appearance USE='appTess[incr colorID]'></Appearance>"
           }
         } else {
           if {$x3dIndexType == "face"} {
-            puts $f "<Shape$defstr><Appearance><Material diffuseColor='$x3dColor' emissiveColor='$x3dColor' shininess='0'/></Appearance>"
+            puts $f "<Shape$idstr$defstr><Appearance><Material diffuseColor='$x3dColor' emissiveColor='$x3dColor' shininess='0'/></Appearance>"
           } else {
-            puts $f "<Shape$defstr><Appearance><Material $emit/></Appearance>"
+            puts $f "<Shape$idstr$defstr><Appearance><Material $emit/></Appearance>"
           }
         }
 
@@ -1749,7 +1790,7 @@ proc x3dTessGeom {objID objEntity1 ent1} {
             foreach c [split $x3dColor] {append ecolor "[expr {$c*.5}] "}
             set defstr ""
             if {$nplace > 1} {set defstr " DEF='mesh$objID'"}
-            puts $f "<Shape$defstr><Appearance><Material emissiveColor='$ecolor'/></Appearance>"
+            puts $f "<Shape$idstr$defstr><Appearance><Material emissiveColor='$ecolor'/></Appearance>"
             puts $f " <IndexedLineSet coordIndex='[string trim $x3dMesh]'><Coordinate USE='coord$tessIndexCoord($objID)'/></IndexedLineSet></Shape>"
           } else {
             puts $f "<Shape USE='mesh$objID'></Shape>"
@@ -3061,13 +3102,13 @@ proc x3dPolylinePMI {{objEntity1 ""}} {
           set aoID [$objEntity1 P21ID]
           if {![info exists lastID($f)] || $aoID != $lastID($f)} {
             if {[info exists lastID($f)]} {puts $f "</Group>"}
-            set polylineTxt "AO $aoID "
+            set polylineTxt "AO $aoID"
             set e0 [[[$objEntity1 Attributes] Item [expr 3]] Value]
             set txt [[[$e0 Attributes] Item [expr 1]] Value]
             if {$txt != ""} {append polylineTxt " | $txt"}
             set txt [[[$objEntity1 Attributes] Item [expr 1]] Value]
-            regsub -all "'" $txt "\"" txt
-            if {$txt != ""} {append polylineTxt " | $txt"}
+            regsub -all "'" $txt "\"" idshape
+            if {$txt != ""} {append polylineTxt " | $idshape"}
             puts $f "<Group id='$polylineTxt'>"
           }
           set lastID($f) $aoID
@@ -3089,12 +3130,15 @@ proc x3dPolylinePMI {{objEntity1 ""}} {
           }
 
 # start shape
+          set idstr ""
+          if {[info exists idshape]} {if {$idshape != ""} {set idstr " id='$idshape'"}}
           if {$x3dColor != ""} {
-            puts $f "<Shape><Appearance><Material emissiveColor='$x3dColor'/></Appearance>"
+            puts $f "<Shape$idstr><Appearance><Material emissiveColor='$x3dColor'/></Appearance>"
           } else {
-            puts $f "<Shape><Appearance><Material emissiveColor='0 0 0'/></Appearance>"
+            puts $f "<Shape$idstr><Appearance><Material emissiveColor='0 0 0'/></Appearance>"
             errorMsg "Syntax Error: Missing PMI Presentation color for [formatComplexEnt $ao] (using black)$spaces\($recPracNames(pmi242), Sec. 8.5, Fig. 84)"
           }
+          catch {unset idshape}
 
 # index and coordinates
           puts $f " <IndexedLineSet coordIndex='[string trim $x3dIndex]'>\n  <Coordinate point='[string trim $x3dCoord]'/></IndexedLineSet></Shape>"

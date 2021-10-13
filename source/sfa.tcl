@@ -11,19 +11,6 @@ set wdir [file dirname $scriptName]
 set auto_path [linsert $auto_path 0 $wdir]
 set contact [getContact]
 
-# get path for command-line version
-set path [split $wdir "/"]
-set sfacl {}
-foreach item $path {
-  if {$item != "STEP-File-Analyzer.exe"} {
-    lappend sfacl $item
-  } else {
-    break
-  }
-}
-lappend sfacl "sfa-cl.exe"
-set sfacl [join $sfacl "/"]
-
 # detect if NIST version
 set nistVersion 0
 foreach item $auto_path {if {[string first "STEP-File-Analyzer" $item] != -1} {set nistVersion 1}}
@@ -50,7 +37,7 @@ if {[catch {
   set c1 [string first [file tail [info nameofexecutable]] $dir]
   if {$c1 != -1} {set dir [string range $dir 0 $c1-1]}
   if {[string first "couldn't load library" $emsg] != -1} {
-    append emsg "\n\nAlthough the message above indicates that a library is missing, that is NOT the cause of the problem.  The problem is usually related to the directory where the software is installed.\n\n[file nativename $dir]"
+    append emsg "\n\nAlthough the message above indicates that a library is missing, that is NOT the cause of the problem.  The problem is sometimes related to the directory where you are running the software.\n\n   [file nativename $dir]"
     append emsg "\n\n1 - The directory has accented, non-English, or symbol characters"
     append emsg "\n2 - The directory is on a different computer"
     append emsg "\n3 - No permissions to run the software in the directory"

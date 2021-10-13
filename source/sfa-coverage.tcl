@@ -27,7 +27,7 @@ proc spmiSummary {} {
     set comment "PMI Representation is collected here from the datum system, dimension, tolerance, and datum target entities in column B.  See Help > User Guide (section 6.1.6)"
     if {$valRounded} {append comment "\n\nSome dimension or tolerance values are rounded."}
     if {$nistName != ""} {
-      append comment "\n\nIt is color-coded by the expected PMI in the NIST test case drawing to the right.  The color-coding is explained at the bottom of the column.  Determining if the PMI is Partial and Possible match and corresponding Similar PMI depends on leading and trailing zeros, number precision, associated datum features and dimensions, and repetitive dimensions.  See Help > User Guide (section 6.5.1)"
+      append comment "\n\nIt is color-coded by the expected PMI in the NIST test case drawing to the right.  The color-coding is explained at the bottom of the column.  Determining if the PMI is Partial and Possible match and corresponding Similar PMI depends on leading and trailing zeros, number precision, associated datum features and dimensions, and repetitive dimensions.  See Help > User Guide (section 6.6.1)"
     }
     append comment "."
     addCellComment $spmiSumName $spmiSumRow 3 $comment
@@ -171,7 +171,7 @@ proc spmiCoverageStart {{multi 1}} {
       if {$nistName == ""} {
         addCellComment $spmiCoverageWS 3 2 "See Help > User Guide (section 6.1.7)"
       } else {
-        addCellComment $spmiCoverageWS 3 2 "See Help > User Guide (section 6.5.2)"
+        addCellComment $spmiCoverageWS 3 2 "See Help > User Guide (section 6.6.2)"
       }
       set range [$worksheet($spmiCoverageWS) Range "1:3"]
       [$range Font] Bold [expr 1]

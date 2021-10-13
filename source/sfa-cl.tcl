@@ -19,7 +19,7 @@ foreach fname [glob -nocomplain -directory $wdir *.tcl] {
   if {$mtime > $progtime} {set progtime $mtime}
 }
 
-puts "\n--------------------------------------------------------------------------------"
+puts "\n[string repeat "-" 87]"
 puts "NIST STEP File Analyzer and Viewer [getVersion] (Updated [string trim [clock format $progtime -format "%e %b %Y"]])"
 
 # for building your own version with freewrap, uncomment and modify C:/Tcl/lib/teapot directory if necessary
@@ -38,7 +38,7 @@ if {[catch {
   set c1 [string first [file tail [info nameofexecutable]] $dir]
   if {$c1 != -1} {set dir [string range $dir 0 $c1-1]}
   if {[string first "couldn't load library" $emsg] != -1} {
-    append emsg "\n\nAlthough the message above indicates that a library is missing, that is NOT the cause of the problem.\nThe problem is usually related to the directory where the software is installed.\n[file nativename $dir]"
+    append emsg "\n\nAlthough the message above indicates that a library is missing, that is NOT the cause of the problem.  The problem is sometimes related to the directory where you are running the software.\n\n   [file nativename $dir]"
     append emsg "\n\n1 - The directory has accented, non-English, or symbol characters"
     append emsg "\n2 - The directory is on a different computer"
     append emsg "\n3 - No permissions to run the software in the directory"
@@ -63,12 +63,13 @@ catch {
 catch {set clTextColor [lindex [twapi::get_console_screen_buffer_info stdout -textattr] 1]}
 
 # no arguments, no file, print help, and exit
-set helpText "\nUsage: sfa-cl.exe myfile.stp \[csv\] \[view\] \[stats\] \[noopen\] \[file\]
+set helpText "\nUsage: sfa-cl.exe myfile.stp \[csv\] \{\[view\]|\[stats\]|\[syntax\]\} \[noopen\] \[nolog\] \[file\]
 
 Optional command line settings:
   csv     Generate CSV files
   view    Only generate Views and no Spreadsheet or CSV files
   stats   Only report characteristics of the STEP file, no output files are generated
+  syntax  Only run the Syntax Checker
   noopen  Do not open the Spreadsheet or View after it has been generated
   nolog   Do not generate a Log file
   file    Name of custom options file, e.g., C:/mydir/myoptions.dat  This file should
@@ -90,21 +91,13 @@ Optional command line settings:
  the 'Begin ST-Developer output' and 'End ST-Developer output' messages.
 
 Disclaimers
- This software was developed at the National Institute of Standards and Technology by
- employees of the Federal Government in the course of their official duties.  Pursuant
- to Title 17 Section 105 of the United States Code this software is not subject to
- copyright protection and is in the public domain.  This software is an experimental
- system.  NIST assumes no responsibility whatsoever for its use by other parties, and
- makes no guarantees, expressed or implied, about its quality, reliability, or any
- other characteristic.  NIST Disclaimer: https://www.nist.gov/disclaimer
+ NIST Disclaimer: https://www.nist.gov/disclaimer
 
- This software is provided by NIST as a public service.  You may use, copy and
- distribute copies of the software in any medium, provided that you keep intact this
- entire notice.  You may improve, modify and create derivative works of the software
- or any portion of the software, and you may copy and distribute such modifications
- or works.  Modified works should carry a notice stating that you changed the software
- and should note the date and nature of any such change.  Please explicitly
- acknowledge NIST as the source of the software.
+ This software uses IFCsvr, Microsoft Excel, and software based on Open CASCADE that
+ are covered by their own Software License Agreements.
+
+ If you are using this software in your own application, please explicitly acknowledge
+ NIST as the source of the software.
 
 Credits
 - Reading and parsing STEP files: IFCsvr ActiveX Component, Copyright \u00A9 1999, 2005 SECOM Co., Ltd. All Rights Reserved
@@ -112,6 +105,7 @@ Credits
                                   The license agreement can be found in  C:\\Program Files (x86)\\IFCsvrR300\\doc
 - Translating STEP to X3D:        Developed by Soonjo Kwon (former NIST Guest Researcher)
                                   https://www.nist.gov/services-resources/software/step-x3d-translator
+- Some Tcl code is based on:      CAWT http://www.cawt.tcl3d.org/
 - Generating spreadsheets:        Microsoft Excel"
 
 if {$argc == 1} {set arg [string tolower [lindex $argv 0]]}
@@ -197,7 +191,7 @@ set customFile ""
 for {set i 1} {$i <= 10} {incr i} {
   set arg [lindex $argv $i]
   set arg1 [string tolower $arg]
-  if {$arg != "" && $arg1 != "csv" && [string first "vi" $arg1] == -1 && [string first "noo" $arg1] == -1 && [string first "sta" $arg1] == -1 && [string first "nol" $arg1] == -1} {
+  if {$arg != "" && $arg1 != "csv" && [string first "vi" $arg1] == -1 && [string first "noo" $arg1] == -1 && [string first "sta" $arg1] == -1 && [string first "nol" $arg1] == -1 && [string first "syn" $arg1] == -1} {
     if {[file exists $arg]} {
       set customFile [file nativename $arg]
       puts "Using custom options file: [truncFileName $customFile]"
@@ -241,33 +235,37 @@ if {[info exists userEntityFile]} {
 }
 if {$opt(partQuality) == 9} {set opt(partQuality) 10}
 
-set gen(View) 0
-foreach item {viewFEA viewPMI viewTessPart viewPart} {if {$opt($item)} {set gen(View) 1}}
-
 #-------------------------------------------------------------------------------
 # install IFCsvr
 set ifcsvrDir [file join $pf32 IFCsvrR300 dll]
 installIFCsvr 1
 
+# -----------------------------------------------------------------------------------------------------
 # get command line options
 for {set i 1} {$i <= 10} {incr i} {
   set arg [string tolower [lindex $argv $i]]
   if {$arg != ""} {
+# noopen
     if {[string first "noo" $arg] == 0} {set opt(outputOpen) 0}
-    if {[string first "csv" $arg] == 0} {
-      if {[lsearch [string tolower $argv] "vi"] == -1} {set opt(xlFormat) "CSV"}
-    }
+# csv
+    if {[string first "csv" $arg] == 0 && [lsearch [string tolower $argv] "vi"] == -1} {set opt(xlFormat) "CSV"}
+# view
     if {[string first "vi" $arg] == 0} {
       set opt(xlFormat) "None"
       set gen(Excel) 0
       set gen(CSV) 0
+      set gen(View) 1
       set allNone -1
       foreach id {feaBounds feaDisp feaLoads viewFEA viewPart viewPMI viewTessPart} {set opt($id) 1}
       foreach id {feaDispNoTail feaLoadScale PMIGRF PMISEM tessPartMesh valProp} {set opt($id) 0}
       checkValues
     }
+# stats
     if {[string first "sta" $arg] == 0} {set statsOnly 1}
+# nolog
     if {[string first "nol" $arg] == 0} {set opt(logFile) 0}
+# syntax, run syntax checker and exit
+    if {[string first "syn" $arg] == 0} {syntaxChecker $localName; exit}
   }
 }
 

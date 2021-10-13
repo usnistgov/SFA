@@ -356,7 +356,7 @@ proc genExcel {{numFile 0}} {
 # other possible errors
           } else {
             set msg "\nPossible causes of the ERROR:"
-            append msg "\n1 - File or directory name contains accented, non-English, or symbol characters.  See Help > Text Strings"
+            append msg "\n1 - File or directory name contains accented, non-English, or symbol characters.  See Help > Text Strings and Numbers"
             append msg "\n     [file nativename $fname]"
             append msg "\n    Change the file name or directory name"
             append msg "\n2 - Syntax errors in the STEP file"
@@ -483,7 +483,7 @@ proc genExcel {{numFile 0}} {
         if {![info exists commaSeparator]} {
           set cmsg "Numbers in a STEP file use a period \".\" as the decimal separator.  Your version of Excel uses a comma \",\" as a decimal separator.  This might cause some real numbers to be formatted as a date in a spreadsheet.  For example, 1.5 might appear as 1-Mai.\n\nTo change the formatting in Excel, go to the Excel File menu > Options > Advanced.  Uncheck 'Use system separators' and change 'Decimal separator' to a period \".\" and 'Thousands separator' to a comma \",\"\n\nWARNING - This applies to ALL Excel spreadsheets on your computer.  Change the separators back to their original values when finished.\n\nYou can always check the STEP file to see the actual value of the number."
           if {[info exists buttons]} {
-            append cmsg "\n\nSee the NOTE at the end of Help > Text Strings."
+            append cmsg "\n\nSee the section about Numbers at the end of Help > Text Strings and Numbers."
             tk_messageBox -title "Decimal Separator" -type ok -default ok -icon warning -message $cmsg
           } else {
             errorMsg $cmsg
@@ -1070,11 +1070,12 @@ proc genExcel {{numFile 0}} {
       checkForReports $entType
     }
 
+# other errors
   } emsg2]} {
     catch {raise .}
     if {[llength $entsToProcess] > 0} {
       set msg "ERROR processing STEP file"
-      if {[info exists objEntity]} {if {[string first "handle" $objEntity] != -1} {append msg " with entity \#[$objEntity P21ID]=[$objEntity Type]"}}
+      if {[info exists objEntity]} {if {[string first "handle" $objEntity] != -1} {append msg " with entity \#[$objEntity P21ID]=[string toupper [$objEntity Type]]"}}
       append msg ": $emsg2\nProcessing of the STEP file has stopped"
       errorMsg $msg
     } else {
@@ -2021,7 +2022,7 @@ proc sumAddColorLinks {sum sumHeaderRow sumLinks sheetSort sumRow} {
         }
         $sumLinks Add $anchor $xlFileName "$hlsheet!A1" "Go to $ent"
       } else {
-        errorMsg " When the STEP file or directory contains (# \[ \]) links between the Summary worksheet and entity worksheets are not generated." red
+        errorMsg "Links from the Summary to entity worksheets are not generated because the STEP file name contains one of #\[\]." red
       }
 
 # color cells
@@ -2330,7 +2331,7 @@ proc addP21e3Section {idType} {
 # add to worksheet
       incr r
       set line1 $line
-      if {$r == 1} {addCellComment $sect 1 1 "See Help > User Guide section 5.7.  See Websites > STEP Format and Schemas > ISO 10303 Part 21 Standard (sections 9, 10, 14)"}
+      if {$r == 1} {addCellComment $sect 1 1 "See Help > User Guide section 5.6.  See Websites > STEP Format and Schemas > ISO 10303 Part 21 Standard (sections 9, 10, 14)"}
       $cells($sect) Item $r 1 $line1
 
 # process anchor section persistent IDs
@@ -2437,7 +2438,7 @@ proc addP21e3Section {idType} {
 
     $cells($spmiSumName) Item 3 $c $heading
     set range [$worksheet($spmiSumName) Range [cellRange 3 $c]]
-    addCellComment $spmiSumName 3 $c "See Help > User Guide (section 5.7)  IDs for dimensional_characteristic_representation are for the corresponding dimensional_location or dimensional_size."
+    addCellComment $spmiSumName 3 $c "See Help > User Guide (section 5.6)  IDs for dimensional_characteristic_representation are for the corresponding dimensional_location or dimensional_size."
     catch {foreach i {8 9} {[[$range Borders] Item $i] Weight [expr 2]}}
     [$range Font] Bold [expr 1]
     $range HorizontalAlignment [expr -4108]
@@ -2464,7 +2465,7 @@ proc addP21e3Section {idType} {
   }
   foreach ent [array names urow] {
     $cells($ent) Item 3 $ucol($ent) $heading
-    addCellComment $ent 3 $ucol($ent) "See Help > User Guide (section 5.7)"
+    addCellComment $ent 3 $ucol($ent) "See Help > User Guide (section 5.6)"
     set range [$worksheet($ent) Range [cellRange 3 $ucol($ent)] [cellRange $urow($ent) $ucol($ent)]]
     [$range Columns] AutoFit
     [$range Interior] ColorIndex [expr 40]
