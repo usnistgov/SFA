@@ -1,5 +1,5 @@
 # SFA version number
-proc getVersion {} {return 4.60}
+proc getVersion {} {return 4.61}
 
 # version of SFA that the User Guide is based on
 proc getVersionUG {} {return 4.60}
@@ -69,7 +69,7 @@ proc showFileURL {type} {
 # update for new versions, local and online
       set localFile "SFA-User-Guide-v7.pdf"
       set URL https://doi.org/10.6028/NIST.AMS.200-12
-      if {$sfaVersion >= [getVersionUG]} {
+      if {$sfaVersion > [expr {[getVersionUG]+0.1}]} {
         outputMsg "\nThe User Guide is based on version [getVersionUG] of this software." blue
         .tnb select .tnb.status
       }

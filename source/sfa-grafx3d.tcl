@@ -1136,7 +1136,6 @@ proc x3dBrepGeom {} {
             set nsketch -1
             set oksketch 0
             set close 0
-            set gdt 0
             catch {unset parts}
             catch {unset matTrans}
             if {![info exists viz(EDG)]} {set viz(EDG) 0}
@@ -1252,7 +1251,12 @@ proc x3dBrepGeom {} {
                   } elseif {[string first "Group" $line] != -1} {
                     set close1 0
                     if {[string first "Group" $line] != [string last "Group" $line]} {set close1 1}
-                    set c1 [expr {[string first "DEF" $line]+4}]
+                    set c1 [string first "DEF" $line]
+                    if {$c1 != -1} {
+                      set c1 [expr {$c1+4}]
+                    } else {
+                      set c1 [string first "'" $line]
+                    }
                     set c2 [string last  "'" $line]
                     if {$c1 == $c2} {
                       errorMsg " ERROR reading a text string in the X3D file.  The View might be missing parts.\n$line"
@@ -1260,33 +1264,28 @@ proc x3dBrepGeom {} {
                       set c2 [string first "'" [string range $line $c1+1 end]]
                       lappend x3dMsg "Some part geometry might be missing"
                     }
-
-# get the DEF name, GD&T is reserved in stp2x3d output
+                    incr npart(PRT)
                     set id [string range $line $c1+1 $c2-1]
-                    if {$id == "GD&T"} {set gdt 1}
-                    if {!$gdt} {
-                      incr npart(PRT)
 
 # increment Group name _n
-                      if {[info exists parts($id)]} {
-                        if {$opt(DEBUGX3D)} {outputMsg $id green}
-                        for {set i 1} {$i < 99} {incr i} {
-                          set c1 [string last "_" $id]
-                          if {$c1 != -1} {
-                            set nid "[string range $id 0 $c1]$i"
-                          } else {
-                            set nid "$id\_$i"
-                          }
-                          if {![info exists parts($nid)]} {
-                            set id $nid
-                            #if {$opt(DEBUGX3D)} {outputMsg $id red}
-                            break
-                          }
+                    if {[info exists parts($id)]} {
+                      if {$opt(DEBUGX3D)} {outputMsg $id green}
+                      for {set i 1} {$i < 99} {incr i} {
+                        set c1 [string last "_" $id]
+                        if {$c1 != -1} {
+                          set nid "[string range $id 0 $c1]$i"
+                        } else {
+                          set nid "$id\_$i"
+                        }
+                        if {![info exists parts($nid)]} {
+                          set id $nid
+                          #if {$opt(DEBUGX3D)} {outputMsg $id red}
+                          break
                         }
                       }
                     }
 
-                    if {[string first "swSketch" $line] == -1 && !$gdt} {
+                    if {[string first "swSketch" $line] == -1} {
                       set cx [string first "\\X" $id]
                       if {$cx != -1} {set id [x3dUnicode $id]}
                       set parts($id) $npart(PRT)

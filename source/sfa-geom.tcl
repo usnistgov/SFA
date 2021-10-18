@@ -383,7 +383,7 @@ proc reportAssocGeom {entType {row ""}} {
         $item == "all_around_shape_aspect" || $item == " between_shape_aspect"} {
       set ncsa [llength $assocGeom($item)]
       set csaEnt $item
-    } elseif {$item == "shape_aspect" || $item == "centre_of_symmetry" || $item == "datum_feature" || [string first "datum_target" $item] != -1} {
+    } elseif {$item == "shape_aspect" || $item == "centre_of_symmetry" || $item == "datum_feature" || $item == "geometric_alignment" || [string first "datum_target" $item] != -1} {
       incr nsa [llength $assocGeom($item)]
     }
     if {($ncsa == 1 && $nsa < 2) || ($ncsa > 1 && $ncsa == $nsa)} {
