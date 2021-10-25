@@ -8,8 +8,7 @@ The STEP File Analyzer and Viewer can only be built and run on Windows computers
 
 **You must first install and run the NIST version of the STEP File Analyzer and Viewer before running your own version.**
 
-- Go to the [STEP File Analyzer and Viewer](https://www.nist.gov/services-resources/software/step-file-analyzer-and-viewer) and click on the link to Download the STEP File Analyzer and Viewer
-- Submit the form to get a link to download sfa-n.nn.zip
+- Go to the [STEP File Analyzer and Viewer](https://www.nist.gov/services-resources/software/step-file-analyzer-and-viewer) and click on the Attachment zip file to download the software
 - Extract STEP-File-Analyzer.exe from the zip file and run it.  This will install the IFCsvr toolkit that is used to read STEP files.
 
 Download the SFA files from the GitHub 'source' directory to a directory on your computer.
