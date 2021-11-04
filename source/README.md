@@ -2,8 +2,6 @@
 
 ## Tcl files
 
-Changes to the STEP File Analyzer and Viewer are listed in the [Changelog](https://s3.amazonaws.com/nist-el/mfg_digitalthread/STEP-File-Analyzer-changelog.xlsx).
-
 - sfa.tcl - main program
 - sfa-cl.tcl - main program for command-line version
 - sfa-coverage.tcl - PMI coverage analysis
@@ -37,4 +35,4 @@ Changes to the STEP File Analyzer and Viewer are listed in the [Changelog](https
 
 ## Disclaimers
 
-[NIST Disclaimer](http://www.nist.gov/public_affairs/disclaimer.cfm)
+[NIST Disclaimer](https://www.nist.gov/disclaimer)
