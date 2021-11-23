@@ -15,6 +15,7 @@ Download the SFA files from the GitHub 'source' directory to a directory on your
 
 - The name of the directory is not important
 - The STEP File Analyzer and Viewer is written in [Tcl](https://wiki.tcl-lang.org/)
+- Some of the Tcl code is based on [CAWT](http://www.cawt.tcl3d.org/)
 
 freeWrap wraps the SFA Tcl code to create an executable.
 
