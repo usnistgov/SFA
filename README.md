@@ -59,12 +59,6 @@ freewrap -f sfa-files.txt
 
 Some features are not available in the user-built version including: tooltips, unzipping compressed STEP files, automated PMI checking for the [NIST CAD models](<https://www.nist.gov/el/systems-integration-division-73400/mbe-pmi-validation-and-conformance-testing>), and inserting images of the NIST test cases in the spreadsheets.  Some of the features are restored if the NIST-built version is run first.
 
-## Suggested improvements
-
-Replace the Tcl package [tcom](https://wiki.tcl-lang.org/page/tcom) (COM) with the COM features in [twapi](https://twapi.magicsplat.com/).  This will allow upgrading to Tcl 8.6.
-
-Replace the home-grown code to interact with Excel spreadsheets with [CAWT](http://www.cawt.tcl3d.org/).
-
 ## Contact
 
 [Robert Lipman](https://www.nist.gov/people/robert-r-lipman), <robert.lipman@nist.gov>
