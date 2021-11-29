@@ -49,7 +49,7 @@ if {[catch {
     append emsg "\n4 - On a different computer"
   }
   append emsg "\n\nPlease send a screenshot of this window to [lindex $contact 0] ([lindex $contact 1]) if you cannot fix the problem."
-  set choice [tk_messageBox -type ok -icon error -title "ERROR running the STEP File Analyzer and Viewer" -message $emsg]
+  set choice [tk_messageBox -type ok -icon error -title "Error running the STEP File Analyzer and Viewer" -message $emsg]
   exit
 }
 
@@ -131,11 +131,7 @@ if {[file exists $optionsFile]} {
     source $optionsFile
 
 # rename and unset old opt variables
-    foreach pair [list {HIDELINKS xlHideLinks} {LOGFILE logFile} {SYNCHK syntaxChecker} {VALPROP valProp} {VIZBRP VIZPRT} {VIZFEA viewFEA} {VIZFEABC feaBounds} \
-      {VIZFEADS feaDisp} {VIZFEADSntail feaDispNoTail} {VIZFEALV feaLoads} {VIZFEALVS feaLoadScale} {VIZPMI viewPMI} {VIZPRT viewPart} {VIZPRTEDGE partEdges} \
-      {VIZPRTNORMAL partNormals} {VIZPRTONLY partOnly} {VIZPRTWIRE partSketch} {VIZTES viewTessPart} {VIZTESMSH tessPartMesh} {VIZTPG viewTessPart} \
-      {VIZTPGMSH tessPartMesh} {x3dQuality partQuality} {XL_FPREC xlNoRound} {XL_OPEN outputOpen} {XL_ROWLIM xlMaxRows} {XL_SORT xlSort} {XLSCSV xlFormat} \
-    ] {
+    foreach pair [list {HIDELINKS xlHideLinks} {LOGFILE logFile} {SYNCHK syntaxChecker} {VALPROP valProp} {VIZBRP VIZPRT} {VIZFEA viewFEA} {VIZFEABC feaBounds} {VIZFEADS feaDisp} {VIZFEADSntail feaDispNoTail} {VIZFEALV feaLoads} {VIZFEALVS feaLoadScale} {VIZPMI viewPMI} {VIZPRT viewPart} {VIZPRTEDGE partEdges} {VIZPRTNORMAL partNormals} {VIZPRTONLY partOnly} {VIZPRTWIRE partSketch} {VIZTES viewTessPart} {VIZTESMSH tessPartMesh} {VIZTPG viewTessPart} {VIZTPGMSH tessPartMesh} {x3dQuality partQuality} {XL_FPREC xlNoRound} {XL_OPEN outputOpen} {XL_ROWLIM xlMaxRows} {XL_SORT xlSort} {XLSCSV xlFormat}] {
       set old [lindex $pair 0]
       set new [lindex $pair 1]
       if {[info exists opt($old)]} {set opt($new) $opt($old); unset opt($old)}
@@ -149,8 +145,8 @@ if {[file exists $optionsFile]} {
     if {$opt(partQuality) == 9}     {set opt(partQuality) 10}
 
 # unset old unused opt variables
-    foreach item {COUNT CRASH DELCOVROWS DISPGUIDE1 feaNodeType FIRSTTIME FN_APPEND indentGeomtry GENX3DOM \
-      PMIP PMIPROP PMIVRML ROWLIM SEMPROP SORT feaDisptail VPDBG XLSBUG XLSBUG1} {catch {unset opt($item)}
+    foreach item {COUNT CRASH DELCOVROWS DISPGUIDE1 feaNodeType FIRSTTIME FN_APPEND indentGeomtry GENX3DOM PMIP PMIPROP PMIVRML ROWLIM SEMPROP SORT feaDisptail VPDBG XLSBUG XLSBUG1} {
+      catch {unset opt($item)}
     }
     foreach id [array names opt] {foreach str {EX_ PR_ XL_ VIZ} {if {[string first $str $id] == 0} {unset opt($id)}}}
   } emsg]} {
@@ -289,12 +285,10 @@ if {$nistVersion} {
   if {$upgrade > 0} {
     set lastupgrade [expr {round(([clock seconds] - $upgrade)/86400.)}]
     if {$lastupgrade > 30} {
-      set choice [tk_messageBox -type yesno -default yes -title "Check for Update" \
-        -message "Do you want to check for a new version of the STEP File Analyzer and Viewer?\n\nThe last check for an update was $lastupgrade days ago.\n\nYou can always check for an update with Help > Check for Update" -icon question]
-      if {$choice == "yes"} {
-        set url "https://concrete.nist.gov/cgi-bin/ctv/sfa_upgrade.cgi?version=[getVersion]&auto=$lastupgrade"
-        openURL $url
-      }
+      set str ""
+      if {$lastupgrade > 365} {set str "  Welcome Back!"}
+      outputMsg "This version is [getVersion]\nThe last check for an update was $lastupgrade days ago.$str\nTo check for an updated version, go to Websites > STEP File Analyzer and Viewer" red
+      .tnb select .tnb.status
       set upgrade [clock seconds]
       saveState
     }

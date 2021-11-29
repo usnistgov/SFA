@@ -308,7 +308,7 @@ proc gpmiAnnotationReport {objEntity} {
               if {[string first "handle" $objEntity] != -1} {gpmiAnnotationReport $objValue}
             }
           } emsg3]} {
-            set msg "ERROR processing Graphical PMI ($objNodeType $ent2): $emsg3"
+            set msg "Error processing Graphical PMI ($objNodeType $ent2): $emsg3"
             errorMsg $msg
             lappend syntaxErr([lindex $ent1 0]) [list $objID [lindex $ent1 1] $msg]
           }
@@ -340,7 +340,7 @@ proc gpmiAnnotationReport {objEntity} {
 
 # get values for these entity and attribute pairs
 # g_c_s and a_f_a both start keeping track of their polylines
-# cartesian_point is need to generated x3dom
+# save cartesian_point to x3d coordinates
               set ok 0
               switch -glob $ent1 {
                 "composite_curve segments" {set numCompCurveSeg $objSize}
@@ -582,7 +582,7 @@ proc gpmiAnnotationReport {objEntity} {
                   if {[catch {
                     $cells($ao) Item $r $c "$val[format "%c" 10]$ov"
                   } emsg]} {
-                    errorMsg "  ERROR too much data to show in a cell: $emsg" red
+                    errorMsg "  Too much data to show in a cell: $emsg" red
                   }
                 }
 
@@ -599,7 +599,7 @@ proc gpmiAnnotationReport {objEntity} {
               }
             }
           } emsg3]} {
-            set msg "ERROR processing Graphical PMI ($objNodeType $ent2): $emsg3"
+            set msg "Error processing Graphical PMI ($objNodeType $ent2): $emsg3"
             errorMsg $msg
             lappend syntaxErr([lindex $ent1 0]) [list $objID [lindex $ent1 1] $msg]
           }
@@ -617,7 +617,7 @@ proc gpmiAnnotationReport {objEntity} {
               switch -glob $ent1 {
                 "circle radius" {
                   if {$gen(View) && $opt(viewPMI) && $x3dFileName != ""} {
-# write circle to x3dom
+# write circle to x3d points and index
                     set ns 24
                     set angle 0
                     set dlt [expr {6.28319/$ns}]
@@ -955,7 +955,7 @@ proc gpmiAnnotationReport {objEntity} {
               }
             }
           } emsg3]} {
-            set msg "ERROR processing Graphical PMI ($objNodeType $ent2): $emsg3"
+            set msg "Error processing Graphical PMI ($objNodeType $ent2): $emsg3"
             errorMsg $msg
             lappend syntaxErr([lindex $ent1 0]) [list $objID [lindex $ent1 1] $msg]
             set entLevel 2
@@ -1051,7 +1051,7 @@ proc gpmiAnnotationReport {objEntity} {
         }
       }
     } emsg]} {
-      errorMsg "ERROR adding Associated Geometry: $emsg"
+      errorMsg "Error adding Associated Geometry: $emsg"
     }
 
 # report annotation plane
@@ -1092,7 +1092,7 @@ proc gpmiAnnotationReport {objEntity} {
               set pmiCol [expr {max($pmiColumns(aplane),$pmiCol)}]
             }
             $cells($ao) Item $r $pmiColumns(aplane) [string trim $str]
-            
+
 # check plane for the annotation plane
             set pl [[[$ap Attributes] Item [expr 3]] Value]
             set a2p3d [[[$pl Attributes] Item [expr 2]] Value]
@@ -1107,7 +1107,7 @@ proc gpmiAnnotationReport {objEntity} {
         }
       }
     } emsg]} {
-      errorMsg "ERROR reporting Annotation Plane: $emsg"
+      errorMsg "Error reporting Annotation Plane: $emsg"
     }
 
 # report associated geometry
@@ -1166,12 +1166,12 @@ proc gpmiAnnotationReport {objEntity} {
         }
       }
     } emsg]} {
-      errorMsg "ERROR reporting Associated Geometry and Representation: $emsg"
+      errorMsg "Error reporting Associated Geometry and Representation: $emsg"
     }
   }
 
 # report camera models associated with the annotation occurrence (not placeholder) through draughting_model
-  if {$entLevel == 0 && (($opt(PMIGRF) && $opt(xlFormat) != "None" && [info exists gpmiIDRow($ao,$gpmiID)]) || ($gen(View) && $opt(viewPMI) && !$opt(PMIGRF)))} {
+  if {$entLevel == 0 && (($opt(PMIGRF) && $opt(xlFormat) != "None") || ($gen(View) && $opt(viewPMI)))} {
     if {[catch {
       set savedViews ""
       set savedViewName {}
@@ -1204,7 +1204,7 @@ proc gpmiAnnotationReport {objEntity} {
               }
               lappend savedViewName $draftModelCameraNames([$entDraughtingModel P21ID])
 
-              if {$opt(PMIGRF) && $opt(xlFormat) != "None"} {
+              if {$opt(PMIGRF) && $opt(xlFormat) != "None" && [info exists gpmiIDRow($ao,$gpmiID)]} {
                 if {[string first "AP242" $stepAP] == 0} {
                   set colName "Saved Views[format "%c" 10](Sec. 9.4)"
                 } else {
@@ -1335,7 +1335,7 @@ proc gpmiAnnotationReport {objEntity} {
         }
       }
     } emsg]} {
-      errorMsg "ERROR adding Saved Views: $emsg"
+      errorMsg "Error adding Saved Views: $emsg"
     }
   }
 
@@ -1391,9 +1391,6 @@ proc pmiGetCameras {} {
   catch {unset draftModelCameras}
   catch {unset draftModelCameraNames}
   checkTempDir
-
-  set scale 1.
-  #if {[x3dBrepUnits] == 1.} {set scale 0.03937}
 
 # camera list
   set cmlist {}
@@ -1489,32 +1486,32 @@ proc pmiGetCameras {} {
                         lappend savedViewpoint($name1) [x3dGetRotation $axis $refdir]
                       }
                     } emsg]} {
-                      errorMsg "ERROR getting Saved View position and orientation: $emsg"
+                      errorMsg "Error getting Saved View position and orientation: $emsg"
                       catch {raise .}
                     }
 
 # view_volume > view_plane_distance, projection_point, planar_box > x, y, a2p3d
                   } elseif {$nameCameraModel == "perspective_of_volume" && [info exists savedViewpoint($name1)]} {
 
-# view volume, values scaled depending on units of brep geometry
+# view volume
                     set vv [[$attrCameraModel Value] Attributes]
-                    set vpd [expr {[[$vv Item [expr 3]] Value]*$scale}]
+                    set vpd [[$vv Item [expr 3]] Value]
                     lappend savedViewpoint($name1) $vpd
 
 # projection point, should be 0 0 0
-                    set pp [vectrim [vecmult [[[[[$vv Item [expr 2]] Value] Attributes] Item [expr 2]] Value] $scale]]
+                    set pp [vectrim [[[[[$vv Item [expr 2]] Value] Attributes] Item [expr 2]] Value]]
                     lappend savedViewpoint($name1) $pp
 
 # planar box dimensions
                     set pb [[$vv Item [expr 9]] Value]
-                    set pbx [trimNum [expr {[[[$pb Attributes] Item [expr 2]] Value]*$scale}]]
-                    set pby [trimNum [expr {[[[$pb Attributes] Item [expr 3]] Value]*$scale}]]
+                    set pbx [trimNum [[[$pb Attributes] Item [expr 2]] Value]]
+                    set pby [trimNum [[[$pb Attributes] Item [expr 3]] Value]]
                     lappend savedViewpoint($name1) $pbx
                     lappend savedViewpoint($name1) $pby
 
 # planar box a2p3d
                     set a2p3d [[[$pb Attributes] Item [expr 4]] Value]
-                    lappend savedViewpoint($name1) [vectrim [vecmult [[[[[[$a2p3d Attributes] Item [expr 2]] Value] Attributes] Item [expr 2]] Value] $scale]]
+                    lappend savedViewpoint($name1) [vectrim [[[[[[$a2p3d Attributes] Item [expr 2]] Value] Attributes] Item [expr 2]] Value]]
                     set axis   [[[[[[$a2p3d Attributes] Item [expr 3]] Value] Attributes] Item [expr 2]] Value]
                     set refdir [[[[[[$a2p3d Attributes] Item [expr 4]] Value] Attributes] Item [expr 2]] Value]
                     lappend savedViewpoint($name1) [x3dGetRotation $axis $refdir]
@@ -1547,8 +1544,8 @@ proc pmiGetCameras {} {
 # create temp file ViewN.txt for saved view graphical PMI x3d, where 'N' is an integer
                     if {$opt(viewPMI)} {
                       set name2 "View[lsearch $savedViewNames $name1]"
-                      catch {file delete -force $savedViewFileName($name2)}
                       set fn [file join $mytemp $name2.txt]
+                      catch {file delete -force -- $fn}
                       set savedViewFile($name2) [open $fn w]
                       set savedViewFileName($name2) $fn
                       if {[string length $dmitems([$entDraughtingModel P21ID])] > 0} {set savedViewItems($dmcn) $dmitems([$entDraughtingModel P21ID])}
@@ -1561,7 +1558,7 @@ proc pmiGetCameras {} {
         }
       }
     } emsg]} {
-      errorMsg "ERROR getting Camera Models: $emsg"
+      errorMsg "Error getting Camera Models: $emsg"
       catch {raise .}
     }
   }

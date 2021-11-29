@@ -438,7 +438,7 @@ proc spmiHoleReport {objEntity} {
           $cells($ht) Item 3 $c $colName
           set pmiHeading($pmiColumns([$holeEntity Type])) 1
           set pmiCol [expr {max($pmiColumns([$holeEntity Type]),$pmiCol)}]
-          set comment "See Help > User Guide (section 5.1.3) for an explanation of how the hole dimensions below are constructed."
+          set comment "See Help > User Guide (section 6.1.3) for an explanation of how the hole dimensions below are constructed."
           if {[info exists hole(unit)]} {append comment "\n\nDimension units: $hole(unit)"}
           append comment "\n\nRepetitive dimensions (e.g., 4X) might be shown for holes.  They are computed based on the number of counterbore, sink, drill, and spotface occurrence entities that reference the hole definition."
           addCellComment $ht 3 $c $comment

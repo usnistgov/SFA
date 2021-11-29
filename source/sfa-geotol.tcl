@@ -609,7 +609,7 @@ proc spmiGeotolReport {objEntity} {
               }
             }
           } emsg3]} {
-            set msg "ERROR processing Semantic PMI ($objNodeType $ent2): $emsg3"
+            set msg "Error processing Semantic PMI ($objNodeType $ent2): $emsg3"
             errorMsg $msg
             lappend syntaxErr([lindex $ent1 0]) [list $objID [lindex $ent1 1] $msg]
             set entLevel 1
@@ -764,7 +764,7 @@ proc spmiGeotolReport {objEntity} {
               }
             }
           } emsg3]} {
-            set msg "ERROR processing Semantic PMI ($objNodeType $ent2): $emsg3"
+            set msg "Error processing Semantic PMI ($objNodeType $ent2): $emsg3"
             errorMsg $msg
             lappend syntaxErr([lindex $ent1 0]) [list $objID [lindex $ent1 1] $msg]
             set entLevel 1
@@ -900,6 +900,7 @@ proc spmiGeotolReport {objEntity} {
                       set datumGeomEnts [join [lrmdups $datumGeomEnts]]
                       set datumEntType($datumGeomEnts) "[formatComplexEnt [$gtEntity Type]] [$gtEntity P21ID]"
 
+# check how DF is used in SAR, related > datum ID, relating > SA, CGSA, etc.
                       set e1s [$gtEntity GetUsedIn [string trim shape_aspect_relationship] [string trim relating_shape_aspect]]
                       ::tcom::foreach e1 $e1s {
                         if {[string first "relationship" [$e1 Type]] != -1} {
@@ -909,15 +910,25 @@ proc spmiGeotolReport {objEntity} {
                                 ::tcom::foreach a2 [[$a1 Value] Attributes] {
                                   if {[$a2 Name] == "identification"} {set datumSymbol($datumGeomEnts) [$a2 Value]}
                                 }
+                                #outputMsg "$datumSymbol($datumGeomEnts) [$e1 P21ID][$e1 Type] RELATED [[$a1 Value] P21ID] [[$a1 Value] Type]" red
                               } emsg]} {
                                 set msg "Syntax Error: Bad 'related_shape_aspect' attribute on 'shape_aspect_relationship'."
                                 errorMsg $msg
                                 lappend syntaxErr(shape_aspect_relationship) [list [$e1 P21ID] "related_shape_aspect" $msg]
                               }
+                            } elseif {[$a1 Name] == "relating_shape_aspect"} {
+                              #outputMsg "\n  [$e1 P21ID][$e1 Type] RELATING [[$a1 Value] P21ID] [[$a1 Value] Type]" green
                             }
                           }
                         }
                       }
+                      #set e1s [$gtEntity GetUsedIn [string trim item_identified_representation_usage] [string trim definition]]
+                      #::tcom::foreach e1 $e1s {
+                      #  set e1type [$e1 Type]
+                      #  if {[string first "draughting" $e1type] == -1} {outputMsg "  [$e1 P21ID]$e1type"}
+                      #}
+
+# datum symbol
                       if {[info exists datumSymbol($datumGeomEnts)]} {
                         set ok 1
                         set objValue $datumSymbol($datumGeomEnts)
@@ -1368,7 +1379,7 @@ proc spmiGeotolReport {objEntity} {
               }
             }
           } emsg3]} {
-            set msg "ERROR processing Semantic PMI ($objNodeType $ent2): $emsg3"
+            set msg "Error processing Semantic PMI ($objNodeType $ent2): $emsg3"
             errorMsg $msg
             lappend syntaxErr([lindex $ent1 0]) [list $objID [lindex $ent1 1] $msg]
             set entLevel 1
@@ -1444,7 +1455,7 @@ proc spmiGeotolReport {objEntity} {
       }
 
     } emsg3]} {
-      errorMsg "ERROR adding Datum Feature: $emsg3"
+      errorMsg "Error adding Datum Feature: $emsg3"
     }
 
 # check for composite tolerance (not stacked)
@@ -1479,7 +1490,7 @@ proc spmiGeotolReport {objEntity} {
         }
       }
     } emsg3]} {
-      errorMsg "ERROR checking for Composite Tolerance: $emsg3"
+      errorMsg "Error checking for Composite Tolerance: $emsg3"
     }
 
     if {[catch {
@@ -1658,7 +1669,7 @@ proc spmiGeotolReport {objEntity} {
       }
 
     } emsg3]} {
-      errorMsg "ERROR adding Dimensional Tolerance and Feature Count: $emsg3"
+      errorMsg "Error adding Dimensional Tolerance and Feature Count: $emsg3"
     }
 
 # between
@@ -1902,7 +1913,9 @@ proc spmiProjectedToleranceZone {objGuiEntity} {
                 set msg "Syntax Error: Projected tolerance zone 'projection_end' refers to invalid GISU identified_item '$e3type'.$spaces\($recPracNames(pmi242), Sec. 6.9.2.2)"
               }
               set e4 [[[$e3 Attributes] Item [expr 3]] Value]
-              errorMsg "Projected tolerance zone 'projection_end' refers to a '[$e4 Type]' through GISU ($recPracNames(pmi242), Sec. 6.9.2.2)"
+              if {[$e4 Type] != "plane"} {
+                errorMsg "Projected tolerance zone 'projection_end' refers to a '[$e4 Type]' through GISU ($recPracNames(pmi242), Sec. 6.9.2.2)"
+              }
             }
             if {$ngisu == 0 && [$pe Type] == "shape_aspect"} {
               set msg "Syntax Error: projection_end attribute '[$pe Type]' is not referred to by a GISU.$spaces\($recPracNames(pmi242), Sec. 6.9.2.2)"
@@ -2022,7 +2035,7 @@ proc spmiProjectedToleranceZone {objGuiEntity} {
       }
     }
   } emsg]} {
-    errorMsg "ERROR processing project tolerance zone: $emsg"
+    errorMsg "Error processing project tolerance zone: $emsg"
   }
 }
 
@@ -2219,7 +2232,7 @@ proc spmiPlacedDatumTarget {objEntity objValue} {
     }
 
   } emsg]} {
-    errorMsg "ERROR processing datum target (placed_datum_target_feature): $emsg"
+    errorMsg "Error processing datum target (placed_datum_target_feature): $emsg"
   }
   return $objValue
 }

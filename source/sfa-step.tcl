@@ -217,7 +217,7 @@ proc checkForReports {entType} {
         }
       }
     } emsg]} {
-      errorMsg "ERROR adding Validation Properties for $entType: $emsg"
+      errorMsg "Error adding Validation Properties for $entType: $emsg"
     }
 
 # check for PMI Presentation report or view graphical PMI, call gpmiAnnotation
@@ -232,7 +232,7 @@ proc checkForReports {entType} {
         catch {unset pmiColumns}
       }
     } emsg]} {
-      errorMsg "ERROR adding PMI Presentation for [formatComplexEnt $entType]: $emsg"
+      errorMsg "Error adding PMI Presentation for [formatComplexEnt $entType]: $emsg"
     }
 
 # view tessellated part geometry, call tessPart
@@ -240,7 +240,7 @@ proc checkForReports {entType} {
     if {[catch {
       if {[info exists opt(viewTessPart)]} {if {$opt(viewTessPart)} {tessPart $entType}}
     } emsg]} {
-      errorMsg "ERROR adding Tessellated Part Geometry: $emsg"
+      errorMsg "Error adding Tessellated Part Geometry: $emsg"
     }
 
 # check for Semantic PMI reports
@@ -266,7 +266,7 @@ proc checkForReports {entType} {
         }
       }
     } emsg]} {
-      errorMsg "ERROR adding PMI Representation for [formatComplexEnt $entType]: $emsg"
+      errorMsg "Error adding PMI Representation for [formatComplexEnt $entType]: $emsg"
     }
 
 # check for AP209 analysis entities that contain information to be processed for view
@@ -299,7 +299,7 @@ proc checkForReports {entType} {
       #$entType == "element_nodal_freedom_actions"
       #($opt(feaLoads) && ($entType == "nodal_freedom_action_definition" || $entType == "element_nodal_freedom_actions"))
     } emsg]} {
-      errorMsg "ERROR adding FEM for [formatComplexEnt $entType]: $emsg"
+      errorMsg "Error adding FEM for [formatComplexEnt $entType]: $emsg"
     }
   }
 }
@@ -393,7 +393,7 @@ proc syntaxChecker {fileName} {
             errorMsg "See Help > Supported STEP APs"
           }
           if {[string first "(" $line] != -1 && [string first ")" $line] != -1} {set paren 1}
-        } elseif {[string first "ERROR opening" $line] != -1} {
+        } elseif {[string first "Error opening" $line] != -1} {
           append sfaerr "$line "
         }
       }
@@ -589,7 +589,7 @@ proc getSchemaFromFile {fname {limit 0}} {
   close $stepfile
 
 # not a STEP file
-  if {!$ok1} {errorMsg "ERROR: The STEP file does not start with ISO-10303-21;"}
+  if {!$ok1} {errorMsg "The STEP file does not start with ISO-10303-21;"}
   return $schema
 }
 
@@ -709,7 +709,7 @@ proc unicodeStrings {unicodeEnts} {
     if {[llength $uents] > 0} {outputMsg " ([llength $uents]) entities: [lsort $uents]" red}
 
   } emsg]} {
-    errorMsg "ERROR processing Unicode string attribute: $emsg"
+    errorMsg "Error processing Unicode string attribute: $emsg"
   }
 }
 
@@ -761,7 +761,7 @@ proc checkP21e3 {fname} {
           outputMsg " This software cannot directly process Edition 3 files.  A new Part 21 Edition *2* file:" red
           outputMsg "   [truncFileName $nname]"
           outputMsg " without those sections will be written and processed." red
-          outputMsg " The '$sects' section(s) from the original file will be processed separately for the spreadsheet.\n See Help > User Guide (section 5.7)\n See Websites > STEP Format and Schemas > ISO 10303 Part 21 Standard (sections 9, 10, 14)"
+          outputMsg " The '$sects' section(s) from the original file will be processed separately for the spreadsheet.\n See Help > User Guide (section 5.6)\n See Websites > STEP Format and Schemas > ISO 10303 Part 21 Standard (sections 9, 10, 14)"
 
 # check for part 21 edition 3 content
         } elseif {[string first "ANCHOR\;" $line] == 0 || \

@@ -92,7 +92,7 @@ proc nistReadExpectedPMI {} {
 
 # errors
   } emsg]} {
-    errorMsg "ERROR reading Expected PMI spreadsheet: $emsg"
+    errorMsg "Error reading Expected PMI spreadsheet: $emsg"
   }
 }
 
@@ -790,7 +790,7 @@ proc nistAddCoverageLegend {{multi 0}} {
 # -------------------------------------------------------------------------------
 # add images for the CAx-IF and NIST PMI models
 proc nistAddModelPictures {ent} {
-  global cells excel localName nistModelPictures nistModelURLs mytemp nistName worksheet
+  global cells excel localName nistModelPictures mytemp nistName worksheet
 
   set ftail [string tolower [file tail $localName]]
 
@@ -834,13 +834,15 @@ proc nistAddModelPictures {ent} {
 # link to test model drawings (doesn't always work)
           if {[string first "nist_" $fl] == 0 && $nlink < 2} {
             set str [string range $fl 0 10]
-            foreach item $nistModelURLs {
-              if {[string first $str $item] == 0} {
+            if {$str != ""} {
+              regsub -all "_" $str "-" name
+              if {[string first "tc-" $name] != -1} {
+                set name "nist-cad-model-[string range $name 5 end]"
                 catch {$cells($ent) Item 3 5 "Test Case Drawing"}
                 set range [$worksheet($ent) Range E3:M3]
                 $range MergeCells [expr 1]
                 set range [$worksheet($ent) Range "E3"]
-                [$worksheet($ent) Hyperlinks] Add $range [join "https://s3.amazonaws.com/nist-el/mfg_digitalthread/$item"] [join ""] [join "Link to Test Case Drawing (PDF)"]
+                [$worksheet($ent) Hyperlinks] Add $range [join "https://www.nist.gov/document/$name"] [join ""] [join "Link to Test Case Drawing (PDF)"]
                 incr nlink
               }
             }
@@ -849,7 +851,7 @@ proc nistAddModelPictures {ent} {
       }
     }
   } emsg]} {
-    errorMsg "ERROR adding Picture to PMI Summary or Coverage worksheet.\n  $emsg"
+    errorMsg "Error adding Picture to PMI Summary or Coverage worksheet.\n  $emsg"
   }
 }
 

@@ -50,7 +50,7 @@ if {[catch {
     append emsg "\n4 - On a different computer"
   }
   append emsg "\n\nContact [lindex $contact 0] ([lindex $contact 1]) if you cannot run the STEP File Analyzer and Viewer."
-  puts "\nERROR: $emsg"
+  puts "\nError: $emsg"
   exit
 }
 
@@ -76,28 +76,24 @@ Optional command line settings:
           be similar to STEP-File-Analyzer-options.dat in your home directory.
 
  Most options last used in the GUI version are used in this program unless the 'file'
- option is used.
-
- If 'myfile.stp' has spaces, put quotes around the file name \"C:/mydir/my file.stp\"
+ option is used.  If 'myfile.stp' has spaces, put quotes around the file name
+ \"C:/my dir/my file.stp\"
 
  You should run the GUI version of the software first.  If not already installed, the
- IFCsvr toolkit used to read STEP files will be installed the first time this software
- is run.
-
- Existing Spreadsheets and View files are always overwritten.  An Internet connection
- is required to show View files in the web browser.
+ IFCsvr toolkit will be installed the first time this software is run.
 
  When the STEP file is opened, errors and warnings might appear in the output between
- the 'Begin ST-Developer output' and 'End ST-Developer output' messages.
+ the 'Begin ST-Developer output' and 'End ST-Developer output' messages.  Existing
+ Spreadsheets and View files are always overwritten.  An Internet connection is
+ required for the web browser Viewer.
 
 Disclaimers
  NIST Disclaimer: https://www.nist.gov/disclaimer
 
  This software uses IFCsvr, Microsoft Excel, and software based on Open CASCADE that
- are covered by their own Software License Agreements.
-
- If you are using this software in your own application, please explicitly acknowledge
- NIST as the source of the software.
+ are covered by their own Software License Agreements.  If you are using this software
+ in your own application, please explicitly acknowledge NIST as the source of the
+ software.
 
 Credits
 - Reading and parsing STEP files: IFCsvr ActiveX Component, Copyright \u00A9 1999, 2005 SECOM Co., Ltd. All Rights Reserved
@@ -105,8 +101,7 @@ Credits
                                   The license agreement can be found in  C:\\Program Files (x86)\\IFCsvrR300\\doc
 - Translating STEP to X3D:        Developed by Soonjo Kwon (former NIST Guest Researcher)
                                   https://www.nist.gov/services-resources/software/step-x3d-translator
-- Some Tcl code is based on:      CAWT http://www.cawt.tcl3d.org/
-- Generating spreadsheets:        Microsoft Excel"
+- Some Tcl code is based on:      CAWT http://www.cawt.tcl3d.org/"
 
 if {$argc == 1} {set arg [string tolower [lindex $argv 0]]}
 if {$argc == 0 || ($argc == 1 && ($arg == "help" || $arg == "-help" || $arg == "-h" || $arg == "-v"))} {

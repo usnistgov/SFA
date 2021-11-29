@@ -164,7 +164,9 @@ proc spmiCoverageStart {{multi 1}} {
       $worksheet($spmiCoverageWS) Name $spmiCoverageWS
       set cells($spmiCoverageWS) [$worksheet($spmiCoverageWS) Cells]
       set wsCount [$worksheets Count]
-      [$worksheets Item [expr $wsCount]] -namedarg Move Before [$worksheets Item [expr 4]]
+      set i 4
+      if {[[$worksheets Item [expr 3]] Name] != "PMI Representation Summary"} {set i 3}
+      [$worksheets Item [expr $wsCount]] -namedarg Move Before [$worksheets Item [expr $i]]
 
       $cells($spmiCoverageWS) Item 3 1 "PMI Element[format "%c" 10]  (See Help > Analyze > PMI Coverage Analysis)"
       $cells($spmiCoverageWS) Item 3 2 "Count"
@@ -227,7 +229,7 @@ proc spmiCoverageStart {{multi 1}} {
       }
     }
   } emsg3]} {
-    errorMsg "ERROR starting PMI Representation Coverage worksheet: $emsg3"
+    errorMsg "Error starting PMI Representation Coverage worksheet: $emsg3"
   }
 }
 
@@ -347,7 +349,7 @@ proc spmiCoverageWrite {{fn ""} {sum ""} {multi 1}} {
     }
 
   } emsg3]} {
-    errorMsg "ERROR adding to PMI Representation Coverage worksheet: $emsg3"
+    errorMsg "Error adding to PMI Representation Coverage worksheet: $emsg3"
   }
 }
 
@@ -488,6 +490,7 @@ proc spmiCoverageFormat {sum {multi 1}} {
 
 # final formatting (single file)
       [$worksheet($spmiCoverageWS) Columns] AutoFit
+      [$worksheet($spmiCoverageWS) Rows] AutoFit
       set r2 [expr {[[[$worksheet($spmiCoverageWS) UsedRange] Rows] Count]+1}]
       if {$nistName != ""} {set r2 [expr {[[[$worksheet($spmiCoverageWS) UsedRange] Rows] Count]-8}]}
       $cells($spmiCoverageWS) Item $r2 1 "Section numbers above refer to the CAx-IF Recommended Practice for $recPracNames(pmi242)"
@@ -500,7 +503,7 @@ proc spmiCoverageFormat {sum {multi 1}} {
 
 # errors
   } emsg]} {
-    errorMsg "ERROR formatting PMI Representation Coverage worksheet: $emsg"
+    errorMsg "Error formatting PMI Representation Coverage worksheet: $emsg"
   }
 }
 
@@ -559,7 +562,7 @@ proc gpmiCoverageStart {{multi 1}} {
       }
     }
   } emsg3]} {
-    errorMsg "ERROR starting PMI Presentation Coverage worksheet: $emsg3"
+    errorMsg "Error starting PMI Presentation Coverage worksheet: $emsg3"
   }
 }
 
@@ -665,7 +668,7 @@ proc gpmiCoverageWrite {{fn ""} {sum ""} {multi 1}} {
       catch {if {$multi} {unset gpmiTypesPerFile}}
     }
   } emsg3]} {
-    errorMsg "ERROR adding to PMI Presentation Coverage worksheet: $emsg3"
+    errorMsg "Error adding to PMI Presentation Coverage worksheet: $emsg3"
   }
 }
 
@@ -769,6 +772,6 @@ proc gpmiCoverageFormat {{sum ""} {multi 1}} {
 
 # errors
   } emsg]} {
-    errorMsg "ERROR formatting PMI Presentation Coverage worksheet: $emsg"
+    errorMsg "Error formatting PMI Presentation Coverage worksheet: $emsg"
   }
 }

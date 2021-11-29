@@ -69,7 +69,7 @@ proc openMultiFile {{ask 1}} {
       } elseif {$opt(xlFormat) == "None"} {
         append askstr "Views"
       }
-      if {$opt(xlFormat) != "None" && ($opt(viewPart) || $opt(viewFEA) || $opt(viewPMI) || $opt(viewTessPart))} {
+      if {$opt(xlFormat) != "None" && $gen(View) && ($opt(viewPart) || $opt(viewFEA) || $opt(viewPMI) || $opt(viewTessPart))} {
         append askstr " and Views"
       }
 
@@ -189,7 +189,7 @@ proc openMultiFile {{ask 1}} {
 
 # errors
             } emsg]} {
-              errorMsg "ERROR opening Excel workbooks and worksheets for file summary: $emsg"
+              errorMsg "Error opening Excel workbooks and worksheets for file summary: $emsg"
               catch {raise .}
             }
           } elseif {$useXL && $opt(xlFormat) != "None"} {
@@ -232,7 +232,7 @@ proc openMultiFile {{ask 1}} {
 
 # error processing the file
           } emsg]} {
-            errorMsg "ERROR processing [file tail $file1]: $emsg"
+            errorMsg "Error processing [file tail $file1]: $emsg"
             catch {raise .}
             set stat($nfile) 0
           }
@@ -497,7 +497,7 @@ proc openMultiFile {{ask 1}} {
 
 # errors
           } emsg]} {
-            errorMsg "ERROR adding information to File Summary spreadsheet: $emsg"
+            errorMsg "Error adding information to File Summary spreadsheet: $emsg"
             catch {raise .}
           }
 
@@ -525,7 +525,7 @@ proc openMultiFile {{ask 1}} {
               set aname [file nativename [file join $mydocs SFA-Summary-$enddir-$lenfilelist.$extXLS]]
               if {[string length $aname] < 219} {errorMsg " Spreadsheet written to the home directory."}
             }
-            catch {file delete -force $aname}
+            catch {file delete -force -- $aname}
 
 # check if file exists and create new name
             if {[file exists $aname]} {set aname [incrFileName $aname]}
@@ -551,7 +551,7 @@ proc openMultiFile {{ask 1}} {
 
 # errors
           } emsg]} {
-            errorMsg "ERROR saving File Summary Spreadsheet: $emsg"
+            errorMsg "Error saving File Summary Spreadsheet: $emsg"
             catch {raise .}
           }
 

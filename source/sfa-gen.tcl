@@ -125,7 +125,7 @@ proc genExcel {{numFile 0}} {
 
 # error
   } emsg]} {
-    errorMsg "\nERROR connecting to the IFCsvr software that is used to read STEP files: $emsg"
+    errorMsg "\nError connecting to the IFCsvr software that is used to read STEP files: $emsg"
     catch {raise .}
     return 0
   }
@@ -324,12 +324,12 @@ proc genExcel {{numFile 0}} {
 # error opening file
   } emsg]} {
     if {$openStage == 2} {
-      errorMsg "ERROR opening STEP file"
+      errorMsg "Error opening STEP file"
 
       if {!$p21e3} {
         set fext [string tolower [file extension $fname]]
         if {$fext != ".stp" && $fext != ".step" && $fext != ".p21" && $fext != ".stpz" && $fext != ".ifc"} {
-          errorMsg "File extension '[file extension $fname]' is not supported." red
+          if {$fext != ""} {errorMsg "File extension '[file extension $fname]' is not supported." red}
         } else {
           set fs [getSchemaFromFile $fname 1]
           set c1 [string first "\{" $fs]
@@ -355,7 +355,7 @@ proc genExcel {{numFile 0}} {
 
 # other possible errors
           } else {
-            set msg "\nPossible causes of the ERROR:"
+            set msg "\nPossible causes of the error:"
             append msg "\n1 - File or directory name contains accented, non-English, or symbol characters.  See Help > Text Strings and Numbers"
             append msg "\n     [file nativename $fname]"
             append msg "\n    Change the file name or directory name"
@@ -381,7 +381,7 @@ proc genExcel {{numFile 0}} {
         if {[catch {
           exec $editorCmd [file nativename $localName] &
         } emsg1]} {
-          errorMsg "ERROR opening STEP file in text editor: $emsg1"
+          errorMsg "Error opening STEP file in text editor: $emsg1"
         }
       }
 
@@ -394,9 +394,14 @@ proc genExcel {{numFile 0}} {
 
 # other errors
     } elseif {$openStage == 1} {
-      errorMsg "ERROR before opening STEP file: $emsg"
+      errorMsg "Error before opening STEP file: $emsg"
+      catch {
+        exec $editorCmd [file nativename $localName] &
+        errorMsg " Opening STEP file in text editor"
+      }
+      return
     } elseif {$openStage == 3} {
-      errorMsg "ERROR after opening STEP file: $emsg"
+      errorMsg "Error after opening STEP file: $emsg"
     }
   }
 
@@ -481,7 +486,7 @@ proc genExcel {{numFile 0}} {
 # check decimal separator
       if {[$excel UseSystemSeparators] == 1 && [$excel DecimalSeparator] == ","} {
         if {![info exists commaSeparator]} {
-          set cmsg "Numbers in a STEP file use a period \".\" as the decimal separator.  Your version of Excel uses a comma \",\" as a decimal separator.  This might cause some real numbers to be formatted as a date in a spreadsheet.  For example, 1.5 might appear as 1-Mai.\n\nTo change the formatting in Excel, go to the Excel File menu > Options > Advanced.  Uncheck 'Use system separators' and change 'Decimal separator' to a period \".\" and 'Thousands separator' to a comma \",\"\n\nWARNING - This applies to ALL Excel spreadsheets on your computer.  Change the separators back to their original values when finished.\n\nYou can always check the STEP file to see the actual value of the number."
+          set cmsg "Numbers in a STEP file use a period \".\" as the decimal separator.  Your version of Excel uses a comma \",\" as a decimal separator.  This might cause some real numbers to be formatted as a date in a spreadsheet.  For example, 1.5 might appear as 1-Mai.\n\nTo change the formatting in Excel, go to the Excel File menu > Options > Advanced.  Uncheck 'Use system separators' and change 'Decimal separator' to a period \".\" and 'Thousands separator' to a comma \",\"\n\nWarning: this applies to ALL Excel spreadsheets on your computer.  Change the separators back to their original values when finished.\n\nYou can always check the STEP file to see the actual value of the number."
           if {[info exists buttons]} {
             append cmsg "\n\nSee the section about Numbers at the end of Help > Text Strings and Numbers."
             tk_messageBox -title "Decimal Separator" -type ok -default ok -icon warning -message $cmsg
@@ -494,7 +499,7 @@ proc genExcel {{numFile 0}} {
 
 # print errors
     } emsg]} {
-      errorMsg "ERROR opening Excel workbooks and worksheets: $emsg"
+      errorMsg "Error opening Excel workbooks and worksheets: $emsg"
       catch {raise .}
       return 0
     }
@@ -1016,7 +1021,7 @@ proc genExcel {{numFile 0}} {
 # process errors with entity
               if {$stat != 1} {break}
 
-              set msg "ERROR processing "
+              set msg "Error processing "
               if {[info exists objEntity]} {
                 if {[string first "handle" $objEntity] != -1} {
                   append msg "\#[$objEntity P21ID]=[$objEntity Type] (row [expr {$row($thisEntType)+2}]): $emsg1"
@@ -1074,7 +1079,7 @@ proc genExcel {{numFile 0}} {
   } emsg2]} {
     catch {raise .}
     if {[llength $entsToProcess] > 0} {
-      set msg "ERROR processing STEP file"
+      set msg "Error processing STEP file"
       if {[info exists objEntity]} {if {[string first "handle" $objEntity] != -1} {append msg " with entity \#[$objEntity P21ID]=[string toupper [$objEntity Type]]"}}
       append msg ": $emsg2\nProcessing of the STEP file has stopped"
       errorMsg $msg
@@ -1258,7 +1263,7 @@ proc genExcel {{numFile 0}} {
 
 # errors
   } emsg]} {
-    errorMsg "ERROR closing IFCsvr: $emsg"
+    errorMsg "Error closing IFCsvr: $emsg"
     catch {raise .}
   }
 
@@ -1299,7 +1304,7 @@ proc genExcel {{numFile 0}} {
         set lastXLS $xlfn
         lappend xlFileNames $xlfn
       } emsg1]} {
-        errorMsg "ERROR Saving Spreadsheet: $emsg1"
+        errorMsg "Error Saving Spreadsheet: $emsg1"
       }
 
 # save worksheets as CSV files
@@ -1351,7 +1356,7 @@ proc genExcel {{numFile 0}} {
             update
           }
         } emsg2]} {
-          errorMsg "ERROR Saving CSV files: $emsg2"
+          errorMsg "Error Saving CSV files: $emsg2"
         }
       }
 
@@ -1378,7 +1383,7 @@ proc genExcel {{numFile 0}} {
 
 # errors
     } emsg]} {
-      errorMsg "ERROR: $emsg"
+      errorMsg "Error: $emsg"
       catch {raise .}
       set openxl 0
     }
@@ -1457,11 +1462,7 @@ proc genExcel {{numFile 0}} {
   update idletasks
 
 # unset variables to release memory and/or to reset them
-  foreach var {cells cgrObjects colColor coordinatesList count currx3dPID datumGeom datumIDs datumSymbol datumSystem dimrep dimrepID dimtolEnt dimtolEntID \
-      dimtolGeom entCount entName entsIgnored feaDOFR feaDOFT feaNodes gpmiID gpmiIDRow gpmiRow heading idRow invCol invGroup lineStrips nrep numx3dPID \
-      pmiCol pmiColumns pmiStartCol pmivalprop propDefID propDefIDRow propDefName propDefOK propDefRow savedsavedViewNames savedViewFile savedViewFileName \
-      savedViewNames shapeRepName srNames suppGeomEnts syntaxErr tessCoord tessCoordName tessIndex tessIndexCoord tessPlacement tessRepo unicode viz \
-      vpEnts workbook workbooks worksheet worksheets x3dCoord x3dFile x3dFileName x3dIndex x3dMax x3dMin x3dStartFile} {
+  foreach var {cells cgrObjects colColor coordinatesList count currx3dPID datumEntType datumGeom datumIDs datumSymbol datumSystem dimrep dimrepID dimtolEnt dimtolEntID dimtolGeom entCount entName entsIgnored feaDOFR feaDOFT feaNodes gpmiID gpmiIDRow gpmiRow heading idRow invCol invGroup lineStrips nrep numx3dPID pmiCol pmiColumns pmiStartCol pmivalprop propDefID propDefIDRow propDefName propDefOK propDefRow savedsavedViewNames savedViewFile savedViewFileName savedViewNames shapeRepName srNames suppGeomEnts syntaxErr tessCoord tessCoordName tessIndex tessIndexCoord tessPlacement tessRepo unicode viz vpEnts workbook workbooks worksheet worksheets x3dCoord x3dFile x3dFileName x3dIndex x3dMax x3dMin x3dStartFile} {
     catch {global $var}
     if {[info exists $var]} {unset $var}
   }
@@ -1720,7 +1721,7 @@ proc addHeaderWorksheet {numFile fname} {
     if {!$useXL && $opt(xlFormat) != "None"} {close $fcsv}
 
   } emsg]} {
-    errorMsg "ERROR adding Header worksheet: $emsg"
+    errorMsg "Error adding Header worksheet: $emsg"
     catch {raise .}
   }
 }
@@ -1864,7 +1865,7 @@ proc sumAddWorksheet {} {
 
 # print errors
   } emsg]} {
-    errorMsg "ERROR adding Summary worksheet: $emsg"
+    errorMsg "Error adding Summary worksheet: $emsg"
     catch {raise .}
   }
   return [list $sumLinks $sheetSort $sumRow]
@@ -1981,7 +1982,7 @@ proc sumAddFileName {sum sumLinks} {
     [$range Font] Bold [expr 1]
 
   } emsg]} {
-    errorMsg "ERROR adding File Names to Summary: $emsg"
+    errorMsg "Error adding File Names to Summary: $emsg"
     catch {raise .}
   }
   return $sumHeaderRow
@@ -2084,7 +2085,7 @@ proc sumAddColorLinks {sum sumHeaderRow sumLinks sheetSort sumRow} {
     [$worksheet($sum) Rows] AutoFit
 
   } emsg]} {
-    errorMsg "ERROR adding Summary colors and links: $emsg"
+    errorMsg "Error adding Summary colors and links: $emsg"
     catch {raise .}
   }
 }
@@ -2092,8 +2093,8 @@ proc sumAddColorLinks {sum sumHeaderRow sumLinks sheetSort sumRow} {
 #-------------------------------------------------------------------------------------------------
 # format worksheets
 proc formatWorksheets {sheetSort sumRow inverseEnts} {
-  global buttons cells col count entCount excel gpmiEnts nprogBarEnts opt pmiStartCol
-  global row rowmax spmiEnts stepAP syntaxErr thisEntType viz vpEnts worksheet xlFileName
+  global buttons cells col count entCount entRows excel gpmiEnts nprogBarEnts opt pmiStartCol
+  global row spmiEnts stepAP syntaxErr thisEntType viz vpEnts worksheet xlFileName
   outputMsg "Formatting Worksheets" blue
 
   if {[info exists buttons]} {$buttons(progressBar) configure -maximum [llength $sheetSort]}
@@ -2141,11 +2142,9 @@ proc formatWorksheets {sheetSort sumRow inverseEnts} {
         #if {$thisEntType == "element_nodal_freedom_actions"} {moveWorksheet [list element_nodal_freedom_actions element_nodal_freedom_terms]}
       }
 
-# find extent of columns and rows
+# extent of columns and rows
       set rancol [[[$worksheet($thisEntType) UsedRange] Columns] Count]
-      set ranrow [expr {$row($thisEntType)+2}]
-      if {$ranrow > $rowmax} {set ranrow [expr {$rowmax+2}]}
-      set ranrow [expr {$ranrow-2}]
+      set ranrow $entRows($thisEntType)
 
 # autoformat
       set range [$worksheet($thisEntType) Range [cellRange 3 1] [cellRange $ranrow $rancol]]
@@ -2174,7 +2173,7 @@ proc formatWorksheets {sheetSort sumRow inverseEnts} {
         pmiFormatColumns "PMI Representation"
 
 # add PMI Representation Summary worksheet
-        spmiSummary
+        if {$thisEntType != "datum_feature"} {spmiSummary}
 
 # extra validation properties
       } elseif {[lsearch $vpEnts $thisEntType] != -1} {
@@ -2239,7 +2238,7 @@ proc formatWorksheets {sheetSort sumRow inverseEnts} {
           }
         }
       } emsg]} {
-        errorMsg "ERROR setting column widths for [formatComplexEnt $thisEntType]: $emsg"
+        errorMsg "Error setting column widths for [formatComplexEnt $thisEntType]: $emsg"
         catch {raise .}
       }
 
@@ -2259,13 +2258,13 @@ proc formatWorksheets {sheetSort sumRow inverseEnts} {
           }
         }
       } emsg]} {
-        errorMsg "ERROR adding Tables for Sorting: $emsg"
+        errorMsg "Error adding Tables for Sorting: $emsg"
         catch {raise .}
       }
 
 # errors
     } emsg]} {
-      errorMsg "ERROR formatting Spreadsheet for [formatComplexEnt $thisEntType]: $emsg"
+      errorMsg "Error formatting Spreadsheet for [formatComplexEnt $thisEntType]: $emsg"
       catch {raise .}
     }
   }
@@ -2300,7 +2299,7 @@ proc moveWorksheet {items {where "Before"}} {
       }
     }
   } emsg]} {
-    errorMsg "ERROR moving worksheet: $emsg"
+    errorMsg "Error moving worksheet: $emsg"
   }
 }
 
@@ -2385,7 +2384,7 @@ proc addP21e3Section {idType} {
                 set badEnt 1
               }
             } emsg]} {
-              errorMsg "ERROR: Missing entity #$anchorID for ANCHOR section."
+              errorMsg "Error missing entity #$anchorID for ANCHOR section."
             }
           } else {
             set badEnt 1
@@ -2463,6 +2462,7 @@ proc addP21e3Section {idType} {
       outputMsg "  $heading\s are also associated with: $ids" red
     }
   }
+
   foreach ent [array names urow] {
     $cells($ent) Item 3 $ucol($ent) $heading
     addCellComment $ent 3 $ucol($ent) "See Help > User Guide (section 5.6)"

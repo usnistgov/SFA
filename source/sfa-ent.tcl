@@ -1,6 +1,6 @@
 # read entity and write to spreadsheet
 proc getEntity {objEntity checkInverse checkBadAttributes unicodeCheck} {
-  global attrType badAttributes cells col coordinatesList count developer entComment entCount entName heading invMsg invVals lineStrips localName
+  global attrType badAttributes cells col coordinatesList count developer entComment entCount entName entRows heading invMsg invVals lineStrips localName
   global matrixList opt roseLogical row rowmax sheetLast skipEntities skipPerm syntaxErr thisEntType unicodeString worksheet worksheets
   global wsCount wsNames
 
@@ -12,11 +12,20 @@ proc getEntity {objEntity checkInverse checkBadAttributes unicodeCheck} {
   set cellLimit1 500
   set cellLimit2 3000
 
+# ignore maximum rows depending on analysis options
+  set rmax $rowmax
+  if {$opt(PMISEM)} {
+    foreach item [list "angular" "datum" "dimension" "limits_and_fits" "runout" "tolerance"] {
+      if {[string first $item $thisEntType] != -1} {set rmax 1000000; break}
+    }
+  }
+  if {$opt(PMIGRF)} {if {[string first "annotation" $thisEntType] != -1 && [string first "plane" $thisEntType] == -1} {set rmax 1000000}}
+
 # -------------------------------------------------------------------------------------------------
 # open worksheet for each entity if it does not already exist
   if {![info exists worksheet($thisEntType)]} {
     set msg "[formatComplexEnt $thisEntType] ("
-    set rm [expr {$rowmax-3}]
+    set rm [expr {$rmax-3}]
     if {$entCount($thisEntType) > $rm} {append msg "$rm of "}
     append msg "$entCount($thisEntType))"
     outputMsg $msg
@@ -74,7 +83,7 @@ proc getEntity {objEntity checkInverse checkBadAttributes unicodeCheck} {
       if {[lsearch $skipEntities $thisEntType] == -1 && [lsearch $skipPerm $thisEntType] == -1} {puts $skipFile $thisEntType}
       close $skipFile
     } emsg]} {
-      errorMsg "ERROR processing 'skip' file: $emsg"
+      errorMsg "Error processing 'skip' file: $emsg"
     }
     update idletasks
 
@@ -87,9 +96,8 @@ proc getEntity {objEntity checkInverse checkBadAttributes unicodeCheck} {
 
 # -------------------------------------------------------------------------------------------------
 # if less than max allowed rows, append attribute values to rowList, append rowList to matrixList
-# originally, values where written directly one-by-one to a worksheet, now writing a matrix of values
-# to a worksheet is much faster than writing values to cells one at a time
-  if {$row($thisEntType) <= $rowmax} {
+  if {$row($thisEntType) <= $rmax} {
+    set entRows($thisEntType) $row($thisEntType)
     set col($thisEntType) 1
     incr count($thisEntType)
 
@@ -159,7 +167,7 @@ proc getEntity {objEntity checkInverse checkBadAttributes unicodeCheck} {
 
 # error getting attribute value
       } emsgv]} {
-        set msg "ERROR processing '$attrName' attribute on '[formatComplexEnt [$objEntity Type]]': $emsgv"
+        set msg "Error processing '$attrName' attribute on '[formatComplexEnt [$objEntity Type]]': $emsgv"
         errorMsg $msg
         lappend syntaxErr([$objEntity Type]) [list -$row($thisEntType) $attrName $msg]
         set objValue ""
@@ -439,7 +447,7 @@ proc getEntityCSV {objEntity checkBadAttributes unicodeCheck} {
       if {[lsearch $skipEntities $thisEntType] == -1 && [lsearch $skipPerm $thisEntType] == -1} {puts $skipFile $thisEntType}
       close $skipFile
     } emsg]} {
-      errorMsg "ERROR processing 'skip' file: $emsg"
+      errorMsg "Error processing 'skip' file: $emsg"
     }
     update idletasks
 
@@ -498,7 +506,7 @@ proc getEntityCSV {objEntity checkBadAttributes unicodeCheck} {
 
 # error getting attribute value
       } emsgv]} {
-        errorMsg "ERROR processing '$attrName' attribute on '[formatComplexEnt [$objEntity Type]]': $emsgv"
+        errorMsg "Error processing '$attrName' attribute on '[formatComplexEnt [$objEntity Type]]': $emsgv"
         set objValue ""
         catch {raise .}
       }

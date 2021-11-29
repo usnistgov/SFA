@@ -380,38 +380,32 @@ proc setColorIndex {ent {multi 0}} {
 }
 
 #-------------------------------------------------------------------------------
-# open a URL
+# open a URL in whatever is associated for the file type
 proc openURL {url} {
-  global pf32 pf64
+  if {[catch {
+    exec {*}[auto_execok start] "" $url
+  } emsg]} {
+    if {[string first "is not recognized" $emsg] == -1} {
+      if {[string first "UNC" $emsg] != -1} {set emsg [fixErrorMsg $emsg]}
 
-# open in whatever is associated for the file extension, except for .cgi for upgrade url
-  if {[string first ".cgi" $url] == -1} {
-    if {[catch {
-      exec {*}[auto_execok start] "" $url
-    } emsg]} {
-      if {[string first "is not recognized" $emsg] == -1} {
-        if {[string first "UNC" $emsg] != -1} {set emsg [fixErrorMsg $emsg]}
-        if {$emsg != ""} {errorMsg "ERROR opening $url: $emsg"}
+# error message depends on the file type
+      if {$emsg != ""} {
+        if {[string first ".stp" $url] != -1} {
+          errorMsg "No app is associated with STEP files.  See Websites > STEP File Viewers"
+        } elseif {[string first "-sfa.html" $url] != -1} {
+          errorMsg "Error opening View file: $emsg\n Try manually opening [truncFileName $url] in a web browser"
+        } elseif {[string first ".xlsx" $url] != -1} {
+          if {[string first "The process cannot access the file" $emsg] != -1} {
+            outputMsg " The Spreadsheet might already be opened." red
+          } else {
+            outputMsg " Error opening the Spreadsheet: $emsg" red
+          }
+          catch {raise .}
+        } else {
+          errorMsg "Error opening $url: $emsg"
+        }
       }
     }
-
-# open with web browser
-  } else {
-    set ok 1
-    foreach cmd [list \
-        [file join $pf64 Google Chrome Application chrome.exe] \
-        [file join $pf32 Google Chrome Application chrome.exe] \
-        [file join $pf64 Microsoft Edge Application msedge.exe] \
-        [file join $pf32 Microsoft Edge Application msedge.exe] \
-        [file join $pf64 "Mozilla Firefox" firefox.exe] \
-        [file join $pf32 "Mozilla Firefox" firefox.exe]] {
-      if {[file exists $cmd] && $ok} {
-        exec $cmd $url &
-        set ok 0
-        break
-      }
-    }
-    if {$ok} {errorMsg "Cannot open web page to check for update."}
   }
 }
 
@@ -429,7 +423,7 @@ proc openFile {{openName ""}} {
     set localNameList [tk_getOpenFile -title "Open STEP File(s)" -filetypes $typelist -initialdir $fileDir -multiple true]
     if {[llength $localNameList] <= 1} {
       set localName [lindex $localNameList 0]
-      if {$localName == ""} {errorMsg "No file selected.  Files cannot be selected from the Quick Access menu."}
+      if {$localName == ""} {outputMsg "No file selected.  Files cannot be selected from the Quick Access menu." red}
     }
 
 # file name passed in as openName
@@ -654,13 +648,13 @@ proc unzipFile {} {
       if {$ok} {file copy -force -- $ftmp $fstp}
 
       set localName $fstp
-      file delete $fzip
-      file delete $ftmp
+      file delete -- $fzip
+      file delete -- $ftmp
     } else {
-      errorMsg "ERROR: gunzip.exe not found to unzip compressed STEP file"
+      errorMsg "Error gunzip.exe not found to unzip compressed STEP file"
     }
   } emsg]} {
-    errorMsg "ERROR unzipping file: $emsg"
+    errorMsg "Error unzipping file: $emsg"
   }
 }
 
@@ -768,7 +762,7 @@ proc saveState {{ok 1}} {
     catch {if {$developer && $filesProcessed > 100} {file copy -force -- $optionsFile [file join $mydocs Analyzer]}}
 
   } emsg]} {
-    errorMsg "ERROR writing to options file: $emsg"
+    errorMsg "Error writing to options file: $emsg"
     catch {raise .}
   }
 }
@@ -802,15 +796,7 @@ proc runOpenProgram {} {
 
 # default viewer associated with file extension
   } elseif {[string first "Default" $idisp] == 0} {
-    if {[catch {
-      exec {*}[auto_execok start] "" [file nativename $dispFile]
-    } emsg]} {
-      if {[string first "UNC" $emsg] != -1} {set emsg [fixErrorMsg $emsg]}
-      if {$emsg != ""} {
-        .tnb select .tnb.status
-        errorMsg "No app is associated with STEP files.  See Websites > STEP File Viewers"
-      }
-    }
+    openURL [file nativename $dispFile]
 
 # file tree view
   } elseif {[string first "Tree View" $idisp] != -1} {
@@ -972,7 +958,7 @@ proc runOpenProgram {} {
 
 # compact log file
         set edmtmp "[file rootname $filename]-edm$edmVer-tmp.log"
-        file copy -force $edmLog $edmtmp
+        file copy -force -- $edmLog $edmtmp
         set edmr [open $edmtmp r]
         set edmw [open $edmLog w]
 
@@ -1115,26 +1101,12 @@ proc openXLS {filename {check 0} {multiFile 0}} {
 
 # errors
     } emsg]} {
-      errorMsg "ERROR starting Excel: $emsg"
+      errorMsg "Error starting Excel: $emsg"
     }
 
 # open spreadsheet in Excel, works even if Excel not already started above although slower
-    if {[catch {
-      outputMsg "\nOpening Spreadsheet: [file tail $filename]"
-      exec {*}[auto_execok start] "" [file nativename $filename]
-
-# errors
-    } emsg]} {
-      if {[string first "UNC" $emsg] != -1} {set emsg [fixErrorMsg $emsg]}
-      if {$emsg != ""} {
-        if {[string first "The process cannot access the file" $emsg] != -1} {
-          outputMsg " The Spreadsheet might already be opened." red
-        } else {
-          outputMsg " Error opening the Spreadsheet: $emsg" red
-        }
-        catch {raise .}
-      }
-    }
+    outputMsg "\nOpening Spreadsheet: [file tail $filename]"
+    openURL [file nativename $filename]
 
   } else {
     if {[file tail $filename] != ""} {
@@ -1318,7 +1290,7 @@ proc addCellComment {ent r c comment} {
 
 # error
   } emsg]} {
-    if {[string first "Unknown error" $emsg] == -1} {errorMsg "ERROR adding Cell Comment: $emsg\n  $ent"}
+    if {[string first "Unknown error" $emsg] == -1} {errorMsg "Error adding Cell Comment: $emsg\n  $ent"}
   }
 }
 
@@ -1401,7 +1373,7 @@ proc colorBadCells {ent} {
 # error
     } emsg]} {
       if {$emsg != ""} {
-        errorMsg "ERROR setting cell color (red) or comment: $emsg\n  $ent"
+        errorMsg "Error setting cell color (red) or comment: $emsg\n  $ent"
         catch {raise .}
       }
     }
@@ -1703,14 +1675,13 @@ proc installIFCsvr {{exit 0}} {
 - To reinstall the toolkit, run the installation file ifcsvrr300_setup_1008_en-update.msi
   in $mytemp
 - If you choose to Cancel the IFCsvr toolkit installation, you will still be able to use
-  the Viewer for Part Geometry.  Select View and Part Only in the Generate section of the
-  Options tab.
+  the Viewer for Part Geometry.  Select View and Part Only on the Options tab.
 - If there are problems with the installation, contact [lindex $contact 0] ([lindex $contact 1])."
 
     if {[file exists $ifcsvrInst] && [info exists buttons]} {
       set msg "The IFCsvr toolkit must be installed to read and process STEP files (User Guide section 2.2.1).  After clicking OK the IFCsvr toolkit installation will start."
       append msg "\n\nYou might need administrator privileges (Run as administrator) to install the toolkit.  Antivirus software might respond that there is a security issue with the toolkit.  The toolkit is safe to install.  Use the default installation folder for the toolkit."
-      append msg "\n\nIf you choose to Cancel the IFCsvr toolkit installation, you will still be able to use the Viewer for Part Geometry.  Select View and Part Only in the Generate section of the Options tab."
+      append msg "\n\nIf you choose to Cancel the IFCsvr toolkit installation, you will still be able to use the Viewer for Part Geometry.  Select View and Part Only on the Options tab."
       set choice [tk_messageBox -type ok -message $msg -icon info -title "Install IFCsvr"]
       outputMsg "\nWait for the installation to finish before processing a STEP file." red
     } elseif {![info exists buttons]} {
@@ -1756,7 +1727,7 @@ proc installIFCsvr {{exit 0}} {
         if {[catch {
           file copy -force -- $ifcsvrInst $ifcsvrMsi
         } emsg3]} {
-          errorMsg "ERROR copying the IFCsvr toolkit installation file to a directory."
+          errorMsg "Error copying the IFCsvr toolkit installation file to a directory."
           outputMsg " $emsg1\n $emsg2\n $emsg3"
         }
       }
@@ -1775,7 +1746,7 @@ proc installIFCsvr {{exit 0}} {
       if {$exit} {exit}
     } emsg]} {
       if {[string first "UNC" $emsg] != -1} {set emsg [fixErrorMsg $emsg]}
-      if {$emsg != ""} {errorMsg "ERROR installing IFCsvr toolkit: $emsg"}
+      if {$emsg != ""} {errorMsg "Error installing IFCsvr toolkit: $emsg"}
     }
 
 # cannot find the toolkit
@@ -1799,11 +1770,11 @@ proc installIFCsvr {{exit 0}} {
     } else {
       outputMsg " "
       errorMsg "To install the IFCsvr toolkit you must first run the NIST version of the STEP File Analyzer and Viewer."
-      outputMsg "- Go to https://concrete.nist.gov/cgi-bin/ctv/sfa_request.cgi
-- Fill out the form, submit it, and follow the instructions.
+      outputMsg "- Download the Attachment zip file on the software web page.
+- Follow the instructions to run the software.
 - The IFCsvr toolkit will be installed when the NIST STEP File Analyzer and Viewer is run."
       after 1000
-      openURL https://concrete.nist.gov/cgi-bin/ctv/sfa_request.cgi
+      openURL https://www.nist.gov/services-resources/software/step-file-analyzer-and-viewer
     }
   }
 }
@@ -1828,10 +1799,10 @@ proc setShortcuts {} {
     foreach scut [list "Shortcut to $progstr1.exe.lnk" "$progstr1.exe.lnk" "$progstr1.lnk"] {
       catch {
         if {[file exists [file join $mydesk $scut]]} {
-          file delete [file join $mydesk $scut]
+          file delete -- [file join $mydesk $scut]
           set ok 0
         }
-        if {[file exists [file join $mymenu "$progstr1.lnk"]]} {file delete [file join $mymenu "$progstr1.lnk"]}
+        if {[file exists [file join $mymenu "$progstr1.lnk"]]} {file delete -- [file join $mymenu "$progstr1.lnk"]}
       }
     }
     if {[file exists [file join $mydesk [file tail [info nameofexecutable]]]]} {set ok 0}
