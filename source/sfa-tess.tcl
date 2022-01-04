@@ -149,7 +149,7 @@ proc tessPartGeometry {objEntity} {
               }
             }
           } emsg3]} {
-            errorMsg "ERROR processing Tessellated Part Geometry: $emsg3"
+            errorMsg "Error processing Tessellated Part Geometry: $emsg3"
             set entLevel 2
           }
 
@@ -173,9 +173,9 @@ proc tessPartGeometry {objEntity} {
 # -------------------------------------------------------------------------------
 # generate coordinates and faces by reading tessellated geometry entities line-by-line from STEP file, necessary because of limitations of the IFCsvr toolkit
 # if coordOnly=1, then only read coordinates_list, used for saved view pmi validation properties
+# if coordOnly=2, then only read point_cloud_dataset
 proc tessReadGeometry {{coordOnly 0}} {
-  global coordinatesList entCount lineStrips localName opt recPracNames syntaxErr spaces
-  global tessCoord tessCoordName tessIndex tessIndexCoord x3dMax x3dMin
+  global entCount localName recPracNames syntaxErr spaces tessCoord tessCoordName tessIndex tessIndexCoord x3dMax x3dMin
 
   set tg [open $localName r]
   set ncl  0
@@ -192,10 +192,17 @@ proc tessReadGeometry {{coordOnly 0}} {
     outputMsg " Reading tessellated geometry" green
 
 # read only coordinates list
-  } else {
+  } elseif {$coordOnly == 1} {
     foreach ent {coordinates_list} {if {[info exists entCount($ent)]} {set ntc1 [expr {$ntc1+$entCount($ent)}]}}
     set ents [list COORDINATES_LIST]
     outputMsg " Reading coordinates list" green
+
+# read only point cloud dataset
+  } elseif {$coordOnly == 2} {
+    foreach ent {point_cloud_dataset} {if {[info exists entCount($ent)]} {set ntc1 [expr {$ntc1+$entCount($ent)}]}}
+    set ents [list POINT_CLOUD_DATASET]
+    outputMsg " Processing point cloud" green
+    catch {unset tessCoord}
   }
 
 # read step
@@ -218,19 +225,20 @@ proc tessReadGeometry {{coordOnly 0}} {
       set id [string range $line 1 [string first "=" $line]-1]
       if {[string first "TRIANGULATED" $line] != -1 || [string first "CURVE" $line] != -1} {set tessellated 1}
 
-# coordinates_list
-      if {[string first "COORDINATES_LIST" $line] != -1} {
+# coordinates_list or point_cloud_dataset
+      if {[string first "COORDINATES_LIST" $line] != -1 || [string first "POINT_CLOUD_DATASET" $line] != -1} {
         set tessCoordName($id) ""
         set c1 [string first "'" $line]
         set c2 [string last  "'" $line]
         if {$c2 != [expr {$c1+1}]} {set tessCoordName($id) [string range $line $c1+1 $c2-1]}
 
-        if {$opt(stepCPNT)} {regsub -all " " [string range $line [string first "((" $line]+1 end-3] "" coordinatesList($id)}
+        set ncoord 0
+        if {$coordOnly != 2} {
+          set ncoord [string range $line [string first "," $line]+1 [string first "((" $line]-2]
+          if {$ncoord > 50000} {errorMsg "COORDINATES_LIST #$id has $ncoord coordinates."}
+        }
 
-        set ncoord [string range $line [string first "," $line]+1 [string first "((" $line]-2]
-        if {$ncoord > 50000} {errorMsg "COORDINATES_LIST #$id has $ncoord coordinates."}
-
-        if {$ncoord > 0} {
+        if {$ncoord > 0 || $coordOnly == 2} {
           set line [string range $line [string first "((" $line] end-1]
 
 # regsub is very important to distill line into something usable
@@ -257,8 +265,8 @@ proc tessReadGeometry {{coordOnly 0}} {
             }
             append tessCoord($id) $tc
           }
-        } else {
-          set msg "ERROR missing coordinates on \#$id=COORDINATES_LIST"
+        } elseif {$coordOnly != 2} {
+          set msg "Error missing coordinates on \#$id=COORDINATES_LIST"
           errorMsg $msg
         }
         incr ncl
@@ -287,7 +295,6 @@ proc tessReadGeometry {{coordOnly 0}} {
 
 # tessellated curve set
         if {[string first "TESSELLATED_CURVE_SET" $line] != -1} {
-          if {$opt(stepGEOM) || $opt(PMIGRF)} {regsub -all " " [string range $line [string first "((" $line]+1 end-3] "" lineStrips($id)}
 
 # regsub is very important to distill line into something usable
           set c1 [string last "((" $line]
@@ -301,14 +308,13 @@ proc tessReadGeometry {{coordOnly 0}} {
 
 # error reading line strips
           } else {
-            catch {unset lineStrips($id)}
             if {[string first "$,$" $line] != -1} {
               set msg "Syntax Error: Missing 'coordinates' and 'line_strips' on tessellated_curve_set.$spaces\($recPracNames(pmi242), Sec. 8.2)"
               errorMsg $msg
               lappend syntaxErr(tessellated_curve_set) [list $id coordinates $msg]
               lappend syntaxErr(tessellated_curve_set) [list $id line_strips $msg]
             } else {
-              errorMsg "ERROR reading line_strips on \#$id=TESSELLATED_CURVE_SET"
+              errorMsg "Error reading line_strips on \#$id=TESSELLATED_CURVE_SET"
             }
           }
 

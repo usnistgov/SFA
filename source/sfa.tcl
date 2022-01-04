@@ -9,7 +9,6 @@ global env
 set scriptName [info script]
 set wdir [file dirname $scriptName]
 set auto_path [linsert $auto_path 0 $wdir]
-set contact [getContact]
 
 # detect if NIST version
 set nistVersion 0
@@ -29,6 +28,7 @@ if {!$nistVersion} {
 # Tcl packages, check if they will load
 if {[catch {
   package require tcom
+  package require tdom
   package require twapi
   package require Tclx
   package require Iwidgets 4.0.2
@@ -42,13 +42,12 @@ if {[catch {
     append emsg "\n2 - The directory is on a different computer"
     append emsg "\n3 - No permissions to run the software in the directory"
     append emsg "\n4 - Other computer configuration problems"
-    append emsg "\n\nTry the following workarounds to run the software:"
+    append emsg "\n\nTry these workarounds to run the software:"
     append emsg "\n\n1 - From a directory without any special characters in the pathname, or from your home directory, or desktop"
     append emsg "\n2 - Installed on your local computer"
     append emsg "\n3 - As Administrator"
     append emsg "\n4 - On a different computer"
   }
-  append emsg "\n\nPlease send a screenshot of this window to [lindex $contact 0] ([lindex $contact 1]) if you cannot fix the problem."
   set choice [tk_messageBox -type ok -icon error -title "Error running the STEP File Analyzer and Viewer" -message $emsg]
   exit
 }
@@ -83,7 +82,7 @@ foreach id { \
 # set opt to 0
 foreach id { \
   feaBounds feaDisp feaDispNoTail feaLoads feaLoadScale indentGeometry indentStyledItem INVERSE partNormals partOnly \
-  PMIGRFCOV PMISEMDIM PMISEMRND SHOWALLPMI stepAP242 stepCOMP stepCPNT stepFEAT stepGEOM stepKINE stepUSER syntaxChecker \
+  PMIGRFCOV PMISEMDIM PMISEMRND SHOWALLPMI stepADDM stepAP242 stepCOMP stepCONS stepCPNT stepFEAT stepGEOM stepKINE stepQUAL stepUSER syntaxChecker \
   viewFEA viewPMIVP writeDirType xlHideLinks xlNoRound xlSort xlUnicode x3dSave DEBUG1 DEBUGINV DEBUGNOXL DEBUGVP DEBUGX3D \
 } {set opt($id) 0}
 
@@ -286,8 +285,8 @@ if {$nistVersion} {
     set lastupgrade [expr {round(([clock seconds] - $upgrade)/86400.)}]
     if {$lastupgrade > 30} {
       set str ""
-      if {$lastupgrade > 365} {set str "  Welcome Back!"}
-      outputMsg "This version is [getVersion]\nThe last check for an update was $lastupgrade days ago.$str\nTo check for an updated version, go to Websites > STEP File Analyzer and Viewer" red
+      if {$lastupgrade > 365} {set str ".  Welcome Back!"}
+      outputMsg "This is version [getVersion]\nThe last check for an update was $lastupgrade days ago$str\nTo check for an updated version, go to Websites > STEP File Analyzer and Viewer" red
       .tnb select .tnb.status
       set upgrade [clock seconds]
       saveState
@@ -301,7 +300,6 @@ if {$nistVersion} {
 #-------------------------------------------------------------------------------
 # install IFCsvr
 installIFCsvr
-set ifcsvrDir [file join $pf32 IFCsvrR300 dll]
 
 focus .
 

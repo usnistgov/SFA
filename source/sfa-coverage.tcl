@@ -1,6 +1,6 @@
 # PMI Representation Summary worksheet
 proc spmiSummary {} {
-  global allPMI cells entName env localName mytemp nistName nistPMIexpected opt pmiModifiers recPracNames row sheetLast
+  global allPMI cells entName env epmi epmiUD localName mytemp nistName nistPMIexpected opt pmiModifiers recPracNames row sheetLast
   global spmiSumName spmiSumRow spmiSumRowID spmiTypesPerFile thisEntType timeStamp valRounded wdir worksheet worksheets xlFileName
 
 # first time through, start worksheet
@@ -18,7 +18,9 @@ proc spmiSummary {} {
     for {set i 2} {$i <= 3} {incr i} {[$worksheet($spmiSumName) Range [cellRange -1 $i]] ColumnWidth [expr 48]}
     for {set i 1} {$i <= 4} {incr i} {[$worksheet($spmiSumName) Range [cellRange -1 $i]] VerticalAlignment [expr -4160]}
 
-    $cells($spmiSumName) Item $spmiSumRow 2 "[file tail $localName][format "%c" 10]  ($timeStamp)"
+    set txt [file tail $localName]
+    if {$timeStamp != ""} {append txt "[format "%c" 10]  ($timeStamp)"}
+    $cells($spmiSumName) Item $spmiSumRow 2 $txt
     incr spmiSumRow 2
     $cells($spmiSumName) Item $spmiSumRow 1 "ID"
     $cells($spmiSumName) Item $spmiSumRow 2 "Entity"
@@ -47,7 +49,13 @@ proc spmiSummary {} {
     set allPMI ""
 
 # get expected PMI for a NIST model
-    if {$nistName != ""} {nistGetSummaryPMI}
+    set epmi ""
+    if {$nistName != ""} {
+      set epmi $nistName
+    } elseif {$epmiUD != ""} {
+      set epmi $epmiUD
+    }
+    nistGetSummaryPMI $epmi
 
 # check for font file with GD&T symbols (ARIALUNI.TTF), needed only for certain symbols in pmiTypes
     if {![file exists [file nativename C:/Windows/Fonts/ARIALUNI.TTF]] && \
@@ -130,7 +138,7 @@ proc spmiSummary {} {
           if {[string first "tolerance" $thisEntType] != -1} {append allPMI $val}
 
 # check actual vs. expected PMI for NIST files
-          if {[info exists nistPMIexpected($nistName)] && $notHole} {nistCheckExpectedPMI $val $entstr}
+          if {[info exists nistPMIexpected($epmi)] && $notHole} {nistCheckExpectedPMI $val $entstr $epmi}
 
 # -------------------------------------------------------------------------------
 # link back to worksheets
@@ -236,7 +244,7 @@ proc spmiCoverageStart {{multi 1}} {
 # -------------------------------------------------------------------------------
 # write PMI Representation Coverage analysis worksheet
 proc spmiCoverageWrite {{fn ""} {sum ""} {multi 1}} {
-  global allPMI allPMIelements cells cells1 col1 developer entCount fileList nfile nistCoverageStyle nistName
+  global allPMI allPMIelements cells cells1 col1 developer entCount epmi fileList nfile nistCoverageStyle nistName
   global pmiModifiers spmiCoverageWS spmiTypesPerFile totalPMI totalPMIrows usedPMIrows worksheet worksheet1
   global objDesign
 
@@ -341,7 +349,8 @@ proc spmiCoverageWrite {{fn ""} {sum ""} {multi 1}} {
 
 # single file, for NIST file color-code coverage
     if {!$multi} {
-      if {$nistName != ""} {nistPMICoverage $nf}
+      if {![info exists epmi]} {set epmi ""}
+      if {$nistName != "" || $epmi != ""} {nistPMICoverage $nf}
 
 # multiple files
     } elseif {$nfile == [llength $fileList]} {
@@ -356,7 +365,7 @@ proc spmiCoverageWrite {{fn ""} {sum ""} {multi 1}} {
 # -------------------------------------------------------------------------------
 # format PMI Representation Coverage analysis worksheet, also PMI totals
 proc spmiCoverageFormat {sum {multi 1}} {
-  global cells cells1 col1 excel1 lenfilelist localName nistCoverageLegend nistCoverageStyle nistName opt pmiElementsMaxRows
+  global cells cells1 col1 epmi excel1 lenfilelist localName nistCoverageLegend nistCoverageStyle nistName opt pmiElementsMaxRows
   global pmiHorizontalLineBreaks recPracNames spmiCoverageWS timeStamp totalPMI totalPMIrows usedPMIrows worksheet worksheet1
 
 # delete worksheet if no semantic PMI
@@ -492,13 +501,16 @@ proc spmiCoverageFormat {sum {multi 1}} {
       [$worksheet($spmiCoverageWS) Columns] AutoFit
       [$worksheet($spmiCoverageWS) Rows] AutoFit
       set r2 [expr {[[[$worksheet($spmiCoverageWS) UsedRange] Rows] Count]+1}]
-      if {$nistName != ""} {set r2 [expr {[[[$worksheet($spmiCoverageWS) UsedRange] Rows] Count]-8}]}
+      if {![info exists epmi]} {set epmi ""}
+      if {$nistName != "" || $epmi != ""} {set r2 [expr {[[[$worksheet($spmiCoverageWS) UsedRange] Rows] Count]-8}]}
       $cells($spmiCoverageWS) Item $r2 1 "Section numbers above refer to the CAx-IF Recommended Practice for $recPracNames(pmi242)"
       set anchor [$worksheet($spmiCoverageWS) Range [cellRange $r2 1]]
       [$worksheet($spmiCoverageWS) Hyperlinks] Add $anchor [join "https://www.cax-if.org/cax/cax_recommPractice.php"] [join ""] [join "Link to CAx-IF Recommended Practices"]
 
       [$worksheet($spmiCoverageWS) Range "A1"] Select
-      $cells($spmiCoverageWS) Item 1 1 "[file tail $localName][format "%c" 10]  ($timeStamp)"
+      set txt [file tail $localName]
+      if {$timeStamp != ""} {append txt "[format "%c" 10]  ($timeStamp)"}
+      $cells($spmiCoverageWS) Item 1 1 $txt
     }
 
 # errors
@@ -763,7 +775,9 @@ proc gpmiCoverageFormat {{sum ""} {multi 1}} {
       [$worksheet($gpmiCoverageWS) Hyperlinks] Add $anchor [join "https://www.cax-if.org/cax/cax_recommPractice.php"] [join ""] [join "Link to CAx-IF Recommended Practices"]
 
       [$worksheet($gpmiCoverageWS) Range "A1"] Select
-      $cells($gpmiCoverageWS) Item 1 1 "[file tail $localName][format "%c" 10]  ($timeStamp)"
+      set txt [file tail $localName]
+      if {$timeStamp != ""} {append txt "[format "%c" 10]  ($timeStamp)"}
+      $cells($gpmiCoverageWS) Item 1 1 $txt
       $cells($gpmiCoverageWS) Item [expr {$gpmiRows+3}] 1 "See Help > Analyze > PMI Coverage Analysis"
 
 # add images for the CAx-IF and NIST PMI models

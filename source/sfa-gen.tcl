@@ -1,17 +1,18 @@
-# generate an Excel spreadsheet from a STEP file
+# generate an Excel spreadsheet and/or view from a STEP file
 proc genExcel {{numFile 0}} {
-  global allEntity aoEntTypes ap203all ap214all ap242all badAttributes buttons cadSystem cells cells1 col col1 commaSeparator count csvdirnam csvfile csvinhome currLogFile
-  global dim draughtingModels editorCmd entCategories entCategory entColorIndex entCount entityCount entsIgnored entsWithErrors errmsg
+  global allEntity aoEntTypes ap203all ap214all ap242all ap242XML badAttributes buttons cadSystem cells cells1 col col1 commaSeparator count csvdirnam csvfile csvinhome currLogFile
+  global dim draughtingModels editorCmd entCategories entCategory entColorIndex entCount entityCount entsIgnored entsWithErrors epmi epmiUD errmsg
   global excel excelVersion fcsv feaFirstEntity feaLastEntity File fileEntity filesProcessed gen gpmiTypesInvalid gpmiTypesPerFile guid idxColor ifcsvrDir
   global inverses lastXLS lenfilelist localName localNameList logFile matrixList multiFile multiFileDir mydocs mytemp nistCoverageLegend nistName
   global nistPMIexpected nistPMImaster nprogBarEnts opt pf32 p21e3 p21e3Section pmiCol resetRound row rowmax savedViewButtons savedViewName
-  global savedViewNames scriptName sheetLast skipEntities skipPerm spmiEntity spmiSumName spmiSumRow spmiTypesPerFile startrow statsOnly stepAP tessColor
-  global thisEntType timeStamp tlast tolNames tolStandard tolStandards totalEntity unicodeAttributes unicodeEnts unicodeInFile unicodeNumEnts unicodeString
+  global savedViewNames scriptName sheetLast skipEntities skipPerm spmiEntity spmiSumName spmiSumRow spmiTypesPerFile startrow statsOnly stepAP stepAPreport tessColor
+  global thisEntType timeStamp tlast tolNames tolStandard tolStandards totalEntity unicodeActual unicodeAttributes unicodeEnts unicodeInFile unicodeNumEnts unicodeString
   global userEntityFile userEntityList useXL valRounded viz wdir workbook workbooks worksheet worksheet1 worksheets writeDir wsCount wsNames x3dAxes
   global x3dColor x3dColorFile x3dColors x3dFileName x3dIndex x3dMax x3dMin x3dMsg x3dMsgColor x3dStartFile x3dViewOK xlFileName xlFileNames xlInstalled
   global objDesign
 
   if {[info exists errmsg]} {set errmsg ""}
+  if {![info exists ap242XML]} {set ap242XML 0}
 
 # generate STEP AP242 tessellated geometry from STL file
   if {[string tolower [file extension $localName]] == ".stl"} {
@@ -20,6 +21,7 @@ proc genExcel {{numFile 0}} {
     if {$localName == ""} {return}
   }
 
+# -------------------------------------------------------------------------------------------------
 # initialize for x3dom geometry
   set x3dViewOK 0
   set x3dMsg {}
@@ -69,13 +71,19 @@ proc genExcel {{numFile 0}} {
     if {$ok} {addFileToMenu}
 
 # initialize
-    foreach idx {TED HOL SMG DTR PMI TPG FEA EDG} {set viz($idx) 0}
-    set viz(PRT) 1
+    foreach idx {DTMTAR EDGE FEA HOLE PMI POINTS SUPPGEOM TESSEDGE TESSPART} {set viz($idx) 0}
+    set viz(PART) 1
     set x3dMsgColor blue
     set lasttime [clock clicks -milliseconds]
 
 # generate x3d
-    x3dFileStart
+    if {!$ap242XML} {
+      x3dFileStart
+    } else {
+      x3dReadXML
+    }
+
+# done
     if {$x3dViewOK} {
       x3dFileEnd
 
@@ -86,7 +94,7 @@ proc genExcel {{numFile 0}} {
       outputMsg "Processing time: $proctime seconds"
 
 # view file
-      if {$viz(PRT)} {openX3DOM "" $numFile}
+      if {$viz(PART)} {openX3DOM "" $numFile}
 
 # save log file
       if {[info exists logFile]} {
@@ -137,6 +145,11 @@ proc genExcel {{numFile 0}} {
     set nprogBarEnts 0
     set fname $localName
     set stepAP [getStepAP $fname]
+
+# stepAPreport controls which APs support analysis reports
+    set stepAPreport 0
+    set ap [string range $stepAP 0 4]
+    if {$ap == "AP203" || $ap == "AP209" || $ap == "AP210" || $ap == "AP214" || $ap == "AP238" || $ap == "AP242"} {set stepAPreport 1}
 
 # check for Part 21 edition 3 files and strip out sections
     set fname [checkP21e3 $fname]
@@ -225,18 +238,12 @@ proc genExcel {{numFile 0}} {
           } elseif {$entType == "property_definition_representation"} {
             lappend characteristics "Properties"
 
-# make sure composites, kinematics, feature, and AP242 entities are always processed
           } elseif {[lsearch $entCategory(stepCOMP) $entType] != -1} {
             lappend characteristics "Composites"
-            if {$opt(xlFormat) != "None"} {set opt(stepCOMP) 1}
           } elseif {[lsearch $entCategory(stepKINE) $entType] != -1} {
             lappend characteristics "Kinematics"
-            if {$opt(xlFormat) != "None"} {set opt(stepKINE) 1}
           } elseif {[lsearch $entCategory(stepFEAT) $entType] != -1 || [lsearch $entCategory(stepFEAT) $ent1] != -1 || [lsearch $entCategory(stepFEAT) $ent2] != -1} {
             lappend characteristics "Features"
-            if {$opt(xlFormat) != "None"} {set opt(stepFEAT) 1}
-          } elseif {[lsearch $entCategory(stepAP242) $entType] != -1} {
-            if {$opt(xlFormat) != "None"} {set opt(stepAP242) 1}
           } else {
             foreach tol $tolNames {
               if {[string first $tol $entType] != -1} {
@@ -244,6 +251,22 @@ proc genExcel {{numFile 0}} {
                 set viz(PMIMSG) "Some Graphical PMI might not have equivalent Semantic PMI in the STEP file."
               }
             }
+          }
+
+# make sure some entity types are always processed
+          if {$opt(xlFormat) != "None"} {
+            foreach cat {stepCOMP stepKINE stepFEAT stepAP242 stepADDM stepQUAL stepCONS} {
+              if {$opt($cat) == 0 && [lsearch $entCategory($cat) $entType] != -1} {
+                set opt($cat) 1
+                errorMsg "Automatically selecting some Process categories" red
+                checkValues
+              }
+            }
+          }
+          if {$opt(stepCPNT) == 0 && [string first "point_cloud" $entType] == 0} {
+            set opt(stepCPNT) 1
+            errorMsg "Automatically selecting some Process categories" red
+            checkValues
           }
         }
       }
@@ -326,52 +349,44 @@ proc genExcel {{numFile 0}} {
     if {$openStage == 2} {
       errorMsg "Error opening STEP file"
 
-      if {!$p21e3} {
-        set fext [string tolower [file extension $fname]]
-        if {$fext != ".stp" && $fext != ".step" && $fext != ".p21" && $fext != ".stpz" && $fext != ".ifc"} {
-          if {$fext != ""} {errorMsg "File extension '[file extension $fname]' is not supported." red}
-        } else {
-          set fs [getSchemaFromFile $fname 1]
-          set c1 [string first "\{" $fs]
-          if {$c1 != -1} {set fs [string trim [string range $fs 0 $c1-1]]}
+      set fext [string tolower [file extension $fname]]
+      if {$fext != ".stp" && $fext != ".step" && $fext != ".p21" && $fext != ".stpz" && $fext != ".ifc"} {
+        if {$fext != ""} {errorMsg "File extension '[file extension $fname]' is not supported." red}
+      } else {
+        set fs [getSchemaFromFile $fname 1]
+        set c1 [string first "\{" $fs]
+        if {$c1 != -1} {set fs [string trim [string range $fs 0 $c1-1]]}
 
 # check for a bad schema
-          set okSchema 0
-          foreach match [lsort [glob -nocomplain -directory $ifcsvrDir *.rose]] {
-            set schema [string toupper [file rootname [file tail $match]]]
-            if {$fs == $schema} {set okSchema 1; break}
+        set okSchema 0
+        foreach match [lsort [glob -nocomplain -directory $ifcsvrDir *.rose]] {
+          set schema [string toupper [file rootname [file tail $match]]]
+          if {$fs == $schema} {set okSchema 1; break}
+        }
+        if {!$okSchema} {
+          if {[string first "," $fs] != -1} {
+            set msg "\nMultiple schemas are not supported: $fs"
+          } elseif {[string first "_MIM" $fs] != -1 && [string first "_MIM_LF" $fs] == -1} {
+            set msg "\nThe STEP AP (schema) should end with _MIM_LF: $fs"
+          } else {
+            set msg "\nThe STEP AP (schema) is not supported: $fs"
           }
-          if {!$okSchema} {
-            if {[string first "," $fs] != -1} {
-              set msg "\nMultiple schemas are not supported: $fs"
-            } elseif {[string first "_MIM" $fs] != -1 && [string first "_MIM_LF" $fs] == -1} {
-              set msg "\nThe STEP AP (schema) should end with _MIM_LF: $fs"
-            } else {
-              set msg "\nThe STEP AP (schema) is not supported: $fs"
-            }
-            if {[info exists buttons]} {append msg "\n See Help > Supported STEP APs"}
-            errorMsg $msg red
-            if {[string first "IFC" $fs] == 0} {errorMsg "Use the IFC File Analyzer with IFC files.  https://www.nist.gov/services-resources/software/ifc-file-analyzer"}
+          if {[info exists buttons]} {append msg "\n See Help > Supported STEP APs"}
+          errorMsg $msg red
+          if {[string first "IFC" $fs] == 0} {errorMsg "Use the NIST IFC File Analyzer with IFC files." red}
 
 # other possible errors
-          } else {
-            set msg "\nPossible causes of the error:"
-            append msg "\n1 - File or directory name contains accented, non-English, or symbol characters.  See Help > Text Strings and Numbers"
-            append msg "\n     [file nativename $fname]"
-            append msg "\n    Change the file name or directory name"
-            append msg "\n2 - Syntax errors in the STEP file"
-            append msg "\n    Use F8 to run the Syntax Checker to check for errors in the STEP file.  See Help > Syntax Checker"
-            append msg "\n    Try opening the file in a STEP viewer.  See Websites > STEP File Viewers"
-            append msg "\n3 - If the problem is not with the STEP file, then restart this software and try again."
-            append msg "\n\nFor other problems, contact: [join [getContact]]"
-            errorMsg $msg red
-          }
+        } else {
+          set msg "\nPossible causes of the error:"
+          append msg "\n1 - File or directory name contains accented, non-English, or symbol characters.  See Help > Text Strings and Numbers"
+          append msg "\n     [file nativename $fname]"
+          append msg "\n    Change the file name or directory name"
+          append msg "\n2 - Syntax errors in the STEP file"
+          append msg "\n    Use F8 to run the Syntax Checker to check for errors in the STEP file.  See Help > Syntax Checker"
+          append msg "\n    Try opening the file in a STEP viewer.  See Websites > STEP File Viewers"
+          append msg "\n3 - If the problem is not with the STEP file, then restart and try again."
+          errorMsg $msg red
         }
-
-# part 21 edition 3, but should never get to this point
-      } else {
-        outputMsg " "
-        errorMsg "The STEP file uses ISO 10303 Part 21 Edition 3 and cannot be processed by this software.  Edit the STEP file to delete the Edition 3 content such as the ANCHOR and REFERENCE sections.  See Websites > STEP Format and Schemas > ISO 10303 Part 21 Standard (sections 9, 10, 14)"
       }
 
 # open STEP file in editor
@@ -471,8 +486,8 @@ proc genExcel {{numFile 0}} {
 
 # load custom color theme that only changes the hyperlink color
       catch {
-        file copy -force -- [file join $wdir images sfa-excel-theme.xml] [file join $mytemp sfa-excel-theme.xml]
-        [[[$excel ActiveWorkbook] Theme] ThemeColorScheme] Load [file nativename [file join $mytemp sfa-excel-theme.xml]]
+        file copy -force -- [file join $wdir images SFA-excel-theme.xml] [file join $mytemp SFA-excel-theme.xml]
+        [[[$excel ActiveWorkbook] Theme] ThemeColorScheme] Load [file nativename [file join $mytemp SFA-excel-theme.xml]]
       }
 
 # delete all but one worksheet
@@ -497,7 +512,7 @@ proc genExcel {{numFile 0}} {
         }
       }
 
-# print errors
+# errors
     } emsg]} {
       errorMsg "Error opening Excel workbooks and worksheets: $emsg"
       catch {raise .}
@@ -699,7 +714,7 @@ proc genExcel {{numFile 0}} {
 
 # -------------------------------------------------------------------------------------------------
 # check if there is anything to view
-  foreach typ {PMI TPG FEA} {set viz($typ) 0}
+  foreach typ {PMI TESSPART FEA} {set viz($typ) 0}
   if {$gen(View)} {
     if {$opt(viewPMI)} {
       foreach ao $aoEntTypes {
@@ -710,15 +725,28 @@ proc genExcel {{numFile 0}} {
         if {[info exists entCount($ao1)]} {if {$entCount($ao1) > 0} {set viz(PMI) 1}}
       }
     }
-    if {$opt(viewTessPart)} {if {[info exists entCount(tessellated_solid)] || [info exists entCount(tessellated_shell)]} {set viz(TPG) 1}}
+    if {$opt(viewTessPart)} {if {[info exists entCount(tessellated_solid)] || [info exists entCount(tessellated_shell)]} {set viz(TESSPART) 1}}
     if {$opt(viewFEA) && [string first "AP209" $stepAP] == 0} {set viz(FEA) 1}
   }
 
 # read expected PMI worksheet (once) if PMI representation and correct file name
-  if {$opt(PMISEM) && [string first "AP242" $stepAP] == 0 && $nistName != "" && $opt(xlFormat) != "None"} {
-    set tols [concat $tolNames [list dimensional_characteristic_representation datum datum_feature datum_reference_compartment datum_reference_element datum_system placed_datum_target_feature]]
-    foreach tol $tols {if {[info exists entCount($tol)]} {set ok 1; break}}
-    if {$ok && ![info exists nistPMImaster($nistName)]} {nistReadExpectedPMI}
+  set epmiUD ""
+  if {$opt(PMISEM) && [string first "AP242" $stepAP] == 0 && $opt(xlFormat) != "None"} {
+
+# NIST test case
+    if {$nistName != ""} {
+      set tols [concat $tolNames [list dimensional_characteristic_representation datum datum_feature datum_reference_compartment datum_reference_element datum_system placed_datum_target_feature]]
+      foreach tol $tols {if {[info exists entCount($tol)]} {set ok 1; break}}
+      if {$ok && ![info exists nistPMImaster($nistName)]} {nistReadExpectedPMI}
+
+# user-defined expected PMI
+    } else {
+      set epmiFile [file join [file dirname $localName] SFA-EPMI-[file tail [file rootname $localName]].xlsx]
+      if {[file exists $epmiFile]} {
+        set epmiUD [file tail [file rootname $localName]]
+        nistReadExpectedPMI $epmiFile
+      }
+    }
   }
 
 # filter inverse relationships to check only by entities in file
@@ -973,11 +1001,15 @@ proc genExcel {{numFile 0}} {
         if {[lsearch $entsToProcess $ent] != -1} {
           if {([string first "AP2" $stepAP] == 0 && $unicodeInFile) || [string first "ISO13" $stepAP] == 0 || [string first "CUTTING_TOOL_" $stepAP] == 0} {
             lappend unicodeEnts [string toupper $ent]
-            if {[lsearch $entsToProcess $ent] != -1} {incr unicodeNumEnts $entCount($ent)}
+            incr unicodeNumEnts $entCount($ent)
           }
         }
       }
-      if {[llength $unicodeEnts] > 0} {unicodeStrings $unicodeEnts}
+      if {[llength $unicodeEnts] > 0} {
+        unicodeStrings $unicodeEnts
+        set unicodeEnts {}
+        foreach item $unicodeActual {lappend unicodeEnts [string toupper $item]}
+      }
     }
 
 # find camera models used in draughting model items and items used in property_definition and datums
@@ -990,6 +1022,19 @@ proc genExcel {{numFile 0}} {
       if {$opt(xlFormat) != "None"} {
         set nerr1 0
         set lastEnt $entType
+
+# increase maximum rows for analysis options
+        set newmax 5003
+        set rmax $rowmax
+        if {$stepAPreport && $rowmax < $newmax} {
+          if {$opt(PMISEM)} {
+            foreach item [list "angular" "datum" "dimension" "limits_and_fits" "runout" "tolerance"] {
+              if {[string first $item $entType] != -1} {set rmax $newmax; break}
+            }
+          }
+          if {$opt(PMIGRF)} {if {[string first "annotation" $entType] != -1 && [string first "plane" $entType] == -1} {set rmax $newmax}}
+          if {$opt(valProp)} {if {$entType == "property_definition"} {set rmax $newmax}}
+        }
 
 # decide if inverses should be checked for this entity type
         set checkInv 0
@@ -1012,7 +1057,7 @@ proc genExcel {{numFile 0}} {
 
             if {[catch {
               if {$useXL} {
-                set stat [getEntity $objEntity $checkInv $badAttr $unicodeCheck]
+                set stat [getEntity $objEntity $rmax $checkInv $badAttr $unicodeCheck]
               } else {
                 set stat [getEntityCSV $objEntity $badAttr $unicodeCheck]
               }
@@ -1113,13 +1158,13 @@ proc genExcel {{numFile 0}} {
 # generate b-rep part geometry if no other viz exists
   set vizprt 0
   if {$gen(View)} {
-    if {$opt(viewPart) && !$viz(PMI) && !$viz(FEA) && !$viz(TPG) && ![info exists statsOnly]} {
+    if {$opt(viewPart) && !$viz(PMI) && !$viz(FEA) && !$viz(TESSPART) && ![info exists statsOnly]} {
       x3dFileStart
       set vizprt 1
     }
 
 # generate b-rep part geom, set viewpoints, and close x3dom geometry file
-    if {($viz(PMI) || $viz(FEA) || $viz(TPG) || $vizprt) && $x3dFileName != ""} {x3dFileEnd}
+    if {($viz(PMI) || $viz(FEA) || $viz(TESSPART) || $vizprt) && $x3dFileName != ""} {x3dFileEnd}
   }
 
 # -------------------------------------------------------------------------------------------------
@@ -1162,7 +1207,7 @@ proc genExcel {{numFile 0}} {
 
 # -------------------------------------------------------------------------------------------------
 # add PMI Rep. Coverage Analysis worksheet for a single file
-    if {$opt(PMISEM)} {
+    if {$opt(PMISEM) && $stepAPreport} {
 
 # check for datum and datum_system
       if {!$opt(PMISEMDIM)} {
@@ -1199,15 +1244,17 @@ proc genExcel {{numFile 0}} {
 
 # format PMI Representation Summary worksheet
       if {[info exists spmiSumName]} {
-        if {$nistName != "" && [info exists nistPMIexpected($nistName)]} {nistPMISummaryFormat}
+        set name $nistName
+        if {[info exists epmiFile]} {if {$epmiFile != ""} {set name $epmiUD}}
+        if {$name != "" && [info exists nistPMIexpected($name)]} {nistPMISummaryFormat $name}
         [$worksheet($spmiSumName) Columns] AutoFit
         [$worksheet($spmiSumName) Rows] AutoFit
       }
       catch {unset spmiSumName}
     }
 
-# add PMI Pres. Coverage Analysis worksheet for a single file
-    if {$opt(PMIGRF) && $opt(xlFormat) != "None" && $opt(PMIGRFCOV)} {
+# add PMI Presentation Coverage Analysis worksheet for a single file
+    if {$opt(PMIGRF) && $opt(xlFormat) != "None" && $opt(PMIGRFCOV) && $stepAPreport} {
       if {[info exists gpmiTypesPerFile]} {
         set gpmiCoverageWS "PMI Presentation Coverage"
         if {![info exists worksheet($gpmiCoverageWS)]} {
@@ -1462,7 +1509,7 @@ proc genExcel {{numFile 0}} {
   update idletasks
 
 # unset variables to release memory and/or to reset them
-  foreach var {cells cgrObjects colColor coordinatesList count currx3dPID datumEntType datumGeom datumIDs datumSymbol datumSystem dimrep dimrepID dimtolEnt dimtolEntID dimtolGeom entCount entName entsIgnored feaDOFR feaDOFT feaNodes gpmiID gpmiIDRow gpmiRow heading idRow invCol invGroup lineStrips nrep numx3dPID pmiCol pmiColumns pmiStartCol pmivalprop propDefID propDefIDRow propDefName propDefOK propDefRow savedsavedViewNames savedViewFile savedViewFileName savedViewNames shapeRepName srNames suppGeomEnts syntaxErr tessCoord tessCoordName tessIndex tessIndexCoord tessPlacement tessRepo unicode viz vpEnts workbook workbooks worksheet worksheets x3dCoord x3dFile x3dFileName x3dIndex x3dMax x3dMin x3dStartFile} {
+  foreach var {cells cgrObjects colColor count currx3dPID datumEntType datumGeom datumIDs datumSymbol datumSystem dimrep dimrepID dimtolEnt dimtolEntID dimtolGeom entCount entName entsIgnored epmi epmiUD feaDOFR feaDOFT feaNodes gpmiID gpmiIDRow gpmiRow heading idRow invCol invGroup nrep numx3dPID pmiCol pmiColumns pmiStartCol pmivalprop propDefID propDefIDRow propDefName propDefOK propDefRow savedsavedViewNames savedViewFile savedViewFileName savedViewNames shapeRepName srNames suppGeomEnts syntaxErr tessCoord tessCoordName tessIndex tessIndexCoord tessPlacement tessRepo unicode unicodeActual unicodeNumEnts unicodeString viz vpEnts workbook workbooks worksheet worksheets x3dCoord x3dFile x3dFileName x3dIndex x3dMax x3dMin x3dStartFile} {
     catch {global $var}
     if {[info exists $var]} {unset $var}
   }
@@ -1549,21 +1596,20 @@ proc addHeaderWorksheet {numFile fname} {
           } elseif {$id == 4} {
             append str " (Edition 2 Minor Revision)"
           } elseif {$id > 9} {
-            errorMsg "This file uses an unknown identifier '$id 1 4' for AP242." red
+            errorMsg "Unknown AP242 identifier '$id 1 4'" red
           }
         }
+
+# check for IFC files
+        if {[string first "IFC" $sn] == 0} {append str "  (Use the NIST IFC File Analyzer)"}
         outputMsg $str blue
 
 # check old version of AP203, AP214
         if {[string first "CONFIG_CONTROL_DESIGN" $sn] == 0 || [string first "CONFIGURATION_CONTROL_3D_DESIGN" $sn] == 0} {
-          errorMsg "This file uses an older version of STEP AP203.  See Help > Supported STEP APs" red
+          errorMsg "Older version of STEP AP203.  See Help > Supported STEP APs" red
         } elseif {[string first "AUTOMOTIVE_DESIGN_CC2" $sn] == 0} {
-          errorMsg "This file uses an older version of STEP AP214.  See Help > Supported STEP APs" red
+          errorMsg "Older version of STEP AP214.  See Help > Supported STEP APs" red
         }
-
-# check for IFC files
-        set fschema [string toupper [string range $objAttr 0 5]]
-        if {[string first "IFC" $fschema] == 0} {errorMsg "Use the IFC File Analyzer with IFC files.  https://www.nist.gov/services-resources/software/ifc-file-analyzer"}
 
 # check for multiple schemas
         if {[string first "," $sn] != -1} {
@@ -1643,9 +1689,6 @@ proc addHeaderWorksheet {numFile fname} {
       foreach item $caxifrp {
         outputMsg " $item"
         lappend spmiTypesPerFile "document identification"
-        if {[string first "AP242" $fschema] == -1 && [string first "Tessellated" $item] != -1} {
-          errorMsg "  Error: Recommended Practices related to 'Tessellated' only apply to AP242 files."
-        }
       }
     }
 
@@ -1863,7 +1906,7 @@ proc sumAddWorksheet {} {
       [join "Link to NIST STEP File Analyzer and Viewer"]
     $cells($sum) Item [expr {$row($sum)+3}] 1 "[clock format [clock seconds]]"
 
-# print errors
+# errors
   } emsg]} {
     errorMsg "Error adding Summary worksheet: $emsg"
     catch {raise .}
@@ -2094,7 +2137,7 @@ proc sumAddColorLinks {sum sumHeaderRow sumLinks sheetSort sumRow} {
 # format worksheets
 proc formatWorksheets {sheetSort sumRow inverseEnts} {
   global buttons cells col count entCount entRows excel gpmiEnts nprogBarEnts opt pmiStartCol
-  global row spmiEnts stepAP syntaxErr thisEntType viz vpEnts worksheet xlFileName
+  global row spmiEnts stepAP stepAPreport syntaxErr thisEntType viz vpEnts worksheet xlFileName
   outputMsg "Formatting Worksheets" blue
 
   if {[info exists buttons]} {$buttons(progressBar) configure -maximum [llength $sheetSort]}
@@ -2165,15 +2208,15 @@ proc formatWorksheets {sheetSort sumRow inverseEnts} {
         valPropFormat
 
 # color STEP annotation occurrence (Graphical PMI)
-      } elseif {$gpmiEnts($thisEntType) && $opt(PMIGRF)} {
+      } elseif {$gpmiEnts($thisEntType) && $opt(PMIGRF) && $stepAPreport} {
         pmiFormatColumns "PMI Presentation"
 
 # color STEP semantic PMI
-      } elseif {$spmiEnts($thisEntType) && $opt(PMISEM)} {
+      } elseif {$spmiEnts($thisEntType) && $opt(PMISEM) && $stepAPreport} {
         pmiFormatColumns "PMI Representation"
 
 # add PMI Representation Summary worksheet
-        if {$thisEntType != "datum_feature"} {spmiSummary}
+        if {$thisEntType != "datum_feature" && $stepAPreport} {spmiSummary}
 
 # extra validation properties
       } elseif {[lsearch $vpEnts $thisEntType] != -1} {

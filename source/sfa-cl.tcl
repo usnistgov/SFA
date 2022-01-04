@@ -9,7 +9,6 @@ global env
 set scriptName [info script]
 set wdir [file dirname $scriptName]
 set auto_path [linsert $auto_path 0 $wdir]
-set contact [getContact]
 
 #-------------------------------------------------------------------------------
 # start
@@ -43,13 +42,12 @@ if {[catch {
     append emsg "\n2 - The directory is on a different computer"
     append emsg "\n3 - No permissions to run the software in the directory"
     append emsg "\n4 - Other computer configuration problems"
-    append emsg "\n\nTry the following workarounds to run the software:"
+    append emsg "\n\nTry these workarounds to run the software:"
     append emsg "\n1 - From a directory without any special characters in the pathname, or from your home directory, or desktop"
     append emsg "\n2 - Installed on your local computer"
     append emsg "\n3 - As Administrator"
     append emsg "\n4 - On a different computer"
   }
-  append emsg "\n\nContact [lindex $contact 0] ([lindex $contact 1]) if you cannot run the STEP File Analyzer and Viewer."
   puts "\nError: $emsg"
   exit
 }
@@ -76,7 +74,7 @@ Optional command line settings:
           be similar to STEP-File-Analyzer-options.dat in your home directory.
 
  Most options last used in the GUI version are used in this program unless the 'file'
- option is used.  If 'myfile.stp' has spaces, put quotes around the file name
+ option is used.  If 'myfile.stp' has spaces, put double quotes around the file name
  \"C:/my dir/my file.stp\"
 
  You should run the GUI version of the software first.  If not already installed, the
@@ -84,8 +82,7 @@ Optional command line settings:
 
  When the STEP file is opened, errors and warnings might appear in the output between
  the 'Begin ST-Developer output' and 'End ST-Developer output' messages.  Existing
- Spreadsheets and View files are always overwritten.  An Internet connection is
- required for the web browser Viewer.
+ Spreadsheets and View files are always overwritten.
 
 Disclaimers
  NIST Disclaimer: https://www.nist.gov/disclaimer
@@ -96,12 +93,14 @@ Disclaimers
  software.
 
 Credits
-- Reading and parsing STEP files: IFCsvr ActiveX Component, Copyright \u00A9 1999, 2005 SECOM Co., Ltd. All Rights Reserved
-                                  IFCsvr has been modified by NIST to include STEP schemas.
-                                  The license agreement can be found in  C:\\Program Files (x86)\\IFCsvrR300\\doc
-- Translating STEP to X3D:        Developed by Soonjo Kwon (former NIST Guest Researcher)
-                                  https://www.nist.gov/services-resources/software/step-x3d-translator
-- Some Tcl code is based on:      CAWT http://www.cawt.tcl3d.org/"
+- Reading and parsing STEP files:
+   IFCsvr ActiveX Component, Copyright \u00A9 1999, 2005 SECOM Co., Ltd. All Rights Reserved
+   IFCsvr has been modified by NIST to include STEP schemas.
+   The license agreement can be found in C:\\Program Files (x86)\\IFCsvrR300\\doc
+- Translating STEP to X3D:
+   Developed by Soonjo Kwon, former NIST Associate
+   https://www.nist.gov/services-resources/software/step-x3d-translator
+- Some Tcl code is based on: CAWT http://www.cawt.tcl3d.org/"
 
 if {$argc == 1} {set arg [string tolower [lindex $argv 0]]}
 if {$argc == 0 || ($argc == 1 && ($arg == "help" || $arg == "-help" || $arg == "-h" || $arg == "-v"))} {
@@ -139,7 +138,8 @@ if {![file exists $localName]} {
 
 # -----------------------------------------------------------------------------------------------------
 # initialize variables, set opt to 1
-foreach id {logFile outputOpen PMIGRF PMISEM stepAP242 stepCOMM stepCOMP stepFEAT stepKINE stepPRES stepQUAN stepREPR stepSHAP stepTOLR valProp} {set opt($id) 1}
+foreach id {logFile outputOpen PMIGRF PMISEM stepADDM stepAP242 stepCOMM stepCOMP stepCONS stepFEAT stepKINE stepPRES stepQUAL stepQUAN \
+  stepREPR stepSHAP stepTOLR valProp} {set opt($id) 1}
 
 # set opt to 0
 foreach id { \
@@ -232,7 +232,6 @@ if {$opt(partQuality) == 9} {set opt(partQuality) 10}
 
 #-------------------------------------------------------------------------------
 # install IFCsvr
-set ifcsvrDir [file join $pf32 IFCsvrR300 dll]
 installIFCsvr 1
 
 # -----------------------------------------------------------------------------------------------------

@@ -1,25 +1,15 @@
 # read entity and write to spreadsheet
-proc getEntity {objEntity checkInverse checkBadAttributes unicodeCheck} {
-  global attrType badAttributes cells col coordinatesList count developer entComment entCount entName entRows heading invMsg invVals lineStrips localName
-  global matrixList opt roseLogical row rowmax sheetLast skipEntities skipPerm syntaxErr thisEntType unicodeString worksheet worksheets
+proc getEntity {objEntity rmax checkInverse checkBadAttributes unicodeCheck} {
+  global attrType badAttributes cells col count entComment entCount entName entRows heading invMsg invVals localName
+  global matrixList opt roseLogical row sheetLast skipEntities skipPerm syntaxErr thisEntType unicodeAttributes unicodeString worksheet worksheets
   global wsCount wsNames
 
 # get entity type
   set thisEntType [$objEntity Type]
-  #if {$developer} {if {$thisEntType != $expectedEnt} {errorMsg "Mismatch: $thisEntType  $expectedEnt"}}
 
   if {[info exists invVals]} {unset invVals}
   set cellLimit1 500
   set cellLimit2 3000
-
-# ignore maximum rows depending on analysis options
-  set rmax $rowmax
-  if {$opt(PMISEM)} {
-    foreach item [list "angular" "datum" "dimension" "limits_and_fits" "runout" "tolerance"] {
-      if {[string first $item $thisEntType] != -1} {set rmax 1000000; break}
-    }
-  }
-  if {$opt(PMIGRF)} {if {[string first "annotation" $thisEntType] != -1 && [string first "plane" $thisEntType] == -1} {set rmax 1000000}}
 
 # -------------------------------------------------------------------------------------------------
 # open worksheet for each entity if it does not already exist
@@ -101,15 +91,6 @@ proc getEntity {objEntity checkInverse checkBadAttributes unicodeCheck} {
     set col($thisEntType) 1
     incr count($thisEntType)
 
-# show progress with > 50000 entities
-    if {$entCount($thisEntType) >= 50000} {
-      set c1 [expr {$count($thisEntType)%20000}]
-      if {$c1 == 0} {
-        outputMsg " $count($thisEntType) of $entCount($thisEntType) processed"
-        update idletasks
-      }
-    }
-
 # entity ID
     set p21id [$objEntity P21ID]
     lappend rowList $p21id
@@ -138,8 +119,12 @@ proc getEntity {objEntity checkInverse checkBadAttributes unicodeCheck} {
 
 # substitute correct unicode
           if {$unicodeCheck} {
-            set idx "$thisEntType,$attrName,$p21id"
-            if {[info exists unicodeString($idx)]} {set objValue $unicodeString($idx)}
+            foreach attr $unicodeAttributes($thisEntType) {
+              if {$attr == $attrName} {
+                set idx "$thisEntType,$attrName,$p21id"
+                if {[info exists unicodeString($idx)]} {set objValue $unicodeString($idx)}
+              }
+            }
           }
 
 # look for bad attributes that cause a crash
@@ -151,12 +136,7 @@ proc getEntity {objEntity checkInverse checkBadAttributes unicodeCheck} {
           } else {
             set objValue "???"
             if {[llength $badAttributes($thisEntType)] == 1} {
-              set ok1 0
-              switch -- $attrName {
-                position_coords {if {[info exists coordinatesList($p21id)]} {set objValue $coordinatesList($p21id); set ok1 1}}
-                line_strips     {if {[info exists lineStrips($p21id)]}      {set objValue $lineStrips($p21id); set ok1 1}}
-              }
-              if {!$ok1} {errorMsg " Reporting [formatComplexEnt $thisEntType] '$attrName' attribute is not supported.  '???' will appear in spreadsheet for this attribute.  See User Guide section 5.4" red}
+              errorMsg " Reporting [formatComplexEnt $thisEntType] '$attrName' attribute is not supported.  '???' will appear in spreadsheet for this attribute.  See User Guide section 5.4" red
             } else {
               set str $badAttributes($thisEntType)
               regsub -all " " $str "' '" str
@@ -461,15 +441,6 @@ proc getEntityCSV {objEntity checkBadAttributes unicodeCheck} {
   update idletasks
   if {$row($thisEntType) <= $rowmax} {
     incr count($thisEntType)
-
-# show progress with > 50000 entities
-    if {$entCount($thisEntType) >= 50000} {
-      set c1 [expr {$count($thisEntType)%20000}]
-      if {$c1 == 0} {
-        outputMsg " $count($thisEntType) of $entCount($thisEntType) processed"
-        update idletasks
-      }
-    }
 
 # entity ID
     set p21id [$objEntity P21ID]

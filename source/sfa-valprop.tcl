@@ -1,7 +1,7 @@
 proc valPropStart {} {
   global objDesign
   global cells col entLevel ent entAttrList letters ncartpt opt pd pdcol pdheading propDefID
-  global propDefIDRow propDefRow rowmax valPropEnts valPropLink valPropNames valProps
+  global propDefIDRow propDefRow samplingPoints valPropEnts valPropLink valPropNames valProps
 
 # CAx-IF RP Geometric and Assembly Validation Properties, section 8
   set valPropNames(geometric_validation_property) [list \
@@ -165,7 +165,7 @@ proc valPropStart {} {
   set pdcol 0
   set propDefRow {}
   set valPropLink 0
-  foreach var {ent pdheading} {if {[info exists $var]} {unset $var}}
+  foreach var {ent pdheading samplingPoints} {if {[info exists $var]} {unset $var}}
 
   outputMsg " Adding Properties to property_definition worksheet" blue
 
@@ -179,84 +179,80 @@ proc valPropStart {} {
   set n 0
   set entLevel 0
 
-# get all property_definition_representation
+# get property_definition_representation for property_definition in spreadsheet
   set pdr {}
   ::tcom::foreach objEntity [$objDesign FindObjects [join $startent]] {
     set objType [$objEntity Type]
-    if {$objType == $startent} {lappend pdr $objEntity}
+    if {$objType == $startent} {
+      set p21id [[[[$objEntity Attributes] Item [expr 1]] Value] P21ID]
+      if {[info exists propDefIDRow($p21id)]} {lappend pdr $objEntity}
+    }
   }
 
-# process all property_definition_representation
+# process property_definition_representation
   foreach objEntity $pdr {
     set objType [$objEntity Type]
     set ncartpt 0
-    if {$n < $rowmax} {
-      if {[expr {$n%2000}] == 0} {
-        if {$n > 0} {outputMsg "  $n"}
-        update
-      }
-      valPropReport $objEntity
-      if {$opt(DEBUG1)} {outputMsg \n}
+    valPropReport $objEntity
+    if {$opt(DEBUG1)} {outputMsg \n}
 
 # write valProps and valPropEnts to worksheet cells
-      if {[info exists propDefIDRow($propDefID)] && [info exists valProps]} {
-        set vprow $propDefIDRow($propDefID)
-        set vpadd 0
-        if {[string length [[$cells($pd) Item $vprow E] Value]] > 0} {set vpadd 1}
+    if {[info exists propDefIDRow($propDefID)] && [info exists valProps]} {
+      set vprow $propDefIDRow($propDefID)
+      set vpadd 0
+      if {[string length [[$cells($pd) Item $vprow E] Value]] > 0} {set vpadd 1}
 
-        foreach {id c1} {0 E 1 G 2 I 3 K 4 M} {
-          set c2 [string index $letters [expr {[string first $c1 $letters]+1}]]
-          set vp1 [lindex $valProps $id]
-          set vp2 [lindex $valPropEnts $id]
-          set lvp [llength $vp1]
-          set str1 ""
-          set str2 ""
-          set okstr 0
+      foreach {id c1} {0 E 1 G 2 I 3 K 4 M} {
+        set c2 [string index $letters [expr {[string first $c1 $letters]+1}]]
+        set vp1 [lindex $valProps $id]
+        set vp2 [lindex $valPropEnts $id]
+        set lvp [llength $vp1]
+        set str1 ""
+        set str2 ""
+        set okstr 0
 
 # add linefeeds for multiline vp
-          for {set i 0} {$i < $lvp} {incr i} {
-            set val1 [lindex $vp1 $i]
-            set val2 [lindex $vp2 $i]
-            append str1 $val1[format "%c" 10]
-            append str2 $val2[format "%c" 10]
-            if {[string length $val2] > 0} {set okstr 1}
-          }
+        for {set i 0} {$i < $lvp} {incr i} {
+          set val1 [lindex $vp1 $i]
+          set val2 [lindex $vp2 $i]
+          append str1 $val1[format "%c" 10]
+          append str2 $val2[format "%c" 10]
+          if {[string length $val2] > 0} {set okstr 1}
+        }
 
 # write cells
-          if {$okstr} {
+        if {$okstr} {
 
 # remove last linefeed
-            set str1 [string range $str1 0 end-1]
-            set str2 [string range $str2 0 end-1]
+          set str1 [string range $str1 0 end-1]
+          set str2 [string range $str2 0 end-1]
 
 # append new str to existing cells, usually for sampling points
-            if {$vpadd} {
-              set val1 [[$cells($pd) Item $vprow $c1] Value]
-              set str1 $val1[format "%c" 10]$str1
-              set val2 [[$cells($pd) Item $vprow $c2] Value]
-              set str2 $val2[format "%c" 10]$str2
-            }
-            if {[catch {
-              $cells($pd) Item $vprow $c1 $str1
-              $cells($pd) Item $vprow $c2 $str2
-            } emsg]} {
-              errorMsg "  Error writing validation property to cell $c1$vprow" red
-            }
+          if {$vpadd} {
+            set val1 [[$cells($pd) Item $vprow $c1] Value]
+            set str1 $val1[format "%c" 10]$str1
+            set val2 [[$cells($pd) Item $vprow $c2] Value]
+            set str2 $val2[format "%c" 10]$str2
+          }
+          if {[catch {
+            $cells($pd) Item $vprow $c1 $str1
+            $cells($pd) Item $vprow $c2 $str2
+          } emsg]} {
+            errorMsg "  Error writing validation property to cell $c1$vprow" red
           }
         }
-        unset valProps
-        unset valPropEnts
       }
+      unset valProps
+      unset valPropEnts
     }
-    incr n
   }
   set col($pd) $pdcol
 }
 
 # -------------------------------------------------------------------------------
 proc valPropReport {objEntity} {
-  global cells col entLevel ent entAttrList maxelem maxrep ncartpt nelem nrep opt pd pdclass pdcol pdheading pmivalprop prefix
-  global propDefID propDefIDRow propDefName propDefOK propDefRow recPracNames repName spaces stepAP syntaxErr tessCoord tessCoordName
+  global cells col entLevel ent entAttrList gen maxelem maxrep ncartpt nelem nrep opt pd pdclass pdcol pdheading pmivalprop prefix
+  global propDefID propDefIDRow propDefName propDefOK propDefRow recPracNames repName samplingPoints spaces stepAP syntaxErr tessCoord tessCoordName
   global unicodeEnts unicodeString valName valPropEnts valPropLink valPropNames valProps
 
   if {$opt(DEBUG1)} {outputMsg "valPropReport" red}
@@ -279,10 +275,7 @@ proc valPropReport {objEntity} {
       if {[info exists repName]} {
         if {$objType == "cartesian_point" && [string first "sampling points" $repName] != -1} {
           incr ncartpt
-          if {$ncartpt > $pointLimit} {
-            errorMsg " Only the first $pointLimit sampling points are reported."
-            return
-          }
+          if {$ncartpt == 1 && $gen(View) && $opt(viewPart)} {errorMsg "  Processing cloud of points" red}
         }
       }
 
@@ -325,14 +318,16 @@ proc valPropReport {objEntity} {
 # missing units
             set nounits 0
             if {$objName == "unit_component"} {
-              if {[string length $objValue] == 0 && \
-                  ([string first "volume" $valName] == -1 || [string first "area" $valName] == -1 || [string first "length" $valName] == -1)} {
-                set msg "Syntax Error: Missing 'unit_component' attribute on $ent($entLevel).  No units set for validation property values."
-                if {$propDefName == "geometric_validation_property"} {append msg "$spaces\($recPracNames(valprop))"}
-                errorMsg $msg
-                lappend syntaxErr($ent($entLevel)) [list $objID unit_component $msg]
-                lappend syntaxErr(property_definition) [list $propDefID 9 $msg]
-                set nounits 1
+              if {[info exists valName]} {
+                if {[string length $objValue] == 0 && \
+                    ([string first "volume" $valName] == -1 || [string first "area" $valName] == -1 || [string first "length" $valName] == -1)} {
+                  set msg "Syntax Error: Missing 'unit_component' attribute on $ent($entLevel).  No units set for validation property values."
+                  if {$propDefName == "geometric_validation_property"} {append msg "$spaces\($recPracNames(valprop))"}
+                  errorMsg $msg
+                  lappend syntaxErr($ent($entLevel)) [list $objID unit_component $msg]
+                  lappend syntaxErr(property_definition) [list $propDefID 9 $msg]
+                  set nounits 1
+                }
               }
 
 # wrong units
@@ -442,14 +437,19 @@ proc valPropReport {objEntity} {
                   set ok 1
                   set col($pd) 9
                   set colName "value"
-                  addValProps 2 $objValue "#$objID $ent2"
-                  if {$ent1 == "direction direction_ratios"} {
-                    if {[veclen $objValue] == 0} {
-                      set msg "Syntax Error: The validation property direction vector is '0 0 0'."
-                      errorMsg $msg
-                      lappend syntaxErr(direction) [list $objID direction_ratios $msg]
-                      lappend syntaxErr(property_definition) [list $propDefID 9 $msg]
+                  if {[string first "sampling points" $repName] == -1} {
+                    addValProps 2 $objValue "#$objID $ent2"
+                    if {$ent1 == "direction direction_ratios"} {
+                      if {[veclen $objValue] == 0} {
+                        set msg "Syntax Error: The validation property direction vector is '0 0 0'."
+                        errorMsg $msg
+                        lappend syntaxErr(direction) [list $objID direction_ratios $msg]
+                        lappend syntaxErr(property_definition) [list $propDefID 9 $msg]
+                      }
                     }
+                  } else {
+                    if {$ncartpt <= $pointLimit} {addValProps 2 $objValue "#$objID $ent2"}
+                    if {$gen(View) && $opt(viewPart)} {append samplingPoints "[vectrim $objValue 5] "}
                   }
                 }
 
@@ -731,7 +731,7 @@ proc valPropReport {objEntity} {
                   set colName "value name"
                   set valName $objValue
                   if {[info exists nrep]} {incr nrep}
-                  addValProps 1 $objValue "#$objID [formatComplexEnt $ent2]"
+                  if {$objValue != "sampling point" || $ncartpt < 3} {addValProps 1 $objValue "#$objID [formatComplexEnt $ent2]"}
 
 # RP allows for blank representation.name (repName) except for sampling points
                   if {[info exists propDefName]} {
@@ -859,7 +859,7 @@ proc valPropReport {objEntity} {
       }
       if {$msg == ""} {
         set emsg1 [string trim $emsg1]
-        if {[string length $emsg1] > 0 && [string first "can't read \"ent(" $emsg1] == -1} {errorMsg "ERROR adding Validation Properties: $emsg1"}
+        if {[string length $emsg1] > 0 && [string first "can't read \"ent(" $emsg1] == -1} {errorMsg "Error adding Validation Properties: $emsg1"}
       }
     }
   }
@@ -868,9 +868,10 @@ proc valPropReport {objEntity} {
 
 # -------------------------------------------------------------------------------
 proc valPropFormat {} {
-  global cells col entCount opt propDefRow row thisEntType worksheet valPropLink
-
+  global cells col entRows propDefRow row thisEntType worksheet valPropLink
+  
   if {[info exists cells($thisEntType)] && $col($thisEntType) > 4} {
+    outputMsg " property_definition"
 
 # delete unused columns
     set delcol 0
@@ -922,7 +923,7 @@ proc valPropFormat {} {
       }
       lappend r3 [list [expr {$r1+2}] [expr {$r2+2}]]
     } emsg]} {
-      errorMsg "ERROR formatting Validation Properties 1: $emsg"
+      errorMsg "Error formatting Validation Properties 1: $emsg"
     }
 
 # colors
@@ -938,7 +939,7 @@ proc valPropFormat {} {
         incr j
       }
     } emsg]} {
-      errorMsg "ERROR formatting Validation Properties (colors): $emsg"
+      errorMsg "Error formatting Validation Properties (colors): $emsg"
     }
 
 # borders (inside horizontal and vertical)
@@ -948,7 +949,7 @@ proc valPropFormat {} {
       [[$range Borders] Item [expr 11]] Weight [expr 1]
       [[$range Borders] Item [expr 12]] Weight [expr 1]
     } emsg]} {
-      errorMsg "ERROR formatting Validation Properties (borders): $emsg"
+      errorMsg "Error formatting Validation Properties (borders): $emsg"
     }
 
 # left and right borders in header
@@ -962,8 +963,7 @@ proc valPropFormat {} {
 
 # bold lines top and bottom
     set colrange [[[$worksheet($thisEntType) UsedRange] Columns] Count]
-    set r $row($thisEntType)
-    if {$opt(xlMaxRows) < $entCount($thisEntType) && $r > $opt(xlMaxRows)} {set r $opt(xlMaxRows)}
+    set r $entRows($thisEntType)
     set range [$worksheet($thisEntType) Range [cellRange $r 5] [cellRange $r $colrange]]
     catch {[[$range Borders] Item [expr 9]] Weight [expr -4138]}
     set range [$worksheet($thisEntType) Range [cellRange 2 5] [cellRange 2 $colrange]]
@@ -1030,12 +1030,14 @@ proc addValProps {idx val ent} {
   setValProps $idx $val $ent
 
 # add blank depending on the value name, units and exponents
-  if {$idx == 2} {
-    foreach str [list name "number of" point string] {if {[string first $str $valName] != -1} {foreach id {3 4} {setValProps $id}; break}}
+  if {[info exists valName]} {
+    if {$idx == 2} {
+      foreach str [list name "number of" point string] {if {[string first $str $valName] != -1} {foreach id {3 4} {setValProps $id}; break}}
 
 # only exponent
-  } elseif {$idx == 3} {
-    foreach str [list degree length mass] {if {[string first $str $valName] != -1} {setValProps 4; break}}
+    } elseif {$idx == 3} {
+      foreach str [list degree length mass] {if {[string first $str $valName] != -1} {setValProps 4; break}}
+    }
   }
 }
 
@@ -1139,7 +1141,7 @@ proc getValProps {} {
       }
     }
   } emsg]} {
-    errorMsg "ERROR getting PMI validation properities: $emsg"
+    errorMsg "Error getting PMI validation properities: $emsg"
     catch {raise .}
   }
 }
@@ -1234,6 +1236,6 @@ proc valPropColumn {ent r c propID} {
     for {set i 1} {$i < $llen} {incr i 2} {append str "[format "%c" 10]([lindex $propID $i])"}
     $cells($ent) Item $r $c [string trim $str]
   } emsg]} {
-    errorMsg "ERROR adding PMI Representation Validation Properties: $emsg"
+    errorMsg "Error adding PMI representation validation properties: $emsg"
   }
 }

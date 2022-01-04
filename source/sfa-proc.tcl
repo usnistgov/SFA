@@ -45,12 +45,12 @@ proc checkValues {} {
 
 # view
   if {$gen(View)} {
-    foreach b {viewFEA viewPMI viewPMIVP viewTessPart viewPart partOnly genAllView x3dSave DEBUGVP} {lappend butNormal $b}
+    foreach b {viewFEA viewPMI viewPMIVP viewTessPart viewPart partOnly x3dSave DEBUGVP} {lappend butNormal $b}
     if {!$opt(viewFEA) && !$opt(viewPMI) && !$opt(viewTessPart) && !$opt(viewPart)} {set opt(viewPart) 1}
     if {$developer} {lappend butNormal DEBUGX3D}
   } else {
     set opt(x3dSave) 0
-    foreach b {viewFEA viewPMI viewPMIVP viewTessPart viewPart partOnly genAllView x3dSave DEBUGVP} {lappend butDisabled $b}
+    foreach b {viewFEA viewPMI viewPMIVP viewTessPart viewPart partOnly x3dSave DEBUGVP} {lappend butDisabled $b}
     foreach b {gpmiColor0 gpmiColor1 gpmiColor2 gpmiColor3 linecolor} {lappend butDisabled $b}
     foreach b {partEdges partSketch partNormals partqual partQuality4 partQuality7 partQuality10 tessPartMesh} {lappend butDisabled $b}
     foreach b {feaBounds feaLoads feaLoadScale feaDisp feaDispNoTail} {lappend butDisabled $b}
@@ -100,9 +100,9 @@ proc checkValues {} {
     foreach item [array names opt] {
       if {[string first "step" $item] == 0} {lappend butNormal $item}
     }
-    foreach b {xlHideLinks xlUnicode xlSort xlNoRound INVERSE PMIGRF PMISEM valProp genAllAnalysis genExcel} {lappend butDisabled $b}
+    foreach b {xlHideLinks xlUnicode xlSort xlNoRound INVERSE PMIGRF PMISEM valProp genExcel} {lappend butDisabled $b}
     foreach b {viewFEA viewPMI viewTessPart viewPart} {lappend butNormal $b}
-    foreach b {allNone0 allNone1 genAllView stepUSER} {lappend butNormal $b}
+    foreach b {allNone0 allNone1 stepUSER} {lappend butNormal $b}
 
 # Excel
   } else {
@@ -111,7 +111,7 @@ proc checkValues {} {
     }
     foreach b {xlHideLinks xlUnicode xlSort xlNoRound INVERSE PMIGRF PMISEM valProp} {lappend butNormal $b}
     foreach b {viewFEA viewPMI viewTessPart viewPart} {lappend butNormal $b}
-    foreach b {allNone0 allNone1 genAllAnalysis genAllView stepUSER} {lappend butNormal $b}
+    foreach b {allNone0 allNone1 stepUSER} {lappend butNormal $b}
   }
 
 # view only
@@ -120,7 +120,7 @@ proc checkValues {} {
       if {[string first "step" $item] == 0} {lappend butDisabled $item}
     }
     foreach b {PMIGRF PMIGRFCOV PMISEM PMISEMDIM PMISEMRND valProp stepUSER INVERSE} {lappend butDisabled $b}
-    foreach b {allNone0 genAllAnalysis} {lappend butDisabled $b}
+    foreach b {allNone0} {lappend butDisabled $b}
     foreach b {userentity userentityopen} {lappend butDisabled $b}
     set userEntityList {}
     if {!$opt(viewFEA) && !$opt(viewPMI) && !$opt(viewTessPart) && !$opt(viewPart)} {set opt(viewPart) 1}
@@ -130,10 +130,10 @@ proc checkValues {} {
   if {$opt(viewPart)} {
     foreach b {partOnly partEdges partSketch partNormals partqual partQuality4 partQuality7 partQuality10} {lappend butNormal $b}
     if {$opt(partOnly) && $opt(xlFormat) == "None"} {
-      foreach b {syntaxChecker viewFEA viewPMI viewTessPart genAllView} {lappend butDisabled $b}
+      foreach b {syntaxChecker viewFEA viewPMI viewTessPart} {lappend butDisabled $b}
       foreach item {syntaxChecker viewFEA viewPMI viewTessPart} {set opt($item) 0}
     } else {
-      foreach b {syntaxChecker viewFEA viewPMI viewTessPart genAllView} {lappend butNormal $b}
+      foreach b {syntaxChecker viewFEA viewPMI viewTessPart} {lappend butNormal $b}
     }
   } else {
     foreach b {partEdges partSketch partNormals partqual partQuality4 partQuality7 partQuality10} {lappend butDisabled $b}
@@ -412,15 +412,18 @@ proc openURL {url} {
 #-------------------------------------------------------------------------------
 # file open dialog
 proc openFile {{openName ""}} {
-  global allNone buttons drive editorCmd fileDir gen localName localNameList opt
+  global allNone ap242XML buttons developer drive editorCmd fileDir gen localName localNameList opt
 
   if {$openName == ""} {
 
 # file types for file select dialog
-    set typelist [list {"STEP Files" {".stp" ".step" ".p21" ".stpZ" ".stpnc" ".spf" ".ifc"}} {"ASCII STL Files" {".stl"}}]
+    set typelist [list {"STEP  " {".stp" ".step" ".stpZ" ".p21" ".stpnc" ".spf"}}]
+    if {$developer} {lappend typelist {"STEP XML " {".stpx"}}}
+    lappend typelist {"IFC  " {".ifc"}}
+    lappend typelist {"ASCII STL  " {".stl"}}
 
 # file open dialog
-    set localNameList [tk_getOpenFile -title "Open STEP File(s)" -filetypes $typelist -initialdir $fileDir -multiple true]
+    set localNameList [tk_getOpenFile -title "Open File(s)" -filetypes $typelist -initialdir $fileDir -multiple true]
     if {[llength $localNameList] <= 1} {
       set localName [lindex $localNameList 0]
       if {$localName == ""} {outputMsg "No file selected.  Files cannot be selected from the Quick Access menu." red}
@@ -467,6 +470,7 @@ proc openFile {{openName ""}} {
 
 # single file selected
   } elseif {[file exists $localName]} {
+    set ap242XML 0
     catch {pack forget $buttons(progressBarMulti)}
 
 # check for zipped file
@@ -479,10 +483,21 @@ proc openFile {{openName ""}} {
 # check file extension
       set fext ""
       catch {set fext [string tolower [file extension $localName]]}
+      set msg ""
       if {$fext == ".stpnc" || $fext == ".spf"} {
         errorMsg "Change the file extension '$fext' to '.stp' to process the STEP file."
         catch {.tnb select .tnb.status}
         return
+
+# get STEP file from XML file
+      } elseif {$fext == ".stpx"} {
+        set ap242XML 1
+        if {!$gen(View) || !$opt(partOnly)} {
+          set gen(View) 1
+          set opt(partOnly) 1
+          checkValues
+          outputMsg "AP242 XML only supports View with Part Only" red
+        }
       }
 
       if {$fileDir == $drive} {outputMsg "There might be problems processing the STEP file directly in the $fileDir directory." red}
@@ -518,11 +533,25 @@ proc openFile {{openName ""}} {
 # -------------------------------------------------------------------------------------------------
 # get first file from file menu
 proc getFirstFile {} {
-  global editorCmd openFileList buttons
+  global ap242XML editorCmd gen openFileList opt buttons
 
   set localName [lindex $openFileList 0]
   if {$localName != ""} {
     outputMsg "\nReady to process: [file tail $localName] ([fileSize $localName])" green
+
+# check for .stpx file
+    set ap242XML 0
+    set fext [string tolower [file extension $localName]]
+    if {$fext == ".stpx"} {
+      set ap242XML 1
+      if {!$gen(View) || !$opt(partOnly)} {
+        set gen(View) 1
+        set opt(partOnly) 1
+        set opt(partEdges) 1
+        checkValues
+        outputMsg "AP242 XML only supports View with Part Only" red
+      }
+    }
 
     if {[info exists buttons(appOpen)]} {
       .tnb select .tnb.status
@@ -583,7 +612,7 @@ proc addFileToMenu {} {
 
 # insert file name at top of list
   set fext [string tolower [file extension $localName]]
-  if {$ifile != 0 && ($fext == ".stp" || $fext == ".step" || $fext == ".p21" || $fext == ".ifc")} {
+  if {$ifile != 0 && ($fext == ".stp" || $fext == ".stpx" || $fext == ".step" || $fext == ".p21" || $fext == ".ifc")} {
     set openFileList [linsert $openFileList 0 $localName]
     $File insert $filemenuinc command -label [truncFileName [file nativename $localName] 1] -command [list openFile $localName] -accelerator "F1"
     catch {$File entryconfigure 5 -accelerator {}}
@@ -683,7 +712,7 @@ proc saveState {{ok 1}} {
     if {![file exists $optionsFile]} {outputMsg "\nCreating options file: [file nativename $optionsFile]"}
     set fileOptions [open $optionsFile w]
     puts $fileOptions "# Options file for the NIST STEP File Analyzer and Viewer [getVersion] ([string trim [clock format [clock seconds]]])"
-    puts $fileOptions "# Do not edit or delete this file from the home directory $mydocs  Doing so might corrupt the current settings or cause errors in the software.\n"
+    puts $fileOptions "# Do not edit or delete this file from the home directory $mydocs  Doing so might corrupt the current settings or cause errors.\n"
 
 # opt variables
     foreach idx [lsort [array names opt]] {
@@ -1144,8 +1173,6 @@ proc checkForExcel {{multFile 0}} {
   global buttons lastXLS localName opt
 
   set pid1 [twapi::get_process_ids -name "EXCEL.EXE"]
-  if {![info exists useXL]} {set useXL 1}
-
   if {[llength $pid1] > 0 && $opt(xlFormat) != "None"} {
     if {[info exists buttons]} {
       if {!$multFile} {
@@ -1620,7 +1647,10 @@ proc checkFileName {fn} {
 #-------------------------------------------------------------------------------
 # install IFCsvr (or remove to reinstall)
 proc installIFCsvr {{exit 0}} {
-  global buttons contact developer ifcsvrVer mydocs mytemp nistVersion upgradeIFCsvr wdir
+  global buttons developer ifcsvrVer mydocs mytemp nistVersion upgradeIFCsvr wdir
+
+# IFCsvr version depends on string entered when IFCsvr is repackaged for new STEP schemas
+  set versionIFCsvr 20211004
 
 # if IFCsvr is alreadly installed, get version from registry, decide to reinstall newer version
   if {[catch {
@@ -1629,7 +1659,7 @@ proc installIFCsvr {{exit 0}} {
 # if either fails, then install or reinstall
     set verIFCsvr [registry get $ifcsvrVer {DisplayVersion}]
 
-# format version to be yyyymmdd
+# remove hyphens to format version to be yyyymmdd to compare with versionIFCsvr
     set c1 [string first "20" $verIFCsvr]
     if {$c1 != -1} {
       set verIFCsvr [string range $verIFCsvr $c1 end-1]
@@ -1637,13 +1667,13 @@ proc installIFCsvr {{exit 0}} {
     } else {
       set verIFCsvr 0
     }
-    if {$developer && [string length $verIFCsvr] != [string length [getVersionIFCsvr]]} {
-      errorMsg "Problem with IFCsvr dates: $verIFCsvr [getVersionIFCsvr]"
+    if {$developer && [string length $verIFCsvr] != [string length $versionIFCsvr]} {
+      errorMsg "Problem with IFCsvr dates: $verIFCsvr $versionIFCsvr"
       .tnb select .tnb.status
     }
 
 # old version, reinstall
-    if {$verIFCsvr < [getVersionIFCsvr]} {
+    if {$verIFCsvr < $versionIFCsvr} {
       set reinstall 1
 
 # up-to-date, do nothing
@@ -1675,8 +1705,7 @@ proc installIFCsvr {{exit 0}} {
 - To reinstall the toolkit, run the installation file ifcsvrr300_setup_1008_en-update.msi
   in $mytemp
 - If you choose to Cancel the IFCsvr toolkit installation, you will still be able to use
-  the Viewer for Part Geometry.  Select View and Part Only on the Options tab.
-- If there are problems with the installation, contact [lindex $contact 0] ([lindex $contact 1])."
+  the Viewer for Part Geometry.  Select View and Part Only on the Options tab."
 
     if {[file exists $ifcsvrInst] && [info exists buttons]} {
       set msg "The IFCsvr toolkit must be installed to read and process STEP files (User Guide section 2.2.1).  After clicking OK the IFCsvr toolkit installation will start."
@@ -1700,7 +1729,6 @@ proc installIFCsvr {{exit 0}} {
       outputMsg "- Then run this software again to install the updated IFCsvr toolkit."
     }
     outputMsg "- If you have to reinstall the toolkit every time you start the software, then REMOVE the IFCsvr\n  toolkit and download a new copy of the STEP File Analyzer and Viewer and start over."
-    outputMsg "- If there are problems with this procedure, contact [lindex $contact 0] ([lindex $contact 1])."
 
     if {[file exists $ifcsvrInst] && [info exists buttons]} {
       set msg "The IFCsvr toolkit must be reinstalled to update the STEP schemas."
@@ -1761,8 +1789,7 @@ proc installIFCsvr {{exit 0}} {
       errorMsg "To manually install the IFCsvr toolkit:"
       outputMsg "- The installation file ifcsvrr300_setup_1008_en-update.msi can be found in $mytemp
 - Run the installer and follow the instructions.  Use the default installation folder for IFCsvr.
-  You might need administrator privileges (Run as administrator) to install the toolkit.
-- If there are problems with the IFCsvr installation, contact [lindex $contact 0] ([lindex $contact 1])\n"
+  You might need administrator privileges (Run as administrator) to install the toolkit.\n"
       after 1000
       errorMsg "Opening folder: $mytemp"
       catch {exec C:/Windows/explorer.exe [file nativename $dir] &}
@@ -1792,22 +1819,9 @@ proc setShortcuts {} {
 
   if {[info exists mydesk] || [info exists mymenu]} {
     set ok 1
-    set app ""
-
-# delete old shortcuts
-    set progstr1 "STEP File Analyzer"
-    foreach scut [list "Shortcut to $progstr1.exe.lnk" "$progstr1.exe.lnk" "$progstr1.lnk"] {
-      catch {
-        if {[file exists [file join $mydesk $scut]]} {
-          file delete -- [file join $mydesk $scut]
-          set ok 0
-        }
-        if {[file exists [file join $mymenu "$progstr1.lnk"]]} {file delete -- [file join $mymenu "$progstr1.lnk"]}
-      }
-    }
     if {[file exists [file join $mydesk [file tail [info nameofexecutable]]]]} {set ok 0}
 
-    set progstr  "STEP File Analyzer and Viewer"
+    set progstr "STEP File Analyzer and Viewer"
     set msg "Do you want to create or overwrite shortcuts to the $progstr [getVersion]"
     if {[info exists mydesk]} {
       append msg " on the Desktop"

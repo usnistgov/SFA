@@ -8,7 +8,7 @@ The STEP File Analyzer and Viewer can only be built and run on Windows computers
 
 **You must first install and run the NIST version of the STEP File Analyzer and Viewer before running your own version.**
 
-- Go to the [STEP File Analyzer and Viewer](https://www.nist.gov/services-resources/software/step-file-analyzer-and-viewer) and click on the Attachment zip file to download the software
+- Go to the [STEP File Analyzer and Viewer](https://www.nist.gov/services-resources/software/step-file-analyzer-and-viewer) to download the software
 - Extract STEP-File-Analyzer.exe from the zip file and run it.  This will install the IFCsvr toolkit that is used to read STEP files.
 
 Download the SFA files from the GitHub 'source' directory to a directory on your computer.
@@ -58,10 +58,6 @@ freewrap -f sfa-files.txt
 ## Differences from the NIST-built version of STEP File Analyzer and Viewer
 
 Some features are not available in the user-built version including: tooltips, unzipping compressed STEP files, automated PMI checking for the [NIST CAD models](<https://www.nist.gov/el/systems-integration-division-73400/mbe-pmi-validation-and-conformance-testing>), and inserting images of the NIST test cases in the spreadsheets.  Some of the features are restored if the NIST-built version is run first.
-
-## Contact
-
-[Robert Lipman](https://www.nist.gov/people/robert-r-lipman), <robert.lipman@nist.gov>
 
 ## Disclaimers
 

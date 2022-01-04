@@ -204,7 +204,7 @@ proc setEntsToProcess {entType} {
 # -------------------------------------------------------------------------------
 # check for all types of reports
 proc checkForReports {entType} {
-  global cells gen gpmiEnts opt pmiColumns savedViewCol skipEntities spmiEnts
+  global cells gen gpmiEnts opt pmiColumns savedViewCol skipEntities spmiEnts stepAP stepAPreport
 
 # check for validation properties report, call valPropStart
   if {$entType == "property_definition_representation"} {
@@ -249,18 +249,24 @@ proc checkForReports {entType} {
       if {[info exists opt(PMISEM)]} {
         if {$opt(PMISEM)} {
           if {[info exists cells($entType)]} {
+            if {$stepAPreport} {
 
 # dimensions
-            if {$entType == "dimensional_characteristic_representation"} {
-              spmiDimtolStart $entType
+              if {$entType == "dimensional_characteristic_representation"} {
+                spmiDimtolStart $entType
 
 # hole occurrences
-            } elseif {([string first "counter" $entType] != -1 || [string first "spotface" $entType] != -1 || [string first "basic_round" $entType] != -1) && [string first "occurrence" $entType] == -1} {
-              if {$entType != "spotface_definition"} {spmiHoleStart $entType}
+              } elseif {([string first "counter" $entType] != -1 || [string first "spotface" $entType] != -1 || [string first "basic_round" $entType] != -1) && [string first "occurrence" $entType] == -1} {
+                if {$entType != "spotface_definition"} {spmiHoleStart $entType}
 
 # geometric tolerances
+              } else {
+                spmiGeotolStart $entType
+              }
+
+# AP not supported
             } else {
-              spmiGeotolStart $entType
+              errorMsg " Analysis reports for Semantic and Graphical PMI are not supported in $stepAP files." red
             }
           }
         }
@@ -457,7 +463,7 @@ proc getStepAP {fname} {
   if {$ap == "AP242"} {
     if {[string first "442 1 1 4" $fileSchema] != -1} {
       append ap "e1"
-    } elseif {[string first "442" $fileSchema] != -1} {
+    } elseif {[string first "442 2 1 4" $fileSchema] != -1 || [string first "442 3 1 4" $fileSchema] != -1} {
       append ap "e2"
     }
   }
@@ -596,23 +602,24 @@ proc getSchemaFromFile {fname {limit 0}} {
 #-------------------------------------------------------------------------------
 # convert \X2\ in strings, see sfa-data.tcl
 proc unicodeStrings {unicodeEnts} {
-  global localName unicodeAttributes unicodeNumEnts unicodeString
+  global localName unicodeActual unicodeAttributes unicodeNumEnts unicodeString
 
   if {[catch {
     set nent 0
     set okread 1
-    set uents {}
+    set unicodeActual {}
     set sf [open $localName r]
 
     while {[gets $sf line] >= 0 && $okread} {
+      while {[string first ";" $line] == -1} {gets $sf line1; append line $line1}
+
       set ok 0
+      set c1 [string first "=" $line]
+      set c2 [string first "(" $line]
+      set str [string trim [string range $line $c1+1 $c2-1]]
       foreach ent $unicodeEnts {
-        set c1 [string first "=" $line]
-        set c2 [string first "(" $line]
-        set str [string trim [string range $line $c1+1 $c2-1]]
         if {$str == $ent} {
           set ok 1
-          incr nent
           set ent1 [string tolower $ent]
           break
         }
@@ -621,9 +628,7 @@ proc unicodeStrings {unicodeEnts} {
 # process unicode
       if {$ok} {
         set lattr [llength $unicodeAttributes($ent1)]
-
-# if multi line, get rest of the line
-        while {1} {if {[string first ";" $line] == -1} {gets $sf line1; append line $line1} else {break}}
+        incr nent
 
 # check for unicode X2
         if {[string first "\\X2\\" $line] != -1} {
@@ -642,12 +647,12 @@ proc unicodeStrings {unicodeEnts} {
                 set str [string range $line [string first "'" $line]+1 [string first "," $line]-2]
               }
               set unicodeString($idx) [x3dUnicode $str "attr"]
-              if {[lsearch $uents $ent1] == -1} {lappend uents $ent1}
+              if {[lsearch $unicodeActual $ent1] == -1} {lappend unicodeActual $ent1}
             }
             string_with_language {
               set str [string range $line [string first "'" $line]+1 [string last "'" $line]-1]
               set unicodeString($idx) [x3dUnicode $str "attr"]
-              if {[lsearch $uents $ent1] == -1} {lappend uents $ent1}
+              if {[lsearch $unicodeActual $ent1] == -1} {lappend unicodeActual $ent1}
             }
             translated_label -
             translated_text {
@@ -664,7 +669,7 @@ proc unicodeStrings {unicodeEnts} {
               }
               regsub -all "''" $str "'" str
               set unicodeString($idx) $str
-              if {[lsearch $uents $ent1] == -1} {lappend uents $ent1}
+              if {[lsearch $unicodeActual $ent1] == -1} {lappend unicodeActual $ent1}
             }
 
             default {
@@ -695,7 +700,7 @@ proc unicodeStrings {unicodeEnts} {
                   set unicodeString($idx) $str
                 }
               }
-              if {[lsearch $uents $ent1] == -1} {lappend uents $ent1}
+              if {[lsearch $unicodeActual $ent1] == -1} {lappend unicodeActual $ent1}
             }
           }
         }
@@ -706,7 +711,7 @@ proc unicodeStrings {unicodeEnts} {
     }
 
 # report entities
-    if {[llength $uents] > 0} {outputMsg " ([llength $uents]) entities: [lsort $uents]" red}
+    if {[llength $unicodeActual] > 0} {outputMsg " ([llength $unicodeActual]) entities: [lsort $unicodeActual]" red}
 
   } emsg]} {
     errorMsg "Error processing Unicode string attribute: $emsg"

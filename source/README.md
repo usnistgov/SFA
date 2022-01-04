@@ -29,10 +29,6 @@
 
 - sfa-files.txt - freewrap input file that lists all of the above files
 
-## Contact
-
-[Robert Lipman](https://www.nist.gov/people/robert-r-lipman), <robert.lipman@nist.gov>
-
 ## Disclaimers
 
 [NIST Disclaimer](https://www.nist.gov/disclaimer)

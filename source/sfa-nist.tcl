@@ -1,10 +1,10 @@
 # read expected PMI from spreadsheets, (called from sfa-gen.tcl)
-proc nistReadExpectedPMI {} {
-  global mytemp nistName nistPMImaster nistVersion spmiCoverages wdir
+proc nistReadExpectedPMI {{epmiFile ""}} {
+  global mytemp nistName nistPMImaster nistVersion spmiCoverages epmiUD wdir
 
   if {[catch {
     set lf 1
-    if {![info exists spmiCoverages]} {
+    if {![info exists spmiCoverages] && $epmiFile == ""} {
 
 # check mytemp dir
       checkTempDir
@@ -56,15 +56,24 @@ proc nistReadExpectedPMI {} {
     }
 
 # get expected PMI
-    if {![info exists nistPMImaster($nistName)]} {
-      catch {unset nistPMImaster($nistName)}
-      set fn "SFA-PMI-$nistName.xlsx"
-      if {[file exists NIST/$fn]} {file copy -force NIST/$fn $mytemp}
-      set fname [file nativename [file join $mytemp $fn]]
+    if {$epmiFile == ""} {
+      set name $nistName
+    } else {
+      set name $epmiUD
+    }
+    if {![info exists nistPMImaster($name)]} {
+      catch {unset nistPMImaster($name)}
+      if {$epmiFile == ""} {
+        set fn "SFA-PMI-$nistName.xlsx"
+        if {[file exists NIST/$fn]} {file copy -force NIST/$fn $mytemp}
+        set fname [file nativename [file join $mytemp $fn]]
+      } else {
+        set fname $epmiFile
+      }
 
       if {[file exists $fname]} {
         if {$lf} {outputMsg " "}
-        outputMsg "Reading Expected PMI for: $nistName (See Help > Analyze > NIST CAD Models)" blue
+        outputMsg "Reading Expected PMI for: $name (See Help > Analyze > NIST CAD Models)" blue
         set pid1 [twapi::get_process_ids -name "EXCEL.EXE"]
         set excel2 [::tcom::ref createobject Excel.Application]
         set pid2 [lindex [intersect3 $pid1 [twapi::get_process_ids -name "EXCEL.EXE"]] 2]
@@ -78,7 +87,7 @@ proc nistReadExpectedPMI {} {
         for {set r 0} {$r < $r1} {incr r} {
           set typ [lindex [lindex $matrix $r] 0]
           set pmi [lindex [lindex $matrix $r] 1]
-          if {$typ != "" && $pmi != ""} {lappend nistPMImaster($nistName) "$typ\\$pmi"}
+          if {$typ != "" && $pmi != ""} {lappend nistPMImaster($name) "$typ\\$pmi"}
         }
 
         $workbooks2 Close
@@ -98,36 +107,38 @@ proc nistReadExpectedPMI {} {
 
 # -------------------------------------------------------------------------------
 # get expected PMI for PMI Representation Summary worksheet
-proc nistGetSummaryPMI {} {
+proc nistGetSummaryPMI {name} {
   global nistName nistPMIactual nistPMIexpected nistPMIexpectedNX nistPMIfound nistPMImaster nsimilar opt pmiType spmiSumName tolNames worksheet
 
 # add pictures
-  nistAddModelPictures $spmiSumName
-  [$worksheet($spmiSumName) Range "A1"] Select
+  if {$name == $nistName} {
+    nistAddModelPictures $spmiSumName
+    [$worksheet($spmiSumName) Range "A1"] Select
+  }
 
 # get expected PMI values from nistPMImaster
   set nsimilar 0
-  if {[info exists nistPMImaster($nistName)]} {
-    catch {unset nistPMIexpected($nistName)}
-    catch {unset nistPMIexpectedNX($nistName)}
+  if {[info exists nistPMImaster($name)]} {
+    catch {unset nistPMIexpected($name)}
+    catch {unset nistPMIexpectedNX($name)}
 
 # read master PMI values, remove leading and trailing zeros, other stuff, add to nistPMIexpected
-    foreach item $nistPMImaster($nistName) {
+    foreach item $nistPMImaster($name) {
       set c1 [string first "\\" $item]
       set typ [string range $item 0 $c1-1]
 
       if {!$opt(PMISEMDIM) || $typ == "dimensional_characteristic_representation"} {
         set pmi [string range $item $c1+1 end]
         set newpmi [pmiRemoveZeros $pmi]
-        lappend nistPMIexpected($nistName) $newpmi
+        lappend nistPMIexpected($name) $newpmi
 
 # look for 'nX' in expected
         set c1 [string first "X" $newpmi]
         if {$c1 < 3} {
           set newpminx [string range $newpmi $c1+1 end]
-          lappend nistPMIexpectedNX($nistName) [string trim $newpminx]
+          lappend nistPMIexpectedNX($name) [string trim $newpminx]
         } else {
-          lappend nistPMIexpectedNX($nistName) $newpmi
+          lappend nistPMIexpectedNX($name) $newpmi
         }
 
         if {[string first "tolerance" $typ] != -1} {
@@ -144,8 +155,8 @@ proc nistGetSummaryPMI {} {
 
 # -------------------------------------------------------------------------------
 # check actual vs. expected PMI for NIST files
-proc nistCheckExpectedPMI {val entstr} {
-  global cells legendColor nistExpectedPMI nistName nistPMIactual nistPMIexpected nistPMIexpectedNX nistPMIfound
+proc nistCheckExpectedPMI {val entstr epmiName} {
+  global cells legendColor nistExpectedPMI nistPMIactual nistPMIexpected nistPMIexpectedNX nistPMIfound
   global pmiModifiers pmiType pmiUnicode spmiSumName spmiSumRow tolNames worksheet
 
 # modify (composite ..) from value to just (composite)
@@ -191,15 +202,15 @@ proc nistCheckExpectedPMI {val entstr} {
 
 # -------------------------------------------------------------------------------
 # search for PMI in nistPMIexpected list
-  set pmiMatch [lsearch $nistPMIexpected($nistName) $val]
+  set pmiMatch [lsearch $nistPMIexpected($epmiName) $val]
   #outputMsg "$val  $pmiMatch $valType($val)" blue
-  #outputMsg $nistPMIexpected($nistName)
+  #outputMsg $nistPMIexpected($epmiName)
 
 # found in list, remove from nistPMIexpected
   if {$pmiMatch != -1} {
     [[$worksheet($spmiSumName) Range C$spmiSumRow] Interior] Color $legendColor(green)
-    set nistPMIexpected($nistName)   [lreplace $nistPMIexpected($nistName)   $pmiMatch $pmiMatch]
-    set nistPMIexpectedNX($nistName) [lreplace $nistPMIexpectedNX($nistName) $pmiMatch $pmiMatch]
+    set nistPMIexpected($epmiName)   [lreplace $nistPMIexpected($epmiName)   $pmiMatch $pmiMatch]
+    set nistPMIexpectedNX($epmiName) [lreplace $nistPMIexpectedNX($epmiName) $pmiMatch $pmiMatch]
     lappend nistPMIfound $val
     incr nistExpectedPMI(exact)
     #outputMsg " exact match  $val $pmiMatch $valType($val)" green
@@ -212,14 +223,14 @@ proc nistCheckExpectedPMI {val entstr} {
     set pmiSimilar ""
 
 # check each value in nistPMIexpected
-    foreach pmi $nistPMIexpected($nistName) {
+    foreach pmi $nistPMIexpected($epmiName) {
 
 # simple match, remove from nistPMIexpected
       if {$val == $pmi && $pmiMatch != 1} {
         set pmiMatch 1
-        set pos [lsearch $nistPMIexpected($nistName) $pmi]
-        set nistPMIexpected($nistName)   [lreplace $nistPMIexpected($nistName)   $pos $pos]
-        set nistPMIexpectedNX($nistName) [lreplace $nistPMIexpectedNX($nistName) $pos $pos]
+        set pos [lsearch $nistPMIexpected($epmiName) $pmi]
+        set nistPMIexpected($epmiName)   [lreplace $nistPMIexpected($epmiName)   $pos $pos]
+        set nistPMIexpectedNX($epmiName) [lreplace $nistPMIexpectedNX($epmiName) $pos $pos]
         lappend nistPMIfound $pmi
         #outputMsg " simple match  $val $pmiMatch $valType($val)" green
       }
@@ -231,29 +242,29 @@ proc nistCheckExpectedPMI {val entstr} {
       set c1 [string first "X" $val]
       if {$c1 < 3} {
         set valnx [string trim [string range $val $c1+1 end]]
-        set pmiMatchNX [lsearch $nistPMIexpectedNX($nistName) $valnx]
+        set pmiMatchNX [lsearch $nistPMIexpectedNX($epmiName) $valnx]
         if {$pmiMatchNX != -1} {
           set pmiMatch 0.95
           set pmiSim $pmiMatch
           #outputMsg " exact match NX  $val $pmiMatchNX $valType($val)" red
-          set pmiSimilar $nistPMIactual([lindex $nistPMIexpected($nistName) $pmiMatchNX])
-          set nistPMIexpected($nistName)   [lreplace $nistPMIexpected($nistName)   $pmiMatchNX $pmiMatchNX]
-          set nistPMIexpectedNX($nistName) [lreplace $nistPMIexpectedNX($nistName) $pmiMatchNX $pmiMatchNX]
+          set pmiSimilar $nistPMIactual([lindex $nistPMIexpected($epmiName) $pmiMatchNX])
+          set nistPMIexpected($epmiName)   [lreplace $nistPMIexpected($epmiName)   $pmiMatchNX $pmiMatchNX]
+          set nistPMIexpectedNX($epmiName) [lreplace $nistPMIexpectedNX($epmiName) $pmiMatchNX $pmiMatchNX]
           set pf $val
         }
 
 # try simple match as above
         if {$pmiMatch != 0.95} {
-          foreach pmi $nistPMIexpectedNX($nistName) {
+          foreach pmi $nistPMIexpectedNX($epmiName) {
             if {$valnx == $pmi && $pmiMatch != 1} {
               set pmiMatch 0.95
               set pmiSim $pmiMatch
               #outputMsg " simple match NX  $valnx $pmiMatch $valType($val)" red
-              set pos [lsearch $nistPMIexpected($nistName) $valnx]
+              set pos [lsearch $nistPMIexpected($epmiName) $valnx]
               if {$pos != -1} {
-                set pmiSimilar $nistPMIactual([lindex $nistPMIexpected($nistName) $pos])
-                set nistPMIexpected($nistName)   [lreplace $nistPMIexpected($nistName)   $pos $pos]
-                set nistPMIexpectedNX($nistName) [lreplace $nistPMIexpectedNX($nistName) $pos $pos]
+                set pmiSimilar $nistPMIactual([lindex $nistPMIexpected($epmiName) $pos])
+                set nistPMIexpected($epmiName)   [lreplace $nistPMIexpected($epmiName)   $pos $pos]
+                set nistPMIexpectedNX($epmiName) [lreplace $nistPMIexpectedNX($epmiName) $pos $pos]
               }
               set pf $val
             }
@@ -265,7 +276,7 @@ proc nistCheckExpectedPMI {val entstr} {
 # -------------------------------------------------------------------------------
 # no match yet
     if {$pmiMatch == 0} {
-      foreach pmi $nistPMIexpected($nistName) {
+      foreach pmi $nistPMIexpected($epmiName) {
 
 # look for similar strings
         set look 0
@@ -446,7 +457,7 @@ proc nistCheckExpectedPMI {val entstr} {
 
 # -------------------------------------------------------------------------------
 proc nistPMICoverage {nf} {
-  global cells legendColor nistCoverageLegend nistCoverageStyle nistPMIexpected nistName
+  global cells epmi legendColor nistCoverageLegend nistCoverageStyle nistPMIexpected nistName
   global pmiElementsMaxRows spmiCoverages spmiCoverageWS totalPMIrows usedPMIrows worksheet
 
   foreach idx [lsort [array names spmiCoverages]] {
@@ -549,17 +560,19 @@ proc nistPMICoverage {nf} {
   }
 
 # summarize PMI Representation Summary on PMI Representation Coverage worksheet
-  if {[info exists nistPMIexpected($nistName)]} {nistAddExpectedPMIPercent $nf}
+  set name $nistName
+  if {[info exists epmi]} {if {$epmi != ""} {set name $epmi}}
+  if {[info exists nistPMIexpected($name)]} {nistAddExpectedPMIPercent $nf $name}
 }
 
 # -------------------------------------------------------------------------------
 # summarize PMI Representation Summary with percentages
-proc nistAddExpectedPMIPercent {nf} {
-  global cells cells1 legendColor lenfilelist nistCoverageStyle nistName nistExpectedPMI
+proc nistAddExpectedPMIPercent {nf name} {
+  global cells cells1 legendColor lenfilelist nistCoverageStyle nistExpectedPMI
   global nistPMIexpected nistPMIfound pmiElementsMaxRows spmiCoverageWS worksheet worksheet1
 
 # compute missing and total expected PMI
-  set nistExpectedPMI(missing) [llength [lindex [intersect3 $nistPMIexpected($nistName) $nistPMIfound] 0]]
+  set nistExpectedPMI(missing) [llength [lindex [intersect3 $nistPMIexpected($name) $nistPMIfound] 0]]
   set nistExpectedPMI(total) 0
   foreach idx {exact partial possible missing} {
     if {[info exists nistExpectedPMI($idx)]} {incr nistExpectedPMI(total) $nistExpectedPMI($idx)}
@@ -687,8 +700,8 @@ proc nistAddCoverageStyle {} {
 }
 
 # -------------------------------------------------------------------------------
-proc nistPMISummaryFormat {} {
-  global cells legendColor nistName nistPMIactual nistPMIexpected nistPMIfound pmiType spmiSumName spmiSumRow worksheet
+proc nistPMISummaryFormat {name} {
+  global cells legendColor nistPMIactual nistPMIexpected nistPMIfound pmiType spmiSumName spmiSumRow worksheet
 
   set r [incr spmiSumRow]
 
@@ -718,7 +731,7 @@ proc nistPMISummaryFormat {} {
   }
 
 # add missing pmi
-  set pmiMissing [lindex [intersect3 $nistPMIexpected($nistName) $nistPMIfound] 0]
+  set pmiMissing [lindex [intersect3 $nistPMIexpected($name) $nistPMIfound] 0]
   if {[llength $pmiMissing] > 0} {
     incr r
     $cells($spmiSumName) Item $r 2 "Entity Type"
