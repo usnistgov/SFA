@@ -81,7 +81,7 @@ proc spmiGeotolStart {entType} {
   set spmiRow($gt) {}
   foreach var {ent pmiHeading} {if {[info exists $var]} {unset $var}}
 
-  outputMsg " Adding PMI Representation Analysis" blue
+  outputMsg " Adding PMI Representation Analyzer report" blue
   lappend spmiEntity $entType
 
   if {$opt(DEBUG1)} {outputMsg \n}
@@ -922,11 +922,6 @@ proc spmiGeotolReport {objEntity} {
                           }
                         }
                       }
-                      #set e1s [$gtEntity GetUsedIn [string trim item_identified_representation_usage] [string trim definition]]
-                      #::tcom::foreach e1 $e1s {
-                      #  set e1type [$e1 Type]
-                      #  if {[string first "draughting" $e1type] == -1} {outputMsg "  [$e1 P21ID]$e1type"}
-                      #}
 
 # datum symbol
                       if {[info exists datumSymbol($datumGeomEnts)]} {
@@ -1055,9 +1050,18 @@ proc spmiGeotolReport {objEntity} {
                         set objValue $datumTargetGeom
                         lappend spmiTypesPerFile "placed datum target geometry"
 
-# target geometry should be an advanced_face
-                        if {[string first "advanced_face" $datumTargetGeom] == -1} {
-                          set msg "Syntax Error: Placed datum target feature geometry should use an 'advanced_face'.$spaces\($recPracNames(pmi242), Sec. 6.6.3, Fig. 45)"
+# target geometry should be appropriate geometry depending on type of target
+                        set okdtg 0
+                        set dtg [lindex [split $datumTargetGeom " "] 0]
+                        switch -- $dtg {
+                          cartesian_point -
+                          vertex_point {if {$ov == "point"} {set okdtg 1}}
+                          edge_curve -
+                          trimmed_curve {if {$ov == "point" || $ov == "line" || $ov == "circular curve"} {set okdtg 1}}
+                          advanced_face {set okdtg 1}
+                        }
+                        if {!$okdtg} {
+                          set msg "Syntax Error: Cannot use $dtg for '$ov' placed datum target feature geometry.$spaces\($recPracNames(pmi242), Sec. 6.6.3, Fig. 45)"
                           errorMsg $msg
                           lappend syntaxErr([$gtEntity Type]) [list [$gtEntity P21ID] "Target Feature" $msg]
                         }
@@ -1143,9 +1147,9 @@ proc spmiGeotolReport {objEntity} {
                       lappend syntaxErr(placed_datum_target_feature) [list $objID "Datum Target" $msg]
                     }
 
-# datum target shape representation (Section 6.6.1)
+# datum target shape representation (Section 6.6.1) including movable (Section 6.6.4)
                     set datumTargetRep ""
-                    if {[$gtEntity Type] == "placed_datum_target_feature"} {set objValue [spmiPlacedDatumTarget $objEntity $objValue]}
+                    set objValue [spmiPlacedDatumTarget $objEntity $objValue]
                   }
 
                   "product_definition_shape name" {
@@ -2177,11 +2181,14 @@ proc spmiPlacedDatumTarget {objEntity objValue} {
                 }
               }
 
-# movable datum target direction (6.6.4)
+# movable datum target (6.6.4)
             } elseif {[$e4 Type] == "direction"} {
+              set okmove 0
               ::tcom::foreach a4 [$e4 Attributes] {
                 if {[$a4 Name] == "name"} {
-                  if {[$a4 Value] != "movable direction"} {
+                  if {[$a4 Value] == "movable direction"} {
+                    set okmove 1
+                  } else {
                     set msg "Syntax Error: Bad 'name' ([$a4 Value]) on 'direction' for a movable datum target, must be 'movable direction'$spaces\($recPracNames(pmi242), Sec. 6.6.4)"
                     errorMsg $msg
                     lappend syntaxErr(direction) [list [$e4 P21ID] "name" $msg]
@@ -2190,9 +2197,11 @@ proc spmiPlacedDatumTarget {objEntity objValue} {
                   set dirrat [$a4 Value]
                 }
               }
-              append datumTargetRep "[format "%c" 10]movable target direction   $dirrat[format "%c" 10]   (direction [$e4 P21ID])"
-              lappend spmiTypesPerFile "movable datum target"
-              append objValue " (movable)"
+              if {$okmove} {
+                append datumTargetRep "[format "%c" 10]movable target direction   $dirrat[format "%c" 10]   (direction [$e4 P21ID])"
+                lappend spmiTypesPerFile "movable datum target"
+                append objValue " (movable)"
+              }
 
 # bad items
             } elseif {[$e4 Type] != "axis2_placement_3d"} {

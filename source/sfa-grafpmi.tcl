@@ -82,9 +82,9 @@ proc gpmiAnnotation {entType} {
   if {[info exists pmiHeading]} {unset pmiHeading}
   if {[info exists ent]} {unset ent}
 
-  if {$opt(PMIGRF) && $opt(xlFormat) != "None"} {outputMsg " Adding PMI Presentation Analysis" blue}
+  if {$opt(PMIGRF) && $opt(xlFormat) != "None"} {outputMsg " Adding PMI Presentation Analyzer report" blue}
   if {$gen(View) && $opt(viewPMI)} {
-    set msg " Adding PMI Presentation View"
+    set msg " Adding Graphical PMI for the Viewer"
     if {$opt(xlFormat) == "None"} {append msg " ([formatComplexEnt $entType])"}
     outputMsg $msg green
   }
@@ -445,7 +445,7 @@ proc gpmiAnnotationReport {objEntity} {
                         append msg "Missing required 'cartesian_point'"
                       }
                     }
-                    if {[string length $msg] < 15 && [lsearch $elements "planar_box"] == -1} {set msg "Optional 'planar_box' not used for '$ao'."}
+                    if {[string length $msg] < 15 && [lsearch $elements "planar_box"] == -1} {set msg "$ao 'planar_box' is not supported."}
                     if {[string length $msg] > 14} {
                       if {[string first "Syntax" $msg] == 0} {
                         append msg " in 'geometric_set.elements'.$spaces\($recPracNames(pmi242), Sec. 7.2.2)"
@@ -1381,13 +1381,6 @@ proc pmiGetCameras {} {
   global draughtingModels draftModelCameraNames draftModelCameras entCount mytemp opt recPracNames savedViewFile
   global savedViewFileName savedViewItems savedViewName savedViewNames savedViewpoint spaces spmiTypesPerFile stepAP syntaxErr
 
-  set aolist {}
-  foreach ao [list annotation_occurrence annotation_curve_occurrence annotation_curve_occurrence_and_geometric_representation_item \
-                annotation_fill_area_occurrence tessellated_annotation_occurrence annotation_placeholder_occurrence \
-                annotation_occurrence_and_characterized_object] {
-    if {[info exists entCount($ao)]} {if {$entCount($ao) > 0} {lappend aolist $ao}}
-  }
-
   catch {unset draftModelCameras}
   catch {unset draftModelCameraNames}
   checkTempDir
@@ -1399,7 +1392,7 @@ proc pmiGetCameras {} {
     if {[info exists entCount($cms)]} {if {$entCount($cms) > 0} {lappend cmlist $cms}}
   }
 
-  if {[llength $aolist] > 0 && [llength $cmlist] > 0} {
+  if {[llength $cmlist] > 0} {
     if {[catch {
 
 # loop over camera model entities
@@ -1426,7 +1419,7 @@ proc pmiGetCameras {} {
                   if {$nameDraughtingModel == "name" && $nattr == $iattr} {
                     set name [$attrDraughtingModel Value]
                     if {$name == ""} {
-                      set msg "Syntax Error: For Saved Views, missing required 'name' attribute on [formatComplexEnt $dm]$spaces"
+                      set msg "Syntax Error: For viewpoints, missing required 'name' attribute on [formatComplexEnt $dm]$spaces"
                       if {[string first "AP242" $stepAP] == 0} {
                         append msg "($recPracNames(pmi242), Sec. 9.4.2)"
                       } else {
@@ -1458,7 +1451,7 @@ proc pmiGetCameras {} {
                     if {$name1 == ""} {set name1 "Missing name"}
 
                     if {$name == ""} {
-                      set msg "Syntax Error: For Saved Views, missing required 'name' attribute on $cm$spaces"
+                      set msg "Syntax Error: For viewpoints, missing required 'name' attribute on $cm$spaces"
                       if {[string first "AP242" $stepAP] == 0} {
                         append msg "($recPracNames(pmi242), Sec. 9.4.2.1, Fig. 95)"
                       } else {
@@ -1481,12 +1474,10 @@ proc pmiGetCameras {} {
                       set origin [[[[[$a2p3d Item [expr 2]] Value] Attributes] Item [expr 2]] Value]
                       set axis   [[[[[$a2p3d Item [expr 3]] Value] Attributes] Item [expr 2]] Value]
                       set refdir [[[[[$a2p3d Item [expr 4]] Value] Attributes] Item [expr 2]] Value]
-                      if {$opt(viewPMIVP)} {
-                        lappend savedViewpoint($name1) [vectrim $origin]
-                        lappend savedViewpoint($name1) [x3dGetRotation $axis $refdir]
-                      }
+                      lappend savedViewpoint($name1) [vectrim $origin]
+                      lappend savedViewpoint($name1) [x3dGetRotation $axis $refdir]
                     } emsg]} {
-                      errorMsg "Error getting Saved View position and orientation: $emsg"
+                      errorMsg "Error getting viewpoint position and orientation: $emsg"
                       catch {raise .}
                     }
 
@@ -1533,12 +1524,12 @@ proc pmiGetCameras {} {
                   append draftModelCameraNames($id) " $name1"
                 }
 
-# keep track of saved views for graphic PMI
-                if {$opt(viewPMI) || $opt(PMISEM)} {
-                  set dmcn $draftModelCameraNames([$entDraughtingModel P21ID])
-                  if {[lsearch $savedViewName $dmcn] == -1} {lappend savedViewName $dmcn}
-                  if {[lsearch $savedViewNames $name1] == -1 && $annForDM([$entDraughtingModel P21ID])} {
-                    lappend savedViewNames $name1
+# keep track of saved views for graphical PMI
+                set dmcn $draftModelCameraNames([$entDraughtingModel P21ID])
+                if {[lsearch $savedViewName $dmcn] == -1} {lappend savedViewName $dmcn}
+                if {[lsearch $savedViewNames $name1] == -1} {
+                  lappend savedViewNames $name1
+                  if {($opt(viewPMI) || $opt(PMISEM)) && $annForDM([$entDraughtingModel P21ID])} {
                     if {$opt(PMISEM)} {lappend spmiTypesPerFile "saved views"}
 
 # create temp file ViewN.txt for saved view graphical PMI x3d, where 'N' is an integer
@@ -1560,13 +1551,6 @@ proc pmiGetCameras {} {
     } emsg]} {
       errorMsg "Error getting Camera Models: $emsg"
       catch {raise .}
-    }
-  }
-
-# clean up if only semantic pmi
-  if {$opt(PMISEM) && !$opt(PMIGRF) && !$opt(viewPMI)} {
-    foreach var {draughtingModels draftModelCameraNames draftModelCameras savedViewFileName savedViewItems savedViewName savedViewNames savedViewpoint} {
-      if {[info exists $var]} {unset $var}
     }
   }
 }

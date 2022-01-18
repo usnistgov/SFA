@@ -4,8 +4,9 @@ proc tessPart {entType} {
   global tessPartFile tessPartFileName tessSuppGeomFile tessSuppGeomFileName
 
   if {$opt(DEBUG1)} {outputMsg "START tessPart $entType" red}
-  set msg " Adding Tessellated Part View"
+  set msg " Adding Tessellated Part Geometry for the Viewer"
   if {$opt(xlFormat) == "None"} {append msg " ($entType)"}
+  if {[string first "annotation" $msg] == -1} {outputMsg $msg green}
 
 # edge, faces
   set tessellated_edge            [list tessellated_edge name coordinates line_strip]
@@ -389,8 +390,11 @@ proc tessReadGeometry {{coordOnly 0}} {
     }
 
 # done reading tessellated geometry
-    if {$ncl == $entCount(coordinates_list)} {
-      if {($coordOnly == 0 && $ntc == $ntc1) || $coordOnly} {
+    set ok 0
+    if {[info exists entCount(coordinates_list)]}    {if {$ncl == $entCount(coordinates_list)}    {set ok 1}}
+    if {[info exists entCount(point_cloud_dataset)]} {if {$ncl == $entCount(point_cloud_dataset)} {set ok 1}}
+    if {$ok} {
+      if {($coordOnly == 0 && $ntc == $ntc1) || $coordOnly != 0} {
         if {$coordOnly == 0} {
           outputMsg "  [expr {$ncl+$ntc}] tessellated geometry entities"
           if {!$tessellated} {errorMsg " No tessellated curves, faces, or surfaces found."}
@@ -485,7 +489,7 @@ proc tessSetColor {objEntity tsID} {
         }
       }
     } emsg]} {
-      errorMsg " ERROR setting Tessellated Geometry Color for [$objEntity Type] (using [lindex $defaultColor 1]): $emsg"
+      errorMsg " Error setting Tessellated Geometry Color for [$objEntity Type] (using [lindex $defaultColor 1]): $emsg"
       set tessColor($tsID) [lindex $defaultColor 0]
     }
   } else {
@@ -522,7 +526,7 @@ proc tessCountColors {} {
       }
     }
   } emsg]} {
-    errorMsg " ERROR counting unique colors: $emsg"
+    errorMsg " Error counting unique colors: $emsg"
   }
 
   if {[llength $colors] == 0 && ([info exists entCount(tessellated_solid)] || [info exists entCount(tessellated_shell)])} {
@@ -611,6 +615,6 @@ proc tessSetPlacement {objEntity tsID} {
       }
     }
   } emsg]} {
-    errorMsg " ERROR getting tessellated geometry placement: $emsg"
+    errorMsg " Error getting tessellated geometry placement: $emsg"
   }
 }

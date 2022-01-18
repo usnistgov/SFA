@@ -176,7 +176,7 @@ proc spmiCoverageStart {{multi 1}} {
       if {[[$worksheets Item [expr 3]] Name] != "PMI Representation Summary"} {set i 3}
       [$worksheets Item [expr $wsCount]] -namedarg Move Before [$worksheets Item [expr $i]]
 
-      $cells($spmiCoverageWS) Item 3 1 "PMI Element[format "%c" 10]  (See Help > Analyze > PMI Coverage Analysis)"
+      $cells($spmiCoverageWS) Item 3 1 "PMI Element[format "%c" 10]  (See Help > Analyzer > PMI Coverage Analysis)"
       $cells($spmiCoverageWS) Item 3 2 "Count"
       if {$nistName == ""} {
         addCellComment $spmiCoverageWS 3 2 "See Help > User Guide (section 6.1.7)"
@@ -198,7 +198,7 @@ proc spmiCoverageStart {{multi 1}} {
       $worksheet1($spmiCoverageWS) Name $spmiCoverageWS
       set cells1($spmiCoverageWS) [$worksheet1($spmiCoverageWS) Cells]
       $cells1($spmiCoverageWS) Item 1 2 "[file nativename $multiFileDir]"
-      $cells1($spmiCoverageWS) Item 3 1 "PMI Element[format "%c" 10]  (See Help > Analyze > PMI Coverage Analysis)"
+      $cells1($spmiCoverageWS) Item 3 1 "PMI Element[format "%c" 10]  (See Help > Analyzer > PMI Coverage Analysis)"
       set range [$worksheet1($spmiCoverageWS) Range A3]
       [$range Font] Bold [expr 1]
 
@@ -778,7 +778,7 @@ proc gpmiCoverageFormat {{sum ""} {multi 1}} {
       set txt [file tail $localName]
       if {$timeStamp != ""} {append txt "[format "%c" 10]  ($timeStamp)"}
       $cells($gpmiCoverageWS) Item 1 1 $txt
-      $cells($gpmiCoverageWS) Item [expr {$gpmiRows+3}] 1 "See Help > Analyze > PMI Coverage Analysis"
+      $cells($gpmiCoverageWS) Item [expr {$gpmiRows+3}] 1 "See Help > Analyzer > PMI Coverage Analysis"
 
 # add images for the CAx-IF and NIST PMI models
       if {$nistName != ""} {nistAddModelPictures $gpmiCoverageWS}

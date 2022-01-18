@@ -11,7 +11,7 @@ proc x3dFileStart {} {
   if {[string first "IFC" $stepAP] == 0 || [string first "ISO" $stepAP] == 0 || $stepAP == "AP210" || \
       $stepAP == "CUTTING_TOOL_SCHEMA_ARM" || $stepAP == "STRUCTURAL_FRAME_SCHEMA"} {
     set msg "The Viewer only works with STEP AP203, AP209, AP214, AP238, and AP242 files.  See Help > Support STEP APs"
-    if {$stepAP == "STRUCTURAL_FRAME_SCHEMA"} {append msg "\n Use NIST SteelVis to view CIS/2 files."}
+    if {$stepAP == "STRUCTURAL_FRAME_SCHEMA"} {append msg "\n Use the NIST SteelVis viewer for CIS/2 files."}
     errorMsg $msg
     set x3dViewOK 0
     return
@@ -115,7 +115,7 @@ proc x3dFileStart {} {
 
 # read tessellated geometry separately because of IFCsvr limitations
   if {($viz(PMI) && [info exists entCount(tessellated_annotation_occurrence)]) || $viz(TESSPART)} {tessReadGeometry}
-  outputMsg " Writing View to: [truncFileName [file nativename $x3dFileName]]" blue
+  outputMsg " Writing Viewer file to: [truncFileName [file nativename $x3dFileName]]" blue
 
 # coordinate min, max, center
   if {$x3dMax(x) != -1.e8} {
@@ -140,184 +140,10 @@ proc x3dFileStart {} {
 }
 
 # -------------------------------------------------------------------------------
-# process AP242 XML
-proc x3dReadXML {} {
-  global ap242XML cadSystem developer localName mytemp opt parts stepAP timeStamp viz x3dBbox x3dFile x3dMax x3dMin x3dParts x3dViewOK
-
-  set x3dViewOK 0
-  set stepAP "AP242 XML"
-  catch {unset parts}
-  catch {unset x3dParts}
-
-  set f [open $localName r]
-  fconfigure $f -encoding utf-8
-  if {[catch {
-    outputMsg "Opening AP242 XML file"
-    set xmldoc [dom parse [read $f]]
-    close $f
-
-    set cadSystem [[[$xmldoc getElementsByTagName OriginatingSystem] firstChild] nodeValue]
-    set timeStamp [[[$xmldoc getElementsByTagName TimeStamp] firstChild] nodeValue]
-
-# get File
-    set xmlFiles [$xmldoc getElementsByTagName File]
-    set nfiles [llength $xmlFiles]
-
-# stp2x3d executable
-    if {$nfiles > 0} {
-      x3dCopySTP2X3D
-      set stp2x3d [file join $mytemp stp2x3d-part.exe]
-      if {![info exists stp2x3d]} {return}
-    } else {
-      return
-    }
-
-# get Document
-    set xmlDocVer [$xmldoc getElementsByTagName DocumentVersion]
-    foreach docver $xmlDocVer {
-      set uid [$docver getAttribute uid]
-      set node [$docver selectNodes Views/DocumentDefinition/Files/DigitalFile/attribute::uidRef]
-      set uidRef [join [string range $node 8 end-1]]
-      set mapuid($uid) $uidRef
-      #outputMsg "mapuid $uid $uidRef" green
-    }
-
-# start x3d file
-    x3dFileStart
-
-# process files
-    outputMsg " Generate X3D for [llength $xmlFiles] STEP files" blue
-    foreach file $xmlFiles {
-      set uid [$file getAttribute uid]
-      set node [$file selectNodes Id/Identifier/attribute::id]
-      if {$node == ""} {
-        errorMsg "   Cannot find STEP file name with File/Id/Identifier/attribute::id - Checking File/Locations/ExternalItem/Id/attribute::id" red
-        set node [$file selectNodes Locations/ExternalItem/Id/attribute::id]
-      }
-      set fname [join [string range $node 4 end-1]]
-      set ext [file extension $fname]
-      if {$ext == ".stp"} {
-        outputMsg "  $fname  ($uid)"
-
-# generate X3D
-        set fname [file join [file dirname $localName] $fname]
-        if {[file exists $fname]} {
-          set stpx3dFileName [string range $fname 0 [string last "." $fname]]
-          append stpx3dFileName "x3d"
-          catch {file delete -force -- $stpx3dFileName}
-          set x3duid($uid) $stpx3dFileName
-
-# run stp2x3d
-          catch {exec $stp2x3d --input [file nativename $fname] --quality $opt(partQuality) --edge $opt(partEdges) --sketch $opt(partSketch) --normal $opt(partNormals)} errs($uid)
-          if {[string first "Nothing to translate" $errs($uid)] != -1 || [string first "child" $errs($uid)] != -1} {
-            outputMsg "   Error generating X3D\n$errs($uid)" red
-            unset x3duid($uid)
-          }
-        } else {
-          outputMsg "   File not found: [truncFileName [file nativename $fname]]" red
-        }
-        update idletasks
-      } elseif {[string first "stp" $ext] != -1} {
-        errorMsg "  File extension $ext not supported" red
-      }
-    }
-
-# get Part
-    set xmlParts [$xmldoc getElementsByTagName Part]
-    outputMsg "\n [llength $xmlParts] Parts" blue
-    set ipart 0
-    foreach part $xmlParts {
-      set node [$part selectNodes Versions/PartVersion/Views/PartView/DocumentAssignment/AssignedDocument/attribute::uidRef]
-      if {$node != ""} {
-        set uidRef [string range $node 8 end-1]
-        set uid1 $uidRef
-        if {[info exists x3duid($uidRef)]} {
-          set uid1 $uidRef
-        } elseif {[info exists mapuid($uidRef)]} {
-          if {[info exists x3duid($mapuid($uidRef))]} {set uid1 $mapuid($uidRef)}
-        }
-        #outputMsg "$uidRef $uid1" green
-
-# get min and max
-        if {[info exists errs($uid1)]} {
-          foreach line [split $errs($uid1) "\n"] {
-            set sline [split [string trim $line] " "]
-            if {[string first "MinXYZ" $line] != -1} {
-              foreach id1 {1 2 3} id2 {x y z} {
-                set num [expr {[lindex $sline $id1]}]
-                regsub -all "," $num "." num
-                set x3dMin($id2) [expr {min($num,$x3dMin($id2))}]
-              }
-            } elseif {[string first "MaxXYZ" $line] != -1} {
-              append x3dBbox "<br>Max:"
-              foreach id1 {1 2 3} id2 {x y z} {
-                set num [expr {[lindex $sline $id1]}]
-                regsub -all "," $num "." num
-                set x3dMax($id2) [expr {max($num,$x3dMax($id2))}]
-              }
-            }
-          }
-
-# read X3D and write to x3dom
-          set fname $x3duid($uid1)
-          set fname1 [file rootname [file tail $fname]]
-          puts $x3dFile "\n<!-- $fname1 -->"
-          puts $x3dFile "<Switch id='swPart$ipart' whichChoice='0'>"
-          set parts($fname1) $ipart
-          incr ipart
-          outputMsg "  $ipart [file tail $fname]  ($uid1)"
-
-          set fx3d [open $fname r]
-          set nline 0
-          while {[gets $fx3d line] >= 0} {
-            incr nline
-            if {$nline > 6 && $nline < 21} {
-              puts $x3dFile $line
-              if {$nline == 20 && [string first "Shape" $line] != -1} {puts $x3dFile "  </Group>\n </Group>"}
-            }
-          }
-          puts $x3dFile "</Switch>"
-          close $fx3d
-        } else {
-          errorMsg "  No file uidRef found ($uid1)" red
-        }
-      }
-    }
-
-    set x3dViewOK 1
-    set viz(PART) 1
-
-# bounding box
-    set x3dBbox ""
-    append x3dBbox "<br>Min:"
-    foreach id2 {x y z} {
-      append x3dBbox "&nbsp;&nbsp;$x3dMin($id2)"
-    }
-    append x3dBbox "<br>Max:"
-    foreach id2 {x y z} {
-      append x3dBbox "&nbsp;&nbsp;$x3dMax($id2)"
-    }
-    #if {$nfiles > 1} {set x3dBbox ""}
-    if {$x3dBbox != ""} {set x3dBbox "Bounding Box$x3dBbox"}
-
-# part names for list in viewer
-    foreach name [lsort [array names parts]] {set x3dParts($name) $parts($name)}
-
-# oops
-  } emsg]} {
-    errorMsg "Error processing XML file: $emsg"
-    set ap242XML 0
-    set viz(PART) 0
-    set x3dViewOK 0
-    catch {close $x3dFile}
-  }
-}
-
-# -------------------------------------------------------------------------------
 # finish x3d file, write tessellated edges, PMI saved view geometry, set viewpoints, add navigation and background color, and close x3dom file
 proc x3dFileEnd {} {
-  global ao ap242XML brepFile brepFileName datumTargetView entCount grayBackground matTrans nistName nsketch numTessColor opt parts partstg recPracNames
-  global samplingPoints savedViewButtons savedViewFile savedViewFileName savedViewItems savedViewNames savedViewpoint spaces sphereDef stepAP
+  global ao ap242XML brepFile brepFileName datumTargetView entCount grayBackground matTrans maxxyz nistName nsketch numTessColor opt parts partstg
+  global samplingPoints savedViewButtons savedViewFile savedViewFileName savedViewItems savedViewNames savedViewpoint savedViewVP sphereDef stepAP
   global tessCoord tessEdges tessPartFile tessPartFileName tessRepo tsName viz x3dApps x3dAxes x3dBbox x3dCoord x3dFile x3dFileNameSave x3dFiles
   global x3dFileSave x3dIndex x3dMax x3dMin x3dMsg x3dPartClick x3dParts x3dShape x3dStartFile x3dTessParts x3dTitle x3dViewOK
 
@@ -393,9 +219,9 @@ proc x3dFileEnd {} {
     if {$opt(xlFormat) != "Excel"} {
       append msg "generating a spreadsheet"
     } elseif {!$opt(PMISEM) || $opt(PMISEMDIM)} {
-      append msg "selecting Analyze Semantic PMI"
+      append msg "selecting Semantic PMI in the Analyzer section"
     }
-    append msg ".  See Help > View > Datum Targets"
+    append msg ".  See Help > Viewer > Datum Targets"
     outputMsg $msg red
   }
   catch {unset datumTargetView}
@@ -467,55 +293,7 @@ proc x3dFileEnd {} {
             foreach xf $x3dFiles {puts $xf "\n<!-- SAVED VIEW$i $svn2 -->\n<Switch whichChoice='0' id='sw$svnfn'><Group>"}
 
 # show camera viewpoint
-            if {[info exists savedViewpoint($svn2)]} {
-              set pp [lindex $savedViewpoint($svn2) 3]
-              set pbaxis [lindex $savedViewpoint($svn2) 8]
-
-# check for errors
-              set msg ""
-              if {$pp != "0. 0. 0." || $pbaxis != "0.0 0.0 1.0"} {
-                if {$pp != "0. 0. 0."} {append msg " The projection_point should be '0 0 0'."}
-                if {$pbaxis != "0.0 0.0 1.0"} {append msg " The planar_box a2p3d axis should be '0 0 1'."}
-              }
-              set diff [expr {abs([lindex [lindex $savedViewpoint($svn2) 6] 2]-[lindex $savedViewpoint($svn2) 2])}]
-              if {$diff > 1.} {append msg " The view_plane_distance and the planar_box a2p3d origin Z value should be equal."}
-              if {$msg != ""} {
-                append msg "$spaces\($recPracNames(pmi242), Sec. 9.4.2.6)"
-                errorMsg "Syntax Error: Saved view viewpoint is not modeled correctly.$msg"
-              }
-
-# default viewpoint with transform
-              set n 0
-              foreach xf $x3dFiles {
-                incr n
-                if {$n == 1} {lappend savedViewVP "<Transform translation='[lindex $savedViewpoint($svn2) 0]' rotation='[lindex $savedViewpoint($svn2) 1]'><Viewpoint id='$svn2' position='0 0 0' orientation='0 1 0 3.14156'/></Transform>"}
-
-# view camera model for debugging
-                if {$opt(DEBUGVP)} {
-                  set scale [trimNum [expr {$maxxyz*0.08}]]
-                  puts $xf "<Transform translation='[lindex $savedViewpoint($svn2) 0]' rotation='[lindex $savedViewpoint($svn2) 1]' scale='$scale $scale $scale'>"
-                  puts $xf " <Shape><Appearance><Material emissiveColor='1 0 0'/></Appearance><IndexedLineSet coordIndex='0 1 -1'><Coordinate point='0. 0. 0. 1. 0. 0.'/></IndexedLineSet></Shape>"
-                  puts $xf " <Shape><Appearance><Material emissiveColor='0 1 0'/></Appearance><IndexedLineSet coordIndex='0 1 -1'><Coordinate point='0. 0. 0. 0. 1. 0.'/></IndexedLineSet></Shape>"
-
-# line from to pp to vpd (pp2vpd)
-                  set pp2vpd "[lindex $savedViewpoint($svn2) 3] [lindex [lindex $savedViewpoint($svn2) 3] 0] [lindex [lindex $savedViewpoint($svn2) 3] 1] [trimNum [expr {[lindex [lindex $savedViewpoint($svn2) 3] 2]+[lindex $savedViewpoint($svn2) 2]}]]"
-                  puts $xf " <Shape><Appearance><Material emissiveColor='0 0 1'/></Appearance><IndexedLineSet coordIndex='0 1 -1'><Coordinate point='$pp2vpd'/></IndexedLineSet></Shape>"
-
-# planar box a2p3d
-                  puts $xf " <Transform translation='[lindex $savedViewpoint($svn2) 6]' rotation='[lindex $savedViewpoint($svn2) 7]'>"
-                  puts $xf "  <Shape><Appearance><Material emissiveColor='0 0 0'/></Appearance><IndexedLineSet coordIndex='0 1 2 3 0 -1 0 2 -1 1 3 -1'><Coordinate point='0. 0. 0. [lindex $savedViewpoint($svn2) 4] 0. 0. [lindex $savedViewpoint($svn2) 4] [lindex $savedViewpoint($svn2) 5] 0. 0. [lindex $savedViewpoint($svn2) 5] 0.'/></IndexedLineSet></Shape>"
-                  puts $xf " </Transform>"
-                  puts $xf " <Shape><Appearance><Material emissiveColor='0 0 0'/></Appearance><IndexedLineSet coordIndex='0 1 -1'><Coordinate point='[lindex $savedViewpoint($svn2) 3] [lindex $savedViewpoint($svn2) 6]'/></IndexedLineSet></Shape>"
-                  puts $xf " <Transform scale='0.5 0.5 0.5'><Billboard axisOfRotation='0 0 0'><Shape><Text string='$svn2'><FontStyle family='SANS' justify='BEGIN'/></Text><Appearance><Material diffuseColor='0 0 0'/></Appearance></Shape></Billboard></Transform>"
-
-# label
-                  set trans [vectrim [vecadd [lindex $savedViewpoint($svn2) 6] [list [expr {[lindex $savedViewpoint($svn2) 4]*0.5}] [lindex $savedViewpoint($svn2) 5] 0.]]]
-                  set scale [trimNum [expr {[lindex $savedViewpoint($svn2) 2]/36.}]]
-                  puts $xf " <Transform translation='$trans' scale='$scale $scale $scale'><Billboard axisOfRotation='0 0 0'><Shape><Text string='$svn2'><FontStyle family='SANS' justify='MIDDLE'/></Text><Appearance><Material diffuseColor='0 0 0'/></Appearance></Shape></Billboard></Transform>"
-                  puts $xf "</Transform>\n"
-                }
-              }
-            }
+            if {[info exists savedViewpoint($svn2)]} {x3dSavedViewpoint $svn2}
 
 # get saved view graphics from file
             if {$svWrite} {
@@ -544,7 +322,7 @@ proc x3dFileEnd {} {
 # duplicate saved views
             } else {
               foreach xf $x3dFiles {puts $xf "<!-- SAME AS $svMap($svn) -->"}
-              errorMsg " Two or more Saved Views have the exact same PMI" red
+              errorMsg " Two or more Saved Views have the exact same graphical PMI" red
               set torg ""
             }
 
@@ -563,13 +341,14 @@ proc x3dFileEnd {} {
     }
   }
 
-# viewpoints but no PMI
+# viewpoints without PMI
   if {![info exists savedViewVP]} {
     if {([info exists entCount(camera_model_d3)] || [info exists entCount(camera_model_d3_multi_clipping)]) && \
-         [info exists entCount(view_volume)] && [info exists entCount(planar_box)] && \
-        ![info exists entCount(tessellated_annotation_occurrence)] && ![info exists entCount(annotation_curve_occurrence)] && \
-        ![info exists entCount(annotation_occurrence)] && ![info exists entCount(annotation_fill_area_occurrence)]} {
-      errorMsg " Saved View viewpoints without Graphical PMI are not supported." red
+         [info exists entCount(view_volume)] && [info exists entCount(planar_box)]} {
+      for {set i 0} {$i < [llength $savedViewNames]} {incr i} {
+        set svn [lindex $savedViewNames $i]
+        if {[info exists savedViewpoint($svn)]} {x3dSavedViewpoint $svn}
+      }
     }
   }
 
@@ -736,13 +515,10 @@ proc x3dFileEnd {} {
     puts $x3dFile "<Transform rotation='0 0 1 0.5236'><Transform rotation='1 0 0 -0.5236'>"
     puts $x3dFile " <Viewpoint id='Isometric' position='$xyzcen(x) $ymin $xyzcen(z)' $cor orientation='1 0 0 1.5708'></Viewpoint>"
     puts $x3dFile "</Transform></Transform>"
-    # needs improvement with translation, but orientation accounts for all transforms above
-    #puts $x3dFile "<Transform translation='[expr {$xyzcen(x)+abs($ymin*0.5)}] $ymin [expr {$xyzcen(z)+abs($ymin*0.5)}]'>"
-    #puts $x3dFile " <Viewpoint id='Isometric' position='0 0 0' $cor orientation='0.8815 0.2362 0.409 1.1314'></Viewpoint>"
-    #puts $x3dFile "</Transform></Transform>"
 
-# saved views
+# saved views and other viewpoints
   } else {
+    outputMsg " Use PageDown in the Viewer for ([llength $savedViewVP]) Viewpoints" red
     foreach xf $x3dFiles {foreach line $savedViewVP {puts $xf $line}}
   }
 
@@ -825,7 +601,7 @@ proc x3dFileEnd {} {
     puts $x3dFile "\n<!-- Part geometry checkbox -->\n<input type='checkbox' checked onclick='togPRT(this.value)'/>Part Geometry"
     if {[info exists nsketch]} {
       if {$nsketch > -1} {puts $x3dFile "<!-- Sketch geometry checkbox -->\n<br><input type='checkbox' checked onclick='togSKH(this.value)'/>Sketch Geometry"}
-      if {$nsketch > 1000} {errorMsg " Sketch geometry ([expr {$nsketch+1}]) might take too long to view.  Turn off Sketch on the Options tab and regenerate the View."}
+      if {$nsketch > 1000} {errorMsg " Sketch geometry ([expr {$nsketch+1}]) might take too long to view.  Turn off Sketch and regenerate the View."}
     }
     if {$opt(partEdges) && $viz(EDGE)} {puts $x3dFile "<!-- Edges checkbox -->\n<br><input type='checkbox' checked onclick='togEDG(this.value)' id='swEDG'/>Edges"}
   }
@@ -898,7 +674,7 @@ proc x3dFileEnd {} {
     }
     puts $x3dFile "\n<!-- Saved view checkboxes -->"
     if {$sv} {puts $x3dFile "Saved View Graphical PMI"}
-    if {[info exists savedViewVP]} {puts $x3dFile "<br><font size='-1'>(PageDown to switch Saved Views.)</font>"}
+    if {[info exists savedViewVP] && $opt(viewPMIVP)} {puts $x3dFile "<br><font size='-1'>(PageDown to switch Saved Views.)</font>"}
 
     foreach svn $savedViewButtons {
       set str ""
@@ -1057,18 +833,18 @@ proc x3dFileEnd {} {
   set onload {}
   if {[info exists x3dPartClick]} {if {$x3dPartClick} {lappend onload " document.getElementById('clickedObject').innerHTML = 'click on a part';"}}
 
-# functions for PMI
-  if {$viz(PMI)} {
-    if {[llength $savedViewButtons] > 0} {
-      puts $x3dFile " "
-      foreach svn $savedViewButtons {x3dSwitchScript View[lsearch $savedViewNames $svn] $svMap($svn)}
+# functions for viewpoint names and PMI
+  if {[llength $savedViewButtons] > 0 || [info exists savedViewVP]} {
+    puts $x3dFile " "
+    if {$viz(PMI)} {foreach svn $savedViewButtons {x3dSwitchScript View[lsearch $savedViewNames $svn] $svMap($svn)}}
 
-      if {[info exists savedViewVP]} {
-        set id 0
-        foreach svn [list "Front 1 (SFA)" "Orthographic (SFA)"] {
-          lappend onload "\n var view$id = document.getElementById('$svn');\n view$id.addEventListener('outputchange', function(event) \{"
-          lappend onload "  document.getElementById('clickedView').innerHTML = '$svn';"
-          incr id
+    if {[info exists savedViewVP]} {
+      set id 0
+      foreach svn [list "Front 1 (SFA)" "Orthographic (SFA)"] {
+        lappend onload "\n var view$id = document.getElementById('$svn');\n view$id.addEventListener('outputchange', function(event) \{"
+        lappend onload "  document.getElementById('clickedView').innerHTML = '$svn';"
+        incr id
+        if {$viz(PMI) && $opt(viewPMIVP)} {
           set i 0
           foreach svn1 $savedViewButtons {
             lappend onload "  document.getElementById('swView$i').setAttribute('whichChoice', 0);"
@@ -1076,13 +852,18 @@ proc x3dFileEnd {} {
             lappend onload "  document.getElementById('cbView$i').checked = true;"
             incr i
           }
-          lappend onload " \}, false);"
         }
+        lappend onload " \}, false);"
+      }
 
-        foreach svn $savedViewButtons {
-          lappend onload "\n var view$id = document.getElementById('$svn');\n view$id.addEventListener('outputchange', function(event) \{"
-          lappend onload "  document.getElementById('clickedView').innerHTML = '$svn';"
-          incr id
+      set svb $savedViewButtons
+      if {!$viz(PMI)} {set svb [array names savedViewpoint]}
+
+      foreach svn $svb {
+        lappend onload "\n var view$id = document.getElementById('$svn');\n view$id.addEventListener('outputchange', function(event) \{"
+        lappend onload "  document.getElementById('clickedView').innerHTML = '$svn';"
+        incr id
+        if {$viz(PMI) && $opt(viewPMIVP)} {
           set i 0
           foreach svn1 $savedViewButtons {
             set wc -1
@@ -1096,8 +877,8 @@ proc x3dFileEnd {} {
             lappend onload "  document.getElementById('cbView$i').checked = $ch2;"
             incr i
           }
-          lappend onload " \}, false);"
         }
+        lappend onload " \}, false);"
       }
     }
   }
@@ -1190,6 +971,60 @@ proc x3dFileEnd {} {
 
 # unset variables
   foreach var [list x3dCoord x3dFile x3dFiles x3dIndex x3dMax x3dMin x3dShape x3dStartFile] {catch {unset $var}}
+}
+
+# -------------------------------------------------------------------------------
+# saved view viewpoints
+proc x3dSavedViewpoint {name} {
+  global maxxyz opt recPracNames savedViewpoint savedViewVP spaces x3dFiles
+
+# check for errors
+  set msg ""
+  set pp [lindex $savedViewpoint($name) 3]
+  set pbaxis [lindex $savedViewpoint($name) 8]
+
+  if {$pp != "0. 0. 0." || $pbaxis != "0.0 0.0 1.0"} {
+    if {$pp != "0. 0. 0."} {append msg " The projection_point should be '0 0 0'."}
+    if {$pbaxis != "0.0 0.0 1.0"} {append msg " The planar_box a2p3d axis should be '0 0 1'."}
+  }
+  set diff [expr {abs([lindex [lindex $savedViewpoint($name) 6] 2]-[lindex $savedViewpoint($name) 2])}]
+  if {$diff > 1.} {append msg " The view_plane_distance and the planar_box a2p3d origin Z value should be equal."}
+  if {$msg != ""} {
+    append msg "$spaces\($recPracNames(pmi242), Sec. 9.4.2.6)"
+    errorMsg "Syntax Error: Camera model viewpoint is not modeled correctly.$msg"
+  }
+
+# default viewpoint with transform
+  set n 0
+  foreach xf $x3dFiles {
+    incr n
+    if {$n == 1} {lappend savedViewVP "<Transform translation='[lindex $savedViewpoint($name) 0]' rotation='[lindex $savedViewpoint($name) 1]'><Viewpoint id='$name' position='0 0 0' orientation='0 1 0 3.14156'/></Transform>"}
+
+# show camera model for debugging
+    if {$opt(DEBUGVP)} {
+      set scale [trimNum [expr {$maxxyz*0.08}]]
+      puts $xf "<Transform translation='[lindex $savedViewpoint($name) 0]' rotation='[lindex $savedViewpoint($name) 1]' scale='$scale $scale $scale'>"
+      puts $xf " <Shape><Appearance><Material emissiveColor='1 0 0'/></Appearance><IndexedLineSet coordIndex='0 1 -1'><Coordinate point='0. 0. 0. 1. 0. 0.'/></IndexedLineSet></Shape>"
+      puts $xf " <Shape><Appearance><Material emissiveColor='0 1 0'/></Appearance><IndexedLineSet coordIndex='0 1 -1'><Coordinate point='0. 0. 0. 0. 1. 0.'/></IndexedLineSet></Shape>"
+
+# line from to pp to vpd (pp2vpd)
+      set pp2vpd "[lindex $savedViewpoint($name) 3] [lindex [lindex $savedViewpoint($name) 3] 0] [lindex [lindex $savedViewpoint($name) 3] 1] [trimNum [expr {[lindex [lindex $savedViewpoint($name) 3] 2]+[lindex $savedViewpoint($name) 2]}]]"
+      puts $xf " <Shape><Appearance><Material emissiveColor='0 0 1'/></Appearance><IndexedLineSet coordIndex='0 1 -1'><Coordinate point='$pp2vpd'/></IndexedLineSet></Shape>"
+
+# planar box a2p3d
+      puts $xf " <Transform translation='[lindex $savedViewpoint($name) 6]' rotation='[lindex $savedViewpoint($name) 7]'>"
+      puts $xf "  <Shape><Appearance><Material emissiveColor='0 0 0'/></Appearance><IndexedLineSet coordIndex='0 1 2 3 0 -1 0 2 -1 1 3 -1'><Coordinate point='0. 0. 0. [lindex $savedViewpoint($name) 4] 0. 0. [lindex $savedViewpoint($name) 4] [lindex $savedViewpoint($name) 5] 0. 0. [lindex $savedViewpoint($name) 5] 0.'/></IndexedLineSet></Shape>"
+      puts $xf " </Transform>"
+      puts $xf " <Shape><Appearance><Material emissiveColor='0 0 0'/></Appearance><IndexedLineSet coordIndex='0 1 -1'><Coordinate point='[lindex $savedViewpoint($name) 3] [lindex $savedViewpoint($name) 6]'/></IndexedLineSet></Shape>"
+      puts $xf " <Transform scale='0.5 0.5 0.5'><Billboard axisOfRotation='0 0 0'><Shape><Text string='$name'><FontStyle family='SANS' justify='BEGIN'/></Text><Appearance><Material diffuseColor='0 0 0'/></Appearance></Shape></Billboard></Transform>"
+
+# label
+      set trans [vectrim [vecadd [lindex $savedViewpoint($name) 6] [list [expr {[lindex $savedViewpoint($name) 4]*0.5}] [lindex $savedViewpoint($name) 5] 0.]]]
+      set scale [trimNum [expr {[lindex $savedViewpoint($name) 2]/36.}]]
+      puts $xf " <Transform translation='$trans' scale='$scale $scale $scale'><Billboard axisOfRotation='0 0 0'><Shape><Text string='$name'><FontStyle family='SANS' justify='MIDDLE'/></Text><Appearance><Material diffuseColor='0 0 0'/></Appearance></Shape></Billboard></Transform>"
+      puts $xf "</Transform>\n"
+    }
+  }
 }
 
 # -------------------------------------------------------------------------------
@@ -1433,7 +1268,7 @@ proc x3dBrepGeom {} {
                         append msg " except for their edges"
                         if {[lsearch $x3dMsg [string trim $msg]] == -1} {lappend x3dMsg [string trim $msg]}
                       } else {
-                        append msg ".  To view the surfaces, select 'Edges' in the View section on the Options tab."
+                        append msg ".  To view the surfaces, select 'Edges' in the Viewer section."
                       }
                       errorMsg $msg red
                     }
@@ -1466,7 +1301,7 @@ proc x3dBrepGeom {} {
                     set c1 [string first "'" $line]
                     set c2 [string first "'" [string range $line $c1+1 end]]
                     if {$c2 == -1} {
-                      errorMsg " Error reading a text string in the X3D file.  The View might be missing parts.\n$line"
+                      errorMsg " Error reading a text string in the X3D file.  Parts might be missing in the the Viewer.\n$line"
                       append line "'>"
                       set c2 [string first "'" [string range $line $c1+1 end]]
                       lappend x3dMsg "Some part geometry might be missing"
@@ -1503,7 +1338,7 @@ proc x3dBrepGeom {} {
                     }
                     set c2 [string last  "'" $line]
                     if {$c1 == $c2} {
-                      errorMsg " Error reading a text string in the X3D file.  The View might be missing parts.\n$line"
+                      errorMsg " Error reading a text string in the X3D file.  Parts might be missing in the the Viewer.\n$line"
                       append line "'>"
                       set c2 [string first "'" [string range $line $c1+1 end]]
                       lappend x3dMsg "Some part geometry might be missing"
@@ -1634,7 +1469,7 @@ proc x3dBrepGeom {} {
                         break
                       }
                     }
-                  } elseif {[regexp -all {[§¥Œ¿œ»º¤‡‰]} $idx] > 0} {
+                  } elseif {[regexp -all {[§¥Œ¿œ»º¤‡‰]} $idx] > 0 && [string first "Ð" $idx] == -1} {
                     set err 1
                     break
                   }
@@ -1648,7 +1483,7 @@ proc x3dBrepGeom {} {
             set viz(PART) 1
             if {!$shape} {
               set viz(PART) 0
-              errorMsg " There is no B-rep Part Geometry to view in the STEP file.  There might be Tessellated Part Geometry.  Check the View selections on the Options tab."
+              errorMsg " There is no B-rep Part Geometry in the STEP file.  There might be Tessellated Part Geometry.  Check the Viewer selections."
             }
 
 # end the brep file
@@ -1686,7 +1521,7 @@ proc x3dBrepGeom {} {
         } elseif {[string first "permission denied" $errs] != -1} {
           set msg "Antivirus software might be blocking stp2x3d-part.exe from running in $mytemp"
         } else {
-          set msg "Error processing STEP part geometry.\n Use F8 to run the Syntax Checker to check for STEP file errors.  See Help > Syntax Checker\n Try another STEP file viewer.  See Websites > STEP File Viewers"
+          set msg "Error processing STEP part geometry.\n Use F8 to run the Syntax Checker to check for STEP file errors.  See Help > Syntax Checker\n Try another STEP file viewer.  See Websites > STEP Software > STEP File Viewers"
         }
         errorMsg $msg
         outputMsg " "
@@ -2156,17 +1991,25 @@ proc x3dDatumTarget {maxxyz} {
     if {[catch {
       switch -- $shape {
         point -
+        vertex_point -
         cartesian_point {
 # generate point
           set rad [trimNum [expr {$maxxyz*0.00125}]]
-          if {$e3 != ""} {set origin [vectrim [[[$e3 Attributes] Item [expr 2]] Value]]}
+          if {$e3 != ""} {
+            if {$shape == "vertex_point"} {
+              set e3 [[[$e3 Attributes] Item [expr 2]] Value]
+              if {[$e3 Type] != "cartesian_point"} {errorMsg "Datum target vertex_point defined by '[$e3 Type]' is not supported."}
+            }
+            set origin [vectrim [[[$e3 Attributes] Item [expr 2]] Value]]
+          }
           puts $x3dFile "<Transform translation='$origin'><Shape><Appearance><Material diffuseColor='$color' emissiveColor='$color'/></Appearance><Sphere radius='$rad'></Sphere></Shape>"
           set target " $target"
           set viz(DTMTAR) 1
           set endTransform 1
         }
 
-        line {
+        line -
+        edge_curve {
 # generate line
           if {$e3 == ""} {
             puts $x3dFile [x3dTransform $origin $axis $refdir "$shape datum target"]
@@ -2175,13 +2018,22 @@ proc x3dDatumTarget {maxxyz} {
             set textOrigin "[trimNum [expr {$x*0.5}]] 0 0"
             set endTransform 1
           } else {
-            set e4 [[[$e3 Attributes] Item [expr 2]] Value]
-            set coord1 [vectrim [[[$e4 Attributes] Item [expr 2]] Value]]
-            set e5 [[[$e3 Attributes] Item [expr 3]] Value]
-            set mag [[[$e5 Attributes] Item [expr 3]] Value]
-            set e6 [[[$e5 Attributes] Item [expr 2]] Value]
-            set dir [[[$e6 Attributes] Item [expr 2]] Value]
-            set coord2 [vectrim [vecadd $coord1 [vecmult $dir $mag]]]
+            if {$shape == "line"} {
+              set e4 [[[$e3 Attributes] Item [expr 2]] Value]
+              set coord1 [vectrim [[[$e4 Attributes] Item [expr 2]] Value]]
+              set e5 [[[$e3 Attributes] Item [expr 3]] Value]
+              set mag [[[$e5 Attributes] Item [expr 3]] Value]
+              set e6 [[[$e5 Attributes] Item [expr 2]] Value]
+              set dir [[[$e6 Attributes] Item [expr 2]] Value]
+              set coord2 [vectrim [vecadd $coord1 [vecmult $dir $mag]]]
+            } elseif {$shape == "edge_curve"} {
+              set vp [[[$e3 Attributes] Item [expr 2]] Value]
+              set cp [[[$vp Attributes] Item [expr 2]] Value]
+              set coord1 [vectrim [[[$cp Attributes] Item [expr 2]] Value]]
+              set vp [[[$e3 Attributes] Item [expr 3]] Value]
+              set cp [[[$vp Attributes] Item [expr 2]] Value]
+              set coord2 [vectrim [[[$cp Attributes] Item [expr 2]] Value]]
+            }
             puts $x3dFile "<Shape><Appearance><Material emissiveColor='$color'/></Appearance><IndexedLineSet coordIndex='0 1 -1'><Coordinate point='$coord1 $coord2'/></IndexedLineSet></Shape>"
             set textOrigin [vectrim [vecmult [vecadd $coord1 $coord2] 0.5]]
           }
@@ -3306,7 +3158,7 @@ proc x3dHoles {maxxyz} {
               }
             }
           } elseif {!$opt(PMISEM) || $gen(None)} {
-            errorMsg " Only hole drill entry points are shown when no spreadsheet is generated with the report for Semantic PMI (See Options tab)."
+            errorMsg " Only hole drill entry points are shown when the Analyzer report for Semantic PMI is not selected."
             if {[lsearch $holeDEF $defID] == -1} {lappend holeDEF $defID}
           }
 
@@ -3586,7 +3438,7 @@ proc openX3DOM {{fn ""} {numFile 0}} {
 
 # no file, show message
     } elseif {$opt(viewPMI) || $opt(viewTessPart) || $opt(viewFEA) || $opt(viewPart)} {
-      if {$opt(xlFormat) == "None"} {errorMsg "There is nothing in the STEP file to View based on the selections on the Options tab."}
+      if {$opt(xlFormat) == "None"} {errorMsg "There is nothing in the STEP file for the Viewer to show based on the selections on the Options tab."}
       return
     }
   }
@@ -3607,11 +3459,11 @@ proc openX3DOM {{fn ""} {numFile 0}} {
   if {$open} {
     if {![info exists x3dMsgColor]} {set x3dMsgColor blue}
     catch {.tnb select .tnb.status}
-    outputMsg "\nOpening View file: [file tail $fn] ([fileSize $fn])" $x3dMsgColor
+    outputMsg "\nOpening Viewer file: [file tail $fn] ([fileSize $fn])" $x3dMsgColor
     openURL [file nativename $fn]
     update idletasks
   } elseif {$numFile == 0 && [string first "STEP-File-Analyzer.exe" $scriptName] != -1} {
-    outputMsg " Use F3 to open the View (see Options tab)" red
+    outputMsg " Use F3 to open the Viewer file" red
   }
 }
 

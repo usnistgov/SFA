@@ -65,10 +65,10 @@ set helpText "\nUsage: sfa-cl.exe myfile.stp \[csv\] \{\[view\]|\[stats\]|\[synt
 
 Optional command line settings:
   csv     Generate CSV files
-  view    Only generate Views and no Spreadsheet or CSV files
+  view    Only run the Viewer and do not generate a Spreadsheet
   stats   Only report characteristics of the STEP file, no output files are generated
   syntax  Only run the Syntax Checker
-  noopen  Do not open the Spreadsheet or View after it has been generated
+  noopen  Do not open the Spreadsheet or Viewer file after it has been generated
   nolog   Do not generate a Log file
   file    Name of custom options file, e.g., C:/mydir/myoptions.dat  This file should
           be similar to STEP-File-Analyzer-options.dat in your home directory.
@@ -82,7 +82,7 @@ Optional command line settings:
 
  When the STEP file is opened, errors and warnings might appear in the output between
  the 'Begin ST-Developer output' and 'End ST-Developer output' messages.  Existing
- Spreadsheets and View files are always overwritten.
+ Spreadsheets and Viewer files are always overwritten.
 
 Disclaimers
  NIST Disclaimer: https://www.nist.gov/disclaimer
@@ -118,9 +118,8 @@ if {[info exists env(ProgramW6432)]} {set pf64 $env(ProgramW6432)}
 # set drive, myhome, mydocs, mydesk
 setHomeDir
 
-# detect if NIST version
+# NIST version
 set nistVersion 1
-#foreach item $auto_path {if {[string first "sfa-cl" $item] != -1} {set nistVersion 1}}
 
 # get STEP file name
 set localName [lindex $argv 0]

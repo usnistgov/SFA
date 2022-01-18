@@ -107,7 +107,7 @@ proc genExcel {{numFile 0}} {
       saveState
     }
 
-    foreach var {cadSystem stepAP timeStamp x3dCoord x3dFile x3dFileName x3dIndex x3dMax x3dMin x3dStartFile} {if {[info exists $var]} {unset $var}}
+    foreach var {ap242XML cadSystem stepAP timeStamp x3dCoord x3dFile x3dFileName x3dIndex x3dMax x3dMin x3dStartFile} {if {[info exists $var]} {unset $var}}
     if {[info exists buttons]} {$buttons(generate) configure -state normal}
     return
   }
@@ -146,7 +146,7 @@ proc genExcel {{numFile 0}} {
     set fname $localName
     set stepAP [getStepAP $fname]
 
-# stepAPreport controls which APs support analysis reports
+# stepAPreport controls which APs support Analyzer reports
     set stepAPreport 0
     set ap [string range $stepAP 0 4]
     if {$ap == "AP203" || $ap == "AP209" || $ap == "AP210" || $ap == "AP214" || $ap == "AP238" || $ap == "AP242"} {set stepAPreport 1}
@@ -378,13 +378,13 @@ proc genExcel {{numFile 0}} {
 # other possible errors
         } else {
           set msg "\nPossible causes of the error:"
-          append msg "\n1 - File or directory name contains accented, non-English, or symbol characters.  See Help > Text Strings and Numbers"
+          append msg "\n1 - File or directory name contains accented, non-English, or symbol characters."
           append msg "\n     [file nativename $fname]"
           append msg "\n    Change the file name or directory name"
           append msg "\n2 - Syntax errors in the STEP file"
           append msg "\n    Use F8 to run the Syntax Checker to check for errors in the STEP file.  See Help > Syntax Checker"
-          append msg "\n    Try opening the file in a STEP viewer.  See Websites > STEP File Viewers"
-          append msg "\n3 - If the problem is not with the STEP file, then restart and try again."
+          append msg "\n    Try opening the file in a STEP viewer.  See Websites > STEP Software > STEP File Viewers"
+          if {[file size $localName] > 429000000} {append msg "\n3 - The STEP file is too large to open."}
           errorMsg $msg red
         }
       }
@@ -606,7 +606,7 @@ proc genExcel {{numFile 0}} {
         checkValues
       }
     } else {
-      errorMsg "No file is selected for the User-Defined List in the Options tab."
+      errorMsg "No file is selected for the User-Defined List on the Options tab."
       checkValues
     }
   }
@@ -667,7 +667,7 @@ proc genExcel {{numFile 0}} {
 # user-defined list and AP209 views are not allowed when generating a spreadsheet
         } elseif {[string first "AP209" $stepAP] != -1 && $opt(viewFEA) && $opt(xlFormat) != "None"} {
           outputMsg " "
-          errorMsg "Viewing the AP209 FEM is not allowed when a User-Defined List is selected in the Options tab."
+          errorMsg "Viewing the AP209 FEM is not allowed when a User-Defined List is selected on the Options tab."
           set opt(viewFEA) 0
           checkValues
         }
@@ -786,7 +786,7 @@ proc genExcel {{numFile 0}} {
         if {!$useXL} {set msg "CSV files"}
         append msg " will not be generated for the entity types listed in"
       } else {
-        set msg "Views might not be generated because of the entity types listed in"
+        set msg "The Viewer might not generate anything because of the entity types listed in"
       }
       append msg " [truncFileName [file nativename $cfile]]"
       errorMsg $msg
@@ -983,10 +983,10 @@ proc genExcel {{numFile 0}} {
 # no entities to process
     if {[llength $entsToProcess] == 0} {
       if {$opt(xlFormat) != "None"} {
-        errorMsg "Select some other entity types to Process in the Options tab."
+        errorMsg "Select some other entity types to Process on the Options tab."
         catch {unset entsIgnored}
       } else {
-        errorMsg "There is nothing in the STEP file to View based on the selections on the Options tab."
+        errorMsg "The Viewer might not generate anything based on selections on the Options tab."
       }
       break
     }
@@ -1012,8 +1012,10 @@ proc genExcel {{numFile 0}} {
       }
     }
 
-# find camera models used in draughting model items and items used in property_definition and datums
-    if {$opt(PMIGRF) || $opt(PMISEM) || ($viz(PMI) && $gen(View))} {pmiGetCameras}
+# find camera models used in draughting model items (previously only for saved views in graphical PMI)
+    pmiGetCameras
+
+# get validation properties related to graphical or semantic PMI
     if {$opt(PMIGRF) || $opt(PMISEM)} {getValProps}
 
 # -------------------------------------------------------------------------------------------------
@@ -1023,7 +1025,7 @@ proc genExcel {{numFile 0}} {
         set nerr1 0
         set lastEnt $entType
 
-# increase maximum rows for analysis options
+# increase maximum rows for Analyzer options
         set newmax 5003
         set rmax $rowmax
         if {$stepAPreport && $rowmax < $newmax} {
@@ -1168,7 +1170,7 @@ proc genExcel {{numFile 0}} {
   }
 
 # -------------------------------------------------------------------------------------------------
-# add validation properties to some worksheets that are not associated with any PMI analysis
+# add validation properties to some worksheets that are not associated with any PMI Analyzer report
   if {$opt(xlFormat) == "Excel" && [lsearch $characteristics "Properties"] != -1} {
     set ok 0
     if {$opt(PMISEM)} {
@@ -1451,7 +1453,7 @@ proc genExcel {{numFile 0}} {
       if {$ok} {
         openXLS $xlfn
       } elseif {!$opt(outputOpen) && $numFile == 0 && [string first "STEP-File-Analyzer.exe" $scriptName] != -1} {
-        outputMsg " Use F2 to open the Spreadsheet (see Options tab, Help > Function Keys)" red
+        outputMsg " Use F2 to open the Spreadsheet" red
       }
     }
 
@@ -1509,7 +1511,7 @@ proc genExcel {{numFile 0}} {
   update idletasks
 
 # unset variables to release memory and/or to reset them
-  foreach var {cells cgrObjects colColor count currx3dPID datumEntType datumGeom datumIDs datumSymbol datumSystem dimrep dimrepID dimtolEnt dimtolEntID dimtolGeom entCount entName entsIgnored epmi epmiUD feaDOFR feaDOFT feaNodes gpmiID gpmiIDRow gpmiRow heading idRow invCol invGroup nrep numx3dPID pmiCol pmiColumns pmiStartCol pmivalprop propDefID propDefIDRow propDefName propDefOK propDefRow savedsavedViewNames savedViewFile savedViewFileName savedViewNames shapeRepName srNames suppGeomEnts syntaxErr tessCoord tessCoordName tessIndex tessIndexCoord tessPlacement tessRepo unicode unicodeActual unicodeNumEnts unicodeString viz vpEnts workbook workbooks worksheet worksheets x3dCoord x3dFile x3dFileName x3dIndex x3dMax x3dMin x3dStartFile} {
+  foreach var {ap242XML cells cgrObjects colColor count currx3dPID datumEntType datumGeom datumIDs datumSymbol datumSystem dimrep dimrepID dimtolEnt dimtolEntID dimtolGeom draughtingModels draftModelCameraNames draftModelCameras entCount entName entsIgnored epmi epmiUD feaDOFR feaDOFT feaNodes gpmiID gpmiIDRow gpmiRow heading idRow invCol invGroup nrep numx3dPID pmiCol pmiColumns pmiStartCol pmivalprop propDefID propDefIDRow propDefName propDefOK propDefRow savedsavedViewNames savedViewFile savedViewFileName savedViewItems savedViewNames savedViewpoint savedViewVP shapeRepName srNames suppGeomEnts syntaxErr tessCoord tessCoordName tessIndex tessIndexCoord tessPlacement tessRepo unicode unicodeActual unicodeNumEnts unicodeString viz vpEnts workbook workbooks worksheet worksheets x3dCoord x3dFile x3dFileName x3dIndex x3dMax x3dMin x3dStartFile} {
     catch {global $var}
     if {[info exists $var]} {unset $var}
   }
@@ -1600,20 +1602,20 @@ proc addHeaderWorksheet {numFile fname} {
           }
         }
 
+# check edition of AP214 (object identifier)
+        set c1 [string first "1 0 10303 214" $sn]
+        if {$c1 != -1} {
+          set id [lindex [split [string range $sn $c1+14 end] " "] 0]
+          if {$id == 1 || $id == 3} {append str " (Edition $id)"}
+        }
+
 # check for IFC files
         if {[string first "IFC" $sn] == 0} {append str "  (Use the NIST IFC File Analyzer)"}
         outputMsg $str blue
 
-# check old version of AP203, AP214
-        if {[string first "CONFIG_CONTROL_DESIGN" $sn] == 0 || [string first "CONFIGURATION_CONTROL_3D_DESIGN" $sn] == 0} {
-          errorMsg "Older version of STEP AP203.  See Help > Supported STEP APs" red
-        } elseif {[string first "AUTOMOTIVE_DESIGN_CC2" $sn] == 0} {
-          errorMsg "Older version of STEP AP214.  See Help > Supported STEP APs" red
-        }
-
 # check for multiple schemas
         if {[string first "," $sn] != -1} {
-          errorMsg "Multiple schema names are not supported.  See Header worksheet."
+          errorMsg "Multiple FILE_SCHEMA names are not supported.  See Header worksheet."
           if {$useXL} {[[$worksheet($hdr) Range B11] Interior] Color $legendColor(red)}
         }
 
@@ -2086,7 +2088,7 @@ proc sumAddColorLinks {sum sumHeaderRow sumLinks sheetSort sumRow} {
               set fileEntity($nfile) [lreplace $fileEntity($nfile) $nent $nent "$ent -$entCount($ent)"]
             }
           }
-          set comm "There are Errors or Warnings for at least one entity of this type.  See Help > Analyze > Syntax Errors"
+          set comm "There are Errors or Warnings for at least one entity of this type.  See Help > Analyzer > Syntax Errors"
           if {$ent == "dimensional_characteristic_representation"} {append comm ".  Check for cell comments in the Associated Geometry column."}
           addCellComment $sum $sumRow 1 $comm
         }

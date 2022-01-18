@@ -45,12 +45,12 @@ proc checkValues {} {
 
 # view
   if {$gen(View)} {
-    foreach b {viewFEA viewPMI viewPMIVP viewTessPart viewPart partOnly x3dSave DEBUGVP} {lappend butNormal $b}
+    foreach b {viewFEA viewPMI viewPMIVP viewTessPart viewPart partOnly x3dSave} {lappend butNormal $b}
     if {!$opt(viewFEA) && !$opt(viewPMI) && !$opt(viewTessPart) && !$opt(viewPart)} {set opt(viewPart) 1}
     if {$developer} {lappend butNormal DEBUGX3D}
   } else {
     set opt(x3dSave) 0
-    foreach b {viewFEA viewPMI viewPMIVP viewTessPart viewPart partOnly x3dSave DEBUGVP} {lappend butDisabled $b}
+    foreach b {viewFEA viewPMI viewPMIVP viewTessPart viewPart partOnly x3dSave} {lappend butDisabled $b}
     foreach b {gpmiColor0 gpmiColor1 gpmiColor2 gpmiColor3 linecolor} {lappend butDisabled $b}
     foreach b {partEdges partSketch partNormals partqual partQuality4 partQuality7 partQuality10 tessPartMesh} {lappend butDisabled $b}
     foreach b {feaBounds feaLoads feaLoadScale feaDisp feaDispNoTail} {lappend butDisabled $b}
@@ -173,9 +173,10 @@ proc checkValues {} {
       lappend butDisabled stepPRES
     }
   } else {
-    foreach b {gpmiColor0 gpmiColor1 gpmiColor2 gpmiColor3 linecolor viewPMIVP DEBUGVP} {lappend butDisabled $b}
+    foreach b {gpmiColor0 gpmiColor1 gpmiColor2 gpmiColor3 linecolor viewPMIVP} {lappend butDisabled $b}
   }
-  if {$opt(viewPMIVP)} {
+
+  if {$gen(View) && $opt(viewPart)} {
     lappend butNormal DEBUGVP
   } else {
     lappend butDisabled DEBUGVP
@@ -280,7 +281,7 @@ proc checkValues {} {
   if {[llength $butNormal]   > 0} {foreach but $butNormal   {catch {$buttons($but) configure -state normal}}}
   if {[llength $butDisabled] > 0} {foreach but $butDisabled {catch {$buttons($but) configure -state disabled}}}
 
-# configure all, reset, 'all' view and analyze buttons
+# configure all, reset, 'all' view and analyzer buttons
   if {[info exists allNone]} {
     if {$allNone == 1} {
       foreach item [array names opt] {
@@ -391,9 +392,9 @@ proc openURL {url} {
 # error message depends on the file type
       if {$emsg != ""} {
         if {[string first ".stp" $url] != -1} {
-          errorMsg "No app is associated with STEP files.  See Websites > STEP File Viewers"
+          errorMsg "No app is associated with STEP files.  See Websites > STEP Software > STEP File Viewers"
         } elseif {[string first "-sfa.html" $url] != -1} {
-          errorMsg "Error opening View file: $emsg\n Try manually opening [truncFileName $url] in a web browser"
+          errorMsg "Error opening Viewer file: $emsg\n Try manually opening [truncFileName $url] in a web browser"
         } elseif {[string first ".xlsx" $url] != -1} {
           if {[string first "The process cannot access the file" $emsg] != -1} {
             outputMsg " The Spreadsheet might already be opened." red
@@ -417,17 +418,15 @@ proc openFile {{openName ""}} {
   if {$openName == ""} {
 
 # file types for file select dialog
-    set typelist [list {"STEP  " {".stp" ".step" ".stpZ" ".p21" ".stpnc" ".spf"}}]
+    set typelist [list {"STEP " {".stp" ".step" ".stpZ" ".p21" ".stpnc" ".spf"}}]
     if {$developer} {lappend typelist {"STEP XML " {".stpx"}}}
-    lappend typelist {"IFC  " {".ifc"}}
-    lappend typelist {"ASCII STL  " {".stl"}}
+    lappend typelist {"IFC " {".ifc"}}
+    lappend typelist {"ASCII STL " {".stl"}}
 
 # file open dialog
     set localNameList [tk_getOpenFile -title "Open File(s)" -filetypes $typelist -initialdir $fileDir -multiple true]
-    if {[llength $localNameList] <= 1} {
-      set localName [lindex $localNameList 0]
-      if {$localName == ""} {outputMsg "No file selected.  Files cannot be selected from the Quick Access menu." red}
-    }
+    if {[llength $localNameList] <= 1} {set localName [lindex $localNameList 0]}
+    if {$localName == ""} {return}
 
 # file name passed in as openName
   } else {
@@ -479,6 +478,7 @@ proc openFile {{openName ""}} {
     set fileDir [file dirname $localName]
     if {[string first "z" [string tolower [file extension $localName]]] == -1} {
       outputMsg "\nReady to process: [file tail $localName] ([fileSize $localName])" green
+      checkFileSize
 
 # check file extension
       set fext ""
@@ -688,14 +688,32 @@ proc unzipFile {} {
 }
 
 #-------------------------------------------------------------------------------
-# file size in KB or MB
+# file size
 proc fileSize {fn} {
   set fs [expr {[file size $fn]/1024}]
   if {$fs < 10000} {
     return "$fs KB"
   } else {
     set fs [expr {round(double($fs)/1024.)}]
-    return "$fs MB"
+    if {$fs < 1024} {
+      return "$fs MB"
+    } else {
+      set fs [trimNum [expr {double($fs)/1024.}] 2]
+      return "$fs GB"
+    }
+  }
+}
+
+#-------------------------------------------------------------------------------
+# check file size
+proc checkFileSize {} {
+  global localName
+
+  if {[file size $localName] > 429000000} {
+    set str "might be"
+    if {[file size $localName] > 463000000} {set str "is"}
+    outputMsg " The file $str too large to generate a Spreadsheet.\n For the Viewer use Part Only on the Options tab." red
+    if {[file size $localName] > 1530000000} {outputMsg " The Viewer has not been tested with such a large STEP file." red}
   }
 }
 
@@ -2004,7 +2022,7 @@ proc GetCellRange {row1 col1 row2 col2} {
 }
 
 proc ColumnIntToChar {col} {
-  if {$col <= 0} {errorMsg "Column number $col is invalid."}
+  if {$col <= 0} {errorMsg "Column number $col is bad."}
   set dividend $col
   set columnName ""
   while {$dividend > 0} {

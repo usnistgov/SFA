@@ -73,7 +73,7 @@ proc nistReadExpectedPMI {{epmiFile ""}} {
 
       if {[file exists $fname]} {
         if {$lf} {outputMsg " "}
-        outputMsg "Reading Expected PMI for: $name (See Help > Analyze > NIST CAD Models)" blue
+        outputMsg "Reading Expected PMI for: $name (See Help > Analyzer > NIST CAD Models)" blue
         set pid1 [twapi::get_process_ids -name "EXCEL.EXE"]
         set excel2 [::tcom::ref createobject Excel.Application]
         set pid2 [lindex [intersect3 $pid1 [twapi::get_process_ids -name "EXCEL.EXE"]] 2]
@@ -168,10 +168,6 @@ proc nistCheckExpectedPMI {val entstr epmiName} {
 
 # remove (oriented)
   set c1 [string first "(oriented)" $val]
-  if {$c1 > 0} {set val [string range $val 0 $c1-2]}
-
-# remove (movable)
-  set c1 [string first "(movable)" $val]
   if {$c1 > 0} {set val [string range $val 0 $c1-2]}
 
 # remove between
@@ -707,7 +703,7 @@ proc nistPMISummaryFormat {name} {
 
 # legend
   set n 0
-  set legend {{"Expected PMI" ""} {"See Help > Analyze > NIST CAD Models" ""} {"Exact match" "green"} {"Partial match" "cyan"} {"Possible match" "yellow"} {"No match" "red"}}
+  set legend {{"Expected PMI" ""} {"See Help > Analyzer > NIST CAD Models" ""} {"Exact match" "green"} {"Partial match" "cyan"} {"Possible match" "yellow"} {"No match" "red"}}
   foreach item $legend {
     set str [lindex $item 0]
     $cells($spmiSumName) Item $r 3 $str
@@ -768,7 +764,7 @@ proc nistAddCoverageLegend {{multi 0}} {
 
   set n 0
   set legend {{"Values as Compared to NIST Test Case Drawing" ""} \
-              {"See Help > Analyze > NIST CAD Models" ""} \
+              {"See Help > Analyzer > NIST CAD Models" ""} \
               {"More than expected" "cyan"} \
               {"Exact match" "green"} \
               {"Less than expected (upper third)" "yelgre"} \

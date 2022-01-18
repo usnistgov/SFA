@@ -314,6 +314,7 @@ if {$argv != ""} {
     if {[file exists $localName]} {
       set localNameList [list $localName]
       outputMsg "Ready to process: [file tail $localName] ([fileSize $localName])" green
+      checkFileSize
 
 # check for STL file
       if {[string tolower [file extension $localName]] == ".stl"} {

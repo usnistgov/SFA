@@ -266,7 +266,7 @@ proc checkForReports {entType} {
 
 # AP not supported
             } else {
-              errorMsg " Analysis reports for Semantic and Graphical PMI are not supported in $stepAP files." red
+              errorMsg " Analyzer reports for Semantic and Graphical PMI are not supported in $stepAP files." red
             }
           }
         }
@@ -275,7 +275,7 @@ proc checkForReports {entType} {
       errorMsg "Error adding PMI Representation for [formatComplexEnt $entType]: $emsg"
     }
 
-# check for AP209 analysis entities that contain information to be processed for view
+# check for AP209 entities that contain information to be processed for the viewer
   } elseif {$entType == "curve_3d_element_representation"   || \
             $entType == "surface_3d_element_representation" || \
             $entType == "volume_3d_element_representation"  || \
@@ -347,6 +347,8 @@ proc setEntAttrList {abc} {
 # run syntax checker with the command-line version (sfa-cl.exe) and output filtered result
 proc syntaxChecker {fileName} {
   global buttons opt wdir writeDir
+
+  if {[file size $fileName] > 429000000} {outputMsg " The file is too large to run the Syntax Checker." red; return}
 
   if {[info exists buttons]} {
     outputMsg "\n[string repeat "-" 29]\nRunning Syntax Checker"
@@ -465,6 +467,15 @@ proc getStepAP {fname} {
       append ap "e1"
     } elseif {[string first "442 2 1 4" $fileSchema] != -1 || [string first "442 3 1 4" $fileSchema] != -1} {
       append ap "e2"
+    }
+  }
+
+# check AP214 edition
+  if {$ap == "AP214"} {
+    if {[string first "214 1 1 1" $fileSchema] != -1} {
+      append ap "e1"
+    } elseif {[string first "214 3 1 1" $fileSchema] != -1} {
+      append ap "e3"
     }
   }
   return $ap
