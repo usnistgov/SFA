@@ -816,10 +816,18 @@ proc spmiGeotolReport {objEntity} {
                           lappend datumIDs $letter
 
 # check for datum identification with too many letters
-                          set nlet 2
-                          if {$tolStandard(type) == "ISO"} {set nlet 3}
-                          if {![string is alpha $letter] || [string length $letter] > $nlet} {
-                            set msg "Datum 'identification' attribute cannot be more than $nlet letters (no numbers) based on the tolerancing standard."
+                          if {[string first "-" $letter] == -1} {
+                            set nlet 2
+                            if {$tolStandard(type) == "ISO"} {set nlet 3}
+                            if {![string is alpha $letter] || [string length $letter] > $nlet} {
+                              set msg "Datum 'identification' attribute cannot be more than $nlet letters (no numbers) based on the tolerancing standard."
+                              errorMsg $msg
+                              lappend syntaxErr(datum) [list $id identification $msg]
+                            }
+
+# wrong way to model common datum
+                          } else {
+                            set msg "Syntax Error: Common (ISO) or multiple datums (ASME) are not modeled with the datum 'identification' attribute.$spaces\($recPracNames(pmi242), Sec. 6.9.8)"
                             errorMsg $msg
                             lappend syntaxErr(datum) [list $id identification $msg]
                           }

@@ -19,4 +19,5 @@ sfa-proc.tcl
 sfa-step.tcl
 sfa-tess.tcl
 sfa-valprop.tcl
+sfa-xml.tcl
 tclIndex

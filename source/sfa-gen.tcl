@@ -1,14 +1,16 @@
 # generate an Excel spreadsheet and/or view from a STEP file
 proc genExcel {{numFile 0}} {
-  global allEntity aoEntTypes ap203all ap214all ap242all ap242XML badAttributes buttons cadSystem cells cells1 col col1 commaSeparator count csvdirnam csvfile csvinhome currLogFile
-  global dim draughtingModels editorCmd entCategories entCategory entColorIndex entCount entityCount entsIgnored entsWithErrors epmi epmiUD errmsg
-  global excel excelVersion fcsv feaFirstEntity feaLastEntity File fileEntity filesProcessed gen gpmiTypesInvalid gpmiTypesPerFile guid idxColor ifcsvrDir
-  global inverses lastXLS lenfilelist localName localNameList logFile matrixList multiFile multiFileDir mydocs mytemp nistCoverageLegend nistName
-  global nistPMIexpected nistPMImaster nprogBarEnts opt pf32 p21e3 p21e3Section pmiCol resetRound row rowmax savedViewButtons savedViewName
-  global savedViewNames scriptName sheetLast skipEntities skipPerm spmiEntity spmiSumName spmiSumRow spmiTypesPerFile startrow statsOnly stepAP stepAPreport tessColor
-  global thisEntType timeStamp tlast tolNames tolStandard tolStandards totalEntity unicodeActual unicodeAttributes unicodeEnts unicodeInFile unicodeNumEnts unicodeString
-  global userEntityFile userEntityList useXL valRounded viz wdir workbook workbooks worksheet worksheet1 worksheets writeDir wsCount wsNames x3dAxes
-  global x3dColor x3dColorFile x3dColors x3dFileName x3dIndex x3dMax x3dMin x3dMsg x3dMsgColor x3dStartFile x3dViewOK xlFileName xlFileNames xlInstalled
+  global allEntity aoEntTypes ap203all ap214all ap242all ap242XML badAttributes buttons cadSystem cells cells1 col col1 commaSeparator
+  global count csvdirnam csvfile csvinhome currLogFile dim draughtingModels entCategories entCategory entColorIndex entCount entityCount
+  global entsIgnored entsWithErrors epmi epmiUD errmsg excel excelVersion fcsv feaFirstEntity feaLastEntity File fileEntity filesProcessed
+  global gen gpmiTypesInvalid gpmiTypesPerFile guid idxColor ifcsvrDir inverses lastXLS lenfilelist localName localNameList logFile matrixList
+  global multiFile multiFileDir mydocs mytemp nistCoverageLegend nistName nistPMIexpected nistPMImaster nprogBarEnts opt pf32 p21e3 p21e3Section
+  global pmiCol resetRound row rowmax savedViewButtons savedViewName savedViewNames scriptName sheetLast skipEntities skipPerm spmiEntity
+  global spmiSumName spmiSumRow spmiTypesPerFile startrow statsOnly stepAP stepAPreport tessColor thisEntType timeStamp tlast tolNames
+  global tolStandard tolStandards totalEntity unicodeActual unicodeAttributes unicodeEnts unicodeInFile unicodeNumEnts unicodeString
+  global userEntityFile userEntityList useXL valRounded viz wdir workbook workbooks worksheet worksheet1 worksheets writeDir wsCount
+  global wsNames x3dAxes x3dColor x3dColorFile x3dColors x3dFileName x3dIndex x3dMax x3dMin x3dMsg x3dMsgColor x3dStartFile x3dViewOK
+  global xlFileName xlFileNames xlInstalled
   global objDesign
 
   if {[info exists errmsg]} {set errmsg ""}
@@ -389,17 +391,6 @@ proc genExcel {{numFile 0}} {
         }
       }
 
-# open STEP file in editor
-      if {$editorCmd != "" && [file size $localName] < 100000000} {
-        outputMsg " "
-        errorMsg "Opening STEP file in text editor"
-        if {[catch {
-          exec $editorCmd [file nativename $localName] &
-        } emsg1]} {
-          errorMsg "Error opening STEP file in text editor: $emsg1"
-        }
-      }
-
       if {[info exists errmsg]} {unset errmsg}
       catch {$objDesign Delete}
       catch {unset objDesign}
@@ -410,10 +401,6 @@ proc genExcel {{numFile 0}} {
 # other errors
     } elseif {$openStage == 1} {
       errorMsg "Error before opening STEP file: $emsg"
-      catch {
-        exec $editorCmd [file nativename $localName] &
-        errorMsg " Opening STEP file in text editor"
-      }
       return
     } elseif {$openStage == 3} {
       errorMsg "Error after opening STEP file: $emsg"
@@ -538,12 +525,10 @@ proc genExcel {{numFile 0}} {
 
 # same directory as file
     set xlFileName "[file nativename [file join [file dirname $fname] [file rootname [file tail $fname]]]]-sfa.$extXLS"
-    set xlFileNameOld "[file nativename [file join [file dirname $fname] [file rootname [file tail $fname]]]]_stp.$extXLS"
 
 # user-defined directory
     if {$opt(writeDirType) == 2} {
       set xlFileName "[file nativename [file join $writeDir [file rootname [file tail $fname]]]]-sfa.$extXLS"
-      set xlFileNameOld "[file nativename [file join $writeDir [file rootname [file tail $fname]]]]_stp.$extXLS"
     }
 
 # file name too long
@@ -556,7 +541,6 @@ proc genExcel {{numFile 0}} {
     }
 
 # delete existing file
-    if {[file exists $xlFileNameOld]} {catch {file delete -force -- $xlFileNameOld}}
     if {[file exists $xlFileName]} {
       if {[catch {
         file delete -force -- $xlFileName
@@ -1517,7 +1501,7 @@ proc genExcel {{numFile 0}} {
   }
   if {!$multiFile} {foreach var {gpmiTypesPerFile spmiTypesPerFile} {catch {global $var}; if {[info exists $var]} {unset $var}}}
 
-# delete leftover text files
+# delete leftover text files in temp directory related to viewer
   foreach f [glob -nocomplain -directory $mytemp *.txt] {catch {file delete -force -- $f}}
   update idletasks
   return 1

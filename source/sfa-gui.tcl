@@ -1,5 +1,5 @@
 # SFA version
-proc getVersion {} {return 4.65}
+proc getVersion {} {return 4.66}
 
 # see proc installIFCsvr in sfa-proc.tcl for the IFCsvr version
 
@@ -1652,7 +1652,7 @@ outputMsg "Function keys can be used as shortcuts for several commands:
 
 F1 - Generate Spreadsheet and/or run the Viewer with the current or last STEP file
 F2 - Open current or last Spreadsheet
-F3 - Open current or last Viewer file
+F3 - Open current or last Viewer file in web browser
 F4 - Open Log file
 F5 - Open STEP file in a text editor  (See Help > Open STEP File in App)
 Shift-F5 - Open STEP file directory
@@ -1664,6 +1664,8 @@ F8 - Run the Syntax Checker (See Help > Syntax Checker)
 
 F9  - Decrease this font size
 F10 - Increase this font size
+
+F12 - Open Viewer file in text editor
 
 For F1, F2, F3, F6, and F7 the last STEP file, Spreadsheet, and Viewer file are remembered between
 sessions.  In other words, F1 can process the last STEP file from a previous session without having
@@ -1756,8 +1758,7 @@ outputMsg "These STEP Application Protocols (AP) and other schemas are supported
 The Viewer works with most versions of STEP AP203, AP209, AP214, AP238, and AP242.
 
 The name of the AP is found on the FILE_SCHEMA entity in the HEADER section of a STEP file.
-The 'e1' notation after an AP number refers to an older edition of that AP.  There are multiple
-editions of AP214 and AP242 all with the same name.  The edition is identified when a file is read.\n"
+The 'e1' notation after an AP number refers to an older edition of that AP.\n"
 
     set schemas {}
     foreach match [lsort [glob -nocomplain -directory $ifcsvrDir *.rose]] {
@@ -1800,10 +1801,13 @@ editions of AP214 and AP242 all with the same name.  The edition is identified w
         if {$txt == "STRUCTURAL_FRAME_SCHEMA"} {append txt " (CIS/2)"}
         outputMsg "  $txt"
       } else {
-        outputMsg "  [string range $item 0 $c1][string toupper [string range $item $c1+1 end]]"
+        set txt "[string range $item 0 $c1][string toupper [string range $item $c1+1 end]]"
+        if {[string first "AP242" $txt] == 0} {append txt " (editions 1 and 2)"}
+        if {[string first "AP214" $txt] == 0} {append txt " (editions 1 and 3)"}
+        if {[string first "AP210" $txt] == 0} {append txt " (edition 4)"}
+        outputMsg "  $txt"
       }
     }
-    outputMsg "\nSee the Websites menu for information about the STEP Format, EXPRESS Schemas, AP242, and more."
     .tnb select .tnb.status
   }
 
@@ -2038,8 +2042,6 @@ proc guiWebsitesMenu {} {
   $Websites0 add command -label "Edition 2"            -command {openURL http://www.ap242.org/edition-2}
   $Websites0 add command -label "Benchmark Testing"    -command {openURL http://www.asd-ssg.org/step-ap242-benchmark}
   $Websites0 add command -label "ISO 10303-242"        -command {openURL https://www.iso.org/standard/66654.html}
-  $Websites0 add command -label "Schema Documentation" -command {openURL https://www.cax-if.org/documents/AP242ed2_HTML/AP242ed2.htm}
-  $Websites0 add command -label "EXPRESS Schema"       -command {openURL https://www.cax-if.org/documents/ap242ed2_mim_lf_v1.101.exp}
 
   $Websites add cascade -label "STEP Format and Schemas" -menu $Websites.2
   set Websites2 [menu $Websites.2 -tearoff 1]

@@ -1379,7 +1379,7 @@ proc gpmiAnnotationReport {objEntity} {
 proc pmiGetCameras {} {
   global objDesign
   global draughtingModels draftModelCameraNames draftModelCameras entCount mytemp opt recPracNames savedViewFile
-  global savedViewFileName savedViewItems savedViewName savedViewNames savedViewpoint spaces spmiTypesPerFile stepAP syntaxErr
+  global savedViewFileName savedViewItems savedViewName savedViewNames savedViewpoint spaces spmiTypesPerFile stepAP syntaxErr viewsWithPMI
 
   catch {unset draftModelCameras}
   catch {unset draftModelCameraNames}
@@ -1534,7 +1534,9 @@ proc pmiGetCameras {} {
 
 # create temp file ViewN.txt for saved view graphical PMI x3d, where 'N' is an integer
                     if {$opt(viewPMI)} {
-                      set name2 "View[lsearch $savedViewNames $name1]"
+                      set idx [lsearch $savedViewNames $name1]
+                      set name2 "View$idx"
+                      set viewsWithPMI($name1) $idx
                       set fn [file join $mytemp $name2.txt]
                       catch {file delete -force -- $fn}
                       set savedViewFile($name2) [open $fn w]

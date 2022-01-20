@@ -26,11 +26,7 @@ proc x3dFileStart {} {
   if {$opt(writeDirType) == 2} {set x3dir [file join $writeDir [file rootname [file tail $localName]]]}
   set x3dFileName $x3dir\-sfa.html
   set x3dFile [open $x3dFileName w]
-
-# delete old output files
   catch {file delete -force -- $x3dFileName}
-  catch {file delete -force -- "$x3dir\_x3dom.html"}
-  catch {file delete -force -- "$x3dir\-x3dom.html"}
 
 # start x3d file
   set title [encoding convertto utf-8 [file tail $localName]]
@@ -145,10 +141,10 @@ proc x3dFileEnd {} {
   global ao ap242XML brepFile brepFileName datumTargetView entCount grayBackground matTrans maxxyz nistName nsketch numTessColor opt parts partstg
   global samplingPoints savedViewButtons savedViewFile savedViewFileName savedViewItems savedViewNames savedViewpoint savedViewVP sphereDef stepAP
   global tessCoord tessEdges tessPartFile tessPartFileName tessRepo tsName viz x3dApps x3dAxes x3dBbox x3dCoord x3dFile x3dFileNameSave x3dFiles
-  global x3dFileSave x3dIndex x3dMax x3dMin x3dMsg x3dPartClick x3dParts x3dShape x3dStartFile x3dTessParts x3dTitle x3dViewOK
+  global x3dFileSave x3dIndex x3dMax x3dMin x3dMsg x3dPartClick x3dParts x3dShape x3dStartFile x3dTessParts x3dTitle x3dViewOK viewsWithPMI
 
   if {!$x3dViewOK} {
-    foreach var [list x3dCoord x3dFile x3dIndex x3dMax x3dMin x3dShape x3dStartFile] {catch {unset $var}}
+    foreach var [list x3dCoord x3dFile x3dIndex x3dMax x3dMin x3dShape x3dStartFile] {catch {unset -- $var}}
     return
   }
 
@@ -289,7 +285,6 @@ proc x3dFileEnd {} {
               set svMap($svn2) $svn2
             }
             lappend savedViewButtons $svn2
-
             foreach xf $x3dFiles {puts $xf "\n<!-- SAVED VIEW$i $svn2 -->\n<Switch whichChoice='0' id='sw$svnfn'><Group>"}
 
 # show camera viewpoint
@@ -444,7 +439,7 @@ proc x3dFileEnd {} {
     foreach xf $x3dFiles {puts $xf "</Group></Switch>"}
   }
   catch {file delete -force -- $tessPartFileName}
-  foreach var {tessPartFile tessPartFileName tsName} {catch {unset $var}}
+  foreach var {tessPartFile tessPartFileName tsName} {catch {unset -- $var}}
 
 # -------------------------------------------------------------------------------
 # part geometry
@@ -674,7 +669,7 @@ proc x3dFileEnd {} {
     }
     puts $x3dFile "\n<!-- Saved view checkboxes -->"
     if {$sv} {puts $x3dFile "Saved View Graphical PMI"}
-    if {[info exists savedViewVP] && $opt(viewPMIVP)} {puts $x3dFile "<br><font size='-1'>(PageDown to switch Saved Views.)</font>"}
+    if {[info exists savedViewVP] && $opt(viewPMIVP)} {puts $x3dFile "<br><font size='-1'>(PageDown to switch Saved Views)</font>"}
 
     foreach svn $savedViewButtons {
       set str ""
@@ -845,12 +840,12 @@ proc x3dFileEnd {} {
         lappend onload "  document.getElementById('clickedView').innerHTML = '$svn';"
         incr id
         if {$viz(PMI) && $opt(viewPMIVP)} {
-          set i 0
           foreach svn1 $savedViewButtons {
-            lappend onload "  document.getElementById('swView$i').setAttribute('whichChoice', 0);"
-            lappend onload "  document.getElementById('swView$i').checked = false;"
-            lappend onload "  document.getElementById('cbView$i').checked = true;"
-            incr i
+            if {[info exists viewsWithPMI($svn1)]} {
+              lappend onload "  document.getElementById('swView$viewsWithPMI($svn1)').setAttribute('whichChoice', 0);"
+              lappend onload "  document.getElementById('swView$viewsWithPMI($svn1)').checked = false;"
+              lappend onload "  document.getElementById('cbView$viewsWithPMI($svn1)').checked = true;"
+            }
           }
         }
         lappend onload " \}, false);"
@@ -864,18 +859,18 @@ proc x3dFileEnd {} {
         lappend onload "  document.getElementById('clickedView').innerHTML = '$svn';"
         incr id
         if {$viz(PMI) && $opt(viewPMIVP)} {
-          set i 0
           foreach svn1 $savedViewButtons {
-            set wc -1
-            set ch1 "true"
-            set ch2 "false"
-            if {$svn == $svn1} {set wc 0; set ch1 "false"; set ch2 "true"}
-            if {$svn == $svMap($svn) || $svn == $svn1} {
-              lappend onload "  document.getElementById('swView$i').setAttribute('whichChoice', $wc);"
-              lappend onload "  document.getElementById('swView$i').checked = $ch1;"
+            if {[info exists viewsWithPMI($svn1)]} {
+              set wc -1
+              set ch1 "true"
+              set ch2 "false"
+              if {$svn == $svn1} {set wc 0; set ch1 "false"; set ch2 "true"}
+              if {$svn == $svMap($svn) || $svn == $svn1} {
+                lappend onload "  document.getElementById('swView$viewsWithPMI($svn1)').setAttribute('whichChoice', $wc);"
+                lappend onload "  document.getElementById('swView$viewsWithPMI($svn1)').checked = $ch1;"
+              }
+              lappend onload "  document.getElementById('cbView$viewsWithPMI($svn1)').checked = $ch2;"
             }
-            lappend onload "  document.getElementById('cbView$i').checked = $ch2;"
-            incr i
           }
         }
         lappend onload " \}, false);"
@@ -955,7 +950,7 @@ proc x3dFileEnd {} {
         puts $x3dFile " if (trans > 0) {document.getElementById('faces').setAttribute('solid', true);} else {document.getElementById('faces').setAttribute('solid', false);}"
       }
     }
-    puts $x3dFile "}\n</script>"
+    puts $x3dFile "}</script>"
   }
 
 # onload functions
@@ -970,7 +965,7 @@ proc x3dFileEnd {} {
   update idletasks
 
 # unset variables
-  foreach var [list x3dCoord x3dFile x3dFiles x3dIndex x3dMax x3dMin x3dShape x3dStartFile] {catch {unset $var}}
+  foreach var [list x3dCoord x3dFile x3dFiles x3dIndex x3dMax x3dMin x3dShape x3dStartFile] {catch {unset -- $var}}
 }
 
 # -------------------------------------------------------------------------------
@@ -1768,7 +1763,7 @@ proc x3dTessGeom {objID objEntity1 ent1} {
       set numView {}
       foreach svn $savedViewName {lappend numView [lsearch $savedViewNames $svn]}
       set flist {}
-      foreach num [lsort $numView] {
+      foreach num [lsort -integer $numView] {
         set svn1 "View$num"
         if {[info exists savedViewFile($svn1)]} {lappend flist $savedViewFile($svn1)}
       }
@@ -1784,6 +1779,7 @@ proc x3dTessGeom {objID objEntity1 ent1} {
     set txt [[[$objEntity1 Attributes] Item [expr 1]] Value]
     regsub -all "'" $txt "\"" idshape
 
+# used for augmented reality workflow
     if {[string first "annotation" $ao] != -1} {
       set aoID [$objEntity1 P21ID]
       if {![info exists lastID($f)] || $aoID != $lastID($f)} {
