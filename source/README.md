@@ -20,8 +20,10 @@
 - sfa-inv.tcl - process inverse relationships
 - sfa-multi.tcl - process multiple STEP files
 - sfa-nist.tcl - process expected PMI for NIST models
+- sfa-part.tcl - generate b-rep and tessellated part geometry
 - sfa-proc.tcl - utility procedures
 - sfa-step.tcl - STEP utility procedures
+- sfa-supp.tcl - generate supplemental geometry graphics
 - sfa-tess.tcl - process tessellated geometry
 - sfa-valprop.tcl - process validation properties
 - sfa-xml.tcl - process AP242 XML files

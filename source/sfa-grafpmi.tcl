@@ -50,11 +50,18 @@ proc gpmiAnnotation {entType} {
   set PMIP(tessellated_annotation_occurrence) [list tessellated_annotation_occurrence name styles $curve_style $fill_style item $tessellated_geometric_set $repo_tessellated_geometric_set]
 
 # annotation placeholder
-  set planar_box      [list planar_box size_in_x size_in_y placement $a2p3d]
-  set geometric_set   [list geometric_set name elements $cartesian_point $a2p3d $planar_box]
-  set PMIP(annotation_placeholder_occurrence) [list annotation_placeholder_occurrence name styles $curve_style item $geometric_set line_spacing]
-  set apowll "annotation_placeholder_occurrence_with_leader_line"
-  set PMIP($apowll) [lreplace $PMIP(annotation_placeholder_occurrence) 0 0 $apowll]
+  set planar_box    [list planar_box size_in_x size_in_y placement $a2p3d]
+  set geometric_set [list geometric_set name elements $cartesian_point $a2p3d $planar_box]
+  set PMIP(annotation_placeholder_occurrence) [list annotation_placeholder_occurrence name styles $curve_style item $geometric_set role line_spacing]
+
+# annotation placeholder with leader line
+  set apll_point1  [list apll_point name coordinates symbol_applied]
+  set apll_point2  [list apll_point_with_surface name coordinates symbol_applied associated_surface]
+  set leader_line1 [list annotation_to_annotation_leader_line name geometric_elements $apll_point1 $apll_point2]
+  set leader_line2 [list annotation_to_model_leader_line name geometric_elements $apll_point1 $apll_point2]
+  set leader_line3 [list auxiliary_leader_line name geometric_elements $apll_point1 $apll_point2]
+  set PMIP(annotation_placeholder_occurrence_with_leader_line) \
+    [list annotation_placeholder_occurrence_with_leader_line name styles $curve_style item $geometric_set role line_spacing leader_line $leader_line1 $leader_line2 $leader_line3]
 
 # generate correct PMIP variable accounting for variations like characterized_object
   if {![info exists PMIP($entType)]} {
@@ -164,10 +171,10 @@ proc gpmiAnnotation {entType} {
 
 # -------------------------------------------------------------------------------
 proc gpmiAnnotationReport {objEntity} {
-  global ao aoname assocGeom badAttributes boxSize cells circleCenter col currx3dPID curveTrim dirRatio dirType
+  global ao aoname assocGeom badAttributes cells circleCenter col currx3dPID curveTrim dirRatio dirType
   global draughtingModels draftModelCameraNames draftModelCameras ent entAttrList entCount entLevel gen geomType gpmiEnts gpmiID gpmiIDRow
-  global gpmiName gpmiPlacement gpmiRow gpmiTypes gpmiTypesInvalid gpmiTypesPerFile gpmiValProp grayBackground iCompCurve iCompCurveSeg iPolyline
-  global nindex numCompCurve numCompCurveSeg numPolyline numx3dPID objEntity1 opt placeAnchor placeNCP placeOrigin
+  global gpmiName gpmiRow gpmiTypes gpmiTypesInvalid gpmiTypesPerFile gpmiValProp grayBackground iCompCurve iCompCurveSeg iPolyline
+  global nindex numCompCurve numCompCurveSeg numPolyline numx3dPID objEntity1 opt placeAxes placeBox placeCoords
   global pmiCol pmiColumns pmiHeading pmiStartCol propDefIDs recPracNames savedViewCol savedViewName spaces stepAP syntaxErr
   global tessCoord tessIndex tessIndexCoord tessPlacement tessPlacementID tessRepo useXL
   global x3dColor x3dCoord x3dFile x3dFileName x3dIndex x3dIndexType x3dMax x3dMin x3dPID x3dPoint x3dShape x3dStartFile
@@ -175,7 +182,6 @@ proc gpmiAnnotationReport {objEntity} {
 # entLevel is very important, keeps track level of entity in hierarchy
   incr entLevel
   set ind [string repeat " " [expr {4*($entLevel-1)}]]
-
   set maxcp 2
 
   if {[string first "handle" $objEntity] != -1} {
@@ -209,7 +215,7 @@ proc gpmiAnnotationReport {objEntity} {
     if {[string first "occurrence" $ao] != -1 && $objType != $ao && $opt(xlFormat) != "None"}  {
       if {$entLevel == 2 && \
           $objType != "geometric_curve_set" && $objType != "annotation_fill_area" && $objType != "presentation_style_assignment" && \
-          $objType != "geometric_set" && [string first "tessellated_geometric_set" $objType] == -1} {
+          $objType != "geometric_set" && [string first "tessellated_geometric_set" $objType] == -1 && [string first "leader_line" $objType] == -1} {
         set msg "Syntax Error: '[formatComplexEnt $objType]' is not allowed as an 'item' attribute of: [formatComplexEnt $ao]$spaces"
         if {[string first "AP242" $stepAP] == 0} {
           append msg "($recPracNames(pmi242), Sec. 8.1.1, 8.1.2, 8.2)"
@@ -259,16 +265,11 @@ proc gpmiAnnotationReport {objEntity} {
                     errorMsg $msg
                   }
                 }
-                "axis2_placement_3d axis" {
-                  set dirType "axis"
-                }
-                "axis2_placement_3d ref_direction" {
-                  set dirType "refdir"
-                }
+                "axis2_placement_3d axis" {set dirType "axis"}
+                "axis2_placement_3d ref_direction" {set dirType "refdir"}
               }
 
               set colName "value"
-
               if {$ok && [info exists gpmiIDRow($ao,$gpmiID)] && $opt(PMIGRF) && $opt(xlFormat) != "None"} {
                 set c [string index [cellRange 1 $col($ao)] 0]
                 set r $gpmiIDRow($ao,$gpmiID)
@@ -345,26 +346,21 @@ proc gpmiAnnotationReport {objEntity} {
               switch -glob $ent1 {
                 "composite_curve segments" {set numCompCurveSeg $objSize}
 
+                "apll_point coordinates" -
+                "apll_point_with_surface coordinates" -
                 "cartesian_point coordinates" {
                   set coord [vectrim $objValue]
 
 # save origin for tessellated placement, convert Z = -Y, Y = Z
-                  if {[info exists tessRepo]} {
-                    if {$tessRepo} {lappend tessPlacement(origin) $coord}
-                  }
+                  if {[info exists tessRepo]} {if {$tessRepo} {lappend tessPlacement(origin) $coord}}
 
-# placeholder origin and anchor, convert as above?
+# placeholder origin
                   if {[string first "placeholder" $ao] != -1} {
-                    incr placeNCP
-                    if {$placeNCP == 1} {
-                      set gpmiPlacement(origin) $coord
-                      set placeOrigin $coord
-                      catch {unset placeAnchor}
-                    } elseif {$placeNCP == 3} {
-                      set placeAnchor $coord
-                    }
+                    lappend placeCoords($aoname) $coord
+                    if {[string first "apll" $ent1] == 0} {errorMsg "For $ao, leader_lines are not supported."}
                   }
 
+# for graphical PMI, using coordinates depends on geometry type
                   if {$gen(View) && $opt(viewPMI) && $x3dFileName != ""} {
 
 # entLevel = 4 for polyline
@@ -379,19 +375,10 @@ proc gpmiAnnotationReport {objEntity} {
 # planar_box corner
                     } elseif {$geomType == "planar_box"} {
                       setCoordMinMax $objValue
-
-# write placeholder box after getting origin and anchor
-                      if {$placeNCP == 3} {
-                        append x3dCoord "0 0 0 "
-                        append x3dCoord "$boxSize(x) 0 0 "
-                        append x3dCoord "0 $boxSize(y) 0 "
-                        append x3dCoord "$boxSize(x) $boxSize(y) 0 "
-                        append x3dIndex "0 1 3 2 0 -1"
-                        set x3dIndexType "Line"
-                      }
                     }
                   }
                 }
+
                 "geometric_curve_set elements" {
                   set ok 1
                   if {$opt(PMIGRF) && $opt(xlFormat) != "None"} {
@@ -413,6 +400,7 @@ proc gpmiAnnotationReport {objEntity} {
                   set numCompCurve $objSize
                   set iCompCurve 0
                 }
+
                 "geometric_set elements" {
                   set ok 1
                   if {$opt(PMIGRF) && $opt(xlFormat) != "None"} {
@@ -427,34 +415,30 @@ proc gpmiAnnotationReport {objEntity} {
                     }
                     append colName ")"
                   }
-# for placeholder, check for required a2p3d, cartesian_point, and optional planar_box
+
+# for placeholder, check elements in geometric_set
                   if {[string first "placeholder" $ao] != -1} {
                     set elements {}
-                    set msg "Syntax Error: "
                     foreach elem $objValue {
                       set etype [$elem Type]
                       if {[string first "handle" $etype] != -1} {set etype [[$etype Value] Type]}
                       lappend elements $etype
-                      if {$etype != "axis2_placement_3d" && $etype != "cartesian_point" && $etype != "planar_box" && \
-                          [string first $etype $msg] == -1} {append msg "'$etype' is not supported"}
-                    }
-                    if {[string first "not supported" $msg] == -1} {
-                      if {[lsearch $elements "axis2_placement_3d"] == -1} {
-                        append msg "Missing required 'axis2_placement_3d'"
-                      } elseif {[lsearch $elements "cartesian_point"] == -1} {
-                        append msg "Missing required 'cartesian_point'"
+                      if {[string first "point" $etype] == 0} {
+                        errorMsg "For $ao '$etype' is not supported."
+                      } elseif {$etype != "axis2_placement_3d" && $etype != "cartesian_point" && $etype != "planar_box"} {
+                        set msg "Syntax Error: For $ao '$etype' is not valid in 'geometric_set.elements'.$spaces\($recPracNames(pmi242), Sec. 7.2.2)."
+                        errorMsg $msg
+                        lappend syntaxErr($ao) [list $gpmiID "elements" $msg]
                       }
                     }
-                    if {[string length $msg] < 15 && [lsearch $elements "planar_box"] == -1} {set msg "$ao 'planar_box' is not supported."}
-                    if {[string length $msg] > 14} {
-                      if {[string first "Syntax" $msg] == 0} {
-                        append msg " in 'geometric_set.elements'.$spaces\($recPracNames(pmi242), Sec. 7.2.2)"
-                      }
+                    if {[lsearch $elements "axis2_placement_3d"] == -1} {
+                      set msg "Syntax Error: For $ao missing required 'axis2_placement_3d'.$spaces\($recPracNames(pmi242), Sec. 7.2.2)."
                       errorMsg $msg
                       lappend syntaxErr($ao) [list $gpmiID "elements" $msg]
                     }
                   }
                 }
+
                 "annotation_fill_area boundaries" {
                   set ok 1
                   if {$opt(PMIGRF) && $opt(xlFormat) != "None"} {
@@ -473,6 +457,7 @@ proc gpmiAnnotationReport {objEntity} {
                   set x3dCoord ""
                   set nindex 0
                 }
+
                 "*tessellated_geometric_set children" {
                   set ok 1
                   if {$opt(PMIGRF) && $opt(xlFormat) != "None"} {
@@ -480,6 +465,7 @@ proc gpmiAnnotationReport {objEntity} {
                     set colName "children[format "%c" 10](Sec. 8.2)"
                   }
                 }
+
                 "direction direction_ratios" {
                   set dir [vecnorm $objValue]
                   set dirRatio(x,$dirType) [format "%.3f" [lindex $dir 0]]
@@ -503,7 +489,7 @@ proc gpmiAnnotationReport {objEntity} {
                       }
                     }
                   }
-                  if {[string first "placeholder" $ao] != -1} {set gpmiPlacement($dirType) $dir}
+                  if {[string first "placeholder" $ao] != -1} {set placeAxes($aoname,$dirType) $dir}
                 }
               }
 
@@ -615,6 +601,7 @@ proc gpmiAnnotationReport {objEntity} {
               set ok 0
               set colName ""
               switch -glob $ent1 {
+
                 "circle radius" {
                   if {$gen(View) && $opt(viewPMI) && $x3dFileName != ""} {
 # write circle to x3d points and index
@@ -667,6 +654,7 @@ proc gpmiAnnotationReport {objEntity} {
                     }
                   }
                 }
+
                 "trimmed_curve name" {
 # get trim values here
                   ::tcom::foreach a0 $objAttributes {
@@ -678,12 +666,14 @@ proc gpmiAnnotationReport {objEntity} {
                   }
                   errorMsg " Trimmed circles in PMI annotations might be incorrectly trimmed."
                 }
+
                 "cartesian_point name" {
                   if {$entLevel == 4} {
                     set ok 1
                     if {$opt(PMIGRF) && $opt(xlFormat) != "None"} {set col($ao) [expr {$pmiStartCol($ao)+2}]}
                   }
                 }
+
                 "geometric_set name" -
                 "geometric_curve_set name" -
                 "annotation_fill_area name" -
@@ -705,14 +695,14 @@ proc gpmiAnnotationReport {objEntity} {
                     catch {unset tessPlacement}
                   }
                 }
+
                 "annotation_curve_occurrence* name" -
                 "annotation_fill_area_occurrence* name" -
                 "annotation_placeholder_occurrence* name" -
                 "annotation_occurrence* name" -
                 "*tessellated_annotation_occurrence* name" {
                   set aoname $objValue
-                  if {[string first "fill" $ent1] != -1 && $gen(View) && $opt(viewPMI)} {errorMsg " Annotations with filled characters are not filled."}
-                  if {[string first "placeholder" $ent1] != -1} {set placeNCP 0}
+                  if {[string first "fill" $ent1] != -1 && $gen(View) && $opt(viewPMI)} {errorMsg " Filled characters for annotations are not filled."}
                   if {[string first "tessellated" $ent1] != -1 && $opt(xlFormat) != "None"} {
                     set ok 1
                     foreach ann [list annotation_curve_occurrence_and_geometric_representation_item annotation_curve_occurrence] {
@@ -733,13 +723,21 @@ proc gpmiAnnotationReport {objEntity} {
                     }
                   }
                 }
+
                 "annotation_placeholder_occurrence* line_spacing" {
-                  if {$objValue <= 1.E-6} {
-                    set msg "Syntax Error: [lindex $ent1 0] 'line_spacing' attribute must be greater that zero.$spaces\($recPracNames(pmi242), Sec. 7.2.2)"
+                  set msg ""
+                  if {$objValue <= 0.} {
+                    set msg "Syntax Error: [lindex $ent1 0] 'line_spacing' attribute must be greater than zero."
+                  } elseif {$objValue < 1.E-300} {
+                    set msg "Syntax Error: Bad format for [lindex $ent1 0] 'line_spacing' attribute."
+                  }
+                  if {$msg != ""} {
+                    append msg "$spaces\($recPracNames(pmi242), Sec. 7.2.2)"
                     errorMsg $msg
                     lappend syntaxErr([lindex $ent1 0]) [list $objID "line_spacing" $msg]
                   }
                 }
+
                 "*triangulated_face name" -
                 "*triangulated_surface_set name" -
                 "tessellated_curve_set name" {
@@ -748,6 +746,7 @@ proc gpmiAnnotationReport {objEntity} {
                     if {[info exists tessIndex($objID)] && [info exists tessCoord($tessIndexCoord($objID))]} {x3dTessGeom $objID $objEntity1 $ent1}
                   }
                 }
+
                 "curve_style name" -
                 "fill_area_style name" {
                   set ok 1
@@ -760,6 +759,7 @@ proc gpmiAnnotationReport {objEntity} {
                     }
                   }
                 }
+
                 "colour_rgb red" {
                   if {$entLevel == 4 || $entLevel == 8} {
                     set objValue [trimNum $objValue]
@@ -798,6 +798,7 @@ proc gpmiAnnotationReport {objEntity} {
                     }
                   }
                 }
+
                 "draughting_pre_defined_colour name" {
                   if {$entLevel == 4 || $entLevel == 8} {
                     set x3dColor [x3dPreDefinedColor $objValue]
@@ -818,15 +819,17 @@ proc gpmiAnnotationReport {objEntity} {
                     }
                   }
                 }
+
                 "polyline name" {set geomType "polyline"}
                 "circle name"   {set geomType "circle"}
                 "composite_curve name" {set iCompCurveSeg 0}
+
                 "planar_box size_in_*" {
                   set geomType "planar_box"
                   if {[string first "y" $ent1] != -1} {
-                    set boxSize(y) [trimNum $objValue]
+                    set placeBox($aoname,y) [trimNum $objValue]
                   } else {
-                    set boxSize(x) [trimNum $objValue]
+                    set placeBox($aoname,x) [trimNum $objValue]
                   }
                 }
               }
@@ -913,7 +916,7 @@ proc gpmiAnnotationReport {objEntity} {
                     if {$x3dStartFile} {x3dFileStart}
 
 # moved (start shape node if not tessellated)
-                    if {$ao == "annotation_fill_area_occurrence"} {errorMsg " PMI annotations with filled characters are not filled."}
+                    if {$ao == "annotation_fill_area_occurrence"} {errorMsg " Filled characters for annotations are not filled."}
                     if {[string first "tessellated" $ao] == -1 && [string first "placeholder" $ao] == -1} {set x3dShape 1}
                     update
                   }
@@ -976,22 +979,17 @@ proc gpmiAnnotationReport {objEntity} {
       foreach var {assocSPMI assocGeom} {if {[info exists $var]} {unset $var}}
 
       if {[string first "placeholder" $ao] == -1} {
-        set ok 0
-        set objDC [$objEntity GetUsedIn [string trim draughting_callout] [string trim contents]]
-        ::tcom::foreach objGuiEntity $objDC {
-          set objGuiEntities [$objGuiEntity GetUsedIn [string trim draughting_model_item_association] [string trim identified_item]]
-          set ok 1
-        }
-        if {!$ok} {set objGuiEntities [$objEntity GetUsedIn [string trim draughting_model_item_association] [string trim identified_item]]}
+        set dmia "draughting_model_item_association"
       } else {
-        set ok 0
-        set objDC [$objEntity GetUsedIn [string trim draughting_callout] [string trim contents]]
-        ::tcom::foreach objGuiEntity $objDC {
-          set objGuiEntities [$objGuiEntity GetUsedIn [string trim draughting_model_item_association_with_placeholder] [string trim identified_item]]
-          set ok 1
-        }
-        if {!$ok} {set objGuiEntities [$objEntity GetUsedIn [string trim draughting_model_item_association_with_placeholder] [string trim identified_item]]}
+        set dmia "draughting_model_item_association_with_placeholder"
       }
+      set ok 0
+      set objDC [$objEntity GetUsedIn [string trim draughting_callout] [string trim contents]]
+      ::tcom::foreach objGuiEntity $objDC {
+        set objGuiEntities [$objGuiEntity GetUsedIn [string trim $dmia] [string trim identified_item]]
+        set ok 1
+      }
+      if {!$ok} {set objGuiEntities [$objEntity GetUsedIn [string trim $dmia] [string trim identified_item]]}
 
       ::tcom::foreach objGuiEntity $objGuiEntities {
         ::tcom::foreach attrDMIA [$objGuiEntity Attributes] {
@@ -1014,9 +1012,9 @@ proc gpmiAnnotationReport {objEntity} {
                     lappend assocSPMI($dmiaDefType) $spmi_p21id
                   }
                 } elseif {[string first "property_definition" $dmiaDefType] == -1} {
-                  set msg "Syntax Error: Bad 'definition' attribute on draughting_model_item_association when 'name' attribute is 'PMI representation to presentation link'.$spaces\($recPracNames(pmi242), Sec. 7.3)"
+                  set msg "Syntax Error: Bad 'definition' attribute on $dmia when 'name' attribute is 'PMI representation to presentation link'.$spaces\($recPracNames(pmi242), Sec. 7.3)"
                   errorMsg $msg
-                  lappend syntaxErr(draughting_model_item_association) [list [$objGuiEntity P21ID] definition $msg]
+                  lappend syntaxErr($dmia) [list [$objGuiEntity P21ID] definition $msg]
                 }
 
 # look at shape_aspect or datums to find associated geometry
@@ -1024,7 +1022,7 @@ proc gpmiAnnotationReport {objEntity} {
                 getAssocGeom $dmiaDef 1 $ao
               }
             } elseif {$opt(xlFormat) != "None"} {
-              set msg "Syntax Error: Missing 'definition' attribute on draughting_model_item_association$spaces"
+              set msg "Syntax Error: Missing 'definition' attribute on $dmia$spaces"
               if {[string first "AP242" $stepAP] == 0} {
                 append msg "($recPracNames(pmi242), Sec. 9.3.1, Fig. 89)"
               } else {
@@ -1038,12 +1036,12 @@ proc gpmiAnnotationReport {objEntity} {
             if {[string first "handle" $dmiaDef] != -1} {
               set dmiaDefType [$dmiaDef Type]
               if {[string first "draughting_model" $dmiaDefType] == -1} {
-                set msg "Syntax Error: Bad 'used_representation' attribute ($dmiaDefType) on draughting_model_item_association.$spaces\($recPracNames(pmi242), Sec. 7.3)"
+                set msg "Syntax Error: Bad 'used_representation' attribute ($dmiaDefType) on $dmia.$spaces\($recPracNames(pmi242), Sec. 7.3)"
                 errorMsg $msg
                 lappend syntaxErr([$objGuiEntity Type]) [list [$objGuiEntity P21ID] "used_representation" $msg]
               }
             } else {
-              set msg "Syntax Error: Missing 'used_representation' attribute on draughting_model_item_association.$spaces\($recPracNames(pmi242), Sec. 7.3)"
+              set msg "Syntax Error: Missing 'used_representation' attribute on $dmia.$spaces\($recPracNames(pmi242), Sec. 7.3)"
               errorMsg $msg
               lappend syntaxErr([$objGuiEntity Type]) [list [$objGuiEntity P21ID] "used_representation" $msg]
             }
@@ -1170,7 +1168,7 @@ proc gpmiAnnotationReport {objEntity} {
     }
   }
 
-# report camera models associated with the annotation occurrence (not placeholder) through draughting_model
+# report camera models associated with the annotation occurrence through draughting_model
   if {$entLevel == 0 && (($opt(PMIGRF) && $opt(xlFormat) != "None") || ($gen(View) && $opt(viewPMI)))} {
     if {[catch {
       set savedViews ""
@@ -1178,7 +1176,7 @@ proc gpmiAnnotationReport {objEntity} {
       set nsv 0
 
 # get used draughting_model entities
-      if {[info exists draftModelCameras] && [string first "placeholder" $ao] == -1} {
+      if {[info exists draftModelCameras]} {
         set okdm 0
         set entDraughtingModels {}
         foreach dm $draughtingModels {
@@ -1235,7 +1233,7 @@ proc gpmiAnnotationReport {objEntity} {
                 if {[lsearch $gpmiRow($ao) $r] == -1} {lappend gpmiRow($ao) $r}
               }
 
-# check for a mapped_item in draughting_model 'items', do not check style_item (see old code)
+# check for a mapped_item in draughting_model 'items'
               set attrsDraughtingModel [$entDraughtingModel Attributes]
               ::tcom::foreach attrDraughtingModel $attrsDraughtingModel {
                 if {[$attrDraughtingModel Name] == "name"} {set nameDraughtingModel [$attrDraughtingModel Value]}
@@ -1463,7 +1461,7 @@ proc pmiGetCameras {} {
 
 # check for default saved view
                     ::tcom::foreach e0 [$entCameraModel GetUsedIn [string trim default_model_geometric_view] [string trim item]] {
-                      if {[$e0 Type] == "default_model_geometric_view"} {append name " (default)"; append name1 " (default)"}
+                      if {[$e0 Type] == "default_model_geometric_view"} {append name " (Default)"; append name1 " (Default)"}
                     }
 
 # get axis2_placement_3d for camera viewpoint

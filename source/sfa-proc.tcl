@@ -119,7 +119,7 @@ proc checkValues {} {
     foreach item [array names opt] {
       if {[string first "step" $item] == 0} {lappend butDisabled $item}
     }
-    foreach b {PMIGRF PMIGRFCOV PMISEM PMISEMDIM PMISEMRND valProp stepUSER INVERSE} {lappend butDisabled $b}
+    foreach b {PMIGRF PMIGRFCOV PMISEM PMISEMDIM PMISEMDT PMISEMRND valProp stepUSER INVERSE} {lappend butDisabled $b}
     foreach b {allNone0} {lappend butDisabled $b}
     foreach b {userentity userentityopen} {lappend butDisabled $b}
     set userEntityList {}
@@ -167,13 +167,13 @@ proc checkValues {} {
 
 # graphical PMI view
   if {$opt(viewPMI)} {
-    foreach b {gpmiColor0 gpmiColor1 gpmiColor2 gpmiColor3 linecolor viewPMIVP} {lappend butNormal $b}
+    foreach b {gpmiColor0 gpmiColor1 gpmiColor2 gpmiColor3 linecolor viewPMIAR viewPMIVP} {lappend butNormal $b}
     if {$gen(View) && ($gen(Excel) || $gen(CSV)) && $opt(xlFormat) != "None"} {
       set opt(stepPRES) 1
       lappend butDisabled stepPRES
     }
   } else {
-    foreach b {gpmiColor0 gpmiColor1 gpmiColor2 gpmiColor3 linecolor viewPMIVP} {lappend butDisabled $b}
+    foreach b {gpmiColor0 gpmiColor1 gpmiColor2 gpmiColor3 linecolor viewPMIAR viewPMIVP} {lappend butDisabled $b}
   }
 
   if {$gen(View) && $opt(viewPart)} {
@@ -205,14 +205,14 @@ proc checkValues {} {
       set opt($b) 1
       lappend butDisabled $b
     }
-    foreach b {PMISEMDIM PMISEMRND} {lappend butNormal $b}
+    foreach b {PMISEMDIM PMISEMDT PMISEMRND} {lappend butNormal $b}
   } else {
     foreach b {stepREPR stepTOLR} {lappend butNormal $b}
     if {!$opt(PMIGRF)} {
       if {!$opt(valProp)} {lappend butNormal stepQUAN}
       lappend butNormal stepSHAP
     }
-    foreach b {PMISEMDIM PMISEMRND} {lappend butDisabled $b}
+    foreach b {PMISEMDIM PMISEMDT PMISEMRND} {lappend butDisabled $b}
   }
   if {$opt(PMISEM) && $gen(Excel)} {
     lappend butNormal SHOWALLPMI
@@ -425,8 +425,10 @@ proc openFile {{openName ""}} {
 
 # file open dialog
     set localNameList [tk_getOpenFile -title "Open File(s)" -filetypes $typelist -initialdir $fileDir -multiple true]
-    if {[llength $localNameList] <= 1} {set localName [lindex $localNameList 0]}
-    if {$localName == ""} {return}
+    if {[llength $localNameList] <= 1} {
+      set localName [lindex $localNameList 0]
+      if {$localName == ""} {return}
+    }
 
 # file name passed in as openName
   } else {
@@ -734,7 +736,7 @@ proc saveState {{ok 1}} {
 
 # opt variables
     foreach idx [lsort [array names opt]] {
-      if {[string first "DEBUG" $idx] == -1 && [string first "indent" $idx] == -1 && $idx != "PMISEMDIM"} {
+      if {[string first "DEBUG" $idx] == -1 && [string first "indent" $idx] == -1 && $idx != "PMISEMDIM" && $idx != "PMISEMDT" && $idx != "viewPMIAR"} {
         set var opt($idx)
         set vartmp [set $var]
         if {[string first "/" $vartmp] != -1 || [string first "\\" $vartmp] != -1 || [string first " " $vartmp] != -1} {
@@ -1163,6 +1165,53 @@ proc openXLS {filename {check 0} {multiFile 0}} {
     set filename ""
   }
   return $filename
+}
+
+# -------------------------------------------------------------------------------------------------
+# open x3dom file
+proc openX3DOM {{fn ""} {numFile 0}} {
+  global lastX3DOM multiFile opt scriptName x3dMsgColor x3dFileName viz
+
+# f3 is for opening last x3dom file with function key F3
+  set f3 1
+  if {$fn == ""} {
+    set f3 0
+    set ok 0
+
+# check that there is a file to view
+    if {[info exists x3dFileName]} {if {[file exists $x3dFileName]} {set ok 1}}
+    if {$ok} {
+      set fn $x3dFileName
+
+# no file, show message
+    } elseif {$opt(viewPMI) || $opt(viewTessPart) || $opt(viewFEA) || $opt(viewPart)} {
+      if {$opt(xlFormat) == "None"} {errorMsg "There is nothing in the STEP file for the Viewer to show based on the selections on the Options tab."}
+      return
+    }
+  }
+
+  if {[file exists $fn] != 1} {return}
+  if {![info exists multiFile]} {set multiFile 0}
+
+  set open 0
+  if {![info exists viz(PART)]} {set viz(PART) 0}
+  if {$f3} {
+    set open 1
+  } elseif {($viz(PMI) || $viz(TESSPART) || $viz(FEA) || $viz(PART)) && $fn != "" && $multiFile == 0} {
+    if {$opt(outputOpen)} {set open 1}
+  }
+
+# open file (.html) in web browser
+  set lastX3DOM $fn
+  if {$open} {
+    if {![info exists x3dMsgColor]} {set x3dMsgColor blue}
+    catch {.tnb select .tnb.status}
+    outputMsg "\nOpening Viewer file: [file tail $fn] ([fileSize $fn])" $x3dMsgColor
+    openURL [file nativename $fn]
+    update idletasks
+  } elseif {$numFile == 0 && [string first "STEP-File-Analyzer.exe" $scriptName] != -1} {
+    outputMsg " Use F3 to open the Viewer file" red
+  }
 }
 
 #-------------------------------------------------------------------------------
@@ -1815,7 +1864,7 @@ proc installIFCsvr {{exit 0}} {
     } else {
       outputMsg " "
       errorMsg "To install the IFCsvr toolkit you must first run the NIST version of the STEP File Analyzer and Viewer."
-      outputMsg "- Download the Attachment zip file on the software web page.
+      outputMsg "- Download the zip file on the software web page.
 - Follow the instructions to run the software.
 - The IFCsvr toolkit will be installed when the NIST STEP File Analyzer and Viewer is run."
       after 1000
@@ -1825,9 +1874,9 @@ proc installIFCsvr {{exit 0}} {
 }
 
 #-------------------------------------------------------------------------------
-# shortcuts
+# shortcuts on desktop and start menu
 proc setShortcuts {} {
-  global mydesk mymenu mytemp nistVersion tcl_platform wdir
+  global mydesk mymenu mytemp wdir
 
   set progname [info nameofexecutable]
   if {[string first "AppData/Local/Temp" $progname] != -1 || [string first ".zip" $progname] != -1} {
@@ -1836,9 +1885,6 @@ proc setShortcuts {} {
   }
 
   if {[info exists mydesk] || [info exists mymenu]} {
-    set ok 1
-    if {[file exists [file join $mydesk [file tail [info nameofexecutable]]]]} {set ok 0}
-
     set progstr "STEP File Analyzer and Viewer"
     set msg "Do you want to create or overwrite shortcuts to the $progstr [getVersion]"
     if {[info exists mydesk]} {
@@ -1852,35 +1898,8 @@ proc setShortcuts {} {
       set choice [tk_messageBox -type yesno -icon question -title "Shortcuts" -message $msg]
       if {$choice == "yes"} {
         catch {[file copy -force -- [file join $wdir images NIST.ico] [file join $mytemp NIST.ico]]}
-        catch {
-          if {[info exists mymenu]} {
-            if {$nistVersion} {
-              if {$tcl_platform(osVersion) >= 6.2} {
-                twapi::write_shortcut [file join $mymenu "$progstr.lnk"] -path [info nameofexecutable] -desc $progstr -iconpath [info nameofexecutable]
-              } else {
-                twapi::write_shortcut [file join $mymenu "$progstr.lnk"] -path [info nameofexecutable] -desc $progstr -iconpath [file join $mytemp NIST.ico]
-              }
-            } else {
-              twapi::write_shortcut [file join $mymenu "$progstr.lnk"] -path [info nameofexecutable] -desc $progstr
-            }
-          }
-        }
-
-        if {$ok} {
-          catch {
-            if {[info exists mydesk]} {
-              if {$nistVersion} {
-                if {$tcl_platform(osVersion) >= 6.2} {
-                  twapi::write_shortcut [file join $mydesk "$progstr.lnk"] -path [info nameofexecutable] -desc $progstr -iconpath [info nameofexecutable]
-                } else {
-                  twapi::write_shortcut [file join $mydesk "$progstr.lnk"] -path [info nameofexecutable] -desc $progstr -iconpath [file join $mytemp NIST.ico]
-                }
-              } else {
-                twapi::write_shortcut [file join $mydesk "$progstr.lnk"] -path [info nameofexecutable] -desc $progstr
-              }
-            }
-          }
-        }
+        catch {if {[info exists mymenu]} {twapi::write_shortcut [file join $mymenu "$progstr.lnk"] -path [info nameofexecutable] -desc $progstr -iconpath [file join $mytemp NIST.ico]}}
+        catch {if {[info exists mydesk]} {twapi::write_shortcut [file join $mydesk "$progstr.lnk"] -path [info nameofexecutable] -desc $progstr -iconpath [file join $mytemp NIST.ico]}}
       }
     }
   }

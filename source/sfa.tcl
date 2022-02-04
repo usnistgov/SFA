@@ -82,8 +82,8 @@ foreach id { \
 # set opt to 0
 foreach id { \
   feaBounds feaDisp feaDispNoTail feaLoads feaLoadScale indentGeometry indentStyledItem INVERSE partNormals partOnly \
-  PMIGRFCOV PMISEMDIM PMISEMRND SHOWALLPMI stepADDM stepAP242 stepCOMP stepCONS stepCPNT stepFEAT stepGEOM stepKINE stepQUAL stepUSER syntaxChecker \
-  viewFEA viewPMIVP writeDirType xlHideLinks xlNoRound xlSort xlUnicode x3dSave DEBUG1 DEBUGINV DEBUGNOXL DEBUGVP DEBUGX3D \
+  PMIGRFCOV PMISEMDIM PMISEMDT PMISEMRND SHOWALLPMI stepADDM stepAP242 stepCOMP stepCONS stepCPNT stepFEAT stepGEOM stepKINE stepQUAL stepUSER syntaxChecker \
+  viewFEA viewPMIAR viewPMIVP writeDirType xlHideLinks xlNoRound xlSort xlUnicode x3dSave DEBUG1 DEBUGINV DEBUGNOXL DEBUGVP DEBUGX3D \
 } {set opt($id) 0}
 
 set opt(gpmiColor) 3
@@ -257,7 +257,6 @@ if {[info exists endMsg]} {
 set save 0
 if {$sfaVersion == 0} {
   whatsNew
-  set sfaVersion [getVersion]
   setShortcuts
   showFileURL UserGuide
   showCrashRecovery
@@ -266,7 +265,6 @@ if {$sfaVersion == 0} {
 # what's new message
 } elseif {$sfaVersion < [getVersion]} {
   whatsNew
-  set sfaVersion [getVersion]
   setShortcuts
   set save 1
 

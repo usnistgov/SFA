@@ -129,14 +129,14 @@ proc spmiCheckEnt {ent} {
   set ok 0
 
 # all tolerances, dimensions, datums, etc. (defined in sfa-data.tcl)
-  if {!$opt(PMISEMDIM)} {
+  if {!$opt(PMISEMDIM) && !$opt(PMISEMDT)} {
     foreach sp $spmiEntTypes {if {[string first $sp $ent] ==  0} {set ok 1}}
     foreach sp $tolNames     {if {[string first $sp $ent] != -1} {set ok 1}}
-
-# only dimensions
-  } elseif {$ent == "dimensional_characteristic_representation"} {
-    set ok 1
   }
+
+# only dimensions or datum targets
+  if {$opt(PMISEMDIM) && $ent == "dimensional_characteristic_representation"} {set ok 1}
+  if {$opt(PMISEMDT) && ($ent == "placed_datum_target_feature" || $ent == "datum_target")} {set ok 1}
 
 # counter holes
   if {([string first "counter" $ent] != -1 || [string first "spotface" $ent] != -1 || [string first "basic_round" $ent] != -1) && [string first "occurrence" $ent] == -1} {
@@ -186,7 +186,8 @@ proc setEntsToProcess {entType} {
   if {($opt(PMIGRF) || ($gen(View) && $opt(viewPMI))) && $ok == 0} {
     set ok [gpmiCheckEnt $entType]
     set gpmiEnts($entType) $ok
-    if {$entType == "geometric_curve_set" || [string first "geometric_set" $entType] != -1 || [string first "apll_point" $entType] == 0} {set ok 1}
+    if {$entType == "geometric_curve_set" || $entType == "planar_box" || \
+        [string first "geometric_set" $entType] != -1 || [string first "apll_point" $entType] == 0} {set ok 1}
   }
 
 # for PMI (semantic) representation
@@ -611,7 +612,7 @@ proc getSchemaFromFile {fname {limit 0}} {
 }
 
 #-------------------------------------------------------------------------------
-# convert \X2\ in strings, see sfa-data.tcl
+# convert \X2\ in strings, see sfa-data.tcl for unicodeAttributes
 proc unicodeStrings {unicodeEnts} {
   global localName unicodeActual unicodeAttributes unicodeNumEnts unicodeString
 
@@ -631,6 +632,11 @@ proc unicodeStrings {unicodeEnts} {
       foreach ent $unicodeEnts {
         if {$str == $ent} {
           set ok 1
+        } elseif {[string first "COMPOSITE_SHAPE_ASPECT()DATUM_FEATURE" $line] != -1} {
+          set ok 1
+          set ent "COMPOSITE_SHAPE_ASPECT_AND_DATUM_FEATURE"
+        }
+        if {$ok} {
           set ent1 [string tolower $ent]
           break
         }
@@ -657,18 +663,18 @@ proc unicodeStrings {unicodeEnts} {
               } else {
                 set str [string range $line [string first "'" $line]+1 [string first "," $line]-2]
               }
-              set unicodeString($idx) [x3dUnicode $str "attr"]
+              set unicodeString($idx) [getUnicode $str "attr"]
               if {[lsearch $unicodeActual $ent1] == -1} {lappend unicodeActual $ent1}
             }
             string_with_language {
               set str [string range $line [string first "'" $line]+1 [string last "'" $line]-1]
-              set unicodeString($idx) [x3dUnicode $str "attr"]
+              set unicodeString($idx) [getUnicode $str "attr"]
               if {[lsearch $unicodeActual $ent1] == -1} {lappend unicodeActual $ent1}
             }
             translated_label -
             translated_text {
               set str1 [string range $line [string first "('" $line]+2 [string first "')" $line]-1]
-              set str1 [x3dUnicode $str1 "attr"]
+              set str1 [getUnicode $str1 "attr"]
               set str {}
               set len [string length $str1]
               for {set i 0} {$i < $len} {incr i} {
@@ -687,7 +693,7 @@ proc unicodeStrings {unicodeEnts} {
 # entity attributes from ap2..
               catch {unset attr}
               set na 0
-              set line1 [x3dUnicode $line "attr"]
+              set line1 [getUnicode $line "attr"]
               set i1 [expr {[string first "(" $line1]+1}]
               set i2 [string last  ")" $line1]
               for {set i $i1} {$i < $i2} {incr i} {
@@ -727,6 +733,61 @@ proc unicodeStrings {unicodeEnts} {
   } emsg]} {
     errorMsg "Error processing Unicode string attribute: $emsg"
   }
+}
+
+# -------------------------------------------------------------------------------
+# process X and X2 control directives with Unicode characters
+proc getUnicode {id {type "view"}} {
+  set x "&#x"
+  set u "\\u"
+  set z "00"
+
+  foreach xl [list X X2] {
+    set cx [string first "\\$xl\\" $id]
+    if {$cx != -1} {
+      switch -- $xl {
+        X {
+          while {$cx != -1} {
+            set xu ""
+            set uc [string range $id $cx+3 $cx+4]
+            switch -- $type {
+              view {append xu "$x$uc;"}
+              attr {append xu [join [eval list $u$z$uc]]}
+            }
+            set id [string range $id 0 $cx-1]$xu[string range $id $cx+5 end]
+            set cx [string first "\\$xl\\" $id]
+          }
+        }
+        X2 {
+          while {$cx != -1} {
+            set xu ""
+            for {set i 4} {$i < 200} {incr i 4} {
+              set uc [string range $id $cx+$i [expr {$cx+$i+3}]]
+              if {$type == "attr" && $uc == "000A"} {
+                set xu [format "%c" 10]
+              } elseif {[string first "\\" $uc] == -1} {
+                switch -- $type {
+                  view {append xu "$x$uc;"}
+                  attr {append xu [join [eval list $u$uc]]}
+                }
+              } else {
+                set cx0 [string first "\\X0\\" $id]
+                if {$cx0 != -1} {
+                  set id "[string range $id 0 $cx-1]$xu[string range $id $cx0+4 end]"
+                  break
+                } else {
+                  errorMsg " Missing \\X0\\ for \\X2\\"
+                  return $id
+                }
+              }
+            }
+            set cx [string first "\\$xl\\" $id]
+          }
+        }
+      }
+    }
+  }
+  return $id
 }
 
 #-------------------------------------------------------------------------------

@@ -18,8 +18,7 @@ proc genExcel {{numFile 0}} {
 
 # generate STEP AP242 tessellated geometry from STL file
   if {[string tolower [file extension $localName]] == ".stl"} {
-    set viz(PMIMSG) ""
-    stl2STEP
+    STL2STEP
     if {$localName == ""} {return}
   }
 
@@ -34,7 +33,7 @@ proc genExcel {{numFile 0}} {
       set x3dAxes 1
       set x3dFileName ""
       set x3dColor ""
-      set x3dColors  {}
+      set x3dColors {}
       foreach idx {x y z} {set x3dMax($idx) -1.e8; set x3dMin($idx) 1.e8}
       catch {unset tessColor}
       catch {unset x3dColorFile}
@@ -64,7 +63,7 @@ proc genExcel {{numFile 0}} {
 # view part geometry only, does not require opening STEP file with IFCsvr
   if {$opt(partOnly) && ![info exists statsOnly]} {
     outputMsg "\nGenerating View"
-    foreach var {cadSystem entCount stepAP timeStamp} {if {[info exists $var]} {unset $var}}
+    foreach var {cadSystem entCount stepAP timeStamp} {if {[info exists $var]} {unset -- $var}}
 
 # add file name to menu
     set ok 0
@@ -73,7 +72,7 @@ proc genExcel {{numFile 0}} {
     if {$ok} {addFileToMenu}
 
 # initialize
-    foreach idx {DTMTAR EDGE FEA HOLE PMI POINTS SUPPGEOM TESSEDGE TESSPART} {set viz($idx) 0}
+    foreach idx {COMPOSITES DTMTAR EDGE FEA HOLE PMI PLACE POINTS SUPPGEOM TESSEDGE TESSPART} {set viz($idx) 0}
     set viz(PART) 1
     set x3dMsgColor blue
     set lasttime [clock clicks -milliseconds]
@@ -109,7 +108,7 @@ proc genExcel {{numFile 0}} {
       saveState
     }
 
-    foreach var {ap242XML cadSystem stepAP timeStamp x3dCoord x3dFile x3dFileName x3dIndex x3dMax x3dMin x3dStartFile} {if {[info exists $var]} {unset $var}}
+    foreach var {ap242XML cadSystem stepAP timeStamp x3dCoord x3dFile x3dFileName x3dIndex x3dMax x3dMin x3dStartFile} {if {[info exists $var]} {unset -- $var}}
     if {[info exists buttons]} {$buttons(generate) configure -state normal}
     return
   }
@@ -197,7 +196,6 @@ proc genExcel {{numFile 0}} {
 
 # get stats
     set openStage 3
-    set viz(PMIMSG) "The STEP file contains only Graphical PMI and no Semantic PMI."
     if {$entityCount > 0} {
       outputMsg " $entityCount entities"
       set entityTypeNames [$objDesign EntityTypeNames [expr 2]]
@@ -219,10 +217,8 @@ proc genExcel {{numFile 0}} {
 
           if {$entType == "dimensional_characteristic_representation"} {
             lappend characteristics "Dimensions"
-            set viz(PMIMSG) "Some Graphical PMI might not have equivalent Semantic PMI in the STEP file."
           } elseif {$entType == "datum"} {
             lappend characteristics "Datums"
-            set viz(PMIMSG) "Some Graphical PMI might not have equivalent Semantic PMI in the STEP file."
           } elseif {$entType == "placed_datum_target_feature" || $entType == "datum_target"} {
             lappend characteristics "Datum targets"
 
@@ -247,12 +243,7 @@ proc genExcel {{numFile 0}} {
           } elseif {[lsearch $entCategory(stepFEAT) $entType] != -1 || [lsearch $entCategory(stepFEAT) $ent1] != -1 || [lsearch $entCategory(stepFEAT) $ent2] != -1} {
             lappend characteristics "Features"
           } else {
-            foreach tol $tolNames {
-              if {[string first $tol $entType] != -1} {
-                lappend characteristics "Geometric tolerances"
-                set viz(PMIMSG) "Some Graphical PMI might not have equivalent Semantic PMI in the STEP file."
-              }
-            }
+            foreach tol $tolNames {if {[string first $tol $entType] != -1} {lappend characteristics "Geometric tolerances"}}
           }
 
 # make sure some entity types are always processed
@@ -996,7 +987,7 @@ proc genExcel {{numFile 0}} {
       }
     }
 
-# find camera models used in draughting model items (previously only for saved views in graphical PMI)
+# find camera models used in draughting model items
     pmiGetCameras
 
 # get validation properties related to graphical or semantic PMI
@@ -1196,7 +1187,7 @@ proc genExcel {{numFile 0}} {
     if {$opt(PMISEM) && $stepAPreport} {
 
 # check for datum and datum_system
-      if {!$opt(PMISEMDIM)} {
+      if {!$opt(PMISEMDIM) && !$opt(PMISEMDT)} {
         if {[info exists entCount(datum)]} {
           for {set i 0} {$i < $entCount(datum)} {incr i} {lappend spmiTypesPerFile "datum (6.5)"}
         }
@@ -1494,8 +1485,8 @@ proc genExcel {{numFile 0}} {
   if {!$multiFile && [info exists buttons]} {$buttons(generate) configure -state normal}
   update idletasks
 
-# unset variables to release memory and/or to reset them
-  foreach var {ap242XML cells cgrObjects colColor count currx3dPID datumEntType datumGeom datumIDs datumSymbol datumSystem dimrep dimrepID dimtolEnt dimtolEntID dimtolGeom draughtingModels draftModelCameraNames draftModelCameras entCount entName entsIgnored epmi epmiUD feaDOFR feaDOFT feaNodes gpmiID gpmiIDRow gpmiRow heading idRow invCol invGroup nrep numx3dPID pmiCol pmiColumns pmiStartCol pmivalprop propDefID propDefIDRow propDefName propDefOK propDefRow savedsavedViewNames savedViewFile savedViewFileName savedViewItems savedViewNames savedViewpoint savedViewVP shapeRepName srNames suppGeomEnts syntaxErr tessCoord tessCoordName tessIndex tessIndexCoord tessPlacement tessRepo unicode unicodeActual unicodeNumEnts unicodeString viz vpEnts workbook workbooks worksheet worksheets x3dCoord x3dFile x3dFileName x3dIndex x3dMax x3dMin x3dStartFile} {
+# unset variables
+  foreach var {ap242XML brepScale cells cgrObjects colColor count currx3dPID datumEntType datumGeom datumIDs datumSymbol datumSystem dimrep dimrepID dimtolEnt dimtolEntID dimtolGeom draughtingModels draftModelCameraNames draftModelCameras entCount entName entsIgnored epmi epmiUD feaDOFR feaDOFT feaNodes gpmiID gpmiIDRow gpmiRow heading idRow invCol invGroup nrep numx3dPID pmiCol pmiColumns pmiStartCol pmivalprop propDefID propDefIDRow propDefName propDefOK propDefRow savedsavedViewNames savedViewFile savedViewFileName savedViewItems savedViewNames savedViewpoint savedViewVP shapeRepName srNames suppGeomEnts syntaxErr tessCoord tessCoordName tessIndex tessIndexCoord tessPlacement tessRepo unicode unicodeActual unicodeNumEnts unicodeString viz vpEnts workbook workbooks worksheet worksheets x3dCoord x3dFile x3dFileName x3dIndex x3dMax x3dMin x3dStartFile} {
     catch {global $var}
     if {[info exists $var]} {unset $var}
   }

@@ -127,7 +127,11 @@ proc nistGetSummaryPMI {name} {
       set c1 [string first "\\" $item]
       set typ [string range $item 0 $c1-1]
 
-      if {!$opt(PMISEMDIM) || $typ == "dimensional_characteristic_representation"} {
+      set ok 0
+      if {!$opt(PMISEMDIM) || $typ == "dimensional_characteristic_representation"} {set ok 1}
+      if {!$opt(PMISEMDT) || $typ == "placed_datum_target_feature" || $typ == "datum_target"} {set ok 1}
+
+      if {$ok} {
         set pmi [string range $item $c1+1 end]
         set newpmi [pmiRemoveZeros $pmi]
         lappend nistPMIexpected($name) $newpmi

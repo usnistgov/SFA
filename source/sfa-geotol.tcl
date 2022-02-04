@@ -583,6 +583,11 @@ proc spmiGeotolReport {objEntity} {
                     if {$gt == "datum_system"} {
                       set idx [string trim [expr {int([[$cells($gt) Item $r 1] Value])}]]
                       set datumSystem($idx) "$val | $objValue"
+                      if {$objValue == $val} {
+                        set msg "Syntax Error: At least two datums are identical for a datum reference frame.$spaces\($recPracNames(pmi242), Sec. 6.9.7)"
+                        errorMsg $msg
+                        lappend syntaxErr(datum_system) [list [$gtEntity P21ID] "Datum Reference Frame" $msg]
+                      }
                     }
                   }
 

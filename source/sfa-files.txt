@@ -15,8 +15,10 @@ sfa-indent.tcl
 sfa-inv.tcl
 sfa-multi.tcl
 sfa-nist.tcl
+sfa-part.tcl
 sfa-proc.tcl
 sfa-step.tcl
+sfa-supp.tcl
 sfa-tess.tcl
 sfa-valprop.tcl
 sfa-xml.tcl

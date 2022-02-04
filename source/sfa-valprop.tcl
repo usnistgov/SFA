@@ -137,6 +137,7 @@ proc valPropStart {} {
     [list si_unit_and_thermodynamic_temperature_unit dimensions prefix name] \
     [list force_unit elements $derived_unit_element] \
     [list moment_unit elements $derived_unit_element]]
+  set rowrep [list row_representation_item name item_element $drep]
 
   set ang  [list plane_angle_measure_with_unit_and_measure_representation_item value_component unit_component name]
   set len1 [list length_measure_with_unit_and_measure_representation_item value_component unit_component name]
@@ -152,7 +153,7 @@ proc valPropStart {} {
   set def2 [list model_geometric_view item [list camera_model_d3 name]]
   set def3 [list default_model_geometric_view item [list camera_model_d3 name]]
 
-  set rep1 [list representation name items $a2p3d $drep $vrep $brep $irep $rrep $mrep $len1 $len2 $mass $cartesian_point $ang $area $vol $forc $pres $rat]
+  set rep1 [list representation name items $a2p3d $drep $vrep $brep $irep $rrep $mrep $rowrep $len1 $len2 $mass $cartesian_point $ang $area $vol $forc $pres $rat]
   set rep2 [list shape_representation_with_parameters name items $a2p3d $drep $vrep $brep $irep $rrep $mrep $len1 $len2 $mass $cartesian_point $ang $area $vol $forc $pres $rat]
   set rep3 [list tessellated_shape_representation name items]
 
@@ -251,9 +252,9 @@ proc valPropStart {} {
 
 # -------------------------------------------------------------------------------
 proc valPropReport {objEntity} {
-  global cells col entLevel ent entAttrList gen maxelem maxrep ncartpt nelem nrep opt pd pdclass pdcol pdheading pmivalprop prefix
-  global propDefID propDefIDRow propDefName propDefOK propDefRow recPracNames repName samplingPoints spaces stepAP syntaxErr tessCoord tessCoordName
-  global unicodeEnts unicodeString valName valPropEnts valPropLink valPropNames valProps
+  global cells col entLevel ent entAttrList gen maxelem maxrep ncartpt nelem nrep opt pd pdclass pdcol pdheading pmivalprop prefix propDefID
+  global propDefIDRow propDefName propDefOK propDefRow recPracNames repName repNameOK samplingPoints spaces stepAP syntaxErr tessCoord
+  global tessCoordName unicodeEnts unicodeString valName valPropEnts valPropLink valPropNames valProps
 
   if {$opt(DEBUG1)} {outputMsg "valPropReport" red}
   if {[info exists propDefOK]} {if {$propDefOK == 0} {return}}
@@ -275,7 +276,7 @@ proc valPropReport {objEntity} {
       if {[info exists repName]} {
         if {$objType == "cartesian_point" && [string first "sampling points" $repName] != -1} {
           incr ncartpt
-          if {$ncartpt == 1 && $gen(View) && $opt(viewPart)} {errorMsg "  Processing cloud of points" red}
+          if {$ncartpt == 1 && $gen(View) && $opt(viewPart)} {errorMsg "  Processing cloud of points" green}
         }
       }
 
@@ -418,7 +419,13 @@ proc valPropReport {objEntity} {
             }
 
 # if referred to another, get the entity
-            if {[string first "handle" $objEntity] != -1} {valPropReport $objValue}
+            if {[string first "handle" $objEntity] != -1} {
+              if {[catch {
+                ::tcom::foreach val1 $objValue {valPropReport $val1}
+              } emsg]} {
+                foreach val2 $objValue {valPropReport $val2}
+              }
+            }
           }
 
 # --------------
@@ -607,16 +614,13 @@ proc valPropReport {objEntity} {
                       foreach vp $vps {
                         if {[string first $vp [string tolower $objValue]] == 0 && $objValue != "FEA validation property"} {
                           set okvp 1
-                          set emsg "Syntax Error: Use lower case 'property_definition' attribute 'name' ($objValue)."
+                          errorMsg "Use all lower case property_definition 'name' attribute for '$objValue'."
                           regsub -all " " [string tolower $objValue] "_" propDefName
-                          errorMsg $emsg
-                          set invalid $emsg
-                          lappend syntaxErr([lindex [split $ent1 " "] 0]) [list $objID [lindex [split $ent1 " "] 1] $emsg]
                         }
                       }
                     }
                     if {!$okvp} {
-                      set msg "Syntax Error: Validation property '$objValue' is not supported."
+                      set msg "Syntax Error: Validation property '$objValue' is not valid."
                       errorMsg $msg
                       set invalid $msg
                       lappend syntaxErr([lindex [split $ent1 " "] 0]) [list $objID [lindex [split $ent1 " "] 1] $msg]
@@ -673,7 +677,7 @@ proc valPropReport {objEntity} {
                   set ok 1
                   set col($pd) 5
                   set colName "representation name"
-                  set repName $objValue
+                  set repName [string trim $objValue]
                   if {[string first "sampling points" $repName] != -1} {set ncardpt 0}
 
 # add representation name to valProps
@@ -681,25 +685,25 @@ proc valPropReport {objEntity} {
 
                   if {[info exists propDefName]} {
                     if {$entLevel == 2 && [info exists valPropNames($propDefName)]} {
-                      set ok1 0
 
 # look for valid representation.name in valPropNames
-# new RP allows for blank representation.name (repName) except for sampling points
-                      if {[string trim $repName] != ""} {
-                        if {$repName != ""} {
-                          foreach idx $valPropNames($propDefName) {
-                            if {[lindex $idx 0] == $repName || [lindex $idx 0] == ""} {
-                              set ok1 1
-                              break
-                            }
-                          }
+                      set ok1 0
+                      set repNameOK 1
+                      if {$repName != ""} {
+                        foreach idx $valPropNames($propDefName) {
+                          if {[lindex $idx 0] == $repName && [lindex $idx 0] != ""} {set ok1 1; break}
                         }
                       } else {
                         set ok1 1
                       }
 
                       if {!$ok1} {
-                        set emsg "Syntax Error: Bad '$ent2' attribute for '$propDefName'."
+                        set repNameOK 0
+                        if {$propDefName != "pmi_validation_property" && $propDefName != "attribute_validation_property"} {
+                          set emsg "Syntax Error: Bad '$ent2' attribute for '$propDefName'."
+                        } else {
+                          set emsg "Syntax Error: The [lindex $ent1 0] 'name' attribute must be empty."
+                        }
                         switch $propDefName {
                           geometric_validation_property -
                           assembly_validation_property {append emsg "$spaces\($recPracNames(valprop), Sec. 8)"}
@@ -737,40 +741,33 @@ proc valPropReport {objEntity} {
                   if {[info exists propDefName]} {
                     if {$entLevel == 3 && [info exists valPropNames($propDefName)]} {
                       set ok1 0
-                      foreach idx $valPropNames($propDefName) {
-                        if {[lindex $idx 0] == $repName || [lindex $idx 0] == "" || [string trim $repName] == ""} {
-                          foreach item [lindex $idx 1] {
-                            set repItemName $item
-                            if {$objValue == $repItemName} {
-                              set ok1 1
-                              if {$objValue == "sampling point" && [string trim $repName] == ""} {
-                                set emsg "Syntax Error: Bad representation 'name' attribute for '$objValue'.$spaces\($recPracNames(valprop), Sec. 4.11)"
-                                errorMsg $emsg
+                      set badname ""
+                      if {$repNameOK} {
+                        foreach idx $valPropNames($propDefName) {
+                          if {[lindex $idx 0] == $repName || $repName == ""} {
+                            foreach item [lindex $idx 1] {
+                              if {$objValue == $item} {
+                                set ok1 1
+                                if {$objValue == "sampling point" && $repName == ""} {
+                                  set emsg "Syntax Error: Bad representation 'name' attribute for '$objValue'.$spaces\($recPracNames(valprop), Sec. 4.11)"
+                                  errorMsg $emsg
+                                }
+                                break
+                              } elseif {[string tolower $objValue] == $item} {
+                                errorMsg "Use all lower case for [lindex $ent1 0] name attribute '$objValue'."
+                                set ok1 1
+                                break
                               }
-                              break
-
-# check if wrong case used
-                            } elseif {[string tolower $objValue] == $repItemName} {
-                              set ok1 2
-                              break
                             }
                           }
+                          if {[lsearch [lindex $idx 1] $objValue] == -1} {set badName $objValue}
                         }
+                      } else {
+                        set ok1 1
                       }
 
-# do not flag cartesian_point.name errors with entity ids, or semantic text property name
-                      if {!$ok1 && $ent2 == "cartesian_point.name"} {
-                        if {[string first "\#" $objValue] != -1} {set ok1 1}
-                      }
-                      if {$propDefName == "semantic_text"} {set ok1 1}
-
-                      if {$ok1 != 1} {
-                        if {$ok1 == 0} {
-                          set emsg "Syntax Error: Bad "
-                        } elseif {$ok1 == 2} {
-                          set emsg "Syntax Error: Use lower case for "
-                        }
-                        append emsg "'[formatComplexEnt $ent2]' attribute for '$propDefName'."
+                      if {!$ok1 && $propDefName != "semantic_text"} {
+                        set emsg "Syntax Error: Bad '[formatComplexEnt $ent2]' attribute ($badName) for '$propDefName'."
                         switch $propDefName {
                           geometric_validation_property -
                           assembly_validation_property {append emsg "$spaces\($recPracNames(valprop), Sec. 8)"}
@@ -869,7 +866,7 @@ proc valPropReport {objEntity} {
 # -------------------------------------------------------------------------------
 proc valPropFormat {} {
   global cells col entRows propDefRow row thisEntType worksheet valPropLink
-  
+
   if {[info exists cells($thisEntType)] && $col($thisEntType) > 4} {
     outputMsg " property_definition"
 

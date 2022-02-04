@@ -143,7 +143,7 @@ foreach id {logFile outputOpen PMIGRF PMISEM stepADDM stepAP242 stepCOMM stepCOM
 # set opt to 0
 foreach id { \
   feaBounds feaDisp feaDispNoTail feaLoads feaLoadScale indentGeometry indentStyledItem INVERSE partEdges partNormals partOnly partSketch \
-  PMIGRFCOV PMISEMDIM PMISEMRND SHOWALLPMI stepCPNT stepGEOM stepUSER syntaxChecker tessPartMesh viewFEA viewPart viewPMI viewPMIVP \
+  PMIGRFCOV PMISEMDIM PMISEMDT PMISEMRND SHOWALLPMI stepCPNT stepGEOM stepUSER syntaxChecker tessPartMesh viewFEA viewPart viewPMI viewPMIAR viewPMIVP \
   viewTessPart writeDirType xlHideLinks xlNoRound xlSort xlUnicode x3dSave DEBUG1 DEBUGINV DEBUGNOXL DEBUGVP DEBUGX3D \
 } {set opt($id) 0}
 
