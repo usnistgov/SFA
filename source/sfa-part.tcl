@@ -1,5 +1,5 @@
 # write tessellated geometry for annotations and parts
-proc x3dTessGeom {objID objEntity1 ent1} {
+proc x3dTessGeom {objID tessEnt faceEnt} {
   global ao defaultColor draftModelCameras entCount lastID mytemp opt recPracNames savedViewFile savedViewFileName savedViewNames shapeRepName
   global shellSuppGeom spaces srNames syntaxErr tessCoord tessCoordID tessGeomTxt tessIndex tessIndexCoord tessPartFile tessPlacement
   global tessRepo tessSuppGeomFile tsName x3dColor x3dColorFile x3dColors x3dCoord x3dFile x3dIndex
@@ -9,10 +9,10 @@ proc x3dTessGeom {objID objEntity1 ent1} {
 
   if {$x3dColor == ""} {
     set x3dColor "0 0 0"
-    if {[string first "annotation" [$objEntity1 Type]] != -1} {
+    if {[string first "annotation" [$tessEnt Type]] != -1} {
       set msg "Syntax Error: Missing PMI Presentation color (using black).$spaces\($recPracNames(pmi242), Sec. 8.5, Fig. 84)"
       errorMsg $msg
-      lappend syntaxErr([$objEntity1 Type]) [list [$objEntity1 P21ID] "color" $msg]
+      lappend syntaxErr([$tessEnt Type]) [list [$tessEnt P21ID] "color" $msg]
     }
   }
   set x3dIndexType "line"
@@ -22,22 +22,25 @@ proc x3dTessGeom {objID objEntity1 ent1} {
   set x3dSolid 0
 
 # faces
+  set ent1 $faceEnt
+  if {[string first "handle" $faceEnt] != -1} {set ent1 [$faceEnt Type]}
+
   if {[string first "face" $ent1] != -1} {
     set x3dIndexType "face"
     set solid "solid='false'"
 
 # tessellated part geometry
     if {$ao == "tessellated_solid" || $ao == "tessellated_shell"} {
-      set tsID [$objEntity1 P21ID]
+      set tsID [$tessEnt P21ID]
       set tessRepo 0
       set x3dSolid 1
-      set tsName($tsID) [[[$objEntity1 Attributes] Item [expr 1]] Value]
+      set tsName($tsID) [[[$tessEnt Attributes] Item [expr 1]] Value]
 
 # find name linked to product
       if {[info exists entCount(product)]} {
         if {$entCount(product) > 1} {
           if {$tsName($tsID) == ""} {
-            set e0s [$objEntity1 GetUsedIn [string trim geometric_item_specific_usage] [string trim identified_item]]
+            set e0s [$tessEnt GetUsedIn [string trim geometric_item_specific_usage] [string trim identified_item]]
             ::tcom::foreach e0 $e0s {
               for {set i 0} {$i < 5} {incr i} {set e0 [[[$e0 Attributes] Item [expr 3]] Value]}
               set tsName($tsID) [[[$e0 Attributes] Item [expr 1]] Value]
@@ -47,13 +50,13 @@ proc x3dTessGeom {objID objEntity1 ent1} {
       }
 
 # set default color
-      set x3dColor [lindex $defaultColor 0]
-      tessSetColor $objEntity1 $tsID
+      set x3dColor $defaultColor
+      tessSetColor $tessEnt $faceEnt
       set spec "specularColor='[vectrim [vecmult $x3dColor 0.2]]'"
       set emit ""
 
 # set placement for tessellated part geometry in assemblies (axis and ref_direction)
-      if {[info exists entCount(item_defined_transformation)]} {tessSetPlacement $objEntity1 $tsID}
+      if {[info exists entCount(item_defined_transformation)]} {tessSetPlacement $tessEnt $tsID}
     }
   }
 
@@ -73,7 +76,7 @@ proc x3dTessGeom {objID objEntity1 ent1} {
   }
 
 # get saved view name
-  if {[info exists draftModelCameras] && $ao == "tessellated_annotation_occurrence"} {set savedViewName [x3dGetSavedViewName $objEntity1]}
+  if {[info exists draftModelCameras] && $ao == "tessellated_annotation_occurrence"} {set savedViewName [x3dGetSavedViewName $tessEnt]}
 
 # no savedViewName, i.e., PMI not in a Saved View
   if {$ao != "tessellated_solid" && $ao != "tessellated_shell"} {
@@ -108,17 +111,17 @@ proc x3dTessGeom {objID objEntity1 ent1} {
 
 # annotation name
     catch {unset idshape}
-    set txt [[[$objEntity1 Attributes] Item [expr 1]] Value]
+    set txt [[[$tessEnt Attributes] Item [expr 1]] Value]
     regsub -all "'" $txt "\"" idshape
 
 # group annotations for AR workflow
     if {$opt(viewPMIAR)} {
       if {[string first "annotation" $ao] != -1} {
-        set aoID [$objEntity1 P21ID]
+        set aoID [$tessEnt P21ID]
         if {![info exists lastID($f)] || $aoID != $lastID($f)} {
           if {[info exists lastID($f)] && !$tessRepo} {puts $f "</Group>"}
           set tessGeomTxt "TAO $aoID | "
-          set e0 [[[$objEntity1 Attributes] Item [expr 3]] Value]
+          set e0 [[[$tessEnt Attributes] Item [expr 3]] Value]
           append tessGeomTxt "[[[$e0 Attributes] Item [expr 1]] Value] | $idshape"
           if {!$tessRepo} {puts $f "<Group id='$tessGeomTxt'>"}
         }
@@ -294,8 +297,8 @@ proc x3dGetSavedViewName {objEntity} {
 # -------------------------------------------------------------------------------
 # B-rep part geometry
 proc x3dBrepGeom {} {
-  global brepFile brepFileName buttons cadSystem defaultColor developer grayBackground localName matTrans mytemp nistVersion nsketch opt viz
-  global x3dApps x3dBbox x3dMax x3dMin x3dMsg x3dMsgColor x3dParts
+  global brepFile brepFileName buttons cadSystem developer entCount grayBackground localName matTrans mytemp
+  global nistVersion nsketch opt rosetteGeom viz x3dApps x3dBbox x3dMax x3dMin x3dMsg x3dMsgColor x3dParts
 
   if {[catch {
     if {$opt(DEBUGX3D)} {getTiming x3dBrepGeom}
@@ -325,9 +328,16 @@ proc x3dBrepGeom {} {
       }
       outputMsg $msg $x3dMsgColor
 
+# check for composite rosette curves
+      set rosetteOpt  0
+      set rosetteGeom 0
+      foreach ent {composite_curve_and_curve_11 composite_curve_and_curve_11_and_measure_representation_item} {
+        if {[info exists entCount($ent)]} {if {$entCount($ent) > 0} {set rosetteOpt 1}}
+      }
+
 # run stp2x3d-part.exe
       if {$opt(DEBUGX3D)} {getTiming stp2x3d}
-      catch {exec $stp2x3d --input [file nativename $localName] --quality $opt(partQuality) --edge $opt(partEdges) --sketch $opt(partSketch) --normal $opt(partNormals)} errs
+      catch {exec $stp2x3d --input [file nativename $localName] --quality $opt(partQuality) --edge $opt(partEdges) --sketch $opt(partSketch) --normal $opt(partNormals) --rosette $rosetteOpt} errs
       if {$opt(DEBUGX3D)} {getTiming done; outputMsg $errs}
 
 # done processing
@@ -345,7 +355,7 @@ proc x3dBrepGeom {} {
             set x3dBbox ""
             catch {unset indents}
             foreach line [split $errs "\n"] {
-              if {[string first "No color will be supported." $line] != -1} {outputMsg "  Using [lindex $defaultColor 1] for the part color" red}
+              if {[string first "No color will be supported." $line] != -1} {outputMsg "  Using gray for the part color" red}
 
               set sline [split [string trim $line] " "]
               if {[string first "MinXYZ" $line] != -1} {
@@ -381,6 +391,8 @@ proc x3dBrepGeom {} {
               } elseif {[string first "Number of Materials" $line] != -1} {
                 set napps [string trim [string range $line [string last " " $line] end]]
                 for {set i 0} {$i < $napps} {incr i} {lappend x3dApps $i}
+              } elseif {[string first "Number of Rosettes" $line] != -1} {
+                set rosetteGeom 1
               } elseif {[string first "indent" $line] != -1} {
                 set indents([lindex $sline 1]) [lindex $sline 3]
               } elseif {[string first "Sketch geometry" $line] != -1} {
@@ -429,6 +441,7 @@ proc x3dBrepGeom {} {
             set npart(PRT) -1
             set nsketch -1
             set oksketch 0
+            set lastline ""
             set close 0
             catch {unset parts}
             catch {unset matTrans}
@@ -461,9 +474,14 @@ proc x3dBrepGeom {} {
                   if {$sketch} {
                     set c1 [string first "<Shape>" $line]
                     if {$c1 != -1} {
-                      incr nsketch
-                      set line "\n<!-- sketch geometry $nsketch -->\n[string repeat " " $c1]<Switch id='swSketch$nsketch' whichChoice='0'>[string range $line $c1 end]"
-                      set oksketch 1
+                      if {[string first "swComposite" $lastline] == -1} {
+                        incr nsketch
+                        set line "\n<!-- sketch geometry $nsketch -->\n[string repeat " " $c1]<Switch id='swSketch$nsketch' whichChoice='0'>[string range $line $c1 end]"
+                        set oksketch 1
+                      } else {
+                        set sketch 0
+                        set oksketch 0
+                      }
                     }
                   }
                 }
@@ -579,7 +597,8 @@ proc x3dBrepGeom {} {
                       }
                     }
 
-                    if {[string first "swSketch" $line] == -1} {
+# part switch
+                    if {[string first "swSketch" $line] == -1 && [string first "swComposites1" $line] == -1} {
                       set cx [string first "\\X" $id]
                       if {$cx != -1} {set id [getUnicode $id]}
                       set parts($id) $npart(PRT)
@@ -629,6 +648,7 @@ proc x3dBrepGeom {} {
 
 # write line
                 puts $brepFile $line
+                set lastline $line
               }
             }
 
@@ -800,9 +820,14 @@ proc x3dCopySTP2X3D {} {
         if {![file exists $stp2x3d]} {
           set copy 1
         } elseif {[file mtime $internal] > [file mtime $stp2x3d]} {
-          set copy 1
+          set copy 2
         }
-        if {$copy} {if {$opt(DEBUGX3D)} {outputMsg "copy $stp2x3d"}; file copy -force -- $internal $stp2x3d}
+        if {$copy > 0} {
+          set new ""
+          if {$copy == 2} {set new " new"}
+          errorMsg " Copying$new Viewer software for part geometry (stp2x3d-part.exe) to $mytemp" red
+          file copy -force -- $internal $stp2x3d
+        }
       }
     }
   } emsg]} {
@@ -820,9 +845,14 @@ proc x3dCopySTP2X3D {} {
         if {![file exists $fn]} {
           set copy 1
         } elseif {[file mtime $file] > [file mtime $fn]} {
-          set copy 1
+          set copy 2
         }
-        if {$copy} {if {$opt(DEBUGX3D)} {outputMsg "copy $file"}; file copy -force -- $file $fn}
+        if {$copy > 0} {
+          set new ""
+          if {$copy == 2} {set new " new"}
+          errorMsg " Copying$new Viewer software for part geometry (stp2x3d-part.exe) to $mytemp" red
+          file copy -force -- $file $fn
+        }
       }
       if {$opt(DEBUGX3D)} {getTiming "copy and extract"}
     } emsg]} {

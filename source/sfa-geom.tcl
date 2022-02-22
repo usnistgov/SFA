@@ -54,6 +54,13 @@ proc getAssocGeom {entDef {tolType 0} {tolName ""}} {
             catch {unset relatedSA}
             if {[catch {
               set relatedSA [[$a0 Value] Type]
+              set a00 $a0
+              if {$relatedSA == "component_path_shape_aspect"} {
+                appendAssocGeom [$a0 Value]
+                set a00 [[[$a0 Value] Attributes] Item [expr 6]]
+                set relatedSA [[$a00 Value] Type]
+                set a01 [[[$a0 Value] Attributes] Item [expr 5]]
+              }
             } emsg]} {
               set msg "Syntax Error: Bad 'related_shape_aspect' attribute on '[$e0 Type]'."
               errorMsg $msg
@@ -62,14 +69,14 @@ proc getAssocGeom {entDef {tolType 0} {tolName ""}} {
 
 # related SA is OK
             if {[info exists relatedSA]} {
-              set type [appendAssocGeom [$a0 Value] E]
-              if {$type == "advanced_face"} {getFaceGeom [$a0 Value] $tolType E}
-              if {$dimSize} {checkShapeAspect [$a0 Value]}
+              set type [appendAssocGeom [$a00 Value] E]
+              if {$type == "advanced_face"} {getFaceGeom [$a00 Value] $tolType E}
+              if {$dimSize} {checkShapeAspect [$a00 Value]}
 
               set a0val {}
               if {[string first "composite_shape_aspect" $relatedSA] != -1 || [string first "composite_group_shape_aspect" $relatedSA] != -1 || \
                   [string first "centre_of_symmetry" $relatedSA] != -1} {
-                set e1s [[$a0 Value] GetUsedIn [string trim shape_aspect_relationship] [string trim relating_shape_aspect]]
+                set e1s [[$a00 Value] GetUsedIn [string trim shape_aspect_relationship] [string trim relating_shape_aspect]]
                 ::tcom::foreach e1 $e1s {
                   if {[string first "relationship" [$e1 Type]] != -1} {
                     ::tcom::foreach a1 [$e1 Attributes] {
@@ -81,9 +88,9 @@ proc getAssocGeom {entDef {tolType 0} {tolName ""}} {
                     }
                   }
                 }
-                if {[string first "centre_of_symmetry" $relatedSA] != -1} {lappend a0val [$a0 Value]}
+                if {[string first "centre_of_symmetry" $relatedSA] != -1} {lappend a0val [$a00 Value]}
               } else {
-                lappend a0val [$a0 Value]
+                lappend a0val [$a00 Value]
               }
 
 # find AF for SA with GISU or IIRU, check all around
@@ -94,7 +101,7 @@ proc getAssocGeom {entDef {tolType 0} {tolName ""}} {
       }
     }
   } emsg]} {
-    errorMsg "ERROR adding Associated Geometry: $emsg"
+    errorMsg "Error adding Associated Geometry: $emsg"
   }
 }
 
@@ -244,7 +251,7 @@ proc getFaceGeom {e0 tolType {id ""}} {
       }
     }
   } emsg]} {
-    errorMsg "ERROR getting Face Geometry ($currEnt): $emsg"
+    errorMsg "Error getting Face Geometry ($currEnt): $emsg"
   }
 }
 

@@ -126,13 +126,11 @@ proc x3dReadXML {} {
           outputMsg "  $ipart [file tail $fname]  ($uid1)"
 
           set fx3d [open $fname r]
-          set nline 0
+          set write 0
           while {[gets $fx3d line] >= 0} {
-            incr nline
-            if {$nline > 6 && $nline < 21} {
-              puts $x3dFile $line
-              if {$nline == 20 && [string first "Shape" $line] != -1} {puts $x3dFile "  </Group>\n </Group>"}
-            }
+            if {$line == "</Scene>"} {set write 0}
+            if {$write} {puts $x3dFile $line}
+            if {$line == "<Scene>"} {set write 1}
           }
           puts $x3dFile "</Switch>"
           close $fx3d

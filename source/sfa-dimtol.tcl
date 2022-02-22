@@ -105,7 +105,7 @@ proc spmiDimtolStart {entType} {
 proc spmiDimtolReport {objEntity} {
   global angDegree assocGeom badAttributes cells col datsym dim dimBasic dimRepeat dimDirected dimName dimModNames dimOrient dimReference dimrep dimrepID
   global dimSizeNames dimtolAttr dimtolEnt dimtolEntType dimtolGeom dimtolID dimtolPM dimtolType dimval dt entLevel ent entAttrList entCount entlevel2
-  global entsWithErrors lastEnt nistName numDSnames opt pmiCol pmiColumns pmiHeading pmiModifiers pmiStartCol pmiUnicode propDefIDs recPracNames
+  global lastEnt nistName numDSnames opt pmiCol pmiColumns pmiHeading pmiModifiers pmiStartCol pmiUnicode propDefIDs recPracNames
   global savedModifier spaces spmiEnts spmiID spmiIDRow spmiRow spmiTypesPerFile syntaxErr tolStandard
 
   if {$opt(DEBUG1)} {outputMsg "spmiDimtolReport" red}
@@ -423,7 +423,7 @@ proc spmiDimtolReport {objEntity} {
               }
             }
           } emsg3]} {
-            set msg "ERROR processing Dimensional Tolerance ($objNodeType $ent2): $emsg3"
+            set msg "Error processing Dimensional Tolerance ($objNodeType $ent2): $emsg3"
             errorMsg $msg
             lappend syntaxErr([lindex $ent1 0]) [list $objID [lindex $ent1 1] $msg]
             set entLevel 1
@@ -866,13 +866,13 @@ proc spmiDimtolReport {objEntity} {
 # keep track of max column
                     set pmiCol [expr {max($col($dt),$pmiCol)}]
                   } else {
-                    errorMsg "ERROR processing Dimensional Tolerance"
+                    errorMsg "Error processing Dimensional Tolerance"
                   }
                 }
               }
             }
           } emsg3]} {
-            set msg "ERROR processing Dimensional Tolerance ($objNodeType $ent2): $emsg3"
+            set msg "Error processing Dimensional Tolerance ($objNodeType $ent2): $emsg3"
             errorMsg $msg
             lappend syntaxErr([lindex $ent1 0]) [list $objID [lindex $ent1 1] $msg]
             set entLevel 1
@@ -974,12 +974,10 @@ proc spmiDimtolReport {objEntity} {
                   if {[lindex $item 1] != "edge_curve"} {
                     errorMsg "Associated Geometry for a '[lindex $item 0]' dimension also refers to '[lindex $item 1]'.  Check that this is the intended association."
                     addCellComment $dt $r $pmiColumns(ch) "[string totitle $dimName] dimension (column E) also refers to '[lindex $item 1]'.  Check that this is the intended association."
-                    lappend entsWithErrors "dimensional_characteristic_representation"
                   }
                 } else {
                   errorMsg "Associated Geometry for a '[lindex $item 0]' dimension is only a '[lindex $item 1]'.  Check that this is the intended association."
                   addCellComment $dt $r $pmiColumns(ch) "[string totitle $dimName] dimension (column E) is not associated with curved surfaces.  Check that this is the intended association."
-                  lappend entsWithErrors "dimensional_characteristic_representation"
                 }
               }
             }
@@ -998,7 +996,7 @@ proc spmiDimtolReport {objEntity} {
         }
       }
     } emsg]} {
-      errorMsg "ERROR adding Dimension Associated Geometry: $emsg"
+      errorMsg "Error adding Dimension Associated Geometry: $emsg"
     }
 
 # add valprop column to spreadsheet
@@ -1341,7 +1339,7 @@ proc spmiDimtolReport {objEntity} {
         }
       }
     } emsg]} {
-      errorMsg "ERROR adding +/- Tolerance: $emsg"
+      errorMsg "Error adding +/- Tolerance: $emsg"
     }
 
 # -------------------------------------------------------------------------------
@@ -1476,7 +1474,6 @@ proc spmiDimtolReport {objEntity} {
               if {$nistName != "nist_ftc_07" || [string first ".875 ±" $dtg] == -1} {
                 errorMsg "Multiple ([llength $dimtolGeom($dimtolGeomEnts)]) dimensions $dtg are associated with the same geometry. (IDs $dimtolGeomEnts)"
                 addCellComment $dt $r $pmiColumns(ch) "Multiple dimensions are associated with the same geometry.  The identical information in this cell should appear in another Associated Geometry cell above."
-                lappend entsWithErrors "dimensional_characteristic_representation"
               }
             }
           }
@@ -1487,7 +1484,7 @@ proc spmiDimtolReport {objEntity} {
       foreach var {dimBasic dimReference savedModifier dimDirected dimOrient} {if {[info exists $var]} {unset $var}}
 
     } emsg]} {
-      errorMsg "ERROR adding Dimensional Tolerance: $emsg"
+      errorMsg "Error adding Dimensional Tolerance: $emsg"
     }
     set dim(name) ""
   }

@@ -468,6 +468,8 @@ proc getStepAP {fname} {
       append ap "e1"
     } elseif {[string first "442 2 1 4" $fileSchema] != -1 || [string first "442 3 1 4" $fileSchema] != -1} {
       append ap "e2"
+    } elseif {[string first "442 4 1 4" $fileSchema] != -1} {
+      append ap "e3"
     }
   }
 

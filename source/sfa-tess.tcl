@@ -138,10 +138,10 @@ proc tessPartGeometry {objEntity} {
                 "*triangulated_face name" -
                 "*triangulated_surface_set name" -
                 "tessellated_curve_set name" {
-# write tessellated coords and index for part geometry
+# write tessellated coords and index for part geometry (objEntity1 - tessellated_* entity, objEntity - triangulated face entity)
                   if {$ao == "tessellated_solid" || $ao == "tessellated_shell"} {
                     if {[info exists tessIndex($objID)] && [info exists tessCoord($tessIndexCoord($objID))]} {
-                      x3dTessGeom $objID $objEntity1 $ent1
+                      x3dTessGeom $objID $objEntity1 $objEntity
                     } else {
                       errorMsg "Missing tessellated coordinates and index"
                     }
@@ -407,100 +407,104 @@ proc tessReadGeometry {{coordOnly 0}} {
 }
 
 # -------------------------------------------------------------------------------
-proc tessSetColor {objEntity tsID} {
-  global defaultColor entCount recPracNames spaces tessColor x3dColor
-
-  set ok  0
-  set ok1 1
-  if {[info exists entCount(styled_item)]} {if {$entCount(styled_item) > 0} {set ok 1}}
+proc tessSetColor {tessEnt faceEnt} {
+  global defaultColor recPracNames spaces tessColor x3dColor
 
 # color already exists for the tessellation
-  if {[info exists tessColor($tsID)]} {
-    set x3dColor $tessColor($tsID)
+  set id(tess) [$tessEnt P21ID]
+  set id(face) [$faceEnt P21ID]
+  foreach idx {face tess} {
+    if {[info exists tessColor($idx)]} {
+      set x3dColor $tessColor($idx)
+      return
+    }
+  }
+
+# get styled_item.item for triangulated faces
+  set tsID $id(face)
+  set objEntity $faceEnt
+  set e0s [$objEntity GetUsedIn [string trim styled_item] [string trim item]]
+
+# get styled_item.item for tessellated_solid/shell if none for faces
+  set n 0
+  ::tcom::foreach e0 $e0s {incr n}
+  if {$n == 0} {
+    set tsID $id(tess)
+    set objEntity $tessEnt
+    set e0s [$objEntity GetUsedIn [string trim styled_item] [string trim item]]
+  }
+
+# no styled_item for either
+  set n 0
+  ::tcom::foreach e0 $e0s {incr n}
+  if {$n == 0} {
+    errorMsg "Syntax Error: No 'styled_item' found for tessellated geometry$spaces\($recPracNames(model), Sec. 4.2.2, Fig. 2)"
+    set tessColor($id(face)) $defaultColor
+    set tessColor($id(tess)) $defaultColor
+    return
+  }
 
 # get color from styled_item
-  } elseif {$ok} {
-    if {[catch {
-      set debug 0
-
-# get styled_item.item for tessellated_solid/shell or triangulated faces
-      ::tcom::foreach e0 [$objEntity GetUsedIn [string trim styled_item] [string trim item]] {
-        if {$debug} {errorMsg "[$e0 Type] [$e0 P21ID]" green}
-        set ok1 0
+  if {[catch {
+    set debug 0
+    ::tcom::foreach e0 $e0s {
+      if {$debug} {errorMsg "[$e0 Type] [$e0 P21ID]" green}
 
 # styled_item.styles
-        set a1 [[$e0 Attributes] Item [expr 2]]
+      set a1 [[$e0 Attributes] Item [expr 2]]
 # presentation_style.styles
-        ::tcom::foreach e2 [$a1 Value] {
-          set a2 [[$e2 Attributes] Item [expr 1]]
-          if {$debug} {errorMsg " [$e2 Type] [$e2 P21ID]" red}
+      ::tcom::foreach e2 [$a1 Value] {
+        set a2 [[$e2 Attributes] Item [expr 1]]
+        if {$debug} {errorMsg " [$e2 Type] [$e2 P21ID]" red}
 
-          set e3 [$a2 Value]
-          if {$e3 != "null" && $e3 != ""} {
-            set a3 [[$e3 Attributes] Item [expr 2]]
-            if {$debug} {errorMsg "  [$e3 Type] [$e3 P21ID]" red}
+        set e3 [$a2 Value]
+        if {$e3 != "null" && $e3 != ""} {
+          set a3 [[$e3 Attributes] Item [expr 2]]
+          if {$debug} {errorMsg "  [$e3 Type] [$e3 P21ID]" red}
 # surface side style
-            set e4 [$a3 Value]
-            set a4s [[$e4 Attributes] Item [expr 2]]
+          set e4 [$a3 Value]
+          set a4s [[$e4 Attributes] Item [expr 2]]
 # surface style fill area
-            foreach e5 [$a4s Value] {
-              if {$debug} {errorMsg "   [$e5 Type] [$e5 P21ID]" red}
-              if {[$e5 Type] == "surface_style_fill_area"} {
-                set a5 [[$e5 Attributes] Item [expr 1]]
+          foreach e5 [$a4s Value] {
+            if {$debug} {errorMsg "   [$e5 Type] [$e5 P21ID]" red}
+            if {[$e5 Type] == "surface_style_fill_area"} {
+              set a5 [[$e5 Attributes] Item [expr 1]]
 # fill area style
-                set e6 [$a5 Value]
-                set a6 [[$e6 Attributes] Item [expr 2]]
+              set e6 [$a5 Value]
+              set a6 [[$e6 Attributes] Item [expr 2]]
 # fill area style colour
-                set e7 [$a6 Value]
-                set a7 [[$e7 Attributes] Item [expr 2]]
+              set e7 [$a6 Value]
+              set a7 [[$e7 Attributes] Item [expr 2]]
 # color
-                set e8 [$a7 Value]
-                if {[$e8 Type] == "colour_rgb"} {
-                  set x3dColor ""
-                  set j 0
-                  ::tcom::foreach a8 [$e8 Attributes] {
-                    if {$j > 0} {append x3dColor "[trimNum [$a8 Value] 3] "}
-                    incr j
-                  }
-                  set x3dColor [string trim $x3dColor]
-                  set tessColor($tsID) $x3dColor
-                } elseif {[$e8 Type] == "draughting_pre_defined_colour"} {
-                  set x3dColor [x3dPreDefinedColor [[[$e8 Attributes] Item [expr 1]] Value]]
-                  set tessColor($tsID) $x3dColor
-                } else {
-                  errorMsg "  Tessellated part color type '[$e8 Type]' is not supported."
-                  set tessColor($tsID) $x3dColor
+              set e8 [$a7 Value]
+              if {[$e8 Type] == "colour_rgb"} {
+                set x3dColor ""
+                set j 0
+                ::tcom::foreach a8 [$e8 Attributes] {
+                  if {$j > 0} {append x3dColor "[trimNum [$a8 Value] 3] "}
+                  incr j
                 }
+                set x3dColor [string trim $x3dColor]
+                set tessColor($tsID) $x3dColor
+              } elseif {[$e8 Type] == "draughting_pre_defined_colour"} {
+                set x3dColor [x3dPreDefinedColor [[[$e8 Attributes] Item [expr 1]] Value]]
+                set tessColor($tsID) $x3dColor
+              } else {
+                errorMsg "  Tessellated part color type '[$e8 Type]' is not supported."
+                set tessColor($tsID) $x3dColor
               }
             }
           }
         }
       }
-
-# tessellated_solid and _shell not found in styled_item.item, try the first item of TS, usually a face
-      if {$ok1} {
-        if {[string first "tessellated" [$objEntity Type]] == 0} {set missingStyledItem [$objEntity Type]}
-        set n 0
-        catch {
-          ::tcom::foreach e1 [[[$objEntity Attributes] Item [expr 2]] Value] {
-            incr n
-            if {$n == 1} {tessSetColor $e1 $tsID}
-          }
-        }
-      }
-    } emsg]} {
-      errorMsg " Error setting Tessellated Geometry Color for [$objEntity Type] (using [lindex $defaultColor 1]): $emsg"
-      set tessColor($tsID) [lindex $defaultColor 0]
     }
-  } else {
-    errorMsg "Syntax Error: No 'styled_item' found for tessellated geometry color (using [lindex $defaultColor 1])$spaces\($recPracNames(model), Sec. 4.2.2, Fig. 2)"
-  }
 
 # color not found in styled_item.item
-  if {![info exists tessColor($tsID)]} {
-    if {[info exists missingStyledItem]} {
-      errorMsg "Syntax Error: '$missingStyledItem' was not found in 'styled_item.item' (using [lindex $defaultColor 1])$spaces\($recPracNames(model), Sec. 4.2.2, Fig. 2)"
-    }
+    if {![info exists tessColor($tsID)]} {errorMsg "Syntax Error: Problem setting tessellated geometry color$spaces\($recPracNames(model), Sec. 4.2.2, Fig. 2)"}
+
+  } emsg]} {
+    errorMsg " Error setting tessellated geometry color: $emsg"
+    set tessColor($tsID) $defaultColor
   }
 }
 
@@ -529,9 +533,7 @@ proc tessCountColors {} {
     errorMsg " Error counting unique colors: $emsg"
   }
 
-  if {[llength $colors] == 0 && ([info exists entCount(tessellated_solid)] || [info exists entCount(tessellated_shell)])} {
-    lappend colors [lindex $defaultColor 0]
-  }
+  if {[llength $colors] == 0 && ([info exists entCount(tessellated_solid)] || [info exists entCount(tessellated_shell)])} {lappend colors $defaultColor}
   return [llength $colors]
 }
 

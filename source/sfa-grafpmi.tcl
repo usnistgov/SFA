@@ -715,11 +715,12 @@ proc gpmiAnnotationReport {objEntity} {
                       }
                     }
 
-# check new rule with AP242 edition 2
-                    if {$stepAP == "AP242e2" && \
-                        ![info exists entCount(draughting_model_and_tessellated_shape_representation)] && \
-                        ![info exists entCount(characterized_representation_and_draughting_model_and_tessellated_shape_representation)]} {
-                      errorMsg "Syntax Error: Missing (draughting_model)(tessellated_shape_representation) entity$spaces\($recPracNames(pmi242), Sec. 8.2, note for AP242 Edition 2)"
+# check new rule with AP242 edition >= 2
+                    if {[string range $stepAP 0 5] == "AP242" && $stepAP != "AP242" && $stepAP != "AP242e1"} {
+                      if {![info exists entCount(draughting_model_and_tessellated_shape_representation)] && \
+                          ![info exists entCount(characterized_representation_and_draughting_model_and_tessellated_shape_representation)]} {
+                        errorMsg "Syntax Error: Missing (draughting_model)(tessellated_shape_representation) entity$spaces\($recPracNames(pmi242), Sec. 8.2, note for AP242 Edition 2)"
+                      }
                     }
                   }
                 }
@@ -1376,7 +1377,7 @@ proc gpmiAnnotationReport {objEntity} {
 # get camera models
 proc pmiGetCameras {} {
   global objDesign
-  global draughtingModels draftModelCameraNames draftModelCameras entCount mytemp opt recPracNames savedViewFile
+  global draughtingModels draftModelCameraNames draftModelCameras entCount gen mytemp opt recPracNames savedViewFile
   global savedViewFileName savedViewItems savedViewName savedViewNames savedViewpoint spaces spmiTypesPerFile stepAP syntaxErr viewsWithPMI
 
   catch {unset draftModelCameras}
@@ -1531,7 +1532,7 @@ proc pmiGetCameras {} {
                     if {$opt(PMISEM)} {lappend spmiTypesPerFile "saved views"}
 
 # create temp file ViewN.txt for saved view graphical PMI x3d, where 'N' is an integer
-                    if {$opt(viewPMI)} {
+                    if {$gen(View) && $opt(viewPMI)} {
                       set idx [lsearch $savedViewNames $name1]
                       set name2 "View$idx"
                       set viewsWithPMI($name1) $idx

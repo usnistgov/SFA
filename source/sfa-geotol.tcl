@@ -415,7 +415,7 @@ proc spmiGeotolReport {objEntity} {
                     }
 
 # -------------------------------------------------------------------------------
-# get directed or oriented tolerance zone (AP242e2 for ISO 1101 intersection and orientation plane)
+# get directed or oriented tolerance zone (AP242 edition >= 2 for ISO 1101 intersection and orientation plane)
                     foreach tz [list directed oriented] {
                       set e0s [$gtEntity GetUsedIn [string trim $tz\_tolerance_zone] [string trim defining_tolerance]]
                       ::tcom::foreach e0 $e0s {
@@ -2125,13 +2125,18 @@ proc spmiPlacedDatumTarget {objEntity objValue} {
 
 # bad target attributes
                   set msg ""
-                  if {$datumTargetType == "line" && $datumTargetName != "target length"} {
-                    set msg "Syntax Error: Bad datum target 'name' ($datumTargetName) on [formatComplexEnt [$e4 Type]], use 'target length' for a '$datumTargetType' target$spaces\($recPracNames(pmi242), Sec. 6.6.1)"
-                  } elseif {$datumTargetType == "circle" && $datumTargetName != "target diameter"} {
-                    set msg "Syntax Error: Bad datum target 'name' ($datumTargetName) on [formatComplexEnt [$e4 Type]], use 'target diameter' for a '$datumTargetType' target$spaces\($recPracNames(pmi242), Sec. 6.6.1)"
-                  } elseif {$datumTargetType == "rectangle" && ($datumTargetName != "target length" && $datumTargetName != "target width")} {
-                    set msg "Syntax Error: Bad datum target 'name' ($datumTargetName) on [formatComplexEnt [$e4 Type]], use 'target length' or 'target width' for a '$datumTargetType' target$spaces\($recPracNames(pmi242), Sec. 6.6.1)"
-                  } elseif {$datumTargetType == "point"} {
+                  if {$datumTargetName != ""} {
+                    if {$datumTargetType == "line" && $datumTargetName != "target length"} {
+                      set msg "Syntax Error: Bad datum target 'name' ($datumTargetName) on [formatComplexEnt [$e4 Type]], use 'target length' for a '$datumTargetType' target$spaces\($recPracNames(pmi242), Sec. 6.6.1)"
+                    } elseif {$datumTargetType == "circle" && $datumTargetName != "target diameter"} {
+                      set msg "Syntax Error: Bad datum target 'name' ($datumTargetName) on [formatComplexEnt [$e4 Type]], use 'target diameter' for a '$datumTargetType' target$spaces\($recPracNames(pmi242), Sec. 6.6.1)"
+                    } elseif {$datumTargetType == "rectangle" && ($datumTargetName != "target length" && $datumTargetName != "target width")} {
+                      set msg "Syntax Error: Bad datum target 'name' ($datumTargetName) on [formatComplexEnt [$e4 Type]], use 'target length' or 'target width' for a '$datumTargetType' target$spaces\($recPracNames(pmi242), Sec. 6.6.1)"
+                    }
+                  } else {
+                    set msg "Syntax Error: Missing datum target dimension 'name' on [formatComplexEnt [$e4 Type]].$spaces\($recPracNames(pmi242), Sec. 6.6.1, Table 9)"
+                  }
+                  if {$datumTargetType == "point"} {
                     set msg "Syntax Error: No length_measure attribute on shape_representation_with_parameters is required for a 'point' datum target$spaces\($recPracNames(pmi242), Sec. 6.6.1)"
                   }
                   if {$msg != ""} {
@@ -2227,27 +2232,8 @@ proc spmiPlacedDatumTarget {objEntity objValue} {
       }
     }
 
-# missing target length, width, or diameter
-    if {$datumTargetType == "line" || $datumTargetType == "rectangle"} {
-      if {[string first "target length" $datumTargetRep] == -1} {
-        set msg "Syntax Error: Missing 'target length' for '$datumTargetType' on [$gtEntity Type].$spaces\($recPracNames(pmi242), Sec. 6.6.1, Table 9)"
-        errorMsg $msg
-        lappend syntaxErr([$gtEntity Type]) [list [$gtEntity P21ID] "Target Representation" $msg]
-      }
-      if {$datumTargetType == "rectangle" && [string first "target width" $datumTargetRep] == -1} {
-        set msg "Syntax Error: Missing 'target width' for '$datumTargetType' on [$gtEntity Type].$spaces\($recPracNames(pmi242), Sec. 6.6.1, Table 9)"
-        errorMsg $msg
-        lappend syntaxErr([$gtEntity Type]) [list [$gtEntity P21ID] "Target Representation" $msg]
-      }
-    } elseif {$datumTargetType == "circle" || $datumTargetType == "circular curve"} {
-      if {[string first "target diameter" $datumTargetRep] == -1} {
-        set msg "Syntax Error: Missing 'target diameter' for '$datumTargetType' on [$gtEntity Type].$spaces\($recPracNames(pmi242), Sec. 6.6.1, Table 9)"
-        errorMsg $msg
-        lappend syntaxErr([$gtEntity Type]) [list [$gtEntity P21ID] "Target Representation" $msg]
-      }
-
 # missing target representation
-    } elseif {[string first "." $datumTargetRep] == -1 && $datumTargetType != "area" && $datumTargetType != "curve"} {
+    if {[string first "." $datumTargetRep] == -1 && $datumTargetType != "area" && $datumTargetType != "curve"} {
       set msg "Syntax Error: Missing target representation (shape_representation_with_parameters) for '$datumTargetType' on [$gtEntity Type].$spaces\($recPracNames(pmi242), Sec. 6.6.1, Fig. 38)"
       errorMsg $msg
       set invalid $msg

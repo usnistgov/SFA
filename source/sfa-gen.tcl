@@ -14,7 +14,15 @@ proc genExcel {{numFile 0}} {
   global objDesign
 
   if {[info exists errmsg]} {set errmsg ""}
+
+# check if AP242 XML file
   if {![info exists ap242XML]} {set ap242XML 0}
+  if {[string tolower [file extension $localName]] == ".stpx"} {
+    set ap242XML 1
+    set gen(View) 1
+    set opt(partOnly) 1
+    checkValues
+  }
 
 # generate STEP AP242 tessellated geometry from STL file
   if {[string tolower [file extension $localName]] == ".stl"} {
@@ -1571,7 +1579,7 @@ proc addHeaderWorksheet {numFile fname} {
             append str " (Edition 2)"
             if {$id == 2} {errorMsg "AP242 Edition 2 should be identified with '3 1 4'" red}
           } elseif {$id == 4} {
-            append str " (Edition 2 Minor Revision)"
+            append str " (Edition 3)"
           } elseif {$id > 9} {
             errorMsg "Unknown AP242 identifier '$id 1 4'" red
           }
@@ -1702,6 +1710,7 @@ proc addHeaderWorksheet {numFile fname} {
           if {[string first "Autodesk Inventor"       $fos] != -1} {set app1 $fos}
           if {[string first "SolidWorks 2"            $fos] != -1} {set app1 $fos}
           if {[string first "SIEMENS PLM Software NX" $fos] ==  0} {set app1 "Siemens NX [string range $fos 24 end]"}
+          if {[string first "Kubotek Kosmos"          $fpv] != -1} {set app1 "Kubotek Kosmos"}
           if {[string first "THEOREM"                 $fpv] != -1} {set app1 "Theorem Solutions"}
 
 # set caxifVendor based on CAx-IF vendor notation used in testing rounds, use for app if appropriate
@@ -1725,12 +1734,27 @@ proc addHeaderWorksheet {numFile fname} {
     if {$app2 == "" || $app2 == "UNIX" || $app2 == "Windows" || $app2 == "Unspecified"} {set app2 $fpv}
     if {$app2 != ""} {set ok 1}
 
+# add version number
+    if {[string first "CATIA V5" $app2] == 0} {
+      set c1 [string first "6 Release 20" $fpv]
+      if {$c1 != -1} {append app2 " 6R20[string range $fpv $c1+12 $c1+14]"}
+    } elseif {[string first "Datakit" $app2] == 0} {
+      set c1 [string first "V20" $fpv]
+      if {$c1 != -1} {append app2 " [string range $fpv $c1 $c1+6]"}
+    } elseif {[string first "Elysium" $app2] == 0} {
+      set c1 [string first "Translator v" $fos]
+      if {$c1 != -1} {append app2 " [string range $fos $c1+11 end]"}
+    } elseif {[string first "Kubotek" $app2] == 0} {
+      set c1 [string first "Kosmos Version" $fpv]
+      if {$c1 != -1} {append app2 " [string range $fpv $c1+15 end]"}
+    }
+
 # add app2 to multiple file summary worksheet
     if {$numFile != 0 && $useXL && [info exists cells1(Summary)]} {
       if {$ok == 0} {set app2 [setCAXIFvendor]}
       set colsum [expr {$col1(Summary)+1}]
       if {$colsum > 16} {[$excel1 ActiveWindow] ScrollColumn [expr {$colsum-16}]}
-      if {[string length $app2] > 32} {set app2 "[string range $app2 0 31]..."}
+      if {[string length $app2] > 35} {set app2 "[string range $app2 0 34]..."}
       regsub -all " " $app2 [format "%c" 10] app2
       $cells1(Summary) Item 6 $colsum [string trim $app2]
     }

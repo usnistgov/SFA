@@ -130,9 +130,10 @@ proc x3dFileStart {} {
 # finish x3d file, write lots of geometry, set viewpoints, add navigation and background color, and close x3dom file
 proc x3dFileEnd {} {
   global ao ap242XML brepFile brepFileName datumTargetView entCount grayBackground matTrans maxxyz nistName nsketch numTessColor opt parts partstg
-  global placeCoords samplingPoints savedViewButtons savedViewFile savedViewFileName savedViewItems savedViewNames savedViewpoint savedViewVP sphereDef
-  global stepAP tessCoord tessEdges tessPartFile tessPartFileName tessRepo tsName viz x3dApps x3dAxes x3dBbox x3dCoord x3dFile x3dFileNameSave x3dFiles
-  global x3dFileSave x3dIndex x3dMax x3dMin x3dMsg x3dPartClick x3dParts x3dShape x3dStartFile x3dTessParts x3dTitle x3dViewOK viewsWithPMI
+  global placeCoords rosetteGeom samplingPoints savedViewButtons savedViewFile savedViewFileName savedViewItems savedViewNames savedViewpoint
+  global savedViewVP sphereDef stepAP tessCoord tessEdges tessPartFile tessPartFileName tessRepo tsName viz x3dApps x3dAxes x3dBbox x3dCoord
+  global x3dFile x3dFileNameSave x3dFiles x3dFileSave x3dIndex x3dMax x3dMin x3dMsg x3dPartClick x3dParts x3dShape x3dStartFile x3dTessParts
+  global x3dTitle x3dViewOK viewsWithPMI
 
   if {!$x3dViewOK} {
     foreach var [list x3dCoord x3dFile x3dIndex x3dMax x3dMin x3dShape x3dStartFile] {catch {unset -- $var}}
@@ -245,6 +246,7 @@ proc x3dFileEnd {} {
 # composites rosettes, plies
   set viz(COMPOSITES) 0
   x3dComposites
+  if {$rosetteGeom > 0} {set viz(COMPOSITES) 1}
 
 # -------------------------------------------------------------------------------
 # write any PMI saved view geometry for multiple saved views
@@ -636,7 +638,7 @@ proc x3dFileEnd {} {
     if {$viz(COMPOSITES)} {puts $x3dFile "<br>"} else {puts $x3dFile "<p>"}
   }
   if {$viz(COMPOSITES)} {
-    puts $x3dFile "\n<!-- Composites checkbox -->\n<input type='checkbox' checked onclick='togComposites(this.value)'/>Composites"
+    puts $x3dFile "\n<!-- Composites checkbox -->\n<input type='checkbox' checked onclick='togComposites(this.value)'/>Composite Rosettes"
     if {$viz(POINTS)} {puts $x3dFile "<br>"} else {puts $x3dFile "<p>"}
   }
   if {$viz(POINTS)} {
@@ -1634,7 +1636,7 @@ proc x3dPlaceholder {} {
   puts $x3dFile "\n<!-- PLACEHOLDER -->"
   puts $x3dFile "<Switch whichChoice='0' id='swPlaceholder'><Group>"
   set size1 [trimNum [expr {$maxxyz/1000.}]]
-  set size2 [expr {$size1*6.}]
+  set size2 [trimNum [expr {$size1*6.}]]
   foreach name [array names placeCoords] {
     set n 0
     if {[catch {
@@ -1666,17 +1668,20 @@ proc x3dPlaceholder {} {
   puts $x3dFile "</Group></Switch>"
   foreach var {placeAxes placeBox placeCoords} {if {[info exists $var]} {unset -- $var}}
 }
-  
+
 # -------------------------------------------------------------------------------
-# composites rosettes, plies
+# composite rosette cartesian_11 (curve_11 is handled by stp2x3d)
 proc x3dComposites {} {
-  global entCount maxxyz viz x3dFile
+  global entCount maxxyz rosetteGeom viz x3dFile
   global objDesign
 
   set entType "axis2_placement_3d_and_cartesian_11"
   if {[info exists entCount($entType)]} {
     if {$entCount($entType) > 0} {
       set viz(COMPOSITES) 1
+
+# rosetteGeom: 1=curve, 2=axis, 3=both
+      set rosetteGeom [expr {$rosetteGeom+2}]
       puts $x3dFile "\n<!-- COMPOSITES -->"
       puts $x3dFile "<Switch whichChoice='0' id='swComposites'><Group>"
       if {[catch {
@@ -1737,7 +1742,7 @@ proc x3dCoordAxes {size} {
 # -------------------------------------------------------------------------------
 # script for switch node
 proc x3dSwitchScript {name {name1 ""}} {
-  global savedViewNames viz x3dFile
+  global rosetteGeom savedViewNames viz x3dFile
 
 # not parts
   if {[string first "Part" $name] != 0 && [string first "TessPart" $name] != 0} {
@@ -1758,10 +1763,20 @@ proc x3dSwitchScript {name {name1 ""}} {
     }
     if {$name == "Bbox"} {set ok 0}
 
-    puts $x3dFile "\n<!-- $name$viewName switch -->\n<script>function tog$name\(choice)\{"
-    if {!$ok} {puts $x3dFile " document.getElementById('sw$name').checked = !document.getElementById('sw$name').checked;"}
-    puts $x3dFile " if (!document.getElementById('sw$name').checked) \{document.getElementById('sw$name1').setAttribute('whichChoice', -1);\} else \{document.getElementById('sw$name1').setAttribute('whichChoice', 0);\}"
-    if {$ok}  {puts $x3dFile " document.getElementById('sw$name').checked = !document.getElementById('sw$name').checked;"}
+    if {$name != "Composites" || $rosetteGeom >= 2} {
+      puts $x3dFile "\n<!-- $name$viewName switch -->\n<script>function tog$name\(choice)\{"
+      if {!$ok} {puts $x3dFile " document.getElementById('sw$name').checked = !document.getElementById('sw$name').checked;"}
+      puts $x3dFile " if (!document.getElementById('sw$name').checked) \{document.getElementById('sw$name1').setAttribute('whichChoice', -1);\} else \{document.getElementById('sw$name1').setAttribute('whichChoice', 0);\}"
+      if {$ok}  {puts $x3dFile " document.getElementById('sw$name').checked = !document.getElementById('sw$name').checked;"}
+    }
+
+# composite rosettes (rosetteGeom: 1=curve, 2=axis, 3=both)
+    if {$name == "Composites" && ($rosetteGeom == 1 || $rosetteGeom == 3)} {
+      if {$rosetteGeom == 1} {puts $x3dFile "\n<!-- $name$viewName switch -->\n<script>function tog$name\(choice)\{"}
+      if {!$ok} {puts $x3dFile " document.getElementById('swComposites1').checked = !document.getElementById('swComposites1').checked;"}
+      puts $x3dFile " if (!document.getElementById('swComposites1').checked) \{document.getElementById('swComposites1').setAttribute('whichChoice', -1);\} else \{document.getElementById('swComposites1').setAttribute('whichChoice', 0);\}"
+      if {$ok}  {puts $x3dFile " document.getElementById('swComposites1').checked = !document.getElementById('swComposites1').checked;"}
+    }
     puts $x3dFile "\}</script>"
 
 # parts
@@ -2013,8 +2028,8 @@ proc x3dPreDefinedColor {name} {
     blue    {set color "0 0 1"}
     magenta {set color "1 0 1"}
     default {
-      set color [lindex $defaultColor 0]
-      errorMsg "Syntax Error: draughting_pre_defined_colour name '$name' is not supported (using [lindex $defaultColor 1])$spaces\($recPracNames(model), Sec. 4.2.3, Table 2)"
+      set color $defaultColor
+      errorMsg "Syntax Error: draughting_pre_defined_colour name '$name' is not supported$spaces\($recPracNames(model), Sec. 4.2.3, Table 2)"
     }
   }
   return $color

@@ -11,12 +11,26 @@ proc x3dSuppGeom {maxxyz} {
 
   outputMsg " Processing supplemental geometry" green
   puts $x3dFile "\n<!-- SUPPLEMENTAL GEOMETRY -->\n<Switch whichChoice='0' id='swSMG'><Group>"
+
   if {![info exists cgrObjects]} {set cgrObjects [$objDesign FindObjects [string trim constructive_geometry_representation]]}
   ::tcom::foreach e0 $cgrObjects {
-    set a1 [[$e0 Attributes] Item [expr 2]]
 
-# process all items
+# process all items in a constructive_geometry_representation
+    set a1 [[$e0 Attributes] Item [expr 2]]
     ::tcom::foreach e2 [$a1 Value] {
+
+# check if in subset (items < shape_representation < description_attribute > attribute_value)
+      if {[catch {
+        set srs [$e2 GetUsedIn [string trim shape_representation] [string trim items]]
+        ::tcom::foreach sr $srs {
+          set das [$sr GetUsedIn [string trim description_attribute] [string trim described_item]]
+          ::tcom::foreach da $das {set av [[[$da Attributes] Item [expr 1]] Value]}
+          if {[info exist av]} {if {$av == "supplemental geometry subset"} {errorMsg " Subset found for some supplemental geometry" red}}
+        }
+      } emsg]} {
+        errorMsg " Error checking supplemental geometry subset: $emsg"
+      }
+
       if {[catch {
         set ename [$e2 Type]
 

@@ -1,5 +1,5 @@
 # SFA version
-proc getVersion {} {return 4.68}
+proc getVersion {} {return 4.70}
 
 # see proc installIFCsvr in sfa-proc.tcl for the IFCsvr version
 
@@ -20,7 +20,7 @@ After the toolkit is installed, you are ready to process a STEP file.  Go to the
 menu, select a STEP file, and click the Generate button below.  If you only need to view
 the STEP part geometry, go to the Options tab and check View and Part Only.
 
-Please take a few minutes to read some of the Help text and the User Guide so that you
+Please take a few minutes to read some of the Help and the User Guide so that you
 understand the options available and the resulting output.  Explore the Examples and
 Websites menus.  Read the Disclaimers at the end of the Help menu.
 
@@ -545,7 +545,7 @@ proc guiOptionsTab {} {
     if {[info exists entCategory($idx)]} {
       set ttmsg "[string trim [lindex $item 0]] entities ([llength $entCategory($idx)]) are supported only in AP242."
       if {$idx == "stepAP242"} {append ttmsg "  More AP242 entities are found in the other Process categories."}
-      append ttmsg "\nEntities with a * are only in AP242 edition 2."
+      append ttmsg "\nEntities with a * are only in AP242 edition 2 and/or 3."
       set ttmsg [guiToolTip $ttmsg $idx [string trim [lindex $item 0]]]
       if {$idx == "stepQUAL"} {append ttmsg "\n\nQuality entities are based on ISO 10303 Part 59 - Quality of product shape data"}
       if {$idx == "stepCONS"} {append ttmsg "\n\nConstraint entities are based on ISO 10303 Parts 108 and 109"}
@@ -1008,7 +1008,7 @@ proc guiSpreadsheet {} {
 #-------------------------------------------------------------------------------
 # help menu
 proc guiHelpMenu {} {
-  global bits defaultColor Examples excelVersion filesProcessed Help ifcsvrDir ifcsvrVer
+  global bits Examples excelVersion filesProcessed Help ifcsvrDir ifcsvrVer
   global mytemp opt recPracNames scriptName stepAPs
 
   $Help add command -label "User Guide" -command {showFileURL UserGuide}
@@ -1031,12 +1031,12 @@ Product model data) Part 21 file (.stp or .step or .p21 file extension) and
 1 - generates an Excel spreadsheet or CSV files of all entity and attribute information,
 2 - creates a visualization (view) of part geometry, graphical PMI, and other features that is
     displayed in a web browser,
-3 - reports and analyzes validation properties, semantic PMI, and graphical PMI and for
-    conformance to recommended practices, and
+3 - reports and analyzes validation properties, semantic PMI, and graphical PMI, and checks them
+    for conformance to recommended practices, and
 4 - checks for basic syntax errors.
 
-Help is available here, in the User Guide, and in tooltip help.  New features might not be
-described in the User Guide.  Check the Release Notes for recent updates."
+Help is available in this menu, in the User Guide, and in tooltip help.  New features are listed in
+the Release Notes and described in some Help."
     .tnb select .tnb.status
   }
 
@@ -1131,9 +1131,11 @@ assemblies.  Part geometry viewer features:
   confirm that the min and max coordinates are correct.  If the part is too large to rotate
   smoothly in the viewer, turn off the part and rotate the bounding box.
 
-- Point clouds and validation property sampling points are shown as black dots in the viewer.  This
-  is only supported when a spreadsheet is also generated.  For sampling points, the report for
-  validation properties must also be generated.
+- Point clouds and validation property sampling points (cloud of points) are shown as blue dots in
+  the viewer.  This is only supported when a spreadsheet is also generated.  For sampling points,
+  the report for validation properties must also be generated.
+  
+- Composite rosettes defined by cartesian points and curves are supported.  
 
 - See Help > Text Strings and Numbers for how non-English characters are handled in the Viewer.
 
@@ -1181,7 +1183,8 @@ See Websites > STEP Software
 Other STEP file viewers are available.  See Websites > STEP Software > STEP File Viewers.  Some of
 the viewers are faster and have better features for viewing and measuring part geometry.  However,
 many of the viewers cannot show graphical PMI, sketch geometry, supplemental geometry, datum
-targets, point clouds, AP242 tessellated part geometry, and AP209 finite element models."
+targets, point clouds, composite rosettes, AP242 tessellated part geometry, and AP209 finite
+element models and results."
     .tnb select .tnb.status
   }
 
@@ -1274,7 +1277,7 @@ outputMsg "Tessellated part geometry is supported by AP242 and is usually supple
 
 Lines generated from tessellated edges are also shown.  A wireframe mesh, outlining the facets of
 the tessellated surfaces can also be shown.  If both are present, tessellated edges might be
-obscured by the wireframe mesh.  [string totitle [lindex $defaultColor 1]] is used for tessellated solids, shells, or faces that do not
+obscured by the wireframe mesh.  Gray is used for tessellated solids, shells, or faces that do not
 have colors specified.  Clicking on a part with show the part name.
 
 See Help > User Guide (section 4.3)
@@ -1328,10 +1331,10 @@ surfaces from those points in an importing system.
 See Websites > CAx Recommended Practices (Geometric and Assembly Validation Properties)
 
 2 - Point clouds are supported in AP242 edition 2, however, they have not been widely implemented
-in CAD software.  Point clouds with colors, intensities, or normals are not supported.
+in CAD software.  Point cloud colors, intensities, and normals are not supported.
 
-In both cases, the exact points might not appear on part surfaces because part geometry in the
-viewer is only a faceted approximation."
+Points are shown with a blue dot.  In both cases, the exact points might not appear on part
+surfaces because part geometry in the viewer is only a faceted approximation."
     .tnb select .tnb.status
   }
 
@@ -1826,8 +1829,8 @@ editions with the same name.\n"
         outputMsg "  $txt"
       } else {
         set txt "[string range $item 0 $c1][string toupper [string range $item $c1+1 end]]"
-        if {[string first "AP242" $txt] == 0} {append txt " (editions 1 and 2 MR)"}
-        if {[string first "AP214" $txt] == 0} {append txt " (editions 1 and 3)"}
+        if {[string first "AP242" $txt] == 0} {append txt " (editions 1, 2, 3)"}
+        if {[string first "AP214" $txt] == 0} {append txt " (editions 1, 3)"}
         if {[string first "AP210" $txt] == 0} {append txt " (edition 4)"}
         outputMsg "  $txt"
       }
@@ -1972,12 +1975,21 @@ source of the software."
     outputMsg "Version: [getVersion]"
     outputMsg "Updated: [string trim [clock format $progtime -format "%e %b %Y"]]"
 
-    set sysvar "System:  $tcl_platform(os) $tcl_platform(osVersion)"
+    set winver ""
+    if {[catch {
+      set winver [registry get {HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows NT\CurrentVersion} {ProductName}]
+    } emsg]} {
+      set winver "$tcl_platform(os) $tcl_platform(osVersion)"
+    }
+    set sysvar "System:  $winver"
     if {$bits != "64-bit" && $bits != ""} {append sysvar " $bits"}
     if {[info exists excelVersion]} {append sysvar ", Excel $excelVersion"}
     catch {append sysvar ", IFCsvr [registry get $ifcsvrVer {DisplayVersion}]"}
+    catch {append sysvar ", stp2x3d ([string trim [clock format [file mtime [file join $mytemp stp2x3d-part.exe]] -format "%e %b %Y"]])"}
     append sysvar ", Files processed: $filesProcessed"
     outputMsg $sysvar
+    if {[string first "Server" $winver] != -1 || $tcl_platform(osVersion) < 6.1} {errorMsg " $winver is not supported."}
+    if {[info exists excelVersion]} {if {$excelVersion < 12} {errorMsg " Excel $excelVersion is not supported."}}
 
     outputMsg "\nThe STEP File Analyzer and Viewer was first released in April 2012 and developed at NIST in the
 Systems Integration Division of the Engineering Laboratory.
@@ -2223,7 +2235,7 @@ proc guiToolTip {ttmsg tt {name ""}} {
         } else {
           append ttmsg "\n"
         }
-        append ttmsg "Entities with a * are only in AP242 edition 2."
+        append ttmsg "Entities with a * are only in AP242 edition 2 and/or 3."
       }
       append ttmsg "\n\n"
     }

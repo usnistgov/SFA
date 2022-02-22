@@ -420,6 +420,7 @@ proc valPropReport {objEntity} {
 
 # if referred to another, get the entity
             if {[string first "handle" $objEntity] != -1} {
+              if {$ent1 == "row_representation_item item_element"} {addValProps 2 "" ""}
               if {[catch {
                 ::tcom::foreach val1 $objValue {valPropReport $val1}
               } emsg]} {
@@ -614,7 +615,7 @@ proc valPropReport {objEntity} {
                       foreach vp $vps {
                         if {[string first $vp [string tolower $objValue]] == 0 && $objValue != "FEA validation property"} {
                           set okvp 1
-                          errorMsg "Use all lower case property_definition 'name' attribute for '$objValue'."
+                          errorMsg "Use lower case property_definition 'name' attribute for '$objValue'."
                           regsub -all " " [string tolower $objValue] "_" propDefName
                         }
                       }
@@ -681,6 +682,7 @@ proc valPropReport {objEntity} {
                   if {[string first "sampling points" $repName] != -1} {set ncardpt 0}
 
 # add representation name to valProps
+                  if {$objValue ==  ""} {set objValue " "}
                   addValProps 0 $objValue "#$objID $ent2"
 
                   if {[info exists propDefName]} {
@@ -754,7 +756,7 @@ proc valPropReport {objEntity} {
                                 }
                                 break
                               } elseif {[string tolower $objValue] == $item} {
-                                errorMsg "Use all lower case for [lindex $ent1 0] name attribute '$objValue'."
+                                errorMsg "Use lower case for [lindex $ent1 0] name attribute '$objValue'."
                                 set ok1 1
                                 break
                               }

@@ -381,15 +381,17 @@ proc setColorIndex {ent {multi 0}} {
 }
 
 #-------------------------------------------------------------------------------
-# open a URL in whatever is associated for the file type
+# open a URL in whatever program is associated for the file type
 proc openURL {url} {
+
   if {[catch {
     exec {*}[auto_execok start] "" $url
   } emsg]} {
+
+# error message depends on the file and error type
+    catch {.tnb select .tnb.status}
     if {[string first "is not recognized" $emsg] == -1} {
       if {[string first "UNC" $emsg] != -1} {set emsg [fixErrorMsg $emsg]}
-
-# error message depends on the file type
       if {$emsg != ""} {
         if {[string first ".stp" $url] != -1} {
           errorMsg "No app is associated with STEP files.  See Websites > STEP Software > STEP File Viewers"
@@ -401,11 +403,14 @@ proc openURL {url} {
           } else {
             outputMsg " Error opening the Spreadsheet: $emsg" red
           }
-          catch {raise .}
         } else {
-          errorMsg "Error opening $url: $emsg"
+          errorMsg "Error opening the file: $emsg"
         }
       }
+    } elseif {[string first "&" $url] != -1} {
+      errorMsg "File cannot be opened because of the '&' in the file name.  Try manually opening the file."
+    } else {
+      errorMsg "Error opening the file: $emsg"
     }
   }
 }
@@ -494,12 +499,10 @@ proc openFile {{openName ""}} {
 # get STEP file from XML file
       } elseif {$fext == ".stpx"} {
         set ap242XML 1
-        if {!$gen(View) || !$opt(partOnly)} {
-          set gen(View) 1
-          set opt(partOnly) 1
-          checkValues
-          outputMsg "AP242 XML only supports View with Part Only" red
-        }
+        set gen(View) 1
+        set opt(partOnly) 1
+        checkValues
+        errorMsg "AP242 XML only supports View with Part Only\n Parts in an assembly might have the wrong position and orientation" red
       }
 
       if {$fileDir == $drive} {outputMsg "There might be problems processing the STEP file directly in the $fileDir directory." red}
@@ -1529,7 +1532,7 @@ proc outputMsg {msg {color "black"}} {
 #-------------------------------------------------------------------------------
 # write error message to the Status tab with the correct color
 proc errorMsg {msg {color ""}} {
-  global clTextColor errmsg logFile opt outputWin stepAP
+  global errmsg logFile opt outputWin stepAP
 
   set oklog 0
   if {$opt(logFile) && [info exists logFile]} {set oklog 1}
@@ -1554,9 +1557,7 @@ proc errorMsg {msg {color ""}} {
           if {[info exists outputWin]} {
             $outputWin issue "$msg " syntax
           } else {
-            catch {twapi::set_console_default_attr stdout -fgyellow 1}
             puts $logmsg
-            catch {eval twapi::set_console_default_attr stdout $clTextColor}
           }
         }
 
@@ -1571,9 +1572,7 @@ proc errorMsg {msg {color ""}} {
         if {[info exists outputWin]} {
           $outputWin issue "$msg$ilevel " error
         } else {
-          catch {twapi::set_console_default_attr stdout -fgyellow 1}
           puts $logmsg
-          catch {eval twapi::set_console_default_attr stdout $clTextColor}
         }
       }
 
@@ -1584,9 +1583,7 @@ proc errorMsg {msg {color ""}} {
       if {[info exists outputWin]} {
         $outputWin issue "$msg " $color
       } else {
-        catch {twapi::set_console_default_attr stdout -fgyellow 1}
         puts $logmsg
-        catch {eval twapi::set_console_default_attr stdout $clTextColor}
       }
     }
     update idletasks
