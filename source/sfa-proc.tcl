@@ -45,14 +45,14 @@ proc checkValues {} {
 
 # view
   if {$gen(View)} {
-    foreach b {viewFEA viewPMI viewPMIVP viewTessPart viewPart partOnly x3dSave} {lappend butNormal $b}
+    foreach b {viewFEA viewPMI viewPMIVP viewTessPart viewPart partOnly partNoGroup x3dSave} {lappend butNormal $b}
     if {!$opt(viewFEA) && !$opt(viewPMI) && !$opt(viewTessPart) && !$opt(viewPart)} {set opt(viewPart) 1}
     if {$developer} {lappend butNormal DEBUGX3D}
   } else {
     set opt(x3dSave) 0
-    foreach b {viewFEA viewPMI viewPMIVP viewTessPart viewPart partOnly x3dSave} {lappend butDisabled $b}
-    foreach b {gpmiColor0 gpmiColor1 gpmiColor2 gpmiColor3 linecolor} {lappend butDisabled $b}
-    foreach b {partEdges partSketch partNormals partqual partQuality4 partQuality7 partQuality10 tessPartMesh} {lappend butDisabled $b}
+    foreach b {viewFEA viewPMI viewPMIVP viewTessPart viewPart partOnly partNoGroup x3dSave} {lappend butDisabled $b}
+    foreach b {gpmiColor0 gpmiColor1 gpmiColor2 gpmiColor3 labelPMIcolor} {lappend butDisabled $b}
+    foreach b {partEdges partSketch partNormals partNoGroup labelPartQuality partQuality4 partQuality7 partQuality10 tessPartMesh} {lappend butDisabled $b}
     foreach b {feaBounds feaLoads feaLoadScale feaDisp feaDispNoTail} {lappend butDisabled $b}
     if {$developer} {lappend butDisabled DEBUGX3D; set opt(DEBUGX3D) 0}
   }
@@ -121,14 +121,14 @@ proc checkValues {} {
     }
     foreach b {PMIGRF PMIGRFCOV PMISEM PMISEMDIM PMISEMDT PMISEMRND valProp stepUSER INVERSE} {lappend butDisabled $b}
     foreach b {allNone0} {lappend butDisabled $b}
-    foreach b {userentity userentityopen} {lappend butDisabled $b}
+    foreach b {userentity userentityopen labelProcessOnly} {lappend butDisabled $b}
     set userEntityList {}
     if {!$opt(viewFEA) && !$opt(viewPMI) && !$opt(viewTessPart) && !$opt(viewPart)} {set opt(viewPart) 1}
   }
 
 # part geometry
   if {$opt(viewPart)} {
-    foreach b {partOnly partEdges partSketch partNormals partqual partQuality4 partQuality7 partQuality10} {lappend butNormal $b}
+    foreach b {partOnly partEdges partSketch partNormals partNoGroup labelPartQuality partQuality4 partQuality7 partQuality10} {lappend butNormal $b}
     if {$opt(partOnly) && $opt(xlFormat) == "None"} {
       foreach b {syntaxChecker viewFEA viewPMI viewTessPart} {lappend butDisabled $b}
       foreach item {syntaxChecker viewFEA viewPMI viewTessPart} {set opt($item) 0}
@@ -136,7 +136,7 @@ proc checkValues {} {
       foreach b {syntaxChecker viewFEA viewPMI viewTessPart} {lappend butNormal $b}
     }
   } else {
-    foreach b {partEdges partSketch partNormals partqual partQuality4 partQuality7 partQuality10} {lappend butDisabled $b}
+    foreach b {partEdges partSketch partNormals partNoGroup labelPartQuality partQuality4 partQuality7 partQuality10} {lappend butDisabled $b}
   }
 
 # graphical PMI report
@@ -167,16 +167,17 @@ proc checkValues {} {
 
 # graphical PMI view
   if {$opt(viewPMI)} {
-    foreach b {gpmiColor0 gpmiColor1 gpmiColor2 gpmiColor3 linecolor viewPMIAR viewPMIVP} {lappend butNormal $b}
+    foreach b {gpmiColor0 gpmiColor1 gpmiColor2 gpmiColor3 labelPMIcolor viewPMIAR viewPMIVP} {lappend butNormal $b}
     if {$gen(View) && ($gen(Excel) || $gen(CSV)) && $opt(xlFormat) != "None"} {
       set opt(stepPRES) 1
       lappend butDisabled stepPRES
     }
+    if {!$gen(View)} {lappend butDisabled viewPMIAR}
   } else {
-    foreach b {gpmiColor0 gpmiColor1 gpmiColor2 gpmiColor3 linecolor viewPMIAR viewPMIVP} {lappend butDisabled $b}
+    foreach b {gpmiColor0 gpmiColor1 gpmiColor2 gpmiColor3 labelPMIcolor viewPMIAR viewPMIVP} {lappend butDisabled $b}
   }
 
-  if {$gen(View) && $opt(viewPart)} {
+  if {$gen(View) && $opt(viewPMI) && $opt(viewPMIVP)} {
     lappend butNormal DEBUGVP
   } else {
     lappend butDisabled DEBUGVP
@@ -205,14 +206,14 @@ proc checkValues {} {
       set opt($b) 1
       lappend butDisabled $b
     }
-    foreach b {PMISEMDIM PMISEMDT PMISEMRND} {lappend butNormal $b}
+    foreach b {PMISEMDIM PMISEMDT PMISEMRND labelProcessOnly} {lappend butNormal $b}
   } else {
     foreach b {stepREPR stepTOLR} {lappend butNormal $b}
     if {!$opt(PMIGRF)} {
       if {!$opt(valProp)} {lappend butNormal stepQUAN}
       lappend butNormal stepSHAP
     }
-    foreach b {PMISEMDIM PMISEMDT PMISEMRND} {lappend butDisabled $b}
+    foreach b {PMISEMDIM PMISEMDT PMISEMRND labelProcessOnly} {lappend butDisabled $b}
   }
   if {$opt(PMISEM) && $gen(Excel)} {
     lappend butNormal SHOWALLPMI
@@ -300,8 +301,6 @@ proc checkValues {} {
       }
     }
   }
-  if {$opt(PMISEM) != 1 || $opt(PMIGRF) != 1 || $opt(valProp) != 1} {set gen(AllAnalysis) 0}
-  if {$opt(viewPMI) != 1 || $opt(viewTessPart) != 1 || $opt(viewFEA) != 1 || $opt(viewPart) != 1} {set gen(AllView) 0}
 }
 
 # -------------------------------------------------------------------------------------------------
@@ -393,10 +392,16 @@ proc openURL {url} {
     if {[string first "is not recognized" $emsg] == -1} {
       if {[string first "UNC" $emsg] != -1} {set emsg [fixErrorMsg $emsg]}
       if {$emsg != ""} {
+
+# error opening STEP file in app
         if {[string first ".stp" $url] != -1} {
           errorMsg "No app is associated with STEP files.  See Websites > STEP Software > STEP File Viewers"
+
+# error opening viewer file
         } elseif {[string first "-sfa.html" $url] != -1} {
-          errorMsg "Error opening Viewer file: $emsg\n Try manually opening [truncFileName $url] in a web browser"
+          errorMsg "Error opening Viewer file: $emsg\n Try manually opening the file in a web browser"
+
+# error opening spreadsheet
         } elseif {[string first ".xlsx" $url] != -1} {
           if {[string first "The process cannot access the file" $emsg] != -1} {
             outputMsg " The Spreadsheet might already be opened." red
@@ -491,7 +496,7 @@ proc openFile {{openName ""}} {
       set fext ""
       catch {set fext [string tolower [file extension $localName]]}
       set msg ""
-      if {$fext == ".stpnc" || $fext == ".spf"} {
+      if {$fext == ".stpnc" || ($fext == ".spf" && !$opt(partOnly))} {
         errorMsg "Change the file extension '$fext' to '.stp' to process the STEP file."
         catch {.tnb select .tnb.status}
         return
@@ -738,7 +743,7 @@ proc saveState {{ok 1}} {
     puts $fileOptions "# Do not edit or delete this file from the home directory $mydocs  Doing so might corrupt the current settings or cause errors.\n"
 
 # opt variables
-    foreach idx [lsort [array names opt]] {
+    foreach idx [lsort -nocase [array names opt]] {
       if {[string first "DEBUG" $idx] == -1 && [string first "indent" $idx] == -1 && $idx != "PMISEMDIM" && $idx != "PMISEMDT" && $idx != "viewPMIAR"} {
         set var opt($idx)
         set vartmp [set $var]
@@ -1894,9 +1899,10 @@ proc setShortcuts {} {
     if {[info exists mydesk] || [info exists mymenu]} {
       set choice [tk_messageBox -type yesno -icon question -title "Shortcuts" -message $msg]
       if {$choice == "yes"} {
-        catch {[file copy -force -- [file join $wdir images NIST.ico] [file join $mytemp NIST.ico]]}
-        catch {if {[info exists mymenu]} {twapi::write_shortcut [file join $mymenu "$progstr.lnk"] -path [info nameofexecutable] -desc $progstr -iconpath [file join $mytemp NIST.ico]}}
-        catch {if {[info exists mydesk]} {twapi::write_shortcut [file join $mydesk "$progstr.lnk"] -path [info nameofexecutable] -desc $progstr -iconpath [file join $mytemp NIST.ico]}}
+        set temp [string range $mytemp 0 end-4]
+        catch {[file copy -force -- [file join $wdir images NIST.ico] [file join $temp NIST.ico]]}
+        catch {if {[info exists mymenu]} {twapi::write_shortcut [file join $mymenu "$progstr.lnk"] -path [info nameofexecutable] -desc $progstr -iconpath [file join $temp NIST.ico]}}
+        catch {if {[info exists mydesk]} {twapi::write_shortcut [file join $mydesk "$progstr.lnk"] -path [info nameofexecutable] -desc $progstr -iconpath [file join $temp NIST.ico]}}
       }
     }
   }

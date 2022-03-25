@@ -1,13 +1,13 @@
 # generate an Excel spreadsheet and/or view from a STEP file
 proc genExcel {{numFile 0}} {
-  global allEntity aoEntTypes ap203all ap214all ap242all ap242XML badAttributes buttons cadSystem cells cells1 col col1 commaSeparator
-  global count csvdirnam csvfile csvinhome currLogFile dim draughtingModels entCategories entCategory entColorIndex entCount entityCount
-  global entsIgnored entsWithErrors epmi epmiUD errmsg excel excelVersion fcsv feaFirstEntity feaLastEntity File fileEntity filesProcessed
-  global gen gpmiTypesInvalid gpmiTypesPerFile guid idxColor ifcsvrDir inverses lastXLS lenfilelist localName localNameList logFile matrixList
-  global multiFile multiFileDir mydocs mytemp nistCoverageLegend nistName nistPMIexpected nistPMImaster nprogBarEnts opt pf32 p21e3 p21e3Section
-  global pmiCol resetRound row rowmax savedViewButtons savedViewName savedViewNames scriptName sheetLast skipEntities skipPerm spmiEntity
-  global spmiSumName spmiSumRow spmiTypesPerFile startrow statsOnly stepAP stepAPreport tessColor thisEntType timeStamp tlast tolNames
-  global tolStandard tolStandards totalEntity unicodeActual unicodeAttributes unicodeEnts unicodeInFile unicodeNumEnts unicodeString
+  global allEntity aoEntTypes ap203all ap214all ap242all ap242only ap242ed ap242XML badAttributes buttons cadSystem cells cells1
+  global col col1 commaSeparator count csvdirnam csvfile csvinhome currLogFile dim draughtingModels entCategories entCategory entColorIndex
+  global entCount entityCount entsIgnored entsWithErrors epmi epmiUD errmsg excel excelVersion fcsv feaFirstEntity feaLastEntity File fileEntity
+  global filesProcessed gen gpmiTypesInvalid gpmiTypesPerFile guid idxColor ifcsvrDir inverses lastXLS lenfilelist localName localNameList
+  global logFile matrixList multiFile multiFileDir mydocs mytemp nistCoverageLegend nistName nistPMIexpected nistPMImaster nprogBarEnts opt
+  global pf32 p21e3 p21e3Section pmiCol resetRound row rowmax savedViewButtons savedViewName savedViewNames scriptName sheetLast skipEntities
+  global skipPerm spmiEntity spmiSumName spmiSumRow spmiTypesPerFile startrow statsOnly stepAP stepAPreport tessColor thisEntType timeStamp
+  global tlast tolNames tolStandard tolStandards totalEntity unicodeActual unicodeAttributes unicodeEnts unicodeInFile unicodeNumEnts unicodeString
   global userEntityFile userEntityList useXL valRounded viz wdir workbook workbooks worksheet worksheet1 worksheets writeDir wsCount
   global wsNames x3dAxes x3dColor x3dColorFile x3dColors x3dFileName x3dIndex x3dMax x3dMin x3dMsg x3dMsgColor x3dStartFile x3dViewOK
   global xlFileName xlFileNames xlInstalled
@@ -152,6 +152,8 @@ proc genExcel {{numFile 0}} {
   if {[catch {
     set openStage 1
     set nprogBarEnts 0
+    set ap242ed(2) {}
+    set ap242ed(3) {}
     set fname $localName
     set stepAP [getStepAP $fname]
 
@@ -270,6 +272,10 @@ proc genExcel {{numFile 0}} {
             checkValues
           }
         }
+
+# check for AP242 edition 2 or 3 entities
+        if {[lsearch $ap242only(e2) $entType] != -1} {lappend ap242ed(2) $entType}
+        if {[lsearch $ap242only(e3) $entType] != -1} {lappend ap242ed(3) $entType}
       }
 
 # report characteristics
@@ -348,11 +354,11 @@ proc genExcel {{numFile 0}} {
 # error opening file
   } emsg]} {
     if {$openStage == 2} {
-      errorMsg "Error opening STEP file"
+      errorMsg "Error opening STEP file: $emsg"
 
       set fext [string tolower [file extension $fname]]
       if {$fext != ".stp" && $fext != ".step" && $fext != ".p21" && $fext != ".stpz" && $fext != ".ifc"} {
-        if {$fext != ""} {errorMsg "File extension '[file extension $fname]' is not supported." red}
+        if {$fext != ""} {errorMsg " File extension '[file extension $fname]' is not supported." red}
       } else {
         set fs [getSchemaFromFile $fname 1]
         set c1 [string first "\{" $fs]
@@ -379,13 +385,13 @@ proc genExcel {{numFile 0}} {
 # other possible errors
         } else {
           set msg "\nPossible causes of the error:"
-          append msg "\n1 - File or directory name contains accented, non-English, or symbol characters."
-          append msg "\n     [file nativename $fname]"
-          append msg "\n    Change the file name or directory name"
-          append msg "\n2 - Syntax errors in the STEP file"
-          append msg "\n    Use F8 to run the Syntax Checker to check for errors in the STEP file.  See Help > Syntax Checker"
-          append msg "\n    Try opening the file in a STEP viewer.  See Websites > STEP Software > STEP File Viewers"
-          if {[file size $localName] > 429000000} {append msg "\n3 - The STEP file is too large to open."}
+          if {[file size $localName] > 429000000} {append msg "\n- The STEP file is too large to open to generate a Spreadsheet.\n   For the Viewer use Part Only on the Options tab."}
+          append msg "\n- Syntax errors in the STEP file"
+          append msg "\n   Use F8 to run the Syntax Checker to check for errors in the STEP file.  See Help > Syntax Checker"
+          append msg "\n   Try opening the file in another STEP viewer.  See Websites > STEP Software > STEP File Viewers"
+          append msg "\n- File or directory name contains accented, non-English, or symbol characters."
+          append msg "\n   [file nativename $fname]"
+          append msg "\n   Change the file name or directory name"
           errorMsg $msg red
         }
       }
@@ -908,7 +914,7 @@ proc genExcel {{numFile 0}} {
             foreach std $tolStandards {if {[string first $val $std] != -1} {set ok 0}}
             if {$ok} {lappend tolStandards $val}
 
-            if {$item == "product_definition_formation"} {
+            if {$item == "product_definition_formation" && $opt(PMISEM)} {
               if {[string first "Y14.5" $val]  != -1 || [string first "1101" $val]  != -1} {lappend spmiTypesPerFile "$tolStandard(type) dimensioning standard"}
               if {[string first "Y14.41" $val] != -1 || [string first "16792" $val] != -1} {lappend spmiTypesPerFile "$tolStandard(type) modeling standard"}
             }
@@ -975,7 +981,7 @@ proc genExcel {{numFile 0}} {
     }
     set tlast [clock clicks -milliseconds]
 
-# check for entities in unicodeAttributes that might have unicode strings
+# check for entities in unicodeAttributes that might have unicode strings, complex entities require special exceptions in proc unicodeStrings
     catch {unset unicodeString}
     set unicodeEnts {}
     if {$opt(xlUnicode) && $opt(xlFormat) != "None"} {
@@ -1494,7 +1500,7 @@ proc genExcel {{numFile 0}} {
   update idletasks
 
 # unset variables
-  foreach var {ap242XML brepScale cells cgrObjects colColor count currx3dPID datumEntType datumGeom datumIDs datumSymbol datumSystem dimrep dimrepID dimtolEnt dimtolEntID dimtolGeom draughtingModels draftModelCameraNames draftModelCameras entCount entName entsIgnored epmi epmiUD feaDOFR feaDOFT feaNodes gpmiID gpmiIDRow gpmiRow heading idRow invCol invGroup nrep numx3dPID pmiCol pmiColumns pmiStartCol pmivalprop propDefID propDefIDRow propDefName propDefOK propDefRow savedsavedViewNames savedViewFile savedViewFileName savedViewItems savedViewNames savedViewpoint savedViewVP shapeRepName srNames suppGeomEnts syntaxErr tessCoord tessCoordName tessIndex tessIndexCoord tessPlacement tessRepo unicode unicodeActual unicodeNumEnts unicodeString viz vpEnts workbook workbooks worksheet worksheets x3dCoord x3dFile x3dFileName x3dIndex x3dMax x3dMin x3dStartFile} {
+  foreach var {ap242XML assemTransformPMI brepScale cells cgrObjects colColor count currx3dPID datumEntType datumGeom datumIDs datumSymbol datumSystem datumSystemPDS defComment dimrep dimrepID dimtolEnt dimtolEntID dimtolGeom draughtingModels draftModelCameraNames draftModelCameras entCount entName entsIgnored epmi epmiUD feaDOFR feaDOFT feaNodes gpmiID gpmiIDRow gpmiRow heading idRow invCol invGroup nrep numx3dPID pmiCol pmiColumns pmiStartCol pmivalprop propDefID propDefIDRow propDefName propDefOK propDefRow savedsavedViewNames savedViewFile savedViewFileName savedViewItems savedViewNames savedViewpoint savedViewVP shapeRepName srNames suppGeomEnts syntaxErr tessCoord tessCoordName tessIndex tessIndexCoord tessPlacement tessRepo unicode unicodeActual unicodeNumEnts unicodeString viz vpEnts workbook workbooks worksheet worksheets x3dCoord x3dFile x3dFileName x3dIndex x3dMax x3dMin x3dStartFile} {
     catch {global $var}
     if {[info exists $var]} {unset $var}
   }
@@ -1509,8 +1515,8 @@ proc genExcel {{numFile 0}} {
 # -------------------------------------------------------------------------------------------------
 proc addHeaderWorksheet {numFile fname} {
   global objDesign
-  global cadApps cadSystem cells cells1 col1 csvdirnam excel excel1 fileSchema legendColor
-  global localName opt p21e3 row spmiTypesPerFile timeStamp useXL writeDir worksheet worksheet1 worksheets
+  global ap242ed cadApps cadSystem cells cells1 col1 csvdirnam developer excel excel1 fileSchema legendColor
+  global localName opt p21e3 row spaces spmiTypesPerFile timeStamp useXL writeDir worksheet worksheet1 worksheets
 
   if {[catch {
     set cadSystem ""
@@ -1573,16 +1579,29 @@ proc addHeaderWorksheet {numFile fname} {
         set c1 [string first "1 0 10303 442" $sn]
         if {$c1 != -1} {
           set id [lindex [split [string range $sn $c1+14 end] " "] 0]
+          set msg ""
           if {$id == 1} {
             append str " (Edition 1)"
+            if {[llength $ap242ed(2)] > 0 || [llength $ap242ed(3)] > 0} {
+              errorMsg "Syntax Error: The STEP file contains entities related to AP242 Edition 2 or 3 ([join [lrmdups [concat $ap242ed(2) $ap242ed(3)]]]),$spaces\however, the file is identified as Edition 1."
+            }
           } elseif {$id == 2 || $id == 3} {
             append str " (Edition 2)"
             if {$id == 2} {errorMsg "AP242 Edition 2 should be identified with '3 1 4'" red}
+            if {[llength $ap242ed(3)] > 0} {
+              errorMsg "Syntax Error: The STEP file contains entities related to AP242 Edition 3 ([join $ap242ed(3)]),$spaces\however, the file is identified as Edition 2."
+            }
           } elseif {$id == 4} {
             append str " (Edition 3)"
-          } elseif {$id > 9} {
-            errorMsg "Unknown AP242 identifier '$id 1 4'" red
+          } else {
+            errorMsg "Unknown AP242 Object Identifier String '$id 1 4' for SchemaName" red
           }
+          if {$developer} {
+            if {[llength $ap242ed(2)] > 0} {outputMsg "AP242e2: [join $ap242ed(2)]" red}
+            if {[llength $ap242ed(3)] > 0} {outputMsg "AP242e3: [join $ap242ed(3)]" red}
+          }
+        } elseif {[string first "AP242" $sn] == 0} {
+          errorMsg "Syntax Error: SchemaName is missing the Object Identifier String that specifies the edition of AP242."
         }
 
 # check edition of AP214 (object identifier)
@@ -1673,7 +1692,7 @@ proc addHeaderWorksheet {numFile fname} {
       outputMsg "\nCAx-IF Recommended Practices (See Websites):" blue
       foreach item $caxifrp {
         outputMsg " $item"
-        lappend spmiTypesPerFile "document identification"
+        if {$opt(PMISEM)} {lappend spmiTypesPerFile "document identification"}
       }
     }
 

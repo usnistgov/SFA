@@ -47,7 +47,7 @@ proc spmiGeotolStart {entType} {
 
 # set PMIP for all *_tolerance entities (datum_system must be last)
   foreach tol $tolNames {set PMIP($tol) \
-    [list $tol magnitude $len1 $len2 $len3 $len4 \
+    [list $tol name magnitude $len1 $len2 $len3 $len4 \
       toleranced_shape_aspect \
         $df1 $df2 $df3 $df4 $df5 $df6 [list centre_of_symmetry name] [list centre_of_symmetry_and_datum_feature name] \
         [list composite_group_shape_aspect name] [list composite_shape_aspect name] \
@@ -122,7 +122,7 @@ proc spmiGeotolStart {entType} {
 # -------------------------------------------------------------------------------
 proc spmiGeotolReport {objEntity} {
   global all_around all_over assocGeom ATR badAttributes between cells col datsys datumCompartment datumFeature datumModValue datumTargetDesc
-  global datumSymbol datumSystem dim datumEntType datumGeom datumIDs datumTarget datumTargetType datumTargetView dimtolEntType dimtolGeom
+  global datumSymbol datumSystem datumSystemPDS dim datumEntType datumGeom datumIDs datumTarget datumTargetType datumTargetView dimtolEntType dimtolGeom
   global entLevel ent entAttrList entCount gt gtEntity head1 magQualified magType multipleDatumFeature nistName objID opt pmiCol pmiHeading
   global pmiModifiers pmiStartCol pmiUnicode propDefIDs ptz ptzError recPracNames spaces spmiEnts spmiID spmiIDRow spmiRow spmiTypesPerFile
   global stepAP syntaxErr tolNames tolStandard tolStandards tolval tzf1 tzfNames tzWithDatum worksheet
@@ -222,17 +222,43 @@ proc spmiGeotolReport {objEntity} {
                       set ok 1
                       set objValue $datumCompartment($objID)
                       set colName "Datum Reference Frame[format "%c" 10](Sec. 6.9.7, 6.9.8)"
-                    } elseif {$gt == "datum_reference_compartment" && $objValue == ""} {
-                      set msg "Syntax Error: Missing 'base' attribute on [lindex $ent1 0].$spaces\($recPracNames(pmi242), Sec. 6.9.7)"
-                      errorMsg $msg
-                      lappend syntaxErr([lindex [split $ent1 " "] 0]) [list $objID [lindex [split $ent1 " "] 1] $msg]
+
+                    } elseif {$gt == "datum_reference_compartment"} {
+                      if {$objValue == ""} {
+                        set msg "Syntax Error: Missing 'base' attribute on datum_reference_compartment.$spaces\($recPracNames(pmi242), Sec. 6.9.7)"
+                        errorMsg $msg
+                        lappend syntaxErr(datum_reference_compartment) [list $objID "base" $msg]
+
+# check if datum_reference_compartment is referenced by a datum_system
+                      } else {
+                        set okdrc 0
+                        set e0s [$objEntity GetUsedIn [string trim datum_system] [string trim constituents]]
+                        ::tcom::foreach e0 $e0s {set okdrc 1}
+                        if {!$okdrc} {
+                          set msg "Syntax Error: datum_reference_compartment not referenced by a datum_system.$spaces\($recPracNames(pmi242), Sec. 6.9.7)"
+                          errorMsg $msg
+                          lappend syntaxErr(datum_reference_compartment) [list $objID "compartment" $msg]
+                        }
+
+# check for multiple datum_reference_element
+                        catch {
+                          set ndre 0
+                          ::tcom::foreach e0 $objValue {if {[$e0 Type] == "datum_reference_element"} {incr ndre}}
+                          if {$ndre == 1} {
+                            set msg "Syntax Error: datum_reference_compartment 'base' attribute must refer to at least 2 'datum_reference_element'$spaces\($recPracNames(pmi242), Sec. 6.9.8)"
+                            errorMsg $msg
+                            lappend syntaxErr(datum_reference_compartment) [list $objID "base" $msg]
+                          }
+                        }
+                      }
+
                     } else {
                       set baseType ""
                       catch {set baseType [$objValue Type]}
                       if {$baseType == "common_datum"} {
-                        set msg "Syntax Error: Use 'datum_reference_element' (common_datum_list) instead of 'common_datum' for the 'base' attribute on [lindex $ent1 0].$spaces\($recPracNames(pmi242), Sec. 6.9.8)"
+                        set msg "Syntax Error: Use 'datum_reference_element' (common_datum_list) instead of 'common_datum' for the 'base' attribute on datum_reference_compartment$spaces\($recPracNames(pmi242), Sec. 6.9.8)"
                         errorMsg $msg
-                        lappend syntaxErr([lindex [split $ent1 " "] 0]) [list $objID [lindex [split $ent1 " "] 1] $msg]
+                        lappend syntaxErr(datum_reference_compartment) [list $objID "base" $msg]
                       }
                     }
                   }
@@ -554,6 +580,7 @@ proc spmiGeotolReport {objEntity} {
                     if {$gt == "datum_system"} {
                       set idx [string trim [expr {int([[$cells($gt) Item $r 1] Value])}]]
                       set datumSystem($idx) $objValue
+                      set datumSystemPDS($idx) [[[[$objEntity Attributes] Item [expr 3]] Value] P21ID]
                     }
                   } else {
 
@@ -580,6 +607,8 @@ proc spmiGeotolReport {objEntity} {
                     } else {
                       $cells($gt) Item $r $c "$val$objValue"
                     }
+
+# check identical datums
                     if {$gt == "datum_system"} {
                       set idx [string trim [expr {int([[$cells($gt) Item $r 1] Value])}]]
                       set datumSystem($idx) "$val | $objValue"
@@ -807,25 +836,26 @@ proc spmiGeotolReport {objEntity} {
                     if {![info exists datumIDs]} {
                       ::tcom::foreach datum [$objDesign FindObjects [string trim datum]] {
                         set letter [[[$datum Attributes] Item [expr 5]] Value]
+                        set letterPDS "$letter [[[[$datum Attributes] Item [expr 3]] Value] P21ID]"
                         set id [$datum P21ID]
 
-# check for multiple datum identification
+# check for multiple datum identification accounting for product_definition_shape ID for datums in an assembly
                         if {[string length $letter] > 0} {
                           if {[info exists datumIDs]} {
-                            if {[lsearch $datumIDs $letter] != -1} {
-                              set msg "Syntax Error: Multiple 'datum' entities use the same letter for the 'identification' attribute.  They should be unique.$spaces\($recPracNames(pmi242), Sec. 6.5)"
+                            if {[lsearch $datumIDs $letterPDS] != -1} {
+                              set msg "Syntax Error: Datum 'identification' letters should be unique for the same product_definition_shape.$spaces\($recPracNames(pmi242), Sec. 6.5)"
                               errorMsg $msg
                               lappend syntaxErr(datum) [list $id identification $msg]
                             }
                           }
-                          lappend datumIDs $letter
+                          lappend datumIDs $letterPDS
 
 # check for datum identification with too many letters
                           if {[string first "-" $letter] == -1} {
                             set nlet 2
                             if {$tolStandard(type) == "ISO"} {set nlet 3}
                             if {![string is alpha $letter] || [string length $letter] > $nlet} {
-                              set msg "Datum 'identification' attribute cannot be more than $nlet letters (no numbers) based on the tolerancing standard."
+                              set msg "Datum 'identification' attribute cannot be more than $nlet letters based on the $tolStandard(type) tolerancing standard."
                               errorMsg $msg
                               lappend syntaxErr(datum) [list $id identification $msg]
                             }
@@ -921,16 +951,20 @@ proc spmiGeotolReport {objEntity} {
                             if {[$a1 Name] == "related_shape_aspect"} {
                               if {[catch {
                                 ::tcom::foreach a2 [[$a1 Value] Attributes] {
-                                  if {[$a2 Name] == "identification"} {set datumSymbol($datumGeomEnts) [$a2 Value]}
+                                  if {[$a2 Name] == "identification"} {
+                                    set datumSymbol($datumGeomEnts) [$a2 Value]
+                                    if {$datumSymbol($datumGeomEnts) == ""} {
+                                      set msg "Syntax Error: Missing 'identification' attribute on datum.$spaces\($recPracNames(pmi242), Sec. 6.5)"
+                                      errorMsg $msg
+                                      lappend syntaxErr(datum) [list [[$a1 Value] P21ID] identification $msg]
+                                    }
+                                  }
                                 }
-                                #outputMsg "$datumSymbol($datumGeomEnts) [$e1 P21ID][$e1 Type] RELATED [[$a1 Value] P21ID] [[$a1 Value] Type]" red
                               } emsg]} {
                                 set msg "Syntax Error: Bad 'related_shape_aspect' attribute on 'shape_aspect_relationship'."
                                 errorMsg $msg
                                 lappend syntaxErr(shape_aspect_relationship) [list [$e1 P21ID] "related_shape_aspect" $msg]
                               }
-                            } elseif {[$a1 Name] == "relating_shape_aspect"} {
-                              #outputMsg "\n  [$e1 P21ID][$e1 Type] RELATING [[$a1 Value] P21ID] [[$a1 Value] Type]" green
                             }
                           }
                         }
@@ -985,6 +1019,15 @@ proc spmiGeotolReport {objEntity} {
                       set msg "Syntax Error: Datum reference frame modifier '$objValue' is not supported.$spaces\($recPracNames(pmi242), Sec. 6.9.7)"
                       errorMsg $msg
                       lappend syntaxErr([lindex [split $ent1 " "] 0]) [list [$gtEntity P21ID] [lindex [split $ent1 " "] 1] $msg]
+                    }
+                  }
+
+                  "*geometric_tolerance_with_defined_unit* name" {
+# check for missing unit_size
+                    if {[[[$objEntity Attributes] Item [expr 5]] Value] == ""} {
+                      set msg "Syntax Error: Missing 'unit_size' on [formatComplexEnt [$objEntity Type]] $spaces\($recPracNames(pmi242), Sec. 6.9.6)"
+                      errorMsg $msg
+                      lappend syntaxErr([lindex [split $ent1 " "] 0]) [list [$objEntity P21ID] "unit_size" $msg]
                     }
                   }
 
@@ -1414,11 +1457,14 @@ proc spmiGeotolReport {objEntity} {
 
 # check for unique datum systems
     if {$gt == "datum_system" && [llength [array names datumSystem]] == $entCount(datum_system)} {
-      foreach id [array names datumSystem] {lappend ds($datumSystem($id)) $id}
+      foreach id [array names datumSystem] {
+        set idx "$datumSystem($id) $datumSystemPDS($id)"
+        lappend ds($idx) $id
+      }
       foreach id [array names ds] {
         if {[llength $ds($id)] > 1} {
           foreach id1 $ds($id) {
-            set msg "Syntax Error: Datum Reference Frames for 'datum_system' entities should be unique.$spaces\($recPracNames(pmi242), Sec. 6.9.7)"
+            set msg "Syntax Error: Datum Reference Frames for 'datum_system' should be unique for the same product_definition_shape.$spaces\($recPracNames(pmi242), Sec. 6.9.7)"
             errorMsg $msg
             lappend syntaxErr(datum_system) [list $id1 "Datum Reference Frame" $msg]
           }
@@ -1834,7 +1880,7 @@ proc spmiGeotolReport {objEntity} {
 # -------------------------------------------------------------------------------
 # get projected tolerance zone (6.9.2.2)
 proc spmiProjectedToleranceZone {objGuiEntity} {
-  global developer gtEntity ptz ptzError recPracNames spaces syntaxErr
+  global gtEntity ptz ptzError recPracNames spaces syntaxErr
 
   if {[catch {
     set tzids {}
@@ -2029,8 +2075,6 @@ proc spmiProjectedToleranceZone {objGuiEntity} {
                   }
                 }
               }
-            } else {
-              errorMsg "No shape_aspect to find edge_curve ($idx)."
             }
           }
 
@@ -2045,8 +2089,6 @@ proc spmiProjectedToleranceZone {objGuiEntity} {
             } else {
               set ptzError 1
             }
-          } elseif {$developer} {
-            #errorMsg " Shared 'edge_curve' ($ec1) for projected tolerance zone ([$gtEntity P21ID])"
           }
         }
       }

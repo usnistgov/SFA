@@ -33,7 +33,7 @@ proc x3dFileStart {} {
   if {$stepAP != "" && [string range $stepAP 0 1] == "AP"} {append title " | $stepAP"}
   puts $x3dFile "<!DOCTYPE html>\n<html>\n<head>\n<title>$title</title>\n<base target=\"_blank\">\n<meta http-equiv='Content-Type' content='text/html;charset=utf-8'/>"
 
-# use x3dom 1.8.1 because 1.8.2 breaks transparency
+# use x3dom 1.8.1 because 1.8.2 release breaks transparency
   puts $x3dFile "<link rel='stylesheet' type='text/css' href='https://www.x3dom.org/download/1.8.1/x3dom.css'/>\n<script type='text/javascript' src='https://www.x3dom.org/download/1.8.1/x3dom.js'></script>"
   #puts $x3dFile "<link rel='stylesheet' type='text/css' href='https://www.x3dom.org/x3dom/release/x3dom.css'/>\n<script type='text/javascript' src='https://www.x3dom.org/x3dom/release/x3dom.js'></script>"
 
@@ -76,6 +76,7 @@ proc x3dFileStart {} {
   if {[info exists cadSystem]} {
     if {$cadSystem != ""} {
       regsub -all "_" $cadSystem " " cs
+      regsub -all [format "%c" 10] $cs " " cs
       append x3dTitle "&nbsp;&nbsp;&nbsp;$cs"
     }
   }
@@ -83,7 +84,7 @@ proc x3dFileStart {} {
   puts $x3dFile "\n<table>"
 
 # x3d window size
-  puts $x3dFile "<tr><td valign='top' width='85%'>\n<table><tr><td style='border:1px solid black'>\n<noscript>JavaScript must be enabled in the web browser</noscript>"
+  puts $x3dFile "<tr><td valign='top' width='85%'>\n<noscript>JavaScript must be enabled in the web browser</noscript>"
   set x3dHeight 900
   set x3dWidth [expr {int($x3dHeight*1.78)}]
   catch {
@@ -92,7 +93,7 @@ proc x3dFileStart {} {
   }
 
 # start x3d with flat-to-screen hud for viewpoint text
-  puts $x3dFile "\n<X3D id='x3d' showStat='false' showLog='false' x='0px' y='0px' width='$x3dWidth' height='$x3dHeight'>"
+  puts $x3dFile "\n<X3D id='x3d' showStat='false' showLog='false' x='0px' y='0px' width='$x3dWidth' height='$x3dHeight' style='border:1px solid black'>"
   set txt "<div id='HUDs_Div'><div class='group' style='margin:2px; margin-top:0px; padding:4px; background-color:rgba(0,0,0,1.); position:absolute; float:center; z-index:1000;'>Viewpoint: <span id='clickedView'></span>"
   if {$x3dPartClick} {append txt "<br>Part: <span id='clickedObject'></span>"}
   append txt "</div></div>"
@@ -129,11 +130,12 @@ proc x3dFileStart {} {
 # -------------------------------------------------------------------------------
 # finish x3d file, write lots of geometry, set viewpoints, add navigation and background color, and close x3dom file
 proc x3dFileEnd {} {
-  global ao ap242XML brepFile brepFileName datumTargetView entCount grayBackground matTrans maxxyz nistName nsketch numTessColor opt parts partstg
-  global placeCoords rosetteGeom samplingPoints savedViewButtons savedViewFile savedViewFileName savedViewItems savedViewNames savedViewpoint
-  global savedViewVP sphereDef stepAP tessCoord tessEdges tessPartFile tessPartFileName tessRepo tsName viz x3dApps x3dAxes x3dBbox x3dCoord
-  global x3dFile x3dFileNameSave x3dFiles x3dFileSave x3dIndex x3dMax x3dMin x3dMsg x3dPartClick x3dParts x3dShape x3dStartFile x3dTessParts
-  global x3dTitle x3dViewOK viewsWithPMI
+  global ao ap242XML axesDef brepFile brepFileName clippingDef datumTargetView entCount grayBackground matTrans maxxyz nistName nsketch numTessColor
+  global opt parts partstg placeCoords planeDef rosetteGeom samplingPoints savedViewButtons savedViewFile savedViewFileName savedViewItems
+  global savedViewNames savedViewpoint savedViewVP sphereDef spmiTypesPerFile stepAP tessCoord tessEdges tessPartFile tessPartFileName tessRepo tsName viz
+  global x3dApps x3dAxes x3dBbox x3dCoord x3dFile x3dFileNameSave x3dFiles x3dFileSave x3dIndex x3dMax x3dMin x3dMsg x3dPartClick x3dParts x3dShape
+  global x3dStartFile x3dTessParts x3dTitle x3dViewOK viewsWithPMI
+  global objDesign
 
   if {!$x3dViewOK} {
     foreach var [list x3dCoord x3dFile x3dIndex x3dMax x3dMin x3dShape x3dStartFile] {catch {unset -- $var}}
@@ -190,18 +192,36 @@ proc x3dFileEnd {} {
     set ent1 "$ent\_in_assembly"
     if {[info exists entCount($ent1)]} {set ok 1}
   }
-  if {$ok} {x3dHoles $maxxyz}
+  if {$ok} {x3dHoles}
 
 # -------------------------------------------------------------------------------
 # supplemental geometry
+  set axesDef {}
+  set planeDef {}
   set viz(SUPPGEOM) 0
-  if {[info exists entCount(constructive_geometry_representation)]} {x3dSuppGeom $maxxyz}
+  if {[info exists entCount(constructive_geometry_representation)]} {x3dSuppGeom}
+
+# -------------------------------------------------------------------------------
+# camera clipping planes for section views (9.4.3)
+  if {[info exists entCount(camera_model_d3_multi_clipping)]} {
+    set clippingDef {}
+    puts $x3dFile "\n<!-- CLIPPING PLANES -->"
+    outputMsg " Processing section views" green
+    ::tcom::foreach cm [$objDesign FindObjects [string trim camera_model_d3_multi_clipping]] {
+      set planes [[[$cm Attributes] Item [expr 4]] Value]
+      foreach plane $planes {
+        x3dSuppGeomPlane $plane 1. "clipping plane"
+        if {$opt(PMISEM)} {lappend spmiTypesPerFile "section views"}
+      }
+    }
+    set grayBackground 1
+  }
 
 # -------------------------------------------------------------------------------
 # datum targets
   set viz(DTMTAR) 0
   if {[info exists datumTargetView]} {
-    x3dDatumTarget $maxxyz
+    x3dDatumTarget
   } elseif {[info exists entCount(placed_datum_target_feature)] || [info exists entCount(datum_target)]} {
     set msg " Datum targets cannot be shown without "
     if {$opt(xlFormat) != "Excel"} {
@@ -531,7 +551,7 @@ proc x3dFileEnd {} {
   set bgcolor ".8 .8 .8"
 
 # blue background
-  if {!$viz(PMI) && !$viz(SUPPGEOM) && !$viz(DTMTAR) && !$viz(HOLE) && [string first "AP209" $stepAP] == -1} {
+  if {!$viz(PMI) && !$viz(SUPPGEOM) && !$viz(DTMTAR) && !$viz(HOLE) && !$viz(COMPOSITES) && [string first "AP209" $stepAP] == -1} {
     set bgcheck2 "checked"
     set bgcheck3 ""
     set bgcolor $skyBlue
@@ -559,7 +579,6 @@ proc x3dFileEnd {} {
   regsub -all "&nbsp;" $x3dTitle " " title
   foreach xf $x3dFiles {puts $xf "<WorldInfo title='$title' info='Generated by the NIST STEP File Analyzer and Viewer [getVersion]'/>"}
   foreach xf $x3dFiles {puts $xf "</Scene></X3D>"}
-  puts $x3dFile "</td></tr></table>"
 
 # close saved x3d file
   if {$opt(x3dSave)} {
@@ -625,29 +644,12 @@ proc x3dFileEnd {} {
   }
 
 # more checkboxes
-  if {$viz(SUPPGEOM)} {
-    puts $x3dFile "\n<!-- Supplemental geometry checkbox -->\n<input type='checkbox' checked onclick='togSMG(this.value)'/>Supplemental Geometry"
-    if {$viz(DTMTAR)} {puts $x3dFile "<br>"} else {puts $x3dFile "<p>"}
-  }
-  if {$viz(DTMTAR)} {
-    puts $x3dFile "\n<!-- Datum targets checkbox -->\n<input type='checkbox' checked onclick='togDTR(this.value)'/>Datum Targets"
-    if {$viz(PLACE)} {puts $x3dFile "<br>"} else {puts $x3dFile "<p>"}
-  }
-  if {$viz(PLACE)} {
-    puts $x3dFile "\n<!-- Placeholder checkbox -->\n<input type='checkbox' checked onclick='togPlaceholder(this.value)'/>PMI Placeholders"
-    if {$viz(COMPOSITES)} {puts $x3dFile "<br>"} else {puts $x3dFile "<p>"}
-  }
-  if {$viz(COMPOSITES)} {
-    puts $x3dFile "\n<!-- Composites checkbox -->\n<input type='checkbox' checked onclick='togComposites(this.value)'/>Composite Rosettes"
-    if {$viz(POINTS)} {puts $x3dFile "<br>"} else {puts $x3dFile "<p>"}
-  }
-  if {$viz(POINTS)} {
-    puts $x3dFile "\n<!-- $pointsLabel checkbox -->\n<input type='checkbox' checked onclick='togPoints(this.value)'/>$pointsLabel"
-    if {$viz(HOLE)} {puts $x3dFile "<br>"} else {puts $x3dFile "<p>"}
-  }
-  if {$viz(HOLE)} {
-    puts $x3dFile "\n<!-- Holes checkbox -->\n<input type='checkbox' checked onclick='togHole(this.value)'/>Holes<p>"
-  }
+  if {$viz(SUPPGEOM)}   {puts $x3dFile "\n<!-- Supplemental geometry checkbox -->\n<input type='checkbox' checked onclick='togSMG(this.value)'/>Supplemental Geometry<br>"}
+  if {$viz(DTMTAR)}     {puts $x3dFile "\n<!-- Datum targets checkbox -->\n<input type='checkbox' checked onclick='togDTR(this.value)'/>Datum Targets<br>"}
+  if {$viz(COMPOSITES)} {puts $x3dFile "\n<!-- Composites checkbox -->\n<input type='checkbox' checked onclick='togComposites(this.value)'/>Composite Rosettes<br>"}
+  if {$viz(POINTS)}     {puts $x3dFile "\n<!-- $pointsLabel checkbox -->\n<input type='checkbox' checked onclick='togPoints(this.value)'/>$pointsLabel<br>"}
+  if {$viz(HOLE)}       {puts $x3dFile "\n<!-- Holes checkbox -->\n<input type='checkbox' checked onclick='togHole(this.value)'/>Holes<br>"}
+  if {$viz(SUPPGEOM) || $viz(DTMTAR) || $viz(COMPOSITES) || $viz(POINTS) || $viz(HOLE)} {puts $x3dFile "<p>"}
 
 # for PMI annotations - checkboxes for toggling saved view PMI
   if {$viz(PMI) && [llength $savedViewButtons] > 0} {
@@ -672,6 +674,12 @@ proc x3dFileEnd {} {
     }
   }
 
+# PMI placeholder
+  if {$viz(PLACE)} {
+    if {[llength $savedViewButtons] > 0} {puts $x3dFile "<p>"}
+    puts $x3dFile "\n<!-- Placeholder checkbox -->\n<input type='checkbox' checked onclick='togPlaceholder(this.value)'/>PMI Placeholders"
+  }
+
 # FEM checkboxes
   if {$viz(FEA)} {feaButtons 1}
 
@@ -686,10 +694,12 @@ proc x3dFileEnd {} {
     }
   }
 
+# common buttons
+  puts $x3dFile "\n<!-- Start common buttons -->\n<p><hr>"
+
 # bounding box
-  puts $x3dFile "\n<p><hr>"
   if {$viz(PART) && [info exists x3dBbox]} {
-    if {$x3dBbox != ""} {puts $x3dFile "\n<p><input type='checkbox' onclick='togBbox(this.value)'/>$x3dBbox"}
+    if {$x3dBbox != ""} {puts $x3dFile "\n<!-- Bounding box checkbox -->\n<p><input type='checkbox' onclick='togBbox(this.value)'/>$x3dBbox"}
     if {$viz(FEA)} {puts $x3dFile "<p>"}
   }
 
@@ -913,7 +923,9 @@ proc x3dFileEnd {} {
 # part transparency
     if {$viz(PART)} {
       if {[info exists x3dApps]} {
-        foreach n [lrmdups [lsort -integer $x3dApps]] {
+        set mats [lrmdups [lsort -integer $x3dApps]]
+        if {$rosetteGeom == 1 || $rosetteGeom == 3} {set mats [lrange $mats 0 end-1]}
+        foreach n $mats {
           if {!$opt(partEdges) || $n != 1} {
             if {![info exists matTrans($n)]} {
               puts $x3dFile " document.getElementById('mat$n').setAttribute('transparency', trans);"
@@ -1012,8 +1024,8 @@ proc x3dSavedViewpoint {name} {
 
 # -------------------------------------------------------------------------------
 # datum targets
-proc x3dDatumTarget {maxxyz} {
-  global datumTargetView dttype recPracNames spaces viz x3dFile
+proc x3dDatumTarget {} {
+  global datumTargetView dttype maxxyz recPracNames spaces viz x3dFile
 
   outputMsg " Processing datum targets" green
   puts $x3dFile "\n<!-- DATUM TARGETS -->\n<Switch whichChoice='0' id='swDTR'><Group>"
@@ -1327,8 +1339,8 @@ proc x3dDatumTarget {maxxyz} {
 
 # -------------------------------------------------------------------------------
 # holes counter and spotface
-proc x3dHoles {maxxyz} {
-  global dim DTR entCount gen holeDefinitions opt recPracNames spaces syntaxErr viz x3dFile
+proc x3dHoles {} {
+  global dim DTR entCount gen holeDefinitions maxxyz opt recPracNames spaces syntaxErr viz x3dFile
   global objDesign
 
   set drillPoint [trimNum [expr {$maxxyz*0.02}]]
@@ -1374,10 +1386,7 @@ proc x3dHoles {maxxyz} {
 
 # hole origin and axis transform
             set a2p3d [x3dGetA2P3D $e3]
-            set origin [lindex $a2p3d 0]
-            set axis   [lindex $a2p3d 1]
-            set refdir [lindex $a2p3d 2]
-            set transform [x3dTransform $origin $axis $refdir $holeName]
+            set transform [x3dTransform [lindex $a2p3d 0] [lindex $a2p3d 1] [lindex $a2p3d 2] $holeName]
 
 # drilled hole dimensions
             set drill [lindex $holeDefinitions($defID) 0]
@@ -1637,28 +1646,42 @@ proc x3dPlaceholder {} {
   puts $x3dFile "<Switch whichChoice='0' id='swPlaceholder'><Group>"
   set size1 [trimNum [expr {$maxxyz/1000.}]]
   set size2 [trimNum [expr {$size1*6.}]]
+  set n 0
+
   foreach name [array names placeCoords] {
-    set n 0
     if {[catch {
       foreach coord $placeCoords($name) {
         incr n
         puts $x3dFile "<Transform translation='$coord'><Group>"
+        set transform [x3dTransform "0. 0. 0." $placeAxes($name,axis) $placeAxes($name,refdir) "annotation placeholder" "" $name]
+
+# axes
         if {$n == 1} {
-          set transform [x3dTransform "0. 0. 0." $placeAxes($name,axis) $placeAxes($name,refdir) "annotation placeholder" "" $name]
-          puts $x3dFile " $transform<Group>"
+          puts $x3dFile " $transform<Group DEF='placeAxes'>"
           puts $x3dFile "  <Shape><Appearance><Material emissiveColor='1 0 0'/></Appearance><IndexedLineSet coordIndex='0 1 -1'><Coordinate point='0. 0. 0. $size2 0. 0.'/></IndexedLineSet></Shape>"
           puts $x3dFile "  <Shape><Appearance><Material emissiveColor='0 .5 0'/></Appearance><IndexedLineSet coordIndex='0 1 -1'><Coordinate point='0. 0. 0. 0. $size2 0.'/></IndexedLineSet></Shape>"
           puts $x3dFile "  <Shape><Appearance><Material emissiveColor='0 0 1'/></Appearance><IndexedLineSet coordIndex='0 1 -1'><Coordinate point='0. 0. 0. 0. 0. $size2'/></IndexedLineSet></Shape>"
-          if {[info exists placeBox($name,x)]} {
-            set boxCoord "0 [expr {-0.5*$placeBox($name,y)}] 0 $placeBox($name,x) [expr {-0.5*$placeBox($name,y)}] 0 0 [expr {0.5*$placeBox($name,y)}] 0 $placeBox($name,x) [expr {0.5*$placeBox($name,y)}] 0"
-            set boxIndex "0 1 3 2 0 -1"
-            puts $x3dFile "  <Shape><Appearance><Material emissiveColor='0 0 0'/></Appearance>"
-            puts $x3dFile "   <IndexedLineSet coordIndex='$boxIndex'>\n  <Coordinate point='$boxCoord'/></IndexedLineSet></Shape>"
-          }
           puts $x3dFile " </Group></Transform>"
+        } else {
+          puts $x3dFile " $transform<Group USE='placeAxes'></Group></Transform>"
         }
-        puts $x3dFile " <Shape><Appearance><Material diffuseColor='0 0 0' emissiveColor='0 0 0' transparency='0.5'/></Appearance><Sphere radius='$size1'></Sphere></Shape>"
-        puts $x3dFile " <Transform scale='$size2 $size2 $size2'><Billboard axisOfRotation='0 0 0'><Shape><Text string='$name'><FontStyle family='SANS' justify='BEGIN'/></Text><Appearance><Material diffuseColor='0 0 0'/></Appearance></Shape></Billboard></Transform>"
+
+# sphere and text
+        if {$n == 1} {
+          puts $x3dFile " <Shape DEF='placeSphere'><Appearance><Material diffuseColor='0 0 0' emissiveColor='0 0 0' transparency='0.5'/></Appearance><Sphere radius='$size1'></Sphere></Shape>"
+        } else {
+          puts $x3dFile " <Shape USE='placeSphere'></Shape>"
+        }
+        puts $x3dFile " <Billboard axisOfRotation='0 0 0'><Shape><Text string='$name'><FontStyle size='$size2' family='SANS' justify='BEGIN'/></Text><Appearance><Material diffuseColor='0 0 0'/></Appearance></Shape></Billboard>"
+
+# planar box
+        if {[info exists placeBox($name,x)]} {
+          set boxCoord "0 [expr {-0.5*$placeBox($name,y)}] 0 $placeBox($name,x) [expr {-0.5*$placeBox($name,y)}] 0 0 [expr {0.5*$placeBox($name,y)}] 0 $placeBox($name,x) [expr {0.5*$placeBox($name,y)}] 0"
+          set boxIndex "0 1 3 2 0 -1"
+          puts $x3dFile " $transform"
+          puts $x3dFile "  <Shape><Appearance><Material emissiveColor='0 0 0'/></Appearance><IndexedLineSet coordIndex='$boxIndex'><Coordinate point='$boxCoord'/></IndexedLineSet></Shape>"
+          puts $x3dFile " </Transform>"
+        }
         puts $x3dFile "</Group></Transform>"
       }
     } emsg]} {
@@ -1670,32 +1693,37 @@ proc x3dPlaceholder {} {
 }
 
 # -------------------------------------------------------------------------------
-# composite rosette cartesian_11 (curve_11 is handled by stp2x3d)
+# composite rosette cartesian_11 (curve_11 is handled by stp2x3d and processed in sfa-part.tcl)
 proc x3dComposites {} {
-  global entCount maxxyz rosetteGeom viz x3dFile
+  global entCount grayBackground maxxyz rosetteGeom viz x3dFile
   global objDesign
 
+  if {![info exists rosetteGeom]} {set rosetteGeom 0}
   set entType "axis2_placement_3d_and_cartesian_11"
   if {[info exists entCount($entType)]} {
     if {$entCount($entType) > 0} {
       set viz(COMPOSITES) 1
+      set grayBackground 1
 
 # rosetteGeom: 1=curve, 2=axis, 3=both
       set rosetteGeom [expr {$rosetteGeom+2}]
-      puts $x3dFile "\n<!-- COMPOSITES -->"
+      puts $x3dFile "\n<!-- COMPOSITES cartesian_11 -->"
       puts $x3dFile "<Switch whichChoice='0' id='swComposites'><Group>"
       if {[catch {
         ::tcom::foreach ent [$objDesign FindObjects [join $entType]] {
           set a2p3d [x3dGetA2P3D $ent]
-          set origin [lindex $a2p3d 0]
-          set axis   [lindex $a2p3d 1]
-          set refdir [lindex $a2p3d 2]
-          set transform [x3dTransform $origin $axis $refdir "composites rosette"]
+          set transform [x3dTransform [lindex $a2p3d 0] [lindex $a2p3d 1] [lindex $a2p3d 2] "composites rosette"]
           puts $x3dFile $transform
-          set size [trimNum [expr {$maxxyz*0.025}]]
-          puts $x3dFile " <Shape><Appearance><Material emissiveColor='1 0 0'/></Appearance><IndexedLineSet coordIndex='0 1 -1'><Coordinate point='0. 0. 0. $size 0. 0.'/></IndexedLineSet></Shape>"
-          puts $x3dFile " <Shape><Appearance><Material emissiveColor='0 .5 0'/></Appearance><IndexedLineSet coordIndex='0 1 -1'><Coordinate point='0. 0. 0. 0. $size 0.'/></IndexedLineSet></Shape>"
-          puts $x3dFile " <Shape><Appearance><Material emissiveColor='0 0 1'/></Appearance><IndexedLineSet coordIndex='0 1 -1'><Coordinate point='0. 0. 0. 0. 0. $size'/></IndexedLineSet></Shape></Transform>"
+          set size [trimNum [expr {$maxxyz*0.03}]]
+          set size1 [trimNum [expr {0.25*$size}]]
+          set size2 [trimNum [expr {0.7*$size}]]
+          set points "0. 0. 0. $size 0. 0. 0. $size 0. $size2 $size2 0. $size2 -$size2 0."
+          puts $x3dFile " <Shape><Appearance><Material emissiveColor='1 1 1'/></Appearance><IndexedLineSet coordIndex='0 1 -1 0 2 -1 0 3 -1 0 4 -1'><Coordinate point='$points'/></IndexedLineSet></Shape>"
+          puts $x3dFile " <Transform translation='$size 0. 0.' scale='$size1 $size1 $size1'><Billboard axisOfRotation='0 0 0'><Shape><Text string='0'><FontStyle family='SANS' justify='BEGIN'/></Text><Appearance><Material diffuseColor='1 1 1'/></Appearance></Shape></Billboard></Transform>"
+          puts $x3dFile " <Transform translation='0. $size 0.' scale='$size1 $size1 $size1'><Billboard axisOfRotation='0 0 0'><Shape><Text string='90'><FontStyle family='SANS' justify='BEGIN'/></Text><Appearance><Material diffuseColor='1 1 1'/></Appearance></Shape></Billboard></Transform>"
+          puts $x3dFile " <Transform translation='$size2 $size2 0.' scale='$size1 $size1 $size1'><Billboard axisOfRotation='0 0 0'><Shape><Text string='45'><FontStyle family='SANS' justify='BEGIN'/></Text><Appearance><Material diffuseColor='1 1 1'/></Appearance></Shape></Billboard></Transform>"
+          puts $x3dFile " <Transform translation='$size2 -$size2 0.' scale='$size1 $size1 $size1'><Billboard axisOfRotation='0 0 0'><Shape><Text string='-45'><FontStyle family='SANS' justify='BEGIN'/></Text><Appearance><Material diffuseColor='1 1 1'/></Appearance></Shape></Billboard></Transform>"
+          puts $x3dFile "</Transform>"
         }
       } emsg]} {
         errorMsg "Error adding composite rosette: $emsg"

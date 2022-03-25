@@ -90,11 +90,12 @@ Disclaimers
  software.
 
 Credits
-- Reading and parsing STEP files:
+- Reading and parsing STEP files
    IFCsvr ActiveX Component, Copyright \u00A9 1999, 2005 SECOM Co., Ltd. All Rights Reserved
    IFCsvr has been modified by NIST to include STEP schemas.
    The license agreement can be found in C:\\Program Files (x86)\\IFCsvrR300\\doc
-- Translating STEP to X3D:
+- Viewer for b-rep part geometry
+   STEP to X3D Translator (stp2x3d)
    Developed by Soonjo Kwon, former NIST Associate
    https://www.nist.gov/services-resources/software/step-x3d-translator
 - Some Tcl code is based on: CAWT http://www.cawt.tcl3d.org/"
@@ -104,16 +105,6 @@ if {$argc == 0 || ($argc == 1 && ($arg == "help" || $arg == "-help" || $arg == "
   puts $helpText
   exit
 }
-
-# -----------------------------------------------------------------------------------------------------
-# set program files, environment variables will be in the correct language
-set pf32 "C:\\Program Files (x86)"
-if {[info exists env(ProgramFiles)]} {set pf32 $env(ProgramFiles)}
-set pf64 ""
-if {[info exists env(ProgramW6432)]} {set pf64 $env(ProgramW6432)}
-
-# set drive, myhome, mydocs, mydesk
-setHomeDir
 
 # NIST version
 set nistVersion 1
@@ -133,44 +124,7 @@ if {![file exists $localName]} {
 }
 
 # -----------------------------------------------------------------------------------------------------
-# initialize variables, set opt to 1
-foreach id {logFile outputOpen PMIGRF PMISEM stepADDM stepAP242 stepCOMM stepCOMP stepCONS stepFEAT stepKINE stepPRES stepQUAL stepQUAN \
-  stepREPR stepSHAP stepTOLR valProp} {set opt($id) 1}
-
-# set opt to 0
-foreach id { \
-  feaBounds feaDisp feaDispNoTail feaLoads feaLoadScale indentGeometry indentStyledItem INVERSE partEdges partNormals partOnly partSketch \
-  PMIGRFCOV PMISEMDIM PMISEMDT PMISEMRND SHOWALLPMI stepCPNT stepGEOM stepUSER syntaxChecker tessPartMesh viewFEA viewPart viewPMI viewPMIAR viewPMIVP \
-  viewTessPart writeDirType xlHideLinks xlNoRound xlSort xlUnicode x3dSave DEBUG1 DEBUGINV DEBUGNOXL DEBUGVP DEBUGX3D \
-} {set opt($id) 0}
-
-set opt(gpmiColor) 3
-set opt(partQuality) 7
-set opt(xlMaxRows) 1003
-set opt(xlFormat) Excel
-
-set coverageSTEP 0
-set dispCmd ""
-set dispCmds {}
-set filesProcessed 0
-set lastX3DOM ""
-set lastXLS  ""
-set lastXLS1 ""
-set openFileList {}
-set sfaVersion 0
-set upgrade 0
-set x3dFileName ""
-set x3dStartFile 1
-
-set fileDir  $mydocs
-set fileDir1 $mydocs
-set userWriteDir $mydocs
-set writeDir $userWriteDir
-
-set developer 0
-if {$env(USERDOMAIN) == "NIST"} {set developer 1}
-
-# initialize other data
+# initialize all data
 initData
 initDataInverses
 getOpenPrograms
@@ -196,35 +150,15 @@ for {set i 1} {$i <= 10} {incr i} {
 # check for options file and read (source)
 if {[file exists $optionsFile]} {
   if {[catch {
-    source $optionsFile
     puts "Reading options file: [truncFileName $optionsFile]"
-
-# rename and unset old opt variables
-    foreach pair [list {HIDELINKS xlHideLinks} {LOGFILE logFile} {SYNCHK syntaxChecker} {VALPROP valProp} {VIZBRP VIZPRT} {VIZFEA viewFEA} {VIZFEABC feaBounds} \
-      {VIZFEADS feaDisp} {VIZFEADSntail feaDispNoTail} {VIZFEALV feaLoads} {VIZFEALVS feaLoadScale} {VIZPMI viewPMI} {VIZPRT viewPart} {VIZPRTEDGE partEdges} \
-      {VIZPRTNORMAL partNormals} {VIZPRTONLY partOnly} {VIZPRTWIRE partSketch} {VIZTES viewTessPart} {VIZTESMSH tessPartMesh} {VIZTPG viewTessPart} \
-      {VIZTPGMSH tessPartMesh} {x3dQuality partQuality} {XL_FPREC xlNoRound} {XL_OPEN outputOpen} {XL_ROWLIM xlMaxRows} {XL_SORT xlSort} {XLSCSV xlFormat} \
-    ] {
-      set old [lindex $pair 0]
-      set new [lindex $pair 1]
-      if {[info exists opt($old)]} {set opt($new) $opt($old); unset opt($old)}
-    }
-    foreach id [array names opt] {foreach str {EX_ PR_ XL_ VIZ} {if {[string first $str $id] == 0} {unset opt($id)}}}
+    source $optionsFile
   } emsg]} {
     errorMsg "Error reading options file [truncFileName $optionsFile]: $emsg"
   }
 } else {
   errorMsg "No options file was found.  Default options will be used."
 }
-
-# adjust some variables
-if {[info exists userEntityFile]} {
-  if {![file exists $userEntityFile]} {
-    set userEntityFile ""
-    set opt(stepUSER) 0
-  }
-}
-if {$opt(partQuality) == 9} {set opt(partQuality) 10}
+checkVariables
 
 #-------------------------------------------------------------------------------
 # install IFCsvr

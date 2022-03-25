@@ -351,6 +351,12 @@ proc spmiDimtolReport {objEntity} {
                       ::tcom::foreach e0 $e0s {set ok 1}
                       if {$ok} {lappend spmiTypesPerFile "derived shapes dimensional location"}
                     }
+# check for missing related_shape_aspect
+                    if {[[[$objEntity Attributes] Item [expr 4]] Value] == ""} {
+                      set msg "Syntax Error: Missing 'related_shape_aspect' on dimensional_location$spaces\($recPracNames(pmi242), Sec. 5.1.1)"
+                      errorMsg $msg
+                      lappend syntaxErr(dimensional_location) [list $objID "related_shape_aspect" $msg]
+                    }
                   }
                 }
 
@@ -1648,5 +1654,6 @@ proc removeTrailingZero {val} {
       if {[string index $val end] == "0" && [string index $val end-1] == "."} {set val [string range $val 0 end-2]}
     }
   }
+  if {$val == "."} {set val "0."}
   return $val
 }

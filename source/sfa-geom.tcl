@@ -55,6 +55,8 @@ proc getAssocGeom {entDef {tolType 0} {tolName ""}} {
             if {[catch {
               set relatedSA [[$a0 Value] Type]
               set a00 $a0
+
+# check for component_path_shape_aspect as related
               if {$relatedSA == "component_path_shape_aspect"} {
                 appendAssocGeom [$a0 Value]
                 set a00 [[[$a0 Value] Attributes] Item [expr 6]]
@@ -67,42 +69,56 @@ proc getAssocGeom {entDef {tolType 0} {tolName ""}} {
               lappend syntaxErr([$e0 Type]) [list [$e0 P21ID] "related_shape_aspect" $msg]
             }
 
+
 # related SA is OK
-            if {[info exists relatedSA]} {
-              set type [appendAssocGeom [$a00 Value] E]
-              if {$type == "advanced_face"} {getFaceGeom [$a00 Value] $tolType E}
-              if {$dimSize} {checkShapeAspect [$a00 Value]}
-
-              set a0val {}
-              if {[string first "composite_shape_aspect" $relatedSA] != -1 || [string first "composite_group_shape_aspect" $relatedSA] != -1 || \
-                  [string first "centre_of_symmetry" $relatedSA] != -1} {
-                set e1s [[$a00 Value] GetUsedIn [string trim shape_aspect_relationship] [string trim relating_shape_aspect]]
-                ::tcom::foreach e1 $e1s {
-                  if {[string first "relationship" [$e1 Type]] != -1} {
-                    ::tcom::foreach a1 [$e1 Attributes] {
-                      if {[$a1 Name] == "related_shape_aspect"} {
-                        lappend a0val [$a1 Value]
-                        set type [appendAssocGeom [$a1 Value] F]
-                        if {$dimSize} {checkShapeAspect [$a1 Value]}
-                      }
-                    }
-                  }
-                }
-                if {[string first "centre_of_symmetry" $relatedSA] != -1} {lappend a0val [$a00 Value]}
-              } else {
-                lappend a0val [$a00 Value]
-              }
-
-# find AF for SA with GISU or IIRU, check all around
-              foreach val $a0val {getAssocGeomFace $val $tolType}
-            }
+            if {[info exists relatedSA]} {relatedShapeAspect $relatedSA $a00 $tolType $dimSize}
           }
         }
       }
     }
+
+# check component_path_shape_aspect direct reference to shape_aspect
+    if {$entDefType == "component_path_shape_aspect"} {
+      set a0 [[$entDef Attributes] Item [expr 6]]
+      set relatedSA [[$a0 Value] Type]
+      relatedShapeAspect $relatedSA $a0 $tolType $dimSize
+    }
   } emsg]} {
     errorMsg "Error adding Associated Geometry: $emsg"
   }
+}
+
+# -------------------------------------------------------------------------------
+proc relatedShapeAspect {relatedSA a0 tolType dimSize} {
+  set type [appendAssocGeom [$a0 Value] E]
+  if {$type == "advanced_face"} {getFaceGeom [$a0 Value] $tolType E}
+  if {$dimSize} {checkShapeAspect [$a0 Value]}
+
+  set a0val {}
+  if {[string first "composite_shape_aspect" $relatedSA] != -1 || [string first "composite_group_shape_aspect" $relatedSA] != -1 || \
+      [string first "centre_of_symmetry" $relatedSA] != -1} {
+    set e1s [[$a0 Value] GetUsedIn [string trim shape_aspect_relationship] [string trim relating_shape_aspect]]
+    ::tcom::foreach e1 $e1s {
+      if {[string first "relationship" [$e1 Type]] != -1} {
+        ::tcom::foreach a1 [$e1 Attributes] {
+
+# get shape_aspect
+          if {[$a1 Name] == "related_shape_aspect"} {
+            if {[[$a1 Value] Type] == "component_path_shape_aspect"} {set a1 [[[$a1 Value] Attributes] Item [expr 6]]}
+            lappend a0val [$a1 Value]
+            set type [appendAssocGeom [$a1 Value] F]
+            if {$dimSize} {checkShapeAspect [$a1 Value]}
+          }
+        }
+      }
+    }
+    if {[string first "centre_of_symmetry" $relatedSA] != -1} {lappend a0val [$a0 Value]}
+  } else {
+    lappend a0val [$a0 Value]
+  }
+
+# find AF for SA with GISU or IIRU, check all around
+  foreach val $a0val {getAssocGeomFace $val $tolType}
 }
 
 # -------------------------------------------------------------------------------

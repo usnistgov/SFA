@@ -63,64 +63,12 @@ catch {
 }
 
 # -----------------------------------------------------------------------------------------------------
-# set program files, environment variables will be in the correct language
-set pf32 "C:\\Program Files (x86)"
-if {[info exists env(ProgramFiles)]} {set pf32 $env(ProgramFiles)}
-set pf64 ""
-if {[info exists env(ProgramW6432)]} {set pf64 $env(ProgramW6432)}
-
-# set drive, myhome, mydocs, mydesk
-setHomeDir
-
-# -----------------------------------------------------------------------------------------------------
-# initialize variables, set opt to 1
-foreach id { \
-  logFile outputOpen partEdges partSketch PMIGRF PMISEM stepCOMM stepPRES stepQUAN stepREPR stepSHAP stepTOLR valProp \
-  viewPart viewPMI viewTessPart tessPartMesh \
-} {set opt($id) 1}
-
-# set opt to 0
-foreach id { \
-  feaBounds feaDisp feaDispNoTail feaLoads feaLoadScale indentGeometry indentStyledItem INVERSE partNormals partOnly \
-  PMIGRFCOV PMISEMDIM PMISEMDT PMISEMRND SHOWALLPMI stepADDM stepAP242 stepCOMP stepCONS stepCPNT stepFEAT stepGEOM stepKINE stepQUAL stepUSER syntaxChecker \
-  viewFEA viewPMIAR viewPMIVP writeDirType xlHideLinks xlNoRound xlSort xlUnicode x3dSave DEBUG1 DEBUGINV DEBUGNOXL DEBUGVP DEBUGX3D \
-} {set opt($id) 0}
-
-set opt(gpmiColor) 3
-set opt(partQuality) 7
-set opt(xlMaxRows) 1003
-set opt(xlFormat) Excel
-set gen(AllAnalysis) 0
-set gen(AllView) 0
-set gen(View) 1
-
-set coverageSTEP 0
-set dispCmd "Default"
-set dispCmds {}
+# initialize all data
+initData
+initDataInverses
 set edmWhereRules 0
 set edmWriteToFile 0
 set stepToolsWriteToFile  0
-set filesProcessed 0
-set lastX3DOM ""
-set lastXLS  ""
-set lastXLS1 ""
-set openFileList {}
-set sfaVersion 0
-set upgrade 0
-set x3dFileName ""
-set x3dStartFile 1
-
-set fileDir  $mydocs
-set fileDir1 $mydocs
-set userWriteDir $mydocs
-set writeDir $userWriteDir
-
-set developer 0
-if {$env(USERDOMAIN) == "NIST"} {set developer 1}
-
-# initialize data
-initData
-initDataInverses
 
 # -----------------------------------------------------------------------------------------------------
 # check for options file and read (source)
@@ -128,45 +76,11 @@ set optionsFile [file nativename [file join $fileDir STEP-File-Analyzer-options.
 if {[file exists $optionsFile]} {
   if {[catch {
     source $optionsFile
-
-# rename and unset old opt variables
-    foreach pair [list {HIDELINKS xlHideLinks} {LOGFILE logFile} {SYNCHK syntaxChecker} {VALPROP valProp} {VIZBRP VIZPRT} {VIZFEA viewFEA} {VIZFEABC feaBounds} {VIZFEADS feaDisp} {VIZFEADSntail feaDispNoTail} {VIZFEALV feaLoads} {VIZFEALVS feaLoadScale} {VIZPMI viewPMI} {VIZPRT viewPart} {VIZPRTEDGE partEdges} {VIZPRTNORMAL partNormals} {VIZPRTONLY partOnly} {VIZPRTWIRE partSketch} {VIZTES viewTessPart} {VIZTESMSH tessPartMesh} {VIZTPG viewTessPart} {VIZTPGMSH tessPartMesh} {x3dQuality partQuality} {XL_FPREC xlNoRound} {XL_OPEN outputOpen} {XL_ROWLIM xlMaxRows} {XL_SORT xlSort} {XLSCSV xlFormat}] {
-      set old [lindex $pair 0]
-      set new [lindex $pair 1]
-      if {[info exists opt($old)]} {set opt($new) $opt($old); unset opt($old)}
-    }
-
-    if {[info exists opt(CRASH)]}   {set filesProcessed 1}
-    if {[info exists gpmiColor]}    {set opt(gpmiColor) $gpmiColor}
-    if {[info exists row_limit]}    {set opt(xlMaxRows) $row_limit}
-    if {[info exists writeDirType]} {set opt(writeDirType) $writeDirType}
-    if {$opt(writeDirType) == 1}    {set opt(writeDirType) 0}
-    if {$opt(partQuality) == 9}     {set opt(partQuality) 10}
-
-# unset old unused opt variables
-    foreach item {COUNT CRASH DELCOVROWS DISPGUIDE1 feaNodeType FIRSTTIME FN_APPEND indentGeomtry GENX3DOM PMIP PMIPROP PMIVRML ROWLIM SEMPROP SORT feaDisptail VPDBG XLSBUG XLSBUG1} {
-      catch {unset opt($item)}
-    }
-    foreach id [array names opt] {foreach str {EX_ PR_ XL_ VIZ} {if {[string first $str $id] == 0} {unset opt($id)}}}
+    checkVariables
   } emsg]} {
     set endMsg "Error reading Options file [truncFileName $optionsFile]: $emsg"
   }
 }
-
-# check that directories exist
-if {[info exists userWriteDir]} {if {![file exists $userWriteDir]} {set userWriteDir $mydocs}}
-if {[info exists fileDir]}      {if {![file exists $fileDir]}      {set fileDir      $mydocs}}
-if {[info exists fileDir1]}     {if {![file exists $fileDir1]}     {set fileDir1     $mydocs}}
-if {[info exists userEntityFile]} {
-  if {![file exists $userEntityFile]} {
-    set userEntityFile ""
-    set opt(stepUSER) 0
-  }
-}
-
-# fix row limit
-if {$opt(xlMaxRows) < 103 || ([string range $opt(xlMaxRows) end-1 end] != "03" && \
-   [string range $opt(xlMaxRows) end-1 end] != "76" && [string range $opt(xlMaxRows) end-1 end] != "36")} {set opt(xlMaxRows) 103}
 
 # for generate buttons
 set gen(Excel) 0
@@ -254,27 +168,23 @@ if {[info exists endMsg]} {
 
 #-------------------------------------------------------------------------------
 # first time user
-set save 0
 if {$sfaVersion == 0} {
   whatsNew
   setShortcuts
   showFileURL UserGuide
   showCrashRecovery
-  set save 1
+  saveState
 
 # what's new message
 } elseif {$sfaVersion < [getVersion]} {
   whatsNew
   setShortcuts
-  set save 1
+  saveState
 
 } elseif {$sfaVersion > [getVersion]} {
   set sfaVersion [getVersion]
-  set save 1
+  saveState
 }
-
-# save the variables
-if {$save} {saveState}
 
 #-------------------------------------------------------------------------------
 # check for update every 30 days

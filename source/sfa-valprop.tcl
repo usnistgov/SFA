@@ -113,9 +113,11 @@ proc valPropStart {} {
 
 # -------------------------------------------------------------------------------------------------
   set derived_unit_element [list derived_unit_element unit \
-    [list conversion_based_unit_and_length_unit dimensions name conversion_factor] \
-    [list conversion_based_unit_and_mass_unit dimensions name conversion_factor] \
-    [list conversion_based_unit_and_plane_angle_unit dimensions name conversion_factor] \
+    [list conversion_based_unit_and_length_unit dimensions [list dimensional_exponents length_exponent] conversion_factor \
+      [list length_measure_with_unit value_component unit_component [list length_unit_and_si_unit prefix name]]] \
+    [list conversion_based_unit_and_mass_unit dimensions [list dimensional_exponents mass_exponent] conversion_factor \
+      [list mass_measure_with_unit value_component unit_component [list mass_unit_and_si_unit prefix name]]] \
+    [list conversion_based_unit_and_plane_angle_unit name conversion_factor] \
     [list length_unit_and_si_unit prefix name] exponent \
     [list mass_unit_and_si_unit prefix name] exponent \
     [list plane_angle_unit_and_si_unit prefix name] exponent \
@@ -134,7 +136,7 @@ proc valPropStart {} {
     [list area_unit elements $derived_unit_element] \
     [list volume_unit elements $derived_unit_element] \
     [list mass_unit_and_si_unit prefix name] \
-    [list si_unit_and_thermodynamic_temperature_unit dimensions prefix name] \
+    [list si_unit_and_thermodynamic_temperature_unit prefix name] \
     [list force_unit elements $derived_unit_element] \
     [list moment_unit elements $derived_unit_element]]
   set rowrep [list row_representation_item name item_element $drep]
@@ -149,17 +151,22 @@ proc valPropStart {} {
   set mass [list mass_measure_with_unit_and_measure_representation_item value_component unit_component name]
   set rat  [list ratio_measure_with_unit_and_measure_representation_item value_component unit_component name]
 
+  set cartesian11 [lreplace $a2p3d 0 0 axis2_placement_3d_and_cartesian_11]
+  set curve11 [list composite_curve_and_curve_11_and_measure_representation_item value_component unit_component name]
+
   set def1 [list characterized_representation_and_draughting_model name]
   set def2 [list model_geometric_view item [list camera_model_d3 name]]
   set def3 [list default_model_geometric_view item [list camera_model_d3 name]]
 
   set rep1 [list representation name items $a2p3d $drep $vrep $brep $irep $rrep $mrep $rowrep $len1 $len2 $mass $cartesian_point $ang $area $vol $forc $pres $rat]
   set rep2 [list shape_representation_with_parameters name items $a2p3d $drep $vrep $brep $irep $rrep $mrep $len1 $len2 $mass $cartesian_point $ang $area $vol $forc $pres $rat]
-  set rep3 [list tessellated_shape_representation name items]
+  set rep3 [list ply_angle_representation name items $ang]
+  set rep4 [list reinforcement_orientation_basis name items $cartesian11 $curve11]
+  set rep5 [list tessellated_shape_representation name items]
 
   set gvp [list property_definition_representation \
     definition [list property_definition name description definition $def1 $def2 $def3] \
-    used_representation $rep1 $rep2 $rep3]
+    used_representation $rep1 $rep2 $rep3 $rep4 $rep5]
 
   set entAttrList {}
   set pd "property_definition"
@@ -252,9 +259,9 @@ proc valPropStart {} {
 
 # -------------------------------------------------------------------------------
 proc valPropReport {objEntity} {
-  global cells col entLevel ent entAttrList gen maxelem maxrep ncartpt nelem nrep opt pd pdclass pdcol pdheading pmivalprop prefix propDefID
-  global propDefIDRow propDefName propDefOK propDefRow recPracNames repName repNameOK samplingPoints spaces stepAP syntaxErr tessCoord
-  global tessCoordName unicodeEnts unicodeString valName valPropEnts valPropLink valPropNames valProps
+  global cells col convUnit defComment entLevel ent entAttrList gen maxelem maxrep ncartpt nelem nrep opt pd pdclass pdcol pdheading
+  global pmivalprop prefix propDefID propDefIDRow propDefName propDefOK propDefRow recPracNames repName repNameOK samplingPoints spaces
+  global stepAP syntaxErr tessCoord tessCoordName unicodeEnts unicodeString valName valPropEnts valPropLink valPropNames valProps
 
   if {$opt(DEBUG1)} {outputMsg "valPropReport" red}
   if {[info exists propDefOK]} {if {$propDefOK == 0} {return}}
@@ -382,6 +389,24 @@ proc valPropReport {objEntity} {
                 }
 
                 "property_definition definition" {
+# add product_definition name, check for unicode version
+                  set prodDefName [string trim [[[$objValue Attributes] Item [expr 1]] Value]]
+                  set idx "product_definition,id,[$objValue P21ID]"
+                  if {[info exists unicodeString($idx)]} {set prodDefName $unicodeString($idx)}
+
+                  if {$prodDefName != "" && [string first "handle" $prodDefName] == -1} {
+                    set r $propDefIDRow($propDefID)
+                    set val [[$cells($pd) Item $r D] Value]
+                    if {[string first "$prodDefName" $val] == -1} {
+                      append val "  \[$prodDefName\]"
+                      $cells($pd) Item $r D $val
+                      if {![info exists defComment]} {
+                        addCellComment "property_definition" 3 D "Text in brackets is the 'name' attribute of the definition entity."
+                        set defComment 1
+                      }
+                    }
+                  }
+# check for missing definition
                   if {[string first "validation_property" $propDefName] != -1 || $propDefName == "semantic_text"} {
                     if {[string length $objValue] == 0} {
                       set msg "Syntax Error: Missing property_definition 'definition' attribute."
@@ -396,6 +421,8 @@ proc valPropReport {objEntity} {
                     }
                   }
                 }
+
+                "conversion_based_unit_and_*_unit dimensions" {set convUnit [string range $objType 26 end]}
               }
               set colName "value"
 
@@ -463,7 +490,9 @@ proc valPropReport {objEntity} {
 
                 "representation items" -
                 "tessellated_shape_representation items" -
-                "shape_representation_with_parameters items" {
+                "shape_representation_with_parameters items" -
+                "reinforcement_orientation_basis items" -
+                "ply_angle_representation items" {
                   set nrep 0
                   set maxrep $objSize
 
@@ -572,6 +601,22 @@ proc valPropReport {objEntity} {
                   addValProps 3 $objValue "#$objID [formatComplexEnt $ent2]"
                 }
 
+                "dimensional_exponents *_exponent" {
+
+# check exponents
+                  if {[string first "mass" $ent1] != -1 && $convUnit == "mass_unit" && $objValue != 1.} {
+                    set msg "Syntax Error: For conversion based mass unit, wrong 'mass_exponent' on dimensional_exponents.$spaces\($recPracNames(uda), Annex C.4.2)"
+                    errorMsg $msg
+                    lappend syntaxErr($ent($entLevel)) [list $objID mass_exponent $msg]
+                    lappend syntaxErr(property_definition) [list $propDefID 11 $msg]
+                  } elseif {[string first "length" $ent1] != -1 && $convUnit == "length_unit" && $objValue != 1.} {
+                    set msg "Syntax Error: For conversion based length unit, wrong 'length_exponent' on dimensional_exponents.$spaces\($recPracNames(uda), Annex C.4.2)"
+                    errorMsg $msg
+                    lappend syntaxErr($ent($entLevel)) [list $objID length_exponent $msg]
+                    lappend syntaxErr(property_definition) [list $propDefID 11 $msg]
+                  }
+                }
+
                 "derived_unit_element exponent" {
                   set ok 1
                   set col($pd) 13
@@ -674,7 +719,9 @@ proc valPropReport {objEntity} {
 
                 "representation name" -
                 "tessellated_shape_representation name" -
-                "shape_representation_with_parameters name" {
+                "shape_representation_with_parameters name" -
+                "reinforcement_orientation_basis name" -
+                "ply_angle_representation name" {
                   set ok 1
                   set col($pd) 5
                   set colName "representation name"
@@ -725,6 +772,15 @@ proc valPropReport {objEntity} {
                         lappend syntaxErr([lindex [split $ent1 " "] 0]) [list $objID [lindex [split $ent1 " "] 1] $emsg]
                       }
                     }
+
+# missing composite validation property name
+                    if {[string first "ply" $ent1] == 0 || [string first "reinforcement" $ent1] == 0} {
+                      if {[string tolower $propDefName] != "composite validation property"} {
+                        set emsg "Syntax Error: property_definition 'name' attribute should be 'composite validation property'.$spaces\($recPracNames(comp), Sec. 4)"
+                        errorMsg $emsg
+                        lappend syntaxErr(property_definition) [list $propDefID name $emsg]
+                      }
+                    }
                   }
                 }
 
@@ -743,7 +799,6 @@ proc valPropReport {objEntity} {
                   if {[info exists propDefName]} {
                     if {$entLevel == 3 && [info exists valPropNames($propDefName)]} {
                       set ok1 0
-                      set badname ""
                       if {$repNameOK} {
                         foreach idx $valPropNames($propDefName) {
                           if {[lindex $idx 0] == $repName || $repName == ""} {
@@ -762,14 +817,13 @@ proc valPropReport {objEntity} {
                               }
                             }
                           }
-                          if {[lsearch [lindex $idx 1] $objValue] == -1} {set badName $objValue}
                         }
                       } else {
                         set ok1 1
                       }
 
                       if {!$ok1 && $propDefName != "semantic_text"} {
-                        set emsg "Syntax Error: Bad '[formatComplexEnt $ent2]' attribute ($badName) for '$propDefName'."
+                        set emsg "Syntax Error: Bad '[formatComplexEnt $ent2]' attribute for '$propDefName'."
                         switch $propDefName {
                           geometric_validation_property -
                           assembly_validation_property {append emsg "$spaces\($recPracNames(valprop), Sec. 8)"}
@@ -782,7 +836,7 @@ proc valPropReport {objEntity} {
                           }
                           tessellated_validation_property {append emsg "$spaces\($recPracNames(tessgeom), Sec. 8.4)"}
                           attribute_validation_property   {append emsg "$spaces\($recPracNames(uda), Sec. 8)"}
-                          composite_validation_property   {append emsg "$spaces\($recPracNames(comp), Sec. 3)"}
+                          composite_validation_property   {append emsg "$spaces\($recPracNames(comp), Sec. 4)"}
                         }
                         errorMsg $emsg
                         set invalid $emsg
@@ -837,6 +891,10 @@ proc valPropReport {objEntity} {
 # keep track of rows with validation properties
                 if {[lsearch $propDefRow $r] == -1 && \
                    ([string first "validation_property" $propDefName] != -1 || $propDefName == "semantic_text")} {lappend propDefRow $r}
+                if {[string first "ply" $ent1] == 0 || [string first "reinforcement" $ent1] == 0} {
+                  if {[lsearch $propDefRow $r] == -1} {lappend propDefRow $r}
+                }
+
                 if {$invalid != ""} {lappend syntaxErr($pd) [list "-$r" $col($pd) $invalid]}
                 incr col($pd)
                 set pdcol [expr {max($col($pd),$pdcol)}]

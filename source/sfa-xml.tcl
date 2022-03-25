@@ -44,18 +44,19 @@ proc x3dReadXML {} {
     x3dFileStart
 
 # process files
-    outputMsg " Generate X3D for [llength $xmlFiles] STEP files" blue
+    outputMsg " Generating X3D for [llength $xmlFiles] STEP files" blue
     foreach file $xmlFiles {
       set uid [$file getAttribute uid]
       set node [$file selectNodes Id/Identifier/attribute::id]
       if {$node == ""} {
-        errorMsg "   Cannot find STEP file name with File/Id/Identifier/attribute::id - Checking File/Locations/ExternalItem/Id/attribute::id" red
+        errorMsg "  Cannot find STEP file name with File/Id/Identifier/attribute::id - Checking File/Locations/ExternalItem/Id/attribute::id" red
         set node [$file selectNodes Locations/ExternalItem/Id/attribute::id]
       }
       set fname [join [string range $node 4 end-1]]
       set ext [file extension $fname]
       if {$ext == ".stp"} {
         outputMsg "  $fname  ($uid)"
+        update idletasks
 
 # generate X3D
         set fname [file join [file dirname $localName] $fname]
@@ -72,9 +73,8 @@ proc x3dReadXML {} {
             unset x3duid($uid)
           }
         } else {
-          outputMsg "   File not found: [truncFileName [file nativename $fname]]" red
+          outputMsg "   STEP file not found: [truncFileName [file nativename $fname]]" red
         }
-        update idletasks
       } elseif {[string first "stp" $ext] != -1} {
         errorMsg "  File extension $ext not supported" red
       }
@@ -82,7 +82,7 @@ proc x3dReadXML {} {
 
 # get Part
     set xmlParts [$xmldoc getElementsByTagName Part]
-    outputMsg "\n [llength $xmlParts] Parts" blue
+    outputMsg "\n Writing Parts to Viewer file" blue
     set ipart 0
     foreach part $xmlParts {
       set node [$part selectNodes Versions/PartVersion/Views/PartView/DocumentAssignment/AssignedDocument/attribute::uidRef]
@@ -134,6 +134,8 @@ proc x3dReadXML {} {
           }
           puts $x3dFile "</Switch>"
           close $fx3d
+          catch {[file delete -force -- $fname]}
+          update idletasks
         } else {
           errorMsg "  No file uidRef found ($uid1)" red
         }

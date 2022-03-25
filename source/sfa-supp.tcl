@@ -1,166 +1,225 @@
 # supplemental geometry
-proc x3dSuppGeom {maxxyz} {
-  global cgrObjects axesDef planeDef recPracNames skipEntities syntaxErr tessSuppGeomFile tessSuppGeomFileName trimVal x3dFile
+proc x3dSuppGeom {} {
+  global cgrObjects developer maxxyz recPracNames skipEntities syntaxErr tessSuppGeomFile tessSuppGeomFileName trimVal x3dFile
   global objDesign
   if {![info exists objDesign]} {return}
 
   set size [trimNum [expr {$maxxyz*0.025}]]
   set tsize [trimNum [expr {$size*0.33}]]
-  set axesDef {}
-  set planeDef {}
+  set debugSG 0
 
   outputMsg " Processing supplemental geometry" green
   puts $x3dFile "\n<!-- SUPPLEMENTAL GEOMETRY -->\n<Switch whichChoice='0' id='swSMG'><Group>"
 
+# get all constructive_geometry_representation
   if {![info exists cgrObjects]} {set cgrObjects [$objDesign FindObjects [string trim constructive_geometry_representation]]}
   ::tcom::foreach e0 $cgrObjects {
+    if {$debugSG} {outputMsg "[$e0 Type] [$e0 P21ID]" green; puts $x3dFile "<!-- CGR [$e0 P21ID] -->"}
 
-# process all items in a constructive_geometry_representation
-    set a1 [[$e0 Attributes] Item [expr 2]]
-    ::tcom::foreach e2 [$a1 Value] {
+# for SG in assemblies, find related shape_representation > item_defined_transformation > a2p3d > transform
+    if {[catch {
+      set cgrrs [$e0 GetUsedIn [string trim constructive_geometry_representation_relationship] [string trim rep_2]]
+      ::tcom::foreach cgrr $cgrrs {
+        set shapeRep [[[$cgrr Attributes] Item [expr 3]] Value]
+        set rrwts [$shapeRep GetUsedIn [string trim representation_relationship_with_transformation_and_shape_representation_relationship] [string trim rep_1]]
+        if {$debugSG} {outputMsg " [$cgrr Type] [$cgrr P21ID]\n  [$shapeRep Type] [$shapeRep P21ID] [[[$shapeRep Attributes] Item [expr 1]] Value]" red}
 
-# check if in subset (items < shape_representation < description_attribute > attribute_value)
-      if {[catch {
-        set srs [$e2 GetUsedIn [string trim shape_representation] [string trim items]]
-        ::tcom::foreach sr $srs {
-          set das [$sr GetUsedIn [string trim description_attribute] [string trim described_item]]
-          ::tcom::foreach da $das {set av [[[$da Attributes] Item [expr 1]] Value]}
-          if {[info exist av]} {if {$av == "supplemental geometry subset"} {errorMsg " Subset found for some supplemental geometry" red}}
+# count NRRWT, if none use rep_2
+        set rep_2 0
+        set nrrwt 0
+        ::tcom::foreach rrwt $rrwts {incr nrrwt}
+        if {$nrrwt == 0} {
+          set rrwts [$shapeRep GetUsedIn [string trim representation_relationship_with_transformation_and_shape_representation_relationship] [string trim rep_2]]
+          ::tcom::foreach rrwt $rrwts {incr nrrwt}
+          if {$developer && $nrrwt > 0} {errorMsg " Using rep_2 on (RRWT)(SRR) to find item_defined_transformation" red; set rep_2 1}
         }
-      } emsg]} {
-        errorMsg " Error checking supplemental geometry subset: $emsg"
+
+# get transform (assumes no nesting)
+        if {$nrrwt > 0} {
+          ::tcom::foreach rrwt $rrwts {
+            set idt [[[$rrwt Attributes] Item [expr 5]] Value]
+            switch -- $rep_2 {
+              0 {set a2p3d [[[$idt Attributes] Item [expr 4]] Value]}
+              1 {set a2p3d [[[$idt Attributes] Item [expr 3]] Value]}
+            }
+            if {$debugSG} {outputMsg "   [$idt Type] [$idt P21ID]\n    [$a2p3d Type] [$a2p3d P21ID]" red}
+
+# transform
+            set a2p3d [x3dGetA2P3D $a2p3d]
+            set transform [x3dTransform [lindex $a2p3d 0] [lindex $a2p3d 1] [lindex $a2p3d 2] "supplemental geometry 'transform'"]
+            lappend transforms $transform
+            if {$debugSG} {outputMsg "     $transform" red}
+          }
+        }
+      }
+    } emsg]} {
+      errorMsg " Error getting transform for supplemental geometry in an assembly: $emsg"
+    }
+    if {![info exists transforms]} {
+      lappend transforms "<Transform>"
+    } elseif {$debugSG} {
+      outputMsg "    Transforms ([llength $transforms])" blue
+    }
+
+# process all items in a constructive_geometry_representation, considering transforms used for assemblies
+    foreach tf $transforms {
+      if {$tf != "<Transform>"} {
+        set sgTransform "<Transform id='idt [$idt P21ID]'[string range $tf 10 end]"
+        puts $x3dFile $sgTransform
+        if {$debugSG} {outputMsg "     $sgTransform" blue}
       }
 
-      if {[catch {
-        set ename [$e2 Type]
+      set a1 [[$e0 Attributes] Item [expr 2]]
+      ::tcom::foreach e2 [$a1 Value] {
 
-        switch $ename {
-          line -
-          polyline {x3dSuppGeomLine $e2 $tsize $ename}
-          circle -
-          ellipse  {x3dSuppGeomCircle $e2 $tsize $ename}
-          plane    {x3dSuppGeomPlane $e2 $size}
-          cartesian_point     {x3dSuppGeomPoint $e2 $tsize}
-          axis2_placement_3d  {x3dSuppGeomAxis $e2 $size $tsize}
-          cylindrical_surface {x3dSuppGeomCylinder $e2 $tsize}
+# check if in subset (items < shape_representation < description_attribute > attribute_value)
+        if {[catch {
+          set srs [$e2 GetUsedIn [string trim shape_representation] [string trim items]]
+          ::tcom::foreach sr $srs {
+            set das [$sr GetUsedIn [string trim description_attribute] [string trim described_item]]
+            ::tcom::foreach da $das {set av [[[$da Attributes] Item [expr 1]] Value]}
+            if {[info exist av]} {if {$av == "supplemental geometry subset"} {errorMsg "  Subset found for some supplemental geometry" red}}
+          }
+        } emsg]} {
+          errorMsg " Error checking supplemental geometry subset: $emsg"
+        }
 
-          trimmed_curve -
-          composite_curve -
-          geometric_curve_set {
-            catch {unset trimVal}
-            set trimmedCurves {}
+        if {[catch {
+          set ename [$e2 Type]
+          if {$debugSG} {outputMsg "      $ename [$e2 P21ID]"}
+
+          switch $ename {
+            line -
+            polyline {x3dSuppGeomLine $e2 $tsize $ename}
+            circle -
+            ellipse  {x3dSuppGeomCircle $e2 $tsize $ename}
+            plane    {x3dSuppGeomPlane $e2 $size}
+            cartesian_point     {x3dSuppGeomPoint $e2 $tsize}
+            axis2_placement_3d  {x3dSuppGeomAxis $e2 $size $tsize}
+            cylindrical_surface {x3dSuppGeomCylinder $e2 $tsize}
+
+            trimmed_curve -
+            composite_curve -
+            geometric_curve_set {
+              catch {unset trimVal}
+              set trimmedCurves {}
 
 # get trimmed curves
-            if {[lsearch $skipEntities $ename] == -1} {
-              if {$ename == "trimmed_curve"} {
-                lappend trimmedCurves $e2
+              if {[lsearch $skipEntities $ename] == -1} {
+                if {$ename == "trimmed_curve"} {
+                  lappend trimmedCurves $e2
 
 # composite_curve -> composite_curve_segment -> trimmed_curve
-              } elseif {$ename == "composite_curve"} {
-                ::tcom::foreach ccs [[[$e2 Attributes] Item [expr 2]] Value] {
-                  lappend trimmedCurves [[[$ccs Attributes] Item [expr 3]] Value]
-                }
+                } elseif {$ename == "composite_curve"} {
+                  ::tcom::foreach ccs [[[$e2 Attributes] Item [expr 2]] Value] {
+                    lappend trimmedCurves [[[$ccs Attributes] Item [expr 3]] Value]
+                  }
 
 # geometric_curve_set -> list of trimmed_curve or composite_curve -> trimmed_curve
-              } elseif {$ename == "geometric_curve_set"} {
-                set e3s [[[$e2 Attributes] Item [expr 2]] Value]
-                foreach e3 $e3s {
-                  set ename1 [$e3 Type]
-                  switch $ename1 {
-                    line -
-                    polyline {x3dSuppGeomLine $e3 $tsize $ename1}
-                    circle -
-                    ellipse {x3dSuppGeomCircle $e3 $tsize $ename1}
-                    cartesian_point {x3dSuppGeomPoint $e3 $tsize}
-                    trimmed_curve {lappend trimmedCurves $e3}
-                    composite_curve {::tcom::foreach ccs [[[$e3 Attributes] Item [expr 2]] Value] {lappend trimmedCurves [[[$ccs Attributes] Item [expr 3]] Value]}}
-                    default {
-                      errorMsg " Supplemental geometry for '[formatComplexEnt $ename1]' in 'geometric_curve_set' is not supported."
+                } elseif {$ename == "geometric_curve_set"} {
+                  set e3s [[[$e2 Attributes] Item [expr 2]] Value]
+                  foreach e3 $e3s {
+                    set ename1 [$e3 Type]
+                    switch $ename1 {
+                      line -
+                      polyline {x3dSuppGeomLine $e3 $tsize $ename1}
+                      circle -
+                      ellipse {x3dSuppGeomCircle $e3 $tsize $ename1}
+                      cartesian_point {x3dSuppGeomPoint $e3 $tsize}
+                      trimmed_curve {lappend trimmedCurves $e3}
+                      composite_curve {::tcom::foreach ccs [[[$e3 Attributes] Item [expr 2]] Value] {lappend trimmedCurves [[[$ccs Attributes] Item [expr 3]] Value]}}
+                      default {
+                        errorMsg " Supplemental geometry for '[formatComplexEnt $ename1]' in 'geometric_curve_set' is not supported."
+                      }
                     }
                   }
                 }
-              }
-            } else {
-              errorMsg " Supplemental geometry for '[formatComplexEnt $ename]' is not supported."
-            }
-
-# process trimmed curves collected from above
-            foreach tc $trimmedCurves {
-
-# trimming with values OK (do not delete the meaningless 'catch')
-              set trimVal(1) [[[$tc Attributes] Item [expr 3]] Value]
-              set trimVal(2) [[[$tc Attributes] Item [expr 4]] Value]
-              catch {set tmp "[$trimVal(1) Type][$trimVal(2) Type]"}
-
-              foreach idx [list 1 2] {
-                if {[llength $trimVal($idx)] == 2} {
-                  if {[string is double [lindex $trimVal($idx) 0]]} {set trimVal($idx) [lindex $trimVal($idx) 0]}
-                  if {[string is double [lindex $trimVal($idx) 1]]} {set trimVal($idx) [lindex $trimVal($idx) 1]}
-                }
-                if {[string first "handle" $trimVal($idx)] == -1} {
-                  if {[expr {abs($trimVal($idx))}] > 1000.} {
-                    set nval [trimNum [expr {10.*$trimVal($idx)/abs($trimVal($idx))}]]
-                    errorMsg "Trim value [trimNum $trimVal($idx)] for a 'trimmed_curve' is very large, using $nval instead."
-                    set trimVal($idx) $nval
-                  }
-                }
-              }
-
-# line, polyline, circle, ellipse trimmed curves
-              set e3 [[[$tc Attributes] Item [expr 2]] Value]
-              set ename2 [$e3 Type]
-              switch $ename2 {
-                line -
-                polyline {x3dSuppGeomLine $e3 $tsize $ename2}
-                circle -
-                ellipse {x3dSuppGeomCircle $e3 $tsize $ename2}
-                default {
-                  errorMsg " Supplemental geometry for '[formatComplexEnt [$e3 Type]]' in 'trimmed_curve' is not supported."
-                }
-              }
-            }
-          }
-
-          shell_based_surface_model {
-            set cylIDs {}
-            set e3 [lindex [[[$e2 Attributes] Item [expr 2]] Value] 0]
-            set e4s [[[$e3 Attributes] Item [expr 2]] Value]
-            ::tcom::foreach e4 $e4s {
-              set e5 [lindex [[[$e4 Attributes] Item [expr 3]] Value] 0]
-              set ename5 [$e5 Type]
-              switch $ename5 {
-                plane {x3dSuppGeomPlane $e5 $size}
-                cylindrical_surface {
-                  if {[lsearch $cylIDs [$e5 P21ID]] == -1} {
-                    lappend cylIDs [$e5 P21ID]
-                    x3dSuppGeomCylinder $e5 $tsize
-                  }
-                }
-                default {
-                  errorMsg " Supplemental geometry for '[formatComplexEnt [$e5 Type]]' in 'shell_based_surface_model' is not supported."
-                }
-              }
-            }
-          }
-
-          default {
-            if {$ename != "tessellated_shell" && $ename != "tessellated_wire"} {
-              if {$ename == "direction"} {
-                set msg "Syntax Error: Supplemental geometry for '$ename' is not valid.  ($recPracNames(suppgeom), Sec. 4.2)"
-                errorMsg $msg
-                lappend syntaxErr(constructive_geometry_representation) [list [$e0 P21ID] "items" $msg]
               } else {
                 errorMsg " Supplemental geometry for '[formatComplexEnt $ename]' is not supported."
               }
+
+# process trimmed curves collected from above
+              foreach tc $trimmedCurves {
+
+# trimming with values OK (do not delete the meaningless 'catch')
+                set trimVal(1) [[[$tc Attributes] Item [expr 3]] Value]
+                set trimVal(2) [[[$tc Attributes] Item [expr 4]] Value]
+                catch {set tmp "[$trimVal(1) Type][$trimVal(2) Type]"}
+
+                foreach idx [list 1 2] {
+                  if {[llength $trimVal($idx)] == 2} {
+                    if {[string is double [lindex $trimVal($idx) 0]]} {set trimVal($idx) [lindex $trimVal($idx) 0]}
+                    if {[string is double [lindex $trimVal($idx) 1]]} {set trimVal($idx) [lindex $trimVal($idx) 1]}
+                  }
+                  if {[string first "handle" $trimVal($idx)] == -1} {
+                    if {[expr {abs($trimVal($idx))}] > 1000.} {
+                      set nval [trimNum [expr {10.*$trimVal($idx)/abs($trimVal($idx))}]]
+                      errorMsg "Trim value [trimNum $trimVal($idx)] for a 'trimmed_curve' is very large, using $nval instead."
+                      set trimVal($idx) $nval
+                    }
+                  }
+                }
+
+# line, polyline, circle, ellipse trimmed curves
+                set e3 [[[$tc Attributes] Item [expr 2]] Value]
+                set ename2 [$e3 Type]
+                switch $ename2 {
+                  line -
+                  polyline {x3dSuppGeomLine $e3 $tsize $ename2}
+                  circle -
+                  ellipse {x3dSuppGeomCircle $e3 $tsize $ename2}
+                  default {
+                    errorMsg " Supplemental geometry for '[formatComplexEnt [$e3 Type]]' in 'trimmed_curve' is not supported."
+                  }
+                }
+              }
+            }
+
+            shell_based_surface_model {
+              set cylIDs {}
+              set e3 [lindex [[[$e2 Attributes] Item [expr 2]] Value] 0]
+              set e4s [[[$e3 Attributes] Item [expr 2]] Value]
+              ::tcom::foreach e4 $e4s {
+                set e5 [lindex [[[$e4 Attributes] Item [expr 3]] Value] 0]
+                set ename5 [$e5 Type]
+                switch $ename5 {
+                  plane {x3dSuppGeomPlane $e5 $size}
+                  cylindrical_surface {
+                    if {[lsearch $cylIDs [$e5 P21ID]] == -1} {
+                      lappend cylIDs [$e5 P21ID]
+                      x3dSuppGeomCylinder $e5 $tsize
+                    }
+                  }
+                  default {
+                    errorMsg " Supplemental geometry for '[formatComplexEnt [$e5 Type]]' in 'shell_based_surface_model' is not supported."
+                  }
+                }
+              }
+            }
+
+            default {
+              if {$ename != "tessellated_shell" && $ename != "tessellated_wire"} {
+                if {$ename == "direction"} {
+                  set msg "Syntax Error: Supplemental geometry for '$ename' is not valid.  ($recPracNames(suppgeom), Sec. 4.2)"
+                  errorMsg $msg
+                  lappend syntaxErr(constructive_geometry_representation) [list [$e0 P21ID] "items" $msg]
+                } else {
+                  errorMsg " Supplemental geometry for '[formatComplexEnt $ename]' is not supported."
+                }
+              }
             }
           }
-        }
 
-# error
-      } emsg]} {
-        errorMsg " Error adding '$ename' Supplemental Geometry: $emsg"
+  # error
+        } emsg]} {
+          errorMsg " Error adding '$ename' Supplemental Geometry: $emsg"
+        }
       }
+
+# close transform
+      if {$tf != "<Transform>"} {puts $x3dFile "</Transform>"}
     }
+    catch {unset transforms}
   }
 
 # check for tessellated edges that are supplemental geometry
@@ -186,10 +245,7 @@ proc x3dSuppGeomAxis {e2 size tsize} {
 
   set e3 $e2
   set a2p3d [x3dGetA2P3D $e3]
-  set origin [lindex $a2p3d 0]
-  set axis   [lindex $a2p3d 1]
-  set refdir [lindex $a2p3d 2]
-  set transform [x3dTransform $origin $axis $refdir "supplemental geometry 'axes'"]
+  set transform [x3dTransform [lindex $a2p3d 0] [lindex $a2p3d 1] [lindex $a2p3d 2] "supplemental geometry 'axes'"]
 
 # check for axis color
   set axisColor [lindex [x3dSuppGeomColor $e3 "axes"] 0]
@@ -226,10 +282,11 @@ proc x3dSuppGeomAxis {e2 size tsize} {
     }
   }
 
+# text string color and name
   set nsize [trimNum [expr {$tsize*0.5}]]
   set tcolor "1 0 0"
-  set name [[[$e2 Attributes] Item [expr 1]] Value]
   if {$axisColor != ""} {set tcolor $axisColor}
+  set name [[[$e2 Attributes] Item [expr 1]] Value]
   if {$name != ""} {
     regsub -all "'" $name "" name
     puts $x3dFile " <Transform scale='$nsize $nsize $nsize'><Billboard axisOfRotation='0 0 0'><Shape><Text string='$name'><FontStyle family='SANS' justify='BEGIN'/></Text><Appearance><Material diffuseColor='$tcolor'/></Appearance></Shape></Billboard></Transform>"
@@ -393,10 +450,7 @@ proc x3dSuppGeomCircle {e3 tsize {type "circle"}} {
 
 # circle position and orientation
     set a2p3d [x3dGetA2P3D $e4]
-    set origin [lindex $a2p3d 0]
-    set axis   [lindex $a2p3d 1]
-    set refdir [lindex $a2p3d 2]
-    set transform [x3dTransform $origin $axis $refdir "supplemental geometry '$type'" $scale]
+    set transform [x3dTransform [lindex $a2p3d 0] [lindex $a2p3d 1] [lindex $a2p3d 2] "supplemental geometry '$type'" $scale]
     puts $x3dFile $transform
 
 # generate circle, account for trimming
@@ -464,9 +518,9 @@ proc x3dSuppGeomCircle {e3 tsize {type "circle"}} {
 }
 
 # -------------------------------------------------------------------------------
-# supplemental geometry for plane
-proc x3dSuppGeomPlane {e2 size} {
-  global planeDef spmiTypesPerFile viz x3dFile
+# supplemental geometry for plane, also used for section view clipping plane
+proc x3dSuppGeomPlane {e2 size {type ""}} {
+  global clippingDef maxxyz planeDef spmiTypesPerFile viz x3dFile
 
 # check for plane color and transparency
   set tmp [x3dSuppGeomColor $e2 "plane"]
@@ -475,109 +529,132 @@ proc x3dSuppGeomPlane {e2 size} {
   set planeTrans [lindex $tmp 1]
   if {$planeTrans == ""} {set planeTrans 0.8}
 
+  if {$type == ""} {
+    set type "supplemental geometry"
+  } else {
+    set planeColor "1 1 1"
+    set planeTrans 0.8
+    set size [expr {$maxxyz*0.25}]
+  }
+
   if {[catch {
+    set name [[[$e2 Attributes] Item [expr 1]] Value]
     set e3 [[[$e2 Attributes] Item [expr 2]] Value]
 
 # plane position and orientation
     set a2p3d [x3dGetA2P3D $e3]
-    set origin [lindex $a2p3d 0]
-    set axis   [lindex $a2p3d 1]
-    set refdir [lindex $a2p3d 2]
-    set transform [x3dTransform $origin $axis $refdir "supplemental geometry 'plane'"]
+    set transform [x3dTransform [lindex $a2p3d 0] [lindex $a2p3d 1] [lindex $a2p3d 2] "$type 'plane'"]
 
 # plane geometry
+    if {![info exists planeDef]} {set planeDef {}}
     set nsize [trimNum [expr {$size*2.}]]
     set id [lsearch $planeDef "$nsize $planeColor"]
-    if {$id != -1} {
-      puts $x3dFile "$transform<Group USE='plane$id'></Group>"
-      lappend spmiTypesPerFile "supplemental geometry"
-    } else {
+
+# all supplemental geometry planes, only unique clipping planes
+    set ok 1
+    if {$type == "clipping plane"} {
+      set cpdef "$name $transform"
+      if {[lsearch $clippingDef $cpdef] != -1} {set ok 0}
+    }
+    if {$ok} {
+
+# use DEF'd plane
+      if {$id != -1} {
+        puts $x3dFile "$transform<Group USE='plane$id'></Group>"
+        if {$type == "supplemental geometry"} {lappend spmiTypesPerFile $type}
+      } else {
 
 # look for line corners
-      set lp(2) ""
-      set lp(3) ""
-      set corners {}
-      ::tcom::foreach e0 [$e2 GetUsedIn [string trim advanced_face] [string trim face_geometry]] {
-        ::tcom::foreach e3 [[[$e0 Attributes] Item [expr 2]] Value] {
-          set e4 [[[$e3 Attributes] Item [expr 2]] Value]
-          ::tcom::foreach e5 [[[$e4 Attributes] Item [expr 2]] Value] {
-            set e6 [[[$e5 Attributes] Item [expr 4]] Value]
-            set e7 [[[$e6 Attributes] Item [expr 4]] Value]
-            #outputMsg "0 [$e0 Type] [$e0 P21ID]\n3  [$e3 Type] [$e3 P21ID]\n4   [$e4 Type] [$e4 P21ID]\n5    [$e5 Type] [$e5 P21ID]\n6     [$e6 Type] [$e6 P21ID]\n7      [$e7 Type] [$e7 P21ID]"
-            if {[$e7 Type] == "line"} {
-              foreach i {2 3} {
-                set e8 [[[$e6 Attributes] Item [expr $i]] Value]
-                set e9 [[[$e8 Attributes] Item [expr 2]] Value]
-                set p($i) [vectrim [[[$e9 Attributes] Item [expr 2]] Value]]
-                #outputMsg "8 [$e8 Type] [$e8 P21ID]\n9  [$e9 Type] [$e9 P21ID]  $p($i)"
-              }
-              if {$p(2) != $lp(2) && $p(3) != $lp(3)} {
-                lappend corners $p(2)
-                lappend corners $p(3)
-              } elseif {$p(2) == $lp(3)} {
-                lappend corners $p(3)
+        set lp(2) ""
+        set lp(3) ""
+        set corners {}
+        ::tcom::foreach e0 [$e2 GetUsedIn [string trim advanced_face] [string trim face_geometry]] {
+          ::tcom::foreach e3 [[[$e0 Attributes] Item [expr 2]] Value] {
+            set e4 [[[$e3 Attributes] Item [expr 2]] Value]
+            ::tcom::foreach e5 [[[$e4 Attributes] Item [expr 2]] Value] {
+              set e6 [[[$e5 Attributes] Item [expr 4]] Value]
+              set e7 [[[$e6 Attributes] Item [expr 4]] Value]
+              #outputMsg "0 [$e0 Type] [$e0 P21ID]\n3  [$e3 Type] [$e3 P21ID]\n4   [$e4 Type] [$e4 P21ID]\n5    [$e5 Type] [$e5 P21ID]\n6     [$e6 Type] [$e6 P21ID]\n7      [$e7 Type] [$e7 P21ID]"
+              if {[$e7 Type] == "line"} {
+                foreach i {2 3} {
+                  set e8 [[[$e6 Attributes] Item [expr $i]] Value]
+                  set e9 [[[$e8 Attributes] Item [expr 2]] Value]
+                  set p($i) [vectrim [[[$e9 Attributes] Item [expr 2]] Value]]
+                  #outputMsg "8 [$e8 Type] [$e8 P21ID]\n9  [$e9 Type] [$e9 P21ID]  $p($i)"
+                }
+                if {$p(2) != $lp(2) && $p(3) != $lp(3)} {
+                  lappend corners $p(2)
+                  lappend corners $p(3)
+                } elseif {$p(2) == $lp(3)} {
+                  lappend corners $p(3)
+                } else {
+                  lappend corners $p(2)
+                  lappend corners $p(3)
+                }
               } else {
-                lappend corners $p(2)
-                lappend corners $p(3)
+                errorMsg " Bounding edges defined by '[formatComplexEnt [$e7 Type]]' for $type 'plane' are not supported."
               }
-            } else {
-              errorMsg " Bounding edges defined by '[formatComplexEnt [$e7 Type]]' for supplemental geometry 'plane' are not supported."
             }
           }
-        }
 
 # fix order
-        if {[llength $corners] == 8} {
-          if {[lindex $corners 0] == [lindex $corners 2] && [lindex $corners 3] == [lindex $corners 4] && [lindex $corners 5] == [lindex $corners 7]} {
-            set corners [list [lindex $corners 1] [lindex $corners 2] [lindex $corners 3] [lindex $corners 5]]
+          if {[llength $corners] == 8} {
+            if {[lindex $corners 0] == [lindex $corners 2] && [lindex $corners 3] == [lindex $corners 4] && [lindex $corners 5] == [lindex $corners 7]} {
+              set corners [list [lindex $corners 1] [lindex $corners 2] [lindex $corners 3] [lindex $corners 5]]
+            }
+          }
+
+# use corners
+          set ncorners [llength $corners]
+          if {$ncorners > 2} {
+            set txtpos [lindex $corners 0]
+            set corners [join $corners " "]
+            errorMsg " Using bounding edges for $type 'plane'" red
+            if {$type == "supplemental geometry"} {lappend spmiTypesPerFile "bounded supplemental geometry"}
+          } else {
+            set corners {}
           }
         }
 
-# use corners
-        set ncorners [llength $corners]
-        if {$ncorners > 2} {
-          set txtpos [lindex $corners 0]
-          set corners [join $corners " "]
-          errorMsg " Using bounding edges for supplemental geometry 'plane'" red
-          lappend spmiTypesPerFile "bounded supplemental geometry"
-        } else {
-          set corners {}
-        }
-      }
-
 # no corners found
-      if {[llength $corners] == 0} {
-        set corners "-$nsize -$nsize 0. $nsize -$nsize 0. $nsize $nsize 0. -$nsize $nsize 0."
-        set txtpos "-$nsize -$nsize 0."
-        set ncorners 4
-        lappend planeDef "$nsize $planeColor"
-        lappend spmiTypesPerFile "supplemental geometry"
-      }
+        if {[llength $corners] == 0} {
+          set corners "-$nsize -$nsize 0. $nsize -$nsize 0. $nsize $nsize 0. -$nsize $nsize 0."
+          set txtpos "-$nsize -$nsize 0."
+          set ncorners 4
+          lappend planeDef "$nsize $planeColor"
+          if {$type == "supplemental geometry"} {lappend spmiTypesPerFile "supplemental geometry"}
+        }
 
 # set index
-      set idx ""
-      for {set i 0} {$i < $ncorners} {incr i} {append idx "$i "}
-      set idx [string trim $idx]
+        set idx ""
+        for {set i 0} {$i < $ncorners} {incr i} {append idx "$i "}
+        set idx [string trim $idx]
 
-      puts $x3dFile $transform
-      set def ""
-      if {[llength $planeDef] > 0} {set def " DEF='plane[expr {[llength $planeDef]-1}]'"}
-      puts $x3dFile " <Group$def><Shape><IndexedLineSet coordIndex='$idx 0 -1'><Coordinate point='$corners'/></IndexedLineSet><Appearance><Material emissiveColor='$planeColor'/></Appearance></Shape>"
-      puts $x3dFile " <Shape><IndexedFaceSet solid='false' coordIndex='$idx -1'><Coordinate point='$corners'/></IndexedFaceSet><Appearance><Material diffuseColor='$planeColor' transparency='$planeTrans'/></Appearance></Shape></Group>"
-    }
+        puts $x3dFile $transform
+        set def ""
+        if {[llength $planeDef] > 0} {set def " DEF='plane[expr {[llength $planeDef]-1}]'"}
+        puts $x3dFile " <Group$def><Shape><IndexedLineSet coordIndex='$idx 0 -1'><Coordinate point='$corners'/></IndexedLineSet><Appearance><Material emissiveColor='$planeColor'/></Appearance></Shape>"
+        puts $x3dFile " <Shape><IndexedFaceSet solid='false' coordIndex='$idx -1'><Coordinate point='$corners'/></IndexedFaceSet><Appearance><Material diffuseColor='$planeColor' transparency='$planeTrans'/></Appearance></Shape></Group>"
+      }
 
 # plane name at one corner
-    set name [[[$e2 Attributes] Item [expr 1]] Value]
-    if {$name != ""} {
       set tsize [trimNum [expr {$size*0.33}]]
-      if {![info exists txtpos]} {set txtpos "-$nsize -$nsize 0."}
-      puts $x3dFile " <Transform translation='$txtpos' scale='$tsize $tsize $tsize'><Billboard axisOfRotation='0 0 0'><Shape><Text string='$name'><FontStyle family='SANS' justify='BEGIN'/></Text><Appearance><Material diffuseColor='$planeColor'/></Appearance></Shape></Billboard></Transform>"
+      if {$type != "supplemental geometry"} {
+        if {[string first "clipping" [string tolower $name]] == -1 && [string first "plane" [string tolower $name]] == -1} {set name "[string totitle $type] $name"}
+        set tsize [trimNum [expr {$tsize*0.25}]]
+      }
+      if {$name != ""} {
+        if {![info exists txtpos]} {set txtpos "-$nsize -$nsize 0."}
+        puts $x3dFile " <Transform translation='$txtpos' scale='$tsize $tsize $tsize'><Billboard axisOfRotation='0 0 0'><Shape><Text string='$name'><FontStyle family='SANS' justify='BEGIN'/></Text><Appearance><Material diffuseColor='$planeColor'/></Appearance></Shape></Billboard></Transform>"
+      }
+      puts $x3dFile "</Transform>"
     }
-    puts $x3dFile "</Transform>"
+
     set viz(SUPPGEOM) 1
+    if {$type == "clipping plane"} {lappend clippingDef "$name $transform"}
 
   } emsg]} {
-    errorMsg "Error adding 'plane' supplemental geometry: $emsg"
+    errorMsg "Error adding 'plane' $type: $emsg"
   }
 }
 
@@ -600,9 +677,7 @@ proc x3dSuppGeomCylinder {e2 size} {
 # cylinder position and orientation
     set a2p3d [x3dGetA2P3D $e3]
     set origin [lindex $a2p3d 0]
-    set axis   [lindex $a2p3d 1]
-    set refdir [lindex $a2p3d 2]
-    set transform [x3dTransform $origin $axis $refdir "supplemental geometry 'cylinder'"]
+    set transform [x3dTransform $origin [lindex $a2p3d 1] [lindex $a2p3d 2] "supplemental geometry 'cylinder'"]
     puts $x3dFile "$transform<Transform rotation='1 0 0 1.5708'>"
 
 # check if the cylinder is bounded by circles, get height by length between circle origins, better to compute with vertex_point
@@ -663,7 +738,7 @@ proc x3dSuppGeomCylinder {e2 size} {
 # -------------------------------------------------------------------------------
 # supplemental geometry color and transparency
 proc x3dSuppGeomColor {e0 type} {
-  global grayBackground recPracNames
+  global grayBackground
 
   set sgColor ""
   set sgTrans ""
@@ -692,10 +767,7 @@ proc x3dSuppGeomColor {e0 type} {
                 set sgColor [x3dPreDefinedColor [[[$e4 Attributes] Item [expr 1]] Value]]
               }
             }
-
-            if {$type == "plane" || $type == "cylinder"} {
-              errorMsg "Syntax Error: Wrong type of style ([$e3 Type]) for a supplemental geometry '$type'.  ($recPracNames(model), Sec. 4.2.2)"
-            }
+            if {$type == "plane" || $type == "cylinder"} {errorMsg " Wrong type of style ([$e3 Type]) for a supplemental geometry '$type'."}
 
 # surface style
           } elseif {[$e3 Type] == "surface_style_usage"} {
@@ -729,11 +801,9 @@ proc x3dSuppGeomColor {e0 type} {
               }
             }
 
-            if {$type != "plane" && $type != "cylinder"} {
-              errorMsg "Syntax Error: Wrong type of style ([$e3 Type]) for a supplemental geometry '$type'.  ($recPracNames(model), Sec. 4.2.2)"
-            }
+            if {$type != "plane" && $type != "cylinder"} {errorMsg " Wrong type of style ([$e3 Type]) for a supplemental geometry '$type'."}
           } else {
-            errorMsg "Syntax Error: Color defined with '[$e3 Type]' referred from 'presentation_style_assignment' for supplemental geometry '$type' is not allowed.  ($recPracNames(model), Sec. 4.2.2)"
+            errorMsg " Color defined with '[$e3 Type]' referred from 'presentation_style_assignment' for supplemental geometry '$type' is not allowed."
           }
         }
       }

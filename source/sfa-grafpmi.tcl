@@ -175,7 +175,7 @@ proc gpmiAnnotationReport {objEntity} {
   global draughtingModels draftModelCameraNames draftModelCameras ent entAttrList entCount entLevel gen geomType gpmiEnts gpmiID gpmiIDRow
   global gpmiName gpmiRow gpmiTypes gpmiTypesInvalid gpmiTypesPerFile gpmiValProp grayBackground iCompCurve iCompCurveSeg iPolyline
   global nindex numCompCurve numCompCurveSeg numPolyline numx3dPID objEntity1 opt placeAxes placeBox placeCoords
-  global pmiCol pmiColumns pmiHeading pmiStartCol propDefIDs recPracNames savedViewCol savedViewName spaces stepAP syntaxErr
+  global pmiCol pmiColumns pmiHeading pmiStartCol propDefIDs recPracNames savedViewCol savedViewName spaces spmiTypesPerFile stepAP syntaxErr
   global tessCoord tessIndex tessIndexCoord tessPlacement tessPlacementID tessRepo useXL
   global x3dColor x3dCoord x3dFile x3dFileName x3dIndex x3dIndexType x3dMax x3dMin x3dPID x3dPoint x3dShape x3dStartFile
 
@@ -514,7 +514,8 @@ proc gpmiAnnotationReport {objEntity} {
                   ::tcom::foreach val [$objAttribute Value] {
                     append cellval([$val Type]) "[$val P21ID] "
                     incr nval
-                    if {[string first "tessellated_geometric_set" $ent1] != -1 && [$val Type] != "tessellated_curve_set" && [$val Type] != "complex_triangulated_surface_set"} {
+                    if {[string first "tessellated_geometric_set" $ent1] != -1 && [$val Type] != "tessellated_curve_set" && \
+                        [$val Type] != "triangulated_surface_set" && [$val Type] != "complex_triangulated_surface_set"} {
                       set msg "Syntax Error: Bad '[$val Type]' attribute for tessellated_geometric_set.children$spaces\($recPracNames(pmi242), Sec. 8.2)"
                       errorMsg $msg
                       lappend syntaxErr($objType) [list $objID children $msg]
@@ -723,6 +724,7 @@ proc gpmiAnnotationReport {objEntity} {
                       }
                     }
                   }
+                  if {$opt(PMISEM) && [string first "placeholder" $ent1] != -1} {lappend spmiTypesPerFile "annotation placeholder"}
                 }
 
                 "annotation_placeholder_occurrence* line_spacing" {

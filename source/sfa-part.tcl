@@ -1,8 +1,8 @@
 # write tessellated geometry for annotations and parts
 proc x3dTessGeom {objID tessEnt faceEnt} {
-  global ao defaultColor draftModelCameras entCount lastID mytemp opt recPracNames savedViewFile savedViewFileName savedViewNames shapeRepName
-  global shellSuppGeom spaces srNames syntaxErr tessCoord tessCoordID tessGeomTxt tessIndex tessIndexCoord tessPartFile tessPlacement
-  global tessRepo tessSuppGeomFile tsName x3dColor x3dColorFile x3dColors x3dCoord x3dFile x3dIndex
+  global ao defaultColor draftModelCameras entCount lastID mytemp opt recPracNames savedViewFile savedViewFileName
+  global savedViewNames shapeRepName shellSuppGeom spaces srNames syntaxErr tessCoord tessCoordID tessGeomTxt tessIndex tessIndexCoord
+  global tessPartFile tessPlacement tessRepo tessSuppGeomFile tsName x3dColor x3dColorFile x3dColors x3dCoord x3dFile x3dIndex
 
   set x3dIndex $tessIndex($objID)
   set x3dCoord $tessCoord($tessIndexCoord($objID))
@@ -297,8 +297,9 @@ proc x3dGetSavedViewName {objEntity} {
 # -------------------------------------------------------------------------------
 # B-rep part geometry
 proc x3dBrepGeom {} {
-  global brepFile brepFileName buttons cadSystem developer entCount grayBackground localName matTrans mytemp
+  global brepFile brepFileName buttons cadSystem developer DTR entCount grayBackground localName matTrans maxxyz mytemp
   global nistVersion nsketch opt rosetteGeom viz x3dApps x3dBbox x3dMax x3dMin x3dMsg x3dMsgColor x3dParts
+  global objDesign
 
   if {[catch {
     if {$opt(DEBUGX3D)} {getTiming x3dBrepGeom}
@@ -328,11 +329,22 @@ proc x3dBrepGeom {} {
       }
       outputMsg $msg $x3dMsgColor
 
-# check for composite rosette curves
+# check for composite rosette curve_11
       set rosetteOpt  0
       set rosetteGeom 0
       foreach ent {composite_curve_and_curve_11 composite_curve_and_curve_11_and_measure_representation_item} {
-        if {[info exists entCount($ent)]} {if {$entCount($ent) > 0} {set rosetteOpt 1}}
+        if {[info exists entCount($ent)]} {
+          if {$entCount($ent) > 0} {
+            set rosetteOpt 1
+            if {[info exists objDesign] && $ent == "composite_curve_and_curve_11_and_measure_representation_item"} {
+              ::tcom::foreach c11 [$objDesign FindObjects [string trim $ent]] {
+                set id [$c11 P21ID]
+                set curve11($id) [[[$c11 Attributes] Item [expr 4]] Value]
+                set curve11($id) [trimNum [expr {$curve11($id)/$DTR}]]
+              }
+            }
+          }
+        }
       }
 
 # run stp2x3d-part.exe
@@ -402,6 +414,16 @@ proc x3dBrepGeom {} {
               } elseif {$developer && [string first "*" $line] == 0} {
                 outputMsg $line red
               }
+
+# coordinate min, max
+              if {[info exists x3dMax(x)] && [info exists x3dMin(x)]} {
+                foreach idx {x y z} {
+                  if {$x3dMax($idx) == -1.e8 || $x3dMax($idx) > 1.e8} {set x3dMax($idx) 500.}
+                  if {$x3dMin($idx) == 1.e8 || $x3dMin($idx) < -1.e8} {set x3dMin($idx) -500.}
+                  set delt($idx) [expr {$x3dMax($idx)-$x3dMin($idx)}]
+                }
+                set maxxyz [expr {max($delt(x),$delt(y),$delt(z))}]
+              }
             }
             if {$x3dBbox != ""} {set x3dBbox "Bounding Box$x3dBbox"}
 
@@ -469,6 +491,39 @@ proc x3dBrepGeom {} {
 
 # check for edges
                   if {!$viz(EDGE)} {if {[string first "edge" $line] != -1} {set viz(EDGE) 1}}
+
+# check for composites curve 11
+                  if {$rosetteGeom == 1} {
+                    if {[string first "curve 11" $line] != -1} {
+                      if {[catch {
+                        set id11 [string range [lindex [split $line " "] 6] 0 end-2]
+                        if {[info exists curve11($id11)]} {
+                          puts $brepFile $line
+
+# add label to end of curve
+                          for {set i 0} {$i < 5} {incr i} {
+                            gets $stpx3dFile line1
+                            puts $brepFile $line1
+                            if {[string first "Coordinate" $line1] != -1} {
+                              set line1 [split $line1 " "]
+                              set p11(x1) [string range [lindex $line1 6] 7 end]
+                              set p11(y1) [lindex $line1 7]
+                              set p11(z1) [lindex $line1 8]
+                              set p11(x2) [lindex $line1 end-2]
+                              set p11(y2) [lindex $line1 end-1]
+                              set p11(z2) [string range [lindex $line1 end] 0 end-15]
+                            }
+                          }
+                          set nsize [trimNum [expr {$maxxyz*0.02}]]
+                          puts $brepFile "   <Transform translation='$p11(x1) $p11(y1) $p11(z1)' scale='$nsize $nsize $nsize'><Billboard axisOfRotation='0 0 0'><Shape><Text string='$curve11($id11)'><FontStyle family='SANS' justify='BEGIN'/></Text><Appearance><Material diffuseColor='1 1 1'/></Appearance></Shape></Billboard></Transform>"
+                          puts $brepFile "   <Transform translation='$p11(x2) $p11(y2) $p11(z2)' scale='$nsize $nsize $nsize'><Billboard axisOfRotation='0 0 0'><Shape><Text string='$curve11($id11)'><FontStyle family='SANS' justify='BEGIN'/></Text><Appearance><Material diffuseColor='1 1 1'/></Appearance></Shape></Billboard></Transform>"
+                          set line ""
+                        }
+                      } emsg2]} {
+                        errorMsg "Error processing curve_11 for composite rosettes: $emsg2"
+                      }
+                    }
+                  }
 
 # add Switch for sketch geometry
                   if {$sketch} {
@@ -655,33 +710,41 @@ proc x3dBrepGeom {} {
 # check for duplicate part names in parts for x3dParts
             catch {unset x3dParts}
             if {[info exists parts]} {
-              foreach name [lsort [array names parts]] {
-                if {$opt(DEBUGX3D)} {outputMsg "$name $parts($name)"}
+
+# group duplicate parts
+              if {!$opt(partNoGroup)} {
+                foreach name [lsort [array names parts]] {
+                  if {$opt(DEBUGX3D)} {outputMsg "$name $parts($name)"}
 
 # S control directive
-                if {[string first "\\S\\" $name] != -1} {errorMsg " The \\S\\ control directive is not supported for accented characters.  See Help > Text Strings and Numbers" red}
+                  if {[string first "\\S\\" $name] != -1} {errorMsg " The \\S\\ control directive is not supported for accented characters.  See Help > Text Strings and Numbers" red}
 
 # check for _n at end of name
-                if {[string index $name end-1] == "_" || [string index $name end-2] == "_" || [string index $name end-3] == "_"} {
+                  if {[string index $name end-1] == "_" || [string index $name end-2] == "_" || [string index $name end-3] == "_"} {
 
 # remove _n
-                  set c1 [string last "_" $name]
-                  set name1 [string range $name 0 $c1-1]
-                  if {$opt(DEBUGX3D)} {outputMsg " $name1" red}
+                    set c1 [string last "_" $name]
+                    set name1 [string range $name 0 $c1-1]
+                    if {$opt(DEBUGX3D)} {outputMsg " $name1" red}
 
 # add to x3dParts
-                  if {[string range $name $c1 end] == "_1" && ![info exists parts($name1)]} {
-                    set x3dParts($name1) $parts($name)
-                  } else {
-                    if {[lsearch [array names x3dParts] $name1] != -1} {
-                      append x3dParts($name1) " $parts($name)"
+                    if {[string range $name $c1 end] == "_1" && ![info exists parts($name1)]} {
+                      set x3dParts($name1) $parts($name)
                     } else {
-                      set x3dParts($name) $parts($name)
+                      if {[lsearch [array names x3dParts] $name1] != -1} {
+                        append x3dParts($name1) " $parts($name)"
+                      } else {
+                        set x3dParts($name) $parts($name)
+                      }
                     }
+                  } else {
+                    set x3dParts($name) $parts($name)
                   }
-                } else {
-                  set x3dParts($name) $parts($name)
                 }
+
+# do not group duplicate parts
+              } else {
+                foreach name [lsort [array names parts]] {set x3dParts($name) $parts($name)}
               }
             }
 
@@ -811,6 +874,7 @@ proc x3dCopySTP2X3D {} {
 
   if {!$nistVersion} {return}
 
+  set msg 0
   if {[catch {
     foreach fn {stp2x3d-dll.zip stp2x3d-part.exe} {
       set internal [file join $wdir exe $fn]
@@ -827,6 +891,7 @@ proc x3dCopySTP2X3D {} {
           if {$copy == 2} {set new " new"}
           errorMsg " Copying$new Viewer software for part geometry (stp2x3d-part.exe) to $mytemp" red
           file copy -force -- $internal $stp2x3d
+          set msg 1
         }
       }
     }
@@ -850,7 +915,7 @@ proc x3dCopySTP2X3D {} {
         if {$copy > 0} {
           set new ""
           if {$copy == 2} {set new " new"}
-          errorMsg " Copying$new Viewer software for part geometry (stp2x3d-part.exe) to $mytemp" red
+          if {!$msg} {errorMsg " Copying$new Viewer software for part geometry (stp2x3d-part.exe) to $mytemp" red}
           file copy -force -- $file $fn
         }
       }
