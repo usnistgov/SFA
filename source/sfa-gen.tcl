@@ -261,14 +261,12 @@ proc genExcel {{numFile 0}} {
             foreach cat {stepCOMP stepKINE stepFEAT stepAP242 stepADDM stepQUAL stepCONS} {
               if {$opt($cat) == 0 && [lsearch $entCategory($cat) $entType] != -1} {
                 set opt($cat) 1
-                errorMsg "Automatically selecting some Process categories" red
                 checkValues
               }
             }
           }
           if {$opt(stepCPNT) == 0 && [string first "point_cloud" $entType] == 0} {
             set opt(stepCPNT) 1
-            errorMsg "Automatically selecting some Process categories" red
             checkValues
           }
         }
@@ -984,7 +982,7 @@ proc genExcel {{numFile 0}} {
 # check for entities in unicodeAttributes that might have unicode strings, complex entities require special exceptions in proc unicodeStrings
     catch {unset unicodeString}
     set unicodeEnts {}
-    if {$opt(xlUnicode) && $opt(xlFormat) != "None"} {
+    if {$opt(xlUnicode) && $opt(xlFormat) != "None" && $useXL} {
       set unicodeNumEnts 0
       foreach ent [array names unicodeAttributes] {
         if {[lsearch $entsToProcess $ent] != -1} {
@@ -1050,7 +1048,7 @@ proc genExcel {{numFile 0}} {
               if {$useXL} {
                 set stat [getEntity $objEntity $rmax $checkInv $badAttr $unicodeCheck]
               } else {
-                set stat [getEntityCSV $objEntity $badAttr $unicodeCheck]
+                set stat [getEntityCSV $objEntity $badAttr]
               }
             } emsg1]} {
 
@@ -1098,8 +1096,12 @@ proc genExcel {{numFile 0}} {
 
 # write matrix of values to the worksheet for this entity, matrixList is from getEntity
         if {$useXL} {
-          set range [$worksheet($thisEntType) Range [cellRange 4 1] [cellRange [expr {[llength $matrixList]+3}] [llength [lindex $matrixList 0]]]]
-          $range Value2 $matrixList
+          if {[catch {
+            set range [$worksheet($thisEntType) Range [cellRange 4 1] [cellRange [expr {[llength $matrixList]+3}] [llength [lindex $matrixList 0]]]]
+            $range Value2 $matrixList
+          } emsg3]} {
+            errorMsg "Error writing worksheet for $thisEntType: $emsg3"
+          }
 
 # close CSV file
         } else {
@@ -1285,6 +1287,9 @@ proc genExcel {{numFile 0}} {
       }
       if {$okid} {addP21e3Section 2}
     }
+
+# generate bill of materials (BOM)
+    if {$opt(BOM) && ([string first "AP203" $stepAP] != -1 || [string first "AP214" $stepAP] != -1 || [string first "AP242" $stepAP] != -1)} {generateBOM}
 
 # -------------------------------------------------------------------------------------------------
 # select the first tab
@@ -1500,7 +1505,7 @@ proc genExcel {{numFile 0}} {
   update idletasks
 
 # unset variables
-  foreach var {ap242XML assemTransformPMI brepScale cells cgrObjects colColor count currx3dPID datumEntType datumGeom datumIDs datumSymbol datumSystem datumSystemPDS defComment dimrep dimrepID dimtolEnt dimtolEntID dimtolGeom draughtingModels draftModelCameraNames draftModelCameras entCount entName entsIgnored epmi epmiUD feaDOFR feaDOFT feaNodes gpmiID gpmiIDRow gpmiRow heading idRow invCol invGroup nrep numx3dPID pmiCol pmiColumns pmiStartCol pmivalprop propDefID propDefIDRow propDefName propDefOK propDefRow savedsavedViewNames savedViewFile savedViewFileName savedViewItems savedViewNames savedViewpoint savedViewVP shapeRepName srNames suppGeomEnts syntaxErr tessCoord tessCoordName tessIndex tessIndexCoord tessPlacement tessRepo unicode unicodeActual unicodeNumEnts unicodeString viz vpEnts workbook workbooks worksheet worksheets x3dCoord x3dFile x3dFileName x3dIndex x3dMax x3dMin x3dStartFile} {
+  foreach var {ap242XML assemTransformPMI brepScale cells cgrObjects colColor count currx3dPID datumEntType datumGeom datumIDs datumSymbol datumSystem datumSystemPDS defComment dimrep dimrepID dimtolEnt dimtolEntID dimtolGeom draughtingModels draftModelCameraNames draftModelCameras entCount entName entsIgnored epmi epmiUD feaDOFR feaDOFT feaNodes gpmiID gpmiIDRow gpmiRow heading idRow invCol invGroup nrep numx3dPID pmiCol pmiColumns pmiStartCol pmivalprop propDefID propDefIDRow propDefName propDefOK propDefRow ptzError savedsavedViewNames savedViewFile savedViewFileName savedViewItems savedViewNames savedViewpoint savedViewVP shapeRepName srNames suppGeomEnts syntaxErr tessCoord tessCoordName tessIndex tessIndexCoord tessPlacement tessRepo unicode unicodeActual unicodeNumEnts unicodeString viz vpEnts workbook workbooks worksheet worksheets x3dCoord x3dFile x3dFileName x3dIndex x3dMax x3dMin x3dStartFile} {
     catch {global $var}
     if {[info exists $var]} {unset $var}
   }
@@ -1587,7 +1592,7 @@ proc addHeaderWorksheet {numFile fname} {
             }
           } elseif {$id == 2 || $id == 3} {
             append str " (Edition 2)"
-            if {$id == 2} {errorMsg "AP242 Edition 2 should be identified with '3 1 4'" red}
+            if {$id == 2} {errorMsg " AP242 Edition 2 should be identified with '3 1 4'" red}
             if {[llength $ap242ed(3)] > 0} {
               errorMsg "Syntax Error: The STEP file contains entities related to AP242 Edition 3 ([join $ap242ed(3)]),$spaces\however, the file is identified as Edition 2."
             }
@@ -1597,8 +1602,8 @@ proc addHeaderWorksheet {numFile fname} {
             errorMsg "Unknown AP242 Object Identifier String '$id 1 4' for SchemaName" red
           }
           if {$developer} {
-            if {[llength $ap242ed(2)] > 0} {outputMsg "AP242e2: [join $ap242ed(2)]" red}
-            if {[llength $ap242ed(3)] > 0} {outputMsg "AP242e3: [join $ap242ed(3)]" red}
+            if {[llength $ap242ed(2)] > 0} {outputMsg " AP242e2: [join $ap242ed(2)]" red}
+            if {[llength $ap242ed(3)] > 0} {outputMsg " AP242e3: [join $ap242ed(3)]" red}
           }
         } elseif {[string first "AP242" $sn] == 0} {
           errorMsg "Syntax Error: SchemaName is missing the Object Identifier String that specifies the edition of AP242."
@@ -1847,7 +1852,7 @@ proc sumAddWorksheet {} {
       if {$ok} {
         $cells($sum) Item $sumRow 1 $entType
 
-# for STEP add [Properties], [PMI Presentation], [PMI Representation] text string
+# for STEP add [Properties], [PMI Presentation], [PMI Representation] [Assembly] text string
         set okao 0
         if {$entType == "property_definition" && $col($entType) > 4 && $opt(valProp)} {
           $cells($sum) Item $sumRow 1 "property_definition  \[Properties\]"
@@ -1859,6 +1864,8 @@ proc sumAddWorksheet {} {
           if {$gpmiEnts($entType) && $col($entType) > 5} {set okao 1}
         } elseif {[lsearch $vpEnts $entType] != -1} {
           $cells($sum) Item $sumRow 1 "$entType  \[Properties\]"
+        } elseif {$entType == "next_assembly_usage_occurrence" && $opt(BOM)} {
+          $cells($sum) Item $sumRow 1 "$entType  \[Assembly\]"
         }
         if {$okao} {$cells($sum) Item $sumRow 1 "$entType  \[PMI Presentation\]"}
 

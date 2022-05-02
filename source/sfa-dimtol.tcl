@@ -1361,7 +1361,7 @@ proc spmiDimtolReport {objEntity} {
           $cells($dt) Item 3 $c $colName
           set pmiHeading($pmiColumns(dmrp)) 1
           set pmiCol [expr {max($pmiColumns(dmrp),$pmiCol)}]
-          set comment "See Help > User Guide (section 6.1.3) for an explanation of how the Dimensional Tolerances are constructed."
+          set comment "See Help > User Guide (section 6.1.3) for an explanation of how the Dimensional Tolerances are constructed.  Results are summarized on the PMI Representation Summary worksheet."
           if {[info exists dim(unit)]} {append comment "\n\nDimension units: $dim(unit)"}
           append comment "\n\nRepetitive dimensions (e.g., 4X) are shown for diameter and radius.  They are computed based on the number of cylindrical, spherical, and toroidal surfaces associated with a dimension (see Associated Geometry column to the right) and, depending on the CAD system, might be off by a factor of two, have the wrong value, or be missing.  Repetitive dimensions are not computed for linear distance."
           if {$nistName != ""} {

@@ -389,23 +389,6 @@ proc valPropReport {objEntity} {
                 }
 
                 "property_definition definition" {
-# add product_definition name, check for unicode version
-                  set prodDefName [string trim [[[$objValue Attributes] Item [expr 1]] Value]]
-                  set idx "product_definition,id,[$objValue P21ID]"
-                  if {[info exists unicodeString($idx)]} {set prodDefName $unicodeString($idx)}
-
-                  if {$prodDefName != "" && [string first "handle" $prodDefName] == -1} {
-                    set r $propDefIDRow($propDefID)
-                    set val [[$cells($pd) Item $r D] Value]
-                    if {[string first "$prodDefName" $val] == -1} {
-                      append val "  \[$prodDefName\]"
-                      $cells($pd) Item $r D $val
-                      if {![info exists defComment]} {
-                        addCellComment "property_definition" 3 D "Text in brackets is the 'name' attribute of the definition entity."
-                        set defComment 1
-                      }
-                    }
-                  }
 # check for missing definition
                   if {[string first "validation_property" $propDefName] != -1 || $propDefName == "semantic_text"} {
                     if {[string length $objValue] == 0} {
@@ -415,9 +398,35 @@ proc valPropReport {objEntity} {
                         "pmi_validation_property" {append msg "$spaces\($recPracNames(pmi242), Sec. 10)"}
                         "semantic_text" {append msg "$spaces\($recPracNames(pmi242), Sec. 7.4.2)"}
                       }
-                      if {$propDefName == "geometric_validation_property"} {append msg "$spaces\($recPracNames(valprop), Sec. 4)"}
                       errorMsg $msg
                       lappend syntaxErr(property_definition) [list $propDefID 4 $msg]
+                    }
+                  }
+
+# add name of entity referred to by the definition, check for unicode version
+                  if {[string first "handle" $objValue] != -1} {
+                    set n 0
+                    ::tcom::foreach attr [$objValue Attributes] {
+                      incr n
+                      if {$n == 1} {
+                        set prodDefName [string trim [$attr Value]]
+                        set idx "[$objValue Type],[$attr Name],[$objValue P21ID]"
+                        if {[info exists unicodeString($idx)]} {set prodDefName $unicodeString($idx)}
+                        break
+                      }
+                    }
+
+                    if {$prodDefName != "" && [string first "handle" $prodDefName] == -1} {
+                      set r $propDefIDRow($propDefID)
+                      set val [[$cells($pd) Item $r D] Value]
+                      if {[string first "$prodDefName" $val] == -1} {
+                        append val "  \[$prodDefName\]"
+                        $cells($pd) Item $r D $val
+                        if {![info exists defComment]} {
+                          addCellComment "property_definition" 3 D "Text in brackets is the 'name' attribute of the definition entity."
+                          set defComment 1
+                        }
+                      }
                     }
                   }
                 }

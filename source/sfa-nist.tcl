@@ -108,7 +108,14 @@ proc nistReadExpectedPMI {{epmiFile ""}} {
 # -------------------------------------------------------------------------------
 # get expected PMI for PMI Representation Summary worksheet
 proc nistGetSummaryPMI {name} {
-  global nistName nistPMIactual nistPMIexpected nistPMIexpectedNX nistPMIfound nistPMImaster nsimilar opt pmiType spmiSumName tolNames worksheet
+  global nistPMIactual nistPMIexpected nistPMIexpectedGND nistPMIexpectedNX nistPMIfound nistPMImap nistPMImaster
+  global nistName nsimilar opt pmiType pmiUnicode spmiSumName tolNames tolSymbols worksheet
+
+# tolerance symbols
+  foreach tol $tolNames {
+    set tol [string range $tol 0 [string last "_" $tol]-1]
+    lappend tolSymbols $pmiUnicode($tol)
+  }
 
 # add pictures
   if {$name == $nistName} {
@@ -119,8 +126,6 @@ proc nistGetSummaryPMI {name} {
 # get expected PMI values from nistPMImaster
   set nsimilar 0
   if {[info exists nistPMImaster($name)]} {
-    catch {unset nistPMIexpected($name)}
-    catch {unset nistPMIexpectedNX($name)}
 
 # read master PMI values, remove leading and trailing zeros, other stuff, add to nistPMIexpected
     foreach item $nistPMImaster($name) {
@@ -135,16 +140,34 @@ proc nistGetSummaryPMI {name} {
         set pmi [string range $item $c1+1 end]
         set newpmi [pmiRemoveZeros $pmi]
         lappend nistPMIexpected($name) $newpmi
+        set nistPMImap($newpmi) $newpmi
 
 # look for 'nX' in expected
         set c1 [string first "X" $newpmi]
-        if {$c1 < 3} {
-          set newpminx [string range $newpmi $c1+1 end]
-          lappend nistPMIexpectedNX($name) [string trim $newpminx]
+        if {$c1 == 1 || $c1 == 2} {
+          set newpminx [string trim [string range $newpmi $c1+1 end]]
+          lappend nistPMIexpectedNX($name) $newpminx
+          set nistPMImap($newpmi) $newpminx
         } else {
           lappend nistPMIexpectedNX($name) $newpmi
         }
 
+# look for geometric tolerance with dimension above, but not with all over and all around
+        if {[string first "tolerance" $typ] != -1 && [string first "\u2b69\u25CE" $newpmi] == -1 && [string first "\u232E" $newpmi] == -1} {
+          set ndset 0
+          foreach sym $tolSymbols {
+            set c1 [string first $sym $newpmi]
+            if {$c1 > 0} {
+              set newpmignd [string trim [string range $newpmi $c1 end]]
+              lappend nistPMIexpectedGND($name) $newpmignd
+              set nistPMImap($newpmi) $newpmignd
+              set ndset 1
+              break
+            }
+          }
+        }
+
+# set pmiType
         if {[string first "tolerance" $typ] != -1} {
           foreach nam $tolNames {if {[string first $nam $typ] != -1} {set pmiType($newpmi) $nam}}
         } else {
@@ -160,8 +183,8 @@ proc nistGetSummaryPMI {name} {
 # -------------------------------------------------------------------------------
 # check actual vs. expected PMI for NIST files
 proc nistCheckExpectedPMI {val entstr epmiName} {
-  global cells legendColor nistExpectedPMI nistPMIactual nistPMIexpected nistPMIexpectedNX nistPMIfound
-  global pmiModifiers pmiType pmiUnicode spmiSumName spmiSumRow tolNames worksheet
+  global nistExpectedPMI nistPMIactual nistPMIdeduct nistPMIexpected nistPMIexpectedGND nistPMIexpectedNX nistPMIfound nistPMImap
+  global cells legendColor pmiModifiers pmiType pmiUnicode spmiSumName spmiSumRow tolNames tolSymbols worksheet
 
 # modify (composite ..) from value to just (composite)
   set c1 [string first "(composite" $val]
@@ -178,15 +201,74 @@ proc nistCheckExpectedPMI {val entstr epmiName} {
   set c1 [string first $pmiModifiers(between) $val]
   if {$c1 > 0} {set val [string range $val 0 $c1-2]}
 
-# remove circle (I) (typically found in CATIA files)
+# exceptions for datum features on geometric tolerances based on test case
+  if {$epmiName == "nist_ctc_02"} {
+    set c1 [string first "\[A" $val]
+    if {$c1 != -1} {
+      set val [string range $val 0 $c1-16][string range $val $c1+3 end]
+      set pmiException(dfa) 1
+    }
+    set c1 [string first "\[C" $val]
+    if {$c1 != -1} {
+      set val [string range $val 0 $c1-16][string range $val $c1+3 end]
+      set pmiException(dfc) 1
+    }
+  } elseif {$epmiName == "nist_ftc_06"} {
+    set c1 [string first "\[J" $val]
+    if {$c1 != -1} {
+      set val [string range $val 0 $c1-16][string range $val $c1+3 end]
+      set pmiException(dfj) 1
+    }
+    set c1 [string first "\[K" $val]
+    if {$c1 != -1} {
+      set val [string range $val 0 $c1-16][string range $val $c1+3 end]
+      set pmiException(dfk) 1
+    }
+  } elseif {$epmiName == "nist_ftc_10"} {
+    set c1 [string first "\[K" $val]
+    if {$c1 != -1} {
+      set val [string range $val 0 $c1-16][string range $val $c1+3 end]
+      set pmiException(dfk) 1
+    }
+    set c1 [string first "\[L" $val]
+    if {$c1 != -1} {
+      set val [string range $val 0 $c1-16][string range $val $c1+3 end]
+      set pmiException(dfl) 1
+    }
+  }
+  if {$epmiName == "nist_ftc_06" || $epmiName == "nist_ftc_08"} {
+    set c1 [string first "\[F" $val]
+    if {$c1 != -1} {
+      set val [string range $val 0 $c1-16][string range $val $c1+3 end]
+      set pmiException(dff) 1
+    }
+  }
+
+# exceptions for directed dimensions
+  if {$epmiName == "nist_ftc_07" || $epmiName == "nist_ftc_10"} {
+    set c1 [string first "(directed)" $val]
+    if {$c1 != -1} {
+      set val [string range $val 0 $c1-3]
+      set idx "Directed dimension"
+      set pmiException($idx) 1
+    }
+  }
+
+# remove some items, typically found in CATIA files
+# circle (I), independency
   set c1 [string first "\u24BE" $val]
-  if {$c1 > 0} {regsub "\u24BE" $val "" val}
-
-# remove <CF> (typically found in CATIA files)
+  if {$c1 > 0} {
+    regsub "\u24BE" $val "" val
+    set pmiException(Independency) 1
+  }
+# <CF>
   set c1 [string first "<CF>" $val]
-  if {$c1 > 0} {regsub "<CF>" $val "" val}
-
-# remove datum feature on a dimension (typically found in CATIA files)
+  if {$c1 > 0} {
+    regsub "<CF>" $val "" val
+    set idx "Continuous feature"
+    set pmiException($idx) 1
+  }
+# datum feature on a dimension
   if {$entstr == "dimensional_characteristic_representation"} {
     set c1 [string first "\u25BD" $val]
     if {$c1 != -1} {set val [string range $val 0 $c1-5]}
@@ -202,75 +284,158 @@ proc nistCheckExpectedPMI {val entstr epmiName} {
 
 # -------------------------------------------------------------------------------
 # search for PMI in nistPMIexpected list
+  set pmiMissing ""
+  set pmiSimilar ""
   set pmiMatch [lsearch $nistPMIexpected($epmiName) $val]
-  #outputMsg "$val  $pmiMatch $valType($val)" blue
-  #outputMsg $nistPMIexpected($epmiName)
 
 # found in list, remove from nistPMIexpected
   if {$pmiMatch != -1} {
-    [[$worksheet($spmiSumName) Range C$spmiSumRow] Interior] Color $legendColor(green)
     set nistPMIexpected($epmiName)   [lreplace $nistPMIexpected($epmiName)   $pmiMatch $pmiMatch]
     set nistPMIexpectedNX($epmiName) [lreplace $nistPMIexpectedNX($epmiName) $pmiMatch $pmiMatch]
     lappend nistPMIfound $val
-    incr nistExpectedPMI(exact)
-    #outputMsg " exact match  $val $pmiMatch $valType($val)" green
+    set pmiMatch 1
+
+# exceptions
+    foreach idx {dfa dfc dff dfj dfk dfl} {
+      if {[info exists pmiException($idx)]} {
+        set pmiSimilar "Datum feature [string toupper [string index $idx 2]] is ignored"
+        set pmiMatch 0.99
+      }
+    }
 
 # -------------------------------------------------------------------------------
 # not found
   } else {
     set pmiMatch 0
-    set pmiMissing ""
-    set pmiSimilar ""
 
-# check each value in nistPMIexpected
+# check if val is equal to nistPMIexpected (handles case where lsearch above returned -1 but should not have)
     foreach pmi $nistPMIexpected($epmiName) {
-
-# simple match, remove from nistPMIexpected
-      if {$val == $pmi && $pmiMatch != 1} {
+      if {$val == $pmi} {
+        #outputMsg " simple match  $val $pmiMatch $valType($val)" green
         set pmiMatch 1
         set pos [lsearch $nistPMIexpected($epmiName) $pmi]
         set nistPMIexpected($epmiName)   [lreplace $nistPMIexpected($epmiName)   $pos $pos]
         set nistPMIexpectedNX($epmiName) [lreplace $nistPMIexpectedNX($epmiName) $pos $pos]
         lappend nistPMIfound $pmi
-        #outputMsg " simple match  $val $pmiMatch $valType($val)" green
+        break
       }
     }
 
 # -------------------------------------------------------------------------------
-# try match dimensions to expected without 'nX'
-    if {$pmiMatch == 0 && $entstr == "dimensional_characteristic_representation"} {
-      set c1 [string first "X" $val]
-      if {$c1 < 3} {
-        set valnx [string trim [string range $val $c1+1 end]]
-        set pmiMatchNX [lsearch $nistPMIexpectedNX($epmiName) $valnx]
-        if {$pmiMatchNX != -1} {
-          set pmiMatch 0.95
-          set pmiSim $pmiMatch
-          #outputMsg " exact match NX  $val $pmiMatchNX $valType($val)" red
-          set pmiSimilar $nistPMIactual([lindex $nistPMIexpected($epmiName) $pmiMatchNX])
-          set nistPMIexpected($epmiName)   [lreplace $nistPMIexpected($epmiName)   $pmiMatchNX $pmiMatchNX]
-          set nistPMIexpectedNX($epmiName) [lreplace $nistPMIexpectedNX($epmiName) $pmiMatchNX $pmiMatchNX]
-          set pf $val
-        }
+# try matching dimensions without 'nX'
+    if {[catch {
+      if {$pmiMatch == 0 && $entstr == "dimensional_characteristic_representation"} {
+        set c1 [string first "X" [string range $val 0 3]]
+        if {$c1 < 3} {
+          set valnx [string trim [string range $val $c1+1 end]]
+          set pmiMatchNX [lsearch $nistPMIexpectedNX($epmiName) $valnx]
+          if {$pmiMatchNX != -1} {
+            set pmiMatch 0.99
+            set pmiSim $pmiMatch
+            #outputMsg " exact match NX  $val $pmiMatchNX $valType($val)" red
+            foreach item $nistPMIexpected($epmiName) {
+              if {[info exists nistPMImap($item)]} {
+                if {[string equal $valnx $nistPMImap($item)] == 1} {
+                  set pmiSimilar "$item  (nX does not match)"
+                  lappend nistPMIfound $item
+                  break
+                }
+              }
+            }
+            set nistPMIexpected($epmiName)   [lreplace $nistPMIexpected($epmiName)   $pmiMatchNX $pmiMatchNX]
+            set nistPMIexpectedNX($epmiName) [lreplace $nistPMIexpectedNX($epmiName) $pmiMatchNX $pmiMatchNX]
+            set nistPMIdeduct(dim) 1
+          }
 
 # try simple match as above
-        if {$pmiMatch != 0.95} {
-          foreach pmi $nistPMIexpectedNX($epmiName) {
-            if {$valnx == $pmi && $pmiMatch != 1} {
-              set pmiMatch 0.95
-              set pmiSim $pmiMatch
-              #outputMsg " simple match NX  $valnx $pmiMatch $valType($val)" red
-              set pos [lsearch $nistPMIexpected($epmiName) $valnx]
-              if {$pos != -1} {
-                set pmiSimilar $nistPMIactual([lindex $nistPMIexpected($epmiName) $pos])
-                set nistPMIexpected($epmiName)   [lreplace $nistPMIexpected($epmiName)   $pos $pos]
-                set nistPMIexpectedNX($epmiName) [lreplace $nistPMIexpectedNX($epmiName) $pos $pos]
+          if {$pmiMatch != 0.99} {
+            foreach pmi $nistPMIexpectedNX($epmiName) {
+              if {$valnx == $pmi && $pmiMatch != 1} {
+                set pmiMatch 0.95
+                set pmiSim $pmiMatch
+                #outputMsg " simple match NX  $valnx $pmiMatch $valType($val)" red
+                set pos [lsearch $nistPMIexpected($epmiName) $valnx]
+                if {$pos != -1} {
+                  set pmiSimilar $nistPMIactual([lindex $nistPMIexpected($epmiName) $pos])
+                  set nistPMIexpected($epmiName)   [lreplace $nistPMIexpected($epmiName)   $pos $pos]
+                  set nistPMIexpectedNX($epmiName) [lreplace $nistPMIexpectedNX($epmiName) $pos $pos]
+                }
+                lappend nistPMIfound $val
               }
-              set pf $val
             }
           }
         }
       }
+    } emsg]} {
+      errorMsg "Error matching dimension without nX: $emsg"
+    }
+
+# -------------------------------------------------------------------------------
+# try matching geometric tolerance without the dimension (nistPMIexpectedGND)
+    if {[catch {
+      if {$pmiMatch == 0 && [string first "tolerance" $entstr] != -1} {
+        foreach sym $tolSymbols {
+          set posSym [string first $sym $val]
+          if {$posSym > 0} {break}
+        }
+        set valgnd [string trim [string range $val $posSym end]]
+
+# check geometric tolerances
+        if {[info exists nistPMIexpectedGND($epmiName)]} {
+          set ok 0
+          set pmiMatchGND [lsearch $nistPMIexpectedGND($epmiName) $valgnd]
+          if {$pmiMatchGND != -1} {
+            set ok 1
+
+# check a different way with string equal because lsearch above doesn't always work
+          } else {
+            foreach item $nistPMIexpectedGND($epmiName) {
+              incr pmiMatchGND
+              if {[string equal $item $valgnd] == 1} {set ok 1; break}
+            }
+          }
+          if {$ok} {
+            if {$pmiMatchGND != -1} {
+              set pmiMatch 0.99
+              set pmiSim $pmiMatch
+              #outputMsg " exact match ND  $val $pmiMatchGND $valType($val)" red
+              if {$posSym > 0} {
+                set pmiSimilar "Dimension does not match"
+              } else {
+                set pmiSimilar "Missing dimension association"
+              }
+              lappend nistPMIfound $val
+              set nistPMIdeduct(tol) 1
+
+# remove from expected list
+              set nistPMIexpectedGND($epmiName) [lreplace $nistPMIexpectedGND($epmiName) $pmiMatchGND $pmiMatchGND]
+              set pos -1
+              foreach item $nistPMIexpected($epmiName) {
+                incr pos
+                if {[info exists nistPMImap($item)]} {
+                  if {[string equal $valgnd $nistPMImap($item)] == 1} {break}
+                }
+              }
+              set nistPMIexpected($epmiName)   [lreplace $nistPMIexpected($epmiName)   $pos $pos]
+              set nistPMIexpectedNX($epmiName) [lreplace $nistPMIexpectedNX($epmiName) $pos $pos]
+            }
+          }
+        }
+
+# unexpected dimension association
+        if {$pmiMatch == 0} {
+          set pmiMatchGND [lsearch $nistPMIexpected($epmiName) $valgnd]
+          if {$pmiMatchGND != -1} {
+            set pmiMatch 0.99
+            set pmiSimilar "Unexpected dimension association"
+            set nistPMIexpected($epmiName) [lreplace $nistPMIexpected($epmiName) $pmiMatchGND $pmiMatchGND]
+            lappend nistPMIfound $val
+            set nistPMIdeduct(tol) 1
+          }
+        }
+      }
+    } emsg]} {
+      errorMsg "Error matching geometric tolerance without dimension: $emsg"
     }
 
 # -------------------------------------------------------------------------------
@@ -288,7 +453,6 @@ proc nistCheckExpectedPMI {val entstr epmiName} {
 
 # check for bad dimensions
           if {$valType($val) == "dimensional_characteristic_representation"} {
-            #outputMsg "A$val\A [string first "-" $val] [string first "$pmiUnicode(diameter) " $val] [string first "$pmiUnicode(plusminus)" $val]"
             if {[string first "-" $val] == 0 || [string first "$pmiUnicode(diameter) " $val] == 0 || \
                 [string first "$pmiUnicode(plusminus)" $val] == 0} {set ok 0}
           }
@@ -307,18 +471,15 @@ proc nistCheckExpectedPMI {val entstr epmiName} {
               set diff [expr {[string length $pmi] - [string length $val]}]
               if {$diff <= 2 && $diff >= 0 && [string first $val $pmi] != -1} {
                 set pmiSim 0.95
-                #outputMsg "$val / $diff / $pmi / $pmiSim / aa"
               } elseif {[string is integer [string index $val 0]] || \
                         [string range $val 0 1] == [string range $pmi 0 1]} {
                 set pmiSim [stringSimilarity $val $pmi]
-                #outputMsg "$val / $diff / $pmi / $pmiSim / bb"
               }
 
 # tolerances
             } elseif {[string first "tolerance" $valType($val)] != -1} {
               if {[string first $val $pmi] != -1 || [string first $pmi $val] != -1} {
                 set pmiSim 0.95
-                #outputMsg "$val / $pmi / $pmiSim cc" green
               } else {
                 set tol $pmiUnicode([string range $valType($val) 0 [string last "_" $valType($val)]-1])
                 set pmiSim [stringSimilarity $val $pmi]
@@ -331,7 +492,6 @@ proc nistCheckExpectedPMI {val entstr epmiName} {
                     set pmiSim [expr {$pmiSim+0.025}]
                   }
                 }
-                #outputMsg "$val / $pmi / $pmiSim dd" green
 
                 if {$pmiSim < 0.9} {
                   set sval [split $val $tol]
@@ -347,7 +507,6 @@ proc nistCheckExpectedPMI {val entstr epmiName} {
 # datum features
             } else {
               set pmiSim [stringSimilarity $val $pmi]
-              #outputMsg "$val $pmiSim"
             }
 
             if {$pmiSim < 0.6} {
@@ -357,17 +516,12 @@ proc nistCheckExpectedPMI {val entstr epmiName} {
 # -------------------------------------------------------------------------------
 # keep best match
             if {$pmiSim > $pmiMatch} {
-              #outputMsg "$pmiSim / $val / $pmi / [string first $val $pmi]" red
               set pmiMatch $pmiSim
               if {[string first "datum_target" $valType($val)] == -1 && [string first "dimension" $valType($val)] == -1} {
-                if {$pmiSim >= 0.6} {
-                  set pmiSimilar $nistPMIactual($pmi)
-                  #append pmiSimilar "[format "%c" 10](Similarity: [string range $pmiMatch 0 4])"
-                }
+                if {$pmiSim >= 0.6} {set pmiSimilar $nistPMIactual($pmi)}
 
 # dimensions
               } elseif {[string first "dimension" $valType($val)] != -1} {
-                #outputMsg "$pmiSim / $val / $pmi / [string first $val $pmi]" red
                 if {$pmiSim >= 0.6} {set pmiSimilar $nistPMIactual($pmi)}
 
 # dimension rounding issues
@@ -402,52 +556,78 @@ proc nistCheckExpectedPMI {val entstr epmiName} {
                 set pmiMatch $pmiSim
                 set pmiSimilar $pmi
               }
-              set pf $pmi
+              lappend nistPMIfound $pmi
             }
           }
         }
       }
     }
+  }
+
+# more exceptions
+  if {$pmiMatch == 1} {
+    foreach idx {"Directed dimension" "Continuous feature" Independency} {
+      if {[info exists pmiException($idx)]} {
+        set pmiSimilar "$idx is ignored"
+        set pmiMatch 0.99
+      }
+    }
+  }
+  catch {unset pmiException}
 
 # -------------------------------------------------------------------------------
-# perfect match, green
-    if {$pmiMatch == 1} {
-      [[$worksheet($spmiSumName) Range C$spmiSumRow] Interior] Color $legendColor(green)
-      incr nistExpectedPMI(exact)
+# exact matches, green
+  if {$pmiMatch == 1} {
+    [[$worksheet($spmiSumName) Range C$spmiSumRow] Interior] Color $legendColor(green)
+    incr nistExpectedPMI(exact)
+  } elseif {$pmiMatch == 0.99} {
+    [[$worksheet($spmiSumName) Range C$spmiSumRow] Interior] Color $legendColor(greyel)
+    incr nistExpectedPMI(exact)
 
 # partial and possible match, cyan and yellow
-    } elseif {$pmiMatch >= 0.6} {
-      if {$pmiMatch >= 0.9} {
-        [[$worksheet($spmiSumName) Range C$spmiSumRow] Interior] Color $legendColor(cyan)
-        incr nistExpectedPMI(partial)
-      } else {
-        [[$worksheet($spmiSumName) Range C$spmiSumRow] Interior] Color $legendColor(yellow)
-        incr nistExpectedPMI(possible)
-      }
-
-# add similar pmi
-      if {[info exists pmiSimilar] && $pmiSimilar != ""} {
-        $cells($spmiSumName) Item $spmiSumRow 4 "'$pmiSimilar"
-        [[$worksheet($spmiSumName) Range D$spmiSumRow] Interior] Color $legendColor(gray)
-        set range [$worksheet($spmiSumName) Range D$spmiSumRow]
-        catch {foreach i {8 9} {[[$range Borders] Item $i] Weight [expr 1]}}
-        incr nsimilar
-
-        if {$nsimilar == 1} {
-          [$worksheet($spmiSumName) Range [cellRange -1 4]] ColumnWidth [expr 48]
-          $cells($spmiSumName) Item 3 4 "Similar PMI"
-          addCellComment $spmiSumName 3 4 "Similar PMI is the best match of the PMI Representation in column C, for Partial or Possible matches (blue and yellow), to the expected PMI in the NIST test case drawing to the right."
-          set range [$worksheet($spmiSumName) Range D3]
-          [$range Font] Bold [expr 1]
-          catch {foreach i {8 9} {[[$range Borders] Item $i] Weight [expr 2]}}
-        }
-      }
-      lappend nistPMIfound $pf
+  } elseif {$pmiMatch >= 0.6} {
+    if {$pmiMatch >= 0.9} {
+      [[$worksheet($spmiSumName) Range C$spmiSumRow] Interior] Color $legendColor(cyan)
+      incr nistExpectedPMI(partial)
+    } else {
+      [[$worksheet($spmiSumName) Range C$spmiSumRow] Interior] Color $legendColor(yellow)
+      incr nistExpectedPMI(possible)
+    }
 
 # no match red
+  } else {
+    [[$worksheet($spmiSumName) Range C$spmiSumRow] Interior] Color $legendColor(red)
+    incr nistExpectedPMI(no)
+  }
+
+# add similar pmi
+  if {[info exists pmiSimilar] && $pmiSimilar != ""} {
+    $cells($spmiSumName) Item $spmiSumRow 4 "'$pmiSimilar"
+    set range [$worksheet($spmiSumName) Range D$spmiSumRow]
+    catch {foreach i {8 9} {[[$range Borders] Item $i] Weight [expr 1]}}
+    incr nsimilar
+
+# heading
+    set heading [[$cells($spmiSumName) Item 3 4] Value]
+    set exception 0
+    foreach item {"match" "dimension" "ignored"} {if {[string first $item $pmiSimilar] != -1} {set exception 1}}
+    if {$exception} {
+      [[$worksheet($spmiSumName) Range D$spmiSumRow] Interior] Color $legendColor(litgray)
+      if {$heading == ""} {set heading "Exception"}
+      if {$heading == "Similar PMI"} {set heading "Similar PMI / Exception"}
     } else {
-      [[$worksheet($spmiSumName) Range C$spmiSumRow] Interior] Color $legendColor(red)
-      incr nistExpectedPMI(no)
+      [[$worksheet($spmiSumName) Range D$spmiSumRow] Interior] Color $legendColor(gray)
+      if {$heading == ""} {set heading "Similar PMI"}
+      if {$heading == "Exception"} {set heading "Similar PMI / Exception"}
+    }
+    if {$heading != ""} {$cells($spmiSumName) Item 3 4 $heading}
+
+    if {$nsimilar == 1} {
+      [$worksheet($spmiSumName) Range [cellRange -1 4]] ColumnWidth [expr 48]
+      addCellComment $spmiSumName 3 4 "Similar PMI is the best match of the PMI Representation in column C, for Partial or Possible matches (blue and yellow), to the expected PMI in the NIST test case drawing to the right."
+      set range [$worksheet($spmiSumName) Range D3]
+      [$range Font] Bold [expr 1]
+      catch {foreach i {8 9} {[[$range Borders] Item $i] Weight [expr 2]}}
     }
   }
 
@@ -502,7 +682,6 @@ proc nistPMICoverage {nf} {
           if {$ok} {
             set ci $coverage($item)
             catch {set ci [expr {int($ci)}]}
-            #outputMsg " $item / $tval / $coverage($item) / $ci" red
 
 # check tolerance zone diameter vs. within a cylinder
             set skip 0
@@ -568,8 +747,8 @@ proc nistPMICoverage {nf} {
 # -------------------------------------------------------------------------------
 # summarize PMI Representation Summary with percentages
 proc nistAddExpectedPMIPercent {nf name} {
-  global cells cells1 legendColor lenfilelist nistCoverageStyle nistExpectedPMI
-  global nistPMIexpected nistPMIfound pmiElementsMaxRows spmiCoverageWS worksheet worksheet1
+  global cells cells1 legendColor lenfilelist nistCoverageStyle pmiElementsMaxRows spmiCoverageWS worksheet worksheet1
+  global nistExpectedPMI nistPMIdeduct nistPMIexpected nistPMIfound
 
 # compute missing and total expected PMI
   set nistExpectedPMI(missing) [llength [lindex [intersect3 $nistPMIexpected($name) $nistPMIfound] 0]]
@@ -618,6 +797,11 @@ proc nistAddExpectedPMIPercent {nf name} {
       set pct $nistExpectedPMI(total)
       set str "Total PMI"
     }
+    if {$pct == 100} {
+      if {[info exists nistPMIdeduct(dim)]} {set pct [expr {$pct-1}]}
+      if {[info exists nistPMIdeduct(tol)]} {set pct [expr {$pct-1}]}
+    }
+    catch {unset nistPMIdeduct}
     $cells($spmiCoverageWS) Item $r 1 $str
     $cells($spmiCoverageWS) Item $r 2 $pct
     if {$idx == "exact"} {outputMsg " Expected PMI: $pct\%"}
@@ -701,13 +885,14 @@ proc nistAddCoverageStyle {} {
 
 # -------------------------------------------------------------------------------
 proc nistPMISummaryFormat {name} {
-  global cells legendColor nistPMIactual nistPMIexpected nistPMIfound pmiType spmiSumName spmiSumRow worksheet
+  global cells legendColor pmiType spmiSumName spmiSumRow worksheet
+  global nistPMIactual nistPMIexpected nistPMIexpectedNX nistPMIexpectedGND nistPMIfound nistPMImap
 
   set r [incr spmiSumRow]
 
 # legend
   set n 0
-  set legend {{"Expected PMI" ""} {"See Help > Analyzer > NIST CAD Models" ""} {"Exact match" "green"} {"Partial match" "cyan"} {"Possible match" "yellow"} {"No match" "red"}}
+  set legend {{"Expected PMI" ""} {"See Help > Analyzer > NIST CAD Models" ""} {"Exact match" "green"} {"Exact match with Exceptions" "greyel"} {"Partial match" "cyan"} {"Possible match" "yellow"} {"No match" "red"}}
   foreach item $legend {
     set str [lindex $item 0]
     $cells($spmiSumName) Item $r 3 $str
@@ -747,6 +932,9 @@ proc nistPMISummaryFormat {name} {
       catch {[[[$worksheet($spmiSumName) Range [cellRange $r 3]] Borders] Item [expr 9]] Weight [expr 1]}
     }
   }
+
+# unset variables
+  foreach var {nistPMIactual nistPMIexpected nistPMIexpectedNX nistPMIexpectedGND nistPMIfound nistPMImap} {if {[info exists $var]} {unset -- $var}}
 }
 
 # -------------------------------------------------------------------------------
@@ -875,7 +1063,7 @@ proc nistGetName {} {
   set nistName ""
   set filePrefix {}
   set prefixes {}
-  for {set i 4} {$i < 9} {incr i} {lappend prefixes "sp$i"}
+  for {set i 4} {$i < 8} {incr i} {lappend prefixes "sp$i"}
   for {set i 1} {$i < 3} {incr i} {lappend prefixes "tgp$i"}
   for {set i 3} {$i < 4} {incr i} {lappend prefixes "tp$i"}
   lappend prefixes "pmi"
@@ -974,7 +1162,7 @@ proc nistGetName {} {
     }
   }
 
-# check required rounding for ftc 6,7,8
+# check required rounding for ftc 6,7,8,11
   catch {unset resetRound}
   if {$opt(PMISEM)} {
     if {$opt(PMISEMRND) && $nistName == "nist_ftc_06"} {
@@ -1067,6 +1255,10 @@ proc pmiRemoveZeros {pmi} {
   if {[string first "+0" $pmi] != -1} {regsub -all {\+0} $pmi "\+" pmi}
   if {[string first "-0" $pmi] != -1} {regsub -all {\-0} $pmi "\-" pmi}
   for {set j 0} {$j < 6} {incr j} {regsub -all "  " $pmi " " pmi}
+
+# ctc 1 specific case
+  set c1 [string first "80-3" $pmi]
+  if {$c1 != -1} {set pmi [string range $pmi 0 $c1][string range $pmi $c1+2 end]}
 
   return $pmi
 }

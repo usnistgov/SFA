@@ -124,7 +124,7 @@ proc spmiGeotolReport {objEntity} {
   global all_around all_over assocGeom ATR badAttributes between cells col datsys datumCompartment datumFeature datumModValue datumTargetDesc
   global datumSymbol datumSystem datumSystemPDS dim datumEntType datumGeom datumIDs datumTarget datumTargetType datumTargetView dimtolEntType dimtolGeom
   global entLevel ent entAttrList entCount gt gtEntity head1 magQualified magType multipleDatumFeature nistName objID opt pmiCol pmiHeading
-  global pmiModifiers pmiStartCol pmiUnicode propDefIDs ptz ptzError recPracNames spaces spmiEnts spmiID spmiIDRow spmiRow spmiTypesPerFile
+  global pmiModifiers pmiStartCol pmiUnicode propDefIDs ptz recPracNames spaces spmiEnts spmiID spmiIDRow spmiRow spmiTypesPerFile
   global stepAP syntaxErr tolNames tolStandard tolStandards tolval tzf1 tzfNames tzWithDatum worksheet
   global objDesign
 
@@ -551,7 +551,7 @@ proc spmiGeotolReport {objEntity} {
                     if {[info exists colName]} {
                       $cells($gt) Item 3 $c $colName
                       if {[string first "GD&T" $colName] != -1} {
-                        set comment "See Help > User Guide (section 6.1.4) for an explanation of how the annotations below are constructed."
+                        set comment "See Help > User Guide (section 6.1.4) for an explanation of how the annotations below are constructed.  Results are summarized on the PMI Representation Summary worksheet."
                         append comment "\n\nThe geometric tolerance might be shown with associated dimensions (above) and datum features (below).  That depends on any of the two referring to the same Associated Geometry as the Toleranced Geometry in the column to the right.  See the Associated Geometry columns on the 'dimensional_characteristic_representation' (DCR) and 'datum_feature' worksheets to see if they match the Toleranced Geometry."
                         append comment "\n\nSee the DCR worksheet for an explanation of Repetitive Dimensions."
                         if {$nistName != ""} {
@@ -560,7 +560,7 @@ proc spmiGeotolReport {objEntity} {
                         addCellComment $gt 3 $c $comment
                       }
                       if {[string first "Datum Reference Frame" $colName] == 0} {
-                        set comment "Section numbers refer to the CAx-IF Recommended Practice for Representation and Presentation of PMI (AP242)."
+                        set comment "Results are summarized on the PMI Representation Summary worksheet.  Section numbers refer to the CAx-IF Recommended Practice for Representation and Presentation of PMI (AP242)."
                         addCellComment $gt 3 $c $comment
                       }
                     }
@@ -1742,15 +1742,6 @@ proc spmiGeotolReport {objEntity} {
       unset between
     }
 
-# projected tolerance zone error
-    if {[info exists ptzError]} {
-      if {$ptzError} {
-        set val [[$cells($gt) Item $r $c] Value]
-        $cells($gt) Item $r $c "$val[format "%c" 10](projection_end error)"
-        unset ptzError
-      }
-    }
-
 # associated dimensional tolerance for geometric tolerances
     if {[info exists geotolGeomEnts] && [string first "datum_feature" $gt] == -1} {
       set ok 0
@@ -2045,29 +2036,31 @@ proc spmiProjectedToleranceZone {objGuiEntity} {
 # get the edge_curve that are shared between the shape aspects from (1) toleranced_shape_aspect and (2) projection_end
           foreach idx $idlist {
             set ec($idx) {}
-            if {$idx == 2} {set sas $pe}
-            if {[llength $sas] > 0} {
-              foreach sa $sas {
-                set e1s {}
-                ::tcom::foreach e1 [$sa GetUsedIn [string trim geometric_item_specific_usage] [string trim definition]] {lappend e1s $e1}
-                ::tcom::foreach e1 [$sa GetUsedIn [string trim item_identified_representation_usage] [string trim definition]] {lappend e1s $e1}
-                foreach e1 $e1s {
-                  set e2s {}
-                  set e2 [[[$e1 Attributes] Item [expr 5]] Value]
-                  if {[catch {
-                    set tmp [$e2 Type]
-                    lappend e2s $e2
-                  } emsg1]} {
-                    ::tcom::foreach e2 [[[$e1 Attributes] Item [expr 5]] Value] {lappend e2s $e2}
-                  }
-                  foreach e2 $e2s {
-                    if {[$e2 Type] == "advanced_face"} {
-                      ::tcom::foreach e3 [[[$e2 Attributes] Item [expr 2]] Value] {
-                        set e4 [[[$e3 Attributes] Item [expr 2]] Value]
-                        if {[$e4 Type] == "edge_loop"} {
-                          ::tcom::foreach e5 [[[$e4 Attributes] Item [expr 2]] Value] {
-                            set e6 [[[$e5 Attributes] Item [expr 4]] Value]
-                            lappend ec($idx) [$e6 P21ID]
+            if {[info exists pe]} {
+              if {$idx == 2} {set sas $pe}
+              if {[llength $sas] > 0} {
+                foreach sa $sas {
+                  set e1s {}
+                  ::tcom::foreach e1 [$sa GetUsedIn [string trim geometric_item_specific_usage] [string trim definition]] {lappend e1s $e1}
+                  ::tcom::foreach e1 [$sa GetUsedIn [string trim item_identified_representation_usage] [string trim definition]] {lappend e1s $e1}
+                  foreach e1 $e1s {
+                    set e2s {}
+                    set e2 [[[$e1 Attributes] Item [expr 5]] Value]
+                    if {[catch {
+                      set tmp [$e2 Type]
+                      lappend e2s $e2
+                    } emsg1]} {
+                      ::tcom::foreach e2 [[[$e1 Attributes] Item [expr 5]] Value] {lappend e2s $e2}
+                    }
+                    foreach e2 $e2s {
+                      if {[$e2 Type] == "advanced_face"} {
+                        ::tcom::foreach e3 [[[$e2 Attributes] Item [expr 2]] Value] {
+                          set e4 [[[$e3 Attributes] Item [expr 2]] Value]
+                          if {[$e4 Type] == "edge_loop"} {
+                            ::tcom::foreach e5 [[[$e4 Attributes] Item [expr 2]] Value] {
+                              set e6 [[[$e5 Attributes] Item [expr 4]] Value]
+                              lappend ec($idx) [$e6 P21ID]
+                            }
                           }
                         }
                       }

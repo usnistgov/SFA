@@ -1,3 +1,196 @@
+proc generateBOM {} {
+  global bomAssembly bomAssemblyID bomIndent bomItems bomNAUO bomNAUOID cells localName prodName sheetLast timeStamp unicodeString worksheet worksheets wsCount
+  global objDesign
+
+  if {[catch {
+
+# NAUO
+    ::tcom::foreach nauo [$objDesign FindObjects [string trim next_assembly_usage_occurrence]] {
+      foreach idx {4 5} {
+        set pd($idx) [[[$nauo Attributes] Item [expr $idx]] Value]
+        set p21id [$pd($idx) P21ID]
+
+# product_definition name
+        if {![info exists prodName($p21id)]} {
+          set name [string trim [[[$pd($idx) Attributes] Item [expr 1]] Value]]
+          set id1 "product_definition,id,$p21id"
+          if {[info exists unicodeString($id1)]} {set name $unicodeString($id1)}
+
+# or product name
+          if {$name == "" || $name == "design" || $name == "part definition" || $name == "None" || $name == "UNKNOWN" || $name == "BLNMEYEN" || $name == "NON CONOSCIUTO" || $name == "NEZNM"} {
+            set pdf [[[$pd($idx) Attributes] Item [expr 3]] Value]
+            set pro [[[$pdf Attributes] Item [expr 3]] Value]
+            set name [string trim [[[$pro Attributes] Item [expr 1]] Value]]
+            set id1 "product,id,[$pro P21ID]"
+            if {[info exists unicodeString($id1)]} {set name $unicodeString($id1)}
+            if {$name == ""} {
+              set name "NoName$p21id"
+              errorMsg " Product name attribute is blank or contains non-English characters, using NoName...  See Help > Text Strings and Numbers" red
+            }
+          }
+          set prodName($p21id) $name
+        }
+
+# relating
+        set pname($idx) $prodName($p21id)
+        if {$idx == 4} {
+          set relating $pname($idx)
+          set relatingID "$pname($idx) $p21id"
+          lappend bomNAUO(relating) $relating
+          lappend bomNAUOID(relating) $relatingID
+
+# related
+        } else {
+          lappend bomAssembly($relating) $pname($idx)
+          lappend bomAssemblyID($relatingID) "$pname($idx) $p21id"
+          lappend bomNAUO(related) $pname($idx)
+          lappend bomNAUOID(related) "$pname($idx) $p21id"
+        }
+      }
+    }
+
+    if {[info exists bomNAUO(relating)]} {
+      outputMsg "Generating BOM worksheet" blue
+      #outputMsg "\nbomNAUO relating $bomNAUO(relating)\nbomNAUO related $bomNAUO(related)" green
+      #foreach idx [lsort [array names bomAssembly]] {outputMsg "assembly $idx / $bomAssembly($idx)"}
+      #compareLists "relating related" [lrmdups $bomNAUO(relating)] [lrmdups $bomNAUO(related)]
+
+# assembly structure (uses ID to account for assemblies and parts with the same names)
+      set bomIndent 0
+      set bom [intersect3 [lrmdups $bomNAUOID(relating)] [lrmdups $bomNAUOID(related)]]
+      set root [lindex $bom 0]
+
+      foreach asm $root {
+        if {[info exists bomAssemblyID($asm)]} {
+          set bomIndent 0
+          #outputMsg [string range $asm 0 [string last " " $asm]-1] green
+          foreach assem $bomAssemblyID($asm) {bomAssembly $assem}
+        }
+      }
+
+# list assemblies
+      set bom [intersect3 [lrmdups $bomNAUOID(relating)] [lrmdups $bomNAUOID(related)]]
+      set assemblies [lindex $bom 1]
+      set lassem {}
+      foreach item [lsort -nocase $assemblies] {
+        if {[info exists bomItems($item)] && [info exists bomAssemblyID($item)]} {
+          foreach one $bomAssemblyID($item) {incr assemParts($one)}
+          set str ""
+          set n 0
+          foreach one [lsort [array names assemParts]] {
+            incr n
+            append str "($assemParts($one)) [string range $one 0 [string last " " $one]-1]  "
+            if {$n == 4} {append str [format "%c" 10]; set n 0}
+          }
+          lappend lassem [list $bomItems($item) [string range $item 0 [string last " " $item]-1] [string trim $str]]
+          unset assemParts
+        }
+      }
+
+# start BOM worksheet
+      set parts [lindex $bom 2]
+      if {[llength $parts] > 0} {
+        set worksheet(BOM) [$worksheets Add [::tcom::na] $sheetLast]
+        $worksheet(BOM) Activate
+        $worksheet(BOM) Name BOM
+        set cells(BOM) [$worksheet(BOM) Cells]
+        set wsCount [$worksheets Count]
+        [$worksheets Item [expr $wsCount]] -namedarg Move Before [$worksheets Item [expr 3]]
+
+        set txt [file tail $localName]
+        if {$timeStamp != ""} {append txt "  ($timeStamp)"}
+        $cells(BOM) Item 1 1 $txt
+        set range [$worksheet(BOM) Range A1 C1]
+        $range MergeCells [expr 1]
+        [$range Rows] AutoFit
+
+# list parts
+        set r 3
+        $cells(BOM) Item $r 1 "Qty"
+        $cells(BOM) Item $r 2 "Part"
+        foreach item [lsort -nocase $parts] {
+          if {[info exists bomItems($item)]} {
+            incr r
+            $cells(BOM) Item $r 1 $bomItems($item)
+            $cells(BOM) Item $r 2 "'[string range $item 0 [string last " " $item]-1]"
+          }
+        }
+
+# format table
+        set range [$worksheet(BOM) Range A3 B$r]
+        [$range Columns] AutoFit
+        set tname "BOM-parts"
+        [[$worksheet(BOM) ListObjects] Add 1 $range] Name $tname
+        [[$worksheet(BOM) ListObjects] Item $tname] TableStyle "TableStyleLight8"
+        set partWidth [[$worksheet(BOM) Range B3 B$r] ColumnWidth]
+
+# list assemblies
+        if {[llength $lassem] > 0} {
+          incr r 2
+          set rassem $r
+          $cells(BOM) Item $r 1 "Qty"
+          $cells(BOM) Item $r 2 "Assembly"
+          $cells(BOM) Item $r 3 "Components"
+          foreach item $lassem {
+            incr r
+            $cells(BOM) Item $r 1 [lindex $item 0]
+            $cells(BOM) Item $r 2 "'[lindex $item 1]"
+            $cells(BOM) Item $r 3 [lindex $item 2]
+          }
+
+# format table
+          set tname "BOM-assemblies"
+          set range [$worksheet(BOM) Range A$rassem C$r]
+          [[$worksheet(BOM) ListObjects] Add 1 $range] Name $tname
+          [[$worksheet(BOM) ListObjects] Item $tname] TableStyle "TableStyleLight9"
+
+# column widths
+          [$worksheet(BOM) Range C$rassem C$r] ColumnWidth [expr 150]
+          [$range Columns] AutoFit
+          [$range Rows] AutoFit
+          $range VerticalAlignment [expr -4160]
+          set assemWidth [[$worksheet(BOM) Range B$rassem B$r] ColumnWidth]
+          if {$assemWidth < $partWidth} {[$worksheet(BOM) Range B1 B$r] ColumnWidth [expr $partWidth]}
+        }
+      }
+    }
+
+# error
+  } emsg]} {
+    errorMsg "Error generating BOM worksheet: $emsg"
+  }
+  foreach var {bomAssembly bomAssemblyID bomIndent bomItems bomNAUO bomNAUOID prodName} {if {[info exists $var]} {unset -- $var}}
+}
+
+# -------------------------------------------------------------------------------
+proc bomAssembly {assem} {
+  global bomAssembly bomAssemblyID bomIndent bomItems bomParts lastAssem
+
+  set assem  [join $assem]
+  set assem1 [string range $assem 0 [string last " " $assem]-1]
+  incr bomItems($assem)
+
+  incr bomIndent 2
+  if {$bomIndent > 20} {
+    errorMsg "Problems with nesting parts in an assembly"
+    foreach var {bomAssembly bomIndent} {if {[info exists $var]} {unset -- $var}}
+    return
+  }
+
+  if {![info exists lastAssem]} {set lastAssem ""}
+  set str [string repeat " " $bomIndent]$assem1
+  #outputMsg $str blue
+  #if {$str != $lastAssem} {outputMsg $str blue}
+  set lastAssem $str
+
+  if {[info exists bomAssemblyID($assem)]} {
+    foreach subassem [lsort -nocase $bomAssemblyID($assem)] {bomAssembly [join $subassem]}
+  }
+  incr bomIndent -2
+  if {$bomIndent < 0} {set bomIndent 0}
+}
+
+# -------------------------------------------------------------------------------
 proc pmiFormatColumns {str} {
   global cells col gpmiRow pmiStartCol recPracNames row spmiRow stepAP thisEntType vpmiRow worksheet
 
@@ -444,11 +637,12 @@ proc syntaxChecker {fileName} {
 # -------------------------------------------------------------------------------
 # get STEP AP name
 proc getStepAP {fname} {
-  global fileSchema opt stepAPs
+  global fileSchema opt stepAPs useXL
 
   set ap ""
   set limit 0
-  if {$opt(xlFormat) == "Excel"} {set limit 1}
+  if {![info exists useXL]} {set useXL 1}
+  if {$opt(xlFormat) != "None" && $useXL} {set limit 1}
   set fs [string toupper [getSchemaFromFile $fname $limit]]
   set fileSchema $fs
 
@@ -486,7 +680,7 @@ proc getStepAP {fname} {
 
 #-------------------------------------------------------------------------------
 proc getSchemaFromFile {fname {limit 0}} {
-  global cadApps cadSystem developer opt p21e3 timeStamp unicodeInFile
+  global cadApps cadSystem developer opt p21e3 timeStamp unicodeInFile useXL
 
   set p21e3 0
   set schema ""
@@ -543,12 +737,12 @@ proc getSchemaFromFile {fname {limit 0}} {
       }
     }
 
-# check for X2 unicode control directives when generating a spreadsheet, set xlUnicode if possible
-    if {[string first "\\X2\\" $line] != -1 && $opt(xlFormat) == "Excel"} {
+# check for X2 unicode control directives when generating a spreadsheet, set xlUnicode if possible, \X\ does not have to be handled separately for a spreadsheet
+    if {[string first "\\X2\\" $line] != -1 && $opt(xlFormat) != "None" && $useXL} {
       if {[info exists schema]} {if {$schema == "CUTTING_TOOL_SCHEMA_ARM" || [string first "ISO13" $schema] == 0} {set opt(xlUnicode) 1}}
       if {[file size $fname] <= 10000000} {set opt(xlUnicode) 1}
       set unicodeInFile 1
-      if {!$opt(xlUnicode) && $limit} {errorMsg "Symbols or non-English text found for some entity attributes.  See the Spreadsheets Tab > Other to process those symbols and characters.  Also see Help > Text Strings and Numbers." red}
+      if {!$opt(xlUnicode) && $limit} {errorMsg "Symbols or non-English text found for some entity attributes.  See the Spreadsheet tab to process those symbols and characters.  Also see Help > Text Strings and Numbers." red}
     }
 
 # check for OPTIONS from ST-Developer toolkit
@@ -615,6 +809,7 @@ proc getSchemaFromFile {fname {limit 0}} {
 
 #-------------------------------------------------------------------------------
 # convert \X2\ in strings, see sfa-data.tcl for unicodeAttributes
+# \X\ does not have to be handled separately for a spreadsheet, complex entities need to be handled explicitly
 proc unicodeStrings {unicodeEnts} {
   global localName unicodeActual unicodeAttributes unicodeNumEnts unicodeString
 
@@ -709,6 +904,7 @@ proc unicodeStrings {unicodeEnts} {
               }
               foreach ia [array names attr] {
                 set str [string trim $attr($ia)]
+                if {[lindex $unicodeAttributes($ent1) $ia] == "reference_designator"} {set str [string range $str [string first "'" $str] [string last "'" $str]]}
                 set c0 [string index $str 0]
                 if {$c0 != "$" && $c0 != "#"} {
                   set c1 [string first "'" $str]

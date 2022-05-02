@@ -174,7 +174,7 @@ proc gpmiAnnotationReport {objEntity} {
   global ao aoname assocGeom badAttributes cells circleCenter col currx3dPID curveTrim dirRatio dirType
   global draughtingModels draftModelCameraNames draftModelCameras ent entAttrList entCount entLevel gen geomType gpmiEnts gpmiID gpmiIDRow
   global gpmiName gpmiRow gpmiTypes gpmiTypesInvalid gpmiTypesPerFile gpmiValProp grayBackground iCompCurve iCompCurveSeg iPolyline
-  global nindex numCompCurve numCompCurveSeg numPolyline numx3dPID objEntity1 opt placeAxes placeBox placeCoords
+  global leaderCoords leaderLineID nindex numCompCurve numCompCurveSeg numPolyline numx3dPID objEntity1 opt placeAxes placeBox placeCoords
   global pmiCol pmiColumns pmiHeading pmiStartCol propDefIDs recPracNames savedViewCol savedViewName spaces spmiTypesPerFile stepAP syntaxErr
   global tessCoord tessIndex tessIndexCoord tessPlacement tessPlacementID tessRepo useXL
   global x3dColor x3dCoord x3dFile x3dFileName x3dIndex x3dIndexType x3dMax x3dMin x3dPID x3dPoint x3dShape x3dStartFile
@@ -354,10 +354,20 @@ proc gpmiAnnotationReport {objEntity} {
 # save origin for tessellated placement, convert Z = -Y, Y = Z
                   if {[info exists tessRepo]} {if {$tessRepo} {lappend tessPlacement(origin) $coord}}
 
-# placeholder origin
+# placeholder coordinates
                   if {[string first "placeholder" $ao] != -1} {
-                    lappend placeCoords($aoname) $coord
-                    if {[string first "apll" $ent1] == 0} {errorMsg "For $ao, leader_lines are not supported."}
+                    if {[string first "apll" $ent1] == -1} {
+                      if {$ent(2) == "geometric_set"} {lappend placeCoords($aoname) $coord}
+
+# placeholder leader line
+                    } else {
+                      set okcrd 1
+                      foreach crd $coord {
+                        set crd [expr {abs($crd)}]
+                        if {$crd > 1.e7} {errorMsg "Ignoring [lindex $ent1 0] coordinate that is too large: $crd"; set okcrd 0}
+                      }
+                      if {$okcrd} {lappend leaderCoords($aoname) "$coord $leaderLineID"}
+                    }
                   }
 
 # for graphical PMI, using coordinates depends on geometry type
@@ -423,12 +433,8 @@ proc gpmiAnnotationReport {objEntity} {
                       set etype [$elem Type]
                       if {[string first "handle" $etype] != -1} {set etype [[$etype Value] Type]}
                       lappend elements $etype
-                      if {[string first "point" $etype] == 0} {
+                      if {[string first "point" $etype] == 0 || ($etype != "axis2_placement_3d" && $etype != "cartesian_point" && $etype != "planar_box")} {
                         errorMsg "For $ao '$etype' is not supported."
-                      } elseif {$etype != "axis2_placement_3d" && $etype != "cartesian_point" && $etype != "planar_box"} {
-                        set msg "Syntax Error: For $ao '$etype' is not valid in 'geometric_set.elements'.$spaces\($recPracNames(pmi242), Sec. 7.2.2)."
-                        errorMsg $msg
-                        lappend syntaxErr($ao) [list $gpmiID "elements" $msg]
                       }
                     }
                     if {[lsearch $elements "axis2_placement_3d"] == -1} {
@@ -703,6 +709,21 @@ proc gpmiAnnotationReport {objEntity} {
                 "annotation_occurrence* name" -
                 "*tessellated_annotation_occurrence* name" {
                   set aoname $objValue
+                  set dcs [$objEntity GetUsedIn [string trim draughting_callout] [string trim contents]]
+                  set ndc 0
+                  ::tcom::foreach dc $dcs {incr ndc}
+                  if {$ndc == 0} {
+                    set msg "Syntax Error: [$objEntity Type] not found in draughting_callout 'contents' attribute.$spaces"
+                    if {[string first "tessellated" $ent1] != -1} {
+                      append msg "\($recPracNames(pmi242), Sec. 8.2, Fig. 81)"
+                    } elseif {[string first "placeholder" $ent1] != -1} {
+                      append msg "\($recPracNames(pmi242), Sec. 7.2.2, Fig. 72)"
+                    } else {
+                      append msg "\($recPracNames(pmi242), Sec. 8.1.1, Fig. 78)"
+                    }
+                    errorMsg $msg
+                    lappend syntaxErr([lindex $ent1 0]) [list $objID "ID" $msg]
+                  }
                   if {[string first "fill" $ent1] != -1 && $gen(View) && $opt(viewPMI)} {errorMsg " Filled characters for annotations are not filled."}
                   if {[string first "tessellated" $ent1] != -1 && $opt(xlFormat) != "None"} {
                     set ok 1
@@ -826,6 +847,7 @@ proc gpmiAnnotationReport {objEntity} {
                 "polyline name" {set geomType "polyline"}
                 "circle name"   {set geomType "circle"}
                 "composite_curve name" {set iCompCurveSeg 0}
+                "annotation_to_model_leader_line name" {set leaderLineID $objID}
 
                 "planar_box size_in_*" {
                   set geomType "planar_box"
@@ -906,6 +928,7 @@ proc gpmiAnnotationReport {objEntity} {
                       if {$n == 0} {
                         set objGuiEntities [$objEntity1 GetUsedIn [string trim draughting_callout] [string trim contents]]
                         ::tcom::foreach objGuiEntity $objGuiEntities {
+                          outputMsg "[$objGuiEntity Type]" red
                           incr n
                           if {$n == 1} {lappend gpmiTypesPerFile "$ov/$aoname[$objGuiEntity P21ID]"}
                         }
@@ -1021,7 +1044,7 @@ proc gpmiAnnotationReport {objEntity} {
                 }
 
 # look at shape_aspect or datums to find associated geometry
-              } elseif {[string first "shape_aspect" $dmiaDefType] != -1 || [string first "datum" $dmiaDefType] != -1} {
+              } elseif {([string first "shape_aspect" $dmiaDefType] != -1 || [string first "datum" $dmiaDefType] != -1) && [string first "placeholder" $dmia] == -1} {
                 getAssocGeom $dmiaDef 1 $ao
               }
             } elseif {$opt(xlFormat) != "None"} {
@@ -1304,6 +1327,7 @@ proc gpmiAnnotationReport {objEntity} {
 # report missing saved view only if not text, etc.
           set oknm 1
           foreach str {note title block label text} {if {[string first $str $gpmiName] != -1} {set oknm 0}}
+          if {$oknm} {if {[string first "leader_line" [$objEntity Type]] != -1} {set oknm 0}}
           if {$oknm} {
             set msg "An [$objEntity Type] is not in a Saved View.  If the annotation should be in a Saved View, then check draughting_model 'items' for a missing draughting_callout related to the annotation.  Also check the View for Graphical PMI to see if the annotations are not in a Saved View.\n  "
             if {[string first "AP242" $stepAP] == 0} {
@@ -1379,7 +1403,7 @@ proc gpmiAnnotationReport {objEntity} {
 # get camera models
 proc pmiGetCameras {} {
   global objDesign
-  global draughtingModels draftModelCameraNames draftModelCameras entCount gen mytemp opt recPracNames savedViewFile
+  global draughtingModels draftModelCameraNames draftModelCameras entCount gen mytemp opt recPracNames savedViewFile savedViewDMName
   global savedViewFileName savedViewItems savedViewName savedViewNames savedViewpoint spaces spmiTypesPerFile stepAP syntaxErr viewsWithPMI
 
   catch {unset draftModelCameras}
@@ -1418,8 +1442,8 @@ proc pmiGetCameras {} {
                   incr nattr
                   set nameDraughtingModel [$attrDraughtingModel Name]
                   if {$nameDraughtingModel == "name" && $nattr == $iattr} {
-                    set name [$attrDraughtingModel Value]
-                    if {$name == ""} {
+                    set dmname [$attrDraughtingModel Value]
+                    if {$dmname == ""} {
                       set msg "Syntax Error: For viewpoints, missing required 'name' attribute on [formatComplexEnt $dm]$spaces"
                       if {[string first "AP242" $stepAP] == 0} {
                         append msg "($recPracNames(pmi242), Sec. 9.4.2)"
@@ -1450,6 +1474,7 @@ proc pmiGetCameras {} {
                     set name [$attrCameraModel Value]
                     set name1 [string trim $name]
                     if {$name1 == ""} {set name1 "Missing name"}
+                    set savedViewDMName($name1) $dmname
 
                     if {$name == ""} {
                       set msg "Syntax Error: For viewpoints, missing required 'name' attribute on $cm$spaces"
@@ -1556,4 +1581,26 @@ proc pmiGetCameras {} {
       catch {raise .}
     }
   }
+}
+
+# -------------------------------------------------------------------------------
+# set predefined color
+proc x3dPreDefinedColor {name} {
+  global defaultColor recPracNames spaces
+
+  switch -- $name {
+    black   {set color "0 0 0"}
+    white   {set color "1 1 1"}
+    red     {set color "1 0 0"}
+    yellow  {set color "1 1 0"}
+    green   {set color "0 1 0"}
+    cyan    {set color "0 1 1"}
+    blue    {set color "0 0 1"}
+    magenta {set color "1 0 1"}
+    default {
+      set color $defaultColor
+      errorMsg "Syntax Error: draughting_pre_defined_colour name '$name' is not supported$spaces\($recPracNames(model), Sec. 4.2.3, Table 2)"
+    }
+  }
+  return $color
 }

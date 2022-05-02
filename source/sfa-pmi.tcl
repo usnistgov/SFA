@@ -1,0 +1,411 @@
+# write tessellated geometry for annotations and parts
+proc x3dTessGeom {objID tessEnt faceEnt} {
+  global ao arLastID assemTransform defaultColor draftModelCameras entCount mytemp noGroupTransform opt recPracNames savedViewFile savedViewFileName
+  global savedViewNames shapeRepName shellSuppGeom spaces srNames syntaxErr taoLastID tessCoord tessCoordID tessGeomTxt tessIndex tessIndexCoord
+  global tessPartFile tessPlacement tessRepo tessSuppGeomFile tsName x3dColor x3dColorFile x3dColors x3dCoord x3dFile x3dIndex
+
+  set x3dIndex $tessIndex($objID)
+  set x3dCoord $tessCoord($tessIndexCoord($objID))
+
+  if {$x3dColor == ""} {
+    set x3dColor "0 0 0"
+    if {[string first "annotation" [$tessEnt Type]] != -1} {
+      set msg "Syntax Error: Missing PMI Presentation color (using black).$spaces\($recPracNames(pmi242), Sec. 8.5, Fig. 84)"
+      errorMsg $msg
+      lappend syntaxErr([$tessEnt Type]) [list [$tessEnt P21ID] "color" $msg]
+    }
+  }
+  set x3dIndexType "line"
+  set solid ""
+  set emit "emissiveColor='$x3dColor'"
+  set spec ""
+  set x3dSolid 0
+
+# faces
+  set ent1 $faceEnt
+  if {[string first "handle" $faceEnt] != -1} {set ent1 [$faceEnt Type]}
+
+  if {[string first "face" $ent1] != -1} {
+    set x3dIndexType "face"
+    set solid "solid='false'"
+
+# tessellated part geometry
+    if {$ao == "tessellated_solid" || $ao == "tessellated_shell"} {
+      set tsID [$tessEnt P21ID]
+      set tessRepo 0
+      set x3dSolid 1
+      set tsName($tsID) [[[$tessEnt Attributes] Item [expr 1]] Value]
+
+# find name linked to product
+      if {[info exists entCount(product)]} {
+        if {$entCount(product) > 1} {
+          if {$tsName($tsID) == ""} {
+            set e0s [$tessEnt GetUsedIn [string trim geometric_item_specific_usage] [string trim identified_item]]
+            ::tcom::foreach e0 $e0s {
+              for {set i 0} {$i < 5} {incr i} {set e0 [[[$e0 Attributes] Item [expr 3]] Value]}
+              set tsName($tsID) [[[$e0 Attributes] Item [expr 1]] Value]
+            }
+          }
+        }
+      }
+
+# set default color
+      set x3dColor $defaultColor
+      tessSetColor $tessEnt $faceEnt
+      set spec "specularColor='[vectrim [vecmult $x3dColor 0.2]]'"
+      set emit ""
+
+# set placement for tessellated part geometry in assemblies (axis and ref_direction)
+      if {[info exists entCount(item_defined_transformation)]} {tessSetPlacement $tessEnt $tsID}
+    }
+  }
+
+# write transform based on placement
+  catch {unset endTransform}
+  set nplace 0
+  if {[info exists tessRepo]} {
+    if {$tessRepo && [info exists tessPlacement(origin)]} {set nplace [llength $tessPlacement(origin)]}
+  }
+  if {$nplace == 0} {set nplace 1}
+
+# file list where to write geometry
+  set flist $x3dFile
+  if {$ao == "tessellated_solid" || $ao == "tessellated_shell"} {
+    set flist $tessPartFile
+    if {$ao == "tessellated_shell" && [info exists shellSuppGeom]} {if {$shellSuppGeom} {set flist $tessSuppGeomFile}}
+  }
+
+# get saved view name
+  if {[info exists draftModelCameras] && $ao == "tessellated_annotation_occurrence"} {set savedViewName [x3dGetSavedViewName $tessEnt]}
+
+# no savedViewName, i.e., PMI not in a Saved View
+  if {$ao != "tessellated_solid" && $ao != "tessellated_shell"} {
+    if {![info exists savedViewName]} {set savedViewName ""}
+    if {$savedViewName == ""} {
+      set svn "Not in a Saved View"
+      lappend savedViewName $svn
+      if {[lsearch $savedViewNames $svn] == -1} {lappend savedViewNames $svn}
+      set svn1 "View[lsearch $savedViewNames $svn]"
+      if {![info exists savedViewFile($svn1)]} {
+        catch {file delete -force -- $savedViewFileName($svn1)}
+        set fn [file join $mytemp $svn1.txt]
+        set savedViewFile($svn1) [open $fn w]
+        set savedViewFileName($svn1) $fn
+      }
+    }
+
+    if {[llength $savedViewName] > 0} {
+      set numView {}
+      foreach svn $savedViewName {lappend numView [lsearch $savedViewNames $svn]}
+      set flist {}
+      foreach num [lsort -integer $numView] {
+        set svn1 "View$num"
+        if {[info exists savedViewFile($svn1)]} {lappend flist $savedViewFile($svn1)}
+      }
+    }
+  }
+
+# -------------------------------------------------------------------------------
+# loop over list of files from above
+  foreach f $flist {
+
+# annotation name
+    catch {unset idshape}
+    set txt [[[$tessEnt Attributes] Item [expr 1]] Value]
+    regsub -all "'" $txt "\"" idshape
+
+# group annotations for AR workflow
+    if {$opt(viewPMIAR)} {
+      if {[string first "annotation" $ao] != -1} {
+        set aoID [$tessEnt P21ID]
+        if {![info exists arLastID($f)] || $aoID != $arLastID($f)} {
+          if {[info exists arLastID($f)] && !$tessRepo} {puts $f "</Group>"}
+          set tessGeomTxt "TAO $aoID | "
+          set e0 [[[$tessEnt Attributes] Item [expr 3]] Value]
+          append tessGeomTxt "[[[$e0 Attributes] Item [expr 1]] Value] | $idshape"
+          if {!$tessRepo} {puts $f "<Group id='$tessGeomTxt'>"}
+        }
+        set arLastID($f) $aoID
+      }
+    }
+
+# multiple saved view color
+    if {[info exists savedViewName]} {
+      if {$opt(gpmiColor) == 3 && [llength $savedViewNames] > 1} {
+        if {![info exists x3dColorFile($f)]} {set x3dColorFile($f) [x3dSetPMIColor $opt(gpmiColor) 1]}
+        set x3dColor $x3dColorFile($f)
+        set emit "emissiveColor='$x3dColor'"
+      }
+    }
+
+
+# -------------------------------------------------------------------------------
+# loop over placements, if any
+    for {set np 0} {$np < $nplace} {incr np} {
+      set srName ""
+      if {![info exists shapeRepName]} {
+        set shapeRepName $x3dIndexType
+      } elseif {$shapeRepName != "line" && $shapeRepName != "face"} {
+        set srName $shapeRepName
+      }
+
+# for tessellated shell or solid name
+      if {[info exists tsID]} {
+        if {$tsName($tsID) != ""} {
+          set srName $tsName($tsID)
+        } elseif {$srName == ""} {
+          set srName "[string toupper $ao] $tsID"
+        }
+      }
+
+# name of shape, solid, or shell
+      if {$srName != ""} {
+        incr srNames($srName)
+        if {$srNames($srName) == 1} {puts $f "<!-- $srName -->"}
+      }
+
+# translation and rotation (sometimes PMI and usually assemblies)
+      if {$tessRepo && [info exists tessPlacement(origin)]} {
+        if {![info exists tessGeomTxt]} {set tessGeomTxt ""}
+        set transform [x3dTransform [lindex $tessPlacement(origin) $np] [lindex $tessPlacement(axis) $np] [lindex $tessPlacement(refdir) $np] "tessellated geometry" "" $tessGeomTxt]
+        puts $f $transform
+        set endTransform 1
+      }
+
+# write tessellated face or line
+      if {$np == 0} {
+        set defstr ""
+        if {$nplace > 1} {set defstr " DEF='$shapeRepName$objID'"}
+
+# shape
+        set idstr ""
+        if {[info exists idshape]} {if {$idshape != ""} {set idstr " id='$idshape'"}}
+          #outputMsg "shape $idstr" blue
+        if {$emit == ""} {
+          set matID ""
+          set colorID [lsearch $x3dColors $x3dColor]
+          if {$colorID == -1} {
+            lappend x3dColors $x3dColor
+            puts $f "<Shape$idstr$defstr><Appearance DEF='appTess[llength $x3dColors]'><Material id='matTess[llength $x3dColors]' diffuseColor='$x3dColor' $spec/></Appearance>"
+          } else {
+            puts $f "<Shape$idstr$defstr><Appearance USE='appTess[incr colorID]'></Appearance>"
+          }
+        } else {
+          if {$x3dIndexType == "face"} {
+            puts $f "<Shape$idstr$defstr><Appearance><Material diffuseColor='$x3dColor' emissiveColor='$x3dColor' shininess='0'/></Appearance>"
+          } else {
+            puts $f "<Shape$idstr$defstr><Appearance><Material $emit/></Appearance>"
+          }
+        }
+
+# coordinate index
+        set indexedSet "<Indexed[string totitle $x3dIndexType]\Set $solid coordIndex='[string trim $x3dIndex]'>"
+
+# coordinates
+        if {[lsearch $tessCoordID $tessIndexCoord($objID)] == -1} {
+          lappend tessCoordID $tessIndexCoord($objID)
+          puts $f " $indexedSet\n  <Coordinate DEF='coord$tessIndexCoord($objID)' point='[string trim $x3dCoord]'/></Indexed[string totitle $x3dIndexType]\Set></Shape>"
+        } else {
+          puts $f " $indexedSet<Coordinate USE='coord$tessIndexCoord($objID)'/></Indexed[string totitle $x3dIndexType]\Set></Shape>"
+        }
+
+# reuse shape
+      } else {
+        puts $f "<Shape USE='$shapeRepName$objID'></Shape>"
+      }
+
+# -------------------------------------------------------------------------------
+# for tessellated part geometry only, write mesh based on faces
+      if {$opt(tessPartMesh)} {
+        if {$x3dIndexType == "face" && ($ao == "tessellated_solid" || $ao == "tessellated_shell")} {
+          if {$np == 0} {
+            set x3dMesh ""
+
+# write individual edges
+            set edges {}
+            for {set i 0} {$i < [llength $x3dIndex]} {incr i 4} {
+              lappend edges [lsort "[lindex $x3dIndex $i] [lindex $x3dIndex $i+1]"]
+              lappend edges [lsort "[lindex $x3dIndex $i+1] [lindex $x3dIndex $i+2]"]
+              lappend edges [lsort "[lindex $x3dIndex $i] [lindex $x3dIndex $i+2]"]
+            }
+
+# try to combine some edges and write mesh
+            set edges [lsort [lrmdups $edges]]
+            for {set i 0} {$i < [llength $edges]} {incr i} {
+              set edge [lindex $edges $i]
+              set nedge [lindex $edges $i+1]
+              if {[lindex $edge 1] == [lindex $nedge 0]} {
+                set edge [lappend edge [lindex $nedge 1]]
+                incr i
+              } elseif {[lindex $edge 0] == [lindex $nedge 0]} {
+                set edge [concat [lindex $nedge 1] $edge]
+                incr i
+              }
+              append x3dMesh "$edge -1 "
+            }
+
+# write mesh
+            set ecolor ""
+            foreach c [split $x3dColor] {append ecolor "[expr {$c*.5}] "}
+            set defstr ""
+            if {$nplace > 1} {set defstr " DEF='mesh$objID'"}
+            puts $f "<Shape$idstr$defstr><Appearance><Material emissiveColor='$ecolor'/></Appearance>"
+            puts $f " <IndexedLineSet coordIndex='[string trim $x3dMesh]'><Coordinate USE='coord$tessIndexCoord($objID)'/></IndexedLineSet></Shape>"
+          } else {
+            puts $f "<Shape USE='mesh$objID'></Shape>"
+          }
+        }
+      }
+
+# end transform
+      if {[info exists endTransform]} {puts $f "</Transform>"}
+    }
+  }
+  set x3dCoord ""
+  set x3dIndex ""
+  catch {unset tessGeomTxt}
+  update idletasks
+}
+
+# -------------------------------------------------------------------------------
+# get saved view names
+proc x3dGetSavedViewName {objEntity} {
+  global draughtingModels draftModelCameraNames draftModelCameras savedsavedViewNames savedViewName
+
+# saved view name already saved
+  if {[info exists savedsavedViewNames([$objEntity P21ID])]} {return $savedsavedViewNames([$objEntity P21ID])}
+
+  set savedViewName {}
+  foreach dm $draughtingModels {
+    set entDraughtingModels [$objEntity GetUsedIn [string trim $dm] [string trim items]]
+    set entDraughtingCallouts [$objEntity GetUsedIn [string trim draughting_callout] [string trim contents]]
+    ::tcom::foreach entDraughtingCallout $entDraughtingCallouts {
+      set entDraughtingModels [$entDraughtingCallout GetUsedIn [string trim $dm] [string trim items]]
+    }
+
+    ::tcom::foreach entDraughtingModel $entDraughtingModels {
+      if {[info exists draftModelCameras([$entDraughtingModel P21ID])]} {
+        set dmcn $draftModelCameraNames([$entDraughtingModel P21ID])
+        if {[lsearch $savedViewName $dmcn] == -1} {lappend savedViewName $dmcn}
+      }
+    }
+  }
+
+# save saved view name
+  if {![info exists savedsavedViewNames([$objEntity P21ID])]} {set savedsavedViewNames([$objEntity P21ID]) $savedViewName}
+  return $savedViewName
+}
+
+# -------------------------------------------------------------------------------
+# set x3d color for PMI
+proc x3dSetPMIColor {type {mode 0}} {
+  global idxColor
+
+# black
+  if {$type == 1} {
+    set color "0 0 0"
+
+# random
+  } elseif {$type == 2 || $type == 3} {
+    incr idxColor($mode)
+    switch -- $idxColor($mode) {
+      1 {set color "1 0 0"}
+      2 {set color "0 0 1"}
+      3 {set color "0 .5 0"}
+      4 {set color "1 0 1"}
+      5 {set color "0 .5 .5"}
+    }
+    if {$idxColor($mode) == 5} {set idxColor($mode) 0}
+  }
+  return $color
+}
+
+# -------------------------------------------------------------------------------
+# write geometry for polyline annotations
+proc x3dPolylinePMI {{objEntity1 ""}} {
+  global ao arLastID mytemp opt polylineTxt recPracNames savedViewFile savedViewFileName
+  global savedViewName savedViewNames spaces x3dColor x3dColorFile x3dCoord x3dFile x3dIndex x3dIndexType x3dShape
+
+  if {[catch {
+    if {[info exists x3dCoord] || $x3dShape} {
+      set flist $x3dFile
+
+# no savedViewName, i.e., PMI not in a Saved View
+      if {[llength $savedViewName] == 0} {
+        set svn  "Not in a Saved View"
+        lappend savedViewName $svn
+        if {[lsearch $savedViewNames $svn] == -1} {lappend savedViewNames $svn}
+        set svn1 "View[lsearch $savedViewNames $svn]"
+        if {![info exists savedViewFile($svn1)]} {
+          catch {file delete -force -- $savedViewFileName($svn1)}
+          set fn [file join $mytemp $svn1.txt]
+          set savedViewFile($svn1) [open $fn w]
+          set savedViewFileName($svn1) $fn
+        }
+      }
+
+# multiple saved views, write to individual files
+      if {[llength $savedViewName] > 0} {
+        set flist {}
+        foreach svn $savedViewName {
+          set svn1 "View[lsearch $savedViewNames $svn]"
+          if {[info exists savedViewFile($svn1)]} {lappend flist $savedViewFile($svn1)}
+        }
+      }
+
+# loop over list of files from above
+      foreach f $flist {
+
+# group annotations for AR workflow
+        if {$opt(viewPMIAR) && $objEntity1 != "" && [string first "placeholder" $ao] == -1} {
+          set aoID [$objEntity1 P21ID]
+          if {![info exists arLastID($f)] || $aoID != $arLastID($f)} {
+            if {[info exists arLastID($f)]} {puts $f "</Group>"}
+            set polylineTxt "AO $aoID"
+            set e0 [[[$objEntity1 Attributes] Item [expr 3]] Value]
+            set txt [[[$e0 Attributes] Item [expr 1]] Value]
+            if {$txt != ""} {append polylineTxt " | $txt"}
+            set txt [[[$objEntity1 Attributes] Item [expr 1]] Value]
+            regsub -all "'" $txt "\"" idshape
+            if {$txt != ""} {append polylineTxt " | $idshape"}
+            puts $f "<Group id='$polylineTxt'>"
+          }
+          set arLastID($f) $aoID
+        }
+
+# multiple saved view color
+        if {$opt(gpmiColor) == 3 && [llength $savedViewNames] > 1} {
+          if {![info exists x3dColorFile($f)]} {set x3dColorFile($f) [x3dSetPMIColor $opt(gpmiColor) 1]}
+          set x3dColor $x3dColorFile($f)
+        }
+
+# start shape
+        if {[string length $x3dCoord] > 0} {
+          set idstr ""
+          if {[info exists idshape]} {if {$idshape != ""} {set idstr " id='$idshape'"}}
+          if {$x3dColor != ""} {
+            puts $f "<Shape$idstr><Appearance><Material emissiveColor='$x3dColor'/></Appearance>"
+          } else {
+            puts $f "<Shape$idstr><Appearance><Material emissiveColor='0 0 0'/></Appearance>"
+            errorMsg "Syntax Error: Missing PMI Presentation color for [formatComplexEnt $ao] (using black)$spaces\($recPracNames(pmi242), Sec. 8.5, Fig. 84)"
+          }
+          catch {unset idshape}
+
+# index and coordinates
+          puts $f " <IndexedLineSet coordIndex='[string trim $x3dIndex]'>\n  <Coordinate point='[string trim $x3dCoord]'/></IndexedLineSet></Shape>"
+
+# end shape
+        } elseif {$x3dShape} {
+          puts $f "</Indexed$x3dIndexType\Set></Shape>"
+        }
+      }
+      set x3dCoord ""
+      set x3dIndex ""
+      set x3dColor ""
+      set x3dShape 0
+    }
+  } emsg3]} {
+    errorMsg "Error writing polyline annotation graphics: $emsg3"
+  }
+  update idletasks
+}

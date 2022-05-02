@@ -26,7 +26,7 @@ proc spmiSummary {} {
     $cells($spmiSumName) Item $spmiSumRow 2 "Entity"
     $cells($spmiSumName) Item $spmiSumRow 3 "PMI Representation"
 
-    set comment "PMI Representation is collected here from the datum system, dimension, tolerance, and datum target entities in column B.  See Help > User Guide (section 6.1.6)"
+    set comment "PMI Representation summarizes results from Datum System, Dimension, Geometric Tolerance, and Datum Target entities.  See Help > User Guide (section 6.1.6)"
     if {$valRounded} {append comment "\n\nSome dimension or tolerance values are rounded."}
     if {$nistName != ""} {
       append comment "\n\nIt is color-coded by the expected PMI in the NIST test case drawing to the right.  The color-coding is explained at the bottom of the column.  Determining if the PMI is Partial and Possible match and corresponding Similar PMI depends on leading and trailing zeros, number precision, associated datum features and dimensions, and repetitive dimensions.  See Help > User Guide (section 6.6.1)"
@@ -249,13 +249,6 @@ proc spmiCoverageWrite {{fn ""} {sum ""} {multi 1}} {
   global objDesign
 
   if {![info exists allPMIelements] && ![info exists entCount(datum)]} {return}
-
-# return if only 'document identification' or '... standard'
-  if {[info exists spmiTypesPerFile]} {
-    set ok 0
-    foreach type $spmiTypesPerFile {if {$type != "document identification" && [string first "standard" $type] == -1} {set ok 1}}
-    if {!$ok} {return}
-  }
 
   if {[catch {
     if {$multi} {

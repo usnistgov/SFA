@@ -1,5 +1,5 @@
 # SFA version
-proc getVersion {} {return 4.72}
+proc getVersion {} {return 4.74}
 
 # see proc installIFCsvr in sfa-proc.tcl for the IFCsvr version
 
@@ -39,6 +39,7 @@ Use F9 and F10 to change the font size here.  See Help > Function Keys"
       outputMsg "- User Guide (Update 7) is based on version 4.60"
       showFileURL UserGuide
     }
+    if {$sfaVersion < 4.74} {outputMsg "- Generate Bill of Materials (BOM), see Options tab"}
     if {$sfaVersion < 4.12} {outputMsg "- Updated Viewer for Part Geometry, see Help > Viewer > Overview"}
     if {$sfaVersion < 3.80} {outputMsg "- Syntax Checker, see Help > Syntax Checker"}
     if {$sfaVersion < 3.70} {outputMsg "- Faster generation of Spreadsheets"}
@@ -415,7 +416,7 @@ proc guiOptionsTab {} {
   }
 
 # part only
-  foreach item {{" Part Only" opt(partOnly)} {" Syntax Checking" opt(syntaxChecker)} {" Log File" opt(logFile)} {" Open Output Files" opt(outputOpen)}} {
+  foreach item {{" Part Only" opt(partOnly)} {" BOM" opt(BOM)} {" Syntax Checking" opt(syntaxChecker)} {" Log File" opt(logFile)} {" Open Output Files" opt(outputOpen)}} {
     set idx [string range [lindex $item 1] 4 end-1]
     set buttons($idx) [ttk::checkbutton $foptk.$cb -text [lindex $item 0] -variable [lindex $item 1] -command {checkValues}]
     pack $buttons($idx) -side left -anchor w -padx {5 0} -pady {0 3} -ipady 0
@@ -435,6 +436,7 @@ proc guiOptionsTab {} {
   set txt "The Viewer supports b-rep and tessellated part geometry, graphical PMI, sketch\ngeometry, supplemental geometry, datum targets, and finite element models.\n\nPart Only generates only Part Geometry.  This is useful when no other Viewer\nfeatures are needed and for large STEP files.  Use the Viewer options below to\ncontrol what features of the STEP file are shown.  See Help > Viewer"
   catch {tooltip::tooltip $buttons(genView) $txt}
   catch {tooltip::tooltip $buttons(partOnly) $txt}
+  catch {tooltip::tooltip $buttons(BOM) "Generate a Bill of Materials (BOM), see Help > Bill of Materials"}
 
   catch {tooltip::tooltip $buttons(logFile) "Status tab text can be written to a Log file myfile-sfa.log  Use F4 to open the Log file.\nSyntax Checker results are written to myfile-sfa-err.log\nAll text in the Status tab can be saved by right-clicking and selecting Save."}
   catch {tooltip::tooltip $buttons(syntaxChecker) "Use this option to run the Syntax Checker when generating a Spreadsheet\nor View.  The Syntax Checker can also be run with function key F8.\n\nThis checks for basic syntax errors and warnings in the STEP file related to\nmissing or extra attributes, incompatible and unresolved\ entity references,\nselect value types, illegal and unexpected characters, and other problems\nwith entity attributes.\n\nSee Help > Syntax Checker\nSee Help > User Guide (section 7)"}
@@ -558,7 +560,7 @@ proc guiOptionsTab {} {
           }
         } elseif {$allNone == 1} {
           foreach item [array names opt] {if {[string first "step" $item] == 0} {set opt($item) 0}}
-          foreach item {INVERSE PMIGRF PMISEM valProp stepUSER x3dSave} {set opt($item) 0}
+          foreach item {BOM INVERSE PMIGRF PMISEM valProp stepUSER x3dSave} {set opt($item) 0}
           set opt(stepCOMM) 1
           set gen(None) 0
           set gen(Excel) 1
@@ -769,7 +771,7 @@ proc guiUserDefinedEntities {} {
   }]
   pack $fopta6.$cb -side left -anchor w -padx 10
   incr cb
-  catch {tooltip::tooltip $fopta6 "A User-Defined List is a plain text file with one STEP entity name per line.\n\nThis allows for more control to process only the required entity types,\nrather than process the board categories of entities above.\n\nIt is also useful when processing large files that might cause a crash."}
+  catch {tooltip::tooltip $fopta6 "A User-Defined List is a plain text file with one STEP entity name per line.\nThis allows for more control to process only the required entity types,\nrather than process the broad categories of entities above."}
   pack $fopta6 -side bottom -anchor w -pady 5 -padx 0 -fill y
 }
 
@@ -896,9 +898,13 @@ proc guiSpreadsheet {} {
 # maximum rows
   set fxlsa [ttk::labelframe $fxls.a -text " Maximum Rows "]
   set rlimit {{" 100" 103} {" 500" 503} {" 1000" 1003} {" 5000" 5003} {" 10000" 10003} {" 50000" 50003} {" 100000" 100003} {" Maximum" 1048576}}
+  set n 0
   foreach item $rlimit {
-    pack [ttk::radiobutton $fxlsa.$cb -variable opt(xlMaxRows) -text [lindex $item 0] -value [lindex $item 1]] -side left -anchor n -padx 5 -pady 0 -ipady 0
+    set idx "maxrows$n"
+    set buttons($idx) [ttk::radiobutton $fxlsa.$cb -variable opt(xlMaxRows) -text [lindex $item 0] -value [lindex $item 1]]
+    pack $buttons($idx) -side left -anchor n -padx 5 -pady 0 -ipady 0
     incr cb
+    incr n
   }
   pack $fxlsa -side top -anchor w -pady {5 2} -padx 10 -fill both
   set msg "Maximum rows limits the number of rows (entities) written to any one worksheet or CSV file.\nIf the maximum number of rows is exceeded, the number of entities processed will be reported\nas, for example, 'property_definition (100 of 147)'.  For large STEP files, setting a low maximum\ncan speed up processing at the expense of not processing all of the entities.\n\nMaximum rows is increased to 5000 for entities where Analyzer results are reported.  Syntax\nErrors might be missed if some entities are not processed due to a low value of maximum rows.\nMaximum rows does not affect the Viewer.\n\nSee Help > User Guide (section 5.5.1)"
@@ -909,7 +915,7 @@ proc guiSpreadsheet {} {
   foreach item {{" Process Text Strings with symbols and non-English characters" opt(xlUnicode)} \
                 {" Generate Tables for sorting and filtering" opt(xlSort)} \
                 {" Do not round real numbers in spreadsheet cells" opt(xlNoRound)} \
-                {" Show all PMI Elements on PMI Representation Coverage worksheets" opt(SHOWALLPMI)} \
+                {" Show all PMI Elements on PMI Representation Coverage worksheet" opt(SHOWALLPMI)} \
                 {" When processing Multiple Files, do not generate links on File Summary worksheet" opt(xlHideLinks)}} {
     set idx [string range [lindex $item 1] 4 end-1]
     set buttons($idx) [ttk::checkbutton $fxlsb.$cb -text [lindex $item 0] -variable [lindex $item 1] -command {checkValues}]
@@ -983,7 +989,7 @@ proc guiSpreadsheet {} {
 # developer only options
   if {$developer} {
     set fxlsx [ttk::labelframe $fxls.x -text " Developer "]
-    foreach item {{" Analyzer" opt(DEBUG1)} {" Viewer" opt(DEBUGX3D)} {" Inverses" opt(DEBUGINV)} {" No Excel" opt(DEBUGNOXL)}} {
+    foreach item {{" Analyzer" opt(DEBUG1)} {" Viewer" opt(DEBUGX3D)} {" Assoc Geom" opt(debugAG)} {" Inverses" opt(DEBUGINV)} {" No Excel" opt(DEBUGNOXL)}} {
       set idx [string range [lindex $item 1] 4 end-1]
       set buttons($idx) [ttk::checkbutton $fxlsx.$cb -text [lindex $item 0] -variable [lindex $item 1]]
       pack $buttons($idx) -side left -anchor w -padx 5 -pady 0 -ipady 0
@@ -995,6 +1001,7 @@ proc guiSpreadsheet {} {
 
   pack $fxls -side top -fill both -expand true -anchor nw
 }
+
 
 #-------------------------------------------------------------------------------
 # help menu
@@ -1622,28 +1629,32 @@ generated from one of the NIST CAD models.
 
 * PMI Representation Summary *
 This worksheet is color-coded by the expected PMI annotations in a test case drawing.
-- Green is an exact match to an expected PMI annotation in the test case drawing.
-- Cyan is a partial match.
-- Yellow is a possible match.
-- Red is no match.
-For partial and possible matches, the best Similar PMI match is shown.  Missing PMI annotations are
-also shown.
+- Green is an Exact match to an expected PMI annotation in the test case drawing
+- Green (lighter shade) is an Exact match with Exceptions
+- Cyan is a Partial match
+- Yellow is a Possible match
+- Red is No match
+
+The following Exceptions are ignored when considering an Exact match:
+- repetitive dimensions 'nX'
+- different, missing, or unexpected dimensional tolerances in a Feature Control Frame (FCF)
+- some datum features associated with geometric tolerances
+- some modifiers in an FCF
+
+Some causes of Partial and Possible matches are, missing or wrong:
+- diameter and radius symbols
+- numeric values for dimensions and tolerances
+- datum features and datum reference frames
+- modifiers for dimensions, tolerance zones, and datum reference frames
+- composite tolerances
+
+On the Summary worksheet the column for Similar PMI and Exceptions shows the most closely matching
+Expected PMI for Partial and Possible matches and the reason for an Exact match with Exceptions.
 
 Trailing and leading zeros are ignored when matching a PMI annotation.  Matches also only consider
 the current capabilities of PMI annotations in STEP AP242 and CAx-IF Recommended Practices.  For
 example, PMI annotations for hole features including counterbore, countersink, and depth are not
 supported.
-
-Some causes of partial and possible matches are:
-- missing associations of a geometric tolerance with a datum feature or dimension
-- missing diameter and radius symbols
-- wrong feature counts for repetitive dimensions
-- wrong dimension or tolerance zone values
-- missing or wrong values for dimension tolerances
-- missing or wrong datum reference frames
-- missing datum features
-- missing or incorrect modifiers for dimensions, tolerance zones, and datum reference frames
-- missing composite tolerances
 
 * PMI Representation Coverage Analysis *
 This worksheet is color-coded by the expected number of PMI elements in a test case drawing.  The
@@ -1656,8 +1667,11 @@ appear in the tolerance zone definition or datum reference frame.
 - Cyan means that more were found than expected. (4/3)
 - Magenta means that some PMI elements were found when none were expected. (3/0)
 
-From the PMI Representation Summary results, color-coded percentages of exact, partial, and
-possible matches and missing PMI is shown in a table below the PMI Representation Coverage Analysis.
+From the PMI Representation Summary results, color-coded percentages of Exact, Partial, and
+Possible matches and missing PMI is shown in a table below the PMI Representation Coverage Analysis.
+Exceptions are counted as an Exact match and do not affect the percentage, except one or two points
+are deducted when the percentage would be 100.
+
 The Total PMI on which the percentages are based on is also shown.  Coverage Analysis is only based
 on individual PMI elements.  The PMI Representation Summary is based on the entire PMI feature
 control frame and provides a better understanding of the PMI.  The Coverage Analysis might show
@@ -1667,7 +1681,7 @@ Summary might show less than exact matches.
 * Missing PMI *
 Missing PMI annotations on the Summary worksheet or PMI elements on the Coverage worksheet might
 mean that the CAD system or translator:
-- did not or cannot correctly create in the CAD model a PMI annotation defined in a NIST test case
+- PMI annotation defined in a NIST test case is not in the CAD model
 - did not follow CAx-IF Recommended Practices for PMI (See Websites > CAx Recommended Practices)
 - has not implemented exporting a PMI element to a STEP file
 - mapped an internal PMI element to the wrong STEP PMI element
@@ -1741,6 +1755,22 @@ The Syntax Checker works with any supported schema.  See Help > Supported STEP A
 
 NOTE - Syntax Checker errors and warnings are unrelated to those detected when CAx-IF Recommended
 Practices are checked with one of the Analyzer options.  See Help > Analyzer > Syntax Errors"
+    .tnb select .tnb.status
+  }
+
+  $Help add command -label "Bill of Materials" -command {
+outputMsg "\nBill of Materials ---------------------------------------------------------------------------------" blue
+outputMsg "The Bill of Materials (BOM) worksheet lists the quantities of parts and assemblies in two tables.
+Assemblies also show their components which can be parts or other assemblies.  A STEP file might
+not contain all of the information to generate a complete BOM.  Some BOMs will not have a list of
+assemblies.  Some parts might not be listed as a component of an assembly.
+
+The next_assembly_usage_occurrence entity shows the assembly and component names for the relating
+and related products in an assembly.
+
+If part and assembly names use non-Engligh characters, then the names in the BOM might be missing
+characters.  In some cases the name will appear as NoName with a number appended.
+See Help > Text Strings and Numbers"
     .tnb select .tnb.status
   }
 
@@ -1871,7 +1901,8 @@ the Spreadsheet tab to support non-English characters using the \\X2\\ control d
 cases the option will be automatically selected based on the file schema or size.  There is a
 warning message if \\X2\\ is detected in the STEP file and the option is not selected.  In this
 case the \\X2\\ characters are ignored and will be missing in the spreadsheet.  Non-English
-characters that do not use the control directives might be missing in the spreadsheet.
+characters that do not use the control directives might be missing in the spreadsheet.  Control
+directives are supported only if Excel is installed.
 
 Viewer - All control directives are supported for part and assembly names.  Non-English characters
 that do not use the control directives might be shown with the wrong characters.
@@ -1987,8 +2018,7 @@ source of the software."
   $Help add command -label "NIST Disclaimer" -command {openURL https://www.nist.gov/disclaimer}
   $Help add command -label "About" -command {
     outputMsg "\nSTEP File Analyzer and Viewer ---------------------------------------------------------------------" blue
-    outputMsg "Version: [getVersion]"
-    outputMsg "Updated: [string trim [clock format $progtime -format "%e %b %Y"]]"
+    outputMsg "Version: [getVersion] ([string trim [clock format $progtime -format "%e %b %Y"]])"
 
     set winver ""
     if {[catch {
@@ -2069,6 +2099,7 @@ proc guiWebsitesMenu {} {
   global Websites
 
   $Websites add command -label "STEP File Analyzer and Viewer"              -command {openURL https://www.nist.gov/services-resources/software/step-file-analyzer-and-viewer}
+  $Websites add command -label "STEP at NIST"                               -command {openURL https://www.nist.gov/el/systems-integration-division-73400/step-standard-exchange-product-model-data}
   $Websites add command -label "Conformance Checking of PMI in STEP Files"  -command {openURL https://www.nist.gov/publications/conformance-checking-pmi-representation-cad-model-step-data-exchange-files}
   $Websites add command -label "MBE PMI Validation and Comformance Testing" -command {openURL https://www.nist.gov/el/systems-integration-division-73400/mbe-pmi-validation-and-conformance-testing-project}
   $Websites add command -label "Product Definitions in Augmented Reality"   -command {openURL https://pages.nist.gov/CAD-PMI-Testing/NIST-AR-video.html}
@@ -2089,6 +2120,7 @@ proc guiWebsitesMenu {} {
   $Websites0 add command -label "Edition 2"            -command {openURL http://www.ap242.org/edition-2}
   $Websites0 add command -label "Benchmark Testing"    -command {openURL http://www.asd-ssg.org/step-ap242-benchmark}
   $Websites0 add command -label "ISO 10303-242"        -command {openURL https://www.iso.org/standard/66654.html}
+  $Websites0 add command -label "3D PDF"               -command {openURL https://www.iso.org/standard/77686.html}
 
   $Websites add cascade -label "STEP Format and Schemas" -menu $Websites.2
   set Websites2 [menu $Websites.2 -tearoff 1]
@@ -2127,6 +2159,7 @@ proc guiWebsitesMenu {} {
   $Websites4 add command -label "LOTAR - LOng Term Archiving and Retrieval" -command {openURL https://lotar-international.org/}
   $Websites4 add command -label "ASD Strategic Standardisation Group"       -command {openURL http://www.asd-ssg.org/}
   $Websites4 add command -label "ISO/TC 184/SC 4 - Industrial Data"         -command {openURL https://committee.iso.org/home/tc184sc4}
+  $Websites4 add command -label "STEP in 3D PDF"                            -command {openURL https://www.pdfa.org/resource/3d-formats/}
 }
 
 #-------------------------------------------------------------------------------
@@ -2482,5 +2515,320 @@ proc getOpenPrograms {} {
   }
   if {$dispCmd != ""} {
     if {[info exists dispApps($dispCmd)]} {set appName $dispApps($dispCmd)}
+  }
+}
+#-------------------------------------------------------------------------------
+# turn on/off values and enable/disable buttons depending on values
+proc checkValues {} {
+  global allNone appName appNames bits buttons developer edmWhereRules edmWriteToFile gen stepToolsWriteToFile opt userEntityList useXL
+
+  set butNormal {}
+  set butDisabled {}
+
+  if {[info exists buttons(appCombo)]} {
+    set ic [lsearch $appNames $appName]
+    if {$ic < 0} {set ic 0}
+    catch {$buttons(appCombo) current $ic}
+
+# Jotne EDM Model Checker
+    if {$developer} {
+      catch {
+        if {[string first "EDM Model Checker" $appName] == 0 || [string first "EDMsdk" $appName] != -1} {
+          pack $buttons(edmWhereRules) -side left -anchor w -padx {5 0}
+          pack $buttons(edmWriteToFile) -side left -anchor w -padx {5 0}
+        } else {
+          pack forget $buttons(edmWriteToFile)
+          pack forget $buttons(edmWhereRules)
+        }
+      }
+    }
+
+# STEP Tools
+    catch {
+      if {[string first "Conformance Checker" $appName] != -1} {
+        pack $buttons(stepToolsWriteToFile) -side left -anchor w -padx {5 0}
+      } else {
+        pack forget $buttons(stepToolsWriteToFile)
+      }
+    }
+
+    catch {
+      if {$appName == "Tree View (for debugging)"} {
+        pack $buttons(indentGeometry) -side left -anchor w -padx {5 0}
+        pack $buttons(indentStyledItem) -side left -anchor w -padx {5 0}
+      } else {
+        pack forget $buttons(indentGeometry)
+        pack forget $buttons(indentStyledItem)
+      }
+    }
+  }
+
+# view
+  if {$gen(View)} {
+    foreach b {viewFEA viewPMI viewPMIVP viewTessPart viewPart partOnly partNoGroup x3dSave} {lappend butNormal $b}
+    if {!$opt(viewFEA) && !$opt(viewPMI) && !$opt(viewTessPart) && !$opt(viewPart)} {set opt(viewPart) 1}
+    if {$developer} {lappend butNormal DEBUGX3D}
+  } else {
+    set opt(x3dSave) 0
+    foreach b {viewFEA viewPMI viewPMIVP viewTessPart viewPart partOnly partNoGroup x3dSave} {lappend butDisabled $b}
+    foreach b {gpmiColor0 gpmiColor1 gpmiColor2 gpmiColor3 labelPMIcolor} {lappend butDisabled $b}
+    foreach b {partEdges partSketch partNormals partNoGroup labelPartQuality partQuality4 partQuality7 partQuality10 tessPartMesh} {lappend butDisabled $b}
+    foreach b {feaBounds feaLoads feaLoadScale feaDisp feaDispNoTail} {lappend butDisabled $b}
+    if {$developer} {lappend butDisabled DEBUGX3D; set opt(DEBUGX3D) 0}
+  }
+  if {$bits == "32-bit"} {set opt(viewPart) 0; set opt(partOnly) 0; lappend butDisabled viewPart partOnly}
+
+# part only
+  if {$opt(partOnly)} {
+    set opt(viewPart) 1
+    set opt(xlFormat) "None"
+    set gen(Excel) 0
+    set gen(Excel1) 0
+    set gen(CSV) 0
+    lappend butNormal genExcel
+  }
+
+  if {!$gen(Excel)} {
+    foreach b {xlHideLinks xlUnicode xlSort xlNoRound} {lappend butDisabled $b}
+    if {$opt(xlFormat) == "None"} {for {set i 0} {$i < 8} {incr i} {lappend butDisabled "maxrows$i"}}
+    set opt(xlHideLinks) 0
+  } else {
+    foreach b {xlHideLinks xlUnicode xlSort xlNoRound} {lappend butNormal $b}
+    for {set i 0} {$i < 8} {incr i} {lappend butNormal "maxrows$i"}
+    if {$opt(PMISEM)} {lappend butNormal}
+  }
+  if {$gen(Excel) && $gen(CSV)} {lappend butDisabled genExcel}
+
+# configure generate button
+  if {![info exists useXL]} {set useXL 1}
+  set btext "Generate "
+  if {$opt(xlFormat) == "Excel"} {
+    append btext "Spreadsheet"
+  } elseif {$opt(xlFormat) == "CSV"} {
+    if {$gen(CSV) && $useXL} {append btext "Spreadsheet and "}
+    append btext "CSV Files"
+  } elseif {$gen(View) && $opt(xlFormat) == "None"} {
+    append btext "View"
+  }
+  if {$gen(View) && $opt(xlFormat) != "None" && ($opt(viewPart) || $opt(viewFEA) || $opt(viewPMI) || $opt(viewTessPart))} {
+    append btext " and View"
+  }
+  catch {$buttons(generate) configure -text $btext}
+
+# no Excel
+  if {!$useXL} {
+    foreach item {BOM INVERSE PMIGRF PMISEM valProp} {set opt($item) 0}
+    set opt(outputOpen) 1
+    foreach item [array names opt] {
+      if {[string first "step" $item] == 0} {lappend butNormal $item}
+    }
+    foreach b {xlHideLinks xlUnicode xlSort xlNoRound BOM INVERSE PMIGRF PMISEM valProp genExcel} {lappend butDisabled $b}
+    foreach b {viewFEA viewPMI viewTessPart viewPart} {lappend butNormal $b}
+    foreach b {allNone0 allNone1 stepUSER} {lappend butNormal $b}
+
+# Excel
+  } else {
+    foreach item [array names opt] {
+      if {[string first "step" $item] == 0} {lappend butNormal $item}
+    }
+    foreach b {xlHideLinks xlUnicode xlSort xlNoRound BOM INVERSE PMIGRF PMISEM valProp} {lappend butNormal $b}
+    foreach b {viewFEA viewPMI viewTessPart viewPart} {lappend butNormal $b}
+    foreach b {allNone0 allNone1 stepUSER} {lappend butNormal $b}
+  }
+
+# view only
+  if {$opt(xlFormat) == "None"} {
+    foreach item [array names opt] {
+      if {[string first "step" $item] == 0} {lappend butDisabled $item}
+    }
+    foreach b {PMIGRF PMIGRFCOV PMISEM PMISEMDIM PMISEMDT PMISEMRND valProp stepUSER BOM INVERSE} {lappend butDisabled $b}
+    foreach b {allNone0} {lappend butDisabled $b}
+    foreach b {userentity userentityopen labelProcessOnly} {lappend butDisabled $b}
+    set userEntityList {}
+    if {!$opt(viewFEA) && !$opt(viewPMI) && !$opt(viewTessPart) && !$opt(viewPart)} {set opt(viewPart) 1}
+  }
+
+# part geometry
+  if {$opt(viewPart)} {
+    foreach b {partOnly partEdges partSketch partNormals partNoGroup labelPartQuality partQuality4 partQuality7 partQuality10} {lappend butNormal $b}
+    if {$opt(partOnly) && $opt(xlFormat) == "None"} {
+      foreach b {syntaxChecker viewFEA viewPMI viewTessPart} {lappend butDisabled $b}
+      foreach item {syntaxChecker viewFEA viewPMI viewTessPart} {set opt($item) 0}
+    } else {
+      foreach b {syntaxChecker viewFEA viewPMI viewTessPart} {lappend butNormal $b}
+    }
+  } else {
+    foreach b {partEdges partSketch partNormals partNoGroup labelPartQuality partQuality4 partQuality7 partQuality10} {lappend butDisabled $b}
+  }
+
+# graphical PMI report
+  if {$opt(PMIGRF)} {
+    if {$opt(xlFormat) != "None"} {
+      foreach b {stepPRES stepREPR stepSHAP} {
+        set opt($b) 1
+        lappend butDisabled $b
+      }
+    }
+    lappend butNormal PMIGRFCOV
+  } else {
+    lappend butNormal stepPRES
+    if {!$opt(valProp)} {lappend butNormal stepQUAN}
+    if {!$opt(PMISEM)}  {foreach b {stepSHAP stepREPR} {lappend butNormal $b}}
+    lappend butDisabled PMIGRFCOV
+  }
+
+# validation properties
+  if {$opt(valProp)} {
+    foreach b {stepQUAN stepREPR stepSHAP} {
+      set opt($b) 1
+      lappend butDisabled $b
+    }
+  } elseif {!$opt(PMIGRF)} {
+    lappend butNormal stepQUAN
+  }
+
+# graphical PMI view
+  if {$opt(viewPMI)} {
+    foreach b {gpmiColor0 gpmiColor1 gpmiColor2 gpmiColor3 labelPMIcolor viewPMIAR viewPMIVP} {lappend butNormal $b}
+    if {$gen(View) && ($gen(Excel) || $gen(CSV)) && $opt(xlFormat) != "None"} {
+      set opt(stepPRES) 1
+      lappend butDisabled stepPRES
+    }
+    if {!$gen(View)} {lappend butDisabled viewPMIAR}
+  } else {
+    foreach b {gpmiColor0 gpmiColor1 gpmiColor2 gpmiColor3 labelPMIcolor viewPMIAR viewPMIVP} {lappend butDisabled $b}
+  }
+
+  if {$gen(View) && $opt(viewPMI) && $opt(viewPMIVP)} {
+    lappend butNormal DEBUGVP
+  } else {
+    lappend butDisabled DEBUGVP
+  }
+
+# FEM view
+  if {$opt(viewFEA)} {
+    foreach b {feaBounds feaLoads feaDisp} {lappend butNormal $b}
+    if {$opt(feaLoads)} {
+      lappend butNormal feaLoadScale
+    } else {
+      lappend butDisabled feaLoadScale
+    }
+    if {$opt(feaDisp)} {
+      lappend butNormal feaDispNoTail
+    } else {
+      lappend butDisabled feaDispNoTail
+    }
+  } else {
+    foreach b {feaBounds feaLoads feaLoadScale feaDisp feaDispNoTail} {lappend butDisabled $b}
+  }
+
+# semantic PMI report
+  if {$opt(PMISEM)} {
+    foreach b {stepREPR stepSHAP stepTOLR stepQUAN} {
+      set opt($b) 1
+      lappend butDisabled $b
+    }
+    foreach b {PMISEMDIM PMISEMDT PMISEMRND labelProcessOnly} {lappend butNormal $b}
+  } else {
+    foreach b {stepREPR stepTOLR} {lappend butNormal $b}
+    if {!$opt(PMIGRF)} {
+      if {!$opt(valProp)} {lappend butNormal stepQUAN}
+      lappend butNormal stepSHAP
+    }
+    foreach b {PMISEMDIM PMISEMDT PMISEMRND labelProcessOnly} {lappend butDisabled $b}
+  }
+  if {$opt(PMISEM) && $gen(Excel)} {
+    lappend butNormal SHOWALLPMI
+  } else {
+    set opt(SHOWALLPMI) 0
+    lappend butDisabled SHOWALLPMI
+  }
+
+# BOM
+  if {$opt(BOM)} {
+    set opt(stepCOMM) 1
+    foreach b {stepCOMM} {lappend butDisabled $b}
+  } else {
+    foreach b {stepCOMM} {lappend butNormal $b}
+  }
+
+# common entities
+  if {$opt(valProp) || $opt(PMISEM) || $opt(PMIGRF)} {
+    set opt(stepCOMM) 1
+    lappend butDisabled stepCOMM
+  }
+
+# not part geometry view
+  if {!$opt(viewPart) && !$opt(PMISEM)} {lappend butNormal stepPRES}
+
+# tessellated geometry view
+  if {$opt(viewTessPart)} {
+    lappend butNormal tessPartMesh
+  } else {
+    catch {if {!$opt(PMISEM)} {lappend butNormal stepPRES}}
+    lappend butDisabled tessPartMesh
+  }
+
+# user-defined entity list
+  if {$opt(stepUSER)} {
+    foreach b {userentity userentityopen} {lappend butNormal $b}
+  } else {
+    foreach b {userentity userentityopen} {lappend butDisabled $b}
+    set userEntityList {}
+  }
+
+  if {$developer} {
+    if {$opt(INVERSE) && $gen(Excel)} {
+      lappend butNormal DEBUGINV
+    } else {
+      lappend butDisabled DEBUGINV
+      set opt(DEBUGINV) 0
+    }
+    if {($opt(PMISEM) || $opt(PMIGRF) || $opt(valProp)) && $gen(Excel)} {
+      lappend butNormal DEBUG1
+    } else {
+      lappend butDisabled DEBUG1
+      set opt(DEBUG1) 0
+    }
+  }
+
+# user-defined directory text entry and browse button
+  if {$opt(writeDirType) == 0} {
+    foreach b {userdir userentry} {lappend butDisabled $b}
+  } elseif {$opt(writeDirType) == 2} {
+    foreach b {userdir userentry} {lappend butNormal $b}
+  }
+
+# make sure there is some entity type to process
+  set nopt 0
+  foreach idx [lsort [array names opt]] {
+    if {[string first "step" $idx] == 0 || $idx == "valProp" || $idx == "PMIGRF" || $idx == "PMISEM"} {
+      incr nopt $opt($idx)
+    }
+  }
+  if {$nopt == 0 && $opt(xlFormat) != "None"} {set opt(stepCOMM) 1}
+
+# configure buttons
+  if {[llength $butNormal]   > 0} {foreach but $butNormal   {catch {$buttons($but) configure -state normal}}}
+  if {[llength $butDisabled] > 0} {foreach but $butDisabled {catch {$buttons($but) configure -state disabled}}}
+
+# configure all, reset, 'all' view and analyzer buttons
+  if {[info exists allNone]} {
+    if {$allNone == 1} {
+      foreach item [array names opt] {
+        if {[string first "step" $item] == 0 && $item != "stepCOMM"} {
+          if {$opt($item) == 1} {set allNone -1; break}
+        }
+        if {[string length $item] == 6 && ([string first "PMI" $item] == 0)} {
+          if {$opt($item) == 1} {set allNone -1; break}
+        }
+      }
+    } elseif {$allNone == 0} {
+      foreach item [array names opt] {
+        if {[string first "step" $item] == 0} {
+          if {$item != "stepGEOM" && $item != "stepCPNT" && $item != "stepUSER"} {if {$opt($item) == 0} {set allNone -1}}
+        }
+      }
+    }
   }
 }

@@ -29,7 +29,7 @@ foreach id {logFile outputOpen partEdges partSketch PMIGRF PMISEM stepCOMM stepP
   valProp viewPart viewPMI viewTessPart} {set opt($id) 1}
 
 # options, set to 0
-foreach id {DEBUG1 DEBUGINV DEBUGNOXL DEBUGVP DEBUGX3D feaBounds feaDisp feaDispNoTail feaLoads feaLoadScale indentGeometry \
+foreach id {BOM DEBUG1 debugAG DEBUGINV DEBUGNOXL DEBUGVP DEBUGX3D feaBounds feaDisp feaDispNoTail feaLoads feaLoadScale indentGeometry \
   indentStyledItem INVERSE partNoGroup partNormals partOnly PMIGRFCOV PMISEMDIM PMISEMDT PMISEMRND SHOWALLPMI stepADDM stepAP242 \
   stepCOMP stepCONS stepCPNT stepFEAT stepGEOM stepKINE stepQUAL stepUSER syntaxChecker tessPartMesh viewFEA viewPMIAR viewPMIVP \
   writeDirType x3dSave xlHideLinks xlNoRound xlSort xlUnicode} {set opt($id) 0}
@@ -53,7 +53,8 @@ set x3dFileName ""
 set x3dStartFile 1
 
 set developer 0
-if {$env(USERDOMAIN) == "NIST"} {set developer 1}
+catch {if {$env(USERDOMAIN) == "NIST"} {set developer 1}}
+catch {if {$env(USERDOMAIN_ROAMINGPROFILE) == "NIST"} {set developer 1}}
 
 # IFCsvr
 set ifcsvrDir [file join $pf32 IFCsvrR300 dll]
@@ -128,6 +129,7 @@ set entColorIndex(stepQUAN) 44
 
 # PMI coverage colors (B, G, R)
 set legendColor(green)   [expr {int (128) << 16 | int (255) << 8 | int(128)}]
+set legendColor(greyel)  [expr {int (128) << 16 | int (255) << 8 | int(170)}]
 set legendColor(yelgre)  [expr {int (128) << 16 | int (255) << 8 | int(210)}]
 set legendColor(yellow)  [expr {int (128) << 16 | int (255) << 8 | int(255)}]
 set legendColor(orange)  [expr {int (128) << 16 | int (210) << 8 | int(255)}]
@@ -135,6 +137,7 @@ set legendColor(red)     [expr {int (128) << 16 | int (128) << 8 | int(255)}]
 set legendColor(cyan)    [expr {int (255) << 16 | int (255) << 8 | int(128)}]
 set legendColor(magenta) [expr {int (255) << 16 | int (128) << 8 | int(255)}]
 set legendColor(gray)    [expr {int (208) << 16 | int (208) << 8 | int(208)}]
+set legendColor(litgray) [expr {int (232) << 16 | int (232) << 8 | int(232)}]
 
 # -----------------------------------------------------------------------------------------------------
 # entity attributes (mostly geometry) that cause a crash with 'LIST of LIST' due to limitations of the IFCsvr toolkit
@@ -226,6 +229,9 @@ set unicodeAttributes(machining_tool_usage) {name}
 set unicodeAttributes(manifold_solid_brep) {name}
 set unicodeAttributes(next_assembly_usage_occurrence) {id name description reference_designator}
 set unicodeAttributes(open_shell) {name}
+set unicodeAttributes(organization) {id name description}
+set unicodeAttributes(person) {id last_name first_name}
+set unicodeAttributes(person_and_organization_role) {name}
 set unicodeAttributes(product) {id name description}
 set unicodeAttributes(product_definition) {id description}
 set unicodeAttributes(product_definition_shape) {name description}
@@ -649,7 +655,7 @@ set ap242all [lrmdups [concat $ap242e1 $ap242e2 $ap242e3]]
 # AP242 entities not in edition 1, only in editions 2 and 3
 set ap242e1not {}
 foreach ent [lrmdups [concat $ap242e2 $ap242e3]] {if {[lsearch $ap242e1 $ent] == -1} {lappend ap242e1not $ent}}
-  
+
 # AP242 entities only in editions 2 and 3
 set ap242only(e2) [lindex [intersect3 $ap242e1 $ap242e2] 2]
 set ap242only(e3) [lindex [intersect3 $ap242e2 $ap242e3] 2]

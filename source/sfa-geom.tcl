@@ -1,10 +1,9 @@
 # tolType = 1 for non-geometric tolerance (dimension, datum target, annotations)
 proc getAssocGeom {entDef {tolType 0} {tolName ""}} {
-  global syntaxErr debugAG
+  global opt syntaxErr
 
-  set debugAG 0
   set entDefType [$entDef Type]
-  if {$debugAG} {outputMsg "\ngetAssocGeom $tolType $entDefType [$entDef P21ID]" blue}
+  if {$opt(debugAG)} {outputMsg "\ngetAssocGeom $tolType $entDefType [$entDef P21ID]" blue}
 
   set dimSize 0
   if {$tolType == 2} {
@@ -44,7 +43,7 @@ proc getAssocGeom {entDef {tolType 0} {tolName ""}} {
     }
 
 # look at SAR with CSA, CGSA, AASA, COS to find SAs, possibly nested
-    if {$debugAG} {outputMsg " $entDefType [$entDef P21ID] D" red}
+    if {$opt(debugAG)} {outputMsg " $entDefType [$entDef P21ID] D" red}
     set type [appendAssocGeom $entDef D]
     set e0s [$entDef GetUsedIn [string trim shape_aspect_relationship] [string trim relating_shape_aspect]]
     ::tcom::foreach e0 $e0s {
@@ -123,8 +122,8 @@ proc relatedShapeAspect {relatedSA a0 tolType dimSize} {
 
 # -------------------------------------------------------------------------------
 proc getAssocGeomFace {entDef tolType} {
-  global debugAG entCount syntaxErr
-  if {$debugAG} {outputMsg "getAssocGeomFace [$entDef Type] [$entDef P21ID]" green}
+  global entCount opt syntaxErr
+  if {$opt(debugAG)} {outputMsg "getAssocGeomFace [$entDef Type] [$entDef P21ID]" green}
 
 # look at GISU and IIRU for geometry associated with shape_aspect
   set usages {}
@@ -167,11 +166,11 @@ proc getAssocGeomFace {entDef tolType} {
 
 # -------------------------------------------------------------------------------
 proc appendAssocGeom {ent {id ""}} {
-  global assocGeom debugAG
+  global assocGeom opt
 
   set p21id [$ent P21ID]
   set type  [$ent Type]
-  if {$debugAG} {outputMsg " appendAssocGeom $type $p21id $id" red}
+  if {$opt(debugAG)} {outputMsg " appendAssocGeom $type $p21id $id" red}
 
   if {[string first "annotation" $type] == -1 && [string first "callout" $type] == -1} {
     if {![info exists assocGeom($type)]} {
@@ -185,7 +184,7 @@ proc appendAssocGeom {ent {id ""}} {
 
 # -------------------------------------------------------------------------------
 proc getFaceGeom {e0 tolType {id ""}} {
-  global assocGeom cylSurfBounds debugAG dimName
+  global assocGeom cylSurfBounds dimName opt
 
   if {$tolType} {set debug 0}
 
@@ -196,7 +195,7 @@ proc getFaceGeom {e0 tolType {id ""}} {
         set type  [[$a1 Value] Type]
         lappend assocGeom($type) $p21id
         set currEnt ""
-        if {$debugAG} {
+        if {$opt(debugAG)} {
           outputMsg "  getFaceGeom $type $p21id $id / [$e0 Type] [$e0 P21ID]" red
           if {$tolType && [info exists dimName]} {outputMsg "   dimName $dimName" red}
         }
@@ -274,8 +273,8 @@ proc getFaceGeom {e0 tolType {id ""}} {
 # -------------------------------------------------------------------------------
 proc reportAssocGeom {entType {row ""}} {
   global objDesign
-  global assocGeom cells cgrObjects cylSurfBounds debugAG dimName dimRepeat dimRepeatDiv entCount multipleDatumFeature opt recPracNames spaces suppGeomEnts syntaxErr
-  if {$debugAG} {outputMsg "reportAssocGeom $entType" green}
+  global assocGeom cells cgrObjects cylSurfBounds dimName dimRepeat dimRepeatDiv entCount multipleDatumFeature opt recPracNames spaces suppGeomEnts syntaxErr
+  if {$opt(debugAG)} {outputMsg "reportAssocGeom $entType" green}
 
   set str ""
   set dimRepeat 0
@@ -353,13 +352,17 @@ proc reportAssocGeom {entType {row ""}} {
       if {[string first "datum_feature" $entType] != -1} {set str2 "Associated"}
     }
 
+# get column with the name heading and check
     set ok 1
     if {[string first "occurrence" $entType] != -1} {
       if {!$opt(INVERSE)} {
         set c E
-        if {[string first "placeholder" $entType] != -1} {set c G}
+        if {[string first "placeholder" $entType] != -1} {
+          set c G
+          if {[string first "leader_line" $entType] != -1} {set c H}
+       }
       } else {
-        foreach c1 {H G F E} {
+        foreach c1 {I H G F E} {
           set head [[$cells($entType) Item 3 $c1] Value]
           if {[string first "name" $head] == 0} {set c $c1; break}
         }

@@ -253,11 +253,49 @@ proc getEntity {objEntity rmax checkInverse checkBadAttributes unicodeCheck} {
               }
             }
           }
-          lappend rowList $str
           if {$cellComment && $entComment($attrName)} {
             addCellComment $thisEntType 3 $col($thisEntType) "The values of *_measure_with_unit are also shown."
             set entComment($attrName) 0
           }
+
+# next_assembly_usage_occurrence relating/related names
+          if {$thisEntType == "next_assembly_usage_occurrence" && $opt(BOM)} {
+            set pname ""
+            if {[string first "relat" [$objAttribute Name]] == 0} {
+
+# look for name of product_definition
+              if {[$refEntity Type] == "product_definition"} {
+                set pname [string trim [[[$refEntity Attributes] Item [expr 1]] Value]]
+                set idx "$refType,id,[$refEntity P21ID]"
+                if {[info exists unicodeString($idx)]} {set pname $unicodeString($idx)}
+
+# look for name on product
+                if {$pname == "" || $pname == "design" || $pname == "part definition" || $pname == "None" || $pname == "UNKNOWN" || $pname == "BLNMEYEN"} {
+                  set pdf [[[$refEntity Attributes] Item [expr 3]] Value]
+                  set pro [[[$pdf Attributes] Item [expr 3]] Value]
+                  set pname [string trim [[[$pro Attributes] Item [expr 1]] Value]]
+                  set idx "$refType,id,[$refEntity P21ID]"
+                  if {[info exists unicodeString($idx)]} {set pname $unicodeString($idx)}
+                }
+              }
+            }
+
+# add name to string
+            if {$pname != ""} {
+              set str "$str  ($pname)"
+              if {$entComment($attrName)} {
+                if {[string first "relating" [$objAttribute Name]] == 0} {
+                  outputMsg " Adding Assembly/Component names" blue
+                  addCellComment $thisEntType 3 5 "Name of the 'relating' Assembly is also shown."
+                  addCellComment $thisEntType 3 6 "Name of the 'related' Component, which can be a part or subassembly, is also shown."
+                  set entComment($attrName) 0
+                }
+              }
+            }
+          }
+
+# add to row list
+          lappend rowList $str
         }
 
 # -------------------------------------------------------------------------------------------------
@@ -300,7 +338,7 @@ proc getEntity {objEntity rmax checkInverse checkBadAttributes unicodeCheck} {
         catch {set size [array size cellval]}
 
         set strMeasure ""
-        if {[llength $valMeasure] > 0 && [llength $valMeasure] < 5} {set strMeasure "[join $valMeasure] "}
+        if {[llength $valMeasure] > 0 && [llength $valMeasure] < 5} {set strMeasure "[join $valMeasure]  "}
 
         if {[info exists cellparam]} {append str "$cellparam "}
         if {$size > 0} {
@@ -334,7 +372,7 @@ proc getEntity {objEntity rmax checkInverse checkBadAttributes unicodeCheck} {
 
         lappend rowList [string trim $str]
         if {$strMeasure != "" && $entComment($attrName)} {
-          addCellComment $thisEntType 3 $col($thisEntType) "The values of *_measure_with_unit are also shown."
+          addCellComment $thisEntType 3 $col($thisEntType) "Values of *_measure_with_unit are also shown."
           set entComment($attrName) 0
         }
       }
@@ -378,8 +416,8 @@ proc setIDRow {entType p21id} {
 
 # -------------------------------------------------------------------------------------------------
 # read entity and write to CSV file
-proc getEntityCSV {objEntity checkBadAttributes unicodeCheck} {
-  global badAttributes count csvdirnam csvfile csvinhome csvstr entCount fcsv localName mydocs roseLogical row rowmax skipEntities skipPerm thisEntType unicodeString
+proc getEntityCSV {objEntity checkBadAttributes} {
+  global badAttributes count csvdirnam csvfile csvinhome csvstr entCount fcsv localName mydocs roseLogical row rowmax skipEntities skipPerm thisEntType
 
 # get entity type
   set thisEntType [$objEntity Type]
@@ -456,12 +494,6 @@ proc getEntityCSV {objEntity checkBadAttributes unicodeCheck} {
       if {[catch {
         if {!$checkBadAttributes} {
           set objValue [$objAttribute Value]
-
-# substitute correct unicode
-          if {$unicodeCheck} {
-            set idx "$thisEntType,$attrName,$p21id"
-            if {[info exists unicodeString($idx)]} {set objValue $unicodeString($idx)}
-          }
 
 # look for bad attributes that cause a crash
         } else {
