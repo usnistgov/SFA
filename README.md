@@ -4,7 +4,9 @@ With these instructions you can build the [NIST STEP File Analyzer and Viewer](h
 
 ## Prerequisites
 
-The STEP File Analyzer and Viewer can only be built and run on Windows computers.  Microsoft Excel is required to generate spreadsheets.  CSV (comma-separated values) files will be generated if Excel is not installed.  
+The STEP File Analyzer and Viewer can only be built and run on Windows computers.  This is due to a dependence on the IFCsvr toolkit that is used to read and parse STEP files.  That toolkit only runs on Windows.
+
+Microsoft Excel is required to generate spreadsheets.  CSV (comma-separated values) files will be generated if Excel is not installed.  
 
 **You must first install and run the NIST version of the STEP File Analyzer and Viewer before running your own version.**
 
