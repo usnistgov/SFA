@@ -1605,7 +1605,7 @@ proc valueQualifier {ent1 val {type "length/angle"} {equal "equal"}} {
 
 # bad NR2 value
     } else {
-      set msg "Syntax Error: Bad value_format_type_qualifier ([$attr1 Value])$spaces\($recPracNames(pmi242), Sec. $sect)"
+      set msg "Syntax Error: Bad value_format_type_qualifier ([$attr Value])$spaces\($recPracNames(pmi242), Sec. $sect)"
       errorMsg $msg
       lappend syntaxErr([$ent1 Type]) [list [$ent1 P21ID] "format_type" $msg]
       lappend syntaxErr($ent) [list "-$spmiIDRow($ent,$spmiID)" $head $msg]

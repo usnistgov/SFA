@@ -131,8 +131,8 @@ proc x3dFileStart {} {
 # finish x3d file, write lots of geometry, set viewpoints, add navigation and background color, and close x3dom file
 proc x3dFileEnd {} {
   global ao ap242XML assemblyTransform axesDef brepFile brepFileName clippingDef datumTargetView entCount grayBackground leaderCoords matTrans maxxyz
-  global nistName noGroupTransform nsketch numTessColor opt parts partstg placeCoords planeDef rosetteGeom samplingPoints savedViewButtons savedViewDMName
-  global savedViewFile savedViewFileName savedViewItems savedViewNames savedViewpoint savedViewVP sphereDef spmiTypesPerFile stepAP
+  global nistName noGroupTransform nsketch numTessColor opt parts partstg placeCoords planeDef placeSize rosetteGeom samplingPoints savedViewButtons
+  global savedViewDMName savedViewFile savedViewFileName savedViewItems savedViewNames savedViewpoint savedViewVP sphereDef spmiTypesPerFile stepAP
   global tessCoord tessEdges tessPartFile tessPartFileName tessRepo tsName viz x3dApps x3dAxes x3dBbox x3dCoord x3dFile x3dFileNameSave
   global x3dFiles x3dFileSave x3dIndex x3dMax x3dMin x3dMsg x3dPartClick x3dParts x3dShape x3dStartFile x3dTessParts x3dTitle x3dViewOK viewsWithPMI
   global objDesign
@@ -274,6 +274,13 @@ proc x3dFileEnd {} {
   set savedViewButtons {}
   if {[info exists savedViewNames]} {
     if {[llength $savedViewNames] > 0} {
+
+# placeholder size
+      if {[info exists placeSize]} {
+        set phsize1 [trimNum [expr {$maxxyz/1000.}]]
+        set phsize2 [trimNum [expr {$phsize1*6.}]]
+      }
+
       for {set i 0} {$i < [llength $savedViewNames]} {incr i} {
         set svn [lindex $savedViewNames $i]
         set svnfn "View$i"
@@ -313,6 +320,14 @@ proc x3dFileEnd {} {
               set lastTransform ""
               set f [open $savedViewFileName($svnfn) r]
               while {[gets $f line] >= 0} {
+
+# placeholder size
+                if {[info exists placeSize]} {
+                  if {[string first "placeSize" $line] != -1} {
+                    regsub "placeSize1" $line $phsize1 line
+                    regsub "placeSize2" $line $phsize2 line
+                  }
+                }
 
 # check for similar transforms
                 if {![info exists noGroupTransform]} {
@@ -359,6 +374,7 @@ proc x3dFileEnd {} {
   }
   catch {unset assemblyTransform}
   catch {unset noGroupTransform}
+  catch {unset placeSize}
 
 # viewpoints without PMI
   if {![info exists savedViewVP]} {
@@ -372,9 +388,15 @@ proc x3dFileEnd {} {
   }
 
 # -------------------------------------------------------------------------------
-# placeholder axes, coordinates, text, box
+# if not associated with a saved view, placeholder axes, coordinates, text, box
   set viz(PLACE) 0
-  if {[info exists placeCoords] || [info exists leaderCoords]} {x3dPlaceholder}
+  if {[info exists placeCoords] || [info exists leaderCoords]} {
+    set nph 0
+    catch {foreach idx [array names placeCoords]  {incr nph}}
+    catch {foreach idx [array names leaderCoords] {incr nph}}
+    if {$nph > 0} {x3dPlaceholder}
+  }
+  foreach var {leaderCoords placeAxes placeBox placeCoords placeSavedView} {catch {global $var}; catch {unset -- $var}}
 
 # -------------------------------------------------------------------------------
 # coordinate axes, if not already written
@@ -1560,53 +1582,67 @@ proc x3dHoles {} {
 
 # -------------------------------------------------------------------------------
 # placeholder axes, coordinates, text, box, leader line
-proc x3dPlaceholder {} {
-  global grayBackground leaderCoords maxxyz placeAxes placeBox placeCoords viz x3dFile
+proc x3dPlaceholder {{aoname ""} {fname ""}} {
+  global grayBackground leaderCoords maxxyz placeAxes placeAxesDef placeBox placeCoords placeSize placeSphereDef viz x3dFile
 
-  set viz(PLACE) 1
-  puts $x3dFile "\n<!-- PLACEHOLDER (coordinates, optional planar box) -->"
-  puts $x3dFile "<Switch whichChoice='0' id='swPlaceholder'><Group>"
-  set size1 [trimNum [expr {$maxxyz/1000.}]]
-  set size2 [trimNum [expr {$size1*6.}]]
-  set n 0
+  if {$aoname == ""} {
+    puts $x3dFile "\n<!-- PLACEHOLDER -->"
+    puts $x3dFile "<Switch whichChoice='0' id='swPlaceholder'><Group>"
+    set pcnames [array names placeCoords]
+    set viz(PLACE) 1
+  } else {
+    set pcnames [list $aoname]
+  }
+  if {$fname == ""} {set fname $x3dFile}
+
+  if {[info exists maxxyz]} {
+    set size1 [trimNum [expr {$maxxyz/1000.}]]
+    set size2 [trimNum [expr {$size1*6.}]]
+  } else {
+    set size1 "placeSize1"
+    set size2 "placeSize2"
+    set placeSize 1
+  }
 
 # placeholder coordinates
-  foreach name [array names placeCoords] {
+  foreach name $pcnames {
     if {[catch {
       foreach coord [lrmdups $placeCoords($name)] {
-        incr n
-        puts $x3dFile "<Transform translation='$coord'><Group>"
+        puts $fname "<Transform id='placeholder $name' translation='$coord'><Group>"
         set transform [x3dTransform "0. 0. 0." $placeAxes($name,axis) $placeAxes($name,refdir) "annotation placeholder" "" $name]
 
 # axes
-        if {$n == 1} {
-          puts $x3dFile " $transform<Group DEF='placeAxes'>"
-          puts $x3dFile "  <Shape><Appearance><Material emissiveColor='1 0 0'/></Appearance><IndexedLineSet coordIndex='0 1 -1'><Coordinate point='0. 0. 0. $size2 0. 0.'/></IndexedLineSet></Shape>"
-          puts $x3dFile "  <Shape><Appearance><Material emissiveColor='0 .5 0'/></Appearance><IndexedLineSet coordIndex='0 1 -1'><Coordinate point='0. 0. 0. 0. $size2 0.'/></IndexedLineSet></Shape>"
-          puts $x3dFile "  <Shape><Appearance><Material emissiveColor='0 0 1'/></Appearance><IndexedLineSet coordIndex='0 1 -1'><Coordinate point='0. 0. 0. 0. 0. $size2'/></IndexedLineSet></Shape>"
-          puts $x3dFile " </Group></Transform>"
+        if {![info exists placeAxesDef]} {
+          puts $fname " $transform<Group DEF='placeAxes'>"
+          puts $fname "  <Shape><Appearance><Material emissiveColor='1 0 0'/></Appearance><IndexedLineSet coordIndex='0 1 -1'><Coordinate point='0. 0. 0. $size2 0. 0.'/></IndexedLineSet></Shape>"
+          puts $fname "  <Shape><Appearance><Material emissiveColor='0 .5 0'/></Appearance><IndexedLineSet coordIndex='0 1 -1'><Coordinate point='0. 0. 0. 0. $size2 0.'/></IndexedLineSet></Shape>"
+          puts $fname "  <Shape><Appearance><Material emissiveColor='0 0 1'/></Appearance><IndexedLineSet coordIndex='0 1 -1'><Coordinate point='0. 0. 0. 0. 0. $size2'/></IndexedLineSet></Shape>"
+          puts $fname " </Group></Transform>"
+          set placeAxesDef 1
         } else {
-          puts $x3dFile " $transform<Group USE='placeAxes'></Group></Transform>"
+          puts $fname " $transform<Group USE='placeAxes'></Group></Transform>"
         }
 
 # coordinate sphere and text
-        if {$n == 1} {
-          puts $x3dFile " <Shape DEF='placeSphere'><Appearance><Material diffuseColor='0 0 0' emissiveColor='0 0 0' transparency='0.5'/></Appearance><Sphere radius='$size1'></Sphere></Shape>"
+        set bbtext "<Billboard axisOfRotation='0 0 0'><Shape><Text string='$name'><FontStyle size='$size2' family='SANS' justify='BEGIN'/></Text><Appearance><Material diffuseColor='0 0 0'/></Appearance></Shape></Billboard>"
+        if {![info exists placeSphereDef]} {
+          puts $fname " <Shape DEF='placeSphere'><Appearance><Material diffuseColor='0 0 0' emissiveColor='0 0 0' transparency='0.5'/></Appearance><Sphere radius='$size1'></Sphere></Shape>"
+          puts $fname " $bbtext"
+          set placeSphereDef 1
         } else {
-          puts $x3dFile " <Shape USE='placeSphere'></Shape>"
+          puts $fname " <Shape USE='placeSphere'></Shape>$bbtext"
         }
-        puts $x3dFile " <Billboard axisOfRotation='0 0 0'><Shape><Text string='$name'><FontStyle size='$size2' family='SANS' justify='BEGIN'/></Text><Appearance><Material diffuseColor='0 0 0'/></Appearance></Shape></Billboard>"
 
 # planar box
         if {[info exists placeBox($name,x)]} {
           set boxCoord "0 [expr {-0.5*$placeBox($name,y)}] 0 $placeBox($name,x) [expr {-0.5*$placeBox($name,y)}] 0 0 [expr {0.5*$placeBox($name,y)}] 0 $placeBox($name,x) [expr {0.5*$placeBox($name,y)}] 0"
           set boxIndex "0 1 3 2 0 -1"
-          puts $x3dFile " $transform"
-          puts $x3dFile "  <Shape><Appearance><Material emissiveColor='1 1 0'/></Appearance><IndexedLineSet coordIndex='$boxIndex'><Coordinate point='$boxCoord'/></IndexedLineSet></Shape>"
-          puts $x3dFile " </Transform>"
+          puts $fname " $transform"
+          puts $fname "  <Shape><Appearance><Material emissiveColor='1 1 0'/></Appearance><IndexedLineSet coordIndex='$boxIndex'><Coordinate point='$boxCoord'/></IndexedLineSet></Shape>"
+          puts $fname " </Transform>"
           set grayBackground 1
         }
-        puts $x3dFile "</Group></Transform>"
+        puts $fname "</Group></Transform>"
       }
     } emsg]} {
       errorMsg "Error adding PMI placeholder geometry: $emsg"
@@ -1614,28 +1650,37 @@ proc x3dPlaceholder {} {
   }
 
 # leader line coordinates and line
-  set n 0
   if {[info exists leaderCoords]} {
     set grayBackground 1
-    puts $x3dFile "\n<!-- PLACEHOLDER (coordinates, leader lines) -->"
     if {[catch {
-      foreach name [array names leaderCoords] {
+      if {$aoname == ""} {
+        if {![info exists placeCoords]} {
+          puts $fname "\n<!-- PLACEHOLDER Leader Lines -->"
+          puts $fname "<Switch whichChoice='0' id='swPlaceholder'><Group>"
+        }
+        set lcnames [array names leaderCoords]
+        set viz(PLACE) 1
+      } else {
+        set lcnames [list $aoname]
+      }
+      foreach name $lcnames {
         foreach crd [lrmdups $leaderCoords($name)] {
           set coord [string range $crd 0 [string last " " $crd]-1]
           set leaderID [string range $crd [string last " " $crd]+1 end]
           lappend leaderLine($leaderID) $coord
-          incr n
-          puts $x3dFile "<Transform translation='$coord'>"
-          set transform [x3dTransform "0. 0. 0." $placeAxes($name,axis) $placeAxes($name,refdir) "annotation placeholder" "" $name]
+          puts $fname "<Transform translation='$coord'>"
 
 # coordinate sphere and text
-          if {$n == 1} {
-            puts $x3dFile " <Shape DEF='placeSphere'><Appearance><Material diffuseColor='1 1 0' emissiveColor='1 1 0' transparency='0.5'/></Appearance><Sphere radius='$size1'></Sphere></Shape>"
+        set bbtext "<Billboard axisOfRotation='0 0 0'><Shape><Text string='$name'><FontStyle size='$size2' family='SANS' justify='BEGIN'/></Text><Appearance><Material diffuseColor='0 0 0'/></Appearance></Shape></Billboard>"
+        if {![info exists placeSphereDef]} {
+            puts $fname " <Shape DEF='placeSphere'><Appearance><Material diffuseColor='1 1 0' emissiveColor='1 1 0' transparency='0.5'/></Appearance><Sphere radius='$size1'></Sphere></Shape>"
+            puts $fname " $bbtext"
+            set placeSphereDef 1
           } else {
-            puts $x3dFile " <Shape USE='placeSphere'></Shape>"
+            puts $fname " <Shape USE='placeSphere'></Shape>$bbtext"
           }
-          puts $x3dFile " <Billboard axisOfRotation='0 0 0'><Shape><Text string='$name'><FontStyle size='$size2' family='SANS' justify='BEGIN'/></Text><Appearance><Material diffuseColor='0 0 0'/></Appearance></Shape></Billboard>"
-          puts $x3dFile "</Transform>"
+          puts $fname " <Billboard axisOfRotation='0 0 0'><Shape><Text string='$name'><FontStyle size='$size2' family='SANS' justify='BEGIN'/></Text><Appearance><Material diffuseColor='0 0 0'/></Appearance></Shape></Billboard>"
+          puts $fname "</Transform>"
         }
       }
 
@@ -1644,15 +1689,20 @@ proc x3dPlaceholder {} {
         set index ""
         for {set i 0} {$i < [llength $leaderLine($id)]} {incr i} {append index "$i "}
         append index "-1"
-        puts $x3dFile "<Shape><Appearance><Material emissiveColor='1 1 0'/></Appearance><IndexedLineSet coordIndex='$index'><Coordinate point='[join $leaderLine($id)]'/></IndexedLineSet></Shape>"
+        puts $fname "<Shape><Appearance><Material emissiveColor='1 1 0'/></Appearance><IndexedLineSet coordIndex='$index'><Coordinate point='[join $leaderLine($id)]'/></IndexedLineSet></Shape>"
       }
     } emsg]} {
       errorMsg "Error adding PMI placeholder leader lines: $emsg"
     }
   }
-  puts $x3dFile "</Group></Switch>"
 
-  foreach var {leaderCoords placeAxes placeBox placeCoords} {if {[info exists $var]} {unset -- $var}}
+# end
+  if {$aoname == ""} {
+    puts $fname "</Group></Switch>"
+  } else {
+    catch {unset placeCoords($aoname)}
+    catch {unset leaderCoords($aoname)}
+  }
 }
 
 # -------------------------------------------------------------------------------

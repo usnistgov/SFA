@@ -264,7 +264,7 @@ proc getEntity {objEntity rmax checkInverse checkBadAttributes unicodeCheck} {
             if {[string first "relat" [$objAttribute Name]] == 0} {
 
 # look for name of product_definition
-              if {[$refEntity Type] == "product_definition"} {
+              if {[$refEntity Type] == "product_definition" || [string first "composite_assembly" [$refEntity Type]] == 0} {
                 set pname [string trim [[[$refEntity Attributes] Item [expr 1]] Value]]
                 set idx "$refType,id,[$refEntity P21ID]"
                 if {[info exists unicodeString($idx)]} {set pname $unicodeString($idx)}

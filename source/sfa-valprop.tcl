@@ -1,4 +1,4 @@
-proc valPropStart {} {
+proc valPropStart {defRep} {
   global objDesign
   global cells col entLevel ent entAttrList letters ncartpt opt pd pdcol pdheading propDefID
   global propDefIDRow propDefRow samplingPoints valPropEnts valPropLink valPropNames valProps
@@ -159,19 +159,21 @@ proc valPropStart {} {
   set def3 [list default_model_geometric_view item [list camera_model_d3 name]]
 
   set rep1 [list representation name items $a2p3d $drep $vrep $brep $irep $rrep $mrep $rowrep $len1 $len2 $mass $cartesian_point $ang $area $vol $forc $pres $rat]
-  set rep2 [list shape_representation_with_parameters name items $a2p3d $drep $vrep $brep $irep $rrep $mrep $len1 $len2 $mass $cartesian_point $ang $area $vol $forc $pres $rat]
-  set rep3 [list ply_angle_representation name items $ang]
-  set rep4 [list reinforcement_orientation_basis name items $cartesian11 $curve11]
-  set rep5 [list tessellated_shape_representation name items]
+  set rep2 [lreplace $rep1 0 0 shape_representation]
+  set rep3 [lreplace $rep1 0 0 shape_representation_with_parameters]
+  set rep4 [lreplace $rep1 0 0 tessellated_shape_representation]
+  set rep5 [list ply_angle_representation name items $ang]
+  set rep6 [list reinforcement_orientation_basis name items $cartesian11 $curve11]
 
-  set gvp [list property_definition_representation \
-    definition [list property_definition name description definition $def1 $def2 $def3] \
-    used_representation $rep1 $rep2 $rep3 $rep4 $rep5]
+# defRep is either property_definition_representation or shape_definition_representation
+  set gvp [list $defRep definition [list property_definition name description definition $def1 $def2 $def3] used_representation $rep1 $rep2 $rep3 $rep4 $rep5 $rep6]
 
   set entAttrList {}
   set pd "property_definition"
-  set pdcol 0
-  set propDefRow {}
+  if {![info exists propDefRow]} {
+    set propDefRow {}
+    set pdcol 0
+  }
   set valPropLink 0
   foreach var {ent pdheading samplingPoints} {if {[info exists $var]} {unset $var}}
 
@@ -187,7 +189,7 @@ proc valPropStart {} {
   set n 0
   set entLevel 0
 
-# get property_definition_representation for property_definition in spreadsheet
+# get {property,shape}_definition_representation for property_definition in spreadsheet
   set pdr {}
   ::tcom::foreach objEntity [$objDesign FindObjects [join $startent]] {
     set objType [$objEntity Type]
@@ -197,7 +199,7 @@ proc valPropStart {} {
     }
   }
 
-# process property_definition_representation
+# process {property,shape}_definition_representation
   foreach objEntity $pdr {
     set objType [$objEntity Type]
     set ncartpt 0
@@ -254,7 +256,7 @@ proc valPropStart {} {
       unset valPropEnts
     }
   }
-  set col($pd) $pdcol
+  set col($pd) [expr {max($col($pd),$pdcol)}]
 }
 
 # -------------------------------------------------------------------------------
@@ -403,17 +405,18 @@ proc valPropReport {objEntity} {
                     }
                   }
 
-# add name of entity referred to by the definition, check for unicode version
+# add name or description attribute of entity referred to by the definition, check for unicode version
                   if {[string first "handle" $objValue] != -1} {
                     set n 0
                     ::tcom::foreach attr [$objValue Attributes] {
                       incr n
-                      if {$n == 1} {
+                      if {$n <= 2} {
                         set prodDefName [string trim [$attr Value]]
                         set idx "[$objValue Type],[$attr Name],[$objValue P21ID]"
                         if {[info exists unicodeString($idx)]} {set prodDefName $unicodeString($idx)}
-                        break
+                        if {$prodDefName != "" && [string first "handle" $prodDefName] == -1} {break}
                       }
+                      if {$n == 2} {break}
                     }
 
                     if {$prodDefName != "" && [string first "handle" $prodDefName] == -1} {
@@ -423,7 +426,7 @@ proc valPropReport {objEntity} {
                         append val "  \[$prodDefName\]"
                         $cells($pd) Item $r D $val
                         if {![info exists defComment]} {
-                          addCellComment "property_definition" 3 D "Text in brackets is the 'name' attribute of the definition entity."
+                          addCellComment "property_definition" 3 D "Text in brackets is the 'name' or 'description' attribute of the definition entity."
                           set defComment 1
                         }
                       }
@@ -498,8 +501,9 @@ proc valPropReport {objEntity} {
                 }
 
                 "representation items" -
-                "tessellated_shape_representation items" -
+                "shape_representation items" -
                 "shape_representation_with_parameters items" -
+                "tessellated_shape_representation items" -
                 "reinforcement_orientation_basis items" -
                 "ply_angle_representation items" {
                   set nrep 0
@@ -727,8 +731,9 @@ proc valPropReport {objEntity} {
                 }
 
                 "representation name" -
-                "tessellated_shape_representation name" -
+                "shape_representation name" -
                 "shape_representation_with_parameters name" -
+                "tessellated_shape_representation name" -
                 "reinforcement_orientation_basis name" -
                 "ply_angle_representation name" {
                   set ok 1
@@ -1098,7 +1103,7 @@ proc addValProps {idx val ent} {
 # add blank depending on the value name, units and exponents
   if {[info exists valName]} {
     if {$idx == 2} {
-      foreach str [list name "number of" point string] {if {[string first $str $valName] != -1} {foreach id {3 4} {setValProps $id}; break}}
+      foreach str [list name "number of" "datum references" point string] {if {[string first $str $valName] != -1} {foreach id {3 4} {setValProps $id}; break}}
 
 # only exponent
     } elseif {$idx == 3} {
@@ -1162,24 +1167,26 @@ proc getValProps {} {
 
 # get names of validation properties, add to vpname
                 set names ""
-                set e1s [$e0 GetUsedIn [string trim property_definition_representation] [string trim definition]]
-                ::tcom::foreach e1 $e1s {
-                  set e2  [[[$e1 Attributes] Item [expr 2]] Value]
-                  set e3s [[[$e2 Attributes] Item [expr 2]] Value]
-                  ::tcom::foreach e3 $e3s {
-                    set a3s [$e3 Attributes]
-                    ::tcom::foreach a3 $a3s {
-                      if {[$a3 Name] == "name" && $vpname != "semantic text"} {
-                        set name [$a3 Value]
-                        if {$name != ""} {append names "$name, "}
+                foreach defRep [list property_definition_representation shape_definition_representation] {
+                  set e1s [$e0 GetUsedIn [string trim property_definition_representation] [string trim definition]]
+                  ::tcom::foreach e1 $e1s {
+                    set e2  [[[$e1 Attributes] Item [expr 2]] Value]
+                    set e3s [[[$e2 Attributes] Item [expr 2]] Value]
+                    ::tcom::foreach e3 $e3s {
+                      set a3s [$e3 Attributes]
+                      ::tcom::foreach a3 $a3s {
+                        if {[$a3 Name] == "name" && $vpname != "semantic text"} {
+                          set name [$a3 Value]
+                          if {$name != ""} {append names "$name, "}
 
 # semantic text
-                      } elseif {[$a3 Name] == "description" && $vpname == "semantic text"} {
-                        set name [$a3 Value]
-                        if {$name != ""} {
-                          set idx "descriptive_representation_item,description,[$e3 P21ID]"
-                          if {[info exists unicodeString($idx)]} {set name $unicodeString($idx)}
-                          append names $name
+                        } elseif {[$a3 Name] == "description" && $vpname == "semantic text"} {
+                          set name [$a3 Value]
+                          if {$name != ""} {
+                            set idx "descriptive_representation_item,description,[$e3 P21ID]"
+                            if {[info exists unicodeString($idx)]} {set name $unicodeString($idx)}
+                            append names $name
+                          }
                         }
                       }
                     }

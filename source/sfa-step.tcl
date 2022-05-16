@@ -1,5 +1,6 @@
 proc generateBOM {} {
-  global bomAssembly bomAssemblyID bomIndent bomItems bomNAUO bomNAUOID cells localName prodName sheetLast timeStamp unicodeString worksheet worksheets wsCount
+  global bomAssembly bomAssemblyID bomIndent bomItems bomNAUO bomNAUOID cells entCount
+  global localName opt prodName sheetLast timeStamp unicodeString worksheet worksheets wsCount
   global objDesign
 
   if {[catch {
@@ -107,12 +108,23 @@ proc generateBOM {} {
 # list parts
         set r 3
         $cells(BOM) Item $r 1 "Qty"
-        $cells(BOM) Item $r 2 "Part"
         foreach item [lsort -nocase $parts] {
           if {[info exists bomItems($item)]} {
             incr r
             $cells(BOM) Item $r 1 $bomItems($item)
             $cells(BOM) Item $r 2 "'[string range $item 0 [string last " " $item]-1]"
+          }
+        }
+        $cells(BOM) Item 3 2 "Parts ([expr {$r-3}])"
+        if {[info exists entCount(property_definition)] && [info exists entCount(property_definition_representation)]} {
+          if {$entCount(property_definition) > 0 && $entCount(property_definition_representation) > 0} {
+            if {$opt(valProp)} {
+              set msg "See the property_definition worksheet"
+            } else {
+              set msg "Generate the Analyzer report for Validation Properties"
+            }
+            append msg " for possible properties associated with Parts."
+            addCellComment "BOM" 3 2 $msg
           }
         }
 
@@ -129,7 +141,7 @@ proc generateBOM {} {
           incr r 2
           set rassem $r
           $cells(BOM) Item $r 1 "Qty"
-          $cells(BOM) Item $r 2 "Assembly"
+          $cells(BOM) Item $r 2 "Assemblies ([llength $lassem])"
           $cells(BOM) Item $r 3 "Components"
           foreach item $lassem {
             incr r
@@ -151,6 +163,9 @@ proc generateBOM {} {
           $range VerticalAlignment [expr -4160]
           set assemWidth [[$worksheet(BOM) Range B$rassem B$r] ColumnWidth]
           if {$assemWidth < $partWidth} {[$worksheet(BOM) Range B1 B$r] ColumnWidth [expr $partWidth]}
+
+# group parts list
+          if {$rassem > 40} {[[$worksheet(BOM) Range A4 A[expr {$rassem-2}]] Rows] Group}
         }
       }
     }
@@ -164,15 +179,15 @@ proc generateBOM {} {
 
 # -------------------------------------------------------------------------------
 proc bomAssembly {assem} {
-  global bomAssembly bomAssemblyID bomIndent bomItems bomParts lastAssem
+  global bomAssembly bomAssemblyID bomIndent bomItems lastAssem
 
   set assem  [join $assem]
   set assem1 [string range $assem 0 [string last " " $assem]-1]
   incr bomItems($assem)
 
   incr bomIndent 2
-  if {$bomIndent > 20} {
-    errorMsg "Problems with nesting parts in an assembly"
+  if {$bomIndent > 100} {
+    errorMsg " Problem with nesting components in an assembly"
     foreach var {bomAssembly bomIndent} {if {[info exists $var]} {unset -- $var}}
     return
   }
@@ -401,12 +416,12 @@ proc checkForReports {entType} {
   global cells gen gpmiEnts opt pmiColumns savedViewCol skipEntities spmiEnts stepAP stepAPreport
 
 # check for validation properties report, call valPropStart
-  if {$entType == "property_definition_representation"} {
+  if {$entType == "property_definition_representation" || $entType == "shape_definition_representation"} {
     if {[catch {
       if {[info exists opt(valProp)]} {
         if {$opt(valProp)} {
           if {[lsearch $skipEntities "representation"] == -1} {
-            if {[info exists cells(property_definition)]} {valPropStart}
+            if {[info exists cells(property_definition)]} {valPropStart $entType}
           }
         }
       }

@@ -1,8 +1,9 @@
-# write tessellated geometry for annotations and parts
-proc x3dTessGeom {objID tessEnt faceEnt} {
-  global ao arLastID assemTransform defaultColor draftModelCameras entCount mytemp noGroupTransform opt recPracNames savedViewFile savedViewFileName
-  global savedViewNames shapeRepName shellSuppGeom spaces srNames syntaxErr taoLastID tessCoord tessCoordID tessGeomTxt tessIndex tessIndexCoord
-  global tessPartFile tessPlacement tessRepo tessSuppGeomFile tsName x3dColor x3dColorFile x3dColors x3dCoord x3dFile x3dIndex
+# write tessellated geometry for PMI annotations and parts
+proc x3dTessGeom {objID tessEnt faceEnt {aoname ""}} {
+  global ao arLastID assemTransform defaultColor draftModelCameras entCount leaderCoords mytemp noGroupTransform opt placeCoords placeSavedView
+  global recPracNames savedViewFile savedViewFileName savedViewNames shapeRepName shellSuppGeom spaces srNames syntaxErr tessCoord tessCoordID
+  global tessGeomTxt tessIndex tessIndexCoord tessPartFile tessPlacement tessRepo tessSuppGeomFile tsName x3dColor x3dColorFile x3dColors
+  global x3dCoord x3dFile x3dIndex
 
   set x3dIndex $tessIndex($objID)
   set x3dCoord $tessCoord($tessIndexCoord($objID))
@@ -105,6 +106,10 @@ proc x3dTessGeom {objID tessEnt faceEnt} {
     }
   }
 
+# TAO check for transform related to assembly
+  set taoID [$tessEnt P21ID]
+  x3dAssemblyTransform $tessEnt
+
 # -------------------------------------------------------------------------------
 # loop over list of files from above
   foreach f $flist {
@@ -138,7 +143,6 @@ proc x3dTessGeom {objID tessEnt faceEnt} {
       }
     }
 
-
 # -------------------------------------------------------------------------------
 # loop over placements, if any
     for {set np 0} {$np < $nplace} {incr np} {
@@ -163,6 +167,9 @@ proc x3dTessGeom {objID tessEnt faceEnt} {
         incr srNames($srName)
         if {$srNames($srName) == 1} {puts $f "<!-- $srName -->"}
       }
+
+# transform for PMI in assemblies
+      if {[info exists assemTransform($taoID)]} {puts $f $assemTransform($taoID)}
 
 # translation and rotation (sometimes PMI and usually assemblies)
       if {$tessRepo && [info exists tessPlacement(origin)]} {
@@ -259,12 +266,180 @@ proc x3dTessGeom {objID tessEnt faceEnt} {
 
 # end transform
       if {[info exists endTransform]} {puts $f "</Transform>"}
+
+# generate placeholder if in saved view
+      if {[info exists placeSavedView($aoname)] && ([info exists placeCoords($aoname)] || [info exists leaderCoords($aoname)])} {
+        x3dPlaceholder $aoname $f
+        set noGroupTransform 1
+      }
+
+# close transform for PMI in assemblies
+      if {[info exists assemTransform($taoID)]} {puts $f "</Transform>"}
     }
   }
   set x3dCoord ""
   set x3dIndex ""
   catch {unset tessGeomTxt}
   update idletasks
+}
+
+# -------------------------------------------------------------------------------
+# TAO check for transform related to assembly
+proc x3dAssemblyTransform {tessEnt} {
+  global ao assemTransform entCount noGroupTransform taoLastID
+
+  set debugTAO 0
+  set taoID [$tessEnt P21ID]
+
+  if {[catch {
+    set dc "draughting_callout"
+    set rrwt "representation_relationship_with_transformation_and_shape_representation_relationship"
+    if {[info exists entCount($rrwt)] && [info exists entCount($dc)]} {
+      if {$ao == "tessellated_annotation_occurrence" && $entCount($rrwt) > 0 && $entCount($dc) > 0} {
+        if {![info exists taoLastID] || $taoID != $taoLastID} {
+          if {$debugTAO} {outputMsg "\n$ao $taoID [[[$tessEnt Attributes] Item [expr 1]] Value]"}
+
+# check for TAO in draughting callout
+          set e0s [$tessEnt GetUsedIn [string trim draughting_callout] [string trim contents]]
+          ::tcom::foreach e0 $e0s {
+            if {$debugTAO} {outputMsg [$e0 Type][$e0 P21ID]}
+            set okTransform 0
+
+# DMIA
+            set e1s [$e0 GetUsedIn [string trim draughting_model_item_association] [string trim identified_item]]
+            ::tcom::foreach e1 $e1s {
+              if {$okTransform == 0 && [string first "placeholder" [$e1 Type]] == -1} {
+                if {$debugTAO} {outputMsg "1 [$e1 Type][$e1 P21ID]"}
+
+# shape aspect from SAR
+                set e2 [[[$e1 Attributes] Item [expr 3]] Value]
+                if {$debugTAO} {outputMsg "2  [$e2 Type][$e2 P21ID]"}
+                set checkCPSA 1
+
+# composite shape aspect
+                if {[$e2 Type] == "composite_group_shape_aspect" || [$e2 Type] == "composite_shape_aspect"} {
+                  set e3s [$e2 GetUsedIn [string trim shape_aspect_relationship] [string trim relating_shape_aspect]]
+
+# get shape aspect from composite
+                  set n 0
+                  ::tcom::foreach e3 $e3s {
+                    set e2 [[[$e3 Attributes] Item [expr 4]] Value]
+                    if {$debugTAO} {outputMsg "2a [$e2 Type][$e2 P21ID]"}
+                    incr n
+                    if {$n} {break}
+                  }
+                  if {[$e2 Type] == "composite_shape_aspect"} {
+                    set e3s [$e2 GetUsedIn [string trim shape_aspect_relationship] [string trim relating_shape_aspect]]
+                    set n 0
+                    ::tcom::foreach e3 $e3s {
+                      set e2 [[[$e3 Attributes] Item [expr 4]] Value]
+                      if {$debugTAO} {outputMsg "2c [$e2 Type][$e2 P21ID]"}
+                      incr n
+                      if {$n} {break}
+                    }
+                  }
+
+# dimensional location refers to two SA
+                } elseif {[$e2 Type] == "dimensional_location"} {
+                  foreach idx {3 4} {
+                    set dlsa($idx) [[[$e2 Attributes] Item [expr $idx]] Value]
+
+# check that it is not in CPSA
+                    if {[string first "shape_aspect" [$dlsa($idx) Type]] != -1} {
+                      set e3s [$dlsa($idx) GetUsedIn [string trim component_path_shape_aspect] [string trim component_shape_aspect]]
+                      set ncpsa 0
+                      ::tcom::foreach e3 $e3s {incr ncpsa}
+                      if {$ncpsa == 0} {set e2 $dlsa($idx); break}
+                    }
+                  }
+
+# dimensional size refers to one SA
+                } elseif {[$e2 Type] == "dimensional_size"} {
+                  set e2 [[[$e2 Attributes] Item [expr 1]] Value]
+                  if {$debugTAO} {outputMsg "2a [$e2 Type][$e2 P21ID]"}
+                  set checkCPSA 0
+                }
+
+# check if shape aspect is used in component_path_shape_aspect
+                set oksa 1
+                if {[string first "shape_aspect" [$e2 Type]] != -1 && $checkCPSA} {
+                  set e3s [$e2 GetUsedIn [string trim component_path_shape_aspect] [string trim component_shape_aspect]]
+                  set ncpsa 0
+                  ::tcom::foreach e3 $e3s {incr ncpsa}
+                  if {$ncpsa > 0} {
+                    set oksa 0
+                    if {$debugTAO} {outputMsg "    SA in CPSA"}
+                  }
+                }
+
+# GISU
+                if {[string first "shape_aspect" [$e2 Type]] != -1 && $oksa} {
+                  set e3s [$e2 GetUsedIn [string trim geometric_item_specific_usage] [string trim definition]]
+                  set ngisu 0
+                  ::tcom::foreach e3 $e3s {incr ngisu}
+                  if {$debugTAO && $ngisu == 0} {outputMsg "    SA not in GISU"}
+
+                  ::tcom::foreach e3 $e3s {
+                    if {$debugTAO} {outputMsg "3   [$e3 Type][$e3 P21ID]"}
+                    set e4 [[[$e3 Attributes] Item [expr 4]] Value]
+                    if {$debugTAO} {outputMsg "4    [$e4 Type][$e4 P21ID]"}
+
+# check for ABSR in SSR rep_2 or rep_1
+                    set nssr 0
+                    set ssrRep 3
+                    set e5s [$e4 GetUsedIn [string trim shape_representation_relationship] [string trim rep_2]]
+                    ::tcom::foreach e5 $e5s {incr nssr}
+                    if {$nssr == 0} {
+                      set ssrRep 4
+                      set e5s [$e4 GetUsedIn [string trim shape_representation_relationship] [string trim rep_1]]
+                      errorMsg " Error getting ABSR in SSR rep_2, checking for ABSR in rep_1" red
+                    }
+
+# shape representation
+                    ::tcom::foreach e5 $e5s {
+                      if {$debugTAO} {outputMsg "5     [$e5 Type][$e5 P21ID]"}
+                      set e6 [[[$e5 Attributes] Item [expr $ssrRep]] Value]
+                      set srID [$e6 P21ID]
+                      if {$debugTAO} {outputMsg "6      [$e6 Type][$e6 P21ID]"}
+
+# check SR in RRWT rep_1 > item defined transformation
+                      set e7s [$e6 GetUsedIn [string trim $rrwt] [string trim rep_1]]
+                      ::tcom::foreach e7 $e7s {
+                        if {$debugTAO} {outputMsg "7       [$e7 Type][$e7 P21ID]"}
+                        set e8 [[[$e7 Attributes] Item [expr 5]] Value]
+                        if {$debugTAO} {outputMsg "8        [$e8 Type][$e8 P21ID]"}
+
+# IDT transform 2 (item 4)
+                        set e9 [[[$e8 Attributes] Item [expr 4]] Value]
+                        if {$debugTAO} {outputMsg "9         [$e9 Type][$e9 P21ID]"}
+                        set a2p3d [x3dGetA2P3D $e9]
+                        if {$debugTAO} {outputMsg "t1         $a2p3d"}
+                        if {$debugTAO} {outputMsg [x3dTransform [lindex $a2p3d 0] [lindex $a2p3d 1] [lindex $a2p3d 2]] red}
+                        set assemTransform($taoID) [x3dTransform [lindex $a2p3d 0] [lindex $a2p3d 1] [lindex $a2p3d 2]]
+                        set noGroupTransform 1
+
+# IDT transform 1 (item 3)
+                        set e10 [[[$e8 Attributes] Item [expr 3]] Value]
+                        if {$debugTAO} {outputMsg "10        [$e10 Type][$e10 P21ID]"}
+                        set a2p3d [x3dGetA2P3D $e10]
+                        if {$debugTAO} {outputMsg "t2         $a2p3d"}
+                        set okTransform 1
+                      }
+                    }
+                  }
+                } else {
+                  if {$debugTAO} {outputMsg "2  [$e2 Type][$e2 P21ID]" red}
+                }
+              }
+            }
+          }
+        }
+        set taoLastID $taoID
+      }
+    }
+  } emsg3]} {
+    errorMsg "Error getting TAO transform: $emsg3"
+  }
 }
 
 # -------------------------------------------------------------------------------

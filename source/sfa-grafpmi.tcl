@@ -136,15 +136,11 @@ proc gpmiAnnotation {entType} {
     lappend syntaxErr($ao) [list 1 1 $msg]
   }
 
-  if {$opt(DEBUG1)} {outputMsg \n}
-  set entLevel 0
   setEntAttrList $PMIP($ao)
-  if {$opt(DEBUG1)} {outputMsg "entattrlist $entAttrList"}
-  if {$opt(DEBUG1)} {outputMsg \n}
-
   set startent [lindex $PMIP($ao) 0]
   set n 0
   set entLevel 0
+  if {$opt(DEBUG1)} {outputMsg "\nentattrlist $entAttrList\n"}
 
 # get next unused column by checking if there is a colName
   if {$useXL} {set pmiStartCol($ao) [getNextUnusedColumn $startent]}
@@ -174,7 +170,7 @@ proc gpmiAnnotationReport {objEntity} {
   global ao aoname assocGeom badAttributes cells circleCenter col currx3dPID curveTrim dirRatio dirType
   global draughtingModels draftModelCameraNames draftModelCameras ent entAttrList entCount entLevel gen geomType gpmiEnts gpmiID gpmiIDRow
   global gpmiName gpmiRow gpmiTypes gpmiTypesInvalid gpmiTypesPerFile gpmiValProp grayBackground iCompCurve iCompCurveSeg iPolyline
-  global leaderCoords leaderLineID nindex numCompCurve numCompCurveSeg numPolyline numx3dPID objEntity1 opt placeAxes placeBox placeCoords
+  global leaderCoords leaderLineID nindex numCompCurve numCompCurveSeg numPolyline numx3dPID objEntity1 opt placeAxes placeBox placeCoords placeSavedView
   global pmiCol pmiColumns pmiHeading pmiStartCol propDefIDs recPracNames savedViewCol savedViewName spaces spmiTypesPerFile stepAP syntaxErr
   global tessCoord tessIndex tessIndexCoord tessPlacement tessPlacementID tessRepo useXL
   global x3dColor x3dCoord x3dFile x3dFileName x3dIndex x3dIndexType x3dMax x3dMin x3dPID x3dPoint x3dShape x3dStartFile
@@ -709,9 +705,11 @@ proc gpmiAnnotationReport {objEntity} {
                 "annotation_occurrence* name" -
                 "*tessellated_annotation_occurrence* name" {
                   set aoname $objValue
+
+# check if in draughting callout
                   set dcs [$objEntity GetUsedIn [string trim draughting_callout] [string trim contents]]
                   set ndc 0
-                  ::tcom::foreach dc $dcs {incr ndc}
+                  ::tcom::foreach dc $dcs {set drcall $dc; incr ndc}
                   if {$ndc == 0} {
                     set msg "Syntax Error: [$objEntity Type] not found in draughting_callout 'contents' attribute.$spaces"
                     if {[string first "tessellated" $ent1] != -1} {
@@ -746,12 +744,18 @@ proc gpmiAnnotationReport {objEntity} {
                     }
                   }
                   if {$opt(PMISEM) && [string first "placeholder" $ent1] != -1} {lappend spmiTypesPerFile "annotation placeholder"}
+
+# check if placeholder in saved view
+                  if {[string first "placeholder" $ao] != -1} {
+                    set crdm [$drcall GetUsedIn [string trim characterized_representation_and_draughting_model] [string trim items]]
+                    ::tcom::foreach item $crdm {set placeSavedView($aoname) 1}
+                  }
                 }
 
                 "annotation_placeholder_occurrence* line_spacing" {
                   set msg ""
                   if {$objValue <= 0.} {
-                    set msg "Syntax Error: [lindex $ent1 0] 'line_spacing' attribute must be greater than zero."
+                    set msg "Syntax Error: [lindex $ent1 0] 'line_spacing' must be greater than zero."
                   } elseif {$objValue < 1.E-300} {
                     set msg "Syntax Error: Bad format for [lindex $ent1 0] 'line_spacing' attribute."
                   }
@@ -767,7 +771,9 @@ proc gpmiAnnotationReport {objEntity} {
                 "tessellated_curve_set name" {
 # write tessellated coords and index for pmi and part geometry
                   if {$gen(View) && $opt(viewPMI) && $ao == "tessellated_annotation_occurrence"} {
-                    if {[info exists tessIndex($objID)] && [info exists tessCoord($tessIndexCoord($objID))]} {x3dTessGeom $objID $objEntity1 $ent1}
+                    if {[info exists tessIndex($objID)] && [info exists tessCoord($tessIndexCoord($objID))]} {
+                      x3dTessGeom $objID $objEntity1 $ent1 $aoname
+                    }
                   }
                 }
 
@@ -928,7 +934,6 @@ proc gpmiAnnotationReport {objEntity} {
                       if {$n == 0} {
                         set objGuiEntities [$objEntity1 GetUsedIn [string trim draughting_callout] [string trim contents]]
                         ::tcom::foreach objGuiEntity $objGuiEntities {
-                          outputMsg "[$objGuiEntity Type]" red
                           incr n
                           if {$n == 1} {lappend gpmiTypesPerFile "$ov/$aoname[$objGuiEntity P21ID]"}
                         }

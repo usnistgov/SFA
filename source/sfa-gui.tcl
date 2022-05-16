@@ -1,5 +1,5 @@
 # SFA version
-proc getVersion {} {return 4.74}
+proc getVersion {} {return 4.75}
 
 # see proc installIFCsvr in sfa-proc.tcl for the IFCsvr version
 
@@ -39,11 +39,11 @@ Use F9 and F10 to change the font size here.  See Help > Function Keys"
       outputMsg "- User Guide (Update 7) is based on version 4.60"
       showFileURL UserGuide
     }
-    if {$sfaVersion < 4.74} {outputMsg "- Generate Bill of Materials (BOM), see Options tab"}
+    if {$sfaVersion < 4.74} {outputMsg "- Generate Bill of Materials (BOM), see Options tab and Help > Bill of Materials"}
     if {$sfaVersion < 4.12} {outputMsg "- Updated Viewer for Part Geometry, see Help > Viewer > Overview"}
     if {$sfaVersion < 3.80} {outputMsg "- Syntax Checker, see Help > Syntax Checker"}
     if {$sfaVersion < 3.70} {outputMsg "- Faster generation of Spreadsheets"}
-    if {$sfaVersion < 4.64} {outputMsg "- Improved layout on Options and Spreadsheet tabs"}
+    if {$sfaVersion < 4.64} {outputMsg "- Improved menu layout on Options and Spreadsheet tabs"}
     if {$sfaVersion < 4.61} {outputMsg "- Updated Sample STEP Files in the Examples menu"}
   }
   outputMsg "- See Help > Release Notes for all new features and bug fixes"
@@ -942,7 +942,7 @@ proc guiSpreadsheet {} {
     tooltip::tooltip $buttons(xlSort)      "Worksheets can be sorted by column values.\nThe Properties worksheet is always sorted.\n\nSee Help > User Guide (section 5.5.3)"
     tooltip::tooltip $buttons(xlNoRound)   "See Help > User Guide (section 5.5.4)"
     tooltip::tooltip $buttons(x3dSave)     "The X3D file can be shown in an X3D viewer or imported to other software.\n\nSee Help > Viewer\nSee Websites > Product Definitions in Augmented Reality"
-    tooltip::tooltip $buttons(viewPMIAR)   "Format graphical PMI X3D with extra identifiers for\naugmented reality workflow.\n\nSee Websites > Product Definitions in Augmented Reality"
+    tooltip::tooltip $buttons(viewPMIAR)   "Format graphical PMI X3D with extra identifiers for the\naugmented reality workflow.\n\nSee Websites > Product Definitions in Augmented Reality"
     tooltip::tooltip $buttons(partNoGroup) "This option might create a very long list of parts names in the Viewer.\nIdentical parts have a underscore and number appended to their name.\nSee Help > Assemblies"
     tooltip::tooltip $buttons(DEBUGVP)     "Debug viewpoint orientation defined by a camera model.  Older implementations of camera models\nmight not conform to current recommended practices.\n\nSee the CAx-IF Recommended Practice for $recPracNames(pmi242), Sec. 9.4.2.6"
     tooltip::tooltip $buttons(SHOWALLPMI)  "The complete list of [expr {$pmiElementsMaxRows-3}] PMI Elements, including those that are not found in\nthe STEP file, will be shown on the PMI Representation Coverage worksheet.\n\nSee Help > Analyzer > PMI Coverage Analysis\nSee Help > User Guide (section 6.1.7)"
@@ -1428,8 +1428,8 @@ appear in the spreadsheet on shape_aspect and other related entities.  The shape
 related to their corresponding dimensional or geometric tolerance entities.  A message will
 indicate when semantic text is added to entities.
 
-The name attribute of the entity referred to by the property_definition definition attribute is
-included in brackets.
+The name or description attribute of the entity referred to by the property_definition definition
+attribute is included in brackets.
 
 Syntax errors related to validation property attribute values are also reported in the Status tab
 and the relevant worksheet cells.  Syntax errors are highlighted in red.
@@ -1760,13 +1760,18 @@ Practices are checked with one of the Analyzer options.  See Help > Analyzer > S
 
   $Help add command -label "Bill of Materials" -command {
 outputMsg "\nBill of Materials ---------------------------------------------------------------------------------" blue
-outputMsg "The Bill of Materials (BOM) worksheet lists the quantities of parts and assemblies in two tables.
-Assemblies also show their components which can be parts or other assemblies.  A STEP file might
-not contain all of the information to generate a complete BOM.  Some BOMs will not have a list of
-assemblies.  Some parts might not be listed as a component of an assembly.
+outputMsg "The next_assembly_usage_occurrence entity shows the assembly and component names for the relating
+and related products in an assembly.  If there are no next_assembly_usage_occurrence entities, then
+then Bill of Materials (BOM) cannot be generated.
 
-The next_assembly_usage_occurrence entity shows the assembly and component names for the relating
-and related products in an assembly.
+The BOM worksheet (third worksheet) lists the quantities of parts and assemblies in two tables.
+Assemblies also show their components which can be parts or other assemblies.  A STEP file might
+not contain all the necessary information to generate a complete BOM.  Parts do not have to be
+contained in an assembly, therefore some BOMs will not have a list of assemblies and some parts
+might not be listed as a component of an assembly.
+
+Generate the Analyzer report for Validation Properties to see possible properties associated with
+Parts.
 
 If part and assembly names use non-Engligh characters, then the names in the BOM might be missing
 characters.  In some cases the name will appear as NoName with a number appended.
@@ -1894,7 +1899,8 @@ According to ISO 10303 Part 21 section 6.4.3, Unicode can be used for non-Englis
 symbols with the control directives \\X\\ and \\X2\\.  For example, \\X\\E9 or \\X2\\00E9\\X0\\ is used for
 the accented character é.  Definitions of Unicode characters, such as E9, can be found at
 www.unicode.org/charts  Some CAD software does not support these control directives when exporting
-or importing a STEP file.  See Websites > Schemas > ISO 10303 Part 21 Standard (sections 6.4.3)
+or importing a STEP file.
+See Websites > STEP Format and Schemas > ISO 10303 Part 21 Standard (sections 6.4.3)
 
 Spreadsheet - The \\X\\ and \\S\\ control directives are supported by default.  Use the option on
 the Spreadsheet tab to support non-English characters using the \\X2\\ control directive.  In some
@@ -2088,7 +2094,7 @@ See Help > Disclaimers and NIST Disclaimer"
   $Examples add command -label "PMI Coverage Analysis"                   -command {openURL https://www.nist.gov/document/sfa-multiple-files-spreadsheet}
   $Examples add separator
   $Examples add command -label "Sample STEP Files (zip)" -command {openURL https://www.nist.gov/document/nist-pmi-step-files}
-  $Examples add command -label "NIST CAD Models"         -command {openURL https://www.nist.gov/el/systems-integration-division-73400/mbe-pmi-validation-and-conformance-testing-project/download}
+  $Examples add command -label "NIST CAD Models"         -command {openURL https://www.nist.gov/ctl/smart-connected-systems-division/smart-connected-manufacturing-systems-group/mbe-pmi-0}
   $Examples add command -label "STEP File Library"       -command {openURL https://www.cax-if.org/cax/cax_stepLib.php}
   $Examples add command -label "Archived STEP Files"     -command {openURL https://web.archive.org/web/20160825140043/http://www.steptools.com/support/stdev_docs/stpfiles/index.html}
 }
@@ -2099,9 +2105,10 @@ proc guiWebsitesMenu {} {
   global Websites
 
   $Websites add command -label "STEP File Analyzer and Viewer"              -command {openURL https://www.nist.gov/services-resources/software/step-file-analyzer-and-viewer}
-  $Websites add command -label "STEP at NIST"                               -command {openURL https://www.nist.gov/el/systems-integration-division-73400/step-standard-exchange-product-model-data}
+  $Websites add command -label "STEP at NIST"                               -command {openURL https://www.nist.gov/ctl/smart-connected-systems-division/smart-connected-manufacturing-systems-group/step-nist}
+  $Websites add command -label "Digital Thread for Manufacturing"           -command {openURL https://www.nist.gov/programs-projects/digital-thread-manufacturing}
   $Websites add command -label "Conformance Checking of PMI in STEP Files"  -command {openURL https://www.nist.gov/publications/conformance-checking-pmi-representation-cad-model-step-data-exchange-files}
-  $Websites add command -label "MBE PMI Validation and Comformance Testing" -command {openURL https://www.nist.gov/el/systems-integration-division-73400/mbe-pmi-validation-and-conformance-testing-project}
+  $Websites add command -label "MBE PMI Validation and Comformance Testing" -command {openURL https://www.nist.gov/ctl/smart-connected-systems-division/smart-connected-manufacturing-systems-group/mbe-pmi-validation}
   $Websites add command -label "Product Definitions in Augmented Reality"   -command {openURL https://pages.nist.gov/CAD-PMI-Testing/NIST-AR-video.html}
 
   $Websites add separator
