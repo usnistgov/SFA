@@ -171,7 +171,7 @@ proc gpmiAnnotationReport {objEntity} {
   global draughtingModels draftModelCameraNames draftModelCameras ent entAttrList entCount entLevel gen geomType gpmiEnts gpmiID gpmiIDRow
   global gpmiName gpmiRow gpmiTypes gpmiTypesInvalid gpmiTypesPerFile gpmiValProp grayBackground iCompCurve iCompCurveSeg iPolyline
   global leaderCoords leaderLineID nindex numCompCurve numCompCurveSeg numPolyline numx3dPID objEntity1 opt placeAxes placeBox placeCoords placeSavedView
-  global pmiCol pmiColumns pmiHeading pmiStartCol propDefIDs recPracNames savedViewCol savedViewName spaces spmiTypesPerFile stepAP syntaxErr
+  global placeSymbol pmiCol pmiColumns pmiHeading pmiStartCol propDefIDs recPracNames savedViewCol savedViewName spaces spmiTypesPerFile stepAP syntaxErr
   global tessCoord tessIndex tessIndexCoord tessPlacement tessPlacementID tessRepo useXL
   global x3dColor x3dCoord x3dFile x3dFileName x3dIndex x3dIndexType x3dMax x3dMin x3dPID x3dPoint x3dShape x3dStartFile
 
@@ -363,6 +363,10 @@ proc gpmiAnnotationReport {objEntity} {
                         if {$crd > 1.e7} {errorMsg "Ignoring [lindex $ent1 0] coordinate that is too large: $crd"; set okcrd 0}
                       }
                       if {$okcrd} {lappend leaderCoords($aoname) "$coord $leaderLineID"}
+
+# placeholder symbol
+                      set sym [[[$objEntity Attributes] Item [expr 3]] Value]
+                      if {$sym != "none"} {set placeSymbol($coord) [[[$objEntity Attributes] Item [expr 3]] Value]}
                     }
                   }
 
@@ -853,7 +857,12 @@ proc gpmiAnnotationReport {objEntity} {
                 "polyline name" {set geomType "polyline"}
                 "circle name"   {set geomType "circle"}
                 "composite_curve name" {set iCompCurveSeg 0}
-                "annotation_to_model_leader_line name" {set leaderLineID $objID}
+
+                "auxiliary_leader_line name" -
+                "annotation_to_model_leader_line name" -
+                "annotation_to_annotation_leader_line name" {
+                  set leaderLineID $objID
+                }
 
                 "planar_box size_in_*" {
                   set geomType "planar_box"

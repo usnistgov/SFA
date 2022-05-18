@@ -1168,7 +1168,7 @@ proc getValProps {} {
 # get names of validation properties, add to vpname
                 set names ""
                 foreach defRep [list property_definition_representation shape_definition_representation] {
-                  set e1s [$e0 GetUsedIn [string trim property_definition_representation] [string trim definition]]
+                  set e1s [$e0 GetUsedIn [string trim $defRep] [string trim definition]]
                   ::tcom::foreach e1 $e1s {
                     set e2  [[[$e1 Attributes] Item [expr 2]] Value]
                     set e3s [[[$e2 Attributes] Item [expr 2]] Value]
@@ -1177,10 +1177,10 @@ proc getValProps {} {
                       ::tcom::foreach a3 $a3s {
                         if {[$a3 Name] == "name" && $vpname != "semantic text"} {
                           set name [$a3 Value]
-                          if {$name != ""} {append names "$name, "}
+                          if {$name != "" && [string first $name $names] == -1} {append names "$name, "}
 
 # semantic text
-                        } elseif {[$a3 Name] == "description" && $vpname == "semantic text"} {
+                        } elseif {[$a3 Name] == "description" && $vpname == "semantic text" && $defRep == "property_definition_representation"} {
                           set name [$a3 Value]
                           if {$name != ""} {
                             set idx "descriptive_representation_item,description,[$e3 P21ID]"

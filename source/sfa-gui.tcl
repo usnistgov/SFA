@@ -1,5 +1,5 @@
 # SFA version
-proc getVersion {} {return 4.75}
+proc getVersion {} {return 4.76}
 
 # see proc installIFCsvr in sfa-proc.tcl for the IFCsvr version
 
@@ -436,7 +436,7 @@ proc guiOptionsTab {} {
   set txt "The Viewer supports b-rep and tessellated part geometry, graphical PMI, sketch\ngeometry, supplemental geometry, datum targets, and finite element models.\n\nPart Only generates only Part Geometry.  This is useful when no other Viewer\nfeatures are needed and for large STEP files.  Use the Viewer options below to\ncontrol what features of the STEP file are shown.  See Help > Viewer"
   catch {tooltip::tooltip $buttons(genView) $txt}
   catch {tooltip::tooltip $buttons(partOnly) $txt}
-  catch {tooltip::tooltip $buttons(BOM) "Generate a Bill of Materials (BOM), see Help > Bill of Materials"}
+  catch {tooltip::tooltip $buttons(BOM) "Generate a Bill of Materials (BOM)\n\nSee Help > Bill of Materials\nSee Examples > Bill of Materials"}
 
   catch {tooltip::tooltip $buttons(logFile) "Status tab text can be written to a Log file myfile-sfa.log  Use F4 to open the Log file.\nSyntax Checker results are written to myfile-sfa-err.log\nAll text in the Status tab can be saved by right-clicking and selecting Save."}
   catch {tooltip::tooltip $buttons(syntaxChecker) "Use this option to run the Syntax Checker when generating a Spreadsheet\nor View.  The Syntax Checker can also be run with function key F8.\n\nThis checks for basic syntax errors and warnings in the STEP file related to\nmissing or extra attributes, incompatible and unresolved\ entity references,\nselect value types, illegal and unexpected characters, and other problems\nwith entity attributes.\n\nSee Help > Syntax Checker\nSee Help > User Guide (section 7)"}
@@ -1168,30 +1168,35 @@ element models and results."
 
   $helpView add command -label "Graphical PMI" -command {
 outputMsg "\nGraphical PMI -------------------------------------------------------------------------------------" blue
-outputMsg "Graphical PMI (PMI Presentation) annotations composed of polylines, lines, circles, and tessellated
-geometry are supported.  The color of the annotations can be modified.  PMI associated with saved
-views can be switched on and off.
-
-Annotation placeholders for each coordinate system are shown with an axes triad, a small gray
-sphere, and text.  Placeholders are supported in AP242 edition 2.
-
-Section view clipping planes are shown with a white transparent plane.  The model is not actually
-clipped.
+outputMsg "Graphical PMI (PMI Presentation) annotations for geometric dimensioning and tolerancing composed of
+polylines, lines, circles, and tessellated geometry are supported.  On the Options tab, the color
+of the annotations can be modified.  PMI associated with saved views can be switched on and off.
 
 Some graphical PMI might not have equivalent or any semantic PMI in the STEP file.  Some STEP files
 with semantic PMI might not have any graphical PMI.
 
 See Help > User Guide (section 4.2)
 See Help > Analyzer > PMI Presentation
-See Help > Assemblies
 See Examples > Viewer
 See Examples > Sample STEP Files
 
-Only graphical PMI defined in recommended practices is supported.  Older implementations of saved
-view viewpoints might not conform to current recommended practices.
+Only graphical PMI defined in recommended practices is supported.
+See Websites > CAx Recommended Practices
+ (Representation and Presentation of PMI for AP242, PMI Polyline Presentation for AP203 and AP214)
 
-See Websites > CAx Recommended Practices (Representation and Presentation of PMI for AP242, and
-  PMI Polyline Presentation for AP203 and AP214)"
+Older implementations of saved view viewpoints might not conform to current recommended practices.
+Section view clipping planes are shown with a white transparent plane.  The model is not actually
+clipped.
+
+Graphical PMI on parts in an assembly might have the wrong position and orientation.
+
+Annotation placeholders, supported in AP242 edition 2, provide information about the position,
+orientation, and organization of an annotation.  Placeholder coordinate systems are shown with an
+axes triad, gray sphere, and text label with the name of the placeholder.  Leader lines and a
+rectangle for the annotation are shown with yellow lines.  To identify which annotation a leader
+line is associated with, the first and last points of a leader line have a text label.  Leader line
+symbols show their type and position with blue text.
+See Websites > CAx Recommended Practices (Representation and Presentation of PMI for AP242), sec. 7.2"
     .tnb select .tnb.status
   }
 
@@ -1275,12 +1280,10 @@ Supplemental geometry on parts in an assembly is supported.  However, supplement
 highly nested assemblies has not been tested.
 
 The following is NOT supported with assemblies:
-- Graphical PMI on parts in an assembly.  The graphical PMI will be in the wrong position and
-  orientation.
-- Parts in an assembly using AP242 tessellated geometry.  Parts in an assembly might have the wrong
-  position and orientation or be missing.  Similar to b-rep geometry, a list of part names appears
-  on the right in the viewer.
-- Bill of materials"
+- Parts in an assembly using AP242 tessellated geometry might have the wrong position and
+  orientation or be missing.  Similar to b-rep geometry, a list of part names appears on the right
+  in the viewer.
+- Graphical PMI on parts in an assembly might have the wrong position and orientation."
     .tnb select .tnb.status
   }
 
@@ -1775,7 +1778,9 @@ Parts.
 
 If part and assembly names use non-Engligh characters, then the names in the BOM might be missing
 characters.  In some cases the name will appear as NoName with a number appended.
-See Help > Text Strings and Numbers"
+See Help > Text Strings and Numbers
+
+See Examples > Bill of Materials"
     .tnb select .tnb.status
   }
 
@@ -2092,6 +2097,7 @@ See Help > Disclaimers and NIST Disclaimer"
   $Examples add command -label "Spreadsheets - PMI Representation"       -command {openURL https://www.nist.gov/document/sfa-semantic-pmi-spreadsheet}
   $Examples add command -label "PMI Presentation, Validation Properties" -command {openURL https://www.nist.gov/document/sfa-spreadsheet}
   $Examples add command -label "PMI Coverage Analysis"                   -command {openURL https://www.nist.gov/document/sfa-multiple-files-spreadsheet}
+  $Examples add command -label "Bill of Materials"                       -command {openURL https://www.nist.gov/document/sfa-bill-materials-spreadsheet}
   $Examples add separator
   $Examples add command -label "Sample STEP Files (zip)" -command {openURL https://www.nist.gov/document/nist-pmi-step-files}
   $Examples add command -label "NIST CAD Models"         -command {openURL https://www.nist.gov/ctl/smart-connected-systems-division/smart-connected-manufacturing-systems-group/mbe-pmi-0}

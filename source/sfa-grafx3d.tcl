@@ -1583,7 +1583,7 @@ proc x3dHoles {} {
 # -------------------------------------------------------------------------------
 # placeholder axes, coordinates, text, box, leader line
 proc x3dPlaceholder {{aoname ""} {fname ""}} {
-  global grayBackground leaderCoords maxxyz placeAxes placeAxesDef placeBox placeCoords placeSize placeSphereDef viz x3dFile
+  global grayBackground leaderCoords maxxyz placeAxes placeAxesDef placeBox placeCoords placeSize placeSphereDef placeSymbol viz x3dFile
 
   if {$aoname == ""} {
     puts $x3dFile "\n<!-- PLACEHOLDER -->"
@@ -1608,29 +1608,29 @@ proc x3dPlaceholder {{aoname ""} {fname ""}} {
   foreach name $pcnames {
     if {[catch {
       foreach coord [lrmdups $placeCoords($name)] {
-        puts $fname "<Transform id='placeholder $name' translation='$coord'><Group>"
-        set transform [x3dTransform "0. 0. 0." $placeAxes($name,axis) $placeAxes($name,refdir) "annotation placeholder" "" $name]
+        puts $fname "<Transform id='PH $name' translation='$coord'><Group>"
 
 # axes
-        if {![info exists placeAxesDef]} {
+        set transform [x3dTransform "0. 0. 0." $placeAxes($name,axis) $placeAxes($name,refdir) "placeholder"]
+        if {[info exists placeAxesDef]} {
+          puts $fname " $transform<Group USE='placeAxes'></Group></Transform>"
+        } else {
           puts $fname " $transform<Group DEF='placeAxes'>"
           puts $fname "  <Shape><Appearance><Material emissiveColor='1 0 0'/></Appearance><IndexedLineSet coordIndex='0 1 -1'><Coordinate point='0. 0. 0. $size2 0. 0.'/></IndexedLineSet></Shape>"
           puts $fname "  <Shape><Appearance><Material emissiveColor='0 .5 0'/></Appearance><IndexedLineSet coordIndex='0 1 -1'><Coordinate point='0. 0. 0. 0. $size2 0.'/></IndexedLineSet></Shape>"
           puts $fname "  <Shape><Appearance><Material emissiveColor='0 0 1'/></Appearance><IndexedLineSet coordIndex='0 1 -1'><Coordinate point='0. 0. 0. 0. 0. $size2'/></IndexedLineSet></Shape>"
           puts $fname " </Group></Transform>"
           set placeAxesDef 1
-        } else {
-          puts $fname " $transform<Group USE='placeAxes'></Group></Transform>"
         }
 
 # coordinate sphere and text
         set bbtext "<Billboard axisOfRotation='0 0 0'><Shape><Text string='$name'><FontStyle size='$size2' family='SANS' justify='BEGIN'/></Text><Appearance><Material diffuseColor='0 0 0'/></Appearance></Shape></Billboard>"
-        if {![info exists placeSphereDef]} {
+        if {[info exists placeSphereDef]} {
+          puts $fname " <Shape USE='placeSphere'></Shape>$bbtext"
+        } else {
           puts $fname " <Shape DEF='placeSphere'><Appearance><Material diffuseColor='0 0 0' emissiveColor='0 0 0' transparency='0.5'/></Appearance><Sphere radius='$size1'></Sphere></Shape>"
           puts $fname " $bbtext"
           set placeSphereDef 1
-        } else {
-          puts $fname " <Shape USE='placeSphere'></Shape>$bbtext"
         }
 
 # planar box
@@ -1663,33 +1663,40 @@ proc x3dPlaceholder {{aoname ""} {fname ""}} {
       } else {
         set lcnames [list $aoname]
       }
+
+# get coordinates for leader lines
       foreach name $lcnames {
-        foreach crd [lrmdups $leaderCoords($name)] {
+        foreach crd $leaderCoords($name) {
           set coord [string range $crd 0 [string last " " $crd]-1]
           set leaderID [string range $crd [string last " " $crd]+1 end]
           lappend leaderLine($leaderID) $coord
-          puts $fname "<Transform translation='$coord'>"
-
-# coordinate sphere and text
-        set bbtext "<Billboard axisOfRotation='0 0 0'><Shape><Text string='$name'><FontStyle size='$size2' family='SANS' justify='BEGIN'/></Text><Appearance><Material diffuseColor='0 0 0'/></Appearance></Shape></Billboard>"
-        if {![info exists placeSphereDef]} {
-            puts $fname " <Shape DEF='placeSphere'><Appearance><Material diffuseColor='1 1 0' emissiveColor='1 1 0' transparency='0.5'/></Appearance><Sphere radius='$size1'></Sphere></Shape>"
-            puts $fname " $bbtext"
-            set placeSphereDef 1
-          } else {
-            puts $fname " <Shape USE='placeSphere'></Shape>$bbtext"
-          }
-          puts $fname " <Billboard axisOfRotation='0 0 0'><Shape><Text string='$name'><FontStyle size='$size2' family='SANS' justify='BEGIN'/></Text><Appearance><Material diffuseColor='0 0 0'/></Appearance></Shape></Billboard>"
-          puts $fname "</Transform>"
+          set leaderName($leaderID) $name
         }
       }
 
-# leader line
+# leader lines
       foreach id [array names leaderLine] {
+        set name $leaderName($id)
         set index ""
         for {set i 0} {$i < [llength $leaderLine($id)]} {incr i} {append index "$i "}
         append index "-1"
-        puts $fname "<Shape><Appearance><Material emissiveColor='1 1 0'/></Appearance><IndexedLineSet coordIndex='$index'><Coordinate point='[join $leaderLine($id)]'/></IndexedLineSet></Shape>"
+        puts $fname "<Shape id='LL $name'><Appearance><Material emissiveColor='1 1 0'/></Appearance><IndexedLineSet coordIndex='$index'><Coordinate point='[join $leaderLine($id)]'/></IndexedLineSet></Shape>"
+
+# text at first and last point
+        foreach idx [list 0 [expr {[llength $leaderLine($id)]-1}]] {
+          set coord [join [lindex $leaderLine($id) $idx]]
+          puts $fname "<Transform translation='$coord'><Billboard axisOfRotation='0 0 0'><Shape><Text string='$name'><FontStyle size='$size2' family='SANS' justify='BEGIN'/></Text><Appearance><Material diffuseColor='0 0 0'/></Appearance></Shape></Billboard></Transform>"
+        }
+        
+# check for symbols
+        foreach coord $leaderLine($id) {
+          if {[info exists placeSymbol($coord)]} {
+            set sym $placeSymbol($coord)
+            if {[string first "internal" $sym] == 0} {set sym [string range $sym 14 end]}
+            puts $fname "<Transform translation='$coord' scale='0.67 0.67 0.67'><Billboard axisOfRotation='0 0 0'><Shape><Text string='$sym'><FontStyle size='$size2' family='SANS' justify='END'/></Text><Appearance><Material diffuseColor='0 0 1'/></Appearance></Shape></Billboard></Transform>"
+            unset placeSymbol($coord)
+          }
+        }
       }
     } emsg]} {
       errorMsg "Error adding PMI placeholder leader lines: $emsg"
