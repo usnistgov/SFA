@@ -167,8 +167,8 @@ proc gpmiAnnotation {entType} {
 
 # -------------------------------------------------------------------------------
 proc gpmiAnnotationReport {objEntity} {
-  global ao aoname assocGeom badAttributes cells circleCenter col currx3dPID curveTrim dirRatio dirType
-  global draughtingModels draftModelCameraNames draftModelCameras ent entAttrList entCount entLevel gen geomType gpmiEnts gpmiID gpmiIDRow
+  global ao aoname assocGeom badAttributes cells circleCenter col currx3dPID curveTrim dirRatio dirType draughtingModels draftModelCameraNames
+  global draftModelCameras driPropID ent entAttrList entCount entLevel equivUnicodeString gen geomType gpmiEnts gpmiID gpmiIDRow
   global gpmiName gpmiRow gpmiTypes gpmiTypesInvalid gpmiTypesPerFile gpmiValProp grayBackground iCompCurve iCompCurveSeg iPolyline
   global leaderCoords leaderLineID nindex numCompCurve numCompCurveSeg numPolyline numx3dPID objEntity1 opt placeAxes placeBox placeCoords placeSavedView
   global placeSymbol pmiCol pmiColumns pmiHeading pmiStartCol propDefIDs recPracNames savedViewCol savedViewName spaces spmiTypesPerFile stepAP syntaxErr
@@ -434,7 +434,7 @@ proc gpmiAnnotationReport {objEntity} {
                       if {[string first "handle" $etype] != -1} {set etype [[$etype Value] Type]}
                       lappend elements $etype
                       if {[string first "point" $etype] == 0 || ($etype != "axis2_placement_3d" && $etype != "cartesian_point" && $etype != "planar_box")} {
-                        errorMsg "For $ao '$etype' is not supported."
+                        errorMsg "For $ao, '$etype' is not supported."
                       }
                     }
                     if {[lsearch $elements "axis2_placement_3d"] == -1} {
@@ -715,7 +715,7 @@ proc gpmiAnnotationReport {objEntity} {
                   set ndc 0
                   ::tcom::foreach dc $dcs {set drcall $dc; incr ndc}
                   if {$ndc == 0} {
-                    set msg "Syntax Error: [$objEntity Type] not found in draughting_callout 'contents' attribute.$spaces"
+                    set msg "Syntax Error: [formatComplexEnt [$objEntity Type]] not found in draughting_callout 'contents' attribute.$spaces"
                     if {[string first "tessellated" $ent1] != -1} {
                       append msg "\($recPracNames(pmi242), Sec. 8.2, Fig. 81)"
                     } elseif {[string first "placeholder" $ent1] != -1} {
@@ -1203,8 +1203,9 @@ proc gpmiAnnotationReport {objEntity} {
           if {[lsearch $gpmiRow($ao) $r] == -1} {lappend gpmiRow($ao) $r}
         }
       }
+
     } emsg]} {
-      errorMsg "Error reporting Associated Geometry and Representation: $emsg"
+      errorMsg "Error reporting Associated Geometry or Representation: $emsg"
     }
   }
 
@@ -1341,9 +1342,9 @@ proc gpmiAnnotationReport {objEntity} {
 # report missing saved view only if not text, etc.
           set oknm 1
           foreach str {note title block label text} {if {[string first $str $gpmiName] != -1} {set oknm 0}}
-          if {$oknm} {if {[string first "leader_line" [$objEntity Type]] != -1} {set oknm 0}}
+          if {$oknm} {if {[string first "placeholder" [$objEntity Type]] != -1} {set oknm 0}}
           if {$oknm} {
-            set msg "An [$objEntity Type] is not in a Saved View.  If the annotation should be in a Saved View, then check draughting_model 'items' for a missing draughting_callout related to the annotation.  Also check the View for Graphical PMI to see if the annotations are not in a Saved View.\n  "
+            set msg "An [formatComplexEnt [$objEntity Type]] is not in a Saved View.  If the annotation should be in a Saved View, then check draughting_model 'items' for a missing draughting_callout related to the annotation.  Also check the View for Graphical PMI to see if the annotations are not in a Saved View.\n  "
             if {[string first "AP242" $stepAP] == 0} {
               append msg "($recPracNames(pmi242), Sec. 9.4.2.1, Fig. 95)"
             } else {
@@ -1411,6 +1412,54 @@ proc gpmiAnnotationReport {objEntity} {
       valPropColumn $ao $r $c $gpmiValProp($objID)
     }
   }
+
+# report equivalent Unicode string(s)
+  if {[catch {
+    if {$entLevel == 0} {
+
+# check DC <- DMIA
+      ::tcom::foreach e0 [$objEntity GetUsedIn [string trim draughting_callout] [string trim contents]] {
+        ::tcom::foreach e1 [$e0 GetUsedIn [string trim draughting_model_item_association] [string trim identified_item]] {
+          set e2 [[[$e1 Attributes] Item [expr 3]] Value]
+          if {[info exists driPropID([$e2 P21ID])]} {
+            if {[info exists equivUnicodeString($driPropID([$e2 P21ID]))]} {gpmiEquivUnicodeString $equivUnicodeString($driPropID([$e2 P21ID]))}
+          }
+        }
+      }
+
+# check CIWR
+      if {[info exists e0]} {
+        ::tcom::foreach e2 [$e0 GetUsedIn [string trim characterized_item_within_representation] [string trim item]] {
+          if {[info exists driPropID([$e2 P21ID])]} {
+            if {[info exists equivUnicodeString($driPropID([$e2 P21ID]))]} {gpmiEquivUnicodeString $equivUnicodeString($driPropID([$e2 P21ID]))}
+          }
+        }
+      }
+    }
+  } emsg]} {
+    errorMsg "Error reporting Equivalent Unicode String for an annotation occurrence: $emsg"
+  }
+}
+# -------------------------------------------------------------------------------
+# report equivalent Unicode String
+proc gpmiEquivUnicodeString {eus} {
+  global ao cells gpmiID gpmiIDRow gpmiRow pmiCol pmiColumns
+
+  if {![info exists pmiColumns(eus)]} {set pmiColumns(eus) [getNextUnusedColumn $ao]}
+  set colName "Equivalent Unicode String(s)[format "%c" 10](Sec. 10.1.3.3)"
+  set c [string index [cellRange 1 $pmiColumns(eus)] 0]
+  set r $gpmiIDRow($ao,$gpmiID)
+  if {![info exists pmiHeading($pmiColumns(eus))]} {
+    $cells($ao) Item 3 $c $colName
+    set pmiHeading($pmiColumns(eus)) 1
+    set pmiCol [expr {max($pmiColumns(eus),$pmiCol)}]
+    addCellComment $ao 3 $c "See the descriptive_representation_item worksheet"
+  }
+
+  set val [[$cells($ao) Item $r $pmiColumns(eus)] Value]
+  if {$val != "" && $val != $eus} {set eus "$val[format "%c" 10]$eus"}
+  $cells($ao) Item $r $pmiColumns(eus) $eus
+  if {[lsearch $gpmiRow($ao) $r] == -1} {lappend gpmiRow($ao) $r}
 }
 
 # -------------------------------------------------------------------------------
@@ -1486,6 +1535,8 @@ proc pmiGetCameras {} {
                   set nameCameraModel [$attrCameraModel Name]
                   if {$nameCameraModel == "name"} {
                     set name [$attrCameraModel Value]
+                    regsub -all {\[} $name "" name
+                    regsub -all {\]} $name "" name
                     set name1 [string trim $name]
                     if {$name1 == ""} {set name1 "Missing name"}
                     set savedViewDMName($name1) $dmname

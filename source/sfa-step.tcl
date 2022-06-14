@@ -143,6 +143,7 @@ proc generateBOM {} {
           $cells(BOM) Item $r 1 "Qty"
           $cells(BOM) Item $r 2 "Assemblies ([llength $lassem])"
           $cells(BOM) Item $r 3 "Components"
+          addCellComment "BOM" $r 2 "Assemblies do not necessarily contain all Parts."
           foreach item $lassem {
             incr r
             $cells(BOM) Item $r 1 [lindex $item 0]
@@ -304,6 +305,36 @@ proc pmiFormatColumns {str} {
     if {$c1 > 2} {
       set range [$worksheet($thisEntType) Range [cellRange 1 2] [cellRange [expr {$row($thisEntType)+2}] $c1]]
       [$range Columns] Group
+      set colrange [[[$worksheet($thisEntType) UsedRange] Columns] Count]
+
+# entities with PMI
+      if {$thisEntType == "dimensional_characteristic_representation"} {
+        for {set i 1} {$i <= $colrange} {incr i} {
+          set val [[$cells($thisEntType) Item 3 $i] Value]
+          if {[string first "Associated Geometry" $val] != -1} {
+            [[$worksheet($thisEntType) Range [cellRange 1 5] [cellRange [expr {$row($thisEntType)+2}] [expr {$i-1}]]] Columns] Group
+          }
+        }
+      } elseif {[string first "tolerance" $thisEntType] != -1} {
+        for {set i 1} {$i <= $colrange} {incr i} {
+          set val [[$cells($thisEntType) Item 3 $i] Value]
+          if {[string first "GD&T" $val] != -1} {
+            set cgdt [expr {$i+1}]
+          } elseif {[string first "Equivalent Unicode String" $val] != -1} {
+            [[$worksheet($thisEntType) Range [cellRange 1 $cgdt] [cellRange [expr {$row($thisEntType)+2}] [expr {$i-1}]]] Columns] Group
+          }
+        }
+      } elseif {[string first "annotation" $thisEntType] != -1} {
+        for {set i 1} {$i <= $colrange} {incr i} {
+          set val [[$cells($thisEntType) Item 3 $i] Value]
+          if {[string first "Associated Geometry" $val] != -1} {
+            [[$worksheet($thisEntType) Range [cellRange 1 6] [cellRange [expr {$row($thisEntType)+2}] [expr {$i-1}]]] Columns] Group
+            set cag [expr {$i+1}]
+          } elseif {[string first "Equivalent Unicode String" $val] != -1 && [info exists cag]} {
+            [[$worksheet($thisEntType) Range [cellRange 1 $cag] [cellRange [expr {$row($thisEntType)+2}] [expr {$i-1}]]] Columns] Group
+          }
+        }
+      }
     }
 
 # fix column widths
@@ -711,7 +742,7 @@ proc getSchemaFromFile {fname {limit 0}} {
   set ulimit 100
   if {$limit} {set ulimit 100000}
 
-# read first N lines, all HEADER section information should be in the first 100 lines, reading more detects \X2\ unicode characters
+# read first N lines, all HEADER section information should be in the first 100 lines, reading more detects \X2\ Unicode characters
   while {[gets $stepfile line] != -1 && $nline < $ulimit} {
     incr nline
 
@@ -752,7 +783,7 @@ proc getSchemaFromFile {fname {limit 0}} {
       }
     }
 
-# check for X2 unicode control directives when generating a spreadsheet, set xlUnicode if possible, \X\ does not have to be handled separately for a spreadsheet
+# check for X2 Unicode control directives when generating a spreadsheet, set xlUnicode if possible, \X\ does not have to be handled separately for a spreadsheet
     if {[string first "\\X2\\" $line] != -1 && $opt(xlFormat) != "None" && $useXL} {
       if {[info exists schema]} {if {$schema == "CUTTING_TOOL_SCHEMA_ARM" || [string first "ISO13" $schema] == 0} {set opt(xlUnicode) 1}}
       if {[file size $fname] <= 10000000} {set opt(xlUnicode) 1}
@@ -826,7 +857,7 @@ proc getSchemaFromFile {fname {limit 0}} {
 # convert \X2\ in strings, see sfa-data.tcl for unicodeAttributes
 # \X\ does not have to be handled separately for a spreadsheet, complex entities need to be handled explicitly
 proc unicodeStrings {unicodeEnts} {
-  global localName unicodeActual unicodeAttributes unicodeNumEnts unicodeString
+  global driUnicode localName unicodeActual unicodeAttributes unicodeNumEnts unicodeString
 
   if {[catch {
     set nent 0
@@ -854,19 +885,26 @@ proc unicodeStrings {unicodeEnts} {
         }
       }
 
-# process unicode
+# process Unicode
       if {$ok} {
         set lattr [llength $unicodeAttributes($ent1)]
         incr nent
 
-# check for unicode X2
-        if {[string first "\\X2\\" $line] != -1} {
-          errorMsg "Processing Unicode characters on some entities (See Help > Text Strings and Numbers)" blue
+# check for Unicode X2
+        set oku 0
+        set cx2 [string first "\\X2\\" $line]
+        if {$cx2 != -1} {
+          set oku 1
+        } elseif {[string first "equivalent" $line] != -1} {
+          if {[string first "\\w" $line] != -1 || [string first "\\n" $line] != -1 || [string first "\\u" $line] != -1 || [string first "\\x" $line] != -1} {set oku 1}
+        }
+        if {$oku} {
+          if {$cx2 != -1} {errorMsg "\nProcessing Unicode characters (See Help > Text Strings and Numbers)" blue}
 
           set id [string trim [string range $line 1 [string first "=" $line]-1]]
           set idx "$ent1,[lindex $unicodeAttributes($ent1) 0],$id"
 
-# get strings that have unicode and convert
+# get strings that have Unicode and convert
           switch -- $ent1 {
             item_names {
 # entity attributes from iso13...
@@ -940,8 +978,11 @@ proc unicodeStrings {unicodeEnts} {
       }
     }
 
-# report entities
-    if {[llength $unicodeActual] > 0} {outputMsg " ([llength $unicodeActual]) entities: [lsort $unicodeActual]" red}
+# report entity types with Unicode
+    if {[llength $unicodeActual] > 0} {
+      outputMsg " [llength $unicodeActual] entity type(s): [lsort $unicodeActual]"
+      if {[lsearch $unicodeActual "descriptive_representation_item"] != -1} {set driUnicode 1}
+    }
 
   } emsg]} {
     errorMsg "Error processing Unicode string attribute: $emsg"
@@ -950,57 +991,169 @@ proc unicodeStrings {unicodeEnts} {
 
 # -------------------------------------------------------------------------------
 # process X and X2 control directives with Unicode characters
-proc getUnicode {id {type "view"}} {
+proc getUnicode {ent {type "view"}} {
+  global fontErr mytemp noFontFile
+
   set x "&#x"
   set u "\\u"
   set z "00"
+  set msgChar5 0
+  set ent1 $ent
 
   foreach xl [list X X2] {
-    set cx [string first "\\$xl\\" $id]
+    set cx [string first "\\$xl\\" $ent]
     if {$cx != -1} {
       switch -- $xl {
         X {
           while {$cx != -1} {
             set xu ""
-            set uc [string range $id $cx+3 $cx+4]
+            set uc [string range $ent $cx+3 $cx+4]
             switch -- $type {
               view {append xu "$x$uc;"}
               attr {append xu [join [eval list $u$z$uc]]}
             }
-            set id [string range $id 0 $cx-1]$xu[string range $id $cx+5 end]
-            set cx [string first "\\$xl\\" $id]
+            set ent [string range $ent 0 $cx-1]$xu[string range $ent $cx+5 end]
+            set cx [string first "\\$xl\\" $ent]
           }
         }
         X2 {
           while {$cx != -1} {
             set xu ""
             for {set i 4} {$i < 200} {incr i 4} {
-              set uc [string range $id $cx+$i [expr {$cx+$i+3}]]
+              set uc [string range $ent $cx+$i [expr {$cx+$i+3}]]
+
+# check for font file with GD&T symbols (ARIALUNI.TTF), needed only for certain Unicode characters, noFontFile set in genExcel
+              if {$noFontFile && ![info exists fontErr]} {
+                set ok 0
+                foreach char [list 232D 232F 232E 24C4 24CA 24BB 24C9 24C1 24BA 24BE 24C7 24C8 24B6] {if {[string first $char $uc] != -1} {set ok 1; break}}
+                if {$ok} {
+                  errorMsg "Some GD&T symbols will appear as a question mark on the descriptive_representation_item worksheet.\n To fix the problem, copy the font file that contains the symbols\n [file join $mytemp ARIALUNI.TTF]  to  C:/Windows/Fonts  to install the fonts.\n You might need administrator privileges."
+                  set fontErr 1
+                }
+              }
+
+# check for double backslash instead of single backslash
+              set cx2 [string first "\\\\X2\\\\" $ent]
+              if {$cx2 != -1} {
+                errorMsg " Double backslash '\\\\X2\\\\' is not valid for delimiting Unicode characters with \\X2\\ and \\X0\\.  See Websites > STEP Format and Schemas > ISO 10303 Part 21 Standard (section 6.4.3)"
+                set uc [string range $ent [expr {$cx+$i+1}] [expr {$cx+$i+4}]]
+              }
+
+# check for Unicode using five characters
+              set xcheck [string range $ent [expr {$cx+$i+5}] [expr {$cx+$i+8}]]
+              if {$xcheck == "\\X0\\"} {
+                set msgChar5 1
+                set uc "[string range $ent $cx+$i [expr {$cx+$i+4}]]"
+                incr i
+              }
+
               if {$type == "attr" && $uc == "000A"} {
                 set xu [format "%c" 10]
               } elseif {[string first "\\" $uc] == -1} {
+
+# add $x or $u delimiter depending if for a view or spreadsheet
                 switch -- $type {
                   view {append xu "$x$uc;"}
-                  attr {append xu [join [eval list $u$uc]]}
+                  attr {
+                    if {[string length $uc] == 4} {
+                      append xu [join [eval list $u$uc]]
+                    } else {
+                      append xu [join [eval list $uc]]
+                      append xu " "
+                    }
+                  }
                 }
               } else {
-                set cx0 [string first "\\X0\\" $id]
+                set cx0 [string first "\\X0\\" $ent]
                 if {$cx0 != -1} {
-                  set id "[string range $id 0 $cx-1]$xu[string range $id $cx0+4 end]"
+                  if {$cx2 == -1} {
+                    set ent "[string range $ent 0 $cx-1]$xu[string range $ent $cx0+4 end]"
+                  } else {
+                    set ent "[string range $ent 0 $cx-2]$xu[string range $ent $cx0+5 end]"
+                  }
                   break
                 } else {
-                  errorMsg " Missing \\X0\\ for \\X2\\"
-                  return $id
+                  errorMsg " For encoding a Unicode character, \\X0\\ is missing to close an \\X2\\"
+                  return $ent
                 }
               }
             }
-            set cx [string first "\\$xl\\" $id]
+            set cx [string first "\\$xl\\" $ent]
           }
         }
       }
     }
   }
-  return $id
+
+# check equivalent Unicode strings
+  if {[string first "DESCRIPTIVE_REPRESENTATION_ITEM" $ent] != -1} {
+    set c1 [string first "equivalent" $ent]
+    if {$c1 != -1} {getEquivUnicodeString $c1 $ent $ent1 $msgChar5}
+  }
+  return $ent
+}
+
+#-------------------------------------------------------------------------------
+# substitute \w and \n, and save the equivalent Unicode string
+proc getEquivUnicodeString {c1 ent ent1 msgChar5} {
+  global equivUnicodeString equivUnicodeStringErr syntaxErr
+
+# format string
+  if {[catch {
+    regsub -all {\\\\} $ent {\\} ent
+    set eus [string range $ent $c1+28 end-3]
+    regsub -all {\\w} $eus " | " eus
+    regsub -all {\\n} $eus [format "%c" 10] eus
+    foreach tag {"DIM |" "FCF |" "TXT |"} {
+      set c2 [string first $tag $eus]
+      if {$c2 > 0} {
+        if {[string index $eus $c2-1] != [format "%c" 10]} {
+          set eus [string range $eus 0 $c2-1][format "%c" 10][string range $eus $c2 end]
+        }
+      }
+    }
+    set num [string trim [string range $ent 1 [string first "=" $ent]-1]]
+    set equivUnicodeString($num) $eus
+
+# check for syntax errors
+    set msg ""
+    set nu 0
+    set upos 0
+    while {[string first "\\u" $ent $upos] != -1} {
+      incr nu
+      set upos [expr {[string first "\\u" $ent $upos]+2}]
+    }
+    if {[expr {$nu%2}] != 0} {set msg "There should be an even number of '\\u' delimiters."}
+
+    if {$msg == "" && [string first "\\w\\X2\\2300\\X0\\\\\\w" $ent1] != -1} {
+      set msg "The diameter symbol is in its own compartment."
+    }
+    if {$msg == "" && [string first "X\\X2\\2300\\X0\\" $ent1] != -1 && [string first "MAX\\" $ent1] == -1} {
+      set msg "There should be a space between 'X' and the diameter symbol."
+    }
+    if {$msg == ""} {
+      for {set i 2} {$i < 10} {incr i} {
+        if {[string first "$i X" $ent] != -1 && [string first "/" $ent] == -1} {
+          set msg "There should not be a space between the number and 'X'."
+          break
+        }
+      }
+    }
+    if {$msg == "" && [string first "\\X2\\F055\\X0\\" $ent1] != -1} {
+      set msg "Unicode character F055 is not valid."
+    }
+
+    if {$msg == "" && [string first "\\X2\\2313\\X0\\AAS" $ent1] != -1} {set msg "AAS is in the wrong position."}
+    if {$msgChar5} {set msg "Unicode strings using five characters are not supported."}
+
+    if {$msg != ""} {
+      if {![info exists equivUnicodeStringErr]} {set equivUnicodeStringErr {}}
+      if {[lsearch $equivUnicodeStringErr $msg] == -1} {lappend equivUnicodeStringErr $msg}
+      lappend syntaxErr(descriptive_representation_item) [list $num "Equivalent Unicode String" $msg]
+    }
+  } emsg]} {
+    errorMsg "Error getting equivalent Unicode string: $emsg"
+  }
 }
 
 #-------------------------------------------------------------------------------

@@ -1,16 +1,16 @@
 # generate an Excel spreadsheet and/or view from a STEP file
 proc genExcel {{numFile 0}} {
   global allEntity aoEntTypes ap203all ap214all ap242all ap242only ap242ed ap242XML badAttributes buttons cadSystem cells cells1
-  global col col1 commaSeparator count csvdirnam csvfile csvinhome currLogFile dim draughtingModels entCategories entCategory entColorIndex
-  global entCount entityCount entsIgnored entsWithErrors epmi epmiUD errmsg excel excelVersion fcsv feaFirstEntity feaLastEntity File fileEntity
-  global filesProcessed gen gpmiTypesInvalid gpmiTypesPerFile guid idxColor ifcsvrDir inverses lastXLS lenfilelist localName localNameList
-  global logFile matrixList multiFile multiFileDir mydocs mytemp nistCoverageLegend nistName nistPMIexpected nistPMImaster nprogBarEnts opt
-  global pf32 p21e3 p21e3Section pmiCol resetRound row rowmax savedViewButtons savedViewName savedViewNames scriptName sheetLast skipEntities
-  global skipPerm spmiEntity spmiSumName spmiSumRow spmiTypesPerFile startrow statsOnly stepAP stepAPreport tessColor thisEntType timeStamp
-  global tlast tolNames tolStandard tolStandards totalEntity unicodeActual unicodeAttributes unicodeEnts unicodeInFile unicodeNumEnts unicodeString
-  global userEntityFile userEntityList useXL valRounded viz wdir workbook workbooks worksheet worksheet1 worksheets writeDir wsCount
-  global wsNames x3dAxes x3dColor x3dColorFile x3dColors x3dFileName x3dIndex x3dMax x3dMin x3dMsg x3dMsgColor x3dStartFile x3dViewOK
-  global xlFileName xlFileNames xlInstalled
+  global col col1 commaSeparator count csvdirnam csvfile csvinhome currLogFile dim draughtingModels driUnicode entCategories entCategory
+  global entColorIndex entCount entityCount entsIgnored entsWithErrors env epmi epmiUD errmsg equivUnicodeStringErr excel excelVersion fcsv
+  global feaFirstEntity feaLastEntity File fileEntity filesProcessed gen gpmiTypesInvalid gpmiTypesPerFile guid idxColor ifcsvrDir inverses
+  global lastXLS lenfilelist localName localNameList logFile matrixList multiFile multiFileDir mydocs mytemp nistCoverageLegend nistName
+  global nistPMIexpected nistPMImaster noFontFile nprogBarEnts opt pf32 p21e3 p21e3Section pmiCol resetRound row rowmax savedViewButtons savedViewName
+  global savedViewNames scriptName sheetLast skipEntities skipPerm spmiEntity spmiSumName spmiSumRow spmiTypesPerFile startrow statsOnly
+  global stepAP stepAPreport tessColor thisEntType timeStamp tlast tolNames tolStandard tolStandards totalEntity unicodeActual unicodeAttributes
+  global unicodeEnts unicodeInFile unicodeNumEnts unicodeString userEntityFile userEntityList useXL valRounded viz wdir workbook workbooks
+  global worksheet worksheet1 worksheets writeDir wsCount wsNames x3dAxes x3dColor x3dColorFile x3dColors x3dFileName x3dIndex x3dMax x3dMin
+  global x3dMsg x3dMsgColor x3dStartFile x3dViewOK xlFileName xlFileNames xlInstalled
   global objDesign
 
   if {[info exists errmsg]} {set errmsg ""}
@@ -575,6 +575,7 @@ proc genExcel {{numFile 0}} {
   set entsToProcess {}
   set entsToIgnore {}
   set numEnts 0
+  set noFontFile 0
 
 # user-defined entity list
   catch {set userEntityList {}}
@@ -662,6 +663,18 @@ proc genExcel {{numFile 0}} {
 
 # check for composite entities with "_11"
       if {$opt(stepCOMP) && [string first "_11" $entType] != -1} {set ok 1}
+
+# check for descriptive_representation_item
+      if {$entType == "descriptive_representation_item"} {
+        if {$opt(PMIGRF)} {set ok 1}
+
+# check for font file with GD&T symbols (ARIALUNI.TTF), needed only for certain Unicode characters
+        if {![file exists [file nativename C:/Windows/Fonts/ARIALUNI.TTF]] && \
+            ![file exists [file join $env(USERPROFILE) AppData Local Microsoft Windows Fonts ARIALUNI.TTF]]} {
+          if {![file exists [file join $mytemp ARIALUNI.TTF]]} {catch {[file copy -force -- [file join $wdir images ARIALUNI.TTF] [file join $mytemp ARIALUNI.TTF]]}}
+          set noFontFile 1
+        }
+      }
 
 # handle '_and_' due to a complex entity, entType_1 is the first part before the '_and_'
       set entType_1 $entType
@@ -930,6 +943,26 @@ proc genExcel {{numFile 0}} {
     if {[string first "NIST_" $fn] == 0 && [string first "ASME" $fn] != -1} {errorMsg "All of the NIST models use the ASME Y14.5 tolerance standard."}
   }
 
+# check for entities in unicodeAttributes that might have Unicode strings, complex entities require special exceptions in proc unicodeStrings
+  catch {unset unicodeString}
+  set unicodeEnts {}
+  if {$opt(xlUnicode) && $opt(xlFormat) != "None" && $useXL} {
+    set unicodeNumEnts 0
+    foreach ent [array names unicodeAttributes] {
+      if {[lsearch $entsToProcess $ent] != -1} {
+        if {([string first "AP2" $stepAP] == 0 && $unicodeInFile) || [string first "ISO13" $stepAP] == 0 || [string first "CUTTING_TOOL_" $stepAP] == 0} {
+          lappend unicodeEnts [string toupper $ent]
+          incr unicodeNumEnts $entCount($ent)
+        }
+      }
+    }
+    if {[llength $unicodeEnts] > 0} {
+      unicodeStrings $unicodeEnts
+      set unicodeEnts {}
+      foreach item $unicodeActual {lappend unicodeEnts [string toupper $item]}
+    }
+  }
+
 # -------------------------------------------------------------------------------------------------
 # generate worksheet for each entity
   outputMsg " "
@@ -968,36 +1001,12 @@ proc genExcel {{numFile 0}} {
     set dim(unitOK) 1
 
 # no entities to process
-    if {[llength $entsToProcess] == 0} {
-      if {$opt(xlFormat) != "None"} {
-        errorMsg "Select some other entity types to Process on the Options tab."
-        catch {unset entsIgnored}
-      } else {
-        errorMsg "The Viewer might not generate anything based on selections on the Options tab."
-      }
-      break
+    if {[llength $entsToProcess] == 0 && $gen(Excel)} {
+      errorMsg "For a Spreadsheet, select more entity types to Process on the Options tab and try again."
+      catch {unset entsIgnored}
+      if {!$gen(View)} {break}
     }
     set tlast [clock clicks -milliseconds]
-
-# check for entities in unicodeAttributes that might have unicode strings, complex entities require special exceptions in proc unicodeStrings
-    catch {unset unicodeString}
-    set unicodeEnts {}
-    if {$opt(xlUnicode) && $opt(xlFormat) != "None" && $useXL} {
-      set unicodeNumEnts 0
-      foreach ent [array names unicodeAttributes] {
-        if {[lsearch $entsToProcess $ent] != -1} {
-          if {([string first "AP2" $stepAP] == 0 && $unicodeInFile) || [string first "ISO13" $stepAP] == 0 || [string first "CUTTING_TOOL_" $stepAP] == 0} {
-            lappend unicodeEnts [string toupper $ent]
-            incr unicodeNumEnts $entCount($ent)
-          }
-        }
-      }
-      if {[llength $unicodeEnts] > 0} {
-        unicodeStrings $unicodeEnts
-        set unicodeEnts {}
-        foreach item $unicodeActual {lappend unicodeEnts [string toupper $item]}
-      }
-    }
 
 # find camera models used in draughting model items
     pmiGetCameras
@@ -1023,6 +1032,7 @@ proc genExcel {{numFile 0}} {
           }
           if {$opt(PMIGRF)} {if {[string first "annotation" $entType] != -1 && [string first "plane" $entType] == -1} {set rmax $newmax}}
           if {$opt(valProp)} {if {$entType == "property_definition"} {set rmax $newmax}}
+          if {$entType == "descriptive_representation_item" && [info exists driUnicode]} {set rmax $newmax; unset driUnicode}
         }
 
 # decide if inverses should be checked for this entity type
@@ -1033,7 +1043,7 @@ proc genExcel {{numFile 0}} {
 # check for bad attributes
         set badAttr [info exists badAttributes($entType)]
 
-# check for unicode strings
+# check for Unicode strings
         set unicodeCheck 0
         if {[llength $unicodeEnts] > 0} {if {[lsearch $unicodeEnts [string toupper $entType]] != -1} {set unicodeCheck 1}}
 
@@ -1111,6 +1121,12 @@ proc genExcel {{numFile 0}} {
 
 # check for reports (validation properties, PMI presentation and representation, tessellated geometry, AP209 FEM)
       checkForReports $entType
+
+# report errors related to descriptive_representation_item equivalent Unicode strings
+      if {$entType == "descriptive_representation_item" && [info exists equivUnicodeStringErr]} {
+        outputMsg " Warnings for 'equivalent unicode string': [join [lrmdups $equivUnicodeStringErr]]" red
+        unset equivUnicodeStringErr
+      }
     }
 
 # other errors
@@ -1176,7 +1192,7 @@ proc genExcel {{numFile 0}} {
 
 # -------------------------------------------------------------------------------------------------
 # add summary worksheet
-  if {$useXL} {
+  if {$useXL && [llength $entsToProcess] > 0} {
     set tmp [sumAddWorksheet]
     set sumLinks  [lindex $tmp 0]
     set sheetSort [lindex $tmp 1]
@@ -1323,7 +1339,7 @@ proc genExcel {{numFile 0}} {
 # -------------------------------------------------------------------------------------------------
 # save spreadsheet
   set csvOpenDir 0
-  if {$useXL} {
+  if {$useXL && [llength $entsToProcess] > 0} {
     if {[catch {
       outputMsg " "
       if {$xlsmsg != ""} {outputMsg $xlsmsg red}
@@ -1455,7 +1471,7 @@ proc genExcel {{numFile 0}} {
     if {$saveCSV} {set csvOpenDir 1}
 
 # open directory of CSV files
-  } elseif {$opt(xlFormat) != "None"} {
+  } elseif {$opt(xlFormat) != "None" && [llength $entsToProcess] > 0} {
     set csvOpenDir 1
     unset csvfile
     outputMsg "\nCSV files written to:"
@@ -1505,7 +1521,7 @@ proc genExcel {{numFile 0}} {
   update idletasks
 
 # unset variables
-  foreach var {ap242XML assemTransformPMI brepScale cells cgrObjects colColor count currx3dPID datumEntType datumGeom datumIDs datumSymbol datumSystem datumSystemPDS defComment dimrep dimrepID dimtolEnt dimtolEntID dimtolGeom draughtingModels draftModelCameraNames draftModelCameras entCount entName entsIgnored epmi epmiUD feaDOFR feaDOFT feaNodes gpmiID gpmiIDRow gpmiRow heading idRow invCol invGroup nrep numx3dPID placeAxesDef placeSphereDef pmiCol pmiColumns pmiStartCol pmivalprop propDefID propDefIDRow propDefName propDefOK propDefRow ptzError savedsavedViewNames savedViewFile savedViewFileName savedViewItems savedViewNames savedViewpoint savedViewVP shapeRepName srNames suppGeomEnts syntaxErr taoLastID tessCoord tessCoordName tessIndex tessIndexCoord tessPlacement tessRepo unicode unicodeActual unicodeNumEnts unicodeString viz vpEnts workbook workbooks worksheet worksheets x3dCoord x3dFile x3dFileName x3dIndex x3dMax x3dMin x3dStartFile} {
+  foreach var {ap242XML assemTransformPMI brepScale cells cgrObjects colColor count currx3dPID datumEntType datumGeom datumIDs datumSymbol datumSystem datumSystemPDS defComment dimrep dimrepID dimtolEnt dimtolEntID dimtolGeom draughtingModels draftModelCameraNames draftModelCameras driPropID entCount entName entsIgnored epmi epmiUD equivUnicodeString feaDOFR feaDOFT feaNodes fontErr gpmiID gpmiIDRow gpmiRow heading idRow invCol invGroup noFontFile nrep numx3dPID placeAxesDef placeSphereDef pmiCol pmiColumns pmiStartCol pmivalprop propDefID propDefIDRow propDefName propDefOK propDefRow ptzError savedsavedViewNames savedViewFile savedViewFileName savedViewItems savedViewNames savedViewpoint savedViewVP shapeRepName srNames suppGeomEnts syntaxErr taoLastID tessCoord tessCoordName tessIndex tessIndexCoord tessPlacement tessRepo unicode unicodeActual unicodeNumEnts unicodeString viz vpEnts workbook workbooks worksheet worksheets x3dCoord x3dFile x3dFileName x3dIndex x3dMax x3dMin x3dStartFile} {
     catch {global $var}
     if {[info exists $var]} {unset $var}
   }
@@ -1797,7 +1813,8 @@ proc addHeaderWorksheet {numFile fname} {
 #-------------------------------------------------------------------------------------------------
 # add summary worksheet
 proc sumAddWorksheet {} {
-  global andEntAP209 cells col entCategory entCount entsIgnored excel gpmiEnts opt row sheetLast sheetSort spmiEntity stepAP sum vpEnts worksheet worksheets
+  global andEntAP209 cells col entCategory entCount entsIgnored equivUnicodeString excel
+  global gpmiEnts opt row sheetLast sheetSort spmiEntity stepAP sum vpEnts worksheet worksheets
 
   outputMsg "\nGenerating Summary worksheet" blue
   set sum "Summary"
@@ -1866,6 +1883,8 @@ proc sumAddWorksheet {} {
           $cells($sum) Item $sumRow 1 "$entType  \[Properties\]"
         } elseif {$entType == "next_assembly_usage_occurrence" && $opt(BOM)} {
           $cells($sum) Item $sumRow 1 "$entType  \[Assembly\]"
+        } elseif {$entType == "descriptive_representation_item" && [info exists equivUnicodeString]} {
+          $cells($sum) Item $sumRow 1 "$entType  \[Unicode String\]"
         }
         if {$okao} {$cells($sum) Item $sumRow 1 "$entType  \[PMI Presentation\]"}
 
@@ -2163,13 +2182,14 @@ proc sumAddColorLinks {sum sumHeaderRow sumLinks sheetSort sumRow} {
 #-------------------------------------------------------------------------------------------------
 # format worksheets
 proc formatWorksheets {sheetSort sumRow inverseEnts} {
-  global buttons cells col count entCount entRows excel gpmiEnts nprogBarEnts opt pmiStartCol
+  global buttons cells col count entCount entRows equivUnicodeString excel gpmiEnts idRow nprogBarEnts opt pmiStartCol
   global row spmiEnts stepAP stepAPreport syntaxErr thisEntType viz vpEnts worksheet xlFileName
   outputMsg "Formatting Worksheets" blue
 
   if {[info exists buttons]} {$buttons(progressBar) configure -maximum [llength $sheetSort]}
   set nprogBarEnts 0
   set nsort 0
+  set okequiv 0
 
   foreach thisEntType $sheetSort {
     incr nprogBarEnts
@@ -2209,7 +2229,6 @@ proc formatWorksheets {sheetSort sumRow inverseEnts} {
         if {$thisEntType == "single_point_constraint_element_values"} {moveWorksheet [list single_point_constraint_element single_point_constraint_elemen1] After}
         if {$thisEntType == "surface_3d_element_boundary_constant_specified_surface_variable_value"} {moveWorksheet [list surface_3d_element_boundary_con surface_3d_element_descriptor]}
         if {$thisEntType == "volume_3d_element_boundary_constant_specified_variable_value"} {moveWorksheet [list volume_3d_element_boundary_cons volume_3d_element_descriptor]}
-        #if {$thisEntType == "element_nodal_freedom_actions"} {moveWorksheet [list element_nodal_freedom_actions element_nodal_freedom_terms]}
       }
 
 # extent of columns and rows
@@ -2248,6 +2267,36 @@ proc formatWorksheets {sheetSort sumRow inverseEnts} {
 # extra validation properties
       } elseif {[lsearch $vpEnts $thisEntType] != -1} {
         pmiFormatColumns "Validation Properties"
+
+# equivalent Unicode string on descriptive_representation_item
+      } elseif {$thisEntType == "descriptive_representation_item" && [info exists equivUnicodeString]} {
+        outputMsg " $thisEntType"
+        foreach id [array names equivUnicodeString] {
+          if {[info exists idRow($thisEntType,$id)]} {
+            catch {
+              $cells($thisEntType) Item $idRow($thisEntType,$id) 4 $equivUnicodeString($id)
+              set range [$worksheet($thisEntType) Range D$idRow($thisEntType,$id)]
+              [$range Interior] ColorIndex 36
+              [[$range Borders] Item [expr 8]] Weight [expr 1]
+              [[$range Borders] Item [expr 9]] Weight [expr 1]
+              set okequiv 1
+            }
+          }
+        }
+        if {$okequiv} {
+          $cells($thisEntType) Item 3 4 "Equivalent Unicode String"
+          set range [$worksheet($thisEntType) Range D3]
+          [$range Interior] ColorIndex 36
+          $range HorizontalAlignment [expr -4108]
+          [$range Font] Bold [expr 1]
+          [[$range Borders] Item [expr 8]] Weight [expr -4138]
+          set range [$worksheet($thisEntType) Range D$ranrow]
+          [[$range Borders] Item [expr 9]] Weight [expr -4138]
+          [$worksheet($thisEntType) Columns] AutoFit
+          [$worksheet($thisEntType) Rows] AutoFit
+          addCellComment "descriptive_representation_item" 3 4 "The string interprets the characters '\\w' as ' | ' and '\\n' as a new line.  Unicode characters not supported by Windows fonts appear as a question mark.  When this column is sorted, the row height might need to be increased.  See Recommended Practice for PMI Unicode String Specification."
+          incr rancol
+        }
       }
 
 # -------------------------------------------------------------------------------------------------
@@ -2318,7 +2367,7 @@ proc formatWorksheets {sheetSort sumRow inverseEnts} {
 # -------------------------------------------------------------------------------------------------
 # add table for sorting and filtering
       if {[catch {
-        if {$opt(xlSort) && $thisEntType != "property_definition"} {
+        if {($opt(xlSort) && $thisEntType != "property_definition") || ($thisEntType == "descriptive_representation_item" && $okequiv)} {
           if {$ranrow > 8} {
             set range [$worksheet($thisEntType) Range [cellRange 3 1] [cellRange $ranrow $rancol]]
             set tname [string trim "TABLE-$thisEntType"]

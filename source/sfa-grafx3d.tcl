@@ -203,9 +203,11 @@ proc x3dFileEnd {} {
 
 # -------------------------------------------------------------------------------
 # camera clipping planes for section views (9.4.3)
+  set viz(CLIPPING) 0
   if {[info exists entCount(camera_model_d3_multi_clipping)]} {
     set clippingDef {}
     puts $x3dFile "\n<!-- CLIPPING PLANES -->"
+    puts $x3dFile "<Switch whichChoice='0' id='swClipping'><Group>"
     outputMsg " Processing section views" green
     ::tcom::foreach cm [$objDesign FindObjects [string trim camera_model_d3_multi_clipping]] {
       set planes [[[$cm Attributes] Item [expr 4]] Value]
@@ -214,6 +216,8 @@ proc x3dFileEnd {} {
         if {$opt(PMISEM)} {lappend spmiTypesPerFile "section views"}
       }
     }
+    puts $x3dFile "</Group></Switch>"
+    set viz(CLIPPING) 1
     set grayBackground 1
   }
 
@@ -246,6 +250,7 @@ proc x3dFileEnd {} {
     puts $x3dFile "\n<!-- [string toupper $pointsLabel] -->"
     puts $x3dFile "<Switch whichChoice='0' id='swPoints'>"
     puts $x3dFile "<Shape><Appearance><Material emissiveColor='0 0 1'/></Appearance><PointSet><Coordinate point='$samplingPoints'/></PointSet></Shape>\n</Switch>"
+    unset samplingPoints
 
 # point cloud
   } elseif {[info exists entCount(point_cloud_dataset)]} {
@@ -681,7 +686,8 @@ proc x3dFileEnd {} {
   if {$viz(COMPOSITES)} {puts $x3dFile "\n<!-- Composites checkbox -->\n<input type='checkbox' checked onclick='togComposites(this.value)'/>Composite Rosettes<br>"}
   if {$viz(POINTS)}     {puts $x3dFile "\n<!-- $pointsLabel checkbox -->\n<input type='checkbox' checked onclick='togPoints(this.value)'/>$pointsLabel<br>"}
   if {$viz(HOLE)}       {puts $x3dFile "\n<!-- Holes checkbox -->\n<input type='checkbox' checked onclick='togHole(this.value)'/>Holes<br>"}
-  if {$viz(SUPPGEOM) || $viz(DTMTAR) || $viz(COMPOSITES) || $viz(POINTS) || $viz(HOLE)} {puts $x3dFile "<p>"}
+  if {$viz(CLIPPING)}   {puts $x3dFile "\n<!-- Clipping planes checkbox -->\n<input type='checkbox' checked onclick='togClipping(this.value)'/>Clipping Planes<br>"}
+  if {$viz(SUPPGEOM) || $viz(DTMTAR) || $viz(COMPOSITES) || $viz(POINTS) || $viz(HOLE) || $viz(CLIPPING)} {puts $x3dFile "<p>"}
 
 # for PMI annotations - checkboxes for toggling saved view PMI
   if {$viz(PMI) && [llength $savedViewButtons] > 0} {
@@ -702,7 +708,9 @@ proc x3dFileEnd {} {
       if {$sv} {append str "<br>"}
       set id [lsearch $savedViewNames $svn]
       set svname $svn
-      if {[info exists savedViewDMName($svn)]} {if {$savedViewDMName($svn) != $svn} {set svname "$savedViewDMName($svn) ($svn)"}}
+      if {[info exists savedViewDMName($svn)]} {
+        if {$savedViewDMName($svn) != $svn && [string first "\[" $savedViewDMName($svn)] == -1 && [string first "\]" $savedViewDMName($svn)] == -1} {set svname "$savedViewDMName($svn) ($svn)"}
+      }
       append str "<input type='checkbox' id='cbView$id' checked onclick='togView$id\(this.value)'/>$svname"
       puts $x3dFile $str
     }
@@ -855,6 +863,7 @@ proc x3dFileEnd {} {
   if {$viz(COMPOSITES)} {x3dSwitchScript Composites}
   if {$viz(POINTS)} {x3dSwitchScript Points}
   if {$viz(HOLE)} {x3dSwitchScript Hole}
+  if {$viz(CLIPPING)} {x3dSwitchScript Clipping}
 
 # onload
   set onload {}
@@ -1005,7 +1014,7 @@ proc x3dFileEnd {} {
 # -------------------------------------------------------------------------------
 # saved view viewpoints
 proc x3dSavedViewpoint {name} {
-  global maxxyz opt recPracNames savedViewpoint savedViewVP spaces x3dFiles
+  global maxxyz opt recPracNames savedViewpoint savedViewVP spaces x3dFiles x3dMsg
 
 # check for errors
   set msg ""
@@ -1020,7 +1029,9 @@ proc x3dSavedViewpoint {name} {
   if {$diff > 1.} {append msg " The view_plane_distance and the planar_box a2p3d origin Z value should be equal."}
   if {$msg != ""} {
     append msg "$spaces\($recPracNames(pmi242), Sec. 9.4.2.6)"
-    errorMsg "Syntax Error: Camera model viewpoint is not modeled correctly.$msg"
+    errorMsg "Syntax Error: Camera model viewpoint for saved views is not modeled correctly.$msg"
+    set msg "Viewpoints for saved views are not modeled correctly"
+    if {[lsearch $x3dMsg $msg] == -1} {lappend x3dMsg "Viewpoints for saved views are not modeled correctly"}
   }
 
 # default viewpoint with transform
@@ -1687,7 +1698,7 @@ proc x3dPlaceholder {{aoname ""} {fname ""}} {
           set coord [join [lindex $leaderLine($id) $idx]]
           puts $fname "<Transform translation='$coord'><Billboard axisOfRotation='0 0 0'><Shape><Text string='$name'><FontStyle size='$size2' family='SANS' justify='BEGIN'/></Text><Appearance><Material diffuseColor='0 0 0'/></Appearance></Shape></Billboard></Transform>"
         }
-        
+
 # check for symbols
         foreach coord $leaderLine($id) {
           if {[info exists placeSymbol($coord)]} {
@@ -1955,28 +1966,36 @@ proc x3dTransform {origin axis refdir {text ""} {scale ""} {id ""}} {
 }
 
 # -------------------------------------------------------------------------------
-# generate x3d rotation (axis angle format) from axis2_placement_3d
-proc x3dGetRotation {axis refdir {type ""}} {
+# generate x3d rotation (axis angle format) from axis2_placement_3d, OR directly from rotation matrix
+proc x3dGetRotation {axis refdir {type ""} {rotmat ""}} {
 
-# check if one of the vectors is zero length, i.e., '0 0 0'
-  set msg ""
-  if {[veclen $axis] == 0 || [veclen $refdir] == 0} {
-    set msg "Syntax Error: The axis2_placement_3d axis or ref_direction vector is '0 0 0'"
-    if {$type != ""} {append msg " for a $type"}
-    append msg "."
+  if {$rotmat == ""} {
+# specified with axis and refdir, check if one of the vectors is zero length, i.e., '0 0 0'
+    set msg ""
+    if {[veclen $axis] == 0 || [veclen $refdir] == 0} {
+      set msg "Syntax Error: The axis2_placement_3d axis or ref_direction vector is '0 0 0'"
+      if {$type != ""} {append msg " for a $type"}
+      append msg "."
 
 # check if axis and refdir are parallel
-  } elseif {[veclen [veccross $axis $refdir]] == 0} {
-    set msg "Syntax Error: The axis2_placement_3d axis and ref_direction vectors '$refdir' are parallel"
-    if {$type != ""} {append msg " for a $type"}
-    append msg "."
-  }
-  if {$msg != "" && [string first "counter" $msg] == -1 && [string first "hole" $msg] == -1} {errorMsg $msg}
+    } elseif {[veclen [veccross $axis $refdir]] == 0} {
+      set msg "Syntax Error: The axis2_placement_3d axis and ref_direction vectors '$refdir' are parallel"
+      if {$type != ""} {append msg " for a $type"}
+      append msg "."
+    }
+    if {$msg != "" && [string first "counter" $msg] == -1 && [string first "hole" $msg] == -1} {errorMsg $msg}
 
 # construct rotation matrix u, must normalize to use with quaternion
-  set u3 [vecnorm $axis]
-  set u1 [vecnorm [vecsub $refdir [vecmult $u3 [vecdot $refdir $u3]]]]
-  set u2 [vecnorm [veccross $u3 $u1]]
+    set u3 [vecnorm $axis]
+    set u1 [vecnorm [vecsub $refdir [vecmult $u3 [vecdot $refdir $u3]]]]
+    set u2 [vecnorm [veccross $u3 $u1]]
+
+# specified with rotation matrix (list of 9 values)
+  } else {
+    set u1 [vecnorm [join [lrange $rotmat 0 2]]]
+    set u2 [vecnorm [join [lrange $rotmat 3 5]]]
+    set u3 [vecnorm [join [lrange $rotmat 6 8]]]
+  }
 
 # extract quaternion
   if {[lindex $u1 0] >= 0.0} {

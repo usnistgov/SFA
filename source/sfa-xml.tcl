@@ -34,8 +34,8 @@ proc x3dReadXML {} {
     set xmlDocVer [$xmldoc getElementsByTagName DocumentVersion]
     foreach docver $xmlDocVer {
       set uid [$docver getAttribute uid]
-      set node [$docver selectNodes Views/DocumentDefinition/Files/DigitalFile/attribute::uidRef]
-      set uidRef [join [string range $node 8 end-1]]
+      set digitalFile [$docver selectNodes Views/DocumentDefinition/Files/DigitalFile/attribute::uidRef]
+      set uidRef [join [string range $digitalFile 8 end-1]]
       set mapuid($uid) $uidRef
       #outputMsg "mapuid $uid $uidRef" green
     }
@@ -47,13 +47,38 @@ proc x3dReadXML {} {
     outputMsg " Generating X3D for [llength $xmlFiles] STEP files" blue
     foreach file $xmlFiles {
       set uid [$file getAttribute uid]
-      set node [$file selectNodes Id/Identifier/attribute::id]
-      if {$node == ""} {
+      set identifier [$file selectNodes Id/Identifier/attribute::id]
+      if {$identifier == ""} {
         errorMsg "  Cannot find STEP file name with File/Id/Identifier/attribute::id - Checking File/Locations/ExternalItem/Id/attribute::id" red
-        set node [$file selectNodes Locations/ExternalItem/Id/attribute::id]
+        set identifier [$file selectNodes Locations/ExternalItem/Id/attribute::id]
       }
-      set fname [join [string range $node 4 end-1]]
+      set fname [join [string range $identifier 4 end-1]]
       set ext [file extension $fname]
+
+# get .stp filename from .stpx file
+      #if {$ext == ".stpx"} {
+      #  set stpxName [file join [file dirname $localName] $fname]
+      #  set f1 [open $stpxName r]
+      #  fconfigure $f1 -encoding utf-8
+      #  if {[catch {
+      #    outputMsg "Opening $fname" green
+      #    set stpxdoc [dom parse [read $f1]]
+      #    close $f1
+      #    outputMsg [[[$stpxdoc getElementsByTagName TimeStamp] firstChild] nodeValue]
+      #    outputMsg [[[$stpxdoc getElementsByTagName DefaultLanguage] firstChild] nodeValue]
+      #    outputMsg here1
+      #    foreach stpname [$stpxdoc getElementsByTagName SourceId] {
+      #      outputMsg here2$stpname
+      #      set name [$stpname firstChild]
+      #      outputMsg here3$name
+      #      set name [$name nodeValue]
+      #      outputMsg here4$name
+      #    }
+      #  } emsg1]} {
+      #    errorMsg " $emsg1"
+      #  }
+      #}
+
       if {$ext == ".stp"} {
         outputMsg "  $fname  ($uid)"
         update idletasks
@@ -75,7 +100,7 @@ proc x3dReadXML {} {
         } else {
           outputMsg "   STEP file not found: [truncFileName [file nativename $fname]]" red
         }
-      } elseif {[string first "stp" $ext] != -1} {
+      } else {
         errorMsg "  File extension $ext not supported" red
       }
     }
@@ -85,9 +110,46 @@ proc x3dReadXML {} {
     outputMsg "\n Writing Parts to Viewer file" blue
     set ipart 0
     foreach part $xmlParts {
-      set node [$part selectNodes Versions/PartVersion/Views/PartView/DocumentAssignment/AssignedDocument/attribute::uidRef]
-      if {$node != ""} {
-        set uidRef [string range $node 8 end-1]
+      set partViews [$part selectNodes Versions/PartVersion/Views/PartView]
+      foreach partView $partViews {
+        outputMsg [$partView nodeName] green
+        outputMsg " [$partView getAttribute uid]"
+        if {[catch {
+          outputMsg "  [$partView getAttribute xsi:type]"
+          foreach pvcn [$partView childNodes] {
+            if {[$pvcn nodeName] == "ViewOccurrenceRelationship"} {
+              outputMsg "   [$pvcn nodeName]"
+              foreach vorcn [$pvcn childNodes] {
+                set vorName [$vorcn nodeName]
+                if {$vorName == "Related"} {
+                  outputMsg "    [$vorcn nodeName] [$vorcn getAttribute uidRef]"
+                } elseif {$vorName == "Placement"} {
+                  #outputMsg "    [$vorcn nodeName]"
+                  set ct [$vorcn firstChild]
+                  #outputMsg "     [$ct nodeName]"
+                  foreach ctcn [$ct childNodes] {
+                    #outputMsg "     [$ctcn nodeName] [$ctcn asText]"
+                    if {[$ctcn nodeName] == "RotationMatrix"} {
+                      set axisAngle [x3dGetRotation "" "" "" [$ctcn asText]]
+                      #outputMsg "     $axisAngle" red
+                    } elseif {[$ctcn nodeName] == "TranslationVector"} {
+                      set trans [vectrim [$ctcn asText]]
+                    }
+                  }
+                  outputMsg "     <Transform translation='$trans' rotation='$axisAngle'>"
+                }
+              }
+            }
+          }
+        } emsg]} {
+          outputMsg " $emsg" red
+        }
+      }
+    }
+    foreach part $xmlParts {
+      set assignedDocument [$part selectNodes Versions/PartVersion/Views/PartView/DocumentAssignment/AssignedDocument/attribute::uidRef]
+      if {$assignedDocument != ""} {
+        set uidRef [string range $assignedDocument 8 end-1]
         set uid1 $uidRef
         if {[info exists x3duid($uidRef)]} {
           set uid1 $uidRef

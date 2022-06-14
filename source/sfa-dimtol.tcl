@@ -104,8 +104,8 @@ proc spmiDimtolStart {entType} {
 # -------------------------------------------------------------------------------
 proc spmiDimtolReport {objEntity} {
   global angDegree assocGeom badAttributes cells col datsym dim dimBasic dimRepeat dimDirected dimName dimModNames dimOrient dimReference dimrep dimrepID
-  global dimSizeNames dimtolAttr dimtolEnt dimtolEntType dimtolGeom dimtolID dimtolPM dimtolType dimval dt entLevel ent entAttrList entCount entlevel2
-  global lastEnt nistName numDSnames opt pmiCol pmiColumns pmiHeading pmiModifiers pmiStartCol pmiUnicode propDefIDs recPracNames
+  global dimSizeNames dimtolAttr dimtolEnt dimtolEntType dimtolGeom dimtolID dimtolPM dimtolType dimval driPropID dt entLevel ent entAttrList entCount entlevel2
+  global equivUnicodeString lastEnt nistName numDSnames opt pmiCol pmiColumns pmiHeading pmiModifiers pmiStartCol pmiUnicode propDefIDs recPracNames
   global savedModifier spaces spmiEnts spmiID spmiIDRow spmiRow spmiTypesPerFile syntaxErr tolStandard
 
   if {$opt(DEBUG1)} {outputMsg "spmiDimtolReport" red}
@@ -1010,6 +1010,33 @@ proc spmiDimtolReport {objEntity} {
       set c [expr {$pmiStartCol($dt)+13}]
       set r $spmiIDRow($dt,$spmiID)
       valPropColumn $dt $r $c $propDefIDs($dimrepID)
+    }
+
+# report equivalent Unicode string for the dimensional tolerance
+    if {[catch {
+      if {[info exists dimtolID]} {
+        if {[info exists driPropID($dimtolID)]} {
+          if {[info exists equivUnicodeString($driPropID($dimtolID))]} {
+            set eus $equivUnicodeString($driPropID($dimtolID))
+            if {$eus != ""} {
+              if {![info exists pmiColumns(eusdim)]} {set pmiColumns(eusdim) [expr {$pmiStartCol($dt)+14}]}
+              set colName "Equivalent Unicode String[format "%c" 10](Sec. 10.1.3.3)"
+              set c [string index [cellRange 1 $pmiColumns(eusdim)] 0]
+              set r $spmiIDRow($dt,$spmiID)
+              if {![info exists pmiHeading($pmiColumns(eusdim))]} {
+                $cells($dt) Item 3 $c $colName
+                set pmiHeading($pmiColumns(eusdim)) 1
+                set pmiCol [expr {max($pmiColumns(eusdim),$pmiCol)}]
+                addCellComment $dt 3 $c "See the descriptive_representation_item worksheet"
+              }
+              $cells($dt) Item $r $pmiColumns(eusdim) $eus
+              if {[lsearch $spmiRow($dt) $r] == -1} {lappend spmiRow($dt) $r}
+            }
+          }
+        }
+      }
+    } emsg4]} {
+      errorMsg "Error reporting Equivalent Unicode String for a dimensional tolerance: $emsg4"
     }
 
 # -------------------------------------------------------------------------------

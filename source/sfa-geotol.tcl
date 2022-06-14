@@ -123,8 +123,8 @@ proc spmiGeotolStart {entType} {
 proc spmiGeotolReport {objEntity} {
   global all_around all_over assocGeom ATR badAttributes between cells col datsys datumCompartment datumFeature datumModValue datumTargetDesc
   global datumSymbol datumSystem datumSystemPDS dim datumEntType datumGeom datumIDs datumTarget datumTargetType datumTargetView dimtolEntType dimtolGeom
-  global entLevel ent entAttrList entCount gt gtEntity head1 magQualified magType multipleDatumFeature nistName objID opt pmiCol pmiHeading
-  global pmiModifiers pmiStartCol pmiUnicode propDefIDs ptz recPracNames spaces spmiEnts spmiID spmiIDRow spmiRow spmiTypesPerFile
+  global driPropID entLevel ent entAttrList entCount equivUnicodeString gt gtEntity head1 magQualified magType multipleDatumFeature nistName objID opt
+  global pmiCol pmiHeading pmiModifiers pmiStartCol pmiUnicode propDefIDs ptz recPracNames spaces spmiEnts spmiID spmiIDRow spmiRow spmiTypesPerFile
   global stepAP syntaxErr tolNames tolStandard tolStandards tolval tzf1 tzfNames tzWithDatum worksheet
   global objDesign
 
@@ -552,7 +552,7 @@ proc spmiGeotolReport {objEntity} {
                       $cells($gt) Item 3 $c $colName
                       if {[string first "GD&T" $colName] != -1} {
                         set comment "See Help > User Guide (section 6.1.4) for an explanation of how the annotations below are constructed.  Results are summarized on the PMI Representation Summary worksheet."
-                        append comment "\n\nThe geometric tolerance might be shown with associated dimensions (above) and datum features (below).  That depends on any of the two referring to the same Associated Geometry as the Toleranced Geometry in the column to the right.  See the Associated Geometry columns on the 'dimensional_characteristic_representation' (DCR) and 'datum_feature' worksheets to see if they match the Toleranced Geometry."
+                        append comment "\n\nThe geometric tolerance might be shown with associated dimensions (above) and datum features (below).  The association depends on any of the two referring to the same Associated Geometry as the Toleranced Geometry in the column to the right.  See the Associated Geometry columns on the 'dimensional_characteristic_representation' (DCR) and 'datum_feature' worksheets to see if they match the Toleranced Geometry."
                         append comment "\n\nSee the DCR worksheet for an explanation of Repetitive Dimensions."
                         if {$nistName != ""} {
                           append comment "\n\nSee the PMI Representation Summary worksheet to see how the GD&T Annotation below compares to the expected PMI."
@@ -1525,7 +1525,7 @@ proc spmiGeotolReport {objEntity} {
     set compositeID ""
     if {[catch {
       if {[string first "tolerance" $gt] != -1} {
-        set c  $pmiStartCol($gt)
+        set c $pmiStartCol($gt)
         set r $spmiIDRow($gt,$spmiID)
         set val [[$cells($gt) Item $r $c] Value]
         set e1s [$objEntity GetUsedIn [string trim geometric_tolerance_relationship] [string trim related_geometric_tolerance]]
@@ -1863,6 +1863,34 @@ proc spmiGeotolReport {objEntity} {
       set r $spmiIDRow($gt,$spmiID)
       valPropColumn $gt $r $c $propDefIDs($spmiID)
     }
+
+# report equivalent Unicode string for the geometric tolerance
+    if {[catch {
+      if {[info exists gtEntity]} {
+        set gtID [$gtEntity P21ID]
+        if {[info exists driPropID($gtID)]} {
+          if {[info exists equivUnicodeString($driPropID($gtID))]} {
+            set eus $equivUnicodeString($driPropID($gtID))
+            if {$eus != ""} {
+              if {![info exists pmiColumns(eusgt)]} {set pmiColumns(eusgt) [expr {$pmiStartCol($gt)+6}]}
+              set colName "Equivalent Unicode String[format "%c" 10](Sec. 10.1.3.3)"
+              set c [string index [cellRange 1 $pmiColumns(eusgt)] 0]
+              set r $spmiIDRow($gt,$spmiID)
+              if {![info exists pmiHeading($pmiColumns(eusgt))]} {
+                $cells($gt) Item 3 $c $colName
+                set pmiHeading($pmiColumns(eusgt)) 1
+                set pmiCol [expr {max($pmiColumns(eusgt),$pmiCol)}]
+                addCellComment $gt 3 $c "See the descriptive_representation_item worksheet"
+              }
+              $cells($gt) Item $r $pmiColumns(eusgt) $eus
+              if {[lsearch $spmiRow($gt) $r] == -1} {lappend spmiRow($gt) $r}
+            }
+          }
+        }
+      }
+    } emsg4]} {
+      #errorMsg "Error reporting Equivalent Unicode String for a geometric tolerance: $emsg4"
+    }
   }
 
   return 0
@@ -1882,7 +1910,7 @@ proc spmiProjectedToleranceZone {objGuiEntity} {
 # projected length
         if {[$a0 Name] == "projected_length"} {
 
-# check for correct lmwu
+# check for correct LMWU
           set ptzattr {}
           ::tcom::foreach a1 [[$a0 Value] Attributes] {lappend ptzattr [$a1 Name]}
           if {[lsearch $ptzattr "name"] != -1 && [lsearch $ptzattr "qualifiers"] == -1} {
@@ -2268,14 +2296,16 @@ proc spmiPlacedDatumTarget {objEntity objValue} {
     }
 
 # missing target representation
-    if {[string first "." $datumTargetRep] == -1 && $datumTargetType != "area" && $datumTargetType != "curve"} {
-      set msg "Syntax Error: Missing target representation (shape_representation_with_parameters) for '$datumTargetType' on [$gtEntity Type].$spaces\($recPracNames(pmi242), Sec. 6.6.1, Fig. 38)"
-      errorMsg $msg
-      set invalid $msg
+    if {[info exists datumTargetRep]} {
+      if {[string first "." $datumTargetRep] == -1 && $datumTargetType != "area" && $datumTargetType != "curve"} {
+        set msg "Syntax Error: Missing target representation (shape_representation_with_parameters) for '$datumTargetType' on [$gtEntity Type].$spaces\($recPracNames(pmi242), Sec. 6.6.1, Fig. 38)"
+        errorMsg $msg
+        set invalid $msg
+      }
     }
 
   } emsg]} {
-    errorMsg "Error processing datum target (placed_datum_target_feature): $emsg"
+    errorMsg "Error processing datum target shape representation: $emsg"
   }
   return $objValue
 }

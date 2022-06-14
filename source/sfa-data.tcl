@@ -325,10 +325,10 @@ set gpmiTypes [list angularity "circular runout" circularity coaxiality concentr
 # Semantic PMI types for coverage analysis, order is important
 set spmiTypes $tolNames
 
-foreach item [list "tolerance zone diameter (6.9.2)" "tolerance zone within a cylinder (6.9.2)" "tolerance zone spherical diameter (6.9.2)" "tolerance zone other (6.9.2)" "tolerance zone precision (6.9)" "all_over \u2b69\u25CE (6.3)" "all_around \u232E (6.4.2)" "between \u2194 (6.4.3)" "affected plane tolerance zone (6.9.2.1)" "projected \u24C5 (6.9.2.2)" "non-uniform tolerance zone (6.9.2.3)" "unequally_disposed \u24CA or UZ (6.9.4)" "tolerance with max value (6.9.5)" "unit-basis tolerance (6.9.6)" "composite tolerance (6.9.9)" "intersection/orientation plane indicator" \
+foreach item [list "tolerance zone diameter \u2300 (6.9.2)" "tolerance zone within a cylinder \u2300 (6.9.2)" "tolerance zone spherical diameter S\u2300 (6.9.2)" "tolerance zone other (6.9.2)" "tolerance zone precision (6.9)" "all_over \u2B69\u25CE (6.3)" "all_around \u232E (6.4.2)" "between \u2194 (6.4.3)" "affected plane tolerance zone (6.9.2.1)" "projected \u24C5 (6.9.2.2)" "non-uniform tolerance zone (6.9.2.3)" "unequally_disposed \u24CA or UZ (6.9.4)" "tolerance with max value (6.9.5)" "unit-basis tolerance (6.9.6)" "composite tolerance (6.9.9)" "intersection/orientation plane indicator" \
   "dimensions (location+size)" "dimensional location (5.1.1)" "dimensional size (5.1.5)" "angular location (5.1.2)" "angular size (5.1.6)" "directed dimension \u2331 (5.1.1)" "oriented dimensional location (5.1.3)" "derived shapes dimensional location (5.1.4)" "location with path (5.1.7)" "repetitive dimensions 'nX' (5.1, User Guide 6.1.3)" "dimension association to geometric tolerance (5.1)" "dimension precision (5.4)" \
   "bilateral tolerance (5.2.3)" "non-bilateral tolerance (5.2.3)" "tolerance precision (5.2.3)" "type qualifier (5.2.2)" "value range (5.2.4)" "limits and fits (5.2.5)" \
-  "diameter \u2205 (5.1.5)" "radius R (5.1.5)" "spherical diameter S\u2205 (5.1.5)" "spherical radius SR (5.1.5)" "curved distance (5.1.1)" "linear distance (5.1.1)" "linear distance inner/outer (5.1.1)" "curve length (5.1.5)" "thickness (5.1.5)" "toroidal radius/diameter (5.1.5)" "controlled radius CR (5.3)" "dimension basic (5.3)" "reference dimension (5.3)" "square \u25A1 (5.3)" \
+  "diameter \u2300 (5.1.5)" "radius R (5.1.5)" "spherical diameter S\u2300 (5.1.5)" "spherical radius SR (5.1.5)" "curved distance (5.1.1)" "linear distance (5.1.1)" "linear distance inner/outer (5.1.1)" "curve length (5.1.5)" "thickness (5.1.5)" "toroidal radius/diameter (5.1.5)" "controlled radius CR (5.3)" "dimension basic (5.3)" "reference dimension (5.3)" "square \u25A1 (5.3)" \
   "datum (6.5)" "datum system (6.9.7)" "datum with axis system (6.9.7)" "datum with modifiers (6.9.7)" "multiple datum features (6.9.8)" "datum feature association to geometric tolerance (6.1)" "datum feature association to dimension (6.5.3)" \
   "all datum targets" "point datum target (6.6.1)" "line datum target (6.6.1)" "rectangle datum target (6.6.1)" "circle datum target (6.6.1)" "circular curve datum target (6.6.1)" "curve datum target (6.6.2)" "area datum target (6.6.2)" "placed datum target geometry (6.6.3)" "movable datum target (6.6.4)" \
 ] {lappend spmiTypes $item}
@@ -371,7 +371,7 @@ set pmiModifiersArray(two_point_size,5.3)                             "(LP)"
 set pmiModifiersArray(united_feature_of_size,5.3)                     "UF"
 set pmiModifiersArray(volume_diameter_calculated_size,5.3)            "(CV)"
 
-set pmiModifiersArray(all_over,6.3)             "\u2b69\u25CE"
+set pmiModifiersArray(all_over,6.3)             "\u2B69\u25CE"
 set pmiModifiersArray(all_around,6.4.2)         "\u232E"
 set pmiModifiersArray(between,6.4.3)            "\u2194"
 set pmiModifiersArray(projected,6.9.2.2)        "\u24C5"
@@ -466,26 +466,26 @@ set spmiTypes [concat $spmiTypes [list "annotation placeholder (7.2)" "editable 
 # -----------------------------------------------------------------------------------------------------
 # pmiUnicode are the symbols associated with tolerances and a few others
 set idx "cylindrical or circular"
-set pmiUnicode($idx)             "\u2205"
+set pmiUnicode($idx)             "\u2300"
 set pmiUnicode(angularity)       "\u2220"
-set pmiUnicode(circular)         "\u2205"
+set pmiUnicode(circular)         "\u2300"
 set pmiUnicode(circular_runout)  "\u2197"
 set pmiUnicode(coaxiality)       "\u25CE"
 set pmiUnicode(concentricity)    "\u25CE"
-set pmiUnicode(cylindrical)      "\u2205"
+set pmiUnicode(cylindrical)      "\u2300"
 set pmiUnicode(cylindricity)     "\u232D"
 set pmiUnicode(degree)           "\u00B0"
-set pmiUnicode(diameter)         "\u2205"
+set pmiUnicode(diameter)         "\u2300"
 set pmiUnicode(flatness)         "\u25B1"
 set pmiUnicode(line_profile)     "\u2312"
-set pmiUnicode(parallelism)      "\u2215\u2215"
+set pmiUnicode(parallelism)      "\u2AFD"
 set pmiUnicode(perpendicularity) "\u23CA"
 set pmiUnicode(plusminus)        "\u00B1"
-set pmiUnicode(position)         "\u2295"
+set pmiUnicode(position)         "\u2316"
 set pmiUnicode(radius)           "R"
-set pmiUnicode(roundness)        "\u25EF"
+set pmiUnicode(roundness)        "\u25CB"
 set idx "spherical diameter"
-set pmiUnicode($idx)             "S\u2205"
+set pmiUnicode($idx)             "S\u2300"
 set idx "spherical radius"
 set pmiUnicode($idx)             "SR"
 set pmiUnicode(straightness)     "\u2212"
@@ -496,11 +496,11 @@ set pmiUnicode(thickness)        "\u2346\u2345"
 set pmiUnicode(total_runout)     "\u2330"
 
 set idx "within a cylinder"
-set pmiUnicode($idx)             "\u2205"
+set pmiUnicode($idx)             "\u2300"
 set idx "within a circle"
-set pmiUnicode($idx)             "\u2205"
+set pmiUnicode($idx)             "\u2300"
 set idx "within a sphere"
-set pmiUnicode($idx)             "S\u2205"
+set pmiUnicode($idx)             "S\u2300"
 
 set pmiUnicode(angular)          $pmiUnicode(angularity)
 set pmiUnicode(parallel)         $pmiUnicode(parallelism)

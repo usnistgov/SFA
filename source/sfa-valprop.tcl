@@ -1,7 +1,7 @@
 proc valPropStart {defRep} {
   global objDesign
   global cells col entLevel ent entAttrList letters ncartpt opt pd pdcol pdheading propDefID
-  global propDefIDRow propDefRow samplingPoints valPropEnts valPropLink valPropNames valProps
+  global propDefIDRow propDefRow valPropEnts valPropLink valPropNames valProps
 
 # CAx-IF RP Geometric and Assembly Validation Properties, section 8
   set valPropNames(geometric_validation_property) [list \
@@ -175,7 +175,8 @@ proc valPropStart {defRep} {
     set pdcol 0
   }
   set valPropLink 0
-  foreach var {ent pdheading samplingPoints} {if {[info exists $var]} {unset $var}}
+  catch {unset ent}
+  catch {unset pdheading}
 
   outputMsg " Adding Properties to property_definition worksheet" blue
 
@@ -342,8 +343,7 @@ proc valPropReport {objEntity} {
 
 # wrong units
               catch {
-                if {[string first "length" [$objValue Type]] != -1 && \
-                   ([string first "force" $valName] != -1 || [string first "moment" $valName] != -1 || [string first "mass" $valName] != -1)} {
+                if {[string first "length" [$objValue Type]] != -1 && [string first "mass" $valName] != -1} {
                   set msg "Syntax Error: Bad units for the validation property value."
                   errorMsg $msg
                   lappend syntaxErr($ent($entLevel)) [list $objID unit_component $msg]
@@ -1136,7 +1136,7 @@ proc setValProps {idx {val ""} {ent ""}} {
 # -------------------------------------------------------------------------------
 # get validation properties
 proc getValProps {} {
-  global gpmiValProp propDefIDs spmiValProp unicodeString
+  global driPropID gpmiValProp propDefIDs spmiValProp unicodeString
   global objDesign
 
 # get validation properties association to PMI, etc.
@@ -1164,6 +1164,7 @@ proc getValProps {} {
             definition {
 # property_definition definition attribute
               if {$pid != "" && [string first "handle" $a0val] != -1} {
+                set a0id [$a0val P21ID]
 
 # get names of validation properties, add to vpname
                 set names ""
@@ -1178,6 +1179,9 @@ proc getValProps {} {
                         if {[$a3 Name] == "name" && $vpname != "semantic text"} {
                           set name [$a3 Value]
                           if {$name != "" && [string first $name $names] == -1} {append names "$name, "}
+
+# property id associated to DRI id
+                          if {$name == "equivalent unicode string"} {set driPropID($a0id) [$e3 P21ID]}
 
 # semantic text
                         } elseif {[$a3 Name] == "description" && $vpname == "semantic text" && $defRep == "property_definition_representation"} {
@@ -1201,7 +1205,6 @@ proc getValProps {} {
                     append vpname "[format "%c" 10]$names"
                   }
                 }
-                set a0id [$a0val P21ID]
                 if {![info exists propDefIDs($a0id)]} {
                   set propDefIDs($a0id) [list $pid $vpname]
                 } else {
@@ -1279,7 +1282,7 @@ proc reportValProps {} {
   if {[llength $vpEnts] > 0} {
     set str ""
     foreach ent $vpEnts {append str " [formatComplexEnt $ent]"}
-    outputMsg "\nAdding Validation Properties to:$str" blue
+    #outputMsg "\nAdding Validation Properties to:$str" blue
   }
 }
 

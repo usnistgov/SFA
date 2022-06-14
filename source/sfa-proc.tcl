@@ -124,7 +124,7 @@ proc openFile {{openName ""}} {
 
 # file types for file select dialog
     set typelist [list {"STEP " {".stp" ".step" ".stpZ" ".p21" ".stpnc" ".spf"}}]
-    if {$developer} {lappend typelist {"STEP XML " {".stpx"}}}
+    if {$developer} {set typelist [list {"STEP " {".stp" ".step" ".stpZ" ".stpx" ".p21" ".stpnc" ".spf"}}]}
     lappend typelist {"IFC " {".ifc"}}
     lappend typelist {"ASCII STL " {".stl"}}
 
@@ -1414,20 +1414,22 @@ proc installIFCsvr {{exit 0}} {
   global buttons developer ifcsvrVer mydocs mytemp nistVersion upgradeIFCsvr wdir
 
 # IFCsvr version depends on string entered when IFCsvr is repackaged for new STEP schemas
-  set versionIFCsvr 20211004
+  set versionIFCsvr 20220614
 
 # if IFCsvr is alreadly installed, get version from registry, decide to reinstall newer version
   if {[catch {
 
-# check IFCsvr CLSID and get version registry value "1.0.0 (NIST Update yyyy-mm-dd)"
+# check IFCsvr CLSID and get version registry value "yyyy.mm.dd" or old format "1.0.0 (NIST Update yyyy-mm-dd)"
 # if either fails, then install or reinstall
     set verIFCsvr [registry get $ifcsvrVer {DisplayVersion}]
 
-# remove hyphens to format version to be yyyymmdd to compare with versionIFCsvr
+# remove extra characters to format version to be yyyymmdd to compare with versionIFCsvr above
     set c1 [string first "20" $verIFCsvr]
     if {$c1 != -1} {
-      set verIFCsvr [string range $verIFCsvr $c1 end-1]
+      set verIFCsvr [string range $verIFCsvr $c1 end]
+      if {[string index $verIFCsvr end] == ")"} {set verIFCsvr [string range $verIFCsvr 0 end-1]}
       regsub -all {\-} $verIFCsvr "" verIFCsvr
+      regsub -all {\.} $verIFCsvr "" verIFCsvr
     } else {
       set verIFCsvr 0
     }
