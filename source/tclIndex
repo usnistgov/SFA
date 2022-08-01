@@ -134,6 +134,7 @@ set auto_index(nistReadExpectedPMI) [list source [file join $dir sfa-nist.tcl]]
 set auto_index(pmiRemoveZeros) [list source [file join $dir sfa-nist.tcl]]
 set auto_index(stringSimilarity) [list source [file join $dir sfa-nist.tcl]]
 
+set auto_index(GetByteLength) [list source [file join $dir sfa-part.tcl]]
 set auto_index(STL2STEP) [list source [file join $dir sfa-part.tcl]]
 set auto_index(x3dBrepGeom) [list source [file join $dir sfa-part.tcl]]
 set auto_index(x3dBrepUnits) [list source [file join $dir sfa-part.tcl]]

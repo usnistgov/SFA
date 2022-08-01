@@ -739,7 +739,7 @@ proc gpmiAnnotationReport {objEntity} {
                       }
                     }
 
-# check new rule with AP242 edition >= 2
+# check new rule with AP242 edition > 1
                     if {[string range $stepAP 0 5] == "AP242" && $stepAP != "AP242" && $stepAP != "AP242e1"} {
                       if {![info exists entCount(draughting_model_and_tessellated_shape_representation)] && \
                           ![info exists entCount(characterized_representation_and_draughting_model_and_tessellated_shape_representation)]} {
@@ -1475,8 +1475,7 @@ proc pmiGetCameras {} {
 
 # camera list
   set cmlist {}
-  foreach cms [list camera_model_d3 camera_model_d3_multi_clipping camera_model_d3_multi_clipping_intersection \
-                    camera_model_d3_multi_clipping_union camera_model_d3_with_hlhsr] {
+  foreach cms [list camera_model_d3 camera_model_d3_multi_clipping camera_model_d3_with_hlhsr camera_model_d3_with_light_sources] {
     if {[info exists entCount($cms)]} {if {$entCount($cms) > 0} {lappend cmlist $cms}}
   }
 

@@ -486,7 +486,7 @@ proc valPropReport {objEntity} {
                   set colName "value"
                   if {[string first "sampling points" $repName] == -1} {
                     addValProps 2 $objValue "#$objID $ent2"
-                    if {$ent1 == "direction direction_ratios"} {
+                    if {$ent1 == "direction direction_ratios" && $propDefName != ""} {
                       if {[veclen $objValue] == 0} {
                         set msg "Syntax Error: The validation property direction vector is '0 0 0'."
                         errorMsg $msg
@@ -764,6 +764,9 @@ proc valPropReport {objEntity} {
                         set repNameOK 0
                         if {$propDefName != "pmi_validation_property" && $propDefName != "attribute_validation_property"} {
                           set emsg "Syntax Error: Bad '$ent2' attribute for '$propDefName'."
+                          if {$propDefName == "geometric_validation_property" && ($repName == "number of children" || $repName == "notional solids centroid")} {
+                            append emsg "  '$repName' is an assembly validation property."
+                          }
                         } else {
                           set emsg "Syntax Error: The [lindex $ent1 0] 'name' attribute must be empty."
                         }
@@ -789,7 +792,7 @@ proc valPropReport {objEntity} {
 
 # missing composite validation property name
                     if {[string first "ply" $ent1] == 0 || [string first "reinforcement" $ent1] == 0} {
-                      if {[string tolower $propDefName] != "composite validation property"} {
+                      if {[string tolower $propDefName] != "composite validation property" && $propDefName != ""} {
                         set emsg "Syntax Error: property_definition 'name' attribute should be 'composite validation property'.$spaces\($recPracNames(comp), Sec. 4)"
                         errorMsg $emsg
                         lappend syntaxErr(property_definition) [list $propDefID name $emsg]
@@ -897,6 +900,8 @@ proc valPropReport {objEntity} {
                     $cells($pd) Item 3 $c $colName
                     $cells($pd) Item 3 [string index [cellRange 1 [expr {$col($pd)+1}]] 0] "attribute"
                     set pdheading($col($pd)) 1
+                    set comment "Classification is defined in $recPracNames(uda), Sec. 5.3"
+                    addCellComment $pd 3 $c $comment
                   }
                   $cells($pd) Item $r $c [lindex $pdclass 0]
                   $cells($pd) Item $r [expr {$col($pd)+1}] [lindex $pdclass 1]
@@ -905,9 +910,6 @@ proc valPropReport {objEntity} {
 # keep track of rows with validation properties
                 if {[lsearch $propDefRow $r] == -1 && \
                    ([string first "validation_property" $propDefName] != -1 || $propDefName == "semantic_text")} {lappend propDefRow $r}
-                if {[string first "ply" $ent1] == 0 || [string first "reinforcement" $ent1] == 0} {
-                  if {[lsearch $propDefRow $r] == -1} {lappend propDefRow $r}
-                }
 
                 if {$invalid != ""} {lappend syntaxErr($pd) [list "-$r" $col($pd) $invalid]}
                 incr col($pd)

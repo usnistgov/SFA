@@ -377,12 +377,17 @@ proc reportAssocGeom {entType {row ""}} {
       if {[string first "dimension"  $entType] != -1} {set etyp "dimension"}
       if {[string first "datum_feature" $entType] != -1} {set etyp "datum feature"}
 
-      set msg "$str2 Geometry not found for a [formatComplexEnt $entType].  If the $etyp should have $str2 Geometry, then check GISU or IIRU 'definition' attribute or shape_aspect_relationship 'relating_shape_aspect' attribute.  Select Inverse Relationships on the Options tab to check relationships.\n  ($recPracNames(pmi242), $str1)"
-      errorMsg $msg
-      if {$row != ""} {
-        set idx $entType
-        if {$dimtol} {set idx "dimensional_characteristic_representation"}
-        lappend syntaxErr($idx) [list "-$row" "$str2 Geometry" $msg]
+# message only if there are advanced_face
+      if {[info exists entCount(advanced_face)]} {
+        if {$entCount(advanced_face) > 0} {
+          set msg "$str2 Geometry not found for a [formatComplexEnt $entType].  If the $etyp should have $str2 Geometry, then check GISU or IIRU 'definition' attribute or shape_aspect_relationship 'relating_shape_aspect' attribute.  Select Inverse Relationships on the Options tab to check relationships for shape_aspect.\n  ($recPracNames(pmi242), $str1)"
+          errorMsg $msg
+          if {$row != ""} {
+            set idx $entType
+            if {$dimtol} {set idx "dimensional_characteristic_representation"}
+            lappend syntaxErr($idx) [list "-$row" "$str2 Geometry" $msg]
+          }
+        }
       }
     }
   }

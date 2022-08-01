@@ -234,10 +234,7 @@ proc tessReadGeometry {{coordOnly 0}} {
         if {$c2 != [expr {$c1+1}]} {set tessCoordName($id) [string range $line $c1+1 $c2-1]}
 
         set ncoord 0
-        if {$coordOnly != 2} {
-          set ncoord [string range $line [string first "," $line]+1 [string first "((" $line]-2]
-          if {$ncoord > 50000} {errorMsg "COORDINATES_LIST #$id has $ncoord coordinates."}
-        }
+        if {$coordOnly != 2} {set ncoord [string range $line [string first "," $line]+1 [string first "((" $line]-2]}
 
         if {$ncoord > 0 || $coordOnly == 2} {
           set line [string range $line [string first "((" $line] end-1]

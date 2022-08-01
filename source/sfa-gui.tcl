@@ -1,5 +1,5 @@
 # SFA version
-proc getVersion {} {return 4.78}
+proc getVersion {} {return 4.79}
 
 # see proc installIFCsvr in sfa-proc.tcl for the IFCsvr version
 
@@ -460,7 +460,7 @@ proc guiOptionsTab {} {
     if {[info exists entCategory($idx)]} {
       set ttmsg ""
       if {$idx == "stepCOMM"} {
-        append ttmsg "Process categories control which entities from AP203, AP214, and AP242 (editions 1, 2, 3) are written to the Spreadsheet.\nAll entities specific to other APs are always written to the Spreadsheet.  See Help > Supported STEP APs\nThe categories are used to group and color-code entities on the Summary worksheet.\n\n"
+        append ttmsg "Process categories control which entities from AP203, AP214, and AP242 are written to the Spreadsheet.\nAll entities specific to other APs are always written to the Spreadsheet.  See Help > Supported STEP APs\nThe categories are used to group and color-code entities on the Summary worksheet.\n\n"
       }
       append ttmsg "[string trim [lindex $item 0]] entities ([llength $entCategory($idx)]) are supported in most STEP APs."
       set ttmsg [guiToolTip $ttmsg $idx [string trim [lindex $item 0]]]
@@ -511,7 +511,7 @@ proc guiOptionsTab {} {
   pack $fopta3 -side left -anchor w -pady 0 -padx 0 -fill y
 
   set fopta4 [frame $fopta.4 -bd 0]
-  foreach item {{" Composites" opt(stepCOMP)} {" Additive" opt(stepADDM)} {" Kinematics" opt(stepKINE)}} {
+  foreach item {{" Kinematics" opt(stepKINE)} {" Composites" opt(stepCOMP)} {" Additive" opt(stepADDM)}} {
     set idx [string range [lindex $item 1] 4 end-1]
     set buttons($idx) [ttk::checkbutton $fopta4.$cb -text [lindex $item 0] -variable [lindex $item 1] -command {checkValues}]
     pack $buttons($idx) -side top -anchor w -padx 5 -pady 0 -ipady 0
@@ -522,7 +522,7 @@ proc guiOptionsTab {} {
       if {$idx == "stepCOMP"} {append ttmsg " AP203 and"}
       if {$idx == "stepKINE"} {append ttmsg " AP214 and"}
       append ttmsg " AP242"
-      if {$idx == "stepADDM"} {append ttmsg " edition 2"}
+      if {$idx == "stepADDM"} {append ttmsg " editions > 1"}
       append ttmsg "."
       set ttmsg [guiToolTip $ttmsg $idx [string trim [lindex $item 0]]]
       if {$idx == "stepKINE"} {append ttmsg "\n\nKinematics is also supported by the AP242 Domain Model XML.  See Websites > CAx Recommended Practices"}
@@ -538,9 +538,13 @@ proc guiOptionsTab {} {
     pack $buttons($idx) -side top -anchor w -padx 5 -pady 0 -ipady 0
     incr cb
     if {[info exists entCategory($idx)]} {
-      set ttmsg "[string trim [lindex $item 0]] entities ([llength $entCategory($idx)]) are supported only in AP242."
-      if {$idx == "stepAP242"} {append ttmsg "  More AP242 entities are found in the other Process categories."}
-      append ttmsg "\nEntities with a * are only in AP242 edition 2 and/or 3."
+      set ttmsg "[string trim [lindex $item 0]] entities ([llength $entCategory($idx)]) are supported in AP242"
+      if {$idx == "stepAP242"} {
+        append ttmsg " editions 1-3.  More AP242 entities are found in the other Process categories.\n"
+      } else {
+        append ttmsg ".  "
+      }
+      append ttmsg "Entities with a * are in AP242 editions > 1."
       set ttmsg [guiToolTip $ttmsg $idx [string trim [lindex $item 0]]]
       if {$idx == "stepQUAL"} {append ttmsg "\n\nQuality entities are based on ISO 10303 Part 59 - Quality of product shape data"}
       if {$idx == "stepCONS"} {append ttmsg "\n\nConstraint entities are based on ISO 10303 Parts 108 and 109"}
@@ -715,7 +719,7 @@ proc guiOptionsTab {} {
   pack $foptRV -side top -anchor w -pady 0 -fill x
   catch {
     tooltip::tooltip $foptv20 "The viewer for part geometry supports color, transparency, edges, and\nsketch geometry.  The viewer does not support measurements.\n\nNormals improve the default smooth shading at the expense of slower\nprocessing and display.  Using High Quality and Normals results in the\nbest appearance for part geometry.\n\nIdentical parts in an assembly are grouped together in the Viewer.\nDisable this feature with the option on the Spreadsheet tab.\n\nThe viewer uses the default web browser.  An Internet connection is\nrequired.\n\nSee Help > Viewer > Overview\nSee Help > Viewer > Assemblies"
-    tooltip::tooltip $buttons(viewPMI) "Graphical PMI is supported in AP242, AP203, and AP214 files\nif implemented according to Recommended Practices.\n\nSee Help > Viewer > Graphical PMI\nSee Help > User Guide (section 4.2)"
+    tooltip::tooltip $buttons(viewPMI) "Graphical PMI is supported in AP242, AP203, and AP214 files\nif implemented according to recommended practices.\n\nSee Help > Viewer > Graphical PMI\nSee Help > User Guide (section 4.2)"
     tooltip::tooltip $buttons(viewPMIVP) "A Saved View is a subset of all graphical PMI which has its own viewpoint\nposition and orientation.  Use PageDown in the Viewer to cycle through the\nsaved views to switch to the associated viewpoint and subset of graphical PMI.\n\nUse the option on the Spreadsheet tab to debug the viewpoint camera model.\nOlder implementations of saved view viewpoints might not conform to current\nrecommended practices.  In this case, zoom out and rotate to see the entire part.\n\nSee User Guide (section 4.2.1)"
     tooltip::tooltip $buttons(viewTessPart) "Tessellated part geometry is typically written to an AP242 file instead of\nor in addition to b-rep part geometry.  ** Parts in an assembly might\nhave the wrong position and orientation or be missing. **\n\nSee Help > Viewer > AP242 Tessellated Part Geometry\nSee Help > User Guide (section 4.3)"
     tooltip::tooltip $buttons(tessPartMesh) "Generate a wireframe mesh based on the tessellated faces and surfaces."
@@ -1056,7 +1060,7 @@ Spreadsheet.  All entities specific to other APs are always written to the Sprea
 AP209, AP210, and AP238.  The categories are used to group and color-code entities on the Summary
 worksheet.  The tooltip help lists all the entities associated with that type.
 
-Analyzer options report PMI and check for conformance to Recommended Practices.
+Analyzer options report PMI and check for conformance to recommended practices.
 - PMI Representation: Dimensional tolerances, geometric tolerances, and datum features are reported
   on various entities indicated by PMI Representation on the Summary worksheet.
 - PMI Presentation: Geometric entities used for PMI Presentation annotations are reported.
@@ -1108,6 +1112,8 @@ assemblies.  Part geometry viewer features:
   around the circumference of a cylinder.  Using High Quality and the Normals options results in
   the best appearance for part geometry.
 
+- The viewer does not support surface of revolution for geometry in a STEP file.
+
 - The bounding box min and max XYZ coordinates are based on the faceted geometry being shown and
   not the exact geometry in the STEP file.  There might be a variation in the coordinates depending
   on the Quality option.  The bounding box also accounts for any sketch geometry if it is displayed
@@ -1118,11 +1124,11 @@ assemblies.  Part geometry viewer features:
 - The origin of the model at '0 0 0' is shown with a small XYZ coordinate axis that can be switched
   off.  The background color can be changed between white, blue, gray, and black.
 
-- See Help > Text Strings and Numbers for how non-English characters are handled in the Viewer.
-  
+- See Help > Text Strings and Numbers for how non-English characters are supported in the Viewer.
+
 NEW Features not documented in the User Guide:
 - Section view clipping planes are shown with a white transparent plane.  The model is not actually
-  clipped.
+  clipped.  The intersection and union of clipping planes is not supported.
 - Point clouds and validation property sampling points (cloud of points) are shown as blue dots in
   the viewer.  See Help > Viewer > Points
 - Composite rosettes defined by cartesian points and curves are supported.
@@ -1152,8 +1158,8 @@ and graphical PMI is supported.
 See Help > User Guide (section 4)
 See Help > Viewer for other topics
 
-The viewer can also be used with ASCII STL files used for 3D printing.  The STL file is first
-converted to a STEP file containing AP242 tessellated geometry and then processed by the viewer.
+The viewer can also be used with STL files used for 3D printing.  The STL file is first converted
+to a STEP file containing AP242 tessellated geometry and then processed by the viewer.
 
 The viewer for part geometry is based on the NIST STEP to X3D Translator and only runs on 64-bit
 computers.  It runs a separate program stp2x3d-part.exe from your Temp directory.
@@ -1161,9 +1167,9 @@ See Websites > STEP Software
 
 Other STEP file viewers are available.  See Websites > STEP Software > STEP File Viewers.  Some of
 the viewers are faster and have better features for viewing and measuring part geometry.  However,
-many of the viewers cannot show graphical PMI, sketch geometry, supplemental geometry, datum
-targets, point clouds, composite rosettes, AP242 tessellated part geometry, and AP209 finite
-element models and results."
+many of the viewers cannot show graphical PMI, sketch geometry, supplemental geometry, viewpoints,
+datum targets, point clouds, composite rosettes, clipping planes, AP242 tessellated part geometry,
+and AP209 finite element models and results."
     .tnb select .tnb.status
   }
 
@@ -1188,7 +1194,7 @@ See Websites > CAx Recommended Practices
 
 Graphical PMI on parts in an assembly might have the wrong position and orientation.
 
-Annotation placeholders, supported in AP242 edition 2, provide information about the position,
+Annotation placeholders, supported in AP242 editions > 1, provide information about the position,
 orientation, and organization of an annotation.  Placeholders are not documented in the User Guide.
 Placeholder coordinate systems are shown with an axes triad, gray sphere, and text label with the
 name of the placeholder.  Leader lines and a rectangle for the annotation are shown with yellow
@@ -1265,6 +1271,7 @@ part name shown may not be in the list of assemblies and parts.  The part might 
 higher-level assembly that is in the list.  Some names in the list might have an underscore and
 number appended to their name.  Processing sketch geometry might also affect the list of names.
 Some assemblies have no unique names assigned to parts, therefore there is no list of part names.
+See Help > Text Strings and Numbers for how non-English characters in part names are supported.
 
 Nested assemblies are also supported where one file contains the assembly structure with external
 file references to individual assembly components that contain part geometry.
@@ -1274,14 +1281,11 @@ Grouping parts and assemblies with the same shape can be disabled with the optio
 tab.  In this case, parts with the same shape will have an underscore and number appended to their
 name.
 
-Supplemental geometry on parts in an assembly is supported.  However, supplemental geometry in
-highly nested assemblies has not been tested.
+Graphical PMI and supplemental geometry on parts in an assembly is supported, however, it has not
+been thoroughly test and might have the wrong position and orientation.
 
-The following is NOT supported with assemblies:
-- Parts in an assembly using AP242 tessellated geometry might have the wrong position and
-  orientation or be missing.  Similar to b-rep geometry, a list of part names appears on the right
-  in the viewer.
-- Graphical PMI on parts in an assembly might have the wrong position and orientation."
+Parts in an assembly using AP242 tessellated geometry might have the wrong position and orientation
+or be missing.  Similar to b-rep geometry, a list of part names appears on the right in the viewer."
     .tnb select .tnb.status
   }
 
@@ -1294,8 +1298,8 @@ CAD system on the surfaces and edges of a part.  The points are used to check th
 surfaces from those points in an importing system.  See Websites > CAx Recommended Practices
 (Geometric and Assembly Validation Properties)
 
-2 - Point clouds are supported in AP242 edition 2, however, they have not been widely implemented
-in CAD software.  Point cloud colors, intensities, and normals are not supported.
+2 - Point clouds are supported in AP242 editions > 1, however, they have generally not been
+implemented.  Point cloud colors, intensities, and normals are not supported.
 
 Points can only be shown when a spreadsheet is also generated.  For COPS, the report for Validation
 Properties must also be generated.
@@ -1310,8 +1314,8 @@ Points are not documented in the User Guide.  See Examples > Viewer"
   $helpView add command -label "Holes" -command {
 outputMsg "\nHoles ---------------------------------------------------------------------------------------------" blue
 outputMsg "Hole features, including basic round, counterbore, and countersink holes, and spotface are
-supported in AP242 edition 2 but have not been widely implemented.  If the Analyzer report for
-Semantic PMI is not generated, then holes are shown only with a drill entry point.
+supported in AP242 editions > 1 but have generally not been implemented.  If the Analyzer report
+for Semantic PMI is not generated, then holes are shown only with a drill entry point.
 
 If the report is generated, then cylindrical or conical surfaces are used to show the depth and
 diameter of the hole, counterbore, and countersink.  If there is no depth associated with the hole
@@ -1484,7 +1488,7 @@ Reference Frame.  Datum Targets are reported on placed_datum_target_feature.
 
 Dimensional Tolerances are reported on the dimensional_characteristic_representation worksheet.
 The dimension name, representation name, length/angle, length/angle name, and plus minus bounds are
-reported.  The relevant section in the Recommended Practice is shown in the column headings.
+reported.  The relevant section in the recommended practice is shown in the column headings.
 Dimensional tolerances for holes are reported on *_hole_definition worksheets.
 
 Geometric Tolerances are reported on *_tolerance entities by showing the complete Feature Control
@@ -1565,15 +1569,15 @@ reports for PMI Representation or Presentation are selected.
 PMI Representation Coverage Analysis (semantic PMI) counts the number of PMI Elements found in a
 STEP file for tolerances, dimensions, datums, modifiers, and CAx-IF Recommended Practices for PMI
 Representation.  On the Coverage Analysis worksheet, some PMI Elements show their associated
-symbol, while others show the relevant section in the Recommended Practice.  PMI Elements without
-a section number do not have a Recommended Practice for their implementation.  The PMI Elements are
+symbol, while others show the relevant section in the recommended practice.  PMI Elements without
+a section number do not have a recommended practice for their implementation.  The PMI Elements are
 grouped by features related tolerances, tolerance zones, dimensions, dimension modifiers, datums,
 datum targets, and other modifiers.  The number of some modifiers, e.g., maximum material
 condition, does not differentiate whether they appear in the tolerance zone definition or datum
 reference frame.  Rows with no count of a PMI Element can be shown, see Spreadsheet tab.
 
 Some PMI Elements might not be exported to a STEP file by your CAD system.  Some PMI Elements are
-only in AP242 edition 2.
+only in AP242 editions > 1.
 
 If STEP files from the NIST CAD models (Examples > NIST CAD Models) are processed, then the PMI
 Representation Coverage Analysis worksheet is color-coded by the expected number of PMI elements in
@@ -1744,7 +1748,7 @@ Practices are checked with one of the Analyzer options.  See Help > Analyzer > S
 outputMsg "\nBill of Materials ---------------------------------------------------------------------------------" blue
 outputMsg "Select BOM on the Options tab to generate a Bill of Materials.  The next_assembly_usage_occurrence
 entity shows the assembly and component names for the relating and related products in an assembly.
-If there are no next_assembly_usage_occurrence entities, then then Bill of Materials (BOM) cannot
+If there are no next_assembly_usage_occurrence entities, then the Bill of Materials (BOM) cannot
 be generated.
 
 The BOM worksheet (third worksheet) lists the quantities of parts and assemblies in two tables.
@@ -1798,8 +1802,8 @@ outputMsg "These STEP Application Protocols (AP) and other schemas are supported
 The Viewer works with most versions of STEP AP203, AP209, AP214, AP238, and AP242.
 
 The name of the AP is found on the FILE_SCHEMA entity in the HEADER section of a STEP file.  The
-'e1' notation after an AP number refers to an older edition of that AP.  Some APs have multiple
-editions with the same name.\n"
+'e1' notation below after an AP number refers to an older edition of that AP.  Some APs have
+multiple editions with the same name.\n"
 
     set schemas {}
     set ifcschemas {}
@@ -2032,7 +2036,7 @@ does not imply recommendation or endorsement by NIST.  For any of the web links,
 necessarily endorse the views expressed, or concur with the facts presented on those web sites.
 
 This software uses IFCsvr, Microsoft Excel, and software based on Open CASCADE that are covered by
-their own Software License Agreements.  See Help > About
+their own Software License Agreements.
 
 If you are using this software in your own application, please explicitly acknowledge NIST as the
 source of the software."
@@ -2068,8 +2072,7 @@ Credits
    IFCsvr has been modified by NIST to include STEP schemas
    The license agreement can be found in C:\\Program Files (x86)\\IFCsvrR300\\doc
 - Viewer for b-rep part geometry
-   STEP to X3D Translator (stp2x3d)
-   Developed by Soonjo Kwon, former NIST Associate
+   STEP to X3D Translator (stp2x3d) developed by Soonjo Kwon, former NIST Associate
    See Websites > STEP Software
 - Some Tcl code is based on: CAWT http://www.cawt.tcl3d.org/
 
@@ -2142,8 +2145,6 @@ proc guiWebsitesMenu {} {
   $Websites add cascade -label "AP242" -menu $Websites.0
   set Websites0 [menu $Websites.0 -tearoff 1]
   $Websites0 add command -label "AP242 Project"        -command {openURL http://www.ap242.org/}
-  $Websites0 add command -label "Edition 1"            -command {openURL http://www.ap242.org/ap242ed1}
-  $Websites0 add command -label "Edition 2"            -command {openURL http://www.ap242.org/edition-2}
   $Websites0 add command -label "Benchmark Testing"    -command {openURL http://www.asd-ssg.org/step-ap242-benchmark}
   $Websites0 add command -label "ISO 10303-242"        -command {openURL https://www.iso.org/standard/66654.html}
   $Websites0 add command -label "3D PDF"               -command {openURL https://www.iso.org/standard/77686.html}
@@ -2159,6 +2160,7 @@ proc guiWebsitesMenu {} {
   $Websites2 add command -label "Archived EXPRESS Schemas"       -command {openURL https://web.archive.org/web/20160322005246/www.steptools.com/support/stdev_docs/express/}
   $Websites2 add command -label "ISO 10303 Part 11 EXPRESS"      -command {openURL https://www.loc.gov/preservation/digital/formats/fdd/fdd000449.shtml}
   $Websites2 add command -label "EXPRESS data modeling language" -command {openURL https://en.wikipedia.org/wiki/EXPRESS_(data_modeling_language)}
+  $Websites2 add command -label "EXPRESS Language Foundation"    -command {openURL https://www.expresslang.org/}
   $Websites2 add command -label "AP203 Recommended Practice (pdf)" -command {openURL https://www.oasis-open.org/committees/download.php/11728/recprac8.pdf}
   $Websites2 add separator
   $Websites2 add command -label "AP209 FEA"        -command {openURL http://www.ap209.org}
@@ -2267,7 +2269,7 @@ proc guiToolTip {ttmsg tt {name ""}} {
   set ttlim 120
   if {$tt == "stepCOMM" || $tt == "stepAP242"} {set ttlim 140}
   if {$tt == "stepADDM"} {set ttlim 70}
-  if {$tt == "stepCPNT"} {set ttlim 60}
+  if {$tt == "stepCPNT"} {set ttlim 90}
   append ttmsg "\n\n"
 
   foreach type {ap203 ap242} {
@@ -2299,14 +2301,7 @@ proc guiToolTip {ttmsg tt {name ""}} {
     if {$type == "ap203" && $tt != "stepCOMM" && $tt != "stepAP242" && $tt != "stepADDM" && $tt != "stepQUAL" && $tt != "stepCONS" && $tt != "inverses"} {
       if {$tt == "stepCPNT"} {append ttmsg "is supported in most STEP APs."}
       append ttmsg "\n\nThese entities are supported only in AP242."
-      if {$tt != "stepKINE"} {
-        if {$tt != "stepCPNT"} {
-          append ttmsg "  "
-        } else {
-          append ttmsg "\n"
-        }
-        append ttmsg "Entities with a * are only in AP242 edition 2 and/or 3."
-      }
+      if {$tt != "stepKINE"} {append ttmsg "  Entities with a * are only in editions > 1."}
       append ttmsg "\n\n"
     }
   }

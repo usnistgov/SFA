@@ -5,7 +5,7 @@ proc genExcel {{numFile 0}} {
   global entColorIndex entCount entityCount entsIgnored entsWithErrors env epmi epmiUD errmsg equivUnicodeStringErr excel excelVersion fcsv
   global feaFirstEntity feaLastEntity File fileEntity filesProcessed gen gpmiTypesInvalid gpmiTypesPerFile guid idxColor ifcsvrDir inverses
   global lastXLS lenfilelist localName localNameList logFile matrixList multiFile multiFileDir mydocs mytemp nistCoverageLegend nistName
-  global nistPMIexpected nistPMImaster noFontFile nprogBarEnts opt pf32 p21e3 p21e3Section pmiCol resetRound row rowmax savedViewButtons savedViewName
+  global nistPMIexpected nistPMImaster noFontFile nprogBarEnts opt pf32 p21e3Section pmiCol resetRound row rowmax savedViewButtons savedViewName
   global savedViewNames scriptName sheetLast skipEntities skipPerm spmiEntity spmiSumName spmiSumRow spmiTypesPerFile startrow statsOnly
   global stepAP stepAPreport tessColor thisEntType timeStamp tlast tolNames tolStandard tolStandards totalEntity unicodeActual unicodeAttributes
   global unicodeEnts unicodeInFile unicodeNumEnts unicodeString userEntityFile userEntityList useXL valRounded viz wdir workbook workbooks
@@ -599,6 +599,27 @@ proc genExcel {{numFile 0}} {
     }
   }
 
+# get entity types from ANCHOR section IDs
+  set anchorEnts {}
+  if {[info exists p21e3Section]} {
+    foreach line $p21e3Section {
+      set c2 [string first ";" $line]
+      if {$c2 != -1} {set line [string range $line 0 $c2-1]}
+      set c1 [string first "\#" $line]
+      if {$c1 != -1} {
+        set anchorID [string range $line $c1+1 end]
+        if {[string is integer $anchorID]} {
+          catch {
+            set objValue  [$objDesign FindObjectByP21Id [expr {int($anchorID)}]]
+            set anchorEnt [$objValue Type]
+            lappend anchorEnts $anchorEnt
+          }
+        }
+      }
+    }
+    set anchorEnts [lrmdups $anchorEnts]
+  }
+
 # get totals of each entity in file
   set fixlist {}
   if {![info exists objDesign]} {return}
@@ -675,6 +696,9 @@ proc genExcel {{numFile 0}} {
           set noFontFile 1
         }
       }
+
+# check for entities referred to in the ANCHOR section
+      if {[lsearch $anchorEnts $entType] != -1} {set ok 1}
 
 # handle '_and_' due to a complex entity, entType_1 is the first part before the '_and_'
       set entType_1 $entType
@@ -1124,7 +1148,7 @@ proc genExcel {{numFile 0}} {
 
 # report errors related to descriptive_representation_item equivalent Unicode strings
       if {$entType == "descriptive_representation_item" && [info exists equivUnicodeStringErr]} {
-        outputMsg " Warnings for 'equivalent unicode string': [join [lrmdups $equivUnicodeStringErr]]" red
+        outputMsg " Warnings for 'equivalent unicode string': [join [lrmdups $equivUnicodeStringErr] ", "]" red
         unset equivUnicodeStringErr
       }
     }
@@ -1232,10 +1256,11 @@ proc genExcel {{numFile 0}} {
         set ok 0
 
 # do not generate if only certain PMI types were counted
-        foreach type $spmiTypesPerFile {
-          if {[string first "saved views" $type] == -1 && [string first "editable text" $type] == -1 && [string first "document identification" $type] == -1 &&
-              [string first "standard" $type] == -1 && [string first "default tolerance decimal places" $type] == -1 && \
-              [string first "supplemental geometry" $type] == -1} {set ok 1; break}
+        foreach type [lrmdups $spmiTypesPerFile] {
+          if {[string first "annotation placeholder" $type] == -1 && [string first "editable text" $type] == -1 && \
+              [string first "saved views" $type] == -1 && [string first "section views" $type] == -1 && \
+              [string first "supplemental geometry" $type] == -1 && [string first "document identification" $type] == -1 && \
+              [string first "standard" $type] == -1 && [string first "default tolerance decimal places" $type] == -1} {set ok 1; break}
         }
 
         if {$ok} {
@@ -1521,7 +1546,7 @@ proc genExcel {{numFile 0}} {
   update idletasks
 
 # unset variables
-  foreach var {ap242XML assemTransformPMI brepScale cells cgrObjects colColor count currx3dPID datumEntType datumGeom datumIDs datumSymbol datumSystem datumSystemPDS defComment dimrep dimrepID dimtolEnt dimtolEntID dimtolGeom draughtingModels draftModelCameraNames draftModelCameras driPropID entCount entName entsIgnored epmi epmiUD equivUnicodeString feaDOFR feaDOFT feaNodes fontErr gpmiID gpmiIDRow gpmiRow heading idRow invCol invGroup noFontFile nrep numx3dPID placeAxesDef placeSphereDef pmiCol pmiColumns pmiStartCol pmivalprop propDefID propDefIDRow propDefName propDefOK propDefRow ptzError savedsavedViewNames savedViewFile savedViewFileName savedViewItems savedViewNames savedViewpoint savedViewVP shapeRepName srNames suppGeomEnts syntaxErr taoLastID tessCoord tessCoordName tessIndex tessIndexCoord tessPlacement tessRepo unicode unicodeActual unicodeNumEnts unicodeString viz vpEnts workbook workbooks worksheet worksheets x3dCoord x3dFile x3dFileName x3dIndex x3dMax x3dMin x3dStartFile} {
+  foreach var {ap242XML assemTransformPMI brepScale cells cgrObjects colColor count currx3dPID datumEntType datumGeom datumIDs datumSymbol datumSystem datumSystemPDS defComment dimrep dimrepID dimtolEnt dimtolEntID dimtolGeom draughtingModels draftModelCameraNames draftModelCameras driPropID entCount entName entsIgnored epmi epmiUD equivUnicodeString feaDOFR feaDOFT feaNodes fileSumRow fontErr gpmiID gpmiIDRow gpmiRow heading idRow invCol invGroup noFontFile nrep numx3dPID placeAxesDef placeSphereDef pmiCol pmiColumns pmiStartCol pmivalprop propDefID propDefIDRow propDefName propDefOK propDefRow ptzError savedsavedViewNames savedViewFile savedViewFileName savedViewItems savedViewNames savedViewpoint savedViewVP shapeRepName srNames suppGeomEnts syntaxErr taoLastID tessCoord tessCoordName tessIndex tessIndexCoord tessPlacement tessRepo unicode unicodeActual unicodeNumEnts unicodeString viz vpEnts workbook workbooks worksheet worksheets x3dCoord x3dFile x3dFileName x3dIndex x3dMax x3dMin x3dStartFile} {
     catch {global $var}
     if {[info exists $var]} {unset $var}
   }
@@ -1537,12 +1562,11 @@ proc genExcel {{numFile 0}} {
 proc addHeaderWorksheet {numFile fname} {
   global objDesign
   global ap242ed cadApps cadSystem cells cells1 col1 csvdirnam developer excel excel1 fileSchema legendColor
-  global localName opt p21e3 row spaces spmiTypesPerFile timeStamp useXL writeDir worksheet worksheet1 worksheets
+  global localName opt row spaces spmiTypesPerFile timeStamp useXL writeDir worksheet worksheet1 worksheets
 
   if {[catch {
     set cadSystem ""
     set timeStamp ""
-    set p21e3 0
 
     set hdr "Header"
     if {$useXL} {
@@ -1614,7 +1638,9 @@ proc addHeaderWorksheet {numFile fname} {
             }
           } elseif {$id == 4} {
             append str " (Edition 3)"
-          } else {
+          } elseif {$id == 5} {
+            append str " (Edition 4)"
+          } elseif {$id > 99} {
             errorMsg "Unknown AP242 Object Identifier String '$id 1 4' for SchemaName" red
           }
           if {$developer} {
@@ -1679,19 +1705,22 @@ proc addHeaderWorksheet {numFile fname} {
 # check implementation level
         if {$attr == "FileImplementationLevel"} {
           if {[string first "\;" $objAttr] == -1} {
-            errorMsg "FileImplementationLevel is usually '2\;1'.  See Header worksheet."
-            if {$useXL} {[[$worksheet($hdr) Range B4] Interior] Color $legendColor(red)}
-          } elseif {$objAttr == "4\;1"} {
-            set p21e3 1
-            if {[string first "p21e2" $fname] == -1} {errorMsg "This file uses ISO 10303 Part 21 Edition 3 with possible ANCHOR, REFERENCE, or SIGNATURE sections.  See Websites > STEP Format and Schemas > ISO 10303 Part 21 Standard (sections 9, 10, 14)"}
+            errorMsg "FileImplementationLevel should be '2\;1'.  See Header worksheet."
+            if {$useXL} {
+              [[$worksheet($hdr) Range B4] Interior] Color $legendColor(red)
+              addCellComment "Header" 4 2 "FileImplementationLevel should be '2\;1'.  See Websites > STEP Format and Schemas > ISO 10303 Part 21 Standard (section 8.2.2)"
+            }
           }
         }
 
 # check and add time stamp to multi file summary
         if {$attr == "FileTimeStamp"} {
           if {([string first "-" $objAttr] == -1 || [string first "T" $objAttr] == -1 || [string length $objAttr] < 17 || [string length $objAttr] > 25) && $objAttr != ""} {
-            errorMsg "FileTimeStamp has the wrong format.  See Header worksheet.  See Websites > STEP Format and Schemas > ISO 10303 Part 21 Standard (section 8.2.3 example)"
-            if {$useXL} {[[$worksheet($hdr) Range B5] Interior] Color $legendColor(red)}
+            errorMsg "FileTimeStamp has the wrong format.  See Header worksheet."
+            if {$useXL} {
+              [[$worksheet($hdr) Range B5] Interior] Color $legendColor(red)
+              addCellComment "Header" 5 2 "FileTimeStamp has the wrong format.  See Websites > STEP Format and Schemas > ISO 10303 Part 21 Standard (section 8.2.3)"
+            }
           }
           set timeStamp $objAttr
           if {$numFile != 0 && [info exists cells1(Summary)] && $useXL} {
@@ -1813,7 +1842,7 @@ proc addHeaderWorksheet {numFile fname} {
 #-------------------------------------------------------------------------------------------------
 # add summary worksheet
 proc sumAddWorksheet {} {
-  global andEntAP209 cells col entCategory entCount entsIgnored equivUnicodeString excel
+  global andEntAP209 cells col entCategory entCount entsIgnored equivUnicodeString excel fileSumRow
   global gpmiEnts opt row sheetLast sheetSort spmiEntity stepAP sum vpEnts worksheet worksheets
 
   outputMsg "\nGenerating Summary worksheet" blue
@@ -1851,6 +1880,7 @@ proc sumAddWorksheet {} {
     foreach entType $sheetSort {
       incr row($sum)
       set sumRow [expr {[lsearch $sheetSort $entType]+2}]
+      set fileSumRow($entType) $sumRow
 
 # check if entity is compound as opposed to an entity with '_and_'
       set ok 0
@@ -1963,7 +1993,7 @@ proc sumAddWorksheet {} {
 #-------------------------------------------------------------------------------------------------
 # add file name and other info to top of Summary
 proc sumAddFileName {sum sumLinks} {
-  global cadSystem cells dim entityCount fileSchema localName opt schemaLinks stepAP timeStamp tolStandard worksheet xlFileName
+  global cadSystem cells dim entityCount fileSchema localName opt schemaLinks stepAP sumHeaderRow timeStamp tolStandard worksheet xlFileName
 
   set sumHeaderRow 0
   if {[catch {
@@ -2425,8 +2455,8 @@ proc moveWorksheet {items {where "Before"}} {
 # -------------------------------------------------------------------------------------------------
 # add worksheets for part 21 edition 3 sections (idType=1) AND add persistent IDs (GUID) with id_attribute (idType=2)
 proc addP21e3Section {idType} {
+  global cells entName fileSumRow idRow legendColor guid p21e3Section spmiSumRowID sumHeaderRow worksheet worksheets xlFileName
   global objDesign
-  global cells idRow legendColor guid p21e3Section spmiSumRowID worksheet worksheets
 
   catch {unset anchorSum}
 
@@ -2441,9 +2471,10 @@ proc addP21e3Section {idType} {
         [$worksheets Item [expr $n]] -namedarg Move Before [$worksheets Item [expr 3]]
         $worksheet($sect) Activate
         $worksheet($sect) Name $sect
+        set hlink [$worksheet($sect) Hyperlinks]
         set cells($sect) [$worksheet($sect) Cells]
         set r 0
-        outputMsg " Adding $line worksheet" green
+        outputMsg " Adding $line worksheet" blue
       }
 
 # add to worksheet
@@ -2470,6 +2501,18 @@ proc addP21e3Section {idType} {
 # add anchor ID to entity worksheet and representation summary
               if {$anchorEnt != ""} {
                 $cells($sect) Item $r 2 $anchorEnt
+
+                if {[info exist fileSumRow($anchorEnt)]} {
+                  set fsrow [expr {$fileSumRow($anchorEnt)+$sumHeaderRow+1}]
+                  set val [[$cells(Summary) Item $fsrow 1] Value]
+                  if {[string first "Anchor" $val] == -1} {
+                    $cells(Summary) Item $fsrow 1 "$val  \[Anchor\]"
+                    set range [$worksheet(Summary) Range [cellRange $fsrow 1]]
+                    [$range Font] Bold [expr 1]
+                  }
+                }
+
+# add anchor ID to entity worksheet
                 if {[info exists worksheet($anchorEnt)]} {
                   set c3 [string first ">" $line]
                   if {$c3 == -1} {set c3 [string first "=" $line]}
@@ -2478,10 +2521,26 @@ proc addP21e3Section {idType} {
                   if {![info exists ucol($anchorEnt)]} {set ucol($anchorEnt) [getNextUnusedColumn $anchorEnt]}
                   if {[info exists idRow($anchorEnt,$anchorID)]} {
                     set ur $idRow($anchorEnt,$anchorID)
-                    $cells($anchorEnt) Item $ur $ucol($anchorEnt) $uuid
+                    set val [[$cells($anchorEnt) Item $ur $ucol($anchorEnt)] Value]
+                    if {$val == ""} {
+                      $cells($anchorEnt) Item $ur $ucol($anchorEnt) $uuid
+                    } else {
+                      $cells($anchorEnt) Item $ur $ucol($anchorEnt) "$val   $uuid"
+                    }
+                    set range [$worksheet($anchorEnt) Range [cellRange $ur $ucol($anchorEnt)]]
+                    [$range Interior] ColorIndex [expr 40]
+                    catch {foreach i {8 9} {[[$range Borders] Item $i] Weight [expr 1]}}
                   }
 
-# representation summary
+# link to entity worksheet
+                  set anchor [$worksheet($sect) Range "B$r"]
+                  set hlsheet $anchorEnt
+                  if {[string length $anchorEnt] > 31} {
+                    foreach item [array names entName] {if {$entName($item) == $anchorEnt} {set hlsheet $item}}
+                  }
+                  $hlink Add $anchor $xlFileName "$hlsheet!A1" "Go to $anchorEnt"
+
+# add anchor ID representation summary
                   if {[info exists spmiSumRowID($anchorID)]} {
                     set anchorSum($spmiSumRowID($anchorID)) $uuid
                   } elseif {[string first "dimensional_size" $anchorEnt] != -1 || [string first "dimensional_location" $anchorEnt] != -1} {
@@ -2496,8 +2555,6 @@ proc addP21e3Section {idType} {
                       }
                     }
                   }
-                } else {
-                  lappend noanchor $anchorEnt
                 }
               } else {
                 set badEnt 1
@@ -2533,17 +2590,17 @@ proc addP21e3Section {idType} {
         if {[info exists idRow($anchorEnt,$anchorID)]} {
           set ur $idRow($anchorEnt,$anchorID)
           $cells($anchorEnt) Item $ur $ucol($anchorEnt) $uuid
+          set range [$worksheet($anchorEnt) Range [cellRange $ur $ucol($anchorEnt)]]
+          [$range Interior] ColorIndex [expr 40]
+          catch {foreach i {8 9} {[[$range Borders] Item $i] Weight [expr 1]}}
         }
         if {[info exists spmiSumRowID($anchorID)]} {set anchorSum($spmiSumRowID($anchorID)) $uuid}
-      } else {
-        lappend noanchor $anchorEnt
       }
     }
   }
 
 # add anchor ids to representation summary worksheet
   if {[info exists anchorSum]} {
-    outputMsg " Adding $heading\s on: PMI Representation Summary worksheet" green
     set spmiSumName "PMI Representation Summary"
     set c 4
     if {[[$cells($spmiSumName) Item 3 $c] Value] != ""} {
@@ -2556,7 +2613,7 @@ proc addP21e3Section {idType} {
 
     $cells($spmiSumName) Item 3 $c $heading
     set range [$worksheet($spmiSumName) Range [cellRange 3 $c]]
-    addCellComment $spmiSumName 3 $c "See Help > User Guide (section 5.6)  IDs for dimensional_characteristic_representation are for the corresponding dimensional_location or dimensional_size."
+    addCellComment $spmiSumName 3 $c "See Help > User Guide (section 5.6)\n\nIDs for dimensional_characteristic_representation are for the corresponding dimensional_location or dimensional_size."
     catch {foreach i {8 9} {[[$range Borders] Item $i] Weight [expr 2]}}
     [$range Font] Bold [expr 1]
     $range HorizontalAlignment [expr -4108]
@@ -2570,30 +2627,13 @@ proc addP21e3Section {idType} {
     [$range Columns] AutoFit
   }
 
-# format ID columns
-  if {[llength [array names urow]] > 0} {
-    set ids {}
-    foreach item [lsort [array names urow]] {lappend ids [formatComplexEnt $item]}
-    outputMsg " Adding $heading\s on: $ids" green
-    if {[info exists noanchor]} {
-      set ids {}
-      foreach item [lrmdups $noanchor] {lappend ids [formatComplexEnt $item]}
-      outputMsg "  $heading\s are also associated with: $ids" red
-    }
-  }
-
   foreach ent [array names urow] {
     $cells($ent) Item 3 $ucol($ent) $heading
-    addCellComment $ent 3 $ucol($ent) "See Help > User Guide (section 5.6)"
+    addCellComment $ent 3 $ucol($ent) "See ANCHOR worksheet and Help > User Guide (section 5.6)"
     set range [$worksheet($ent) Range [cellRange 3 $ucol($ent)] [cellRange $urow($ent) $ucol($ent)]]
     [$range Columns] AutoFit
-    [$range Interior] ColorIndex [expr 40]
-    for {set r 4} {$r <= $urow($ent)} {incr r} {
-      set range [$worksheet($ent) Range [cellRange $r $ucol($ent)]]
-      catch {foreach i {8 9} {[[$range Borders] Item $i] Weight [expr 1]}}
-    }
-
     set range [$worksheet($ent) Range [cellRange 3 $ucol($ent)]]
+    [$range Interior] ColorIndex [expr 40]
     catch {[[$range Borders] Item [expr 8]] Weight [expr 3]}
     [$range Font] Bold [expr 1]
     $range HorizontalAlignment [expr -4108]

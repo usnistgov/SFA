@@ -286,7 +286,7 @@ proc x3dTessGeom {objID tessEnt faceEnt {aoname ""}} {
 # -------------------------------------------------------------------------------
 # TAO check for transform related to assembly
 proc x3dAssemblyTransform {tessEnt} {
-  global ao assemTransform entCount noGroupTransform taoLastID
+  global ao assemTransform entCount noGroupTransform taoLastID x3dMsg
 
   set debugTAO 0
   set taoID [$tessEnt P21ID]
@@ -424,6 +424,8 @@ proc x3dAssemblyTransform {tessEnt} {
                         set a2p3d [x3dGetA2P3D $e10]
                         if {$debugTAO} {outputMsg "t2         $a2p3d"}
                         set okTransform 1
+                        set msg "Graphical PMI on parts in an assembly might have the wrong position and orientation"
+                        if {[lsearch $x3dMsg $msg] == -1} {lappend x3dMsg $msg}
                       }
                     }
                   }

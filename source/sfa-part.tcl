@@ -477,7 +477,7 @@ proc x3dBrepGeom {} {
                   }
                 }
               }
-              if {$err} {errorMsg "The list of Assembly/Part names in the Viewer might have some wrong characters.  This is due to the\nencoding of the STEP file.  If possible convert the encoding of the STEP file to UTF-8 with the\nNotepad++ text editor or other software.  See Text Strings and Numbers"}
+              if {$err} {errorMsg "The list of Assembly/Part names in the Viewer might have characters that are not supported.  This\nis due to the encoding of the STEP file.  If possible convert the encoding of the STEP file to\nUTF-8 with the Notepad++ text editor or other software.  See Text Strings and Numbers"}
             }
             if {$opt(DEBUGX3D)} {foreach idx [array names x3dParts] {outputMsg "$idx $x3dParts($idx)" blue}}
 
@@ -636,13 +636,24 @@ proc STL2STEP {} {
   global localName
 
   catch {.tnb select .tnb.status}
-  outputMsg "Generating STEP AP242 tessellated geometry from STL file" blue
-
   if {[catch {
     set f1 $localName
+    set r1 [open $f1 r]
+
+# check ascii or binary
+    set aorb "Binary"
+    for {set i 0} {$i < 9} {incr i} {
+  		set line [string tolower [gets $r1]]
+      if {[string first "facet" $line] != -1} {set aorb "ASCII"; break}
+    }
+    close $r1
+    catch {unset r1}
+    set r1 [open $f1 r]
+    outputMsg "Generating STEP AP242 tessellated geometry from $aorb STL file" blue
+
+# output file
     set f2 "[file rootname $f1]-stl.stp"
     file delete -force -- $f2
-    set r1 [open $f1 r]
     set w2 [open $f2 w]
 
 # header and entities
@@ -650,7 +661,7 @@ proc STL2STEP {} {
 HEADER;
 FILE_DESCRIPTION(('[file tail $f1]'),'2;1');
 FILE_NAME(' ','[clock format [clock seconds] -format "%Y-%m-%d\T%T"]',(' '),(' '),' ','NIST SFA [getVersion]',' ');
-FILE_SCHEMA(('AP242_MANAGED_MODEL_BASED_3D_ENGINEERING_MIM_LF'));
+FILE_SCHEMA(('AP242_MANAGED_MODEL_BASED_3D_ENGINEERING_MIM_LF { 1 0 10303 442 3 1 4 }'));
 ENDSEC;\n
 DATA;
 #1=APPLICATION_CONTEXT('managed model based 3d engineering') ;
@@ -692,29 +703,83 @@ DATA;
     set midx -1
     set nface 0
     set id 100
-    set binarySTL 0
     set lasttime [clock clicks -milliseconds]
 
-# read stl file
-    while {[gets $r1 line] >= 0} {
+# read ASCII stl file
+    if {$aorb == "ASCII"} {
+      while {[gets $r1 line] >= 0} {
 
 # normals
-      if {[string first "normal" $line] != -1} {
-        incr num
-        set c1 [expr {[string first "normal" $line]+7}]
-        set norm [string trim [string range $line $c1 end]]
+        if {[string first "normal" $line] != -1} {
+          incr num
+          set c1 [expr {[string first "normal" $line]+7}]
+          set norm [string trim [string range $line $c1 end]]
+          foreach n $norm {append n1 "[trimNum $n],"}
+          lappend nlist "([string trim [string range $n1 0 end-1]]),"
+          unset n1
+
+          gets $r1 $line
+          set idx "("
+          for {set i 0} {$i < 3} {incr i} {
+            gets $r1 line
+
+# coordinates
+            set c1 [expr {[string first "vertex" $line]+7}]
+            set coord [string trim [string range $line $c1 end]]
+            foreach c $coord {append cn "[trimNum $c],"}
+            set coord "([string trim [string range $cn 0 end-1]]),"
+            unset cn
+
+# index
+            if {![info exists clist1($coord)]} {
+              lappend clist $coord
+              set clist1($coord) [incr cidx]
+              incr midx
+              set jdx [expr {$midx+1}]
+            } else {
+              set jdx [expr {$clist1($coord)+1}]
+            }
+            set str $jdx
+            if {![info exists pnindex1($jdx)]} {
+              set pnindex1($jdx) 1
+              lappend pnindex $jdx
+            }
+            if {$i < 2} {
+              append str ","
+            } else {
+              append str "),"
+            }
+            lappend idx $str
+          }
+          incr nface
+          lappend index $idx
+        }
+      }
+
+# read binary STL (https://www.johann-oberdorfer.eu/blog/2018/01/12/18-01-12_stl_files_convert_from_ascii2binary/)
+    } else {
+      set ilen [GetByteLength "UINT32"]
+      set rlen [expr {[GetByteLength "REAL"] * 3}]
+      fconfigure $r1 -translation binary
+      seek $r1 [expr {[GetByteLength "UINT8"] * 80}] start
+
+# number of triangles
+      binary scan [read $r1 $ilen] i ntriangles
+      outputMsg " Reading [expr {$ntriangles*3}] coordinates, $ntriangles faces"
+      for {set ntri 0} {$ntri < $ntriangles} {incr ntri} {
+
+# normal
+        binary scan [read $r1 $rlen] rrr normalX normalY normalZ
+        set norm "$normalX $normalY $normalZ"
         foreach n $norm {append n1 "[trimNum $n],"}
         lappend nlist "([string trim [string range $n1 0 end-1]]),"
         unset n1
-
-        gets $r1 $line
         set idx "("
-        for {set i 0} {$i < 3} {incr i} {
-          gets $r1 line
 
-# coordinates
-          set c1 [expr {[string first "vertex" $line]+7}]
-          set coord [string trim [string range $line $c1 end]]
+# vertices
+        for {set i 0} {$i < 3} {incr i} {
+          binary scan [read $r1 $rlen] rrr X Y Z
+          set coord "$X $Y $Z"
           foreach c $coord {append cn "[trimNum $c],"}
           set coord "([string trim [string range $cn 0 end-1]]),"
           unset cn
@@ -742,14 +807,17 @@ DATA;
         }
         incr nface
         lappend index $idx
+        seek $r1 [GetByteLength "UINT16"] current
       }
     }
+
     close $r1
-    unset clist1
-    unset pnindex1
+    catch {unset clist1}
+    catch {unset pnindex1}
 
 # finish STEP file
     if {[llength $pnindex] > 0} {
+      outputMsg " Writing [llength $clist] coordinates, $nface faces"
       set str "#$id=COORDINATES_LIST('',[llength $clist],([string range [join $clist] 0 end-1]));"
       regsub -all " " $str "" str
       puts $w2 $str
@@ -785,7 +853,7 @@ DATA;
 # no index
     } else {
       close $w2
-      errorMsg "Binary STL files are not supported"
+      errorMsg "Error generating STEP from STL file"
       set localName ""
       catch {file delete -force -- $f2}
     }
@@ -793,5 +861,15 @@ DATA;
 # errors
   } emsg]} {
     errorMsg "Error generating STEP from STL file: $emsg"
+  }
+}
+
+# -------------------------------------------------------------------------------
+proc GetByteLength {type} {
+  switch -- $type {
+    "UINT8"  {return [string length [binary format c 0]]}
+    "UINT16" {return [string length [binary format s 0]]}
+    "UINT32" {return [string length [binary format i 0]]}
+    "REAL"   {return [string length [binary format r 0.000000E+00]]}
   }
 }

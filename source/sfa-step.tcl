@@ -1115,7 +1115,7 @@ proc getEquivUnicodeString {c1 ent ent1 msgChar5} {
     set num [string trim [string range $ent 1 [string first "=" $ent]-1]]
     set equivUnicodeString($num) $eus
 
-# check for syntax errors
+# check for errors
     set msg ""
     set nu 0
     set upos 0
@@ -1123,29 +1123,27 @@ proc getEquivUnicodeString {c1 ent ent1 msgChar5} {
       incr nu
       set upos [expr {[string first "\\u" $ent $upos]+2}]
     }
-    if {[expr {$nu%2}] != 0} {set msg "There should be an even number of '\\u' delimiters."}
+    if {[expr {$nu%2}] != 0} {set msg "There should be an even number of '\\u' delimiters"}
 
-    if {$msg == "" && [string first "\\w\\X2\\2300\\X0\\\\\\w" $ent1] != -1} {
-      set msg "The diameter symbol is in its own compartment."
-    }
-    if {$msg == "" && [string first "X\\X2\\2300\\X0\\" $ent1] != -1 && [string first "MAX\\" $ent1] == -1} {
-      set msg "There should be a space between 'X' and the diameter symbol."
-    }
+    if {$msg == ""} {foreach tag {"<COUNTERBORE" "DIM\\\\wHOLE"} {if {[string first $tag $ent1] != -1} {set msg "Unexpected keyword"}}}
     if {$msg == ""} {
-      for {set i 2} {$i < 10} {incr i} {
-        if {[string first "$i X" $ent] != -1 && [string first "/" $ent] == -1} {
-          set msg "There should not be a space between the number and 'X'."
-          break
-        }
+      foreach tag {DIMENSION DATUM POS TARGET SL_PROF TEXT FLAG_NOTE APPCSR} {
+        append tag "_V1"
+        if {[string first $tag $ent1] != -1} {set msg "Unexpected keyword"}
       }
     }
-    if {$msg == "" && [string first "\\X2\\F055\\X0\\" $ent1] != -1} {
-      set msg "Unicode character F055 is not valid."
+    if {$msg == ""} {
+      foreach char {2300 24C4 24CA 24C1 24C2 24BB 24C9} {
+        if {$msg == "" && [string first "\\w\\X2\\$char\\X0\\\\\\w" $ent1] != -1} {set msg "Symbol is in its own compartment"}
+      }
     }
+    if {$msg == ""} {foreach char {F055 F056} {if {[string first "\\X2\\$char\\X0\\" $ent1] != -1} {set msg "Unicode character $char is not valid"}}}
+    if {$msg == "" && [string first "\\X2\\2501\\X0\\" $ent1] != -1} {set msg "Unexpected Unicode character 2501"}
+    if {$msg == "" && [string first "\\X2\\2313\\X0\\AAS" $ent1] != -1} {set msg "AAS is in the wrong position"}
+    if {$msg == "" && [string first "\\\\s" $ent1] != -1} {set msg "Unexpected delimiter \\s"}
+    if {$msgChar5} {set msg "Unicode using five characters is not supported"}
 
-    if {$msg == "" && [string first "\\X2\\2313\\X0\\AAS" $ent1] != -1} {set msg "AAS is in the wrong position."}
-    if {$msgChar5} {set msg "Unicode strings using five characters are not supported."}
-
+# report errors
     if {$msg != ""} {
       if {![info exists equivUnicodeStringErr]} {set equivUnicodeStringErr {}}
       if {[lsearch $equivUnicodeStringErr $msg] == -1} {lappend equivUnicodeStringErr $msg}
@@ -1182,8 +1180,10 @@ proc checkP21e3 {fname} {
 # part 21 edition 3 file
   if {$p21e3} {
 
-# new file name
-    set nname "[file rootname $fname]-p21e2[file extension $fname]"
+# new file name (now -mod, previously -p21e2)
+    set oname "[file rootname $fname]-p21e2[file extension $fname]"
+    catch {file delete -force -- $oname}
+    set nname "[file rootname $fname]-mod[file extension $fname]"
     catch {file delete -force -- $nname}
     set f2 [open $nname w]
 
@@ -1201,10 +1201,8 @@ proc checkP21e3 {fname} {
           regsub -all " " [join $sects] " and " sects
           outputMsg " "
           errorMsg "The STEP file uses ISO 10303 Part 21 Edition *3* '$sects' section(s)."
-          outputMsg " This software cannot directly process Edition 3 files.  A new Part 21 Edition *2* file:" red
-          outputMsg "   [truncFileName $nname]"
-          outputMsg " without those sections will be written and processed." red
-          outputMsg " The '$sects' section(s) from the original file will be processed separately for the spreadsheet.\n See Help > User Guide (section 5.6)\n See Websites > STEP Format and Schemas > ISO 10303 Part 21 Standard (sections 9, 10, 14)"
+          outputMsg " A modified Part 21 Edition *2* file will be written and processed.\n  [truncFileName [file nativename $nname]]"
+          outputMsg " See Help > User Guide (section 5.6)  See Websites > STEP Format and Schemas > ISO 10303 Part 21 Standard (sections 9, 10, 14)"
 
 # check for part 21 edition 3 content
         } elseif {[string first "ANCHOR\;" $line] == 0 || \

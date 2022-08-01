@@ -208,12 +208,22 @@ proc x3dFileEnd {} {
     set clippingDef {}
     puts $x3dFile "\n<!-- CLIPPING PLANES -->"
     puts $x3dFile "<Switch whichChoice='0' id='swClipping'><Group>"
-    outputMsg " Processing section views" green
-    ::tcom::foreach cm [$objDesign FindObjects [string trim camera_model_d3_multi_clipping]] {
-      set planes [[[$cm Attributes] Item [expr 4]] Value]
-      foreach plane $planes {
-        x3dSuppGeomPlane $plane 1. "clipping plane"
-        if {$opt(PMISEM)} {lappend spmiTypesPerFile "section views"}
+    outputMsg " Processing clipping planes (section views)" green
+    foreach multiClipping [list camera_model_d3_multi_clipping camera_model_d3_multi_clipping_intersection camera_model_d3_multi_clipping_union] {
+      ::tcom::foreach cm [$objDesign FindObjects [string trim $multiClipping]] {
+        set id 4
+        if {[string first "clipping_" [$cm Type]] != -1} {
+          set id 2
+          errorMsg " The intersection and union of clipping planes is not supported." red
+        }
+        set planes [[[$cm Attributes] Item [expr $id]] Value]
+        foreach plane $planes {
+          set type [$plane Type]
+          if {$type == "plane"} {
+            x3dSuppGeomPlane $plane 1. "clipping plane"
+            if {$opt(PMISEM)} {lappend spmiTypesPerFile "section views"}
+          }
+        }
       }
     }
     puts $x3dFile "</Group></Switch>"
@@ -672,7 +682,10 @@ proc x3dFileEnd {} {
     if {$viz(TESSEDGE)} {puts $x3dFile "<!-- Tessellated edges checkbox -->\n<br><input type='checkbox' checked onclick='togTED(this.value)'/>Edges"}
 
     if {[info exists entCount(next_assembly_usage_occurrence)] || [info exists entCount(repositioned_tessellated_item_and_tessellated_geometric_set)]} {
-      puts $x3dFile "<p><font size='-1'>Tessellated Parts in an assembly might be in the wrong position and orientation or be missing.</font>"
+      set ntess 0
+      if {[info exists entCount(tessellated_solid)]} {incr ntess $entCount(tessellated_solid)}
+      if {[info exists entCount(tessellated_shell)]} {incr ntess $entCount(tessellated_shell)}
+      if {$ntess > 1} {puts $x3dFile "<p><font size='-1'>Tessellated Parts in an assembly might be in the wrong position and orientation or be missing.</font>"}
     }
 
 # tessellated part checkboxes
@@ -893,7 +906,7 @@ proc x3dFileEnd {} {
       }
 
       set svb $savedViewButtons
-      if {!$viz(PMI)} {set svb [array names savedViewpoint]}
+      if {!$viz(PMI) || [llength $savedViewButtons] == 0} {set svb [array names savedViewpoint]}
 
       foreach svn $svb {
         lappend onload "\n var view$id = document.getElementById('$svn');\n view$id.addEventListener('outputchange', function(event) \{"
@@ -1031,7 +1044,7 @@ proc x3dSavedViewpoint {name} {
     append msg "$spaces\($recPracNames(pmi242), Sec. 9.4.2.6)"
     errorMsg "Syntax Error: Camera model viewpoint for saved views is not modeled correctly.$msg"
     set msg "Viewpoints for saved views are not modeled correctly"
-    if {[lsearch $x3dMsg $msg] == -1} {lappend x3dMsg "Viewpoints for saved views are not modeled correctly"}
+    if {[lsearch $x3dMsg $msg] == -1} {lappend x3dMsg $msg}
   }
 
 # default viewpoint with transform

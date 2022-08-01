@@ -126,7 +126,7 @@ proc openFile {{openName ""}} {
     set typelist [list {"STEP " {".stp" ".step" ".stpZ" ".p21" ".stpnc" ".spf"}}]
     if {$developer} {set typelist [list {"STEP " {".stp" ".step" ".stpZ" ".stpx" ".p21" ".stpnc" ".spf"}}]}
     lappend typelist {"IFC " {".ifc"}}
-    lappend typelist {"ASCII STL " {".stl"}}
+    lappend typelist {"STL " {".stl"}}
 
 # file open dialog
     set localNameList [tk_getOpenFile -title "Open File(s)" -filetypes $typelist -initialdir $fileDir -multiple true]
@@ -152,12 +152,13 @@ proc openFile {{openName ""}} {
     set opt(xlFormat) "Excel"
     set opt(viewTessPart) 1
     set opt(viewPart) 0
+    set opt(partOnly) 0
     set gen(Excel) 1
     set gen(CSV) 0
     set gen(None) 0
     set gen(View) 1
     set allNone -1
-    foreach item [array names opt] {if {[string first "step" $item] == 0 && $item != "stepUSER"} {set opt($item) 1}}
+    foreach item [list stepCOMM stepPRES stepREPR stepGEOM stepQUAN] {set opt($item) 1}
     checkValues
   }
 
@@ -640,6 +641,7 @@ proc runOpenProgram {} {
     } elseif {[string first "AP242_MANAGED_MODEL_BASED_3D_ENGINEERING_MIM_LF" $fschema] == 0} {
       set ap242 "ap242"
       if {[string first "442 2 1 4" $fschema] != -1 || [string first "442 3 1 4" $fschema] != -1} {append ap242 "e2"}
+      if {[string first "442 4 1 4" $fschema] != -1} {append ap242 "e3"}
       puts $scriptFile "Database>Open($edmDB, $ap242, $edmPW, \"$edmDBopen\")"
     } else {
       outputMsg "$idisp cannot be used with: $fschema" red
@@ -706,7 +708,7 @@ proc runOpenProgram {} {
       }
 
 # if results are written to a file, open output file from the validation (edmLog) and output file if there are import errors (edmLogImport)
-      if {$edmWriteToFile} {
+      if {$edmWriteToFile && [file exists $edmLog]} {
 
 # compact log file
         set edmtmp "[file rootname $filename]-edm$edmVer-tmp.log"
@@ -729,7 +731,7 @@ proc runOpenProgram {} {
         update idletasks
         close $edmr
         close $edmw
-        #file delete -force -- $edmtmp
+        file delete -force -- $edmtmp
 
         .tnb select .tnb.status
         if {[string first "Notepad++" $editorCmd] != -1} {
@@ -1471,12 +1473,14 @@ proc installIFCsvr {{exit 0}} {
 - To reinstall the toolkit, run the installation file ifcsvrr300_setup_1008_en-update.msi
   in $mytemp
 - If you choose to Cancel the IFCsvr toolkit installation, you will still be able to use
-  the Viewer for Part Geometry.  Select View and Part Only on the Options tab."
+  the Viewer for Part Geometry.  Select View and Part Only on the Options tab.
+- After the toolkit is installed, see Help > Supported STEP APs"
 
     if {[file exists $ifcsvrInst] && [info exists buttons]} {
       set msg "The IFCsvr toolkit must be installed to read and process STEP files (User Guide section 2.2.1).  After clicking OK the IFCsvr toolkit installation will start."
       append msg "\n\nYou might need administrator privileges (Run as administrator) to install the toolkit.  Antivirus software might respond that there is a security issue with the toolkit.  The toolkit is safe to install.  Use the default installation folder for the toolkit."
       append msg "\n\nIf you choose to Cancel the IFCsvr toolkit installation, you will still be able to use the Viewer for Part Geometry.  Select View and Part Only on the Options tab."
+      append msg "\n\nAfter the toolkit is installed, see Help > Supported STEP APs"
       set choice [tk_messageBox -type ok -message $msg -icon info -title "Install IFCsvr"]
       outputMsg "\nWait for the installation to finish before processing a STEP file." red
     } elseif {![info exists buttons]} {
