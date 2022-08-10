@@ -477,7 +477,12 @@ proc x3dBrepGeom {} {
                   }
                 }
               }
-              if {$err} {errorMsg "The list of Assembly/Part names in the Viewer might have characters that are not supported.  This\nis due to the encoding of the STEP file.  If possible convert the encoding of the STEP file to\nUTF-8 with the Notepad++ text editor or other software.  See Text Strings and Numbers"}
+              if {$err} {
+                set msg "The list of Assembly/Part names in the Viewer might use characters that are wrong.  This might be\ncaused by the encoding of the STEP file"
+                if {[string first "SolidWorks" $cadSystem] != -1 && [string first "MBD" $cadSystem] == -1} {append msg " or improper characters on PRODUCT in the STEP file"}
+                append msg ".\nIf possible convert the encoding of the STEP file to UTF-8 with the Notepad++ text editor or other\nsoftware.  See Text Strings and Numbers"
+                errorMsg $msg
+              }
             }
             if {$opt(DEBUGX3D)} {foreach idx [array names x3dParts] {outputMsg "$idx $x3dParts($idx)" blue}}
 
@@ -659,15 +664,15 @@ proc STL2STEP {} {
 # header and entities
     puts $w2 "ISO-10303-21;
 HEADER;
-FILE_DESCRIPTION(('[file tail $f1]'),'2;1');
-FILE_NAME(' ','[clock format [clock seconds] -format "%Y-%m-%d\T%T"]',(' '),(' '),' ','NIST SFA [getVersion]',' ');
+FILE_DESCRIPTION(('','CAx-IF Rec.Pracs.---3D Tessellated Geometry---1.1---2019-08-22'),'2;1');
+FILE_NAME('[file tail $f1]','[clock format [clock seconds] -format "%Y-%m-%d\T%T"]',(' '),(' '),' ','NIST SFA [getVersion]',' ');
 FILE_SCHEMA(('AP242_MANAGED_MODEL_BASED_3D_ENGINEERING_MIM_LF { 1 0 10303 442 3 1 4 }'));
 ENDSEC;\n
 DATA;
 #1=APPLICATION_CONTEXT('managed model based 3d engineering') ;
 #2=PRODUCT_CONTEXT(' ',#1,'mechanical') ;
 #3=PRODUCT_DEFINITION_CONTEXT('part definition',#1,' ') ;
-#4=APPLICATION_PROTOCOL_DEFINITION('international standard','ap242_managed_model_based_3d_engineering',2014,#1) ;
+#4=APPLICATION_PROTOCOL_DEFINITION('international standard','ap242_managed_model_based_3d_engineering',2020,#1) ;
 #5=PRODUCT('[file tail $f1]','[file tail $f1]','',(#2)) ;
 #6=PRODUCT_DEFINITION_FORMATION_WITH_SPECIFIED_SOURCE('',' ',#5,.NOT_KNOWN.) ;
 #7=PRODUCT_CATEGORY('part','specification') ;
@@ -697,7 +702,6 @@ DATA;
 
     set clist {}
     set index {}
-    set pnindex {}
     set nlist {}
     set cidx -1
     set midx -1
@@ -740,10 +744,6 @@ DATA;
               set jdx [expr {$clist1($coord)+1}]
             }
             set str $jdx
-            if {![info exists pnindex1($jdx)]} {
-              set pnindex1($jdx) 1
-              lappend pnindex $jdx
-            }
             if {$i < 2} {
               append str ","
             } else {
@@ -794,10 +794,6 @@ DATA;
             set jdx [expr {$clist1($coord)+1}]
           }
           set str $jdx
-          if {![info exists pnindex1($jdx)]} {
-            set pnindex1($jdx) 1
-            lappend pnindex $jdx
-          }
           if {$i < 2} {
             append str ","
           } else {
@@ -813,33 +809,33 @@ DATA;
 
     close $r1
     catch {unset clist1}
-    catch {unset pnindex1}
 
 # finish STEP file
-    if {[llength $pnindex] > 0} {
+    if {$nface > 0} {
       outputMsg " Writing [llength $clist] coordinates, $nface faces"
       set str "#$id=COORDINATES_LIST('',[llength $clist],([string range [join $clist] 0 end-1]));"
       regsub -all " " $str "" str
       puts $w2 $str
-      unset clist
 
-      regsub -all " " [join [lsort -integer $pnindex]] "," pnindex
+# pnindex
+      set pnindex ""
+      for {set i 1} {$i <= $nface} {incr i} {append pnindex "$i,"}
+      set pnindex [string range $pnindex 0 end-1]
+
       set str "#[expr {$id+1}]=TRIANGULATED_FACE('',#$id,$nface,([string range [join $nlist] 0 end-1]),$,\n($pnindex),\n([string range [join $index] 0 end-1]));"
       regsub -all " " $str "" str
       puts $w2 $str
-      unset nlist
-      unset pnindex
-      unset index
 
       incr id 2
-      set str "#$id=TESSELLATED_SHELL('',("
+      set str "#$id=TESSELLATED_SOLID('',("
       for {set i 101} {$i < $id} {incr i 2} {append str "#$i,"}
       set str [string range $str 0 end-1]
       append str "),$);"
       puts $w2 $str
-      puts $w2 "#[expr {$id+1}]=TESSELLATED_SHAPE_REPRESENTATION('',(#$id),$);"
+      puts $w2 "#[expr {$id+1}]=TESSELLATED_SHAPE_REPRESENTATION('',(#$id),#16);"
       puts $w2 "ENDSEC;\nEND-ISO-10303-21;"
 
+      foreach var {clist index nlist pnindex} {catch {unset -- $var}}
       update idletasks
       close $w2
       outputMsg " [truncFileName [file nativename $f2]] ([fileSize $f2])"

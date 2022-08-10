@@ -34,7 +34,7 @@ proc nistReadExpectedPMI {{epmiFile ""}} {
           if {$r == 0} {
             foreach colName $lline {
               if {$colName != ""} {
-                if {[string first "ctc" $colName] == 0 || [string first "ftc" $colName] == 0} {
+                if {[string first "ctc" $colName] == 0 || [string first "ftc" $colName] == 0 || [string first "stc" $colName] == 0} {
                   set i2($c) "nist_$colName"
                 } else {
                   set i2($c) "$colName"
@@ -58,8 +58,10 @@ proc nistReadExpectedPMI {{epmiFile ""}} {
 # get expected PMI
     if {$epmiFile == ""} {
       set name $nistName
+      set ud ""
     } else {
       set name $epmiUD
+      set ud " User-Defined"
     }
     if {![info exists nistPMImaster($name)]} {
       catch {unset nistPMImaster($name)}
@@ -73,7 +75,7 @@ proc nistReadExpectedPMI {{epmiFile ""}} {
 
       if {[file exists $fname]} {
         if {$lf} {outputMsg " "}
-        outputMsg "Reading Expected PMI for: $name (See Help > Analyzer > NIST CAD Models)" blue
+        outputMsg "Reading$ud Expected PMI for: $name (See Help > Analyzer > NIST CAD Models)" blue
         set pid1 [twapi::get_process_ids -name "EXCEL.EXE"]
         set excel2 [::tcom::ref createobject Excel.Application]
         set pid2 [lindex [intersect3 $pid1 [twapi::get_process_ids -name "EXCEL.EXE"]] 2]
@@ -1092,25 +1094,25 @@ proc nistGetName {} {
 # specific name found
   if {$nistName != ""} {return $nistName}
 
-# check for a NIST CTC or FTC
-  set ctcftc 0
+# check for a NIST CTC, FTC, STC
+  set testCase ""
   set ok  0
   set ok1 0
 
   if {[lsearch $filePrefix [string range $ftail 0 $c]] != -1 || [string first "nist" $ftail] != -1 || \
-      [string first "ctc" $ftail] != -1 || [string first "ftc" $ftail] != -1} {
+      [string first "ctc" $ftail] != -1 || [string first "ftc" $ftail] != -1 || [string first "stc" $ftail] != -1} {
     if {[lsearch $filePrefix [string range $ftail 0 $c]] != -1} {set ftail [string range $ftail $c+1 end]}
 
     set tmp "nist_"
-    foreach item {ctc ftc} {
+    foreach item {ctc ftc stc} {
       if {[string first $item $ftail] != -1} {
         append tmp "$item\_"
-        set ctcftc 1
+        set testCase $item
       }
     }
 
 # find nist_ctc_01 directly
-    if {$ctcftc} {
+    if {$testCase != ""} {
       foreach zero {"0" ""} {
         for {set i 1} {$i <= 11} {incr i} {
           set i1 $i
@@ -1144,7 +1146,7 @@ proc nistGetName {} {
                 if {$j == 0} {set i2 "$c1$i1"}
                 if {$j == 1} {set i2 "$i1$c1"}
                 if {[string first $i2 $ftail] != -1 && !$ok} {
-                  if {$ctcftc} {
+                  if {$testCase != ""} {
                     append tmp $k
                   } elseif {$i <= 5} {
                     append tmp "ctc_$k"
@@ -1165,10 +1167,11 @@ proc nistGetName {} {
 # check required rounding for ftc 6,7,8,11
   catch {unset resetRound}
   if {$opt(PMISEM)} {
-    if {$opt(PMISEMRND) && $nistName == "nist_ftc_06"} {
+    if {$opt(PMISEMRND) && ($nistName == "nist_ftc_06" || $nistName == "nist_stc_06")} {
       set resetRound $opt(PMISEMRND)
       set opt(PMISEMRND) 0
-    } elseif {!$opt(PMISEMRND) && ($nistName == "nist_ftc_07" || $nistName == "nist_ftc_08" || $nistName == "nist_ftc_11")} {
+    } elseif {!$opt(PMISEMRND) && ($nistName == "nist_ftc_07" || $nistName == "nist_ftc_08" || $nistName == "nist_ftc_11" || \
+                                   $nistName == "nist_stc_07" || $nistName == "nist_stc_08" || $nistName == "nist_stc_11")} {
       set resetRound $opt(PMISEMRND)
       set opt(PMISEMRND) 1
     }

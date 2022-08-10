@@ -2381,8 +2381,10 @@ proc formatWorksheets {sheetSort sumRow inverseEnts} {
             set wid [[$cells($thisEntType) Item 3 $i] Width]
             if {$wid > $widlim} {
               set range [$worksheet($thisEntType) Range [cellRange -1 $i]]
-              $range ColumnWidth [expr {[$range ColumnWidth]/$wid * $widlim}]
-              $range WrapText [expr 1]
+              if {$thisEntType != "property_definition" || $i != 9} {
+                $range ColumnWidth [expr {[$range ColumnWidth]/$wid * $widlim}]
+                $range WrapText [expr 1]
+              }
             }
           }
         }

@@ -372,6 +372,9 @@ proc x3dAssemblyTransform {tessEnt} {
                   }
                 }
 
+                set msg "Graphical PMI on parts in an assembly might have the wrong position and orientation"
+                if {[lsearch $x3dMsg $msg] == -1} {lappend x3dMsg $msg}
+
 # GISU
                 if {[string first "shape_aspect" [$e2 Type]] != -1 && $oksa} {
                   set e3s [$e2 GetUsedIn [string trim geometric_item_specific_usage] [string trim definition]]
@@ -424,8 +427,6 @@ proc x3dAssemblyTransform {tessEnt} {
                         set a2p3d [x3dGetA2P3D $e10]
                         if {$debugTAO} {outputMsg "t2         $a2p3d"}
                         set okTransform 1
-                        set msg "Graphical PMI on parts in an assembly might have the wrong position and orientation"
-                        if {[lsearch $x3dMsg $msg] == -1} {lappend x3dMsg $msg}
                       }
                     }
                   }

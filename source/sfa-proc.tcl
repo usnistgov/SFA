@@ -151,6 +151,7 @@ proc openFile {{openName ""}} {
   if {$ok} {
     set opt(xlFormat) "Excel"
     set opt(viewTessPart) 1
+    set opt(tessPartMesh) 1
     set opt(viewPart) 0
     set opt(partOnly) 0
     set gen(Excel) 1
@@ -160,6 +161,7 @@ proc openFile {{openName ""}} {
     set allNone -1
     foreach item [list stepCOMM stepPRES stepREPR stepGEOM stepQUAN] {set opt($item) 1}
     checkValues
+    addFileToMenu
   }
 
 # multiple files selected
@@ -239,7 +241,7 @@ proc openFile {{openName ""}} {
 # -------------------------------------------------------------------------------------------------
 # get first file from file menu
 proc getFirstFile {} {
-  global ap242XML editorCmd gen openFileList opt buttons
+  global ap242XML buttons editorCmd gen openFileList opt
 
   set localName [lindex $openFileList 0]
   if {$localName != ""} {
@@ -285,7 +287,7 @@ proc getFirstFile {} {
 #-------------------------------------------------------------------------------
 # add to the file menu
 proc addFileToMenu {} {
-  global openFileList localName File buttons
+  global buttons File localName openFileList stlFile
 
   set lenlist 25
   set filemenuinc 4
@@ -318,10 +320,14 @@ proc addFileToMenu {} {
 
 # insert file name at top of list
   set fext [string tolower [file extension $localName]]
-  if {$ifile != 0 && ($fext == ".stp" || $fext == ".stpx" || $fext == ".step" || $fext == ".p21" || $fext == ".ifc")} {
-    set openFileList [linsert $openFileList 0 $localName]
-    $File insert $filemenuinc command -label [truncFileName [file nativename $localName] 1] -command [list openFile $localName] -accelerator "F1"
-    catch {$File entryconfigure 5 -accelerator {}}
+  if {$ifile != 0 && ($fext == ".stp" || $fext == ".stpx" || $fext == ".step" || $fext == ".p21" || $fext == ".ifc" || $fext == ".stl")} {
+    if {$fext == ".stl"} {set stlFile 1}
+    if {![info exists stlFile] || $fext == ".stl"} {
+      set openFileList [linsert $openFileList 0 $localName]
+      $File insert $filemenuinc command -label [truncFileName [file nativename $localName] 1] -command [list openFile $localName] -accelerator "F1"
+      catch {$File entryconfigure 5 -accelerator {}}
+    }
+    if {[info exists stlFile] && $fext == ".stp"} {unset stlFile}
   }
 
 # check length of file list, delete from the end of the list

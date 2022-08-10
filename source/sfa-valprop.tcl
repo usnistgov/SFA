@@ -808,6 +808,7 @@ proc valPropReport {objEntity} {
                   set ok 1
                   set col($pd) 7
                   set colName "value name"
+                  if {[string first "Ordered" $objValue] != -1} {set objValue [string tolower $objValue]}
                   set valName $objValue
                   if {[info exists nrep]} {incr nrep}
                   if {$objValue != "sampling point" || $ncartpt < 3} {addValProps 1 $objValue "#$objID [formatComplexEnt $ent2]"}
@@ -1048,7 +1049,7 @@ proc valPropFormat {} {
       if {$val == "value name"} {
         for {set i1 $i} {$i1 <= $colrange} {incr i1} {
           set range [$worksheet($thisEntType) Range [cellRange -1 $i1]]
-          $range ColumnWidth [expr 196]
+          $range ColumnWidth [expr 160]
         }
         break
       }
@@ -1267,7 +1268,7 @@ proc reportValProps {} {
 # add to new column
             set str ""
             set llen [llength $propDefIDs($id)]
-            if {$llen > 2} {append str ([expr {$llen/2}])}
+            if {$llen > 2} {append str "([expr {$llen/2}]) "}
             append str "property definition"
             for {set i 0} {$i < $llen} {incr i 2} {append str " [lindex $propDefIDs($id) $i]"}
             for {set i 1} {$i < $llen} {incr i 2} {append str "[format "%c" 10]([lindex $propDefIDs($id) $i])"}

@@ -715,7 +715,7 @@ proc gpmiAnnotationReport {objEntity} {
                   set ndc 0
                   ::tcom::foreach dc $dcs {set drcall $dc; incr ndc}
                   if {$ndc == 0} {
-                    set msg "Syntax Error: [formatComplexEnt [$objEntity Type]] not found in draughting_callout 'contents' attribute.$spaces"
+                    set msg "Syntax Error: Missing draughting_callout entity referring to [formatComplexEnt [$objEntity Type]].$spaces"
                     if {[string first "tessellated" $ent1] != -1} {
                       append msg "\($recPracNames(pmi242), Sec. 8.2, Fig. 81)"
                     } elseif {[string first "placeholder" $ent1] != -1} {
@@ -1031,6 +1031,7 @@ proc gpmiAnnotationReport {objEntity} {
       }
       if {!$ok} {set objGuiEntities [$objEntity GetUsedIn [string trim $dmia] [string trim identified_item]]}
 
+      set ndc 0
       ::tcom::foreach objGuiEntity $objGuiEntities {
         ::tcom::foreach attrDMIA [$objGuiEntity Attributes] {
           if {[$attrDMIA Name] == "name"} {set attrName [$attrDMIA Value]}
@@ -1087,7 +1088,11 @@ proc gpmiAnnotationReport {objEntity} {
             }
           }
         }
+        incr ndc
       }
+
+# no draughting_callout
+      if {$ndc == 0} {errorMsg "Syntax Error: Missing draughting_callout for 'identified_item' attribute on $dmia.$spaces\($recPracNames(pmi242), Sec. 7.3)"}
     } emsg]} {
       errorMsg "Error adding Associated Geometry: $emsg"
     }
