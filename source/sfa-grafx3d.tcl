@@ -242,6 +242,8 @@ proc x3dFileEnd {} {
       append msg "generating a spreadsheet"
     } elseif {!$opt(PMISEM) || $opt(PMISEMDIM)} {
       append msg "selecting Semantic PMI in the Analyzer section"
+    } else {
+      set msg " Datum targets are not shown due to Syntax Errors above"
     }
     append msg ".  See Help > Viewer > Datum Targets"
     outputMsg $msg red

@@ -726,7 +726,7 @@ proc getStepAP {fname} {
 
 #-------------------------------------------------------------------------------
 proc getSchemaFromFile {fname {limit 0}} {
-  global cadApps cadSystem developer opt p21e3 timeStamp unicodeInFile useXL
+  global cadApps cadSystem developer opt p21e3 rawBytes timeStamp unicodeInFile useXL
 
   set p21e3 0
   set schema ""
@@ -738,6 +738,7 @@ proc getSchemaFromFile {fname {limit 0}} {
   set filename 0
   set unicodeInFile 0
   set stepfile [open $fname r]
+  catch {unset rawBytes}
 
   set ulimit 100
   if {$limit} {set ulimit 100000}
@@ -793,10 +794,12 @@ proc getSchemaFromFile {fname {limit 0}} {
 
 # check for OPTIONS from ST-Developer toolkit
     if {[string first "/* OPTION:" $line] == 0} {
-      set emsg "HEADER section comment: "
       if {[string first "raw bytes" $line] != -1 || ($developer && [string first "custom schema-name" $line] == -1)} {
         set emsg "HEADER section comment: [string range $line 11 end-3]"
-        if {[string first "raw bytes" $emsg] != -1} {append emsg " (See Help > Text Strings and Numbers)"}
+        if {[string first "raw bytes" $emsg] != -1} {
+          append emsg " (See Help > Text Strings and Numbers)\nThis might affect Parts displayed in the Viewer."
+          set rawBytes 1
+        }
         errorMsg $emsg red
       }
     }

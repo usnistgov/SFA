@@ -1,5 +1,5 @@
 # SFA version
-proc getVersion {} {return 4.81}
+proc getVersion {} {return 4.82}
 
 # see proc installIFCsvr in sfa-proc.tcl for the IFCsvr version
 
@@ -2718,7 +2718,7 @@ proc checkValues {} {
     foreach b {gpmiColor0 gpmiColor1 gpmiColor2 gpmiColor3 labelPMIcolor viewPMIAR viewPMIVP} {lappend butDisabled $b}
   }
 
-  if {$gen(View) && $opt(viewPMI) && $opt(viewPMIVP)} {
+  if {$gen(View)} {
     lappend butNormal DEBUGVP
   } else {
     lappend butDisabled DEBUGVP

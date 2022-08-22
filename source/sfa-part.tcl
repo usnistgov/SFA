@@ -2,7 +2,7 @@
 # B-rep part geometry
 proc x3dBrepGeom {} {
   global brepFile brepFileName buttons cadSystem developer DTR entCount grayBackground localName matTrans maxxyz mytemp
-  global nistVersion nsketch opt rosetteGeom viz x3dApps x3dBbox x3dMax x3dMin x3dMsg x3dMsgColor x3dParts
+  global nistVersion nsketch opt rawBytes rosetteGeom viz x3dApps x3dBbox x3dMax x3dMin x3dMsg x3dMsgColor x3dParts
   global objDesign
 
   if {[catch {
@@ -321,14 +321,16 @@ proc x3dBrepGeom {} {
 # get DEF name of Group and use for Switch
                   } elseif {[string first "Group" $line] != -1} {
                     set close1 0
-                    if {[string first "Group" $line] != [string last "Group" $line]} {set close1 1}
+                    if {[string first "Group" $line] != [string last "Group" $line]} {
+                      if {[string first "<Group" $line] != -1 && [string first "</Group>" $line] != -1} {set close1 1}
+                    }
                     set c1 [string first "DEF" $line]
                     if {$c1 != -1} {
                       set c1 [expr {$c1+4}]
                     } else {
                       set c1 [string first "'" $line]
                     }
-                    set c2 [string last  "'" $line]
+                    set c2 [string last "'" $line]
                     if {$c1 == $c2} {
                       errorMsg " Error reading a text string in the X3D file.  Parts might be missing in the the Viewer.\n$line"
                       append line "'>"
@@ -477,10 +479,12 @@ proc x3dBrepGeom {} {
                   }
                 }
               }
-              if {$err} {
-                set msg "The list of Assembly/Part names in the Viewer might use characters that are wrong.  This might be\ncaused by the encoding of the STEP file"
-                if {[string first "SolidWorks" $cadSystem] != -1 && [string first "MBD" $cadSystem] == -1} {append msg " or improper characters on PRODUCT in the STEP file"}
-                append msg ".\nIf possible convert the encoding of the STEP file to UTF-8 with the Notepad++ text editor or other\nsoftware.  See Text Strings and Numbers"
+              if {$err && ![info exists rawBytes]} {
+                set msg "The list of Assembly/Part names in the Viewer might use characters that are wrong.  This might be caused by the encoding of the STEP file"
+                if {[info exists cadSystem]} {
+                  if {[string first "SolidWorks" $cadSystem] != -1 && [string first "MBD" $cadSystem] == -1} {append msg " or improper characters on PRODUCT entities in the STEP file"}
+                }
+                append msg ".\nIf possible convert the encoding of the STEP file to UTF-8 with the Notepad++ text editor or other software.  See Text Strings and Numbers"
                 errorMsg $msg
               }
             }

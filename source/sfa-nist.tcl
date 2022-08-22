@@ -140,7 +140,8 @@ proc nistGetSummaryPMI {name} {
 
       if {$ok} {
         set pmi [string range $item $c1+1 end]
-        set newpmi [pmiRemoveZeros $pmi]
+        set newpmi $pmi
+        if {[string first "(point)" $pmi] == -1} {set newpmi [pmiRemoveZeros $pmi]}
         lappend nistPMIexpected($name) $newpmi
         set nistPMImap($newpmi) $newpmi
 
@@ -518,13 +519,14 @@ proc nistCheckExpectedPMI {val entstr epmiName} {
 # -------------------------------------------------------------------------------
 # keep best match
             if {$pmiSim > $pmiMatch} {
+              set okmatch 0
               set pmiMatch $pmiSim
               if {[string first "datum_target" $valType($val)] == -1 && [string first "dimension" $valType($val)] == -1} {
-                if {$pmiSim >= 0.6} {set pmiSimilar $nistPMIactual($pmi)}
+                if {$pmiSim >= 0.6} {set pmiSimilar $nistPMIactual($pmi); set okmatch 1}
 
 # dimensions
               } elseif {[string first "dimension" $valType($val)] != -1} {
-                if {$pmiSim >= 0.6} {set pmiSimilar $nistPMIactual($pmi)}
+                if {$pmiSim >= 0.6} {set pmiSimilar $nistPMIactual($pmi); set bestPMI $pmi}
 
 # dimension rounding issues
                 if {$pmiSim > 0.85} {
@@ -545,6 +547,7 @@ proc nistCheckExpectedPMI {val entstr epmiName} {
                           if {$diff < 0.00101} {
                             set pmiSim 1.
                             set pmiMatch $pmiSim
+                            set okmatch 1
                           }
                         }
                       }
@@ -557,11 +560,16 @@ proc nistCheckExpectedPMI {val entstr epmiName} {
                 set pmiSim 0.95
                 set pmiMatch $pmiSim
                 set pmiSimilar $pmi
+                set okmatch 1
               }
-              lappend nistPMIfound $pmi
+              if {$okmatch} {lappend nistPMIfound $pmi}
             }
           }
         }
+      }
+      if {[info exists bestPMI]} {
+        lappend nistPMIfound $bestPMI
+        unset bestPMI
       }
     }
   }

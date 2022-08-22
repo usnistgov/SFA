@@ -1054,7 +1054,17 @@ proc spmiGeotolReport {objEntity} {
                       if {$nistName != ""} {lappend spmiTypesPerFile "all datum targets"}
                       if {([$gtEntity Type] == "datum_target" && $ov != "area" && $ov != "curve") || \
                           ([$gtEntity Type] == "placed_datum_target_feature" && $ov != "point" && $ov != "line" && \
-                            $ov != "rectangle" && $ov != "circle" && $ov != "circular curve")} {set msg $dtemsg}
+                            $ov != "rectangle" && $ov != "circle" && $ov != "circular curve")} {
+                        set msg $dtemsg
+                        if {[$gtEntity Type] == "placed_datum_target_feature" && ($ov == "area" || $ov == "curve")} {
+                          set c1 [string first "." $msg]
+                          set msg "[string range $msg 0 $c1]  For '$ov' datum targets use the datum_target entity.[string range $msg $c1+1 end]"
+                        } elseif {[$gtEntity Type] == "datum_target" && \
+                                  ($ov == "point" || $ov == "line" || $ov == "rectangle" || $ov == "circle" || $ov == "circular curve")} {
+                          set c1 [string first "." $msg]
+                          set msg "[string range $msg 0 $c1]  For '$ov' datum targets use the placed_datum_target_feature entity.[string range $msg $c1+1 end]"
+                        }
+                      }
                     } else {
                       set msg $dtemsg
                     }
@@ -2128,6 +2138,16 @@ proc spmiPlacedDatumTarget {objEntity objValue} {
   if {[catch {
     set nval 0
     set e1s [$objEntity GetUsedIn [string trim property_definition] [string trim definition]]
+
+# check for property_definition entity
+    set npd 0
+    ::tcom::foreach e1 $e1s {incr npd}
+    if {$npd == 0} {
+      set msg "Syntax Error: Missing property_defintion entity that refers to placed_datum_target_feature.$spaces\($recPracNames(pmi242), Sec. 6.6.1, Fig. 43)"
+      errorMsg $msg
+      lappend syntaxErr(placed_datum_target_feature) [list [$objEntity P21ID] "Datum Target" $msg]
+    }
+
     ::tcom::foreach e1 $e1s {
       set e2s [$e1 GetUsedIn [string trim shape_definition_representation] [string trim definition]]
       ::tcom::foreach e2 $e2s {
@@ -2153,6 +2173,7 @@ proc spmiPlacedDatumTarget {objEntity objValue} {
               set origin [vectrim [lindex $axisval 0] 1]
               append datumTargetRep "[format "%c" 10]axis2_placement_3d [$e4 P21ID]"
               append datumTargetRep "[format "%c" 10]  origin  $origin"
+              if {[string first "(point)" $objValue] != -1} {append objValue " $origin"}
 
 # check if values are ok
               set msg ""

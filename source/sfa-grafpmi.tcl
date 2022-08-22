@@ -1420,7 +1420,7 @@ proc gpmiAnnotationReport {objEntity} {
 
 # report equivalent Unicode string(s)
   if {[catch {
-    if {$entLevel == 0} {
+    if {$entLevel == 0 && $opt(PMIGRF) && [info exists gpmiIDRow($ao,$gpmiID)]} {
 
 # check DC <- DMIA
       ::tcom::foreach e0 [$objEntity GetUsedIn [string trim draughting_callout] [string trim contents]] {

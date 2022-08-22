@@ -1043,7 +1043,7 @@ proc valPropFormat {} {
     set range [$worksheet($thisEntType) Range [cellRange 2 5] [cellRange 2 $colrange]]
     catch {[[$range Borders] Item [expr 9]] Weight [expr -4138]}
 
-# fix column widths
+# fix column widths, first make them wider (160), then autofit to make them smaller, then check if they are too wide because of the autofit
     for {set i 1} {$i <= $colrange} {incr i} {
       set val [[$cells($thisEntType) Item 3 $i] Value]
       if {$val == "value name"} {
@@ -1055,6 +1055,19 @@ proc valPropFormat {} {
       }
     }
     [$worksheet($thisEntType) Columns] AutoFit
+    for {set i 1} {$i <= $colrange} {incr i} {
+      set val [[$cells($thisEntType) Item 3 $i] Value]
+      if {$val == "value name"} {
+        for {set i1 $i} {$i1 <= $colrange} {incr i1} {
+          set range [$worksheet($thisEntType) Range [cellRange -1 $i1]]
+          if {[$range ColumnWidth] > 160} {
+            $range ColumnWidth [expr 160]
+            $range WrapText [expr 1]
+          }
+        }
+        break
+      }
+    }
     [$worksheet($thisEntType) Rows] AutoFit
 
 # group columns
