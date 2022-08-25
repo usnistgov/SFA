@@ -4,7 +4,7 @@ With these instructions you can build the [NIST STEP File Analyzer and Viewer](h
 
 ## Prerequisites
 
-The STEP File Analyzer and Viewer can only be built and run on Windows computers.  This is due to a dependence on the IFCsvr toolkit that is used to read and parse STEP files.  That toolkit only runs on Windows.
+The STEP File Analyzer and Viewer can only be built and run on Windows computers.  This is due to a dependence on the IFCsvr toolkit that is used to read and parse STEP files.  IFCsvr only runs on Windows.
 
 Microsoft Excel is required to generate spreadsheets.  CSV (comma-separated values) files will be generated if Excel is not installed.  
 
@@ -26,7 +26,8 @@ freeWrap wraps the SFA Tcl code to create an executable.
 
 Install the ActiveTcl **8.5 32-bit** version of Tcl.
 
-- Download the ActiveTcl installer from <https://www.activestate.com/products/activetcl/downloads/>.  You will have to create an ActiveState account.
+- Download the ActiveTcl installer from <https://www.activestate.com/products/tcl/>.  You will have to create an ActiveState account.
+- **Tcl 8.5 32-bit might only be available as a paid legacy version of Tcl.**
 - The Windows installer file name is: ActiveTcl-8.5.18.0.nnnnnn-win32-ix86-threaded.exe
 - SFA can be built only with ActiveTcl 8.5.18 (32-bit).  ActiveTcl 8.6.n and 64-bit versions are not supported.
 - Run the installer and use the default installation folders
