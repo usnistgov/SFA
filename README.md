@@ -31,10 +31,11 @@ Install the ActiveTcl **8.5 32-bit** version of Tcl.
 - SFA can be built only with ActiveTcl 8.5.18 (32-bit).  ActiveTcl 8.6.n and 64-bit versions are not supported.
 - Run the installer and use the default installation folders
 
-Several Tcl packages from ActiveTcl also need to be installed.  Open a command prompt window, change to C:\\Tcl\\bin, or wherever Tcl was installed, and enter the following three commands:
+Several Tcl packages from ActiveTcl also need to be installed.  Open a command prompt window, change to C:\\Tcl\\bin, or wherever Tcl was installed, and enter the following commands:
 
 ```
 teacup install tcom
+teacup install tdom
 teacup install twapi
 teacup install Iwidgets
 ```
