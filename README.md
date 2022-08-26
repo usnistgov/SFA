@@ -35,7 +35,7 @@ Install the ActiveTcl **8.5 32-bit** version of Tcl.
 
 Several packages not included with the ActiveTcl installer also need to be installed.
 
-- teapot.zip, in the src directory, contains the additional Tcl packages
+- teapot.zip, in the 'source' directory, contains the additional Tcl packages
 - Unzip teapot.zip to C:/Tcl/lib to overwrite the existing teapot directory
 
 ## Build the STEP File Analyzer and Viewer
