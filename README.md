@@ -35,12 +35,10 @@ Install the ActiveTcl **8.5 32-bit** version of Tcl.
 
 Several packages not included with the ActiveTcl installer also need to be installed.
 
-- teapot.zip, in the 'source' directory, contains the additional Tcl packages
+- teapot.zip in the 'source' directory contains the additional Tcl packages
 - Unzip teapot.zip to C:/Tcl/lib to overwrite the existing teapot directory
 
 ## Build the STEP File Analyzer and Viewer
-
-If Tcl is installed in a different directory than 'C:/Tcl', then edit the source code file sfa.tcl with the lines that start with 'lappend auto_path C:/Tcl/lib/teapot/package/...'
 
 Then open a command prompt window and change to the directory with the SFA Tcl files and freewrap.  To create the executable sfa.exe, enter the command:
 
