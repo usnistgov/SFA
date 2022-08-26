@@ -29,19 +29,14 @@ freeWrap wraps the SFA Tcl code to create an executable.
 Install the ActiveTcl **8.5 32-bit** version of Tcl.
 
 - Download the ActiveTcl installer from <https://www.activestate.com/products/tcl/>.  You will have to create an ActiveState account.
-- **Tcl 8.5 32-bit might only be available as a paid legacy version of Tcl.**
+- **Tcl 8.5 32-bit might only be available as a paid legacy version of Tcl.**  ActiveTcl 8.6.n and 64-bit versions are not supported for SFA.
 - The Windows installer file name is: ActiveTcl-8.5.18.0.nnnnnn-win32-ix86-threaded.exe
-- SFA can be built only with ActiveTcl 8.5.18 (32-bit).  ActiveTcl 8.6.n and 64-bit versions are not supported.
 - Run the installer and use the default installation folders
 
-Several Tcl packages from ActiveTcl also need to be installed.  Open a command prompt window, change to C:\\Tcl\\bin, or wherever Tcl was installed, and enter the following commands:
+Several packages not included with the ActiveTcl installer also need to be installed.
 
-```
-teacup install tcom
-teacup install tdom
-teacup install twapi
-teacup install Iwidgets
-```
+- teapot.zip, in the src directory, contains the additional Tcl packages
+- Unzip teapot.zip to C:/Tcl/lib to overwrite the existing teapot directory
 
 ## Build the STEP File Analyzer and Viewer
 

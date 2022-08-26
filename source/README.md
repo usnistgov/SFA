@@ -2,7 +2,7 @@
 
 ## Tcl files
 
-[Release Notes](https://s3.amazonaws.com/nist-el/mfg_digitalthread/STEP-File-Analyzer-Release-Notes.xlsx)
+[Release Notes](https://www.nist.gov/document/sfa-release-notes)
 
 Each Tcl file contains multiple procedures.
 
@@ -36,6 +36,8 @@ Each Tcl file contains multiple procedures.
 - tclIndex - required Tcl code that lists all procedures in each Tcl file
 
 - sfa-files.txt - freewrap input file that lists all of the above files
+
+- teapot.zip - Tcl packages not included with Tcl installation
 
 ## Disclaimers
 
