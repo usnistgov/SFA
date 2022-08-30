@@ -40,9 +40,15 @@ Open a command prompt window and change to the directory with the SFA Tcl files 
 freewrap -f sfa-files.txt
 ```
 
-## Differences from the NIST-built version of STEP File Analyzer and Viewer
+Optionally, build the STEP File Analyzer and Viewer command-line version
 
-Some features are not available in the user-built version including: tooltips, unzipping compressed STEP files, automated PMI checking for the [NIST CAD models](<https://www.nist.gov/el/systems-integration-division-73400/mbe-pmi-validation-and-conformance-testing>), and inserting images of the NIST test cases in the spreadsheets.  Some of the features are restored if the NIST-built version is run first.
+- Download freewrapTCLSH.zip from <https://sourceforge.net/projects/freewrap/files/freewrap/freeWrap%206.51/>
+- Extract freewrapTCLSH.exe to the directory with the SFA Tcl files
+- Edit sfa-files.txt and change the first line 'sfa.tcl' to 'sfa-cl.tcl'
+- Edit sfa-cl.tcl similar to sfa.tcl above
+- To create sfa-cl.exe, enter the command: freewrapTCLSH -f sfa-files.txt
+
+Some features are not available in the user-built version.
 
 ## Disclaimers
 
