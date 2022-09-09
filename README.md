@@ -6,14 +6,14 @@ The [NIST STEP to X3D Translator](https://www.nist.gov/services-resources/softwa
 
 ## Prerequisites
 
-The STEP File Analyzer and Viewer can only be built and run on Windows computers.  This is due to a dependence on the IFCsvr toolkit that is used to read and parse STEP files.  IFCsvr only runs on Windows.
+The STEP File Analyzer and Viewer can only be built and run on Windows computers.  This is due to a dependence on the IFCsvr toolkit that is used to read and parse STEP files.
 
 Microsoft Excel is required to generate spreadsheets.  CSV (comma-separated values) files will be generated if Excel is not installed.  
 
 **You must first install and run the NIST version of the STEP File Analyzer and Viewer before running your own version.**
 
 - Go to the [STEP File Analyzer and Viewer](https://www.nist.gov/services-resources/software/step-file-analyzer-and-viewer) to download the software
-- Extract STEP-File-Analyzer.exe from the zip file and run it.  This will install the IFCsvr toolkit that is used to read STEP files.  The toolkit only runs on Windows.
+- Extract STEP-File-Analyzer.exe from the zip file and run it.  This will install the IFCsvr toolkit that is used to read STEP files.
 
 Download the SFA files from the GitHub 'source' directory to a directory on your computer.
 
@@ -34,21 +34,25 @@ Several Tcl packages not included in freeWrap also need to be installed.
 
 ## Build the STEP File Analyzer and Viewer
 
-Open a command prompt window and change to the directory with the SFA Tcl files and freewrap.  To create the executable sfa.exe, enter the command:
+- Open a command prompt window and change to the directory with the SFA Tcl files and freewrap.
+- To generate the executable **sfa.exe**, enter the command:
 
 ```
 freewrap -f sfa-files.txt
 ```
 
-Optionally, build the STEP File Analyzer and Viewer command-line version
+Optionally build the command-line version:
 
 - Download freewrapTCLSH.zip from <https://sourceforge.net/projects/freewrap/files/freewrap/freeWrap%206.51/>
 - Extract freewrapTCLSH.exe to the directory with the SFA Tcl files
 - Edit sfa-files.txt and change the first line 'sfa.tcl' to 'sfa-cl.tcl'
 - Edit sfa-cl.tcl similar to sfa.tcl above
-- To create sfa-cl.exe, enter the command: freewrapTCLSH -f sfa-files.txt
+- To generate **sfa-cl.exe**, enter the command: freewrapTCLSH -f sfa-files.txt
 
-Some features are not available in the user-built version.
+## Other
+
+- Some features are not available in the user-built version including: tooltips, unzipping compressed STEP files, automated PMI checking for the [NIST CAD models](https://www.nist.gov/el/systems-integration-division-73400/mbe-pmi-validation-and-conformance-testing), and inserting images of the NIST test cases in the spreadsheets.  Some of the features will be available if the NIST-built version is run first.
+- Internally at NIST, SFA is built with [ActiveTcl 8.5.18 32-bit](https://www.activestate.com/products/tcl/) and the [Tcl Dev Kit](https://www.activestate.com/blog/tcl-dev-kit-now-open-source/) which is now an open source project.
 
 ## Disclaimers
 
