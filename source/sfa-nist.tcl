@@ -278,7 +278,7 @@ proc nistCheckExpectedPMI {val entstr epmiName} {
   }
 
 # remove zeros from val
-  set val [pmiRemoveZeros $val]
+  if {[string first "(point)" $val] == -1} {set val [pmiRemoveZeros $val]}
   if {[string first "tolerance" $entstr] != -1} {
     foreach nam $tolNames {if {[string first $nam $entstr] != -1} {set valType($val) $nam}}
   } else {

@@ -6,7 +6,7 @@ proc genExcel {{numFile 0}} {
   global feaFirstEntity feaLastEntity File fileEntity filesProcessed gen gpmiTypesInvalid gpmiTypesPerFile guid idxColor ifcsvrDir inverses
   global lastXLS lenfilelist localName localNameList logFile matrixList multiFile multiFileDir mydocs mytemp nistCoverageLegend nistName
   global nistPMIexpected nistPMImaster noFontFile nprogBarEnts opt pf32 p21e3Section pmiCol resetRound row rowmax savedViewButtons savedViewName
-  global savedViewNames scriptName sheetLast skipEntities skipPerm spmiEntity spmiSumName spmiSumRow spmiTypesPerFile startrow statsOnly
+  global savedViewNames scriptName sheetLast skipEntities skipFileName skipPerm spmiEntity spmiSumName spmiSumRow spmiTypesPerFile startrow statsOnly
   global stepAP stepAPreport tessColor thisEntType timeStamp tlast tolNames tolStandard tolStandards totalEntity unicodeActual unicodeAttributes
   global unicodeEnts unicodeInFile unicodeNumEnts unicodeString userEntityFile userEntityList useXL valRounded viz wdir workbook workbooks
   global worksheet worksheet1 worksheets writeDir wsCount wsNames x3dAxes x3dColor x3dColorFile x3dColors x3dFileName x3dIndex x3dMax x3dMin
@@ -14,6 +14,26 @@ proc genExcel {{numFile 0}} {
   global objDesign
 
   if {[info exists errmsg]} {set errmsg ""}
+
+# check for permissions to write to the same directory as the STEP file
+  set dirname [file dirname $localName]
+  if {$opt(writeDirType) == 2} {set dirname $writeDir}
+  if {[string first $mydocs [file nativename $dirname]] == -1} {
+    if {[catch {
+      set tfile [file join $dirname test.txt]
+      set tf [open $tfile w]
+      close $tf
+      catch {file delete -force -- $tfile}
+    } emsg]} {
+      set msg "Error opening Output files in: $dirname"
+      if {[string first "permission denied" $emsg] != -1} {
+        append msg "\n Copy the STEP file to a different directory or write the Output to a different User-defined directory (Spreadsheet tab)"
+      }
+      errorMsg $msg
+      .tnb select .tnb.status
+      return
+    }
+  }
 
 # check if AP242 XML file
   if {![info exists ap242XML]} {set ap242XML 0}
@@ -316,12 +336,13 @@ proc genExcel {{numFile 0}} {
 # -------------------------------------------------------------------------------------------------
 # open file of entities (-skip.dat) not to process (skipEntities), skipPerm are entities always to skip
     set skipEntities {}
-    set cfile [file rootname $fname]
-    append cfile "-skip.dat"
+    set skipFileName [file rootname $fname]
+    if {$opt(writeDirType) == 2} {set skipFileName [file join $writeDir [file rootname [file tail $fname]]]}
+    append skipFileName "-skip.dat"
     set skipPerm {}
     set skipEntities $skipPerm
-    if {[file exists $cfile]} {
-      set skipFile [open $cfile r]
+    if {[file exists $skipFileName]} {
+      set skipFile [open $skipFileName r]
       while {[gets $skipFile line] >= 0} {
         if {[lsearch $skipEntities $line] == -1 && $line != "" && ![info exists badAttributes($line)]} {
           lappend skipEntities $line
@@ -331,18 +352,18 @@ proc genExcel {{numFile 0}} {
 
 # old skip file name (_fix.dat), delete
     } else {
-      set cfile1 [file rootname $fname]
-      append cfile1 "_fix.dat"
-      if {[file exists $cfile1]} {
-        set skipFile [open $cfile1 r]
+      set fixfile [file rootname $fname]
+      append fixfile "_fix.dat"
+      if {[file exists $fixfile]} {
+        set skipFile [open $fixfile r]
         while {[gets $skipFile line] >= 0} {
           if {[lsearch $skipEntities $line] == -1 && $line != "" && ![info exists badAttributes($line)]} {
             lappend skipEntities $line
           }
         }
         close $skipFile
-        file delete -force -- $cfile1
-        errorMsg "File of entities to skip '[file tail $cfile1]' renamed to '[file tail $cfile]'."
+        file delete -force -- $fixfile
+        errorMsg "File of entities to skip '[file tail $fixfile]' renamed to '[file tail $skipFileName]'"
       }
     }
 
@@ -621,7 +642,7 @@ proc genExcel {{numFile 0}} {
   }
 
 # get totals of each entity in file
-  set fixlist {}
+  set skipList {}
   if {![info exists objDesign]} {return}
   catch {unset entCount}
 
@@ -716,7 +737,7 @@ proc genExcel {{numFile 0}} {
           lappend entsToProcess "$cidx$entType"
           incr numEnts $entCount($entType)
         } else {
-          lappend fixlist $entType
+          lappend skipList $entType
           lappend entsToIgnore $entType
           set entsIgnored($cidx$entType) $entCount($entType)
         }
@@ -725,7 +746,7 @@ proc genExcel {{numFile 0}} {
           lappend entsToProcess "$cidx$entType"
           incr numEnts $entCount($entType)
         } else {
-          lappend fixlist $entType
+          lappend skipList $entType
           lappend entsToIgnore $entType
           set entsIgnored($cidx$entType) $entCount($entType)
         }
@@ -797,11 +818,11 @@ proc genExcel {{numFile 0}} {
   }
 
 # -------------------------------------------------------------------------------------------------
-# list entities not processed based on fix file
-  if {[llength $fixlist] > 0} {
-    if {[file exists $cfile]} {
+# list entities not processed based on skip file
+  if {[llength $skipList] > 0} {
+    if {[file exists $skipFileName]} {
       set ok 0
-      foreach item $fixlist {if {[lsearch $skipPerm $item] == -1} {set ok 1}}
+      foreach item $skipList {if {[lsearch $skipPerm $item] == -1} {set ok 1}}
     }
     if {$ok} {
       outputMsg " "
@@ -810,11 +831,11 @@ proc genExcel {{numFile 0}} {
         if {!$useXL} {set msg "CSV files"}
         append msg " will not be generated for the entity types listed in"
       } else {
-        set msg "The Viewer might not generate anything because of the entity types listed in"
+        set msg "The Viewer might not generate anything because of the entity types listed in:"
       }
-      append msg " [truncFileName [file nativename $cfile]]"
+      append msg " [truncFileName [file nativename $skipFileName]]"
       errorMsg $msg
-      foreach item [lsort $fixlist] {outputMsg " [formatComplexEnt $item]" red}
+      foreach item [lsort $skipList] {outputMsg " [formatComplexEnt $item]" red}
       errorMsg "Use F8 to run the Syntax Checker and See Help > Crash Recovery"
     }
   }
@@ -1134,7 +1155,7 @@ proc genExcel {{numFile 0}} {
             set range [$worksheet($thisEntType) Range [cellRange 4 1] [cellRange [expr {[llength $matrixList]+3}] [llength [lindex $matrixList 0]]]]
             $range Value2 $matrixList
           } emsg3]} {
-            errorMsg "Error writing worksheet for $thisEntType: $emsg3"
+            errorMsg "Error writing worksheet cells for $thisEntType: $emsg3"
           }
 
 # close CSV file
@@ -1167,22 +1188,22 @@ proc genExcel {{numFile 0}} {
   }
 
 # -------------------------------------------------------------------------------------------------
-# check fix file
-  if {[info exists cfile]} {
-    set fixtmp {}
-    if {[file exists $cfile]} {
-      set skipFile [open $cfile r]
+# check skip file
+  if {[info exists skipFileName]} {
+    set skiptmp {}
+    if {[file exists $skipFileName]} {
+      set skipFile [open $skipFileName r]
       while {[gets $skipFile line] >= 0} {
-        if {[lsearch $fixtmp $line] == -1 && $line != $lastEnt} {lappend fixtmp $line}
+        if {[lsearch $skiptmp $line] == -1 && $line != $lastEnt} {lappend skiptmp $line}
       }
       close $skipFile
     }
 
-    if {[join $fixtmp] == ""} {
-      catch {file delete -force -- $cfile}
+    if {[join $skiptmp] == ""} {
+      catch {file delete -force -- $skipFileName}
     } else {
-      set skipFile [open $cfile w]
-      foreach item $fixtmp {puts $skipFile $item}
+      set skipFile [open $skipFileName w]
+      foreach item $skiptmp {puts $skipFile $item}
       close $skipFile
     }
   }

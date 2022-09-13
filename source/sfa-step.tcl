@@ -357,7 +357,7 @@ proc pmiFormatColumns {str} {
     }
     $range MergeCells [expr 1]
     set anchor [$worksheet($thisEntType) Range A2]
-    [$worksheet($thisEntType) Hyperlinks] Add $anchor [join "https://www.cax-if.org/cax/cax_recommPractice.php"] [join ""] [join "Link to CAx-IF Recommended Practices"]
+    [$worksheet($thisEntType) Hyperlinks] Add $anchor [join "https://www.mbx-if.org/cax/cax_recommPractice.php"] [join ""] [join "Link to CAx-IF Recommended Practices"]
   }
 }
 
@@ -425,8 +425,7 @@ proc setEntsToProcess {entType} {
   if {($opt(PMIGRF) || ($gen(View) && $opt(viewPMI))) && $ok == 0} {
     set ok [gpmiCheckEnt $entType]
     set gpmiEnts($entType) $ok
-    if {$entType == "geometric_curve_set" || $entType == "planar_box" || \
-        [string first "geometric_set" $entType] != -1 || [string first "apll_point" $entType] == 0} {set ok 1}
+    if {$entType == "geometric_curve_set" || $entType == "planar_box" || [string first "geometric_set" $entType] != -1} {set ok 1}
   }
 
 # for PMI (semantic) representation
@@ -1025,12 +1024,16 @@ proc getUnicode {ent {type "view"}} {
             for {set i 4} {$i < 200} {incr i 4} {
               set uc [string range $ent $cx+$i [expr {$cx+$i+3}]]
 
+# change flatness and straightness Unicode so that they look OK in the spreadsheet
+              if {$uc == "23E5"} {set uc "25B1"}
+              if {$uc == "23E4"} {set uc "2212"}
+
 # check for font file with GD&T symbols (ARIALUNI.TTF), needed only for certain Unicode characters, noFontFile set in genExcel
               if {$noFontFile && ![info exists fontErr]} {
                 set ok 0
                 foreach char [list 232D 232F 232E 24C4 24CA 24BB 24C9 24C1 24BA 24BE 24C7 24C8 24B6] {if {[string first $char $uc] != -1} {set ok 1; break}}
                 if {$ok} {
-                  errorMsg "Some GD&T symbols will appear as a question mark on the descriptive_representation_item worksheet.\n To fix the problem, copy the font file that contains the symbols\n [file join $mytemp ARIALUNI.TTF]  to  C:/Windows/Fonts  to install the fonts.\n You might need administrator privileges."
+                  errorMsg "Some GD&T symbols will appear as a question mark on the descriptive_representation_item worksheet.\n To fix the problem, copy the font file that contains the symbols\n [file join $mytemp ARIALUNI.TTF]  to  C:/Windows/Fonts\n You might need administrator privileges."
                   set fontErr 1
                 }
               }

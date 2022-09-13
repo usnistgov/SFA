@@ -256,7 +256,7 @@ proc spmiHoleReport {objEntity} {
               }
             }
           } emsg3]} {
-            errorMsg "ERROR processing Holtol ($objNodeType $ent2)\n $emsg3"
+            errorMsg "Error processing Holtol ($objNodeType $ent2)\n $emsg3"
             set entLevel 1
           }
 
@@ -309,7 +309,7 @@ proc spmiHoleReport {objEntity} {
               }
             }
           } emsg3]} {
-            errorMsg "ERROR processing Holtol ($objNodeType $ent2)\n $emsg3"
+            errorMsg "Error processing Holtol ($objNodeType $ent2)\n $emsg3"
             set entLevel 1
           }
         }
@@ -356,7 +356,7 @@ proc spmiHoleReport {objEntity} {
       lappend spmiTypesPerFile "depth"
       append hd " $holeDim(drilled_hole_depth)"
       if {$thruHole} {
-        set msg "Syntax Error: through_hole should be FALSE if drilled_hole_depth is specified OR if though_hole is TRUE then the drilled_hole_depth should not be specified.$spaces\($recPracNames(hole), Sec. 5.1.1.1)"
+        set msg "Syntax Error: through_hole should be FALSE if drilled_hole_depth is specified OR if though_hole is TRUE then the drilled_hole_depth should not be specified.$spaces\($recPracNames(holes), Sec. 5.1.1.1)"
         errorMsg $msg
         lappend syntaxErr([$holeEntity Type]) [list [$holeEntity P21ID] "through_hole" $msg]
         lappend syntaxErr([$holeEntity Type]) [list [$holeEntity P21ID] "drilled_hole_depth" $msg]
@@ -366,9 +366,9 @@ proc spmiHoleReport {objEntity} {
     } elseif {!$thruHole} {
       set msg ""
       if {[string first "basic_round" [$holeEntity Type]] == -1} {
-        set msg "Syntax Error: through_hole should be TRUE if drilled_hole_depth is not specified.$spaces\($recPracNames(hole), Sec. 5.1.1.1)"
+        set msg "Syntax Error: through_hole should be TRUE if drilled_hole_depth is not specified.$spaces\($recPracNames(holes), Sec. 5.1.1.1)"
       } elseif {![info exists holeDim(depth)]} {
-        set msg "Syntax Error: through_hole should be TRUE if depth is not specified.$spaces\($recPracNames(hole), Sec. 5.1.1.1)"
+        set msg "Syntax Error: through_hole should be TRUE if depth is not specified.$spaces\($recPracNames(holes), Sec. 5.1.1.1)"
       }
       if {$msg != ""} {
         errorMsg $msg
@@ -454,7 +454,7 @@ proc spmiHoleReport {objEntity} {
       }
 
     } emsg]} {
-      errorMsg "ERROR adding Hole Tolerance: $emsg"
+      errorMsg "Error adding Hole Tolerance: $emsg"
     }
     set hole(name) ""
     catch {unset holeDim}

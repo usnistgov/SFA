@@ -290,6 +290,10 @@ proc valPropReport {objEntity} {
         }
       }
 
+# some geometry entities that should not be processed and cause errors
+      if {$objType == "trimmed_curve" || $objType == "geometric_set" || [string first "b_spline" $objType] != -1 || \
+          [string first "surface" $objType] != -1} {return}
+
       if {$objType == "property_definition"} {
         set propDefID $objID
         if {![info exists propDefIDRow($propDefID)]} {
@@ -792,7 +796,7 @@ proc valPropReport {objEntity} {
 
 # missing composite validation property name
                     if {[string first "ply" $ent1] == 0 || [string first "reinforcement" $ent1] == 0} {
-                      if {[string tolower $propDefName] != "composite validation property" && $propDefName != ""} {
+                      if {[string tolower $propDefName] != "composite_validation_property" && $propDefName != ""} {
                         set emsg "Syntax Error: property_definition 'name' attribute should be 'composite validation property'.$spaces\($recPracNames(comp), Sec. 4)"
                         errorMsg $emsg
                         lappend syntaxErr(property_definition) [list $propDefID name $emsg]
@@ -1085,7 +1089,7 @@ proc valPropFormat {} {
       set range [$worksheet($thisEntType) Range A2:D2]
       $range MergeCells [expr 1]
       set anchor [$worksheet($thisEntType) Range A2]
-      [$worksheet($thisEntType) Hyperlinks] Add $anchor [join "https://www.cax-if.org/cax/cax_recommPractice.php"] [join ""] [join "Link to CAx-IF Recommended Practices"]
+      [$worksheet($thisEntType) Hyperlinks] Add $anchor [join "https://www.mbx-if.org/cax/cax_recommPractice.php"] [join ""] [join "Link to CAx-IF Recommended Practices"]
     }
   }
 }
@@ -1158,11 +1162,11 @@ proc getValProps {} {
 # get validation properties association to PMI, etc.
   foreach var {gpmiValProp propDefIDs spmiValProp} {if {[info exists $var]} {unset $var}}
 
-  if {[catch {
-
 # get all property_definitions attributes
-    ::tcom::foreach e0 [$objDesign FindObjects [string trim property_definition]] {
-      if {[$e0 Type] == "property_definition"} {
+  ::tcom::foreach e0 [$objDesign FindObjects [string trim property_definition]] {
+    if {[$e0 Type] == "property_definition"} {
+
+      if {[catch {
         set a0s [$e0 Attributes]
         set pid ""
 
@@ -1188,24 +1192,26 @@ proc getValProps {} {
                   set e1s [$e0 GetUsedIn [string trim $defRep] [string trim definition]]
                   ::tcom::foreach e1 $e1s {
                     set e2  [[[$e1 Attributes] Item [expr 2]] Value]
-                    set e3s [[[$e2 Attributes] Item [expr 2]] Value]
-                    ::tcom::foreach e3 $e3s {
-                      set a3s [$e3 Attributes]
-                      ::tcom::foreach a3 $a3s {
-                        if {[$a3 Name] == "name" && $vpname != "semantic text"} {
-                          set name [$a3 Value]
-                          if {$name != "" && [string first $name $names] == -1} {append names "$name, "}
+                    if {[string first "handle" $e2] != -1} {
+                      set e3s [[[$e2 Attributes] Item [expr 2]] Value]
+                      ::tcom::foreach e3 $e3s {
+                        set a3s [$e3 Attributes]
+                        ::tcom::foreach a3 $a3s {
+                          if {[$a3 Name] == "name" && $vpname != "semantic text"} {
+                            set name [$a3 Value]
+                            if {$name != "" && [string first $name $names] == -1} {append names "$name, "}
 
 # property id associated to DRI id
-                          if {$name == "equivalent unicode string"} {set driPropID($a0id) [$e3 P21ID]}
+                            if {$name == "equivalent unicode string"} {set driPropID($a0id) [$e3 P21ID]}
 
 # semantic text
-                        } elseif {[$a3 Name] == "description" && $vpname == "semantic text" && $defRep == "property_definition_representation"} {
-                          set name [$a3 Value]
-                          if {$name != ""} {
-                            set idx "descriptive_representation_item,description,[$e3 P21ID]"
-                            if {[info exists unicodeString($idx)]} {set name $unicodeString($idx)}
-                            append names $name
+                          } elseif {[$a3 Name] == "description" && $vpname == "semantic text" && $defRep == "property_definition_representation"} {
+                            set name [$a3 Value]
+                            if {$name != ""} {
+                              set idx "descriptive_representation_item,description,[$e3 P21ID]"
+                              if {[info exists unicodeString($idx)]} {set name $unicodeString($idx)}
+                              append names $name
+                            }
                           }
                         }
                       }
@@ -1230,11 +1236,11 @@ proc getValProps {} {
             }
           }
         }
+      } emsg]} {
+        errorMsg "Error getting PMI validation properities: $emsg"
+        catch {raise .}
       }
     }
-  } emsg]} {
-    errorMsg "Error getting PMI validation properities: $emsg"
-    catch {raise .}
   }
 }
 

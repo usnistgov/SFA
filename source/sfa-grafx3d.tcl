@@ -1650,7 +1650,7 @@ proc x3dPlaceholder {{aoname ""} {fname ""}} {
         }
 
 # coordinate sphere and text
-        set bbtext "<Billboard axisOfRotation='0 0 0'><Shape><Text string='$name'><FontStyle size='$size2' family='SANS' justify='BEGIN'/></Text><Appearance><Material diffuseColor='0 0 0'/></Appearance></Shape></Billboard>"
+        set bbtext "<Transform scale='$size2 $size2 $size2'><Billboard axisOfRotation='0 0 0'><Shape><Text string='$name'><FontStyle family='SANS' justify='BEGIN'/></Text><Appearance><Material diffuseColor='0 0 0'/></Appearance></Shape></Billboard></Transform>"
         if {[info exists placeSphereDef]} {
           puts $fname " <Shape USE='placeSphere'></Shape>$bbtext"
         } else {
@@ -1711,7 +1711,7 @@ proc x3dPlaceholder {{aoname ""} {fname ""}} {
 # text at first and last point
         foreach idx [list 0 [expr {[llength $leaderLine($id)]-1}]] {
           set coord [join [lindex $leaderLine($id) $idx]]
-          puts $fname "<Transform translation='$coord'><Billboard axisOfRotation='0 0 0'><Shape><Text string='$name'><FontStyle size='$size2' family='SANS' justify='BEGIN'/></Text><Appearance><Material diffuseColor='0 0 0'/></Appearance></Shape></Billboard></Transform>"
+          puts $fname "<Transform translation='$coord' scale='$size2 $size2 $size2'><Billboard axisOfRotation='0 0 0'><Shape><Text string='$name'><FontStyle family='SANS' justify='BEGIN'/></Text><Appearance><Material diffuseColor='0 0 0'/></Appearance></Shape></Billboard></Transform>"
         }
 
 # check for symbols
@@ -1719,7 +1719,8 @@ proc x3dPlaceholder {{aoname ""} {fname ""}} {
           if {[info exists placeSymbol($coord)]} {
             set sym $placeSymbol($coord)
             if {[string first "internal" $sym] == 0} {set sym [string range $sym 14 end]}
-            puts $fname "<Transform translation='$coord' scale='0.67 0.67 0.67'><Billboard axisOfRotation='0 0 0'><Shape><Text string='$sym'><FontStyle size='$size2' family='SANS' justify='END'/></Text><Appearance><Material diffuseColor='0 0 1'/></Appearance></Shape></Billboard></Transform>"
+            set size3 [trimNum [expr {0.67*$size2}]]
+            puts $fname "<Transform translation='$coord' scale='$size3 $size3 $size3'><Billboard axisOfRotation='0 0 0'><Shape><Text string='$sym'><FontStyle family='SANS' justify='END'/></Text><Appearance><Material diffuseColor='0 0 1'/></Appearance></Shape></Billboard></Transform>"
             unset placeSymbol($coord)
           }
         }

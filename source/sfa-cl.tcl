@@ -24,6 +24,7 @@ puts "NIST STEP File Analyzer and Viewer [getVersion] (Updated [string trim [clo
 # for building your own version with freewrap, uncomment and modify C:/Tcl/lib/teapot directory if necessary
 # the lappend commands add package locations to auto_path, must be before package commands below
 #lappend auto_path C:/Tcl/lib/teapot/package/win32-ix86/lib/tcom3.9
+#lappend auto_path C:/Tcl/lib/teapot/package/win32-ix86/lib/tdom0.8.3
 #lappend auto_path C:/Tcl/lib/teapot/package/win32-ix86/lib/twapi3.0.32
 #lappend auto_path C:/Tcl/lib/teapot/package/win32-ix86/lib/Tclx8.4
 
@@ -39,12 +40,11 @@ if {[catch {
   if {[string first "couldn't load library" $emsg] != -1} {
     append emsg "\n\nAlthough the message above indicates that a library is missing, that is NOT the cause of the problem.  The problem is sometimes related to the directory where you are running the software.\n\n   [file nativename $dir]"
     append emsg "\n\n1 - The directory has accented, non-English, or symbol characters"
-    append emsg "\n2 - The directory is on a different computer"
+    append emsg "\n2 - The directory is on a remote computer"
     append emsg "\n3 - No permissions to run the software in the directory"
-    append emsg "\n4 - Other computer configuration problems"
     append emsg "\n\nTry these workarounds to run the software:"
-    append emsg "\n1 - From a directory without any special characters in the pathname, or from your home directory, or desktop"
-    append emsg "\n2 - Installed on your local computer"
+    append emsg "\n\n1 - From a directory without any special characters in the pathname, or from your home directory, or desktop"
+    append emsg "\n2 - From a directory on your local computer"
     append emsg "\n3 - As Administrator"
     append emsg "\n4 - On a different computer"
   }
@@ -52,10 +52,7 @@ if {[catch {
   exit
 }
 
-catch {
-  lappend auto_path C:/Tcl/lib/teapot/package/win32-ix86/lib/vfs1.4.2
-  package require vfs::zip
-}
+catch {package require vfs::zip}
 
 # no arguments, no file, print help, and exit
 set helpText "\nUsage: sfa-cl.exe myfile.stp \[csv\] \{\[view\]|\[stats\]|\[syntax\]\} \[noopen\] \[nolog\] \[file\]
@@ -98,7 +95,7 @@ Credits
    STEP to X3D Translator (stp2x3d)
    Developed by Soonjo Kwon, former NIST Associate
    https://www.nist.gov/services-resources/software/step-x3d-translator
-- Some Tcl code is based on: CAWT http://www.cawt.tcl3d.org/"
+- Some Tcl code is based on CAWT http://www.cawt.tcl3d.org/"
 
 if {$argc == 1} {set arg [string tolower [lindex $argv 0]]}
 if {$argc == 0 || ($argc == 1 && ($arg == "help" || $arg == "-help" || $arg == "-h" || $arg == "-v"))} {

@@ -18,6 +18,7 @@ foreach item $auto_path {if {[string first "STEP-File-Analyzer" $item] != -1} {s
 # change C:/Tcl if Tcl is installed in a different directory
 if {!$nistVersion} {
   lappend auto_path C:/Tcl/lib/teapot/package/win32-ix86/lib/tcom3.9
+  lappend auto_path C:/Tcl/lib/teapot/package/win32-ix86/lib/tdom0.8.3
   lappend auto_path C:/Tcl/lib/teapot/package/win32-ix86/lib/twapi3.0.32
   lappend auto_path C:/Tcl/lib/teapot/package/win32-ix86/lib/Tclx8.4
   lappend auto_path C:/Tcl/lib/teapot/package/win32-ix86/lib/Itk3.4
@@ -32,6 +33,7 @@ if {[catch {
   package require twapi
   package require Tclx
   package require Iwidgets 4.0.2
+  if {$nistVersion} {package require tooltip; package require vfs::zip}
 } emsg]} {
   set dir $wdir
   set c1 [string first [file tail [info nameofexecutable]] $dir]
@@ -39,27 +41,16 @@ if {[catch {
   if {[string first "couldn't load library" $emsg] != -1} {
     append emsg "\n\nAlthough the message above indicates that a library is missing, that is NOT the cause of the problem.  The problem is sometimes related to the directory where you are running the software.\n\n   [file nativename $dir]"
     append emsg "\n\n1 - The directory has accented, non-English, or symbol characters"
-    append emsg "\n2 - The directory is on a different computer"
+    append emsg "\n2 - The directory is on a remote computer"
     append emsg "\n3 - No permissions to run the software in the directory"
-    append emsg "\n4 - Other computer configuration problems"
     append emsg "\n\nTry these workarounds to run the software:"
     append emsg "\n\n1 - From a directory without any special characters in the pathname, or from your home directory, or desktop"
-    append emsg "\n2 - Installed on your local computer"
+    append emsg "\n2 - From a directory on your local computer"
     append emsg "\n3 - As Administrator"
     append emsg "\n4 - On a different computer"
   }
   set choice [tk_messageBox -type ok -icon error -title "Error running the STEP File Analyzer and Viewer" -message $emsg]
   exit
-}
-
-# two more packages but they do not load in the non-NIST version
-catch {
-  if {!$nistVersion} {lappend auto_path C:/Tcl/lib/teapot/package/win32-ix86/lib/vfs1.4.2}
-  package require vfs::zip
-}
-catch {
-  if {!$nistVersion} {lappend auto_path C:/Tcl/lib/teapot/package/tcl/lib/tooltip1.4.5}
-  package require tooltip
 }
 
 # -----------------------------------------------------------------------------------------------------
@@ -171,7 +162,7 @@ if {[info exists endMsg]} {
 if {$sfaVersion == 0} {
   whatsNew
   setShortcuts
-  showFileURL UserGuide
+  openUserGuide
   showCrashRecovery
   saveState
 
@@ -187,14 +178,14 @@ if {$sfaVersion == 0} {
 }
 
 #-------------------------------------------------------------------------------
-# check for update every 30 days
+# check for update every 180 days
 if {$nistVersion} {
   if {$upgrade > 0} {
     set lastupgrade [expr {round(([clock seconds] - $upgrade)/86400.)}]
-    if {$lastupgrade > 30} {
+    if {$lastupgrade > 180} {
       set str ""
       if {$lastupgrade > 365} {set str ".  Welcome Back!"}
-      outputMsg "This is version [getVersion]\nThe last check for an update was $lastupgrade days ago$str\nTo check for an updated version, go to Websites > STEP File Analyzer and Viewer" red
+      outputMsg "The last check for an update was $lastupgrade days ago$str\nTo check for an updated version, go to Websites > STEP File Analyzer and Viewer" red
       .tnb select .tnb.status
       set upgrade [clock seconds]
       saveState

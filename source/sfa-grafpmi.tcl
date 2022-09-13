@@ -935,16 +935,16 @@ proc gpmiAnnotationReport {objEntity} {
                       lappend gpmiTypesPerFile "$ov/$aoname"
                     } else {
                       set n 0
-                      set objGuiEntities [$objEntity1 GetUsedIn [string trim draughting_model_item_association] [string trim identified_item]]
-                      ::tcom::foreach objGuiEntity $objGuiEntities {
+                      set dmias [$objEntity1 GetUsedIn [string trim draughting_model_item_association] [string trim identified_item]]
+                      ::tcom::foreach dmia $dmias {
                         incr n
                         if {$n == 1} {lappend gpmiTypesPerFile "$ov/$aoname[$objEntity1 P21ID]"}
                       }
                       if {$n == 0} {
-                        set objGuiEntities [$objEntity1 GetUsedIn [string trim draughting_callout] [string trim contents]]
-                        ::tcom::foreach objGuiEntity $objGuiEntities {
+                        set dcs [$objEntity1 GetUsedIn [string trim draughting_callout] [string trim contents]]
+                        ::tcom::foreach dc $dcs {
                           incr n
-                          if {$n == 1} {lappend gpmiTypesPerFile "$ov/$aoname[$objGuiEntity P21ID]"}
+                          if {$n == 1} {lappend gpmiTypesPerFile "$ov/$aoname[$dc P21ID]"}
                         }
                       }
                     }
@@ -1023,17 +1023,16 @@ proc gpmiAnnotationReport {objEntity} {
       } else {
         set dmia "draughting_model_item_association_with_placeholder"
       }
-      set ok 0
-      set objDC [$objEntity GetUsedIn [string trim draughting_callout] [string trim contents]]
-      ::tcom::foreach objGuiEntity $objDC {
-        set objGuiEntities [$objGuiEntity GetUsedIn [string trim $dmia] [string trim identified_item]]
-        set ok 1
-      }
-      if {!$ok} {set objGuiEntities [$objEntity GetUsedIn [string trim $dmia] [string trim identified_item]]}
 
-      set ndc 0
-      ::tcom::foreach objGuiEntity $objGuiEntities {
-        ::tcom::foreach attrDMIA [$objGuiEntity Attributes] {
+# check for draughting_call or annotation occurrence in DMIA identified_item
+      set dcs [$objEntity GetUsedIn [string trim draughting_callout] [string trim contents]]
+      ::tcom::foreach dc $dcs {set dmias [$dc GetUsedIn [string trim $dmia] [string trim identified_item]]}
+      set ndmia 0
+      if {[info exists dmias]} {::tcom::foreach entDMIA $dmias {incr ndmia}}
+      if {$ndmia == 0} {set dmias [$objEntity GetUsedIn [string trim $dmia] [string trim identified_item]]}
+
+      ::tcom::foreach entDMIA $dmias {
+        ::tcom::foreach attrDMIA [$entDMIA Attributes] {
           if {[$attrDMIA Name] == "name"} {set attrName [$attrDMIA Value]}
 
 # get shape_aspect (dmiaDef)
@@ -1055,7 +1054,7 @@ proc gpmiAnnotationReport {objEntity} {
                 } elseif {[string first "property_definition" $dmiaDefType] == -1} {
                   set msg "Syntax Error: Bad 'definition' attribute on $dmia when 'name' attribute is 'PMI representation to presentation link'.$spaces\($recPracNames(pmi242), Sec. 7.3)"
                   errorMsg $msg
-                  lappend syntaxErr($dmia) [list [$objGuiEntity P21ID] definition $msg]
+                  lappend syntaxErr($dmia) [list [$entDMIA P21ID] definition $msg]
                 }
 
 # look at shape_aspect or datums to find associated geometry
@@ -1070,7 +1069,7 @@ proc gpmiAnnotationReport {objEntity} {
                 append msg "($recPracNames(pmi203), Sec. 5.3.1, Fig. 12)"
               }
               errorMsg $msg
-              lappend syntaxErr([$objGuiEntity Type]) [list [$objGuiEntity P21ID] "definition" $msg]
+              lappend syntaxErr([$entDMIA Type]) [list [$entDMIA P21ID] "definition" $msg]
             }
           } elseif {[$attrDMIA Name] == "used_representation"} {
             set dmiaDef [$attrDMIA Value]
@@ -1079,20 +1078,16 @@ proc gpmiAnnotationReport {objEntity} {
               if {[string first "draughting_model" $dmiaDefType] == -1} {
                 set msg "Syntax Error: Bad 'used_representation' attribute ($dmiaDefType) on $dmia.$spaces\($recPracNames(pmi242), Sec. 7.3)"
                 errorMsg $msg
-                lappend syntaxErr([$objGuiEntity Type]) [list [$objGuiEntity P21ID] "used_representation" $msg]
+                lappend syntaxErr([$entDMIA Type]) [list [$entDMIA P21ID] "used_representation" $msg]
               }
             } else {
               set msg "Syntax Error: Missing 'used_representation' attribute on $dmia.$spaces\($recPracNames(pmi242), Sec. 7.3)"
               errorMsg $msg
-              lappend syntaxErr([$objGuiEntity Type]) [list [$objGuiEntity P21ID] "used_representation" $msg]
+              lappend syntaxErr([$entDMIA Type]) [list [$entDMIA P21ID] "used_representation" $msg]
             }
           }
         }
-        incr ndc
       }
-
-# no draughting_callout
-      if {$ndc == 0} {errorMsg "Syntax Error: Missing draughting_callout for 'identified_item' attribute on $dmia.$spaces\($recPracNames(pmi242), Sec. 7.3)"}
     } emsg]} {
       errorMsg "Error adding Associated Geometry: $emsg"
     }
@@ -1426,8 +1421,10 @@ proc gpmiAnnotationReport {objEntity} {
       ::tcom::foreach e0 [$objEntity GetUsedIn [string trim draughting_callout] [string trim contents]] {
         ::tcom::foreach e1 [$e0 GetUsedIn [string trim draughting_model_item_association] [string trim identified_item]] {
           set e2 [[[$e1 Attributes] Item [expr 3]] Value]
-          if {[info exists driPropID([$e2 P21ID])]} {
-            if {[info exists equivUnicodeString($driPropID([$e2 P21ID]))]} {gpmiEquivUnicodeString $equivUnicodeString($driPropID([$e2 P21ID]))}
+          if {[string first "handle" $e2] != -1} {
+            if {[info exists driPropID([$e2 P21ID])]} {
+              if {[info exists equivUnicodeString($driPropID([$e2 P21ID]))]} {gpmiEquivUnicodeString $equivUnicodeString($driPropID([$e2 P21ID]))}
+            }
           }
         }
       }

@@ -1,5 +1,5 @@
 # SFA version
-proc getVersion {} {return 4.82}
+proc getVersion {} {return 4.85}
 
 # see proc installIFCsvr in sfa-proc.tcl for the IFCsvr version
 
@@ -37,7 +37,7 @@ Use F9 and F10 to change the font size here.  See Help > Function Keys"
 
     if {$sfaVersion < 4.60} {
       outputMsg "- User Guide (Update 7) is based on version 4.60"
-      showFileURL UserGuide
+      openUserGuide
     }
     if {$sfaVersion < 4.74} {outputMsg "- Generate Bill of Materials (BOM), see Options tab and Help > Bill of Materials"}
     if {$sfaVersion < 4.12} {outputMsg "- Updated Viewer for Part Geometry, see Help > Viewer > Overview"}
@@ -45,6 +45,9 @@ Use F9 and F10 to change the font size here.  See Help > Function Keys"
     if {$sfaVersion < 3.70} {outputMsg "- Faster generation of Spreadsheets"}
     if {$sfaVersion < 4.64} {outputMsg "- Improved menu layout on Options and Spreadsheet tabs"}
     if {$sfaVersion < 4.61} {outputMsg "- Updated Sample STEP Files in the Examples menu"}
+    if {$sfaVersion < 4.84 && [file exists [file join [file dirname [info nameofexecutable]] STEP-File-Analyzer-Release-Notes.xlsx]]} {
+      outputMsg "- The local Release Notes file 'STEP-File-Analyzer-Release-Notes.xlsx' is not up-to-date and should be deleted." red
+    }
   }
   outputMsg "- See Help > Release Notes for all new features and bug fixes"
   set sfaVersion [getVersion]
@@ -54,34 +57,19 @@ Use F9 and F10 to change the font size here.  See Help > Function Keys"
 }
 
 #-------------------------------------------------------------------------------
-# open local file or URL
-proc showFileURL {type} {
+# open User Guide
+proc openUserGuide {} {
   global sfaVersion
 
-  switch -- $type {
-    UserGuide {
 # update for new versions, local and online
-      if {$sfaVersion >= 4.65} {
-        outputMsg "\nThe User Guide (Update 7) is based on version 4.60.  See Help > Release Notes for updates." blue
-        .tnb select .tnb.status
-      }
-      set fname [file nativename [file join [file dirname [info nameofexecutable]] "SFA-User-Guide-v7.pdf"]]
-      set URL https://doi.org/10.6028/NIST.AMS.200-12
-      if {![file exists $fname]} {set fname $URL}
-      openURL $fname
-    }
-
-    ReleaseNotes {
-# local release notes file should also be on amazonaws
-      set fname [file nativename [file join [file dirname [info nameofexecutable]] "STEP-File-Analyzer-Release-Notes.xlsx"]]
-      set URL https://s3.amazonaws.com/nist-el/mfg_digitalthread/STEP-File-Analyzer-Release-Notes.xlsx
-      if {[file exists $fname]} {
-        openXLS $fname
-      } else {
-        openURL $URL
-      }
-    }
+  if {$sfaVersion > 4.6} {
+    outputMsg "\nThe User Guide (Update 7) is based on version 4.60.  See Help > Release Notes for updates." blue
+    .tnb select .tnb.status
   }
+  set fname [file nativename [file join [file dirname [info nameofexecutable]] "SFA-User-Guide-v7.pdf"]]
+  set URL https://doi.org/10.6028/NIST.AMS.200-12
+  if {![file exists $fname]} {set fname $URL}
+  openURL $fname
 }
 
 #-------------------------------------------------------------------------------
@@ -885,7 +873,7 @@ proc guiOpenSTEPFile {} {
     }
   }
 
-  catch {tooltip::tooltip $buttons(appCombo) "This option is a convenient way to open a STEP file in other apps.  The\npull-down menu contains some apps that can open a STEP file including\nSTEP viewers and browsers, however, only if they are installed in their\ndefault location.\n\nSee Help > Open STEP File in App\nSee Websites > STEP Software > STEP File Viewers\n\nThe 'Tree View (for debugging)' option rearranges and indents the entities\nto show the hierarchy of information in a STEP file.  The 'tree view' file\n(myfile-sfa.txt) is written to the same directory as the STEP file or to the\nsame user-defined directory specified in the Spreadsheet tab.  Including\nGeometry or Styled_item can make the 'tree view' file very large.  The\n'tree view' might not process /*comments*/ in a STEP file correctly.\n\nThe 'Default STEP Viewer' option opens the STEP file in whatever\napp is associated with STEP (.stp, .step, .p21) files.\n\nUse F5 to open the STEP file in a text editor."}
+  catch {tooltip::tooltip $buttons(appCombo) "This option is a convenient way to open a STEP file in other apps.  The\npull-down menu contains some apps that can open a STEP file including\nSTEP viewers and browsers, however, only if they are installed in their\ndefault location.\n\nSee Help > Open STEP File in App\nSee Websites > STEP Software > STEP File Viewers\n\nThe 'Tree View (for debugging)' option rearranges and indents the entities\nto show the hierarchy of information in a STEP file.  The 'tree view' file\n(myfile-sfa.txt) is written to the same directory as the STEP file or to the\nsame user-defined directory specified in the Spreadsheet tab.  Including\nGeometry or Styled_item can make the 'tree view' file very large.  The\n'tree view' might not process /*comments*/ in a STEP file correctly.\n\nThe 'Default STEP Viewer' option opens the STEP file in whatever app is\nassociated with STEP (.stp, .step, .p21) files.\n\nUse F5 to open the STEP file in a text editor."}
   pack $foptf -side left -anchor w -pady {5 2} -padx 10 -fill both -expand true
   pack $foptOP -side top -anchor w -pady 0 -fill x
 }
@@ -1013,16 +1001,8 @@ proc guiHelpMenu {} {
   global bits Examples excelVersion filesProcessed Help ifcsvrDir ifcsvrVer
   global mytemp opt recPracNames scriptName stepAPs
 
-  $Help add command -label "User Guide" -command {showFileURL UserGuide}
-  $Help add command -label "Release Notes" -command {showFileURL ReleaseNotes}
-
-  $Help add command -label "Check for Update" -command {
-    set lastupgrade [expr {round(([clock seconds] - $upgrade)/86400.)}]
-    outputMsg "This is version [getVersion]\nThe last check for an update was $lastupgrade days ago\nTo check for an updated version, go to Websites > STEP File Analyzer and Viewer" red
-    .tnb select .tnb.status
-    set upgrade [clock seconds]
-    saveState
-  }
+  $Help add command -label "User Guide" -command {openUserGuide}
+  $Help add command -label "Release Notes" -command {openURL https://www.nist.gov/document/sfa-release-notes}
 
   $Help add separator
   $Help add command -label "Overview" -command {
@@ -1101,7 +1081,8 @@ assemblies.  Part geometry viewer features:
 
 - Sketch geometry is supplemental lines created when generating a CAD model.  Sketch geometry is
   also known as construction, auxiliary, support, or reference geometry.  To show only sketch
-  geometry in the viewer, turn off edges and make the part completely transparent.  Sketch geometry
+  geometry in the viewer, turn off edges and make the part completely transparent.  Sometimes
+  processing sketch geometry will affect the behavior of the transparency slider.  Sketch geometry
   is not same as supplemental geometry.  See Help > Viewer > Supplemental Geometry
 
 - Normals improve the default smooth shading by explicitly computing surface normals to improve the
@@ -1481,7 +1462,8 @@ that are reported on individual worksheets are collected on one PMI Representati
 worksheet.
 
 If STEP files from the NIST CAD models (Examples > NIST CAD Models) are processed, then the PMI
-Representation Summary is color-coded by the expected PMI in each CAD model.  See Help > Analyzer > NIST CAD Models
+Representation Summary is color-coded by the expected PMI in each CAD model.
+See Help > Analyzer > NIST CAD Models
 
 Datum Features are reported on datum_* entities.  Datum_system will show the complete Datum
 Reference Frame.  Datum Targets are reported on placed_datum_target_feature.
@@ -1761,7 +1743,8 @@ Generate the Analyzer report for Validation Properties to see possible propertie
 Parts.
 
 If part and assembly names use non-Engligh characters, then the names in the BOM might be missing
-characters.  In some cases the name will appear as NoName with a number appended.  See Help > Text Strings and Numbers
+characters.  In some cases the name will appear as NoName with a number appended.
+See Help > Text Strings and Numbers
 
 Bill of Materials are not documented in the User Guide.  See Examples > Bill of Materials"
     .tnb select .tnb.status
@@ -2074,7 +2057,7 @@ Credits
 - Viewer for b-rep part geometry
    STEP to X3D Translator (stp2x3d) developed by Soonjo Kwon, former NIST Associate
    See Websites > STEP Software
-- Some Tcl code is based on: CAWT http://www.cawt.tcl3d.org/
+- Some Tcl code is based on CAWT http://www.cawt.tcl3d.org/
 
 See Help > Disclaimers and NIST Disclaimer"
 
@@ -2117,7 +2100,7 @@ See Help > Disclaimers and NIST Disclaimer"
   $Examples add separator
   $Examples add command -label "Sample STEP Files (zip)" -command {openURL https://www.nist.gov/document/nist-pmi-step-files}
   $Examples add command -label "NIST CAD Models"         -command {openURL https://www.nist.gov/ctl/smart-connected-systems-division/smart-connected-manufacturing-systems-group/mbe-pmi-0}
-  $Examples add command -label "STEP File Library"       -command {openURL https://www.cax-if.org/cax/cax_stepLib.php}
+  $Examples add command -label "STEP File Library"       -command {openURL https://www.mbx-if.org/cax/cax_stepLib.php}
   $Examples add command -label "Archived STEP Files"     -command {openURL https://web.archive.org/web/20160825140043/http://www.steptools.com/support/stdev_docs/stpfiles/index.html}
 }
 
@@ -2134,20 +2117,20 @@ proc guiWebsitesMenu {} {
   $Websites add command -label "Product Definitions in Augmented Reality"   -command {openURL https://pages.nist.gov/CAD-PMI-Testing/NIST-AR-video.html}
 
   $Websites add separator
-  $Websites add command -label "CAx Interoperability Forum (CAx-IF)" -command {openURL https://www.cax-if.org/cax/cax_introduction.php}
-  $Websites add command -label "CAx Recommended Practices"           -command {openURL https://www.cax-if.org/cax/cax_recommPractice.php}
-  $Websites add command -label "CAD Implementations"                 -command {openURL https://www.cax-if.org/cax/vendor_info.php}
+  $Websites add command -label "CAx Interoperability Forum (CAx-IF)" -command {openURL https://www.mbx-if.org/cax/cax_introduction.php}
+  $Websites add command -label "CAx Recommended Practices"           -command {openURL https://www.mbx-if.org/cax/cax_recommPractice.php}
+  $Websites add command -label "CAD Implementations"                 -command {openURL https://www.mbx-if.org/cax/vendor_info.php}
   $Websites add command -label "PDM-IF"                              -command {openURL http://www.pdm-if.org/}
-  $Websites add command -label "CAE-IF"                              -command {openURL https://www.cax-if.org/cae/cae_introduction.php}
+  $Websites add command -label "CAE-IF"                              -command {openURL https://www.mbx-if.org/cae/cae_introduction.php}
 
   $Websites add separator
   $Websites add command -label "AP203 vs AP214 vs AP242" -command {openURL https://www.capvidia.com/blog/best-step-file-to-use-ap203-vs-ap214-vs-ap242}
   $Websites add cascade -label "AP242" -menu $Websites.0
   set Websites0 [menu $Websites.0 -tearoff 1]
-  $Websites0 add command -label "AP242 Project"        -command {openURL http://www.ap242.org/}
-  $Websites0 add command -label "Benchmark Testing"    -command {openURL http://www.asd-ssg.org/step-ap242-benchmark}
-  $Websites0 add command -label "ISO 10303-242"        -command {openURL https://www.iso.org/standard/66654.html}
-  $Websites0 add command -label "3D PDF"               -command {openURL https://www.iso.org/standard/77686.html}
+  $Websites0 add command -label "AP242 Project"     -command {openURL http://www.ap242.org/}
+  $Websites0 add command -label "Benchmark Testing" -command {openURL http://www.asd-ssg.org/step-ap242-benchmark}
+  $Websites0 add command -label "ISO 10303-242"     -command {openURL https://www.iso.org/standard/66654.html}
+  $Websites0 add command -label "3D PDF"            -command {openURL https://www.iso.org/standard/77686.html}
 
   $Websites add cascade -label "STEP Format and Schemas" -menu $Websites.2
   set Websites2 [menu $Websites.2 -tearoff 1]
@@ -2156,11 +2139,13 @@ proc guiWebsitesMenu {} {
   $Websites2 add command -label "ISO 10303 Part 21 Edition 3" -command {openURL https://www.steptools.com/stds/step/}
   $Websites2 add command -label "ISO 10303 Part 21 Standard"  -command {openURL https://www.steptools.com/stds/step/IS_final_p21e3.html}
   $Websites2 add separator
-  $Websites2 add command -label "EXPRESS Schemas"                -command {openURL https://www.cax-if.org/cax/cax_express.php}
-  $Websites2 add command -label "Archived EXPRESS Schemas"       -command {openURL https://web.archive.org/web/20160322005246/www.steptools.com/support/stdev_docs/express/}
-  $Websites2 add command -label "ISO 10303 Part 11 EXPRESS"      -command {openURL https://www.loc.gov/preservation/digital/formats/fdd/fdd000449.shtml}
-  $Websites2 add command -label "EXPRESS data modeling language" -command {openURL https://en.wikipedia.org/wiki/EXPRESS_(data_modeling_language)}
-  $Websites2 add command -label "EXPRESS Language Foundation"    -command {openURL https://www.expresslang.org/}
+  $Websites2 add command -label "EXPRESS Schemas"          -command {openURL https://www.mbx-if.org/cax/cax_express.php}
+  $Websites2 add command -label "Archived EXPRESS Schemas" -command {openURL https://web.archive.org/web/20160322005246/www.steptools.com/support/stdev_docs/express/}
+  $Websites2 add command -label "Merged EXPRESS Schemas"   -command {openURL https://www.steptools.com/stds/stp_aim/html/}
+  $Websites2 add separator
+  $Websites2 add command -label "ISO 10303 Part 11 EXPRESS"        -command {openURL https://www.loc.gov/preservation/digital/formats/fdd/fdd000449.shtml}
+  $Websites2 add command -label "EXPRESS data modeling language"   -command {openURL https://en.wikipedia.org/wiki/EXPRESS_(data_modeling_language)}
+  $Websites2 add command -label "EXPRESS Language Foundation"      -command {openURL https://www.expresslang.org/}
   $Websites2 add command -label "AP203 Recommended Practice (pdf)" -command {openURL https://www.oasis-open.org/committees/download.php/11728/recprac8.pdf}
   $Websites2 add separator
   $Websites2 add command -label "AP209 FEA"        -command {openURL http://www.ap209.org}
@@ -2171,7 +2156,7 @@ proc guiWebsitesMenu {} {
 
   $Websites add cascade -label "STEP Software" -menu $Websites.3
   set Websites3 [menu $Websites.3 -tearoff 1]
-  $Websites3 add command -label "STEP File Viewers"      -command {openURL https://www.cax-if.org/step_viewers.php}
+  $Websites3 add command -label "STEP File Viewers"      -command {openURL https://www.mbx-if.org/step_viewers.php}
   $Websites3 add command -label "STEP to X3D Translator" -command {openURL https://www.nist.gov/services-resources/software/step-x3d-translator}
   $Websites3 add command -label "STEP to OWL Translator" -command {openURL https://github.com/usnistgov/stp2owl}
   $Websites3 add command -label "STEP Class Library"     -command {openURL https://www.nist.gov/services-resources/software/step-class-library-scl}
@@ -2269,7 +2254,6 @@ proc guiToolTip {ttmsg tt {name ""}} {
   set ttlim 120
   if {$tt == "stepCOMM" || $tt == "stepAP242"} {set ttlim 140}
   if {$tt == "stepADDM"} {set ttlim 70}
-  if {$tt == "stepCPNT"} {set ttlim 90}
   append ttmsg "\n\n"
 
   foreach type {ap203 ap242} {
@@ -2314,7 +2298,7 @@ proc getOpenPrograms {} {
   global drive editorCmd developer myhome pf32 pf64 pflist
 
 # Including any of the CAD viewers and software does not imply a recommendation or endorsement of them by NIST https://www.nist.gov/disclaimer
-# For more STEP viewers, go to https://www.cax-if.org/step_viewers.php
+# For more STEP viewers, go to https://www.mbx-if.org/step_viewers.php
 
   regsub {\\} $pf32 "/" p32
   lappend pflist $p32
@@ -2355,7 +2339,6 @@ proc getOpenPrograms {} {
 
 # STEP file viewers, use * when the directory or name has a number
     set applist [list \
-      [list {*}[glob -nocomplain -directory [file join $pf "C3D Labs" "C3D Viewer" bin] -join c3dviewer.exe] "C3D Viewer"] \
       [list {*}[glob -nocomplain -directory [file join $pf "CAD Assistant"] -join CADAssistant.exe] "CAD Assistant"] \
       [list {*}[glob -nocomplain -directory [file join $pf "CAD Exchanger" bin] -join Exchanger.exe] "CAD Exchanger"] \
       [list {*}[glob -nocomplain -directory [file join $pf "Common Files"] -join "eDrawings*" eDrawings.exe] "eDrawings Viewer"] \

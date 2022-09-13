@@ -1,8 +1,7 @@
 # read entity and write to spreadsheet
 proc getEntity {objEntity rmax checkInverse checkBadAttributes unicodeCheck} {
-  global attrType badAttributes cells col count entComment entCount entName entRows heading invMsg invVals localName
-  global matrixList opt roseLogical row sheetLast skipEntities skipPerm syntaxErr thisEntType unicodeAttributes unicodeString worksheet worksheets
-  global wsCount wsNames
+  global attrType badAttributes cells col count entComment entCount entName entRows heading invMsg invVals matrixList opt roseLogical row
+  global sheetLast skipEntities skipFileName skipPerm syntaxErr thisEntType unicodeAttributes unicodeString worksheet worksheets wsCount wsNames
 
 # get entity type
   set thisEntType [$objEntity Type]
@@ -65,10 +64,8 @@ proc getEntity {objEntity rmax checkInverse checkBadAttributes unicodeCheck} {
     set sheetLast $worksheet($thisEntType)
 
 # file of entities not to process
-    set cfile [file rootname $localName]
-    append cfile "-skip.dat"
     if {[catch {
-      set skipFile [open $cfile w]
+      set skipFile [open $skipFileName w]
       foreach item $skipEntities {if {[lsearch $skipPerm $item] == -1} {puts $skipFile $item}}
       if {[lsearch $skipEntities $thisEntType] == -1 && [lsearch $skipPerm $thisEntType] == -1} {puts $skipFile $thisEntType}
       close $skipFile
@@ -136,11 +133,13 @@ proc getEntity {objEntity rmax checkInverse checkBadAttributes unicodeCheck} {
           } else {
             set objValue "???"
             if {[llength $badAttributes($thisEntType)] == 1} {
-              errorMsg " Reporting [formatComplexEnt $thisEntType] '$attrName' attribute is not supported.  '???' will appear in spreadsheet for this attribute.  See User Guide section 5.4" red
+              errorMsg " Reporting [formatComplexEnt $thisEntType] '$attrName' attribute is not supported." red
+              errorMsg " '???' will appear in spreadsheet for this attribute.  See User Guide section 5.4" red
             } else {
               set str $badAttributes($thisEntType)
               regsub -all " " $str "' '" str
-              errorMsg " Reporting [formatComplexEnt $thisEntType] '$str' attribute is not supported.  '???' will appear in spreadsheet for these attributes.  See User Guide section 5.4" red
+              errorMsg " Reporting [formatComplexEnt $thisEntType] '$str' attribute is not supported." red
+              errorMsg " '???' will appear in spreadsheet for these attributes.  See User Guide section 5.4" red
             }
           }
         }
@@ -417,7 +416,7 @@ proc setIDRow {entType p21id} {
 # -------------------------------------------------------------------------------------------------
 # read entity and write to CSV file
 proc getEntityCSV {objEntity checkBadAttributes} {
-  global badAttributes count csvdirnam csvfile csvinhome csvstr entCount fcsv localName mydocs roseLogical row rowmax skipEntities skipPerm thisEntType
+  global badAttributes count csvdirnam csvfile csvinhome csvstr entCount fcsv mydocs roseLogical row rowmax skipEntities skipFileName skipPerm thisEntType
 
 # get entity type
   set thisEntType [$objEntity Type]
@@ -457,10 +456,8 @@ proc getEntityCSV {objEntity checkBadAttributes} {
     set row($thisEntType) 4
 
 # file of entities not to process
-    set cfile [file rootname $localName]
-    append cfile "-skip.dat"
     if {[catch {
-      set skipFile [open $cfile w]
+      set skipFile [open $skipFileName w]
       foreach item $skipEntities {if {[lsearch $skipPerm $item] == -1} {puts $skipFile $item}}
       if {[lsearch $skipEntities $thisEntType] == -1 && [lsearch $skipPerm $thisEntType] == -1} {puts $skipFile $thisEntType}
       close $skipFile
@@ -503,7 +500,8 @@ proc getEntityCSV {objEntity checkBadAttributes} {
             set objValue [$objAttribute Value]
           } else {
             set objValue "???"
-            errorMsg " Reporting [formatComplexEnt $thisEntType] '$attrName' attribute is not supported.  '???' will appear in CSV file for this attribute.  See User Guide section 5.4" red
+            errorMsg " Reporting [formatComplexEnt $thisEntType] '$attrName' attribute is not supported." red
+            errorMsg " '???' will appear in CSV file for this attribute.  See User Guide section 5.4" red
           }
         }
 

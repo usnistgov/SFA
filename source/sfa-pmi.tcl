@@ -456,9 +456,13 @@ proc x3dGetSavedViewName {objEntity} {
   set savedViewName {}
   foreach dm $draughtingModels {
     set entDraughtingModels [$objEntity GetUsedIn [string trim $dm] [string trim items]]
-    set entDraughtingCallouts [$objEntity GetUsedIn [string trim draughting_callout] [string trim contents]]
-    ::tcom::foreach entDraughtingCallout $entDraughtingCallouts {
-      set entDraughtingModels [$entDraughtingCallout GetUsedIn [string trim $dm] [string trim items]]
+    set ndm 0
+    ::tcom::foreach ent $entDraughtingModels {incr ndm}
+    if {$ndm == 0} {
+      set entDraughtingCallouts [$objEntity GetUsedIn [string trim draughting_callout] [string trim contents]]
+      ::tcom::foreach entDraughtingCallout $entDraughtingCallouts {
+        set entDraughtingModels [$entDraughtingCallout GetUsedIn [string trim $dm] [string trim items]]
+      }
     }
 
     ::tcom::foreach entDraughtingModel $entDraughtingModels {
@@ -573,7 +577,7 @@ proc x3dPolylinePMI {{objEntity1 ""}} {
           puts $f " <IndexedLineSet coordIndex='[string trim $x3dIndex]'>\n  <Coordinate point='[string trim $x3dCoord]'/></IndexedLineSet></Shape>"
 
 # end shape
-        } elseif {$x3dShape} {
+        } elseif {$x3dShape && [info exists x3dIndexType]} {
           puts $f "</Indexed$x3dIndexType\Set></Shape>"
         }
       }
