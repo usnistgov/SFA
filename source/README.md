@@ -37,8 +37,6 @@ Each Tcl file contains multiple procedures.
 
 - sfa-files.txt - freewrap input file that lists all of the above files
 
-- teapot.zip - Tcl packages not included with Tcl installation
-
 ## Disclaimers
 
 [NIST Disclaimer](https://www.nist.gov/disclaimer)
