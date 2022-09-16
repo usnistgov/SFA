@@ -10,8 +10,11 @@ Microsoft Excel is required to generate spreadsheets.  CSV (comma-separated valu
 
 Install the IFCsvr toolkit that is required to read STEP files.
 
-- Run the installation file ifcsvrr300_setup_1008_en-update.msi from the 'files' directory
-- You might have to run it from a temporary directory such as C:/Users/username/AppData/Local/Temp
+- Run the IFCsvr installation file 'ifcsvrr300_setup_1008_en-update.msi' from the 'files' directory
+- Use the default installation folder
+- You might have to run the installation file from a temporary directory such as C:/Users/username/AppData/Local/Temp
+- After the toolkit is installed, the license agreement can be found in C:/Program Files (x86)/IFCsvrR300/doc
+- The IFCsvr toolkit was developed by SECOM Co., Ltd. in Japan through 2009 and has been modified by NIST to include STEP schemas.  It used to be available in a [Yahoo Group](https://web.archive.org/web/20090726182959/tech.groups.yahoo.com/group/ifcsvr-users/).
 
 Download the SFA files from the GitHub 'source' directory to a directory on your computer.
 
@@ -21,7 +24,7 @@ Download the SFA files from the GitHub 'source' directory to a directory on your
 
 freewrap wraps the SFA Tcl code to create an executable.
 
-- Download freewrap651.zip from <https://sourceforge.net/projects/freewrap/files/freewrap/freeWrap%206.51/>.  More recent versions of freewrap will **not** work with wrapping SFA.
+- Download freewrap651.zip from <https://sourceforge.net/projects/freewrap/files/freewrap/freeWrap%206.51/>  More recent versions of freewrap will **not** work with wrapping SFA.
 - Extract freewrap.exe and put it in the same directory as the SFA files that were downloaded from the 'source' directory.
 
 Several Tcl packages not included in freewrap also need to be installed.
