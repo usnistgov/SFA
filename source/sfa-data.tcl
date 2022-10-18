@@ -300,9 +300,9 @@ set spmiEntTypes [list \
 ]
 
 # max rows for PMI elements on PMI representation coverage worksheet, depends on number and order of items below
-set pmiElementsMaxRows 179
+set pmiElementsMaxRows 180
 # line breaks are above the row, depends on the grouping of PMI elements below
-set pmiHorizontalLineBreaks [list 19 35 47 53 67 74 84 [expr {$pmiElementsMaxRows-11}]]
+set pmiHorizontalLineBreaks [list 19 36 48 54 68 75 85 [expr {$pmiElementsMaxRows-11}]]
 
 # -----------------------------------------------------------------------------------------------------
 # dimensional_size names (Section 5.1.5, Table 4)
@@ -326,9 +326,9 @@ set gpmiTypes [list angularity "circular runout" circularity coaxiality concentr
 # Semantic PMI types for coverage analysis, order is important
 set spmiTypes $tolNames
 
-foreach item [list "tolerance zone diameter \u2300 (6.9.2)" "tolerance zone within a cylinder \u2300 (6.9.2)" "tolerance zone spherical diameter S\u2300 (6.9.2)" "tolerance zone other (6.9.2)" "tolerance zone precision (6.9)" "all_over \u2B69\u25CE (6.3)" "all_around \u232E (6.4.2)" "between \u2194 (6.4.3)" "affected plane tolerance zone (6.9.2.1)" "projected \u24C5 (6.9.2.2)" "non-uniform tolerance zone (6.9.2.3)" "unequally_disposed \u24CA or UZ (6.9.4)" "tolerance with max value (6.9.5)" "unit-basis tolerance (6.9.6)" "composite tolerance (6.9.9)" "intersection/orientation plane indicator" \
+foreach item [list "tolerance zone diameter \u2300 (6.9.2)" "tolerance zone within a cylinder \u2300 (6.9.2)" "tolerance zone spherical diameter S\u2300 (6.9.2)" "tolerance zone other (6.9.2)" "all_over \u2B69\u25CE (6.3)" "all_around \u232E (6.4.2)" "between \u2194 (6.4.3)" "affected plane tolerance zone (6.9.2.1)" "projected \u24C5 (6.9.2.2)" "non-uniform tolerance zone (6.9.2.3)" "unequally_disposed \u24CA or UZ (6.9.4)" "tolerance with max value (6.9.5)" "unit-basis tolerance (6.9.6)" "composite tolerance (6.9.9)" "pattern of features (6.4.1)" "tolerance zone precision (6.9)" "intersection/orientation plane indicator" \
   "dimensions (location+size)" "dimensional location (5.1.1)" "dimensional size (5.1.5)" "angular location (5.1.2)" "angular size (5.1.6)" "directed dimension \u2331 (5.1.1)" "oriented dimensional location (5.1.3)" "derived shapes dimensional location (5.1.4)" "location with path (5.1.7)" "repetitive dimensions 'nX' (5.1, User Guide 6.1.3)" "dimension association to geometric tolerance (5.1)" "dimension precision (5.4)" \
-  "bilateral tolerance (5.2.3)" "non-bilateral tolerance (5.2.3)" "tolerance precision (5.2.3)" "type qualifier (5.2.2)" "value range (5.2.4)" "limits and fits (5.2.5)" \
+  "bilateral tolerance (5.2.3)" "non-bilateral tolerance (5.2.3)" "type qualifier (5.2.2)" "value range (5.2.4)" "limits and fits (5.2.5)" "tolerance precision (5.2.3)" \
   "diameter \u2300 (5.1.5)" "radius R (5.1.5)" "spherical diameter S\u2300 (5.1.5)" "spherical radius SR (5.1.5)" "curved distance (5.1.1)" "linear distance (5.1.1)" "linear distance inner/outer (5.1.1)" "curve length (5.1.5)" "thickness (5.1.5)" "toroidal radius/diameter (5.1.5)" "controlled radius CR (5.3)" "dimension basic (5.3)" "reference dimension (5.3)" "square \u25A1 (5.3)" \
   "datum (6.5)" "datum system (6.9.7)" "datum with axis system (6.9.7)" "datum with modifiers (6.9.7)" "multiple datum features (6.9.8)" "datum feature association to geometric tolerance (6.1)" "datum feature association to dimension (6.5.3)" \
   "all datum targets" "point datum target (6.6.1)" "line datum target (6.6.1)" "rectangle datum target (6.6.1)" "circle datum target (6.6.1)" "circular curve datum target (6.6.1)" "curve datum target (6.6.2)" "area datum target (6.6.2)" "placed datum target geometry (6.6.3)" "movable datum target (6.6.4)" \

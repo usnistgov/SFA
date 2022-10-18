@@ -17,7 +17,7 @@ proc spmiGeotolStart {entType} {
   set cdt [list common_datum identification]
 
   set df1 [list datum_feature name product_definitional]
-  set df2 [list composite_shape_aspect_and_datum_feature name product_definitional]
+  set df2 [list composite_shape_aspect_and_datum_feature name description product_definitional]
   set df3 [list composite_group_shape_aspect_and_datum_feature name product_definitional]
   set df4 [list datum_feature_and_derived_shape_aspect name product_definitional]
   set df5 [list dimensional_size_with_datum_feature name product_definitional]
@@ -49,8 +49,8 @@ proc spmiGeotolStart {entType} {
   foreach tol $tolNames {set PMIP($tol) \
     [list $tol name magnitude $len1 $len2 $len3 $len4 \
       toleranced_shape_aspect \
-        $df1 $df2 $df3 $df4 $df5 $df6 [list centre_of_symmetry name] [list centre_of_symmetry_and_datum_feature name] \
-        [list composite_group_shape_aspect name] [list composite_shape_aspect name] \
+        $df1 $df2 $df3 $df4 $df5 $df6 [list centre_of_symmetry name description] [list centre_of_symmetry_and_datum_feature name description] \
+        [list composite_group_shape_aspect name description] [list composite_shape_aspect name] \
         [list composite_unit_shape_aspect name] [list composite_unit_shape_aspect_and_datum_feature name] \
         [list all_around_shape_aspect name] [list between_shape_aspect name] [list shape_aspect name] [list product_definition_shape name] \
       datum_system [list datum_system name product_definitional] $dr $rmd \
@@ -855,7 +855,18 @@ proc spmiGeotolReport {objEntity} {
                             set nlet 2
                             if {$tolStandard(type) == "ISO"} {set nlet 3}
                             if {![string is alpha $letter] || [string length $letter] > $nlet} {
-                              set msg "Datum 'identification' attribute cannot be more than $nlet letters based on the $tolStandard(type) tolerancing standard."
+                              set msg "Datum 'identification' attribute cannot be more than $nlet letters based on the ASME or ISO datum standard."
+                              errorMsg $msg
+                              lappend syntaxErr(datum) [list $id identification $msg]
+                            }
+
+# check for letters that are not valid
+                            set badletters [list I O Q]
+                            if {$tolStandard(type) == "ISO"} {set badletters [list I O Q X Y Z]}
+                            set badletter 0
+                            foreach blet $badletters {if {[string first $blet $letter] != -1} {set badletter 1}}
+                            if {$badletter} {
+                              set msg "Datum 'identification' attribute contains invalid letters based on the ASME or ISO datum standard."
                               errorMsg $msg
                               lappend syntaxErr(datum) [list $id identification $msg]
                             }
@@ -1326,6 +1337,11 @@ proc spmiGeotolReport {objEntity} {
                       lappend spmiTypesPerFile "tolerance zone precision"
                       unset magType
                     }
+                  }
+
+                  "*shape_aspect* description" -
+                  "*centre_of_symmetry* description" {
+                    if {$objValue == "pattern of features"} {lappend spmiTypesPerFile "pattern of features"}
                   }
                 }
 
@@ -1899,7 +1915,7 @@ proc spmiGeotolReport {objEntity} {
         }
       }
     } emsg4]} {
-      #errorMsg "Error reporting Equivalent Unicode String for a geometric tolerance: $emsg4"
+      errorMsg "Error reporting Equivalent Unicode String for a geometric tolerance: $emsg4"
     }
   }
 

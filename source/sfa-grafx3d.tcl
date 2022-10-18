@@ -407,7 +407,7 @@ proc x3dFileEnd {} {
 # -------------------------------------------------------------------------------
 # if not associated with a saved view, placeholder axes, coordinates, text, box
   set viz(PLACE) 0
-  if {[info exists placeCoords] || [info exists leaderCoords]} {
+  if {$opt(viewPMI) && ([info exists placeCoords] || [info exists leaderCoords])} {
     set nph 0
     catch {foreach idx [array names placeCoords]  {incr nph}}
     catch {foreach idx [array names leaderCoords] {incr nph}}

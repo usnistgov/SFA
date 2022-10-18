@@ -1,6 +1,6 @@
 # read expected PMI from spreadsheets, (called from sfa-gen.tcl)
 proc nistReadExpectedPMI {{epmiFile ""}} {
-  global mytemp nistName nistPMImaster nistVersion spmiCoverages epmiUD wdir
+  global epmiUD gen mytemp nistName nistPMImaster nistVersion opt spmiCoverages wdir
 
   if {[catch {
     set lf 1
@@ -45,7 +45,9 @@ proc nistReadExpectedPMI {{epmiFile ""}} {
           } else {
             set i1 [lindex $lline 0]
             foreach cval $lline {
-              if {[info exists i2($c)] && $c > 0} {set spmiCoverages($i1,$i2($c)) $cval}
+              if {[info exists i2($c)] && $c > 0} {
+                if {$i1 != "section views" || ($gen(View) && ($opt(viewPart) || $opt(viewPMI)))} {set spmiCoverages($i1,$i2($c)) $cval}
+              }
               incr c
             }
           }

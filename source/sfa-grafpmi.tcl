@@ -757,14 +757,8 @@ proc gpmiAnnotationReport {objEntity} {
                 }
 
                 "annotation_placeholder_occurrence* line_spacing" {
-                  set msg ""
-                  if {$objValue <= 0.} {
-                    set msg "Syntax Error: [lindex $ent1 0] 'line_spacing' must be greater than zero."
-                  } elseif {$objValue < 1.E-300} {
-                    set msg "Syntax Error: Bad format for [lindex $ent1 0] 'line_spacing' attribute."
-                  }
-                  if {$msg != ""} {
-                    append msg "$spaces\($recPracNames(pmi242), Sec. 7.2.2)"
+                  if {$objValue < 1.E-6} {
+                    set msg "[lindex $ent1 0] 'line_spacing' is zero."
                     errorMsg $msg
                     lappend syntaxErr([lindex $ent1 0]) [list $objID "line_spacing" $msg]
                   }
