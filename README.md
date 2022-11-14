@@ -8,13 +8,10 @@ The [NIST STEP to X3D Translator](https://www.nist.gov/services-resources/softwa
 
 Microsoft Excel is required to generate spreadsheets.  CSV (comma-separated values) files will be generated if Excel is not installed.
 
-Install the IFCsvr toolkit that is required to read STEP files.
+**You must first install and run the NIST version of the STEP File Analyzer and Viewer before running your own version.**
 
-- Run the IFCsvr installation file 'ifcsvrr300_setup_1008_en-update.msi' from the 'files' directory
-- Use the default installation folder
-- You might have to run the installation file from a temporary directory such as C:/Users/username/AppData/Local/Temp
-- After the toolkit is installed, the license agreement can be found in C:/Program Files (x86)/IFCsvrR300/doc
-- The IFCsvr toolkit was developed by SECOM Co., Ltd. in Japan through 2009 and has been modified by NIST to include STEP schemas.  It used to be available in a [Yahoo Group](https://web.archive.org/web/20090726182959/tech.groups.yahoo.com/group/ifcsvr-users/).
+- Go to the [STEP File Analyzer and Viewer](https://www.nist.gov/services-resources/software/step-file-analyzer-and-viewer) to download the software
+- Extract STEP-File-Analyzer.exe from the zip file and run it
 
 Download the SFA files from the GitHub 'source' directory to a directory on your computer.
 
@@ -29,7 +26,7 @@ freewrap wraps the SFA Tcl code to create an executable.
 
 Several Tcl packages not included in freewrap also need to be installed.
 
-- teapot.zip in the 'files' directory contains the additional Tcl packages
+- teapot.zip from the 'source' directory contains the additional Tcl packages
 - Create a directory C:/Tcl/lib
 - Unzip teapot.zip to the 'lib' directory to create C:/Tcl/lib/teapot
 
