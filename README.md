@@ -44,7 +44,7 @@ Optionally build the command-line version:
 
 ## Running the Software
 
--**You must first install and run the NIST version of the STEP File Analyzer and Viewer before running your own version.**
+**You must first install and run the NIST version of the STEP File Analyzer and Viewer before running your own version.**
 - Go to the [STEP File Analyzer and Viewer](https://www.nist.gov/services-resources/software/step-file-analyzer-and-viewer) to download the software
 - Extract STEP-File-Analyzer.exe from the zip file and run it
 - Some features are not available in the user-built version including: tooltips, unzipping compressed STEP files, automated PMI checking for the [NIST CAD models](https://www.nist.gov/el/systems-integration-division-73400/mbe-pmi-validation-and-conformance-testing), and inserting images of the NIST test cases in the spreadsheets.  Some of the features will be available if the NIST-built version is run first.
