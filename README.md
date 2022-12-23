@@ -8,11 +8,6 @@ The [NIST STEP to X3D Translator](https://www.nist.gov/services-resources/softwa
 
 Microsoft Excel is required to generate spreadsheets.  CSV (comma-separated values) files will be generated if Excel is not installed.
 
-**You must first install and run the NIST version of the STEP File Analyzer and Viewer before running your own version.**
-
-- Go to the [STEP File Analyzer and Viewer](https://www.nist.gov/services-resources/software/step-file-analyzer-and-viewer) to download the software
-- Extract STEP-File-Analyzer.exe from the zip file and run it
-
 Download the SFA files from the GitHub 'source' directory to a directory on your computer.
 
 - The name of the directory is not important
@@ -47,8 +42,11 @@ Optionally build the command-line version:
 - Edit sfa-cl.tcl similar to sfa.tcl above
 - To generate **sfa-cl.exe**, enter the command: freewrapTCLSH -f sfa-files.txt
 
-## Other
+## Running the Software
 
+-**You must first install and run the NIST version of the STEP File Analyzer and Viewer before running your own version.**
+- Go to the [STEP File Analyzer and Viewer](https://www.nist.gov/services-resources/software/step-file-analyzer-and-viewer) to download the software
+- Extract STEP-File-Analyzer.exe from the zip file and run it
 - Some features are not available in the user-built version including: tooltips, unzipping compressed STEP files, automated PMI checking for the [NIST CAD models](https://www.nist.gov/el/systems-integration-division-73400/mbe-pmi-validation-and-conformance-testing), and inserting images of the NIST test cases in the spreadsheets.  Some of the features will be available if the NIST-built version is run first.
 - Internally at NIST, SFA is built with [ActiveTcl 8.5.18 32-bit](https://www.activestate.com/products/tcl/) and the [Tcl Dev Kit](https://www.activestate.com/blog/tcl-dev-kit-now-open-source/) which is now an open source project.
 
