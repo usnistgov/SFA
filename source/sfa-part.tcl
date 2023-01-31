@@ -53,7 +53,7 @@ proc x3dBrepGeom {} {
 
 # run stp2x3d-part.exe
       if {$opt(DEBUGX3D)} {getTiming stp2x3d}
-      catch {exec $stp2x3d --input [file nativename $localName] --quality $opt(partQuality) --edge $opt(partEdges) --sketch $opt(partSketch) --normal $opt(partNormals) --rosette $rosetteOpt} errs
+      catch {exec $stp2x3d --input [file nativename $localName] --quality $opt(partQuality) --edge $opt(partEdges) --sketch $opt(partSketch) --normal $opt(partNormals) --rosette $rosetteOpt --tess $opt(tessAlt)} errs
       if {$opt(DEBUGX3D)} {getTiming done; outputMsg $errs}
 
 # done processing

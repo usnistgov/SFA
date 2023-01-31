@@ -1481,22 +1481,32 @@ proc spmiGeotolReport {objEntity} {
   if {$entLevel == 0} {
     if {[catch {
 
-# check for unique datum systems
-    if {$gt == "datum_system" && [llength [array names datumSystem]] == $entCount(datum_system)} {
-      foreach id [array names datumSystem] {
-        set idx "$datumSystem($id) $datumSystemPDS($id)"
-        lappend ds($idx) $id
+# check missing unit size
+      if {[string first "defined_unit" $gt] != -1 || [string first "defined_area_unit" $gt] != -1} {
+        set val [[$cells($gt) Item $r F] Value]
+        if {$val == ""} {
+          set msg "Syntax Error: Missing 'unit_size' on [formatComplexEnt $gt].$spaces\($recPracNames(pmi242), Sec. 6.9.6)"
+          errorMsg $msg
+          lappend syntaxErr([$gtEntity Type]) [list [$gtEntity P21ID] "unit_size" $msg]
+        }
       }
-      foreach id [array names ds] {
-        if {[llength $ds($id)] > 1} {
-          foreach id1 $ds($id) {
-            set msg "Syntax Error: Datum Reference Frames for 'datum_system' should be unique for the same product_definition_shape.$spaces\($recPracNames(pmi242), Sec. 6.9.7)"
-            errorMsg $msg
-            lappend syntaxErr(datum_system) [list $id1 "Datum Reference Frame" $msg]
+
+# check for unique datum systems
+      if {$gt == "datum_system" && [llength [array names datumSystem]] == $entCount(datum_system)} {
+        foreach id [array names datumSystem] {
+          set idx "$datumSystem($id) $datumSystemPDS($id)"
+          lappend ds($idx) $id
+        }
+        foreach id [array names ds] {
+          if {[llength $ds($id)] > 1} {
+            foreach id1 $ds($id) {
+              set msg "Syntax Error: Datum Reference Frames for 'datum_system' should be unique for the same product_definition_shape.$spaces\($recPracNames(pmi242), Sec. 6.9.7)"
+              errorMsg $msg
+              lappend syntaxErr(datum_system) [list $id1 "Datum Reference Frame" $msg]
+            }
           }
         }
       }
-    }
 
 # check for tolerances that require a datum system (section 6.8, table 11), don't check if using old method of datum_reference
       if {![info exists datsys] && [string first "_tolerance" [$gtEntity Type]] != -1 && ![info exists entCount(datum_reference)]} {

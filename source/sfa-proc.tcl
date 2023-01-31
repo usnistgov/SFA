@@ -123,8 +123,8 @@ proc openFile {{openName ""}} {
   if {$openName == ""} {
 
 # file types for file select dialog
-    set typelist [list {"STEP " {".stp" ".step" ".stpZ" ".p21" ".stpnc" ".spf"}}]
-    if {$developer} {set typelist [list {"STEP " {".stp" ".step" ".stpZ" ".stpx" ".p21" ".stpnc" ".spf"}}]}
+    set typelist [list {"STEP " {".stp" ".step" ".p21" ".stpZ"}}]
+    if {$developer} {set typelist [list {"STEP " {".stp" ".step" ".p21" ".stpZ" ".stpx"}}]}
     lappend typelist {"IFC " {".ifc"}}
     lappend typelist {"STL " {".stl"}}
 
@@ -193,14 +193,9 @@ proc openFile {{openName ""}} {
 # check file extension
       set fext ""
       catch {set fext [string tolower [file extension $localName]]}
-      set msg ""
-      if {$fext == ".stpnc" || ($fext == ".spf" && !$opt(partOnly))} {
-        errorMsg "Change the file extension '$fext' to '.stp' to process the STEP file."
-        catch {.tnb select .tnb.status}
-        return
 
 # get STEP file from XML file
-      } elseif {$fext == ".stpx"} {
+      if {$fext == ".stpx"} {
         set ap242XML 1
         set gen(View) 1
         set opt(partOnly) 1
@@ -1608,6 +1603,7 @@ proc setShortcuts {} {
       if {$choice == "yes"} {
         set temp [string range $mytemp 0 end-4]
         catch {[file copy -force -- [file join $wdir images NIST.ico] [file join $temp NIST.ico]]}
+        catch {[file copy -force -- [file join $wdir images NIST.ico] [file join $mytemp NIST.ico]]}
         catch {if {[info exists mymenu]} {twapi::write_shortcut [file join $mymenu "$progstr.lnk"] -path [info nameofexecutable] -desc $progstr -iconpath [file join $temp NIST.ico]}}
         catch {if {[info exists mydesk]} {twapi::write_shortcut [file join $mydesk "$progstr.lnk"] -path [info nameofexecutable] -desc $progstr -iconpath [file join $temp NIST.ico]}}
       }

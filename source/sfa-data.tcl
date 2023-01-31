@@ -31,7 +31,7 @@ foreach id {BOM logFile outputOpen partEdges partSketch PMIGRF PMISEM stepCOMM s
 # options, set to 0
 foreach id {DEBUG1 debugAG DEBUGINV DEBUGNOXL DEBUGVP DEBUGX3D feaBounds feaDisp feaDispNoTail feaLoads feaLoadScale indentGeometry \
   indentStyledItem INVERSE partNoGroup partNormals partOnly PMIGRFCOV PMISEMDIM PMISEMDT PMISEMRND SHOWALLPMI stepADDM stepAP242 \
-  stepCOMP stepCONS stepCPNT stepFEAT stepGEOM stepKINE stepQUAL stepUSER syntaxChecker tessPartMesh viewFEA viewPMIAR viewPMIVP \
+  stepCOMP stepCONS stepCPNT stepFEAT stepGEOM stepKINE stepQUAL stepUSER syntaxChecker tessAlt tessPartMesh viewFEA viewPMIAR viewPMIVP \
   writeDirType x3dSave xlHideLinks xlNoRound xlSort xlUnicode} {set opt($id) 0}
 
 set gen(View) 1
