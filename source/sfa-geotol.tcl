@@ -1482,12 +1482,14 @@ proc spmiGeotolReport {objEntity} {
     if {[catch {
 
 # check missing unit size
-      if {[string first "defined_unit" $gt] != -1 || [string first "defined_area_unit" $gt] != -1} {
-        set val [[$cells($gt) Item $r F] Value]
-        if {$val == ""} {
-          set msg "Syntax Error: Missing 'unit_size' on [formatComplexEnt $gt].$spaces\($recPracNames(pmi242), Sec. 6.9.6)"
-          errorMsg $msg
-          lappend syntaxErr([$gtEntity Type]) [list [$gtEntity P21ID] "unit_size" $msg]
+      if {[info exists r]} {
+        if {[string first "defined_unit" $gt] != -1 || [string first "defined_area_unit" $gt] != -1} {
+          set val [[$cells($gt) Item $r F] Value]
+          if {$val == ""} {
+            set msg "Syntax Error: Missing 'unit_size' on [formatComplexEnt $gt].$spaces\($recPracNames(pmi242), Sec. 6.9.6)"
+            errorMsg $msg
+            lappend syntaxErr([$gtEntity Type]) [list [$gtEntity P21ID] "unit_size" $msg]
+          }
         }
       }
 
@@ -2199,7 +2201,6 @@ proc spmiPlacedDatumTarget {objEntity objValue} {
               set origin [vectrim [lindex $axisval 0] 1]
               append datumTargetRep "[format "%c" 10]axis2_placement_3d [$e4 P21ID]"
               append datumTargetRep "[format "%c" 10]  origin  $origin"
-              if {[string first "(point)" $objValue] != -1} {append objValue " $origin"}
 
 # check if values are ok
               set msg ""

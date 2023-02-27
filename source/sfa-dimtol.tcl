@@ -219,13 +219,13 @@ proc spmiDimtolReport {objEntity} {
                         if {$nistName != ""} {
                           set ln $nistName
                           if {$dim(unit) == "MM" && ([string first "ctc_03" $ln] != -1 || [string first "ctc_05" $ln] != -1 || \
-                                                     [string first "ftc_06" $ln] != -1 || [string first "ftc_07" $ln] != -1 || \
-                                                     [string first "ftc_08" $ln] != -1 || [string first "ftc_09" $ln] != -1)} {
+                                                     [string first "ftc_06" $ln] != -1 || [string first "ftc_07" $ln] != -1 || [string first "stc_06" $ln] != -1 || [string first "stc_07" $ln] != -1 || \
+                                                     [string first "ftc_08" $ln] != -1 || [string first "ftc_09" $ln] != -1 || [string first "stc_08" $ln] != -1 || [string first "stc_09" $ln] != -1)} {
                             errorMsg "INCH dimensions are used in the NIST [string toupper [string range $ln 5 end]] test case."
                             set dim(unitOK) 0
                           }
                           if {$dim(unit) == "INCH" && ([string first "ctc_01" $ln] != -1 || [string first "ctc_02" $ln] != -1 || [string first "ctc_04" $ln] != -1 || \
-                                                       [string first "ftc_10" $ln] != -1 || [string first "ftc_11" $ln] != -1)} {
+                                                       [string first "ftc_10" $ln] != -1 || [string first "ftc_11" $ln] != -1 || [string first "stc_10" $ln] != -1)} {
                             errorMsg "MM dimensions are used in the NIST [string toupper [string range $ln 5 end]] test case."
                             set dim(unitOK) 0
                           }
@@ -1504,7 +1504,7 @@ proc spmiDimtolReport {objEntity} {
                   append dtg " and "
                 }
               }
-              if {$nistName != "nist_ftc_07" || [string first ".875 ±" $dtg] == -1} {
+              if {($nistName != "nist_ftc_07" && $nistName != "nist_stc_07") || [string first ".875 ±" $dtg] == -1} {
                 errorMsg "Multiple ([llength $dimtolGeom($dimtolGeomEnts)]) dimensions $dtg are associated with the same geometry. (IDs $dimtolGeomEnts)"
                 addCellComment $dt $r $pmiColumns(ch) "Multiple dimensions are associated with the same geometry.  The identical information in this cell should appear in another Associated Geometry cell above."
               }

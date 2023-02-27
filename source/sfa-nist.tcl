@@ -241,16 +241,20 @@ proc nistCheckExpectedPMI {val entstr epmiName} {
       set pmiException(dfl) 1
     }
   }
-  if {$epmiName == "nist_ftc_06" || $epmiName == "nist_ftc_08"} {
+  if {$epmiName == "nist_ftc_06" || $epmiName == "nist_ftc_08" || $epmiName == "nist_stc_06"} {
     set c1 [string first "\[F" $val]
     if {$c1 != -1} {
-      set val [string range $val 0 $c1-16][string range $val $c1+3 end]
+      set c2 16
+      set char [string index $val $c1-$c2]
+      if {$char != " "} {set c2 15}
+      set val [string range $val 0 $c1-$c2][string range $val $c1+3 end]
       set pmiException(dff) 1
     }
   }
 
 # exceptions for directed dimensions
-  if {$epmiName == "nist_ftc_07" || $epmiName == "nist_ftc_10"} {
+  if {$epmiName == "nist_ftc_06" || $epmiName == "nist_ftc_07" || $epmiName == "nist_ftc_10" || $epmiName == "nist_ctc_03" || \
+      $epmiName == "nist_stc_06" || $epmiName == "nist_stc_07" || $epmiName == "nist_stc_10"} {
     set c1 [string first "(directed)" $val]
     if {$c1 != -1} {
       set val [string range $val 0 $c1-3]
@@ -397,6 +401,7 @@ proc nistCheckExpectedPMI {val entstr epmiName} {
             foreach item $nistPMIexpectedGND($epmiName) {
               incr pmiMatchGND
               if {[string equal $item $valgnd] == 1} {set ok 1; break}
+              if {$epmiName == "nist_stc_06" && [info exists pmiException(dff)]} {if {[string first $valgnd $item] == 0} {set ok 1; break}}
             }
           }
           if {$ok} {
@@ -1181,7 +1186,7 @@ proc nistGetName {} {
       set resetRound $opt(PMISEMRND)
       set opt(PMISEMRND) 0
     } elseif {!$opt(PMISEMRND) && ($nistName == "nist_ftc_07" || $nistName == "nist_ftc_08" || $nistName == "nist_ftc_11" || \
-                                   $nistName == "nist_stc_07" || $nistName == "nist_stc_08" || $nistName == "nist_stc_11")} {
+                                   $nistName == "nist_stc_07" || $nistName == "nist_stc_08")} {
       set resetRound $opt(PMISEMRND)
       set opt(PMISEMRND) 1
     }

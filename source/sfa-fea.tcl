@@ -1258,7 +1258,7 @@ proc feaColorScale {min max} {
 
   if {$min != $max} {
     puts $x3dFile "<tr><td><table border=0 cellpadding=0 cellspacing=0>"
-    puts $x3dFile "<tr><td colspan=3><img src='https://www.nist.gov/sites/default/files/styles/480_x_480_limit/public/images/2021/11/01/red-blue-scale.png' alt='Red-blue color scale' width='197' height='21'></td></tr>"
+    puts $x3dFile "<tr><td colspan=3><img src='https://www.nist.gov/sites/default/files/images/2021/11/01/red-blue-scale.png' alt='Red-blue color scale' width='197' height='21'></td></tr>"
 
     puts $x3dFile "<tr><td align='left' width='33%'><font color='blue'>[feaColorScaleNum $min]</font></td>"
     puts $x3dFile "<td align='middle' width='34%'><font color='green'>[feaColorScaleNum [expr {($min+$max)/2.}]]</font></td>"

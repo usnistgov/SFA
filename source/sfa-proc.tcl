@@ -524,7 +524,7 @@ proc saveState {{ok 1}} {
 #-------------------------------------------------------------------------------
 # open a STEP file in an app
 proc runOpenProgram {} {
-  global appName dispCmd drive editorCmd edmIds edmr edmw edmWhereRules edmWriteToFile stepToolsWriteToFile File localName
+  global appName dispCmd drive editorCmd edmIds edmr edmw edmWhereRules edmWriteToFile File localName
 
   set dispFile $localName
   set idisp [file rootname [file tail $dispCmd]]
@@ -561,42 +561,6 @@ proc runOpenProgram {} {
   } elseif {[string first "QuickStep" $idisp] != -1} {
     cd [file dirname $dispFile]
     exec $dispCmd [file tail $dispFile] &
-
-#-------------------------------------------------------------------------------
-# validate file with ST-Developer Conformance Checkers
-  } elseif {[string first "Conformance" $idisp] != -1} {
-    .tnb select .tnb.status
-    set stfile $dispFile
-    outputMsg "Ready to validate: [file tail $stfile]" blue
-    cd [file dirname $stfile]
-
-# gui version
-    if {[string first "gui" $dispCmd] != -1 && !$stepToolsWriteToFile} {
-      if {[catch {exec $dispCmd $stfile &} err]} {outputMsg "Conformance Checker error:\n $err" red}
-
-# non-gui version
-    } else {
-      set stname [file tail $stfile]
-      set stlog  "[file rootname $stname]\_stdev.log"
-      catch {if {[file exists $stlog]} {file delete -force -- $stlog}}
-      outputMsg "ST-Developer log file: [truncFileName [file nativename $stlog]]" blue
-
-      set c1 [string first "gui" $dispCmd]
-      set dispCmd1 $dispCmd
-      if {$c1 != -1} {set dispCmd1 [string range $dispCmd 0 $c1-1][string range $dispCmd $c1+3 end]}
-
-      if {[string first "apconform" $dispCmd1] != -1} {
-        if {[catch {exec $dispCmd1 -syntax -required -unique -bounds -aggruni -arrnotopt -inverse -strwidth -binwidth -realprec -atttypes -refdom $stfile >> $stlog &} err]} {outputMsg "Conformance Checker error:\n $err" red}
-      } else {
-        if {[catch {exec $dispCmd1 $stfile >> $stlog &} err]} {outputMsg "Conformance Checker error:\n $err" red}
-      }
-      if {[string first "Notepad++" $editorCmd] != -1} {
-        outputMsg "Opening log file in editor"
-        exec $editorCmd $stlog &
-      } else {
-        outputMsg "Wait until the Conformance Checker has finished and then open the log file"
-      }
-    }
 
 #-------------------------------------------------------------------------------
 # Jotne EDM Model Checker (only for developer)
@@ -1417,7 +1381,7 @@ proc installIFCsvr {{exit 0}} {
   global buttons developer ifcsvrVer mydocs mytemp nistVersion upgradeIFCsvr wdir
 
 # IFCsvr version depends on string entered when IFCsvr is repackaged for new STEP schemas
-  set versionIFCsvr 20220614
+  set versionIFCsvr 20230214
 
 # if IFCsvr is alreadly installed, get version from registry, decide to reinstall newer version
   if {[catch {

@@ -1,7 +1,7 @@
 # PMI Representation Summary worksheet
 proc spmiSummary {} {
   global allPMI cells entName env epmi epmiUD localName mytemp nistName nistPMIexpected opt pmiModifiers recPracNames row sheetLast
-  global spmiSumName spmiSumRow spmiSumRowID spmiTypesPerFile thisEntType timeStamp valRounded wdir worksheet worksheets xlFileName
+  global spmiSumName spmiSumRow spmiSumRowID spmiTypesPerFile thisEntType timeStamp valRounded wdir worksheet worksheets
 
 # first time through, start worksheet
   if {$spmiSumRow == 1} {
@@ -147,7 +147,7 @@ proc spmiSummary {} {
           if {[string length $thisEntType] > 31} {
             foreach item [array names entName] {if {$entName($item) == $thisEntType} {set hlsheet $item}}
           }
-          $hlink Add $anchor $xlFileName "$hlsheet!A1" "Go to $thisEntType"
+          catch {$hlink Add $anchor [string trim ""] "$hlsheet![cellRange $i $pmiCol]" "Go to $thisEntType"}
           incr spmiSumRow
         } else {
           errorMsg "Missing PMI on [formatComplexEnt $thisEntType]"

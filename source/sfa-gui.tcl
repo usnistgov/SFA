@@ -1,5 +1,5 @@
 # SFA version
-proc getVersion {} {return 4.87}
+proc getVersion {} {return 4.88}
 
 # see proc installIFCsvr in sfa-proc.tcl for the IFCsvr version
 
@@ -770,7 +770,7 @@ proc guiUserDefinedEntities {} {
 #-------------------------------------------------------------------------------
 # open STEP file
 proc guiOpenSTEPFile {} {
-  global appName appNames buttons cb developer dispApps dispCmds edmWhereRules edmWriteToFile stepToolsWriteToFile
+  global appName appNames buttons cb developer dispApps dispCmds edmWhereRules edmWriteToFile
   global fopt foptf
 
   set foptOP [frame $fopt.op -bd 0]
@@ -791,14 +791,6 @@ proc guiOpenSTEPFile {} {
           pack forget $buttons(edmWriteToFile)
           pack forget $buttons(edmWhereRules)
         }
-      }
-    }
-# STEP Tools
-    catch {
-      if {[string first "Conformance Checker" $appName] != -1} {
-        pack $buttons(stepToolsWriteToFile) -side left -anchor w -padx {5 0}
-      } else {
-        pack forget $buttons(stepToolsWriteToFile)
       }
     }
 # file tree view
@@ -852,15 +844,6 @@ proc guiOpenSTEPFile {} {
         }
       }
     }
-  }
-
-# STEP Tools
-  if {[lsearch -glob $appNames "*Conformance Checker*"] != -1} {
-    set item {"Write to file" stepToolsWriteToFile}
-    regsub -all {[\(\)]} [lindex $item 1] "" idx
-    set buttons($idx) [ttk::checkbutton $foptf.$cb -text [lindex $item 0] -variable [lindex $item 1] -command {checkValues}]
-    pack forget $buttons($idx)
-    incr cb
   }
 
 # built-in file tree view
@@ -2066,7 +2049,7 @@ Credits
 - Viewer for b-rep part geometry
    STEP to X3D Translator (stp2x3d) developed by Soonjo Kwon, former NIST Associate
    See Websites > STEP Software
-- Some Tcl code is based on CAWT http://www.cawt.tcl3d.org/
+- Some Tcl code is based on CAWT https://www.tcl3d.org/cawt/
 
 See Help > Disclaimers and NIST Disclaimer"
 
@@ -2110,7 +2093,6 @@ See Help > Disclaimers and NIST Disclaimer"
   $Examples add command -label "Sample STEP Files (zip)" -command {openURL https://www.nist.gov/document/nist-pmi-step-files}
   $Examples add command -label "NIST CAD Models"         -command {openURL https://www.nist.gov/ctl/smart-connected-systems-division/smart-connected-manufacturing-systems-group/mbe-pmi-0}
   $Examples add command -label "STEP File Library"       -command {openURL https://www.mbx-if.org/cax/cax_stepLib.php}
-  $Examples add command -label "Archived STEP Files"     -command {openURL https://web.archive.org/web/20160825140043/http://www.steptools.com/support/stdev_docs/stpfiles/index.html}
 }
 
 #-------------------------------------------------------------------------------
@@ -2128,37 +2110,30 @@ proc guiWebsitesMenu {} {
   $Websites add command -label "CAx Interoperability Forum (CAx-IF)" -command {openURL https://www.mbx-if.org/cax/cax_introduction.php}
   $Websites add command -label "CAx Recommended Practices"           -command {openURL https://www.mbx-if.org/cax/cax_recommPractice.php}
   $Websites add command -label "CAD Implementations"                 -command {openURL https://www.mbx-if.org/cax/vendor_info.php}
-  $Websites add command -label "PDM-IF"                              -command {openURL http://www.pdm-if.org/}
-  $Websites add command -label "CAE-IF"                              -command {openURL https://www.mbx-if.org/cae/cae_introduction.php}
+  $Websites add command -label "PDM-IF"                              -command {openURL http://www.pdm-if.org}
 
   $Websites add separator
   $Websites add command -label "AP203 vs AP214 vs AP242" -command {openURL https://www.capvidia.com/blog/best-step-file-to-use-ap203-vs-ap214-vs-ap242}
   $Websites add cascade -label "AP242" -menu $Websites.0
   set Websites0 [menu $Websites.0 -tearoff 1]
-  $Websites0 add command -label "AP242 Project"     -command {openURL http://www.ap242.org/}
+  $Websites0 add command -label "AP242 Project"     -command {openURL http://www.ap242.org}
   $Websites0 add command -label "Benchmark Testing" -command {openURL http://www.asd-ssg.org/step-ap242-benchmark}
   $Websites0 add command -label "ISO 10303-242"     -command {openURL https://www.iso.org/standard/84667.html}
   $Websites0 add command -label "3D PDF"            -command {openURL https://www.iso.org/standard/77686.html}
 
   $Websites add cascade -label "STEP Format and Schemas" -menu $Websites.2
   set Websites2 [menu $Websites.2 -tearoff 1]
-  $Websites2 add command -label "STEP Format"                 -command {openURL https://www.loc.gov/preservation/digital/formats/fdd/fdd000448.shtml}
-  $Websites2 add command -label "ISO 10303 Part 21"           -command {openURL https://en.wikipedia.org/wiki/ISO_10303-21}
-  $Websites2 add command -label "ISO 10303 Part 21 Edition 3" -command {openURL https://www.steptools.com/stds/step/}
-  $Websites2 add command -label "ISO 10303 Part 21 Standard"  -command {openURL https://www.steptools.com/stds/step/IS_final_p21e3.html}
+  $Websites2 add command -label "STEP Format"       -command {openURL https://www.loc.gov/preservation/digital/formats/fdd/fdd000448.shtml}
+  $Websites2 add command -label "ISO 10303 Part 21" -command {openURL https://en.wikipedia.org/wiki/ISO_10303-21}
   $Websites2 add separator
-  $Websites2 add command -label "EXPRESS Schemas"          -command {openURL https://www.mbx-if.org/cax/cax_express.php}
-  $Websites2 add command -label "Archived EXPRESS Schemas" -command {openURL https://web.archive.org/web/20160322005246/www.steptools.com/support/stdev_docs/express/}
-  $Websites2 add command -label "Merged EXPRESS Schemas"   -command {openURL https://www.steptools.com/stds/stp_aim/html/}
+  $Websites2 add command -label "EXPRESS Schemas"                -command {openURL https://www.mbx-if.org/cax/cax_express.php}
+  $Websites2 add command -label "Archived EXPRESS Schemas"       -command {openURL https://web.archive.org/web/20160322005246/www.steptools.com/support/stdev_docs/express/}
+  $Websites2 add command -label "ISO 10303 Part 11 EXPRESS"      -command {openURL https://www.loc.gov/preservation/digital/formats/fdd/fdd000449.shtml}
+  $Websites2 add command -label "EXPRESS data modeling language" -command {openURL https://en.wikipedia.org/wiki/EXPRESS_(data_modeling_language)}
   $Websites2 add separator
-  $Websites2 add command -label "ISO 10303 Part 11 EXPRESS"        -command {openURL https://www.loc.gov/preservation/digital/formats/fdd/fdd000449.shtml}
-  $Websites2 add command -label "EXPRESS data modeling language"   -command {openURL https://en.wikipedia.org/wiki/EXPRESS_(data_modeling_language)}
-  $Websites2 add command -label "AP203 Recommended Practice (pdf)" -command {openURL https://www.oasis-open.org/committees/download.php/11728/recprac8.pdf}
-  $Websites2 add separator
-  $Websites2 add command -label "AP209 FEA"        -command {openURL http://www.ap209.org}
-  $Websites2 add command -label "AP235 Properties" -command {openURL https://www.ap235.org}
-  $Websites2 add command -label "AP239 PLCS"       -command {openURL http://www.ap239.org}
-  $Websites2 add command -label "AP243 MoSSEC"     -command {openURL http://www.mossec.org/}
+  $Websites2 add command -label "AP209 FEA"    -command {openURL http://www.ap209.org}
+  $Websites2 add command -label "AP239 PLCS"   -command {openURL http://www.ap239.org}
+  $Websites2 add command -label "AP243 MoSSEC" -command {openURL http://www.mossec.org}
 
   $Websites add cascade -label "STEP Software" -menu $Websites.3
   set Websites3 [menu $Websites.3 -tearoff 1]
@@ -2170,15 +2145,17 @@ proc guiWebsitesMenu {} {
 
   $Websites add cascade -label "STEP Organizations" -menu $Websites.4
   set Websites4 [menu $Websites.4 -tearoff 1]
-  $Websites4 add command -label "PDES, Inc. (U.S.)"      -command {openURL https://pdesinc.org/}
+  $Websites4 add command -label "PDES, Inc. (U.S.)"      -command {openURL https://pdesinc.org}
   $Websites4 add command -label "prostep ivip (Germany)" -command {openURL https://www.prostep.org/en/projects/}
   $Websites4 add command -label "AFNeT (France)"         -command {openURL https://legacy.afnet.fr/dotank/sps/plm-committee/}
-  $Websites4 add command -label "KStep (Korea)"          -command {openURL https://www.kstep.or.kr/}
+  $Websites4 add command -label "KStep (Korea)"          -command {openURL https://www.kstep.or.kr}
   $Websites4 add separator
-  $Websites4 add command -label "LOTAR - LOng Term Archiving and Retrieval" -command {openURL https://lotar-international.org/}
+  $Websites4 add command -label "CAE Interoperability Forum (CAE-IF)"       -command {openURL https://www.mbx-if.org/cae/cae_introduction.php}
+  $Websites4 add command -label "LOTAR - LOng Term Archiving and Retrieval" -command {openURL https://lotar-international.org}
   $Websites4 add command -label "ASD Strategic Standardisation Group"       -command {openURL http://www.asd-ssg.org/}
   $Websites4 add command -label "ISO/TC 184/SC 4 - Industrial Data"         -command {openURL https://committee.iso.org/home/tc184sc4}
   $Websites4 add command -label "STEP in 3D PDF"                            -command {openURL https://www.pdfa.org/resource/3d-formats/}
+  $Websites4 add command -label "JT-IF"                                     -command {openURL https://www.prostep.org/en/projects/jt-implementor-forum/}
 }
 
 #-------------------------------------------------------------------------------
@@ -2323,27 +2300,8 @@ proc getOpenPrograms {} {
     }
   }
 
-# STEP Tools apps
-  foreach pf $pflist {
-    if {[file isdirectory [file join $pf "STEP Tools"]]} {
-      foreach app [list [list stepbrws.exe "STEP File Browser"] [list apconformgui.exe "AP Conformance Checker"]] {
-        set stmatch ""
-        foreach match [glob -nocomplain -directory $pf -join "STEP Tools" "ST-Developer*" bin [lindex $app 0]] {
-          if {$stmatch == ""} {
-            set stmatch $match
-            set lastver [lindex [split [file nativename $match] [file separator]] 3]
-          } else {
-            set ver [lindex [split [file nativename $match] [file separator]] 3]
-            if {$ver > $lastver} {set stmatch $match}
-          }
-        }
-        if {$stmatch != ""} {
-          if {![info exists dispApps($stmatch)]} {set dispApps($stmatch) [lindex $app 1]}
-        }
-      }
-    }
-
 # STEP file viewers, use * when the directory or name has a number
+  foreach pf $pflist {
     set applist [list \
       [list {*}[glob -nocomplain -directory [file join $pf "CAD Assistant"] -join CADAssistant.exe] "CAD Assistant"] \
       [list {*}[glob -nocomplain -directory [file join $pf "CAD Exchanger" bin] -join Exchanger.exe] "CAD Exchanger"] \
@@ -2444,7 +2402,7 @@ proc getOpenPrograms {} {
   set dispCmds1 {}
   foreach app $dispCmds {
     if {([file exists $app] || [string first "Default" $app] == 0 || [string first "Indent" $app] == 0) && \
-         [file tail $app] != "NotePad.exe"} {
+         [file tail $app] != "NotePad.exe" && [string first "STEP Tools" $app] == -1} {
       lappend dispCmds1 $app
     }
   }
@@ -2528,7 +2486,7 @@ proc getOpenPrograms {} {
 #-------------------------------------------------------------------------------
 # turn on/off values and enable/disable buttons depending on values
 proc checkValues {} {
-  global allNone appName appNames bits buttons developer edmWhereRules edmWriteToFile gen stepToolsWriteToFile opt userEntityList useXL
+  global allNone appName appNames bits buttons developer edmWhereRules edmWriteToFile gen opt userEntityList useXL
 
   set butNormal {}
   set butDisabled {}
@@ -2548,15 +2506,6 @@ proc checkValues {} {
           pack forget $buttons(edmWriteToFile)
           pack forget $buttons(edmWhereRules)
         }
-      }
-    }
-
-# STEP Tools
-    catch {
-      if {[string first "Conformance Checker" $appName] != -1} {
-        pack $buttons(stepToolsWriteToFile) -side left -anchor w -padx {5 0}
-      } else {
-        pack forget $buttons(stepToolsWriteToFile)
       }
     }
 

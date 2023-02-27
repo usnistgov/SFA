@@ -95,7 +95,7 @@ Credits
    STEP to X3D Translator (stp2x3d)
    Developed by Soonjo Kwon, former NIST Associate
    https://www.nist.gov/services-resources/software/step-x3d-translator
-- Some Tcl code is based on CAWT http://www.cawt.tcl3d.org/"
+- Some Tcl code is based on CAWT https://www.tcl3d.org/cawt/"
 
 if {$argc == 1} {set arg [string tolower [lindex $argv 0]]}
 if {$argc == 0 || ($argc == 1 && ($arg == "help" || $arg == "-help" || $arg == "-h" || $arg == "-v"))} {

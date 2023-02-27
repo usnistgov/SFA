@@ -3,11 +3,11 @@ proc genExcel {{numFile 0}} {
   global allEntity aoEntTypes ap203all ap214all ap242all ap242only ap242ed ap242XML badAttributes buttons cadSystem cells cells1
   global col col1 commaSeparator count csvdirnam csvfile csvinhome currLogFile dim draughtingModels driUnicode entCategories entCategory
   global entColorIndex entCount entityCount entsIgnored entsWithErrors env epmi epmiUD errmsg equivUnicodeStringErr excel excelVersion fcsv
-  global feaFirstEntity feaLastEntity File fileEntity filesProcessed gen gpmiTypesInvalid gpmiTypesPerFile guid idxColor ifcsvrDir inverses
+  global feaFirstEntity feaLastEntity File fileEntity filesProcessed fileSumRow gen gpmiTypesInvalid gpmiTypesPerFile guid idxColor ifcsvrDir inverses
   global lastXLS lenfilelist localName localNameList logFile matrixList multiFile multiFileDir mydocs mytemp nistCoverageLegend nistName
   global nistPMIexpected nistPMImaster noFontFile nprogBarEnts opt pf32 p21e3Section pmiCol resetRound row rowmax savedViewButtons savedViewName
   global savedViewNames scriptName sheetLast skipEntities skipFileName skipPerm spmiEntity spmiSumName spmiSumRow spmiTypesPerFile startrow statsOnly
-  global stepAP stepAPreport tessColor thisEntType timeStamp tlast tolNames tolStandard tolStandards totalEntity unicodeActual unicodeAttributes
+  global stepAP stepAPreport sumHeaderRow tessColor thisEntType timeStamp tlast tolNames tolStandard tolStandards totalEntity unicodeActual unicodeAttributes
   global unicodeEnts unicodeInFile unicodeNumEnts unicodeString userEntityFile userEntityList useXL valRounded viz wdir workbook workbooks
   global worksheet worksheet1 worksheets writeDir wsCount wsNames x3dAxes x3dColor x3dColorFile x3dColors x3dFileName x3dIndex x3dMax x3dMin
   global x3dMsg x3dMsgColor x3dStartFile x3dViewOK xlFileName xlFileNames xlInstalled
@@ -172,10 +172,9 @@ proc genExcel {{numFile 0}} {
   if {[catch {
     set openStage 1
     set nprogBarEnts 0
-    set ap242ed(2) {}
-    set ap242ed(3) {}
     set fname $localName
     set stepAP [getStepAP $fname]
+    foreach i {2 3 4} {set ap242ed($i) {}}
 
 # stepAPreport controls which APs support Analyzer reports
     set stepAPreport 0
@@ -291,9 +290,8 @@ proc genExcel {{numFile 0}} {
           }
         }
 
-# check for AP242 edition 2 or 3 entities
-        if {[lsearch $ap242only(e2) $entType] != -1} {lappend ap242ed(2) $entType}
-        if {[lsearch $ap242only(e3) $entType] != -1} {lappend ap242ed(3) $entType}
+# check for entities in AP242 editions > 1
+        foreach i {2 3 4} {if {[lsearch $ap242only(e$i) $entType] != -1} {lappend ap242ed($i) $entType}}
       }
 
 # report characteristics
@@ -1331,7 +1329,6 @@ proc genExcel {{numFile 0}} {
 # add ANCHOR and other sections from Part 21 Edition 3
     if {[info exists p21e3Section]} {if {[llength $p21e3Section] > 0} {addP21e3Section 1}}
 
-# -------------------------------------------------------------------------------------------------
 # add persistent IDs (UUID) from id_attribute
     if {[info exists entCount(id_attribute)]} {
       set okid 0
@@ -1350,6 +1347,52 @@ proc genExcel {{numFile 0}} {
       if {$okid} {addP21e3Section 2}
     }
 
+# add persistent IDs from v4/5_guid_attribute (ap242 edition 4)
+    set okid 0
+    foreach guidEnt [list v4_guid_attribute v5_guid_attribute] {
+      if {[info exists entCount($guidEnt)]} {
+        errorMsg "\nProcessing GUID attributes" blue
+        ::tcom::foreach e0 [$objDesign FindObjects [string trim $guidEnt]] {
+          set pid [[[$e0 Attributes] Item [expr 1]] Value] 
+          if {[string length $pid] == 36 && [string first "-" $pid] == 8 && [string last "-" $pid] == 23} {
+            set pid "$pid (V[string index $guidEnt 1])"
+            set e1s [[[$e0 Attributes] Item [expr 2]] Value]
+            foreach e1 $e1s {
+              set e2 [[[$e1 Attributes] Item [expr 2]] Value]
+              if {[string first "handle" $e2] != -1} {
+                set anchorEnt [$e2 Type]
+                set guid($anchorEnt,[$e2 P21ID]) $pid
+                set okid 1
+
+                if {[info exist fileSumRow($anchorEnt)]} {
+                  set fsrow [expr {$fileSumRow($anchorEnt)+$sumHeaderRow+1}]
+                  set val [[$cells(Summary) Item $fsrow 1] Value]
+                  if {[string first "GUID" $val] == -1} {
+                    $cells(Summary) Item $fsrow 1 "$val  \[GUID\]"
+                    set range [$worksheet(Summary) Range [cellRange $fsrow 1]]
+                    [$range Font] Bold [expr 1]
+                  }
+                } else {
+                  lappend noGUIDent $anchorEnt
+                }
+
+              } else {
+                errorMsg " Missing 'identified_item' attribute on id_attribute"
+              }
+            }
+          }
+        }
+      }
+    }
+    if {$okid} {
+      addP21e3Section 2
+      if {[info exists noGUIDent]} {
+        outputMsg " GUIDs are also associated with: [lrmdups $noGUIDent]" red
+        unset noGUIDent
+      }
+    }
+
+# -------------------------------------------------------------------------------------------------
 # generate bill of materials (BOM)
     if {$opt(BOM) && ([string first "AP203" $stepAP] != -1 || [string first "AP214" $stepAP] != -1 || [string first "AP242" $stepAP] != -1)} {generateBOM}
 
@@ -1664,10 +1707,7 @@ proc addHeaderWorksheet {numFile fname} {
           } elseif {$id > 99} {
             errorMsg "Unknown AP242 Object Identifier String '$id 1 4' for SchemaName" red
           }
-          if {$developer} {
-            if {[llength $ap242ed(2)] > 0} {outputMsg " AP242e2: [join $ap242ed(2)]" red}
-            if {[llength $ap242ed(3)] > 0} {outputMsg " AP242e3: [join $ap242ed(3)]" red}
-          }
+          if {$developer} {foreach i {2 3 4} {if {[llength $ap242ed($i)] > 0} {outputMsg " AP242e$i: [join $ap242ed($i)]" red}}}
         } elseif {[string first "AP242" $sn] == 0} {
           errorMsg "Syntax Error: SchemaName is missing the Object Identifier String that specifies the edition of AP242."
         }
@@ -2131,7 +2171,7 @@ proc sumAddFileName {sum sumLinks} {
 #-------------------------------------------------------------------------------------------------
 # add file name and other info to top of Summary
 proc sumAddColorLinks {sum sumHeaderRow sumLinks sheetSort sumRow} {
-  global cells col entCount entName entsIgnored entsWithErrors excel fileEntity nfile row worksheet xlFileName
+  global cells col entCount entName entsIgnored entsWithErrors excel fileEntity nfile row worksheet
 
   if {[catch {
     set row($sum) [expr {$sumHeaderRow+2}]
@@ -2154,17 +2194,13 @@ proc sumAddColorLinks {sum sumHeaderRow sumLinks sheetSort sumRow} {
 
 # link from summary to entity worksheet
       set anchor [$worksheet($sum) Range "A$sumRow"]
-      if {[string first "#" $xlFileName] == -1 && [string first "\[" $xlFileName] == -1 && [string first "\]" $xlFileName] == -1} {
-        set hlsheet $ent
-        if {[string length $ent] > 31} {
-          foreach item [array names entName] {
-            if {$entName($item) == $ent} {set hlsheet $item}
-          }
+      set hlsheet $ent
+      if {[string length $ent] > 31} {
+        foreach item [array names entName] {
+          if {$entName($item) == $ent} {set hlsheet $item}
         }
-        $sumLinks Add $anchor $xlFileName "$hlsheet!A1" "Go to $ent"
-      } else {
-        errorMsg "Links from the Summary to entity worksheets are not generated because the STEP file name contains one of #\[\]." red
       }
+      catch {$sumLinks Add $anchor [string trim ""] "$hlsheet!A1" "Go to $ent"}
 
 # color cells
       set cidx [setColorIndex $ent]
@@ -2234,7 +2270,7 @@ proc sumAddColorLinks {sum sumHeaderRow sumLinks sheetSort sumRow} {
 # format worksheets
 proc formatWorksheets {sheetSort sumRow inverseEnts} {
   global buttons cells col count entCount entRows equivUnicodeString excel gpmiEnts idRow nprogBarEnts opt pmiStartCol
-  global row spmiEnts stepAP stepAPreport syntaxErr thisEntType viz vpEnts worksheet xlFileName
+  global row spmiEnts stepAP stepAPreport sumHeaderRow syntaxErr thisEntType viz vpEnts worksheet
   outputMsg "Formatting Worksheets" blue
 
   if {[info exists buttons]} {$buttons(progressBar) configure -maximum [llength $sheetSort]}
@@ -2390,9 +2426,8 @@ proc formatWorksheets {sheetSort sumRow inverseEnts} {
 
 # link back to summary
       set anchor [$worksheet($thisEntType) Range "A1"]
-      if {[string first "#" $xlFileName] == -1 && [string first "\[" $xlFileName] == -1 && [string first "\]" $xlFileName] == -1} {
-        $hlink Add $anchor $xlFileName "Summary!A$sumRow" "Return to Summary"
-      }
+      set sumRow [expr {[lsearch $sheetSort $thisEntType]+$sumHeaderRow+3}]
+      catch {$hlink Add $anchor [string trim ""] "Summary!A$sumRow" "Return to Summary"}
 
 # check width of columns, wrap text
       if {[catch {
@@ -2476,9 +2511,9 @@ proc moveWorksheet {items {where "Before"}} {
 }
 
 # -------------------------------------------------------------------------------------------------
-# add worksheets for part 21 edition 3 sections (idType=1) AND add persistent IDs (GUID) with id_attribute (idType=2)
+# add worksheets for part 21 edition 3 sections (idType=1) AND add persistent IDs (GUID) with id_attribute or v4/5_attribute (idType=2)
 proc addP21e3Section {idType} {
-  global cells entName fileSumRow idRow legendColor guid p21e3Section spmiSumRowID sumHeaderRow worksheet worksheets xlFileName
+  global cells entCount entName fileSumRow idRow legendColor guid p21e3Section spmiSumRowID sumHeaderRow worksheet worksheets
   global objDesign
 
   catch {unset anchorSum}
@@ -2561,7 +2596,7 @@ proc addP21e3Section {idType} {
                   if {[string length $anchorEnt] > 31} {
                     foreach item [array names entName] {if {$entName($item) == $anchorEnt} {set hlsheet $item}}
                   }
-                  $hlink Add $anchor $xlFileName "$hlsheet!A1" "Go to $anchorEnt"
+                  catch {$hlink Add $anchor [string trim ""] "$hlsheet!A1" "Go to $anchorEnt"}
 
 # add anchor ID representation summary
                   if {[info exists spmiSumRowID($anchorID)]} {
@@ -2652,7 +2687,11 @@ proc addP21e3Section {idType} {
 
   foreach ent [array names urow] {
     $cells($ent) Item 3 $ucol($ent) $heading
-    addCellComment $ent 3 $ucol($ent) "See ANCHOR worksheet and Help > User Guide (section 5.6)"
+    set msg "See ANCHOR worksheet and Help > User Guide (section 5.6)"
+    if {[info exists entCount(v4_guid_attribute)] || [info exists entCount(v5_guid_attribute)]} {
+      set msg "See Recommended Practices for Persistent IDs for Design Iteration and Downstream Exchange"
+    }
+    addCellComment $ent 3 $ucol($ent) $msg
     set range [$worksheet($ent) Range [cellRange 3 $ucol($ent)] [cellRange $urow($ent) $ucol($ent)]]
     [$range Columns] AutoFit
     set range [$worksheet($ent) Range [cellRange 3 $ucol($ent)]]

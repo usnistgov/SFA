@@ -59,7 +59,6 @@ initData
 initDataInverses
 set edmWhereRules 0
 set edmWriteToFile 0
-set stepToolsWriteToFile  0
 
 # -----------------------------------------------------------------------------------------------------
 # check for options file and read (source)
@@ -178,11 +177,11 @@ if {$sfaVersion == 0} {
 }
 
 #-------------------------------------------------------------------------------
-# check for update every 180 days
+# check for update every 90 days
 if {$nistVersion} {
   if {$upgrade > 0} {
     set lastupgrade [expr {round(([clock seconds] - $upgrade)/86400.)}]
-    if {$lastupgrade > 180} {
+    if {$lastupgrade > 90} {
       set str ""
       if {$lastupgrade > 365} {set str ".  Welcome Back!"}
       outputMsg "The last check for an update was $lastupgrade days ago$str\nTo check for an updated version, go to Websites > STEP File Analyzer and Viewer" red
