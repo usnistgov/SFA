@@ -144,6 +144,17 @@ proc nistGetSummaryPMI {name} {
         set pmi [string range $item $c1+1 end]
         set newpmi $pmi
         if {[string first "(point)" $pmi] == -1} {set newpmi [pmiRemoveZeros $pmi]}
+
+# remove datum feature brackets
+        if {[string first "\u25BD" $newpmi] != -1} {
+          set c2 [string first "\[" $newpmi]
+          if {$c2 != -1} {
+            if {[string index $newpmi $c2+2] == "\]"} {
+              set newpmi [string range $newpmi 0 $c2-1][string index $newpmi $c2+1][string range $newpmi $c2+3 end]
+            }
+          }
+        }
+
         lappend nistPMIexpected($name) $newpmi
         set nistPMImap($newpmi) $newpmi
 
@@ -190,6 +201,7 @@ proc nistGetSummaryPMI {name} {
 proc nistCheckExpectedPMI {val entstr epmiName} {
   global nistExpectedPMI nistPMIactual nistPMIdeduct nistPMIexpected nistPMIexpectedGND nistPMIexpectedNX nistPMIfound nistPMImap
   global cells legendColor pmiModifiers pmiType pmiUnicode spmiSumName spmiSumRow tolNames tolSymbols worksheet
+  set debug 0
 
 # modify (composite ..) from value to just (composite)
   set c1 [string first "(composite" $val]
@@ -218,7 +230,7 @@ proc nistCheckExpectedPMI {val entstr epmiName} {
       set val [string range $val 0 $c1-16][string range $val $c1+3 end]
       set pmiException(dfc) 1
     }
-  } elseif {$epmiName == "nist_ftc_06"} {
+  } elseif {$epmiName == "nist_ftc_06" || $epmiName == "nist_stc_06"} {
     set c1 [string first "\[J" $val]
     if {$c1 != -1} {
       set val [string range $val 0 $c1-16][string range $val $c1+3 end]
@@ -241,14 +253,16 @@ proc nistCheckExpectedPMI {val entstr epmiName} {
       set pmiException(dfl) 1
     }
   }
-  if {$epmiName == "nist_ftc_06" || $epmiName == "nist_ftc_08" || $epmiName == "nist_stc_06"} {
-    set c1 [string first "\[F" $val]
-    if {$c1 != -1} {
-      set c2 16
-      set char [string index $val $c1-$c2]
-      if {$char != " "} {set c2 15}
-      set val [string range $val 0 $c1-$c2][string range $val $c1+3 end]
-      set pmiException(dff) 1
+  if {$epmiName == "nist_ftc_06" || $epmiName == "nist_stc_06" || $epmiName == "nist_ftc_08"} {
+    if {[string first "ftc" $epmiName] != -1 || [string first $pmiUnicode(position) $val] == -1} {
+      set c1 [string first "\[F" $val]
+      if {$c1 != -1} {
+        set c2 16
+        set char [string index $val $c1-$c2]
+        if {$char != " "} {set c2 15}
+        set val [string range $val 0 $c1-$c2][string range $val $c1+3 end]
+        set pmiException(dff) 1
+      }
     }
   }
 
@@ -283,7 +297,7 @@ proc nistCheckExpectedPMI {val entstr epmiName} {
     if {$c1 != -1} {set val [string range $val 0 $c1-5]}
   }
 
-# remove zeros from val
+# remove zeros from val, also removes linefeeds so FCF is one line
   if {[string first "(point)" $val] == -1} {set val [pmiRemoveZeros $val]}
   if {[string first "tolerance" $entstr] != -1} {
     foreach nam $tolNames {if {[string first $nam $entstr] != -1} {set valType($val) $nam}}
@@ -291,14 +305,29 @@ proc nistCheckExpectedPMI {val entstr epmiName} {
     set valType($val) $entstr
   }
 
+# remove brackets for datum features
+  if {[string first "\u25BD" $val] != -1} {
+    set oldType $valType($val)
+    set c1 [string first "\[" $val]
+    if {$c1 != -1} {
+      if {[string index $val $c1+2] == "\]"} {
+        set val [string range $val 0 $c1-1][string index $val $c1+1][string range $val $c1+3 end]
+        set valType($val) $oldType
+
+      }
+    }
+  }
+
 # -------------------------------------------------------------------------------
 # search for PMI in nistPMIexpected list
   set pmiMissing ""
   set pmiSimilar ""
   set pmiMatch [lsearch $nistPMIexpected($epmiName) $val]
+  if {$debug} {outputMsg "\n$val\n[llength $nistPMIexpected($epmiName)]  $nistPMIexpected($epmiName)" red}
 
 # found in list, remove from nistPMIexpected
   if {$pmiMatch != -1} {
+    if {$debug} {outputMsg "remove1 [lindex $nistPMIexpected($epmiName) $pmiMatch]" green}
     set nistPMIexpected($epmiName)   [lreplace $nistPMIexpected($epmiName)   $pmiMatch $pmiMatch]
     set nistPMIexpectedNX($epmiName) [lreplace $nistPMIexpectedNX($epmiName) $pmiMatch $pmiMatch]
     lappend nistPMIfound $val
@@ -317,12 +346,14 @@ proc nistCheckExpectedPMI {val entstr epmiName} {
   } else {
     set pmiMatch 0
 
-# check if val is equal to nistPMIexpected (handles case where lsearch above returned -1 but should not have)
+# check if val is equal to nistPMIexpected, handles case where -1 is returned above, usually with a [ or ] in the FCF, brackets for datum features are removed above
+    set pos -1
     foreach pmi $nistPMIexpected($epmiName) {
+      incr pos
       if {$val == $pmi} {
         #outputMsg " simple match  $val $pmiMatch $valType($val)" green
+        if {$debug} {outputMsg "remove2 $pos [lindex $nistPMIexpected($epmiName) $pos]" green}
         set pmiMatch 1
-        set pos [lsearch $nistPMIexpected($epmiName) $pmi]
         set nistPMIexpected($epmiName)   [lreplace $nistPMIexpected($epmiName)   $pos $pos]
         set nistPMIexpectedNX($epmiName) [lreplace $nistPMIexpectedNX($epmiName) $pos $pos]
         lappend nistPMIfound $pmi
@@ -351,6 +382,7 @@ proc nistCheckExpectedPMI {val entstr epmiName} {
                 }
               }
             }
+            if {$debug} {outputMsg "remove3 [lindex $nistPMIexpected($epmiName) $pmiMatchNX]" green}
             set nistPMIexpected($epmiName)   [lreplace $nistPMIexpected($epmiName)   $pmiMatchNX $pmiMatchNX]
             set nistPMIexpectedNX($epmiName) [lreplace $nistPMIexpectedNX($epmiName) $pmiMatchNX $pmiMatchNX]
             set nistPMIdeduct(dim) 1
@@ -365,6 +397,7 @@ proc nistCheckExpectedPMI {val entstr epmiName} {
                 #outputMsg " simple match NX  $valnx $pmiMatch $valType($val)" red
                 set pos [lsearch $nistPMIexpected($epmiName) $valnx]
                 if {$pos != -1} {
+                  if {$debug} {outputMsg "remove4 [lindex $nistPMIexpected($epmiName) $pos]" green}
                   set pmiSimilar $nistPMIactual([lindex $nistPMIexpected($epmiName) $pos])
                   set nistPMIexpected($epmiName)   [lreplace $nistPMIexpected($epmiName)   $pos $pos]
                   set nistPMIexpectedNX($epmiName) [lreplace $nistPMIexpectedNX($epmiName) $pos $pos]
@@ -401,7 +434,6 @@ proc nistCheckExpectedPMI {val entstr epmiName} {
             foreach item $nistPMIexpectedGND($epmiName) {
               incr pmiMatchGND
               if {[string equal $item $valgnd] == 1} {set ok 1; break}
-              if {$epmiName == "nist_stc_06" && [info exists pmiException(dff)]} {if {[string first $valgnd $item] == 0} {set ok 1; break}}
             }
           }
           if {$ok} {
@@ -418,16 +450,20 @@ proc nistCheckExpectedPMI {val entstr epmiName} {
               set nistPMIdeduct(tol) 1
 
 # remove from expected list
+              if {$debug} {outputMsg "remove5a [lindex $nistPMIexpectedGND($epmiName) $pmiMatchGND]" green}
               set nistPMIexpectedGND($epmiName) [lreplace $nistPMIexpectedGND($epmiName) $pmiMatchGND $pmiMatchGND]
               set pos -1
               foreach item $nistPMIexpected($epmiName) {
                 incr pos
                 if {[info exists nistPMImap($item)]} {
+                  if {$debug} {outputMsg "map $valgnd / $nistPMImap($item)" green}
                   if {[string equal $valgnd $nistPMImap($item)] == 1} {break}
                 }
               }
+              if {$debug} {outputMsg "[llength $nistPMIexpected($epmiName)] $nistPMIexpected($epmiName)" blue; outputMsg "remove5b [lindex $nistPMIexpected($epmiName) $pos]" green}
               set nistPMIexpected($epmiName)   [lreplace $nistPMIexpected($epmiName)   $pos $pos]
               set nistPMIexpectedNX($epmiName) [lreplace $nistPMIexpectedNX($epmiName) $pos $pos]
+              if {$debug} {outputMsg "[llength $nistPMIexpected($epmiName)] $nistPMIexpected($epmiName)" blue}
             }
           }
         }

@@ -4,7 +4,7 @@ global ap203all ap214all ap242all ap242e1 ap242e1not ap242e2 ap242e3 ap242e4 ap2
 global allVendor andEntAP209 aoEntTypes badAttributes bits cadApps datumTargetDesc defaultColor dimModNames dimSizeNames DTR
 global entCategory entColorIndex feaElemFace feaIndex gpmiTypes ifcsvrDir ifcsvrKey ifcsvrVer legendColor letters nistModelPictures
 global pmiElementsMaxRows pmiHorizontalLineBreaks pmiModifiers pmiModifiersRP pmiUnicode recPracNames roseLogical
-global schemaLinks spaces spmiEntTypes spmiTypes stepAPs tolNames tzfNames unicodeAttributes
+global spaces spmiEntTypes spmiTypes stepAPs tolNames tzfNames unicodeAttributes
 
 global coverageSTEP developer dispCmd dispCmds env fileDir fileDir1 filesProcessed gen lastX3DOM lastXLS lastXLS1
 global mydocs openFileList opt pf32 pf64 sfaVersion upgrade userWriteDir writeDir x3dFileName x3dStartFile
@@ -90,19 +90,6 @@ set stepAPs(ENGINEERING_PROPERTIES_SCHEMA) AP235
 set stepAPs(MODEL_BASED_INTEGRATED_MANUFACTURING_SCHEMA) AP238
 set stepAPs(INTEGRATED_CNC_SCHEMA) AP238e1
 set stepAPs(STRUCTURAL_FRAME_SCHEMA) CIS/2
-
-# links to schema documentation
-set schemaLinks(AP203)   "https://www.mbx-if.org/documents/AP203e2_html/AP203e2.htm"
-set schemaLinks(AP203e1) $schemaLinks(AP203)
-set schemaLinks(AP209)   "https://www.mbx-if.org/documents_cae/AP209_HTML/AP209ed2_mim_lf_v1.46.htm"
-set schemaLinks(AP209e1) $schemaLinks(AP209)
-set schemaLinks(AP214)   "https://www.mbx-if.org/documents/AP214E3/AP214_e3.htm"
-set schemaLinks(AP214e1) $schemaLinks(AP214)
-set schemaLinks(AP214e3) $schemaLinks(AP214)
-set schemaLinks(AP242)   "https://www.mbx-if.org/documents/AP242ed2_HTML/AP242ed2.htm"
-set schemaLinks(AP242e1) "https://www.mbx-if.org/documents/AP242/AP242_mim_lf_1.36.htm"
-set schemaLinks(AP242e2) "https://www.mbx-if.org/documents/AP242ed2_HTML/AP242ed2.htm"
-set schemaLinks(AP242e3) "https://www.mbx-if.org/documents/AP242ed3_HTML/AP242_v1.152_20210924.htm"
 
 # -----------------------------------------------------------------------------------------------------
 # process category colors, the number determines the color and the order that the category of entities is processed and appears on the File Summary worksheet

@@ -28,11 +28,7 @@ Several Tcl packages not included in freewrap also need to be installed.
 ## Build the STEP File Analyzer and Viewer
 
 - Open a command prompt window and change to the directory with the SFA Tcl files and freewrap.
-- To generate the executable **sfa.exe**, enter the command:
-
-```
-freewrap -f sfa-files.txt
-```
+- To generate the executable **sfa.exe**, enter the command: freewrap -f sfa-files.txt
 
 Optionally build the command-line version:
 

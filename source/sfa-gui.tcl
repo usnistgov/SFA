@@ -1,5 +1,5 @@
 # SFA version
-proc getVersion {} {return 4.88}
+proc getVersion {} {return 4.89}
 
 # see proc installIFCsvr in sfa-proc.tcl for the IFCsvr version
 
@@ -2179,8 +2179,7 @@ proc guiToolTip {ttmsg tt {name ""}} {
 
 # two different types of subsets of entities
   if {$tt == "stepPRES" || $tt == "stepREPR" || $tt == "stepQUAN" || $tt == "stepGEOM" || \
-      $tt == "stepKINE" || $tt == "stepQUAL" || $tt == "stepSHAP" || $tt == "stepFEAT" || $tt == "inverses"} {
-    append ttmsg "  This is a subset of $name entities."
+      $tt == "stepKINE" || $tt == "stepQUAL" || $tt == "inverses"} {
     set ents {}
     set prefix {}
 
@@ -2211,10 +2210,10 @@ proc guiToolTip {ttmsg tt {name ""}} {
         }
       }
     }
+    append ttmsg "  This is a subset of ([llength $ents]) $name entities."
 
 # subset for Common and AP242 entities
   } elseif {$tt == "stepCOMM" || $tt == "stepAP242"} {
-    append ttmsg "  This is a subset of $name entities."
     set ents {}
     set prefix {}
     foreach ent $entCategory($tt) {
@@ -2227,6 +2226,7 @@ proc guiToolTip {ttmsg tt {name ""}} {
         }
       }
     }
+    append ttmsg "  This is a subset of ([llength $ents]) $name entities."
 
 # all entities
   } else {
@@ -2401,8 +2401,7 @@ proc getOpenPrograms {} {
 # remove cmd that do not exist in dispCmds and non-executables
   set dispCmds1 {}
   foreach app $dispCmds {
-    if {([file exists $app] || [string first "Default" $app] == 0 || [string first "Indent" $app] == 0) && \
-         [file tail $app] != "NotePad.exe" && [string first "STEP Tools" $app] == -1} {
+    if {[file exists $app] || [string first "Default" $app] == 0 || [string first "Indent" $app] == 0} {
       lappend dispCmds1 $app
     }
   }
@@ -2456,10 +2455,14 @@ proc getOpenPrograms {} {
   if {[llength $dispCmds] != [llength [lrmdups $dispCmds]]} {set dispCmds [lrmdups $dispCmds]}
 
 # remove old commands
+  set oldcmd [list 3DJuump 3DPDFConverter 3DReviewer avwin BIMsight c3dviewer Magics QuickStep roamer \
+                   apconformgui checkgui stepbrws stepcleangui STEPNCExplorer_x86 STEPNCExplorer stview]
+  foreach cmd $dispCmds {if {[string first "notepad++.exe" $cmd]} {lappend oldcmd "notepad"}}
+
   set ndcs {}
   foreach cmd $dispCmds {
     set ok 1
-    foreach bcmd [list 3DPDFConverter 3DReviewer avwin BIMsight checkgui lite Magics roamer stepcleangui STEPNCExplorer_x86 STEPNCExplorer stview] {
+    foreach bcmd $oldcmd {
       append bcmd ".exe"
       if {[string first $bcmd $cmd] != -1} {set ok 0}
     }

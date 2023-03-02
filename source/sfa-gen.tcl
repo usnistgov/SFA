@@ -1353,7 +1353,7 @@ proc genExcel {{numFile 0}} {
       if {[info exists entCount($guidEnt)]} {
         errorMsg "\nProcessing GUID attributes" blue
         ::tcom::foreach e0 [$objDesign FindObjects [string trim $guidEnt]] {
-          set pid [[[$e0 Attributes] Item [expr 1]] Value] 
+          set pid [[[$e0 Attributes] Item [expr 1]] Value]
           if {[string length $pid] == 36 && [string first "-" $pid] == 8 && [string last "-" $pid] == 23} {
             set pid "$pid (V[string index $guidEnt 1])"
             set e1s [[[$e0 Attributes] Item [expr 2]] Value]
@@ -2054,7 +2054,7 @@ proc sumAddWorksheet {} {
 #-------------------------------------------------------------------------------------------------
 # add file name and other info to top of Summary
 proc sumAddFileName {sum sumLinks} {
-  global cadSystem cells dim entityCount fileSchema localName opt schemaLinks stepAP sumHeaderRow timeStamp tolStandard worksheet xlFileName
+  global cadSystem cells dim entityCount fileSchema localName opt stepAP sumHeaderRow timeStamp tolStandard worksheet xlFileName
 
   set sumHeaderRow 0
   if {[catch {
@@ -2089,9 +2089,13 @@ proc sumAddFileName {sum sumLinks} {
       $cells($sum) Item 1 2 "'$stepAP"
       set range [$worksheet($sum) Range "B1:K1"]
       $range MergeCells [expr 1]
-      if {[info exists schemaLinks($stepAP)]} {
+      set ap [string range $stepAP 0 4]
+      set schemaLink ""
+      if {$ap == "AP203" || $ap == "AP214" || $ap == "AP242"} {set schemaLink "https://www.mbx-if.org/cax/cax_express.php"}
+      if {$ap == "AP209"} {set schemaLink "https://www.mbx-if.org/cae/cae_express.php"}
+      if {$schemaLink != ""} {
         set anchor [$worksheet($sum) Range "B1"]
-        $sumLinks Add $anchor $schemaLinks($stepAP) [join ""] [join "Link to $stepAP schema documentation"]
+        $sumLinks Add $anchor $schemaLink [join ""] [join "Link to $stepAP schema documentation"]
       }
       incr sumHeaderRow
     } else {
