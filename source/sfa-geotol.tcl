@@ -2142,7 +2142,7 @@ proc spmiProjectedToleranceZone {objGuiEntity} {
           #outputMsg "#[$gtEntity P21ID]\n 1 edge_curve [lrmdups $ec(1)]\n 2 edge_curve [lrmdups $ec(2)]\n common $ec1"
           if {[llength $ec1] == 0} {
             if {![info exists ptzError]} {
-              set msg "Syntax Error: No shared 'edge_curve' for a projected tolerance zone.$spaces\($recPracNames(pmi242), Sec. 6.9.2.2, Fig. 56)"
+              set msg "No shared 'edge_curve' for a projected tolerance zone. ($recPracNames(pmi242), Sec. 6.9.2.2, Fig. 56)"
               errorMsg $msg
               lappend syntaxErr(projected_zone_definition) [list [$e0 P21ID] "projection_end" $msg]
             } else {

@@ -1,5 +1,5 @@
 # SFA version
-proc getVersion {} {return 4.89}
+proc getVersion {} {return 4.90}
 
 # see proc installIFCsvr in sfa-proc.tcl for the IFCsvr version
 
@@ -63,7 +63,8 @@ proc openUserGuide {} {
 
 # update for new versions, local and online
   if {$sfaVersion > 4.6} {
-    outputMsg "\nThe User Guide (Update 7) is based on version 4.60.  See Help > Release Notes for updates." blue
+    outputMsg "\nThe User Guide (Update 7) is based on version 4.60." blue
+    outputMsg "- See Help > Release Notes for software updates\n- New and updated features are documented in the Help menu"
     .tnb select .tnb.status
   }
   set fname [file nativename [file join [file dirname [info nameofexecutable]] "SFA-User-Guide-v7.pdf"]]
@@ -499,19 +500,22 @@ proc guiOptionsTab {} {
   pack $fopta3 -side left -anchor w -pady 0 -padx 0 -fill y
 
   set fopta4 [frame $fopta.4 -bd 0]
-  foreach item {{" Kinematics" opt(stepKINE)} {" Composites" opt(stepCOMP)} {" Additive" opt(stepADDM)}} {
+  foreach item {{" Kinematics" opt(stepKINE)} {" Composites" opt(stepCOMP)} {" AP242" opt(stepAP242)}} {
     set idx [string range [lindex $item 1] 4 end-1]
     set buttons($idx) [ttk::checkbutton $fopta4.$cb -text [lindex $item 0] -variable [lindex $item 1] -command {checkValues}]
     pack $buttons($idx) -side top -anchor w -padx 5 -pady 0 -ipady 0
     incr cb
     if {[info exists entCategory($idx)]} {
       set ttmsg "[string trim [lindex $item 0]] entities ([llength $entCategory($idx)])"
-      append ttmsg " are supported in"
-      if {$idx == "stepCOMP"} {append ttmsg " AP203 and"}
-      if {$idx == "stepKINE"} {append ttmsg " AP214 and"}
-      append ttmsg " AP242"
-      if {$idx == "stepADDM"} {append ttmsg " editions > 1"}
-      append ttmsg "."
+      if {$idx == "stepAP242"} {
+        append ttmsg " are supported in AP242 Editions 1-3.  More AP242 entities are found in the other Process categories.\n"
+        append ttmsg "Entities with a * are in AP242 editions > 1."
+      } else {
+        append ttmsg " are supported in"
+        if {$idx == "stepCOMP"} {append ttmsg " AP203 and"}
+        if {$idx == "stepKINE"} {append ttmsg " AP214 and"}
+        append ttmsg " AP242."
+      }
       set ttmsg [guiToolTip $ttmsg $idx [string trim [lindex $item 0]]]
       if {$idx == "stepKINE"} {append ttmsg "\n\nKinematics is also supported by the AP242 Domain Model XML.  See Websites > CAx Recommended Practices"}
       catch {tooltip::tooltip $buttons($idx) $ttmsg}
@@ -520,7 +524,7 @@ proc guiOptionsTab {} {
   pack $fopta4 -side left -anchor w -pady 0 -padx 0 -fill y
 
   set fopta5 [frame $fopta.5 -bd 0]
-  foreach item {{" AP242" opt(stepAP242)} {" Quality" opt(stepQUAL)} {" Constraint" opt(stepCONS)}} {
+  foreach item {{" Quality" opt(stepQUAL)} {" Constraint" opt(stepCONS)}} {
     set idx [string range [lindex $item 1] 4 end-1]
     set buttons($idx) [ttk::checkbutton $fopta5.$cb -text [lindex $item 0] -variable [lindex $item 1] -command {checkValues}]
     pack $buttons($idx) -side top -anchor w -padx 5 -pady 0 -ipady 0
@@ -856,7 +860,7 @@ proc guiOpenSTEPFile {} {
     }
   }
 
-  catch {tooltip::tooltip $buttons(appCombo) "This option is a convenient way to open a STEP file in other apps.  The\npull-down menu contains some apps that can open a STEP file including\nSTEP viewers and browsers, however, only if they are installed in their\ndefault location.\n\nSee Help > Open STEP File in App\nSee Websites > STEP Software > STEP File Viewers\n\nThe 'Tree View (for debugging)' option rearranges and indents the entities\nto show the hierarchy of information in a STEP file.  The 'tree view' file\n(myfile-sfa.txt) is written to the same directory as the STEP file or to the\nsame user-defined directory specified in the Spreadsheet tab.  Including\nGeometry or Styled_item can make the 'tree view' file very large.  The\n'tree view' might not process /*comments*/ in a STEP file correctly.\n\nThe 'Default STEP Viewer' option opens the STEP file in whatever app is\nassociated with STEP (.stp, .step, .p21) files.\n\nUse F5 to open the STEP file in a text editor."}
+  catch {tooltip::tooltip $buttons(appCombo) "This option is a convenient way to open a STEP file in other apps.  The\npull-down menu contains some apps that can open a STEP file including\nSTEP viewers and browsers, however, only if they are installed in their\ndefault location.\n\nSee Help > Open STEP File in App\nSee Websites > STEP > STEP File Viewers\n\nThe 'Tree View (for debugging)' option rearranges and indents the entities\nto show the hierarchy of information in a STEP file.  The 'tree view' file\n(myfile-sfa.txt) is written to the same directory as the STEP file or to the\nsame user-defined directory specified in the Spreadsheet tab.  Including\nGeometry or Styled_item can make the 'tree view' file very large.  The\n'tree view' might not process /*comments*/ in a STEP file correctly.\n\nThe 'Default STEP Viewer' option opens the STEP file in whatever app is\nassociated with STEP (.stp, .step, .p21) files.\n\nUse F5 to open the STEP file in a text editor."}
   pack $foptf -side left -anchor w -pady {5 2} -padx 10 -fill both -expand true
   pack $foptOP -side top -anchor w -pady 0 -fill x
 }
@@ -1003,7 +1007,8 @@ Product model data) Part 21 file (.stp or .step or .p21 file extension) and
 4 - checks for basic syntax errors.
 
 Help is available in this menu, in the User Guide, and in tooltip help.  New features are listed in
-the Release Notes and described in some Help."
+the Release Notes and described in some Help.  Help in the menu, tooltips, and spreadsheet comments
+are more up-to-date than the User Guide."
     .tnb select .tnb.status
   }
 
@@ -1134,13 +1139,13 @@ to a STEP file containing AP242 tessellated geometry and then processed by the v
 
 The viewer for part geometry is based on the NIST STEP to X3D Translator and only runs on 64-bit
 computers.  It runs a separate program stp2x3d-part.exe from your Temp directory.
-See Websites > STEP Software
+See Websites > STEP
 
-Other STEP file viewers are available.  See Websites > STEP Software > STEP File Viewers.  Some of
-the viewers are faster and have better features for viewing and measuring part geometry.  However,
-many of the viewers cannot show graphical PMI, sketch geometry, supplemental geometry, viewpoints,
-datum targets, point clouds, composite rosettes, clipping planes, AP242 tessellated part geometry,
-and AP209 finite element models and results."
+Other STEP file viewers are available.  See Websites > STEP > STEP File Viewers.  Some of the
+viewers are faster and have better features for viewing and measuring part geometry.  However, many
+of the viewers cannot show graphical PMI, sketch geometry, supplemental geometry, viewpoints, datum
+targets, point clouds, composite rosettes, clipping planes, AP242 tessellated part geometry, and
+AP209 finite element models and results."
     .tnb select .tnb.status
   }
 
@@ -1358,7 +1363,7 @@ conditions.
 
 See Help > User Guide (section 4.4)
 See Examples > Viewer
-See Websites > AP209 FEA"
+See Websites > STEP > AP209 FEA"
     .tnb select .tnb.status
   }
 
@@ -1612,7 +1617,7 @@ test case.  The color-coding only works if the STEP file name can be recognized 
 generated from one of the NIST CAD models.
 
 * PMI Representation Summary *
-This worksheet is color-coded by the expected PMI annotations in a test case drawing.
+This worksheet is color-coded by the Expected PMI annotations in a test case drawing.
 - Green is an Exact match to an expected PMI annotation in the test case drawing
 - Green (lighter shade) is an Exact match with Exceptions
 - Cyan is a Partial match
@@ -1651,10 +1656,10 @@ appear in the tolerance zone definition or datum reference frame.
 - Cyan means that more were found than expected. (4/3)
 - Magenta means that some PMI elements were found when none were expected. (3/0)
 
-From the PMI Representation Summary results, color-coded percentages of Exact, Partial, and
-Possible matches and missing PMI is shown in a table below the PMI Representation Coverage Analysis.
-Exceptions are counted as an Exact match and do not affect the percentage, except one or two points
-are deducted when the percentage would be 100.
+From the PMI Representation Summary results, color-coded percentages of Exact, Partial, Possible
+and Missing matches is shown in a table below the PMI Representation Coverage Analysis.  Exceptions
+are counted as an Exact match and do not affect the percentage, except one or two points are
+deducted when the percentage would be 100.
 
 The Total PMI on which the percentages are based on is also shown.  Coverage Analysis is only based
 on individual PMI elements.  The PMI Representation Summary is based on the entire PMI feature
@@ -1699,7 +1704,7 @@ and can interoperate with other software.
 
 There are other validation rules defined by STEP schemas (where, uniqueness, and global rules,
 inverses, derived attributes, and aggregates) that are NOT checked.  Conforming to the validation
-rules is also important for interoperability with STEP files.  See Websites > STEP Format and Schemas
+rules is also important for interoperability with STEP files.  See Websites > STEP
 
 The Syntax Checker can be run with function key F8 or when a Spreadsheet or View is generated.  The
 Status tab might be grayed out when the Syntax Checker is running.
@@ -1777,7 +1782,7 @@ outputMsg "These STEP Application Protocols (AP) and other schemas are supported
 The Viewer works with most versions of STEP AP203, AP209, AP214, AP238, and AP242.
 
 The name of the AP is found on the FILE_SCHEMA entity in the HEADER section of a STEP file.  The
-'e1' notation below after an AP number refers to an older edition of that AP.  Some APs have
+'e1' notation below after an AP number refers to an older Edition of that AP.  Some APs have
 multiple editions with the same name.\n"
 
     set schemas {}
@@ -1826,9 +1831,10 @@ multiple editions with the same name.\n"
         outputMsg "  $txt"
       } else {
         set txt "[string range $item 0 $c1][string toupper [string range $item $c1+1 end]]"
-        if {[string first "AP242" $txt] == 0} {append txt " (editions 1-3)"}
-        if {[string first "AP214" $txt] == 0} {append txt " (editions 1, 3)"}
-        if {[string first "AP210" $txt] == 0} {append txt " (edition 4)"}
+        if {[string first "AP242" $txt] == 0} {append txt " (Editions 1-3, see Websites > AP242)"}
+        if {[string first "AP214" $txt] == 0} {append txt " (Editions 1, 3)"}
+        if {[string first "AP210" $txt] == 0} {append txt " (Edition 4)"}
+        if {[string first "AP209" $txt] == 0 || [string first "AP239" $txt] == 0} {append txt " (See Websites > STEP)"}
         outputMsg "  $txt"
       }
     }
@@ -1847,7 +1853,6 @@ symbols with the control directives \\X\\ and \\X2\\.  For example, \\X\\E9 or \
 the accented character é.  Definitions of Unicode characters, such as E9, can be found at
 www.unicode.org/charts  Some CAD software does not support these control directives when exporting
 or importing a STEP file.
-See Websites > STEP Format and Schemas > ISO 10303 Part 21 Standard (section 6.4.3)
 
 Spreadsheet - The \\X\\ and \\S\\ control directives are supported by default.  Use the option on
 the Spreadsheet tab to support non-English characters using the \\X2\\ control directive.  In some
@@ -2048,7 +2053,7 @@ Credits
    The license agreement can be found in C:\\Program Files (x86)\\IFCsvrR300\\doc
 - Viewer for b-rep part geometry
    STEP to X3D Translator (stp2x3d) developed by Soonjo Kwon, former NIST Associate
-   See Websites > STEP Software
+   See Websites > STEP
 - Some Tcl code is based on CAWT https://www.tcl3d.org/cawt/
 
 See Help > Disclaimers and NIST Disclaimer"
@@ -2113,15 +2118,16 @@ proc guiWebsitesMenu {} {
   $Websites add command -label "PDM-IF"                              -command {openURL http://www.pdm-if.org}
 
   $Websites add separator
-  $Websites add command -label "AP203 vs AP214 vs AP242" -command {openURL https://www.capvidia.com/blog/best-step-file-to-use-ap203-vs-ap214-vs-ap242}
   $Websites add cascade -label "AP242" -menu $Websites.0
   set Websites0 [menu $Websites.0 -tearoff 1]
   $Websites0 add command -label "AP242 Project"     -command {openURL http://www.ap242.org}
   $Websites0 add command -label "Benchmark Testing" -command {openURL http://www.asd-ssg.org/step-ap242-benchmark}
   $Websites0 add command -label "ISO 10303-242"     -command {openURL https://www.iso.org/standard/84667.html}
-  $Websites0 add command -label "3D PDF"            -command {openURL https://www.iso.org/standard/77686.html}
+  $Websites0 add command -label "STEP in 3D PDF"    -command {openURL https://www.iso.org/standard/77686.html}
+  $Websites0 add command -label "STEP Geometry Services"  -command {openURL https://www.iso.org/standard/84820.html}
+  $Websites0 add command -label "AP203 vs AP214 vs AP242" -command {openURL https://www.capvidia.com/blog/best-step-file-to-use-ap203-vs-ap214-vs-ap242}
 
-  $Websites add cascade -label "STEP Format and Schemas" -menu $Websites.2
+  $Websites add cascade -label "STEP" -menu $Websites.2
   set Websites2 [menu $Websites.2 -tearoff 1]
   $Websites2 add command -label "STEP Format"       -command {openURL https://www.loc.gov/preservation/digital/formats/fdd/fdd000448.shtml}
   $Websites2 add command -label "ISO 10303 Part 21" -command {openURL https://en.wikipedia.org/wiki/ISO_10303-21}
@@ -2134,14 +2140,12 @@ proc guiWebsitesMenu {} {
   $Websites2 add command -label "AP209 FEA"    -command {openURL http://www.ap209.org}
   $Websites2 add command -label "AP239 PLCS"   -command {openURL http://www.ap239.org}
   $Websites2 add command -label "AP243 MoSSEC" -command {openURL http://www.mossec.org}
-
-  $Websites add cascade -label "STEP Software" -menu $Websites.3
-  set Websites3 [menu $Websites.3 -tearoff 1]
-  $Websites3 add command -label "STEP File Viewers"      -command {openURL https://www.mbx-if.org/step_viewers.php}
-  $Websites3 add command -label "STEP to X3D Translator" -command {openURL https://www.nist.gov/services-resources/software/step-x3d-translator}
-  $Websites3 add command -label "STEP to OWL Translator" -command {openURL https://github.com/usnistgov/stp2owl}
-  $Websites3 add command -label "STEP Class Library"     -command {openURL https://www.nist.gov/services-resources/software/step-class-library-scl}
-  $Websites3 add command -label "Source code on GitHub"  -command {openURL https://github.com/usnistgov/SFA}
+  $Websites2 add separator
+  $Websites2 add command -label "STEP File Viewers"      -command {openURL https://www.mbx-if.org/step_viewers.php}
+  $Websites2 add command -label "STEP to X3D Translator" -command {openURL https://www.nist.gov/services-resources/software/step-x3d-translator}
+  $Websites2 add command -label "STEP to OWL Translator" -command {openURL https://github.com/usnistgov/stp2owl}
+  $Websites2 add command -label "STEP Class Library"     -command {openURL https://www.nist.gov/services-resources/software/step-class-library-scl}
+  $Websites2 add command -label "Source code on GitHub"  -command {openURL https://github.com/usnistgov/SFA}
 
   $Websites add cascade -label "STEP Organizations" -menu $Websites.4
   set Websites4 [menu $Websites.4 -tearoff 1]
@@ -2150,11 +2154,11 @@ proc guiWebsitesMenu {} {
   $Websites4 add command -label "AFNeT (France)"         -command {openURL https://legacy.afnet.fr/dotank/sps/plm-committee/}
   $Websites4 add command -label "KStep (Korea)"          -command {openURL https://www.kstep.or.kr}
   $Websites4 add separator
-  $Websites4 add command -label "CAE Interoperability Forum (CAE-IF)"       -command {openURL https://www.mbx-if.org/cae/cae_introduction.php}
   $Websites4 add command -label "LOTAR - LOng Term Archiving and Retrieval" -command {openURL https://lotar-international.org}
-  $Websites4 add command -label "ASD Strategic Standardisation Group"       -command {openURL http://www.asd-ssg.org/}
   $Websites4 add command -label "ISO/TC 184/SC 4 - Industrial Data"         -command {openURL https://committee.iso.org/home/tc184sc4}
-  $Websites4 add command -label "STEP in 3D PDF"                            -command {openURL https://www.pdfa.org/resource/3d-formats/}
+  $Websites4 add command -label "CAE Interoperability Forum (CAE-IF)"       -command {openURL https://www.mbx-if.org/cae/cae_introduction.php}
+  $Websites4 add command -label "ASD Strategic Standardisation Group"       -command {openURL http://www.asd-ssg.org/}
+  $Websites4 add command -label "3D PDF Formats"                            -command {openURL https://www.pdfa.org/resource/3d-formats/}
   $Websites4 add command -label "JT-IF"                                     -command {openURL https://www.prostep.org/en/projects/jt-implementor-forum/}
 }
 
@@ -2236,7 +2240,6 @@ proc guiToolTip {ttmsg tt {name ""}} {
   set space 2
   set ttlim 120
   if {$tt == "stepCOMM" || $tt == "stepAP242"} {set ttlim 140}
-  if {$tt == "stepADDM"} {set ttlim 70}
   append ttmsg "\n\n"
 
   foreach type {ap203 ap242} {
@@ -2255,7 +2258,7 @@ proc guiToolTip {ttmsg tt {name ""}} {
         }
       }
       if {$ok} {
-        if {$type == "ap242" && $tt != "stepADDM"} {if {[lsearch $ap242e1not $ent] != -1} {append ent "*"}}
+        if {$type == "ap242"} {if {[lsearch $ap242e1not $ent] != -1} {append ent "*"}}
         incr ttlen [expr {[string length $ent]+$space}]
         if {$ttlen <= $ttlim} {
           append ttmsg "$ent[string repeat " " $space]"
@@ -2265,7 +2268,7 @@ proc guiToolTip {ttmsg tt {name ""}} {
         }
       }
     }
-    if {$type == "ap203" && $tt != "stepCOMM" && $tt != "stepAP242" && $tt != "stepADDM" && $tt != "stepQUAL" && $tt != "stepCONS" && $tt != "inverses"} {
+    if {$type == "ap203" && $tt != "stepCOMM" && $tt != "stepAP242" && $tt != "stepQUAL" && $tt != "stepCONS" && $tt != "inverses"} {
       if {$tt == "stepCPNT"} {append ttmsg "is supported in most STEP APs."}
       append ttmsg "\n\nThese entities are supported only in AP242."
       if {$tt != "stepKINE"} {append ttmsg "  Entities with a * are only in editions > 1."}

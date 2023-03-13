@@ -818,7 +818,7 @@ proc nistAddExpectedPMIPercent {nf name} {
   catch {foreach i {8 10 11} {[[$range Borders] Item $i] Weight [expr 2]}}
   set range [$worksheet($spmiCoverageWS) Range B$r]
   $range HorizontalAlignment [expr -4108]
-  addCellComment $spmiCoverageWS $r 1 "This table has color-coded percentages of Exact, Partial, Possible, Missing, and No matches from the PMI Representation Summary worksheet.  The Total PMI on which the percentages are based on is also shown.  The percentages for all matches except 'No match' should total 100.\n\nCoverage Analysis is only based on individual PMI elements.  The PMI Representation Summary is based on the entire PMI annotation and provides a better understanding of the PMI.  The Coverage Analysis might show that there is an Exact match (all green above) for all of the PMI elements, however, the Representation Summary might show less than Exact matches.\n\nSee Help > User Guide (section 6.6.2.1)"
+  addCellComment $spmiCoverageWS $r 1 "These are color-coded percentages based on the Total PMI of the number Exact, Partial, Possible, and Missing matches from column B on the PMI Representation Summary worksheet.  The percentages for all matches should total 100.\n\'Missing match' is based on Missing PMI that would appear below the color legend.  'No match' is based on the number of PMI Representation that appear in red.\n\nCoverage Analysis is only based on individual PMI elements.  The PMI Representation Summary is based on the complete Feature Control Frame and provides a better understanding of the PMI.  The Coverage Analysis might show that there is an Exact match (all green above) for all of the PMI elements, however, the Representation Summary might show less than Exact matches.\n\nSee Help > Analyzer > NIST CAD Models\nSee Help > User Guide (section 6.6.2.1)"
 
 # for multiple files, add more formatting
   if {[info exists lenfilelist]} {
@@ -844,18 +844,22 @@ proc nistAddExpectedPMIPercent {nf name} {
 
 # compute percentage
     if {$idx != "total"} {
-      if {[info exists nistExpectedPMI($idx)]} {set pct [trimNum [expr {(100.*$nistExpectedPMI($idx))/$nistExpectedPMI(total)}] 0]}
-      set str "[string totitle $idx] match"
+      if {[info exists nistExpectedPMI($idx)]} {
+        if {$idx != "no"} {
+          set pct [trimNum [expr {(100.*$nistExpectedPMI($idx))/$nistExpectedPMI(total)}] 0]
+        } else {
+          set pct $nistExpectedPMI($idx)
+        }
+      }
     } else {
-      set pct $nistExpectedPMI(total)
-      set str "Total PMI"
+      set pct $nistExpectedPMI($idx)
     }
     if {$pct == 100} {
       if {[info exists nistPMIdeduct(dim)]} {set pct [expr {$pct-1}]}
       if {[info exists nistPMIdeduct(tol)]} {set pct [expr {$pct-1}]}
     }
     catch {unset nistPMIdeduct}
-    $cells($spmiCoverageWS) Item $r 1 $str
+    $cells($spmiCoverageWS) Item $r 1 "[string totitle $idx] match"
     $cells($spmiCoverageWS) Item $r 2 $pct
     if {$idx == "exact"} {outputMsg " Expected PMI: $pct\%"}
 
@@ -867,19 +871,14 @@ proc nistAddExpectedPMIPercent {nf name} {
     if {[info exists lenfilelist]} {
       if {$lenfilelist > 1 && $nistPMIexpectedFormat >= 1} {
         incr r1
-        if {$idx != "total" } {
-          set str "[string totitle $idx] match"
-        } else {
-          set str "Total PMI"
-        }
-        $cells1($spmiCoverageWS) Item $r1 1 $str
+        $cells1($spmiCoverageWS) Item $r1 1 "[string totitle $idx] match"
         incr nistPMIexpectedFormat
       }
     }
 
 # color-code percentages
     set clr "white"
-    if {$idx != "total"} {
+    if {$idx != "total" && $idx != "no"} {
       if {$idx == "exact"} {
         if {$pct == 100} {
           set clr "green"

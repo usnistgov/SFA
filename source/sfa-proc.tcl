@@ -90,7 +90,7 @@ proc openURL {url} {
 
 # error opening STEP file in app
         if {[string first ".stp" $url] != -1} {
-          errorMsg "No app is associated with STEP files.  See Websites > STEP Software > STEP File Viewers"
+          errorMsg "No app is associated with STEP files.  See Websites > STEP > STEP File Viewers"
 
 # error opening viewer file
         } elseif {[string first "-sfa.html" $url] != -1} {

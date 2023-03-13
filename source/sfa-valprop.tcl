@@ -793,15 +793,6 @@ proc valPropReport {objEntity} {
                         lappend syntaxErr([lindex [split $ent1 " "] 0]) [list $objID [lindex [split $ent1 " "] 1] $emsg]
                       }
                     }
-
-# missing composite validation property name
-                    if {[string first "ply" $ent1] == 0 || [string first "reinforcement" $ent1] == 0} {
-                      if {[string tolower $propDefName] != "composite_validation_property" && $propDefName != ""} {
-                        set emsg "Syntax Error: property_definition 'name' attribute should be 'composite validation property'.$spaces\($recPracNames(comp), Sec. 4)"
-                        errorMsg $emsg
-                        lappend syntaxErr(property_definition) [list $propDefID name $emsg]
-                      }
-                    }
                   }
                 }
 

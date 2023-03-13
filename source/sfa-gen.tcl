@@ -277,7 +277,7 @@ proc genExcel {{numFile 0}} {
 
 # make sure some entity types are always processed
           if {$opt(xlFormat) != "None"} {
-            foreach cat {stepCOMP stepKINE stepFEAT stepAP242 stepADDM stepQUAL stepCONS} {
+            foreach cat {stepCOMP stepKINE stepFEAT stepAP242 stepQUAL stepCONS} {
               if {$opt($cat) == 0 && [lsearch $entCategory($cat) $entType] != -1} {
                 set opt($cat) 1
                 checkValues
@@ -405,7 +405,7 @@ proc genExcel {{numFile 0}} {
           if {[file size $localName] > 429000000} {append msg "\n- The STEP file is too large to open to generate a Spreadsheet.\n   For the Viewer use Part Only on the Options tab."}
           append msg "\n- Syntax errors in the STEP file"
           append msg "\n   Use F8 to run the Syntax Checker to check for errors in the STEP file.  See Help > Syntax Checker"
-          append msg "\n   Try opening the file in another STEP viewer.  See Websites > STEP Software > STEP File Viewers"
+          append msg "\n   Try opening the file in another STEP viewer.  See Websites > STEP > STEP File Viewers"
           append msg "\n- File or directory name contains accented, non-English, or symbol characters."
           append msg "\n   [file nativename $fname]"
           append msg "\n   Change the file name or directory name"
@@ -1347,7 +1347,7 @@ proc genExcel {{numFile 0}} {
       if {$okid} {addP21e3Section 2}
     }
 
-# add persistent IDs from v4/5_guid_attribute (ap242 edition 4)
+# add persistent IDs from v4/5_guid_attribute (AP242 Edition 4)
     set okid 0
     foreach guidEnt [list v4_guid_attribute v5_guid_attribute] {
       if {[info exists entCount($guidEnt)]} {
@@ -1769,7 +1769,7 @@ proc addHeaderWorksheet {numFile fname} {
             errorMsg "FileImplementationLevel should be '2\;1'.  See Header worksheet."
             if {$useXL} {
               [[$worksheet($hdr) Range B4] Interior] Color $legendColor(red)
-              addCellComment "Header" 4 2 "FileImplementationLevel should be '2\;1'.  See Websites > STEP Format and Schemas > ISO 10303 Part 21 Standard (section 8.2.2)"
+              addCellComment "Header" 4 2 "FileImplementationLevel should be '2\;1'."
             }
           }
         }
@@ -1780,7 +1780,7 @@ proc addHeaderWorksheet {numFile fname} {
             errorMsg "FileTimeStamp has the wrong format.  See Header worksheet."
             if {$useXL} {
               [[$worksheet($hdr) Range B5] Interior] Color $legendColor(red)
-              addCellComment "Header" 5 2 "FileTimeStamp has the wrong format.  See Websites > STEP Format and Schemas > ISO 10303 Part 21 Standard (section 8.2.3)"
+              addCellComment "Header" 5 2 "FileTimeStamp has the wrong format."
             }
           }
           set timeStamp $objAttr
@@ -2515,7 +2515,7 @@ proc moveWorksheet {items {where "Before"}} {
 }
 
 # -------------------------------------------------------------------------------------------------
-# add worksheets for part 21 edition 3 sections (idType=1) AND add persistent IDs (GUID) with id_attribute or v4/5_attribute (idType=2)
+# add worksheets for Part 21 edition 3 sections (idType=1) AND add persistent IDs (GUID) with id_attribute or v4/5_attribute (idType=2)
 proc addP21e3Section {idType} {
   global cells entCount entName fileSumRow idRow legendColor guid p21e3Section spmiSumRowID sumHeaderRow worksheet worksheets
   global objDesign
@@ -2542,7 +2542,7 @@ proc addP21e3Section {idType} {
 # add to worksheet
       incr r
       set line1 $line
-      if {$r == 1} {addCellComment $sect 1 1 "See Help > User Guide section 5.6.  See Websites > STEP Format and Schemas > ISO 10303 Part 21 Standard (sections 9, 10, 14)"}
+      if {$r == 1} {addCellComment $sect 1 1 "See Help > User Guide section 5.6."}
       $cells($sect) Item $r 1 $line1
 
 # process anchor section persistent IDs

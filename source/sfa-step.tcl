@@ -838,7 +838,7 @@ proc getSchemaFromFile {fname {limit 0}} {
         incr niderr
       }
 
-# check for part 21 edition 3 files
+# check for Part 21 edition 3 files
     } elseif {[string first "4\;1" $line] != -1 || [string first "ANCHOR\;" $line] != -1 || \
               [string first "REFERENCE\;" $line] != -1 || [string first "SIGNATURE\;" $line] != -1} {
       set p21e3 1
@@ -1041,7 +1041,7 @@ proc getUnicode {ent {type "view"}} {
 # check for double backslash instead of single backslash
               set cx2 [string first "\\\\X2\\\\" $ent]
               if {$cx2 != -1} {
-                errorMsg " Double backslash '\\\\X2\\\\' is not valid for delimiting Unicode characters with \\X2\\ and \\X0\\.  See Websites > STEP Format and Schemas > ISO 10303 Part 21 Standard (section 6.4.3)"
+                errorMsg " Double backslash '\\\\X2\\\\' is not valid for delimiting Unicode characters with \\X2\\ and \\X0\\."
                 set uc [string range $ent [expr {$cx+$i+1}] [expr {$cx+$i+4}]]
               }
 
@@ -1169,7 +1169,7 @@ proc checkP21e3 {fname} {
   set nline 0
   set f1 [open $fname r]
 
-# check for part 21 edition 3 file
+# check for Part 21 edition 3 file
   while {[gets $f1 line] != -1} {
     if {[string first "DATA\;" $line] == 0} {
       set nname $fname
@@ -1183,7 +1183,7 @@ proc checkP21e3 {fname} {
   }
   close $f1
 
-# part 21 edition 3 file
+# Part 21 edition 3 file
   if {$p21e3} {
 
 # new file name (now -mod, previously -p21e2)
@@ -1208,9 +1208,9 @@ proc checkP21e3 {fname} {
           outputMsg " "
           errorMsg "The STEP file uses ISO 10303 Part 21 Edition *3* '$sects' section(s)."
           outputMsg " A modified Part 21 Edition *2* file will be written and processed.\n  [truncFileName [file nativename $nname]]"
-          outputMsg " See Help > User Guide (section 5.6)  See Websites > STEP Format and Schemas > ISO 10303 Part 21 Standard (sections 9, 10, 14)"
+          outputMsg " See Help > User Guide (section 5.6)"
 
-# check for part 21 edition 3 content
+# check for Part 21 edition 3 content
         } elseif {[string first "ANCHOR\;" $line] == 0 || \
                   [string first "REFERENCE\;" $line] == 0 || \
                   [string first "SIGNATURE\;" $line] == 0} {
@@ -1218,7 +1218,7 @@ proc checkP21e3 {fname} {
           lappend sects [string range $line 0 end-1]
         }
 
-# write new file w/o part 21 edition 3 content, change 4;1 to 2;1
+# write new file w/o Part 21 edition 3 content, change 4;1 to 2;1
         if {$write} {
           set c1 [string first "4\;1" $line]
           if {$c1 != -1} {set line [string replace $line $c1 $c1 2]}
