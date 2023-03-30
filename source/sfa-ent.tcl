@@ -134,12 +134,12 @@ proc getEntity {objEntity rmax checkInverse checkBadAttributes unicodeCheck} {
             set objValue "???"
             if {[llength $badAttributes($thisEntType)] == 1} {
               errorMsg " Reporting [formatComplexEnt $thisEntType] '$attrName' attribute is not supported." red
-              errorMsg " '???' will appear in spreadsheet for this attribute.  See User Guide section 5.4" red
+              errorMsg " '???' will appear in spreadsheet for these attribute(s).  See User Guide section 5.4" red
             } else {
               set str $badAttributes($thisEntType)
               regsub -all " " $str "' '" str
-              errorMsg " Reporting [formatComplexEnt $thisEntType] '$str' attribute is not supported." red
-              errorMsg " '???' will appear in spreadsheet for these attributes.  See User Guide section 5.4" red
+              errorMsg " Reporting [formatComplexEnt $thisEntType] '$str' attributes is not supported." red
+              errorMsg " '???' will appear in spreadsheet for these attribute(s).  See User Guide section 5.4" red
             }
           }
         }

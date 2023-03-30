@@ -3,11 +3,11 @@ proc genExcel {{numFile 0}} {
   global allEntity aoEntTypes ap203all ap214all ap242all ap242only ap242ed ap242XML badAttributes buttons cadSystem cells cells1
   global col col1 commaSeparator count csvdirnam csvfile csvinhome currLogFile dim draughtingModels driUnicode entCategories entCategory
   global entColorIndex entCount entityCount entsIgnored entsWithErrors env epmi epmiUD errmsg equivUnicodeStringErr excel excelVersion fcsv
-  global feaFirstEntity feaLastEntity File fileEntity filesProcessed fileSumRow gen gpmiTypesInvalid gpmiTypesPerFile guid idxColor ifcsvrDir inverses
+  global feaFirstEntity feaLastEntity File fileEntity filesProcessed fileSumRow gen gpmiTypesInvalid gpmiTypesPerFile guid guidEnts idxColor ifcsvrDir inverses
   global lastXLS lenfilelist localName localNameList logFile matrixList multiFile multiFileDir mydocs mytemp nistCoverageLegend nistName
   global nistPMIexpected nistPMImaster noFontFile nprogBarEnts opt pf32 p21e3Section pmiCol resetRound row rowmax savedViewButtons savedViewName
   global savedViewNames scriptName sheetLast skipEntities skipFileName skipPerm spmiEntity spmiSumName spmiSumRow spmiTypesPerFile startrow statsOnly
-  global stepAP stepAPreport sumHeaderRow tessColor thisEntType timeStamp tlast tolNames tolStandard tolStandards totalEntity unicodeActual unicodeAttributes
+  global stepAP stepAPreport sumHeaderRow syntaxErr tessColor thisEntType timeStamp tlast tolNames tolStandard tolStandards totalEntity unicodeActual unicodeAttributes
   global unicodeEnts unicodeInFile unicodeNumEnts unicodeString userEntityFile userEntityList useXL valRounded viz wdir workbook workbooks
   global worksheet worksheet1 worksheets writeDir wsCount wsNames x3dAxes x3dColor x3dColorFile x3dColors x3dFileName x3dIndex x3dMax x3dMin
   global x3dMsg x3dMsgColor x3dStartFile x3dViewOK xlFileName xlFileNames xlInstalled
@@ -784,10 +784,15 @@ proc genExcel {{numFile 0}} {
 
 # user-defined expected PMI
     } else {
-      set epmiFile [file join [file dirname $localName] SFA-EPMI-[file tail [file rootname $localName]].xlsx]
-      if {[file exists $epmiFile]} {
-        set epmiUD [file tail [file rootname $localName]]
-        nistReadExpectedPMI $epmiFile
+      set lname [file tail [file rootname $localName]]
+      for {set i 3} {$i < [string length $lname]} {incr i} {
+        set ln [string range $lname 0 $i]
+        set epmiFile [file join [file dirname $localName] SFA-EPMI-$ln.xlsx]
+        if {[file exists $epmiFile]} {
+          set epmiUD [file tail [file rootname $localName]]
+          nistReadExpectedPMI $epmiFile
+          break
+        }
       }
     }
   }
@@ -1234,6 +1239,76 @@ proc genExcel {{numFile 0}} {
   }
 
 # -------------------------------------------------------------------------------------------------
+# add persistent IDs (UUID) from id_attribute
+  if {$opt(xlFormat) == "Excel"} {
+    if {[info exists entCount(id_attribute)]} {
+      set okid 0
+      ::tcom::foreach e0 [$objDesign FindObjects [string trim id_attribute]] {
+        set pid [[[$e0 Attributes] Item [expr 1]] Value]
+        if {[string length $pid] == 36} {
+          if {[string first "-" $pid] == 8} {
+            if {[string last "-" $pid] == 23} {
+              set a1 [[[$e0 Attributes] Item [expr 2]] Value]
+              set guid([$a1 Type],[$a1 P21ID]) $pid
+              set okid 1
+            }
+          }
+        }
+      }
+      if {$okid} {addP21e3Section 2}
+    }
+
+# add persistent IDs from v4/5_guid_attribute (AP242 Edition 4)
+    set okid 0
+    set npid 0
+    set allpid {}
+    set guidEnts {}
+    foreach vguidEnt [list v4_guid_attribute v5_guid_attribute] {
+      if {[info exists entCount($vguidEnt)]} {
+        errorMsg "\nProcessing GUID attributes" blue
+        ::tcom::foreach e0 [$objDesign FindObjects [string trim $vguidEnt]] {
+          set pid [[[$e0 Attributes] Item [expr 1]] Value]
+          incr npid
+          if {[string length $pid] == 36 && [string first "-" $pid] == 8 && [string last "-" $pid] == 23} {
+
+# check for duplicate GUIDs
+            if {[lsearch $allpid $pid] == -1} {
+              lappend allpid $pid
+            } else {
+              errorMsg " GUID is identical to a previous value on [$e0 Type]"
+              lappend syntaxErr([$e0 Type]) [list [$e0 P21ID] identifier " GUID is identical to a previous value"]
+            }
+            set pid "$pid ("
+            if {[string first "hash" [$e0 Type]] != -1} {append pid "hash "}
+            append pid "v[string index $vguidEnt 1])"
+
+# get entity GUID is associate to
+            set e1s [[[$e0 Attributes] Item [expr 2]] Value]
+            foreach e1 $e1s {
+              set e2 [[[$e1 Attributes] Item [expr 2]] Value]
+              if {[string first "handle" $e2] != -1} {
+                set guidEnt [$e2 Type]
+                if {[lsearch $guidEnts $guidEnt] == -1} {lappend guidEnts $guidEnt}
+                set guid($guidEnt,[$e2 P21ID]) $pid
+                set okid 1
+                if {![info exist cells($guidEnt)]} {lappend noGUIDent $guidEnt}
+
+              } else {
+                errorMsg " Missing 'identified_item' attribute on id_attribute"
+                lappend syntaxErr(id_attribute) [list [$e1 P21ID] identified_item " Missing 'identified_item' attribute"]
+              }
+            }
+          }
+        }
+      }
+    }
+    if {$okid && [info exists noGUIDent]} {
+      outputMsg " GUIDs are also associated with: [lrmdups $noGUIDent]" red
+      unset noGUIDent
+    }
+  }
+  
+# -------------------------------------------------------------------------------------------------
 # add summary worksheet
   if {$useXL && [llength $entsToProcess] > 0} {
     set tmp [sumAddWorksheet]
@@ -1328,69 +1403,6 @@ proc genExcel {{numFile 0}} {
 # -------------------------------------------------------------------------------------------------
 # add ANCHOR and other sections from Part 21 Edition 3
     if {[info exists p21e3Section]} {if {[llength $p21e3Section] > 0} {addP21e3Section 1}}
-
-# add persistent IDs (UUID) from id_attribute
-    if {[info exists entCount(id_attribute)]} {
-      set okid 0
-      ::tcom::foreach e0 [$objDesign FindObjects [string trim id_attribute]] {
-        set pid [[[$e0 Attributes] Item [expr 1]] Value]
-        if {[string length $pid] == 36} {
-          if {[string first "-" $pid] == 8} {
-            if {[string last "-" $pid] == 23} {
-              set a1 [[[$e0 Attributes] Item [expr 2]] Value]
-              set guid([$a1 Type],[$a1 P21ID]) $pid
-              set okid 1
-            }
-          }
-        }
-      }
-      if {$okid} {addP21e3Section 2}
-    }
-
-# add persistent IDs from v4/5_guid_attribute (AP242 Edition 4)
-    set okid 0
-    foreach guidEnt [list v4_guid_attribute v5_guid_attribute] {
-      if {[info exists entCount($guidEnt)]} {
-        errorMsg "\nProcessing GUID attributes" blue
-        ::tcom::foreach e0 [$objDesign FindObjects [string trim $guidEnt]] {
-          set pid [[[$e0 Attributes] Item [expr 1]] Value]
-          if {[string length $pid] == 36 && [string first "-" $pid] == 8 && [string last "-" $pid] == 23} {
-            set pid "$pid (V[string index $guidEnt 1])"
-            set e1s [[[$e0 Attributes] Item [expr 2]] Value]
-            foreach e1 $e1s {
-              set e2 [[[$e1 Attributes] Item [expr 2]] Value]
-              if {[string first "handle" $e2] != -1} {
-                set anchorEnt [$e2 Type]
-                set guid($anchorEnt,[$e2 P21ID]) $pid
-                set okid 1
-
-                if {[info exist fileSumRow($anchorEnt)]} {
-                  set fsrow [expr {$fileSumRow($anchorEnt)+$sumHeaderRow+1}]
-                  set val [[$cells(Summary) Item $fsrow 1] Value]
-                  if {[string first "GUID" $val] == -1} {
-                    $cells(Summary) Item $fsrow 1 "$val  \[GUID\]"
-                    set range [$worksheet(Summary) Range [cellRange $fsrow 1]]
-                    [$range Font] Bold [expr 1]
-                  }
-                } else {
-                  lappend noGUIDent $anchorEnt
-                }
-
-              } else {
-                errorMsg " Missing 'identified_item' attribute on id_attribute"
-              }
-            }
-          }
-        }
-      }
-    }
-    if {$okid} {
-      addP21e3Section 2
-      if {[info exists noGUIDent]} {
-        outputMsg " GUIDs are also associated with: [lrmdups $noGUIDent]" red
-        unset noGUIDent
-      }
-    }
 
 # -------------------------------------------------------------------------------------------------
 # generate bill of materials (BOM)
@@ -1610,7 +1622,7 @@ proc genExcel {{numFile 0}} {
   update idletasks
 
 # unset variables
-  foreach var {ap242XML assemTransformPMI brepScale cells cgrObjects colColor count currx3dPID datumEntType datumGeom datumIDs datumSymbol datumSystem datumSystemPDS defComment dimrep dimrepID dimtolEnt dimtolEntID dimtolGeom draughtingModels draftModelCameraNames draftModelCameras driPropID entCount entName entsIgnored epmi epmiUD equivUnicodeString feaDOFR feaDOFT feaNodes fileSumRow fontErr gpmiID gpmiIDRow gpmiRow heading idRow invCol invGroup noFontFile nrep numx3dPID placeAxesDef placeSphereDef pmiCol pmiColumns pmiStartCol pmivalprop propDefID propDefIDRow propDefName propDefOK propDefRow ptzError savedsavedViewNames savedViewFile savedViewFileName savedViewItems savedViewNames savedViewpoint savedViewVP shapeRepName srNames suppGeomEnts syntaxErr taoLastID tessCoord tessCoordName tessIndex tessIndexCoord tessPlacement tessRepo unicode unicodeActual unicodeNumEnts unicodeString viz vpEnts workbook workbooks worksheet worksheets x3dCoord x3dFile x3dFileName x3dIndex x3dMax x3dMin x3dStartFile} {
+  foreach var {ap242XML assemTransformPMI brepScale cells cgrObjects colColor count currx3dPID datumEntType datumGeom datumIDs datumSymbol datumSystem datumSystemPDS defComment dimrep dimrepID dimtolEnt dimtolEntID dimtolGeom draughtingModels draftModelCameraNames draftModelCameras driPropID entCount entName entsIgnored epmi epmiUD equivUnicodeString feaDOFR feaDOFT feaNodes fileSumRow fontErr gpmiID gpmiIDRow gpmiRow heading idRow invCol invGroup noFontFile nrep numx3dPID placeAxesDef placeSphereDef pmiCol pmiColumns pmiStartCol pmivalprop propDefID propDefIDRow propDefName propDefOK propDefRow ptzError savedsavedViewNames savedViewFile savedViewFileName savedViewItems savedViewNames savedViewpoint savedViewVP shapeRepName srNames suppGeomEnts syntaxErr taoLastID tessCoord tessCoordName tessIndex tessIndexCoord tessPlacement tessRepo trimVal unicode unicodeActual unicodeNumEnts unicodeString viz vpEnts workbook workbooks worksheet worksheets x3dCoord x3dFile x3dFileName x3dIndex x3dMax x3dMin x3dStartFile} {
     catch {global $var}
     if {[info exists $var]} {unset $var}
   }
@@ -1904,7 +1916,7 @@ proc addHeaderWorksheet {numFile fname} {
 # add summary worksheet
 proc sumAddWorksheet {} {
   global andEntAP209 cells col entCategory entCount entsIgnored equivUnicodeString excel fileSumRow
-  global gpmiEnts opt row sheetLast sheetSort spmiEntity stepAP sum vpEnts worksheet worksheets
+  global gpmiEnts guidEnts opt row sheetLast sheetSort spmiEntity stepAP sum vpEnts worksheet worksheets
 
   outputMsg "\nGenerating Summary worksheet" blue
   set sum "Summary"
@@ -1976,6 +1988,8 @@ proc sumAddWorksheet {} {
           $cells($sum) Item $sumRow 1 "$entType  \[Assembly\]"
         } elseif {$entType == "descriptive_representation_item" && [info exists equivUnicodeString]} {
           $cells($sum) Item $sumRow 1 "$entType  \[Unicode String\]"
+        } elseif {[lsearch $guidEnts $entType] != -1} {
+          $cells($sum) Item $sumRow 1 "$entType  \[GUID\]"
         }
         if {$okao} {$cells($sum) Item $sumRow 1 "$entType  \[PMI Presentation\]"}
 
@@ -2273,7 +2287,7 @@ proc sumAddColorLinks {sum sumHeaderRow sumLinks sheetSort sumRow} {
 #-------------------------------------------------------------------------------------------------
 # format worksheets
 proc formatWorksheets {sheetSort sumRow inverseEnts} {
-  global buttons cells col count entCount entRows equivUnicodeString excel gpmiEnts idRow nprogBarEnts opt pmiStartCol
+  global buttons cells col count entCount entRows equivUnicodeString excel gpmiEnts guidEnts idRow nprogBarEnts opt pmiStartCol
   global row spmiEnts stepAP stepAPreport sumHeaderRow syntaxErr thisEntType viz vpEnts worksheet
   outputMsg "Formatting Worksheets" blue
 
@@ -2388,6 +2402,11 @@ proc formatWorksheets {sheetSort sumRow inverseEnts} {
           addCellComment "descriptive_representation_item" 3 4 "The string interprets the characters '\\w' as ' | ' and '\\n' as a new line.  Unicode characters not supported by Windows fonts appear as a question mark.  When this column is sorted, the row height might need to be increased.  See Recommended Practice for PMI Unicode String Specification."
           incr rancol
         }
+
+# guids
+      } elseif {[lsearch $guidEnts $thisEntType] != -1} {
+        outputMsg " $thisEntType"
+        addP21e3Section 2 $thisEntType
       }
 
 # -------------------------------------------------------------------------------------------------
@@ -2516,7 +2535,7 @@ proc moveWorksheet {items {where "Before"}} {
 
 # -------------------------------------------------------------------------------------------------
 # add worksheets for Part 21 edition 3 sections (idType=1) AND add persistent IDs (GUID) with id_attribute or v4/5_attribute (idType=2)
-proc addP21e3Section {idType} {
+proc addP21e3Section {idType {guidEnt ""}} {
   global cells entCount entName fileSumRow idRow legendColor guid p21e3Section spmiSumRowID sumHeaderRow worksheet worksheets
   global objDesign
 
@@ -2645,18 +2664,20 @@ proc addP21e3Section {idType} {
       set uuid $guid($idx)
       set idx [split $idx ","]
       set anchorEnt [lindex $idx 0]
-      set anchorID  [lindex $idx 1]
-      if {[info exists worksheet($anchorEnt)]} {
-        if {![info exists urow($anchorEnt)]} {set urow($anchorEnt) [[[$worksheet($anchorEnt) UsedRange] Rows] Count]}
-        if {![info exists ucol($anchorEnt)]} {set ucol($anchorEnt) [getNextUnusedColumn $anchorEnt]}
-        if {[info exists idRow($anchorEnt,$anchorID)]} {
-          set ur $idRow($anchorEnt,$anchorID)
-          $cells($anchorEnt) Item $ur $ucol($anchorEnt) $uuid
-          set range [$worksheet($anchorEnt) Range [cellRange $ur $ucol($anchorEnt)]]
-          [$range Interior] ColorIndex [expr 40]
-          catch {foreach i {8 9} {[[$range Borders] Item $i] Weight [expr 1]}}
+      if {$guidEnt == "" || $anchorEnt == $guidEnt} {
+        set anchorID  [lindex $idx 1]
+        if {[info exists worksheet($anchorEnt)]} {
+          if {![info exists urow($anchorEnt)]} {set urow($anchorEnt) [[[$worksheet($anchorEnt) UsedRange] Rows] Count]}
+          if {![info exists ucol($anchorEnt)]} {set ucol($anchorEnt) [getNextUnusedColumn $anchorEnt]}
+          if {[info exists idRow($anchorEnt,$anchorID)]} {
+            set ur $idRow($anchorEnt,$anchorID)
+            $cells($anchorEnt) Item $ur $ucol($anchorEnt) $uuid
+            set range [$worksheet($anchorEnt) Range [cellRange $ur $ucol($anchorEnt)]]
+            [$range Interior] ColorIndex [expr 40]
+            catch {foreach i {8 9} {[[$range Borders] Item $i] Weight [expr 1]}}
+          }
+          if {[info exists spmiSumRowID($anchorID)]} {set anchorSum($spmiSumRowID($anchorID)) $uuid}
         }
-        if {[info exists spmiSumRowID($anchorID)]} {set anchorSum($spmiSumRowID($anchorID)) $uuid}
       }
     }
   }
@@ -2694,6 +2715,7 @@ proc addP21e3Section {idType} {
     set msg "See ANCHOR worksheet and Help > User Guide (section 5.6)"
     if {[info exists entCount(v4_guid_attribute)] || [info exists entCount(v5_guid_attribute)]} {
       set msg "See Recommended Practices for Persistent IDs for Design Iteration and Downstream Exchange"
+      incr urow($ent)
     }
     addCellComment $ent 3 $ucol($ent) $msg
     set range [$worksheet($ent) Range [cellRange 3 $ucol($ent)] [cellRange $urow($ent) $ucol($ent)]]

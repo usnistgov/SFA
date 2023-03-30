@@ -953,6 +953,7 @@ proc spmiGeotolReport {objEntity} {
                       }
                       set datumGeomEnts [join [lrmdups $datumGeomEnts]]
                       set datumEntType($datumGeomEnts) "[formatComplexEnt [$gtEntity Type]] [$gtEntity P21ID]"
+                      if {[string first "with_datum_feature" [$gtEntity Type]] == -1} {lappend spmiTypesPerFile "datum features"}
 
 # check how DF is used in SAR, related > datum ID, relating > SA, CGSA, etc.
                       set e1s [$gtEntity GetUsedIn [string trim shape_aspect_relationship] [string trim relating_shape_aspect]]

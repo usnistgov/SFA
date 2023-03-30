@@ -187,7 +187,7 @@ proc openFile {{openName ""}} {
 
     set fileDir [file dirname $localName]
     if {[string first "z" [string tolower [file extension $localName]]] == -1} {
-      outputMsg "\nReady to process: [file tail $localName] ([fileSize $localName])" green
+      outputMsg "\nReady to process: [file tail $localName]  ([fileSize $localName]  [fileTime $localName])" green
       checkFileSize
 
 # check file extension
@@ -240,7 +240,7 @@ proc getFirstFile {} {
 
   set localName [lindex $openFileList 0]
   if {$localName != ""} {
-    outputMsg "\nReady to process: [file tail $localName] ([fileSize $localName])" green
+    outputMsg "\nReady to process: [file tail $localName]  ([fileSize $localName]  [fileTime $localName])" green
 
 # check for .stpx file
     set ap242XML 0
@@ -409,6 +409,13 @@ proc fileSize {fn} {
       return "$fs GB"
     }
   }
+}
+
+#-------------------------------------------------------------------------------
+# file time
+proc fileTime {fn} {
+  set ftime [file mtime $fn]
+  return "[clock format $ftime -format %d]-[clock format $ftime -format %b]-[clock format $ftime -format %Y]  [clock format $ftime -format %H:%M:%S]"
 }
 
 #-------------------------------------------------------------------------------
@@ -1291,7 +1298,7 @@ proc fixErrorMsg {emsg} {
 proc truncFileName {fname {compact 0}} {
   global mydesk mydocs
 
-# if file is in Documents, Desktop, or Downloads, then shorten name
+# if file is in Documents, Desktop, Downloads, or OneDrive, then shorten name
   catch {
     if {[string first $mydocs $fname] == 0} {
       set nname "[string range $fname 0 2]...[string range $fname [string length $mydocs] end]"
@@ -1303,6 +1310,9 @@ proc truncFileName {fname {compact 0}} {
       if {[string first $mydown $fname] == 0} {
         set nname "[string range $fname 0 2]...[string range $fname [expr {[string length $mydown]-10}] end]"
       }
+    } elseif {[string first "\\OneDrive" $fname] != -1 || [string first "/OneDrive" $fname] != -1} {
+      set c1 [string first "OneDrive" $fname]
+      set nname "[string range $fname 0 2]...[string range $fname $c1-1 end]"
     }
   }
   if {[info exists nname]} {if {$nname != "C:\\..."} {set fname $nname}}

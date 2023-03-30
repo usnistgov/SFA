@@ -53,7 +53,7 @@ set x3dFileName ""
 set x3dStartFile 1
 
 set developer 0
-catch {if {$env(USERDOMAIN) == "NIST" || $env(USERDOMAIN) == "DESKTOP-VV8848J"} {set developer 1}}
+catch {if {$env(USERDOMAIN) == "NIST" || $env(USERDOMAIN) == "HARAUB" || $env(USERDOMAIN) == "DESKTOP-VV8848J"} {set developer 1}}
 catch {if {$env(USERDOMAIN_ROAMINGPROFILE) == "NIST"} {set developer 1}}
 
 # IFCsvr
@@ -281,9 +281,9 @@ set spmiEntTypes [list \
 ]
 
 # max rows for PMI elements on PMI representation coverage worksheet, depends on number and order of items below
-set pmiElementsMaxRows 180
+set pmiElementsMaxRows 181
 # line breaks are above the row, depends on the grouping of PMI elements below
-set pmiHorizontalLineBreaks [list 19 36 48 54 68 75 85 [expr {$pmiElementsMaxRows-11}]]
+set pmiHorizontalLineBreaks [list 19 36 48 54 68 76 86 [expr {$pmiElementsMaxRows-11}]]
 
 # -----------------------------------------------------------------------------------------------------
 # dimensional_size names (Section 5.1.5, Table 4)
@@ -311,7 +311,7 @@ foreach item [list "tolerance zone diameter \u2300 (6.9.2)" "tolerance zone with
   "dimensions (location+size)" "dimensional location (5.1.1)" "dimensional size (5.1.5)" "angular location (5.1.2)" "angular size (5.1.6)" "directed dimension \u2331 (5.1.1)" "oriented dimensional location (5.1.3)" "derived shapes dimensional location (5.1.4)" "location with path (5.1.7)" "repetitive dimensions 'nX' (5.1, User Guide 6.1.3)" "dimension association to geometric tolerance (5.1)" "dimension precision (5.4)" \
   "bilateral tolerance (5.2.3)" "non-bilateral tolerance (5.2.3)" "type qualifier (5.2.2)" "value range (5.2.4)" "limits and fits (5.2.5)" "tolerance precision (5.2.3)" \
   "diameter \u2300 (5.1.5)" "radius R (5.1.5)" "spherical diameter S\u2300 (5.1.5)" "spherical radius SR (5.1.5)" "curved distance (5.1.1)" "linear distance (5.1.1)" "linear distance inner/outer (5.1.1)" "curve length (5.1.5)" "thickness (5.1.5)" "toroidal radius/diameter (5.1.5)" "controlled radius CR (5.3)" "dimension basic (5.3)" "reference dimension (5.3)" "square \u25A1 (5.3)" \
-  "datum (6.5)" "datum system (6.9.7)" "datum with axis system (6.9.7)" "datum with modifiers (6.9.7)" "multiple datum features (6.9.8)" "datum feature association to geometric tolerance (6.1)" "datum feature association to dimension (6.5.3)" \
+  "datum (6.5)" "datum features (6.5.1)" "datum system (6.9.7)" "datum with axis system (6.9.7)" "datum with modifiers (6.9.7)" "multiple datum features (6.9.8)" "datum feature association to geometric tolerance (6.1)" "association of datum feature to dimension (6.5.3)" \
   "all datum targets" "point datum target (6.6.1)" "line datum target (6.6.1)" "rectangle datum target (6.6.1)" "circle datum target (6.6.1)" "circular curve datum target (6.6.1)" "curve datum target (6.6.2)" "area datum target (6.6.2)" "placed datum target geometry (6.6.3)" "movable datum target (6.6.4)" \
 ] {lappend spmiTypes $item}
 
@@ -491,7 +491,7 @@ set pmiUnicode(including)        $pmiUnicode(symmetry)
 
 # -----------------------------------------------------------------------------------------------------
 # pictures that are embedded in a spreadsheet based on STEP file name
-set nistModelPictures [list {STEP-File-Analyzer nist_ctc_01.jpg E4 0} {nist_ctc_01 nist_ctc_01.jpg E4 0} {nist_ctc_02 nist_ctc_02abc.jpg E4 0} {nist_ctc_03 nist_ctc_03.jpg E4 0} {nist_ctc_04 nist_ctc_04.jpg E4 0} {nist_ctc_05 nist_ctc_05ab.jpg E4 0} {nist_ftc_06 nist_ftc_06abc.jpg E4 0} {nist_ftc_07 nist_ftc_07abc.jpg E4 0} {nist_ftc_07 nist_ftc_07d.jpg T4 20} {nist_ftc_08 nist_ftc_08abcd.jpg E4 0} {nist_ftc_09 nist_ftc_09abcd.jpg E4 0} {nist_ftc_10 nist_ftc_10abc.jpg E4 0} {nist_ftc_10 nist_ftc_10de.jpg T4 20} {nist_ftc_11 nist_ftc_11ab.jpg E4 0} {sp6-base sp6-base.jpg E4 0} {sp6-cheek sp6-cheek.jpg E4 0} {sp6-pole sp6-pole.jpg E4 0} {sp6-spindle sp6-spindle.jpg E4 0}]
+set nistModelPictures [list {STEP-File-Analyzer nist_ctc_01.jpg E4 0} {nist_ctc_01 nist_ctc_01.jpg E4 0} {nist_ctc_02 nist_ctc_02abc.jpg E4 0} {nist_ctc_03 nist_ctc_03.jpg E4 0} {nist_ctc_04 nist_ctc_04.jpg E4 0} {nist_ctc_05 nist_ctc_05ab.jpg E4 0} {nist_ftc_06 nist_ftc_06abc.jpg E4 0} {nist_ftc_07 nist_ftc_07abc.jpg E4 0} {nist_ftc_07 nist_ftc_07d.jpg T4 20} {nist_ftc_08 nist_ftc_08abcd.jpg E4 0} {nist_ftc_09 nist_ftc_09abcd.jpg E4 0} {nist_ftc_10 nist_ftc_10abc.jpg E4 0} {nist_ftc_10 nist_ftc_10de.jpg T4 20} {nist_ftc_11 nist_ftc_11ab.jpg E4 0}]
 
 # -----------------------------------------------------------------------------------------------------
 # AP209 element index based on ISO 10303 Part 104 ordering

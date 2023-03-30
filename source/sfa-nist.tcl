@@ -210,15 +210,17 @@ proc nistCheckExpectedPMI {val entstr epmiName} {
     set val [string range $val 0 $c1+9][string range $val $c2 end]
   }
 
-# remove (oriented)
-  set c1 [string first "(oriented)" $val]
-  if {$c1 > 0} {set val [string range $val 0 $c1-2]}
+# remove (oriented) for NIST test case
+  if {[string first "nist" $epmiName] == 0} {
+    set c1 [string first "(oriented)" $val]
+    if {$c1 > 0} {set val [string range $val 0 $c1-2]}
 
-# remove between
-  set c1 [string first $pmiModifiers(between) $val]
-  if {$c1 > 0} {set val [string range $val 0 $c1-2]}
+# remove between for NIST test case
+    set c1 [string first $pmiModifiers(between) $val]
+    if {$c1 > 0} {set val [string range $val 0 $c1-2]}
+  }
 
-# exceptions for datum features on geometric tolerances based on test case
+# exceptions for datum features on geometric tolerances based on NIST test case
   if {$epmiName == "nist_ctc_02"} {
     set c1 [string first "\[A" $val]
     if {$c1 != -1} {
@@ -266,7 +268,7 @@ proc nistCheckExpectedPMI {val entstr epmiName} {
     }
   }
 
-# exceptions for directed dimensions
+# exceptions for directed dimensions for NIST test case
   if {$epmiName == "nist_ftc_06" || $epmiName == "nist_ftc_07" || $epmiName == "nist_ftc_10" || $epmiName == "nist_ctc_03" || \
       $epmiName == "nist_stc_06" || $epmiName == "nist_stc_07" || $epmiName == "nist_stc_10"} {
     set c1 [string first "(directed)" $val]
@@ -277,27 +279,29 @@ proc nistCheckExpectedPMI {val entstr epmiName} {
     }
   }
 
-# remove some items, typically found in CATIA files
+# remove some items for NIST test cases typically found in CATIA files
 # circle (I), independency
-  set c1 [string first "\u24BE" $val]
-  if {$c1 > 0} {
-    regsub "\u24BE" $val "" val
-    set pmiException(Independency) 1
-  }
+  if {[string first "nist" $epmiName] == 0} {
+    set c1 [string first "\u24BE" $val]
+    if {$c1 > 0} {
+      regsub "\u24BE" $val "" val
+      set pmiException(Independency) 1
+    }
 # <CF>
-  set c1 [string first "<CF>" $val]
-  if {$c1 > 0} {
-    regsub "<CF>" $val "" val
-    set idx "Continuous feature"
-    set pmiException($idx) 1
-  }
+    set c1 [string first "<CF>" $val]
+    if {$c1 > 0} {
+      regsub "<CF>" $val "" val
+      set idx "Continuous feature"
+      set pmiException($idx) 1
+    }
 # datum feature on a dimension
-  if {$entstr == "dimensional_characteristic_representation"} {
-    set c1 [string first "\u25BD" $val]
-    if {$c1 != -1} {set val [string range $val 0 $c1-5]}
+    if {$entstr == "dimensional_characteristic_representation"} {
+      set c1 [string first "\u25BD" $val]
+      if {$c1 != -1} {set val [string range $val 0 $c1-5]}
+    }
   }
 
-# remove zeros from val, also removes linefeeds so FCF is one line
+# remove zeros from val, also removes linefeeds so FCF is one line for comparison to actual FCF
   if {[string first "(point)" $val] == -1} {set val [pmiRemoveZeros $val]}
   if {[string first "tolerance" $entstr] != -1} {
     foreach nam $tolNames {if {[string first $nam $entstr] != -1} {set valType($val) $nam}}
@@ -1129,20 +1133,10 @@ proc nistGetName {} {
   if {[string first "tgp" $ftail] == 0} {set c 4}
   foreach str {asme1 ap203 ap214 ap242 242 c3e} {regsub $str $ftail "" ftail}
 
-# first check some specific names, CAx-IF ISO PMI models
-  foreach part [list base cheek pole spindle] {
-    if {[string first "sp" $ftail1] == 0} {
-      if {[string first $part $ftail] != -1} {set nistName "sp6-$part"}
-    }
-    if {[string first "$part\_r"  $ftail] == 0}      {set nistName "sp6-$part"}
-    if {[string first "_$part"    $ftail] != -1}     {set nistName "sp6-$part"}
-    if {[string first "$part.stp" $localName] != -1} {set nistName "sp6-$part"}
+  if {$developer && [string first "step-file-analyzer" $ftail] == 0} {
+    set nistName "nist_ctc_01"
+    return $nistName
   }
-
-  if {$developer && [string first "step-file-analyzer" $ftail] == 0} {set nistName "nist_ctc_01"}
-
-# specific name found
-  if {$nistName != ""} {return $nistName}
 
 # check for a NIST CTC, FTC, STC
   set testCase ""

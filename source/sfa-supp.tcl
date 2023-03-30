@@ -1,6 +1,6 @@
 # supplemental geometry
 proc x3dSuppGeom {} {
-  global cgrObjects developer maxxyz recPracNames skipEntities syntaxErr tessSuppGeomFile tessSuppGeomFileName trimVal x3dFile
+  global cgrObjects developer maxxyz recPracNames skipEntities syntaxErr tessSuppGeomFile tessSuppGeomFileName trimVal x3dFile x3dMsg
   global objDesign
   if {![info exists objDesign]} {return}
 
@@ -52,6 +52,8 @@ proc x3dSuppGeom {} {
           }
         }
       }
+      set msg "Supplemental Geometry on parts in an assembly might have the wrong position and orientation"
+      if {[lsearch $x3dMsg $msg] == -1} {lappend x3dMsg $msg}
     } emsg]} {
       errorMsg " Error getting transform for supplemental geometry in an assembly: $emsg"
     }
@@ -78,7 +80,7 @@ proc x3dSuppGeom {} {
           ::tcom::foreach sr $srs {
             set das [$sr GetUsedIn [string trim description_attribute] [string trim described_item]]
             ::tcom::foreach da $das {set av [[[$da Attributes] Item [expr 1]] Value]}
-            if {[info exist av]} {if {$av == "supplemental geometry subset"} {errorMsg "  Subset found for some supplemental geometry" red}}
+            if {[info exist av] && $developer} {if {$av == "supplemental geometry subset"} {errorMsg "  Subset found for some supplemental geometry" red}}
           }
         } emsg]} {
           errorMsg " Error checking supplemental geometry subset: $emsg"
@@ -461,12 +463,12 @@ proc x3dSuppGeomCircle {e3 tsize {type "circle"}} {
     set trimmed 0
     set lim 6.28319
 
-# trim with angles
+# trim with angles, assume radians, convert degrees to radians
     if {[info exists trimVal(1)]} {
       if {[string first "handle" $trimVal(1)] == -1} {
         set angle $trimVal(1)
         set conv 1.
-        if {$trimVal(1) > $lim && $trimVal(2) > $lim} {
+        if {[expr {abs($trimVal(1))}] > $lim || [expr {abs($trimVal(2))}] > $lim} {
           set conv $DTR
           set angle [expr {$angle*$conv}]
         }

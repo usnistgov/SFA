@@ -1468,7 +1468,7 @@ proc spmiDimtolReport {objEntity} {
 # add datum feature with a triangle and line
         if {[info exists datsym]} {
           append dr "[format "%c" 10]   \u25BD[format "%c" 10]   \u23B9[format "%c" 10]   \[$datsym\]"
-          lappend spmiTypesPerFile "datum feature association to dimension"
+          lappend spmiTypesPerFile "association of datum feature to dimension"
           unset datsym
         }
 
@@ -1584,6 +1584,7 @@ proc valueQualifier {ent1 val {type "length/angle"} {equal "equal"}} {
       }
       if {$etype != ""} {
         set msg "Precision 'NR2 $prec1.y' specifies $etype digits than are necessary ([string length $val1s]) for the $type value ($recPracNames(pmi242), Sec. $sect)"
+        if {$etype == "less"} {set prec1 [string length $val1s]}
         errorMsg $msg
         lappend syntaxErr([$ent1 Type]) [list [$ent1 P21ID] "format_type" $msg]
         lappend syntaxErr($ent) [list "-$spmiIDRow($ent,$spmiID)" $head $msg]

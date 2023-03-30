@@ -257,9 +257,9 @@ proc spmiCoverageWrite {{fn ""} {sum ""} {multi 1}} {
       $range HorizontalAlignment [expr -4108]
       $cells1($spmiCoverageWS) Item 3 $col1($sum) $fn
     }
+    if {!$multi} {
 
 # check for 'semantic text'
-    if {!$multi} {
       ::tcom::foreach thisEnt [$objDesign FindObjects [string trim property_definition]] {
         if {[$thisEnt Type] == "property_definition"} {
           ::tcom::foreach attr [$thisEnt Attributes] {
@@ -268,6 +268,13 @@ proc spmiCoverageWrite {{fn ""} {sum ""} {multi 1}} {
               if {$val == "semantic text"} {lappend spmiTypesPerFile "editable text"}
             }
           }
+        }
+      }
+
+# check for with_datum_feature
+      foreach ent {dimensional_size_with_datum_feature dimensional_location_with_datum_feature} {
+        ::tcom::foreach thisEnt [$objDesign FindObjects [string trim $ent]] {
+          if {[$thisEnt Type] == $ent} {lappend spmiTypesPerFile "datum features"}
         }
       }
     }
@@ -358,7 +365,7 @@ proc spmiCoverageWrite {{fn ""} {sum ""} {multi 1}} {
 # -------------------------------------------------------------------------------
 # format PMI Representation Coverage analysis worksheet, also PMI totals
 proc spmiCoverageFormat {sum {multi 1}} {
-  global cells cells1 col1 epmi excel1 lenfilelist localName nistCoverageLegend nistCoverageStyle nistName opt pmiElementsMaxRows
+  global cells cells1 col1 epmi epmiMulti excel1 lenfilelist localName nistCoverageLegend nistCoverageStyle nistName opt pmiElementsMaxRows
   global pmiHorizontalLineBreaks recPracNames spmiCoverageWS timeStamp totalPMI totalPMIrows usedPMIrows worksheet worksheet1
 
 # delete worksheet if no semantic PMI
@@ -452,7 +459,8 @@ proc spmiCoverageFormat {sum {multi 1}} {
       }
 
       set r2 [expr {[[[$worksheet1($spmiCoverageWS) UsedRange] Rows] Count]+1}]
-      if {$nistName != ""} {set r2 [expr {[[[$worksheet1($spmiCoverageWS) UsedRange] Rows] Count]-8}]}
+      if {$nistName != "" || [info exists epmiMulti]} {set r2 [expr {[[[$worksheet1($spmiCoverageWS) UsedRange] Rows] Count]-8}]}
+      catch {unset epmiMulti}
       $cells1($spmiCoverageWS) Item $r2 1 "Section numbers above refer to the CAx-IF Recommended Practice for $recPracNames(pmi242)"
       set anchor [$worksheet1($spmiCoverageWS) Range [cellRange $r2 1]]
       [$worksheet1($spmiCoverageWS) Hyperlinks] Add $anchor [join "https://www.mbx-if.org/cax/cax_recommPractice.php"] [join ""] [join "Link to CAx-IF Recommended Practices"]
@@ -494,7 +502,11 @@ proc spmiCoverageFormat {sum {multi 1}} {
       [$worksheet($spmiCoverageWS) Columns] AutoFit
       [$worksheet($spmiCoverageWS) Rows] AutoFit
       set r2 [expr {[[[$worksheet($spmiCoverageWS) UsedRange] Rows] Count]+1}]
-      if {![info exists epmi]} {set epmi ""}
+      if {![info exists epmi]} {
+        set epmi ""
+      } else {
+        set epmiMulti 1
+      }
       if {$nistName != "" || $epmi != ""} {set r2 [expr {[[[$worksheet($spmiCoverageWS) UsedRange] Rows] Count]-8}]}
       $cells($spmiCoverageWS) Item $r2 1 "Section numbers above refer to the CAx-IF Recommended Practice for $recPracNames(pmi242)"
       set anchor [$worksheet($spmiCoverageWS) Range [cellRange $r2 1]]

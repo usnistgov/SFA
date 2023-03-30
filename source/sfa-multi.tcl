@@ -54,7 +54,7 @@ proc openMultiFile {{ask 1}} {
 
 # list files and size
       foreach file1 $fileList {
-        outputMsg "  [string range [file nativename [truncFileName $file1]] $dlen end]  ([fileSize $file1])"
+        outputMsg "  [string range [file nativename [truncFileName $file1]] $dlen end]  ([fileSize $file1]  [fileTime $file1])"
       }
     }
 
@@ -221,7 +221,7 @@ proc openMultiFile {{ask 1}} {
           set localName $file1
 
           outputMsg "\n-------------------------------------------------------------------------------"
-          outputMsg "($nfile of $lenfilelist) Ready to process: [file tail $file1] ([fileSize $file1])" green
+          outputMsg "($nfile of $lenfilelist) Ready to process: [file tail $file1]  ([fileSize $file1]  [fileTime $file1])" green
 
 # check for zipped file
           if {[string first ".stpz" [string tolower $localName]] != -1} {unzipFile}

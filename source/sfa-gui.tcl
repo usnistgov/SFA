@@ -1,7 +1,7 @@
 # SFA version
-proc getVersion {} {return 4.90}
+proc getVersion {} {return 4.92}
 
-# see proc installIFCsvr in sfa-proc.tcl for the IFCsvr version
+# see proc installIFCsvr in sfa-proc.tcl for the IFCsvr version, see below (line 36) for the sfaVersion when IFCsvr was updated
 
 # -------------------------------------------------------------------------------
 proc whatsNew {} {
@@ -33,7 +33,7 @@ Use F9 and F10 to change the font size here.  See Help > Function Keys"
   if {$sfaVersion > 0} {
 
 # update the version number when IFCsvr is repackaged to include updated STEP schemas
-    if {$sfaVersion < 4.60} {outputMsg "- The IFCsvr toolkit might need to be reinstalled.  Please follow the directions carefully." red}
+    if {$sfaVersion < 4.88} {outputMsg "- The IFCsvr toolkit might need to be reinstalled.  Please follow the directions carefully." red}
 
     if {$sfaVersion < 4.60} {
       outputMsg "- User Guide (Update 7) is based on version 4.60"
@@ -1301,6 +1301,9 @@ diameter of the hole, counterbore, and countersink.  If there is no depth associ
 bottom of a hole is also shown if the hole is not a through hole and the hole has a depth.  Usually,
 only the counterbore or countersink is shown for through holes.  Semantic information related to
 holes is reported on *_hole_definition and basic_round_hole worksheets.
+
+Modeling holes as features with dimension values is different that applying dimensions to the
+surfaces that define the geometry of the hole.
 
 Holes can be switched on and off in the Viewer.  Cylindrical surfaces are green and conical
 surfaces are blue.  Holes are viewed regardless of whether they were explicitly modeled in the part
