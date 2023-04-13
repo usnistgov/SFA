@@ -504,7 +504,7 @@ proc spmiCoverageFormat {sum {multi 1}} {
       set r2 [expr {[[[$worksheet($spmiCoverageWS) UsedRange] Rows] Count]+1}]
       if {![info exists epmi]} {
         set epmi ""
-      } else {
+      } elseif {$epmi != ""} {
         set epmiMulti 1
       }
       if {$nistName != "" || $epmi != ""} {set r2 [expr {[[[$worksheet($spmiCoverageWS) UsedRange] Rows] Count]-8}]}
