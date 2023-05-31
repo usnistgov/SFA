@@ -124,7 +124,7 @@ proc openFile {{openName ""}} {
 
 # file types for file select dialog
     set typelist [list {"STEP " {".stp" ".step" ".p21" ".stpZ"}}]
-    if {$developer} {set typelist [list {"STEP " {".stp" ".step" ".p21" ".stpZ" ".stpx"}}]}
+    if {$developer} {set typelist [list {"STEP " {".stp" ".step" ".p21" ".stpZ" ".stpA" ".stpx"}}]}
     lappend typelist {"IFC " {".ifc"}}
     lappend typelist {"STL " {".stl"}}
 
@@ -315,7 +315,7 @@ proc addFileToMenu {} {
 
 # insert file name at top of list
   set fext [string tolower [file extension $localName]]
-  if {$ifile != 0 && ($fext == ".stp" || $fext == ".stpx" || $fext == ".step" || $fext == ".p21" || $fext == ".ifc" || $fext == ".stl")} {
+  if {$ifile != 0 && ($fext == ".stp" || $fext == ".stpx" || $fext == ".stpa" || $fext == ".step" || $fext == ".p21" || $fext == ".ifc" || $fext == ".stl")} {
     if {$fext == ".stl"} {set stlFile 1}
     if {![info exists stlFile] || $fext == ".stl"} {
       set openFileList [linsert $openFileList 0 $localName]
@@ -1771,10 +1771,9 @@ proc vecrev {v1} {
 }
 
 # trim - truncate values in a vector
-proc vectrim {v1 {precision 3}} {
+proc vectrim {v1 {precision 4}} {
   foreach c1 $v1 {
     set prec $precision
-    if {[expr {abs($c1)}] < 0.01} {set prec 4}
     lappend v2 [trimNum $c1 $prec]
   }
   return $v2

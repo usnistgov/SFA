@@ -1,5 +1,5 @@
 # SFA version
-proc getVersion {} {return 4.92}
+proc getVersion {} {return 4.93}
 
 # see proc installIFCsvr in sfa-proc.tcl for the IFCsvr version, see below (line 36) for the sfaVersion when IFCsvr was updated
 
@@ -39,6 +39,7 @@ Use F9 and F10 to change the font size here.  See Help > Function Keys"
       outputMsg "- User Guide (Update 7) is based on version 4.60"
       openUserGuide
     }
+    if {$sfaVersion < 4.93} {outputMsg "- Help > Viewer > New Features"}
     if {$sfaVersion < 4.74} {outputMsg "- Generate Bill of Materials (BOM), see Options tab and Help > Bill of Materials"}
     if {$sfaVersion < 4.12} {outputMsg "- Updated Viewer for Part Geometry, see Help > Viewer > Overview"}
     if {$sfaVersion < 3.80} {outputMsg "- Syntax Checker, see Help > Syntax Checker"}
@@ -1098,16 +1099,6 @@ assemblies.  Part geometry viewer features:
 
 - See Help > Text Strings and Numbers for how non-English characters are supported in the Viewer.
 
-NEW Features not documented in the User Guide:
-- If curved surfaces for Part Geometry look wrong even with Quality set to High, use the
-  Alternative Geometry Tessellation method.  The resulting Viewer file will be larger, and slower
-  to generate and display.  See Spreadsheets tab.
-- Section view clipping planes are shown with a white transparent plane.  The model is not actually
-  clipped.  The intersection and union of clipping planes is not supported.
-- Point clouds and validation property sampling points (cloud of points) are shown as blue dots in
-  the viewer.  See Help > Viewer > Points
-- Composite rosettes defined by cartesian points and curves are supported.
-
 In the web browser, use PageDown to switch between front, side, top, isometric, and orthographic
 viewpoints.  Viewpoint names are shown in the upper left corner of the viewer.  If there is
 graphical PMI with saved view viewpoints, then all but the front and orthographic viewpoints are
@@ -1134,9 +1125,6 @@ Viewer.
 See Help > User Guide (section 4)
 See Help > Viewer for other topics
 
-The viewer can also be used with STL files used for 3D printing.  The STL file is first converted
-to a STEP file containing AP242 tessellated geometry and then processed by the viewer.
-
 The viewer for part geometry is based on the NIST STEP to X3D Translator and only runs on 64-bit
 computers.  It runs a separate program stp2x3d-part.exe from your Temp directory.
 See Websites > STEP
@@ -1148,6 +1136,35 @@ targets, point clouds, composite rosettes, clipping planes, AP242 tessellated pa
 AP209 finite element models and results."
     .tnb select .tnb.status
   }
+
+  $helpView add command -label "New Features" -command {
+outputMsg "\nNew Features --------------------------------------------------------------------------------------" blue
+outputMsg "These Viewer features are not documented in the User Guide.
+
+Part geometry can be clipped by section view clipping planes if a spreadsheet is also generated.
+Checkboxes show the names of each clipping plane.  The planes are shown with a black square that
+might not be centered on the model.  In some cases the square might not be visible when the
+clipping plane is selected.  You have to manually switch on clipping planes associated with saved
+views.  Complex positions and orientations of clipping planes might not look correct.  The STEP
+file definition of the intersection and union of clipping planes is not supported.
+
+If curved surfaces for Part Geometry look wrong even with Quality set to High, use the Alternative
+Geometry Tessellation method on the Spreadsheets tab.  The resulting Viewer file will be larger,
+and slower to generate and display.
+
+STL files can be converted to STEP AP242 tessellated geometry that can be shown in the Viewer.  In
+the Open File(s) dialog, change the 'Files of type' to 'STL (*.stl)'.  Tessellated geometry is not
+exact b-rep surfaces and may not be supported in some CAD software.
+
+Validation property sampling points (cloud of points) and point clouds are shown as blue dots in
+the viewer.  See Help > Viewer > Points.
+
+Annotation placeholders are supported.  See Help > Viewer > Graphical PMI
+
+Composite rosettes defined by cartesian points and curves are supported."
+    .tnb select .tnb.status
+  }
+
 
   $helpView add command -label "Graphical PMI" -command {
 outputMsg "\nGraphical PMI -------------------------------------------------------------------------------------" blue
@@ -2134,9 +2151,7 @@ proc guiWebsitesMenu {} {
   set Websites2 [menu $Websites.2 -tearoff 1]
   $Websites2 add command -label "STEP Format"       -command {openURL https://www.loc.gov/preservation/digital/formats/fdd/fdd000448.shtml}
   $Websites2 add command -label "ISO 10303 Part 21" -command {openURL https://en.wikipedia.org/wiki/ISO_10303-21}
-  $Websites2 add separator
   $Websites2 add command -label "EXPRESS Schemas"                -command {openURL https://www.mbx-if.org/cax/cax_express.php}
-  $Websites2 add command -label "Archived EXPRESS Schemas"       -command {openURL https://web.archive.org/web/20160322005246/www.steptools.com/support/stdev_docs/express/}
   $Websites2 add command -label "ISO 10303 Part 11 EXPRESS"      -command {openURL https://www.loc.gov/preservation/digital/formats/fdd/fdd000449.shtml}
   $Websites2 add command -label "EXPRESS data modeling language" -command {openURL https://en.wikipedia.org/wiki/EXPRESS_(data_modeling_language)}
   $Websites2 add separator
@@ -2327,7 +2342,7 @@ proc getOpenPrograms {} {
       [list {*}[glob -nocomplain -directory [file join $pf Kisters 3DViewStation] -join 3DViewStation.exe] 3DViewStation] \
       [list {*}[glob -nocomplain -directory [file join $pf Kubotek] -join "KDisplayView*" KDisplayView.exe] "K-Display View"] \
       [list {*}[glob -nocomplain -directory [file join $pf Kubotek] -join "Spectrum*" Spectrum.exe] Spectrum] \
-      [list {*}[glob -nocomplain -directory [file join $pf ODA] -join "Open STEP Viewer*" OpenSTEPViewer.exe] "OpenSTEPViewer"] \
+      [list {*}[glob -nocomplain -directory [file join $pf ODA] -join "Open STEP Viewer*" OpenSTEPViewer.exe] "Open STEP Viewer"] \
       [list {*}[glob -nocomplain -directory [file join $pf STPViewer] -join STPViewer.exe] "STP Viewer"] \
       [list {*}[glob -nocomplain -directory [file join $pf ZWSOFT] -join "CADbro *" CADbro.exe] CADbro] \
       [list {*}[glob -nocomplain -directory [file join $pf] -join "3D-Tool V*" 3D-Tool.exe] 3D-Tool] \

@@ -52,8 +52,6 @@ proc x3dSuppGeom {} {
           }
         }
       }
-      set msg "Supplemental Geometry on parts in an assembly might have the wrong position and orientation"
-      if {[lsearch $x3dMsg $msg] == -1} {lappend x3dMsg $msg}
     } emsg]} {
       errorMsg " Error getting transform for supplemental geometry in an assembly: $emsg"
     }
@@ -345,7 +343,7 @@ proc x3dSuppGeomPoint {e2 tsize {thruHole ""} {holeName ""}} {
     set viz(SUPPGEOM) 1
     if {$thruHole == ""} {lappend spmiTypesPerFile "supplemental geometry"}
   } emsg]} {
-    errorMsg "Error adding 'point' supplemental geometry: $emsg"
+    errorMsg "Error adding 'point' Supplemental Geometry: $emsg"
   }
 }
 
@@ -419,7 +417,7 @@ proc x3dSuppGeomLine {e3 tsize {type "line"}} {
     lappend spmiTypesPerFile "supplemental geometry"
 
   } emsg]} {
-    errorMsg "Error adding '$type' supplemental geometry: $emsg"
+    errorMsg "Error adding '$type' Supplemental Geometry: $emsg"
   }
 }
 
@@ -515,13 +513,13 @@ proc x3dSuppGeomCircle {e3 tsize {type "circle"}} {
     lappend spmiTypesPerFile "supplemental geometry"
 
   } emsg]} {
-    errorMsg "Error adding '$type' supplemental geometry: $emsg"
+    errorMsg "Error adding '$type' Supplemental Geometry: $emsg"
   }
 }
 
 # -------------------------------------------------------------------------------
 # supplemental geometry for plane, also used for section view clipping plane
-proc x3dSuppGeomPlane {e2 size {type ""}} {
+proc x3dSuppGeomPlane {e2 size {type ""} {name ""}} {
   global clippingDef maxxyz planeDef spmiTypesPerFile viz x3dFile
 
 # check for plane color and transparency
@@ -540,7 +538,7 @@ proc x3dSuppGeomPlane {e2 size {type ""}} {
   }
 
   if {[catch {
-    set name [[[$e2 Attributes] Item [expr 1]] Value]
+    if {$name == ""} {set name [[[$e2 Attributes] Item [expr 1]] Value]}
     set e3 [[[$e2 Attributes] Item [expr 2]] Value]
 
 # plane position and orientation
@@ -556,6 +554,8 @@ proc x3dSuppGeomPlane {e2 size {type ""}} {
     set ok 1
     if {$type == "clipping plane"} {
       set cpdef "$name $transform"
+      set planeColor "0 0 0"
+      set planeTrans 1.
       if {[lsearch $clippingDef $cpdef] != -1} {set ok 0}
     }
     if {$ok} {
@@ -642,7 +642,6 @@ proc x3dSuppGeomPlane {e2 size {type ""}} {
 # plane name at one corner
       set tsize [trimNum [expr {$size*0.33}]]
       if {$type != "supplemental geometry"} {
-        if {[string first "clipping" [string tolower $name]] == -1 && [string first "plane" [string tolower $name]] == -1} {set name "[string totitle $type] $name"}
         set tsize [trimNum [expr {$tsize*0.25}]]
       }
       if {$name != ""} {
@@ -713,7 +712,7 @@ proc x3dSuppGeomCylinder {e2 size} {
 
 # cylinder geometry
     if {![info exists height]} {set height [expr {$size*10.}]}
-    puts $x3dFile "  <Shape><Cylinder radius='$rad' height='[trimNum $height]' top='false' bottom='false' solid='false'></Cylinder><Appearance><Material diffuseColor='$cylColor' transparency='$cylTrans'/></Appearance></Shape>"
+    puts $x3dFile "  <Shape><Cylinder radius='[trimNum $rad]' height='[trimNum $height]' top='false' bottom='false' solid='false'></Cylinder><Appearance><Material diffuseColor='$cylColor' transparency='$cylTrans'/></Appearance></Shape>"
     puts $x3dFile "</Transform></Transform>"
 
 # cylinder name at origin
@@ -733,7 +732,7 @@ proc x3dSuppGeomCylinder {e2 size} {
     }
 
   } emsg]} {
-    errorMsg "Error adding 'cylinder' supplemental geometry: $emsg"
+    errorMsg "Error adding 'cylinder' Supplemental Geometry: $emsg"
   }
 }
 
@@ -811,7 +810,7 @@ proc x3dSuppGeomColor {e0 type} {
       }
     }
   } emsg]} {
-    errorMsg " Error getting color for '$type' supplemental geometry: $emsg"
+    errorMsg " Error getting color for '$type' Supplemental Geometry: $emsg"
   }
 
   foreach color [list "1. 1. 1." "1 1 1" "1. 1. 0." "1 1 0"] {if {$sgColor == $color} {set grayBackground 1}}

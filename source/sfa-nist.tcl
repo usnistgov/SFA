@@ -528,7 +528,19 @@ proc nistCheckExpectedPMI {val entstr epmiName} {
 
 # tolerances
             } elseif {[string first "tolerance" $valType($val)] != -1} {
-              if {[string first $val $pmi] != -1 || [string first $pmi $val] != -1} {
+
+# missing all around
+              if {[string first "\u232E" $pmi] == 0} {
+                if {[string first $val [string range $pmi 2 end]] == 0} {
+                  set pmiSimilar "Missing all around"
+                  set pmiMatch [lsearch $nistPMIexpected($epmiName) $pmi]
+                  set nistPMIexpected($epmiName) [lreplace $nistPMIexpected($epmiName) $pmiMatch $pmiMatch]
+                  set pmiSim 0.99
+                  set pmiMatch $pmiSim
+                  lappend nistPMIfound $pmi
+                }
+
+              } elseif {[string first $val $pmi] != -1 || [string first $pmi $val] != -1} {
                 set pmiSim 0.95
               } else {
                 set tol $pmiUnicode([string range $valType($val) 0 [string last "_" $valType($val)]-1])

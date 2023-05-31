@@ -69,6 +69,7 @@ set auto_index(gpmiEquivalentUnicodeString) [list source [file join $dir sfa-gra
 set auto_index(pmiGetCameras) [list source [file join $dir sfa-grafpmi.tcl]]
 set auto_index(x3dPreDefinedColor) [list source [file join $dir sfa-grafx3d.tcl]]
 
+set auto_index(x3dClipPlane) [list source [file join $dir sfa-grafx3d.tcl]]
 set auto_index(x3dComposites) [list source [file join $dir sfa-grafx3d.tcl]]
 set auto_index(x3dCoordAxes) [list source [file join $dir sfa-grafx3d.tcl]]
 set auto_index(x3dDatumTarget) [list source [file join $dir sfa-grafx3d.tcl]]

@@ -130,8 +130,8 @@ proc x3dFileStart {} {
 # -------------------------------------------------------------------------------
 # finish x3d file, write lots of geometry, set viewpoints, add navigation and background color, and close x3dom file
 proc x3dFileEnd {} {
-  global ao ap242XML assemblyTransform axesDef brepFile brepFileName clippingDef datumTargetView entCount grayBackground leaderCoords matTrans maxxyz
-  global nistName noGroupTransform nsketch numTessColor opt parts partstg placeCoords planeDef placeSize rosetteGeom samplingPoints savedViewButtons
+  global ao ap242XML assemblyTransform axesDef brepFile brepFileName clippingDef clipPlaneName datumTargetView entCount grayBackground leaderCoords matTrans maxxyz
+  global nclipPlane nistName noGroupTransform nsketch numTessColor opt parts partstg placeCoords planeDef placeSize rosetteGeom samplingPoints savedViewButtons
   global savedViewDMName savedViewFile savedViewFileName savedViewItems savedViewNames savedViewpoint savedViewVP sphereDef spmiTypesPerFile stepAP
   global tessCoord tessEdges tessPartFile tessPartFileName tessRepo tsName viz x3dApps x3dAxes x3dBbox x3dCoord x3dFile x3dFileNameSave
   global x3dFiles x3dFileSave x3dIndex x3dMax x3dMin x3dMsg x3dPartClick x3dParts x3dShape x3dStartFile x3dTessParts x3dTitle x3dViewOK viewsWithPMI
@@ -205,30 +205,47 @@ proc x3dFileEnd {} {
 # camera clipping planes for section views (9.4.3)
   set viz(CLIPPING) 0
   if {[info exists entCount(camera_model_d3_multi_clipping)]} {
-    set clippingDef {}
-    puts $x3dFile "\n<!-- CLIPPING PLANES -->"
-    puts $x3dFile "<Switch whichChoice='0' id='swClipping'><Group>"
     outputMsg " Processing clipping planes (section views)" green
-    foreach multiClipping [list camera_model_d3_multi_clipping camera_model_d3_multi_clipping_intersection camera_model_d3_multi_clipping_union] {
-      ::tcom::foreach cm [$objDesign FindObjects [string trim $multiClipping]] {
-        set id 4
-        if {[string first "clipping_" [$cm Type]] != -1} {
-          set id 2
-          errorMsg " The intersection and union of clipping planes is not supported." red
-        }
-        set planes [[[$cm Attributes] Item [expr $id]] Value]
-        foreach plane $planes {
-          set type [$plane Type]
-          if {$type == "plane"} {
-            x3dSuppGeomPlane $plane 1. "clipping plane"
-            if {$opt(PMISEM)} {lappend spmiTypesPerFile "section views"}
+    if {$entCount(camera_model_d3_multi_clipping) <= 16} {
+      set clippingDef {}
+      set nclipPlane 0
+      puts $x3dFile "\n<!-- CLIPPING PLANES -->"
+      ::tcom::foreach cm [$objDesign FindObjects [string trim camera_model_d3_multi_clipping]] {
+        if {[catch {
+          set cplanes {}
+          set cpname [[[$cm Attributes] Item [expr 1]] Value]
+          set e0 [[[$cm Attributes] Item [expr 4]] Value]
+          if {$opt(PMISEM)} {lappend spmiTypesPerFile "section views"}
+
+# follow union and intersection for more planes (not supported)
+          if {[llength $e0] == 1} {
+            if {[$e0 Type] == "camera_model_d3_multi_clipping_union"} {
+              errorMsg " The intersection and union of clipping planes is not supported." red
+              foreach e1 [[[$e0 Attributes] Item [expr 2]] Value] {
+                foreach e2 [[[$e1 Attributes] Item [expr 2]] Value] {lappend cplanes $e2}
+              }
+
+# single plane (most common)
+            } else {
+              lappend cplanes $e0
+            }
+
+# multiple planes (not common)
+          } else {
+            errorMsg " Multiple Clipping Planes per section view" red
+            foreach e1 $e0 {lappend cplanes $e1}
           }
+
+# write clipping planes
+          if {[llength $cplanes] > 0} {foreach cplane $cplanes {x3dClipPlane $cplane $cpname}}
+        } emsg]} {
+          errorMsg "Error adding Clipping Plane: $emsg"
         }
       }
+      set viz(CLIPPING) 1
+    } else {
+      outputMsg " Too many 'camera_model_d3_multi_clipping' to process ($entCount(camera_model_d3_multi_clipping))" red
     }
-    puts $x3dFile "</Group></Switch>"
-    set viz(CLIPPING) 1
-    set grayBackground 1
   }
 
 # -------------------------------------------------------------------------------
@@ -327,7 +344,7 @@ proc x3dFileEnd {} {
               set svMap($svn2) $svn2
             }
             lappend savedViewButtons $svn2
-            foreach xf $x3dFiles {puts $xf "\n<!-- SAVED VIEW$i $svn2 -->\n<Switch whichChoice='0' id='sw$svnfn'><Group>"}
+            foreach xf $x3dFiles {puts $xf "\n<!-- SAVED VIEW$i PMI - $svn2 -->\n<Switch whichChoice='0' id='sw$svnfn'><Group>"}
 
 # show camera viewpoint
             if {[info exists savedViewpoint($svn2)]} {x3dSavedViewpoint $svn2}
@@ -701,7 +718,12 @@ proc x3dFileEnd {} {
   if {$viz(COMPOSITES)} {puts $x3dFile "\n<!-- Composites checkbox -->\n<input type='checkbox' checked onclick='togComposites(this.value)'/>Composite Rosettes<br>"}
   if {$viz(POINTS)}     {puts $x3dFile "\n<!-- $pointsLabel checkbox -->\n<input type='checkbox' checked onclick='togPoints(this.value)'/>$pointsLabel<br>"}
   if {$viz(HOLE)}       {puts $x3dFile "\n<!-- Holes checkbox -->\n<input type='checkbox' checked onclick='togHole(this.value)'/>Holes<br>"}
-  if {$viz(CLIPPING)}   {puts $x3dFile "\n<!-- Clipping planes checkbox -->\n<input type='checkbox' checked onclick='togClipping(this.value)'/>Clipping Planes<br>"}
+  if {$viz(CLIPPING)}   {
+    puts $x3dFile "\n<!-- Clipping planes checkboxes -->\n<p>Clipping Planes<br>"
+    for {set i 1} {$i <= $nclipPlane} {incr i} {
+      puts $x3dFile "<input type='checkbox' onclick='togClipping$i\(this.value)'/>$clipPlaneName($i)<br>"
+    }
+  }
   if {$viz(SUPPGEOM) || $viz(DTMTAR) || $viz(COMPOSITES) || $viz(POINTS) || $viz(HOLE) || $viz(CLIPPING)} {puts $x3dFile "<p>"}
 
 # for PMI annotations - checkboxes for toggling saved view PMI
@@ -714,7 +736,7 @@ proc x3dFileEnd {} {
       set savedViewNames $savedViewButtons
       set svMap($name) $name
     }
-    puts $x3dFile "\n<!-- Saved view checkboxes -->"
+    puts $x3dFile "\n<!-- Saved view PMI checkboxes -->"
     if {$sv} {puts $x3dFile "Saved View Graphical PMI"}
     if {[info exists savedViewVP] && $opt(viewPMIVP)} {puts $x3dFile "<br><font size='-1'>(PageDown to switch Saved Views)</font>"}
 
@@ -1671,7 +1693,7 @@ proc x3dPlaceholder {{aoname ""} {fname ""}} {
         puts $fname "</Group></Transform>"
       }
     } emsg]} {
-      errorMsg "Error adding PMI placeholder geometry: $emsg"
+      errorMsg "Error adding PMI Placeholder geometry: $emsg"
     }
   }
 
@@ -1726,7 +1748,7 @@ proc x3dPlaceholder {{aoname ""} {fname ""}} {
         }
       }
     } emsg]} {
-      errorMsg "Error adding PMI placeholder leader lines: $emsg"
+      errorMsg "Error adding PMI Placeholder leader lines: $emsg"
     }
   }
 
@@ -1773,10 +1795,46 @@ proc x3dComposites {} {
           puts $x3dFile "</Transform>"
         }
       } emsg]} {
-        errorMsg "Error adding composite rosette: $emsg"
+        errorMsg "Error adding Composite Rosette: $emsg"
       }
       puts $x3dFile "</Group></Switch>"
     }
+  }
+}
+
+# -------------------------------------------------------------------------------
+# write clipping plane
+proc x3dClipPlane {shapeClipping cpname} {
+  global clipPlaneName nclipPlane x3dFile
+
+  if {[catch {
+    if {[$shapeClipping Type] == "plane"} {
+
+# get normal to the plane
+      set e0 [[[$shapeClipping Attributes] Item [expr 2]] Value]
+      set a2p3d [x3dGetA2P3D $e0]
+      set clipplane [join [vectrim [vecmult [lindex $a2p3d 1] -1.] 5]]
+
+# compute plane offset, need to fix +0.01 to account for direction
+      set dot [vecdot [lindex $a2p3d 0] [lindex $a2p3d 1]]
+      set offset [trimNum [expr {$dot+0.01}] 5]
+      append clipplane " $offset"
+
+# write clipping plane
+      incr nclipPlane
+      if {$cpname == ""} {set cpname "Plane $nclipPlane"}
+      set clipPlaneName($nclipPlane) $cpname
+
+      puts $x3dFile "<ClipPlane enabled='false' plane='$clipplane' id='swClipPlane$nclipPlane'></ClipPlane>"
+      puts $x3dFile "<Switch whichChoice='-1' id='swClipping$nclipPlane'><Group>"
+      x3dSuppGeomPlane $shapeClipping 1. "clipping plane" $clipPlaneName($nclipPlane)
+      puts $x3dFile "</Group></Switch>"
+
+    } else {
+      errorMsg " Unknown type of Clipping Plane '[$shapeClipping Type]'"
+    }
+  } emsg]} {
+    errorMsg "Error generating Clipping Plane: $emsg"
   }
 }
 
@@ -1817,10 +1875,21 @@ proc x3dCoordAxes {size} {
 # -------------------------------------------------------------------------------
 # script for switch node
 proc x3dSwitchScript {name {name1 ""}} {
-  global rosetteGeom savedViewNames viz x3dFile
+  global nclipPlane rosetteGeom savedViewNames viz x3dFile
+
+# clipping planes
+  if {$name == "Clipping"} {
+    for {set i 1} {$i <= $nclipPlane} {incr i} {
+      puts $x3dFile "\n<!-- $name$i switch -->\n<script>function tog$name$i\(choice)\{"
+      puts $x3dFile " document.getElementById('sw$name$i').checked = !document.getElementById('sw$name$i').checked;"
+      puts $x3dFile " if (!document.getElementById('sw$name$i').checked) \{\n  document.getElementById('sw$name$i').setAttribute('whichChoice', -1);\n  document.getElementById('swClipPlane$i').setAttribute('enabled', 'false');"
+      puts $x3dFile " \} else \{\n  document.getElementById('sw$name$i').setAttribute('whichChoice', 0);\n  document.getElementById('swClipPlane$i').setAttribute('enabled', 'true');\n \}"
+      puts $x3dFile "\}</script>"
+    }
+    unset nclipPlane
 
 # not parts
-  if {[string first "Part" $name] != 0 && [string first "TessPart" $name] != 0} {
+  } elseif {[string first "Part" $name] != 0 && [string first "TessPart" $name] != 0} {
 
 # adjust for saved views
     if {$name1 == ""} {set name1 $name}

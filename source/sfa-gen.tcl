@@ -3,12 +3,12 @@ proc genExcel {{numFile 0}} {
   global allEntity aoEntTypes ap203all ap214all ap242all ap242only ap242ed ap242XML badAttributes buttons cadSystem cells cells1
   global col col1 commaSeparator count csvdirnam csvfile csvinhome currLogFile dim draughtingModels driUnicode entCategories entCategory
   global entColorIndex entCount entityCount entsIgnored entsWithErrors env epmi epmiUD errmsg equivUnicodeStringErr excel excelVersion fcsv
-  global feaFirstEntity feaLastEntity File fileEntity filesProcessed fileSumRow gen gpmiTypesInvalid gpmiTypesPerFile guid guidEnts idxColor ifcsvrDir inverses
+  global feaFirstEntity feaLastEntity File fileEntity filesProcessed fileSumRow gen gpmiTypesInvalid gpmiTypesPerFile idxColor ifcsvrDir inverses
   global lastXLS lenfilelist localName localNameList logFile matrixList multiFile multiFileDir mydocs mytemp nistCoverageLegend nistName
   global nistPMIexpected nistPMImaster noFontFile nprogBarEnts opt pf32 p21e3Section pmiCol resetRound row rowmax savedViewButtons savedViewName
   global savedViewNames scriptName sheetLast skipEntities skipFileName skipPerm spmiEntity spmiSumName spmiSumRow spmiTypesPerFile startrow statsOnly
   global stepAP stepAPreport sumHeaderRow syntaxErr tessColor thisEntType timeStamp tlast tolNames tolStandard tolStandards totalEntity unicodeActual unicodeAttributes
-  global unicodeEnts unicodeInFile unicodeNumEnts unicodeString userEntityFile userEntityList useXL valRounded viz wdir workbook workbooks
+  global unicodeEnts unicodeInFile unicodeNumEnts unicodeString userEntityFile userEntityList useXL uuid uuidEnts valRounded viz wdir workbook workbooks
   global worksheet worksheet1 worksheets writeDir wsCount wsNames x3dAxes x3dColor x3dColorFile x3dColors x3dFileName x3dIndex x3dMax x3dMin
   global x3dMsg x3dMsgColor x3dStartFile x3dViewOK xlFileName xlFileNames xlInstalled
   global objDesign
@@ -374,7 +374,7 @@ proc genExcel {{numFile 0}} {
       errorMsg "Error opening STEP file: $emsg"
 
       set fext [string tolower [file extension $fname]]
-      if {$fext != ".stp" && $fext != ".step" && $fext != ".p21" && $fext != ".stpz" && $fext != ".ifc"} {
+      if {$fext != ".stp" && $fext != ".step" && $fext != ".p21" && $fext != ".stpz" && $fext != ".stpa" && $fext != ".ifc"} {
         if {$fext != ""} {errorMsg " File extension '[file extension $fname]' is not supported." red}
       } else {
         set fs [getSchemaFromFile $fname 1]
@@ -1249,7 +1249,7 @@ proc genExcel {{numFile 0}} {
           if {[string first "-" $pid] == 8} {
             if {[string last "-" $pid] == 23} {
               set a1 [[[$e0 Attributes] Item [expr 2]] Value]
-              set guid([$a1 Type],[$a1 P21ID]) $pid
+              set uuid([$a1 Type],[$a1 P21ID]) $pid
               set okid 1
             }
           }
@@ -1262,36 +1262,36 @@ proc genExcel {{numFile 0}} {
     set okid 0
     set npid 0
     set allpid {}
-    set guidEnts {}
-    foreach vguidEnt [list v4_guid_attribute v5_guid_attribute] {
-      if {[info exists entCount($vguidEnt)]} {
-        errorMsg "\nProcessing GUID attributes" blue
-        ::tcom::foreach e0 [$objDesign FindObjects [string trim $vguidEnt]] {
+    set uuidEnts {}
+    foreach vuuidEnt [list v4_guid_attribute v5_guid_attribute] {
+      if {[info exists entCount($vuuidEnt)]} {
+        errorMsg "\nProcessing UUID attributes" blue
+        ::tcom::foreach e0 [$objDesign FindObjects [string trim $vuuidEnt]] {
           set pid [[[$e0 Attributes] Item [expr 1]] Value]
           incr npid
           if {[string length $pid] == 36 && [string first "-" $pid] == 8 && [string last "-" $pid] == 23} {
 
-# check for duplicate GUIDs
+# check for duplicate UUIDs
             if {[lsearch $allpid $pid] == -1} {
               lappend allpid $pid
             } else {
-              errorMsg " GUID is identical to a previous value on [$e0 Type]"
-              lappend syntaxErr([$e0 Type]) [list [$e0 P21ID] identifier " GUID is identical to a previous value"]
+              errorMsg " UUID is identical to a previous value on [$e0 Type]"
+              lappend syntaxErr([$e0 Type]) [list [$e0 P21ID] identifier " UUID is identical to a previous value"]
             }
             set pid "$pid ("
             if {[string first "hash" [$e0 Type]] != -1} {append pid "hash "}
-            append pid "v[string index $vguidEnt 1])"
+            append pid "v[string index $vuuidEnt 1])"
 
-# get entity GUID is associate to
+# get entity UUID is associate to
             set e1s [[[$e0 Attributes] Item [expr 2]] Value]
             foreach e1 $e1s {
               set e2 [[[$e1 Attributes] Item [expr 2]] Value]
               if {[string first "handle" $e2] != -1} {
-                set guidEnt [$e2 Type]
-                if {[lsearch $guidEnts $guidEnt] == -1} {lappend guidEnts $guidEnt}
-                set guid($guidEnt,[$e2 P21ID]) $pid
+                set uuidEnt [$e2 Type]
+                if {[lsearch $uuidEnts $uuidEnt] == -1} {lappend uuidEnts $uuidEnt}
+                set uuid($uuidEnt,[$e2 P21ID]) $pid
                 set okid 1
-                if {![info exist cells($guidEnt)]} {lappend noGUIDent $guidEnt}
+                if {![info exist cells($uuidEnt)]} {lappend noUUIDent $uuidEnt}
 
               } else {
                 errorMsg " Missing 'identified_item' attribute on id_attribute"
@@ -1302,12 +1302,12 @@ proc genExcel {{numFile 0}} {
         }
       }
     }
-    if {$okid && [info exists noGUIDent]} {
-      outputMsg " GUIDs are also associated with: [lrmdups $noGUIDent]" red
-      unset noGUIDent
+    if {$okid && [info exists noUUIDent]} {
+      outputMsg " UUIDs are also associated with: [lrmdups $noUUIDent]" red
+      unset noUUIDent
     }
   }
-  
+
 # -------------------------------------------------------------------------------------------------
 # add summary worksheet
   if {$useXL && [llength $entsToProcess] > 0} {
@@ -1916,7 +1916,7 @@ proc addHeaderWorksheet {numFile fname} {
 # add summary worksheet
 proc sumAddWorksheet {} {
   global andEntAP209 cells col entCategory entCount entsIgnored equivUnicodeString excel fileSumRow
-  global gpmiEnts guidEnts opt row sheetLast sheetSort spmiEntity stepAP sum vpEnts worksheet worksheets
+  global gpmiEnts opt row sheetLast sheetSort spmiEntity stepAP sum uuidEnts vpEnts worksheet worksheets
 
   outputMsg "\nGenerating Summary worksheet" blue
   set sum "Summary"
@@ -1988,8 +1988,8 @@ proc sumAddWorksheet {} {
           $cells($sum) Item $sumRow 1 "$entType  \[Assembly\]"
         } elseif {$entType == "descriptive_representation_item" && [info exists equivUnicodeString]} {
           $cells($sum) Item $sumRow 1 "$entType  \[Unicode String\]"
-        } elseif {[lsearch $guidEnts $entType] != -1} {
-          $cells($sum) Item $sumRow 1 "$entType  \[GUID\]"
+        } elseif {[lsearch $uuidEnts $entType] != -1} {
+          $cells($sum) Item $sumRow 1 "$entType  \[UUID\]"
         }
         if {$okao} {$cells($sum) Item $sumRow 1 "$entType  \[PMI Presentation\]"}
 
@@ -2287,8 +2287,8 @@ proc sumAddColorLinks {sum sumHeaderRow sumLinks sheetSort sumRow} {
 #-------------------------------------------------------------------------------------------------
 # format worksheets
 proc formatWorksheets {sheetSort sumRow inverseEnts} {
-  global buttons cells col count entCount entRows equivUnicodeString excel gpmiEnts guidEnts idRow nprogBarEnts opt pmiStartCol
-  global row spmiEnts stepAP stepAPreport sumHeaderRow syntaxErr thisEntType viz vpEnts worksheet
+  global buttons cells col count entCount entRows equivUnicodeString excel gpmiEnts idRow nprogBarEnts opt pmiStartCol
+  global row spmiEnts stepAP stepAPreport sumHeaderRow syntaxErr thisEntType uuidEnts viz vpEnts worksheet
   outputMsg "Formatting Worksheets" blue
 
   if {[info exists buttons]} {$buttons(progressBar) configure -maximum [llength $sheetSort]}
@@ -2403,8 +2403,8 @@ proc formatWorksheets {sheetSort sumRow inverseEnts} {
           incr rancol
         }
 
-# guids
-      } elseif {[lsearch $guidEnts $thisEntType] != -1} {
+# UUIDs
+      } elseif {[lsearch $uuidEnts $thisEntType] != -1} {
         outputMsg " $thisEntType"
         addP21e3Section 2 $thisEntType
       }
@@ -2534,9 +2534,9 @@ proc moveWorksheet {items {where "Before"}} {
 }
 
 # -------------------------------------------------------------------------------------------------
-# add worksheets for Part 21 edition 3 sections (idType=1) AND add persistent IDs (GUID) with id_attribute or v4/5_attribute (idType=2)
-proc addP21e3Section {idType {guidEnt ""}} {
-  global cells entCount entName fileSumRow idRow legendColor guid p21e3Section spmiSumRowID sumHeaderRow worksheet worksheets
+# add worksheets for Part 21 edition 3 sections (idType=1) AND add persistent IDs (UUID) with id_attribute or v4/5_attribute (idType=2)
+proc addP21e3Section {idType {uuidEnt ""}} {
+  global cells entCount entName fileSumRow idRow legendColor p21e3Section spmiSumRowID sumHeaderRow uuid worksheet worksheets
   global objDesign
 
   catch {unset anchorSum}
@@ -2597,16 +2597,16 @@ proc addP21e3Section {idType {guidEnt ""}} {
                 if {[info exists worksheet($anchorEnt)]} {
                   set c3 [string first ">" $line]
                   if {$c3 == -1} {set c3 [string first "=" $line]}
-                  set uuid [string range $line 1 $c3-1]
+                  set uuidval [string range $line 1 $c3-1]
                   if {![info exists urow($anchorEnt)]} {set urow($anchorEnt) [[[$worksheet($anchorEnt) UsedRange] Rows] Count]}
                   if {![info exists ucol($anchorEnt)]} {set ucol($anchorEnt) [getNextUnusedColumn $anchorEnt]}
                   if {[info exists idRow($anchorEnt,$anchorID)]} {
                     set ur $idRow($anchorEnt,$anchorID)
                     set val [[$cells($anchorEnt) Item $ur $ucol($anchorEnt)] Value]
                     if {$val == ""} {
-                      $cells($anchorEnt) Item $ur $ucol($anchorEnt) $uuid
+                      $cells($anchorEnt) Item $ur $ucol($anchorEnt) $uuidval
                     } else {
-                      $cells($anchorEnt) Item $ur $ucol($anchorEnt) "$val   $uuid"
+                      $cells($anchorEnt) Item $ur $ucol($anchorEnt) "$val   $uuidval"
                     }
                     set range [$worksheet($anchorEnt) Range [cellRange $ur $ucol($anchorEnt)]]
                     [$range Interior] ColorIndex [expr 40]
@@ -2623,7 +2623,7 @@ proc addP21e3Section {idType {guidEnt ""}} {
 
 # add anchor ID representation summary
                   if {[info exists spmiSumRowID($anchorID)]} {
-                    set anchorSum($spmiSumRowID($anchorID)) $uuid
+                    set anchorSum($spmiSumRowID($anchorID)) $uuidval
                   } elseif {[string first "dimensional_size" $anchorEnt] != -1 || [string first "dimensional_location" $anchorEnt] != -1} {
                     set dcrs [$objValue GetUsedIn [string trim dimensional_characteristic_representation] [string trim dimension]]
                     ::tcom::foreach dcr $dcrs {
@@ -2631,7 +2631,7 @@ proc addP21e3Section {idType {guidEnt ""}} {
                       if {$id1 == $anchorID} {
                         set id2 [$dcr P21ID]
                         if {[info exists spmiSumRowID($id2)]} {
-                          set anchorSum($spmiSumRowID($id2)) $uuid
+                          set anchorSum($spmiSumRowID($id2)) $uuidval
                         }
                       }
                     }
@@ -2657,21 +2657,21 @@ proc addP21e3Section {idType {guidEnt ""}} {
       if {$line == "ENDSEC"} {[$worksheet($sect) Columns] AutoFit}
     }
 
-# add persistent IDs (GUID) with id_attribute
+# add persistent IDs (UUID) with id_attribute
   } elseif {$idType == 2} {
-    set heading "GUID"
-    foreach idx [array names guid] {
-      set uuid $guid($idx)
+    set heading "UUID"
+    foreach idx [array names uuid] {
+      set uuidval $uuid($idx)
       set idx [split $idx ","]
       set anchorEnt [lindex $idx 0]
-      if {$guidEnt == "" || $anchorEnt == $guidEnt} {
+      if {$uuidEnt == "" || $anchorEnt == $uuidEnt} {
         set anchorID  [lindex $idx 1]
         if {[info exists worksheet($anchorEnt)]} {
           if {![info exists urow($anchorEnt)]} {set urow($anchorEnt) [[[$worksheet($anchorEnt) UsedRange] Rows] Count]}
           if {![info exists ucol($anchorEnt)]} {set ucol($anchorEnt) [getNextUnusedColumn $anchorEnt]}
           if {[info exists idRow($anchorEnt,$anchorID)]} {
             set ur $idRow($anchorEnt,$anchorID)
-            $cells($anchorEnt) Item $ur $ucol($anchorEnt) $uuid
+            $cells($anchorEnt) Item $ur $ucol($anchorEnt) $uuidval
             set range [$worksheet($anchorEnt) Range [cellRange $ur $ucol($anchorEnt)]]
             [$range Interior] ColorIndex [expr 40]
             catch {foreach i {8 9} {[[$range Borders] Item $i] Weight [expr 1]}}
