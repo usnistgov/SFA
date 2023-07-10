@@ -1391,7 +1391,7 @@ proc installIFCsvr {{exit 0}} {
   global buttons developer ifcsvrVer mydocs mytemp nistVersion upgradeIFCsvr wdir
 
 # IFCsvr version depends on string entered when IFCsvr is repackaged for new STEP schemas
-  set versionIFCsvr 20230214
+  set versionIFCsvr 20230705
 
 # if IFCsvr is alreadly installed, get version from registry, decide to reinstall newer version
   if {[catch {
@@ -1812,6 +1812,6 @@ proc vecnorm {v1} {
 
 # angle - angle between two vectors
 proc vecangle {v1 v2} {
-  set angle [trimNum [expr {acos([vecdot $v1 $v2] / ([veclen $v1]*[veclen $v2]))}]]
+  set angle [trimNum [expr {acos([vecdot $v1 $v2] / ([veclen $v1]*[veclen $v2]))}] 5]
   return $angle
 }

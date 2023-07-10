@@ -1,7 +1,7 @@
 # -------------------------------------------------------------------------------
 # B-rep part geometry
 proc x3dBrepGeom {} {
-  global brepFile brepFileName buttons cadSystem developer DTR entCount grayBackground localName matTrans maxxyz mytemp
+  global brepFile brepFileName buttons cadSystem clippingCap developer DTR entCount grayBackground localName matTrans maxxyz mytemp
   global nistVersion nsketch opt rawBytes rosetteGeom viz x3dApps x3dBbox x3dMax x3dMin x3dMsg x3dMsgColor x3dParts
   global objDesign
 
@@ -51,9 +51,21 @@ proc x3dBrepGeom {} {
         }
       }
 
+# check for clipping planes to cap
+      set clippingCap 0
+      if {!$opt(partNoCap)} {
+        set ent "camera_model_d3_multi_clipping"
+        if {[info exists entCount($ent)]} {
+          if {$entCount($ent) > 0 && $entCount($ent) < 17} {
+            if {![info exists entCount(camera_model_d3_multi_clipping_intersection)] && \
+                ![info exists entCount(camera_model_d3_multi_clipping_union)]} {set clippingCap 1}
+          }
+        }
+      }
+
 # run stp2x3d-part.exe
       if {$opt(DEBUGX3D)} {getTiming stp2x3d}
-      catch {exec $stp2x3d --input [file nativename $localName] --quality $opt(partQuality) --edge $opt(partEdges) --sketch $opt(partSketch) --normal $opt(partNormals) --rosette $rosetteOpt --tess $opt(tessAlt)} errs
+      catch {exec $stp2x3d --input [file nativename $localName] --quality $opt(partQuality) --edge $opt(partEdges) --sketch $opt(partSketch) --normal $opt(partNormals) --rosette $rosetteOpt --tess $opt(tessAlt) --cap $clippingCap} errs
       if {$opt(DEBUGX3D)} {getTiming done; outputMsg $errs}
 
 # done processing
@@ -359,7 +371,7 @@ proc x3dBrepGeom {} {
                     }
 
 # part switch
-                    if {[string first "swSketch" $line] == -1 && [string first "swComposites1" $line] == -1} {
+                    if {[string first "swSketch" $line] == -1 && [string first "swClipping" $line] == -1 && [string first "swComposites1" $line] == -1} {
                       set cx [string first "\\X" $id]
                       if {$cx != -1} {set id [getUnicode $id]}
                       set parts($id) $npart(PRT)

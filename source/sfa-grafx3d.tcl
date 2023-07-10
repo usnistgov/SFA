@@ -10,7 +10,7 @@ proc x3dFileStart {} {
   if {![info exists stepAP]} {set stepAP [getStepAP $localName]}
   if {[string first "IFC" $stepAP] == 0 || [string first "ISO" $stepAP] == 0 || $stepAP == "AP210" || \
       $stepAP == "CUTTING_TOOL_SCHEMA_ARM" || $stepAP == "STRUCTURAL_FRAME_SCHEMA"} {
-    set msg "The Viewer only works with STEP AP203, AP209, AP214, AP238, and AP242 files.  See Help > Support STEP APs"
+    set msg "The Viewer only works with STEP AP203, AP209, AP214, and AP242 files.  See Help > Support STEP APs"
     if {$stepAP == "STRUCTURAL_FRAME_SCHEMA"} {append msg "\n Use the NIST SteelVis viewer for CIS/2 files."}
     errorMsg $msg
     set x3dViewOK 0
@@ -130,7 +130,7 @@ proc x3dFileStart {} {
 # -------------------------------------------------------------------------------
 # finish x3d file, write lots of geometry, set viewpoints, add navigation and background color, and close x3dom file
 proc x3dFileEnd {} {
-  global ao ap242XML assemblyTransform axesDef brepFile brepFileName clippingDef clipPlaneName datumTargetView entCount grayBackground leaderCoords matTrans maxxyz
+  global ao ap242XML assemblyTransform axesDef brepFile brepFileName clippingCap clippingDef clipPlaneName datumTargetView entCount grayBackground leaderCoords matTrans maxxyz
   global nclipPlane nistName noGroupTransform nsketch numTessColor opt parts partstg placeCoords planeDef placeSize rosetteGeom samplingPoints savedViewButtons
   global savedViewDMName savedViewFile savedViewFileName savedViewItems savedViewNames savedViewpoint savedViewVP sphereDef spmiTypesPerFile stepAP
   global tessCoord tessEdges tessPartFile tessPartFileName tessRepo tsName viz x3dApps x3dAxes x3dBbox x3dCoord x3dFile x3dFileNameSave
@@ -205,8 +205,8 @@ proc x3dFileEnd {} {
 # camera clipping planes for section views (9.4.3)
   set viz(CLIPPING) 0
   if {[info exists entCount(camera_model_d3_multi_clipping)]} {
-    outputMsg " Processing clipping planes (section views)" green
-    if {$entCount(camera_model_d3_multi_clipping) <= 16} {
+    if {$entCount(camera_model_d3_multi_clipping) < 17} {
+      outputMsg " Processing clipping planes (section views)" green
       set clippingDef {}
       set nclipPlane 0
       puts $x3dFile "\n<!-- CLIPPING PLANES -->"
@@ -217,12 +217,16 @@ proc x3dFileEnd {} {
           set e0 [[[$cm Attributes] Item [expr 4]] Value]
           if {$opt(PMISEM)} {lappend spmiTypesPerFile "section views"}
 
-# follow union and intersection for more planes (not supported)
+# follow union and intersection for more planes
           if {[llength $e0] == 1} {
             if {[$e0 Type] == "camera_model_d3_multi_clipping_union"} {
-              errorMsg " The intersection and union of clipping planes is not supported." red
+              errorMsg " The intersection and union of clipping planes is not supported" red
               foreach e1 [[[$e0 Attributes] Item [expr 2]] Value] {
-                foreach e2 [[[$e1 Attributes] Item [expr 2]] Value] {lappend cplanes $e2}
+                if {[$e1 Type] == "plane"} {
+                  lappend cplanes $e1
+                } else {
+                  foreach e2 [[[$e1 Attributes] Item [expr 2]] Value] {lappend cplanes $e2}
+                }
               }
 
 # single plane (most common)
@@ -230,19 +234,20 @@ proc x3dFileEnd {} {
               lappend cplanes $e0
             }
 
-# multiple planes (not common)
+# multiple planes (less common)
           } else {
-            errorMsg " Multiple Clipping Planes per section view" red
+            errorMsg " Multiple clipping planes per section view" red
             foreach e1 $e0 {lappend cplanes $e1}
           }
 
 # write clipping planes
+          if {![info exists clippingCap]} {set clippingCap 0}
+          if {!$clippingCap} {errorMsg " Capped surfaces are not generated for clipping planes" red}
           if {[llength $cplanes] > 0} {foreach cplane $cplanes {x3dClipPlane $cplane $cpname}}
         } emsg]} {
           errorMsg "Error adding Clipping Plane: $emsg"
         }
       }
-      set viz(CLIPPING) 1
     } else {
       outputMsg " Too many 'camera_model_d3_multi_clipping' to process ($entCount(camera_model_d3_multi_clipping))" red
     }
@@ -1354,10 +1359,6 @@ proc x3dDatumTarget {} {
                     }
                   }
 
-# old way that just gets the point from the line
-                  #set e7 [[[$e6 Attributes] Item [expr 2]] Value]
-                  #set pt [vectrim [[[$e7 Attributes] Item [expr 2]] Value]]
-
                   append coord "$pt "
                   incr ncoord
                   if {$ncoord == 1 && $igeom == 1} {set textOrigin $pt}
@@ -1805,7 +1806,7 @@ proc x3dComposites {} {
 # -------------------------------------------------------------------------------
 # write clipping plane
 proc x3dClipPlane {shapeClipping cpname} {
-  global clipPlaneName nclipPlane x3dFile
+  global clipPlaneName nclipPlane viz x3dFile
 
   if {[catch {
     if {[$shapeClipping Type] == "plane"} {
@@ -1815,7 +1816,7 @@ proc x3dClipPlane {shapeClipping cpname} {
       set a2p3d [x3dGetA2P3D $e0]
       set clipplane [join [vectrim [vecmult [lindex $a2p3d 1] -1.] 5]]
 
-# compute plane offset, need to fix +0.01 to account for direction
+# compute plane offset
       set dot [vecdot [lindex $a2p3d 0] [lindex $a2p3d 1]]
       set offset [trimNum [expr {$dot+0.01}] 5]
       append clipplane " $offset"
@@ -1829,6 +1830,7 @@ proc x3dClipPlane {shapeClipping cpname} {
       puts $x3dFile "<Switch whichChoice='-1' id='swClipping$nclipPlane'><Group>"
       x3dSuppGeomPlane $shapeClipping 1. "clipping plane" $clipPlaneName($nclipPlane)
       puts $x3dFile "</Group></Switch>"
+      set viz(CLIPPING) 1
 
     } else {
       errorMsg " Unknown type of Clipping Plane '[$shapeClipping Type]'"
@@ -1875,17 +1877,24 @@ proc x3dCoordAxes {size} {
 # -------------------------------------------------------------------------------
 # script for switch node
 proc x3dSwitchScript {name {name1 ""}} {
-  global nclipPlane rosetteGeom savedViewNames viz x3dFile
+  global clippingCap nclipPlane rosetteGeom savedViewNames viz x3dFile
 
 # clipping planes
   if {$name == "Clipping"} {
     for {set i 1} {$i <= $nclipPlane} {incr i} {
-      puts $x3dFile "\n<!-- $name$i switch -->\n<script>function tog$name$i\(choice)\{"
-      puts $x3dFile " document.getElementById('sw$name$i').checked = !document.getElementById('sw$name$i').checked;"
-      puts $x3dFile " if (!document.getElementById('sw$name$i').checked) \{\n  document.getElementById('sw$name$i').setAttribute('whichChoice', -1);\n  document.getElementById('swClipPlane$i').setAttribute('enabled', 'false');"
-      puts $x3dFile " \} else \{\n  document.getElementById('sw$name$i').setAttribute('whichChoice', 0);\n  document.getElementById('swClipPlane$i').setAttribute('enabled', 'true');\n \}"
-      puts $x3dFile "\}</script>"
+      puts $x3dFile "\n<!-- Clipping$i switch -->\n<script>function togClipping$i\(choice)\{"
+      puts $x3dFile " document.getElementById('swClipping$i').checked = !document.getElementById('swClipping$i').checked;"
+      puts $x3dFile " if (!document.getElementById('swClipping$i').checked) \{"
+      puts $x3dFile "  document.getElementById('swClipping$i').setAttribute('whichChoice', -1);"
+      puts $x3dFile "  document.getElementById('swClipPlane$i').setAttribute('enabled', 'false');"
+      if {$clippingCap} {puts $x3dFile "  try \{document.getElementById('swClippingCap$i').setAttribute('whichChoice', -1);\} catch \{\}"}
+      puts $x3dFile " \} else \{"
+      puts $x3dFile "  document.getElementById('swClipping$i').setAttribute('whichChoice', 0);"
+      puts $x3dFile "  document.getElementById('swClipPlane$i').setAttribute('enabled', 'true');"
+      if {$clippingCap} {puts $x3dFile "  try \{document.getElementById('swClippingCap$i').setAttribute('whichChoice', 0);\} catch \{\}"}
+      puts $x3dFile " \}\n\}</script>"
     }
+    unset clippingCap
     unset nclipPlane
 
 # not parts

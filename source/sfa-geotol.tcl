@@ -862,11 +862,11 @@ proc spmiGeotolReport {objEntity} {
 
 # check for letters that are not valid
                             set badletters [list I O Q]
-                            if {$tolStandard(type) == "ISO"} {set badletters [list I O Q X Y Z]}
+                            if {$tolStandard(type) == "ISO"} {lappend badletters X}
                             set badletter 0
                             foreach blet $badletters {if {[string first $blet $letter] != -1} {set badletter 1}}
                             if {$badletter} {
-                              set msg "Datum 'identification' attribute contains invalid letters based on the ASME or ISO datum standard."
+                              set msg "Datum 'identification' letter should not be used based on the ASME or ISO datum standard."
                               errorMsg $msg
                               lappend syntaxErr(datum) [list $id identification $msg]
                             }

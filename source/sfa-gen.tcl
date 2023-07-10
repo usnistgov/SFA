@@ -1258,13 +1258,13 @@ proc genExcel {{numFile 0}} {
       if {$okid} {addP21e3Section 2}
     }
 
-# add persistent IDs from v4/5_guid_attribute (AP242 Edition 4)
+# add persistent IDs from v4/5_uuid_attribute (AP242 Edition 4)
     set okid 0
     set npid 0
     set allpid {}
     set uuidEnts {}
-    foreach vuuidEnt [list v4_guid_attribute v5_guid_attribute] {
-      if {[info exists entCount($vuuidEnt)]} {
+    foreach vuuidEnt [list v4_uuid_attribute v5_uuid_attribute] {
+      if {[info exists entCount($vuuidEnt)] && [lsearch $skipEntities $vuuidEnt] == -1} {
         errorMsg "\nProcessing UUID attributes" blue
         ::tcom::foreach e0 [$objDesign FindObjects [string trim $vuuidEnt]] {
           set pid [[[$e0 Attributes] Item [expr 1]] Value]
@@ -2713,7 +2713,7 @@ proc addP21e3Section {idType {uuidEnt ""}} {
   foreach ent [array names urow] {
     $cells($ent) Item 3 $ucol($ent) $heading
     set msg "See ANCHOR worksheet and Help > User Guide (section 5.6)"
-    if {[info exists entCount(v4_guid_attribute)] || [info exists entCount(v5_guid_attribute)]} {
+    if {[info exists entCount(v4_uuid_attribute)] || [info exists entCount(v5_uuid_attribute)]} {
       set msg "See Recommended Practices for Persistent IDs for Design Iteration and Downstream Exchange"
       incr urow($ent)
     }
