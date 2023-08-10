@@ -1270,7 +1270,7 @@ proc reportValProps {} {
               if {$opt(valProp)} {
                 set comment "See the property_definition worksheet for validation property values."
               } else {
-                set comment "Select 'Validation Properties' on the Options tab to see the validation property values."
+                set comment "Select 'Validation Properties' on the Generate tab to see the validation property values."
               }
               addCellComment $ent 3 $c $comment
             }
@@ -1313,7 +1313,7 @@ proc valPropColumn {ent r c propID} {
       if {$opt(valProp)} {
         set comment "See the property_definition worksheet for validation property values."
       } else {
-        set comment "Select 'Validation Properties' on the Options tab to see the validation property values."
+        set comment "Select 'Validation Properties' on the Generate tab to see the validation property values."
       }
       addCellComment $ent 3 $c $comment
     }

@@ -7,8 +7,15 @@ global pmiElementsMaxRows pmiHorizontalLineBreaks pmiModifiers pmiModifiersRP pm
 global spaces spmiEntTypes spmiTypes stepAPs tolNames tzfNames unicodeAttributes
 
 global coverageSTEP developer dispCmd dispCmds env fileDir fileDir1 filesProcessed gen lastX3DOM lastXLS lastXLS1
-global mydocs openFileList opt pf32 pf64 sfaVersion upgrade userWriteDir writeDir x3dFileName x3dStartFile
+global mydocs openFileList opt pf32 pf64 sfaVersion upgrade userWriteDir writeDir x3dom x3dFileName x3dStartFile
 
+# x3dom 1.8.3 server links
+set server "https://www.x3dom.org/download/1.8.3/x3dom."
+foreach ext {js css} {set x3dom($ext) $server$ext}
+# NIST
+#set server "https://pages.nist.gov/CAD-PMI-Testing/x3dom/x3dom."
+
+# -----------------------------------------------------------------------------------------------------
 # set program files, environment variables will be in the correct language
 set pf32 "C:\\Program Files (x86)"
 if {[info exists env(ProgramFiles)]} {set pf32 $env(ProgramFiles)}
@@ -22,6 +29,7 @@ set fileDir1 $mydocs
 set userWriteDir $mydocs
 set writeDir $userWriteDir
 
+# -----------------------------------------------------------------------------------------------------
 # set variables to their default values, most control options for the user interface
 # all are subsequently set by reading the options file (that stores options from running the software - STEP-File-Analyzer-options.dat) in sfa.tcl and sfa-cl.tcl
 # options, set to 1
@@ -31,11 +39,11 @@ foreach id {BOM logFile outputOpen partEdges partSketch PMIGRF PMISEM stepCOMM s
 # options, set to 0
 foreach id {DEBUG1 debugAG DEBUGINV DEBUGNOXL DEBUGVP DEBUGX3D feaBounds feaDisp feaDispNoTail feaLoads feaLoadScale indentGeometry \
   indentStyledItem INVERSE partNoCap partNoGroup partNormals partOnly PMIGRFCOV PMISEMDIM PMISEMDT PMISEMRND SHOWALLPMI stepAP242 \
-  stepCOMP stepCONS stepCPNT stepFEAT stepGEOM stepKINE stepQUAL stepUSER syntaxChecker tessAlt viewFEA viewPMIAR \
+  stepCOMP stepCONS stepCPNT stepFEAT stepGEOM stepKINE stepQUAL stepUSER syntaxChecker tessAlt viewFEA \
   writeDirType x3dSave xlHideLinks xlNoRound xlSort xlUnicode} {set opt($id) 0}
 
 set gen(View) 1
-set opt(gpmiColor) 3
+set opt(gpmiColor) 0
 set opt(partQuality) 7
 set opt(xlMaxRows) 1003
 set opt(xlFormat) Excel
@@ -56,6 +64,16 @@ set developer 0
 catch {if {$env(USERDOMAIN) == "NIST" || $env(USERDOMAIN) == "HARAUB" || $env(USERDOMAIN) == "DESKTOP-VV8848J"} {set developer 1}}
 catch {if {$env(USERDOMAIN_ROAMINGPROFILE) == "NIST"} {set developer 1}}
 
+set DTR [expr {3.1415927/180.}]
+set letters ABCDEFGHIJKLMNOPQRSTUVWXYZ
+set defaultColor ".55 .55 .6"
+set spaces "\n[string repeat " " 14]"
+
+set roseLogical(0) "FALSE"
+set roseLogical(1) "TRUE"
+set roseLogical(2) "UNKNOWN"
+
+# -----------------------------------------------------------------------------------------------------
 # IFCsvr
 set ifcsvrDir [file join $pf32 IFCsvrR300 dll]
 set ifcsvrKey "HKEY_LOCAL_MACHINE\\SOFTWARE\\Classes\\IFCsvr.R300\\CLSID"
@@ -68,18 +86,6 @@ catch {
   if {$bits == "AMD64"} {set bits "64-bit"}
   if {$bits == "x86"}   {set bits "32-bit"}
 }
-
-set DTR [expr {3.1415927/180.}]
-set letters ABCDEFGHIJKLMNOPQRSTUVWXYZ
-set defaultColor ".55 .55 .6"
-set spaces "\n[string repeat " " 14]"
-
-set roseLogical(0) "FALSE"
-set roseLogical(1) "TRUE"
-set roseLogical(2) "UNKNOWN"
-
-# AP209 entities with a specific '_and_' in the entity name
-set andEntAP209 [list "_and_location" "_and_volume_location" "_and_coefficient" "_and_frequencies" "_and_parameters" "_and_value_definition" "_and_freedom"]
 
 # STEP AP names for those that do not start with AP2nn
 set stepAPs(CONFIG_CONTROL_DESIGN) AP203e1
@@ -229,6 +235,9 @@ set unicodeAttributes(string_with_language) {contents}
 set unicodeAttributes(translated_label) {labels}
 set unicodeAttributes(translated_text) {texts}
 
+# AP209 entities with a specific '_and_' in the entity name
+set andEntAP209 [list "_and_location" "_and_volume_location" "_and_coefficient" "_and_frequencies" "_and_parameters" "_and_value_definition" "_and_freedom"]
+
 # -----------------------------------------------------------------------------------------------------
 # app names for STEP software that might appear in header section
 set cadApps {3D_Evolution 3DEXPERIENCE 3DTransVidia Alibre "Anark CORE" AutoCAD Autodesk "Autodesk Inventor" "Autodesk Translation Framework" "Autodesk Translator Framework" CADfix CADverter Capvidia CATIA "CATIA V4" "CATIA V5" "CATIA V6" CoCreate CoreTechnologie Creo CREO CrossCAD Datakit "Datakit CrossCad" DATAKIT EDMsix Elysium Eurostep FiberSim FreeCAD "kicad StepUp" Kubotek "Kubotek KeyCreator" "Kubotek Kosmos" MBDConnect "OneSpace Designer" "OneSpace Modeling" PRO/ENGINEER PSStep "SIEMENS PLM Software NX" "Solid Edge" Solidworks SolidWorks SOLIDWORKS "SOLIDWORKS MBD" "Spatial InterOp 3D" ST-ACIS STEP-NC Theorem THEOREM "Theorem Solutions" T-Systems Unigraphics VariCAD XStep}
@@ -237,7 +246,8 @@ set cadApps {3D_Evolution 3DEXPERIENCE 3DTransVidia Alibre "Anark CORE" AutoCAD 
 set cadApps [sortlength2 $cadApps]
 
 # CAx-IF vendor names
-set pairs [list {3DE "3D Evolution"} {3de "3D Evolution"} {a3 "Acrobat 3D"} {a5 "Acrobat_3D (CATIA_V5)"} {ac "AutoCAD"} {al "Autodesk AliasStudio"} {ap "Acrobat_3D (Pro/E)"} {au "Acrobat_3D (NX)"} {c3e "3D Experience"} {c4 "CATIA V4"} {c5 "CATIA V5"} {c6 "CATIA V6"} {cg "CgiStepCamp"} {cm "PTC CoCreate Modeling"} {cr "PTC Creo"} {ct5 "3D Evolution (CATIA_V5)"} {cti "3D Evolution (Inventor)"} {cto "3D Evolution (Creo)"} {ctw "3D Evolution (SolidWorks)"} {ctx "3D Evolution (NX)"} {d5 "Datakit CrossCad (CATIA_V5)"} {dc "Datakit CrossCad"} {di "Datakit CrossCad (Inventor)"} {do "Datakit CrossCad (Creo)"} {dp "Datakit CrossCad (Pro/E)"} {dw "Datakit CrossCad (SolidWorks)"} {dx "Datakit CrossCad (NX)"} {eb "Electric Boat"} {ec "Elysium CadDoctor"} {e5 "Elysium (CATIA_V5)"} {ei "Elysium (Inventor)"} {eo "Elysium (Creo)"} {ew "Elysium (SolidWorks)"} {ex "Elysium (NX)"} {fs "Vistagy FiberSim"} {h3 "HOOPS 3D Exchange"} {h5 "HOOPS 3D (CATIA_V5)"} {hc "HOOPS 3D (Creo)"} {hx "HOOPS 3D (NX)"} {i4 "ITI CADifx (CATIA_V4)"} {i5 "ITI CADfix (CATIA_V5)"} {ic "ITI CADfix (Creo)"} {id "NX I-DEAS"} {if "ITI CADfix"} {in "Autodesk Inventor"} {iq "ITI CADfix"} {iw "ITI CADfix (SolidWorks)"} {ix "ITI CADfix (NX)"} {jn "Jotne EPM NASTRAN"} {jo "Jotne EPM openSimDM"} {k5 "Kubotek Kosmos (CATIA_V5)"} {kc "Kubotek KeyCreator"} {kk "Kubotek Kosmos"} {ko "Kubotek Kosmos (Creo)"} {kr "Kubotek REALyze"} {kx "Kubotek Kosmos (SolidWorks)"} {kx "Kubotek Kosmos (NX)"} {lk "LKSoft IDA-STEP"} {mp "MSC Patran"} {nas "NASTRAN"} {nx "Siemens NX"} {oc "Datakit CrossCad (OpenCascade)"} {pc "PTC CADDS"} {pe "PTC Pro/E"} {s4 "T-Systems COM/STEP (CATIA_V4)"} {s5 "T-Systems COM/FOX (CATIA_V5)"} {se "SolidEdge"} {sp "Spatial ACIS"} {sw "SolidWorks"} {t3d "TechSoft3D"} {t4 "Theorem Cadverter (CATIA_V4)"} {t5 "Theorem Cadverter (CATIA_V5)"} {tc "Theorem Cadverter (CADDS)"} {td "Theorem Solutions (CATIA)"} {to "Theorem Cadverter (Creo)"} {tp "Theorem Cadverter (Pro/E)"} {ts "Theorem Cadverter (I-DEAS)"} {tx "Theorem Cadverter (NX)"} {ug "Unigraphics"}]
+set pairs [list {3de "3D Evolution"} {c3e "3D Experience"} {c5 "CATIA V5"} {cr "Creo"} {ct5 "3D Evolution (CATIA_V5)"} {cto "3D Evolution (Creo)"} {ctx "3D Evolution (NX)"} {d5 "Datakit CrossCad (CATIA_V5)"} {dc "Datakit CrossCad"} {di "Datakit CrossCad (Inventor)"} {do "Datakit CrossCad (Creo)"} {dw "Datakit CrossCad (SolidWorks)"} {dx "Datakit CrossCad (NX)"} {e5 "Elysium (CATIA_V5)"} {ec "Elysium CadDoctor"} {eo "Elysium (Creo)"} {ew "Elysium (SolidWorks)"} {ex "Elysium (NX)"} {h3 "HOOPS 3D Exchange"} {h5 "HOOPS 3D (CATIA_V5)"} {hc "HOOPS 3D (Creo)"} {hx "HOOPS 3D (NX)"} {i5 "ITI CADfix (CATIA_V5)"} {ic "ITI CADfix (Creo)"} {id "Siemens NX I-DEAS"} {if "ITI CADfix"} {ii "ITI CADfix (Inventor)"} {in "Autodesk Inventor"} {iw "ITI CADfix (SolidWorks)"} {ix "ITI CADfix (NX)"} {k3d "Kubotek Kosmos (3D Framework)"} {k5 "Kubotek Kosmos (CATIA_V5)"} {nx "Siemens NX"} {oc "Datakit CrossCad (OpenCascade)"} {osv "ODA Open STEP Viewer"} {pdm "prostep ivip PDM-IF"} {s5 "T-Systems COM/FOX (CATIA_V5)"} {se "Siemens SolidEdge"} {stp "ISO 10303 STEP"} {sw "SolidWorks"} \
+{a3 "Acrobat 3D"} {a5 "Acrobat_3D (CATIA_V5)"} {ac "AutoCAD"} {al "Autodesk AliasStudio"} {au "Acrobat_3D (NX)"} {c4 "CATIA V4"} {cm "PTC CoCreate Modeling"} {fs "Vistagy FiberSim"} {jn "Jotne EPM NASTRAN"} {jo "Jotne EPM openSimDM"} {kc "Kubotek KeyCreator"} {ko "Kubotek Kosmos (Creo)"} {kr "Kubotek REALyze"} {kw "Kubotek Kosmos (SolidWorks)"} {kx "Kubotek Kosmos (NX)"} {lk "LKSoft IDA-STEP"} {mm "Mitutoyo MiCAT Planner"} {mp "MSC Patran"} {nas "MSC NASTRAN"} {oc "Datakit CrossCad (OpenCascade)"} {pc "PTC CADDS"} {pe "PTC Pro/E"} {s4 "T-Systems COM/STEP (CATIA_V4)"} {sp "Spatial ACIS"} {t3d "TechSoft3D"} {t4 "Theorem Cadverter (CATIA_V4)"} {tc "Theorem Cadverter (CADDS)"} {tp "Theorem Cadverter (Pro/E)"} {tx "Theorem Cadverter (NX)"} {ug "Unigraphics"}]
 foreach pair $pairs {set allVendor([lindex $pair 0]) [lindex $pair 1]}
 
 # names of CAx-IF Recommended Practices

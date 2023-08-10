@@ -27,7 +27,7 @@ proc genExcel {{numFile 0}} {
     } emsg]} {
       set msg "Error opening Output files in: $dirname"
       if {[string first "permission denied" $emsg] != -1} {
-        append msg "\n Copy the STEP file to a different directory or write the Output to a different User-defined directory (Spreadsheet tab)"
+        append msg "\n Copy the STEP file to a different directory or write the Output to a different User-defined directory (More tab)"
       }
       errorMsg $msg
       .tnb select .tnb.status
@@ -393,7 +393,7 @@ proc genExcel {{numFile 0}} {
           } elseif {[string first "_MIM" $fs] != -1 && [string first "_MIM_LF" $fs] == -1} {
             set msg "\nThe STEP AP (schema) should end with _MIM_LF: $fs"
           } else {
-            set msg "\nThe STEP AP (schema) is not supported: $fs"
+            set msg "\nThe STEP AP (schema) is not supported: $fs\n Check View and Part Only to use the Viewer"
           }
           if {[info exists buttons]} {append msg "\n See Help > Supported STEP APs"}
           errorMsg $msg red
@@ -402,7 +402,7 @@ proc genExcel {{numFile 0}} {
 # other possible errors
         } else {
           set msg "\nPossible causes of the error:"
-          if {[file size $localName] > 429000000} {append msg "\n- The STEP file is too large to open to generate a Spreadsheet.\n   For the Viewer use Part Only on the Options tab."}
+          if {[file size $localName] > 429000000} {append msg "\n- The STEP file is too large to open to generate a Spreadsheet.\n   For the Viewer use Part Only on the Generate tab."}
           append msg "\n- Syntax errors in the STEP file"
           append msg "\n   Use F8 to run the Syntax Checker to check for errors in the STEP file.  See Help > Syntax Checker"
           append msg "\n   Try opening the file in another STEP viewer.  See Websites > STEP > STEP File Viewers"
@@ -613,7 +613,7 @@ proc genExcel {{numFile 0}} {
         checkValues
       }
     } else {
-      errorMsg "No file is selected for the User-Defined List on the Options tab."
+      errorMsg "No file is selected for the User-Defined List on the Generate tab."
       checkValues
     }
   }
@@ -695,7 +695,7 @@ proc genExcel {{numFile 0}} {
 # user-defined list and AP209 views are not allowed when generating a spreadsheet
         } elseif {[string first "AP209" $stepAP] != -1 && $opt(viewFEA) && $opt(xlFormat) != "None"} {
           outputMsg " "
-          errorMsg "Viewing the AP209 FEM is not allowed when a User-Defined List is selected on the Options tab."
+          errorMsg "Viewing the AP209 FEM is not allowed when a User-Defined List is selected on the Generate tab."
           set opt(viewFEA) 0
           checkValues
         }
@@ -988,7 +988,7 @@ proc genExcel {{numFile 0}} {
   }
   if {$tolStandard(type) == "ISO"} {
     set fn [string toupper [file tail $localName]]
-    if {[string first "NIST_" $fn] == 0 && [string first "ASME" $fn] != -1} {errorMsg "All of the NIST models use the ASME Y14.5 tolerance standard."}
+    if {[string first "NIST_" $fn] == 0 && [string first "ASME" $fn] != -1} {errorMsg "All of the NIST CAD models use the ASME Y14.5 tolerance standard."}
   }
 
 # check for entities in unicodeAttributes that might have Unicode strings, complex entities require special exceptions in proc unicodeStrings
@@ -1050,7 +1050,7 @@ proc genExcel {{numFile 0}} {
 
 # no entities to process
     if {[llength $entsToProcess] == 0 && $gen(Excel)} {
-      errorMsg "For a Spreadsheet, select more entity types to Process on the Options tab and try again."
+      errorMsg "For a Spreadsheet, select more entity types to Process on the Generate tab and try again."
       catch {unset entsIgnored}
       if {!$gen(View)} {break}
     }
@@ -1851,7 +1851,7 @@ proc addHeaderWorksheet {numFile fname} {
           if {[string first "CATIA SOLUTIONS V4"      $fos] != -1} {set app1 "CATIA V4"}
           if {[string first "Autodesk Inventor"       $fos] != -1} {set app1 $fos}
           if {[string first "SolidWorks 2"            $fos] != -1} {set app1 $fos}
-          if {[string first "SIEMENS PLM Software NX" $fos] ==  0} {set app1 "Siemens NX [string range $fos 24 end]"}
+          if {[string first "SIEMENS PLM Software NX" $fos] ==  0} {set app1 "Siemens NX [string range $fos 23 end]"}
           if {[string first "Kubotek Kosmos"          $fpv] != -1} {set app1 "Kubotek Kosmos"}
           if {[string first "THEOREM"                 $fpv] != -1} {set app1 "Theorem Solutions"}
 

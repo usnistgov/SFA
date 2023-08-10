@@ -380,7 +380,7 @@ proc reportAssocGeom {entType {row ""}} {
 # message only if there are advanced_face
       if {[info exists entCount(advanced_face)]} {
         if {$entCount(advanced_face) > 0} {
-          set msg "$str2 Geometry not found for a [formatComplexEnt $entType].  If the $etyp should have $str2 Geometry, then check GISU or IIRU 'definition' attribute or shape_aspect_relationship 'relating_shape_aspect' attribute.  Select Inverse Relationships on the Options tab to check relationships for shape_aspect.\n  ($recPracNames(pmi242), $str1)"
+          set msg "$str2 Geometry not found for a [formatComplexEnt $entType].  If the $etyp should have $str2 Geometry, then check GISU or IIRU 'definition' attribute or shape_aspect_relationship 'relating_shape_aspect' attribute.  Select Inverse Relationships on the Generate tab to check relationships for shape_aspect.\n  ($recPracNames(pmi242), $str1)"
           errorMsg $msg
           if {$row != ""} {
             set idx $entType

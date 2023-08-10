@@ -1,6 +1,6 @@
 # write tessellated geometry for PMI annotations and parts
 proc x3dTessGeom {objID tessEnt faceEnt {aoname ""}} {
-  global ao arLastID assemTransform defaultColor draftModelCameras entCount leaderCoords mytemp noGroupTransform opt placeCoords placeSavedView
+  global ao assemTransform defaultColor draftModelCameras entCount leaderCoords mytemp noGroupTransform opt placeCoords placeSavedView
   global recPracNames savedViewFile savedViewFileName savedViewNames shapeRepName shellSuppGeom spaces srNames syntaxErr tessCoord tessCoordID
   global tessGeomTxt tessIndex tessIndexCoord tessPartFile tessPlacement tessRepo tessSuppGeomFile tsName x3dColor x3dColorFile x3dColors
   global x3dCoord x3dFile x3dIndex
@@ -118,21 +118,6 @@ proc x3dTessGeom {objID tessEnt faceEnt {aoname ""}} {
     catch {unset idshape}
     set txt [[[$tessEnt Attributes] Item [expr 1]] Value]
     regsub -all "'" $txt "\"" idshape
-
-# group annotations for AR workflow
-    if {$opt(viewPMIAR)} {
-      if {[string first "annotation" $ao] != -1} {
-        set aoID [$tessEnt P21ID]
-        if {![info exists arLastID($f)] || $aoID != $arLastID($f)} {
-          if {[info exists arLastID($f)] && !$tessRepo} {puts $f "</Group>"}
-          set tessGeomTxt "TAO $aoID | "
-          set e0 [[[$tessEnt Attributes] Item [expr 3]] Value]
-          append tessGeomTxt "[[[$e0 Attributes] Item [expr 1]] Value] | $idshape"
-          if {!$tessRepo} {puts $f "<Group id='$tessGeomTxt'>"}
-        }
-        set arLastID($f) $aoID
-      }
-    }
 
 # multiple saved view color
     if {[info exists savedViewName]} {
@@ -505,8 +490,8 @@ proc x3dSetPMIColor {type {mode 0}} {
 # -------------------------------------------------------------------------------
 # write geometry for polyline annotations
 proc x3dPolylinePMI {{objEntity1 ""}} {
-  global ao arLastID mytemp opt polylineTxt recPracNames savedViewFile savedViewFileName
-  global savedViewName savedViewNames spaces x3dColor x3dColorFile x3dCoord x3dFile x3dIndex x3dIndexType x3dShape
+  global ao mytemp opt recPracNames savedViewFile savedViewFileName savedViewName savedViewNames
+  global spaces x3dColor x3dColorFile x3dCoord x3dFile x3dIndex x3dIndexType x3dShape
 
   if {[catch {
     if {[info exists x3dCoord] || $x3dShape} {
@@ -537,23 +522,6 @@ proc x3dPolylinePMI {{objEntity1 ""}} {
 
 # loop over list of files from above
       foreach f $flist {
-
-# group annotations for AR workflow
-        if {$opt(viewPMIAR) && $objEntity1 != "" && [string first "placeholder" $ao] == -1} {
-          set aoID [$objEntity1 P21ID]
-          if {![info exists arLastID($f)] || $aoID != $arLastID($f)} {
-            if {[info exists arLastID($f)]} {puts $f "</Group>"}
-            set polylineTxt "AO $aoID"
-            set e0 [[[$objEntity1 Attributes] Item [expr 3]] Value]
-            set txt [[[$e0 Attributes] Item [expr 1]] Value]
-            if {$txt != ""} {append polylineTxt " | $txt"}
-            set txt [[[$objEntity1 Attributes] Item [expr 1]] Value]
-            regsub -all "'" $txt "\"" idshape
-            if {$txt != ""} {append polylineTxt " | $idshape"}
-            puts $f "<Group id='$polylineTxt'>"
-          }
-          set arLastID($f) $aoID
-        }
 
 # multiple saved view color
         if {$opt(gpmiColor) == 3 && [llength $savedViewNames] > 1} {

@@ -560,7 +560,7 @@ proc openMultiFile {{ask 1}} {
             openXLS $aname 0 1
             if {!$opt(xlHideLinks)} {outputMsg " Click on the Links in Row 3 to open individual spreadsheets." blue}
           } else {
-            outputMsg " Use F7 to open the spreadsheet (see Options tab)" red
+            outputMsg " Use F7 to open the spreadsheet (see Help > Function Keys)" red
           }
 
 # unset some variables for the multi-file summary

@@ -133,19 +133,19 @@ pack $nb -fill both -expand true
 # status tab
 guiStatusTab
 
-# options tab
-guiOptionsTab
+# generate tab
+guiGenerateTab
 guiOpenSTEPFile
 pack $fopt -side top -fill both -expand true -anchor nw
 
-# spreadsheet tab
-guiSpreadsheet
+# more tab
+guiMoreTab
 
 # generate logo, progress bars
 guiButtons
 
-# switch to options tab (any text output will switch back to the status tab)
-.tnb select .tnb.options
+# switch to generate tab (any text output will switch back to the status tab)
+.tnb select .tnb.generate
 
 if {$developer} {if {$filesProcessed > 0} {outputMsg $filesProcessed} else {errorMsg $filesProcessed}}
 
@@ -280,7 +280,7 @@ if {[llength $pids] > 0} {
 
 # warn if spreadsheets not written to default directory
 if {$opt(writeDirType) == 2} {
-  errorMsg "Output files will be written to a User-Defined directory (Spreadsheet tab)"
+  errorMsg "Output files will be written to a User-Defined directory (More tab)"
   .tnb select .tnb.status
 }
 

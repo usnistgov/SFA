@@ -91,7 +91,7 @@ proc gpmiAnnotation {entType} {
 
   if {$opt(PMIGRF) && $opt(xlFormat) != "None"} {outputMsg " Adding PMI Presentation Analyzer report" blue}
   if {$gen(View) && $opt(viewPMI)} {
-    set msg " Adding Graphical PMI for the Viewer"
+    set msg " Adding Graphical PMI"
     if {$opt(xlFormat) == "None"} {append msg " ([formatComplexEnt $entType])"}
     outputMsg $msg green
   }

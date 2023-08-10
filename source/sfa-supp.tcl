@@ -433,7 +433,7 @@ proc x3dSuppGeomCircle {e3 tsize {type "circle"}} {
       set sy [expr {$rad1/$rad}]
       set scale "1 $sy 1"
       set dsy [trimNum [expr {abs($sy-1.)}]]
-      if {$dsy <= 0.05} {errorMsg " Supplemental geometry $type axes ($rad,$rad1) are almost identical."}
+      if {$dsy > 0. && $dsy <= 0.05} {errorMsg " Supplemental geometry $type axes ($rad,$rad1) are almost identical."}
     }
 
 # circle position and orientation

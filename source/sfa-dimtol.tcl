@@ -215,7 +215,7 @@ proc spmiDimtolReport {objEntity} {
                           }
                         }
 
-# check units of NIST models
+# check units of NIST CAD models
                         if {$nistName != ""} {
                           set ln $nistName
                           if {$dim(unit) == "MM" && ([string first "ctc_03" $ln] != -1 || [string first "ctc_05" $ln] != -1 || \
@@ -828,7 +828,7 @@ proc spmiDimtolReport {objEntity} {
                         } elseif {[string first "length/angle precision" $colName] == 0} {
                           set str ""
                           if {$opt(PMISEMRND)} {set str ", round,"}
-                          set comment "The precision might truncate$str or add trailing zeros to the 'length/angle'.  Column D shows the value with the precision applied.  See option on the Spreadsheet tab to Round dimensions and geometric tolerances."
+                          set comment "The precision might truncate$str or add trailing zeros to the 'length/angle'.  Column D shows the value with the precision applied.  See option on the More tab to Round dimensions and geometric tolerances."
                         }
                         if {$comment != ""} {addCellComment $dt 3 $c $comment}
                       }
@@ -1189,7 +1189,7 @@ proc spmiDimtolReport {objEntity} {
                 set pmiCol [expr {max($pmiColumns(pmq),$pmiCol)}]
                 set str ""
                 if {$opt(PMISEMRND)} {set str ", round,"}
-                set comment "The precision might truncate$str or add trailing zeros to the '+/- tolerance'.  Column D shows the value with the precision applied.  See option on the Spreadsheet tab to Round dimensions and geometric tolerances."
+                set comment "The precision might truncate$str or add trailing zeros to the '+/- tolerance'.  Column D shows the value with the precision applied.  See option on the More tab to Round dimensions and geometric tolerances."
                 addCellComment $dt 3 $c $comment
               }
               $cells($dt) Item $r $pmiColumns(pmq) [join $tolQual]

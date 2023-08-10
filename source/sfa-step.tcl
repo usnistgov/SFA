@@ -788,7 +788,7 @@ proc getSchemaFromFile {fname {limit 0}} {
       if {[info exists schema]} {if {$schema == "CUTTING_TOOL_SCHEMA_ARM" || [string first "ISO13" $schema] == 0} {set opt(xlUnicode) 1}}
       if {[file size $fname] <= 10000000} {set opt(xlUnicode) 1}
       set unicodeInFile 1
-      if {!$opt(xlUnicode) && $limit} {errorMsg "Symbols or non-English text found for some entity attributes.  See the Spreadsheet tab to process those symbols and characters.  Also see Help > Text Strings and Numbers." red}
+      if {!$opt(xlUnicode) && $limit} {errorMsg "Symbols or non-English text found for some entity attributes.  See the More tab to process those symbols and characters.  Also see Help > Text Strings and Numbers." red}
     }
 
 # check for OPTIONS from ST-Developer toolkit

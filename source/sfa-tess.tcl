@@ -4,7 +4,7 @@ proc tessPart {entType} {
   global tessPartFile tessPartFileName tessSuppGeomFile tessSuppGeomFileName
 
   if {$opt(DEBUG1)} {outputMsg "START tessPart $entType" red}
-  set msg " Adding Tessellated Part Geometry for the Viewer"
+  set msg " Adding Tessellated Part Geometry"
   if {$opt(xlFormat) == "None"} {append msg " ($entType)"}
   if {[string first "annotation" $msg] == -1} {outputMsg $msg green}
 

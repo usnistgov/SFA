@@ -426,7 +426,7 @@ proc checkFileSize {} {
   if {[file size $localName] > 429000000} {
     set str "might be"
     if {[file size $localName] > 463000000} {set str "is"}
-    outputMsg " The file $str too large to generate a Spreadsheet.\n For the Viewer use Part Only on the Options tab." red
+    outputMsg " The file $str too large to generate a Spreadsheet.\n For the Viewer use Part Only on the Generate tab." red
     if {[file size $localName] > 1530000000} {outputMsg " The Viewer has not been tested with such a large STEP file." red}
   }
 }
@@ -448,7 +448,7 @@ proc saveState {{ok 1}} {
 
 # opt variables
     foreach idx [lsort -nocase [array names opt]] {
-      if {[string first "DEBUG" [string toupper $idx]] == -1 && [string first "indent" $idx] == -1 && $idx != "PMISEMDIM" && $idx != "PMISEMDT" && $idx != "viewPMIAR"} {
+      if {[string first "DEBUG" [string toupper $idx]] == -1 && [string first "indent" $idx] == -1 && $idx != "PMISEMDIM" && $idx != "PMISEMDT"} {
         set var opt($idx)
         set vartmp [set $var]
         if {[string first "/" $vartmp] != -1 || [string first "\\" $vartmp] != -1 || [string first " " $vartmp] != -1} {
@@ -862,7 +862,7 @@ proc openX3DOM {{fn ""} {numFile 0}} {
 
 # no file, show message
     } elseif {$opt(viewPMI) || $opt(viewTessPart) || $opt(viewFEA) || $opt(viewPart)} {
-      if {$opt(xlFormat) == "None"} {errorMsg "There is nothing in the STEP file for the Viewer to show based on the selections on the Options tab."}
+      if {$opt(xlFormat) == "None"} {errorMsg "There is nothing in the STEP file for the Viewer to show based on the selections on the Generate tab."}
       return
     }
   }
@@ -1448,14 +1448,17 @@ proc installIFCsvr {{exit 0}} {
 - To reinstall the toolkit, run the installation file ifcsvrr300_setup_1008_en-update.msi
   in $mytemp
 - If you choose to Cancel the IFCsvr toolkit installation, you will still be able to use
-  the Viewer for Part Geometry.  Select View and Part Only on the Options tab.
-- After the toolkit is installed, see Help > Supported STEP APs"
+  the Viewer for Part Geometry.  Select View and Part Only on the Generate tab.
+
+- If SFA crashes the first time you run it, first uninstall the IFCsvr toolkit.  Then run
+  SFA as Administrator and when prompted, install the IFCsvr toolkit for Everyone, not
+  Just Me.  Subsequently, SFA does not have to be run as Administrator."
 
     if {[file exists $ifcsvrInst] && [info exists buttons]} {
       set msg "The IFCsvr toolkit must be installed to read and process STEP files (User Guide section 2.2.1).  After clicking OK the IFCsvr toolkit installation will start."
       append msg "\n\nYou might need administrator privileges (Run as administrator) to install the toolkit.  Antivirus software might respond that there is a security issue with the toolkit.  The toolkit is safe to install.  Use the default installation folder for the toolkit."
-      append msg "\n\nIf you choose to Cancel the IFCsvr toolkit installation, you will still be able to use the Viewer for Part Geometry.  Select View and Part Only on the Options tab."
-      append msg "\n\nAfter the toolkit is installed, see Help > Supported STEP APs"
+      append msg "\n\nIf you choose to Cancel the IFCsvr toolkit installation, you will still be able to use the Viewer for Part Geometry.  Select View and Part Only on the Generate tab."
+      append msg "\n\nIf SFA crashes the first time you run it, first uninstall the IFCsvr toolkit.  Then run SFA as Administrator and when prompted, install the IFCsvr toolkit for Everyone, not Just Me.  Subsequently, SFA does not have to be run as Administrator."
       set choice [tk_messageBox -type ok -message $msg -icon info -title "Install IFCsvr"]
       outputMsg "\nWait for the installation to finish before processing a STEP file." red
     } elseif {![info exists buttons]} {
@@ -1464,14 +1467,14 @@ proc installIFCsvr {{exit 0}} {
 
 # reinstall
   } else {
-    errorMsg "The existing IFCsvr toolkit must be reinstalled to update the STEP schemas."
+    errorMsg "The IFCsvr toolkit must be reinstalled to update the STEP schemas."
     outputMsg "- First REMOVE the current installation of the IFCsvr toolkit."
     outputMsg "    In the IFCsvr Setup Wizard select 'REMOVE IFCsvrR300 ActiveX Component' and Finish" red
     outputMsg "    If the REMOVE was not successful, then manually uninstall the 'IFCsvrR300 ActiveX Component'"
     if {[info exists buttons]} {
-      outputMsg "- Then restart this software or process a STEP file to install the updated IFCsvr toolkit."
+      outputMsg "- Then restart this software or process a STEP file to install the updated IFCsvr toolkit.  You might have to reinstall the toolkit as Administrator."
     } else {
-      outputMsg "- Then run this software again to install the updated IFCsvr toolkit."
+      outputMsg "- Then run this software again to install the updated IFCsvr toolkit.  You might have to reinstall the toolkit as Administrator."
     }
     outputMsg "- If you have to reinstall the toolkit every time you start the software, then REMOVE the IFCsvr\n  toolkit and download a new copy of the STEP File Analyzer and Viewer and start over."
 
@@ -1479,7 +1482,7 @@ proc installIFCsvr {{exit 0}} {
       set msg "The IFCsvr toolkit must be reinstalled to update the STEP schemas."
       append msg "\n\nFirst REMOVE the current installation of the IFCsvr toolkit."
       append msg "\n\nIn the IFCsvr Setup Wizard (after clicking OK) select 'REMOVE IFCsvrR300 ActiveX Component' and Finish.  If the REMOVE was not successful, then manually uninstall the 'IFCsvrR300 ActiveX Component'"
-      append msg "\n\nThen restart this software or process a STEP file to install the updated IFCsvr toolkit."
+      append msg "\n\nThen restart this software or process a STEP file to install the updated IFCsvr toolkit.  You might have to reinstall the toolkit as Administrator."
       append msg "\n\nIf you have to reinstall the toolkit every time you start the software, then REMOVE the IFCsvr toolkit and download a new copy of the STEP File Analyzer and Viewer and start over."
       set choice [tk_messageBox -type ok -message $msg -icon warning -title "Reinstall IFCsvr"]
       outputMsg "\nWait for the REMOVE process to finish, then restart this software or process a STEP file to install the updated IFCsvr toolkit." red
