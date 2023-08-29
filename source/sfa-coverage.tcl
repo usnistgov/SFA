@@ -272,7 +272,8 @@ proc spmiCoverageWrite {{fn ""} {sum ""} {multi 1}} {
       }
 
 # check for with_datum_feature
-      foreach ent {dimensional_size_with_datum_feature dimensional_location_with_datum_feature} {
+      foreach ent {dimensional_size_with_datum_feature dimensional_location_with_datum_feature \
+                   composite_unit_shape_aspect_and_dimensional_size_with_datum_feature} {
         ::tcom::foreach thisEnt [$objDesign FindObjects [string trim $ent]] {
           if {[$thisEnt Type] == $ent} {lappend spmiTypesPerFile "datum features"}
         }

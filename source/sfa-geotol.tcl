@@ -1945,188 +1945,190 @@ proc spmiProjectedToleranceZone {objGuiEntity} {
     set e0s [$objGuiEntity GetUsedIn [string trim projected_zone_definition] [string trim zone]]
     ::tcom::foreach e0 $e0s {
       ::tcom::foreach a0 [$e0 Attributes] {
+        if {[catch {
 
 # projected length
-        if {[$a0 Name] == "projected_length"} {
+          if {[$a0 Name] == "projected_length"} {
 
 # check for correct LMWU
-          set ptzattr {}
-          ::tcom::foreach a1 [[$a0 Value] Attributes] {lappend ptzattr [$a1 Name]}
-          if {[lsearch $ptzattr "name"] != -1 && [lsearch $ptzattr "qualifiers"] == -1} {
-            set msg "Syntax Error: For projected tolerance zone only 'length_measure_with_unit' is valid.$spaces\($recPracNames(pmi242), Sec. 6.9.2.2)"
-            errorMsg $msg
-            lappend syntaxErr(projected_zone_definition) [list [$e0 P21ID] "projected_length" $msg]
-          }
+            set ptzattr {}
+            ::tcom::foreach a1 [[$a0 Value] Attributes] {lappend ptzattr [$a1 Name]}
+            if {[lsearch $ptzattr "name"] != -1 && [lsearch $ptzattr "qualifiers"] == -1} {
+              set msg "Syntax Error: For projected tolerance zone only 'length_measure_with_unit' is valid.$spaces\($recPracNames(pmi242), Sec. 6.9.2.2)"
+              errorMsg $msg
+              lappend syntaxErr(projected_zone_definition) [list [$e0 P21ID] "projected_length" $msg]
+            }
 
-          ::tcom::foreach a1 [[$a0 Value] Attributes] {
-            if {[$a1 Name] == "value_component"} {
-              set ptz [$a1 Value]
-              if {$ptz < 0.} {
-                set msg "Syntax Error: Negative projected tolerance zone: $ptz$spaces\($recPracNames(pmi242), Sec. 6.9.2.2)"
-                errorMsg $msg
-                lappend syntaxErr(projected_zone_definition) [list [$e0 P21ID] "projected_length" $msg]
-              }
-            } elseif {[$a1 Name] == "qualifiers"} {
-              if {[string first "handle" [$a1 Value]] != -1} {
-                foreach ent2 [$a1 Value] {
-                  if {[$ent2 Type] == "value_format_type_qualifier"} {set ptz [valueQualifier $ent2 $ptz "projected"]}
+            ::tcom::foreach a1 [[$a0 Value] Attributes] {
+              if {[$a1 Name] == "value_component"} {
+                set ptz [$a1 Value]
+                if {$ptz < 0.} {
+                  set msg "Syntax Error: Negative projected tolerance zone: $ptz$spaces\($recPracNames(pmi242), Sec. 6.9.2.2)"
+                  errorMsg $msg
+                  lappend syntaxErr(projected_zone_definition) [list [$e0 P21ID] "projected_length" $msg]
                 }
-              } else {
-                set msg "Syntax Error: Missing 'qualifier' attribute on [formatComplexEnt $objType]$spaces\($recPracNames(pmi242), Sec. 6.9.2.2)"
-                errorMsg $msg
-                lappend syntaxErr($objType) [list $objID "qualifiers" $msg]
+              } elseif {[$a1 Name] == "qualifiers"} {
+                if {[string first "handle" [$a1 Value]] != -1} {
+                  foreach ent2 [$a1 Value] {
+                    if {[$ent2 Type] == "value_format_type_qualifier"} {set ptz [valueQualifier $ent2 $ptz "projected"]}
+                  }
+                } else {
+                  set msg "Syntax Error: Missing 'qualifier' attribute on [formatComplexEnt $objType]$spaces\($recPracNames(pmi242), Sec. 6.9.2.2)"
+                  errorMsg $msg
+                  lappend syntaxErr($objType) [list $objID "qualifiers" $msg]
+                }
               }
             }
-          }
 
 # projected length offset
-        } elseif {[$a0 Name] == "offset"} {
-          ::tcom::foreach a1 [[$a0 Value] Attributes] {
-            if {[$a1 Name] == "value_component"} {
-              set offset [$a1 Value]
-              if {$offset > 0.} {set ptz "$ptz-$offset"}
+          } elseif {[$a0 Name] == "offset"} {
+            ::tcom::foreach a1 [[$a0 Value] Attributes] {
+              if {[$a1 Name] == "value_component"} {
+                set offset [$a1 Value]
+                if {$offset > 0.} {set ptz "$ptz-$offset"}
+              }
             }
-          }
 
 # zone, check for duplicate tolerance_zone
-        } elseif {[$a0 Name] == "zone"} {
-          set id [[$a0 Value] P21ID]
-          if {[lsearch $tzids $id] != -1} {errorMsg "Multiple 'projected_zone_definition' entities refer to the same 'tolerance_zone'."}
-          lappend tzids $id
+          } elseif {[$a0 Name] == "zone"} {
+            set id [[$a0 Value] P21ID]
+            if {[lsearch $tzids $id] != -1} {errorMsg "Multiple 'projected_zone_definition' entities refer to the same 'tolerance_zone'."}
+            lappend tzids $id
 
 # projection_end
-        } elseif {[$a0 Name] == "projection_end"} {
-          set msg ""
-          set idlist [list 1 2]
-          if {[$a0 Value] != ""} {
+          } elseif {[$a0 Name] == "projection_end"} {
+            set msg ""
+            set idlist [list 1 2]
+            if {[$a0 Value] != ""} {
 
 # find projection_end GISU (pegisu)
-            set pe [$a0 Value]
-            set pesa {}
-            set pegisu {}
-            if {[$pe Type] == "composite_group_shape_aspect"} {
-              ::tcom::foreach e1 [$pe GetUsedIn [string trim shape_aspect_relationship] [string trim relating_shape_aspect]] {
-                set pe1 [[[$e1 Attributes] Item [expr 4]] Value]
-                set e2s [$pe1 GetUsedIn [string trim geometric_item_specific_usage] [string trim definition]]
-                ::tcom::foreach e2 $e2s {
-                  lappend pegisu $e2
-                  lappend pesa [[[$e2 Attributes] Item [expr 3]] Value]
+              set pe [$a0 Value]
+              set pesa {}
+              set pegisu {}
+              if {[$pe Type] == "composite_group_shape_aspect"} {
+                ::tcom::foreach e1 [$pe GetUsedIn [string trim shape_aspect_relationship] [string trim relating_shape_aspect]] {
+                  set pe1 [[[$e1 Attributes] Item [expr 4]] Value]
+                  set e2s [$pe1 GetUsedIn [string trim geometric_item_specific_usage] [string trim definition]]
+                  ::tcom::foreach e2 $e2s {
+                    lappend pegisu $e2
+                    lappend pesa [[[$e2 Attributes] Item [expr 3]] Value]
+                  }
                 }
+              } elseif {[$pe Type] == "shape_aspect" || [$pe Type] == "datum_feature"} {
+                set e2s [$pe GetUsedIn [string trim geometric_item_specific_usage] [string trim definition]]
+                ::tcom::foreach e2 $e2s {lappend pegisu $e2}
+              } else {
+                errorMsg "Projected end feature '[$pe Type]' not supported.  ($recPracNames(pmi242), Sec. 6.9.2.2)"
               }
-            } elseif {[$pe Type] == "shape_aspect" || [$pe Type] == "datum_feature"} {
-              set e2s [$pe GetUsedIn [string trim geometric_item_specific_usage] [string trim definition]]
-              ::tcom::foreach e2 $e2s {lappend pegisu $e2}
-            } else {
-              errorMsg "Projected end feature '[$pe Type]' not supported.  ($recPracNames(pmi242), Sec. 6.9.2.2)"
-            }
-            if {[llength $pesa] > 0} {set pe $pesa}
+              if {[llength $pesa] > 0} {set pe $pesa}
 
 # check the advanced face or other entities through GISU relationship to projection_end shape aspect
-            set ngisu 0
-            foreach e2 $pegisu {
-              incr ngisu
-              set e3 [[[$e2 Attributes] Item [expr 5]] Value]
-              set e3type [$e3 Type]
-              if {$e3type == "edge_curve"} {
-                set ec(2) [$e3 P21ID]
-                set idlist [list 1]
-              } elseif {$e3type != "advanced_face" && $e3type != "edge_curve" && $e3type != "edge_loop" && $e3type != "path"} {
-                set msg "Syntax Error: Projected tolerance zone 'projection_end' refers to invalid GISU identified_item '$e3type'.$spaces\($recPracNames(pmi242), Sec. 6.9.2.2)"
+              set ngisu 0
+              foreach e2 $pegisu {
+                incr ngisu
+                set e3 [[[$e2 Attributes] Item [expr 5]] Value]
+                set e3type [$e3 Type]
+                if {$e3type == "edge_curve"} {
+                  set ec(2) [$e3 P21ID]
+                  set idlist [list 1]
+                } elseif {$e3type != "advanced_face" && $e3type != "edge_curve" && $e3type != "edge_loop" && $e3type != "path"} {
+                  set msg "Syntax Error: Projected tolerance zone 'projection_end' refers to invalid GISU identified_item '$e3type'.$spaces\($recPracNames(pmi242), Sec. 6.9.2.2)"
+                }
+                set e4 [[[$e3 Attributes] Item [expr 3]] Value]
+                if {[$e4 Type] != "plane"} {
+                  errorMsg "Projected tolerance zone 'projection_end' refers to a '[$e4 Type]' through GISU ($recPracNames(pmi242), Sec. 6.9.2.2)"
+                }
               }
-              set e4 [[[$e3 Attributes] Item [expr 3]] Value]
-              if {[$e4 Type] != "plane"} {
-                errorMsg "Projected tolerance zone 'projection_end' refers to a '[$e4 Type]' through GISU ($recPracNames(pmi242), Sec. 6.9.2.2)"
+              if {$ngisu == 0 && [$pe Type] == "shape_aspect"} {
+                set msg "Syntax Error: projection_end attribute '[$pe Type]' is not referred to by a GISU.$spaces\($recPracNames(pmi242), Sec. 6.9.2.2)"
               }
+            } else {
+              set msg "Syntax Error: Missing required 'projection_end' attribute on 'projected_zone_definition'.$spaces\($recPracNames(pmi242), Sec. 6.9.2.2)"
             }
-            if {$ngisu == 0 && [$pe Type] == "shape_aspect"} {
-              set msg "Syntax Error: projection_end attribute '[$pe Type]' is not referred to by a GISU.$spaces\($recPracNames(pmi242), Sec. 6.9.2.2)"
+            if {$msg != ""} {
+              errorMsg $msg
+              lappend syntaxErr(projected_zone_definition) [list [$e0 P21ID] "projection_end" $msg]
+              set ptzError 1
             }
-          } else {
-            set msg "Syntax Error: Missing required 'projection_end' attribute on 'projected_zone_definition'.$spaces\($recPracNames(pmi242), Sec. 6.9.2.2)"
-          }
-          if {$msg != ""} {
-            errorMsg $msg
-            lappend syntaxErr(projected_zone_definition) [list [$e0 P21ID] "projection_end" $msg]
-            set ptzError 1
-          }
 
 # find shape aspects from the toleranced shape aspect
-          set sas {}
-          set sasid {}
-          set tsa [[[$gtEntity Attributes] Item [expr 4]] Value]
+            set sas {}
+            set sasid {}
+            set tsa [[[$gtEntity Attributes] Item [expr 4]] Value]
 
 # shape aspect
-          if {[$tsa Type] == "shape_aspect"} {
-            lappend sas $tsa
-            lappend sasid [$tsa P21ID]
+            if {[$tsa Type] == "shape_aspect"} {
+              lappend sas $tsa
+              lappend sasid [$tsa P21ID]
 
 # composite shape aspects
-          } elseif {[$tsa Type] == "composite_group_shape_aspect" || [$tsa Type] == "composite_shape_aspect" || \
-                    [$tsa Type] == "composite_shape_aspect_and_datum_feature" || [$tsa Type] == "centre_of_symmetry" || \
-                    [$tsa Type] == "dimensional_size_with_datum_feature"} {
-            set e1s {}
-            ::tcom::foreach e1 [$tsa GetUsedIn [string trim shape_aspect_relationship] [string trim relating_shape_aspect]] {lappend e1s $e1}
-            foreach e1 $e1s {
-              set e2 [[[$e1 Attributes] Item [expr 4]] Value]
-              if {[$e2 Type] == "shape_aspect" || [$e2 Type] == "dimensional_size_with_datum_feature"} {
-                set id [$e2 P21ID]
-                if {[lsearch $sasid $id] == -1} {lappend sas $e2; lappend sasid $id}
-              } elseif {[$e2 Type] == "composite_shape_aspect" || [$e2 Type] == "centre_of_symmetry"} {
-                ::tcom::foreach e3 [$e2 GetUsedIn [string trim shape_aspect_relationship] [string trim relating_shape_aspect]] {
-                  set e4 [[[$e3 Attributes] Item [expr 4]] Value]
-                  if {[$e4 Type] == "shape_aspect"} {
-                    set id [$e4 P21ID]
-                    if {[lsearch $sasid $id] == -1} {lappend sas $e4; lappend sasid $id}
-                  }
-                }
-              } elseif {[$e2 Type] == "datum"} {
-                ::tcom::foreach e3 [$e2 GetUsedIn [string trim shape_aspect_relationship] [string trim related_shape_aspect]] {
-                  set e4 [[[$e3 Attributes] Item [expr 3]] Value]
-                  ::tcom::foreach e5 [$e4 GetUsedIn [string trim shape_aspect_relationship] [string trim relating_shape_aspect]] {
-                    set e6 [[[$e5 Attributes] Item [expr 4]] Value]
-                    if {[$e6 Type] == "shape_aspect"} {
-                      set id [$e6 P21ID]
-                      if {[lsearch $sasid $id] == -1} {lappend sas $e6; lappend sasid $id}
+            } elseif {[$tsa Type] == "composite_group_shape_aspect" || [$tsa Type] == "composite_shape_aspect" || \
+                      [$tsa Type] == "composite_shape_aspect_and_datum_feature" || [$tsa Type] == "centre_of_symmetry" || \
+                      [$tsa Type] == "dimensional_size_with_datum_feature"} {
+              set e1s {}
+              ::tcom::foreach e1 [$tsa GetUsedIn [string trim shape_aspect_relationship] [string trim relating_shape_aspect]] {lappend e1s $e1}
+              foreach e1 $e1s {
+                set e2 [[[$e1 Attributes] Item [expr 4]] Value]
+                if {[$e2 Type] == "shape_aspect" || [$e2 Type] == "dimensional_size_with_datum_feature"} {
+                  set id [$e2 P21ID]
+                  if {[lsearch $sasid $id] == -1} {lappend sas $e2; lappend sasid $id}
+                } elseif {[$e2 Type] == "composite_shape_aspect" || [$e2 Type] == "centre_of_symmetry"} {
+                  ::tcom::foreach e3 [$e2 GetUsedIn [string trim shape_aspect_relationship] [string trim relating_shape_aspect]] {
+                    set e4 [[[$e3 Attributes] Item [expr 4]] Value]
+                    if {[$e4 Type] == "shape_aspect"} {
+                      set id [$e4 P21ID]
+                      if {[lsearch $sasid $id] == -1} {lappend sas $e4; lappend sasid $id}
                     }
                   }
+                } elseif {[$e2 Type] == "datum"} {
+                  ::tcom::foreach e3 [$e2 GetUsedIn [string trim shape_aspect_relationship] [string trim related_shape_aspect]] {
+                    set e4 [[[$e3 Attributes] Item [expr 3]] Value]
+                    ::tcom::foreach e5 [$e4 GetUsedIn [string trim shape_aspect_relationship] [string trim relating_shape_aspect]] {
+                      set e6 [[[$e5 Attributes] Item [expr 4]] Value]
+                      if {[$e6 Type] == "shape_aspect"} {
+                        set id [$e6 P21ID]
+                        if {[lsearch $sasid $id] == -1} {lappend sas $e6; lappend sasid $id}
+                      }
+                    }
+                  }
+                } else {
+                  errorMsg "For projected tolerance zone, shape_aspect '[$e2 Type]' is not supported."
                 }
-              } else {
-                errorMsg "For projected tolerance zone, shape_aspect '[$e2 Type]' is not supported."
               }
-            }
 
 # toleranced_shape_aspect not supported
-          } else {
-            errorMsg "For projected tolerance zone, toleranced_shape_aspect '[$tsa Type]' is not supported."
-          }
+            } else {
+              errorMsg "For projected tolerance zone, toleranced_shape_aspect '[$tsa Type]' is not supported."
+            }
 
 # get the edge_curve that are shared between the shape aspects from (1) toleranced_shape_aspect and (2) projection_end
-          foreach idx $idlist {
-            set ec($idx) {}
-            if {[info exists pe]} {
-              if {$idx == 2} {set sas $pe}
-              if {[llength $sas] > 0} {
-                foreach sa $sas {
-                  set e1s {}
-                  ::tcom::foreach e1 [$sa GetUsedIn [string trim geometric_item_specific_usage] [string trim definition]] {lappend e1s $e1}
-                  ::tcom::foreach e1 [$sa GetUsedIn [string trim item_identified_representation_usage] [string trim definition]] {lappend e1s $e1}
-                  foreach e1 $e1s {
-                    set e2s {}
-                    set e2 [[[$e1 Attributes] Item [expr 5]] Value]
-                    if {[catch {
-                      set tmp [$e2 Type]
-                      lappend e2s $e2
-                    } emsg1]} {
-                      ::tcom::foreach e2 [[[$e1 Attributes] Item [expr 5]] Value] {lappend e2s $e2}
-                    }
-                    foreach e2 $e2s {
-                      if {[$e2 Type] == "advanced_face"} {
-                        ::tcom::foreach e3 [[[$e2 Attributes] Item [expr 2]] Value] {
-                          set e4 [[[$e3 Attributes] Item [expr 2]] Value]
-                          if {[$e4 Type] == "edge_loop"} {
-                            ::tcom::foreach e5 [[[$e4 Attributes] Item [expr 2]] Value] {
-                              set e6 [[[$e5 Attributes] Item [expr 4]] Value]
-                              lappend ec($idx) [$e6 P21ID]
+            foreach idx $idlist {
+              set ec($idx) {}
+              if {[info exists pe]} {
+                if {$idx == 2} {set sas $pe}
+                if {[llength $sas] > 0} {
+                  foreach sa $sas {
+                    set e1s {}
+                    ::tcom::foreach e1 [$sa GetUsedIn [string trim geometric_item_specific_usage] [string trim definition]] {lappend e1s $e1}
+                    ::tcom::foreach e1 [$sa GetUsedIn [string trim item_identified_representation_usage] [string trim definition]] {lappend e1s $e1}
+                    foreach e1 $e1s {
+                      set e2s {}
+                      set e2 [[[$e1 Attributes] Item [expr 5]] Value]
+                      if {[catch {
+                        set tmp [$e2 Type]
+                        lappend e2s $e2
+                      } emsg1]} {
+                        ::tcom::foreach e2 [[[$e1 Attributes] Item [expr 5]] Value] {lappend e2s $e2}
+                      }
+                      foreach e2 $e2s {
+                        if {[$e2 Type] == "advanced_face"} {
+                          ::tcom::foreach e3 [[[$e2 Attributes] Item [expr 2]] Value] {
+                            set e4 [[[$e3 Attributes] Item [expr 2]] Value]
+                            if {[$e4 Type] == "edge_loop"} {
+                              ::tcom::foreach e5 [[[$e4 Attributes] Item [expr 2]] Value] {
+                                set e6 [[[$e5 Attributes] Item [expr 4]] Value]
+                                lappend ec($idx) [$e6 P21ID]
+                              }
                             }
                           }
                         }
@@ -2136,20 +2138,22 @@ proc spmiProjectedToleranceZone {objGuiEntity} {
                 }
               }
             }
-          }
 
 # report shared edge curves
-          set ec1 [lindex [intersect3 $ec(1) $ec(2)] 1]
-          #outputMsg "#[$gtEntity P21ID]\n 1 edge_curve [lrmdups $ec(1)]\n 2 edge_curve [lrmdups $ec(2)]\n common $ec1"
-          if {[llength $ec1] == 0} {
-            if {![info exists ptzError]} {
-              set msg "No shared 'edge_curve' for a projected tolerance zone. ($recPracNames(pmi242), Sec. 6.9.2.2, Fig. 56)"
-              errorMsg $msg
-              lappend syntaxErr(projected_zone_definition) [list [$e0 P21ID] "projection_end" $msg]
-            } else {
-              set ptzError 1
+            set ec1 [lindex [intersect3 $ec(1) $ec(2)] 1]
+            #outputMsg "#[$gtEntity P21ID]\n 1 edge_curve [lrmdups $ec(1)]\n 2 edge_curve [lrmdups $ec(2)]\n common $ec1"
+            if {[llength $ec1] == 0} {
+              if {![info exists ptzError]} {
+                set msg "No shared 'edge_curve' for a projected tolerance zone. ($recPracNames(pmi242), Sec. 6.9.2.2, Fig. 56)"
+                errorMsg $msg
+                lappend syntaxErr(projected_zone_definition) [list [$e0 P21ID] "projection_end" $msg]
+              } else {
+                set ptzError 1
+              }
             }
           }
+        } emsg1]} {
+          errorMsg "Error processing project tolerance zone '[$a0 Name]' attribute: $emsg1"
         }
       }
     }
