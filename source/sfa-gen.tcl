@@ -154,15 +154,13 @@ proc genExcel {{numFile 0}} {
   if {$opt(syntaxChecker) && [info exists buttons]} {syntaxChecker $localName}
 
 # -------------------------------------------------------------------------------------------------
-# connect to IFCsvr
+# connect to IFCsvr, cannot redirect createobject output to suppress it
   if {[catch {
-    if {![info exists buttons]} {outputMsg "\n*** Begin ST-Developer output"}
     set objIFCsvr [::tcom::ref createobject IFCsvr.R300]
-    if {![info exists buttons]} {outputMsg "*** End ST-Developer output"}
 
 # error
   } emsg]} {
-    errorMsg "\nError connecting to the IFCsvr software that is used to read STEP files: $emsg"
+    errorMsg "\nError connecting to the IFCsvr toolkit that is used to read STEP files: $emsg"
     catch {raise .}
     return 0
   }
@@ -213,12 +211,9 @@ proc genExcel {{numFile 0}} {
     outputMsg "\nOpening $str file"
 
     set openStage 2
-    if {![info exists buttons]} {
-      outputMsg "\n*** Begin ST-Developer output"
-      errorMsg "Check for error or warning messages up to 'End ST-Developer output' below" red
-    }
+    if {![info exists buttons]} {outputMsg "\n<Reading STEP file and checking for syntax errors>"}
     set objDesign [$objIFCsvr OpenDesign [file nativename $fname]]
-    if {![info exists buttons]} {outputMsg "*** End ST-Developer output\n"}
+    if {![info exists buttons]} {outputMsg "<Done>\n"}
 
 # CountEntities causes the error if the STEP file cannot be opened because objDesign is null
     set entityCount [$objDesign CountEntities "*"]
@@ -1294,8 +1289,8 @@ proc genExcel {{numFile 0}} {
                 if {![info exist cells($uuidEnt)]} {lappend noUUIDent $uuidEnt}
 
               } else {
-                errorMsg " Missing 'identified_item' attribute on id_attribute"
-                lappend syntaxErr(id_attribute) [list [$e1 P21ID] identified_item " Missing 'identified_item' attribute"]
+                errorMsg " Wrong type of, or missing 'identified_item' attribute on id_attribute"
+                lappend syntaxErr(id_attribute) [list [$e1 P21ID] identified_item " Wrong type of, or missing 'identified_item' attribute"]
               }
             }
           }
@@ -1622,7 +1617,7 @@ proc genExcel {{numFile 0}} {
   update idletasks
 
 # unset variables
-  foreach var {ap242XML assemTransformPMI brepScale cells cgrObjects colColor count currx3dPID datumEntType datumGeom datumIDs datumSymbol datumSystem datumSystemPDS defComment dimrep dimrepID dimtolEnt dimtolEntID dimtolGeom draughtingModels draftModelCameraNames draftModelCameras driPropID entCount entName entsIgnored epmi epmiUD equivUnicodeString feaDOFR feaDOFT feaNodes fileSumRow fontErr gpmiID gpmiIDRow gpmiRow heading idRow invCol invGroup noFontFile nrep numx3dPID placeAxesDef placeSphereDef pmiCol pmiColumns pmiStartCol pmivalprop propDefID propDefIDRow propDefName propDefOK propDefRow ptzError savedsavedViewNames savedViewFile savedViewFileName savedViewItems savedViewNames savedViewpoint savedViewVP shapeRepName srNames suppGeomEnts syntaxErr taoLastID tessCoord tessCoordName tessIndex tessIndexCoord tessPlacement tessRepo trimVal unicode unicodeActual unicodeNumEnts unicodeString viz vpEnts workbook workbooks worksheet worksheets x3dCoord x3dFile x3dFileName x3dIndex x3dMax x3dMin x3dStartFile} {
+  foreach var {ap242XML assemTransformPMI brepScale cells cgrObjects colColor commasep count currx3dPID datumEntType datumGeom datumIDs datumSymbol datumSystem datumSystemPDS defComment dimrep dimrepID dimtolEnt dimtolEntID dimtolGeom draughtingModels draftModelCameraNames draftModelCameras driPropID entCount entName entsIgnored epmi epmiUD equivUnicodeString feaDOFR feaDOFT feaNodes fileSumRow fontErr gpmiID gpmiIDRow gpmiRow heading idRow invCol invGroup noFontFile nrep numx3dPID placeAxesDef placeSphereDef pmiCol pmiColumns pmiStartCol pmivalprop propDefID propDefIDRow propDefName propDefOK propDefRow ptzError savedsavedViewNames savedViewFile savedViewFileName savedViewItems savedViewNames savedViewpoint savedViewVP shapeRepName srNames suppGeomEnts syntaxErr taoLastID tessCoord tessCoordName tessIndex tessIndexCoord tessPlacement tessRepo trimVal unicode unicodeActual unicodeNumEnts unicodeString viz vpEnts workbook workbooks worksheet worksheets x3dCoord x3dFile x3dFileName x3dIndex x3dMax x3dMin x3dStartFile} {
     catch {global $var}
     if {[info exists $var]} {unset $var}
   }

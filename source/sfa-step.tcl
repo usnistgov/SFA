@@ -629,16 +629,12 @@ proc syntaxChecker {fileName} {
         if {[string first "error:" $line] != -1 || [string first "warning:" $line] != -1} {
 
 # but not with these messages
-          if {[string first "Converting 'integer' value" $line] == -1 && \
-              [string first "ROSE_RUNTIME" $line] == -1 && \
-              [string first "End ST-Developer" $line] == -1} {
+          if {[string first "Converting 'integer' value" $line] == -1 && [string first "<Done>" $line] == -1} {
             if {$line != $lineLast} {append sfaerr " $line\n"}
             set lineLast $line
           }
           if {[string first "warning: No schemas" $line] != -1} {break}
-          if {[string first "warning: Couldn't find schema" $line] != -1} {
-            errorMsg "See Help > Supported STEP APs"
-          }
+          if {[string first "warning: Couldn't find schema" $line] != -1} {errorMsg "See Help > Supported STEP APs"}
           if {[string first "(" $line] != -1 && [string first ")" $line] != -1} {set paren 1}
         } elseif {[string first "Error opening" $line] != -1} {
           append sfaerr "$line "
@@ -725,7 +721,7 @@ proc getStepAP {fname} {
 
 #-------------------------------------------------------------------------------
 proc getSchemaFromFile {fname {limit 0}} {
-  global cadApps cadSystem developer opt p21e3 rawBytes timeStamp unicodeInFile useXL
+  global cadApps cadSystem commasep developer opt p21e3 rawBytes timeStamp unicodeInFile useXL
 
   set p21e3 0
   set schema ""
@@ -791,7 +787,17 @@ proc getSchemaFromFile {fname {limit 0}} {
       if {!$opt(xlUnicode) && $limit} {errorMsg "Symbols or non-English text found for some entity attributes.  See the More tab to process those symbols and characters.  Also see Help > Text Strings and Numbers." red}
     }
 
-# check for OPTIONS from ST-Developer toolkit
+# check for comma separators
+    if {![info exists commasep] && $nline < 1000} {
+      if {[string first "CARTESIAN_POINT" $line] != -1 || [string first "DIRECTION" $line] != -1} {
+        if {[string first "." $line] == -1} {
+          errorMsg "The STEP file uses a comma ',' as the decimal separator instead of a period '.'  This does not\nconform to STEP Part 21 section 6.4.2 for the representation of real numbers.  The spreadsheet\nwill not report the correct real numbers and the viewer will not work.  Run the Syntax Checker."
+          set commasep 1
+        }
+      }
+    }
+
+# check for OPTIONS comment
     if {[string first "/* OPTION:" $line] == 0} {
       if {[string first "raw bytes" $line] != -1 || ($developer && [string first "custom schema-name" $line] == -1)} {
         set emsg "HEADER section comment: [string range $line 11 end-3]"

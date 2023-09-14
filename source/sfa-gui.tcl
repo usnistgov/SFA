@@ -1,5 +1,5 @@
 # SFA version
-proc getVersion {} {return 5.01}
+proc getVersion {} {return 5.02}
 
 # see proc installIFCsvr in sfa-proc.tcl for the IFCsvr version
 # see below (line 37) for the sfaVersion when IFCsvr was updated
@@ -37,11 +37,11 @@ Use F9 and F10 to change the font size here.  See Help > Function Keys"
     if {$sfaVersion < 4.94} {outputMsg "- The IFCsvr toolkit might need to be reinstalled.  Please follow the directions carefully." red}
 
     if {$sfaVersion < 4.60} {
-      outputMsg "- User Guide (Update 7) is based on version 4.60"
+      outputMsg "- User Guide (Update 7) is based on version 4.60 (October 2021)"
       openUserGuide
     }
+    if {$sfaVersion < 5.02} {outputMsg "- Help > Viewer > Viewpoints and Help > Viewer > New Features"}
     if {$sfaVersion < 5.0}  {outputMsg "- Improved part transparency, see Help > Viewer > Overview\n- Renamed Options and Spreadsheet tabs to Generate and More\n- Improved menu layout"}
-    if {$sfaVersion < 4.93} {outputMsg "- Help > Viewer > New Features"}
     if {$sfaVersion < 3.80} {outputMsg "- Syntax Checker, see Help > Syntax Checker"}
     if {$sfaVersion < 4.74} {outputMsg "- Generate Bill of Materials (BOM), see Generate tab and Help > Bill of Materials"}
     if {$sfaVersion < 4.61} {outputMsg "- Updated Sample STEP Files in the Examples menu"}
@@ -49,7 +49,7 @@ Use F9 and F10 to change the font size here.  See Help > Function Keys"
       outputMsg "- The local Release Notes file 'STEP-File-Analyzer-Release-Notes.xlsx' is not up-to-date and should be deleted." red
     }
   }
-  outputMsg "- See Help > Release Notes and Help > Viewer > New Features for all new features and bug fixes"
+  outputMsg "- See Help > Release Notes for all new features and bug fixes"
   set sfaVersion [getVersion]
 
   .tnb select .tnb.status
@@ -63,7 +63,7 @@ proc openUserGuide {} {
 
 # update for new versions, local and online
   if {$sfaVersion > 4.6} {
-    outputMsg "\nThe User Guide (Update 7) is based on version 4.60" blue
+    outputMsg "\nThe User Guide (Update 7) is based on version 4.60 (October 2021)" blue
     outputMsg "- See Help > Release Notes for software updates\n- New and updated features are documented in the Help menu\n- The Options and Spreadsheet tabs have been renamed Generate and More"
     .tnb select .tnb.status
   }
@@ -608,7 +608,7 @@ proc guiGenerateTab {} {
   set foptv20 [frame $foptv.20 -bd 0]
 
 # part geometry
-  foreach item {{" Part Geometry" opt(viewPart)} {" Edges" opt(partEdges)} {" Sketch" opt(partSketch)} {" Normals" opt(partNormals)}} {
+  foreach item {{" Part Geometry" opt(viewPart)} {" Edges" opt(partEdges)} {" Sketch" opt(partSketch)} {" Supplemental" opt(partSupp)}} {
     set idx [string range [lindex $item 1] 4 end-1]
     set buttons($idx) [ttk::checkbutton $foptv20.$cb -text [lindex $item 0] -variable [lindex $item 1] -command {checkValues}]
     pack $buttons($idx) -side left -anchor w -padx 5 -pady 0 -ipady 0
@@ -616,7 +616,7 @@ proc guiGenerateTab {} {
   }
   pack $foptv20 -side top -anchor w -pady 0 -padx 0 -fill y
 
-# part quality
+# part quality, normals
   set foptv21 [frame $foptv.21 -bd 0]
   set buttons(labelPartQuality) [label $foptv21.l3 -text "Quality: "]
   pack $foptv21.l3 -side left -anchor w -padx 0 -pady 0 -ipady 0
@@ -626,6 +626,12 @@ proc guiGenerateTab {} {
     pack $buttons($bn) -side left -anchor w -padx 2 -pady 0 -ipady 0
     incr cb
   }
+
+  set item {" Normals" opt(partNormals)}
+  set idx [string range [lindex $item 1] 4 end-1]
+  set buttons($idx) [ttk::checkbutton $foptv21.$cb -text [lindex $item 0] -variable [lindex $item 1] -command {checkValues}]
+  pack $buttons($idx) -side left -anchor w -padx 10 -pady 0 -ipady 0
+  incr cb
   pack $foptv21 -side top -anchor w -pady {0 5} -padx {26 10} -fill y
 
 # graphical pmi
@@ -681,14 +687,14 @@ proc guiGenerateTab {} {
   pack $foptv -side left -anchor w -pady {5 2} -padx 10 -fill both -expand true
   pack $foptRV -side top -anchor w -pady 0 -fill x
   catch {
-    tooltip::tooltip $foptv20 "The viewer for part geometry supports b-rep geometry, color, transparency, edges,\nand sketch geometry.  Supplemental geometry and points are also supported.\n\nNormals improve the default smooth shading at the expense of slower processing\nand display.  Using High Quality and Normals results in the best appearance for\npart geometry.\n\nIdentical parts in an assembly are grouped together in the Viewer.  Disable this\nfeature with the option on the More tab.\n\nThe viewer uses the default web browser.  An Internet connection is required.\nThe viewer does not support measurements.\n\nSee More tab for more Viewer options\nSee Help > Viewer > Overview\nSee Help > Viewer > Assemblies"
+    tooltip::tooltip $foptv20 "The viewer for part geometry supports b-rep geometry, color,\ntransparency, edges, and sketch and supplemental geometry.\n\nIdentical parts in an assembly are grouped together in the Viewer.\nDisable this feature with the option on the More tab.\n\nThe viewer uses the default web browser.  An Internet connection\nis required.  The viewer does not support measurements.\n\nSee More tab for more Viewer options\nSee Help > Viewer > Overview and other topics"
     tooltip::tooltip $buttons(viewPMI) "Graphical PMI for annotations is supported in AP242, AP203, and\nAP214 files.  Annotation placeholders are supported in AP242.\n\nSee Help > Viewer > Graphical PMI\nSee Help > User Guide (section 4.2)\n\nGraphical PMI must conform to recommended practices.\nSee Websites > CAx Recommended Practices"
     tooltip::tooltip $buttons(viewPMIVP) "A Saved View is a subset of all graphical PMI which has its own viewpoint\nposition and orientation.  Use PageDown in the Viewer to cycle through the\nsaved views to switch to the associated viewpoint and subset of graphical PMI.\n\nUse the option on the More tab to debug the viewpoint camera model.\nOlder implementations of saved view viewpoints might not conform to current\nrecommended practices.  In this case, zoom out and rotate to see the entire part.\n\nSee User Guide (section 4.2.1)"
     tooltip::tooltip $buttons(viewTessPart) "Tessellated part geometry is typically written to an AP242 file instead of\nor in addition to b-rep part geometry.  ** Parts in an assembly might\nhave the wrong position and orientation or be missing. **\n\nSee Help > Viewer > AP242 Tessellated Part Geometry\nSee Help > User Guide (section 4.3)"
     tooltip::tooltip $buttons(tessPartMesh) "Generate a wireframe mesh based on the tessellated faces and surfaces."
     tooltip::tooltip $buttons(feaLoadScale) "The length of load vectors can be scaled by their magnitude.\nLoad vectors are always colored by their magnitude."
     tooltip::tooltip $buttons(feaDispNoTail) "The length of displacement vectors with a tail are scaled by\ntheir magnitude.  Vectors without a tail are not.\nDisplacement vectors are always colored by their magnitude.\nLoad vectors always have a tail."
-    tooltip::tooltip $foptv21 "Quality controls the number of facets used for curved surfaces.\nFor example, the higher the quality the more facets around the\ncircumference of a cylinder.  Also, the higher the quality the longer\nit takes to generate and show in a web browser.\n\nIf curved surfaces for Part Geometry look wrong even with Quality\nset to High, use the Alternative Geometry Tessellation method\non the More tab."
+    tooltip::tooltip $foptv21 "Quality controls the number of facets used for curved surfaces.\nFor example, the higher the quality the more facets around the\ncircumference of a cylinder.\n\nNormals improve the default smooth shading at the expense of\nslower processing and display.  Using High Quality and Normals\nresults in the best appearance for part geometry.\n\nIf curved surfaces for Part Geometry look wrong even with Quality\nset to High, then use the Alternative Geometry Tessellation\nmethod on the More tab."
     tooltip::tooltip $foptv4  "For 'By View' PMI colors, each Saved View is set to a different color.  If there\nis only one or no Saved Views, then 'Random' PMI colors are used.\n\nFor 'Random' PMI colors, each 'annotation occurrence' is set to a different\ncolor to help differentiate one from another.\n\nPMI color does not apply to annotation placeholders."
     set tt "FEM nodes, elements, boundary conditions, loads, and\ndisplacements in AP209 files are shown.\n\nSee Help > Viewer > AP209 Finite Element Model\nSee Help > User Guide (section 4.4)"
     tooltip::tooltip $foptv7 $tt
@@ -911,10 +917,12 @@ proc guiMoreTab {} {
   set fxlsd [ttk::labelframe $fxls.d -text " Viewer "]
   set fxlsd1 [frame $fxlsd.1 -bd 0]
   set fxlsd2 [frame $fxlsd.2 -bd 0]
-  set items [list {" Do not group identical parts in an assembly" opt(partNoGroup)} \
-                  {" Do not generate capped surfaces for clipping planes" opt(partNoCap)} \
+  set items [list {" Use parallel projection for user-defined viewpoints" opt(viewParallel)} \
                   {" Show saved view camera model viewpoints" opt(DEBUGVP)} \
+                  {" Correct for older viewpoint implementations" opt(viewCorrect)} \
+                  {" Do not generate capped surfaces for clipping planes" opt(partNoCap)} \
                   {" Save X3D file generated by the Viewer" opt(x3dSave)} \
+                  {" Do not group identical parts in an assembly" opt(partNoGroup)} \
                   {" Alternative geometry tessellation" opt(tessAlt)}]
   set n 0
   foreach item $items {
@@ -935,16 +943,18 @@ proc guiMoreTab {} {
     tooltip::tooltip $buttons(xlUnicode)   "Use this option if there are non-English characters\nencoded with the \\X2\\ control directive in the STEP file.\n\nSee Help > Text Strings and Numbers\nSee User Guide (section 5.5.2)"
     tooltip::tooltip $buttons(xlSort)      "Worksheets can be sorted by column values.\nThe Properties worksheet is always sorted.\n\nSee Help > User Guide (section 5.5.3)"
     tooltip::tooltip $buttons(xlNoRound)   "See Help > User Guide (section 5.5.4)"
+    tooltip::tooltip $buttons(SHOWALLPMI)  "The complete list of [expr {$pmiElementsMaxRows-3}] PMI Elements, including those that are not in the\nSTEP file, will be shown on the PMI Representation Coverage worksheet.\n\nSee Help > Analyzer > PMI Coverage Analysis\nSee Help > User Guide (section 6.1.7)"
+    tooltip::tooltip $buttons(xlHideLinks) "This option is useful when sharing a Spreadsheet with another user."
     tooltip::tooltip $buttons(PMISEMRND)   "Rounding values might result in a better match to graphical PMI shown by the Viewer or\nto expected PMI in the NIST CAD models (FTC/STC 7, 8, 11).\n\nSee User Guide (section 6.1.3.1)\nSee Websites > Recommended Practice for $recPracNames(pmi242), Section 5.4"
     tooltip::tooltip $buttons(PMISEMDIM)   "Process ONLY Dimensional Tolerances and NO geometric tolerances,\ndatums, or datum targets.  This is useful for debugging Dimensions."
     tooltip::tooltip $buttons(PMISEMDT)    "Process ONLY Datum Targets and NO dimensional and geometric\ntolerances, or datums.  This is useful for debugging Datum Targets."
-    tooltip::tooltip $buttons(x3dSave)     "The X3D file can be shown in an X3D viewer or imported to other software.\nUse this option if an Internet connection is not available for the Viewer.\nSee Help > Viewer"
-    tooltip::tooltip $buttons(tessAlt)     "If curved surfaces for Part Geometry look wrong even with Quality set to High,\nuse an alternative geometry tessellation method.  The resulting Viewer file will\nbe larger, and slower to generate and display."
-    tooltip::tooltip $buttons(partNoGroup) "This option might create a very long list of parts names in the Viewer.\nIdentical parts have a underscore and number appended to their name.\nSee Help > Assemblies"
+    tooltip::tooltip $buttons(viewParallel) "Use parallel projection for saved views viewpoints defined in the STEP file,\ninstead of the default perspective projection.  See Help > Viewer > Viewpoints"
+    tooltip::tooltip $buttons(DEBUGVP)     "Debug viewpoint orientation defined by a camera model.\nOlder implementations of camera models might not conform\nto current recommended practices.\n\nUse the option below to correct for older implementations.\n\nSee the CAx-IF Recommended Practice for\n $recPracNames(pmi242), Sec. 9.4.2.6"
+    tooltip::tooltip $buttons(viewCorrect) "Correct for older implementations of camera models that\nmight not conform to current recommended practices.\nThe corrected viewpoint should fix the orientation but\nmaybe not the position."
     tooltip::tooltip $buttons(partNoCap)   "Use when capped surfaces for section view clipping planes\ncannot be generated or when they are in the wrong position.\nSee Help > Viewer > New Features"
-    tooltip::tooltip $buttons(DEBUGVP)     "Debug viewpoint orientation defined by a camera model.  Older implementations of camera models\nmight not conform to current recommended practices.\n\nSee the CAx-IF Recommended Practice for $recPracNames(pmi242), Sec. 9.4.2.6"
-    tooltip::tooltip $buttons(SHOWALLPMI)  "The complete list of [expr {$pmiElementsMaxRows-3}] PMI Elements, including those that are not in the\nSTEP file, will be shown on the PMI Representation Coverage worksheet.\n\nSee Help > Analyzer > PMI Coverage Analysis\nSee Help > User Guide (section 6.1.7)"
-    tooltip::tooltip $buttons(xlHideLinks) "This option is useful when sharing a Spreadsheet with another user."
+    tooltip::tooltip $buttons(tessAlt)     "If curved surfaces for Part Geometry look wrong even with Quality\nset to High, use an alternative geometry tessellation method."
+    tooltip::tooltip $buttons(x3dSave)     "The X3D file can be shown in an X3D viewer or imported to other software.\nUse this option if an Internet connection is not available for the Viewer.\nSee Help > Viewer"
+    tooltip::tooltip $buttons(partNoGroup) "This option might create a very long list of parts names in the Viewer.\nIdentical parts have a underscore and number appended to their name.\nSee Help > Assemblies"
   }
 
 # output directory
@@ -1082,7 +1092,7 @@ assemblies.  Part geometry viewer features:
 - Part edges are shown in black.  Use the transparency slider to show only edges.  Some parts might
   not be affected by the transparency slider.  If a part is completely transparent and edges are
   not selected, then the part will not be visible in the viewer.  In some cases transparency might
-  look wrong when rotating parts in an assembly.
+  look wrong for assemblies with many parts.
 
 - Sketch geometry is supplemental lines created when generating a CAD model.  Sketch geometry is
   also known as construction, auxiliary, support, or reference geometry.  To show only sketch
@@ -1091,8 +1101,7 @@ assemblies.  Part geometry viewer features:
   is not same as supplemental geometry.  See Help > Viewer > Supplemental Geometry
 
 - Normals improve the default smooth shading by explicitly computing surface normals to improve the
-  appearance of curved surfaces.  Computing normals takes more time to process and show in the web
-  browser.
+  appearance of curved surfaces.
 
 - Quality controls the number of facets used for curved surfaces.  Higher quality uses more facets
   around the circumference of a cylinder.  Using High Quality and the Normals options results in
@@ -1114,19 +1123,6 @@ assemblies.  Part geometry viewer features:
 - Hole features, including basic round, counterbore, and countersink holes, and spotface are
   supported in AP242 editions > 1 but have generally not been implemented.
 
----------------------------------------------------------------------------------------------------
-In the web browser, use PageDown to switch between front, side, top, isometric, and orthographic
-viewpoints.  Viewpoint names are shown in the upper left corner of the viewer.  If there is
-graphical PMI with saved view viewpoints, then all but the front and orthographic viewpoints are
-replaced with the saved view viewpoints.  In this case, the viewpoint names for front and
-orthographic viewpoint names are appended with (SFA).
-
-Use key 'a' to view all and 'r' to restore to the original view.  The function of other keys is
-described in the link 'Use the mouse'.  Navigation uses the Examine Mode.  Sometimes a part might
-be located far away from the origin and not visible.  In this case, turn off the Origin and Sketch
-Geometry, then use 'a' to view all.
-
----------------------------------------------------------------------------------------------------
 For very large STEP files it might take several minutes to process the STEP part geometry.  To
 speed up the process, on the Generate tab select View and Part Only.  In the Viewer section,
 uncheck Edges and Sketch, and select Quality Low.  The resulting HTML file might also take several
@@ -1187,25 +1183,75 @@ surfaces or if they are in the wrong position.
 Checkboxes show the names of each clipping plane.  There might be multiple clipping planes with the
 same name.  You have to manually switch on clipping planes associated with saved views.
 
-3 - Annotation placeholders
+3 - Parallel projection viewpoints
+
+Use the option on the More tab to use parallel projection for saved view viewpoints defined in the
+STEP file, instead of the default perspective projection.  See Help > Viewer > Viewpoints
+
+4 - Supplemental geometry
+
+Processing supplemental geometry is now optional.  See Help > Viewer > Supplemental Geometry and
+the option on the Generate tab.
+
+5 - Annotation placeholders
 
 Annotation placeholders provide information about the position, orientation, and organization of an
 annotation.  See Help > Viewer > Graphical PMI
 
-4 - Part geometry tessellation
+6 - Part geometry tessellation
 
 If curved surfaces for Part Geometry look wrong even with Quality set to High, select the
-Alternative Geometry Tessellation method on the More tab.  The resulting Viewer file will be larger,
-and slower to generate and display.
+Alternative Geometry Tessellation method on the More tab.
 
-5 - Convert STL to AP242
+7 - Convert STL to AP242
 
 STL files can be converted to STEP AP242 tessellated geometry that can be shown in the Viewer.
 In the Open File(s) dialog, change the 'Files of type' to 'STL (*.stl)'.  ASCII and binary STL
 files are supported.  Tessellated geometry is not exact b-rep surfaces and may not be supported in
 some CAD software.
 
-6 - Composite rosettes defined by cartesian points and curves are supported."
+8 - Composite rosettes defined by cartesian points and curves are supported."
+    .tnb select .tnb.status
+  }
+
+    $helpView add command -label "Viewpoints" -command {
+outputMsg "\nViewpoints ----------------------------------------------------------------------------------------" blue
+outputMsg "Use PageDown to switch between viewpoints in the viewer window.  Viewpoint names are shown in the
+upper left corner of the viewer.
+
+If there are no user-defined viewpoints (saved views) in the STEP file, then front, side, top, and
+isometric viewpoints are generated.  Since the default orientation of the part is not known, the
+viewpoints might not correspond to the actual front, side, and top of the model.  The isometric
+viewpoint might not be centered in the viewer.  All of the viewpoints use perspective except for an
+additional front parallel projection.
+
+Use key 'a' to view all and 'r' to restore to the original view.  The function of other keys is
+described in the link 'Use the mouse'.  Navigation uses the Examine Mode.  Zooming and panning of
+the model might not work or be very slow.
+
+Sometimes a part is located far from the origin and not visible.  In this case, turn off the Origin
+and Sketch Geometry and then use 'a' to view all.
+
+---------------------------------------------------------------------------------------------------
+If there are user-defined viewpoints (saved views) in the STEP file:
+
+Older implementations of saved views might not conform to current recommended practices.  The
+resulting model orientation will look wrong.  Use the option on the More tab to correct for the
+wrong orientation.  The position of the model might stll be wrong.
+
+In addition to the saved views, two additional front viewpoints named 'Front (SFA)' are generated,
+one perspective and the other a parallel projection.
+
+The default perspective projection for saved views can be changed to a parallel projection with the
+option on the More tab.
+
+If there is graphical PMI associated with saved views, then the PMI can be automatically switched
+on/off when using PageDown if 'Saved View Viewpoints' is checked on the Generate tab.
+
+The More tab option 'Show save view camera model viewpoints' can be used to debug the camera model
+(view frustum) viewpoint geometry.
+
+Saved views are ignored with Part Only.  Part visibility in saved views is not supported."
     .tnb select .tnb.status
   }
 
@@ -1242,11 +1288,15 @@ or be missing.  Similar to b-rep geometry, a list of part names appears on the r
 
   $helpView add command -label "Supplemental Geometry" -command {
 outputMsg "\nSupplemental Geometry -----------------------------------------------------------------------------" blue
-outputMsg "Supplemental geometry is shown only if Part Geometry or Graphical PMI is also selected.  Part Only
-should not be selected.  These types of supplemental geometry and associated text are supported.
-Colors defined in the STEP file override the default colors below.
+outputMsg "Supplemental geometry is geometrical elements created in the CAD system that do not belong to the
+manufactured part.  It is usually used to create other geometric shapes.  Supplemental geometry is
+also known as construction, auxilliary, design, support, or reference geometry.
 
-- Coordinate System: red-x/green-y/blue-z axes
+Supplemental geometry can be processed for part geometry or tessellated part geometry.  These types
+of supplemental geometry and associated text are supported.  Colors defined in the STEP file
+override the default colors below.
+
+- Coordinate System: X axis red, Y axis green, Z axis blue
 - Plane: blue transparent outlined surface (unbounded planes are with shown with a square surface)
 - Cylinder: blue transparent cylinder
 - Line/Circle/Ellipse: purple line/circle/ellipse (trimming with cartesian_point is not supported)
@@ -1947,13 +1997,13 @@ See Examples > PMI Coverage Analysis"
 outputMsg "\nLarge STEP Files ----------------------------------------------------------------------------------" blue
 outputMsg "The largest STEP file that can be processed for a Spreadsheet is approximately 400 MB.  Processing
 larger STEP files might cause a crash.  Popup dialogs might appear that say 'unable to realloc xxx
-bytes'.  Try some of the options below and see Help > Crash Recovery.
+bytes'.  See Help > Crash Recovery.
 
 For the Viewer, select View and Part Only.  A 1.5 GB STEP file has been successfully tested with
 the Viewer.
 
-To reduce the amount of time to process large STEP files that do not cause a crash and to reduce
-the size of the resulting spreadsheet, several options are available:
+Try some of these options to reduce the amount of time to process large STEP files that do not
+cause a crash and to reduce the size of the resulting spreadsheet:
 - In the Process section, deselect entity types that might not need to be processed or only use a
   User-Defined List of required entities
 - On the More tab, use a smaller value for the Maximum Rows
@@ -2081,7 +2131,7 @@ See Help > Disclaimers and NIST Disclaimer"
 
       outputMsg "Environment variables" red
       foreach id [lsort [array names env]] {
-        foreach id1 [list HOME Program System USER TEMP TMP APP] {if {[string first $id1 $id] == 0} {outputMsg " $id  $env($id)"; break}}
+        foreach id1 [list HOME Program System USER TEMP TMP APP ROSE] {if {[string first $id1 $id] == 0} {outputMsg " $id  $env($id)"; break}}
       }
     }
     .tnb select .tnb.status
@@ -2120,11 +2170,11 @@ proc guiWebsitesMenu {} {
   $Websites add cascade -label "AP242" -menu $Websites.0
   set Websites0 [menu $Websites.0 -tearoff 1]
   $Websites0 add command -label "AP242 Project"     -command {openURL http://www.ap242.org}
-  $Websites0 add command -label "Benchmark Testing" -command {openURL http://www.asd-ssg.org/step-ap242-benchmark}
   $Websites0 add command -label "ISO 10303-242"     -command {openURL https://www.iso.org/standard/84667.html}
   $Websites0 add command -label "STEP in 3D PDF"    -command {openURL https://www.iso.org/standard/77686.html}
   $Websites0 add command -label "STEP Geometry Services"  -command {openURL https://www.iso.org/standard/84820.html}
   $Websites0 add command -label "AP203 vs AP214 vs AP242" -command {openURL https://www.capvidia.com/blog/best-step-file-to-use-ap203-vs-ap214-vs-ap242}
+  $Websites0 add command -label "Benchmark Testing" -command {openURL http://www.asd-ssg.org/step-ap242-benchmark}
 
   $Websites add cascade -label "STEP" -menu $Websites.2
   set Websites2 [menu $Websites.2 -tearoff 1]
@@ -2530,14 +2580,14 @@ proc checkValues {} {
 
 # view
   if {$gen(View)} {
-    foreach b {viewFEA viewPMI viewPMIVP viewTessPart viewPart partOnly partNoCap partNoGroup x3dSave} {lappend butNormal $b}
+    foreach b {viewFEA viewPMI viewPMIVP viewTessPart viewPart partOnly partNoCap partNoGroup x3dSave viewParallel} {lappend butNormal $b}
     if {!$opt(viewFEA) && !$opt(viewPMI) && !$opt(viewTessPart) && !$opt(viewPart)} {set opt(viewPart) 1}
     if {$developer} {lappend butNormal DEBUGX3D}
   } else {
     set opt(x3dSave) 0
-    foreach b {viewFEA viewPMI viewPMIVP viewTessPart viewPart partOnly partNoCap partNoGroup x3dSave} {lappend butDisabled $b}
+    foreach b {viewFEA viewPMI viewPMIVP viewTessPart viewPart partOnly partNoCap partNoGroup x3dSave viewParallel} {lappend butDisabled $b}
     foreach b {gpmiColor0 gpmiColor1 gpmiColor2 gpmiColor3 labelPMIcolor} {lappend butDisabled $b}
-    foreach b {partEdges partSketch partNormals partNoCap partNoGroup labelPartQuality partQuality4 partQuality7 partQuality10 tessPartMesh} {lappend butDisabled $b}
+    foreach b {partEdges partSketch partSupp partNormals labelPartQuality partQuality4 partQuality7 partQuality10 tessPartMesh} {lappend butDisabled $b}
     foreach b {feaBounds feaLoads feaLoadScale feaDisp feaDispNoTail} {lappend butDisabled $b}
     if {$developer} {lappend butDisabled DEBUGX3D; set opt(DEBUGX3D) 0}
   }
@@ -2546,14 +2596,15 @@ proc checkValues {} {
 # part only
   if {$opt(partOnly)} {
     set opt(viewPart) 1
+    set opt(viewParallel) 0
     set opt(xlFormat) "None"
     set gen(Excel) 0
     set gen(Excel1) 0
     set gen(CSV) 0
     lappend butNormal genExcel
-    lappend butDisabled partNoCap DEBUGVP
+    lappend butDisabled partNoCap DEBUGVP viewParallel
   } else {
-    lappend butNormal partNoCap DEBUGVP
+    lappend butNormal partNoCap DEBUGVP viewParallel
   }
 
   if {$gen(View) && $opt(viewPart)} {
@@ -2626,13 +2677,18 @@ proc checkValues {} {
   if {$opt(viewPart)} {
     foreach b {partOnly partEdges partSketch partNormals partNoCap partNoGroup labelPartQuality partQuality4 partQuality7 partQuality10} {lappend butNormal $b}
     if {$opt(partOnly) && $opt(xlFormat) == "None"} {
-      foreach b {syntaxChecker viewFEA viewPMI viewTessPart} {lappend butDisabled $b}
-      foreach item {syntaxChecker viewFEA viewPMI viewTessPart} {set opt($item) 0}
+      foreach b {syntaxChecker viewFEA viewPMI viewTessPart partSupp} {lappend butDisabled $b}
+      foreach item {syntaxChecker viewFEA viewPMI viewTessPart partSupp} {set opt($item) 0}
     } else {
-      foreach b {syntaxChecker viewFEA viewPMI viewTessPart} {lappend butNormal $b}
+      foreach b {syntaxChecker viewFEA viewPMI viewTessPart partSupp} {lappend butNormal $b}
     }
   } else {
     foreach b {partEdges partSketch partNormals partNoCap partNoGroup labelPartQuality partQuality4 partQuality7 partQuality10} {lappend butDisabled $b}
+  }
+  if {$opt(viewPart) || $opt(viewTessPart)} {
+    lappend butNormal partSupp
+  } else {
+    lappend butDisabled partSupp
   }
 
 # graphical PMI report

@@ -639,7 +639,7 @@ proc x3dSuppGeomPlane {e2 size {type ""} {name ""}} {
       puts $x3dFile "</Transform>"
     }
 
-    set viz(SUPPGEOM) 1
+    if {$type == "supplemental geometry"} {set viz(SUPPGEOM) 1}
     if {$type == "clipping plane"} {lappend clippingDef "$name $transform"}
 
   } emsg]} {

@@ -130,11 +130,11 @@ proc x3dFileStart {} {
 # -------------------------------------------------------------------------------
 # finish x3d file, write lots of geometry, set viewpoints, add navigation and background color, and close x3dom file
 proc x3dFileEnd {} {
-  global ao ap242XML assemblyTransform axesDef brepFile brepFileName clippingCap clippingDef clipPlaneName datumTargetView entCount grayBackground leaderCoords matTrans maxxyz
+  global ao ap242XML assemblyTransform axesDef brepFile brepFileName clippingCap clippingDef clipPlaneName datumTargetView delt edgeMatID entCount grayBackground leaderCoords matTrans maxxyz
   global nclipPlane nistName noGroupTransform nsketch numTessColor opt parts partstg placeCoords planeDef placeSize rosetteGeom samplingPoints savedViewButtons
   global savedViewDMName savedViewFile savedViewFileName savedViewItems savedViewNames savedViewpoint savedViewVP sphereDef spmiTypesPerFile stepAP
-  global tessCoord tessEdges tessPartFile tessPartFileName tessRepo tsName viz x3dApps x3dAxes x3dBbox x3dCoord x3dFile x3dFileNameSave
-  global x3dFiles x3dFileSave x3dIndex x3dMax x3dMin x3dMsg x3dPartClick x3dParts x3dShape x3dStartFile x3dTessParts x3dTitle x3dViewOK viewsWithPMI
+  global tessCoord tessEdges tessPartFile tessPartFileName tessRepo tsName viewsWithPMI viz xyzcen x3dApps x3dAxes x3dBbox x3dCoord x3dFile x3dFileNameSave
+  global x3dFiles x3dFileSave x3dIndex x3dMax x3dMin x3dMsg x3dPartClick x3dParts x3dShape x3dStartFile x3dTessParts x3dTitle x3dViewOK
   global objDesign
 
   if {!$x3dViewOK} {
@@ -199,7 +199,9 @@ proc x3dFileEnd {} {
   set axesDef {}
   set planeDef {}
   set viz(SUPPGEOM) 0
-  if {[info exists entCount(constructive_geometry_representation)]} {x3dSuppGeom}
+  if {[info exists entCount(constructive_geometry_representation)]} {
+    if {$opt(partSupp) && ($opt(viewPart) || $opt(viewTessPart))} {x3dSuppGeom}
+  }
 
 # -------------------------------------------------------------------------------
 # camera clipping planes for section views (9.4.3)
@@ -406,6 +408,15 @@ proc x3dFileEnd {} {
           } else {
             catch {close $savedViewFile($svnfn)}
           }
+
+# saved view with no PMI
+        } elseif {$opt(viewPMI)} {
+          set svMap($svn) $svn
+          set viewsWithPMI($svn) $i
+          lappend savedViewButtons $svn
+          if {[info exists savedViewpoint($svn)]} {x3dSavedViewpoint $svn}
+          foreach xf $x3dFiles {puts $xf "\n<!-- SAVED VIEW$i NO PMI - $svn -->\n<Switch whichChoice='0' id='sw$svnfn'><Group></Group></Switch>"}
+          errorMsg " Some saved views do not have graphical PMI" red
         }
         catch {file delete -force -- $savedViewFileName($svnfn)}
       }
@@ -581,6 +592,7 @@ proc x3dFileEnd {} {
 
 # default
   set cor "centerOfRotation='$xyzcen(x) $xyzcen(y) $xyzcen(z)'"
+  set fov [trimNum [expr {0.55*max($delt(x),$delt(z))}]]
   set xmin [trimNum [expr {$x3dMin(x) - 1.4*max($delt(y),$delt(z))}]]
   set xmax [trimNum [expr {$x3dMax(x) + 1.4*max($delt(y),$delt(z))}]]
   set ymin [trimNum [expr {$x3dMin(y) - 1.4*max($delt(x),$delt(z))}]]
@@ -588,31 +600,35 @@ proc x3dFileEnd {} {
   set zmin [trimNum [expr {$x3dMin(z) - 1.4*max($delt(x),$delt(y))}]]
   set zmax [trimNum [expr {$x3dMax(z) + 1.4*max($delt(x),$delt(y))}]]
 
-# z axis up
+# front viewpoint, perspective or parallel
   set sfastr ""
   if {[info exists savedViewVP]} {set sfastr " (SFA)"}
-  foreach xf $x3dFiles {puts $xf "<Viewpoint id='Front 1$sfastr' position='$xyzcen(x) $ymin $xyzcen(z)' $cor orientation='1 0 0 1.5708'></Viewpoint>"}
+  if {[info exists savedViewVP] && $opt(viewParallel)} {
+    foreach xf $x3dFiles {puts $xf "<OrthoViewpoint id='Front$sfastr' position='$xyzcen(x) [trimNum [expr {$x3dMin(y) - 1.4*max($delt(x),$delt(z))}]] $xyzcen(z)' $cor orientation='1 0 0 1.5708' fieldOfView='\[-$fov,-$fov,$fov,$fov\]'></OrthoViewpoint>"}
+  } else {
+    foreach xf $x3dFiles {puts $xf "<Viewpoint id='Front$sfastr' position='$xyzcen(x) $ymin $xyzcen(z)' $cor orientation='1 0 0 1.5708'></Viewpoint>"}
+  }
 
-# other front/side/top/isometric viewpoints if not saved views
+# other front/side/top/isometric viewpoints if no saved views
   if {![info exists savedViewVP]} {
-    puts $x3dFile "<Viewpoint id='Side 1' position='$xmax $xyzcen(y) $xyzcen(z)' $cor orientation='1 1 1 2.094'></Viewpoint>"
-    puts $x3dFile "<Viewpoint id='Top 1' position='$xyzcen(x) $xyzcen(y) $zmax' $cor></Viewpoint>"
+    puts $x3dFile "<Viewpoint id='Side' position='$xmax $xyzcen(y) $xyzcen(z)' $cor orientation='1 1 1 2.094'></Viewpoint>"
+    puts $x3dFile "<Viewpoint id='Top' position='$xyzcen(x) $xyzcen(y) $zmax' $cor></Viewpoint>"
     puts $x3dFile "<Viewpoint id='Front 2' position='$xyzcen(x) $xyzcen(y) $zmin' $cor orientation='0 1 0 3.1416'></Viewpoint>"
     puts $x3dFile "<Viewpoint id='Side 2' position='$xmax $xyzcen(y) $xyzcen(z)' $cor orientation='0 1 0 1.5708'></Viewpoint>"
     puts $x3dFile "<Viewpoint id='Top 2' position='$xyzcen(x) $ymax $xyzcen(z)' $cor orientation='1 0 0 -1.5708'></Viewpoint>"
-
-    puts $x3dFile "<Transform rotation='0 0 1 0.5236'><Transform rotation='1 0 0 -0.5236'>"
-    puts $x3dFile " <Viewpoint id='Isometric' position='$xyzcen(x) $ymin $xyzcen(z)' $cor orientation='1 0 0 1.5708'></Viewpoint>"
-    puts $x3dFile "</Transform></Transform>"
+    puts $x3dFile "<Viewpoint id='Isometric' position='$xmax $ymin $zmax' $cor orientation='1. 0.4142 0.8002 1.2171'></Viewpoint>"
 
 # saved views and other viewpoints
   } else {
     foreach xf $x3dFiles {foreach line $savedViewVP {puts $xf $line}}
   }
 
-# orthographic
-  set fov [trimNum [expr {0.55*max($delt(x),$delt(z))}]]
-  puts $x3dFile "<OrthoViewpoint id='Orthographic$sfastr' position='$xyzcen(x) [trimNum [expr {$x3dMin(y) - 1.4*max($delt(x),$delt(z))}]] $xyzcen(z)' $cor orientation='1 0 0 1.5708' fieldOfView='\[-$fov,-$fov,$fov,$fov\]'></OrthoViewpoint>"
+# front viewpoint, perspective or parallel
+  if {[info exists savedViewVP] && $opt(viewParallel)} {
+    puts $x3dFile "<Viewpoint id='Front perspective$sfastr' position='$xyzcen(x) $ymin $xyzcen(z)' $cor orientation='1 0 0 1.5708'></Viewpoint>"
+  } else {
+    puts $x3dFile "<OrthoViewpoint id='Front parallel$sfastr' position='$xyzcen(x) [trimNum [expr {$x3dMin(y) - 1.4*max($delt(x),$delt(z))}]] $xyzcen(z)' $cor orientation='1 0 0 1.5708' fieldOfView='\[-$fov,-$fov,$fov,$fov\]'></OrthoViewpoint>"
+  }
 
 # background color, default gray
   set skyBlue ".53 .81 .92"
@@ -678,7 +694,9 @@ proc x3dFileEnd {} {
     if {$nistName != ""} {
       regsub -all "_" $nistName "-" name
       set name "nist-cad-model-[string range $name 5 end]"
-      puts $x3dFile "<a href=\"https://www.nist.gov/document/$name\">NIST Test Case Drawing</a><p>"
+      if {[string first "ctc" $name] != -1 || [string first "ftc" $name] != -1} {
+        puts $x3dFile "<a href=\"https://www.nist.gov/document/$name\">NIST Test Case Drawing</a><p>"
+      }
     }
   }
 
@@ -768,6 +786,15 @@ proc x3dFileEnd {} {
 # FEM checkboxes
   if {$viz(FEA)} {feaButtons 1}
 
+# message for saved views with no PMI
+  if {[info exists savedViewNames]} {
+    if {!$viz(PMI) && [llength $savedViewNames] > 0} {
+      set str "<p>PageDown for ([llength $savedViewNames]) user-defined viewpoint"
+      if {[llength $savedViewNames] > 1} {append str "s"}
+      puts $x3dFile $str
+    }
+  }
+
 # extra text messages
   if {[info exists x3dMsg]} {
     if {[llength $x3dMsg] > 0} {
@@ -842,7 +869,8 @@ proc x3dFileEnd {} {
 
     if {$opt(partEdges)} {
       puts $x3dFile "\n<!-- EDG switch -->\n<script>function togEDG\(choice\)\{"
-      puts $x3dFile " if \(!document.getElementById\('swEDG'\).checked\) \{document.getElementById\('mat1'\).setAttribute\('transparency', 1\);\} else \{document.getElementById\('mat1'\).setAttribute\('transparency', 0\);\}\n\}</script>"
+      if {![info exist edgeMatID]} {set edgeMatID "mat1"}
+      puts $x3dFile " if \(!document.getElementById\('swEDG'\).checked\) \{document.getElementById\('$edgeMatID'\).setAttribute\('transparency', 1\);\} else \{document.getElementById\('$edgeMatID'\).setAttribute\('transparency', 0\);\}\n\}</script>"
     }
   }
 
@@ -912,6 +940,12 @@ proc x3dFileEnd {} {
   set onload {}
   if {[info exists x3dPartClick]} {if {$x3dPartClick} {lappend onload " document.getElementById('clickedObject').innerHTML = 'click on a part';"}}
 
+# background onload select checked background
+  if {[llength $onload] > 0} {lappend onload " "}
+  lappend onload " var items = document.getElementsByName('bgcolor');"
+  lappend onload " for (var i=0; i<items.length; i++) {if (items\[i\].checked == true) {BGcolor(items\[i\].value);}}"
+  lappend onload " "
+
 # functions for viewpoint names and PMI
   if {[llength $savedViewButtons] > 0 || [info exists savedViewVP]} {
     puts $x3dFile " "
@@ -919,7 +953,9 @@ proc x3dFileEnd {} {
 
     if {[info exists savedViewVP]} {
       set id 0
-      foreach svn [list "Front 1 (SFA)" "Orthographic (SFA)"] {
+      set lfront [list "Front (SFA)" "Front parallel (SFA)"]
+      if {$opt(viewParallel) && [info exists savedViewVP]} {set lfront [list "Front (SFA)" "Front perspective (SFA)"]}
+      foreach svn $lfront {
         lappend onload "\n var view$id = document.getElementById('$svn');\n view$id.addEventListener('outputchange', function(event) \{"
         lappend onload "  document.getElementById('clickedView').innerHTML = '$svn';"
         incr id
@@ -965,7 +1001,7 @@ proc x3dFileEnd {} {
 # functions for eventListener for viewpoint if no saved views
   if {![info exists savedViewVP]} {
     set id 0
-    foreach svn [list "Front 1" "Side 1" "Top 1" "Front 2" "Side 2" "Top 2" "Isometric" "Orthographic"] {
+    foreach svn [list "Front" "Side" "Top" "Front 2" "Side 2" "Top 2" "Isometric" "Front parallel"] {
       lappend onload " var view$id = document.getElementById('$svn');\n view$id.addEventListener('outputchange', function(event) \{document.getElementById('clickedView').innerHTML = '$svn';\}, false);"
       incr id
     }
@@ -990,11 +1026,6 @@ proc x3dFileEnd {} {
  }
 }
 </script>"
-
-# background onload select checked background
-    if {[llength $onload] > 0} {lappend onload " "}
-    lappend onload " var items = document.getElementsByName('bgcolor');"
-    lappend onload " for (var i=0; i<items.length; i++) {if (items\[i\].checked == true) {BGcolor(items\[i\].value);}}"
   }
 
 # axes function
@@ -1011,8 +1042,10 @@ proc x3dFileEnd {} {
       if {[info exists x3dApps]} {
         set mats [lrmdups [lsort -integer $x3dApps]]
         if {$rosetteGeom == 1 || $rosetteGeom == 3} {set mats [lrange $mats 0 end-1]}
+        set n1 1
+        if {[info exists edgeMatID]} {set n1 [string range $edgeMatID 3 end]}
         foreach n $mats {
-          if {!$opt(partEdges) || $n != 1} {
+          if {!$opt(partEdges) || $n != $n1} {
             if {![info exists matTrans($n)]} {
               puts $x3dFile " document.getElementById('mat$n').setAttribute('transparency', trans);"
             } elseif {$matTrans($n) < 1.} {
@@ -1041,7 +1074,7 @@ proc x3dFileEnd {} {
 
 # onload functions
   if {[llength $onload] > 0} {
-    puts $x3dFile "\n<!-- onload functions -->\n<script>document.onload = function() \{\n document.getElementById('clickedView').innerHTML = 'Front 1$sfastr';"
+    puts $x3dFile "\n<!-- onload functions -->\n<script>document.onload = function() \{\n document.getElementById('clickedView').innerHTML = 'Front$sfastr';"
     foreach line $onload {puts $x3dFile $line}
     puts $x3dFile "\}\n</script>"
   }
@@ -1057,7 +1090,7 @@ proc x3dFileEnd {} {
 # -------------------------------------------------------------------------------
 # saved view viewpoints
 proc x3dSavedViewpoint {name} {
-  global maxxyz opt recPracNames savedViewpoint savedViewVP spaces x3dFiles x3dMsg
+  global delt maxxyz opt recPracNames savedViewpoint savedViewVP spaces x3dFiles x3dMsg xyzcen
 
 # check for errors
   set msg ""
@@ -1074,14 +1107,25 @@ proc x3dSavedViewpoint {name} {
     append msg "$spaces\($recPracNames(pmi242), Sec. 9.4.2.6)"
     errorMsg "Syntax Error: Camera model viewpoint for saved views is not modeled correctly.$msg"
     set msg "Viewpoints for saved views are not modeled correctly"
+    if {$opt(viewCorrect)} {append msg " (using corrected viewpoints)"}
     if {[lsearch $x3dMsg $msg] == -1} {lappend x3dMsg $msg}
+    if {!$opt(viewCorrect)} {errorMsg "Use the option on the More tab to correct the viewpoints.  The corrected\nviewpoints should fix the orientation but maybe not the position."}
   }
 
 # default viewpoint with transform
   set n 0
   foreach xf $x3dFiles {
     incr n
-    if {$n == 1} {lappend savedViewVP "<Transform translation='[lindex $savedViewpoint($name) 0]' rotation='[lindex $savedViewpoint($name) 1]'><Viewpoint id='$name' position='0 0 0' orientation='0 1 0 3.14156'/></Transform>"}
+    set fov [trimNum [expr {0.9*max($delt(x),$delt(z))}]]
+    if {$n == 1} {
+
+# perspective or parallel projection
+      if {!$opt(viewParallel)} {
+        lappend savedViewVP "<Transform translation='[lindex $savedViewpoint($name) 0]' rotation='[lindex $savedViewpoint($name) 1]'><Viewpoint id='$name' position='0 0 0' orientation='0 1 0 3.14156'/></Transform>"
+      } else {
+        lappend savedViewVP "<OrthoViewpoint id='$name' position='[lindex $savedViewpoint($name) 0]' centerOfRotation='$xyzcen(x) $xyzcen(y) $xyzcen(z)' orientation='[lindex $savedViewpoint($name) 1]' fieldOfView='\[-$fov,-$fov,$fov,$fov\]'></OrthoViewpoint>"
+      }
+    }
 
 # show camera model for debugging
     if {$opt(DEBUGVP)} {

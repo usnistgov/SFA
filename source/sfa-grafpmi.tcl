@@ -1561,7 +1561,12 @@ proc pmiGetCameras {} {
                       set axis   [[[[[$a2p3d Item [expr 3]] Value] Attributes] Item [expr 2]] Value]
                       set refdir [[[[[$a2p3d Item [expr 4]] Value] Attributes] Item [expr 2]] Value]
                       lappend savedViewpoint($name1) [vectrim $origin]
-                      lappend savedViewpoint($name1) [x3dGetRotation $axis $refdir]
+
+                      if {(!$opt(viewCorrect) && !$opt(viewParallel)) || ($opt(viewCorrect) && $opt(viewParallel))} {
+                        lappend savedViewpoint($name1) [x3dGetRotation $axis $refdir]
+                      } else {
+                        lappend savedViewpoint($name1) [x3dGetRotation [vecmult $axis -1.] [vecmult $refdir -1.]]
+                      }
                     } emsg]} {
                       errorMsg "Error getting viewpoint position and orientation: $emsg"
                       catch {raise .}

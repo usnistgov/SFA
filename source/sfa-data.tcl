@@ -33,13 +33,13 @@ set writeDir $userWriteDir
 # set variables to their default values, most control options for the user interface
 # all are subsequently set by reading the options file (that stores options from running the software - STEP-File-Analyzer-options.dat) in sfa.tcl and sfa-cl.tcl
 # options, set to 1
-foreach id {BOM logFile outputOpen partEdges partSketch PMIGRF PMISEM stepCOMM stepPRES stepQUAN stepREPR stepSHAP stepTOLR tessPartMesh \
+foreach id {BOM logFile outputOpen partEdges partSketch partSupp PMIGRF PMISEM stepCOMM stepPRES stepQUAN stepREPR stepSHAP stepTOLR tessPartMesh \
   valProp viewPart viewPMI viewPMIVP viewTessPart} {set opt($id) 1}
 
 # options, set to 0
 foreach id {DEBUG1 debugAG DEBUGINV DEBUGNOXL DEBUGVP DEBUGX3D feaBounds feaDisp feaDispNoTail feaLoads feaLoadScale indentGeometry \
   indentStyledItem INVERSE partNoCap partNoGroup partNormals partOnly PMIGRFCOV PMISEMDIM PMISEMDT PMISEMRND SHOWALLPMI stepAP242 \
-  stepCOMP stepCONS stepCPNT stepFEAT stepGEOM stepKINE stepQUAL stepUSER syntaxChecker tessAlt viewFEA \
+  stepCOMP stepCONS stepCPNT stepFEAT stepGEOM stepKINE stepQUAL stepUSER syntaxChecker tessAlt viewCorrect viewFEA viewParallel \
   writeDirType x3dSave xlHideLinks xlNoRound xlSort xlUnicode} {set opt($id) 0}
 
 set gen(View) 1

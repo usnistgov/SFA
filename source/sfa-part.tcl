@@ -1,7 +1,7 @@
 # -------------------------------------------------------------------------------
 # B-rep part geometry
 proc x3dBrepGeom {} {
-  global brepFile brepFileName buttons cadSystem clippingCap developer DTR entCount grayBackground localName matTrans maxxyz mytemp
+  global brepFile brepFileName buttons cadSystem clippingCap developer DTR edgeMatID entCount grayBackground localName matTrans maxxyz mytemp
   global nistVersion nsketch opt rawBytes rosetteGeom viz x3dApps x3dBbox x3dMax x3dMin x3dMsg x3dMsgColor x3dParts
   global objDesign
 
@@ -206,7 +206,7 @@ proc x3dBrepGeom {} {
                 if {[string first "<Shape" $line] != -1} {
 
 # check for edges
-                  if {!$viz(EDGE)} {if {[string first "edge" $line] != -1} {set viz(EDGE) 1}}
+                  if {!$viz(EDGE)} {if {[string first "edge" $line] != -1} {set viz(EDGE) 1; set checkMatID 1}}
 
 # check for composites curve 11
                   if {$rosetteGeom == 1} {
@@ -257,17 +257,19 @@ proc x3dBrepGeom {} {
                   }
                 }
 
-# check for transparency
+# check for mat id and transparency
                 if {[string first "<Appearance DEF" $line] != -1} {
+                  set c2 [string first "'mat" $line]
+                  set id [string range $line $c2+4 $c2+7]
+                  set id [string range $id 0 [string first "'" $id]-1]
+                  if {[info exists checkMatID]} {set edgeMatID "mat$id"; unset checkMatID}
+
                   set c1 [string first "transparency=" $line]
                   if {$c1 != -1} {
                     set trans [string range $line $c1+14 end]
                     set trans [string range $trans 0 [string first "'" $trans]-1]
-                    set c2 [string first "'mat" $line]
-                    set id [string range $line $c2+4 $c2+7]
-                    set id [string range $id 0 [string first "'" $id]-1]
                     if {$trans == 1} {
-                      set msg "  Some surfaces are clear and not visible"
+                      set msg " Some surfaces are clear and not visible"
                       if {$opt(partEdges)} {
                         append msg " except for their edges"
                         if {[lsearch $x3dMsg [string trim $msg]] == -1} {lappend x3dMsg [string trim $msg]}
@@ -278,7 +280,7 @@ proc x3dBrepGeom {} {
                     }
                     if {$trans > 0.} {
                       set matTrans($id) $trans
-                      if {$developer && $trans != 1} {errorMsg "  Some surfaces are transparent" red}
+                      if {$developer && $trans != 1} {errorMsg " Some surfaces are transparent" red}
                     }
                   }
                 }

@@ -448,7 +448,7 @@ proc saveState {{ok 1}} {
 
 # opt variables
     foreach idx [lsort -nocase [array names opt]] {
-      if {[string first "DEBUG" [string toupper $idx]] == -1 && [string first "indent" $idx] == -1 && $idx != "PMISEMDIM" && $idx != "PMISEMDT"} {
+      if {[string first "DEBUG" [string toupper $idx]] == -1 && [string first "indent" $idx] == -1 && $idx != "PMISEMDIM" && $idx != "PMISEMDT" && $idx != "partNoGroup"} {
         set var opt($idx)
         set vartmp [set $var]
         if {[string first "/" $vartmp] != -1 || [string first "\\" $vartmp] != -1 || [string first " " $vartmp] != -1} {
@@ -1200,7 +1200,7 @@ proc outputMsg {msg {color "black"}} {
   } else {
     puts $msg
   }
-  if {$opt(logFile) && [info exists logFile] && [string first "ST-Developer" $msg] == -1} {puts $logFile $msg}
+  if {$opt(logFile) && [info exists logFile]} {puts $logFile $msg}
 }
 
 #-------------------------------------------------------------------------------
@@ -1270,7 +1270,7 @@ proc errorMsg {msg {color ""}} {
         set newmsg [split [string range $logmsg 4 end] "\n"]
         set logmsg ""
         foreach str $newmsg {append logmsg "\n$stars $str"}
-        if {[string first "ST-Developer" $logmsg] == -1} {puts $logFile [string range $logmsg 1 end]}
+        puts $logFile [string range $logmsg 1 end]
       }
     }
     return 1

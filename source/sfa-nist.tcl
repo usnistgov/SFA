@@ -693,7 +693,15 @@ proc nistCheckExpectedPMI {val entstr epmiName} {
 
     if {$nsimilar == 1} {
       [$worksheet($spmiSumName) Range [cellRange -1 4]] ColumnWidth [expr 48]
-      addCellComment $spmiSumName 3 4 "Similar PMI is the best match of the PMI Representation in column C, for Partial or Possible matches (blue and yellow), to the expected PMI in the NIST test case drawing to the right."
+      set cmnt ""
+      if {[string first "Similar PMI" $heading] != -1} {
+        append cmnt "Similar PMI (gray) is the best match of the PMI Representation in column C, for Partial or Possible matches (blue and yellow), to the expected PMI in the NIST test case drawing."
+      }
+      if {[string first "Exception" $heading] != -1} {
+        if {[string length $cmnt] > 0} {append cmnt "\n\n"}
+        append cmnt "Exceptions (light gray) are items in the PMI Representation in column C that are ignored when matching Expected PMI from the NIST test case drawing."
+      }
+      addCellComment $spmiSumName 3 4 $cmnt
       set range [$worksheet($spmiSumName) Range D3]
       [$range Font] Bold [expr 1]
       catch {foreach i {8 9} {[[$range Borders] Item $i] Weight [expr 2]}}

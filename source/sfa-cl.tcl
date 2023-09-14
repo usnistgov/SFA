@@ -74,9 +74,8 @@ Optional command line settings:
  You should run the GUI version of the software first.  If not already installed, the
  IFCsvr toolkit will be installed the first time this software is run.
 
- When the STEP file is opened, errors and warnings might appear in the output between
- the 'Begin ST-Developer output' and 'End ST-Developer output' messages.  Existing
- Spreadsheets and Viewer files are always overwritten.
+ When the STEP file is processed, syntax errors and warnings might appear at the
+ beginning of the output.  Existing Spreadsheets and Viewer files are always overwritten.
 
 Disclaimers
  NIST Disclaimer: https://www.nist.gov/disclaimer

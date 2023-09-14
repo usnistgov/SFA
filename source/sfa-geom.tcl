@@ -298,7 +298,8 @@ proc reportAssocGeom {entType {row ""}} {
 # repetitive hole dimension count, e.g. 4X
       set dc [llength $assocGeom($item)]
       if {[string first "_size" $entType] != -1 || [string first "angular_location" $entType] != -1} {
-        if {$item == "cylindrical_surface" || $item == "conical_surface" || $item == "spherical_surface" || $item == "toroidal_surface"} {
+        if {$item == "cylindrical_surface" || $item == "conical_surface" || $item == "spherical_surface" || $item == "toroidal_surface" || \
+            $item == "complex_triangulated_face"} {
           if {![info exists cylSurfBounds]} {
 
 # set divider if odd number of cylinders, then one complete cylinder

@@ -29,7 +29,7 @@ proc spmiSummary {} {
     set comment "PMI Representation summarizes results from Datum System, Dimension, Geometric Tolerance, and Datum Target entities.  See Help > User Guide (section 6.1.6)"
     if {$valRounded} {append comment "\n\nSome dimension or tolerance values are rounded."}
     if {$nistName != ""} {
-      append comment "\n\nIt is color-coded by the expected PMI in the NIST test case drawing to the right.  The color-coding is explained at the bottom of the column.  Determining if the PMI is Partial and Possible match and corresponding Similar PMI depends on leading and trailing zeros, number precision, associated datum features and dimensions, and repetitive dimensions.\n\nSee Help > Analyzer > NIST CAD Models\nSee Help > User Guide (section 6.6.1)"
+      append comment "\n\nIt is color-coded by the expected PMI in the NIST test case drawing.  The color-coding is explained at the bottom of the column.  Determining if the PMI is Partial and Possible match and corresponding Similar PMI depends on leading and trailing zeros, number precision, associated datum features and dimensions, and repetitive dimensions.\n\nSee Help > Analyzer > NIST CAD Models\nSee Help > User Guide (section 6.6.1)"
     }
     append comment "."
     addCellComment $spmiSumName $spmiSumRow 3 $comment
