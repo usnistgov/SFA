@@ -1,8 +1,14 @@
 # NIST STEP File Analyzer and Viewer
 
-With these instructions you can build the [NIST STEP File Analyzer and Viewer](https://www.nist.gov/services-resources/software/step-file-analyzer-and-viewer) (SFA) from the source code.  SFA generates a spreadsheet and visualization from an ISO 10303 Part 21 STEP file.  More information, sample spreadsheets and visualizations, and documentation about SFA is available on the website including the [STEP File Analyzer and Viewer User Guide](https://www.nist.gov/publications/step-file-analyzer-and-viewer-user-guide-update-7).
+The [NIST STEP File Analyzer and Viewer](https://www.nist.gov/services-resources/software/step-file-analyzer-and-viewer) (SFA) 
+generates a spreadsheet and visualization from an ISO 10303 Part 21 STEP file.  
+More information, sample spreadsheets and visualizations, and documentation about SFA is available on the website 
+including the [STEP File Analyzer and Viewer User Guide](https://www.nist.gov/publications/step-file-analyzer-and-viewer-user-guide-update-7).
 
 The [NIST STEP to X3D Translator](https://www.nist.gov/services-resources/software/step-x3d-translator) is used by the SFA Viewer to convert STEP b-rep part geometry to X3D and has its own source code and executable.
+
+Download a pre-built Windows version of SFA with the Release link (zip file) to the right. 
+Follow the instructions below to build your own version of SFA from the source code.  
 
 ## Prerequisites
 
@@ -41,8 +47,8 @@ Optionally build the command-line version:
 ## Running the Software
 
 **You must first install and run the NIST version of the STEP File Analyzer and Viewer before running your own version.**
-- Go to the [STEP File Analyzer and Viewer](https://www.nist.gov/services-resources/software/step-file-analyzer-and-viewer) to download the software
-- Extract STEP-File-Analyzer.exe from the zip file and run it
+- Click on Release to the right and download the zip file.
+- Extract STEP-File-Analyzer.exe from the zip file, run it and process a STEP file to install other software.
 - Some features are not available in the user-built version including: tooltips, unzipping compressed STEP files, automated PMI checking for the [NIST CAD models](https://www.nist.gov/el/systems-integration-division-73400/mbe-pmi-validation-and-conformance-testing), and inserting images of the NIST test cases in the spreadsheets.  Some of the features will be available if the NIST-built version is run first.
 - Internally at NIST, SFA is built with [ActiveTcl 8.5.18 32-bit](https://www.activestate.com/products/tcl/) and the [Tcl Dev Kit](https://www.activestate.com/blog/tcl-dev-kit-now-open-source/) which is now an open source project.
 
