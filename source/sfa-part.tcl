@@ -299,7 +299,7 @@ proc x3dBrepGeom {} {
 
 # close the Switch-Group
                   if {$close && [string first "$space/" $line] == 0} {
-                    append line "\n$space\/Group></Switch>"
+                    if {[string first "</Group></Switch>" $line] == -1} {append line "\n$space\/Group></Switch>"}
                     set close 0
 
 # get id name of Transform and use for Switch
@@ -546,7 +546,12 @@ proc x3dBrepGeom {} {
         } elseif {[string first "permission denied" $errs] != -1} {
           set msg "Antivirus software might be blocking stp2x3d-part.exe from running in $mytemp"
         } else {
-          set msg "Error processing STEP part geometry.\n Use F8 to run the Syntax Checker to check for STEP file errors.  See Help > Syntax Checker\n Try another STEP file viewer.  See Websites > STEP > STEP File Viewers"
+          set msg "Error processing STEP part geometry.\n Use F8 to run the Syntax Checker to check for STEP file errors.  See Help > Syntax Checker"
+          set ename "camera_model_d3_multi_clipping"
+          if {[info exists entCount($ename)] && !$opt(partNoCap)} {
+            if {$entCount($ename) > 0} {append msg "\n Try the option to disable clipping planes on the More tab."}
+          }
+          append msg "\n Try opening the file in another STEP viewer.  See Websites > STEP > STEP File Viewers"
         }
         errorMsg $msg
         outputMsg " "

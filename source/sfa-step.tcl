@@ -585,9 +585,13 @@ proc setEntAttrList {abc} {
 #-------------------------------------------------------------------------------
 # run syntax checker with the command-line version (sfa-cl.exe) and output filtered result
 proc syntaxChecker {fileName} {
-  global buttons opt wdir writeDir
+  global buttons env ifcsvrDir opt wdir writeDir
 
   if {[file size $fileName] > 429000000} {outputMsg " The file is too large to run the Syntax Checker." red; return}
+
+  set roseSchemas ""
+  if {[info exists env(ROSE_SCHEMAS)]} {set roseSchemas $env(ROSE_SCHEMAS)}
+  set env(ROSE_SCHEMAS) [file nativename $ifcsvrDir]
 
   if {[info exists buttons]} {
     outputMsg "\n[string repeat "-" 29]\nRunning Syntax Checker"
@@ -671,6 +675,9 @@ proc syntaxChecker {fileName} {
   } else {
     outputMsg " Syntax Checker cannot be run.  Make sure the command-line version 'sfa-cl.exe' is in the same directory as 'STEP-File-Analyzer.exe" red
   }
+
+  unset env(ROSE_SCHEMAS)
+  if {$roseSchemas != ""} {set env(ROSE_SCHEMAS) $roseSchemas}
 
   if {[info exists buttons]} {outputMsg "[string repeat "-" 29]"}
 }

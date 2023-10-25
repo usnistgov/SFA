@@ -543,7 +543,6 @@ proc x3dSuppGeomPlane {e2 size {type ""} {name ""}} {
     if {$type == "clipping plane"} {
       set cpdef "$name $transform"
       set planeColor "0 0 0"
-      set planeTrans 1.
       if {[lsearch $clippingDef $cpdef] != -1} {set ok 0}
     }
     if {$ok} {
@@ -623,8 +622,13 @@ proc x3dSuppGeomPlane {e2 size {type ""} {name ""}} {
         puts $x3dFile $transform
         set def ""
         if {[llength $planeDef] > 0} {set def " DEF='plane[expr {[llength $planeDef]-1}]'"}
-        puts $x3dFile " <Group$def><Shape><IndexedLineSet coordIndex='$idx 0 -1'><Coordinate point='$corners'/></IndexedLineSet><Appearance><Material emissiveColor='$planeColor'/></Appearance></Shape>"
-        puts $x3dFile " <Shape><IndexedFaceSet solid='false' coordIndex='$idx -1'><Coordinate point='$corners'/></IndexedFaceSet><Appearance><Material diffuseColor='$planeColor' transparency='$planeTrans'/></Appearance></Shape></Group>"
+        set str " <Group$def><Shape><IndexedLineSet coordIndex='$idx 0 -1'><Coordinate point='$corners'/></IndexedLineSet><Appearance><Material emissiveColor='$planeColor'/></Appearance></Shape>"
+        if {$type != "clipping plane"} {
+          append str "\n <Shape><IndexedFaceSet solid='false' coordIndex='$idx -1'><Coordinate point='$corners'/></IndexedFaceSet><Appearance><Material diffuseColor='$planeColor' transparency='$planeTrans'/></Appearance></Shape></Group>"
+        } else {
+          append str "</Group>"
+        }
+        puts $x3dFile $str
       }
 
 # plane name at one corner

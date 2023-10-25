@@ -1447,9 +1447,9 @@ proc installIFCsvr {{exit 0}} {
   toolkit is safe to install.  Use the default installation folder for the toolkit.
 - To reinstall the toolkit, run the installation file ifcsvrr300_setup_1008_en-update.msi
   in $mytemp
-- If you choose to Cancel the IFCsvr toolkit installation, you will still be able to use
-  the Viewer for Part Geometry.  Select View and Part Only on the Generate tab.
-
+- If the IFCsvr toolkit cannot be installed or if you choose to Cancel the installation,
+  you will still be able to use the Viewer for Part Geometry.  Open a STEP file, check
+  View and Part Only, and click Generate View.
 - If SFA crashes the first time you run it, first uninstall the IFCsvr toolkit.  Then run
   SFA as Administrator and when prompted, install the IFCsvr toolkit for Everyone, not
   Just Me.  Subsequently, SFA does not have to be run as Administrator."
@@ -1457,7 +1457,7 @@ proc installIFCsvr {{exit 0}} {
     if {[file exists $ifcsvrInst] && [info exists buttons]} {
       set msg "The IFCsvr toolkit must be installed to read and process STEP files (User Guide section 2.2.1).  After clicking OK the IFCsvr toolkit installation will start."
       append msg "\n\nYou might need administrator privileges (Run as administrator) to install the toolkit.  Antivirus software might respond that there is a security issue with the toolkit.  The toolkit is safe to install.  Use the default installation folder for the toolkit."
-      append msg "\n\nIf you choose to Cancel the IFCsvr toolkit installation, you will still be able to use the Viewer for Part Geometry.  Select View and Part Only on the Generate tab."
+      append msg "\n\nIf the IFCsvr toolkit cannot be installed or if you choose to Cancel the installation, you will still be able to use the Viewer for Part Geometry.  Open a STEP file, check View and Part Only, and click Generate View."
       append msg "\n\nIf SFA crashes the first time you run it, first uninstall the IFCsvr toolkit.  Then run SFA as Administrator and when prompted, install the IFCsvr toolkit for Everyone, not Just Me.  Subsequently, SFA does not have to be run as Administrator."
       set choice [tk_messageBox -type ok -message $msg -icon info -title "Install IFCsvr"]
       outputMsg "\nWait for the installation to finish before processing a STEP file." red
@@ -1557,7 +1557,7 @@ proc installIFCsvr {{exit 0}} {
 #-------------------------------------------------------------------------------
 # shortcuts on desktop and start menu
 proc setShortcuts {} {
-  global mydesk mymenu mytemp wdir
+  global mydesk myhome mymenu mytemp wdir
 
   set progname [info nameofexecutable]
   if {[string first "AppData/Local/Temp" $progname] != -1 || [string first ".zip" $progname] != -1} {
@@ -1565,8 +1565,8 @@ proc setShortcuts {} {
     return
   }
 
+  set progstr "STEP File Analyzer and Viewer"
   if {[info exists mydesk] || [info exists mymenu]} {
-    set progstr "STEP File Analyzer and Viewer"
     set msg "Do you want to create or overwrite shortcuts to the $progstr [getVersion]"
     if {[info exists mydesk]} {
       append msg " on the Desktop"
@@ -1586,6 +1586,7 @@ proc setShortcuts {} {
       }
     }
   }
+  catch {file delete -force [file join $myhome $progstr.lnk]}
 }
 
 #-------------------------------------------------------------------------------
@@ -1607,11 +1608,19 @@ proc setHomeDir {} {
 
     catch {
       set reg_personal [registry get {HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\User Shell Folders} {Personal}]
-      if {[string first "%USERPROFILE%" $reg_personal] == 0} {set mydocs "$env(USERPROFILE)\\[string range $reg_personal 14 end]"}
+      if {[string first "%USERPROFILE%" $reg_personal] == 0} {
+        set mydocs "$env(USERPROFILE)\\[string range $reg_personal 14 end]"
+      } else {
+        set mydocs $reg_personal
+      }
     }
     catch {
       set reg_desktop  [registry get {HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\User Shell Folders} {Desktop}]
-      if {[string first "%USERPROFILE%" $reg_desktop] == 0} {set mydesk "$env(USERPROFILE)\\[string range $reg_desktop 14 end]"}
+      if {[string first "%USERPROFILE%" $reg_desktop] == 0} {
+        set mydesk "$env(USERPROFILE)\\[string range $reg_desktop 14 end]"
+      } else {
+        set mydesk $reg_desktop
+      }
     }
     catch {
       set reg_menu [registry get {HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\User Shell Folders} {Programs}]
@@ -1634,6 +1643,7 @@ proc setHomeDir {} {
     set myhome [file join $drive Users $env(USERNAME)]
   }
 
+# directories if not created
   if {![info exists mydocs]} {
     set mydocs $myhome
     set docs [file join $mydocs "Documents"]

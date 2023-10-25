@@ -272,7 +272,7 @@ proc spmiGeotolReport {objEntity} {
                       set oktsa 0
                       set msg "Syntax Error: Missing 'toleranced_shape_aspect' attribute on [formatComplexEnt $objType]$spaces\($recPracNames(pmi242), Sec. 6.9)"
                       errorMsg $msg
-                      lappend syntaxErr([lindex [split $ent1 " "] 0]) [list [$gtEntity P21ID] [lindex [split $ent1 " "] 1] $msg]
+                      lappend syntaxErr([lindex $ent1 0]) [list [$gtEntity P21ID] [lindex $ent1 1] $msg]
                     }
 
 # get toleranced geometry
@@ -303,7 +303,7 @@ proc spmiGeotolReport {objEntity} {
                       if {[string first "length_measure_with_unit" $magType] == -1 || ([string first "length_measure_with_unit" $magType] != [string last "length_measure_with_unit" $magType])} {
                         set msg "Syntax Error: Wrong type of tolerance value on [formatComplexEnt [$gtEntity Type]]: [formatComplexEnt $magType]$spaces\($recPracNames(pmi242), Sec. 6.9.1, Fig. 43)"
                         errorMsg $msg
-                        lappend syntaxErr([lindex [split $ent1 " "] 0]) [list [$gtEntity P21ID] [lindex [split $ent1 " "] 1] $msg]
+                        lappend syntaxErr([lindex $ent1 0]) [list [$gtEntity P21ID] [lindex $ent1 1] $msg]
                       }
 
 # check for missing magnitude and possibly non-uniform tolerance zone
@@ -328,7 +328,7 @@ proc spmiGeotolReport {objEntity} {
                       if {!$nonUniform} {
                         set msg "Syntax Error: Missing tolerance 'magnitude' on [formatComplexEnt [$gtEntity Type]]$spaces\($recPracNames(pmi242), Sec. 6.9.1, Fig. 43)"
                         errorMsg $msg
-                        lappend syntaxErr([lindex [split $ent1 " "] 0]) [list [$gtEntity P21ID] [lindex [split $ent1 " "] 1] $msg]
+                        lappend syntaxErr([lindex $ent1 0]) [list [$gtEntity P21ID] [lindex $ent1 1] $msg]
                       }
                     }
 
@@ -671,7 +671,7 @@ proc spmiGeotolReport {objEntity} {
                     if {$objSize > $modlim} {
                       set msg "Possible Error: More than $modlim datum or tolerance modifiers"
                       errorMsg $msg
-                      lappend syntaxErr([lindex [split $ent1 " "] 0]) [list [$gtEntity P21ID] [lindex [split $ent1 " "] 1] $msg]
+                      lappend syntaxErr([lindex $ent1 0]) [list [$gtEntity P21ID] [lindex $ent1 1] $msg]
                     }
                     set col($gt) $pmiStartCol($gt)
                     set nval ""
@@ -701,11 +701,11 @@ proc spmiGeotolReport {objEntity} {
                             if {[string first "max" $val] == 0} {
                               set msg "Syntax Error: Use 'maximum_material_requirement' instead of 'maximum_material_condition' for PMI Representation in AP242 files.$spaces\($recPracNames(pmi242), Sec. 6.9.3)"
                               errorMsg $msg
-                              lappend syntaxErr([lindex [split $ent1 " "] 0]) [list [$gtEntity P21ID] [lindex [split $ent1 " "] 1] $msg]
+                              lappend syntaxErr([lindex $ent1 0]) [list [$gtEntity P21ID] [lindex $ent1 1] $msg]
                             } elseif {[string first "least" $val] == 0} {
                               set msg "Syntax Error: Use 'least_material_requirement' instead of 'least_material_condition' for PMI Representation in AP242 files.$spaces\($recPracNames(pmi242), Sec. 6.9.3)"
                               errorMsg $msg
-                              lappend syntaxErr([lindex [split $ent1 " "] 0]) [list [$gtEntity P21ID] [lindex [split $ent1 " "] 1] $msg]
+                              lappend syntaxErr([lindex $ent1 0]) [list [$gtEntity P21ID] [lindex $ent1 1] $msg]
                             }
                           }
                         } else {
@@ -713,7 +713,7 @@ proc spmiGeotolReport {objEntity} {
                           set ok 1
                           set msg "Syntax Error: Datum reference frame modifier '$val' is not supported.$spaces\($recPracNames(pmi242), Sec. 6.9.7)"
                           errorMsg $msg
-                          lappend syntaxErr([lindex [split $ent1 " "] 0]) [list [$gtEntity P21ID] [lindex [split $ent1 " "] 1] $msg]
+                          lappend syntaxErr([lindex $ent1 0]) [list [$gtEntity P21ID] [lindex $ent1 1] $msg]
                         }
 
 # reference to datum_reference_modifier_with_value
@@ -906,7 +906,7 @@ proc spmiGeotolReport {objEntity} {
 # common datum (A-B), not the recommended practice
                     set msg "Syntax Error: Use 'common_datum_list' instead of 'common_datum' for multiple datum features.$spaces\($recPracNames(pmi242), Sec. 6.9.8)"
                     errorMsg $msg
-                    lappend syntaxErr([lindex [split $ent1 " "] 0]) [list $objID [lindex [split $ent1 " "] 1] $msg]
+                    lappend syntaxErr([lindex $ent1 0]) [list $objID [lindex $ent1 1] $msg]
                     set e1s [$objEntity GetUsedIn [string trim shape_aspect_relationship] [string trim relating_shape_aspect]]
                     ::tcom::foreach e1 $e1s {
                       ::tcom::foreach a1 [$e1 Attributes] {
@@ -1030,7 +1030,7 @@ proc spmiGeotolReport {objEntity} {
                       set ok 1
                       set msg "Syntax Error: Datum reference frame modifier '$objValue' is not supported.$spaces\($recPracNames(pmi242), Sec. 6.9.7)"
                       errorMsg $msg
-                      lappend syntaxErr([lindex [split $ent1 " "] 0]) [list [$gtEntity P21ID] [lindex [split $ent1 " "] 1] $msg]
+                      lappend syntaxErr([lindex $ent1 0]) [list [$gtEntity P21ID] [lindex $ent1 1] $msg]
                     }
                   }
 
@@ -1039,7 +1039,7 @@ proc spmiGeotolReport {objEntity} {
                     if {[[[$objEntity Attributes] Item [expr 5]] Value] == ""} {
                       set msg "Syntax Error: Missing 'unit_size' on [formatComplexEnt [$objEntity Type]] $spaces\($recPracNames(pmi242), Sec. 6.9.6)"
                       errorMsg $msg
-                      lappend syntaxErr([lindex [split $ent1 " "] 0]) [list [$objEntity P21ID] "unit_size" $msg]
+                      lappend syntaxErr([lindex $ent1 0]) [list [$objEntity P21ID] "unit_size" $msg]
                     }
                   }
 
@@ -1082,7 +1082,7 @@ proc spmiGeotolReport {objEntity} {
                     }
                     if {$msg != ""} {
                       errorMsg $msg
-                      lappend syntaxErr([lindex [split $ent1 " "] 0]) [list $objID [lindex [split $ent1 " "] 1] $msg]
+                      lappend syntaxErr([lindex $ent1 0]) [list $objID [lindex $ent1 1] $msg]
                     }
 
 # -------------------------------------------------------------------------------
@@ -1183,7 +1183,7 @@ proc spmiGeotolReport {objEntity} {
                     if {![string is integer $ov]} {
                       set msg "Syntax Error: Only integers are valid for datum target 'target_id'.$spaces\($recPracNames(pmi242), Sec. 6.6)"
                       errorMsg $msg
-                      lappend syntaxErr([lindex [split $ent1 " "] 0]) [list $objID [lindex [split $ent1 " "] 1] $msg]
+                      lappend syntaxErr([lindex $ent1 0]) [list $objID [lindex $ent1 1] $msg]
                     }
                     set e1s [$objEntity GetUsedIn [string trim shape_aspect_relationship] [string trim relating_shape_aspect]]
                     ::tcom::foreach e1 $e1s {
@@ -1287,11 +1287,11 @@ proc spmiGeotolReport {objEntity} {
                           if {[string first "max" $val] == 0} {
                             set msg "Syntax Error: Use 'maximum_material_requirement' instead of 'maximum_material_condition' for PMI Representation in AP242 files.$spaces\($recPracNames(pmi242), Sec. 6.9.3)"
                             errorMsg $msg
-                            lappend syntaxErr([lindex [split $ent1 " "] 0]) [list [$gtEntity P21ID] [lindex [split $ent1 " "] 1] $msg]
+                            lappend syntaxErr([lindex $ent1 0]) [list [$gtEntity P21ID] [lindex $ent1 1] $msg]
                           } elseif {[string first "least" $val] == 0} {
                             set msg "Syntax Error: Use 'least_material_requirement' instead of 'least_material_condition' for PMI Representation in AP242 files.$spaces\($recPracNames(pmi242), Sec. 6.9.3)"
                             errorMsg $msg
-                            lappend syntaxErr([lindex [split $ent1 " "] 0]) [list [$gtEntity P21ID] [lindex [split $ent1 " "] 1] $msg]
+                            lappend syntaxErr([lindex $ent1 0]) [list [$gtEntity P21ID] [lindex $ent1 1] $msg]
                           }
                         }
                       } else {
@@ -1311,7 +1311,7 @@ proc spmiGeotolReport {objEntity} {
                     if {[lsearch [list square rectangular circular cylindrical spherical] $objValue] == -1} {
                       set msg "Syntax Error: Bad 'area_type' attribute ($objValue) on geometric_tolerance_with_defined_area_unit.$spaces\($recPracNames(pmi242), Sec. 6.9.6)"
                       errorMsg $msg
-                      lappend syntaxErr([lindex [split $ent1 " "] 0]) [list [$gtEntity P21ID] [lindex [split $ent1 " "] 1] $msg]
+                      lappend syntaxErr([lindex $ent1 0]) [list [$gtEntity P21ID] [lindex $ent1 1] $msg]
                     }
                   }
 
@@ -1326,7 +1326,7 @@ proc spmiGeotolReport {objEntity} {
                     } elseif {$objValue != "distance"} {
                       set msg "Syntax Error: datum_reference_modifier_with_value modifier_type '$objValue' is not supported.$spaces\($recPracNames(pmi242), Sec. 6.9.7)"
                       errorMsg $msg
-                      lappend syntaxErr([lindex [split $ent1 " "] 0]) [list [$gtEntity P21ID] [lindex [split $ent1 " "] 1] $msg]
+                      lappend syntaxErr([lindex $ent1 0]) [list [$gtEntity P21ID] [lindex $ent1 1] $msg]
                     }
                   }
 
@@ -2036,7 +2036,7 @@ proc spmiProjectedToleranceZone {objGuiEntity} {
                 }
                 set e4 [[[$e3 Attributes] Item [expr 3]] Value]
                 if {[$e4 Type] != "plane"} {
-                  errorMsg "Projected tolerance zone 'projection_end' refers to a '[$e4 Type]' through GISU ($recPracNames(pmi242), Sec. 6.9.2.2)"
+                  set msg "Syntax Error: Projected tolerance zone 'projection_end' should be a plane, not a '[$e4 Type]'.$spaces\($recPracNames(pmi242), Sec. 6.9.2.2)"
                 }
               }
               if {$ngisu == 0 && [$pe Type] == "shape_aspect"} {
@@ -2153,12 +2153,12 @@ proc spmiProjectedToleranceZone {objGuiEntity} {
             }
           }
         } emsg1]} {
-          errorMsg "Error processing project tolerance zone '[$a0 Name]' attribute: $emsg1"
+          errorMsg "Error processing projected tolerance zone '[$a0 Name]' attribute: $emsg1"
         }
       }
     }
   } emsg]} {
-    errorMsg "Error processing project tolerance zone: $emsg"
+    errorMsg "Error processing projected tolerance zone: $emsg"
   }
 }
 

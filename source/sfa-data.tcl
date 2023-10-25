@@ -240,7 +240,7 @@ set andEntAP209 [list "_and_location" "_and_volume_location" "_and_coefficient" 
 
 # -----------------------------------------------------------------------------------------------------
 # app names for STEP software that might appear in header section
-set cadApps {3D_Evolution 3DEXPERIENCE 3DTransVidia Alibre "Anark CORE" AutoCAD Autodesk "Autodesk Inventor" "Autodesk Translation Framework" "Autodesk Translator Framework" CADfix CADverter Capvidia CATIA "CATIA V4" "CATIA V5" "CATIA V6" CoCreate CoreTechnologie Creo CREO CrossCAD Datakit "Datakit CrossCad" DATAKIT EDMsix Elysium Eurostep FiberSim FreeCAD "kicad StepUp" Kubotek "Kubotek KeyCreator" "Kubotek Kosmos" MBDConnect "OneSpace Designer" "OneSpace Modeling" PRO/ENGINEER PSStep "SIEMENS PLM Software NX" "Solid Edge" Solidworks SolidWorks SOLIDWORKS "SOLIDWORKS MBD" "Spatial InterOp 3D" ST-ACIS STEP-NC Theorem THEOREM "Theorem Solutions" T-Systems Unigraphics VariCAD XStep}
+set cadApps {3D_Evolution 3DEXPERIENCE 3DTransVidia Alibre "Anark CORE" AutoCAD Autodesk "Autodesk Inventor" "Autodesk Translation Framework" "Autodesk Translator Framework" CADfix CADverter Capvidia CATIA "CATIA V4" "CATIA V5" "CATIA V6" CoCreate CoreTechnologie Creo CREO CrossCAD Datakit "Datakit CrossCad" DATAKIT EDMsix Elysium Eurostep FiberSim FreeCAD "kicad StepUp" Kubotek "Kubotek KeyCreator" "Kubotek Kosmos" MBDConnect MBDVidia "OneSpace Designer" "OneSpace Modeling" PRO/ENGINEER PSStep "SIEMENS PLM Software NX" "Solid Edge" Solidworks SolidWorks SOLIDWORKS "SOLIDWORKS MBD" "Spatial InterOp 3D" ST-ACIS STEP-NC Theorem THEOREM "Theorem Solutions" T-Systems Unigraphics VariCAD XStep}
 
 # sort cadApps by string length
 set cadApps [sortlength2 $cadApps]

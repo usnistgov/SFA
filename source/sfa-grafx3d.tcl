@@ -36,6 +36,10 @@ proc x3dFileStart {} {
 # see sfa-data.tcl for the x3dom server location and version
   puts $x3dFile "<link rel='stylesheet' type='text/css' href='$x3dom(css)'/>\n<script type='text/javascript' src='$x3dom(js)'></script>"
 
+# styles
+  puts $x3dFile "<style>X3D \{border:1px solid black\}</style>"
+  puts $x3dFile "<style>details > summary {padding: 4px\; width: 95%\; background-color: \#eeeeee\; border: none\; box-shadow: 1px 1px 2px \#bbbbbb\; cursor: pointer\;}</style>"
+
 # scripts and functions for selecting parts
   set callback {}
   set x3dPartClick 0
@@ -84,11 +88,10 @@ proc x3dFileStart {} {
 
 # x3d window size
   puts $x3dFile "<tr><td valign='top' width='85%'>\n<noscript>JavaScript must be enabled in the web browser</noscript>"
-  puts $x3dFile "<style>X3D \{border:1px solid black\}</style>"
   set x3dHeight 900
   set x3dWidth [expr {int($x3dHeight*1.78)}]
   catch {
-    set x3dHeight [expr {int([winfo screenheight .]*0.85)}]
+    set x3dHeight [expr {int([winfo screenheight .]*0.758)}]
     set x3Width [expr {int($x3dHeight*[winfo screenwidth .]/[winfo screenheight .])}]
   }
 
@@ -719,8 +722,9 @@ proc x3dFileEnd {} {
 
 # tessellated part geometry checkbox
   if {$viz(TESSPART)} {
-    if {$pcb} {if {[info exists x3dTessParts]} {if {[llength [array names x3dTessParts]] > 1} {puts $x3dFile "<hr>"}}}
-    puts $x3dFile "\n<!-- Tessellated part geometry checkbox -->\n<input type='checkbox' checked onclick='togTPG(this.value)'/>Tessellated Part Geometry"
+    puts $x3dFile "\n<!-- Tessellated part geometry checkbox -->"
+    if {$viz(PART)} {puts $x3dFile "<details><summary>Tessellated Part Geometry</summary><p>"}
+    puts $x3dFile "<input type='checkbox' checked onclick='togTPG(this.value)'/>Tessellated Part Geometry"
     if {$viz(TESSEDGE)} {puts $x3dFile "<!-- Tessellated edges checkbox -->\n<br><input type='checkbox' checked onclick='togTED(this.value)'/>Edges"}
 
     if {[info exists entCount(next_assembly_usage_occurrence)] || [info exists entCount(repositioned_tessellated_item_and_tessellated_geometric_set)]} {
@@ -734,6 +738,7 @@ proc x3dFileEnd {} {
     if {[info exists x3dTessParts]} {if {[llength [array names x3dTessParts]] > 1} {x3dPartCheckbox "Tess"}}
     puts $x3dFile "<p>"
     if {$pcb} {puts $x3dFile "<hr>"}
+    if {$viz(PART)} {puts $x3dFile "</details><p>"}
   }
 
 # more checkboxes
@@ -743,10 +748,16 @@ proc x3dFileEnd {} {
   if {$viz(POINTS)}     {puts $x3dFile "\n<!-- $pointsLabel checkbox -->\n<input type='checkbox' checked onclick='togPoints(this.value)'/>$pointsLabel<br>"}
   if {$viz(HOLE)}       {puts $x3dFile "\n<!-- Holes checkbox -->\n<input type='checkbox' checked onclick='togHole(this.value)'/>Holes<br>"}
   if {$viz(CLIPPING)}   {
-    puts $x3dFile "\n<!-- Clipping planes checkboxes -->\n<p>Clipping Planes<br>"
+    puts $x3dFile "\n<!-- Clipping planes checkboxes -->"
+    if {$nclipPlane <= 4} {
+      puts $x3dFile "<p>Clipping Planes<br>"
+    } else {
+      puts $x3dFile "<details><summary>Clipping Planes</summary>"
+    }
     for {set i 1} {$i <= $nclipPlane} {incr i} {
       puts $x3dFile "<input type='checkbox' onclick='togClipping$i\(this.value)'/>$clipPlaneName($i)<br>"
     }
+    if {$nclipPlane > 4} {puts $x3dFile "</details>"}
   }
   if {$viz(SUPPGEOM) || $viz(DTMTAR) || $viz(COMPOSITES) || $viz(POINTS) || $viz(HOLE) || $viz(CLIPPING)} {puts $x3dFile "<p>"}
 
@@ -761,7 +772,13 @@ proc x3dFileEnd {} {
       set svMap($name) $name
     }
     puts $x3dFile "\n<!-- Saved view PMI checkboxes -->"
-    if {$sv} {puts $x3dFile "Saved View Graphical PMI"}
+    if {$sv} {
+      if {[llength $savedViewButtons] <= 10} {
+        puts $x3dFile "Saved View Graphical PMI"
+      } else {
+        puts $x3dFile "<details><summary>Saved View Graphical PMI</summary>"
+      }
+    }
     if {[info exists savedViewVP] && $opt(viewPMIVP)} {puts $x3dFile "<br><font size='-1'>(PageDown to switch Saved Views)</font>"}
 
     foreach svn $savedViewButtons {
@@ -775,6 +792,7 @@ proc x3dFileEnd {} {
       append str "<input type='checkbox' id='cbView$id' checked onclick='togView$id\(this.value)'/>$svname"
       puts $x3dFile $str
     }
+    if {[llength $savedViewButtons] > 10} {puts $x3dFile "</details>"}
   }
 
 # PMI placeholder
@@ -807,7 +825,8 @@ proc x3dFileEnd {} {
   }
 
 # common buttons
-  puts $x3dFile "\n<!-- Start common buttons -->\n<p><hr>"
+  puts $x3dFile "\n<!-- Start common buttons -->\n<p>"
+  puts $x3dFile "<details><summary>More Options</summary>"
 
 # transparency slider
   set transFunc 0
@@ -824,33 +843,34 @@ proc x3dFileEnd {} {
     }
 
 # bounding box
-  if {$viz(PART) && [info exists x3dBbox]} {
-    if {$x3dBbox != ""} {puts $x3dFile "\n<!-- Bounding box checkbox -->\n<p><input type='checkbox' onclick='togBbox(this.value)'/>$x3dBbox"}
-    if {$viz(FEA)} {puts $x3dFile "<p>"}
-  }
+    if {$viz(PART) && [info exists x3dBbox]} {
+      if {$x3dBbox != ""} {puts $x3dFile "\n<!-- Bounding box checkbox -->\n<p><input type='checkbox' onclick='togBbox(this.value)'/>$x3dBbox"}
+      if {$viz(FEA)} {puts $x3dFile "<p>"}
+    }
 
 # axes checkbox
-  set check "checked"
-  if {$viz(SUPPGEOM) || $viz(COMPOSITES)} {set check ""}
-  puts $x3dFile "\n<!-- Axes checkbox -->\n<p><input type='checkbox' $check onclick='togAxes(this.value)'/>Origin<p>"
+    set check "checked"
+    if {$viz(SUPPGEOM) || $viz(COMPOSITES)} {set check ""}
+    puts $x3dFile "\n<!-- Axes checkbox -->\n<p><input type='checkbox' $check onclick='togAxes(this.value)'/>Origin<p>"
 
 # background color radio buttons
-  puts $x3dFile "\n<!-- Background radio button -->\nBackground Color<br>"
-  if {!$bgcss} {
-    puts $x3dFile "<input type='radio' name='bgcolor' value='1 1 1' $bgcheck1 onclick='BGcolor(this.value)'/>White&nbsp;"
-    puts $x3dFile "<input type='radio' name='bgcolor' value='$skyBlue' $bgcheck2 onclick='BGcolor(this.value)'/>Blue<br>"
-    puts $x3dFile "<input type='radio' name='bgcolor' value='.8 .8 .8' $bgcheck3 onclick='BGcolor(this.value)'/>Gray&nbsp;"
-    puts $x3dFile "<input type='radio' name='bgcolor' value='0 0 0' onclick='BGcolor(this.value)'/>Black"
-  } else {
-    puts $x3dFile "<input type='radio' name='bgcolor' value='white' $bgcheck1 onclick='BGcolor(this.value)'/>White&nbsp;"
-    puts $x3dFile "<input type='radio' name='bgcolor' value='blue' $bgcheck2 onclick='BGcolor(this.value)'/>Blue<br>"
-    puts $x3dFile "<input type='radio' name='bgcolor' value='gray' $bgcheck3 onclick='BGcolor(this.value)'/>Gray&nbsp;"
-    puts $x3dFile "<input type='radio' name='bgcolor' value='black' onclick='BGcolor(this.value)'/>Black"
-  }
+    puts $x3dFile "\n<!-- Background radio button -->\nBackground Color<br>"
+    if {!$bgcss} {
+      puts $x3dFile "<input type='radio' name='bgcolor' value='1 1 1' $bgcheck1 onclick='BGcolor(this.value)'/>White&nbsp;"
+      puts $x3dFile "<input type='radio' name='bgcolor' value='$skyBlue' $bgcheck2 onclick='BGcolor(this.value)'/>Blue<br>"
+      puts $x3dFile "<input type='radio' name='bgcolor' value='.8 .8 .8' $bgcheck3 onclick='BGcolor(this.value)'/>Gray&nbsp;"
+      puts $x3dFile "<input type='radio' name='bgcolor' value='0 0 0' onclick='BGcolor(this.value)'/>Black"
+    } else {
+      puts $x3dFile "<input type='radio' name='bgcolor' value='white' $bgcheck1 onclick='BGcolor(this.value)'/>White&nbsp;"
+      puts $x3dFile "<input type='radio' name='bgcolor' value='blue' $bgcheck2 onclick='BGcolor(this.value)'/>Blue<br>"
+      puts $x3dFile "<input type='radio' name='bgcolor' value='gray' $bgcheck3 onclick='BGcolor(this.value)'/>Gray&nbsp;"
+      puts $x3dFile "<input type='radio' name='bgcolor' value='black' onclick='BGcolor(this.value)'/>Black"
+    }
   }
 
 # mouse message
   puts $x3dFile "\n<p>PageDown for Viewpoints.  Key 'r' to restore, 'a' to view all.  <a href=\"https://www.x3dom.org/documentation/interaction/\">Use the mouse</a> in 'Examine Mode' to rotate, pan, zoom."
+  puts $x3dFile "</details>"
   puts $x3dFile "</td></tr></table>"
 
 # -------------------------------------------------------------------------------
@@ -1109,7 +1129,7 @@ proc x3dSavedViewpoint {name} {
     set msg "Viewpoints for saved views are not modeled correctly"
     if {$opt(viewCorrect)} {append msg " (using corrected viewpoints)"}
     if {[lsearch $x3dMsg $msg] == -1} {lappend x3dMsg $msg}
-    if {!$opt(viewCorrect)} {errorMsg "Use the option on the More tab to correct the viewpoints.  The corrected\nviewpoints should fix the orientation but maybe not the position."}
+    if {!$opt(viewCorrect)} {errorMsg " Use the option on the More tab to correct the viewpoints.  The corrected viewpoints should fix the orientation but maybe not the position."}
   }
 
 # default viewpoint with transform
@@ -1120,10 +1140,12 @@ proc x3dSavedViewpoint {name} {
     if {$n == 1} {
 
 # perspective or parallel projection
-      if {!$opt(viewParallel)} {
-        lappend savedViewVP "<Transform translation='[lindex $savedViewpoint($name) 0]' rotation='[lindex $savedViewpoint($name) 1]'><Viewpoint id='$name' position='0 0 0' orientation='0 1 0 3.14156'/></Transform>"
+      set parallel [lindex [lindex $savedViewpoint($name) 1] 0]
+      set rotation [lindex [lindex $savedViewpoint($name) 1] 1]
+      if {$parallel} {
+        lappend savedViewVP "<OrthoViewpoint id='$name' position='[lindex $savedViewpoint($name) 0]' centerOfRotation='$xyzcen(x) $xyzcen(y) $xyzcen(z)' orientation='$rotation' fieldOfView='\[-$fov,-$fov,$fov,$fov\]'></OrthoViewpoint>"
       } else {
-        lappend savedViewVP "<OrthoViewpoint id='$name' position='[lindex $savedViewpoint($name) 0]' centerOfRotation='$xyzcen(x) $xyzcen(y) $xyzcen(z)' orientation='[lindex $savedViewpoint($name) 1]' fieldOfView='\[-$fov,-$fov,$fov,$fov\]'></OrthoViewpoint>"
+        lappend savedViewVP "<Transform translation='[lindex $savedViewpoint($name) 0]' rotation='$rotation'><Viewpoint id='$name' position='0 0 0' orientation='0 1 0 3.14156'/></Transform>"
       }
     }
 
@@ -1871,7 +1893,10 @@ proc x3dClipPlane {shapeClipping cpname} {
       if {$cpname == ""} {set cpname "Plane $nclipPlane"}
       set clipPlaneName($nclipPlane) $cpname
 
+# ClipPlane does the clipping in x3d
       puts $x3dFile "<ClipPlane enabled='false' plane='$clipplane' id='swClipPlane$nclipPlane'></ClipPlane>"
+
+# plane that represents the position and orientation of the plane
       puts $x3dFile "<Switch whichChoice='-1' id='swClipping$nclipPlane'><Group>"
       x3dSuppGeomPlane $shapeClipping 1. "clipping plane" $clipPlaneName($nclipPlane)
       puts $x3dFile "</Group></Switch>"
@@ -2030,11 +2055,11 @@ proc x3dPartCheckbox {type} {
   set lenname 0
   foreach name $arparts {if {[string length $name] > $lenname} {set lenname [string length $name]}}
   set div ""
-  set max 40
+  set max 30
   if {$nparts > $max || $lenname > $max} {
     append div "<style>div.$type \{overflow: scroll;"
-    if {$lenname > $max} {append div " width: [expr {int($x3dWidth*.2)}]px;"}
-    if {$nparts > $max} {append div " height: [expr {int($x3dHeight*.75)}]px;"}
+    if {$lenname > $max} {append div " width: [expr {int($x3dWidth*.15)}]px;"}
+    if {$nparts > $max} {append div " height: [expr {int($x3dHeight*.6)}]px;"}
     append div "\}</style>"
   }
   if {$div != ""} {puts $x3dFile "$div\n<div class='$type'>"}

@@ -97,6 +97,10 @@ proc feaModel {entType} {
 
 # see sfa-data.tcl for the x3dom server location and version
     puts $x3dFile "<link rel='stylesheet' type='text/css' href='$x3dom(css)'/>\n<script type='text/javascript' src='$x3dom(js)'></script>"
+
+# styles
+    puts $x3dFile "<style>X3D \{border:1px solid black\}</style>"
+    puts $x3dFile "<style>details > summary {padding: 4px\; width: 95%\; background-color: \#eeeeee\; border: none\; box-shadow: 1px 1px 2px \#bbbbbb\; cursor: pointer\;}</style>"
     puts $x3dFile "</head>"
 
     set x3dTitle [file tail $localName]
@@ -111,7 +115,6 @@ proc feaModel {entType} {
     }
     puts $x3dFile "\n<body><font face=\"sans-serif\">\n<h3>$x3dTitle</h3>"
     puts $x3dFile "\n<table><tr><td valign='top' width='85%'>\n<noscript>JavaScript must be enabled in the web browser</noscript>"
-    puts $x3dFile "<style>X3D \{border:1px solid black\}</style>"
 
 # x3d window size
     set height 800
@@ -1138,21 +1141,22 @@ proc feaButtons {type} {
 
 # boundary condition checkboxes
     if {[info exists feaBoundary] && $opt(feaBounds)} {
-      puts $x3dFile "\n<!-- BC checkbox and slider -->\n<p>Boundary Conditions<br>"
+      puts $x3dFile "\n<!-- BC checkbox and slider -->\n<p><details><summary>Boundary Conditions</summary>"
       set n 0
       foreach spc [lsort [array names feaBoundary]] {
         incr n
         puts $x3dFile "<input type='checkbox' name='spc' id='SPC$n' onclick='togSPC(this.value)'/>$spc<br>"
       }
       puts $x3dFile "<input style='width:80px' type='range' min='-2' max='4' step='0.25' value='1' onchange='bcScale(this.value)'/> Scale"
+      puts $x3dFile "</details>"
     }
 
 # loads
     if {[info exists feaLoad] && $opt(feaLoads)} {
-      puts $x3dFile "\n<!-- LOAD checkbox and slider -->\n<p>"
+      puts $x3dFile "\n<!-- LOAD checkbox and slider -->\n<p><details><summary>Loads</summary>"
       set n 0
       if {$feaLoadMag(min) != $feaLoadMag(max)} {
-        puts $x3dFile "<table border=0 cellpadding=0 cellspacing=0><tr><td>Loads</td></tr>"
+        puts $x3dFile "<table border=0 cellpadding=0 cellspacing=0>"
       } else {
         set val $feaLoadMag(max)
         if {$val >= 100.} {set val [trimNum $val 0]} else {set val [trimNum $val]}
@@ -1171,15 +1175,16 @@ proc feaButtons {type} {
 
 # load scale slider
       puts $x3dFile "<input style='width:80px' type='range' min='-2' max='4' step='0.25' value='1' onchange='ldScale(this.value)'/> Scale"
+      puts $x3dFile "</details>"
     }
     catch {unset feaLoadMag}
 
 # displacements
     if {[info exists feaDisp] && $opt(feaDisp)} {
-      puts $x3dFile "\n<!-- DISPLACEMENT checkbox and slider -->\n<p>"
+      puts $x3dFile "\n<!-- DISPLACEMENT checkbox and slider -->\n<p><details><summary>Displacements</summary>"
       set n 0
       if {$feaDispMag(min) != $feaDispMag(max)} {
-        puts $x3dFile "<table border=0 cellpadding=0 cellspacing=0><tr><td>Displacements</td></tr>"
+        puts $x3dFile "<table border=0 cellpadding=0 cellspacing=0>"
       } else {
         puts $x3dFile "<table border=0 cellpadding=0 cellspacing=0><tr><td>Load = <font color='red'>[format "%.3e" $feaDispMag(max)]</font></td></tr>"
       }
@@ -1196,6 +1201,7 @@ proc feaButtons {type} {
 
 # displacement scale slider
       puts $x3dFile "<input style='width:80px' type='range' min='-2' max='4' step='0.25' value='1' onchange='dsScale(this.value)'/> Scale"
+      puts $x3dFile "</details>"
     }
     catch {unset feaDispMag}
 

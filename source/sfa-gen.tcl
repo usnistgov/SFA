@@ -1277,21 +1277,14 @@ proc genExcel {{numFile 0}} {
             if {[string first "hash" [$e0 Type]] != -1} {append pid "hash "}
             append pid "v[string index $vuuidEnt 1])"
 
-# get entity UUID is associate to
+# get entity UUID is associated to
             set e1s [[[$e0 Attributes] Item [expr 2]] Value]
             foreach e1 $e1s {
-              set e2 [[[$e1 Attributes] Item [expr 2]] Value]
-              if {[string first "handle" $e2] != -1} {
-                set uuidEnt [$e2 Type]
-                if {[lsearch $uuidEnts $uuidEnt] == -1} {lappend uuidEnts $uuidEnt}
-                set uuid($uuidEnt,[$e2 P21ID]) $pid
-                set okid 1
-                if {![info exist cells($uuidEnt)]} {lappend noUUIDent $uuidEnt}
-
-              } else {
-                errorMsg " Wrong type of, or missing 'identified_item' attribute on id_attribute"
-                lappend syntaxErr(id_attribute) [list [$e1 P21ID] identified_item " Wrong type of, or missing 'identified_item' attribute"]
-              }
+              set uuidEnt [$e1 Type]
+              if {[lsearch $uuidEnts $uuidEnt] == -1} {lappend uuidEnts $uuidEnt}
+              set uuid($uuidEnt,[$e1 P21ID]) $pid
+              set okid 1
+              if {![info exist cells($uuidEnt)]} {lappend noUUIDent $uuidEnt}
             }
           }
         }
@@ -1846,6 +1839,7 @@ proc addHeaderWorksheet {numFile fname} {
           if {[string first "CATIA SOLUTIONS V4"      $fos] != -1} {set app1 "CATIA V4"}
           if {[string first "Autodesk Inventor"       $fos] != -1} {set app1 $fos}
           if {[string first "SolidWorks 2"            $fos] != -1} {set app1 $fos}
+          if {[string first "MBDVidia"                $fos] != -1} {set app1 "MBDVidia"}
           if {[string first "SIEMENS PLM Software NX" $fos] ==  0} {set app1 "Siemens NX [string range $fos 23 end]"}
           if {[string first "Kubotek Kosmos"          $fpv] != -1} {set app1 "Kubotek Kosmos"}
           if {[string first "THEOREM"                 $fpv] != -1} {set app1 "Theorem Solutions"}

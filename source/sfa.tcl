@@ -61,8 +61,19 @@ set edmWhereRules 0
 set edmWriteToFile 0
 
 # -----------------------------------------------------------------------------------------------------
-# check for options file and read (source)
+# check for options file
 set optionsFile [file nativename [file join $fileDir STEP-File-Analyzer-options.dat]]
+
+# copy file from old location if not the same as new location (on OneDrive)
+if {![file exists $optionsFile]} {
+  set oldFile [file join $myhome Documents STEP-File-Analyzer-options.dat]
+  if {[file exists $oldFile]} {
+    file copy -force $oldFile [file dirname $optionsFile]
+    file delete -force $oldFile
+  }
+}
+
+# read (source) options file
 if {[file exists $optionsFile]} {
   if {[catch {
     source $optionsFile

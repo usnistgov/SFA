@@ -336,10 +336,25 @@ proc gpmiAnnotationReport {objEntity} {
               }
 
 # get values for these entity and attribute pairs
-# g_c_s and a_f_a both start keeping track of their polylines
-# save cartesian_point to x3d coordinates
               set ok 0
               switch -glob $ent1 {
+                "auxiliary_leader_line geometric_elements" -
+                "annotation_to_*_leader_line geometric_elements" {
+# check for missing or included surface point
+                  set surfacePoint 0
+                  foreach e0 $objValue {if {[$e0 Type] == "apll_point_with_surface"} {set surfacePoint 1}}
+                  set msg ""
+                  if {([string first "to_model" $ent1] != -1 || [string first "auxiliary" $ent1] != -1) && $surfacePoint == 0} {
+                    set msg "Syntax Error: Missing 'apll_point_with_surface' for model leader line.  Or use 'annotation_to_annotation_leader_line' if the line does not end on a surface.$spaces\($recPracNames(pmi242), Sec. 7.2.4)."
+                  } elseif {[string first "to_annotation" $ent1] != -1 && $surfacePoint == 1} {
+                    set msg "Syntax Error: Leader line should not include 'apll_point_with_surface'.  Or use 'annotation_to_model_leader_line' if the line does end on a surface.$spaces\($recPracNames(pmi242), Sec. 7.2.4)."
+                  }
+                  if {$msg != ""} {
+                    errorMsg $msg
+                    lappend syntaxErr([lindex $ent1 0]) [list $objID "geometric_elements" $msg]
+                  }
+                }
+
                 "composite_curve segments" {set numCompCurveSeg $objSize}
 
                 "apll_point coordinates" -
@@ -390,6 +405,7 @@ proc gpmiAnnotationReport {objEntity} {
                 }
 
                 "geometric_curve_set elements" {
+# g_c_s and a_f_a both start keeping track of their polylines
                   set ok 1
                   if {$opt(PMIGRF) && $opt(xlFormat) != "None"} {
                     set col($ao) [expr {$pmiStartCol($ao)+1}]
@@ -726,7 +742,11 @@ proc gpmiAnnotationReport {objEntity} {
                     errorMsg $msg
                     lappend syntaxErr([lindex $ent1 0]) [list $objID "ID" $msg]
                   }
-                  if {[string first "fill" $ent1] != -1 && $gen(View) && $opt(viewPMI)} {errorMsg " Filled characters for annotations are not filled."}
+                  if {[string first "fill" $ent1] != -1 && $gen(View) && $opt(viewPMI)} {
+                    set msg " Filled characters for annotations are not filled."
+                    if {[string first "AP242" $stepAP] != -1} {append msg "  Consider using tessellated annotations with AP242."}
+                    errorMsg $msg
+                  }
                   if {[string first "tessellated" $ent1] != -1 && $opt(xlFormat) != "None"} {
                     set ok 1
                     foreach ann [list annotation_curve_occurrence_and_geometric_representation_item annotation_curve_occurrence] {
@@ -1562,10 +1582,21 @@ proc pmiGetCameras {} {
                       set refdir [[[[[$a2p3d Item [expr 4]] Value] Attributes] Item [expr 2]] Value]
                       lappend savedViewpoint($name1) [vectrim $origin]
 
-                      if {(!$opt(viewCorrect) && !$opt(viewParallel)) || ($opt(viewCorrect) && $opt(viewParallel))} {
-                        lappend savedViewpoint($name1) [x3dGetRotation $axis $refdir]
+# projection type (parallel or central)
+                      set projectionType [[[[[$attrCameraModels Item [expr 3]] Value] Attributes] Item [expr 1]] Value]
+                      set parallelView 0
+                      if {$projectionType == "parallel"} {
+                        if {$opt(viewParallel)} {
+                          set parallelView 1
+                        } elseif {$gen(View) && $opt(viewPart)} {
+                          errorMsg " Try the option for parallel projection viewpoints on the More tab."
+                        }
+                      }
+
+                      if {(!$opt(viewCorrect) && !$parallelView) || ($opt(viewCorrect) && $parallelView)} {
+                        lappend savedViewpoint($name1) [list $parallelView [x3dGetRotation $axis $refdir]]
                       } else {
-                        lappend savedViewpoint($name1) [x3dGetRotation [vecmult $axis -1.] [vecmult $refdir -1.]]
+                        lappend savedViewpoint($name1) [list $parallelView [x3dGetRotation [vecmult $axis -1.] [vecmult $refdir -1.]]]
                       }
                     } emsg]} {
                       errorMsg "Error getting viewpoint position and orientation: $emsg"
