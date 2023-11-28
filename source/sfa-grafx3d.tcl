@@ -10,7 +10,7 @@ proc x3dFileStart {} {
   if {![info exists stepAP]} {set stepAP [getStepAP $localName]}
   if {[string first "IFC" $stepAP] == 0 || [string first "ISO" $stepAP] == 0 || $stepAP == "AP210" || \
       $stepAP == "CUTTING_TOOL_SCHEMA_ARM" || $stepAP == "STRUCTURAL_FRAME_SCHEMA"} {
-    set msg "The Viewer only works with STEP AP203, AP209, AP214, and AP242 files.  See Help > Support STEP APs"
+    set msg "The Viewer only works with STEP AP242, AP203, AP214, and AP209 files.  See Help > Support STEP APs"
     if {$stepAP == "STRUCTURAL_FRAME_SCHEMA"} {append msg "\n Use the NIST SteelVis viewer for CIS/2 files."}
     errorMsg $msg
     set x3dViewOK 0
@@ -1881,11 +1881,11 @@ proc x3dClipPlane {shapeClipping cpname} {
 # get normal to the plane
       set e0 [[[$shapeClipping Attributes] Item [expr 2]] Value]
       set a2p3d [x3dGetA2P3D $e0]
-      set clipplane [join [vectrim [vecmult [lindex $a2p3d 1] -1.] 5]]
+      set clipplane [join [vectrim [vecmult [lindex $a2p3d 1] -1.] 8]]
 
 # compute plane offset
       set dot [vecdot [lindex $a2p3d 0] [lindex $a2p3d 1]]
-      set offset [trimNum [expr {$dot+0.01}] 5]
+      set offset [trimNum [expr {$dot+0.002}] 8]
       append clipplane " $offset"
 
 # write clipping plane
@@ -2076,18 +2076,20 @@ proc x3dPartCheckbox {type} {
 
 # -------------------------------------------------------------------------------
 # get A2P3D origin, axis, refdir
-proc x3dGetA2P3D {e0} {
+proc x3dGetA2P3D {e0 {type ""}} {
 
   set origin "0 0 0"
   set axis   "0 0 1"
   set refdir "1 0 0"
   set debug 0
+  set prec 4
+  if {[string first "clipping" $type] != -1} {set prec 8}
 
 # a2p3d origin
   set a2 [[$e0 Attributes] Item [expr 2]]
   set e2 [$a2 Value]
   if {$e2 != ""} {
-    set origin [vectrim [[[$e2 Attributes] Item [expr 2]] Value]]
+    set origin [vectrim [[[$e2 Attributes] Item [expr 2]] Value] $prec]
     if {$debug} {errorMsg "      [$e2 Type] [$e2 P21ID] ([$a2 Name]) $origin" red}
   }
 
@@ -2132,6 +2134,9 @@ proc x3dTransform {origin axis refdir {text ""} {scale ""} {id ""}} {
 # -------------------------------------------------------------------------------
 # generate x3d rotation (axis angle format) from axis2_placement_3d, OR directly from rotation matrix
 proc x3dGetRotation {axis refdir {type ""} {rotmat ""}} {
+
+  set rprec 4
+  if {[string first "clipping" $type] != -1} {set rprec 8}
 
   if {$rotmat == ""} {
 # specified with axis and refdir, check if one of the vectors is zero length, i.e., '0 0 0'
@@ -2215,7 +2220,7 @@ proc x3dGetRotation {axis refdir {type ""} {rotmat ""}} {
       foreach i {0 1 2} {lset rotation_changed $i [expr {[lindex $rotation_changed $i]/$axm}]}
     }
     lset rotation_changed 3 $angle
-    foreach i {0 1 2 3} {lset rotation_changed $i [trimNum [lindex $rotation_changed $i] 4]}
+    foreach i {0 1 2 3} {lset rotation_changed $i [trimNum [lindex $rotation_changed $i] $rprec]}
   }
   return $rotation_changed
 }

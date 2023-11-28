@@ -106,7 +106,7 @@ proc spmiDimtolReport {objEntity} {
   global angDegree assocGeom badAttributes cells col datsym dim dimBasic dimRepeat dimDirected dimName dimModNames dimOrient dimReference dimrep dimrepID
   global dimSizeNames dimtolAttr dimtolEnt dimtolEntType dimtolGeom dimtolID dimtolPM dimtolType dimval driPropID dt entLevel ent entAttrList entCount entlevel2
   global equivUnicodeString lastEnt nistName numDSnames opt pmiCol pmiColumns pmiHeading pmiModifiers pmiStartCol pmiUnicode propDefIDs recPracNames
-  global savedModifier spaces spmiEnts spmiID spmiIDRow spmiRow spmiTypesPerFile syntaxErr tolStandard
+  global savedModifier spaces spmiEnts spmiID spmiIDRow spmiRow spmiTypesPerFile syntaxErr tolStandard vftq
 
   if {$opt(DEBUG1)} {outputMsg "spmiDimtolReport" red}
 
@@ -241,7 +241,10 @@ proc spmiDimtolReport {objEntity} {
                           foreach ent2 [$attr Value] {
 
 # value_format_type_qualifier (in the form of NR2 x.y defined in ISO 13584-42 section D.4.2, table D.3), format dimension
-                            if {[$ent2 Type] == "value_format_type_qualifier"} {set dimtmp [valueQualifier $ent2 $objValue]}
+                            if {[$ent2 Type] == "value_format_type_qualifier"} {
+                              set vftq $ent2
+                              set dimtmp [valueQualifier $ent2 $objValue]
+                            }
 
 # type_qualifier (minimum, maximum, average)
                             if {[$ent2 Type] == "type_qualifier"} {set tqual [[[$ent2 Attributes] Item [expr 1]] Value]}
@@ -285,8 +288,11 @@ proc spmiDimtolReport {objEntity} {
                     if {[info exists dimrepID]} {
                       set dim(prec,$dimrepID) $dim(prec)
 
-# tmp is nominal, upper, or lower
+# tmp is nominal, upper, or lower, use value_format_type_qualifier for upper and lower
                       set tmp [lindex [split $dim(name) " "] 0]
+                      if {$tmp == "upper" || $tmp == "lower"} {
+                        if {[info exists vftq]} {set dimtmp [valueQualifier $vftq $objValue]}
+                      }
                       if {![info exists dim(qual)]} {
                         set dim($tmp) $objValue
                       } else {
@@ -374,7 +380,7 @@ proc spmiDimtolReport {objEntity} {
                   set val [[$cells($dt) Item $r $c] Value]
                   if {$val == ""} {
                     $cells($dt) Item $r $c "'$dimval"
-                  } else {
+                  } elseif {$c == "F"} {
                     $cells($dt) Item $r $c "$val[format "%c" 10]$dimval"
                   }
                   if {$invalid != ""} {

@@ -735,7 +735,6 @@ proc getSchemaFromFile {fname {limit 0}} {
   set ok 0
   set ok1 0
   set nline 0
-  set niderr 0
   set nendsec 0
   set filename 0
   set unicodeInFile 0
@@ -842,14 +841,6 @@ proc getSchemaFromFile {fname {limit 0}} {
         set schema [string range $fsline [string first "'" $fsline] [string last "'" $fsline]]
       }
       if {$p21e3} {break}
-
-# check for IDs >= 2^31, valid but will be a different number in the spreadsheet
-    } elseif {[string first "#" $line] == 0} {
-      set id [string range $line 1 [string first "=" $line]-1]
-      if {$id > 2147483647 && $niderr == 0} {
-        errorMsg "An entity ID (#$id) >= 2147483648 (2^31)\n Very large IDs are valid but will appear as different numbers in the spreadsheet."
-        incr niderr
-      }
 
 # check for Part 21 edition 3 files
     } elseif {[string first "4\;1" $line] != -1 || [string first "ANCHOR\;" $line] != -1 || \

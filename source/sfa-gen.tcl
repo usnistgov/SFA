@@ -3,7 +3,7 @@ proc genExcel {{numFile 0}} {
   global allEntity aoEntTypes ap203all ap214all ap242all ap242only ap242ed ap242XML badAttributes buttons cadSystem cells cells1
   global col col1 commaSeparator count csvdirnam csvfile csvinhome currLogFile dim draughtingModels driUnicode entCategories entCategory
   global entColorIndex entCount entityCount entsIgnored entsWithErrors env epmi epmiUD errmsg equivUnicodeStringErr excel excelVersion fcsv
-  global feaFirstEntity feaLastEntity File fileEntity filesProcessed fileSumRow gen gpmiTypesInvalid gpmiTypesPerFile idxColor ifcsvrDir inverses
+  global feaFirstEntity feaLastEntity File fileEntity filesProcessed fileSumRow gen gpmiTypesInvalid gpmiTypesPerFile idRow idxColor ifcsvrDir inverses
   global lastXLS lenfilelist localName localNameList logFile matrixList multiFile multiFileDir mydocs mytemp nistCoverageLegend nistName
   global nistPMIexpected nistPMImaster noFontFile nprogBarEnts opt pf32 p21e3Section pmiCol resetRound row rowmax savedViewButtons savedViewName
   global savedViewNames scriptName sheetLast skipEntities skipFileName skipPerm spmiEntity spmiSumName spmiSumRow spmiTypesPerFile startrow statsOnly
@@ -647,6 +647,7 @@ proc genExcel {{numFile 0}} {
   }
 
 # for all entity types, check for which ones to process
+  set msgcount ""
   foreach entType $entityTypeNames {
     set entCount($entType) [$objDesign CountEntities "$entType"]
 
@@ -660,6 +661,16 @@ proc genExcel {{numFile 0}} {
           set totalEntity($entType) $entCount($entType)
         } else {
           incr totalEntity($entType) $entCount($entType)
+        }
+      }
+
+# check entity count vs. max rows
+      if {$gen(Excel) && [lsearch $entCategories $entType] != -1} {
+        if {$entCount($entType) > 10003 && $opt(xlMaxRows) > 10003} {
+          if {$msgcount == ""} {set msgcount "The number of entities > 10000 for some types of entities.  Consider using a smaller value for Maximum Rows."}
+          if {[lsearch $entCategory(stepGEOM) $entType] != -1 || [lsearch $entCategory(stepCPNT) $entType] != -1} {
+            if {[string first "Geometry" $msgcount] == -1} {append msgcount "\nYou might want to uncheck the Geometry and/or Coordinates Entity Types on the Generate tab."}
+          }
         }
       }
 
@@ -749,6 +760,11 @@ proc genExcel {{numFile 0}} {
       }
     }
   }
+  if {$msgcount != ""} {
+    outputMsg " "
+    append msgcount "\nSee Help > Large STEP Files"
+    errorMsg $msgcount
+  }
 
 # -------------------------------------------------------------------------------------------------
 # check if there is anything to view
@@ -827,9 +843,9 @@ proc genExcel {{numFile 0}} {
       if {$opt(xlFormat) != "None"} {
         set msg "Worksheets"
         if {!$useXL} {set msg "CSV files"}
-        append msg " will not be generated for the entity types listed in"
+        append msg " will not be generated for the entities listed in"
       } else {
-        set msg "The Viewer might not generate anything because of the entity types listed in:"
+        set msg "The Viewer might not generate anything because of the entities listed in:"
       }
       append msg " [truncFileName [file nativename $skipFileName]]"
       errorMsg $msg
@@ -1045,7 +1061,7 @@ proc genExcel {{numFile 0}} {
 
 # no entities to process
     if {[llength $entsToProcess] == 0 && $gen(Excel)} {
-      errorMsg "For a Spreadsheet, select more entity types to Process on the Generate tab and try again."
+      errorMsg "For a Spreadsheet, select more Entity Types on the Generate tab and try again."
       catch {unset entsIgnored}
       if {!$gen(View)} {break}
     }
@@ -1234,65 +1250,98 @@ proc genExcel {{numFile 0}} {
   }
 
 # -------------------------------------------------------------------------------------------------
-# add persistent IDs (UUID) from id_attribute
-  if {$opt(xlFormat) == "Excel"} {
-    if {[info exists entCount(id_attribute)]} {
-      set okid 0
-      ::tcom::foreach e0 [$objDesign FindObjects [string trim id_attribute]] {
-        set pid [[[$e0 Attributes] Item [expr 1]] Value]
-        if {[string length $pid] == 36} {
-          if {[string first "-" $pid] == 8} {
-            if {[string last "-" $pid] == 23} {
-              set a1 [[[$e0 Attributes] Item [expr 2]] Value]
-              set uuid([$a1 Type],[$a1 P21ID]) $pid
-              set okid 1
-            }
-          }
-        }
-      }
-      if {$okid} {addP21e3Section 2}
+# add persistent IDs from uuid_attribute entities (AP242 Edition 4)
+  set uuidEnts {}
+  if {$opt(xlFormat) == "Excel" || ($opt(xlFormat) == "CSV" && $useXL)} {
+    set nUUID  0
+    set totalUUID 0
+    set entsUUID [list V4_UUID_ATTRIBUTE V5_UUID_ATTRIBUTE HASH_BASED_V5_UUID_ATTRIBUTE UUID_ATTRIBUTE_WITH_APPROXIMATE_GEOMETRIC_LOCATION]
+    foreach ent $entsUUID {
+      set entlc [string tolower $ent]
+      if {[info exists entCount($entlc)]} {if {$entCount($entlc) > 0} {set totalUUID $entCount($entlc)}}
     }
 
-# add persistent IDs from v4/5_uuid_attribute (AP242 Edition 4)
-    set okid 0
-    set npid 0
-    set allpid {}
-    set uuidEnts {}
-    foreach vuuidEnt [list v4_uuid_attribute v5_uuid_attribute] {
-      if {[info exists entCount($vuuidEnt)] && [lsearch $skipEntities $vuuidEnt] == -1} {
-        errorMsg "\nProcessing UUID attributes" blue
-        ::tcom::foreach e0 [$objDesign FindObjects [string trim $vuuidEnt]] {
-          set pid [[[$e0 Attributes] Item [expr 1]] Value]
-          incr npid
-          if {[string length $pid] == 36 && [string first "-" $pid] == 8 && [string last "-" $pid] == 23} {
+    if {$totalUUID > 0} {
+      errorMsg "\nProcessing UUID attributes" blue
+      set noUUIDent {}
+      set allUUID {}
+
+# read step file for UUID entities
+      set f [open $localName r]
+      while {[gets $f line] >= 0} {
+        set ok 0
+        foreach ent $entsUUID {if {[string first $ent $line] != -1} {set ok 1; break}}
+        if {$ok} {
+
+# get rest of entity if one multiple lines
+          while {1} {
+            if {[string first ";" $line] == -1} {
+              gets $f line1
+              append line $line1
+            } else {
+              break
+            }
+          }
+
+# entity ID
+          if {[catch {
+            set entid [string range $line 1 [string first "=" $line]-1]
+            set pid [string range $line [string first "'" $line]+1 [string last "'" $line]-1]
+            if {[string length $pid] == 36 && [string first "-" $pid] == 8 && [string last "-" $pid] == 23} {
 
 # check for duplicate UUIDs
-            if {[lsearch $allpid $pid] == -1} {
-              lappend allpid $pid
-            } else {
-              errorMsg " UUID is identical to a previous value on [$e0 Type]"
-              lappend syntaxErr([$e0 Type]) [list [$e0 P21ID] identifier " UUID is identical to a previous value"]
-            }
-            set pid "$pid ("
-            if {[string first "hash" [$e0 Type]] != -1} {append pid "hash "}
-            append pid "v[string index $vuuidEnt 1])"
+              if {[lsearch $allUUID $pid] == -1} {
+                lappend allUUID $pid
+              } else {
+                errorMsg " UUID is identical to a previous value on $ent"
+                lappend syntaxErr([string tolower $ent]) [list $entid identifier " UUID is identical to a previous value"]
+              }
+              set uuidstr $pid
+              if {[string index $ent 0] == "V"} {append uuidstr " (v[string index $ent 1])"}
+              if {[string first "HASH" $line] != -1} {append uuidstr " (hash v5)"}
 
-# get entity UUID is associated to
-            set e1s [[[$e0 Attributes] Item [expr 2]] Value]
-            foreach e1 $e1s {
-              set uuidEnt [$e1 Type]
-              if {[lsearch $uuidEnts $uuidEnt] == -1} {lappend uuidEnts $uuidEnt}
-              set uuid($uuidEnt,[$e1 P21ID]) $pid
-              set okid 1
-              if {![info exist cells($uuidEnt)]} {lappend noUUIDent $uuidEnt}
+# get identified_items
+              set line1 [string range $line [string last "'" $line]+3 end]
+              set c1 1
+              if {[string index $line1 0] == "\#"} {set c1 0}
+              set items [split [string range $line1 $c1 [string first "))" $line1]-1] ","]
+              set iditem ""
+
+# loop over all items
+              foreach item $items {
+                set eid [string range $item [string first "\#" $item]+1 end]
+                set c2 [string first ")" $eid]
+                if {$c2 != -1} {set eid [string range $eid 0 $c2-1]}
+                set c2 [string first "(" $eid]
+                if {$c2 != -1} {set eid [string range $eid $c2+1 end]}
+  
+                set e1 [$objDesign FindObjectByP21Id [expr $eid]]
+                set uuidEnt [$e1 Type]
+                if {[lsearch $uuidEnts $uuidEnt] == -1} {lappend uuidEnts $uuidEnt}
+                set uuid($uuidEnt,[$e1 P21ID]) $uuidstr
+                set okid 1
+                if {![info exist cells($uuidEnt)]} {lappend noUUIDent $uuidEnt}
+                append iditem "[formatComplexEnt $uuidEnt] [$e1 P21ID]   "
+              }
+
+# write identified_items to uuid_attribute entity
+              $cells([string tolower $ent]) Item $idRow([string tolower $ent],$entid) 3 $iditem
             }
+          } emsg2]} {
+            errorMsg "Error getting UUID: $emsg2"
           }
+
+          incr nUUID
+          if {$nUUID == $totalUUID} {break}
         }
       }
-    }
-    if {$okid && [info exists noUUIDent]} {
-      outputMsg " UUIDs are also associated with: [lrmdups $noUUIDent]" red
-      unset noUUIDent
+      close $f
+
+      set noUUIDent [lrmdups $noUUIDent]
+      if {[llength $noUUIDent] > 0} {
+        outputMsg " UUIDs are also associated with: [lrmdups $noUUIDent]" red
+        unset noUUIDent
+      }
     }
   }
 
@@ -1616,8 +1665,9 @@ proc genExcel {{numFile 0}} {
   }
   if {!$multiFile} {foreach var {gpmiTypesPerFile spmiTypesPerFile} {catch {global $var}; if {[info exists $var]} {unset $var}}}
 
-# delete leftover text files in temp directory related to viewer
+# delete leftover text files in temp directory
   foreach f [glob -nocomplain -directory $mytemp *.txt] {catch {file delete -force -- $f}}
+  catch {file delete -force -- [file join $mytemp "gunzip.exe"]}
   update idletasks
   return 1
 }
@@ -2277,7 +2327,7 @@ proc sumAddColorLinks {sum sumHeaderRow sumLinks sheetSort sumRow} {
 # format worksheets
 proc formatWorksheets {sheetSort sumRow inverseEnts} {
   global buttons cells col count entCount entRows equivUnicodeString excel gpmiEnts idRow nprogBarEnts opt pmiStartCol
-  global row spmiEnts stepAP stepAPreport sumHeaderRow syntaxErr thisEntType uuidEnts viz vpEnts worksheet
+  global row spmiEnts stepAP stepAPreport sumHeaderRow syntaxErr thisEntType useXL uuidEnts viz vpEnts worksheet
   outputMsg "Formatting Worksheets" blue
 
   if {[info exists buttons]} {$buttons(progressBar) configure -maximum [llength $sheetSort]}
@@ -2467,7 +2517,7 @@ proc formatWorksheets {sheetSort sumRow inverseEnts} {
 # -------------------------------------------------------------------------------------------------
 # add table for sorting and filtering
       if {[catch {
-        if {($opt(xlSort) && $thisEntType != "property_definition") || ($thisEntType == "descriptive_representation_item" && $okequiv)} {
+        if {($opt(xlSort) && $useXL && $thisEntType != "property_definition") || ($thisEntType == "descriptive_representation_item" && $okequiv)} {
           if {$ranrow > 8} {
             set range [$worksheet($thisEntType) Range [cellRange 3 1] [cellRange $ranrow $rancol]]
             set tname [string trim "TABLE-$thisEntType"]

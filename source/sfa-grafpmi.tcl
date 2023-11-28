@@ -345,7 +345,7 @@ proc gpmiAnnotationReport {objEntity} {
                   foreach e0 $objValue {if {[$e0 Type] == "apll_point_with_surface"} {set surfacePoint 1}}
                   set msg ""
                   if {([string first "to_model" $ent1] != -1 || [string first "auxiliary" $ent1] != -1) && $surfacePoint == 0} {
-                    set msg "Syntax Error: Missing 'apll_point_with_surface' for model leader line.  Or use 'annotation_to_annotation_leader_line' if the line does not end on a surface.$spaces\($recPracNames(pmi242), Sec. 7.2.4)."
+                    set msg "Syntax Error: Missing an 'apll_point_with_surface' for model leader line.  Or use 'annotation_to_annotation_leader_line' if the line does not end on a surface.$spaces\($recPracNames(pmi242), Sec. 7.2.4)."
                   } elseif {[string first "to_annotation" $ent1] != -1 && $surfacePoint == 1} {
                     set msg "Syntax Error: Leader line should not include 'apll_point_with_surface'.  Or use 'annotation_to_model_leader_line' if the line does end on a surface.$spaces\($recPracNames(pmi242), Sec. 7.2.4)."
                   }
@@ -1328,12 +1328,14 @@ proc gpmiAnnotationReport {objEntity} {
                   set rep1Ents [$entDraughtingModel GetUsedIn [string trim $relType] [string trim rep_1]]
                   ::tcom::foreach rep1Ent $rep1Ents {set ok 0}
                   if {$ok && $opt(xlFormat) != "None"} {
-                    set msg "Syntax Error: For Saved Views, '$relType' reference to '[formatComplexEnt [$entDraughtingModel Type]]' uses rep_2 instead of rep_1$spaces"
-                    append msg "($recPracNames(pmi242), Sec. 9.4.4 Note 1, Fig. 104, Table 18)"
-                    errorMsg $msg
                     set rep2Ents [$entDraughtingModel GetUsedIn [string trim $relType] [string trim rep_2]]
                     ::tcom::foreach rep2Ent $rep2Ents {set mdadrID [$rep2Ent P21ID]}
-                    lappend syntaxErr($relType) [list $mdadrID rep_2 $msg]
+                    if {[info exists mdadrID]} {
+                      set msg "Syntax Error: For Saved Views, '$relType' reference to '[formatComplexEnt [$entDraughtingModel Type]]' uses rep_2 instead of rep_1$spaces"
+                      append msg "($recPracNames(pmi242), Sec. 9.4.4 Note 1, Fig. 104, Table 18)"
+                      errorMsg $msg
+                      lappend syntaxErr($relType) [list $mdadrID rep_2 $msg]
+                    }
                   }
                   if {$relType == "representation_relationship" && $opt(xlFormat) != "None"} {
                     set msg "Syntax Error: For Saved Views, use 'mechanical_design_and_draughting_relationship' instead of 'representation_relationship' to relate draughting models$spaces"

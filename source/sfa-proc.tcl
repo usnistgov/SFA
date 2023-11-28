@@ -123,8 +123,8 @@ proc openFile {{openName ""}} {
   if {$openName == ""} {
 
 # file types for file select dialog
-    set typelist [list {"STEP " {".stp" ".step" ".p21" ".stpZ"}}]
-    if {$developer} {set typelist [list {"STEP " {".stp" ".step" ".p21" ".stpZ" ".stpA" ".stpx"}}]}
+    set typelist [list {"STEP " {".stp" ".step" ".p21" ".stpZ" ".stpA"}}]
+    if {$developer} {set typelist [list {"STEP " {".stp" ".step" ".p21" ".stpZ" ".stpA" ".stpx" ".stpxZ"}}]}
     lappend typelist {"IFC " {".ifc"}}
     lappend typelist {"STL " {".stl"}}
 
@@ -133,6 +133,16 @@ proc openFile {{openName ""}} {
     if {[llength $localNameList] <= 1} {
       set localName [lindex $localNameList 0]
       if {$localName == ""} {return}
+    } else {
+      foreach name $localNameList {
+        if {[string tolower [file extension $name]] == ".stpa"} {
+          catch {.tnb select .tnb.status}
+          errorMsg "Compressed archive files (.stpA) can only be selected one at a time.  Try again."
+          set localNameList {}
+          set localName ""
+          return
+        }
+      }
     }
 
 # file name passed in as openName
@@ -164,6 +174,20 @@ proc openFile {{openName ""}} {
     addFileToMenu
   }
 
+# check for single zipped archive with possible multiple root names
+  if {[info exists localName]} {
+    if {[string first ".stpa" [string tolower $localName]] != -1} {
+      unzipFile
+      if {[llength [lindex $localName 0]] == 1} {
+        set localName [file join [lindex $localName 1] [join [lindex $localName 0]]]
+      } elseif {[llength [lindex $localName 0]] > 1} {
+        set localNameList {}
+        foreach item [lindex $localName 0] {lappend localNameList [file join [lindex $localName 1] $item]}
+        set localName [lindex $localNameList 0]
+      }
+    }
+  }
+
 # multiple files selected
   if {[llength $localNameList] > 1} {
     set fileDir [file dirname [lindex $localNameList 0]]
@@ -183,7 +207,9 @@ proc openFile {{openName ""}} {
     catch {pack forget $buttons(progressBarMulti)}
 
 # check for zipped file
-    if {[string first ".stpz" [string tolower $localName]] != -1} {unzipFile}
+    set fext ""
+    catch {set fext [string tolower [file extension $localName]]}
+    if {$fext == ".stpz" || $fext == ".stpxz"} {unzipFile}
 
     set fileDir [file dirname $localName]
     if {[string first "z" [string tolower [file extension $localName]]] == -1} {
@@ -345,52 +371,119 @@ proc addFileToMenu {} {
 }
 
 #-------------------------------------------------------------------------------
-# unzip a STEP file
+# unzip a STEP file (.stpZ .stpxZ .stpA)
 proc unzipFile {} {
   global localName mytemp wdir
 
   if {[catch {
-    outputMsg "\nUnzipping: [file tail $localName] ([fileSize $localName])"
+    outputMsg "\nUnzipping: [file tail $localName] ([fileSize $localName])" green
+    set fzip {}
 
-# copy gunzip to TEMP
-    if {[file exists [file join $wdir exe gunzip.exe]]} {file copy -force -- [file join $wdir exe gunzip.exe] $mytemp}
+# unzip with vfs (works for .stpA, maybe not .stpZ)
+    if {[catch {
+      vfs::zip::Mount $localName stpzip
+      set fzip [glob -nocomplain stpzip/*]
+      set ztyp "vfs"
+    } emsg]} {
 
-    set gunzip [file join $mytemp gunzip.exe]
-    if {[file exists $gunzip]} {
+# vfs error
+      if {$emsg == "no header found"} {
+        set ok 0
+
+# unzip with 7-Zip command line (7z)
+        set zcmd [file nativename "C:/Program Files/7-Zip/7z.exe"]
+        if {[file exists $zcmd]} {
+          if {[catch {
+            set ztyp "7z"
+            set fstp [string range $localName 0 end-1]
+            outputMsg " Extracting ($ztyp): [file tail $fstp]"
+            exec $zcmd e $localName -o[file dirname $localName] -aoa
+            catch {file delete -force -- $fstp}
+            file rename -force -- [file rootname $localName] $fstp
+            set localName $fstp
+            set ok 1
+          } emsg2]} {
+            errorMsg "Error extracting file with 7z"
+          }
+        }
+
+# unzip with gunzip.exe packaged with SFA (original method)
+        if {!$ok} {
+          set ztyp "gunzip"
+          if {[file exists [file join $wdir exe gunzip.exe]]} {file copy -force -- [file join $wdir exe gunzip.exe] $mytemp}
+          set gunzip [file join $mytemp gunzip.exe]
+          if {[file exists $gunzip]} {
 
 # copy zipped file to TEMP
-      if {[regsub ".stpZ" $localName ".stp.Z" ln] == 0} {regsub ".stpz" $localName ".stp.Z" ln}
-      set fzip [file join $mytemp [file tail $ln]]
-      file copy -force -- $localName $fzip
+            if {[regsub ".stpZ" $localName ".stp.Z" ln] == 0} {regsub ".stpz" $localName ".stp.Z" ln}
+            set fzip [file join $mytemp [file tail $ln]]
+            file copy -force -- $localName $fzip
 
 # get name of unzipped file
-      set gz [exec $gunzip -Nl $fzip]
-      set c1 [string first "%" $gz]
-      set ftmp [string range $gz $c1+2 end]
+            set gz [exec $gunzip -Nl $fzip]
+            set c1 [string first "%" $gz]
+            set ftmp [string range $gz $c1+2 end]
 
 # unzip to a tmp file
-      if {[file tail $ftmp] != [file tail $fzip]} {outputMsg " Extracting: [file tail $ftmp]" blue}
-      exec $gunzip -Nf $fzip
+            outputMsg " Extracting ($ztyp): [file tail $ftmp]"
+            exec $gunzip -Nf $fzip
 
 # copy to new stp file
-      set fstp [file join [file dirname $localName] [file tail $ftmp]]
-      set ok 0
-      if {![file exists $fstp]} {
-        set ok 1
-      } elseif {[file mtime $localName] != [file mtime $fstp]} {
-        outputMsg " Overwriting existing unzipped STEP file: [truncFileName [file nativename $fstp]]" red
-        set ok 1
+            set fstp [file join [file dirname $localName] [file tail $ftmp]]
+            file copy -force -- $ftmp $fstp
+            set localName $fstp
+          }
+        }
+      } else {
+        errorMsg "Unexpected error when unzipping: $emsg"
       }
-      if {$ok} {file copy -force -- $ftmp $fstp}
-
-      set localName $fstp
-      file delete -- $fzip
-      file delete -- $ftmp
-    } else {
-      errorMsg "Error gunzip.exe not found to unzip compressed STEP file"
     }
-  } emsg]} {
-    errorMsg "Error unzipping file: $emsg"
+
+# vfs - .stpZ or .stpxZ - one file
+    if {$ztyp == "vfs"} {
+      if {[llength $fzip] == 1} {
+        set ftmp [string range [join $fzip] 7 end]
+        outputMsg " Extracting ($ztyp): $ftmp"
+        set fstp [file join [file dirname $localName] $ftmp]
+        file copy -force -- $fzip $fstp
+        set localName $fstp
+
+# .stpA - multiple fzip
+      } elseif {[llength $fzip] > 1} {
+
+# copy fzip to directory based on file name
+        set dirname [file join [file dirname $localName] [file tail [file rootname $localName]]]
+        outputMsg " Extracting files to directory: [file tail $dirname]"
+        catch {file delete -force -- $dirname}
+        catch {file mkdir $dirname}
+        foreach file $fzip {file copy -force -- $file $dirname}
+
+# read ini file
+        set iname [file join $dirname "stpa.ini"]
+        if {[file exists $iname]} {
+          set fini [open $iname r]
+          while {[gets $fini line] >= 0} {
+
+# get root file name
+            if {[string first "Names=" $line] != -1} {
+              set rnames {}
+              set lline [split $line "\""]
+              foreach item $lline {
+                set litem [string tolower $item]
+                if {[string first ".stp" $litem] != -1} {lappend rnames $item}
+              }
+              if {[llength $rnames] > 1} {outputMsg " Multiple root names: $rnames" red}
+              set localName [list $rnames $dirname]
+            }
+          }
+          close $fini
+        } else {
+          errorMsg "Syntax Error: Missing stpa.ini (STEP File Compression, Sec. 3.4.2)"
+        }
+      }
+    }
+  } emsg1]} {
+    errorMsg "Error unzipping file: $emsg1"
   }
 }
 
@@ -426,7 +519,7 @@ proc checkFileSize {} {
   if {[file size $localName] > 429000000} {
     set str "might be"
     if {[file size $localName] > 463000000} {set str "is"}
-    outputMsg " The file $str too large to generate a Spreadsheet.\n For the Viewer use Part Only on the Generate tab." red
+    outputMsg " The file $str too large to generate a Spreadsheet.\n For the Viewer, use Part Only on the Generate tab." red
     if {[file size $localName] > 1530000000} {outputMsg " The Viewer has not been tested with such a large STEP file." red}
   }
 }
@@ -541,10 +634,8 @@ proc runOpenProgram {} {
 
 # open file
 #  (list is programs that CANNOT start up with a file *OR* need specific commands below)
-  if {[string first "Conformance"       $idisp] == -1 && \
-      [string first "Tree View"         $idisp] == -1 && \
+  if {[string first "Tree View"         $idisp] == -1 && \
       [string first "Default"           $idisp] == -1 && \
-      [string first "QuickStep"         $idisp] == -1 && \
       [string first "EDM Model Checker" $idisp] == -1 && \
       [string first "EDMsdk"            $idisp] == -1} {
 
@@ -563,11 +654,6 @@ proc runOpenProgram {} {
   } elseif {[string first "Tree View" $idisp] != -1} {
     .tnb select .tnb.status
     indentFile $dispFile
-
-# QuickStep
-  } elseif {[string first "QuickStep" $idisp] != -1} {
-    cd [file dirname $dispFile]
-    exec $dispCmd [file tail $dispFile] &
 
 #-------------------------------------------------------------------------------
 # Jotne EDM Model Checker (only for developer)
@@ -1206,7 +1292,7 @@ proc outputMsg {msg {color "black"}} {
 #-------------------------------------------------------------------------------
 # write error message to the Status tab with the correct color
 proc errorMsg {msg {color ""}} {
-  global errmsg logFile opt outputWin stepAP
+  global errmsg logFile opt outputWin
 
   set oklog 0
   if {$opt(logFile) && [info exists logFile]} {set oklog 1}
@@ -1225,14 +1311,12 @@ proc errorMsg {msg {color ""}} {
 # syntax error
     if {$color == ""} {
       if {[string first "syntax error" [string tolower $msg]] != -1} {
-        if {$stepAP != ""} {
-          set stars "***"
-          set logmsg "$stars $msg"
-          if {[info exists outputWin]} {
-            $outputWin issue "$msg " syntax
-          } else {
-            puts $logmsg
-          }
+        set stars "***"
+        set logmsg "$stars $msg"
+        if {[info exists outputWin]} {
+          $outputWin issue "$msg " syntax
+        } else {
+          puts $logmsg
         }
 
 # regular error message, ilevel is the procedure the error was generated in

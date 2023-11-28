@@ -530,7 +530,7 @@ proc x3dSuppGeomPlane {e2 size {type ""} {name ""}} {
     set e3 [[[$e2 Attributes] Item [expr 2]] Value]
 
 # plane position and orientation
-    set a2p3d [x3dGetA2P3D $e3]
+    set a2p3d [x3dGetA2P3D $e3 $type]
     set transform [x3dTransform [lindex $a2p3d 0] [lindex $a2p3d 1] [lindex $a2p3d 2] "$type 'plane'"]
 
 # plane geometry

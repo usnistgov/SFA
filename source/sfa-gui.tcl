@@ -1,5 +1,5 @@
 # SFA version
-proc getVersion {} {return 5.03}
+proc getVersion {} {return 5.04}
 
 # see proc installIFCsvr in sfa-proc.tcl for the IFCsvr version
 # see below (line 37) for the sfaVersion when IFCsvr was updated
@@ -40,14 +40,17 @@ Use F9 and F10 to change the font size here.  See Help > Function Keys"
       outputMsg "- User Guide (Update 7) is based on version 4.60 (October 2021)"
       openUserGuide
     }
+    if {$sfaVersion < 5.0}  {outputMsg "- Renamed Options and Spreadsheet tabs to Generate and More"}
+    if {$sfaVersion < 5.04} {outputMsg "- Renamed Process section to Entity Types"}
+    if {$sfaVersion < 5.0}  {outputMsg "- Improved menu layout on the More tab"}
     if {$sfaVersion < 5.03} {outputMsg "- Hidden checkboxes and sliders in the Viewer"}
     if {$sfaVersion < 5.02} {outputMsg "- Help > Viewer > Viewpoints and Help > Viewer > New Features"}
-    if {$sfaVersion < 5.0}  {outputMsg "- Improved part transparency, see Help > Viewer > Overview\n- Renamed Options and Spreadsheet tabs to Generate and More\n- Improved menu layout"}
+    if {$sfaVersion < 5.0}  {outputMsg "- Improved part transparency, see Help > Viewer > Overview"}
     if {$sfaVersion < 3.80} {outputMsg "- Syntax Checker, see Help > Syntax Checker"}
     if {$sfaVersion < 4.74} {outputMsg "- Generate Bill of Materials (BOM), see Generate tab and Help > Bill of Materials"}
     if {$sfaVersion < 4.61} {outputMsg "- Updated Sample STEP Files in the Examples menu"}
     if {$sfaVersion < 4.84 && [file exists [file join [file dirname [info nameofexecutable]] STEP-File-Analyzer-Release-Notes.xlsx]]} {
-      outputMsg "- The local Release Notes file 'STEP-File-Analyzer-Release-Notes.xlsx' is not up-to-date and should be deleted." red
+      outputMsg "- The local Release Notes file 'STEP-File-Analyzer-Release-Notes.xlsx' is not up to date and should be deleted." red
     }
   }
   outputMsg "- See Help > Release Notes for all new features and bug fixes"
@@ -303,7 +306,7 @@ proc guiFileMenu {} {
 #-------------------------------------------------------------------------------
 # generate tab (formerly options)
 proc guiGenerateTab {} {
-  global allNone buttons cb entCategory fopt fopta nb opt useXL xlInstalled
+  global allNone buttons cb entCategory fopt fopta nb opt recPracNames useXL xlInstalled
 
   set cb 0
   set wopt [ttk::panedwindow $nb.generate -orient horizontal]
@@ -420,7 +423,7 @@ proc guiGenerateTab {} {
 
   pack $foptk -side left -anchor w -pady {5 2} -padx 10 -fill both -expand true
 
-  set txt "Spreadsheets contain one worksheet for each STEP entity type.  Process categories\nbelow control which STEP entity types are written to the Spreadsheet.  Analyzer\noptions below also write information to the Spreadsheet.\n\nIf Excel is installed, then Spreadsheets and CSV files can be generated.  If CSV Files\nis selected, the Spreadsheet is also generated.  CSV files do not contain any cell\ncolors, comments, or links.  GD&T symbols in CSV files are only supported with\nExcel 2016 or newer.\n\nIf Excel is not installed, only CSV files can be generated.  Analyzer options are disabled."
+  set txt "Spreadsheets contain one worksheet for each STEP entity type.  The categories below\ncontrol which STEP entity types are written to the Spreadsheet.  Analyzer options\nbelow also write information to the Spreadsheet.  See the More tab for more options.\n\nIf Excel is installed, then Spreadsheets and CSV files can be generated.  If CSV Files\nis selected, the Spreadsheet is also generated.  CSV files do not contain any cell\ncolors, comments, or links.  GD&T symbols in CSV files are only supported with\nExcel 2016 or newer.\n\nIf Excel is not installed, only CSV files can be generated.  Analyzer options are disabled."
   catch {tooltip::tooltip $buttons(genExcel) $txt}
   catch {tooltip::tooltip $buttons(genCSV) $txt}
   set txt "The Viewer supports b-rep and tessellated part geometry, graphical PMI, sketch\ngeometry, supplemental geometry, datum targets, and finite element models.\n\nPart Only generates only Part Geometry.  This is useful when no other Viewer\nfeatures are needed and for large STEP files.  Use the Viewer options below to\ncontrol what features of the STEP file are shown.  See Help > Viewer"
@@ -435,7 +438,7 @@ proc guiGenerateTab {} {
 
 #-------------------------------------------------------------------------------
 # process section
-  set fopta [ttk::labelframe $fopt.a -text " Process "]
+  set fopta [ttk::labelframe $fopt.a -text " Entity Types "]
 
 # option to process user-defined entities
   guiUserDefinedEntities
@@ -450,7 +453,7 @@ proc guiGenerateTab {} {
     if {[info exists entCategory($idx)]} {
       set ttmsg ""
       if {$idx == "stepCOMM"} {
-        append ttmsg "Process categories control which entities from AP203, AP214, and AP242 are written to the Spreadsheet.\nThe categories are used to group and color-code entities on the Summary worksheet.\nAll entities specific to other APs are always written to the Spreadsheet.\nSee Help > Supported STEP APs and Websites > STEP > EXPRESS Schemas\n\n"
+        append ttmsg "Entity Type categories control which entities from AP203, AP214, and AP242 are written to the Spreadsheet.  The categories are used\nto group and color-code entities on the Summary worksheet.  All entities specific to other APs are always written to the Spreadsheet.\nSee Help > Supported STEP APs and Websites > STEP > EXPRESS Schemas\n\n"
       }
       append ttmsg "[string trim [lindex $item 0]] entities ([llength $entCategory($idx)]) are supported in most STEP APs."
       set ttmsg [guiToolTip $ttmsg $idx [string trim [lindex $item 0]]]
@@ -470,7 +473,10 @@ proc guiGenerateTab {} {
       if {$idx == "stepTOLR"} {set str "some"}
       set ttmsg "[string trim [lindex $item 0]] entities ([llength $entCategory($idx)]) are supported in $str STEP APs."
       set ttmsg [guiToolTip $ttmsg $idx [string trim [lindex $item 0]]]
-      if {$idx == "stepTOLR"} {append ttmsg "\n\nTolerance entities are based on ISO 10303 Part 47 - Shape variation tolerances"}
+      if {$idx == "stepTOLR"} {
+        append ttmsg "\n\nSee Websites > Recommended Practice for $recPracNames(pmi242)"
+        append ttmsg "\nTolerance entities are based on ISO 10303 Part 47 - Shape variation tolerances"
+      }
       catch {tooltip::tooltip $buttons($idx) $ttmsg}
     }
   }
@@ -509,8 +515,7 @@ proc guiGenerateTab {} {
     if {[info exists entCategory($idx)]} {
       set ttmsg "[string trim [lindex $item 0]] entities ([llength $entCategory($idx)])"
       if {$idx == "stepAP242"} {
-        append ttmsg " are supported in AP242 Editions 1-3.  Commonly used AP242 entities are in the other Process categories.\n"
-        append ttmsg "Entities with a * are in AP242 editions > 1."
+        append ttmsg " are supported in AP242.  Commonly used AP242 entities are in the other Entity Type categories.\nSuperscript indicates edition of AP242"
       } else {
         append ttmsg " are supported in"
         if {$idx == "stepCOMP"} {append ttmsg " AP203 and"}
@@ -519,6 +524,7 @@ proc guiGenerateTab {} {
       }
       set ttmsg [guiToolTip $ttmsg $idx [string trim [lindex $item 0]]]
       if {$idx == "stepKINE"} {append ttmsg "\n\nKinematics is also supported by the AP242 Domain Model XML.  See Websites > CAx Recommended Practices"}
+      if {$idx == "stepCOMP"} {append ttmsg "\n\nSee Websites > Recommended Practices for Composite Materials"}
       if {$idx == "stepAP242"} {append ttmsg "\n\nAP242 Assembly Structure is also supported by the AP242 Domain Model XML.  See Websites > CAx Recommended Practices"}
       catch {tooltip::tooltip $buttons($idx) $ttmsg}
     }
@@ -532,7 +538,9 @@ proc guiGenerateTab {} {
     pack $buttons($idx) -side top -anchor w -padx 5 -pady 0 -ipady 0
     incr cb
     if {[info exists entCategory($idx)]} {
-      set ttmsg "[string trim [lindex $item 0]] entities ([llength $entCategory($idx)]) are supported in AP242.  Entities with a * are in AP242 editions > 1."
+      set ttmsg "[string trim [lindex $item 0]] entities ([llength $entCategory($idx)]) are supported in AP242.  "
+      if {$idx == "stepQUAL"} {append ttmsg "\n"}
+      append ttmsg "Superscript indicates edition of AP242."
       set ttmsg [guiToolTip $ttmsg $idx [string trim [lindex $item 0]]]
       if {$idx == "stepQUAL"} {append ttmsg "\n\nQuality entities are based on ISO 10303 Part 59 - Quality of product shape data"}
       if {$idx == "stepCONS"} {append ttmsg "\n\nConstraint entities are based on ISO 10303 Parts 108 and 109"}
@@ -566,6 +574,7 @@ proc guiGenerateTab {} {
   }
   pack $fopta9 -side left -anchor w -pady 0 -padx 15 -fill y
   pack $fopta -side top -anchor w -pady {5 2} -padx 10 -fill both
+  catch {tooltip::tooltip $fopta "Entity Type categories control which entities from AP203, AP214, and AP242\nare written to the Spreadsheet.  The categories are used to group and\ncolor-code entities on the Summary worksheet.  All entities specific to other\nAPs are always written to the Spreadsheet.\n\nSee Help > Supported STEP APs and Large STEP Files\nSee Websites > STEP > EXPRESS Schemas"}
 
 #-------------------------------------------------------------------------------
 # analyzer section
@@ -594,7 +603,7 @@ proc guiGenerateTab {} {
 
   catch {
     tooltip::tooltip $buttons(valProp) "Geometric, assembly, PMI, annotation, attribute, tessellated, composite, and FEA\nvalidation properties, and semantic text are reported.  Properties are shown on\nthe 'property_definition' and other entities.  Some properties are reported only if\nAnalyzer option for Semantic PMI is selected.  Some properties might not be\nshown depending on the value of Maximum Rows (More tab).\n\nSee Help > Analyzer > Validation Properties\nSee Help > User Guide (section 6.3)\nSee Help > Analyzer > Syntax Errors\n\nValidation properties must conform to recommended practices.\nSee Websites > CAx Recommended Practices"
-    tooltip::tooltip $buttons(PMISEM)  "Semantic PMI is the information necessary to represent geometric\nand dimensional tolerances without any graphical PMI.  It is shown\non dimension, tolerance, datum target, and datum entities.\nSemantic PMI is mainly in STEP AP242 files.\n\nSee More tab for more options\n\nSee Help > Analyzer > PMI Representation\nSee Help > User Guide (section 6.1)\nSee Help > Analyzer > Syntax Errors\nSee Websites > AP242\n\nSemantic PMI must conform to recommended practices.\nSee Websites > CAx Recommended Practices"
+    tooltip::tooltip $buttons(PMISEM)  "Semantic PMI is the information necessary to represent geometric\nand dimensional tolerances without any graphical PMI.  It is shown\non dimension, tolerance, datum target, and datum entities.\nSemantic PMI is mainly in STEP AP242 files.  See the More tab for\nmore options.\n\nSee Help > Analyzer > PMI Representation\nSee Help > User Guide (section 6.1)\nSee Help > Analyzer > Syntax Errors\nSee Websites > AP242\n\nSemantic PMI must conform to recommended practices.\nSee Websites > CAx Recommended Practices"
     tooltip::tooltip $buttons(PMIGRF)  "Graphical PMI is the geometric elements necessary to draw annotations.\nThe information is shown on 'annotation occurrence' entities.\n\nSee Help > Analyzer > PMI Presentation\nSee Help > User Guide (section 6.2)\nSee Help > Analyzer > Syntax Errors\n\nGraphical PMI must conform to recommended practices.\nSee Websites > CAx Recommended Practices"
     tooltip::tooltip $buttons(PMIGRFCOV) "The PMI Presentation Coverage worksheet counts the number of recommended\nnames used from the Recommended Practice for Representation and Presentation\nof PMI (AP242), Section 8.4.  The names do not have any semantic meaning.\n\nSee Help > Analyzer > PMI Coverage Analysis"
 
@@ -688,9 +697,9 @@ proc guiGenerateTab {} {
   pack $foptv -side left -anchor w -pady {5 2} -padx 10 -fill both -expand true
   pack $foptRV -side top -anchor w -pady 0 -fill x
   catch {
-    tooltip::tooltip $foptv20 "The viewer for part geometry supports b-rep geometry, color,\ntransparency, edges, and sketch and supplemental geometry.\n\nIdentical parts in an assembly are grouped together in the Viewer.\nDisable this feature with the option on the More tab.\n\nThe viewer uses the default web browser.  An Internet connection\nis required.  The viewer does not support measurements.\n\nSee More tab for more Viewer options\nSee Help > Viewer > Overview and other topics"
+    tooltip::tooltip $foptv20 "The viewer for part geometry supports b-rep geometry, color,\ntransparency, edges, sketch and supplemental geometry, and\nclipping planes.\n\nThe viewer uses the default web browser.  An Internet connection\nis required.  The viewer does not support measurements.\n\nSee the More tab for more Viewer options.\nSee Help > Viewer > Overview and other topics"
     tooltip::tooltip $buttons(viewPMI) "Graphical PMI for annotations is supported in AP242, AP203, and\nAP214 files.  Annotation placeholders are supported in AP242.\n\nSee Help > Viewer > Graphical PMI\nSee Help > User Guide (section 4.2)\n\nGraphical PMI must conform to recommended practices.\nSee Websites > CAx Recommended Practices"
-    tooltip::tooltip $buttons(viewPMIVP) "A Saved View is a subset of all graphical PMI which has its own viewpoint\nposition and orientation.  Use PageDown in the Viewer to cycle through the\nsaved views to switch to the associated viewpoint and subset of graphical PMI.\n\nUse the option on the More tab to debug the viewpoint camera model.\nOlder implementations of saved view viewpoints might not conform to current\nrecommended practices.  In this case, zoom out and rotate to see the entire part.\n\nSee User Guide (section 4.2.1)"
+    tooltip::tooltip $buttons(viewPMIVP) "A Saved View is a subset of all graphical PMI which has its own viewpoint\nposition and orientation.  Use PageDown in the viewer to cycle through the\nsaved views to switch to the associated viewpoint and subset of graphical PMI.\nSee the options related to viewpoints on the More tab.\n\nSee User Guide (section 4.2.1)"
     tooltip::tooltip $buttons(viewTessPart) "Tessellated part geometry is typically written to an AP242 file instead of\nor in addition to b-rep part geometry.  ** Parts in an assembly might\nhave the wrong position and orientation or be missing. **\n\nSee Help > Viewer > AP242 Tessellated Part Geometry\nSee Help > User Guide (section 4.3)"
     tooltip::tooltip $buttons(tessPartMesh) "Generate a wireframe mesh based on the tessellated faces and surfaces."
     tooltip::tooltip $buttons(feaLoadScale) "The length of load vectors can be scaled by their magnitude.\nLoad vectors are always colored by their magnitude."
@@ -745,7 +754,7 @@ proc guiUserDefinedEntities {} {
   }]
   pack $fopta6.$cb -side left -anchor w -padx 10
   incr cb
-  catch {tooltip::tooltip $fopta6 "A User-Defined List is a plain text file with one STEP entity name per line.\nThis allows for more control to process only the required entity types,\nrather than process the broad categories of entities above."}
+  catch {tooltip::tooltip $fopta6 "A User-Defined List is a plain text file with one STEP entity name per line.\nThis allows for more control to process only the required entities, rather\nthan process the broad categories of entity types above."}
   pack $fopta6 -side bottom -anchor w -pady 5 -padx 0 -fill y
 }
 
@@ -946,16 +955,16 @@ proc guiMoreTab {} {
     tooltip::tooltip $buttons(xlNoRound)   "See Help > User Guide (section 5.5.4)"
     tooltip::tooltip $buttons(SHOWALLPMI)  "The complete list of [expr {$pmiElementsMaxRows-3}] PMI Elements, including those that are not in the\nSTEP file, will be shown on the PMI Representation Coverage worksheet.\n\nSee Help > Analyzer > PMI Coverage Analysis\nSee Help > User Guide (section 6.1.7)"
     tooltip::tooltip $buttons(xlHideLinks) "This option is useful when sharing a Spreadsheet with another user."
-    tooltip::tooltip $buttons(PMISEMRND)   "Rounding values might result in a better match to graphical PMI shown by the Viewer or\nto expected PMI in the NIST CAD models (FTC/STC 7, 8, 11).\n\nSee User Guide (section 6.1.3.1)\nSee Websites > Recommended Practice for $recPracNames(pmi242), Section 5.4"
+    tooltip::tooltip $buttons(PMISEMRND)   "Rounding values might result in a better match to graphical PMI shown in the viewer or\nto expected PMI in the NIST CAD models (FTC/STC 7, 8, 11).\n\nSee User Guide (section 6.1.3.1)\nSee Websites > Recommended Practice for $recPracNames(pmi242), Section 5.4"
     tooltip::tooltip $buttons(PMISEMDIM)   "Process ONLY Dimensional Tolerances and NO geometric tolerances,\ndatums, or datum targets.  This is useful for debugging Dimensions."
     tooltip::tooltip $buttons(PMISEMDT)    "Process ONLY Datum Targets and NO dimensional and geometric\ntolerances, or datums.  This is useful for debugging Datum Targets."
     tooltip::tooltip $buttons(viewParallel) "Use parallel projection for saved views viewpoints defined in the STEP file,\ninstead of the default perspective projection.  Pan and zoom might not\nwork with parallel projection.  See Help > Viewer > Viewpoints"
-    tooltip::tooltip $buttons(viewCorrect) "Correct for older implementations of camera models that\nmight not conform to current recommended practices.\nThe corrected viewpoint should fix the orientation but\nmaybe not the position."
-    tooltip::tooltip $buttons(DEBUGVP)     "Debug viewpoint orientation defined by a camera model.\n\nSee the CAx-IF Recommended Practice for\n $recPracNames(pmi242), Sec. 9.4.2.6"
-    tooltip::tooltip $buttons(partNoCap)   "Use when capped surfaces for section view clipping planes\ncannot be generated or when they are in the wrong position.\nSee Help > Viewer > New Features"
+    tooltip::tooltip $buttons(viewCorrect) "Correct for older implementations of camera models that\nmight not conform to current recommended practices.\nThe corrected viewpoint should fix the orientation but\nmaybe not the position.\n\nSee Help > Viewer > Viewpoints\nSee the CAx-IF Recommended Practice for\n $recPracNames(pmi242), Sec. 9.4.2.6"
+    tooltip::tooltip $buttons(DEBUGVP)     "Debug viewpoint orientation defined by a camera model.\n\nSee Help > Viewer > Viewpoints\nSee the CAx-IF Recommended Practice for\n $recPracNames(pmi242), Sec. 9.4.2.6"
+    tooltip::tooltip $buttons(partNoCap)   "Use when capped surfaces for section view clipping planes\ncannot be generated or when they do not look right.\nSee Help > Viewer > New Features"
     tooltip::tooltip $buttons(tessAlt)     "If curved surfaces for Part Geometry look wrong even with Quality\nset to High, use an alternative geometry tessellation method."
     tooltip::tooltip $buttons(x3dSave)     "The X3D file can be shown in an X3D viewer or imported to other software.\nUse this option if an Internet connection is not available for the Viewer.\nSee Help > Viewer"
-    tooltip::tooltip $buttons(partNoGroup) "This option might create a very long list of parts names in the Viewer.\nIdentical parts have a underscore and number appended to their name.\nSee Help > Assemblies"
+    tooltip::tooltip $buttons(partNoGroup) "This option might create a very long list of parts names in the viewer.\nIdentical parts have a underscore and number appended to their name.\nSee Help > Assemblies"
   }
 
 # output directory
@@ -1033,9 +1042,12 @@ Product model data) Part 21 file (.stp or .step or .p21 file extension) and
     for conformance to recommended practices, and
 4 - checks for basic syntax errors.
 
+Compressed STEP files (.stpZ) and STEP archive files (.stpA) are also supported.  AP242 Domain
+Model XML files (.stpx) are not supported.
+
 Help is available in this menu, in the User Guide, and in tooltip help.  New features are listed in
 the Release Notes and described in some Help.  Help in the menu, tooltips, and spreadsheet comments
-are more up-to-date than the User Guide."
+are more up to date than the User Guide."
     .tnb select .tnb.status
   }
 
@@ -1052,7 +1064,7 @@ All text in the Status tab can be written to a Log File when a STEP file is proc
 file is written to myfile-sfa.log.  Syntax errors, warnings, and other messages are highlighted by
 asterisks *.  Use F4 to open the log file.
 
-Process: Select which types of entities are processed from AP203, AP214, and AP242 for the
+Entity Types: Select which types of entities are processed from AP203, AP214, and AP242 for the
 Spreadsheet.  All entities specific to other APs are always written to the Spreadsheet such as
 AP209, AP210, and AP238.  The categories are used to group and color-code entities on the Summary
 worksheet.  The tooltip help lists all the entities associated with that type.
@@ -1092,14 +1104,14 @@ assemblies.  Part geometry viewer features:
 
 - Part edges are shown in black.  Use the transparency slider to show only edges.  Some parts might
   not be affected by the transparency slider.  If a part is completely transparent and edges are
-  not selected, then the part will not be visible in the viewer.  In some cases transparency might
-  look wrong for assemblies with many parts.
+  not selected, then the part will not be visible.  In some cases transparency might look wrong for
+  assemblies with many parts.
 
 - Sketch geometry is supplemental lines created when generating a CAD model.  Sketch geometry is
   also known as construction, auxiliary, support, or reference geometry.  To show only sketch
-  geometry in the viewer, turn off edges and make the part completely transparent.  Sometimes
-  processing sketch geometry will affect the behavior of the transparency slider.  Sketch geometry
-  is not same as supplemental geometry.  See Help > Viewer > Supplemental Geometry
+  geometry, turn off edges and make the part completely transparent.  Sometimes processing sketch
+  geometry will affect the behavior of the transparency slider.  Sketch geometry is not same as
+  supplemental geometry.  See Help > Viewer > Supplemental Geometry
 
 - Normals improve the default smooth shading by explicitly computing surface normals to improve the
   appearance of curved surfaces.
@@ -1112,14 +1124,14 @@ assemblies.  Part geometry viewer features:
 - The bounding box min and max XYZ coordinates are based on the faceted geometry being shown and
   not the exact geometry in the STEP file.  There might be a variation in the coordinates depending
   on the Quality option.  The bounding box also accounts for any sketch geometry if it is displayed
-  but not graphical PMI and supplemental geometry.  The bounding box can be shown in the viewer to
-  confirm that the min and max coordinates are correct.  If the part is too large to rotate
-  smoothly in the viewer, turn off the part and rotate the bounding box.
+  but not graphical PMI and supplemental geometry.  The bounding box can be shown to confirm that
+  the min and max coordinates are correct.  If the part is too large to rotate smoothly, turn off
+  the part and rotate the bounding box.
 
 - The origin of the model at '0 0 0' is shown with a small XYZ coordinate axis that can be switched
   off.  The background color can be changed between white, blue, gray, and black.
 
-- See Help > Text Strings and Numbers for how non-English characters are supported in the Viewer.
+- See Help > Text Strings and Numbers for how non-English characters are supported.
 
 - Hole features, including basic round, counterbore, and countersink holes, and spotface are
   supported in AP242 editions > 1 but have generally not been implemented.
@@ -1158,7 +1170,7 @@ outputMsg "These Viewer features are not documented in the User Guide (Update 7)
 1 - Hidden buttons and sliders
 
 Some checkboxes and sliders on the right side of the viewer might be hidden.  If hidden, they can
-be shown by clicking on the button for More Options, Saved View Graphical PMI, and others.
+be shown by clicking on the buttons for More Options, Saved View Graphical PMI, and others.
 
 2 - Cloud of points and point clouds
 
@@ -1176,44 +1188,40 @@ assembly, the COPS might have the wrong position and orientation.
 
 3 - Section view clipping planes
 
-Part geometry can be clipped by section view clipping planes defined in the STEP file.  On the
-Generate tab, Part Only must not be selected.  The planes are shown with a black square that might
-not be centered on the model.  Checkboxes show the names of each clipping plane.  You have to
-manually select the clipping planes that are associated with saved view graphical PMI.
+Part geometry can be clipped by section view clipping planes defined in the STEP file.  Part Only
+must not be selected on the Generate tab.  The planes are shown with a black square that might not
+be centered on the model.  Checkboxes show the names of each clipping plane.  You have to manually
+select the clipping planes that are associated with saved view graphical PMI.
 
 Capped surfaces, in the plane of the black square, are usually generated when there is only one
 clipping plane per section view.  Switching off parts in an assembly does not turn off their capped
-surfaces.  Use the option on the More tab when the software crashes when generating capped surfaces
-or if they do not look correct.
+surfaces.  If the capped surfaces look bad or if the software crashes when generating them use the
+option on the More tab to disable them.
 
 4 - Parallel projection viewpoints
 
 Use the option on the More tab to use parallel projection for saved view viewpoints defined in the
 STEP file, instead of the default perspective projection.  See Help > Viewer > Viewpoints
 
-5 - Supplemental geometry
-
-Processing supplemental geometry is optional.  See Help > Viewer > Supplemental Geometry and the
-option on the Generate tab.
-
-6 - Annotation placeholders
+5 - Annotation placeholders
 
 Annotation placeholders provide information about the position, orientation, and organization of an
-annotation.  See Help > Viewer > Graphical PMI
+annotation without the graphic presentation of numeric values and symbols for geometric or
+dimensional tolerances.  See Help > Viewer > Graphical PMI
 
-7 - Part geometry tessellation
+6 - Part geometry tessellation
 
 If curved surfaces for Part Geometry look wrong even with Quality set to High, select the
 Alternative Geometry Tessellation method on the More tab.
 
-8 - Convert STL to AP242
+7 - Convert STL to AP242
 
-STL files can be converted to STEP AP242 tessellated geometry that can be shown in the Viewer.
+STL files can be converted to STEP AP242 tessellated geometry that can be shown in the viewer.
 In the Open File(s) dialog, change the 'Files of type' to 'STL (*.stl)'.  ASCII and binary STL
 files are supported.  Tessellated geometry is not exact b-rep surfaces and may not be supported in
 some CAD software.
 
-9 - Composite rosettes defined by cartesian points and curves are shown in the viewer."
+8 - Composite rosettes defined by cartesian points and curves are shown in the viewer."
     .tnb select .tnb.status
   }
 
@@ -1225,14 +1233,14 @@ upper left corner of the viewer.  User-defined viewpoints are used with saved vi
 If there are no user-defined viewpoints (saved views) in the STEP file, then front, side, top, and
 isometric viewpoints are generated.  Since the default orientation of the part is not known, the
 viewpoints might not correspond to the actual front, side, and top of the model.  The isometric
-viewpoint might not be centered in the viewer.  All of the viewpoints use perspective except for an
-additional front parallel projection.
+viewpoint might not be centered.  All of the viewpoints use perspective except for an additional
+front parallel projection.
 
 ---------------------------------------------------------------------------------------------------
 If there are user-defined viewpoints (saved views) in the STEP file, then in addition to the saved
 views from the file, two additional front viewpoints named 'Front (SFA)' are generated, one
-perspective and the other a parallel projection.  Pan and zoom might not work in the viewer with
-parallel projection.
+perspective and the other a parallel projection.  Pan and zoom might not work with parallel
+projection.
 
 With the option on the More tab, parallel projection viewpoints as defined in the STEP file can be
 used instead of the default perspective.
@@ -1241,15 +1249,15 @@ If there is graphical PMI associated with saved views, then the PMI is automatic
 on/off when using PageDown if 'Saved View Viewpoints' is checked on the Generate tab.
 
 ---------------------------------------------------------------------------------------------------
-Use key 'a' to view all and 'r' to restore to the original view.  The function of other keys is
-described in the link 'Use the mouse'.  Navigation uses the Examine Mode.
+In the viewer, use key 'a' to view all and 'r' to restore to the original view.  The function of
+other keys is described in the link 'Use the mouse'.  Navigation uses the Examine Mode.
 
 Sometimes a part is located far from the origin and not visible.  In this case, turn off the Origin
 and Sketch Geometry and then use 'a' to view all.
 
 Older implementations of saved views might not conform to current recommended practices.  The
 resulting model orientation will look wrong.  Use the option on the More tab to correct for the
-wrong orientation.  The position of the model might stll be wrong.
+wrong orientation.  The position of the model might still be wrong.
 
 The More tab option 'Show save view camera model viewpoints' can be used to debug the camera model
 (view frustum) viewpoint geometry.
@@ -1262,14 +1270,14 @@ Saved views are ignored with Part Only.  Part visibility in saved views is not s
 outputMsg "\nAssemblies ----------------------------------------------------------------------------------------" blue
 outputMsg "Assemblies are related to part geometry, graphical PMI, and supplemental geometry.
 
-Part Geometry for assemblies with b-rep geometry is supported in the viewer.  In the viewer, most
-assemblies and parts can be switched on and off depending on the assembly structure.  An alphabetic
-list of part and assembly names is shown on the right.  Parts with the same shape are usually
-grouped with the same checkbox.  Clicking on the model shows the part name in the upper left.  The
-part name shown may not be in the list of assemblies and parts.  The part might be contained in a
-higher-level assembly that is in the list.  Some names in the list might have an underscore and
-number appended to their name.  Processing sketch geometry might also affect the list of names.
-Some assemblies have no unique names assigned to parts, therefore there is no list of part names.
+Part Geometry for assemblies with b-rep geometry is supported in the viewer.  Most assemblies and
+parts can be switched on and off depending on the assembly structure.  An alphabetic list of part
+and assembly names is shown on the right.  Parts with the same shape are usually grouped with the
+same checkbox.  Clicking on the model shows the part name in the upper left.  The part name shown
+may not be in the list of assemblies and parts.  The part might be contained in a higher-level
+assembly that is in the list.  Some names in the list might have an underscore and number appended
+to their name.  Processing sketch geometry might also affect the list of names.  Some assemblies
+have no unique names assigned to parts, therefore there is no list of part names.
 See Help > Text Strings and Numbers for how non-English characters in part names are supported.
 
 Nested assemblies are also supported where one file contains the assembly structure with external
@@ -1285,7 +1293,7 @@ supported, however, it has not been thoroughly test and might have the wrong pos
 orientation.
 
 Parts in an assembly using AP242 tessellated geometry might have the wrong position and orientation
-or be missing.  Similar to b-rep geometry, a list of part names appears on the right in the viewer."
+or be missing.  Similar to b-rep geometry, a list of part names appears on the right."
     .tnb select .tnb.status
   }
 
@@ -1293,7 +1301,7 @@ or be missing.  Similar to b-rep geometry, a list of part names appears on the r
 outputMsg "\nSupplemental Geometry -----------------------------------------------------------------------------" blue
 outputMsg "Supplemental geometry is geometrical elements created in the CAD system that do not belong to the
 manufactured part.  It is usually used to create other geometric shapes.  Supplemental geometry is
-also known as construction, auxilliary, design, support, or reference geometry.
+also known as construction, auxiliary, design, support, or reference geometry.
 
 Supplemental geometry can be processed for part geometry or tessellated part geometry.  These types
 of supplemental geometry and associated text are supported.  Colors defined in the STEP file
@@ -1307,7 +1315,8 @@ override the default colors below.
 - Tessellated Surface: defined color
 
 Supplemental geometry:
-- can be switched on and off in the Viewer
+- can be optionally generated
+- can be switched on and off
 - is not associated with graphical PMI Saved Views
 - in assemblies might have the wrong position and orientation (See Help > Assemblies)
 - is counted on the PMI Coverage Analysis worksheet if a Viewer file is generated
@@ -1339,14 +1348,17 @@ See Examples > Sample STEP Files
 
 ---------------------------------------------------------------------------------------------------
 Datum targets are shown only if a spreadsheet is generated with the Analyzer option for Semantic
-PMI, and Part Geometry or Graphical PMI selected in the Viewer.
+PMI, and Part Geometry or Graphical PMI selected.
 
 See Help > User Guide (section 4.2.2)
 See Websites > CAx Recommended Practices (Representation and Presentation of PMI for AP242, Sec. 6.6)
 
 ---------------------------------------------------------------------------------------------------
 Annotation placeholders, supported in AP242 editions > 1, provide information about the position,
-orientation, and organization of an annotation.  Placeholders are not documented in the User Guide.
+orientation, and organization of an annotation without the graphic presentation of numeric values
+and symbols for geometric or dimensional tolerances.  Placeholders are not documented in the User
+Guide.
+
 Placeholder coordinate systems are shown with an axes triad, gray sphere, and text label with the
 name of the placeholder.  Leader lines and a rectangle for the annotation are shown with yellow
 lines.  To identify which annotation a leader line is associated with, the first and last points of
@@ -1530,7 +1542,7 @@ Datum Feature as two separate annotations with leader lines attached to the same
 The number of decimal places for dimension and geometric tolerance values can be specified in the
 STEP file.  By definition the value is always truncated, however, the values can be rounded instead.
 For example with the value 0.5625, the qualifier 'NR2 1.3' will truncate it to 0.562  Rounding will
-show 0.563  Rounding values might result in a better match to graphical PMI shown by the Viewer or
+show 0.563  Rounding values might result in a better match to graphical PMI shown in the viewer or
 to expected PMI in the NIST CAD models.  See More tab > Analyzer > Round ...
 
 Some syntax errors that indicate non-conformance to a CAx-IF Recommended Practices related to PMI
@@ -1633,9 +1645,9 @@ Some syntax errors use abbreviations for STEP entities:
  GISU - geometric_item_specific_usage
  IIRU - identified_item_representation_usage
 
-On the Summary worksheet in column A, most entity types that have syntax errors are colored gray.
-A comment indicating that there are errors is also shown with a small red triangle in the upper
-right corner of a cell in column A.
+On the Summary worksheet in column A, most entities that have syntax errors are colored gray.  A
+comment indicating that there are errors is also shown with a small red triangle in the upper right
+corner of a cell in column A.
 
 On an entity worksheet, most syntax errors are highlighted in red and have a cell comment with the
 text of the syntax error that was shown in the Status tab.  Syntax errors are highlighted by *** in
@@ -1694,7 +1706,7 @@ supported.
 * PMI Representation Coverage Analysis *
 This worksheet is color-coded by the expected number of PMI elements in a test case drawing.  The
 expected results were determined by manually counting the number of PMI elements in each drawing.
-Counting of some modifiers, e.g. maximum material condition, does not differentiate whether they
+Counting of some modifiers, e.g., maximum material condition, does not differentiate whether they
 appear in the tolerance zone definition or datum reference frame.
 - A green cell is a match to the expected number of PMI elements. (3/3)
 - Yellow, orange, and yellow-green means that less were found than expected. (2/3)
@@ -1754,8 +1766,9 @@ inverses, derived attributes, and aggregates) that are NOT checked.  Conforming 
 rules is also important for interoperability with STEP files.  See Websites > STEP
 
 ---------------------------------------------------------------------------------------------------
-The Syntax Checker can be run with function key F8 or when a Spreadsheet or View is generated.  The
-Status tab might be grayed out when the Syntax Checker is running.
+The Syntax Checker can be run with function key F8 or when a Spreadsheet or View is generated.  All
+entities are always checked and is not affected by the Maximum Rows setting.  The Status tab might
+be grayed out when the Syntax Checker is running.
 
 Syntax checker results appear in the Status tab.  If the Log File option is selected, the results
 are also written to a log file (myfile-sfa-err.log).  The syntax checker errors and warnings are
@@ -1764,7 +1777,8 @@ not reported in the spreadsheet.
 The Syntax Checker can also be run from the command-line version with the command-line argument
 'syntax'.  For example: sfa-cl.exe myfile.stp syntax
 
-The Syntax Checker works with any supported schema.  See Help > Supported STEP APs
+The Syntax Checker works with any supported schema.  See Help > Supported STEP APs and
+Help > Large STEP files
 
 NOTE - Syntax Checker errors and warnings are unrelated to those detected when CAx-IF Recommended
 Practices are checked with one of the Analyzer options.  See Help > Analyzer > Syntax Errors"
@@ -1787,7 +1801,7 @@ might not be listed as a component of an assembly.  See Examples > Bill of Mater
 Generate the Analyzer report for Validation Properties to see possible properties associated with
 Parts.
 
-If part and assembly names use non-Engligh characters, then the names in the BOM might be missing
+If part and assembly names use non-English characters, then the names in the BOM might be missing
 characters.  In some cases the name will appear as NoName with a number appended.
 See Help > Text Strings and Numbers
 
@@ -1827,11 +1841,12 @@ to select the file.  F2 and F3 function similarly for Spreadsheets and the Viewe
   $Help add command -label "Supported STEP APs" -command {
 outputMsg "\nSupported STEP APs --------------------------------------------------------------------------------" blue
 outputMsg "These STEP Application Protocols (AP) and other schemas are supported for generating spreadsheets.
-The Viewer works with most versions of STEP AP203, AP209, AP214, and AP242.
+The Viewer works with most versions of STEP AP242, AP203, AP214, and AP209.
 
 The name of the AP is on the FILE_SCHEMA entity in the HEADER section of a STEP file.  The 'e1'
 notation below after an AP number refers to an older Edition of that AP.  Some APs have multiple
-editions with the same name.\n"
+editions with the same name.  AP242 edition 1 was released in 2014, edition 2 in 2020, and
+edition 3 in 2022.  See Websites > AP242\n"
 
     set schemas {}
     set ifcschemas {}
@@ -1880,9 +1895,6 @@ editions with the same name.\n"
         outputMsg "  $txt"
       } else {
         set txt "[string range $item 0 $c1][string toupper [string range $item $c1+1 end]]"
-        if {[string first "AP242" $txt] == 0} {append txt " (Editions 1-3, see Websites > AP242)"}
-        if {[string first "AP214" $txt] == 0} {append txt " (Editions 1, 3)"}
-        if {[string first "AP210" $txt] == 0} {append txt " (Edition 4)"}
         if {[string first "AP209" $txt] == 0 || [string first "AP239" $txt] == 0} {append txt " (See Websites > STEP)"}
         outputMsg "  $txt"
       }
@@ -1935,7 +1947,7 @@ versions of Excel use a comma ',' as a decimal separator.  This might cause some
 formatted as a date in a spreadsheet.  For example, the number 1.5 might appear as 1-Mai.
 
 To check if the formatting is a problem, process the STEP file nist_ctc_05.stp included with the
-SFA zip file and select the Geometry Process category.  Check the 'radius' attribute on the
+SFA zip file and select the Geometry Entity Type category.  Check the 'radius' attribute on the
 resulting 'circle' worksheet.
 
 To change the formatting in Excel, go to the Excel File menu > Options > Advanced.  Uncheck
@@ -1982,7 +1994,7 @@ totals for all STEP files. The File Summary spreadsheet also links to the indivi
 and STEP files.
 
 If only the File Summary spreadsheet is needed, it can be generated faster by deselecting most
-Process categories and options on the Generate tab.
+Entity Types and options on the Generate tab.
 
 If the reports for PMI Representation or Presentation are selected, then Coverage Analysis
 worksheets are also generated.
@@ -1998,21 +2010,22 @@ See Examples > PMI Coverage Analysis"
 # large files help
   $Help add command -label "Large STEP Files" -command {
 outputMsg "\nLarge STEP Files ----------------------------------------------------------------------------------" blue
-outputMsg "The largest STEP file that can be processed for a Spreadsheet is approximately 400 MB.  Processing
-larger STEP files might cause a crash.  Popup dialogs might appear that say 'unable to realloc xxx
-bytes'.  See Help > Crash Recovery.
+outputMsg "The largest STEP file that can be processed for a Spreadsheet or the Syntax Checker is
+approximately 400 MB.  Processing larger STEP files might cause a crash.  Popup dialogs might
+appear that say 'unable to realloc xxx bytes'.  See Help > Crash Recovery
 
-For the Viewer, select View and Part Only.  A 1.5 GB STEP file has been successfully tested with
-the Viewer.
+Some workarounds are available to (1) prevent a crash with a smaller STEP file, (2) to reduce the
+processing time, or (3) to reduce the size of the spreadsheet:
+- Deselect Entity Types that might not need to be processed such as Geometry and Coordinates
+- Use a User-Defined List of only the required entity types
+- Use a smaller value for the Maximum Rows
+- Deselect Analyzer options and Inverse Relationships
 
-Try some of these options to reduce the amount of time to process large STEP files that do not
-cause a crash and to reduce the size of the resulting spreadsheet:
-- In the Process section, deselect entity types that might not need to be processed or only use a
-  User-Defined List of required entities
-- On the More tab, use a smaller value for the Maximum Rows
-- On the Generate tab, deselect Analyzer options and Inverse Relationships
+The Status tab might be grayed out when a large STEP file is being read.
 
-The Status tab might be grayed out when a large STEP file is being read."
+---------------------------------------------------------------------------------------------------
+To use only the Viewer with a large STEP file, select View and Part Only.  A 1.5 GB STEP file has
+been successfully tested this way in the Viewer."
     .tnb select .tnb.status
   }
 
@@ -2022,27 +2035,27 @@ outputMsg "Sometimes this software crashes after a STEP file has been successful
 of entities has started.  Popup dialogs might appear that say 'Runtime Error!' or 'ActiveState
 Basekit has stopped working'.
 
-A crash is most likely due to syntax errors in the STEP file, a very large STEP file, or due to
-limitations of the toolkit used to read STEP files.  Run the Syntax Checker with function key F8 or
-the option on the Generate tab to check for errors with entities that might have caused the crash.
-See Help > Syntax Checker
+A crash is most likely due to syntax errors in the STEP file, a very large STEP file, the options
+selected for the software, or due to limitations of the toolkit used to read STEP files.  Run the
+Syntax Checker with function key F8 or the option on the Generate tab to check for errors with
+entities that might have caused the crash.  See Help > Syntax Checker
 
-The software keeps track of the last entity type processed when it crashed.  The list of bad entity
+The software keeps track of the last entity processed when it crashed.  The list of bad entity
 types is stored in myfile-skip.dat.  Simply restart this software and use F1 to process the last
-STEP file or use F6 if processing multiple files.  The entity types listed in myfile-skip.dat that
+STEP file or use F6 if processing multiple files.  The entities listed in myfile-skip.dat that
 caused the crash will be skipped.
 
 When the STEP file is processed again, the list of specific entities that are not processed is
 reported.  If syntax errors related to the bad entities are corrected, then delete or edit the
 *-skip.dat file so that the corrected entities are processed.
 
-There are two other workarounds.  Processing of the type of entity that caused the error can be
-deselected on the Generate tab under Process.  However, this will prevent processing of other
-entities that do not cause a crash.  A User-Defined List can be used to process only the required
-entity types for a spreadsheet.
+There are two other workarounds.  On the Generate tab deselect the Entity Type that caused the
+error.  However, this will prevent processing of other entities that do not cause a crash.  A
+User-Defined List can be used to process only the required entities for a spreadsheet.
+
+For errors similar to 'unable to realloc xxx bytes', see Help > Large STEP Files
 
 See Help > User Guide (section 2.4)
-See Help > Large STEP Files
 
 ---------------------------------------------------------------------------------------------------
 If the software crashes the first time you run it, there might be a problem with the installation
@@ -2199,7 +2212,7 @@ proc guiWebsitesMenu {} {
   $Websites add cascade -label "STEP Organizations" -menu $Websites.4
   set Websites4 [menu $Websites.4 -tearoff 1]
   $Websites4 add command -label "PDES, Inc. (U.S.)"      -command {openURL https://pdesinc.org}
-  $Websites4 add command -label "prostep ivip (Germany)" -command {openURL https://www.prostep.org/en/projects/}
+  $Websites4 add command -label "prostep ivip (Germany)" -command {openURL https://www.prostep.org/en/projects/mbx-interoperability-forum-mbx-if}
   $Websites4 add command -label "AFNeT (France)"         -command {openURL https://legacy.afnet.fr/dotank/sps/plm-committee/}
   $Websites4 add command -label "KStep (Korea)"          -command {openURL https://www.kstep.or.kr}
   $Websites4 add separator
@@ -2230,11 +2243,10 @@ If the software crashes the first time you run it, there might be a problem with
 
 #-------------------------------------------------------------------------------
 proc guiToolTip {ttmsg tt {name ""}} {
-  global ap203all ap214all ap242all ap242only ap242e1not entCategory inverses
+  global ap203all ap214all ap242all ap242only entCategory inverses
 
 # two different types of subsets of entities
-  if {$tt == "stepPRES" || $tt == "stepREPR" || $tt == "stepQUAN" || $tt == "stepGEOM" || \
-      $tt == "stepKINE" || $tt == "stepQUAL" || $tt == "inverses"} {
+  if {$tt == "stepPRES" || $tt == "stepREPR" || $tt == "stepQUAN" || $tt == "stepGEOM" || $tt == "stepKINE" || $tt == "inverses"} {
     set ents {}
     set prefix {}
 
@@ -2267,8 +2279,8 @@ proc guiToolTip {ttmsg tt {name ""}} {
     }
     append ttmsg "  This is a subset of ([llength $ents]) $name entities."
 
-# subset for Common and AP242 entities
-  } elseif {$tt == "stepCOMM" || $tt == "stepAP242"} {
+# subset for Common, AP242, Quality entities
+  } elseif {$tt == "stepCOMM" || $tt == "stepAP242" || $tt == "stepQUAL"} {
     set ents {}
     set prefix {}
     foreach ent $entCategory($tt) {
@@ -2290,7 +2302,7 @@ proc guiToolTip {ttmsg tt {name ""}} {
 
   set space 2
   set ttlim 120
-  if {$tt == "stepCOMM" || $tt == "stepAP242"} {set ttlim 140}
+  if {$tt == "stepCOMM" || $tt == "stepGEOM" || $tt == "stepAP242"} {set ttlim 140}
   append ttmsg "\n\n"
 
   foreach type {ap203 ap242} {
@@ -2309,7 +2321,16 @@ proc guiToolTip {ttmsg tt {name ""}} {
         }
       }
       if {$ok} {
-        if {$type == "ap242"} {if {[lsearch $ap242e1not $ent] != -1} {append ent "*"}}
+
+# add superscript for AP242 edition
+        if {$type == "ap242" && $tt != "stepKINE"} {
+          if {[lsearch $ap242only(e1) $ent] != -1} {append ent "\u00B9"}
+          if {[lsearch $ap242only(e2) $ent] != -1} {append ent "\u00B2"}
+          if {[lsearch $ap242only(e3) $ent] != -1} {append ent "\u00B3"}
+          if {[lsearch $ap242only(e4) $ent] != -1} {append ent "\u2074"}
+          catch {if {[lsearch $ap242only(e5) $ent] != -1} {append ent "\u2075"}}
+          catch {if {[lsearch $ap242only(e6) $ent] != -1} {append ent "\u2076"}}
+        }
         incr ttlen [expr {[string length $ent]+$space}]
         if {$ttlen <= $ttlim} {
           append ttmsg "$ent[string repeat " " $space]"
@@ -2322,7 +2343,8 @@ proc guiToolTip {ttmsg tt {name ""}} {
     if {$type == "ap203" && $tt != "stepCOMM" && $tt != "stepAP242" && $tt != "stepQUAL" && $tt != "stepCONS" && $tt != "inverses"} {
       if {$tt == "stepCPNT"} {append ttmsg "is supported in most STEP APs."}
       append ttmsg "\n\nThese entities are supported only in AP242."
-      if {$tt != "stepKINE"} {append ttmsg "  Entities with a * are only in editions > 1."}
+      if {$tt != "stepKINE" && $tt != "stepCPNT"} {append ttmsg "  Superscript indicates edition of AP242."}
+      if {$tt == "stepCPNT"} {append ttmsg "\nSuperscript indicates edition of AP242."}
       append ttmsg "\n\n"
     }
   }
@@ -2359,6 +2381,7 @@ proc getOpenPrograms {} {
     set applist [list \
       [list {*}[glob -nocomplain -directory [file join $pf "CAD Assistant"] -join CADAssistant.exe] "CAD Assistant"] \
       [list {*}[glob -nocomplain -directory [file join $pf "CAD Exchanger" bin] -join Exchanger.exe] "CAD Exchanger"] \
+      [list {*}[glob -nocomplain -directory [file join $pf "C3D Labs"] -join "C3D Viewer" Bin c3dviewer.exe] "C3D Viewer"] \
       [list {*}[glob -nocomplain -directory [file join $pf "Common Files"] -join "eDrawings*" eDrawings.exe] "eDrawings Viewer"] \
       [list {*}[glob -nocomplain -directory [file join $pf "SOLIDWORKS Corp" "eDrawings X64 Edition"] -join eDrawings.exe] "eDrawings Pro"] \
       [list {*}[glob -nocomplain -directory [file join $pf "SOLIDWORKS Corp" eDrawings] -join eDrawings.exe] "eDrawings Pro"] \
@@ -2368,6 +2391,7 @@ proc getOpenPrograms {} {
       [list {*}[glob -nocomplain -directory [file join $pf Actify SpinFire] -join "*" SpinFire.exe] SpinFire] \
       [list {*}[glob -nocomplain -directory [file join $pf CADSoftTools "CST CAD Navigator"] -join cstCadNavigator.exe] "CST CAD Navigator"] \
       [list {*}[glob -nocomplain -directory [file join $pf CADSoftTools] -join "ABViewer*" ABViewer.exe] ABViewer] \
+      [list {*}[glob -nocomplain -directory [file join $pf Fougue] -join "Mayo" mayo.exe] Mayo] \
       [list {*}[glob -nocomplain -directory [file join $pf gCAD3D] -join gCAD3D.bat] gCAD3D] \
       [list {*}[glob -nocomplain -directory [file join $pf Glovius Glovius] -join glovius.exe] Glovius] \
       [list {*}[glob -nocomplain -directory [file join $pf Gstarsoft 3DFastView] -join "V*" 3DFastView.exe] 3DFastView] \
@@ -2392,7 +2416,11 @@ proc getOpenPrograms {} {
           set c1 [string first "eDrawings20" $match]
           if {$c1 != -1} {set dispApps($match) "[lindex $app 1] [string range $match $c1+9 $c1+12]"}
           set c1 [string first "Open STEP Viewer" $match]
-          if {$c1 != -1} {set dispApps($match) "[lindex $app 1] [string range $match $c1+17 $c1+22]"}
+          if {$c1 != -1} {
+            set str [string range $match $c1+17 $c1+22]
+            set str [string range $str 0 [string last "." $str]-1]
+            set dispApps($match) "[lindex $app 1] $str"
+          }
         }
       }
     }
@@ -2512,7 +2540,7 @@ proc getOpenPrograms {} {
   if {[llength $dispCmds] != [llength [lrmdups $dispCmds]]} {set dispCmds [lrmdups $dispCmds]}
 
 # remove old commands
-  set oldcmd [list 3DJuump 3DPDFConverter 3DReviewer avwin BIMsight c3dviewer Magics QuickStep roamer \
+  set oldcmd [list 3DJuump 3DPDFConverter 3DReviewer avwin BIMsight Magics QuickStep roamer \
                    apconformgui checkgui stepbrws stepcleangui STEPNCExplorer_x86 STEPNCExplorer stview]
   foreach cmd $dispCmds {if {[string first "notepad++.exe" $cmd]} {lappend oldcmd "notepad"}}
 
@@ -2817,8 +2845,18 @@ proc checkValues {} {
       lappend butDisabled DEBUGINV
       set opt(DEBUGINV) 0
     }
-    if {($opt(PMISEM) || $opt(PMIGRF) || $opt(valProp)) && $gen(Excel)} {
-      lappend butNormal DEBUG1 debugAG DEBUGNOXL
+    if {$gen(Excel)} {
+      lappend butNormal DEBUGNOXL
+      if {$opt(PMISEM) || $opt(PMIGRF) || $opt(valProp)} {
+        lappend butNormal DEBUG1
+        if {$opt(PMISEM) || $opt(PMIGRF)} {
+          lappend butNormal debugAG
+        } else {
+          lappend butDisable debugAG
+        }
+      } else {
+        lappend butDisabled DEBUG1 debugAG
+      }
     } else {
       lappend butDisabled DEBUG1 debugAG DEBUGNOXL
       set opt(DEBUG1) 0
