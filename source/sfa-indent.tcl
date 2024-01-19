@@ -125,7 +125,7 @@ proc indentPutLine {line {comment ""} {putstat 1}} {
 
 #-------------------------------------------------------------------------------
 proc indentSearchLine {line ndent} {
-  global comment indentdat2 indentEntity indentMissing indentstat
+  global comment indentEntity indentMissing indentstat indentStop
 
   incr ndent
   #outputMsg "------------- $ndent"
@@ -149,8 +149,8 @@ proc indentSearchLine {line ndent} {
       if {[string first "\#" $line1] != -1} {
         set ok 1
 
-# check for entities that stop the indentation ($indentdat2)
-        foreach idx $indentdat2 {
+# check for entities that stop the indentation
+        foreach idx $indentStop {
           if {[string first $idx $line1] != -1} {
             set ok 0
             break
@@ -172,60 +172,17 @@ proc indentSearchLine {line ndent} {
 
 #-------------------------------------------------------------------------------
 proc indentFile {ifile} {
-  global editorCmd errmsg indentdat2 indentEntity indentMissing indentPass indentReadFile indentstat indentWriteFile opt writeDir
+  global editorCmd errmsg indentEntity indentMissing indentPass indentReadFile indentstat indentStart indentStop indentWriteFile opt writeDir
 
-# indent on these STEP entities
-  set indentdat1 [list \
-    ACTION_PROPERTY_REPRESENTATION ANNOTATION_CURVE_OCCURRENCE ANNOTATION_FILL_AREA_OCCURRENCE ANNOTATION_OCCURRENCE ANNOTATION_PLANE APPLICATION_PROTOCOL APPLIED APPROVAL_DATE APPROVAL_PERSON AREA_COMPONENT \
-    CC_DESIGN CONSTRUCTIVE_GEOMETRY_REPRESENTATION_RELATIONSHIP CONTROL_LINEAR_STATIC_ANALYSIS_STEP CONTROL_LINEAR_STATIC_LOAD_INCREMENT_PROCESS COUNTER CYLINDRICAL_PAIR_WITH_RANGE \
-    CURVE_3D_ELEMENT_REPRESENTATION CURVE_3D_ELEMENT_LOCATION_POINT_VARIABLE_VALUES \
-    DATA_QUALITY DATUM_FEATURE DATUM_SYSTEM DATUM_TARGET DRAUGHTING_CALLOUT DRAUGHTING_MODEL DIMENSIONAL_CHARACTERISTIC_REPRESENTATION DOCUMENT_PRODUCT_EQUIVALENCE \
-    ELEMENT_MATERIAL EXPLICIT_CONSTRAINT EXPLICIT_GEOMETRIC_CONSTRAINT \
-    FEATURE_COMPONENT_RELATIONSHIP FEATURE_DEFINITION FEA_MODEL_3D \
-    GEOMETRIC_ITEM_SPECIFIC_USAGE GEOMETRIC_REPRESENTATION_CONTEXT \
-    INAPT_DATA \
-    KINEMATIC_PAIR KINEMATIC_PATH KINEMATIC_PROPERTY KINEMATIC_TOPOLOGY \
-    LAMINATE_COMPONENT \
-    MACHINING MAKE_FROM_USAGE_OPTION MANIFOLD_SOLID_BREP( MATHS_ MECHANICAL_DESIGN \
-    NEXT_ASSEMBLY_USAGE_OCCURRENCE NON_UNIFORM_ZONE_DEFINITION \
-    PACKAGE PRESENTATION_LAYER_ASSIGNMENT PRISMATIC_PAIR_WITH_RANGE PRODUCT_CATEGORY_RELATIONSHIP PRODUCT_DEFINITION( PRODUCT_DEFINITION_SHAPE PRODUCT_RELATED PROJECTED_ZONE_DEFINITION PROPERTY_DEFINITION_REPRESENTATION \
-    REPRESENTATION_RELATIONSHIP REQUIREMENT_FOR_ACTION_RESOURCE RESOURCE_PROPERTY_REPRESENTATION REVOLUTE_PAIR_WITH_RANGE RIGID_LINK_REPRESENTATION \
-    SECURITY_CLASSIFICATION SIMPLIFIED SHAPE_ASPECT_RELATIONSHIP SHAPE_DEFINING_RELATIONSHIP SHAPE_DEFINITION_REPRESENTATION SHAPE_REPRESENTATION_RELATIONSHIP \
-    SINGLE_POINT_CONSTRAINT_ELEMENT_VALUES SPOTFACE STATE_RELATIONSHIP STRATUM_FEATURE STRUCTURAL_RESPONSE_PROPERTY \
-    SURFACE_3D_ELEMENT_REPRESENTATION SURFACE_3D_ELEMENT_LOCATION_POINT_VOLUME_VARIABLE_VALUES SURFACE_3D_ELEMENT_LOCATION_POINT_VARIABLE_VALUES \
-    VOLUME_3D_ELEMENT_REPRESENTATION VOLUME_3D_ELEMENT_LOCATION_POINT_VARIABLE_VALUES \
-    TOLERANCE \
-    WORKPLAN \
-  ]
-  if {[info exists opt(indentStyledItem)]} {if {$opt(indentStyledItem)} {lappend indentdat1 STYLED_ITEM}}
+# more entities to start and stop with
+  if {[info exists opt(indentStyledItem)]} {if {$opt(indentStyledItem)} {lappend indentStart STYLED_ITEM}}
 
-# stop indenting when these entities are encountered
-  set indentdat2 [list \
-    ADVANCED_BREP_SHAPE_REPRESENTATION ANNOTATION_OCCURRENCE ANNOTATION_PLANE \
-    B_SPLINE_CURVE B_SPLINE_SURFACE \
-    COUNTERBORE COUNTERDRILL COUNTERSINK CSG_2D_SHAPE_REPRESENTATION CYLINDRICAL_PAIR_WITH_RANGE COMPOSITE_TEXT CURVE_3D_ELEMENT_REPRESENTATION \
-    DATUM( DATUM_FEATURE( DATUM_FEATURE_CALLOUT DATUM_SYSTEM( DRAUGHTING_CALLOUT \
-    ELEMENT_MATERIAL FEA_AXIS2_PLACEMENT_3D FEA_MODEL_3D \
-    GEOMETRIC_REPRESENTATION_CONTEXT \
-    LAYERED_ASSEMBLY_MODULE_USAGE_VIEW \
-    NODE \
-    PATH_AREA POLYLINE PRIMARY_REFERENCE_TERMINAL PRISMATIC_PAIR_WITH_RANGE PRODUCT_DEFINITION_SHAPE \
-    REVOLUTE_PAIR_WITH_RANGE RIGID_LINK_REPRESENTATION \
-    SIMPLIFIED SINGLE_AREA_CSG SINGLE_BOUNDARY_CSG SPOTFACE SURFACE_3D_ELEMENT_REPRESENTATION \
-    TEXT_LITERAL_WITH_EXTENT TOLERANCE_VALUE \
-    VOLUME_3D_ELEMENT_REPRESENTATION \
-    USAGE_CONCEPT_USAGE_RELATIONSHIP \
-  ]
-
-# geometry option
   if {[info exists opt(indentGeometry)]} {
     if {!$opt(indentGeometry)} {
-      lappend indentdat2 ADVANCED_FACE CLOSED_SHELL GEOMETRIC_CURVE_SET GEOMETRIC_SET CONSTRUCTIVE_GEOMETRY_REPRESENTATION TESSELLATED_SOLID
+      lappend indentStop ADVANCED_FACE CLOSED_SHELL GEOMETRIC_CURVE_SET GEOMETRIC_SET CONSTRUCTIVE_GEOMETRY_REPRESENTATION TESSELLATED_SOLID
     }
   }
-
-# styled_item option
-  if {[info exists opt(indentStyledItem)]} {if {!$opt(indentStyledItem)} {lappend indentdat2 STYLED_ITEM}}
+  if {[info exists opt(indentStyledItem)]} {if {!$opt(indentStyledItem)} {lappend indentStop STYLED_ITEM}}
 
   .tnb select .tnb.status
   outputMsg "Processing: [truncFileName [file nativename $ifile] 1]"
@@ -275,7 +232,7 @@ proc indentFile {ifile} {
   set indentPass 2
   set indentReadFile [open $ifile r]
 
-# check for entities that start an indentation ($indentdat1)
+# check for entities that start an indentation
   while {[gets $indentReadFile line] >= 0} {
     foreach var {idlist idpatr npatr lpatr spatr} {if {[info exists $var]} {unset $var}}
     set indentstat 1
@@ -283,7 +240,7 @@ proc indentFile {ifile} {
     set line [indentCheckLine $line]
     set line1 [string range $line 1 end]
     if {[string first "\#" $line1] != -1} {
-      foreach idx $indentdat1 {
+      foreach idx $indentStart {
         if {[string first $idx $line] != -1} {
           puts $indentWriteFile "\n"
           #outputMsg "PUT LINE 2"

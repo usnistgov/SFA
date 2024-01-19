@@ -122,10 +122,10 @@ proc spmiGeotolStart {entType} {
 # -------------------------------------------------------------------------------
 proc spmiGeotolReport {objEntity} {
   global all_around all_over assocGeom ATR badAttributes between cells col datsys datumCompartment datumFeature datumModValue datumTargetDesc
-  global datumSymbol datumSystem datumSystemPDS dim datumEntType datumGeom datumIDs datumTarget datumTargetType datumTargetView dimtolEntType dimtolGeom
-  global driPropID entLevel ent entAttrList entCount equivUnicodeString gt gtEntity head1 magQualified magType multipleDatumFeature nistName objID opt
-  global pmiCol pmiHeading pmiModifiers pmiStartCol pmiUnicode propDefIDs ptz recPracNames spaces spmiEnts spmiID spmiIDRow spmiRow spmiTypesPerFile
-  global stepAP syntaxErr tolNames tolStandard tolStandards tolval tzf1 tzfNames tzWithDatum worksheet
+  global datumSymbol datumSystem datumSystemPDS dim datumEntType datumGeom datumIDs datumTarget datumTargetType datumTargetView dimrep dimtolEntType
+  global dimtolGeom driPropID entLevel ent entAttrList entCount equivUnicodeString gt gtEntity head1 magQualified magType multipleDatumFeature
+  global nistName objID opt pmiCol pmiHeading pmiModifiers pmiStartCol pmiUnicode propDefIDs ptz recPracNames spaces spmiEnts spmiID spmiIDRow
+  global spmiRow spmiTypesPerFile stepAP syntaxErr tolNames tolStandard tolStandards tolval tzf1 tzfNames tzWithDatum worksheet
   global objDesign
 
   if {$opt(DEBUG1)} {outputMsg "spmiGeotolReport" red}
@@ -1644,6 +1644,16 @@ proc spmiGeotolReport {objEntity} {
       }
 
 # -------------------------------------------------------------------------------
+# get dimensional tolerance from toleranced_shape_aspect
+      set modtol 1
+      if {![info exists tolDimrep] && [info exists tsaType]} {
+        if {[string first "dimensional" $tsaType] == 0} {
+          set tolDimrep $dimrep($tsaID)
+          set modtol 0
+        }
+      }
+
+# -------------------------------------------------------------------------------
 # add dimensional tolerance
       if {[info exists tolDimrep] && [string first "tolerance" $gt] != -1} {
 
@@ -1656,7 +1666,7 @@ proc spmiGeotolReport {objEntity} {
         set val [[$cells($gt) Item $r $c] Value]
 
 # modify tolerance zone to the same precision as the dimension
-        if {[info exists dim(unit)] && $dim(unitOK) && !$magQualified} {
+        if {$tolval > 0. && [info exists dim(unit)] && $dim(unitOK) && !$magQualified && $modtol} {
           if {$dim(unit) == "INCH"} {
             if {[info exists tolDimprec]} {
               set ntol $tolval
@@ -1859,6 +1869,8 @@ proc spmiGeotolReport {objEntity} {
       if {$geotolGeom != ""} {
         set c [expr {$pmiStartCol($gt)+4}]
         set r $spmiIDRow($gt,$spmiID)
+ 
+# heading
         if {[string first "datum_feature" [$gtEntity Type]] == -1} {
           set head1 "Toleranced"
           set heading "$head1 Geometry[format "%c" 10](column E)"
@@ -1873,8 +1885,15 @@ proc spmiGeotolReport {objEntity} {
           set comment "See Help > User Guide (section 6.1.5) for an explanation of $head1 Geometry."
           addCellComment $gt 3 $c $comment
         }
+
         $cells($gt) Item $r $c [string trim $geotolGeom]
         if {[lsearch $spmiRow($gt) $r] == -1} {lappend spmiRow($gt) $r}
+
+# comments
+        if {[string first "dimensional_" $geotolGeom] != -1} {
+          set comment "Go to this entity to see the Associated Geometry."
+          addCellComment $gt $r $c $comment
+        }
 
         if {[string first "*" $geotolGeom] != -1} {
           set comment "See Help > User Guide (section 6.1.5) for an explanation of $head1 Geometry.  IDs marked with an asterisk (*) are also Supplemental Geometry."
@@ -2034,7 +2053,9 @@ proc spmiProjectedToleranceZone {objGuiEntity} {
                 } elseif {$e3type != "advanced_face" && $e3type != "edge_curve" && $e3type != "edge_loop" && $e3type != "path"} {
                   set msg "Syntax Error: Projected tolerance zone 'projection_end' refers to invalid GISU identified_item '$e3type'.$spaces\($recPracNames(pmi242), Sec. 6.9.2.2)"
                 }
-                set e4 [[[$e3 Attributes] Item [expr 3]] Value]
+                set i 3
+                if {$e3type == "complex_triangulated_face"} {set i 5}
+                set e4 [[[$e3 Attributes] Item [expr $i]] Value]
                 if {[$e4 Type] != "plane"} {
                   set msg "Syntax Error: Projected tolerance zone 'projection_end' should be a plane, not a '[$e4 Type]'.$spaces\($recPracNames(pmi242), Sec. 6.9.2.2)"
                 }

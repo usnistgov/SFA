@@ -68,7 +68,7 @@ proc setColorIndex {ent {multi 0}} {
   }
 
 # entity not in any category, color by AP
-  if {[string first "AP209" $stepAP] != -1 || [string first "AP210" $stepAP] != -1 || [string first "AP238" $stepAP] != -1} {return 19}
+  foreach ap {AP209 AP210 AP224 AP235 AP238 AP239 ISO13584 CUTTING_TOOL} {if {[string first $ap $stepAP] != -1} {return 19}}
 
 # entity from other APs (no color)
   return -2
@@ -933,7 +933,7 @@ proc openXLS {filename {check 0} {multiFile 0}} {
 # -------------------------------------------------------------------------------------------------
 # open x3dom file
 proc openX3DOM {{fn ""} {numFile 0}} {
-  global lastX3DOM multiFile opt scriptName x3dMsgColor x3dFileName viz
+  global guiSFA lastX3DOM multiFile opt scriptName x3dMsgColor x3dFileName viz
 
 # f3 is for opening last x3dom file with function key F3
   set f3 1
@@ -972,7 +972,7 @@ proc openX3DOM {{fn ""} {numFile 0}} {
     outputMsg "\nOpening Viewer file: [file tail $fn] ([fileSize $fn])" $x3dMsgColor
     openURL [file nativename $fn]
     update idletasks
-  } elseif {$numFile == 0 && [string first "STEP-File-Analyzer.exe" $scriptName] != -1} {
+  } elseif {$numFile == 0 && $guiSFA != -1} {
     outputMsg " Use F3 to open the Viewer file" red
   }
 }
@@ -1056,7 +1056,7 @@ proc formatComplexEnt {str {space 0}} {
 
 # check if _and_ is part of the entity name
     set ok 1
-    foreach cat {stepAP242 stepCOMM stepTOLR stepPRES stepKINE stepCOMP} {
+    foreach cat {stepAP242 stepCOMM stepTOLR stepPRES stepKINE stepCOMP stepOTHR} {
       if {$opt($cat)} {if {[lsearch $entCategory($cat) $str] != -1} {set ok 0; break}}
     }
     if {[info exists stepAP]} {
@@ -1475,7 +1475,7 @@ proc installIFCsvr {{exit 0}} {
   global buttons developer ifcsvrVer mydocs mytemp nistVersion upgradeIFCsvr wdir
 
 # IFCsvr version depends on string entered when IFCsvr is repackaged for new STEP schemas
-  set versionIFCsvr 20230705
+  set versionIFCsvr 20240111
 
 # if IFCsvr is alreadly installed, get version from registry, decide to reinstall newer version
   if {[catch {

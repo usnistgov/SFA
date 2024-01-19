@@ -1,5 +1,5 @@
 # SFA version
-proc getVersion {} {return 5.04}
+proc getVersion {} {return 5.06}
 
 # see proc installIFCsvr in sfa-proc.tcl for the IFCsvr version
 # see below (line 37) for the sfaVersion when IFCsvr was updated
@@ -34,24 +34,25 @@ Use F9 and F10 to change the font size here.  See Help > Function Keys"
   if {$sfaVersion > 0} {
 
 # update the version number when IFCsvr is repackaged to include updated STEP schemas
-    if {$sfaVersion < 4.94} {outputMsg "- The IFCsvr toolkit might need to be reinstalled.  Please follow the directions carefully." red}
+    if {$sfaVersion < 5.06} {outputMsg "- The IFCsvr toolkit might need to be reinstalled.  Please follow the directions carefully." red}
 
     if {$sfaVersion < 4.60} {
       outputMsg "- User Guide (Update 7) is based on version 4.60 (October 2021)"
       openUserGuide
     }
-    if {$sfaVersion < 5.0}  {outputMsg "- Renamed Options and Spreadsheet tabs to Generate and More"}
-    if {$sfaVersion < 5.04} {outputMsg "- Renamed Process section to Entity Types"}
-    if {$sfaVersion < 5.0}  {outputMsg "- Improved menu layout on the More tab"}
-    if {$sfaVersion < 5.03} {outputMsg "- Hidden checkboxes and sliders in the Viewer"}
-    if {$sfaVersion < 5.02} {outputMsg "- Help > Viewer > Viewpoints and Help > Viewer > New Features"}
-    if {$sfaVersion < 5.0}  {outputMsg "- Improved part transparency, see Help > Viewer > Overview"}
-    if {$sfaVersion < 3.80} {outputMsg "- Syntax Checker, see Help > Syntax Checker"}
-    if {$sfaVersion < 4.74} {outputMsg "- Generate Bill of Materials (BOM), see Generate tab and Help > Bill of Materials"}
-    if {$sfaVersion < 4.61} {outputMsg "- Updated Sample STEP Files in the Examples menu"}
-    if {$sfaVersion < 4.84 && [file exists [file join [file dirname [info nameofexecutable]] STEP-File-Analyzer-Release-Notes.xlsx]]} {
-      outputMsg "- The local Release Notes file 'STEP-File-Analyzer-Release-Notes.xlsx' is not up to date and should be deleted." red
-    }
+  }
+
+  if {$sfaVersion < 5.06} {
+    outputMsg "- Fixed bugs with the arguments for the command-line version (sfa-cl.exe)"
+    outputMsg "- New 'Other' Entity Types category on the Generate tab"
+  }
+  if {$sfaVersion < 5.0}  {outputMsg "- Renamed 'Options' and 'Spreadsheet' tabs to 'Generate' and 'More'"}
+  if {$sfaVersion < 5.03} {outputMsg "- Hidden checkboxes and sliders in the Viewer"}
+  if {$sfaVersion < 5.02} {outputMsg "- Help > Viewer > Viewpoints, and Help > Viewer > New Features"}
+  if {$sfaVersion < 5.0}  {outputMsg "- Improved part transparency, see Help > Viewer > Overview"}
+  if {$sfaVersion < 4.74} {outputMsg "- Generate Bill of Materials (BOM), see Generate tab and Help > Bill of Materials"}
+  if {$sfaVersion < 4.84 && [file exists [file join [file dirname [info nameofexecutable]] STEP-File-Analyzer-Release-Notes.xlsx]]} {
+    outputMsg "- The local Release Notes file 'STEP-File-Analyzer-Release-Notes.xlsx' is not up to date and should be deleted." red
   }
   outputMsg "- See Help > Release Notes for all new features and bug fixes"
   set sfaVersion [getVersion]
@@ -453,9 +454,9 @@ proc guiGenerateTab {} {
     if {[info exists entCategory($idx)]} {
       set ttmsg ""
       if {$idx == "stepCOMM"} {
-        append ttmsg "Entity Type categories control which entities from AP203, AP214, and AP242 are written to the Spreadsheet.  The categories are used\nto group and color-code entities on the Summary worksheet.  All entities specific to other APs are always written to the Spreadsheet.\nSee Help > Supported STEP APs and Websites > STEP > EXPRESS Schemas\n\n"
+        append ttmsg "Entity Type categories control which entities from AP203, AP214, and AP242 are written to the Spreadsheet.  The categories\nare used to group and color-code entities on the Summary worksheet.  All entities specific to other APs are always written\nto the Spreadsheet.  See Help > Supported STEP APs and Websites > STEP > EXPRESS Schemas\n\n"
       }
-      append ttmsg "[string trim [lindex $item 0]] entities ([llength $entCategory($idx)]) are supported in most STEP APs."
+      append ttmsg "[llength $entCategory($idx)] [string trim [lindex $item 0]] entities are supported in most STEP APs."
       set ttmsg [guiToolTip $ttmsg $idx [string trim [lindex $item 0]]]
       catch {tooltip::tooltip $buttons($idx) $ttmsg}
     }
@@ -471,7 +472,7 @@ proc guiGenerateTab {} {
     if {[info exists entCategory($idx)]} {
       set str "most"
       if {$idx == "stepTOLR"} {set str "some"}
-      set ttmsg "[string trim [lindex $item 0]] entities ([llength $entCategory($idx)]) are supported in $str STEP APs."
+      set ttmsg "[llength $entCategory($idx)] [string trim [lindex $item 0]] entities are supported in $str STEP APs."
       set ttmsg [guiToolTip $ttmsg $idx [string trim [lindex $item 0]]]
       if {$idx == "stepTOLR"} {
         append ttmsg "\n\nSee Websites > Recommended Practice for $recPracNames(pmi242)"
@@ -490,14 +491,14 @@ proc guiGenerateTab {} {
     incr cb
     if {[info exists entCategory($idx)]} {
       if {$idx != "stepCPNT"} {
-        set ttmsg "[string trim [lindex $item 0]] entities ([llength $entCategory($idx)]) are supported in"
+        set ttmsg "[llength $entCategory($idx)] [string trim [lindex $item 0]] entities are supported in"
         if {$idx != "stepFEAT"} {
           append ttmsg " most STEP APs."
         } else {
           append ttmsg " AP214 and AP242."
         }
       } else {
-        set ttmsg "[string trim [lindex $item 0]] entities ([llength $entCategory($idx)])"
+        set ttmsg "[llength $entCategory($idx)] [string trim [lindex $item 0]] entities"
       }
       set ttmsg [guiToolTip $ttmsg $idx [string trim [lindex $item 0]]]
       if {$idx == "stepGEOM"} {append ttmsg "\n\nGeometry entities are based on ISO 10303 Part 42 - Geometric and topological representation"}
@@ -513,7 +514,7 @@ proc guiGenerateTab {} {
     pack $buttons($idx) -side top -anchor w -padx 5 -pady 0 -ipady 0
     incr cb
     if {[info exists entCategory($idx)]} {
-      set ttmsg "[string trim [lindex $item 0]] entities ([llength $entCategory($idx)])"
+      set ttmsg "[llength $entCategory($idx)] [string trim [lindex $item 0]] entities"
       if {$idx == "stepAP242"} {
         append ttmsg " are supported in AP242.  Commonly used AP242 entities are in the other Entity Type categories.\nSuperscript indicates edition of AP242"
       } else {
@@ -525,22 +526,27 @@ proc guiGenerateTab {} {
       set ttmsg [guiToolTip $ttmsg $idx [string trim [lindex $item 0]]]
       if {$idx == "stepKINE"} {append ttmsg "\n\nKinematics is also supported by the AP242 Domain Model XML.  See Websites > CAx Recommended Practices"}
       if {$idx == "stepCOMP"} {append ttmsg "\n\nSee Websites > Recommended Practices for Composite Materials"}
-      if {$idx == "stepAP242"} {append ttmsg "\n\nAP242 Assembly Structure is also supported by the AP242 Domain Model XML.  See Websites > CAx Recommended Practices"}
+      if {$idx == "stepAP242"} {append ttmsg "\n\nAssembly Structure is also supported by the AP242 Domain Model XML.  See Websites > CAx Recommended Practices"}
       catch {tooltip::tooltip $buttons($idx) $ttmsg}
     }
   }
   pack $fopta4 -side left -anchor w -pady 0 -padx 0 -fill y
 
   set fopta5 [frame $fopta.5 -bd 0]
-  foreach item {{" Quality" opt(stepQUAL)} {" Constraint" opt(stepCONS)}} {
+  foreach item {{" Quality" opt(stepQUAL)} {" Constraint" opt(stepCONS)} {" Other" opt(stepOTHR)}} {
     set idx [string range [lindex $item 1] 4 end-1]
     set buttons($idx) [ttk::checkbutton $fopta5.$cb -text [lindex $item 0] -variable [lindex $item 1] -command {checkValues}]
     pack $buttons($idx) -side top -anchor w -padx 5 -pady 0 -ipady 0
     incr cb
     if {[info exists entCategory($idx)]} {
-      set ttmsg "[string trim [lindex $item 0]] entities ([llength $entCategory($idx)]) are supported in AP242.  "
+      set ttmsg "[llength $entCategory($idx)] [string trim [lindex $item 0]] entities are supported in "
+      if {$idx != "stepOTHR"} {
+        append ttmsg "AP242.  "
+      } else {
+        append ttmsg "some STEP APs.  "
+      }
       if {$idx == "stepQUAL"} {append ttmsg "\n"}
-      append ttmsg "Superscript indicates edition of AP242."
+      if {$idx != "stepOTHR"} {append ttmsg "Superscript indicates edition of AP242."}
       set ttmsg [guiToolTip $ttmsg $idx [string trim [lindex $item 0]]]
       if {$idx == "stepQUAL"} {append ttmsg "\n\nQuality entities are based on ISO 10303 Part 59 - Quality of product shape data"}
       if {$idx == "stepCONS"} {append ttmsg "\n\nConstraint entities are based on ISO 10303 Parts 108 and 109"}
@@ -885,14 +891,13 @@ proc guiMoreTab {} {
   set fxlsb1 [frame $fxlsb.1 -bd 0]
   set fxlsb2 [frame $fxlsb.2 -bd 0]
   set n 0
-  foreach item {{" Process Text Strings with symbols and non-English characters" opt(xlUnicode)} \
-                {" Generate Tables for sorting and filtering" opt(xlSort)} \
+  foreach item {{" Process text strings with non-English characters" opt(xlUnicode)} \
+                {" Generate tables for sorting and filtering" opt(xlSort)} \
                 {" Do not round real numbers in spreadsheet cells" opt(xlNoRound)} \
-                {" Show all PMI Elements on PMI Representation Coverage worksheet" opt(SHOWALLPMI)} \
-                {" For Multiple Files, do not generate links on File Summary worksheet" opt(xlHideLinks)}} {
+                {" Do not generate links on File Summary worksheet" opt(xlHideLinks)}} {
     incr n
     set frm $fxlsb1
-    if {$n > 3} {set frm $fxlsb2}
+    if {$n > 2} {set frm $fxlsb2}
     set idx [string range [lindex $item 1] 4 end-1]
     set buttons($idx) [ttk::checkbutton $frm.$cb -text [lindex $item 0] -variable [lindex $item 1] -command {checkValues}]
     pack $buttons($idx) -side top -anchor w -padx 5 -pady 0 -ipady 0
@@ -905,11 +910,13 @@ proc guiMoreTab {} {
 # other analyzer options
   set fxlsa [ttk::labelframe $fxls.a -text " Analyzer "]
 
-  set item {" Round dimensions and geometric tolerances for semantic PMI" opt(PMISEMRND)}
-  set idx [string range [lindex $item 1] 4 end-1]
-  set buttons($idx) [ttk::checkbutton $fxlsa.$cb -text [lindex $item 0] -variable [lindex $item 1] -command {checkValues}]
-  pack $buttons($idx) -side top -anchor w -padx {5 10} -pady 0 -ipady 0
-  incr cb
+  foreach item {{" Round dimensions and geometric tolerances for semantic PMI" opt(PMISEMRND)} \
+                {" Show all PMI Elements on PMI Representation Coverage worksheet" opt(SHOWALLPMI)}} {
+    set idx [string range [lindex $item 1] 4 end-1]
+    set buttons($idx) [ttk::checkbutton $fxlsa.$cb -text [lindex $item 0] -variable [lindex $item 1] -command {checkValues}]
+    pack $buttons($idx) -side top -anchor w -padx {5 10} -pady 0 -ipady 0
+    incr cb
+  }
 
   set fxlsa1 [frame $fxlsa.1 -bd 0]
   set buttons(labelProcessOnly) [label $fxlsa1.l1 -text "Process only: "]
@@ -928,17 +935,18 @@ proc guiMoreTab {} {
   set fxlsd1 [frame $fxlsd.1 -bd 0]
   set fxlsd2 [frame $fxlsd.2 -bd 0]
   set items [list {" Use parallel projection viewpoints defined in file" opt(viewParallel)} \
+                  {" Show viewpoints without graphical PMI" opt(viewNoPMI)} \
                   {" Correct for older viewpoint implementations" opt(viewCorrect)} \
-                  {" Show saved view camera model viewpoints" opt(DEBUGVP)} \
+                  {" Debug saved view camera model viewpoint" opt(DEBUGVP)} \
                   {" Do not generate capped surfaces for clipping planes" opt(partNoCap)} \
-                  {" Save X3D file generated by the Viewer" opt(x3dSave)} \
                   {" Do not group identical parts in an assembly" opt(partNoGroup)} \
+                  {" Save X3D file generated by the Viewer" opt(x3dSave)} \
                   {" Alternative geometry tessellation" opt(tessAlt)}]
   set n 0
   foreach item $items {
     incr n
     set frm $fxlsd1
-    if {$n > 3} {set frm $fxlsd2}
+    if {$n > 4} {set frm $fxlsd2}
     set idx [string range [lindex $item 1] 4 end-1]
     set buttons($idx) [ttk::checkbutton $frm.$cb -text [lindex $item 0] -variable [lindex $item 1] -command {checkValues}]
     pack $buttons($idx) -side top -anchor w -padx 5 -pady 0 -ipady 0
@@ -950,7 +958,7 @@ proc guiMoreTab {} {
 
   catch {
     tooltip::tooltip $fxlsd                "These Viewer options should be selected only if necessary.\nRead the tooltips for each individual option."
-    tooltip::tooltip $buttons(xlUnicode)   "Use this option if there are non-English characters\nencoded with the \\X2\\ control directive in the STEP file.\n\nSee Help > Text Strings and Numbers\nSee User Guide (section 5.5.2)"
+    tooltip::tooltip $buttons(xlUnicode)   "Use this option if there are non-English characters or symbols\nencoded with the \\X2\\ control directive in the STEP file.\n\nSee Help > Text Strings and Numbers\nSee User Guide (section 5.5.2)"
     tooltip::tooltip $buttons(xlSort)      "Worksheets can be sorted by column values.\nThe Properties worksheet is always sorted.\n\nSee Help > User Guide (section 5.5.3)"
     tooltip::tooltip $buttons(xlNoRound)   "See Help > User Guide (section 5.5.4)"
     tooltip::tooltip $buttons(SHOWALLPMI)  "The complete list of [expr {$pmiElementsMaxRows-3}] PMI Elements, including those that are not in the\nSTEP file, will be shown on the PMI Representation Coverage worksheet.\n\nSee Help > Analyzer > PMI Coverage Analysis\nSee Help > User Guide (section 6.1.7)"
@@ -958,9 +966,10 @@ proc guiMoreTab {} {
     tooltip::tooltip $buttons(PMISEMRND)   "Rounding values might result in a better match to graphical PMI shown in the viewer or\nto expected PMI in the NIST CAD models (FTC/STC 7, 8, 11).\n\nSee User Guide (section 6.1.3.1)\nSee Websites > Recommended Practice for $recPracNames(pmi242), Section 5.4"
     tooltip::tooltip $buttons(PMISEMDIM)   "Process ONLY Dimensional Tolerances and NO geometric tolerances,\ndatums, or datum targets.  This is useful for debugging Dimensions."
     tooltip::tooltip $buttons(PMISEMDT)    "Process ONLY Datum Targets and NO dimensional and geometric\ntolerances, or datums.  This is useful for debugging Datum Targets."
-    tooltip::tooltip $buttons(viewParallel) "Use parallel projection for saved views viewpoints defined in the STEP file,\ninstead of the default perspective projection.  Pan and zoom might not\nwork with parallel projection.  See Help > Viewer > Viewpoints"
+    tooltip::tooltip $buttons(viewParallel) "Use parallel projection defined in the STEP file for saved view viewpoints,\ninstead of the default perspective projection.  Pan and zoom might not\nwork with parallel projection.  See Help > Viewer > Viewpoints"
     tooltip::tooltip $buttons(viewCorrect) "Correct for older implementations of camera models that\nmight not conform to current recommended practices.\nThe corrected viewpoint should fix the orientation but\nmaybe not the position.\n\nSee Help > Viewer > Viewpoints\nSee the CAx-IF Recommended Practice for\n $recPracNames(pmi242), Sec. 9.4.2.6"
-    tooltip::tooltip $buttons(DEBUGVP)     "Debug viewpoint orientation defined by a camera model.\n\nSee Help > Viewer > Viewpoints\nSee the CAx-IF Recommended Practice for\n $recPracNames(pmi242), Sec. 9.4.2.6"
+    tooltip::tooltip $buttons(viewNoPMI)   "If the model has viewpoints with and without graphical PMI,\nthen also show the viewpoints without graphical PMI.  Those\nviewpoints are typically top, front, side, etc."
+    tooltip::tooltip $buttons(DEBUGVP)     "Debug viewpoint orientation defined by a camera model\nby showing the view frustum in the viewer.\n\nSee Help > Viewer > Viewpoints\nSee the CAx-IF Recommended Practice for\n $recPracNames(pmi242), Sec. 9.4.2.6"
     tooltip::tooltip $buttons(partNoCap)   "Use when capped surfaces for section view clipping planes\ncannot be generated or when they do not look right.\nSee Help > Viewer > New Features"
     tooltip::tooltip $buttons(tessAlt)     "If curved surfaces for Part Geometry look wrong even with Quality\nset to High, use an alternative geometry tessellation method."
     tooltip::tooltip $buttons(x3dSave)     "The X3D file can be shown in an X3D viewer or imported to other software.\nUse this option if an Internet connection is not available for the Viewer.\nSee Help > Viewer"
@@ -1007,14 +1016,14 @@ proc guiMoreTab {} {
 # developer only options
   if {$developer} {
     set fxlsx [ttk::labelframe $fxls.x -text " Developer "]
-    foreach item {{" Viewer" opt(DEBUGX3D)} {" Analyzer" opt(DEBUG1)} {" Assoc Geom" opt(debugAG)} {" Inverses" opt(DEBUGINV)} {" No Excel" opt(DEBUGNOXL)}} {
+    foreach item {{" Viewer" opt(DEBUGX3D)} {" Analyzer" opt(DEBUG1)} {" Associated Geometry" opt(debugAG)} {" Inverses" opt(DEBUGINV)} {" No Excel" opt(DEBUGNOXL)}} {
       set idx [string range [lindex $item 1] 4 end-1]
       set buttons($idx) [ttk::checkbutton $fxlsx.$cb -text [lindex $item 0] -variable [lindex $item 1]]
       pack $buttons($idx) -side left -anchor w -padx 5 -pady {0 3} -ipady 0
       incr cb
     }
     pack $fxlsx -side top -anchor w -pady {5 2} -padx 10 -fill both
-    catch {tooltip::tooltip $fxlsx "Debug options are only available on computers in the NIST domain."}
+    catch {tooltip::tooltip $fxlsx "Developer debug options are only available on computers in the NIST domain."}
   }
 
   pack $fxls -side top -fill both -expand true -anchor nw
@@ -1024,7 +1033,7 @@ proc guiMoreTab {} {
 #-------------------------------------------------------------------------------
 # help menu
 proc guiHelpMenu {} {
-  global bits developer Examples excelVersion filesProcessed Help ifcsvrDir ifcsvrVer mytemp opt scriptName stepAPs
+  global bits developer Examples filesProcessed Help ifcsvrDir ifcsvrVer mytemp opt scriptName stepAPs
 
   $Help add command -label "User Guide" -command {openUserGuide}
   $Help add command -label "Release Notes" -command {openURL https://www.nist.gov/document/sfa-release-notes}
@@ -1042,8 +1051,9 @@ Product model data) Part 21 file (.stp or .step or .p21 file extension) and
     for conformance to recommended practices, and
 4 - checks for basic syntax errors.
 
-Compressed STEP files (.stpZ) and STEP archive files (.stpA) are also supported.  AP242 Domain
-Model XML files (.stpx) are not supported.
+Compressed STEP files (.stpZ) and STEP archive files (.stpA) are also supported.  AP238 STEP-NC
+files (.stpnc) are supported by renaming the file extension to .stp.  AP242 Domain Model XML
+files (.stpx) are not supported.
 
 Help is available in this menu, in the User Guide, and in tooltip help.  New features are listed in
 the Release Notes and described in some Help.  Help in the menu, tooltips, and spreadsheet comments
@@ -1190,8 +1200,9 @@ assembly, the COPS might have the wrong position and orientation.
 
 Part geometry can be clipped by section view clipping planes defined in the STEP file.  Part Only
 must not be selected on the Generate tab.  The planes are shown with a black square that might not
-be centered on the model.  Checkboxes show the names of each clipping plane.  You have to manually
-select the clipping planes that are associated with saved view graphical PMI.
+be centered on the model.  Checkboxes show the names of each clipping plane.  If there are
+duplicate clipping plane names, a number in parentheses is appended to the name.  You have to
+manually select the clipping plane that is associated with a viewpoint or saved view graphical PMI.
 
 Capped surfaces, in the plane of the black square, are usually generated when there is only one
 clipping plane per section view.  Switching off parts in an assembly does not turn off their capped
@@ -1242,11 +1253,19 @@ views from the file, two additional front viewpoints named 'Front (SFA)' are gen
 perspective and the other a parallel projection.  Pan and zoom might not work with parallel
 projection.
 
-With the option on the More tab, parallel projection viewpoints as defined in the STEP file can be
-used instead of the default perspective.
+If there are duplicate saved view names, then a number in parentheses is appended to the name.  For
+example, two viewpoints named MBD_A will appear as MBD_A (1) and MBD_A (2) for the Viewpoint name
+in the upper left corner of the viewer when cycling through the viewpoints with PageDown.
+
+On the More tab, parallel projection viewpoints as defined in the STEP file can be used instead of
+the default perspective.  Also, if the model has viewpoints with and without graphical PMI, then
+the viewpoints without graphical PMI can also be shown.  Those viewpoints are usually top, front,
+and side viewpoints.
 
 If there is graphical PMI associated with saved views, then the PMI is automatically switched
-on/off when using PageDown if 'Saved View Viewpoints' is checked on the Generate tab.
+on/off when using PageDown if 'Saved View Viewpoints' is checked on the Generate tab.  If there are
+duplicate saved view names as described above, then the list of Saved View Graphical PMI will
+append, after a slash, the saved view name to the PMI name.
 
 ---------------------------------------------------------------------------------------------------
 In the viewer, use key 'a' to view all and 'r' to restore to the original view.  The function of
@@ -1668,8 +1687,12 @@ outputMsg "\nNIST CAD Models ---------------------------------------------------
 outputMsg "If a STEP file from a NIST CAD model (CTC/FTC/STC) is processed, then the PMI in the STEP file is
 automatically checked against the expected PMI in the corresponding NIST test case.  The PMI
 Representation Coverage and Summary worksheets are color-coded by the expected PMI in each NIST
-test case.  The color-coding only works if the STEP file name can be recognized as having been
-generated from one of the NIST CAD models.
+test case.
+
+The color-coding only works if the STEP file name can be recognized as having been generated from
+one of the NIST CAD models.  For example, nist_ctc_02-some-text.stp would recognize the STEP file
+as being generated from CTC 2.  nist_ftc_06-more-text.stp would be for FTC 6 and
+nist_stc_10-whatever.stp would be for STC 10.
 
 ---------------------------------------------------------------------------------------------------
 * PMI Representation Summary *
@@ -1841,12 +1864,12 @@ to select the file.  F2 and F3 function similarly for Spreadsheets and the Viewe
   $Help add command -label "Supported STEP APs" -command {
 outputMsg "\nSupported STEP APs --------------------------------------------------------------------------------" blue
 outputMsg "These STEP Application Protocols (AP) and other schemas are supported for generating spreadsheets.
-The Viewer works with most versions of STEP AP242, AP203, AP214, and AP209.
+The Viewer works with STEP AP242, AP203, AP214, AP238, and AP209.  See Websites > STEP
 
 The name of the AP is on the FILE_SCHEMA entity in the HEADER section of a STEP file.  The 'e1'
-notation below after an AP number refers to an older Edition of that AP.  Some APs have multiple
-editions with the same name.  AP242 edition 1 was released in 2014, edition 2 in 2020, and
-edition 3 in 2022.  See Websites > AP242\n"
+notation after an AP number refers to an older Edition of that AP.  Some APs have multiple editions
+with the same name.  AP242 editions 1, 2, and 3 were released in 2014, 2020, and 2022, respectively.
+AP242 edition 4 is in development.  See Websites > AP242\n"
 
     set schemas {}
     set ifcschemas {}
@@ -1895,7 +1918,6 @@ edition 3 in 2022.  See Websites > AP242\n"
         outputMsg "  $txt"
       } else {
         set txt "[string range $item 0 $c1][string toupper [string range $item $c1+1 end]]"
-        if {[string first "AP209" $txt] == 0 || [string first "AP239" $txt] == 0} {append txt " (See Websites > STEP)"}
         outputMsg "  $txt"
       }
     }
@@ -2095,14 +2117,18 @@ source of the software."
     catch {append sysvar ", stp2x3d ([string trim [clock format [file mtime [file join $mytemp stp2x3d-part.exe]] -format "%e %b %Y"]])"}
     append sysvar "\nFiles processed: $filesProcessed"
     outputMsg $sysvar
+
     set winver ""
     if {[catch {
       set winver [registry get {HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows NT\CurrentVersion} {ProductName}]
     } emsg]} {
-      set winver "$tcl_platform(os) $tcl_platform(osVersion)"
+      set winver "Windows [expr {int($tcl_platform(osVersion))}]"
     }
-    if {[string first "Server" $winver] != -1 || $tcl_platform(osVersion) < 6.1} {errorMsg " $winver is not supported."}
-    if {[info exists excelVersion]} {if {$excelVersion < 12} {errorMsg " Excel $excelVersion is not supported."}}
+    catch {
+      set build [string range [lindex [split [::twapi::get_os_description] " "] end] 0 end-1]
+      if {[string is integer $build] && $build >=22000} {regsub "10" $winver "11" winver}
+    }
+    if {[string first "Server" $winver] != -1 || $tcl_platform(osVersion) < 6.1} {errorMsg "$winver is not supported."}
 
     outputMsg "\nThis software was first released in April 2012 and developed in the NIST Engineering Laboratory.
 
@@ -2122,7 +2148,7 @@ See Help > Disclaimers and NIST Disclaimer"
     if {$opt(xlMaxRows) == 100003 || $developer} {
       outputMsg " "
       outputMsg "SFA variables" red
-      catch {outputMsg " Drive $drive"}
+      catch {outputMsg " Drive [file nativename $drive]"}
       catch {outputMsg " Home  $myhome"}
       catch {outputMsg " Docs  $mydocs"}
       catch {outputMsg " Desk  $mydesk"}
@@ -2133,10 +2159,8 @@ See Help > Disclaimers and NIST Disclaimer"
       outputMsg " S [winfo screenwidth  .]x[winfo screenheight  .], M [winfo reqwidth .]x[expr {int([winfo reqheight .]*1.05)}]"
       set sysvar " $winver"
       if {$bits != "64-bit" && $bits != ""} {append sysvar " $bits"}
-      if {[info exists excelVersion]} {append sysvar ", Excel $excelVersion"}
-      append sysvar ", $tcl_platform(os) $tcl_platform(osVersion)"
       outputMsg $sysvar
-      catch {outputMsg " scriptName $scriptName"}
+      catch {outputMsg " scriptName [file nativename $scriptName]"}
 
       outputMsg "Registry values" red
       catch {outputMsg " Personal  [registry get {HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\User Shell Folders} {Personal}]"}
@@ -2146,7 +2170,7 @@ See Help > Disclaimers and NIST Disclaimer"
 
       outputMsg "Environment variables" red
       foreach id [lsort [array names env]] {
-        foreach id1 [list HOME Program System USER TEMP TMP APP] {if {[string first $id1 $id] == 0} {outputMsg " $id  $env($id)"; break}}
+        foreach id1 [list HOME Program USER APP] {if {[string first $id1 $id] == 0} {outputMsg " $id  $env($id)"; break}}
       }
     }
     .tnb select .tnb.status
@@ -2199,9 +2223,10 @@ proc guiWebsitesMenu {} {
   $Websites2 add command -label "ISO 10303 Part 11 EXPRESS"      -command {openURL https://www.loc.gov/preservation/digital/formats/fdd/fdd000449.shtml}
   $Websites2 add command -label "EXPRESS data modeling language" -command {openURL https://en.wikipedia.org/wiki/EXPRESS_(data_modeling_language)}
   $Websites2 add separator
-  $Websites2 add command -label "AP209 FEA"    -command {openURL http://www.ap209.org}
-  $Websites2 add command -label "AP239 PLCS"   -command {openURL http://www.ap239.org}
-  $Websites2 add command -label "AP243 MoSSEC" -command {openURL http://www.mossec.org}
+  $Websites2 add command -label "AP209 FEA"     -command {openURL http://www.ap209.org}
+  $Websites2 add command -label "AP238 STEP-NC" -command {openURL https://www.ap238.org}
+  $Websites2 add command -label "AP239 PLCS"    -command {openURL http://www.ap239.org}
+  $Websites2 add command -label "AP243 MoSSEC"  -command {openURL http://www.mossec.org}
   $Websites2 add separator
   $Websites2 add command -label "STEP File Viewers"      -command {openURL https://www.mbx-if.org/step_viewers.php}
   $Websites2 add command -label "STEP to X3D Translator" -command {openURL https://www.nist.gov/services-resources/software/step-x3d-translator}
@@ -2221,7 +2246,7 @@ proc guiWebsitesMenu {} {
   $Websites4 add command -label "ISO/TC 184/SC 4 - Industrial Data"         -command {openURL https://committee.iso.org/home/tc184sc4}
   $Websites4 add command -label "ASD Strategic Standardisation Group"       -command {openURL http://www.asd-ssg.org/}
   $Websites4 add command -label "3D PDF Formats"                            -command {openURL https://www.pdfa.org/resource/3d-formats/}
-  $Websites4 add command -label "JT-IF"                                     -command {openURL https://www.prostep.org/en/projects/jt-implementor-forum/}
+  $Websites4 add command -label "JT-IF"                                     -command {openURL https://www.prostep.org/en/projects/jt-project-groups}
 }
 
 #-------------------------------------------------------------------------------
@@ -2246,7 +2271,7 @@ proc guiToolTip {ttmsg tt {name ""}} {
   global ap203all ap214all ap242all ap242only entCategory inverses
 
 # two different types of subsets of entities
-  if {$tt == "stepPRES" || $tt == "stepREPR" || $tt == "stepQUAN" || $tt == "stepGEOM" || $tt == "stepKINE" || $tt == "inverses"} {
+  if {$tt == "stepCOMM" || $tt == "stepPRES" || $tt == "stepREPR" || $tt == "stepKINE" || $tt == "inverses"} {
     set ents {}
     set prefix {}
 
@@ -2260,6 +2285,7 @@ proc guiToolTip {ttmsg tt {name ""}} {
       }
     }
 
+    set n 0
     foreach ent $entities {
       set c1 [string first "_" $ent]
       if {$c1 == -1} {
@@ -2272,37 +2298,54 @@ proc guiToolTip {ttmsg tt {name ""}} {
           set pre $ent
         }
         if {[lsearch $prefix $pre] == -1} {
-          lappend ents $ent
+          incr n
+          set ok 0
+          if {$tt != "stepCOMM"} {
+            set ok 1
+          } elseif {[expr {$n%3}] != 0} {
+            set ok 1
+          }
           lappend prefix $pre
+          if {$ok} {lappend ents $ent}
         }
       }
     }
-    append ttmsg "  This is a subset of ([llength $ents]) $name entities."
+    append ttmsg "  This is a subset of [llength $ents] entities."
 
-# subset for Common, AP242, Quality entities
-  } elseif {$tt == "stepCOMM" || $tt == "stepAP242" || $tt == "stepQUAL"} {
+# another type of subset
+  } elseif {$tt == "stepAP242" || $tt == "stepQUAL" || $tt == "stepQUAN" || $tt == "stepGEOM" || $tt == "stepOTHR"} {
     set ents {}
     set prefix {}
+    set n 0
     foreach ent $entCategory($tt) {
-      set c1 [string first "_" $ent]
-      if {$c1 != -1} {
-        set pre [string range $ent 0 3]
-        if {[lsearch $prefix $pre] == -1} {
-          lappend ents $ent
-          lappend prefix $pre
+      if {$tt != "stepCOMM" || [lsearch $ap242all $ent] != -1} {
+        set c1 [string first "_" $ent]
+        if {$c1 != -1} {
+          set pre [string range $ent 0 3]
+          if {[lsearch $prefix $pre] == -1} {
+            incr n
+            set ok 0
+            if {$tt != "stepAP242" && $tt != "stepOTHR"} {
+              set ok 1
+            } elseif {[expr {$n%3}] != 0} {
+              set ok 1
+            }
+            lappend prefix $pre
+            if {$ok} {lappend ents $ent}
+          }
         }
       }
     }
-    append ttmsg "  This is a subset of ([llength $ents]) $name entities."
+    append ttmsg "  This is a subset of [llength $ents] entities."
 
-# all entities
+# all entities, no subset
   } else {
     set ents $entCategory($tt)
   }
 
   set space 2
   set ttlim 120
-  if {$tt == "stepCOMM" || $tt == "stepGEOM" || $tt == "stepAP242"} {set ttlim 140}
+  if {$tt == "stepCOMP" || $tt == "stepQUAL" || $tt == "stepCONS" || $tt == "stepOTHR"} {set ttlim 110}
   append ttmsg "\n\n"
 
   foreach type {ap203 ap242} {
@@ -2342,10 +2385,10 @@ proc guiToolTip {ttmsg tt {name ""}} {
     }
     if {$type == "ap203" && $tt != "stepCOMM" && $tt != "stepAP242" && $tt != "stepQUAL" && $tt != "stepCONS" && $tt != "inverses"} {
       if {$tt == "stepCPNT"} {append ttmsg "is supported in most STEP APs."}
-      append ttmsg "\n\nThese entities are supported only in AP242."
-      if {$tt != "stepKINE" && $tt != "stepCPNT"} {append ttmsg "  Superscript indicates edition of AP242."}
+      if {$tt != "stepOTHR"} {append ttmsg "\n\nThe following entities are supported only in AP242."}
+      if {$tt != "stepKINE" && $tt != "stepCPNT" && $tt != "stepOTHR"} {append ttmsg "  Superscript indicates edition of AP242."}
       if {$tt == "stepCPNT"} {append ttmsg "\nSuperscript indicates edition of AP242."}
-      append ttmsg "\n\n"
+      if {$tt != "stepOTHR"} {append ttmsg "\n\n"}
     }
   }
   return $ttmsg
@@ -2404,7 +2447,7 @@ proc getOpenPrograms {} {
       [list {*}[glob -nocomplain -directory [file join $pf ZWSOFT] -join "CADbro *" CADbro.exe] CADbro] \
       [list {*}[glob -nocomplain -directory [file join $pf] -join "3D-Tool V*" 3D-Tool.exe] 3D-Tool] \
       [list {*}[glob -nocomplain -directory [file join $pf] -join "Afanche3D*" "Afanche3D*.exe"] Afanche3D] \
-      [list {*}[glob -nocomplain -directory [file join $pf] -join "VariCADViewer *" bin varicad-x64.exe] "VariCAD Viewer"] \
+      [list {*}[glob -nocomplain -directory [file join $pf] -join "VariCAD*" bin varicad-x64.exe] "VariCAD Viewer"] \
     ]
 
 # add version number for some
@@ -2610,12 +2653,12 @@ proc checkValues {} {
 
 # view
   if {$gen(View)} {
-    foreach b {viewFEA viewPMI viewPMIVP viewTessPart viewPart partOnly partNoCap partNoGroup x3dSave viewParallel viewCorrect} {lappend butNormal $b}
+    foreach b {viewFEA viewPMI viewPMIVP viewTessPart viewPart partOnly partNoCap partNoGroup x3dSave viewParallel viewCorrect viewNoPMI} {lappend butNormal $b}
     if {!$opt(viewFEA) && !$opt(viewPMI) && !$opt(viewTessPart) && !$opt(viewPart)} {set opt(viewPart) 1}
     if {$developer} {lappend butNormal DEBUGX3D}
   } else {
     set opt(x3dSave) 0
-    foreach b {viewFEA viewPMI viewPMIVP viewTessPart viewPart partOnly partNoCap partNoGroup x3dSave viewParallel viewCorrect} {lappend butDisabled $b}
+    foreach b {viewFEA viewPMI viewPMIVP viewTessPart viewPart partOnly partNoCap partNoGroup x3dSave viewParallel viewCorrect viewNoPMI} {lappend butDisabled $b}
     foreach b {gpmiColor0 gpmiColor1 gpmiColor2 gpmiColor3 labelPMIcolor} {lappend butDisabled $b}
     foreach b {partEdges partSketch partSupp partNormals labelPartQuality partQuality4 partQuality7 partQuality10 tessPartMesh} {lappend butDisabled $b}
     foreach b {feaBounds feaLoads feaLoadScale feaDisp feaDispNoTail} {lappend butDisabled $b}
@@ -2628,14 +2671,15 @@ proc checkValues {} {
     set opt(viewPart) 1
     set opt(viewParallel) 0
     set opt(viewCorrect) 0
+    set opt(viewNoPMI) 0
     set opt(xlFormat) "None"
     set gen(Excel) 0
     set gen(Excel1) 0
     set gen(CSV) 0
     lappend butNormal genExcel
-    lappend butDisabled partNoCap DEBUGVP viewParallel viewCorrect
+    lappend butDisabled partNoCap DEBUGVP viewParallel viewCorrect viewNoPMI
   } else {
-    lappend butNormal partNoCap DEBUGVP viewParallel viewCorrect
+    lappend butNormal partNoCap DEBUGVP viewParallel viewCorrect viewNoPMI
   }
 
   if {$gen(View) && $opt(viewPart)} {
@@ -2674,7 +2718,6 @@ proc checkValues {} {
 # no Excel
   if {!$useXL} {
     foreach item {BOM INVERSE PMIGRF PMISEM valProp} {set opt($item) 0}
-    set opt(outputOpen) 1
     foreach item [array names opt] {
       if {[string first "step" $item] == 0} {lappend butNormal $item}
     }
@@ -2750,14 +2793,13 @@ proc checkValues {} {
 
 # graphical PMI view
   if {$opt(viewPMI)} {
-    foreach b {gpmiColor0 gpmiColor1 gpmiColor2 gpmiColor3 labelPMIcolor viewPMIVP} {lappend butNormal $b}
+    foreach b {gpmiColor0 gpmiColor1 gpmiColor2 gpmiColor3 labelPMIcolor viewPMIVP viewNoPMI} {lappend butNormal $b}
     if {$gen(View) && ($gen(Excel) || $gen(CSV)) && $opt(xlFormat) != "None"} {
       set opt(stepPRES) 1
       lappend butDisabled stepPRES
     }
-    if {!$gen(View)} {lappend butDisabled}
   } else {
-    foreach b {gpmiColor0 gpmiColor1 gpmiColor2 gpmiColor3 labelPMIcolor  viewPMIVP} {lappend butDisabled $b}
+    foreach b {gpmiColor0 gpmiColor1 gpmiColor2 gpmiColor3 labelPMIcolor viewPMIVP viewNoPMI} {lappend butDisabled $b}
   }
 
   if {$gen(View)} {

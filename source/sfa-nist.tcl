@@ -34,7 +34,8 @@ proc nistReadExpectedPMI {{epmiFile ""}} {
           if {$r == 0} {
             foreach colName $lline {
               if {$colName != ""} {
-                if {[string first "ctc" $colName] == 0 || [string first "ftc" $colName] == 0 || [string first "stc" $colName] == 0} {
+                if {[string first "ctc" $colName] == 0 || [string first "ftc" $colName] == 0 || \
+                    [string first "stc" $colName] == 0 || [string first "htc" $colName] == 0} {
                   set i2($c) "nist_$colName"
                 } else {
                   set i2($c) "$colName"
@@ -270,10 +271,10 @@ proc nistCheckExpectedPMI {val entstr epmiName} {
 
 # exceptions for directed dimensions for NIST test case
   if {$epmiName == "nist_ftc_06" || $epmiName == "nist_ftc_07" || $epmiName == "nist_ftc_10" || $epmiName == "nist_ctc_03" || \
-      $epmiName == "nist_stc_06" || $epmiName == "nist_stc_07" || $epmiName == "nist_stc_10"} {
+      $epmiName == "nist_stc_06" || $epmiName == "nist_stc_07" || $epmiName == "nist_stc_10" || $epmiName == "nist_htc"} {
     set c1 [string first "(directed)" $val]
     if {$c1 != -1} {
-      set val [string range $val 0 $c1-3]
+      set val [string trimright [string range $val 0 $c1-1]]
       set idx "Directed dimension"
       set pmiException($idx) 1
     }
@@ -317,7 +318,6 @@ proc nistCheckExpectedPMI {val entstr epmiName} {
       if {[string index $val $c1+2] == "\]"} {
         set val [string range $val 0 $c1-1][string index $val $c1+1][string range $val $c1+3 end]
         set valType($val) $oldType
-
       }
     }
   }
@@ -1031,16 +1031,10 @@ proc nistAddCoverageLegend {{multi 0}} {
   }
 
   set n 0
-  set legend {{"Values as Compared to NIST Test Case Drawing" ""} \
-              {"See Help > Analyzer > NIST CAD Models" ""} \
-              {"More than expected" "cyan"} \
-              {"Exact match" "green"} \
-              {"Less than expected (upper third)" "yelgre"} \
-              {"Less than expected (middle third)" "yellow"} \
-              {"Less than expected (lower third)" "orange"} \
-              {"None (0/n)" "red"} \
-              {"Unexpected (n/0)" "magenta"} \
-              {"Not checked" ""}}
+  set legend {{"Values as Compared to NIST Test Case Drawing" ""} {"See Help > Analyzer > NIST CAD Models" ""} \
+              {"More than expected" "cyan"} {"Exact match" "green"} {"Less than expected (upper third)" "yelgre"} \
+              {"Less than expected (middle third)" "yellow"} {"Less than expected (lower third)" "orange"} \
+              {"None (0/n)" "red"} {"Unexpected (n/0)" "magenta"} {"Not checked" ""}}
   foreach item $legend {
     set str [lindex $item 0]
     $cl Item $r $c $str
@@ -1158,22 +1152,24 @@ proc nistGetName {} {
     return $nistName
   }
 
-# check for a NIST CTC, FTC, STC
+# check for a NIST CTC, FTC, STC, HTC
   set testCase ""
   set ok  0
   set ok1 0
 
   if {[lsearch $filePrefix [string range $ftail 0 $c]] != -1 || [string first "nist" $ftail] != -1 || \
-      [string first "ctc" $ftail] != -1 || [string first "ftc" $ftail] != -1 || [string first "stc" $ftail] != -1} {
+      [string first "ctc" $ftail] != -1 || [string first "ftc" $ftail] != -1 || [string first "stc" $ftail] != -1 || \
+      [string first "htc" $ftail] != -1} {
     if {[lsearch $filePrefix [string range $ftail 0 $c]] != -1} {set ftail [string range $ftail $c+1 end]}
 
     set tmp "nist_"
-    foreach item {ctc ftc stc} {
+    foreach item {ctc ftc stc htc} {
       if {[string first $item $ftail] != -1} {
         append tmp "$item\_"
         set testCase $item
       }
     }
+    if {$testCase == "htc"} {set nistName "nist_htc"}
 
 # find nist_ctc_01 directly
     if {$testCase != ""} {
@@ -1191,7 +1187,7 @@ proc nistGetName {} {
     }
 
 # find the number in the string
-    if {!$ok1} {
+    if {!$ok1 && $testCase != "htc"} {
       foreach zero {"0" ""} {
         for {set i 1} {$i <= 11} {incr i} {
           if {!$ok} {
@@ -1234,8 +1230,8 @@ proc nistGetName {} {
     if {$opt(PMISEMRND) && ($nistName == "nist_ftc_06" || $nistName == "nist_stc_06")} {
       set resetRound $opt(PMISEMRND)
       set opt(PMISEMRND) 0
-    } elseif {!$opt(PMISEMRND) && ($nistName == "nist_ftc_07" || $nistName == "nist_ftc_08" || $nistName == "nist_ftc_11" || \
-                                   $nistName == "nist_stc_07" || $nistName == "nist_stc_08")} {
+    } elseif {!$opt(PMISEMRND) && ($nistName == "nist_ftc_07" || $nistName == "nist_ftc_08" || \
+              $nistName == "nist_ftc_11" || $nistName == "nist_stc_07" || $nistName == "nist_stc_08")} {
       set resetRound $opt(PMISEMRND)
       set opt(PMISEMRND) 1
     }
@@ -1248,7 +1244,17 @@ proc pmiRemoveZeros {pmi} {
   global pmiUnicode
 
 # line feeds
-  regsub -all \n $pmi " " pmi
+  set pmi1 [split $pmi \n]
+  if {[string first \n $pmi] != -1} {
+    if {![string is double [lindex $pmi1 0]] || ![string is double [lindex $pmi1 1]]} {
+      regsub -all \n $pmi " " pmi
+
+# special case for ISO limit dimensions where they are stacked, change to ASME representation
+    } else {
+      set pmi "[lindex $pmi1 1]-[lindex $pmi1 0]"
+      if {[llength $pmi1] > 2} {append pmi " [join [lrange $pmi1 2 end]]"}
+    }
+  }
 
 # |
   regsub -all "\u23B9" $pmi "" pmi

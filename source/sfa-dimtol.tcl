@@ -103,9 +103,10 @@ proc spmiDimtolStart {entType} {
 
 # -------------------------------------------------------------------------------
 proc spmiDimtolReport {objEntity} {
-  global angDegree assocGeom badAttributes cells col datsym dim dimBasic dimRepeat dimDirected dimName dimModNames dimOrient dimReference dimrep dimrepID
-  global dimSizeNames dimtolAttr dimtolEnt dimtolEntType dimtolGeom dimtolID dimtolPM dimtolType dimval driPropID dt entLevel ent entAttrList entCount entlevel2
-  global equivUnicodeString lastEnt nistName numDSnames opt pmiCol pmiColumns pmiHeading pmiModifiers pmiStartCol pmiUnicode propDefIDs recPracNames
+  global angDegree assocGeom badAttributes cadSystem cells col datsym developer dim dimBasic dimRepeat dimDirected dimName
+  global dimModNames dimOrient dimReference dimrep dimrepID dimSizeNames dimtolAttr dimtolEnt dimtolEntType dimtolGeom dimtolID
+  global dimtolPM dimtolType dimval driPropID dt entLevel ent entAttrList entCount entlevel2 equivUnicodeString lastEnt nistName
+  global numDSnames opt pmiCol pmiColumns pmiHeading pmiModifiers pmiStartCol pmiUnicode propDefIDs recPracNames
   global savedModifier spaces spmiEnts spmiID spmiIDRow spmiRow spmiTypesPerFile syntaxErr tolStandard vftq
 
   if {$opt(DEBUG1)} {outputMsg "spmiDimtolReport" red}
@@ -1080,7 +1081,7 @@ proc spmiDimtolReport {objEntity} {
                 ::tcom::foreach subAttr [$subEntity Attributes] {
                   if {[string first "bound" [$subAttr Name]] != -1} {
 
-# check for correct lmwu
+# check for correct LMWU
                     set lenattr {}
                     ::tcom::foreach a1 [[$subAttr Value] Attributes] {lappend lenattr [$a1 Name]}
                     if {[lsearch $lenattr "name"] != -1 && [lsearch $lenattr "qualifiers"] == -1} {
@@ -1503,15 +1504,13 @@ proc spmiDimtolReport {objEntity} {
                 for {set i 0} {$i < 10} {incr i} {regsub -all "  " $tmp " " tmp}
                 incr n
                 append dtg "'$tmp'"
-                if {$n < [expr {$lendtg-1}]} {
-                  append dtg ", "
-                }
-                if {$n == [expr {$lendtg-1}]} {
-                  append dtg " and "
-                }
+                if {$n <  [expr {$lendtg-1}]} {append dtg ", "}
+                if {$n == [expr {$lendtg-1}]} {append dtg " and "}
               }
               if {($nistName != "nist_ftc_07" && $nistName != "nist_stc_07") || [string first ".875 ±" $dtg] == -1} {
-                errorMsg "Multiple ([llength $dimtolGeom($dimtolGeomEnts)]) dimensions $dtg are associated with the same geometry. (IDs $dimtolGeomEnts)"
+                if {[string first "Siemens NX" $cadSystem] == -1 || $developer} {
+                  errorMsg "Multiple ([llength $dimtolGeom($dimtolGeomEnts)]) dimensions $dtg are associated with the same geometry. (IDs $dimtolGeomEnts)"
+                }
                 addCellComment $dt $r $pmiColumns(ch) "Multiple dimensions are associated with the same geometry.  The identical information in this cell should appear in another Associated Geometry cell above."
               }
             }

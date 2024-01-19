@@ -168,11 +168,11 @@ proc gpmiAnnotation {entType} {
 # -------------------------------------------------------------------------------
 proc gpmiAnnotationReport {objEntity} {
   global ao aoname assocGeom badAttributes cells circleCenter col currx3dPID curveTrim dirRatio dirType draughtingModels draftModelCameraNames
-  global draftModelCameras driPropID ent entAttrList entCount entLevel equivUnicodeString gen geomType gpmiEnts gpmiID gpmiIDRow
-  global gpmiName gpmiRow gpmiTypes gpmiTypesInvalid gpmiTypesPerFile gpmiValProp grayBackground iCompCurve iCompCurveSeg iPolyline
-  global leaderCoords leaderLineID nindex numCompCurve numCompCurveSeg numPolyline numx3dPID objEntity1 opt placeAxes placeBox placeCoords placeSavedView
-  global placeSymbol pmiCol pmiColumns pmiHeading pmiStartCol propDefIDs recPracNames savedViewCol savedViewName spaces spmiTypesPerFile stepAP syntaxErr
-  global tessCoord tessIndex tessIndexCoord tessPlacement tessPlacementID tessRepo useXL
+  global draftModelCameras driPropID ent entAttrList entCount entLevel equivUnicodeString gen geomType gpmiEnts gpmiID gpmiIDRow gpmiName
+  global gpmiRow gpmiTypes gpmiTypesInvalid gpmiTypesPerFile gpmiValProp grayBackground iCompCurve iCompCurveSeg iPolyline leaderCoords
+  global leaderLineID nindex numCompCurve numCompCurveSeg numPolyline numx3dPID objEntity1 opt placeAxes placeBox placeCoords placeSavedView
+  global placeSymbol pmiCol pmiColumns pmiHeading pmiStartCol propDefIDs recPracNames savedViewCol savedViewName spaces spmiTypesPerFile stepAP
+  global syntaxErr tessCoord tessIndex tessIndexCoord tessPlacement tessPlacementID tessRepo useXL
   global x3dColor x3dCoord x3dFile x3dFileName x3dIndex x3dIndexType x3dMax x3dMin x3dPID x3dPoint x3dShape x3dStartFile
 
 # entLevel is very important, keeps track level of entity in hierarchy
@@ -1484,23 +1484,55 @@ proc gpmiEquivUnicodeString {eus} {
 # get camera models
 proc pmiGetCameras {} {
   global objDesign
-  global draughtingModels draftModelCameraNames draftModelCameras entCount gen mytemp opt recPracNames savedViewFile savedViewDMName
-  global savedViewFileName savedViewItems savedViewName savedViewNames savedViewpoint spaces spmiTypesPerFile stepAP syntaxErr viewsWithPMI
+  global cameraModels cmNameID draughtingModels draftModelCameraNames draftModelCameras dupViewpoint entCount gen mytemp opt
+  global recPracNames savedViewFile savedViewDMName savedViewFileName savedViewItems savedViewName savedViewNames savedViewpoint
+  global spaces spmiTypesPerFile stepAP syntaxErr viewsWithPMI
 
+  outputMsg " Processing viewpoints (camera_model_d3)" green
   catch {unset draftModelCameras}
   catch {unset draftModelCameraNames}
   checkTempDir
 
 # camera list
   set cmlist {}
-  foreach cms [list camera_model_d3 camera_model_d3_multi_clipping camera_model_d3_with_hlhsr camera_model_d3_with_light_sources] {
-    if {[info exists entCount($cms)]} {if {$entCount($cms) > 0} {lappend cmlist $cms}}
-  }
+  foreach cms $cameraModels {if {[info exists entCount($cms)]} {if {$entCount($cms) > 0} {lappend cmlist $cms}}}
 
+# get camera model names, check for duplicates
   if {[llength $cmlist] > 0} {
-    if {[catch {
+    set cmnames {}
+    foreach cm $cmlist {
+      ::tcom::foreach e0 [$objDesign FindObjects [string trim $cm]] {
+        if {[$e0 Type] == $cm} {
+          set cmname [[[$e0 Attributes] Item [expr 1]] Value]
+          regsub -all {\[} $cmname "" cmname
+          regsub -all {\]} $cmname "" cmname
+          set cmname [string trim $cmname]
+          set cmNameID([$e0 P21ID]) $cmname
+          lappend cmnames $cmname
+        }
+      }
+    }
+
+# check for duplicate names
+    set dupViewpoint {}
+    set dupnames {}
+    set cmnames [lsort $cmnames]
+    for {set i 1} {$i < [llength $cmnames]} {incr i} {if {[lindex $cmnames $i] == [lindex $cmnames $i-1]} {lappend dupnames [lindex $cmnames $i]}}
+    set dupnames [lrmdups $dupnames]
+
+# for duplicates, append number to name
+    if {[llength $dupnames] > 0} {
+      foreach dname $dupnames {set num{$dname} 0}
+      foreach id [lsort -integer [array names cmNameID]] {
+        if {[lsearch $dupnames $cmNameID($id)] != -1} {
+          set cmNameID($id) "$cmNameID($id) ([incr num($cmNameID($id))])"
+        }
+      }
+    }
+    if {[llength $dupnames] > 0} {outputMsg " Appending number to duplicate viewpoint names" red}
 
 # loop over camera model entities
+    if {[catch {
       foreach cm $cmlist {
         ::tcom::foreach entCameraModel [$objDesign FindObjects [string trim $cm]] {
           if {[$entCameraModel Type] == $cm} {
@@ -1551,9 +1583,7 @@ proc pmiGetCameras {} {
                 ::tcom::foreach attrCameraModel $attrCameraModels {
                   set nameCameraModel [$attrCameraModel Name]
                   if {$nameCameraModel == "name"} {
-                    set name [$attrCameraModel Value]
-                    regsub -all {\[} $name "" name
-                    regsub -all {\]} $name "" name
+                    set name $cmNameID([$entCameraModel P21ID])
                     set name1 [string trim $name]
                     if {$name1 == ""} {set name1 "Missing name"}
                     set savedViewDMName($name1) $dmname
@@ -1591,7 +1621,7 @@ proc pmiGetCameras {} {
                         if {$opt(viewParallel)} {
                           set parallelView 1
                         } elseif {$gen(View) && $opt(viewPart)} {
-                          errorMsg " Try the option for parallel projection viewpoints on the More tab."
+                          errorMsg " Try the option for parallel projection viewpoints (More tab)."
                         }
                       }
 
@@ -1631,6 +1661,15 @@ proc pmiGetCameras {} {
                     set refdir [[[[[[$a2p3d Attributes] Item [expr 4]] Value] Attributes] Item [expr 2]] Value]
                     lappend savedViewpoint($name1) [x3dGetRotation $axis $refdir]
                     lappend savedViewpoint($name1) $axis
+                  }
+                }
+
+# check for duplicate viewpoint position and orientation
+                catch {
+                  foreach svn [array names savedViewpoint] {
+                    if {$svn != $name1} {
+                      if {$savedViewpoint($svn) == $savedViewpoint($name1)} {lappend dupViewpoint $name1; break}
+                    }
                   }
                 }
 
@@ -1674,6 +1713,10 @@ proc pmiGetCameras {} {
           }
         }
       }
+
+# report duplicate viewpoints
+      if {[llength $dupViewpoint] > 0} {errorMsg " Some viewpoints (position and orientation) are identical to another" red}
+
     } emsg]} {
       errorMsg "Error getting Camera Models: $emsg"
       catch {raise .}

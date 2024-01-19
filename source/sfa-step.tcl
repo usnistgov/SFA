@@ -728,7 +728,7 @@ proc getStepAP {fname} {
 
 #-------------------------------------------------------------------------------
 proc getSchemaFromFile {fname {limit 0}} {
-  global cadApps cadSystem commasep developer opt p21e3 rawBytes timeStamp unicodeInFile useXL
+  global cadApps cadSystem developer opt p21e3 rawBytes timeStamp unicodeInFile useXL
 
   set p21e3 0
   set schema ""
@@ -791,16 +791,6 @@ proc getSchemaFromFile {fname {limit 0}} {
       if {[file size $fname] <= 10000000} {set opt(xlUnicode) 1}
       set unicodeInFile 1
       if {!$opt(xlUnicode) && $limit} {errorMsg "Symbols or non-English text found for some entity attributes.  See the More tab to process those symbols and characters.  Also see Help > Text Strings and Numbers." red}
-    }
-
-# check for comma separators
-    if {![info exists commasep] && $nline < 1000} {
-      if {[string first "CARTESIAN_POINT" $line] != -1 || [string first "DIRECTION" $line] != -1} {
-        if {[string first "." $line] == -1} {
-          errorMsg "The STEP file uses a comma ',' as the decimal separator instead of a period '.'  This does not\nconform to STEP Part 21 section 6.4.2 for the representation of real numbers.  The spreadsheet\nwill not report the correct real numbers and the viewer will not work.  Run the Syntax Checker."
-          set commasep 1
-        }
-      }
     }
 
 # check for OPTIONS comment

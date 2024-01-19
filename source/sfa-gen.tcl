@@ -1,18 +1,23 @@
 # generate an Excel spreadsheet and/or view from a STEP file
 proc genExcel {{numFile 0}} {
-  global allEntity aoEntTypes ap203all ap214all ap242all ap242only ap242ed ap242XML badAttributes buttons cadSystem cells cells1
-  global col col1 commaSeparator count csvdirnam csvfile csvinhome currLogFile dim draughtingModels driUnicode entCategories entCategory
-  global entColorIndex entCount entityCount entsIgnored entsWithErrors env epmi epmiUD errmsg equivUnicodeStringErr excel excelVersion fcsv
-  global feaFirstEntity feaLastEntity File fileEntity filesProcessed fileSumRow gen gpmiTypesInvalid gpmiTypesPerFile idRow idxColor ifcsvrDir inverses
-  global lastXLS lenfilelist localName localNameList logFile matrixList multiFile multiFileDir mydocs mytemp nistCoverageLegend nistName
-  global nistPMIexpected nistPMImaster noFontFile nprogBarEnts opt pf32 p21e3Section pmiCol resetRound row rowmax savedViewButtons savedViewName
-  global savedViewNames scriptName sheetLast skipEntities skipFileName skipPerm spmiEntity spmiSumName spmiSumRow spmiTypesPerFile startrow statsOnly
-  global stepAP stepAPreport sumHeaderRow syntaxErr tessColor thisEntType timeStamp tlast tolNames tolStandard tolStandards totalEntity unicodeActual unicodeAttributes
-  global unicodeEnts unicodeInFile unicodeNumEnts unicodeString userEntityFile userEntityList useXL uuid uuidEnts valRounded viz wdir workbook workbooks
-  global worksheet worksheet1 worksheets writeDir wsCount wsNames x3dAxes x3dColor x3dColorFile x3dColors x3dFileName x3dIndex x3dMax x3dMin
-  global x3dMsg x3dMsgColor x3dStartFile x3dViewOK xlFileName xlFileNames xlInstalled
+  global allEntity aoEntTypes ap203all ap214all ap242all ap242only ap242ed ap242XML badAttributes buttons cadSystem cameraModels cells cells1
+  global col col1 commaSeparator count csvdirnam csvfile csvinhome currLogFile developer dim draughtingModels driUnicode entCategories entCategory
+  global entColorIndex entCount entityCount entsIgnored entsWithErrors env epmi epmiUD errmsg equivUnicodeStringErr excel fcsv
+  global feaFirstEntity feaLastEntity File fileEntity filesProcessed fileSumRow gen gpmiTypesInvalid gpmiTypesPerFile guiSFA idRow idxColor
+  global ifcsvrDir inverses lastXLS lenfilelist localName localNameList logFile matrixList multiFile multiFileDir mydocs mytemp nistCoverageLegend
+  global nistName nistPMIexpected nistPMImaster noFontFile nprogBarEnts opt pf32 p21e3Section pmiCol resetRound row rowmax savedViewButtons
+  global savedViewName savedViewNames scriptName sheetLast skipEntities skipFileName skipPerm spmiEntity spmiSumName spmiSumRow spmiTypesPerFile
+  global startrow statsOnly stepAP stepAPreport sumHeaderRow syntaxErr tessColor thisEntType timeStamp tlast tolNames tolStandard tolStandards
+  global totalEntity unicodeActual unicodeAttributes unicodeEnts unicodeInFile unicodeNumEnts unicodeString userEntityFile userEntityList
+  global userWriteDir useXL uuid uuidEnts valRounded viz wdir workbook workbooks worksheet worksheet1 worksheets writeDir wsCount wsNames x3dAxes
+  global x3dColor x3dColorFile x3dColors x3dFileName x3dIndex x3dMax x3dMin x3dMsg x3dMsgColor x3dStartFile x3dViewOK xlFileName xlFileNames xlInstalled
   global objDesign
 
+# check a few variables
+  set writeDir $userWriteDir
+  if {![info exists gen(Excel)]} {set gen(Excel) 1}
+  set guiSFA 1
+  if {[string first "sfa-cl.exe" $scriptName] != -1} {set guiSFA 0}
   if {[info exists errmsg]} {set errmsg ""}
 
 # check for permissions to write to the same directory as the STEP file
@@ -272,7 +277,7 @@ proc genExcel {{numFile 0}} {
 
 # make sure some entity types are always processed
           if {$opt(xlFormat) != "None"} {
-            foreach cat {stepCOMP stepKINE stepFEAT stepAP242 stepQUAL stepCONS} {
+            foreach cat {stepCOMP stepKINE stepFEAT stepAP242 stepQUAL stepCONS stepOTHR} {
               if {$opt($cat) == 0 && [lsearch $entCategory($cat) $entType] != -1} {
                 set opt($cat) 1
                 checkValues
@@ -465,7 +470,8 @@ proc genExcel {{numFile 0}} {
       set useXL 0
       set xlInstalled 0
       if {$opt(xlFormat) == "Excel"} {
-        errorMsg "Excel is not installed or cannot be started: $emsg\n CSV files will be generated instead of a spreadsheet.  See the Generate options.  Some options are disabled."
+        errorMsg "Excel is not installed or cannot be started: $emsg\n CSV files will be generated instead of a spreadsheet.  Analyzer options are disabled."
+        outputMsg " "
         set opt(xlFormat) "CSV"
         catch {raise .}
       }
@@ -641,7 +647,7 @@ proc genExcel {{numFile 0}} {
 
   if {![info exists entityTypeNames]} {
     set msg "The STEP file cannot be processed."
-    if {!$opt(syntaxChecker)} {append msg "\n Use F8 to run the Syntax Checker to check for errors in the STEP file.\n See Help > Syntax Checker"}
+    if {!$opt(syntaxChecker) && $guiSFA} {append msg "\n Use F8 to run the Syntax Checker to check for errors in the STEP file.\n See Help > Syntax Checker"}
     errorMsg $msg
     return
   }
@@ -665,7 +671,7 @@ proc genExcel {{numFile 0}} {
       }
 
 # check entity count vs. max rows
-      if {$gen(Excel) && [lsearch $entCategories $entType] != -1} {
+      if {$gen(Excel) && $guiSFA && [lsearch $entCategories $entType] != -1} {
         if {$entCount($entType) > 10003 && $opt(xlMaxRows) > 10003} {
           if {$msgcount == ""} {set msgcount "The number of entities > 10000 for some types of entities.  Consider using a smaller value for Maximum Rows."}
           if {[lsearch $entCategory(stepGEOM) $entType] != -1 || [lsearch $entCategory(stepCPNT) $entType] != -1} {
@@ -850,7 +856,7 @@ proc genExcel {{numFile 0}} {
       append msg " [truncFileName [file nativename $skipFileName]]"
       errorMsg $msg
       foreach item [lsort $skipList] {outputMsg " [formatComplexEnt $item]" red}
-      errorMsg "Use F8 to run the Syntax Checker and See Help > Crash Recovery"
+      if {$guiSFA} {errorMsg "Use F8 to run the Syntax Checker and See Help > Crash Recovery"}
     }
   }
 
@@ -1068,7 +1074,9 @@ proc genExcel {{numFile 0}} {
     set tlast [clock clicks -milliseconds]
 
 # find camera models used in draughting model items
-    pmiGetCameras
+    if {$gen(View) || ($gen(Excel) && $opt(PMIGRF))} {
+      foreach cms $cameraModels {if {[info exists entCount($cms)]} {pmiGetCameras; break}}
+    }
 
 # get validation properties related to graphical or semantic PMI
     if {$opt(PMIGRF) || $opt(PMISEM)} {getValProps}
@@ -1265,6 +1273,7 @@ proc genExcel {{numFile 0}} {
       errorMsg "\nProcessing UUID attributes" blue
       set noUUIDent {}
       set allUUID {}
+      catch {unset uuid}
 
 # read step file for UUID entities
       set f [open $localName r]
@@ -1293,8 +1302,8 @@ proc genExcel {{numFile 0}} {
               if {[lsearch $allUUID $pid] == -1} {
                 lappend allUUID $pid
               } else {
-                errorMsg " UUID is identical to a previous value on $ent"
-                lappend syntaxErr([string tolower $ent]) [list $entid identifier " UUID is identical to a previous value"]
+                errorMsg " UUID is identical to another on [string tolower $ent]"
+                lappend syntaxErr([string tolower $ent]) [list $entid identifier " UUID is identical to another"]
               }
               set uuidstr $pid
               if {[string index $ent 0] == "V"} {append uuidstr " (v[string index $ent 1])"}
@@ -1314,13 +1323,18 @@ proc genExcel {{numFile 0}} {
                 if {$c2 != -1} {set eid [string range $eid 0 $c2-1]}
                 set c2 [string first "(" $eid]
                 if {$c2 != -1} {set eid [string range $eid $c2+1 end]}
-  
+
                 set e1 [$objDesign FindObjectByP21Id [expr $eid]]
                 set uuidEnt [$e1 Type]
                 if {[lsearch $uuidEnts $uuidEnt] == -1} {lappend uuidEnts $uuidEnt}
+                if {[info exists uuid($uuidEnt,[$e1 P21ID])]} {
+                  errorMsg " Multiple UUIDs are associated with the same entity"
+                  lappend syntaxErr([string tolower $ent]) [list $entid identified_item " Multiple UUIDs are associated with the same entity"]
+                }
                 set uuid($uuidEnt,[$e1 P21ID]) $uuidstr
                 set okid 1
                 if {![info exist cells($uuidEnt)]} {lappend noUUIDent $uuidEnt}
+                if {$iditem != ""} {errorMsg " Some UUIDs are associated with multiple entities" red}
                 append iditem "[formatComplexEnt $uuidEnt] [$e1 P21ID]   "
               }
 
@@ -1600,7 +1614,7 @@ proc genExcel {{numFile 0}} {
     if {$useXL} {
       if {$ok} {
         openXLS $xlfn
-      } elseif {!$opt(outputOpen) && $numFile == 0 && [string first "STEP-File-Analyzer.exe" $scriptName] != -1} {
+      } elseif {!$opt(outputOpen) && $numFile == 0 && $guiSFA} {
         outputMsg " Use F2 to open the Spreadsheet" red
       }
     }
@@ -1659,7 +1673,7 @@ proc genExcel {{numFile 0}} {
   update idletasks
 
 # unset variables
-  foreach var {ap242XML assemTransformPMI brepScale cells cgrObjects colColor commasep count currx3dPID datumEntType datumGeom datumIDs datumSymbol datumSystem datumSystemPDS defComment dimrep dimrepID dimtolEnt dimtolEntID dimtolGeom draughtingModels draftModelCameraNames draftModelCameras driPropID entCount entName entsIgnored epmi epmiUD equivUnicodeString feaDOFR feaDOFT feaNodes fileSumRow fontErr gpmiID gpmiIDRow gpmiRow heading idRow invCol invGroup noFontFile nrep numx3dPID placeAxesDef placeSphereDef pmiCol pmiColumns pmiStartCol pmivalprop propDefID propDefIDRow propDefName propDefOK propDefRow ptzError savedsavedViewNames savedViewFile savedViewFileName savedViewItems savedViewNames savedViewpoint savedViewVP shapeRepName srNames suppGeomEnts syntaxErr taoLastID tessCoord tessCoordName tessIndex tessIndexCoord tessPlacement tessRepo trimVal unicode unicodeActual unicodeNumEnts unicodeString viz vpEnts workbook workbooks worksheet worksheets x3dCoord x3dFile x3dFileName x3dIndex x3dMax x3dMin x3dStartFile} {
+  foreach var {ap242XML assemTransformPMI brepScale cells cgrObjects cmNameID colColor commasep count currx3dPID datumEntType datumGeom datumIDs datumSymbol datumSystem datumSystemPDS defComment dimrep dimrepID dimtolEnt dimtolEntID dimtolGeom draughtingModels draftModelCameraNames draftModelCameras driPropID entCount entName entsIgnored epmi epmiUD equivUnicodeString feaDOFR feaDOFT feaNodes fileSumRow fontErr gpmiID gpmiIDRow gpmiRow heading idRow invCol invGroup noFontFile nrep numx3dPID placeAxesDef placeSphereDef pmiCol pmiColumns pmiStartCol pmivalprop propDefID propDefIDRow propDefName propDefOK propDefRow ptzError savedsavedViewNames savedViewFile savedViewFileName savedViewItems savedViewNames savedViewpoint savedViewVP shapeRepName srNames suppGeomEnts syntaxErr taoLastID tessCoord tessCoordName tessIndex tessIndexCoord tessPlacement tessRepo trimVal unicode unicodeActual unicodeNumEnts unicodeString viz vpEnts workbook workbooks worksheet worksheets x3dCoord x3dFile x3dFileName x3dIndex x3dMax x3dMin x3dStartFile} {
     catch {global $var}
     if {[info exists $var]} {unset $var}
   }
@@ -1741,17 +1755,20 @@ proc addHeaderWorksheet {numFile fname} {
           set msg ""
           if {$id == 1} {
             append str " (Edition 1)"
-            if {[llength $ap242ed(2)] > 0 || [llength $ap242ed(3)] > 0} {
-              errorMsg "Syntax Error: The STEP file contains entities related to AP242 Edition 2 or 3 ([join [lrmdups [concat $ap242ed(2) $ap242ed(3)]]]),$spaces\however, the file is identified as Edition 1."
+            if {[llength $ap242ed(2)] > 0 || [llength $ap242ed(3)] > 0 || [llength $ap242ed(4)] > 0} {
+              errorMsg "Syntax Error: The STEP file contains entities related to AP242 Edition 2, 3, or 4 ([join [lrmdups [concat $ap242ed(2) $ap242ed(3) $ap242ed(4)]]]),$spaces\however, the file is identified as Edition 1."
             }
           } elseif {$id == 2 || $id == 3} {
             append str " (Edition 2)"
-            if {$id == 2} {errorMsg " AP242 Edition 2 should be identified with '3 1 4'" red}
-            if {[llength $ap242ed(3)] > 0} {
-              errorMsg "Syntax Error: The STEP file contains entities related to AP242 Edition 3 ([join $ap242ed(3)]),$spaces\however, the file is identified as Edition 2."
+            if {$id == 2} {errorMsg " AP242 Edition 2 should be identified with '\{1 0 10303 442 3 1 4\}'" red}
+            if {[llength $ap242ed(3)] > 0 || [llength $ap242ed(4)] > 0} {
+              errorMsg "Syntax Error: The STEP file contains entities related to AP242 Edition 3 or 4 ([join [lrmdups [concat $ap242ed(3) $ap242ed(4)]]]),$spaces\however, the file is identified as Edition 2."
             }
           } elseif {$id == 4} {
             append str " (Edition 3)"
+            if {[llength $ap242ed(4)] > 0} {
+              errorMsg "Syntax Error: The STEP file contains entities related to AP242 Edition 4 ([join $ap242ed(4)]),$spaces\however, the file is identified as Edition 3."
+            }
           } elseif {$id == 5} {
             append str " (Edition 4)"
           } elseif {$id > 99} {
@@ -1890,7 +1907,7 @@ proc addHeaderWorksheet {numFile fname} {
           if {[string first "Autodesk Inventor"       $fos] != -1} {set app1 $fos}
           if {[string first "SolidWorks 2"            $fos] != -1} {set app1 $fos}
           if {[string first "MBDVidia"                $fos] != -1} {set app1 "MBDVidia"}
-          if {[string first "SIEMENS PLM Software NX" $fos] ==  0} {set app1 "Siemens NX [string range $fos 23 end]"}
+          if {[string first "SIEMENS PLM Software NX" $fos] ==  0} {set app1 "Siemens NX [string range $fos 24 end]"}
           if {[string first "Kubotek Kosmos"          $fpv] != -1} {set app1 "Kubotek Kosmos"}
           if {[string first "THEOREM"                 $fpv] != -1} {set app1 "Theorem Solutions"}
 
@@ -1936,8 +1953,8 @@ proc addHeaderWorksheet {numFile fname} {
       set colsum [expr {$col1(Summary)+1}]
       if {$colsum > 16} {[$excel1 ActiveWindow] ScrollColumn [expr {$colsum-16}]}
       if {[string length $app2] > 35} {set app2 "[string range $app2 0 34]..."}
-      regsub -all " " $app2 [format "%c" 10] app2
-      $cells1(Summary) Item 6 $colsum [string trim $app2]
+      regsub -all " " $app2 [format "%c" 10] app3
+      $cells1(Summary) Item 6 $colsum [string trim $app3]
     }
     set cadSystem $app2
     if {$cadSystem == ""} {set cadSystem [setCAXIFvendor]}

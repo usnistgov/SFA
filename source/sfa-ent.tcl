@@ -54,11 +54,9 @@ proc getEntity {objEntity rmax checkInverse checkBadAttributes unicodeCheck} {
     set count($thisEntType) 0
     set invMsg ""
 
-# color tab, not available in very old versions of Excel
-    catch {
-      set cidx [setColorIndex $thisEntType]
-      if {$cidx > 0} {[$worksheet($thisEntType) Tab] ColorIndex [expr $cidx]}
-    }
+# color tab
+    set cidx [setColorIndex $thisEntType]
+    if {$cidx > 0} {[$worksheet($thisEntType) Tab] ColorIndex [expr $cidx]}
 
     set wsCount [$worksheets Count]
     set sheetLast $worksheet($thisEntType)

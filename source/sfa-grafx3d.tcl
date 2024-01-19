@@ -10,7 +10,7 @@ proc x3dFileStart {} {
   if {![info exists stepAP]} {set stepAP [getStepAP $localName]}
   if {[string first "IFC" $stepAP] == 0 || [string first "ISO" $stepAP] == 0 || $stepAP == "AP210" || \
       $stepAP == "CUTTING_TOOL_SCHEMA_ARM" || $stepAP == "STRUCTURAL_FRAME_SCHEMA"} {
-    set msg "The Viewer only works with STEP AP242, AP203, AP214, and AP209 files.  See Help > Support STEP APs"
+    set msg "The Viewer only works with STEP AP242, AP203, AP214, AP238, and AP209 files.  See Help > Support STEP APs"
     if {$stepAP == "STRUCTURAL_FRAME_SCHEMA"} {append msg "\n Use the NIST SteelVis viewer for CIS/2 files."}
     errorMsg $msg
     set x3dViewOK 0
@@ -133,10 +133,11 @@ proc x3dFileStart {} {
 # -------------------------------------------------------------------------------
 # finish x3d file, write lots of geometry, set viewpoints, add navigation and background color, and close x3dom file
 proc x3dFileEnd {} {
-  global ao ap242XML assemblyTransform axesDef brepFile brepFileName clippingCap clippingDef clipPlaneName datumTargetView delt edgeMatID entCount grayBackground leaderCoords matTrans maxxyz
-  global nclipPlane nistName noGroupTransform nsketch numTessColor opt parts partstg placeCoords planeDef placeSize rosetteGeom samplingPoints savedViewButtons
-  global savedViewDMName savedViewFile savedViewFileName savedViewItems savedViewNames savedViewpoint savedViewVP sphereDef spmiTypesPerFile stepAP
-  global tessCoord tessEdges tessPartFile tessPartFileName tessRepo tsName viewsWithPMI viz xyzcen x3dApps x3dAxes x3dBbox x3dCoord x3dFile x3dFileNameSave
+  global ao ap242XML assemblyTransform axesDef brepFile brepFileName clippingCap clippingDef clipPlaneName cmNameID datumTargetView delt
+  global edgeMatID entCount grayBackground leaderCoords matTrans maxxyz nclipPlane nistName noGroupTransform nsketch numTessColor opt parts
+  global partstg placeCoords planeDef placeSize rosetteGeom samplingPoints savedViewButtons savedViewDMName savedViewFile savedViewFileName
+  global savedViewItems savedViewNames savedViewpoint savedViewVP sphereDef spmiTypesPerFile stepAP tessCoord tessEdges tessPartFile
+  global tessPartFileName tessRepo tsName viewsWithPMI viz xyzcen x3dApps x3dAxes x3dBbox x3dCoord x3dFile x3dFileNameSave
   global x3dFiles x3dFileSave x3dIndex x3dMax x3dMin x3dMsg x3dPartClick x3dParts x3dShape x3dStartFile x3dTessParts x3dTitle x3dViewOK
   global objDesign
 
@@ -218,7 +219,7 @@ proc x3dFileEnd {} {
       ::tcom::foreach cm [$objDesign FindObjects [string trim camera_model_d3_multi_clipping]] {
         if {[catch {
           set cplanes {}
-          set cpname [[[$cm Attributes] Item [expr 1]] Value]
+          set cpname $cmNameID([$cm P21ID])
           set e0 [[[$cm Attributes] Item [expr 4]] Value]
           if {$opt(PMISEM)} {lappend spmiTypesPerFile "section views"}
 
@@ -413,7 +414,7 @@ proc x3dFileEnd {} {
           }
 
 # saved view with no PMI
-        } elseif {$opt(viewPMI)} {
+        } elseif {$viz(PMI) && $opt(viewPMI) && $opt(viewNoPMI)} {
           set svMap($svn) $svn
           set viewsWithPMI($svn) $i
           lappend savedViewButtons $svn
@@ -779,15 +780,23 @@ proc x3dFileEnd {} {
         puts $x3dFile "<details><summary>Saved View Graphical PMI</summary>"
       }
     }
-    if {[info exists savedViewVP] && $opt(viewPMIVP)} {puts $x3dFile "<br><font size='-1'>(PageDown to switch Saved Views)</font>"}
+    if {[info exists savedViewVP]} {
+      if {$opt(viewPMIVP)} {
+        puts $x3dFile "<br><font size='-1'>(PageDown to switch Saved Views)</font>"
+      } elseif {[llength $savedViewButtons] > 1} {
+        errorMsg " Try the option for Saved View Viewpoints (Generate tab)."
+      }
+    }
 
     foreach svn $savedViewButtons {
       set str ""
       if {$sv} {append str "<br>"}
       set id [lsearch $savedViewNames $svn]
       set svname $svn
+
+# draughting model name not the same as the camera model name
       if {[info exists savedViewDMName($svn)]} {
-        if {$savedViewDMName($svn) != $svn && [string first "\[" $savedViewDMName($svn)] == -1 && [string first "\]" $savedViewDMName($svn)] == -1} {set svname "$savedViewDMName($svn) ($svn)"}
+        if {$savedViewDMName($svn) != $svn && [string first "\[" $savedViewDMName($svn)] == -1 && [string first "\]" $savedViewDMName($svn)] == -1} {set svname "$savedViewDMName($svn) / $svn"}
       }
       append str "<input type='checkbox' id='cbView$id' checked onclick='togView$id\(this.value)'/>$svname"
       puts $x3dFile $str
