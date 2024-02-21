@@ -438,6 +438,13 @@ proc spmiGeotolReport {objEntity} {
 
 # get projected tolerance zone (6.9.2.2)
                       spmiProjectedToleranceZone $objGuiEntity
+
+# get affected plane association (6.9.2.1)
+                      set e0s [$objGuiEntity GetUsedIn [string trim shape_aspect_relationship] [string trim relating_shape_aspect]]
+                      ::tcom::foreach e0 $e0s {
+                        set apa [[[$e0 Attributes] Item [expr 1]] Value]
+                        if {$apa == "affected plane association"} {lappend spmiTypesPerFile "affected plane tolerance zone"}
+                      }
                     }
 
 # -------------------------------------------------------------------------------

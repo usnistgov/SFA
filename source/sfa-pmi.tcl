@@ -172,7 +172,6 @@ proc x3dTessGeom {objID tessEnt faceEnt {aoname ""}} {
 # shape
         set idstr ""
         if {[info exists idshape]} {if {$idshape != ""} {set idstr " id='$idshape'"}}
-          #outputMsg "shape $idstr" blue
         if {$emit == ""} {
           set matID ""
           set colorID [lsearch $x3dColors $x3dColor]
@@ -238,7 +237,7 @@ proc x3dTessGeom {objID tessEnt faceEnt {aoname ""}} {
 
 # write mesh
             set ecolor ""
-            foreach c [split $x3dColor] {append ecolor "[expr {$c*.5}] "}
+            foreach c [split $x3dColor] {append ecolor "[expr {$c*.25}] "}
             set defstr ""
             if {$nplace > 1} {set defstr " DEF='mesh$objID'"}
             puts $f "<Shape$idstr$defstr><Appearance><Material emissiveColor='$ecolor'/></Appearance>"

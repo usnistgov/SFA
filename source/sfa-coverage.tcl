@@ -199,11 +199,7 @@ proc spmiCoverageStart {{multi 1}} {
       set cells1($spmiCoverageWS) [$worksheet1($spmiCoverageWS) Cells]
       $cells1($spmiCoverageWS) Item 1 2 "[file nativename $multiFileDir]"
       $cells1($spmiCoverageWS) Item 3 1 "PMI Element[format "%c" 10]  (See Help > Analyzer > PMI Coverage Analysis)"
-      set range [$worksheet1($spmiCoverageWS) Range A3]
-      [$range Font] Bold [expr 1]
-
       set range [$worksheet1($spmiCoverageWS) Range "B1:K1"]
-      [$range Font] Bold [expr 1]
       $range MergeCells [expr 1]
     }
 
@@ -216,7 +212,7 @@ proc spmiCoverageStart {{multi 1}} {
     foreach item $spmiTypes {
       set str0 [join $item]
       set str $str0
-      if {$str != "square" && $str != "controlled_radius"} {
+      if {$str != "controlled_radius"} {
         if {[info exists pmiModifiers($str0)]}   {append str "  $pmiModifiers($str0)"}
         if {[info exists pmiModifiersRP($str0)]} {append str "  ($pmiModifiersRP($str0))"}
 
@@ -454,10 +450,13 @@ proc spmiCoverageFormat {sum {multi 1}} {
 
 # final formatting (multi file)
       set range [$worksheet1($spmiCoverageWS) Range A3]
+      [$range Font] Bold [expr 1]
       foreach i {0 1} {
         $range WrapText [expr $i]
         [$worksheet1($spmiCoverageWS) Columns] AutoFit
       }
+      set range [$worksheet1($spmiCoverageWS) Range B1]
+      [$range Font] Bold [expr 1]
 
       set r2 [expr {[[[$worksheet1($spmiCoverageWS) UsedRange] Rows] Count]+1}]
       if {$nistName != "" || [info exists epmiMulti]} {set r2 [expr {[[[$worksheet1($spmiCoverageWS) UsedRange] Rows] Count]-8}]}
@@ -544,11 +543,7 @@ proc gpmiCoverageStart {{multi 1}} {
       set cells1($gpmiCoverageWS) [$worksheet1($gpmiCoverageWS) Cells]
       $cells1($gpmiCoverageWS) Item 1 2 "[file nativename $multiFileDir]"
       $cells1($gpmiCoverageWS) Item 3 1 "PMI Presentation Names"
-      set range [$worksheet1($gpmiCoverageWS) Range A3]
-      [$range Font] Bold [expr 1]
-
       set range [$worksheet1($gpmiCoverageWS) Range "B1:K1"]
-      [$range Font] Bold [expr 1]
       $range MergeCells [expr 1]
       set row1($gpmiCoverageWS) 3
 
@@ -750,6 +745,12 @@ proc gpmiCoverageFormat {{sum ""} {multi 1}} {
     if {$multi} {
       set range [$worksheet1($gpmiCoverageWS) Range [cellRange 1 $col1($gpmiCoverageWS)] [cellRange [expr {[lindex $idx1 end]-1}] $col1($gpmiCoverageWS)]]
       catch {[[$range Borders] Item [expr 7]] Weight [expr 2]}
+
+# bold
+      set range [$worksheet1($gpmiCoverageWS) Range A3]
+      [$range Font] Bold [expr 1]
+      set range [$worksheet1($gpmiCoverageWS) Range B1]
+      [$range Font] Bold [expr 1]
 
 # fix row 3 height and width
       set range [$worksheet1($gpmiCoverageWS) Range 3:3]

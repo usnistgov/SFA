@@ -153,15 +153,13 @@ proc openMultiFile {{ask 1}} {
               $worksheet1($sum) Name "File Summary"
               set cells1($sum) [$worksheet1($sum) Cells]
               $cells1($sum) Item 1 1 "STEP Directory"
-              set range [$worksheet1($sum) Range [cellRange 1 2]]
               $cells1($sum) Item 1 2 "[file nativename $multiFileDir]"
+              set range [$worksheet1($sum) Range "B1:K1"]
+              $range MergeCells [expr 1]
 
 # set startrow
               set startrow 9
               $cells1($sum) Item $startrow 1 "Entity"
-              set range [$worksheet1($sum) Range "B1:K1"]
-              [$range Font] Bold [expr 1]
-              $range MergeCells [expr 1]
               set col1($sum) 1
 
 # orientation for file info
@@ -404,6 +402,7 @@ proc openMultiFile {{ask 1}} {
 # bold text
             set range [$worksheet1($sum) Range [cellRange 5 1] [cellRange $startrow [expr {$col1($sum)}]]]
             [$range Font] Bold [expr 1]
+            [[$worksheet1($sum) Range "B1"] Font] Bold [expr 1]
 
             [$worksheet1($sum) Columns] AutoFit
 

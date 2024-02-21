@@ -1,5 +1,5 @@
 # SFA version
-proc getVersion {} {return 5.06}
+proc getVersion {} {return 5.07}
 
 # see proc installIFCsvr in sfa-proc.tcl for the IFCsvr version
 # see below (line 37) for the sfaVersion when IFCsvr was updated
@@ -650,14 +650,13 @@ proc guiGenerateTab {} {
   incr cb
   pack $foptv21 -side top -anchor w -pady {0 5} -padx {26 10} -fill y
 
-# graphical pmi
+# graphical PMI
   set foptv3 [frame $foptv.3 -bd 0]
-  foreach item {{" Graphical PMI" opt(viewPMI)} {" Saved View Viewpoints" opt(viewPMIVP)}} {
-    set idx [string range [lindex $item 1] 4 end-1]
-    set buttons($idx) [ttk::checkbutton $foptv3.$cb -text [lindex $item 0] -variable [lindex $item 1] -command {checkValues}]
-    pack $buttons($idx) -side left -anchor w -padx 5 -pady 0 -ipady 0
-    incr cb
-  }
+  set item {" Graphical PMI" opt(viewPMI)}
+  set idx [string range [lindex $item 1] 4 end-1]
+  set buttons($idx) [ttk::checkbutton $foptv3.$cb -text [lindex $item 0] -variable [lindex $item 1] -command {checkValues}]
+  pack $buttons($idx) -side left -anchor w -padx 5 -pady 0 -ipady 0
+  incr cb
   pack $foptv3 -side top -anchor w -pady 0 -padx 0 -fill y
 
   set foptv4 [frame $foptv.4 -bd 0]
@@ -704,8 +703,7 @@ proc guiGenerateTab {} {
   pack $foptRV -side top -anchor w -pady 0 -fill x
   catch {
     tooltip::tooltip $foptv20 "The viewer for part geometry supports b-rep geometry, color,\ntransparency, edges, sketch and supplemental geometry, and\nclipping planes.\n\nThe viewer uses the default web browser.  An Internet connection\nis required.  The viewer does not support measurements.\n\nSee the More tab for more Viewer options.\nSee Help > Viewer > Overview and other topics"
-    tooltip::tooltip $buttons(viewPMI) "Graphical PMI for annotations is supported in AP242, AP203, and\nAP214 files.  Annotation placeholders are supported in AP242.\n\nSee Help > Viewer > Graphical PMI\nSee Help > User Guide (section 4.2)\n\nGraphical PMI must conform to recommended practices.\nSee Websites > CAx Recommended Practices"
-    tooltip::tooltip $buttons(viewPMIVP) "A Saved View is a subset of all graphical PMI which has its own viewpoint\nposition and orientation.  Use PageDown in the viewer to cycle through the\nsaved views to switch to the associated viewpoint and subset of graphical PMI.\nSee the options related to viewpoints on the More tab.\n\nSee User Guide (section 4.2.1)"
+    tooltip::tooltip $buttons(viewPMI) "Graphical PMI for annotations is supported in AP242, AP203, and AP214 files.\nAnnotation placeholders are supported in AP242.\n\nA Saved View is a subset of graphical PMI which has its own viewpoint position\nand orientation.  Use PageDown in the viewer to cycle through saved views to\nswitch to the associated viewpoint and subset of graphical PMI.\n\nSee the options related to viewpoints on the More tab.\nSee Help > Viewer > Graphical PMI\nSee Help > User Guide (section 4.2)\n\nGraphical PMI must conform to recommended practices.\nSee Websites > CAx Recommended Practices"
     tooltip::tooltip $buttons(viewTessPart) "Tessellated part geometry is typically written to an AP242 file instead of\nor in addition to b-rep part geometry.  ** Parts in an assembly might\nhave the wrong position and orientation or be missing. **\n\nSee Help > Viewer > AP242 Tessellated Part Geometry\nSee Help > User Guide (section 4.3)"
     tooltip::tooltip $buttons(tessPartMesh) "Generate a wireframe mesh based on the tessellated faces and surfaces."
     tooltip::tooltip $buttons(feaLoadScale) "The length of load vectors can be scaled by their magnitude.\nLoad vectors are always colored by their magnitude."
@@ -959,7 +957,7 @@ proc guiMoreTab {} {
   catch {
     tooltip::tooltip $fxlsd                "These Viewer options should be selected only if necessary.\nRead the tooltips for each individual option."
     tooltip::tooltip $buttons(xlUnicode)   "Use this option if there are non-English characters or symbols\nencoded with the \\X2\\ control directive in the STEP file.\n\nSee Help > Text Strings and Numbers\nSee User Guide (section 5.5.2)"
-    tooltip::tooltip $buttons(xlSort)      "Worksheets can be sorted by column values.\nThe Properties worksheet is always sorted.\n\nSee Help > User Guide (section 5.5.3)"
+    tooltip::tooltip $buttons(xlSort)      "Worksheets can be sorted by column values.\nWorksheets related to Analyzer options are always sorted.\n\nSee Help > User Guide (section 5.5.3)"
     tooltip::tooltip $buttons(xlNoRound)   "See Help > User Guide (section 5.5.4)"
     tooltip::tooltip $buttons(SHOWALLPMI)  "The complete list of [expr {$pmiElementsMaxRows-3}] PMI Elements, including those that are not in the\nSTEP file, will be shown on the PMI Representation Coverage worksheet.\n\nSee Help > Analyzer > PMI Coverage Analysis\nSee Help > User Guide (section 6.1.7)"
     tooltip::tooltip $buttons(xlHideLinks) "This option is useful when sharing a Spreadsheet with another user."
@@ -1375,8 +1373,8 @@ See Websites > CAx Recommended Practices (Representation and Presentation of PMI
 ---------------------------------------------------------------------------------------------------
 Annotation placeholders, supported in AP242 editions > 1, provide information about the position,
 orientation, and organization of an annotation without the graphic presentation of numeric values
-and symbols for geometric or dimensional tolerances.  Placeholders are not documented in the User
-Guide.
+and symbols for geometric or dimensional tolerances.  Placeholders are associated with saved views
+if there is also graphical PMI.  Placeholders are not documented in the User Guide.
 
 Placeholder coordinate systems are shown with an axes triad, gray sphere, and text label with the
 name of the placeholder.  Leader lines and a rectangle for the annotation are shown with yellow
@@ -2222,6 +2220,7 @@ proc guiWebsitesMenu {} {
   $Websites2 add command -label "EXPRESS Schemas"                -command {openURL https://www.mbx-if.org/cax/cax_express.php}
   $Websites2 add command -label "ISO 10303 Part 11 EXPRESS"      -command {openURL https://www.loc.gov/preservation/digital/formats/fdd/fdd000449.shtml}
   $Websites2 add command -label "EXPRESS data modeling language" -command {openURL https://en.wikipedia.org/wiki/EXPRESS_(data_modeling_language)}
+  $Websites2 add command -label "easyEXPRESS"                    -command {openURL https://www.nist.gov/news-events/news/2023/12/nist-releases-easyexpress-its-first-official-visual-studio-code-extension}
   $Websites2 add separator
   $Websites2 add command -label "AP209 FEA"     -command {openURL http://www.ap209.org}
   $Websites2 add command -label "AP238 STEP-NC" -command {openURL https://www.ap238.org}
@@ -2653,12 +2652,12 @@ proc checkValues {} {
 
 # view
   if {$gen(View)} {
-    foreach b {viewFEA viewPMI viewPMIVP viewTessPart viewPart partOnly partNoCap partNoGroup x3dSave viewParallel viewCorrect viewNoPMI} {lappend butNormal $b}
+    foreach b {viewFEA viewPMI viewTessPart viewPart partOnly partNoCap partNoGroup x3dSave viewParallel viewCorrect viewNoPMI} {lappend butNormal $b}
     if {!$opt(viewFEA) && !$opt(viewPMI) && !$opt(viewTessPart) && !$opt(viewPart)} {set opt(viewPart) 1}
     if {$developer} {lappend butNormal DEBUGX3D}
   } else {
     set opt(x3dSave) 0
-    foreach b {viewFEA viewPMI viewPMIVP viewTessPart viewPart partOnly partNoCap partNoGroup x3dSave viewParallel viewCorrect viewNoPMI} {lappend butDisabled $b}
+    foreach b {viewFEA viewPMI viewTessPart viewPart partOnly partNoCap partNoGroup x3dSave viewParallel viewCorrect viewNoPMI} {lappend butDisabled $b}
     foreach b {gpmiColor0 gpmiColor1 gpmiColor2 gpmiColor3 labelPMIcolor} {lappend butDisabled $b}
     foreach b {partEdges partSketch partSupp partNormals labelPartQuality partQuality4 partQuality7 partQuality10 tessPartMesh} {lappend butDisabled $b}
     foreach b {feaBounds feaLoads feaLoadScale feaDisp feaDispNoTail} {lappend butDisabled $b}
@@ -2793,13 +2792,13 @@ proc checkValues {} {
 
 # graphical PMI view
   if {$opt(viewPMI)} {
-    foreach b {gpmiColor0 gpmiColor1 gpmiColor2 gpmiColor3 labelPMIcolor viewPMIVP viewNoPMI} {lappend butNormal $b}
+    foreach b {gpmiColor0 gpmiColor1 gpmiColor2 gpmiColor3 labelPMIcolor viewNoPMI} {lappend butNormal $b}
     if {$gen(View) && ($gen(Excel) || $gen(CSV)) && $opt(xlFormat) != "None"} {
       set opt(stepPRES) 1
       lappend butDisabled stepPRES
     }
   } else {
-    foreach b {gpmiColor0 gpmiColor1 gpmiColor2 gpmiColor3 labelPMIcolor viewPMIVP viewNoPMI} {lappend butDisabled $b}
+    foreach b {gpmiColor0 gpmiColor1 gpmiColor2 gpmiColor3 labelPMIcolor viewNoPMI} {lappend butDisabled $b}
   }
 
   if {$gen(View)} {

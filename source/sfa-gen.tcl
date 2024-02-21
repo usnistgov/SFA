@@ -1,7 +1,7 @@
 # generate an Excel spreadsheet and/or view from a STEP file
 proc genExcel {{numFile 0}} {
   global allEntity aoEntTypes ap203all ap214all ap242all ap242only ap242ed ap242XML badAttributes buttons cadSystem cameraModels cells cells1
-  global col col1 commaSeparator count csvdirnam csvfile csvinhome currLogFile developer dim draughtingModels driUnicode entCategories entCategory
+  global col col1 commaSeparator count csvdirnam csvfile csvinhome currLogFile dim draughtingModels driUnicode entCategories entCategory
   global entColorIndex entCount entityCount entsIgnored entsWithErrors env epmi epmiUD errmsg equivUnicodeStringErr excel fcsv
   global feaFirstEntity feaLastEntity File fileEntity filesProcessed fileSumRow gen gpmiTypesInvalid gpmiTypesPerFile guiSFA idRow idxColor
   global ifcsvrDir inverses lastXLS lenfilelist localName localNameList logFile matrixList multiFile multiFileDir mydocs mytemp nistCoverageLegend
@@ -774,7 +774,7 @@ proc genExcel {{numFile 0}} {
 
 # -------------------------------------------------------------------------------------------------
 # check if there is anything to view
-  foreach typ {PMI TESSPART FEA} {set viz($typ) 0}
+  foreach typ {PMI PLACE TESSPART FEA} {set viz($typ) 0}
   if {$gen(View)} {
     if {$opt(viewPMI)} {
       foreach ao $aoEntTypes {
@@ -783,6 +783,9 @@ proc genExcel {{numFile 0}} {
         if {[info exists entCount($ao1)]} {if {$entCount($ao1) > 0} {set viz(PMI) 1}}
         set ao1 "$ao\_and_geometric_representation_item"
         if {[info exists entCount($ao1)]} {if {$entCount($ao1) > 0} {set viz(PMI) 1}}
+        if {[string first "placeholder" $ao] != -1} {
+          if {[info exists entCount($ao)]} {if {$entCount($ao) > 0} {set viz(PLACE) 1}}
+        }
       }
     }
     if {$opt(viewTessPart)} {if {[info exists entCount(tessellated_solid)] || [info exists entCount(tessellated_shell)]} {set viz(TESSPART) 1}}
@@ -1049,7 +1052,6 @@ proc genExcel {{numFile 0}} {
     set inverseEnts {}
     set lastEnt ""
     set nprogBarEnts 0
-    set ntable 0
     set savedViewName {}
     set savedViewNames {}
     set savedViewButtons {}
@@ -1302,8 +1304,7 @@ proc genExcel {{numFile 0}} {
               if {[lsearch $allUUID $pid] == -1} {
                 lappend allUUID $pid
               } else {
-                errorMsg " UUID is identical to another on [string tolower $ent]"
-                lappend syntaxErr([string tolower $ent]) [list $entid identifier " UUID is identical to another"]
+                errorMsg " UUID is identical to another on [string tolower $ent]" red
               }
               set uuidstr $pid
               if {[string index $ent 0] == "V"} {append uuidstr " (v[string index $ent 1])"}
@@ -1673,7 +1674,7 @@ proc genExcel {{numFile 0}} {
   update idletasks
 
 # unset variables
-  foreach var {ap242XML assemTransformPMI brepScale cells cgrObjects cmNameID colColor commasep count currx3dPID datumEntType datumGeom datumIDs datumSymbol datumSystem datumSystemPDS defComment dimrep dimrepID dimtolEnt dimtolEntID dimtolGeom draughtingModels draftModelCameraNames draftModelCameras driPropID entCount entName entsIgnored epmi epmiUD equivUnicodeString feaDOFR feaDOFT feaNodes fileSumRow fontErr gpmiID gpmiIDRow gpmiRow heading idRow invCol invGroup noFontFile nrep numx3dPID placeAxesDef placeSphereDef pmiCol pmiColumns pmiStartCol pmivalprop propDefID propDefIDRow propDefName propDefOK propDefRow ptzError savedsavedViewNames savedViewFile savedViewFileName savedViewItems savedViewNames savedViewpoint savedViewVP shapeRepName srNames suppGeomEnts syntaxErr taoLastID tessCoord tessCoordName tessIndex tessIndexCoord tessPlacement tessRepo trimVal unicode unicodeActual unicodeNumEnts unicodeString viz vpEnts workbook workbooks worksheet worksheets x3dCoord x3dFile x3dFileName x3dIndex x3dMax x3dMin x3dStartFile} {
+  foreach var {ap242XML assemTransformPMI brepScale cells cgrObjects cmNameID colColor commasep count currx3dPID datumEntType datumGeom datumIDs datumSymbol datumSystem datumSystemPDS defComment dimrep dimrepID dimtolEnt dimtolEntID dimtolGeom draughtingModels draftModelCameraNames draftModelCameras driPropID entCount entName entsIgnored epmi epmiUD equivUnicodeString feaDOFR feaDOFT feaNodes fileSumRow fontErr gpmiID gpmiIDRow gpmiRow heading idRow invCol invGroup noFontFile npart nrep numx3dPID placeAxesDef placeSphereDef pmiCol pmiColumns pmiStartCol pmivalprop propDefID propDefIDRow propDefName propDefOK propDefRow ptzError savedsavedViewNames savedViewFile savedViewFileName savedViewItems savedViewNames savedViewpoint savedViewVP shapeRepName srNames suppGeomEnts syntaxErr taoLastID tessCoord tessCoordName tessIndex tessIndexCoord tessPlacement tessRepo trimVal unicode unicodeActual unicodeNumEnts unicodeString viz vpEnts workbook workbooks worksheet worksheets x3dCoord x3dFile x3dFileName x3dIndex x3dMax x3dMin x3dStartFile} {
     catch {global $var}
     if {[info exists $var]} {unset $var}
   }
@@ -2532,16 +2533,19 @@ proc formatWorksheets {sheetSort sumRow inverseEnts} {
       if {[info exists syntaxErr($thisEntType)]} {colorBadCells $thisEntType}
 
 # -------------------------------------------------------------------------------------------------
-# add table for sorting and filtering
+# add table for sorting and filtering, always sort Analyzer worksheets and some others
       if {[catch {
-        if {($opt(xlSort) && $useXL && $thisEntType != "property_definition") || ($thisEntType == "descriptive_representation_item" && $okequiv)} {
-          if {$ranrow > 8} {
-            set range [$worksheet($thisEntType) Range [cellRange 3 1] [cellRange $ranrow $rancol]]
-            set tname [string trim "TABLE-$thisEntType"]
-            [[$worksheet($thisEntType) ListObjects] Add 1 $range] Name $tname
-            [[$worksheet($thisEntType) ListObjects] Item $tname] TableStyle "TableStyleLight1"
-            if {[incr ntable] == 1 && $opt(xlSort)} {outputMsg " Generating Tables for Sorting" blue}
-          }
+        set oksort 0
+        if {($opt(xlSort) && $useXL && $thisEntType != "property_definition")} {set oksort 1}
+        if {$spmiEnts($thisEntType) && $opt(PMISEM) && $stepAPreport} {set oksort 1}
+        if {$gpmiEnts($thisEntType) && $opt(PMIGRF) && $stepAPreport} {set oksort 1}
+        if {[string first "uuid_attribute" $thisEntType] != -1} {set oksort 1}
+
+        if {$oksort && $ranrow > 7} {
+          set range [$worksheet($thisEntType) Range [cellRange 3 1] [cellRange $ranrow $rancol]]
+          set tname [string trim "TABLE-$thisEntType"]
+          [[$worksheet($thisEntType) ListObjects] Add 1 $range] Name $tname
+          [[$worksheet($thisEntType) ListObjects] Item $tname] TableStyle "TableStyleLight1"
         }
       } emsg]} {
         errorMsg "Error adding Tables for Sorting: $emsg"
@@ -2732,7 +2736,7 @@ proc addP21e3Section {idType {uuidEnt ""}} {
             [$range Interior] ColorIndex [expr 40]
             catch {foreach i {8 9} {[[$range Borders] Item $i] Weight [expr 1]}}
           }
-          if {[info exists spmiSumRowID($anchorID)]} {set anchorSum($spmiSumRowID($anchorID)) $uuid}
+          if {[info exists spmiSumRowID($anchorID)]} {set anchorSum($spmiSumRowID($anchorID)) $uuidval}
         }
       }
     }

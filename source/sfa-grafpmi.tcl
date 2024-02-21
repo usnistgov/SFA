@@ -771,8 +771,15 @@ proc gpmiAnnotationReport {objEntity} {
 
 # check if placeholder in saved view
                   if {[string first "placeholder" $ao] != -1} {
-                    set crdm [$drcall GetUsedIn [string trim characterized_representation_and_draughting_model] [string trim items]]
-                    ::tcom::foreach item $crdm {set placeSavedView($aoname) 1}
+                    catch {unset dment}
+                    foreach dm [list characterized_representation_and_draughting_model \
+                                characterized_representation_and_draughting_model_and_tessellated_shape_representation] {
+                      if {[info exists entCount($dm)]} {if {$entCount($dm) > 0} {set dment $dm}}
+                    }
+                    if {[info exists dment]} {
+                      set crdm [$drcall GetUsedIn [string trim $dment] [string trim items]]
+                      ::tcom::foreach item $crdm {set placeSavedView($aoname) 1}
+                    }
                   }
                 }
 
@@ -1722,26 +1729,4 @@ proc pmiGetCameras {} {
       catch {raise .}
     }
   }
-}
-
-# -------------------------------------------------------------------------------
-# set predefined color
-proc x3dPreDefinedColor {name} {
-  global defaultColor recPracNames spaces
-
-  switch -- $name {
-    black   {set color "0 0 0"}
-    white   {set color "1 1 1"}
-    red     {set color "1 0 0"}
-    yellow  {set color "1 1 0"}
-    green   {set color "0 1 0"}
-    cyan    {set color "0 1 1"}
-    blue    {set color "0 0 1"}
-    magenta {set color "1 0 1"}
-    default {
-      set color $defaultColor
-      errorMsg "Syntax Error: draughting_pre_defined_colour name '$name' is not supported$spaces\($recPracNames(model), Sec. 4.2.3, Table 2)"
-    }
-  }
-  return $color
 }

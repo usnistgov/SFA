@@ -161,7 +161,11 @@ proc getEntity {objEntity rmax checkInverse checkBadAttributes unicodeCheck} {
         incr heading($thisEntType)
         $cells($thisEntType) Item 3 $heading($thisEntType) $attrName
         if {[info exists badAttributes($thisEntType)]} {
-          if {[lsearch $badAttributes($thisEntType) $attrName] != -1} {addCellComment $thisEntType 3 $heading($thisEntType) "Reporting this attribute is not supported.  Check the STEP file for the actual values."}
+          if {[lsearch $badAttributes($thisEntType) $attrName] != -1} {
+            if {[string first "uuid_attribute" $thisEntType] == -1} {
+              addCellComment $thisEntType 3 $heading($thisEntType) "Reporting this attribute is not supported.  Check the STEP file for the actual values."
+            }
+          }
         }
         set attrType($heading($thisEntType)) [$objAttribute Type]
         set entComment($attrName) 1

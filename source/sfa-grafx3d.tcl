@@ -133,12 +133,14 @@ proc x3dFileStart {} {
 # -------------------------------------------------------------------------------
 # finish x3d file, write lots of geometry, set viewpoints, add navigation and background color, and close x3dom file
 proc x3dFileEnd {} {
-  global ao ap242XML assemblyTransform axesDef brepFile brepFileName clippingCap clippingDef clipPlaneName cmNameID datumTargetView delt
-  global edgeMatID entCount grayBackground leaderCoords matTrans maxxyz nclipPlane nistName noGroupTransform nsketch numTessColor opt parts
-  global partstg placeCoords planeDef placeSize rosetteGeom samplingPoints savedViewButtons savedViewDMName savedViewFile savedViewFileName
-  global savedViewItems savedViewNames savedViewpoint savedViewVP sphereDef spmiTypesPerFile stepAP tessCoord tessEdges tessPartFile
-  global tessPartFileName tessRepo tsName viewsWithPMI viz xyzcen x3dApps x3dAxes x3dBbox x3dCoord x3dFile x3dFileNameSave
-  global x3dFiles x3dFileSave x3dIndex x3dMax x3dMin x3dMsg x3dPartClick x3dParts x3dShape x3dStartFile x3dTessParts x3dTitle x3dViewOK
+  global ao ap242XML assemblyTransform axesDef brepFile brepFileName clippingCap clippingDef clipPlaneName cmNameID datumTargetView
+  global delt edgeMatID entCount grayBackground leaderCoords matTrans maxxyz meshlines nclipPlane nistName noGroupTransform npart nsketch
+  global numTessColor opt parts partstg placeCoords placeSize planeDef rosetteGeom samplingPoints sphereDef spmiTypesPerFile stepAP
+  global tessCoord tessEdges tessPartFile tessPartFileName tessRepo tsName viewsWithPMI viz xyzcen
+  global savedPlaceFile savedPlaceFileName savedViewButtons savedViewDMName savedViewFile
+  global savedViewFileName savedViewItems savedViewNames savedViewpoint savedViewVP
+  global x3dApps x3dAxes x3dBbox x3dCoord x3dFile x3dFileNameSave x3dFiles x3dFileSave x3dIndex x3dMax x3dMin
+  global x3dMsg x3dPartClick x3dParts x3dShape x3dStartFile x3dTessParts x3dTitle x3dViewOK
   global objDesign
 
   if {!$x3dViewOK} {
@@ -248,7 +250,7 @@ proc x3dFileEnd {} {
 
 # write clipping planes
           if {![info exists clippingCap]} {set clippingCap 0}
-          if {!$clippingCap} {errorMsg " Capped surfaces are not generated for clipping planes" red}
+          if {!$clippingCap && $opt(viewPart)} {errorMsg " Capped surfaces are not generated for clipping planes" red}
           if {[llength $cplanes] > 0} {foreach cplane $cplanes {x3dClipPlane $cplane $cpname}}
         } emsg]} {
           errorMsg "Error adding Clipping Plane: $emsg"
@@ -324,12 +326,14 @@ proc x3dFileEnd {} {
       if {[info exists placeSize]} {
         set phsize1 [trimNum [expr {$maxxyz/1000.}]]
         set phsize2 [trimNum [expr {$phsize1*6.}]]
+        set phsize3 [trimNum [expr {$phsize2*0.67}]]
       }
 
       for {set i 0} {$i < [llength $savedViewNames]} {incr i} {
         set svn [lindex $savedViewNames $i]
         set svnfn "View$i"
         catch {close $savedViewFile($svnfn)}
+
         if {[info exists savedViewFileName($svnfn)]} {
           if {[file size $savedViewFileName($svnfn)] > 0} {
             set svMap($svn) $svn
@@ -366,14 +370,6 @@ proc x3dFileEnd {} {
               set f [open $savedViewFileName($svnfn) r]
               while {[gets $f line] >= 0} {
 
-# placeholder size
-                if {[info exists placeSize]} {
-                  if {[string first "placeSize" $line] != -1} {
-                    regsub "placeSize1" $line $phsize1 line
-                    regsub "placeSize2" $line $phsize2 line
-                  }
-                }
-
 # check for similar transforms
                 if {![info exists noGroupTransform]} {
                   if {[string first "<Transform" $line] == -1 && [string first "</Transform>" $line] == -1} {
@@ -396,10 +392,34 @@ proc x3dFileEnd {} {
               close $f
               catch {unset savedViewFile($svnfn)}
 
+# write placeholder
+              set placefn "Place$i"
+              if {[info exists savedPlaceFileName($placefn)]} {
+                catch {close $savedPlaceFile($placefn)}
+                set f [open $savedPlaceFileName($placefn) r]
+                foreach xf $x3dFiles {puts $xf "\n<!-- SAVED VIEW$i Placeholder - $svn2 -->\n<Switch whichChoice='0' id='sw$placefn'><Group>"}
+                while {[gets $f line] >= 0} {
+
+# placeholder size
+                  if {[info exists placeSize]} {
+                    if {[string first "placeSize" $line] != -1} {
+                      regsub -all "placeSize1" $line $phsize1 line
+                      regsub -all "placeSize2" $line $phsize2 line
+                      regsub -all "placeSize3" $line $phsize3 line
+                    }
+                  }
+                  foreach xf $x3dFiles {puts $xf $line}
+                }
+                foreach xf $x3dFiles {puts $xf "</Group></Switch>"}
+                close $f
+                catch {unset savedPlaceFile($placefn)}
+                catch {unset savedPlaceFileName($placefn)}
+              }
+
 # duplicate saved views
             } else {
               foreach xf $x3dFiles {puts $xf "<!-- SAME AS $svMap($svn) -->"}
-              errorMsg " Two or more Saved Views have the exact same graphical PMI" red
+              errorMsg " Two or more Saved Views have identical graphical PMI" red
               set torg ""
             }
 
@@ -443,7 +463,6 @@ proc x3dFileEnd {} {
 
 # -------------------------------------------------------------------------------
 # if not associated with a saved view, placeholder axes, coordinates, text, box
-  set viz(PLACE) 0
   if {$opt(viewPMI) && ([info exists placeCoords] || [info exists leaderCoords])} {
     set nph 0
     catch {foreach idx [array names placeCoords]  {incr nph}}
@@ -479,6 +498,9 @@ proc x3dFileEnd {} {
     if {![info exists tessRepo]} {set tessRepo 0}
     if {$tessRepo} {
       set tgparts {}
+      set lineidx {}
+      set viz(TESSMESH) 0
+
       while {[gets $f line] >= 0} {
         if {[string first "<!--" $line] == 0} {
           set part $line
@@ -487,13 +509,14 @@ proc x3dFileEnd {} {
           set transform $line
         } elseif {$line != "</Transform>"} {
           if {![info exists transform]} {set transform "<Transform>"}
-          lappend lines($part,$transform) $line
+          set idx "$part,$transform"
+          lappend lines($idx) $line
+          if {[lsearch $lineidx $idx] == -1} {lappend lineidx $idx}
         }
       }
       close $f
 
 # write parts for each transform
-      set items [lreverse [array names lines]]
       foreach part $tgparts {
         foreach xf $x3dFiles {puts $xf $part}
 
@@ -510,7 +533,7 @@ proc x3dFileEnd {} {
         }
 
 # write
-        foreach item $items {
+        foreach item $lineidx {
           if {[string first $part $item] == 0} {
             set transform [string range $item [string last "," $item]+1 end]
             if {$transform != "<Transform>"} {foreach xf $x3dFiles {puts $xf $transform}}
@@ -523,8 +546,20 @@ proc x3dFileEnd {} {
 
 # no grouping if no transforms, add switch
     } else {
+      set n 0
+      set meshlines {}
+      set viz(TESSMESH) 0
+
       while {[gets $f line] >= 0} {
         if {[string first "<!--" $line] == 0} {
+
+# write any accumulated wireframe mesh
+          if {[llength $meshlines] > 0} {
+            x3dWireframeMesh
+            set meshlines {}
+          }
+
+# start tessellated part
           set partname [string range $line [string first " " $line]+1 [string last " " $line]-1]
           if {[string first "TESSELLATED" $partname] == 0} {set partname [string tolower [string range $partname 12 end]]}
           incr npart(TESSPART)
@@ -532,10 +567,26 @@ proc x3dFileEnd {} {
           if {$npart(TESSPART) > 0} {foreach xf $x3dFiles {puts $xf "</Group></Switch>"}}
           regsub -all "'" $partname "\"" txt
           foreach xf $x3dFiles {puts $xf "$line\n<Switch id='swTessPart$npart(TESSPART)' whichChoice='0'><Group id='$txt'>"}
-        } else {
+
+# no wireframe mesh
+        } elseif {!$opt(tessPartMesh)} {
           foreach xf $x3dFiles {puts $xf $line}
+
+# for wireframe mesh, write faces, store mesh in meshlines
+        } else {
+          set viz(TESSMESH) 1
+          if {[string first "<Coordinate DEF" $line] == -1} {incr n}
+          if {$n < 3} {
+            foreach xf $x3dFiles {puts $xf $line}
+          } else {
+            lappend meshlines $line
+            if {$n == 4} {set n 0}
+          }
         }
       }
+
+# write accumulated wireframe mesh
+      if {[llength $meshlines] > 0} {x3dWireframeMesh}
       foreach xf $x3dFiles {puts $xf "</Group></Switch>"}
       close $f
     }
@@ -726,6 +777,7 @@ proc x3dFileEnd {} {
     puts $x3dFile "\n<!-- Tessellated part geometry checkbox -->"
     if {$viz(PART)} {puts $x3dFile "<details><summary>Tessellated Part Geometry</summary><p>"}
     puts $x3dFile "<input type='checkbox' checked onclick='togTPG(this.value)'/>Tessellated Part Geometry"
+    if {$viz(TESSMESH)} {puts $x3dFile "<!-- Tessellated mesh checkbox -->\n<br><input type='checkbox' checked onclick='togTPM(this.value)'/>Wireframe"}
     if {$viz(TESSEDGE)} {puts $x3dFile "<!-- Tessellated edges checkbox -->\n<br><input type='checkbox' checked onclick='togTED(this.value)'/>Edges"}
 
     if {[info exists entCount(next_assembly_usage_occurrence)] || [info exists entCount(repositioned_tessellated_item_and_tessellated_geometric_set)]} {
@@ -780,13 +832,7 @@ proc x3dFileEnd {} {
         puts $x3dFile "<details><summary>Saved View Graphical PMI</summary>"
       }
     }
-    if {[info exists savedViewVP]} {
-      if {$opt(viewPMIVP)} {
-        puts $x3dFile "<br><font size='-1'>(PageDown to switch Saved Views)</font>"
-      } elseif {[llength $savedViewButtons] > 1} {
-        errorMsg " Try the option for Saved View Viewpoints (Generate tab)."
-      }
-    }
+    if {[info exists savedViewVP]} {puts $x3dFile "<br><font size='-1'>(PageDown to switch Saved Views)</font>"}
 
     foreach svn $savedViewButtons {
       set str ""
@@ -941,10 +987,17 @@ proc x3dFileEnd {} {
       if {$viz(TESSEDGE)} {x3dSwitchScript TED}
 
       if {[info exists x3dTessParts]} {
+        if {$viz(TESSMESH)} {
+          puts $x3dFile "\n<!-- Tessellated mesh switch -->\n<script>function togTPM\(choice)\{"
+          foreach item [array names x3dTessParts] {x3dSwitchScript TessMesh$x3dTessParts($item)}
+          puts $x3dFile "\}</script>"
+        }
         if {[llength [array names x3dTessParts]] > 1} {
           foreach item [array names x3dTessParts] {x3dSwitchScript TessPart$x3dTessParts($item)}
         }
         catch {unset x3dTessParts}
+
+# tessellated parts
         if {[llength [array names partstg]] > 2} {
           puts $x3dFile "\n<!-- All Tessellated Parts Show/Hide switch -->\n<script>function togTessPartAll(choice)\{"
           foreach name [lsort -nocase [array names partstg]] {
@@ -988,7 +1041,7 @@ proc x3dFileEnd {} {
         lappend onload "\n var view$id = document.getElementById('$svn');\n view$id.addEventListener('outputchange', function(event) \{"
         lappend onload "  document.getElementById('clickedView').innerHTML = '$svn';"
         incr id
-        if {$viz(PMI) && $opt(viewPMIVP)} {
+        if {$viz(PMI)} {
           foreach svn1 $savedViewButtons {
             if {[info exists viewsWithPMI($svn1)]} {
               lappend onload "  document.getElementById('swView$viewsWithPMI($svn1)').setAttribute('whichChoice', 0);"
@@ -1007,7 +1060,7 @@ proc x3dFileEnd {} {
         lappend onload "\n var view$id = document.getElementById('$svn');\n view$id.addEventListener('outputchange', function(event) \{"
         lappend onload "  document.getElementById('clickedView').innerHTML = '$svn';"
         incr id
-        if {$viz(PMI) && $opt(viewPMIVP)} {
+        if {$viz(PMI)} {
           foreach svn1 $savedViewButtons {
             if {[info exists viewsWithPMI($svn1)]} {
               set wc -1
@@ -1086,7 +1139,7 @@ proc x3dFileEnd {} {
     }
 
 # tessellated geometry transparency
-    for {set i 1} {$i <= $numTessColor} {incr i} {puts $x3dFile " document.getElementById('matTess$i').setAttribute('transparency', trans);"}
+    for {set i 1} {$i <= $numTessColor} {incr i} {puts $x3dFile " try {document.getElementById('matTess$i').setAttribute('transparency', trans);} catch(err) {}"}
 
 # finite element model transparency
     if {$viz(FEA)} {
@@ -1134,11 +1187,11 @@ proc x3dSavedViewpoint {name} {
   if {$diff > 1.} {append msg " The view_plane_distance and the planar_box a2p3d origin Z value should be equal."}
   if {$msg != ""} {
     append msg "$spaces\($recPracNames(pmi242), Sec. 9.4.2.6)"
-    errorMsg "Syntax Error: Camera model viewpoint for saved views is not modeled correctly.$msg"
-    set msg "Viewpoints for saved views are not modeled correctly"
-    if {$opt(viewCorrect)} {append msg " (using corrected viewpoints)"}
+    errorMsg "Syntax Error: Camera model viewpoint is not modeled correctly.$msg"
+    set msg "Viewpoints are not modeled correctly"
+    if {$opt(viewCorrect)} {set msg "Using corrected viewpoints (More tab)"}
     if {[lsearch $x3dMsg $msg] == -1} {lappend x3dMsg $msg}
-    if {!$opt(viewCorrect)} {errorMsg " Use the option on the More tab to correct the viewpoints.  The corrected viewpoints should fix the orientation but maybe not the position."}
+    if {!$opt(viewCorrect)} {errorMsg " Use the option to correct the viewpoints (More tab).  The corrected viewpoints should fix the orientation but maybe not the position."}
   }
 
 # default viewpoint with transform
@@ -1161,7 +1214,7 @@ proc x3dSavedViewpoint {name} {
 # show camera model for debugging
     if {$opt(DEBUGVP)} {
       set scale [trimNum [expr {$maxxyz*0.08}]]
-      puts $xf "<Transform translation='[lindex $savedViewpoint($name) 0]' rotation='[lindex $savedViewpoint($name) 1]' scale='$scale $scale $scale'>"
+      puts $xf "<Transform translation='[lindex $savedViewpoint($name) 0]' rotation='[lindex [lindex $savedViewpoint($name) 1] 1]' scale='$scale $scale $scale'>"
       puts $xf " <Shape><Appearance><Material emissiveColor='1 0 0'/></Appearance><IndexedLineSet coordIndex='0 1 -1'><Coordinate point='0. 0. 0. 1. 0. 0.'/></IndexedLineSet></Shape>"
       puts $xf " <Shape><Appearance><Material emissiveColor='0 1 0'/></Appearance><IndexedLineSet coordIndex='0 1 -1'><Coordinate point='0. 0. 0. 0. 1. 0.'/></IndexedLineSet></Shape>"
 
@@ -1708,24 +1761,46 @@ proc x3dHoles {} {
 # -------------------------------------------------------------------------------
 # placeholder axes, coordinates, text, box, leader line
 proc x3dPlaceholder {{aoname ""} {fname ""}} {
-  global grayBackground leaderCoords maxxyz placeAxes placeAxesDef placeBox placeCoords placeSize placeSphereDef placeSymbol viz x3dFile
+  global grayBackground leaderCoords maxxyz x3dFile
+  global placeAxes placeAxesDef placeBox placeCoords placeNames placeSize placeSphereDef placeSymbol
+  global savedPlaceFile savedPlaceFileName savedViewFile savedViewFileName
 
   if {$aoname == ""} {
     puts $x3dFile "\n<!-- PLACEHOLDER -->"
     puts $x3dFile "<Switch whichChoice='0' id='swPlaceholder'><Group>"
     set pcnames [array names placeCoords]
-    set viz(PLACE) 1
   } else {
     set pcnames [list $aoname]
   }
-  if {$fname == ""} {set fname $x3dFile}
+
+# no saved views
+  if {$fname == ""} {
+    set fname $x3dFile
+  } else {
+
+# open file for placeholders per saved view
+    foreach name [array names savedViewFile] {
+      if {$savedViewFile($name) == $fname} {
+        regsub "View" $savedViewFileName($name) "Place" fn
+        set name2 [string range $fn [string first "Place" $fn] [string first ".txt" $fn]-1]
+        if {![file exists $fn]} {
+          set savedPlaceFile($name2) [open $fn w]
+          set savedPlaceFileName($name2) $fn
+          lappend placeNames $name2
+        }
+      }
+    }
+    set fname $savedPlaceFile($name2)
+  }
 
   if {[info exists maxxyz]} {
     set size1 [trimNum [expr {$maxxyz/1000.}]]
     set size2 [trimNum [expr {$size1*6.}]]
+    set size3 [trimNum [expr {$size2*0.67}]]
   } else {
     set size1 "placeSize1"
     set size2 "placeSize2"
+    set size3 "placeSize3"
     set placeSize 1
   }
 
@@ -1784,18 +1859,19 @@ proc x3dPlaceholder {{aoname ""} {fname ""}} {
           puts $fname "<Switch whichChoice='0' id='swPlaceholder'><Group>"
         }
         set lcnames [array names leaderCoords]
-        set viz(PLACE) 1
       } else {
         set lcnames [list $aoname]
       }
 
 # get coordinates for leader lines
       foreach name $lcnames {
-        foreach crd $leaderCoords($name) {
-          set coord [string range $crd 0 [string last " " $crd]-1]
-          set leaderID [string range $crd [string last " " $crd]+1 end]
-          lappend leaderLine($leaderID) $coord
-          set leaderName($leaderID) $name
+        if {[info exists leaderCoords($name)]} {
+          foreach crd $leaderCoords($name) {
+            set coord [string range $crd 0 [string last " " $crd]-1]
+            set leaderID [string range $crd [string last " " $crd]+1 end]
+            lappend leaderLine($leaderID) $coord
+            set leaderName($leaderID) $name
+          }
         }
       }
 
@@ -1818,7 +1894,6 @@ proc x3dPlaceholder {{aoname ""} {fname ""}} {
           if {[info exists placeSymbol($coord)]} {
             set sym $placeSymbol($coord)
             if {[string first "internal" $sym] == 0} {set sym [string range $sym 14 end]}
-            set size3 [trimNum [expr {0.67*$size2}]]
             puts $fname "<Transform translation='$coord' scale='$size3 $size3 $size3'><Billboard axisOfRotation='0 0 0'><Shape><Text string='$sym'><FontStyle family='SANS' justify='END'/></Text><Appearance><Material diffuseColor='0 0 1'/></Appearance></Shape></Billboard></Transform>"
             unset placeSymbol($coord)
           }
@@ -1954,9 +2029,55 @@ proc x3dCoordAxes {size} {
 }
 
 # -------------------------------------------------------------------------------
+# write wireframe mesh for tessellated geometry
+proc x3dWireframeMesh {} {
+  global npart meshlines x3dFile
+
+  if {[catch {
+    set m 0
+    set shape ""
+    set coord ""
+    set index ""
+    set group 1
+
+# group indexes into one
+    foreach mline $meshlines {
+      incr m
+      if {$m == 1} {
+        append shape $mline
+      } elseif {[expr {$m%2}] == 0} {
+        set c1 [string first "'" $mline]
+        set c2 [string first "'" $mline $c1+1]
+        append index "[string range $mline $c1+1 $c2-1] "
+        set str [string range $mline $c2+1 end]
+        if {$coord == ""} {
+          set coord $str
+        } elseif {$str != $coord} {
+          set group 0
+          break
+        }
+      }
+    }
+
+    foreach xf $x3dFile {
+      if {$group} {puts $xf "<!-- Wireframe mesh -->"}
+      puts $xf "<Switch id='swTessMesh$npart(TESSPART)' whichChoice='0'><Group>"
+      if {$group} {
+        puts $xf "$shape\n <IndexedLineSet coordIndex='$index'$coord"
+      } else {
+        foreach mline $meshlines {puts $xf $mline}
+      }
+      puts $xf "</Group></Switch>"
+    }
+  } emsg]} {
+    errorMsg "Error writing wireframe mesh: $emsg"
+  }
+}
+
+# -------------------------------------------------------------------------------
 # script for switch node
 proc x3dSwitchScript {name {name1 ""}} {
-  global clippingCap nclipPlane rosetteGeom savedViewNames viz x3dFile
+  global clippingCap nclipPlane placeNames rosetteGeom savedViewNames viz x3dFile
 
 # clipping planes
   if {$name == "Clipping"} {
@@ -1995,11 +2116,25 @@ proc x3dSwitchScript {name {name1 ""}} {
     }
     if {$name == "Bbox"} {set ok 0}
 
-    if {$name != "Composites" || $rosetteGeom >= 2} {
-      puts $x3dFile "\n<!-- $name$viewName switch -->\n<script>function tog$name\(choice)\{"
+    if {($name != "Composites" || $rosetteGeom >= 2) && $name != "Placeholder"} {
+      if {[string first "TessMesh" $name] == -1} {puts $x3dFile "\n<!-- $name$viewName switch -->\n<script>function tog$name\(choice)\{"}
       if {!$ok} {puts $x3dFile " document.getElementById('sw$name').checked = !document.getElementById('sw$name').checked;"}
       puts $x3dFile " if (!document.getElementById('sw$name').checked) \{document.getElementById('sw$name1').setAttribute('whichChoice', -1);\} else \{document.getElementById('sw$name1').setAttribute('whichChoice', 0);\}"
       if {$ok}  {puts $x3dFile " document.getElementById('sw$name').checked = !document.getElementById('sw$name').checked;"}
+    }
+
+    if {$name == "Placeholder"} {
+      puts $x3dFile "\n<!-- $name$viewName switch -->\n<script>function tog$name\(choice)\{"
+      if {![info exists placeNames]} {
+        puts $x3dFile " if (!document.getElementById('sw$name').checked) \{document.getElementById('sw$name1').setAttribute('whichChoice', -1);\} else \{document.getElementById('sw$name1').setAttribute('whichChoice', 0);\}"
+        puts $x3dFile " document.getElementById('sw$name').checked = !document.getElementById('sw$name').checked;"
+      } else {
+        foreach pname $placeNames {
+          puts $x3dFile " if (!document.getElementById('sw$pname').checked) \{document.getElementById('sw$pname').setAttribute('whichChoice', -1);\} else \{document.getElementById('sw$pname').setAttribute('whichChoice', 0);\}"
+          puts $x3dFile " document.getElementById('sw$pname').checked = !document.getElementById('sw$pname').checked;"
+        }
+        unset placeNames
+      }
     }
 
 # composite rosettes (rosetteGeom: 1=curve, 2=axis, 3=both)
@@ -2009,7 +2144,7 @@ proc x3dSwitchScript {name {name1 ""}} {
       puts $x3dFile " if (!document.getElementById('swComposites1').checked) \{document.getElementById('swComposites1').setAttribute('whichChoice', -1);\} else \{document.getElementById('swComposites1').setAttribute('whichChoice', 0);\}"
       if {$ok}  {puts $x3dFile " document.getElementById('swComposites1').checked = !document.getElementById('swComposites1').checked;"}
     }
-    puts $x3dFile "\}</script>"
+    if {[string first "TessMesh" $name] == -1} {puts $x3dFile "\}</script>"}
 
 # parts
   } else {
@@ -2081,6 +2216,28 @@ proc x3dPartCheckbox {type} {
   }
   if {$div != ""} {puts $x3dFile "</div>"}
   puts $x3dFile "</font>"
+}
+
+# -------------------------------------------------------------------------------
+# set predefined color
+proc x3dPreDefinedColor {name} {
+  global defaultColor recPracNames spaces
+
+  switch -- $name {
+    black   {set color "0 0 0"}
+    white   {set color "1 1 1"}
+    red     {set color "1 0 0"}
+    yellow  {set color "1 1 0"}
+    green   {set color "0 1 0"}
+    cyan    {set color "0 1 1"}
+    blue    {set color "0 0 1"}
+    magenta {set color "1 0 1"}
+    default {
+      set color $defaultColor
+      errorMsg "Syntax Error: draughting_pre_defined_colour name '$name' is not supported$spaces\($recPracNames(model), Sec. 4.2.3, Table 2)"
+    }
+  }
+  return $color
 }
 
 # -------------------------------------------------------------------------------

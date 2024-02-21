@@ -46,9 +46,7 @@ proc nistReadExpectedPMI {{epmiFile ""}} {
           } else {
             set i1 [lindex $lline 0]
             foreach cval $lline {
-              if {[info exists i2($c)] && $c > 0} {
-                if {$i1 != "section views" || ($gen(View) && ($opt(viewPart) || $opt(viewPMI)))} {set spmiCoverages($i1,$i2($c)) $cval}
-              }
+              if {[info exists i2($c)] && $c > 0} {set spmiCoverages($i1,$i2($c)) $cval}
               incr c
             }
           }
@@ -714,8 +712,8 @@ proc nistCheckExpectedPMI {val entstr epmiName} {
 
 # -------------------------------------------------------------------------------
 proc nistPMICoverage {nf} {
-  global cells epmi legendColor nistCoverageLegend nistCoverageStyle nistPMIexpected nistName
-  global pmiElementsMaxRows spmiCoverages spmiCoverageWS totalPMIrows usedPMIrows worksheet
+  global cells epmi gen legendColor nistCoverageLegend nistCoverageStyle nistPMIexpected nistName
+  global opt pmiElementsMaxRows spmiCoverages spmiCoverageWS totalPMIrows usedPMIrows worksheet
 
   foreach idx [lsort [array names spmiCoverages]] {
     set tval [lindex [split $idx ","] 0]
@@ -762,8 +760,14 @@ proc nistPMICoverage {nf} {
 
 # check tolerance zone diameter vs. within a cylinder
             set skip 0
-            if {$item == "tolerance zone diameter" &&          $tval == 0 && [[$cells($spmiCoverageWS) Item 20 2] Value] != ""} {set skip 1}
+            if {$item == "tolerance zone diameter"          && $tval == 0 && [[$cells($spmiCoverageWS) Item 20 2] Value] != ""} {set skip 1}
             if {$item == "tolerance zone within a cylinder" && $tval == 0 && [[$cells($spmiCoverageWS) Item 19 2] Value] != ""} {set skip 1}
+
+# skip if view not generated
+            if {!$gen(View)} {
+              if {$item == "section views" && !$opt(viewPart)} {set skip 1}
+              if {$item == "saved views"   && !$opt(viewPMI)}  {set skip 1}
+            }
 
 # too few - yellow or red
             if {!$skip} {

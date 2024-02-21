@@ -9,11 +9,11 @@ global pmiUnicode recPracNames roseLogical spaces spmiEntTypes spmiTypes stepAPs
 global coverageSTEP developer dispCmd dispCmds env fileDir fileDir1 filesProcessed gen lastX3DOM lastXLS lastXLS1
 global mydocs openFileList opt pf32 pf64 sfaVersion upgrade userWriteDir writeDir x3dom x3dFileName x3dStartFile
 
+# see sfa-gui.tcl for SFA version number
+
 # x3dom 1.8.3 server links
 set server "https://www.x3dom.org/download/1.8.3/x3dom."
 foreach ext {js css} {set x3dom($ext) $server$ext}
-# NIST
-#set server "https://pages.nist.gov/CAD-PMI-Testing/x3dom/x3dom."
 
 # -----------------------------------------------------------------------------------------------------
 # set program files, environment variables will be in the correct language
@@ -34,7 +34,7 @@ set writeDir $userWriteDir
 # all are subsequently set by reading the options file (that stores options from running the software - STEP-File-Analyzer-options.dat) in sfa.tcl and sfa-cl.tcl
 # options, set to 1
 foreach id {BOM logFile outputOpen partEdges partSketch partSupp PMIGRF PMISEM stepCOMM stepPRES stepQUAN stepREPR stepSHAP \
-  stepTOLR tessPartMesh valProp viewPart viewPMI viewPMIVP viewTessPart} {set opt($id) 1}
+  stepTOLR tessPartMesh valProp viewPart viewPMI viewTessPart} {set opt($id) 1}
 
 # options, set to 0
 foreach id {DEBUG1 debugAG DEBUGINV DEBUGNOXL DEBUGVP DEBUGX3D feaBounds feaDisp feaDispNoTail feaLoads feaLoadScale indentGeometry \
@@ -239,9 +239,6 @@ set unicodeAttributes(string_with_language) {contents}
 set unicodeAttributes(translated_label) {labels}
 set unicodeAttributes(translated_text) {texts}
 
-# AP209 entities with a specific '_and_' in the entity name
-set andEntAP209 [list "_and_location" "_and_volume_location" "_and_coefficient" "_and_frequencies" "_and_parameters" "_and_value_definition" "_and_freedom"]
-
 # -----------------------------------------------------------------------------------------------------
 # app names for STEP software that might appear in header section
 set cadApps {3D_Evolution 3DEXPERIENCE 3DTransVidia Alibre "Anark CORE" Area21 "ASCON STEP Converter" AutoCAD Autodesk "Autodesk Inventor" "Autodesk Translation Framework" "Autodesk Translator Framework" "C3D Toolkit" CADfix CADverter Capvidia CATIA "CATIA V4" "CATIA V5" "CATIA V6" CoCreate CoreTechnologie Creo CREO CrossCAD Datakit "Datakit CrossCad" DATAKIT EDMsix Elysium Eurostep FiberSim FreeCAD "kicad StepUp" Kubotek "Kubotek KeyCreator" "Kubotek Kosmos" MBDConnect MBDVidia "OneSpace Designer" "OneSpace Modeling" PRO/ENGINEER PSStep "SIEMENS PLM Software NX" "Solid Edge" Solidworks SolidWorks SOLIDWORKS "SOLIDWORKS MBD" "Spatial InterOp 3D" ST-ACIS STEP-NC Theorem THEOREM "Theorem Solutions" T-Systems Unigraphics VariCAD XStep}
@@ -279,10 +276,11 @@ set spmiEntTypes [list datum_reference_element datum_reference_compartment datum
 
 set cameraModels [list camera_model_d3 camera_model_d3_multi_clipping camera_model_d3_with_hlhsr camera_model_d3_with_light_sources]
 
+# -----------------------------------------------------------------------------------------------------
 # max rows for PMI elements on PMI representation coverage worksheet, depends on number and order of items below
 set pmiElementsMaxRows 181
 # line breaks are above the row, depends on the grouping of PMI elements below
-set pmiHorizontalLineBreaks [list 19 36 48 54 68 76 86 [expr {$pmiElementsMaxRows-11}]]
+set pmiHorizontalLineBreaks [list 19 35 49 55 66 74 84 [expr {$pmiElementsMaxRows-11}]]
 
 # -----------------------------------------------------------------------------------------------------
 # dimensional_size names (Section 5.1.5, Table 4)
@@ -306,15 +304,13 @@ set gpmiTypes [list angularity "circular runout" circularity coaxiality concentr
 # Semantic PMI types for coverage analysis, order is important
 set spmiTypes $tolNames
 
-foreach item [list "tolerance zone diameter \u2300 (6.9.2)" "tolerance zone within a cylinder \u2300 (6.9.2)" "tolerance zone spherical diameter S\u2300 (6.9.2)" "tolerance zone other (6.9.2)" "all_over \u2B69\u25CE (6.3)" "all_around \u232E (6.4.2)" "between \u2194 (6.4.3)" "affected plane tolerance zone (6.9.2.1)" "projected \u24C5 (6.9.2.2)" "non-uniform tolerance zone (6.9.2.3)" "unequally_disposed \u24CA or UZ (6.9.4)" "tolerance with max value (6.9.5)" "unit-basis tolerance (6.9.6)" "composite tolerance (6.9.9)" "pattern of features (6.4.1)" "tolerance zone precision (6.9)" "intersection/orientation plane indicator" \
-  "dimensions (location+size)" "dimensional location (5.1.1)" "dimensional size (5.1.5)" "angular location (5.1.2)" "angular size (5.1.6)" "directed dimension \u2331 (5.1.1)" "oriented dimensional location (5.1.3)" "derived shapes dimensional location (5.1.4)" "location with path (5.1.7)" "repetitive dimensions 'nX' (5.1, User Guide 6.1.3)" "dimension association to geometric tolerance (5.1)" "dimension precision (5.4)" \
+foreach item [list "tolerance zone diameter \u2300 (6.9.2)" "tolerance zone within a cylinder \u2300 (6.9.2)" "tolerance zone spherical diameter S\u2300 (6.9.2)" "tolerance zone other (6.9.2)" "composite tolerance (6.9.9)" "all_over \u2B69\u25CE (6.3)" "all_around \u232E (6.4.2)" "projected \u24C5 (6.9.2.2)" "non-uniform tolerance zone (6.9.2.3)" "unequally_disposed \u24CA or UZ (6.9.4)" "tolerance with max value (6.9.5)" "unit-basis tolerance (6.9.6)" "pattern of features (6.4.1)" "affected plane tolerance zone (6.9.2.1)" "tolerance zone precision (6.9)" "intersection/orientation plane indicator" \
+  "dimensions (location+size)" "dimensional location (5.1.1)" "dimensional size (5.1.5)" "angular location (5.1.2)" "angular size (5.1.6)" "dimension basic (5.3)" "reference dimension (5.3)" "directed dimension \u2331 (5.1.1)" "oriented dimensional location (5.1.3)" "derived shapes dimensional location (5.1.4)" "location with path (5.1.7)" "dimension association to geometric tolerance (5.1)" "repetitive dimensions 'nX' (5.1, User Guide 6.1.3)" "dimension precision (5.4)" \
   "bilateral tolerance (5.2.3)" "non-bilateral tolerance (5.2.3)" "type qualifier (5.2.2)" "value range (5.2.4)" "limits and fits (5.2.5)" "tolerance precision (5.2.3)" \
-  "diameter \u2300 (5.1.5)" "radius R (5.1.5)" "spherical diameter S\u2300 (5.1.5)" "spherical radius SR (5.1.5)" "curved distance (5.1.1)" "linear distance (5.1.1)" "linear distance inner/outer (5.1.1)" "curve length (5.1.5)" "thickness (5.1.5)" "toroidal radius/diameter (5.1.5)" "controlled radius CR (5.3)" "dimension basic (5.3)" "reference dimension (5.3)" "square \u25A1 (5.3)" \
+  "diameter \u2300 (5.1.5)" "radius R (5.1.5)" "spherical diameter S\u2300 (5.1.5)" "spherical radius SR (5.1.5)" "controlled radius CR (5.3)" "curved distance (5.1.1)" "linear distance (5.1.1)" "linear distance inner/outer (5.1.1)" "curve length (5.1.5)" "thickness (5.1.5)" "toroidal radius/diameter (5.1.5)" \
   "datum (6.5)" "datum features (6.5.1)" "datum system (6.9.7)" "datum with axis system (6.9.7)" "datum with modifiers (6.9.7)" "multiple datum features (6.9.8)" "datum feature association to geometric tolerance (6.1)" "association of datum feature to dimension (6.5.3)" \
   "all datum targets" "point datum target (6.6.1)" "line datum target (6.6.1)" "rectangle datum target (6.6.1)" "circle datum target (6.6.1)" "circular curve datum target (6.6.1)" "curve datum target (6.6.2)" "area datum target (6.6.2)" "placed datum target geometry (6.6.3)" "movable datum target (6.6.4)" \
 ] {lappend spmiTypes $item}
-
-# not included "linear distance (5.1.1)" because it is most common for dimensional_location
 
 # -----------------------------------------------------------------------------------------------------
 # datum target descriptions
@@ -375,7 +371,7 @@ set pmiModifiersArray(separate_requirement,6.9.3)             "SEP REQT"
 set pmiModifiersArray(statistical_tolerance,6.9.3)            "<ST>"
 set pmiModifiersArray(tangent_plane,6.9.3)                    "\u24C9"
 
-# geometric tolerance modifiers from ISO 1101, not in RP but in schema(?)
+# geometric tolerance modifiers from ISO 1101, not in AP242 or RP yet
 set pmiModifiersArray(circle_a)                                "\u24B6"
 set pmiModifiersArray(derived_feature)                         "\u24B6"
 set pmiModifiersArray(associated_minmax_feature)               "\u24B8"
@@ -435,7 +431,7 @@ foreach item [array names pmiModifiersArray] {
 }
 
 # pmnot modifiers are already included in spmiTypes above
-set pmnot [list all_over all_around between unequally_disposed projected]
+set pmnot [list all_over all_around unequally_disposed projected]
 foreach item [lsort [array names pmiModifiers]] {
   set idx [lindex [split $item ","] 0]
   if {[lsearch $pmnot $idx] == -1} {lappend spmiTypes $item}
@@ -568,6 +564,9 @@ foreach i {4 10} {
   set feaElemFace($i,4) [list 2 3 0]
 }
 
+# AP209 entities with a specific '_and_' in the entity name
+set andEntAP209 [list "_and_location" "_and_volume_location" "_and_coefficient" "_and_frequencies" "_and_parameters" "_and_value_definition" "_and_freedom"]
+
 # -----------------------------------------------------------------------------------------------------
 # STEP geometry entities
 set entCategory(stepGEOM) [list advanced_face area_with_outer_boundary axis1_placement axis2_placement_2d axis2_placement_3d b_spline_basis b_spline_curve b_spline_curve_knot_locator b_spline_curve_segment b_spline_curve_with_knots b_spline_function b_spline_surface b_spline_surface_knot_locator b_spline_surface_patch b_spline_surface_strip b_spline_surface_with_knots b_spline_volume b_spline_volume_with_knots bezier_curve bezier_surface bezier_volume block block_volume boolean_result boolean_result_2d boundary_curve boundary_curve_of_b_spline_or_rectangular_composite_surface bounded_curve bounded_pcurve bounded_surface bounded_surface_curve box_domain boxed_half_space brep_with_voids cartesian_transformation_operator cartesian_transformation_operator_2d cartesian_transformation_operator_3d circle circular_area circular_involute closed_shell clothoid complex_area complex_shelled_solid complex_triangulated_face complex_triangulated_surface_set composite_curve composite_curve_on_surface composite_curve_segment composite_curve_transition_locator conic conical_stepped_hole_transition conical_surface connected_edge_set connected_edge_sub_set connected_face_set connected_face_sub_set connected_volume_set connected_volume_sub_set convex_hexahedron csg_primitive_solid_2d csg_solid csg_solid_2d cubic_bezier_tessellated_edge cubic_bezier_triangulated_face cubic_tessellated_connecting_edge curve curve_bounded_surface curve_replica cyclide_segment_solid cylindrical_surface cylindrical_volume degenerate_pcurve degenerate_toroidal_surface direction double_offset_shelled_solid dupin_cyclide_surface eccentric_cone eccentric_conical_volume edge edge_based_topological_representation_with_length_constraint edge_based_wireframe_model edge_blended_solid edge_bounded_curve_with_length edge_curve edge_loop elementary_surface ellipse ellipsoid ellipsoid_volume elliptic_area evaluated_degenerate_pcurve extruded_area_solid extruded_face_solid extruded_face_solid_with_draft_angle extruded_face_solid_with_multiple_draft_angles extruded_face_solid_with_trim_conditions face face_based_surface_model face_bound face_outer_bound face_surface faceted_brep faceted_primitive fixed_reference_swept_surface geometric_curve_set geometric_set half_space_2d half_space_solid hexahedron_volume hyperbola intersection_curve line local_b_spline locally_refined_spline_curve locally_refined_spline_surface locally_refined_spline_volume loop manifold_solid_brep modified_solid modified_solid_with_placed_configuration offset_curve_2d offset_curve_3d offset_surface open_path open_shell oriented_closed_shell oriented_edge oriented_face oriented_open_shell oriented_path oriented_surface outer_boundary_curve parabola path path_area_with_parameters pcurve placement planar_box planar_extent plane point point_and_vector point_array point_in_volume point_on_curve point_on_edge_curve point_on_face_surface point_on_surface point_replica poly_loop polygonal_area polyline primitive_2d primitive_2d_with_inner_boundary pyramid_volume quasi_uniform_curve quasi_uniform_surface quasi_uniform_volume rational_b_spline_curve rational_b_spline_surface rational_b_spline_volume rational_locally_refined_spline_curve rational_locally_refined_spline_surface rational_locally_refined_spline_volume rectangular_area rectangular_composite_surface rectangular_composite_surface_transition_locator rectangular_pyramid rectangular_trimmed_surface reparametrised_composite_curve_segment repositioned_tessellated_item revolved_area_solid revolved_face_solid revolved_face_solid_with_trim_conditions right_angular_wedge right_circular_cone right_circular_cylinder ruled_surface_swept_area_solid sculptured_solid seam_curve seam_edge shell_based_surface_model shell_based_wireframe_model shelled_solid solid_curve_font solid_model solid_replica solid_with_angle_based_chamfer solid_with_chamfered_edges solid_with_circular_pattern solid_with_circular_pocket solid_with_circular_protrusion solid_with_conical_bottom_round_hole solid_with_constant_radius_edge_blend solid_with_curved_slot solid_with_depression solid_with_double_offset_chamfer solid_with_flat_bottom_round_hole solid_with_general_pocket solid_with_general_protrusion solid_with_groove solid_with_hole solid_with_incomplete_circular_pattern solid_with_incomplete_rectangular_pattern solid_with_pocket solid_with_protrusion solid_with_rectangular_pattern solid_with_rectangular_pocket solid_with_rectangular_protrusion solid_with_shape_element_pattern solid_with_single_offset_chamfer solid_with_slot solid_with_spherical_bottom_round_hole solid_with_stepped_round_hole solid_with_stepped_round_hole_and_conical_transitions solid_with_straight_slot solid_with_tee_section_slot solid_with_through_depression solid_with_trapezoidal_section_slot solid_with_variable_radius_edge_blend sphere spherical_surface spherical_volume subedge subface subpath surface surface_curve surface_curve_swept_area_solid surface_curve_swept_surface surface_of_linear_extrusion surface_of_revolution surface_patch surface_patch_set surface_replica surfaced_open_shell swept_area_solid swept_disk_solid swept_face_solid swept_surface tessellated_connecting_edge tessellated_curve_set tessellated_edge tessellated_face tessellated_geometric_set tessellated_item tessellated_point_set tessellated_shell tessellated_solid tessellated_structured_item tessellated_surface_set tessellated_vertex tessellated_wire tetrahedron tetrahedron_volume thickened_face_solid toroidal_surface toroidal_volume torus track_blended_solid track_blended_solid_with_end_conditions triangulated_face triangulated_surface_set trimmed_curve uniform_curve uniform_surface uniform_volume vector vertex vertex_loop vertex_point vertex_shell volume volume_with_faces volume_with_parametric_boundary volume_with_shell wedge_volume wire_shell]
@@ -696,7 +695,7 @@ proc checkVariables {} {
      [string range $opt(xlMaxRows) end-1 end] != "76" && [string range $opt(xlMaxRows) end-1 end] != "36")} {set opt(xlMaxRows) 103}
 
 # unset old opt variables from older versions of SFA
-  foreach item {COUNT CRASH DELCOVROWS DISPGUIDE1 feaDisptail feaNodeType FIRSTTIME FN_APPEND GENX3DOM indentGeomtry PMIP PMIPROP PMIVRML ROWLIM SEMPROP SORT stepADDM VPDBG XLSBUG XLSBUG1} {catch {unset opt($item)}}
+  foreach item {COUNT CRASH DELCOVROWS DISPGUIDE1 feaDisptail feaNodeType FIRSTTIME FN_APPEND GENX3DOM indentGeomtry PMIP PMIPROP PMIVRML ROWLIM SEMPROP SORT stepADDM viewPMIVP VPDBG XLSBUG XLSBUG1} {catch {unset opt($item)}}
   foreach id [array names opt] {foreach str {EX_ PR_ XL_ VIZ} {if {[string first $str $id] == 0} {unset opt($id)}}}
 }
 
