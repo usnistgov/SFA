@@ -12,10 +12,11 @@ Follow the instructions below to build your own version of SFA from the source c
 ## Prerequisites
 
 Microsoft Excel is required to generate spreadsheets.  CSV (comma-separated values) files will be generated if Excel is not 
-installed.  SFA is written in [Tcl](https://wiki.tcl-lang.org/) with some of the Tcl code based on [CAWT](https://www.tcl3d.org/cawt/)
+installed.  SFA is written in [Tcl](https://wiki.tcl-lang.org/) with some of the Tcl code based 
+on [CAWT](https://www.tcl3d.org/cawt/).
 
-Download the SFA Tcl and other files from the GitHub 'source' directory to a directory on your computer.  The name of the directory is not 
-important.
+To build SFA, first download the Tcl and other files from the GitHub 'source' directory to a directory on your computer.  The name of the 
+directory is not important.
 
 freewrap wraps the SFA Tcl code to create an executable.
 
