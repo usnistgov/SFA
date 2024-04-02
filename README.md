@@ -13,11 +13,9 @@ Follow the instructions below to build your own version of SFA from the source c
 
 Microsoft Excel is required to generate spreadsheets.  CSV (comma-separated values) files will be generated if Excel is not installed.
 
-Download the SFA files from the GitHub 'source' directory to a directory on your computer.
-
-- The name of the directory is not important
-- The STEP File Analyzer and Viewer is written in [Tcl](https://wiki.tcl-lang.org/)
-- Some of the Tcl code is based on [CAWT](https://www.tcl3d.org/cawt/)
+Download the SFA files from the GitHub 'source' directory to a directory on your computer.  The name of the directory is not 
+important.  The STEP File Analyzer and Viewer is written in [Tcl](https://wiki.tcl-lang.org/) with some of the Tcl code is 
+based on [CAWT](https://www.tcl3d.org/cawt/)
 
 freewrap wraps the SFA Tcl code to create an executable.
 
@@ -34,6 +32,14 @@ Several Tcl packages not included in freewrap also need to be installed.
 
 - Open a command prompt window and change to the directory with the SFA Tcl files and freewrap.
 - To generate the executable **sfa.exe**, enter the command: freewrap -f sfa-files.txt
+
+Optionally build the command-line version:
+
+- Download freewrapTCLSH.zip from <https://sourceforge.net/projects/freewrap/files/freewrap/freeWrap%206.51/>
+- Extract freewrapTCLSH.exe to the directory with the SFA Tcl files
+- Edit sfa-files.txt and change the first line 'sfa.tcl' to 'sfa-cl.tcl'
+- Edit sfa-cl.tcl similar to sfa.tcl above
+- To generate **sfa-cl.exe**, enter the command: freewrapTCLSH -f sfa-files.txt
 
 ## Running the Software
 
