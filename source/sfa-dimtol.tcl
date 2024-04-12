@@ -131,7 +131,7 @@ proc spmiDimtolReport {objEntity} {
     set lastEnt "$objID $objType"
 
     if {$entLevel == 1} {
-      foreach var {dimtolAttr dimtolEnt dimtolPM entlevel2 assocGeom} {if {[info exists $var]} {unset $var}}
+      foreach var {dimName dimtolAttr dimtolEnt dimtolPM entlevel2 assocGeom} {if {[info exists $var]} {unset $var}}
       foreach idx {nominal upper lower} {if {[info exists dim($idx)]} {unset dim($idx)}}
       set numDSnames 0
     } elseif {$entLevel == 2} {
@@ -358,9 +358,14 @@ proc spmiDimtolReport {objEntity} {
                       ::tcom::foreach e0 $e0s {set ok 1}
                       if {$ok} {lappend spmiTypesPerFile "derived shapes dimensional location"}
                     }
-# check for missing related_shape_aspect
-                    if {[[[$objEntity Attributes] Item [expr 4]] Value] == ""} {
-                      set msg "Syntax Error: Missing 'related_shape_aspect' on dimensional_location$spaces\($recPracNames(pmi242), Sec. 5.1.1)"
+
+# check for problems with related_shape_aspect
+                    set msg ""
+                    set rsa [[[$objEntity Attributes] Item [expr 4]] Value]
+                    if {[$objValue P21ID] == [$rsa P21ID]} {set msg "Syntax Error: Identical 'relating' and 'related' shape aspects on dimensional_location"}
+                    if {$rsa == ""} {set msg "Syntax Error: Missing 'related_shape_aspect' on dimensional_location"}
+                    if {$msg != ""} {
+                      append msg "$spaces\($recPracNames(pmi242), Sec. 5.1.1)"
                       errorMsg $msg
                       lappend syntaxErr(dimensional_location) [list $objID "related_shape_aspect" $msg]
                     }
@@ -605,7 +610,9 @@ proc spmiDimtolReport {objEntity} {
 
 # syntax check for correct dimensional_size.name attribute (dimSizeNames) from the RP
                     if {$okname && ($ov == "" || [lsearch $dimSizeNames $ov] == -1)} {
-                      set msg "Syntax Error: Bad 'name' attribute on [formatComplexEnt [lindex $ent1 0]].$spaces\($recPracNames(pmi242), Sec. 5.1.5, Table 4)"
+                      set errstr "Bad"
+                      if {$ov == ""} {set errstr "Missing"}
+                      set msg "Syntax Error: $errstr 'name' attribute on [formatComplexEnt [lindex $ent1 0]].$spaces\($recPracNames(pmi242), Sec. 5.1.5, Table 4)"
                       errorMsg $msg
                       lappend syntaxErr([lindex [split $ent1 " "] 0]) [list $objID [lindex [split $ent1 " "] 1] $msg]
                       set invalid $msg
@@ -643,7 +650,9 @@ proc spmiDimtolReport {objEntity} {
 
 # syntax check for correct dimensional_location.name attribute from the RP
                     if {$dimName == "" || ($dimName != "curved distance" && [string first "linear distance" $dimName] == -1)} {
-                      set msg "Syntax Error: Bad 'name' attribute on [lindex $ent1 0].$spaces\($recPracNames(pmi242), Sec. 5.1.1, Tables 1 and 2)"
+                      set errstr "Bad"
+                      if {$dimName == ""} {set errstr "Missing"}
+                      set msg "Syntax Error: $errstr 'name' attribute on [lindex $ent1 0].$spaces\($recPracNames(pmi242), Sec. 5.1.1, Tables 1 and 2)"
                       errorMsg $msg
                       lappend syntaxErr([lindex [split $ent1 " "] 0]) [list $objID [lindex [split $ent1 " "] 1] $msg]
                       set invalid $msg
@@ -868,8 +877,7 @@ proc spmiDimtolReport {objEntity} {
                         errorMsg $msg
                         lappend syntaxErr($dt) [list -$r "length/angle name" $msg]
                       }
-
-                      if {$ov == "upper limit" && $dim(num) > 2} {
+                      if {($ov == "upper limit" || $ov == "lower limit") && $dim(num) > 2} {
                         set item "value range"
                         lappend spmiTypesPerFile $item
                       }

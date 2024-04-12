@@ -1,10 +1,10 @@
 proc initData {} {
 
 global ap203all ap214all ap242all ap242e1 ap242e2 ap242e3 ap242e4 ap242only supertypes
-global allVendor andEntAP209 aoEntTypes badAttributes bits cadApps cameraModels datumTargetDesc defaultColor dimModNames
+global allVendor andEntAP209 aoEntTypes badAttributes bits brepGeomEntTypes cadApps cameraModels datumTargetDesc defaultColor dimModNames
 global dimSizeNames DTR entCategory entColorIndex feaElemFace feaIndex gpmiTypes ifcsvrDir ifcsvrKey ifcsvrVer indentStart
 global indentStop legendColor letters nistModelPictures pmiElementsMaxRows pmiHorizontalLineBreaks pmiModifiers pmiModifiersRP
-global pmiUnicode recPracNames roseLogical spaces spmiEntTypes spmiTypes stepAPs tolNames tzfNames unicodeAttributes
+global pmiUnicode recPracNames roseLogical spaces spmiEntTypes spmiTypes statusFont stepAPs tolNames tzfNames unicodeAttributes
 
 global coverageSTEP developer dispCmd dispCmds env fileDir fileDir1 filesProcessed gen lastX3DOM lastXLS lastXLS1
 global mydocs openFileList opt pf32 pf64 sfaVersion upgrade userWriteDir writeDir x3dom x3dFileName x3dStartFile
@@ -34,13 +34,13 @@ set writeDir $userWriteDir
 # all are subsequently set by reading the options file (that stores options from running the software - STEP-File-Analyzer-options.dat) in sfa.tcl and sfa-cl.tcl
 # options, set to 1
 foreach id {BOM logFile outputOpen partEdges partSketch partSupp PMIGRF PMISEM stepCOMM stepPRES stepQUAN stepREPR stepSHAP \
-  stepTOLR tessPartMesh valProp viewPart viewPMI viewTessPart} {set opt($id) 1}
+  stepTOLR valProp viewPart viewPMI} {set opt($id) 1}
 
 # options, set to 0
-foreach id {DEBUG1 debugAG DEBUGINV DEBUGNOXL DEBUGVP DEBUGX3D feaBounds feaDisp feaDispNoTail feaLoads feaLoadScale indentGeometry \
+foreach id {DEBUG1 debugAG DEBUGINV debugNOXL debugVP debugX3D feaBounds feaDisp feaDispNoTail feaLoads feaLoadScale indentGeometry \
   indentStyledItem INVERSE partNoCap partNoGroup partNormals partOnly PMIGRFCOV PMISEMDIM PMISEMDT PMISEMRND SHOWALLPMI stepAP242 \
-  stepCOMP stepCONS stepCPNT stepFEAT stepGEOM stepKINE stepOTHR stepQUAL stepUSER syntaxChecker tessAlt viewCorrect viewFEA viewNoPMI \
-  viewParallel writeDirType x3dSave xlHideLinks xlNoRound xlSort xlUnicode} {set opt($id) 0}
+  stepCOMP stepCONS stepCPNT stepFEAT stepGEOM stepKINE stepOTHR stepQUAL stepUSER syntaxChecker brepAlt tessPartOld viewCorrect viewFEA \
+  viewNoPMI viewParallel viewTessPart writeDirType x3dSave xlHideLinks xlNoRound xlSort xlUnicode} {set opt($id) 0}
 
 set gen(View) 1
 set opt(gpmiColor) 0
@@ -59,6 +59,7 @@ set sfaVersion 0
 set upgrade 0
 set x3dFileName ""
 set x3dStartFile 1
+set statusFont "-*-Consolas-Medium-R-Normal--*-170-*-*-*-*-*-*"
 
 set developer 0
 catch {if {$env(USERDOMAIN) == "NIST" || $env(USERDOMAIN) == "HARAUB" || $env(USERDOMAIN) == "DESKTOP-VV8848J"} {set developer 1}}
@@ -247,8 +248,8 @@ set cadApps {3D_Evolution 3DEXPERIENCE 3DTransVidia Alibre "Anark CORE" Area21 "
 set cadApps [sortlength2 $cadApps]
 
 # CAx-IF vendor codes (General Guidelines for the MBx Interoperability Forum)
-set pairs [list {3de "3D Evolution"} {c3e "3D Experience"} {c5 "CATIA V5"} {cr "Creo"} {ct5 "3D Evolution (CATIA_V5)"} {cto "3D Evolution (Creo)"} {ctx "3D Evolution (NX)"} {d5 "Datakit CrossCad (CATIA_V5)"} {dc "Datakit CrossCad"} {di "Datakit CrossCad (Inventor)"} {do "Datakit CrossCad (Creo)"} {dw "Datakit CrossCad (SolidWorks)"} {dx "Datakit CrossCad (NX)"} {e5 "Elysium (CATIA_V5)"} {ec "Elysium CadDoctor"} {eo "Elysium (Creo)"} {ew "Elysium (SolidWorks)"} {ex "Elysium (NX)"} {in "Autodesk Inventor"} {k3d "Kubotek Kosmos (3D Framework)"} {k5 "Kubotek Kosmos (CATIA_V5)"} {kx "Kubotek Kosmos (NX)"} {nx "Siemens NX"} {oc "Datakit CrossCad (OpenCascade)"} {osv "ODA Open STEP Viewer"} {pdm "prostep ivip PDM-IF"} {sw "SolidWorks"} \
-{a3 "Acrobat 3D"} {a5 "Acrobat_3D (CATIA_V5)"} {ac "AutoCAD"} {al "Autodesk AliasStudio"} {au "Acrobat_3D (NX)"} {c4 "CATIA V4"} {cm "PTC CoCreate Modeling"} {fs "Vistagy FiberSim"} {h3 "HOOPS 3D Exchange"} {h5 "HOOPS 3D (CATIA_V5)"} {hc "HOOPS 3D (Creo)"} {hx "HOOPS 3D (NX)"} {i5 "ITI CADfix (CATIA_V5)"} {ic "ITI CADfix (Creo)"} {id "Siemens NX I-DEAS"} {if "ITI CADfix"} {ii "ITI CADfix (Inventor)"} {iw "ITI CADfix (SolidWorks)"} {ix "ITI CADfix (NX)"} {jn "Jotne EPM NASTRAN"} {jo "Jotne EPM openSimDM"} {kc "Kubotek KeyCreator"} {ko "Kubotek Kosmos (Creo)"} {kr "Kubotek REALyze"} {kw "Kubotek Kosmos (SolidWorks)"} {lk "LKSoft IDA-STEP"} {mm "Mitutoyo MiCAT Planner"} {mp "MSC Patran"} {nas "MSC NASTRAN"} {oc "Datakit CrossCad (OpenCascade)"} {pc "PTC CADDS"} {pe "PTC Pro/E"} {s4 "T-Systems COM/STEP (CATIA_V4)"} {s5 "T-Systems COM/FOX (CATIA_V5)"} {se "Siemens SolidEdge"} {sp "Spatial ACIS"} {stp "ISO 10303 STEP"} {t3d "TechSoft3D"} {t4 "Theorem Cadverter (CATIA_V4)"} {tc "Theorem Cadverter (CADDS)"} {tp "Theorem Cadverter (Pro/E)"} {tx "Theorem Cadverter (NX)"} {ug "Unigraphics"}]
+set pairs [list {3de "3D Evolution"} {c3e "3D Experience"} {c5 "CATIA V5"} {cr "Creo"} {ct5 "3D Evolution (V5)"} {cto "3D Evolution (Creo)"} {ctx "3D Evolution (NX)"} {d5 "Datakit (V5)"} {dc "Datakit"} {di "Datakit (Inventor)"} {do "Datakit (Creo)"} {dw "Datakit (SolidWorks)"} {dx "Datakit (NX)"} {e5 "Elysium (V5)"} {ec "Elysium CadDoctor"} {eo "Elysium (Creo)"} {ex "Elysium (NX)"} {in "Autodesk Inventor"} {k3d "Kubotek (3D Framework)"} {k5 "Kubotek (V5)"} {ko "Kubotek (Creo)"} {kx "Kubotek (NX)"} {nx "Siemens NX"} {oc "Datakit (OpenCascade)"} {osv "ODA Open STEP Viewer"} {pdm "prostep ivip PDM-IF"} {sw "SolidWorks"} \
+{a3 "Acrobat 3D"} {a5 "Acrobat_3D (V5)"} {ac "AutoCAD"} {al "Autodesk AliasStudio"} {au "Acrobat_3D (NX)"} {c4 "CATIA V4"} {cm "PTC CoCreate Modeling"} {fs "Vistagy FiberSim"} {h3 "HOOPS 3D Exchange"} {h5 "HOOPS 3D (V5)"} {hc "HOOPS 3D (Creo)"} {hx "HOOPS 3D (NX)"} {i5 "ITI CADfix (V5)"} {ew "Elysium (SolidWorks)"} {ic "ITI CADfix (Creo)"} {id "Siemens NX I-DEAS"} {if "ITI CADfix"} {ii "ITI CADfix (Inventor)"} {iw "ITI CADfix (SolidWorks)"} {ix "ITI CADfix (NX)"} {jn "Jotne EPM NASTRAN"} {jo "Jotne EPM openSimDM"} {kc "Kubotek KeyCreator"} {kr "Kubotek REALyze"} {kw "Kubotek (SolidWorks)"} {lk "LKSoft IDA-STEP"} {mm "Mitutoyo MiCAT Planner"} {mp "MSC Patran"} {nas "MSC NASTRAN"} {oc "Datakit (OpenCascade)"} {pc "PTC CADDS"} {pe "PTC Pro/E"} {s4 "T-Systems COM/STEP (V4)"} {s5 "T-Systems COM/FOX (V5)"} {se "Siemens SolidEdge"} {sp "Spatial ACIS"} {stp "ISO 10303 STEP"} {t3d "TechSoft3D"} {t4 "Theorem Cadverter (V4)"} {tc "Theorem Cadverter (CADDS)"} {tp "Theorem Cadverter (Pro/E)"} {tx "Theorem Cadverter (NX)"} {ug "Unigraphics"}]
 foreach pair $pairs {set allVendor([lindex $pair 0]) [lindex $pair 1]}
 
 # names of CAx-IF Recommended Practices
@@ -264,15 +265,21 @@ set recPracNames(holes)    "Representation of Hole and Fastener Information (AP2
 
 # -----------------------------------------------------------------------------------------------------
 # list of annotation occurrence entities, *order is important*
-set aoEntTypes [list tessellated_annotation_occurrence annotation_placeholder_occurrence annotation_placeholder_occurrence_with_leader_line \
-                annotation_fill_area_occurrence annotation_curve_occurrence annotation_occurrence]
+set aoEntTypes [list tessellated_annotation_occurrence annotation_placeholder_occurrence \
+  annotation_placeholder_occurrence_with_leader_line annotation_fill_area_occurrence annotation_curve_occurrence \
+  annotation_occurrence]
+
+# list of entities indicating brep geometry that can be processed by stp2x3d
+set brepGeomEntTypes [list advanced_brep_shape_representation geometrically_bounded_surface_shape_representation \
+  geometrically_bounded_wireframe_shape_representation manifold_solid_brep manifold_surface_shape_representation \
+  shell_based_surface_model document_file]
 
 # list of semantic PMI entities, *order is important*, not including tolerances
 set spmiEntTypes [list datum_reference_element datum_reference_compartment datum_system datum_reference \
-                  referenced_modified_datum datum_feature composite_shape_aspect_and_datum_feature \
-                  composite_group_shape_aspect_and_datum_feature datum_feature_and_derived_shape_aspect dimensional_size_with_datum_feature \
-                  composite_unit_shape_aspect_and_dimensional_size_with_datum_feature placed_datum_target_feature datum_target \
-                  dimensional_characteristic_representation]
+  referenced_modified_datum datum_feature composite_shape_aspect_and_datum_feature \
+  composite_group_shape_aspect_and_datum_feature datum_feature_and_derived_shape_aspect \
+  dimensional_size_with_datum_feature composite_unit_shape_aspect_and_dimensional_size_with_datum_feature \
+  placed_datum_target_feature datum_target dimensional_characteristic_representation]
 
 set cameraModels [list camera_model_d3 camera_model_d3_multi_clipping camera_model_d3_with_hlhsr camera_model_d3_with_light_sources]
 
@@ -678,7 +685,7 @@ proc checkVariables {} {
   }
 
 # rename and unset old opt variables from older versions of SFA
-  foreach pair [list {HIDELINKS xlHideLinks} {LOGFILE logFile} {SYNCHK syntaxChecker} {VALPROP valProp} {VIZBRP VIZPRT} {VIZFEA viewFEA} {VIZFEABC feaBounds} {VIZFEADS feaDisp} {VIZFEADSntail feaDispNoTail} {VIZFEALV feaLoads} {VIZFEALVS feaLoadScale} {VIZPMI viewPMI} {VIZPRT viewPart} {VIZPRTEDGE partEdges} {VIZPRTNORMAL partNormals} {VIZPRTONLY partOnly} {VIZPRTWIRE partSketch} {VIZTES viewTessPart} {VIZTESMSH tessPartMesh} {VIZTPG viewTessPart} {VIZTPGMSH tessPartMesh} {x3dQuality partQuality} {XL_FPREC xlNoRound} {XL_OPEN outputOpen} {XL_ROWLIM xlMaxRows} {XL_SORT xlSort} {XLSCSV xlFormat}] {
+  foreach pair [list {HIDELINKS xlHideLinks} {LOGFILE logFile} {SYNCHK syntaxChecker} {tessAlt brepAlt} {VALPROP valProp} {VIZBRP VIZPRT} {VIZFEA viewFEA} {VIZFEABC feaBounds} {VIZFEADS feaDisp} {VIZFEADSntail feaDispNoTail} {VIZFEALV feaLoads} {VIZFEALVS feaLoadScale} {VIZPMI viewPMI} {VIZPRT viewPart} {VIZPRTEDGE partEdges} {VIZPRTNORMAL partNormals} {VIZPRTONLY partOnly} {VIZPRTWIRE partSketch} {VIZTES viewTessPart} {VIZTESMSH tessPartMesh} {VIZTPG viewTessPart} {VIZTPGMSH tessPartMesh} {x3dQuality partQuality} {XL_FPREC xlNoRound} {XL_OPEN outputOpen} {XL_ROWLIM xlMaxRows} {XL_SORT xlSort} {XLSCSV xlFormat}] {
     set old [lindex $pair 0]
     set new [lindex $pair 1]
     if {[info exists opt($old)]} {set opt($new) $opt($old); unset opt($old)}

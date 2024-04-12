@@ -1,6 +1,6 @@
 # read expected PMI from spreadsheets, (called from sfa-gen.tcl)
 proc nistReadExpectedPMI {{epmiFile ""}} {
-  global epmiUD gen mytemp nistName nistPMImaster nistVersion opt spmiCoverages wdir
+  global epmiUD mytemp nistName nistPMImaster nistVersion spmiCoverages wdir
 
   if {[catch {
     set lf 1
@@ -387,7 +387,6 @@ proc nistCheckExpectedPMI {val entstr epmiName} {
             if {$debug} {outputMsg "remove3 [lindex $nistPMIexpected($epmiName) $pmiMatchNX]" green}
             set nistPMIexpected($epmiName)   [lreplace $nistPMIexpected($epmiName)   $pmiMatchNX $pmiMatchNX]
             set nistPMIexpectedNX($epmiName) [lreplace $nistPMIexpectedNX($epmiName) $pmiMatchNX $pmiMatchNX]
-            set nistPMIdeduct(dim) 1
           }
 
 # try simple match as above

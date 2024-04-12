@@ -1876,7 +1876,7 @@ proc spmiGeotolReport {objEntity} {
       if {$geotolGeom != ""} {
         set c [expr {$pmiStartCol($gt)+4}]
         set r $spmiIDRow($gt,$spmiID)
- 
+
 # heading
         if {[string first "datum_feature" [$gtEntity Type]] == -1} {
           set head1 "Toleranced"
@@ -2061,6 +2061,7 @@ proc spmiProjectedToleranceZone {objGuiEntity} {
                   set msg "Syntax Error: Projected tolerance zone 'projection_end' refers to invalid GISU identified_item '$e3type'.$spaces\($recPracNames(pmi242), Sec. 6.9.2.2)"
                 }
                 set i 3
+                if {$e3type == "trimmed_curve"} {set i 2}
                 if {$e3type == "complex_triangulated_face"} {set i 5}
                 set e4 [[[$e3 Attributes] Item [expr $i]] Value]
                 if {[$e4 Type] != "plane"} {

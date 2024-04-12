@@ -344,12 +344,15 @@ proc gpmiAnnotationReport {objEntity} {
                   set surfacePoint 0
                   foreach e0 $objValue {if {[$e0 Type] == "apll_point_with_surface"} {set surfacePoint 1}}
                   set msg ""
-                  if {([string first "to_model" $ent1] != -1 || [string first "auxiliary" $ent1] != -1) && $surfacePoint == 0} {
-                    set msg "Syntax Error: Missing an 'apll_point_with_surface' for model leader line.  Or use 'annotation_to_annotation_leader_line' if the line does not end on a surface.$spaces\($recPracNames(pmi242), Sec. 7.2.4)."
+                  if {[llength $objValue] == 1} {
+                    set msg "Syntax Error: Leader line has only one 'point'."
+                  } elseif {([string first "to_model" $ent1] != -1 || [string first "auxiliary" $ent1] != -1) && $surfacePoint == 0} {
+                    set msg "Syntax Error: Missing an 'apll_point_with_surface' for model leader line.  Or use 'annotation_to_annotation_leader_line' if the line does not end on a surface."
                   } elseif {[string first "to_annotation" $ent1] != -1 && $surfacePoint == 1} {
-                    set msg "Syntax Error: Leader line should not include 'apll_point_with_surface'.  Or use 'annotation_to_model_leader_line' if the line does end on a surface.$spaces\($recPracNames(pmi242), Sec. 7.2.4)."
+                    set msg "Syntax Error: Leader line should not include 'apll_point_with_surface'.  Or use 'annotation_to_model_leader_line' if the line does end on a surface."
                   }
                   if {$msg != ""} {
+                    append msg "$spaces\($recPracNames(pmi242), Sec. 7.2.4)"
                     errorMsg $msg
                     lappend syntaxErr([lindex $ent1 0]) [list $objID "geometric_elements" $msg]
                   }
@@ -771,15 +774,11 @@ proc gpmiAnnotationReport {objEntity} {
 
 # check if placeholder in saved view
                   if {[string first "placeholder" $ao] != -1} {
-                    catch {unset dment}
-                    foreach dm [list characterized_representation_and_draughting_model \
-                                characterized_representation_and_draughting_model_and_tessellated_shape_representation] {
-                      if {[info exists entCount($dm)]} {if {$entCount($dm) > 0} {set dment $dm}}
-                    }
-                    if {[info exists dment]} {
-                      set crdm [$drcall GetUsedIn [string trim $dment] [string trim items]]
+                    foreach dm $draughtingModels {
+                      set crdm [$drcall GetUsedIn [string trim $dm] [string trim items]]
                       ::tcom::foreach item $crdm {set placeSavedView($aoname) 1}
                     }
+                    if {![info exists placeSavedView($aoname)]} {errorMsg " Some annotation placeholders are not associated with a saved view" red}
                   }
                 }
 
@@ -818,6 +817,11 @@ proc gpmiAnnotationReport {objEntity} {
                 "colour_rgb red" {
                   if {$entLevel == 4 || $entLevel == 8} {
                     set objValue [trimNum $objValue]
+                    if {$objValue < 0. || $objValue > 1.} {
+                      set msg "Syntax Error: RGB value must be >= 0 and <= 1"
+                      errorMsg $msg
+                      lappend syntaxErr(colour_rgb) [list $objID red $msg]
+                    }
                     set colorRGB $objValue
                     if {$opt(gpmiColor) > 0} {
                       set x3dColor [x3dSetPMIColor $opt(gpmiColor)]
@@ -829,6 +833,11 @@ proc gpmiAnnotationReport {objEntity} {
                 "colour_rgb green" {
                   if {$entLevel == 4 || $entLevel == 8} {
                     set objValue [trimNum $objValue]
+                    if {$objValue < 0. || $objValue > 1.} {
+                      set msg "Syntax Error: RGB value must be >= 0 and <= 1"
+                      errorMsg $msg
+                      lappend syntaxErr(colour_rgb) [list $objID green $msg]
+                    }
                     append colorRGB " $objValue"
                     if {$opt(gpmiColor) == 0} {append x3dColor " $objValue"}
                   }
@@ -836,6 +845,11 @@ proc gpmiAnnotationReport {objEntity} {
                 "colour_rgb blue" {
                   if {$entLevel == 4 || $entLevel == 8} {
                     set objValue [trimNum $objValue]
+                    if {$objValue < 0. || $objValue > 1.} {
+                      set msg "Syntax Error: RGB value must be >= 0 and <= 1"
+                      errorMsg $msg
+                      lappend syntaxErr(colour_rgb) [list $objID blue $msg]
+                    }
                     append colorRGB " $objValue"
                     if {$opt(gpmiColor) == 0} {
                       append x3dColor " $objValue"

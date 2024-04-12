@@ -474,14 +474,6 @@ proc checkForReports {entType} {
       errorMsg "Error adding PMI Presentation for [formatComplexEnt $entType]: $emsg"
     }
 
-# view tessellated part geometry, call tessPart
-  } elseif {$entType == "tessellated_solid" || $entType == "tessellated_shell" || $entType == "tessellated_wire"} {
-    if {[catch {
-      if {[info exists opt(viewTessPart)]} {if {$opt(viewTessPart)} {tessPart $entType}}
-    } emsg]} {
-      errorMsg "Error adding Tessellated Part Geometry: $emsg"
-    }
-
 # check for Semantic PMI reports
   } elseif {$spmiEnts($entType)} {
     if {[catch {
@@ -539,10 +531,6 @@ proc checkForReports {entType} {
           }
         }
       }
-
-# for results at element nodes
-      #$entType == "element_nodal_freedom_actions"
-      #($opt(feaLoads) && ($entType == "nodal_freedom_action_definition" || $entType == "element_nodal_freedom_actions"))
     } emsg]} {
       errorMsg "Error adding FEM for [formatComplexEnt $entType]: $emsg"
     }
@@ -587,7 +575,7 @@ proc setEntAttrList {abc} {
 proc syntaxChecker {fileName} {
   global buttons env ifcsvrDir opt wdir writeDir
 
-  if {[file size $fileName] > 429000000} {outputMsg " The file is too large to run the Syntax Checker." red; return}
+  if {[file size $fileName] > 429000000} {outputMsg " The file is too large to run the Syntax Checker.  The limit is about 430 MB." red; return}
 
   set roseSchemas ""
   if {[info exists env(ROSE_SCHEMAS)]} {set roseSchemas $env(ROSE_SCHEMAS)}
@@ -602,7 +590,8 @@ proc syntaxChecker {fileName} {
   }
 
 # check header
-  getSchemaFromFile $fileName
+  set schema [getSchemaFromFile $fileName]
+  if {$schema == ""} {return}
 
 # get path for command-line version to run syntax checker
   set path [split $wdir "/"]
@@ -732,6 +721,7 @@ proc getSchemaFromFile {fname {limit 0}} {
 
   set p21e3 0
   set schema ""
+  set fsline ""
   set ok 0
   set ok1 0
   set nline 0
@@ -813,6 +803,12 @@ proc getSchemaFromFile {fname {limit 0}} {
 # done reading header section
     } elseif {[string first "ENDSEC" $line] != -1 && $nendsec == 0} {
 
+# missing file schema
+      if {$fsline == ""} {
+        errorMsg "Missing FILE_SCHEMA in HEADER section"
+        return
+      }
+
 # check for double parentheses
       if {[string first "(" $fsline] == [string last "(" $fsline] || [string first ")" $fsline] == [string last ")" $fsline]} {
         errorMsg "FILE_SCHEMA must use a double set of parentheses."
@@ -845,7 +841,7 @@ proc getSchemaFromFile {fname {limit 0}} {
   close $stepfile
 
 # not a STEP file
-  if {!$ok1} {errorMsg "The STEP file does not start with ISO-10303-21;"}
+  if {!$ok1} {outputMsg "The file does not start with 'ISO-10303-21;' and is probably not a STEP file.  See Websites > STEP" red}
   return $schema
 }
 
@@ -976,7 +972,8 @@ proc unicodeStrings {unicodeEnts} {
 
 # report entity types with Unicode
     if {[llength $unicodeActual] > 0} {
-      outputMsg " [llength $unicodeActual] entity type(s): [lsort $unicodeActual]"
+      regsub -all " " [join [lsort $unicodeActual]] ", " str
+      outputMsg " [llength $unicodeActual] entity type(s): $str"
       if {[lsearch $unicodeActual "descriptive_representation_item"] != -1} {set driUnicode 1}
     }
 

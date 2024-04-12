@@ -1,18 +1,22 @@
 # -------------------------------------------------------------------------------
-# B-rep part geometry
+# B-rep part geometry, new stp2x3d in SFA 5.10 also processes tessellated geometry
 proc x3dBrepGeom {} {
   global brepFile brepFileName buttons cadSystem clippingCap developer DTR edgeMatID entCount grayBackground localName matTrans maxxyz mytemp
-  global nistVersion nsketch opt rawBytes rosetteGeom viz x3dApps x3dBbox x3dMax x3dMin x3dMsg x3dMsgColor x3dParts
+  global nistVersion nsketch opt rawBytes rosetteGeom tessSolid viz x3dApps x3dBbox x3dMax x3dMin x3dMsg x3dMsgColor x3dParts x3dTryAgain
   global objDesign
 
   if {[catch {
-    if {$opt(DEBUGX3D)} {getTiming x3dBrepGeom}
+    if {$opt(debugX3D)} {getTiming x3dBrepGeom}
 
 # get stp2x3d executable
     x3dCopySTP2X3D
 
 # generate x3d from b-rep geometry with stp2x3d-part
-    set stp2x3d [file join $mytemp stp2x3d-part.exe]
+    if {![info exists x3dTryAgain]} {
+      set stp2x3d [file join $mytemp stp2x3d-part.exe]
+    } else {
+      set stp2x3d [file join $mytemp old-stp2x3d stp2x3d-part.exe]
+    }
     if {[file exists $stp2x3d]} {
 
 # output .x3d file name
@@ -25,9 +29,9 @@ proc x3dBrepGeom {} {
       set msg " Processing STEP part geometry"
       if {[info exists buttons]} {
         set fsize [file size $localName]
-        if {$fsize > 50000000} {
+        if {$fsize > 200000000} {
           append msg ".  Please wait, it could take several minutes for large STEP files."
-        } elseif {$fsize > 10000000} {
+        } elseif {$fsize > 50000000} {
           append msg ", please wait."
         }
       }
@@ -64,9 +68,16 @@ proc x3dBrepGeom {} {
       }
 
 # run stp2x3d-part.exe
-      if {$opt(DEBUGX3D)} {getTiming stp2x3d}
-      catch {exec $stp2x3d --input [file nativename $localName] --quality $opt(partQuality) --edge $opt(partEdges) --sketch $opt(partSketch) --normal $opt(partNormals) --rosette $rosetteOpt --tess $opt(tessAlt) --cap $clippingCap} errs
-      if {$opt(DEBUGX3D)} {getTiming done; outputMsg $errs}
+      if {$opt(debugX3D)} {getTiming stp2x3d}
+      if {![info exists tessSolid]} {set tessSolid 1}
+      catch {
+        if {![info exists x3dTryAgain]} {
+          exec $stp2x3d --input [file nativename $localName] --quality $opt(partQuality) --edge $opt(partEdges) --sketch $opt(partSketch) --normal $opt(partNormals) --rosette $rosetteOpt --tess $opt(brepAlt) --cap $clippingCap --tsolid $tessSolid
+        } else {
+          exec $stp2x3d --input [file nativename $localName] --quality $opt(partQuality) --edge $opt(partEdges) --sketch $opt(partSketch) --normal $opt(partNormals) --rosette $rosetteOpt --tess $opt(brepAlt) --cap $clippingCap
+        }
+      } errs
+      if {$opt(debugX3D)} {getTiming done; outputMsg $errs}
 
 # done processing
       if {[string first "STEP to X3D completed!" $errs] != -1} {
@@ -159,7 +170,7 @@ proc x3dBrepGeom {} {
             }
             incr j
             set space "[string repeat " " $j]<"
-            if {$opt(DEBUGX3D)} {outputMsg "$nind\n$j $level" red}
+            if {$opt(debugX3D)} {outputMsg "$nind\n$j $level" red}
 
 # open temp file
             set brepFileName [file join $mytemp brep.txt]
@@ -186,7 +197,7 @@ proc x3dBrepGeom {} {
             if {![info exists viz(EDGE)]} {set viz(EDGE) 0}
 
 # process all lines in file
-            if {$opt(DEBUGX3D)} {getTiming start}
+            if {$opt(debugX3D)} {getTiming start}
             outputMsg " Processing X3D output" $x3dMsgColor; update
             while {[gets $stpx3dFile line] >= 0} {
               if {$write} {
@@ -280,7 +291,7 @@ proc x3dBrepGeom {} {
                     }
                     if {$trans > 0.} {
                       set matTrans($id) $trans
-                      if {$developer && $trans != 1} {errorMsg " Some surfaces are transparent" red}
+                      if {$trans != 1} {errorMsg " Some surfaces are transparent" red}
                     }
                   }
                 }
@@ -327,7 +338,7 @@ proc x3dBrepGeom {} {
                     set id [string range $line $c1+1 $c2-3]
                     set cx [string first "\\X" $id]
                     if {$cx != -1} {set id [getUnicode $id]}
-                    #if {$opt(DEBUGX3D)} {outputMsg $id blue}
+                    #if {$opt(debugX3D)} {outputMsg $id blue}
                     set parts($id) $npart(PRT)
                     set line "$space\Switch id='swPart$npart(PRT)' whichChoice='0'><Group>\n$line"
                     set close 1
@@ -356,7 +367,7 @@ proc x3dBrepGeom {} {
 
 # increment Group name _n
                     if {[info exists parts($id)]} {
-                      if {$opt(DEBUGX3D)} {outputMsg $id green}
+                      if {$opt(debugX3D)} {outputMsg $id green}
                       for {set i 1} {$i < 99} {incr i} {
                         set c1 [string last "_" $id]
                         if {$c1 != -1} {
@@ -366,7 +377,7 @@ proc x3dBrepGeom {} {
                         }
                         if {![info exists parts($nid)]} {
                           set id $nid
-                          #if {$opt(DEBUGX3D)} {outputMsg $id red}
+                          #if {$opt(debugX3D)} {outputMsg $id red}
                           break
                         }
                       }
@@ -434,7 +445,7 @@ proc x3dBrepGeom {} {
 # group duplicate parts
               if {!$opt(partNoGroup)} {
                 foreach name [lsort [array names parts]] {
-                  if {$opt(DEBUGX3D)} {outputMsg "$name $parts($name)"}
+                  if {$opt(debugX3D)} {outputMsg "$name $parts($name)"}
 
 # S control directive
                   if {[string first "\\S\\" $name] != -1} {errorMsg " The \\S\\ control directive is not supported for accented characters.  See Help > Text Strings and Numbers" red}
@@ -445,7 +456,7 @@ proc x3dBrepGeom {} {
 # remove _n
                     set c1 [string last "_" $name]
                     set name1 [string range $name 0 $c1-1]
-                    if {$opt(DEBUGX3D)} {outputMsg " $name1" red}
+                    if {$opt(debugX3D)} {outputMsg " $name1" red}
 
 # add to x3dParts
                     if {[string range $name $c1 end] == "_1" && ![info exists parts($name1)]} {
@@ -502,7 +513,7 @@ proc x3dBrepGeom {} {
                 errorMsg $msg
               }
             }
-            if {$opt(DEBUGX3D)} {foreach idx [array names x3dParts] {outputMsg "$idx $x3dParts($idx)" blue}}
+            if {$opt(debugX3D)} {foreach idx [array names x3dParts] {outputMsg "$idx $x3dParts($idx)" blue}}
 
 # no shapes
             set viz(PART) 1
@@ -520,7 +531,7 @@ proc x3dBrepGeom {} {
 
             close $stpx3dFile
           }
-          if {$opt(DEBUGX3D)} {getTiming done}
+          if {$opt(debugX3D)} {getTiming done}
 
 # no X3D output
         } else {
@@ -529,10 +540,6 @@ proc x3dBrepGeom {} {
         catch {file delete -force -- $stpx3dFileName}
 
 # errors running stp2x3d
-      } elseif {[string first "Nothing to translate" $errs] != -1} {
-        set msg "Part geometry cannot be processed"
-        errorMsg " $msg"
-        lappend x3dMsg $msg
       } else {
         outputMsg $errs red
 
@@ -545,20 +552,36 @@ proc x3dBrepGeom {} {
           set msg "Change the file or directory name and process the file again."
         } elseif {[string first "permission denied" $errs] != -1} {
           set msg "Antivirus software might be blocking stp2x3d-part.exe from running in $mytemp"
-        } else {
-          set msg "Error processing STEP part geometry.\n Use F8 to run the Syntax Checker to check for STEP file errors.  See Help > Syntax Checker"
-          set ename "camera_model_d3_multi_clipping"
-          if {[info exists entCount($ename)] && !$opt(partNoCap)} {
-            if {$entCount($ename) > 0} {append msg "\n Try the option to disable clipping planes on the More tab."}
-          }
-          append msg "\n Try opening the file in another STEP viewer.  See Websites > STEP > STEP File Viewers"
-        }
-        errorMsg $msg
-        outputMsg " "
-        lappend x3dMsg "Error generating STEP part geometry"
-      }
 
-# missing stp2x3d
+# crash with STEP file
+        } else {
+          if {[info exists x3dTryAgain]} {
+            set msg "Error processing STEP part geometry."
+            if {$tessSolid && !$opt(partOnly)} {append msg "\n Try the option to use the 'Old processing of tessellated geometry' (More tab)"}
+            set ename "camera_model_d3_multi_clipping"
+            if {[info exists entCount($ename)] && !$opt(partNoCap)} {
+              if {$entCount($ename) > 0} {append msg "\n Try the option to 'not generate capped surfaces for clipping planes' (More tab)"}
+            }
+            append msg "\n Try opening the file in another STEP viewer.  See Websites > STEP > STEP File Viewers"
+            append msg "\n Use F8 to run the Syntax Checker to check for STEP file errors.  See Help > Syntax Checker"
+
+# try processing with old version of stp2x3d
+          } else {
+            errorMsg "Trying old version of processing STEP part geometry"
+            outputMsg " "
+            set x3dTryAgain 1
+            catch {unset x3dMsg}
+            catch {unset msg}
+            x3dBrepGeom
+            unset x3dTryAgain
+          }
+        }
+        if {[info exists msg]} {
+          errorMsg $msg
+          outputMsg " "
+          lappend x3dMsg "Error generating STEP part geometry"
+        }
+      }
     } else {
       set msg " The program (stp2x3d-part.exe) to convert STEP part geometry to X3D was not found in $mytemp"
       if {!$nistVersion} {append msg "\n  You must first run the NIST version of the STEP File Analyzer and Viewer before generating a View."}
@@ -602,15 +625,22 @@ proc x3dBrepUnits {} {
 # -------------------------------------------------------------------------------
 # copy stp2x3d files to temp directory, DLLs in sp2x3d-dll.zip, exe in stp2x3d-part.exe
 proc x3dCopySTP2X3D {} {
-  global nistVersion mytemp opt wdir
+  global nistVersion mytemp opt wdir x3dTryAgain
 
   if {!$nistVersion} {return}
 
   set msg 0
   if {[catch {
     foreach fn {stp2x3d-dll.zip stp2x3d-part.exe} {
-      set internal [file join $wdir exe $fn]
-      set stp2x3d [file join $mytemp $fn]
+      if {![info exists x3dTryAgain]} {
+        set internal [file join $wdir exe $fn]
+        set stp2x3d [file join $mytemp $fn]
+      } else {
+        set olddir [file join $mytemp old-stp2x3d]
+        if {![file exists $olddir]} {file mkdir $olddir}
+        set internal [file join $wdir exe old-stp2x3d $fn]
+        set stp2x3d [file join $mytemp old-stp2x3d $fn]
+      }
       if {[file exists $internal]} {
         set copy 0
         if {![file exists $stp2x3d]} {
@@ -632,12 +662,20 @@ proc x3dCopySTP2X3D {} {
   }
 
 # extract DLLs from zip file
-  set stp2x3dz [file join $mytemp stp2x3d-dll.zip]
+  if {![info exists x3dTryAgain]} {
+    set stp2x3dz [file join $mytemp stp2x3d-dll.zip]
+  } else {
+    set stp2x3dz [file join $mytemp old-stp2x3d stp2x3d-dll.zip]
+  }
   if {[file exists $stp2x3dz]} {
     if {[catch {
       vfs::zip::Mount $stp2x3dz stp2x3d-dll
       foreach file [glob -nocomplain stp2x3d-dll/*] {
-        set fn [file join $mytemp [file tail $file]]
+        if {![info exists x3dTryAgain]} {
+          set fn [file join $mytemp [file tail $file]] 
+        } else {
+          set fn [file join $mytemp old-stp2x3d [file tail $file]] 
+        }
         set copy 0
         if {![file exists $fn]} {
           set copy 1
@@ -651,7 +689,7 @@ proc x3dCopySTP2X3D {} {
           file copy -force -- $file $fn
         }
       }
-      if {$opt(DEBUGX3D)} {getTiming "copy and extract"}
+      if {$opt(debugX3D)} {getTiming "copy and extract"}
     } emsg]} {
       errorMsg " Error extracting DLLs for stp2x3d-part.exe: $emsg"
     }

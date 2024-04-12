@@ -118,15 +118,14 @@ proc openURL {url} {
 #-------------------------------------------------------------------------------
 # file open dialog
 proc openFile {{openName ""}} {
-  global allNone ap242XML buttons developer drive editorCmd fileDir gen localName localNameList opt
+  global allNone buttons drive editorCmd fileDir gen localName localNameList opt
 
   if {$openName == ""} {
 
 # file types for file select dialog
     set typelist [list {"STEP " {".stp" ".step" ".p21" ".stpZ" ".stpA"}}]
-    if {$developer} {set typelist [list {"STEP " {".stp" ".step" ".p21" ".stpZ" ".stpA" ".stpx" ".stpxZ"}}]}
-    lappend typelist {"IFC " {".ifc"}}
     lappend typelist {"STL " {".stl"}}
+    lappend typelist {"IFC " {".ifc"}}
 
 # file open dialog
     set localNameList [tk_getOpenFile -title "Open File(s)" -filetypes $typelist -initialdir $fileDir -multiple true]
@@ -160,8 +159,6 @@ proc openFile {{openName ""}} {
   }
   if {$ok} {
     set opt(xlFormat) "Excel"
-    set opt(viewTessPart) 1
-    set opt(tessPartMesh) 1
     set opt(viewPart) 0
     set opt(partOnly) 0
     set gen(Excel) 1
@@ -203,13 +200,12 @@ proc openFile {{openName ""}} {
 
 # single file selected
   } elseif {[file exists $localName]} {
-    set ap242XML 0
     catch {pack forget $buttons(progressBarMulti)}
 
 # check for zipped file
     set fext ""
     catch {set fext [string tolower [file extension $localName]]}
-    if {$fext == ".stpz" || $fext == ".stpxz"} {unzipFile}
+    if {$fext == ".stpz"} {unzipFile}
 
     set fileDir [file dirname $localName]
     if {[string first "z" [string tolower [file extension $localName]]] == -1} {
@@ -219,15 +215,6 @@ proc openFile {{openName ""}} {
 # check file extension
       set fext ""
       catch {set fext [string tolower [file extension $localName]]}
-
-# get STEP file from XML file
-      if {$fext == ".stpx"} {
-        set ap242XML 1
-        set gen(View) 1
-        set opt(partOnly) 1
-        checkValues
-        errorMsg "AP242 XML only supports View with Part Only\n Parts in an assembly might have the wrong position and orientation" red
-      }
 
       if {$fileDir == $drive} {outputMsg "There might be problems processing the STEP file directly in the $fileDir directory." red}
       if {[info exists buttons]} {
@@ -262,25 +249,11 @@ proc openFile {{openName ""}} {
 # -------------------------------------------------------------------------------------------------
 # get first file from file menu
 proc getFirstFile {} {
-  global ap242XML buttons editorCmd gen openFileList opt
+  global buttons editorCmd openFileList
 
   set localName [lindex $openFileList 0]
   if {$localName != ""} {
     outputMsg "\nReady to process: [file tail $localName]  ([fileSize $localName]  [fileTime $localName])" green
-
-# check for .stpx file
-    set ap242XML 0
-    set fext [string tolower [file extension $localName]]
-    if {$fext == ".stpx"} {
-      set ap242XML 1
-      if {!$gen(View) || !$opt(partOnly)} {
-        set gen(View) 1
-        set opt(partOnly) 1
-        set opt(partEdges) 1
-        checkValues
-        outputMsg "AP242 XML only supports View with Part Only" red
-      }
-    }
 
     if {[info exists buttons(appOpen)]} {
       .tnb select .tnb.status
@@ -341,7 +314,7 @@ proc addFileToMenu {} {
 
 # insert file name at top of list
   set fext [string tolower [file extension $localName]]
-  if {$ifile != 0 && ($fext == ".stp" || $fext == ".stpx" || $fext == ".stpa" || $fext == ".step" || $fext == ".p21" || $fext == ".ifc" || $fext == ".stl")} {
+  if {$ifile != 0 && ($fext == ".stp" || $fext == ".stpa" || $fext == ".step" || $fext == ".p21" || $fext == ".ifc" || $fext == ".stl")} {
     if {$fext == ".stl"} {set stlFile 1}
     if {![info exists stlFile] || $fext == ".stl"} {
       set openFileList [linsert $openFileList 0 $localName]
@@ -371,7 +344,7 @@ proc addFileToMenu {} {
 }
 
 #-------------------------------------------------------------------------------
-# unzip a STEP file (.stpZ .stpxZ .stpA)
+# unzip a STEP file (.stpZ .stpA)
 proc unzipFile {} {
   global localName mytemp wdir
 
@@ -439,7 +412,7 @@ proc unzipFile {} {
       }
     }
 
-# vfs - .stpZ or .stpxZ - one file
+# vfs - .stpZ - one file
     if {$ztyp == "vfs"} {
       if {[llength $fzip] == 1} {
         set ftmp [string range [join $fzip] 7 end]
@@ -519,7 +492,7 @@ proc checkFileSize {} {
   if {[file size $localName] > 429000000} {
     set str "might be"
     if {[file size $localName] > 463000000} {set str "is"}
-    outputMsg " The file $str too large to generate a Spreadsheet.\n For the Viewer, use Part Only on the Generate tab." red
+    outputMsg " The file $str too large to generate a Spreadsheet.  The limit is about 430 MB.\n For the Viewer, use Part Only on the Generate tab." red
     if {[file size $localName] > 1530000000} {outputMsg " The Viewer has not been tested with such a large STEP file." red}
   }
 }
@@ -541,7 +514,8 @@ proc saveState {{ok 1}} {
 
 # opt variables
     foreach idx [lsort -nocase [array names opt]] {
-      if {[string first "DEBUG" [string toupper $idx]] == -1 && [string first "indent" $idx] == -1 && $idx != "PMISEMDIM" && $idx != "PMISEMDT" && $idx != "partNoGroup"} {
+      if {[string first "DEBUG" [string toupper $idx]] == -1 && [string first "indent" $idx] == -1 && \
+          $idx != "PMISEMDIM" && $idx != "PMISEMDT" && $idx != "partNoGroup" && $idx != "tessPartMesh" && $idx != "viewTessPart"} {
         set var opt($idx)
         set vartmp [set $var]
         if {[string first "/" $vartmp] != -1 || [string first "\\" $vartmp] != -1 || [string first " " $vartmp] != -1} {
@@ -933,7 +907,7 @@ proc openXLS {filename {check 0} {multiFile 0}} {
 # -------------------------------------------------------------------------------------------------
 # open x3dom file
 proc openX3DOM {{fn ""} {numFile 0}} {
-  global guiSFA lastX3DOM multiFile opt scriptName x3dMsgColor x3dFileName viz
+  global guiSFA lastX3DOM multiFile opt x3dMsgColor x3dFileName viz
 
 # f3 is for opening last x3dom file with function key F3
   set f3 1

@@ -1,13 +1,13 @@
 # generate an Excel spreadsheet and/or view from a STEP file
 proc genExcel {{numFile 0}} {
-  global allEntity aoEntTypes ap203all ap214all ap242all ap242only ap242ed ap242XML badAttributes buttons cadSystem cameraModels cells cells1
+  global allEntity aoEntTypes ap203all ap214all ap242all ap242only ap242ed badAttributes brepGeomEntTypes buttons cadSystem cameraModels cells cells1
   global col col1 commaSeparator count csvdirnam csvfile csvinhome currLogFile dim draughtingModels driUnicode entCategories entCategory
   global entColorIndex entCount entityCount entsIgnored entsWithErrors env epmi epmiUD errmsg equivUnicodeStringErr excel fcsv
   global feaFirstEntity feaLastEntity File fileEntity filesProcessed fileSumRow gen gpmiTypesInvalid gpmiTypesPerFile guiSFA idRow idxColor
   global ifcsvrDir inverses lastXLS lenfilelist localName localNameList logFile matrixList multiFile multiFileDir mydocs mytemp nistCoverageLegend
   global nistName nistPMIexpected nistPMImaster noFontFile nprogBarEnts opt pf32 p21e3Section pmiCol resetRound row rowmax savedViewButtons
   global savedViewName savedViewNames scriptName sheetLast skipEntities skipFileName skipPerm spmiEntity spmiSumName spmiSumRow spmiTypesPerFile
-  global startrow statsOnly stepAP stepAPreport sumHeaderRow syntaxErr tessColor thisEntType timeStamp tlast tolNames tolStandard tolStandards
+  global startrow statsOnly stepAP stepAPreport sumHeaderRow syntaxErr tessColor tessEnts tessSolid thisEntType timeStamp tlast tolNames tolStandard tolStandards
   global totalEntity unicodeActual unicodeAttributes unicodeEnts unicodeInFile unicodeNumEnts unicodeString userEntityFile userEntityList
   global userWriteDir useXL uuid uuidEnts valRounded viz wdir workbook workbooks worksheet worksheet1 worksheets writeDir wsCount wsNames x3dAxes
   global x3dColor x3dColorFile x3dColors x3dFileName x3dIndex x3dMax x3dMin x3dMsg x3dMsgColor x3dStartFile x3dViewOK xlFileName xlFileNames xlInstalled
@@ -40,15 +40,6 @@ proc genExcel {{numFile 0}} {
     }
   }
 
-# check if AP242 XML file
-  if {![info exists ap242XML]} {set ap242XML 0}
-  if {[string tolower [file extension $localName]] == ".stpx"} {
-    set ap242XML 1
-    set gen(View) 1
-    set opt(partOnly) 1
-    checkValues
-  }
-
 # generate STEP AP242 tessellated geometry from STL file
   if {[string tolower [file extension $localName]] == ".stl"} {
     STL2STEP
@@ -62,6 +53,7 @@ proc genExcel {{numFile 0}} {
   if {$gen(View)} {
     set x3dMsgColor green
     if {$opt(viewPMI) || $opt(viewTessPart) ||$opt(viewFEA) || $opt(viewPart)} {
+      set tessEnts 0
       set x3dStartFile 1
       set x3dAxes 1
       set x3dFileName ""
@@ -69,6 +61,7 @@ proc genExcel {{numFile 0}} {
       set x3dColors {}
       foreach idx {x y z} {set x3dMax($idx) -1.e8; set x3dMin($idx) 1.e8}
       catch {unset tessColor}
+      catch {unset tessSolid}
       catch {unset x3dColorFile}
     }
   }
@@ -78,7 +71,7 @@ proc genExcel {{numFile 0}} {
   if {$numFile > 0} {set multiFile 1}
 
   if {[info exists buttons]} {
-    $buttons(generate) configure -state disable
+    $buttons(generate) configure -state disabled
     .tnb select .tnb.status
   }
   set lasttime [clock clicks -milliseconds]
@@ -111,11 +104,7 @@ proc genExcel {{numFile 0}} {
     set lasttime [clock clicks -milliseconds]
 
 # generate x3d
-    if {!$ap242XML} {
-      x3dFileStart
-    } else {
-      x3dReadXML
-    }
+    x3dFileStart
 
 # done
     if {$x3dViewOK} {
@@ -138,10 +127,11 @@ proc genExcel {{numFile 0}} {
 
 # clean up and return
       incr filesProcessed
+      if {[expr {$filesProcessed%500}] == 0} {outputMsg "Congratulations! You have processed $filesProcessed files." red}
       saveState
     }
 
-    foreach var {ap242XML cadSystem stepAP timeStamp x3dCoord x3dFile x3dFileName x3dIndex x3dMax x3dMin x3dStartFile} {if {[info exists $var]} {unset -- $var}}
+    foreach var {cadSystem stepAP timeStamp x3dCoord x3dFile x3dFileName x3dIndex x3dMax x3dMin x3dStartFile} {if {[info exists $var]} {unset -- $var}}
     if {[info exists buttons]} {$buttons(generate) configure -state normal}
     return
   }
@@ -150,7 +140,7 @@ proc genExcel {{numFile 0}} {
 # check if IFCsvr is installed
   if {![info exists ifcsvrDir]} {set ifcsvrDir [file join $pf32 IFCsvrR300 dll]}
   if {![file exists [file join $ifcsvrDir IFCsvrR300.dll]]} {
-    if {[info exists buttons]} {$buttons(generate) configure -state disable}
+    if {[info exists buttons]} {$buttons(generate) configure -state disabled}
     installIFCsvr
     return
   }
@@ -177,6 +167,7 @@ proc genExcel {{numFile 0}} {
     set nprogBarEnts 0
     set fname $localName
     set stepAP [getStepAP $fname]
+    if {$stepAP == ""} {return}
     foreach i {2 3 4} {set ap242ed($i) {}}
 
 # stepAPreport controls which APs support Analyzer reports
@@ -253,15 +244,16 @@ proc genExcel {{numFile 0}} {
 
           } elseif {$entType == "tessellated_annotation_occurrence"} {
             lappend characteristics "Graphical PMI (tessellated)"
-          } elseif {$entType == "annotation_occurrence" || [string first "annotation_curve_occurrence" $entType] != -1 || $entType == "annotation_fill_area_occurrence" || $entType == "annotation_occurrence_and_characterized_object"} {
+          } elseif {$entType == "annotation_occurrence" || [string first "annotation_curve_occurrence" $entType] != -1 || \
+                    $entType == "annotation_fill_area_occurrence" || $entType == "annotation_occurrence_and_characterized_object"} {
             lappend characteristics "Graphical PMI (polyline)"
+          } elseif {$entType == "annotation_placeholder_occurrence" || $entType == "annotation_placeholder_occurrence_with_leader_line"} {
+            lappend characteristics "Placeholder PMI"
 
-          } elseif {$entType == "advanced_brep_shape_representation" || $entType == "manifold_surface_shape_representation" || $entType == "manifold_solid_brep" || $entType == "shell_based_surface_model"} {
-            lappend characteristics "Part geometry"
+          } elseif {$entType == "tessellated_solid" || $entType == "tessellated_shell"} {
+            lappend characteristics "Part geometry (tessellated)"
           } elseif {$entType == "constructive_geometry_representation"} {
             lappend characteristics "Supplemental geometry"
-          } elseif {$entType == "tessellated_solid" || $entType == "tessellated_shell"} {
-            lappend characteristics "Tessellated geometry"
           } elseif {$entType == "property_definition_representation"} {
             lappend characteristics "Properties"
 
@@ -273,6 +265,7 @@ proc genExcel {{numFile 0}} {
             lappend characteristics "Features"
           } else {
             foreach tol $tolNames {if {[string first $tol $entType] != -1} {lappend characteristics "Geometric tolerances"}}
+            foreach brep $brepGeomEntTypes {if {[string first $brep $entType] != -1} {lappend characteristics "Part geometry (b-rep)"}}
           }
 
 # make sure some entity types are always processed
@@ -402,7 +395,7 @@ proc genExcel {{numFile 0}} {
 # other possible errors
         } else {
           set msg "\nPossible causes of the error:"
-          if {[file size $localName] > 429000000} {append msg "\n- The STEP file is too large to open to generate a Spreadsheet.\n   For the Viewer use Part Only on the Generate tab."}
+          if {[file size $localName] > 429000000} {append msg "\n- The STEP file is too large to open to generate a Spreadsheet.  The limit is about 430 MB.\n   For the Viewer use Part Only on the Generate tab."}
           append msg "\n- Syntax errors in the STEP file"
           append msg "\n   Use F8 to run the Syntax Checker to check for errors in the STEP file.  See Help > Syntax Checker"
           append msg "\n   Try opening the file in another STEP viewer.  See Websites > STEP > STEP File Viewers"
@@ -422,7 +415,7 @@ proc genExcel {{numFile 0}} {
 
 # other errors
     } elseif {$openStage == 1} {
-      errorMsg "Error before opening STEP file: $emsg"
+      if {$emsg != ""} {errorMsg "Error before opening STEP file: $emsg"}
       return
     } elseif {$openStage == 3} {
       errorMsg "Error after opening STEP file: $emsg"
@@ -438,7 +431,7 @@ proc genExcel {{numFile 0}} {
     if {[catch {
       set pid1 [checkForExcel $multiFile]
       set xlapp "Excel.Application"
-      if {$opt(DEBUGNOXL)} {set xlapp "null"}
+      if {$opt(debugNOXL)} {set xlapp "null"}
       set excel [::tcom::ref createobject $xlapp]
       set pidExcel [lindex [intersect3 $pid1 [twapi::get_process_ids -name "EXCEL.EXE"]] 2]
       [$excel ErrorCheckingOptions] TextDate False
@@ -773,6 +766,34 @@ proc genExcel {{numFile 0}} {
   }
 
 # -------------------------------------------------------------------------------------------------
+# decide how to process tessellated geometry by SFA (original) or by stp2x3d (new with version 5.10)
+  set brep 0
+  set tessEnts 0
+  set triface 0
+  foreach item $brepGeomEntTypes {
+    if {[info exists entCount($item)]} {if {$entCount($item) > 0} {set brep 1}}
+  }
+  foreach item [list triangulated_face] {if {[info exists entCount($item)]} {set triface 1}}
+  foreach item [list tessellated_solid tessellated_shell] {if {[info exists entCount($item)]} {if {$entCount($item) > 0} {set tessEnts 1}}}
+
+# setting for SFA original
+  set tessSolid 0
+  set opt(viewTessPart) 1
+  set opt(tessPartMesh) 1
+  set viz(TESSMESH) 1
+  if {$tessEnts} {set viz(TESSPART) 1}
+
+# use new stp2x3d for tessellated geometry, except if there is also b-rep, triangulated_face, or not using SFA original method
+  if {$tessEnts && $brep == 0 && $triface == 0 && $opt(tessPartOld) == 0} {
+    set tessSolid 1
+    set opt(viewTessPart) 0
+    set opt(tessPartMesh) 0
+    set opt(partNormals) 0
+    set viz(TESSPART) 0
+    set viz(TESSMESH) 0
+  }
+
+# -------------------------------------------------------------------------------------------------
 # check if there is anything to view
   foreach typ {PMI PLACE TESSPART FEA} {set viz($typ) 0}
   if {$gen(View)} {
@@ -788,7 +809,9 @@ proc genExcel {{numFile 0}} {
         }
       }
     }
-    if {$opt(viewTessPart)} {if {[info exists entCount(tessellated_solid)] || [info exists entCount(tessellated_shell)]} {set viz(TESSPART) 1}}
+    if {$opt(viewTessPart)} {
+      if {[info exists entCount(tessellated_solid)] || [info exists entCount(tessellated_shell)]} {set viz(TESSPART) 1}
+    }
     if {$opt(viewFEA) && [string first "AP209" $stepAP] == 0} {set viz(FEA) 1}
   }
 
@@ -858,7 +881,9 @@ proc genExcel {{numFile 0}} {
       }
       append msg " [truncFileName [file nativename $skipFileName]]"
       errorMsg $msg
-      foreach item [lsort $skipList] {outputMsg " [formatComplexEnt $item]" red}
+      set str ""
+      foreach item [lsort $skipList] {append str " [formatComplexEnt $item],"}
+      outputMsg [string range $str 0 end-1] red
       if {$guiSFA} {errorMsg "Use F8 to run the Syntax Checker and See Help > Crash Recovery"}
     }
   }
@@ -1032,7 +1057,7 @@ proc genExcel {{numFile 0}} {
   }
 
 # -------------------------------------------------------------------------------------------------
-# generate worksheet for each entity
+# generate worksheet for each entity or a view
   outputMsg " "
   if {$useXL} {
     outputMsg "Generating STEP Entity worksheets" blue
@@ -1188,13 +1213,25 @@ proc genExcel {{numFile 0}} {
         }
       }
 
-# check for reports (validation properties, PMI presentation and representation, tessellated geometry, AP209 FEM)
+# check for reports (validation properties, PMI presentation and representation, AP209 FEM)
       checkForReports $entType
 
 # report errors related to descriptive_representation_item equivalent Unicode strings
       if {$entType == "descriptive_representation_item" && [info exists equivUnicodeStringErr]} {
         outputMsg " Warnings for 'equivalent unicode string': [join [lrmdups $equivUnicodeStringErr] ", "]" red
         unset equivUnicodeStringErr
+      }
+    }
+
+# generate tessellated geometry for viewer if using old SFA method
+    if {$gen(View) && ($opt(tessPartOld) || $opt(viewTessPart))} {
+      set tp 0
+      foreach item [list tessellated_solid tessellated_shell tessellated_wire] {
+        if {[info exists entCount($item)]} {if {$entCount($item) > 0} {tessPart $item; set tp 1}}
+      }
+      if {$tp == 0} {
+        set item "triangulated_face"
+        if {[info exists entCount($item)]} {if {$entCount($item) > 0} {tessPart $item}}
       }
     }
 
@@ -1265,10 +1302,10 @@ proc genExcel {{numFile 0}} {
   if {$opt(xlFormat) == "Excel" || ($opt(xlFormat) == "CSV" && $useXL)} {
     set nUUID  0
     set totalUUID 0
-    set entsUUID [list V4_UUID_ATTRIBUTE V5_UUID_ATTRIBUTE HASH_BASED_V5_UUID_ATTRIBUTE UUID_ATTRIBUTE_WITH_APPROXIMATE_GEOMETRIC_LOCATION]
+    set entsUUID [list HASH_BASED_V5_UUID_ATTRIBUTE V4_UUID_ATTRIBUTE V5_UUID_ATTRIBUTE UUID_ATTRIBUTE_WITH_APPROXIMATE_GEOMETRIC_LOCATION]
     foreach ent $entsUUID {
       set entlc [string tolower $ent]
-      if {[info exists entCount($entlc)]} {if {$entCount($entlc) > 0} {set totalUUID $entCount($entlc)}}
+      if {[info exists entCount($entlc)]} {if {$entCount($entlc) > 0} {set totalUUID [expr {$totalUUID+$entCount($entlc)}]}}
     }
 
     if {$totalUUID > 0} {
@@ -1304,11 +1341,13 @@ proc genExcel {{numFile 0}} {
               if {[lsearch $allUUID $pid] == -1} {
                 lappend allUUID $pid
               } else {
+                lappend syntaxErr([string tolower $ent]) [list $entid identifier " UUID is identical to another"]
                 errorMsg " UUID is identical to another on [string tolower $ent]" red
               }
               set uuidstr $pid
               if {[string index $ent 0] == "V"} {append uuidstr " (v[string index $ent 1])"}
               if {[string first "HASH" $line] != -1} {append uuidstr " (hash v5)"}
+              if {[string first "LOCATION" $line] != -1} {append uuidstr " (location)"}
 
 # get identified_items
               set line1 [string range $line [string last "'" $line]+3 end]
@@ -1328,9 +1367,16 @@ proc genExcel {{numFile 0}} {
                 set e1 [$objDesign FindObjectByP21Id [expr $eid]]
                 set uuidEnt [$e1 Type]
                 if {[lsearch $uuidEnts $uuidEnt] == -1} {lappend uuidEnts $uuidEnt}
+                if {$uuidEnt == "id_attribute"} {
+                  set msg " identified_item should refer directly to entities assigned a UUID and not id_attribute"
+                  errorMsg $msg
+                  lappend syntaxErr([string tolower $ent]) [list $entid identified_item $msg]
+                }
+
                 if {[info exists uuid($uuidEnt,[$e1 P21ID])]} {
-                  errorMsg " Multiple UUIDs are associated with the same entity"
-                  lappend syntaxErr([string tolower $ent]) [list $entid identified_item " Multiple UUIDs are associated with the same entity"]
+                  set msg " Multiple UUIDs are associated with the same entity"
+                  errorMsg $msg
+                  lappend syntaxErr([string tolower $ent]) [list $entid identified_item $msg]
                 }
                 set uuid($uuidEnt,[$e1 P21ID]) $uuidstr
                 set okid 1
@@ -1487,6 +1533,7 @@ proc genExcel {{numFile 0}} {
   if {!$useXL} {set clr "blue"}
   outputMsg "Processing time: $proctime seconds" $clr
   incr filesProcessed
+  if {[expr {$filesProcessed%500}] == 0} {outputMsg "Congratulations! You have processed $filesProcessed files." red}
   update
 
 # -------------------------------------------------------------------------------------------------
@@ -1674,7 +1721,7 @@ proc genExcel {{numFile 0}} {
   update idletasks
 
 # unset variables
-  foreach var {ap242XML assemTransformPMI brepScale cells cgrObjects cmNameID colColor commasep count currx3dPID datumEntType datumGeom datumIDs datumSymbol datumSystem datumSystemPDS defComment dimrep dimrepID dimtolEnt dimtolEntID dimtolGeom draughtingModels draftModelCameraNames draftModelCameras driPropID entCount entName entsIgnored epmi epmiUD equivUnicodeString feaDOFR feaDOFT feaNodes fileSumRow fontErr gpmiID gpmiIDRow gpmiRow heading idRow invCol invGroup noFontFile npart nrep numx3dPID placeAxesDef placeSphereDef pmiCol pmiColumns pmiStartCol pmivalprop propDefID propDefIDRow propDefName propDefOK propDefRow ptzError savedsavedViewNames savedViewFile savedViewFileName savedViewItems savedViewNames savedViewpoint savedViewVP shapeRepName srNames suppGeomEnts syntaxErr taoLastID tessCoord tessCoordName tessIndex tessIndexCoord tessPlacement tessRepo trimVal unicode unicodeActual unicodeNumEnts unicodeString viz vpEnts workbook workbooks worksheet worksheets x3dCoord x3dFile x3dFileName x3dIndex x3dMax x3dMin x3dStartFile} {
+  foreach var {assemTransformPMI brepScale cells cgrObjects cmNameID colColor commasep count currx3dPID datumEntType datumGeom datumIDs datumSymbol datumSystem datumSystemPDS defComment dimrep dimrepID dimtolEnt dimtolEntID dimtolGeom draughtingModels draftModelCameraNames draftModelCameras driPropID entCount entName entsIgnored epmi epmiUD equivUnicodeString feaDOFR feaDOFT feaNodes fileSumRow fontErr gpmiID gpmiIDRow gpmiRow heading idRow invCol invGroup noFontFile npart nrep numx3dPID placeAxesDef placeSphereDef pmiCol pmiColumns pmiStartCol pmivalprop propDefID propDefIDRow propDefName propDefOK propDefRow ptzError savedsavedViewNames savedViewFile savedViewFileName savedViewItems savedViewNames savedViewpoint savedViewVP shapeRepName srNames suppGeomEnts syntaxErr taoLastID tessCoord tessCoordName tessIndex tessIndexCoord tessPlacement tessRepo trimVal unicode unicodeActual unicodeNumEnts unicodeString viz vpEnts workbook workbooks worksheet worksheets x3dCoord x3dFile x3dFileName x3dIndex x3dMax x3dMin x3dStartFile} {
     catch {global $var}
     if {[info exists $var]} {unset $var}
   }
@@ -1767,15 +1814,17 @@ proc addHeaderWorksheet {numFile fname} {
             }
           } elseif {$id == 4} {
             append str " (Edition 3)"
-            if {[llength $ap242ed(4)] > 0} {
-              errorMsg "Syntax Error: The STEP file contains entities related to AP242 Edition 4 ([join $ap242ed(4)]),$spaces\however, the file is identified as Edition 3."
-            }
+            #if {[llength $ap242ed(4)] > 0} {
+            #  errorMsg "Syntax Error: The STEP file contains entities related to AP242 Edition 4 ([join $ap242ed(4)]),$spaces\however, the file is identified as Edition 3."
+            #}
           } elseif {$id == 5} {
             append str " (Edition 4)"
           } elseif {$id > 99} {
             errorMsg "Unknown AP242 Object Identifier String '$id 1 4' for SchemaName" red
           }
-          if {$developer} {foreach i {2 3 4} {if {[llength $ap242ed($i)] > 0} {outputMsg " AP242e$i: [join $ap242ed($i)]" red}}}
+          if {$developer} {
+            foreach i {2 3 4} {if {[llength $ap242ed($i)] > 0} {regsub -all " " [join $ap242ed($i)] ", " str1; outputMsg " AP242e$i: $str1" red}}
+          }
         } elseif {[string first "AP242" $sn] == 0} {
           errorMsg "Syntax Error: SchemaName is missing the Object Identifier String that specifies the edition of AP242."
         }
@@ -1909,7 +1958,6 @@ proc addHeaderWorksheet {numFile fname} {
           if {[string first "SolidWorks 2"            $fos] != -1} {set app1 $fos}
           if {[string first "MBDVidia"                $fos] != -1} {set app1 "MBDVidia"}
           if {[string first "SIEMENS PLM Software NX" $fos] ==  0} {set app1 "Siemens NX [string range $fos 24 end]"}
-          if {[string first "Kubotek Kosmos"          $fpv] != -1} {set app1 "Kubotek Kosmos"}
           if {[string first "THEOREM"                 $fpv] != -1} {set app1 "Theorem Solutions"}
 
 # set caxifVendor based on CAx-IF vendor notation used in testing rounds, use for app if appropriate
@@ -2537,6 +2585,7 @@ proc formatWorksheets {sheetSort sumRow inverseEnts} {
       if {[catch {
         set oksort 0
         if {($opt(xlSort) && $useXL && $thisEntType != "property_definition")} {set oksort 1}
+        if {$thisEntType == "descriptive_representation_item" && $okequiv} {set oksort 1}
         if {$spmiEnts($thisEntType) && $opt(PMISEM) && $stepAPreport} {set oksort 1}
         if {$gpmiEnts($thisEntType) && $opt(PMIGRF) && $stepAPreport} {set oksort 1}
         if {[string first "uuid_attribute" $thisEntType] != -1} {set oksort 1}

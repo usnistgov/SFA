@@ -1,6 +1,6 @@
 # start x3dom file for non-FEM graphics
 proc x3dFileStart {} {
-  global ap242XML cadSystem entCount gen localName opt stepAP timeStamp viz writeDir writeDirType x3dom x3dFile x3dFileName x3dFiles
+  global cadSystem entCount gen localName opt stepAP timeStamp viz writeDir writeDirType x3dom x3dFile x3dFileName x3dFiles
   global x3dFileSave x3dFileNameSave x3dHeight x3dMax x3dMin x3dPartClick x3dStartFile x3dTitle x3dViewOK x3dWidth
 
   if {!$gen(View)} {return}
@@ -9,12 +9,16 @@ proc x3dFileStart {} {
 
   if {![info exists stepAP]} {set stepAP [getStepAP $localName]}
   if {[string first "IFC" $stepAP] == 0 || [string first "ISO" $stepAP] == 0 || $stepAP == "AP210" || \
-      $stepAP == "CUTTING_TOOL_SCHEMA_ARM" || $stepAP == "STRUCTURAL_FRAME_SCHEMA"} {
+      $stepAP == "CUTTING_TOOL_SCHEMA_ARM" || $stepAP == "STRUCTURAL_FRAME_SCHEMA" || $stepAP == ""} {
     set msg "The Viewer only works with STEP AP242, AP203, AP214, AP238, and AP209 files.  See Help > Support STEP APs"
     if {$stepAP == "STRUCTURAL_FRAME_SCHEMA"} {append msg "\n Use the NIST SteelVis viewer for CIS/2 files."}
     errorMsg $msg
     set x3dViewOK 0
     return
+  } elseif {$opt(partOnly)} {
+    set str "Opening [string range $stepAP 0 4] file"
+    if {[info exists cadSystem]} {append str " ($cadSystem)"}
+    outputMsg $str
   }
 
   set x3dStartFile 0
@@ -22,7 +26,6 @@ proc x3dFileStart {} {
 
 # x3d output file name
   set x3dir [file rootname $localName]
-  if {$ap242XML} {append x3dir "-stpx"}
   if {$opt(writeDirType) == 2} {set x3dir [file join $writeDir [file rootname [file tail $localName]]]}
   set x3dFileName $x3dir\-sfa.html
   set x3dFile [open $x3dFileName w]
@@ -133,10 +136,10 @@ proc x3dFileStart {} {
 # -------------------------------------------------------------------------------
 # finish x3d file, write lots of geometry, set viewpoints, add navigation and background color, and close x3dom file
 proc x3dFileEnd {} {
-  global ao ap242XML assemblyTransform axesDef brepFile brepFileName clippingCap clippingDef clipPlaneName cmNameID datumTargetView
+  global ao assemblyTransform axesDef brepFile brepFileName brepGeomEntTypes clippingCap clippingDef clipPlaneName cmNameID datumTargetView
   global delt edgeMatID entCount grayBackground leaderCoords matTrans maxxyz meshlines nclipPlane nistName noGroupTransform npart nsketch
   global numTessColor opt parts partstg placeCoords placeSize planeDef rosetteGeom samplingPoints sphereDef spmiTypesPerFile stepAP
-  global tessCoord tessEdges tessPartFile tessPartFileName tessRepo tsName viewsWithPMI viz xyzcen
+  global tessCoord tessEdges tessEnts tessPartFile tessPartFileName tessRepo tessSolid tsName viewsWithPMI viz xyzcen
   global savedPlaceFile savedPlaceFileName savedViewButtons savedViewDMName savedViewFile
   global savedViewFileName savedViewItems savedViewNames savedViewpoint savedViewVP
   global x3dApps x3dAxes x3dBbox x3dCoord x3dFile x3dFileNameSave x3dFiles x3dFileSave x3dIndex x3dMax x3dMin
@@ -149,19 +152,16 @@ proc x3dFileEnd {} {
   }
 
 # PMI is already written to file, generate b-rep part geometry
-  if {!$ap242XML} {
-    set viz(PART) 0
-    if {$opt(viewPart)} {
-      if {!$opt(partOnly)} {
-        set ok 0
-        foreach item [list advanced_brep_shape_representation geometrically_bounded_surface_shape_representation geometrically_bounded_wireframe_shape_representation manifold_solid_brep manifold_surface_shape_representation shell_based_surface_model document_file] {
-          if {[info exists entCount($item)]} {set ok 1}
-        }
-      } else {
-        set ok 1
-      }
-      if {$ok} {x3dBrepGeom}
+  set viz(PART) 0
+  if {$opt(viewPart)} {
+    if {!$opt(partOnly)} {
+      set ok 0
+      foreach item $brepGeomEntTypes {if {[info exists entCount($item)]} {set ok 1}}
+      if {$tessSolid} {set ok 1}
+    } else {
+      set ok 1
     }
+    if {$ok} {x3dBrepGeom}
   }
 
 # coordinate min, max, center
@@ -469,7 +469,7 @@ proc x3dFileEnd {} {
     catch {foreach idx [array names leaderCoords] {incr nph}}
     if {$nph > 0} {x3dPlaceholder}
   }
-  foreach var {leaderCoords placeAxes placeBox placeCoords placeSavedView} {catch {global $var}; catch {unset -- $var}}
+  foreach var {leaderCoords minview placeAxes placeBox placeCoords placeSavedView} {catch {global $var}; catch {unset -- $var}}
 
 # -------------------------------------------------------------------------------
 # coordinate axes, if not already written
@@ -635,7 +635,7 @@ proc x3dFileEnd {} {
             while {[gets $brepFile line] >= 0} {puts $xf $line}
             close $brepFile
           }
-          if {!$opt(DEBUGX3D)} {catch {file delete -force -- $brepFileName}}
+          if {!$opt(debugX3D)} {catch {file delete -force -- $brepFileName}}
         }
       }
     }
@@ -757,8 +757,10 @@ proc x3dFileEnd {} {
 
 # part geometry, sketch geometry, edges checkboxes
   set pcb 0
-  if {$viz(PART) && !$ap242XML} {
-    puts $x3dFile "\n<!-- Part geometry checkbox -->\n<input type='checkbox' checked onclick='togPRT(this.value)'/>Part Geometry"
+  if {$viz(PART)} {
+    set str ""
+    if {$tessEnts && $tessSolid} {set str "Tessellated "}
+    puts $x3dFile "\n<!-- Part geometry checkbox -->\n<input type='checkbox' checked onclick='togPRT(this.value)'/>$str\Part Geometry"
     if {[info exists nsketch]} {
       if {$nsketch > -1} {puts $x3dFile "<!-- Sketch geometry checkbox -->\n<br><input type='checkbox' checked onclick='togSKH(this.value)'/>Sketch Geometry"}
       if {$nsketch > 1000} {errorMsg " Sketch geometry ([expr {$nsketch+1}]) might take too long to view.  Turn off Sketch and regenerate the View."}
@@ -885,42 +887,40 @@ proc x3dFileEnd {} {
 
 # transparency slider
   set transFunc 0
-  if {!$ap242XML} {
-    set max 0
-    if {$viz(PART) || $viz(TESSPART) || \
-       ($viz(FEA) && ([info exists entCount(surface_3d_element_representation)] || [info exists entCount(volume_3d_element_representation)]))} {
-      set max 1
-    }
-    if {$max == 1} {
-      puts $x3dFile "\n<!-- Transparency slider -->"
-      puts $x3dFile "<p><input style='width:80px' type='range' min='0' max='$max' step='0.1' value='0' onchange='matTrans(this.value)'/>&nbsp;Transparency"
-      set transFunc 1
-    }
+  set max 0
+  if {$viz(PART) || $viz(TESSPART) || \
+     ($viz(FEA) && ([info exists entCount(surface_3d_element_representation)] || [info exists entCount(volume_3d_element_representation)]))} {
+    set max 1
+  }
+  if {$max == 1} {
+    puts $x3dFile "\n<!-- Transparency slider -->"
+    puts $x3dFile "<p><input style='width:80px' type='range' min='0' max='$max' step='0.1' value='0' onchange='matTrans(this.value)'/>&nbsp;Transparency"
+    set transFunc 1
+  }
 
 # bounding box
-    if {$viz(PART) && [info exists x3dBbox]} {
-      if {$x3dBbox != ""} {puts $x3dFile "\n<!-- Bounding box checkbox -->\n<p><input type='checkbox' onclick='togBbox(this.value)'/>$x3dBbox"}
-      if {$viz(FEA)} {puts $x3dFile "<p>"}
-    }
+  if {$viz(PART) && [info exists x3dBbox]} {
+    if {$x3dBbox != ""} {puts $x3dFile "\n<!-- Bounding box checkbox -->\n<p><input type='checkbox' onclick='togBbox(this.value)'/>$x3dBbox"}
+    if {$viz(FEA)} {puts $x3dFile "<p>"}
+  }
 
 # axes checkbox
-    set check "checked"
-    if {$viz(SUPPGEOM) || $viz(COMPOSITES)} {set check ""}
-    puts $x3dFile "\n<!-- Axes checkbox -->\n<p><input type='checkbox' $check onclick='togAxes(this.value)'/>Origin<p>"
+  set check "checked"
+  if {$viz(SUPPGEOM) || $viz(COMPOSITES)} {set check ""}
+  puts $x3dFile "\n<!-- Axes checkbox -->\n<p><input type='checkbox' $check onclick='togAxes(this.value)'/>Origin<p>"
 
 # background color radio buttons
-    puts $x3dFile "\n<!-- Background radio button -->\nBackground Color<br>"
-    if {!$bgcss} {
-      puts $x3dFile "<input type='radio' name='bgcolor' value='1 1 1' $bgcheck1 onclick='BGcolor(this.value)'/>White&nbsp;"
-      puts $x3dFile "<input type='radio' name='bgcolor' value='$skyBlue' $bgcheck2 onclick='BGcolor(this.value)'/>Blue<br>"
-      puts $x3dFile "<input type='radio' name='bgcolor' value='.8 .8 .8' $bgcheck3 onclick='BGcolor(this.value)'/>Gray&nbsp;"
-      puts $x3dFile "<input type='radio' name='bgcolor' value='0 0 0' onclick='BGcolor(this.value)'/>Black"
-    } else {
-      puts $x3dFile "<input type='radio' name='bgcolor' value='white' $bgcheck1 onclick='BGcolor(this.value)'/>White&nbsp;"
-      puts $x3dFile "<input type='radio' name='bgcolor' value='blue' $bgcheck2 onclick='BGcolor(this.value)'/>Blue<br>"
-      puts $x3dFile "<input type='radio' name='bgcolor' value='gray' $bgcheck3 onclick='BGcolor(this.value)'/>Gray&nbsp;"
-      puts $x3dFile "<input type='radio' name='bgcolor' value='black' onclick='BGcolor(this.value)'/>Black"
-    }
+  puts $x3dFile "\n<!-- Background radio button -->\nBackground Color<br>"
+  if {!$bgcss} {
+    puts $x3dFile "<input type='radio' name='bgcolor' value='1 1 1' $bgcheck1 onclick='BGcolor(this.value)'/>White&nbsp;"
+    puts $x3dFile "<input type='radio' name='bgcolor' value='$skyBlue' $bgcheck2 onclick='BGcolor(this.value)'/>Blue<br>"
+    puts $x3dFile "<input type='radio' name='bgcolor' value='.8 .8 .8' $bgcheck3 onclick='BGcolor(this.value)'/>Gray&nbsp;"
+    puts $x3dFile "<input type='radio' name='bgcolor' value='0 0 0' onclick='BGcolor(this.value)'/>Black"
+  } else {
+    puts $x3dFile "<input type='radio' name='bgcolor' value='white' $bgcheck1 onclick='BGcolor(this.value)'/>White&nbsp;"
+    puts $x3dFile "<input type='radio' name='bgcolor' value='blue' $bgcheck2 onclick='BGcolor(this.value)'/>Blue<br>"
+    puts $x3dFile "<input type='radio' name='bgcolor' value='gray' $bgcheck3 onclick='BGcolor(this.value)'/>Gray&nbsp;"
+    puts $x3dFile "<input type='radio' name='bgcolor' value='black' onclick='BGcolor(this.value)'/>Black"
   }
 
 # mouse message
@@ -930,7 +930,7 @@ proc x3dFileEnd {} {
 
 # -------------------------------------------------------------------------------
 # function for PRT, sketch, EDG, part names
-  if {$viz(PART) && !$ap242XML} {
+  if {$viz(PART)} {
     x3dSwitchScript PRT
 
     if {[info exists nsketch]} {
@@ -1212,7 +1212,7 @@ proc x3dSavedViewpoint {name} {
     }
 
 # show camera model for debugging
-    if {$opt(DEBUGVP)} {
+    if {$opt(debugVP)} {
       set scale [trimNum [expr {$maxxyz*0.08}]]
       puts $xf "<Transform translation='[lindex $savedViewpoint($name) 0]' rotation='[lindex [lindex $savedViewpoint($name) 1] 1]' scale='$scale $scale $scale'>"
       puts $xf " <Shape><Appearance><Material emissiveColor='1 0 0'/></Appearance><IndexedLineSet coordIndex='0 1 -1'><Coordinate point='0. 0. 0. 1. 0. 0.'/></IndexedLineSet></Shape>"
@@ -1761,7 +1761,7 @@ proc x3dHoles {} {
 # -------------------------------------------------------------------------------
 # placeholder axes, coordinates, text, box, leader line
 proc x3dPlaceholder {{aoname ""} {fname ""}} {
-  global grayBackground leaderCoords maxxyz x3dFile
+  global grayBackground leaderCoords maxxyz minview x3dFile
   global placeAxes placeAxesDef placeBox placeCoords placeNames placeSize placeSphereDef placeSymbol
   global savedPlaceFile savedPlaceFileName savedViewFile savedViewFileName
 
@@ -1776,7 +1776,19 @@ proc x3dPlaceholder {{aoname ""} {fname ""}} {
 # no saved views
   if {$fname == ""} {
     set fname $x3dFile
+    set nview -1
+    set minview 0
   } else {
+
+# get minimum view number for def and use below
+    if {![info exists minview]} {
+      set minview 10000
+      foreach name [array names savedViewFile] {
+        set fn $savedViewFileName($name)
+        set n [string range $fn [string first "View" $fn]+4 [string first ".txt" $fn]-1]
+        if {$n < $minview} {set minview $n}
+      }
+    }
 
 # open file for placeholders per saved view
     foreach name [array names savedViewFile] {
@@ -1791,9 +1803,9 @@ proc x3dPlaceholder {{aoname ""} {fname ""}} {
       }
     }
     set fname $savedPlaceFile($name2)
+    set nview [string range $name2 5 end]
   }
-
-  if {[info exists maxxyz]} {
+  if {[info exists maxxyz] && $aoname == ""} {
     set size1 [trimNum [expr {$maxxyz/1000.}]]
     set size2 [trimNum [expr {$size1*6.}]]
     set size3 [trimNum [expr {$size2*0.67}]]
@@ -1812,7 +1824,7 @@ proc x3dPlaceholder {{aoname ""} {fname ""}} {
 
 # axes
         set transform [x3dTransform "0. 0. 0." $placeAxes($name,axis) $placeAxes($name,refdir) "placeholder"]
-        if {[info exists placeAxesDef]} {
+        if {[info exists placeAxesDef] || $nview > $minview} {
           puts $fname " $transform<Group USE='placeAxes'></Group></Transform>"
         } else {
           puts $fname " $transform<Group DEF='placeAxes'>"
@@ -1825,7 +1837,7 @@ proc x3dPlaceholder {{aoname ""} {fname ""}} {
 
 # coordinate sphere and text
         set bbtext "<Transform scale='$size2 $size2 $size2'><Billboard axisOfRotation='0 0 0'><Shape><Text string='$name'><FontStyle family='SANS' justify='BEGIN'/></Text><Appearance><Material diffuseColor='0 0 0'/></Appearance></Shape></Billboard></Transform>"
-        if {[info exists placeSphereDef]} {
+        if {[info exists placeSphereDef] || $nview > $minview} {
           puts $fname " <Shape USE='placeSphere'></Shape>$bbtext"
         } else {
           puts $fname " <Shape DEF='placeSphere'><Appearance><Material diffuseColor='0 0 0' emissiveColor='0 0 0' transparency='0.5'/></Appearance><Sphere radius='$size1'></Sphere></Shape>"

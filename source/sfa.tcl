@@ -289,17 +289,13 @@ if {[llength $pids] > 0} {
   }
 }
 
-# warn if spreadsheets not written to default directory
-if {$opt(writeDirType) == 2} {
-  errorMsg "Output files will be written to a User-Defined directory (More tab)"
-  .tnb select .tnb.status
-}
-
-# check bits for the viewer
-if {$bits == "32-bit"} {
-  errorMsg "The Viewer for Part Geometry does not run on 32-bit computers and will be disabled."
-  .tnb select .tnb.status
-}
+# warning messages
+set warning {}
+if {$opt(writeDirType) == 2} {lappend warning "Output files will be written to a User-Defined directory (More tab)"}
+if {$opt(tessPartOld)}       {lappend warning "Using old tessellated geometry processing (More tab)"}
+if {$opt(brepAlt)}           {lappend warning "Using alternative b-rep geometry processing (More tab)"}
+if {$bits == "32-bit"}       {lappend warning "The Viewer for Part Geometry does not run on 32-bit computers and will be disabled"}
+if {[llength $warning] > 0}  {foreach item $warning {errorMsg $item red}; .tnb select .tnb.status}
 
 # set window minimum size
 update idletasks
