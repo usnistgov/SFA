@@ -31,7 +31,6 @@ Each Tcl file contains multiple procedures.
 - sfa-supp.tcl - generate supplemental geometry graphics
 - sfa-tess.tcl - process tessellated geometry
 - sfa-valprop.tcl - process validation properties
-- sfa-xml.tcl - process AP242 XML files
 
 - tclIndex - required Tcl code that lists all procedures in each Tcl file
 
