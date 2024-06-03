@@ -195,7 +195,7 @@ if {$nistVersion} {
     if {$lastupgrade > 90} {
       set str ""
       if {$lastupgrade > 365} {set str ".  Welcome Back!"}
-      outputMsg "The last check for an update was $lastupgrade days ago$str\nTo check for an updated version, go to Websites > STEP File Analyzer and Viewer" red
+      outputMsg "The last check for an update was $lastupgrade days ago$str\nTo check for an updated version, go to Websites > STEP File Analyzer and Viewer\nTo see what is new in an updated version, go to Help > Release Notes" red
       .tnb select .tnb.status
       set upgrade [clock seconds]
       saveState
@@ -292,6 +292,7 @@ if {[llength $pids] > 0} {
 # warning messages
 set warning {}
 if {$opt(writeDirType) == 2} {lappend warning "Output files will be written to a User-Defined directory (More tab)"}
+if {$opt(PMISEMRND)}         {lappend warning "Rounding semantic PMI dimensions and tolerances (More tab)"}
 if {$opt(tessPartOld)}       {lappend warning "Using old tessellated geometry processing (More tab)"}
 if {$opt(brepAlt)}           {lappend warning "Using alternative b-rep geometry processing (More tab)"}
 if {$bits == "32-bit"}       {lappend warning "The Viewer for Part Geometry does not run on 32-bit computers and will be disabled"}

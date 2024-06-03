@@ -118,7 +118,7 @@ proc openURL {url} {
 #-------------------------------------------------------------------------------
 # file open dialog
 proc openFile {{openName ""}} {
-  global allNone buttons drive editorCmd fileDir gen localName localNameList opt
+  global buttons drive editorCmd fileDir gen localName localNameList
 
   if {$openName == ""} {
 
@@ -158,15 +158,10 @@ proc openFile {{openName ""}} {
     if {[string tolower [file extension $localName]] == ".stl"} {set ok 1}
   }
   if {$ok} {
-    set opt(xlFormat) "Excel"
     set opt(viewPart) 0
     set opt(partOnly) 0
-    set gen(Excel) 1
-    set gen(CSV) 0
-    set gen(None) 0
     set gen(View) 1
     set allNone -1
-    foreach item [list stepCOMM stepPRES stepREPR stepGEOM stepQUAN] {set opt($item) 1}
     checkValues
     addFileToMenu
   }
@@ -607,11 +602,8 @@ proc runOpenProgram {} {
   outputMsg "\nOpening STEP file in: $idisp"
 
 # open file
-#  (list is programs that CANNOT start up with a file *OR* need specific commands below)
-  if {[string first "Tree View"         $idisp] == -1 && \
-      [string first "Default"           $idisp] == -1 && \
-      [string first "EDM Model Checker" $idisp] == -1 && \
-      [string first "EDMsdk"            $idisp] == -1} {
+  if {[string first "Tree View" $idisp] == -1 && [string first "Default" $idisp] == -1 && \
+      [string first "EDMsdk" $idisp] == -1} {
 
 # start up with a file
     if {[catch {
@@ -631,14 +623,13 @@ proc runOpenProgram {} {
 
 #-------------------------------------------------------------------------------
 # Jotne EDM Model Checker (only for developer)
-  } elseif {[string first "EDM Model Checker" $idisp] != -1 || [string first "EDMsdk" $idisp] != -1} {
+  } elseif {[string first "EDMsdk" $idisp] != -1} {
     set filename $dispFile
     outputMsg "Ready to validate: [file tail $filename]" blue
     cd [file dirname $filename]
 
 # set version and password
-    set edmVer 5
-    if {[string first "EDMsdk6" $idisp] != -1} {set edmVer 6}
+    set edmVer 6
     set edmPW "NIST@edm$edmVer"
 
 # write script file to open database
@@ -656,11 +647,7 @@ proc runOpenProgram {} {
     set fschema [getSchemaFromFile $filename]
 
 # set database dir
-    if {$edmVer == 5} {
-      set edmDB [file nativename [file join $edmDir db]]
-    } elseif {$edmVer == 6} {
-      set edmDB [file nativename [file join $drive edm edm6 db]]
-    }
+    set edmDB [file nativename [file join $drive edm edm6 db]]
 
     if {[string first "AP203_CONFIGURATION_CONTROLLED_3D_DESIGN_OF_MECHANICAL_PARTS_AND_ASSEMBLIES_MIM_LF" $fschema] == 0 && $edmVer == 5} {
       puts $scriptFile "Database>Open($edmDB, ap203, $edmPW, \"$edmDBopen\")"
@@ -1080,10 +1067,14 @@ proc cellRange {r c} {
 
 #-------------------------------------------------------------------------------
 # add comment to cell
-proc addCellComment {ent r c comment} {
-  global recPracNames worksheet
+proc addCellComment {ent r c comment {multi 0}} {
+  global recPracNames worksheet worksheet1
 
-  if {![info exists worksheet($ent)] || [string length $comment] < 2} {return}
+  if {$multi == 0} {
+    if {![info exists worksheet($ent)] || [string length $comment] < 2} {return}
+  } else {
+    if {![info exists worksheet1($ent)] || [string length $comment] < 2} {return}
+  }
 
 # modify comment
   if {[catch {
@@ -1114,8 +1105,13 @@ proc addCellComment {ent r c comment} {
     }
 
 # add comment, delete existing
-    catch {[[$worksheet($ent) Range [cellRange $r $c]] ClearComments]}
-    set comm [[$worksheet($ent) Range [cellRange $r $c]] AddComment]
+    if {$multi == 0} {
+      catch {[[$worksheet($ent) Range [cellRange $r $c]] ClearComments]}
+      set comm [[$worksheet($ent) Range [cellRange $r $c]] AddComment]
+    } else {
+      catch {[[$worksheet1($ent) Range [cellRange $r $c]] ClearComments]}
+      set comm [[$worksheet1($ent) Range [cellRange $r $c]] AddComment]
+    }
     $comm Text $ncomment
     catch {[[$comm Shape] TextFrame] AutoSize [expr 1]}
 
@@ -1650,7 +1646,7 @@ proc setShortcuts {} {
 #-------------------------------------------------------------------------------
 # set home, docs, desktop, menu directories
 proc setHomeDir {} {
-  global drive env mydesk mydocs myhome mymenu mytemp
+  global drive env mydesk mydocs myhome mymenu mytemp wdir
 
 # C drive
   set drive "C:/"
@@ -1725,6 +1721,10 @@ proc setHomeDir {} {
   set mydocs [file nativename $mydocs]
   set mydesk [file nativename $mydesk]
   set mytemp [file nativename $mytemp]
+
+  set temp [string range $mytemp 0 end-4]
+  catch {[file copy -force -- [file join $wdir images NIST.ico] [file join $temp NIST.ico]]}
+  catch {[file copy -force -- [file join $wdir images NIST.ico] [file join $mytemp NIST.ico]]}
 }
 
 #-------------------------------------------------------------------------------

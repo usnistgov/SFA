@@ -107,7 +107,7 @@ proc spmiDimtolReport {objEntity} {
   global dimModNames dimOrient dimReference dimrep dimrepID dimSizeNames dimtolAttr dimtolEnt dimtolEntType dimtolGeom dimtolID
   global dimtolPM dimtolType dimval driPropID dt entLevel ent entAttrList entCount entlevel2 equivUnicodeString lastEnt nistName
   global numDSnames opt pmiCol pmiColumns pmiHeading pmiModifiers pmiStartCol pmiUnicode propDefIDs recPracNames
-  global savedModifier spaces spmiEnts spmiID spmiIDRow spmiRow spmiTypesPerFile syntaxErr tolStandard vftq
+  global savedModifier spaces spmiEnts spmiID spmiIDRow spmiRow spmiTypesPerFile syntaxErr tolStandard vftq worksheet
 
   if {$opt(DEBUG1)} {outputMsg "spmiDimtolReport" red}
 
@@ -320,6 +320,7 @@ proc spmiDimtolReport {objEntity} {
                         } else {
                           set dimrep($dimrepID) "$dim(symbol)$dim(lower)-$dim(upper)"
                         }
+                        lappend spmiTypesPerFile "value range"
 
                         set msg ""
                         if {([info exists dim(nominal)] && $dim(upper) < $dim(nominal)) || $dim(upper) < $dim(lower)} {
@@ -362,10 +363,13 @@ proc spmiDimtolReport {objEntity} {
 # check for problems with related_shape_aspect
                     set msg ""
                     set rsa [[[$objEntity Attributes] Item [expr 4]] Value]
-                    if {[$objValue P21ID] == [$rsa P21ID]} {set msg "Syntax Error: Identical 'relating' and 'related' shape aspects on dimensional_location"}
-                    if {$rsa == ""} {set msg "Syntax Error: Missing 'related_shape_aspect' on dimensional_location"}
+                    if {$rsa == ""} {
+                      set msg "Syntax Error: Missing 'related_shape_aspect'"
+                    } elseif {[$objValue P21ID] == [$rsa P21ID]} {
+                      set msg "Syntax Error: Identical 'relating' and 'related' shape aspects"
+                    }
                     if {$msg != ""} {
-                      append msg "$spaces\($recPracNames(pmi242), Sec. 5.1.1)"
+                      append msg " on [formatComplexEnt $ent($entLevel)]$spaces\($recPracNames(pmi242), Sec. 5.1.1)"
                       errorMsg $msg
                       lappend syntaxErr(dimensional_location) [list $objID "related_shape_aspect" $msg]
                     }
@@ -842,9 +846,9 @@ proc spmiDimtolReport {objEntity} {
                         if {[string first "dimension name" $colName] == 0} {
                           set comment "Section numbers refer to the CAx-IF Recommended Practice for Representation and Presentation of PMI (AP242)."
                         } elseif {[string first "length/angle precision" $colName] == 0} {
-                          set str ""
-                          if {$opt(PMISEMRND)} {set str ", round,"}
-                          set comment "The precision might truncate$str or add trailing zeros to the 'length/angle'.  Column D shows the value with the precision applied.  See option on the More tab to Round dimensions and geometric tolerances."
+                          set str "TRUNCATE"
+                          if {$opt(PMISEMRND)} {set str "ROUND"}
+                          set comment "The precision will $str or add trailing zeros to the 'length/angle'.  Column D shows the value with the precision applied.  See option on the More tab to Round dimensions and geometric tolerances. ($recPracNames(pmi242), Sec. 5.4)"
                         }
                         if {$comment != ""} {addCellComment $dt 3 $c $comment}
                       }
@@ -876,10 +880,6 @@ proc spmiDimtolReport {objEntity} {
                         set msg "Syntax Error: Missing 'nominal value' for value range.$spaces\($recPracNames(pmi242), Sec. 5.2.4)"
                         errorMsg $msg
                         lappend syntaxErr($dt) [list -$r "length/angle name" $msg]
-                      }
-                      if {($ov == "upper limit" || $ov == "lower limit") && $dim(num) > 2} {
-                        set item "value range"
-                        lappend spmiTypesPerFile $item
                       }
                       if {[string first $ov $val] == -1} {$cells($dt) Item $r $c "$val[format "%c" 10]$ov"}
                     }
@@ -1202,9 +1202,9 @@ proc spmiDimtolReport {objEntity} {
                 $cells($dt) Item 3 $c $colName
                 set pmiHeading($pmiColumns(pmq)) 1
                 set pmiCol [expr {max($pmiColumns(pmq),$pmiCol)}]
-                set str ""
-                if {$opt(PMISEMRND)} {set str ", round,"}
-                set comment "The precision might truncate$str or add trailing zeros to the '+/- tolerance'.  Column D shows the value with the precision applied.  See option on the More tab to Round dimensions and geometric tolerances."
+                set str "TRUNCATE"
+                if {$opt(PMISEMRND)} {set str "ROUND"}
+                set comment "The precision will $str or add trailing zeros to the '+/- tolerance'.  Column D shows the value with the precision applied.  See option on the More tab to Round dimensions and geometric tolerances. ($recPracNames(pmi242), Sec. 5.4)"
                 addCellComment $dt 3 $c $comment
               }
               $cells($dt) Item $r $pmiColumns(pmq) [join $tolQual]
@@ -1403,6 +1403,7 @@ proc spmiDimtolReport {objEntity} {
           $cells($dt) Item 3 $c $colName
           set pmiHeading($pmiColumns(dmrp)) 1
           set pmiCol [expr {max($pmiColumns(dmrp),$pmiCol)}]
+
           set comment "See Help > User Guide (section 6.1.3) for an explanation of how the Dimensional Tolerances are constructed.  Results are summarized on the PMI Representation Summary worksheet."
           if {[info exists dim(unit)]} {append comment "\n\nDimension units: $dim(unit)"}
           append comment "\n\nRepetitive dimensions (e.g., 4X) are shown for diameter and radius.  They are computed based on the number of cylindrical, spherical, and toroidal surfaces associated with a dimension (see Associated Geometry column to the right) and, depending on the CAD system, might be off by a factor of two, have the wrong value, or be missing.  Repetitive dimensions are not computed for linear distance."
@@ -1410,6 +1411,11 @@ proc spmiDimtolReport {objEntity} {
             append comment "\n\nSee the PMI Representation Summary worksheet to see how the Dimensional Tolerance compares to the expected PMI."
           }
           addCellComment $dt 3 $c $comment
+
+          set hlink [$worksheet($dt) Hyperlinks]
+          set anchor [$worksheet($dt) Range [cellRange 3 $c]]
+          set hlsheet "'PMI Representation Summary'"
+          $hlink Add $anchor [string trim ""] "$hlsheet![cellRange 3 3]" ""
         }
 
 # add brackets or parentheses for basic or reference dimensions

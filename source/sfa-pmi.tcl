@@ -356,7 +356,7 @@ proc x3dAssemblyTransform {tessEnt} {
                   }
                 }
 
-                set msg "Graphical PMI on parts in an assembly might have the wrong position and orientation"
+                set msg "Graphic PMI on parts in an assembly might have the wrong position and orientation"
                 if {[lsearch $x3dMsg $msg] == -1} {lappend x3dMsg $msg}
 
 # GISU

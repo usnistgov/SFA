@@ -275,7 +275,7 @@ proc x3dFileEnd {} {
     } else {
       set msg " Datum targets are not shown due to Syntax Errors above"
     }
-    append msg ".  See Help > Viewer > Graphical PMI"
+    append msg ".  See Help > Viewer > Graphic PMI"
     outputMsg $msg red
   }
   catch {unset datumTargetView}
@@ -419,7 +419,7 @@ proc x3dFileEnd {} {
 # duplicate saved views
             } else {
               foreach xf $x3dFiles {puts $xf "<!-- SAME AS $svMap($svn) -->"}
-              errorMsg " Two or more Saved Views have identical graphical PMI" red
+              errorMsg " Two or more Saved Views have identical graphic PMI" red
               set torg ""
             }
 
@@ -440,7 +440,7 @@ proc x3dFileEnd {} {
           lappend savedViewButtons $svn
           if {[info exists savedViewpoint($svn)]} {x3dSavedViewpoint $svn}
           foreach xf $x3dFiles {puts $xf "\n<!-- SAVED VIEW$i NO PMI - $svn -->\n<Switch whichChoice='0' id='sw$svnfn'><Group></Group></Switch>"}
-          errorMsg " Some saved views do not have graphical PMI" red
+          errorMsg " Some saved views do not have graphic PMI" red
         }
         catch {file delete -force -- $savedViewFileName($svnfn)}
       }
@@ -779,8 +779,8 @@ proc x3dFileEnd {} {
     puts $x3dFile "\n<!-- Tessellated part geometry checkbox -->"
     if {$viz(PART)} {puts $x3dFile "<details><summary>Tessellated Part Geometry</summary><p>"}
     puts $x3dFile "<input type='checkbox' checked onclick='togTPG(this.value)'/>Tessellated Part Geometry"
+    if {$viz(TESSEDGE)} {puts $x3dFile "<!-- Tessellated edges checkbox -->\n<br><input type='checkbox' checked onclick='togTED(this.value)'/>Tessellated Edges"}
     if {$viz(TESSMESH)} {puts $x3dFile "<!-- Tessellated mesh checkbox -->\n<br><input type='checkbox' checked onclick='togTPM(this.value)'/>Wireframe"}
-    if {$viz(TESSEDGE)} {puts $x3dFile "<!-- Tessellated edges checkbox -->\n<br><input type='checkbox' checked onclick='togTED(this.value)'/>Edges"}
 
     if {[info exists entCount(next_assembly_usage_occurrence)] || [info exists entCount(repositioned_tessellated_item_and_tessellated_geometric_set)]} {
       set ntess 0
@@ -821,7 +821,7 @@ proc x3dFileEnd {} {
     set sv 1
     if {[llength $savedViewButtons] == 1 && [lindex $savedViewNames 0] == "Not in a Saved View"} {
       set sv 0
-      set name "Graphical PMI"
+      set name "Graphic PMI"
       set savedViewButtons [list $name]
       set savedViewNames $savedViewButtons
       set svMap($name) $name
@@ -829,9 +829,9 @@ proc x3dFileEnd {} {
     puts $x3dFile "\n<!-- Saved view PMI checkboxes -->"
     if {$sv} {
       if {[llength $savedViewButtons] <= 10} {
-        puts $x3dFile "Saved View Graphical PMI"
+        puts $x3dFile "Saved View Graphic PMI"
       } else {
-        puts $x3dFile "<details><summary>Saved View Graphical PMI</summary>"
+        puts $x3dFile "<details><summary>Saved View Graphic PMI</summary>"
       }
     }
     if {[info exists savedViewVP]} {puts $x3dFile "<br><font size='-1'>(PageDown to switch Saved Views)</font>"}

@@ -515,12 +515,14 @@ proc nistCheckExpectedPMI {val entstr epmiName} {
 
 # dimensions
             } elseif {[string first "dimension" $valType($val)] != -1} {
-              set diff [expr {[string length $pmi] - [string length $val]}]
-              if {$diff <= 2 && $diff >= 0 && [string first $val $pmi] != -1} {
-                set pmiSim 0.95
-              } elseif {[string is integer [string index $val 0]] || \
-                        [string range $val 0 1] == [string range $pmi 0 1]} {
-                set pmiSim [stringSimilarity $val $pmi]
+              if {[string first $pmiUnicode(degree) $val] == -1 || [string first $pmiUnicode(degree) $pmi] != -1} {
+                set diff [expr {[string length $pmi] - [string length $val]}]
+                if {$diff <= 2 && $diff >= 0 && [string first $val $pmi] != -1} {
+                  set pmiSim 0.95
+                } elseif {[string is integer [string index $val 0]] || \
+                          [string range $val 0 1] == [string range $pmi 0 1]} {
+                  set pmiSim [stringSimilarity $val $pmi]
+                }
               }
 
 # tolerances
@@ -1300,7 +1302,9 @@ proc pmiRemoveZeros {pmi} {
           for {set j 0} {$j < 4} {incr j} {if {[string first "0 " $spmi] != -1} {regsub -all "0 " $spmi " " spmi}}
           regsub -all " 0" $spmi " " spmi
           if {[string first ". " $spmi] != -1} {regsub {\. } $spmi " " spmi}
-          set spmi "[string range $spmi 0 end-1]$pmiUnicode(degree) "
+          if {[string first $pmiUnicode(degree) $spmi] == -1} {set spmi "[string range $spmi 0 end-1]$pmiUnicode(degree) "}
+          if {[string first " \[" $spmi] == 0 && [string first "\]" $spmi] == -1} {set spmi "[string range $spmi 0 end-1]\] "}
+          if {[string first " \(" $spmi] == 0 && [string first "\)" $spmi] == -1} {set spmi "[string range $spmi 0 end-1]\) "}
         }
 
 # reference dimension

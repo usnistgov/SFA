@@ -1,12 +1,12 @@
 # generate an Excel spreadsheet and/or view from a STEP file
 proc genExcel {{numFile 0}} {
   global allEntity aoEntTypes ap203all ap214all ap242all ap242only ap242ed badAttributes brepGeomEntTypes buttons cadSystem cameraModels cells cells1
-  global col col1 commaSeparator count csvdirnam csvfile csvinhome currLogFile dim draughtingModels driUnicode entCategories entCategory
+  global col col1 commaSeparator count csvdirnam csvfile csvinhome currLogFile developer dim draughtingModels driUnicode entCategories entCategory
   global entColorIndex entCount entityCount entsIgnored entsWithErrors env epmi epmiUD errmsg equivUnicodeStringErr excel fcsv
   global feaFirstEntity feaLastEntity File fileEntity filesProcessed fileSumRow gen gpmiTypesInvalid gpmiTypesPerFile guiSFA idRow idxColor
   global ifcsvrDir inverses lastXLS lenfilelist localName localNameList logFile matrixList multiFile multiFileDir mydocs mytemp nistCoverageLegend
   global nistName nistPMIexpected nistPMImaster noFontFile nprogBarEnts opt pf32 p21e3Section pmiCol resetRound row rowmax savedViewButtons
-  global savedViewName savedViewNames scriptName sheetLast skipEntities skipFileName skipPerm spmiEntity spmiSumName spmiSumRow spmiTypesPerFile
+  global savedViewName savedViewNames scriptName sheetLast skipEntities skipFileName spmiEntity spmiSumName spmiSumRow spmiTypesPerFile
   global startrow statsOnly stepAP stepAPreport sumHeaderRow syntaxErr tessColor tessEnts tessSolid thisEntType timeStamp tlast tolNames tolStandard tolStandards
   global totalEntity unicodeActual unicodeAttributes unicodeEnts unicodeInFile unicodeNumEnts unicodeString userEntityFile userEntityList
   global userWriteDir useXL uuid uuidEnts valRounded viz wdir workbook workbooks worksheet worksheet1 worksheets writeDir wsCount wsNames x3dAxes
@@ -243,10 +243,10 @@ proc genExcel {{numFile 0}} {
             lappend characteristics "Datum targets"
 
           } elseif {$entType == "tessellated_annotation_occurrence"} {
-            lappend characteristics "Graphical PMI (tessellated)"
+            lappend characteristics "Graphic PMI (tessellated)"
           } elseif {$entType == "annotation_occurrence" || [string first "annotation_curve_occurrence" $entType] != -1 || \
                     $entType == "annotation_fill_area_occurrence" || $entType == "annotation_occurrence_and_characterized_object"} {
-            lappend characteristics "Graphical PMI (polyline)"
+            lappend characteristics "Graphic PMI (polyline)"
           } elseif {$entType == "annotation_placeholder_occurrence" || $entType == "annotation_placeholder_occurrence_with_leader_line"} {
             lappend characteristics "Placeholder PMI"
 
@@ -276,10 +276,6 @@ proc genExcel {{numFile 0}} {
                 checkValues
               }
             }
-          }
-          if {$opt(stepCPNT) == 0 && [string first "point_cloud" $entType] == 0} {
-            set opt(stepCPNT) 1
-            checkValues
           }
         }
 
@@ -325,13 +321,11 @@ proc genExcel {{numFile 0}} {
     }
 
 # -------------------------------------------------------------------------------------------------
-# open file of entities (-skip.dat) not to process (skipEntities), skipPerm are entities always to skip
+# open file of entities (-skip.dat) not to process (skipEntities)
     set skipEntities {}
     set skipFileName [file rootname $fname]
     if {$opt(writeDirType) == 2} {set skipFileName [file join $writeDir [file rootname [file tail $fname]]]}
     append skipFileName "-skip.dat"
-    set skipPerm {}
-    set skipEntities $skipPerm
     if {[file exists $skipFileName]} {
       set skipFile [open $skipFileName r]
       while {[gets $skipFile line] >= 0} {
@@ -340,23 +334,8 @@ proc genExcel {{numFile 0}} {
         }
       }
       close $skipFile
-
-# old skip file name (_fix.dat), delete
-    } else {
-      set fixfile [file rootname $fname]
-      append fixfile "_fix.dat"
-      if {[file exists $fixfile]} {
-        set skipFile [open $fixfile r]
-        while {[gets $skipFile line] >= 0} {
-          if {[lsearch $skipEntities $line] == -1 && $line != "" && ![info exists badAttributes($line)]} {
-            lappend skipEntities $line
-          }
-        }
-        close $skipFile
-        file delete -force -- $fixfile
-        errorMsg "File of entities to skip '[file tail $fixfile]' renamed to '[file tail $skipFileName]'"
-      }
     }
+    catch {if {$developer && ($cadSystem == "CREO" || $cadSystem == "Pro/E")} {set badAttributes(presentation_style_assignment) {styles}}}
 
 # check if a file generated from a NIST test case (and some other files) is being processed
     set nistName [nistGetName]
@@ -390,7 +369,6 @@ proc genExcel {{numFile 0}} {
           }
           if {[info exists buttons]} {append msg "\n See Help > Supported STEP APs"}
           errorMsg $msg red
-          if {[string first "IFC" $fs] == 0} {errorMsg "Use the NIST IFC File Analyzer with IFC files." red}
 
 # other possible errors
         } else {
@@ -766,14 +744,10 @@ proc genExcel {{numFile 0}} {
   }
 
 # -------------------------------------------------------------------------------------------------
-# decide how to process tessellated geometry by SFA (original) or by stp2x3d (new with version 5.10)
+# decide how to process tessellated geometry by SFA (original) or by stp2x3d
   set brep 0
   set tessEnts 0
-  set triface 0
-  foreach item $brepGeomEntTypes {
-    if {[info exists entCount($item)]} {if {$entCount($item) > 0} {set brep 1}}
-  }
-  foreach item [list triangulated_face] {if {[info exists entCount($item)]} {set triface 1}}
+  foreach item $brepGeomEntTypes {if {[info exists entCount($item)]} {if {$entCount($item) > 0} {set brep 1}}}
   foreach item [list tessellated_solid tessellated_shell] {if {[info exists entCount($item)]} {if {$entCount($item) > 0} {set tessEnts 1}}}
 
 # setting for SFA original
@@ -783,8 +757,8 @@ proc genExcel {{numFile 0}} {
   set viz(TESSMESH) 1
   if {$tessEnts} {set viz(TESSPART) 1}
 
-# use new stp2x3d for tessellated geometry, except if there is also b-rep, triangulated_face, or not using SFA original method
-  if {$tessEnts && $brep == 0 && $triface == 0 && $opt(tessPartOld) == 0} {
+# use new stp2x3d for tessellated geometry, except if there is also b-rep or not using SFA original method
+  if {$tessEnts && $brep == 0 && $opt(tessPartOld) == 0} {
     set tessSolid 1
     set opt(viewTessPart) 0
     set opt(tessPartMesh) 0
@@ -867,10 +841,6 @@ proc genExcel {{numFile 0}} {
 # list entities not processed based on skip file
   if {[llength $skipList] > 0} {
     if {[file exists $skipFileName]} {
-      set ok 0
-      foreach item $skipList {if {[lsearch $skipPerm $item] == -1} {set ok 1}}
-    }
-    if {$ok} {
       outputMsg " "
       if {$opt(xlFormat) != "None"} {
         set msg "Worksheets"
@@ -1105,7 +1075,7 @@ proc genExcel {{numFile 0}} {
       foreach cms $cameraModels {if {[info exists entCount($cms)]} {pmiGetCameras; break}}
     }
 
-# get validation properties related to graphical or semantic PMI
+# get validation properties related to graphic or semantic PMI
     if {$opt(PMIGRF) || $opt(PMISEM)} {getValProps}
 
 # -------------------------------------------------------------------------------------------------
@@ -1290,7 +1260,7 @@ proc genExcel {{numFile 0}} {
       foreach item [list Dimensions Datums "Datum Targets" "Geometric Tolerances"] {if {[lsearch $characteristics $item] != -1} {set ok 1}}
     }
     if {$opt(PMIGRF)} {
-      foreach item $characteristics {if {[string first "Graphical PMI" $item] != -1} {set ok 1}}
+      foreach item $characteristics {if {[string first "Graphic PMI" $item] != -1} {set ok 1}}
     }
     if {[lsearch $characteristics "Composites"] != -1} {set ok 1}
     if {$ok} {reportValProps}
@@ -1341,8 +1311,8 @@ proc genExcel {{numFile 0}} {
               if {[lsearch $allUUID $pid] == -1} {
                 lappend allUUID $pid
               } else {
-                lappend syntaxErr([string tolower $ent]) [list $entid identifier " UUID is identical to another"]
-                errorMsg " UUID is identical to another on [string tolower $ent]" red
+                lappend syntaxErr([string tolower $ent]) [list $entid identifier " UUID is assigned to multiple identified_item"]
+                errorMsg " UUID is assigned to multiple identified_item on [string tolower $ent]" red
               }
               set uuidstr $pid
               if {[string index $ent 0] == "V"} {append uuidstr " (v[string index $ent 1])"}
@@ -1400,7 +1370,8 @@ proc genExcel {{numFile 0}} {
 
       set noUUIDent [lrmdups $noUUIDent]
       if {[llength $noUUIDent] > 0} {
-        outputMsg " UUIDs are also associated with: [lrmdups $noUUIDent]" red
+        regsub -all " " [join [lrmdups $noUUIDent]] ", " str
+        outputMsg " UUIDs are also associated with: $str" red
         unset noUUIDent
       }
     }
@@ -1513,7 +1484,7 @@ proc genExcel {{numFile 0}} {
   }
 
 # -------------------------------------------------------------------------------------------------
-# quit IFCsvr, but not sure how to do it properly
+# quit IFCsvr
   if {[catch {
     $objDesign Delete
     unset objDesign
@@ -1721,7 +1692,7 @@ proc genExcel {{numFile 0}} {
   update idletasks
 
 # unset variables
-  foreach var {assemTransformPMI brepScale cells cgrObjects cmNameID colColor commasep count currx3dPID datumEntType datumGeom datumIDs datumSymbol datumSystem datumSystemPDS defComment dimrep dimrepID dimtolEnt dimtolEntID dimtolGeom draughtingModels draftModelCameraNames draftModelCameras driPropID entCount entName entsIgnored epmi epmiUD equivUnicodeString feaDOFR feaDOFT feaNodes fileSumRow fontErr gpmiID gpmiIDRow gpmiRow heading idRow invCol invGroup noFontFile npart nrep numx3dPID placeAxesDef placeSphereDef pmiCol pmiColumns pmiStartCol pmivalprop propDefID propDefIDRow propDefName propDefOK propDefRow ptzError savedsavedViewNames savedViewFile savedViewFileName savedViewItems savedViewNames savedViewpoint savedViewVP shapeRepName srNames suppGeomEnts syntaxErr taoLastID tessCoord tessCoordName tessIndex tessIndexCoord tessPlacement tessRepo trimVal unicode unicodeActual unicodeNumEnts unicodeString viz vpEnts workbook workbooks worksheet worksheets x3dCoord x3dFile x3dFileName x3dIndex x3dMax x3dMin x3dStartFile} {
+  foreach var {assemTransformPMI brepScale cells cgrObjects cmNameID colColor commasep count currx3dPID datumEntType datumGeom datumIDs datumSymbol datumSystem datumSystemPDS defComment dimrep dimrepID dimtolEnt dimtolEntID dimtolGeom draughtingModels draftModelCameraNames draftModelCameras driPropID entCount entName entsIgnored epmi epmiUD equivUnicodeString feaDOFR feaDOFT feaNodes fileSumRow fontErr gpmiID gpmiIDRow gpmiRow heading idRow invCol invGroup noFontFile npart nrep numx3dPID placeAxes placeAxesDef placeCoords placeSphereDef pmiCol pmiColumns pmiStartCol pmivalprop propDefID propDefIDRow propDefName propDefOK propDefRow ptzError savedsavedViewNames savedViewFile savedViewFileName savedViewItems savedViewNames savedViewpoint savedViewVP shapeRepName srNames suppGeomEnts syntaxErr taoLastID tessCoord tessCoordName tessIndex tessIndexCoord tessPlacement tessRepo trimVal unicode unicodeActual unicodeNumEnts unicodeString viz vpEnts workbook workbooks worksheet worksheets x3dCoord x3dFile x3dFileName x3dIndex x3dMax x3dMin x3dStartFile} {
     catch {global $var}
     if {[info exists $var]} {unset $var}
   }
@@ -2463,7 +2434,7 @@ proc formatWorksheets {sheetSort sumRow inverseEnts} {
       if {$thisEntType == "property_definition" && $opt(valProp)} {
         valPropFormat
 
-# color STEP annotation occurrence (Graphical PMI)
+# color STEP annotation occurrence (Graphic PMI)
       } elseif {$gpmiEnts($thisEntType) && $opt(PMIGRF) && $stepAPreport} {
         pmiFormatColumns "PMI Presentation"
 

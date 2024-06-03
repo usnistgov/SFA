@@ -1,7 +1,7 @@
 # read entity and write to spreadsheet
 proc getEntity {objEntity rmax checkInverse checkBadAttributes unicodeCheck} {
   global attrType badAttributes cells col count entComment entCount entName entRows heading invMsg invVals matrixList opt roseLogical row
-  global sheetLast skipEntities skipFileName skipPerm syntaxErr thisEntType unicodeAttributes unicodeString worksheet worksheets wsCount wsNames
+  global sheetLast skipEntities skipFileName syntaxErr thisEntType unicodeAttributes unicodeString worksheet worksheets wsCount wsNames
 
 # get entity type
   set thisEntType [$objEntity Type]
@@ -64,8 +64,8 @@ proc getEntity {objEntity rmax checkInverse checkBadAttributes unicodeCheck} {
 # file of entities not to process
     if {[catch {
       set skipFile [open $skipFileName w]
-      foreach item $skipEntities {if {[lsearch $skipPerm $item] == -1} {puts $skipFile $item}}
-      if {[lsearch $skipEntities $thisEntType] == -1 && [lsearch $skipPerm $thisEntType] == -1} {puts $skipFile $thisEntType}
+      foreach item $skipEntities {puts $skipFile $item}
+      if {[lsearch $skipEntities $thisEntType] == -1} {puts $skipFile $thisEntType}
       close $skipFile
     } emsg]} {
       errorMsg "Error processing 'skip' file: $emsg"
@@ -420,7 +420,7 @@ proc setIDRow {entType p21id} {
 # -------------------------------------------------------------------------------------------------
 # read entity and write to CSV file
 proc getEntityCSV {objEntity checkBadAttributes} {
-  global badAttributes count csvdirnam csvfile csvinhome csvstr entCount fcsv mydocs roseLogical row rowmax skipEntities skipFileName skipPerm thisEntType
+  global badAttributes count csvdirnam csvfile csvinhome csvstr entCount fcsv mydocs roseLogical row rowmax skipEntities skipFileName thisEntType
 
 # get entity type
   set thisEntType [$objEntity Type]
@@ -462,8 +462,8 @@ proc getEntityCSV {objEntity checkBadAttributes} {
 # file of entities not to process
     if {[catch {
       set skipFile [open $skipFileName w]
-      foreach item $skipEntities {if {[lsearch $skipPerm $item] == -1} {puts $skipFile $item}}
-      if {[lsearch $skipEntities $thisEntType] == -1 && [lsearch $skipPerm $thisEntType] == -1} {puts $skipFile $thisEntType}
+      foreach item $skipEntities {puts $skipFile $item}
+      if {[lsearch $skipEntities $thisEntType] == -1} {puts $skipFile $thisEntType}
       close $skipFile
     } emsg]} {
       errorMsg "Error processing 'skip' file: $emsg"

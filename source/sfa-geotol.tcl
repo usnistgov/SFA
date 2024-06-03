@@ -565,6 +565,11 @@ proc spmiGeotolReport {objEntity} {
                           append comment "\n\nSee the PMI Representation Summary worksheet to see how the GD&T Annotation below compares to the expected PMI."
                         }
                         addCellComment $gt 3 $c $comment
+
+                        set hlink [$worksheet($gt) Hyperlinks]
+                        set anchor [$worksheet($gt) Range [cellRange 3 $c]]
+                        set hlsheet "'PMI Representation Summary'"
+                        $hlink Add $anchor [string trim ""] "$hlsheet![cellRange 3 3]" ""
                       }
                       if {[string first "Datum Reference Frame" $colName] == 0} {
                         set comment "Results are summarized on the PMI Representation Summary worksheet.  Section numbers refer to the CAx-IF Recommended Practice for Representation and Presentation of PMI (AP242)."
@@ -1369,9 +1374,9 @@ proc spmiGeotolReport {objEntity} {
                       if {[string first "Datum" $colName] == 0 || [string first "compartment" $colName] == 0} {
                         set comment "Section numbers refer to the CAx-IF Recommended Practice for Representation and Presentation of PMI (AP242)."
                       } elseif {[string first "magnitude precision" $colName] == 0} {
-                        set str ""
-                        if {$opt(PMISEMRND)} {set str ", round,"}
-                        set comment "The precision might truncate$str or add trailing zeros to the 'magnitude'.  The GD&T Annotation column shows the value with the precision applied."
+                        set str "TRUNCATE"
+                        if {$opt(PMISEMRND)} {set str "ROUND"}
+                        set comment "The precision will $str or add trailing zeros to the 'magnitude'.  The GD&T Annotation column shows the value with the precision applied.  See option on the More tab to Round dimensions and geometric tolerances. ($recPracNames(pmi242), Sec. 5.4)"
                       }
                       if {$comment != ""} {addCellComment $gt 3 $c $comment}
                     }
@@ -1915,10 +1920,12 @@ proc spmiGeotolReport {objEntity} {
 
 # missing toleranced geometry
     } elseif {[string first "_tolerance" $gt] != -1} {
-      if {$oktsa} {
-        set msg "Toleranced Geometry not found for a [formatComplexEnt $gt].  If the tolerance should have Toleranced Geometry, then check GISU or IIRU 'definition' attribute or shape_aspect_relationship 'relating_shape_aspect' attribute.  Select Inverse Relationships on the Generate tab to check relationships.\n  ($recPracNames(pmi242), Sec. 6.9.2)"
-        errorMsg $msg
-        lappend syntaxErr($gt) [list "-$spmiIDRow($gt,$spmiID)" "Toleranced Geometry" $msg]
+      catch {
+        if {$oktsa} {
+          set msg "Toleranced Geometry not found for a [formatComplexEnt $gt].  If the tolerance should have Toleranced Geometry, then check GISU or IIRU 'definition' attribute or shape_aspect_relationship 'relating_shape_aspect' attribute.  Select Inverse Relationships on the Generate tab to check relationships.\n  ($recPracNames(pmi242), Sec. 6.9.2)"
+          errorMsg $msg
+          lappend syntaxErr($gt) [list "-$spmiIDRow($gt,$spmiID)" "Toleranced Geometry" $msg]
+        }
       }
     }
 

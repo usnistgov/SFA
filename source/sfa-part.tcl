@@ -2,7 +2,7 @@
 # B-rep part geometry, new stp2x3d in SFA 5.10 also processes tessellated geometry
 proc x3dBrepGeom {} {
   global brepFile brepFileName buttons cadSystem clippingCap developer DTR edgeMatID entCount grayBackground localName matTrans maxxyz mytemp
-  global nistVersion nsketch opt rawBytes rosetteGeom tessSolid viz x3dApps x3dBbox x3dMax x3dMin x3dMsg x3dMsgColor x3dParts x3dTryAgain
+  global nistVersion nsketch opt rawBytes rosetteGeom tessSolid viz x3dApps x3dBbox x3dMax x3dMin x3dMsg x3dMsgColor x3dParts
   global objDesign
 
   if {[catch {
@@ -12,11 +12,7 @@ proc x3dBrepGeom {} {
     x3dCopySTP2X3D
 
 # generate x3d from b-rep geometry with stp2x3d-part
-    if {![info exists x3dTryAgain]} {
-      set stp2x3d [file join $mytemp stp2x3d-part.exe]
-    } else {
-      set stp2x3d [file join $mytemp old-stp2x3d stp2x3d-part.exe]
-    }
+    set stp2x3d [file join $mytemp stp2x3d-part.exe]
     if {[file exists $stp2x3d]} {
 
 # output .x3d file name
@@ -36,6 +32,7 @@ proc x3dBrepGeom {} {
         }
       }
       outputMsg $msg $x3dMsgColor
+      if {$opt(brepAlt)} {outputMsg " Using alternative processing, see More tab" red}
 
 # check for composite rosette curve_11
       set rosetteOpt  0
@@ -70,12 +67,11 @@ proc x3dBrepGeom {} {
 # run stp2x3d-part.exe
       if {$opt(debugX3D)} {getTiming stp2x3d}
       if {![info exists tessSolid]} {set tessSolid 1}
+      if {$opt(debugX3D)} {
+        outputMsg "--quality $opt(partQuality) --edge $opt(partEdges) --sketch $opt(partSketch) --normal $opt(partNormals) --rosette $rosetteOpt --tess $opt(brepAlt) --cap $clippingCap --tsolid $tessSolid"
+      }
       catch {
-        if {![info exists x3dTryAgain]} {
-          exec $stp2x3d --input [file nativename $localName] --quality $opt(partQuality) --edge $opt(partEdges) --sketch $opt(partSketch) --normal $opt(partNormals) --rosette $rosetteOpt --tess $opt(brepAlt) --cap $clippingCap --tsolid $tessSolid
-        } else {
-          exec $stp2x3d --input [file nativename $localName] --quality $opt(partQuality) --edge $opt(partEdges) --sketch $opt(partSketch) --normal $opt(partNormals) --rosette $rosetteOpt --tess $opt(brepAlt) --cap $clippingCap
-        }
+        exec $stp2x3d --input [file nativename $localName] --quality $opt(partQuality) --edge $opt(partEdges) --sketch $opt(partSketch) --normal $opt(partNormals) --rosette $rosetteOpt --tess $opt(brepAlt) --cap $clippingCap --tsolid $tessSolid
       } errs
       if {$opt(debugX3D)} {getTiming done; outputMsg $errs}
 
@@ -137,7 +133,13 @@ proc x3dBrepGeom {} {
               } elseif {[string first "Sketch geometry" $line] != -1} {
                 set sketch 1
 
-# error messages from stp2x3d
+# STEP file errors
+              } elseif {([string first "ERR StepFile" $line] != -1 || [string first "ERR StepReaderData" $line] != -1) && \
+                         [string first "Fails Count : 1 " $line] == -1} {
+                outputMsg $line red
+                errorMsg " Use F8 to run the Syntax Checker to check for possible STEP file errors.  See Help > Syntax Checker" red
+
+# other stp2x3d error messages
               } elseif {$developer && [string first "*" $line] == 0} {
                 outputMsg $line red
               }
@@ -505,7 +507,7 @@ proc x3dBrepGeom {} {
                 }
               }
               if {$err && ![info exists rawBytes]} {
-                set msg "The list of Assembly/Part names in the Viewer might use characters that are wrong.  This might be caused by the encoding of the STEP file"
+                set msg "The list of Assembly/Part names in the Viewer might use the wrong characters, possibly caused by the encoding of the STEP file"
                 if {[info exists cadSystem]} {
                   if {[string first "SolidWorks" $cadSystem] != -1 && [string first "MBD" $cadSystem] == -1} {append msg " or improper characters on PRODUCT entities in the STEP file"}
                 }
@@ -519,7 +521,7 @@ proc x3dBrepGeom {} {
             set viz(PART) 1
             if {!$shape} {
               set viz(PART) 0
-              errorMsg " There is no B-rep Part Geometry in the STEP file.  There might be Tessellated Part Geometry.  Check the Viewer selections."
+              errorMsg " There is no geometry (Shape nodes) in the X3D file."
             }
 
 # end the brep file
@@ -552,29 +554,19 @@ proc x3dBrepGeom {} {
           set msg "Change the file or directory name and process the file again."
         } elseif {[string first "permission denied" $errs] != -1} {
           set msg "Antivirus software might be blocking stp2x3d-part.exe from running in $mytemp"
+        } elseif {[string first "Color will not be supported." $errs] != -1} {
+          set msg "Values on 'colour_rgb' must be >= 0 and <= 1."
 
 # crash with STEP file
         } else {
-          if {[info exists x3dTryAgain]} {
-            set msg "Error processing STEP part geometry."
-            if {$tessSolid && !$opt(partOnly)} {append msg "\n Try the option to use the 'Old processing of tessellated geometry' (More tab)"}
-            set ename "camera_model_d3_multi_clipping"
-            if {[info exists entCount($ename)] && !$opt(partNoCap)} {
-              if {$entCount($ename) > 0} {append msg "\n Try the option to 'not generate capped surfaces for clipping planes' (More tab)"}
-            }
-            append msg "\n Try opening the file in another STEP viewer.  See Websites > STEP > STEP File Viewers"
-            append msg "\n Use F8 to run the Syntax Checker to check for STEP file errors.  See Help > Syntax Checker"
-
-# try processing with old version of stp2x3d
-          } else {
-            errorMsg "Trying old version of processing STEP part geometry"
-            outputMsg " "
-            set x3dTryAgain 1
-            catch {unset x3dMsg}
-            catch {unset msg}
-            x3dBrepGeom
-            unset x3dTryAgain
+          set msg "Error processing STEP part geometry."
+          if {$tessSolid && !$opt(partOnly)} {append msg "\n Try the option to use the 'Old processing of tessellated geometry' (More tab)"}
+          set ename "camera_model_d3_multi_clipping"
+          if {[info exists entCount($ename)] && !$opt(partNoCap)} {
+            if {$entCount($ename) > 0} {append msg "\n Try the option to 'not generate capped surfaces for clipping planes' (More tab)"}
           }
+          append msg "\n Try opening the file in another STEP viewer.  See Websites > STEP > STEP File Viewers"
+          append msg "\n Use F8 to run the Syntax Checker to check for STEP file errors.  See Help > Syntax Checker"
         }
         if {[info exists msg]} {
           errorMsg $msg
@@ -625,22 +617,14 @@ proc x3dBrepUnits {} {
 # -------------------------------------------------------------------------------
 # copy stp2x3d files to temp directory, DLLs in sp2x3d-dll.zip, exe in stp2x3d-part.exe
 proc x3dCopySTP2X3D {} {
-  global nistVersion mytemp opt wdir x3dTryAgain
+  global nistVersion mytemp opt wdir
 
   if {!$nistVersion} {return}
 
-  set msg 0
   if {[catch {
     foreach fn {stp2x3d-dll.zip stp2x3d-part.exe} {
-      if {![info exists x3dTryAgain]} {
-        set internal [file join $wdir exe $fn]
-        set stp2x3d [file join $mytemp $fn]
-      } else {
-        set olddir [file join $mytemp old-stp2x3d]
-        if {![file exists $olddir]} {file mkdir $olddir}
-        set internal [file join $wdir exe old-stp2x3d $fn]
-        set stp2x3d [file join $mytemp old-stp2x3d $fn]
-      }
+      set internal [file join $wdir exe $fn]
+      set stp2x3d [file join $mytemp $fn]
       if {[file exists $internal]} {
         set copy 0
         if {![file exists $stp2x3d]} {
@@ -649,11 +633,8 @@ proc x3dCopySTP2X3D {} {
           set copy 2
         }
         if {$copy > 0} {
-          set new ""
-          if {$copy == 2} {set new " new"}
-          errorMsg " Copying$new Viewer software for part geometry (stp2x3d-part.exe) to $mytemp" red
+          errorMsg " Copying Viewer software to [file nativename [file dirname $stp2x3d]]" red
           file copy -force -- $internal $stp2x3d
-          set msg 1
         }
       }
     }
@@ -662,20 +643,12 @@ proc x3dCopySTP2X3D {} {
   }
 
 # extract DLLs from zip file
-  if {![info exists x3dTryAgain]} {
-    set stp2x3dz [file join $mytemp stp2x3d-dll.zip]
-  } else {
-    set stp2x3dz [file join $mytemp old-stp2x3d stp2x3d-dll.zip]
-  }
+  set stp2x3dz [file join $mytemp stp2x3d-dll.zip]
   if {[file exists $stp2x3dz]} {
     if {[catch {
       vfs::zip::Mount $stp2x3dz stp2x3d-dll
       foreach file [glob -nocomplain stp2x3d-dll/*] {
-        if {![info exists x3dTryAgain]} {
-          set fn [file join $mytemp [file tail $file]] 
-        } else {
-          set fn [file join $mytemp old-stp2x3d [file tail $file]] 
-        }
+        set fn [file join $mytemp [file tail $file]]
         set copy 0
         if {![file exists $fn]} {
           set copy 1
@@ -683,9 +656,7 @@ proc x3dCopySTP2X3D {} {
           set copy 2
         }
         if {$copy > 0} {
-          set new ""
-          if {$copy == 2} {set new " new"}
-          if {!$msg} {errorMsg " Copying$new Viewer software for part geometry (stp2x3d-part.exe) to $mytemp" red}
+          errorMsg " Copying Viewer software to $mytemp" red
           file copy -force -- $file $fn
         }
       }
@@ -772,17 +743,12 @@ DATA;
 
 # read ASCII stl file
     if {$aorb == "ASCII"} {
+      set ntriangles 0
       while {[gets $r1 line] >= 0} {
 
 # normals
         if {[string first "normal" $line] != -1} {
-          incr num
-          set c1 [expr {[string first "normal" $line]+7}]
-          set norm [string trim [string range $line $c1 end]]
-          foreach n $norm {append n1 "[trimNum $n],"}
-          lappend nlist "([string trim [string range $n1 0 end-1]]),"
-          unset n1
-
+          incr ntriangles
           gets $r1 $line
           set idx "("
           for {set i 0} {$i < 3} {incr i} {
@@ -831,10 +797,6 @@ DATA;
 
 # normal
         binary scan [read $r1 $rlen] rrr normalX normalY normalZ
-        set norm "$normalX $normalY $normalZ"
-        foreach n $norm {append n1 "[trimNum $n],"}
-        lappend nlist "([string trim [string range $n1 0 end-1]]),"
-        unset n1
         set idx "("
 
 # vertices
@@ -873,17 +835,13 @@ DATA;
 
 # finish STEP file
     if {$nface > 0} {
+      if {[info exists ntriangles]} {outputMsg " Removed [expr {$ntriangles*3 - [llength $clist]}] duplicate coordinates" red}
       outputMsg " Writing [llength $clist] coordinates, $nface faces"
       set str "#$id=COORDINATES_LIST('',[llength $clist],([string range [join $clist] 0 end-1]));"
       regsub -all " " $str "" str
       puts $w2 $str
 
-# pnindex
-      set pnindex ""
-      for {set i 1} {$i <= $nface} {incr i} {append pnindex "$i,"}
-      set pnindex [string range $pnindex 0 end-1]
-
-      set str "#[expr {$id+1}]=TRIANGULATED_FACE('',#$id,$nface,([string range [join $nlist] 0 end-1]),$,\n($pnindex),\n([string range [join $index] 0 end-1]));"
+      set str "#[expr {$id+1}]=TRIANGULATED_FACE('',#$id,0,(),$,(),\n([string range [join $index] 0 end-1]));"
       regsub -all " " $str "" str
       puts $w2 $str
 
@@ -896,7 +854,7 @@ DATA;
       puts $w2 "#[expr {$id+1}]=TESSELLATED_SHAPE_REPRESENTATION('',(#$id),#16);"
       puts $w2 "ENDSEC;\nEND-ISO-10303-21;"
 
-      foreach var {clist index nlist pnindex} {catch {unset -- $var}}
+      foreach var {clist index} {catch {unset -- $var}}
       update idletasks
       close $w2
       outputMsg " [truncFileName [file nativename $f2]] ([fileSize $f2])"
