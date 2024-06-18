@@ -357,7 +357,7 @@ proc pmiFormatColumns {str} {
     }
     $range MergeCells [expr 1]
     set anchor [$worksheet($thisEntType) Range A2]
-    [$worksheet($thisEntType) Hyperlinks] Add $anchor [join "https://www.mbx-if.org/cax/cax_recommPractice.php"] [join ""] [join "Link to CAx-IF Recommended Practices"]
+    [$worksheet($thisEntType) Hyperlinks] Add $anchor [join "https://www.mbx-if.org/home/cax/recpractices/"] [join ""] [join "Link to CAx-IF Recommended Practices"]
   }
 }
 
@@ -421,7 +421,7 @@ proc setEntsToProcess {entType} {
   set gpmiEnts($entType) 0
   set spmiEnts($entType) 0
 
-# for PMI (graphical) presentation report and view
+# for PMI (graphic) presentation report and view
   if {($opt(PMIGRF) || ($gen(View) && $opt(viewPMI))) && $ok == 0} {
     set ok [gpmiCheckEnt $entType]
     set gpmiEnts($entType) $ok
@@ -459,7 +459,7 @@ proc checkForReports {entType} {
       errorMsg "Error adding Validation Properties for $entType: $emsg"
     }
 
-# check for PMI Presentation report or view graphical PMI, call gpmiAnnotation
+# check for PMI Presentation report or view graphic PMI, call gpmiAnnotation
   } elseif {$gpmiEnts($entType)} {
     if {[catch {
       set ok 0
@@ -497,7 +497,7 @@ proc checkForReports {entType} {
 
 # AP not supported
             } else {
-              errorMsg " Analyzer reports for Semantic and Graphical PMI are not supported in $stepAP files." red
+              errorMsg " Analyzer reports for Semantic and Graphic PMI are not supported in $stepAP files." red
             }
           }
         }
@@ -732,7 +732,7 @@ proc getSchemaFromFile {fname {limit 0}} {
   catch {unset rawBytes}
 
   set ulimit 100
-  if {$limit} {set ulimit 100000}
+  if {$limit} {set ulimit 500000}
 
 # read first N lines, all HEADER section information should be in the first 100 lines, reading more detects \X2\ Unicode characters
   while {[gets $stepfile line] != -1 && $nline < $ulimit} {

@@ -831,7 +831,7 @@ proc x3dFileEnd {} {
       if {[llength $savedViewButtons] <= 10} {
         puts $x3dFile "Saved View Graphic PMI"
       } else {
-        puts $x3dFile "<details><summary>Saved View Graphic PMI</summary>"
+        puts $x3dFile "<details><summary>Saved View Graphic PMI</summary><font size='-1'>"
       }
     }
     if {[info exists savedViewVP]} {puts $x3dFile "<br><font size='-1'>(PageDown to switch Saved Views)</font>"}
@@ -849,7 +849,7 @@ proc x3dFileEnd {} {
       append str "<input type='checkbox' id='cbView$id' checked onclick='togView$id\(this.value)'/>$svname"
       puts $x3dFile $str
     }
-    if {[llength $savedViewButtons] > 10} {puts $x3dFile "</details>"}
+    if {[llength $savedViewButtons] > 10} {puts $x3dFile "</font></details>"}
   }
 
 # PMI placeholder
@@ -1761,7 +1761,7 @@ proc x3dHoles {} {
 # -------------------------------------------------------------------------------
 # placeholder axes, coordinates, text, box, leader line
 proc x3dPlaceholder {{aoname ""} {fname ""}} {
-  global grayBackground leaderCoords maxxyz minview x3dFile
+  global grayBackground leaderCoords maxxyz minview opt x3dFile
   global placeAxes placeAxesDef placeBox placeCoords placeNames placeSize placeSphereDef placeSymbol
   global savedPlaceFile savedPlaceFileName savedViewFile savedViewFileName
 
@@ -1820,7 +1820,9 @@ proc x3dPlaceholder {{aoname ""} {fname ""}} {
   foreach name $pcnames {
     if {[catch {
       foreach coord [lrmdups $placeCoords($name)] {
-        puts $fname "<Transform id='PH $name' translation='$coord'><Group>"
+        set idstr ""
+        if {$opt(debugX3D)} {set idstr " id='PH $name'"}
+        puts $fname "<Transform$idstr translation='$coord'><Group>"
 
 # axes
         set transform [x3dTransform "0. 0. 0." $placeAxes($name,axis) $placeAxes($name,refdir) "placeholder"]
@@ -1893,7 +1895,9 @@ proc x3dPlaceholder {{aoname ""} {fname ""}} {
         set index ""
         for {set i 0} {$i < [llength $leaderLine($id)]} {incr i} {append index "$i "}
         append index "-1"
-        puts $fname "<Shape id='LL $name'><Appearance><Material emissiveColor='1 1 0'/></Appearance><IndexedLineSet coordIndex='$index'><Coordinate point='[join $leaderLine($id)]'/></IndexedLineSet></Shape>"
+        set idstr ""
+        if {$opt(debugX3D)} {set idstr " id='LL $name'"}
+        puts $fname "<Shape$idstr><Appearance><Material emissiveColor='1 1 0'/></Appearance><IndexedLineSet coordIndex='$index'><Coordinate point='[join $leaderLine($id)]'/></IndexedLineSet></Shape>"
 
 # text at first and last point
         foreach idx [list 0 [expr {[llength $leaderLine($id)]-1}]] {
@@ -2296,9 +2300,10 @@ proc x3dGetA2P3D {e0 {type ""}} {
 # -------------------------------------------------------------------------------
 # generate transform
 proc x3dTransform {origin axis refdir {text ""} {scale ""} {id ""}} {
+  global opt savedViewNames
 
   set transform "<Transform"
-  if {$id != ""} {append transform " id='$id'"}
+  if {$opt(debugX3D) && $id != "" && [lsearch $savedViewNames $id] == -1} {append transform " id='$id'"}
   if {$origin != "0. 0. 0."} {append transform " translation='$origin'"}
 
 # get rotation from axis and refdir

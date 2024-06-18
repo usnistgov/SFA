@@ -15,6 +15,7 @@ proc spmiDimtolStart {entType} {
   set dim_loc_wdf   [list dimensional_location_with_datum_feature name relating_shape_aspect]
   set dim_loc_pth   [list dimensional_location_with_path name relating_shape_aspect]
   set dim_loc_pth1  [list dimensional_location_with_path_and_directed_dimensional_location name relating_shape_aspect]
+  set dim_loc_wnc   [list dimensional_location_with_normal_constraint name relating_shape_aspect]
   set ang_loc       [list angular_location name angle_selection]
   set ang_loc1      [list angular_location_and_directed_dimensional_location name angle_selection]
   set ang_size      [list angular_size applies_to name angle_selection]
@@ -43,7 +44,7 @@ proc spmiDimtolStart {entType} {
   set PMIP(dimensional_characteristic_representation) \
     [list dimensional_characteristic_representation \
       dimension $dim_size $dim_size_wdf $dim_size_wdf1 $dim_size_wdf2 $dim_size_pth \
-        $dim_loc $dim_loc_wdf $dim_loc_pth $dim_loc_pth1 $dim_loc_dir $ang_loc $ang_loc1 $ang_size $ang_size1 \
+        $dim_loc $dim_loc_wdf $dim_loc_pth $dim_loc_pth1 $dim_loc_wnc $dim_loc_dir $ang_loc $ang_loc1 $ang_size $ang_size1 \
       representation [list shape_dimension_representation name \
         items $length_measure1 $length_measure2 $length_measure3 \
         $angle_measure1 $angle_measure2 $angle_measure3 \
@@ -1412,10 +1413,12 @@ proc spmiDimtolReport {objEntity} {
           }
           addCellComment $dt 3 $c $comment
 
-          set hlink [$worksheet($dt) Hyperlinks]
-          set anchor [$worksheet($dt) Range [cellRange 3 $c]]
-          set hlsheet "'PMI Representation Summary'"
-          $hlink Add $anchor [string trim ""] "$hlsheet![cellRange 3 3]" ""
+          catch {
+            set hlink [$worksheet($dt) Hyperlinks]
+            set anchor [$worksheet($dt) Range [cellRange 3 $c]]
+            set hlsheet "'PMI Representation Summary'"
+            $hlink Add $anchor [string trim ""] "$hlsheet![cellRange 3 3]" ""
+          }
         }
 
 # add brackets or parentheses for basic or reference dimensions

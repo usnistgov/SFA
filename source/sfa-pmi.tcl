@@ -11,7 +11,7 @@ proc x3dTessGeom {objID tessEnt faceEnt {aoname ""}} {
   if {$x3dColor == ""} {
     set x3dColor "0 0 0"
     if {[string first "annotation" [$tessEnt Type]] != -1} {
-      set msg "Syntax Error: Missing PMI Presentation color (using black).$spaces\($recPracNames(pmi242), Sec. 8.5, Fig. 84)"
+      set msg "Syntax Error: Missing PMI Presentation color (using black).$spaces\($recPracNames(pmi242), Sec. 8.5, Fig. 85)"
       errorMsg $msg
       lappend syntaxErr([$tessEnt Type]) [list [$tessEnt P21ID] "color" $msg]
     }
@@ -171,7 +171,7 @@ proc x3dTessGeom {objID tessEnt faceEnt {aoname ""}} {
 
 # shape
         set idstr ""
-        if {[info exists idshape]} {if {$idshape != ""} {set idstr " id='$idshape'"}}
+        if {[info exists idshape] && $opt(debugX3D)} {if {$idshape != "" && [lsearch $savedViewNames $idshape] == -1} {set idstr " id='$idshape'"}}
         if {$emit == ""} {
           set matID ""
           set colorID [lsearch $x3dColors $x3dColor]
@@ -270,7 +270,7 @@ proc x3dTessGeom {objID tessEnt faceEnt {aoname ""}} {
 # -------------------------------------------------------------------------------
 # TAO check for transform related to assembly
 proc x3dAssemblyTransform {tessEnt} {
-  global ao assemTransform entCount noGroupTransform taoLastID x3dMsg
+  global ao assemTransform entCount noGroupTransform syntaxErr taoLastID x3dMsg
 
   set debugTAO 0
   set taoID [$tessEnt P21ID]
@@ -369,49 +369,55 @@ proc x3dAssemblyTransform {tessEnt} {
                   ::tcom::foreach e3 $e3s {
                     if {$debugTAO} {outputMsg "3   [$e3 Type][$e3 P21ID]"}
                     set e4 [[[$e3 Attributes] Item [expr 4]] Value]
-                    if {$debugTAO} {outputMsg "4    [$e4 Type][$e4 P21ID]"}
+                    if {$e4 != ""} {
+                      if {$debugTAO} {outputMsg "4    [$e4 Type][$e4 P21ID]"}
 
 # check for ABSR in SSR rep_2 or rep_1
-                    set nssr 0
-                    set ssrRep 3
-                    set e5s [$e4 GetUsedIn [string trim shape_representation_relationship] [string trim rep_2]]
-                    ::tcom::foreach e5 $e5s {incr nssr}
-                    if {$nssr == 0} {
-                      set ssrRep 4
-                      set e5s [$e4 GetUsedIn [string trim shape_representation_relationship] [string trim rep_1]]
-                      errorMsg " Error getting ABSR in SSR rep_2, checking for ABSR in rep_1" red
-                    }
+                      set nssr 0
+                      set ssrRep 3
+                      set e5s [$e4 GetUsedIn [string trim shape_representation_relationship] [string trim rep_2]]
+                      ::tcom::foreach e5 $e5s {incr nssr}
+                      if {$nssr == 0} {
+                        set ssrRep 4
+                        set e5s [$e4 GetUsedIn [string trim shape_representation_relationship] [string trim rep_1]]
+                        errorMsg " Error getting ABSR in SSR rep_2, checking for ABSR in rep_1" red
+                      }
 
 # shape representation
-                    ::tcom::foreach e5 $e5s {
-                      if {$debugTAO} {outputMsg "5     [$e5 Type][$e5 P21ID]"}
-                      set e6 [[[$e5 Attributes] Item [expr $ssrRep]] Value]
-                      set srID [$e6 P21ID]
-                      if {$debugTAO} {outputMsg "6      [$e6 Type][$e6 P21ID]"}
+                      ::tcom::foreach e5 $e5s {
+                        if {$debugTAO} {outputMsg "5     [$e5 Type][$e5 P21ID]"}
+                        set e6 [[[$e5 Attributes] Item [expr $ssrRep]] Value]
+                        set srID [$e6 P21ID]
+                        if {$debugTAO} {outputMsg "6      [$e6 Type][$e6 P21ID]"}
 
 # check SR in RRWT rep_1 > item defined transformation
-                      set e7s [$e6 GetUsedIn [string trim $rrwt] [string trim rep_1]]
-                      ::tcom::foreach e7 $e7s {
-                        if {$debugTAO} {outputMsg "7       [$e7 Type][$e7 P21ID]"}
-                        set e8 [[[$e7 Attributes] Item [expr 5]] Value]
-                        if {$debugTAO} {outputMsg "8        [$e8 Type][$e8 P21ID]"}
+                        set e7s [$e6 GetUsedIn [string trim $rrwt] [string trim rep_1]]
+                        ::tcom::foreach e7 $e7s {
+                          if {$debugTAO} {outputMsg "7       [$e7 Type][$e7 P21ID]"}
+                          set e8 [[[$e7 Attributes] Item [expr 5]] Value]
+                          if {$debugTAO} {outputMsg "8        [$e8 Type][$e8 P21ID]"}
 
 # IDT transform 2 (item 4)
-                        set e9 [[[$e8 Attributes] Item [expr 4]] Value]
-                        if {$debugTAO} {outputMsg "9         [$e9 Type][$e9 P21ID]"}
-                        set a2p3d [x3dGetA2P3D $e9]
-                        if {$debugTAO} {outputMsg "t1         $a2p3d"}
-                        if {$debugTAO} {outputMsg [x3dTransform [lindex $a2p3d 0] [lindex $a2p3d 1] [lindex $a2p3d 2]] red}
-                        set assemTransform($taoID) [x3dTransform [lindex $a2p3d 0] [lindex $a2p3d 1] [lindex $a2p3d 2]]
-                        set noGroupTransform 1
+                          set e9 [[[$e8 Attributes] Item [expr 4]] Value]
+                          if {$debugTAO} {outputMsg "9         [$e9 Type][$e9 P21ID]"}
+                          set a2p3d [x3dGetA2P3D $e9]
+                          if {$debugTAO} {outputMsg "t1         $a2p3d"}
+                          if {$debugTAO} {outputMsg [x3dTransform [lindex $a2p3d 0] [lindex $a2p3d 1] [lindex $a2p3d 2]] red}
+                          set assemTransform($taoID) [x3dTransform [lindex $a2p3d 0] [lindex $a2p3d 1] [lindex $a2p3d 2]]
+                          set noGroupTransform 1
 
 # IDT transform 1 (item 3)
-                        set e10 [[[$e8 Attributes] Item [expr 3]] Value]
-                        if {$debugTAO} {outputMsg "10        [$e10 Type][$e10 P21ID]"}
-                        set a2p3d [x3dGetA2P3D $e10]
-                        if {$debugTAO} {outputMsg "t2         $a2p3d"}
-                        set okTransform 1
+                          set e10 [[[$e8 Attributes] Item [expr 3]] Value]
+                          if {$debugTAO} {outputMsg "10        [$e10 Type][$e10 P21ID]"}
+                          set a2p3d [x3dGetA2P3D $e10]
+                          if {$debugTAO} {outputMsg "t2         $a2p3d"}
+                          set okTransform 1
+                        }
                       }
+                    } else {
+                      set msg "Syntax Error: Missing 'used_representation' attribute on geometric_item_specific_usage"
+                      errorMsg $msg
+                      lappend syntaxErr(geometric_item_specific_usage) [list [$e3 P21ID] "used_representation" $msg]
                     }
                   }
                 } else {
@@ -531,12 +537,12 @@ proc x3dPolylinePMI {{objEntity1 ""}} {
 # start shape
         if {[string length $x3dCoord] > 0} {
           set idstr ""
-          if {[info exists idshape]} {if {$idshape != ""} {set idstr " id='$idshape'"}}
+          if {[info exists idshape] && $opt(debugX3D)} {if {$idshape != "" && [lsearch $savedViewNames $idshape] == -1} {set idstr " id='$idshape'"}}
           if {$x3dColor != ""} {
             puts $f "<Shape$idstr><Appearance><Material emissiveColor='$x3dColor'/></Appearance>"
           } else {
             puts $f "<Shape$idstr><Appearance><Material emissiveColor='0 0 0'/></Appearance>"
-            errorMsg "Syntax Error: Missing PMI Presentation color for [formatComplexEnt $ao] (using black)$spaces\($recPracNames(pmi242), Sec. 8.5, Fig. 84)"
+            errorMsg "Syntax Error: Missing PMI Presentation color for [formatComplexEnt $ao] (using black)$spaces\($recPracNames(pmi242), Sec. 8.5, Fig. 85)"
           }
           catch {unset idshape}
 

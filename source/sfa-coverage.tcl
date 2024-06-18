@@ -44,7 +44,7 @@ proc spmiSummary {} {
     set range [$worksheet($spmiSumName) Range C1:K1]
     $range MergeCells [expr 1]
     set anchor [$worksheet($spmiSumName) Range C1]
-    [$worksheet($spmiSumName) Hyperlinks] Add $anchor [join "https://www.mbx-if.org/cax/cax_recommPractice.php"] [join ""] [join "Link to CAx-IF Recommended Practices"]
+    [$worksheet($spmiSumName) Hyperlinks] Add $anchor [join "https://www.mbx-if.org/home/cax/recpractices/"] [join ""] [join "Link to CAx-IF Recommended Practices"]
 
     set allPMI ""
 
@@ -463,7 +463,7 @@ proc spmiCoverageFormat {sum {multi 1}} {
       catch {unset epmiMulti}
       $cells1($spmiCoverageWS) Item $r2 1 "Section numbers above refer to the CAx-IF Recommended Practice for $recPracNames(pmi242)"
       set anchor [$worksheet1($spmiCoverageWS) Range [cellRange $r2 1]]
-      [$worksheet1($spmiCoverageWS) Hyperlinks] Add $anchor [join "https://www.mbx-if.org/cax/cax_recommPractice.php"] [join ""] [join "Link to CAx-IF Recommended Practices"]
+      [$worksheet1($spmiCoverageWS) Hyperlinks] Add $anchor [join "https://www.mbx-if.org/home/cax/recpractices/"] [join ""] [join "Link to CAx-IF Recommended Practices"]
 
       [$worksheet1($spmiCoverageWS) Rows] AutoFit
       [$worksheet1($spmiCoverageWS) Range "B4"] Select
@@ -510,7 +510,7 @@ proc spmiCoverageFormat {sum {multi 1}} {
       if {$nistName != "" || $epmi != ""} {set r2 [expr {[[[$worksheet($spmiCoverageWS) UsedRange] Rows] Count]-8}]}
       $cells($spmiCoverageWS) Item $r2 1 "Section numbers above refer to the CAx-IF Recommended Practice for $recPracNames(pmi242)"
       set anchor [$worksheet($spmiCoverageWS) Range [cellRange $r2 1]]
-      [$worksheet($spmiCoverageWS) Hyperlinks] Add $anchor [join "https://www.mbx-if.org/cax/cax_recommPractice.php"] [join ""] [join "Link to CAx-IF Recommended Practices"]
+      [$worksheet($spmiCoverageWS) Hyperlinks] Add $anchor [join "https://www.mbx-if.org/home/cax/recpractices/"] [join ""] [join "Link to CAx-IF Recommended Practices"]
 
       [$worksheet($spmiCoverageWS) Range "A1"] Select
       set txt [file tail $localName]
@@ -691,7 +691,7 @@ proc gpmiCoverageFormat {{sum ""} {multi 1}} {
   global cells cells1 col1 excel excel1 lenfilelist localName nistName
   global gpmiCoverageWS gpmiRows gpmiTotals recPracNames stepAP timeStamp worksheet worksheet1
 
-# delete worksheet if no graphical PMI
+# delete worksheet if no graphic PMI
   if {$multi && ![info exists gpmiTotals]} {
     catch {$excel1 DisplayAlerts False}
     $worksheet1($gpmiCoverageWS) Delete
@@ -759,7 +759,7 @@ proc gpmiCoverageFormat {{sum ""} {multi 1}} {
 
       $cells1($gpmiCoverageWS) Item [expr {$gpmiRows+2}] 1 "Presentation Names defined in $rp"
       set anchor [$worksheet1($gpmiCoverageWS) Range [cellRange [expr {$gpmiRows+2}] 1]]
-      [$worksheet1($gpmiCoverageWS) Hyperlinks] Add $anchor [join "https://www.mbx-if.org/cax/cax_recommPractice.php"] [join ""] [join "Link to CAx-IF Recommended Practices"]
+      [$worksheet1($gpmiCoverageWS) Hyperlinks] Add $anchor [join "https://www.mbx-if.org/home/cax/recpractices/"] [join ""] [join "Link to CAx-IF Recommended Practices"]
 
       [$worksheet1($gpmiCoverageWS) Rows] AutoFit
       [$worksheet1($gpmiCoverageWS) Range "B4"] Select
@@ -779,7 +779,7 @@ proc gpmiCoverageFormat {{sum ""} {multi 1}} {
       $range MergeCells [expr 1]
       $cells($gpmiCoverageWS) Item 1 E "Presentation Names defined in $rp"
       set anchor [$worksheet($gpmiCoverageWS) Range E1]
-      [$worksheet($gpmiCoverageWS) Hyperlinks] Add $anchor [join "https://www.mbx-if.org/cax/cax_recommPractice.php"] [join ""] [join "Link to CAx-IF Recommended Practices"]
+      [$worksheet($gpmiCoverageWS) Hyperlinks] Add $anchor [join "https://www.mbx-if.org/home/cax/recpractices/"] [join ""] [join "Link to CAx-IF Recommended Practices"]
 
       [$worksheet($gpmiCoverageWS) Range "A1"] Select
       set txt [file tail $localName]

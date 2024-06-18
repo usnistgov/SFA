@@ -720,11 +720,11 @@ proc gpmiAnnotationReport {objEntity} {
                   if {$ndc == 0} {
                     set msg "Syntax Error: Missing draughting_callout entity referring to [formatComplexEnt [$objEntity Type]].$spaces"
                     if {[string first "tessellated" $ent1] != -1} {
-                      append msg "\($recPracNames(pmi242), Sec. 8.2, Fig. 81)"
+                      append msg "\($recPracNames(pmi242), Sec. 8.2, Fig. 82)"
                     } elseif {[string first "placeholder" $ent1] != -1} {
                       append msg "\($recPracNames(pmi242), Sec. 7.2.2, Fig. 72)"
                     } else {
-                      append msg "\($recPracNames(pmi242), Sec. 8.1.1, Fig. 78)"
+                      append msg "\($recPracNames(pmi242), Sec. 8.1.1, Fig. 79)"
                     }
                     errorMsg $msg
                     lappend syntaxErr([lindex $ent1 0]) [list $objID "ID" $msg]
@@ -1073,7 +1073,7 @@ proc gpmiAnnotationReport {objEntity} {
               }
             } elseif {$opt(xlFormat) != "None"} {
               set msg "Syntax Error: Missing 'definition' attribute on $dmia$spaces"
-              append msg "($recPracNames(pmi242), Sec. 9.3.1, Fig. 89)"
+              append msg "($recPracNames(pmi242), Sec. 9.3.1, Fig. 90)"
               errorMsg $msg
               lappend syntaxErr([$entDMIA Type]) [list [$entDMIA P21ID] "definition" $msg]
             }
@@ -1111,7 +1111,7 @@ proc gpmiAnnotationReport {objEntity} {
         if {[info exists ents1]} {::tcom::foreach ap $ents1 {lappend aps $ap}}
       }
       if {[llength $aps] == 0 && $opt(xlFormat) != "None"} {
-        set msg "Syntax Error: Annotation missing a required 'annotation_plane'.$spaces\($recPracNames(pmi242), Sec. 9.1, Fig. 86)"
+        set msg "Syntax Error: Annotation missing a required 'annotation_plane'.$spaces\($recPracNames(pmi242), Sec. 9.1, Fig. 87)"
         errorMsg $msg
         lappend syntaxErr($ao) [list $objID "plane" $msg]
       }
@@ -1269,7 +1269,7 @@ proc gpmiAnnotationReport {objEntity} {
                 $cells($ao) Item $r $c $str
                 if {[string first "()" $savedViews] != -1 && $opt(xlFormat) != "None"} {
                   set msg "Syntax Error: For Saved Views, missing required 'name' attribute on camera_model_d3$spaces"
-                  append msg "($recPracNames(pmi242), Sec. 9.4.2.1, Fig. 95)"
+                  append msg "($recPracNames(pmi242), Sec. 9.4.2.1, Fig. 96)"
                   lappend syntaxErr($ao) [list "-$r" $savedViewCol $msg]
                   errorMsg $msg
                 }
@@ -1293,7 +1293,7 @@ proc gpmiAnnotationReport {objEntity} {
                   if {$okcm} {
                     if {$okmi == 0 && $opt(xlFormat) != "None"} {
                       set msg "Syntax Error: For Saved Views, missing required reference to 'mapped_item' on [formatComplexEnt [$entDraughtingModel Type]] 'items'$spaces"
-                      append msg "($recPracNames(pmi242), Sec. 9.4.2.1, Fig. 95)"
+                      append msg "($recPracNames(pmi242), Sec. 9.4.2.1, Fig. 96)"
                       errorMsg $msg
                       lappend syntaxErr([$entDraughtingModel Type]) [list [$entDraughtingModel P21ID] items $msg]
                     }
@@ -1316,7 +1316,7 @@ proc gpmiAnnotationReport {objEntity} {
                     ::tcom::foreach rep2Ent $rep2Ents {set mdadrID [$rep2Ent P21ID]}
                     if {[info exists mdadrID]} {
                       set msg "Syntax Error: For Saved Views, '$relType' reference to '[formatComplexEnt [$entDraughtingModel Type]]' uses rep_2 instead of rep_1$spaces"
-                      append msg "($recPracNames(pmi242), Sec. 9.4.4 Note 1, Fig. 104, Table 18)"
+                      append msg "($recPracNames(pmi242), Sec. 9.4.4 Note 1, Fig. 106, Table 18)"
                       errorMsg $msg
                       lappend syntaxErr($relType) [list $mdadrID rep_2 $msg]
                     }
@@ -1340,8 +1340,8 @@ proc gpmiAnnotationReport {objEntity} {
           foreach str {note title block label text} {if {[string first $str $gpmiName] != -1} {set oknm 0}}
           if {$oknm} {if {[string first "placeholder" [$objEntity Type]] != -1} {set oknm 0}}
           if {$oknm} {
-            set msg "An [formatComplexEnt [$objEntity Type]] is not in a Saved View.  If the annotation should be in a Saved View, then check draughting_model 'items' for a missing draughting_callout related to the annotation.  Also check the viewer for graphic PMI to see if the annotations are not in a Saved View.\n  "
-            append msg "($recPracNames(pmi242), Sec. 9.4.2.1, Fig. 95)"
+            set msg "A [formatComplexEnt [$objEntity Type]] is not in a Saved View.  If the annotation should be in a Saved View, then check draughting_model 'items' for a missing draughting_callout related to the annotation.  Also check the viewer for graphic PMI to see if the annotations are not in a Saved View.\n  "
+            append msg "($recPracNames(pmi242), Sec. 9.4.2.1, Fig. 96)"
             errorMsg $msg
             lappend syntaxErr($ao) [list $objID "Saved Views" $msg]
           }
@@ -1358,7 +1358,7 @@ proc gpmiAnnotationReport {objEntity} {
           set str "mechanical_design_and_draughting_relationship"
           if {[string first "AP214" $stepAP] == 0} {set str "representation_relationship"}
           set msg "Syntax Error: For Saved Views, missing '$str' to relate 'draughting_model'$spaces"
-          append msg "($recPracNames(pmi242), Sec. 9.4.4 Note 1, Fig. 104)"
+          append msg "($recPracNames(pmi242), Sec. 9.4.4 Note 1, Fig. 106)"
           errorMsg $msg
         }
       }
@@ -1558,7 +1558,7 @@ proc pmiGetCameras {} {
 
                     if {$name == ""} {
                       set msg "Syntax Error: For viewpoints, missing required 'name' attribute on $cm$spaces"
-                      append msg "($recPracNames(pmi242), Sec. 9.4.2.1, Fig. 95)"
+                      append msg "($recPracNames(pmi242), Sec. 9.4.2.1, Fig. 96)"
                       errorMsg $msg
                       lappend syntaxErr($cm) [list [$entCameraModel P21ID] name $msg]
                     }

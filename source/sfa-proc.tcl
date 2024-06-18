@@ -1445,7 +1445,7 @@ proc installIFCsvr {{exit 0}} {
   global buttons developer ifcsvrVer mydocs mytemp nistVersion upgradeIFCsvr wdir
 
 # IFCsvr version depends on string entered when IFCsvr is repackaged for new STEP schemas
-  set versionIFCsvr 20240111
+  set versionIFCsvr 20240617
 
 # if IFCsvr is alreadly installed, get version from registry, decide to reinstall newer version
   if {[catch {

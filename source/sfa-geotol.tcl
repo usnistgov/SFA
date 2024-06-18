@@ -53,6 +53,7 @@ proc spmiGeotolStart {entType} {
         [list composite_group_shape_aspect name description] [list composite_shape_aspect name] \
         [list composite_unit_shape_aspect name] [list composite_unit_shape_aspect_and_datum_feature name] \
         [list all_around_shape_aspect name] [list between_shape_aspect name] [list shape_aspect name] [list product_definition_shape name] \
+        [list face_surface_shape_aspect name] [list surface_shape_aspect name] \
       datum_system [list datum_system name product_definitional] $dr $rmd \
       modifiers \
       modifier \
@@ -566,10 +567,12 @@ proc spmiGeotolReport {objEntity} {
                         }
                         addCellComment $gt 3 $c $comment
 
-                        set hlink [$worksheet($gt) Hyperlinks]
-                        set anchor [$worksheet($gt) Range [cellRange 3 $c]]
-                        set hlsheet "'PMI Representation Summary'"
-                        $hlink Add $anchor [string trim ""] "$hlsheet![cellRange 3 3]" ""
+                        catch {
+                          set hlink [$worksheet($gt) Hyperlinks]
+                          set anchor [$worksheet($gt) Range [cellRange 3 $c]]
+                          set hlsheet "'PMI Representation Summary'"
+                          $hlink Add $anchor [string trim ""] "$hlsheet![cellRange 3 3]" ""
+                        }
                       }
                       if {[string first "Datum Reference Frame" $colName] == 0} {
                         set comment "Results are summarized on the PMI Representation Summary worksheet.  Section numbers refer to the CAx-IF Recommended Practice for Representation and Presentation of PMI (AP242)."

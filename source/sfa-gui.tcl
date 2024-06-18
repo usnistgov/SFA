@@ -1,5 +1,5 @@
 # SFA version
-proc getVersion {} {return 5.12}
+proc getVersion {} {return 5.14}
 
 # see proc installIFCsvr in sfa-proc.tcl for the IFCsvr version
 # see below (line 37) for the sfaVersion when IFCsvr was updated
@@ -34,7 +34,7 @@ Use F9 and F10 to change the font size here.  See Help > Function Keys"
   if {$sfaVersion > 0} {
 
 # update the version number when IFCsvr is repackaged to include updated STEP schemas
-    if {$sfaVersion < 5.06} {outputMsg "- The IFCsvr toolkit might need to be reinstalled.  Please follow the directions carefully." red}
+    if {$sfaVersion < 5.14} {outputMsg "- The IFCsvr toolkit might need to be reinstalled.  Please follow the directions carefully." red}
 
     if {$sfaVersion < 4.60} {
       outputMsg "- User Guide (Update 7) is based on version 4.60 (October 2021)"
@@ -690,7 +690,7 @@ proc guiGenerateTab {} {
   pack $foptRV -side top -anchor w -pady 0 -fill x
   catch {
     tooltip::tooltip $foptv20 "The viewer supports b-rep and AP242 tessellated part geometry, color,\ntransparency, edges, sketch and supplemental geometry, and clipping planes.\nTesselated part geometry is typically written to an AP242 file instead of or in\naddition to b-rep part geometry.\n\nThe viewer uses the default web browser.  An Internet connection is required.\nThe viewer does not support measurements.\n\nSee the More tab for more Viewer options.\nSee Help > Viewer > Overview and other topics"
-    tooltip::tooltip $buttons(viewPMI) "Graphic PMI for annotations is supported in AP242, AP203, and AP214 files.\nAnnotation placeholders are supported in AP242.\n\nA Saved View is a subset of graphic PMI which has its own viewpoint position\nand orientation.  Use PageDown in the viewer to cycle through saved views to\nswitch to the associated viewpoint and subset of graphic PMI.\n\nSee the options related to viewpoints on the More tab.\nSee Help > Viewer > Graphic PMI\nSee Help > User Guide (section 4.2)\n\nGraphic PMI must conform to recommended practices.\nSee Websites > CAx Recommended Practices"
+    tooltip::tooltip $buttons(viewPMI) "Graphic PMI for annotations is supported in AP242, AP203, and AP214 files.\nPMI (annotation) placeholders are supported in AP242.\n\nA Saved View is a subset of graphic PMI which has its own viewpoint position\nand orientation.  Use PageDown in the viewer to cycle through saved views to\nswitch to the associated viewpoint and subset of graphic PMI.\n\nSee the options related to viewpoints on the More tab.\nSee Help > Viewer > Graphic PMI\nSee Help > Viewer > PMI Placeholders\nSee Help > User Guide (section 4.2)\n\nGraphic PMI and placeholders must conform to recommended practices.\nSee Websites > CAx Recommended Practices"
     tooltip::tooltip $buttons(feaLoadScale) "The length of load vectors can be scaled by their magnitude.\nLoad vectors are always colored by their magnitude."
     tooltip::tooltip $buttons(feaDispNoTail) "The length of displacement vectors with a tail are scaled by\ntheir magnitude.  Vectors without a tail are not.\nDisplacement vectors are always colored by their magnitude.\nLoad vectors always have a tail."
     tooltip::tooltip $foptv21 "Quality controls the number of facets used for curved surfaces.\nFor example, the higher the quality the more facets around the\ncircumference of a cylinder.\n\nNormals improve the default smooth shading of surfaces.  Using\nHigh Quality and Normals results in the best appearance for b-rep\npart geometry.  Quality and normals do not apply to tessellated\npart geometry.\n\nIf curved surfaces for b-rep part geometry look wrong even with\nQuality set to High, then use the Alternative B-rep Geometry\nProcessing method on the More tab."
@@ -1217,11 +1217,11 @@ option on the More tab to disable them.
 Use the option on the More tab to use parallel projection for saved view viewpoints defined in the
 STEP file, instead of the default perspective projection.  See Help > Viewer > Viewpoints
 
-5 - Annotation placeholders
+5 - PMI placeholders
 
-Annotation placeholders provide information about the position, orientation, and organization of an
+PMI placeholders provide information about the position, orientation, and organization of an
 annotation without the graphic presentation of numeric values and symbols for geometric or
-dimensional tolerances.  See Help > Viewer > Graphic PMI
+dimensional tolerances.  See Help > Viewer > PMI Placeholders
 
 6 - B-rep part geometry processing
 
@@ -1313,7 +1313,6 @@ Numbers for how non-English characters in part names are supported.
 
 Nested assemblies are also supported where one file contains the assembly structure with external
 file references to individual assembly components that contain part geometry.
-See Examples > STEP File Library > External References
 
 NOTE: Graphic PMI, supplemental geometry, and cloud of points on parts in an assembly is supported,
 however, it has not been thoroughly test and might have the wrong position and orientation.
@@ -1378,18 +1377,23 @@ Datum targets are shown only if a spreadsheet is generated with the Analyzer opt
 PMI, and Part Geometry or Graphic PMI selected.
 
 See Help > User Guide (section 4.2.2)
-See Websites > CAx Recommended Practices (Representation and Presentation of PMI for AP242, Sec. 6.6)
+See Websites > CAx Recommended Practices (Representation and Presentation of PMI for AP242, Sec. 6.6)"
+    .tnb select .tnb.status
+  }
 
----------------------------------------------------------------------------------------------------
-Annotation placeholders, supported in AP242 editions > 1, provide information about the position,
-orientation, and organization of an annotation without the graphic presentation of numeric values
-and symbols for geometric or dimensional tolerances.  Placeholders are associated with saved views
-if there is also graphic PMI.  Placeholders are not documented in the User Guide.
+  $helpView add command -label "PMI Placeholders" -command {
+outputMsg "\nPMI Placeholders ----------------------------------------------------------------------------------" blue
+outputMsg "PMI (annotation) placeholders provide information about the position, orientation, and organization
+of an annotation without the graphic presentation of numeric values, symbols, and text for
+geometric or dimensional tolerances.  Placeholders are associated with saved views if there is also
+graphic PMI.  Placeholders are supported in AP242 editions >=2.  They are not documented in the
+User Guide.
 
 Placeholder coordinate systems are shown with an axes triad, gray sphere, and text label with the
 name of the placeholder.  Leader lines and a rectangle for the annotation are shown with yellow
 lines.  To identify which annotation a leader line is associated with, the first and last points of
 a leader line have a text label.  Leader line symbols show their type and position with blue text.
+Some implemetations of placeholders might not contain all of the graphic elements.
 
 See Websites > CAx Recommended Practices (Representation and Presentation of PMI for AP242, Sec. 7.2)"
     .tnb select .tnb.status
@@ -2179,7 +2183,6 @@ See Help > Disclaimers and NIST Disclaimer"
   $Examples add separator
   $Examples add command -label "Sample STEP Files (zip)" -command {openURL https://www.nist.gov/document/nist-pmi-step-files}
   $Examples add command -label "NIST CAD Models"         -command {openURL https://www.nist.gov/ctl/smart-connected-systems-division/smart-connected-manufacturing-systems-group/mbe-pmi-0}
-  $Examples add command -label "STEP File Library"       -command {openURL https://www.mbx-if.org/cax/cax_stepLib.php}
 }
 
 #-------------------------------------------------------------------------------
@@ -2194,11 +2197,11 @@ proc guiWebsitesMenu {} {
   $Websites add command -label "MBE PMI Validation and Comformance Testing" -command {openURL https://www.nist.gov/ctl/smart-connected-systems-division/smart-connected-manufacturing-systems-group/mbe-pmi-validation}
 
   $Websites add separator
-  $Websites add command -label "CAx Interoperability Forum (CAx-IF)" -command {openURL https://www.mbx-if.org/cax/cax_introduction.php}
-  $Websites add command -label "CAx Recommended Practices"           -command {openURL https://www.mbx-if.org/cax/cax_recommPractice.php}
-  $Websites add command -label "CAD Implementations"                 -command {openURL https://www.mbx-if.org/cax/vendor_info.php}
-  $Websites add command -label "PDM-IF"                              -command {openURL http://www.pdm-if.org}
-  $Websites add command -label "CAE-IF"                              -command {openURL https://www.mbx-if.org/cae/cae_introduction.php}
+  $Websites add command -label "CAx Interoperability Forum (CAx-IF)" -command {openURL https://www.mbx-if.org/home/cax/}
+  $Websites add command -label "CAx Recommended Practices"           -command {openURL https://www.mbx-if.org/home/cax/recpractices/}
+  $Websites add command -label "CAD Implementations"                 -command {openURL https://www.mbx-if.org/home/cax/implementation-coverage/}
+  $Websites add command -label "PDM-IF"                              -command {openURL https://www.mbx-if.org/home/pdm/}
+  $Websites add command -label "CAE-IF"                              -command {openURL https://www.mbx-if.org/home/cae/}
 
   $Websites add separator
   $Websites add cascade -label "AP242" -menu $Websites.0
@@ -2206,7 +2209,7 @@ proc guiWebsitesMenu {} {
   $Websites0 add command -label "AP242 Project"           -command {openURL http://www.ap242.org}
   $Websites0 add command -label "AP203 vs AP214 vs AP242" -command {openURL https://www.capvidia.com/blog/best-step-file-to-use-ap203-vs-ap214-vs-ap242}
   $Websites0 add command -label "Benchmark Testing"       -command {openURL http://www.asd-ssg.org/step-ap242-benchmark.html}
-  $Websites0 add command -label "Domain Model XML"        -command {openURL https://www.mbx-if.org/cax/cax_recommPractice.php}
+  $Websites0 add command -label "Domain Model XML"        -command {openURL https://www.mbx-if.org/home/cax/recpractices/}
   $Websites0 add separator
   $Websites0 add command -label "ISO 10303-242"           -command {openURL https://www.iso.org/standard/84667.html}
   $Websites0 add command -label "STEP in 3D PDF"          -command {openURL https://www.iso.org/standard/77686.html}
@@ -2217,7 +2220,7 @@ proc guiWebsitesMenu {} {
   $Websites2 add command -label "STEP File Format"  -command {openURL https://www.loc.gov/preservation/digital/formats/fdd/fdd000448.shtml}
   $Websites2 add command -label "STEP ISO 10303-21" -command {openURL https://en.wikipedia.org/wiki/ISO_10303-21}
   $Websites2 add separator
-  $Websites2 add command -label "STEP File Viewers"      -command {openURL https://www.mbx-if.org/step_viewers.php}
+  $Websites2 add command -label "STEP File Viewers"      -command {openURL https://www.mbx-if.org/home/mbx/resources/}
   $Websites2 add command -label "STEP to X3D Translator" -command {openURL https://www.nist.gov/services-resources/software/step-x3d-translator}
 
   $Websites2 add separator
@@ -2230,7 +2233,7 @@ proc guiWebsitesMenu {} {
   $Websites2 add command -label "EXPRESS data modeling language" -command {openURL https://en.wikipedia.org/wiki/EXPRESS_(data_modeling_language)}
   $Websites2 add command -label "easyEXPRESS"                    -command {openURL https://www.nist.gov/news-events/news/2023/12/nist-releases-easyexpress-its-first-official-visual-studio-code-extension}
   $Websites2 add command -label "Learning EXPRESS"               -command {openURL https://www.expresslang.org/learn/}
-  $Websites2 add command -label "EXPRESS Schemas"                -command {openURL https://www.mbx-if.org/cax/cax_express.php}
+  $Websites2 add command -label "EXPRESS Schemas"                -command {openURL https://www.mbx-if.org/home/mbx/resources/express-schemas/}
 
   $Websites add cascade -label "Organizations" -menu $Websites.4
   set Websites4 [menu $Websites.4 -tearoff 1]
@@ -2343,7 +2346,7 @@ proc guiToolTip {ttmsg tt {name ""}} {
 
   set space 2
   set ttlim 120
-  if {$tt == "stepCOMP" || $tt == "stepQUAL" || $tt == "stepCONS" || $tt == "stepOTHR"} {set ttlim 110}
+  if {$tt == "stepQUAL" || $tt == "stepCONS" || $tt == "stepOTHR"} {set ttlim 110}
   append ttmsg "\n\n"
 
   foreach type {ap203 ap242} {
@@ -2398,7 +2401,7 @@ proc getOpenPrograms {} {
   global drive editorCmd developer myhome pf32 pf64 pflist
 
 # Including any of the CAD viewers and software does not imply a recommendation or endorsement of them by NIST https://www.nist.gov/disclaimer
-# For more STEP viewers, go to https://www.mbx-if.org/step_viewers.php
+# For more STEP viewers, go to https://www.mbx-if.org/home/mbx/resources/
 
   regsub {\\} $pf32 "/" p32
   lappend pflist $p32

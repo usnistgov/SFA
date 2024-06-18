@@ -1272,7 +1272,7 @@ proc genExcel {{numFile 0}} {
   if {$opt(xlFormat) == "Excel" || ($opt(xlFormat) == "CSV" && $useXL)} {
     set nUUID  0
     set totalUUID 0
-    set entsUUID [list HASH_BASED_V5_UUID_ATTRIBUTE V4_UUID_ATTRIBUTE V5_UUID_ATTRIBUTE UUID_ATTRIBUTE_WITH_APPROXIMATE_GEOMETRIC_LOCATION]
+    set entsUUID [list HASH_BASED_V5_UUID_ATTRIBUTE V4_UUID_ATTRIBUTE V5_UUID_ATTRIBUTE UUID_ATTRIBUTE_WITH_APPROXIMATE_LOCATION]
     foreach ent $entsUUID {
       set entlc [string tolower $ent]
       if {[info exists entCount($entlc)]} {if {$entCount($entlc) > 0} {set totalUUID [expr {$totalUUID+$entCount($entlc)}]}}
@@ -1785,9 +1785,9 @@ proc addHeaderWorksheet {numFile fname} {
             }
           } elseif {$id == 4} {
             append str " (Edition 3)"
-            #if {[llength $ap242ed(4)] > 0} {
-            #  errorMsg "Syntax Error: The STEP file contains entities related to AP242 Edition 4 ([join $ap242ed(4)]),$spaces\however, the file is identified as Edition 3."
-            #}
+            if {[llength $ap242ed(4)] > 0} {
+              errorMsg "Syntax Error: The STEP file contains entities related to AP242 Edition 4 ([join $ap242ed(4)]),$spaces\however, the file is identified as Edition 3."
+            }
           } elseif {$id == 5} {
             append str " (Edition 4)"
           } elseif {$id > 99} {
@@ -2181,8 +2181,7 @@ proc sumAddFileName {sum sumLinks} {
       $range MergeCells [expr 1]
       set ap [string range $stepAP 0 4]
       set schemaLink ""
-      if {$ap == "AP203" || $ap == "AP214" || $ap == "AP242"} {set schemaLink "https://www.mbx-if.org/cax/cax_express.php"}
-      if {$ap == "AP209"} {set schemaLink "https://www.mbx-if.org/cae/cae_express.php"}
+      if {$ap == "AP203" || $ap == "AP214" || $ap == "AP242" || $ap == "AP209"} {set schemaLink "https://www.mbx-if.org/home/mbx/resources/express-schemas/"}
       if {$schemaLink != ""} {
         set anchor [$worksheet($sum) Range "B1"]
         $sumLinks Add $anchor $schemaLink [join ""] [join "Link to $stepAP schema documentation"]
