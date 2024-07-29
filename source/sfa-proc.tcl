@@ -495,7 +495,7 @@ proc checkFileSize {} {
 #-------------------------------------------------------------------------------
 # save the state of variables to STEP-File-Analyzer-options.dat
 proc saveState {{ok 1}} {
-  global buttons commaSeparator developer dispCmd dispCmds fileDir fileDir1 filesProcessed gen lastX3DOM lastXLS lastXLS1 mydocs openFileList
+  global buttons commaSeparator dispCmd dispCmds fileDir fileDir1 filesProcessed gen lastX3DOM lastXLS lastXLS1 mydocs openFileList
   global opt optionsFile sfaVersion statusFont upgrade upgradeIFCsvr userEntityFile userWriteDir
 
 # ok = 0 only after installing IFCsvr from the command-line version
@@ -580,9 +580,7 @@ proc saveState {{ok 1}} {
       }
       if {$idx < 3} {puts $fileOptions " "}
     }
-
     close $fileOptions
-    catch {if {$developer && $filesProcessed > 100} {file copy -force -- $optionsFile [file join $mydocs Analyzer]}}
 
   } emsg]} {
     errorMsg "Error writing to options file: $emsg"
@@ -622,7 +620,7 @@ proc runOpenProgram {} {
     indentFile $dispFile
 
 #-------------------------------------------------------------------------------
-# Jotne EDM Model Checker (only for developer)
+# Jotne EDM Model Checker
   } elseif {[string first "EDMsdk" $idisp] != -1} {
     set filename $dispFile
     outputMsg "Ready to validate: [file tail $filename]" blue
@@ -1442,10 +1440,10 @@ proc checkFileName {fn} {
 #-------------------------------------------------------------------------------
 # install IFCsvr (or remove to reinstall)
 proc installIFCsvr {{exit 0}} {
-  global buttons developer ifcsvrVer mydocs mytemp nistVersion upgradeIFCsvr wdir
+  global buttons ifcsvrVer mydocs mytemp nistVersion upgradeIFCsvr wdir
 
 # IFCsvr version depends on string entered when IFCsvr is repackaged for new STEP schemas
-  set versionIFCsvr 20240617
+  set versionIFCsvr 20240705
 
 # if IFCsvr is alreadly installed, get version from registry, decide to reinstall newer version
   if {[catch {
@@ -1463,10 +1461,6 @@ proc installIFCsvr {{exit 0}} {
       regsub -all {\.} $verIFCsvr "" verIFCsvr
     } else {
       set verIFCsvr 0
-    }
-    if {$developer && [string length $verIFCsvr] != [string length $versionIFCsvr]} {
-      errorMsg "Problem with IFCsvr dates: $verIFCsvr $versionIFCsvr"
-      .tnb select .tnb.status
     }
 
 # old version, reinstall
@@ -1725,6 +1719,7 @@ proc setHomeDir {} {
   set temp [string range $mytemp 0 end-4]
   catch {[file copy -force -- [file join $wdir images NIST.ico] [file join $temp NIST.ico]]}
   catch {[file copy -force -- [file join $wdir images NIST.ico] [file join $mytemp NIST.ico]]}
+  update idletasks
 }
 
 #-------------------------------------------------------------------------------

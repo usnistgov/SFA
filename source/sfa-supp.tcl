@@ -1,6 +1,6 @@
 # supplemental geometry
 proc x3dSuppGeom {} {
-  global cgrObjects developer maxxyz recPracNames skipEntities syntaxErr tessSuppGeomFile tessSuppGeomFileName trimVal x3dFile
+  global entCount maxxyz recPracNames skipEntities syntaxErr tessSuppGeomFile tessSuppGeomFileName trimVal x3dFile
   global objDesign
   if {![info exists objDesign]} {return}
 
@@ -11,14 +11,36 @@ proc x3dSuppGeom {} {
   outputMsg " Processing supplemental geometry" green
   puts $x3dFile "\n<!-- SUPPLEMENTAL GEOMETRY -->\n<Switch whichChoice='0' id='swSMG'><Group>"
 
-# get all constructive_geometry_representation
-  if {![info exists cgrObjects]} {set cgrObjects [$objDesign FindObjects [string trim constructive_geometry_representation]]}
+# check for *constructive_geometry_representation
+  set cgr 0
+  set cgrEnt "constructive_geometry_representation"
+  if {[info exists entCount($cgrEnt)] && $entCount($cgrEnt) > 0} {set cgr 1}
+  set tcgr 0
+  set tcgrEnt "tessellated_constructive_geometry_representation"
+  if {[info exists entCount($tcgrEnt)] && $entCount($tcgrEnt) > 0} {set tcgr 1}
+
+# get all *constructive_geometry_representation
+  if {![info exists cgrObjects]} {
+    if {$cgr}  {set cgrObjects  [$objDesign FindObjects [string trim constructive_geometry_representation]]}
+    if {$tcgr} {set tcgrObjects [$objDesign FindObjects [string trim tessellated_constructive_geometry_representation]]}
+    if {$cgr && $tcgr} {
+      set cgrObjects [concat $cgrObjects $tcgrObjects]
+    } elseif {$tcgr} {
+      set cgrObjects $tcgrObjects
+    }
+  }
   ::tcom::foreach e0 $cgrObjects {
     if {$debugSG} {outputMsg "[$e0 Type] [$e0 P21ID]" green; puts $x3dFile "<!-- CGR [$e0 P21ID] -->"}
 
 # for SG in assemblies, find related shape_representation > item_defined_transformation > a2p3d > transform
     if {[catch {
-      set cgrrs [$e0 GetUsedIn [string trim constructive_geometry_representation_relationship] [string trim rep_2]]
+      if {$cgr}  {set cgrrs  [$e0 GetUsedIn [string trim constructive_geometry_representation_relationship] [string trim rep_2]]}
+      if {$tcgr} {set tcgrrs [$e0 GetUsedIn [string trim tessellated_constructive_geometry_representation_relationship] [string trim rep_2]]}
+      if {$cgr && $tcgr} {
+        set cgrrs [concat $cgrrs $tcgrrs]
+      } elseif {$tcgr} {
+        set cgrrs $tcgrrs
+      }
       ::tcom::foreach cgrr $cgrrs {
         set shapeRep [[[$cgrr Attributes] Item [expr 3]] Value]
         set rrwts [$shapeRep GetUsedIn [string trim representation_relationship_with_transformation_and_shape_representation_relationship] [string trim rep_1]]
@@ -31,7 +53,6 @@ proc x3dSuppGeom {} {
         if {$nrrwt == 0} {
           set rrwts [$shapeRep GetUsedIn [string trim representation_relationship_with_transformation_and_shape_representation_relationship] [string trim rep_2]]
           ::tcom::foreach rrwt $rrwts {incr nrrwt}
-          if {$developer && $nrrwt > 0} {errorMsg " Using rep_2 on (RRWT)(SRR) to find item_defined_transformation" red; set rep_2 1}
         }
 
 # get transform (assumes no nesting)
@@ -61,7 +82,7 @@ proc x3dSuppGeom {} {
       outputMsg "    Transforms ([llength $transforms])" blue
     }
 
-# process all items in a constructive_geometry_representation, considering transforms used for assemblies
+# process all items in a *constructive_geometry_representation, considering transforms used for assemblies
     foreach tf $transforms {
       if {$tf != "<Transform>"} {
         set sgTransform "<Transform id='idt [$idt P21ID]'[string range $tf 10 end]"
@@ -463,16 +484,8 @@ proc x3dSuppGeomCircle {e3 tsize {type "circle"}} {
         set trimmed 1
 
 # trim with cartesian points
-      } else {
-
-# compute angles from cartesian points (doesn't work yet)
-        #foreach idx [list 1 2] {
-        #  set trim($idx) [[[$trimVal($idx) Attributes] Item [expr 2]] Value]
-        #  set vec($idx) [vecnorm [vecsub $trim($idx) $origin]]
-        #  outputMsg "$idx / trim point [vectrim $trim($idx)] / origin [vectrim $origin] / vector [vectrim $vec($idx)] / axis [vectrim $axis] / refdir [vectrim $refdir]" red
-        #  outputMsg "angle [vecangle $vec($idx) $axis]"
-        #}
-        if {$tsize == 0} {errorMsg " Trimming supplemental geometry '$type' with 'cartesian_point' is not supported."}
+      } elseif {$tsize == 0} {
+        errorMsg " Trimming supplemental geometry '$type' with 'cartesian_point' is not supported."
       }
     }
     set index ""

@@ -32,7 +32,30 @@ proc x3dBrepGeom {} {
         }
       }
       outputMsg $msg $x3dMsgColor
-      if {$opt(brepAlt)} {outputMsg " Using alternative processing, see More tab" red}
+      if {$opt(brepAlt)} {outputMsg " Using alternative geometry processing, see More tab" red}
+
+# check if invisibility is applied to surfaces
+      if {[info exists entCount(invisibility)] && $developer} {
+        if {$entCount(invisibility) > 0} {
+          ::tcom::foreach e0 [$objDesign FindObjects [string trim invisibility]] {
+            catch {
+              foreach e1 [[[$e0 Attributes] Item [expr 1]] Value] {
+                if {[$e1 Type] == "styled_item"} {
+                  set e2 [[[$e1 Attributes] Item [expr 3]] Value]
+                  if {[$e2 Type] == "shell_based_surface_model"} {errorMsg "Surface invisibility is not supported" red}
+                }
+              }
+            }
+          }
+        }
+      }
+
+# check for tessellated edges
+      if {[info exists tessSolid] && $tessSolid} {
+        if {[info exists entCount(tessellated_connecting_edge)]} {
+          if {$entCount(tessellated_connecting_edge) > 0} {errorMsg " Tessellated edges are not supported." red}
+        }
+      }
 
 # check for composite rosette curve_11
       set rosetteOpt  0
@@ -556,11 +579,13 @@ proc x3dBrepGeom {} {
           set msg "Antivirus software might be blocking stp2x3d-part.exe from running in $mytemp"
         } elseif {[string first "Color will not be supported." $errs] != -1} {
           set msg "Values on 'colour_rgb' must be >= 0 and <= 1."
+        } elseif {[info exists entCount(tessellated_brep_shape_representation)]} {
+          if {$entCount(tessellated_brep_shape_representation)} {set msg "Polyhedral b-rep geometry (tessellated_brep_shape_representation) is not supported."}
 
 # crash with STEP file
         } else {
           set msg "Error processing STEP part geometry."
-          if {$tessSolid && !$opt(partOnly)} {append msg "\n Try the option to use the 'Old processing of tessellated geometry' (More tab)"}
+          if {$tessSolid && !$opt(partOnly)} {append msg "\n Try the option for 'Alternative processing of tessellated geometry' (More tab)"}
           set ename "camera_model_d3_multi_clipping"
           if {[info exists entCount($ename)] && !$opt(partNoCap)} {
             if {$entCount($ename) > 0} {append msg "\n Try the option to 'not generate capped surfaces for clipping planes' (More tab)"}

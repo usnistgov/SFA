@@ -171,7 +171,7 @@ proc x3dTessGeom {objID tessEnt faceEnt {aoname ""}} {
 
 # shape
         set idstr ""
-        if {[info exists idshape] && $opt(debugX3D)} {if {$idshape != "" && [lsearch $savedViewNames $idshape] == -1} {set idstr " id='$idshape'"}}
+        if {[info exists idshape]} {if {$idshape != "" && [lsearch $savedViewNames $idshape] == -1} {set idstr " id='$idshape'"}}
         if {$emit == ""} {
           set matID ""
           set colorID [lsearch $x3dColors $x3dColor]
@@ -537,7 +537,7 @@ proc x3dPolylinePMI {{objEntity1 ""}} {
 # start shape
         if {[string length $x3dCoord] > 0} {
           set idstr ""
-          if {[info exists idshape] && $opt(debugX3D)} {if {$idshape != "" && [lsearch $savedViewNames $idshape] == -1} {set idstr " id='$idshape'"}}
+          if {[info exists idshape]} {if {$idshape != "" && [lsearch $savedViewNames $idshape] == -1} {set idstr " id='$idshape'"}}
           if {$x3dColor != ""} {
             puts $f "<Shape$idstr><Appearance><Material emissiveColor='$x3dColor'/></Appearance>"
           } else {

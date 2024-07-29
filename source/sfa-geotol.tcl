@@ -44,6 +44,8 @@ proc spmiGeotolStart {entType} {
   set PMIP(referenced_modified_datum)   $rmd
   set PMIP(placed_datum_target_feature) [list placed_datum_target_feature description target_id]
   set PMIP(datum_target)                [list datum_target description target_id]
+  set PMIP(datum_system_for_composite_group_element) $PMIP(datum_system)
+  lset PMIP(datum_system_for_composite_group_element) 0 "datum_system_for_composite_group_element"
 
 # set PMIP for all *_tolerance entities (datum_system must be last)
   foreach tol $tolNames {set PMIP($tol) \
@@ -54,7 +56,7 @@ proc spmiGeotolStart {entType} {
         [list composite_unit_shape_aspect name] [list composite_unit_shape_aspect_and_datum_feature name] \
         [list all_around_shape_aspect name] [list between_shape_aspect name] [list shape_aspect name] [list product_definition_shape name] \
         [list face_surface_shape_aspect name] [list surface_shape_aspect name] \
-      datum_system [list datum_system name product_definitional] $dr $rmd \
+      datum_system [list datum_system name product_definitional] [list datum_system_for_composite_group_element name product_definitional] $dr $rmd \
       modifiers \
       modifier \
       displacement [list length_measure_with_unit value_component] \
@@ -166,7 +168,7 @@ proc spmiGeotolReport {objEntity} {
       foreach var {datsys datumFeature assocGeom} {if {[info exists $var]} {unset $var}}
       set gtEntity $objEntity
     }
-    if {$objType == "datum_system" && [string first "_tolerance" $gt] != -1} {
+    if {[string first "datum_system" $objType] == 0 && [string first "_tolerance" $gt] != -1} {
       set c [string index [cellRange 1 $col($gt)] 0]
       set r $spmiIDRow($gt,$spmiID)
       if {[catch {
@@ -218,7 +220,7 @@ proc spmiGeotolReport {objEntity} {
 
                   "datum_reference_compartment base" {
 # datum_reference_compartment.base refers to a datum or datum_reference_element(s)
-                    if {$gt == "datum_system" && [info exists datumCompartment($objID)]} {
+                    if {[string first "datum_system" $gt] == 0 && [info exists datumCompartment($objID)]} {
                       set col($gt) $pmiStartCol($gt)
                       set ok 1
                       set objValue $datumCompartment($objID)
@@ -233,8 +235,10 @@ proc spmiGeotolReport {objEntity} {
 # check if datum_reference_compartment is referenced by a datum_system
                       } else {
                         set okdrc 0
-                        set e0s [$objEntity GetUsedIn [string trim datum_system] [string trim constituents]]
-                        ::tcom::foreach e0 $e0s {set okdrc 1}
+                        foreach dsEnt {datum_system datum_system_for_composite_group_element} {
+                          set e0s [$objEntity GetUsedIn [string trim $dsEnt] [string trim constituents]]
+                          ::tcom::foreach e0 $e0s {set okdrc 1}
+                        }
                         if {!$okdrc} {
                           set msg "Syntax Error: datum_reference_compartment not referenced by a datum_system.$spaces\($recPracNames(pmi242), Sec. 6.9.7)"
                           errorMsg $msg
@@ -449,26 +453,36 @@ proc spmiGeotolReport {objEntity} {
                     }
 
 # -------------------------------------------------------------------------------
-# get directed or oriented tolerance zone (AP242 edition >= 2 for ISO 1101 intersection and orientation plane)
-                    foreach tz [list directed oriented] {
+# get directed, oriented, or direction feature tolerance zone
+                    foreach tz [list directed oriented direction_feature] {
                       set e0s [$gtEntity GetUsedIn [string trim $tz\_tolerance_zone] [string trim defining_tolerance]]
                       ::tcom::foreach e0 $e0s {
-                        set ds [[[$e0 Attributes] Item [expr 7]] Value]
-                        ::tcom::foreach attr [$e0 Attributes] {if {[$attr Name] == "direction" || [$attr Name] == "orientation"} {set dir [$attr Value]}}
-                        if {$tz == "oriented"} {
-                          set e1 [[[$e0 Attributes] Item [expr 9]] Value]
-                          set angle [trimNum [[[$e1 Attributes] Item [expr 1]] Value]]
-                        }
-                        if {[info exists pmiUnicode($dir)]} {
-                          set tzWithDatum($tz) "\u25C1 $pmiUnicode($dir) | $datumSystem([$ds P21ID])"
-                          lappend spmiTypesPerFile "intersection/orientation plane indicator"
-                          if {$tz == "oriented"} {
-                            append tzWithDatum($tz) " \u25B7 \[$angle$pmiUnicode(degree)\]"
+                        if {[catch {
+                          set ds [[[$e0 Attributes] Item [expr 7]] Value]
+                          ::tcom::foreach attr [$e0 Attributes] {
+                            if {[string first "direction" [$attr Name]] != -1 || [$attr Name] == "orientation"} {set dir [$attr Value]}
                           }
-                        } else {
-                          set msg "Syntax Error: Bad orientation attribute '$dir' on '$tz\_tolerance_zone'."
-                          errorMsg $msg
-                          lappend syntaxErr($tz\_tolerance_zone) [list [$e0 P21ID] "orientation" $msg]
+                          if {$tz != "directed"} {
+                            set e1 [[[$e0 Attributes] Item [expr 9]] Value]
+                            set angle [trimNum [[[$e1 Attributes] Item [expr 1]] Value]]
+                          }
+                          if {[info exists pmiUnicode($dir)]} {
+                            if {$tz != "direction_feature"} {
+                              set tzWithDatum($tz) "\u25C1"
+                            } else {
+                              set tzWithDatum($tz) "\u2190\|"
+                            }
+                            append tzWithDatum($tz) " $pmiUnicode($dir) | $datumSystem([$ds P21ID])"
+                            if {$tz == "oriented"} {append tzWithDatum($tz) " \u25B7"}
+                            if {$tz != "directed"} {append tzWithDatum($tz) " \[$angle$pmiUnicode(degree)\]"}
+                            lappend spmiTypesPerFile "directed/oriented/direction_feature tolerance zone"
+                          } else {
+                            set msg "Syntax Error: Bad orientation attribute '$dir' on '$tz\_tolerance_zone'."
+                            errorMsg $msg
+                            lappend syntaxErr($tz\_tolerance_zone) [list [$e0 P21ID] "orientation" $msg]
+                          }
+                        } emsg]} {
+                          errorMsg " Error processing '$tz\_tolerance_zone': $emsg"
                         }
                       }
                     }
@@ -592,7 +606,7 @@ proc spmiGeotolReport {objEntity} {
 
                   if {$val == ""} {
                     $cells($gt) Item $r $c $objValue
-                    if {$gt == "datum_system"} {
+                    if {[string first "datum_system" $gt] == 0} {
                       set idx [string trim [expr {int([[$cells($gt) Item $r 1] Value])}]]
                       set datumSystem($idx) $objValue
                       set datumSystemPDS($idx) [[[[$objEntity Attributes] Item [expr 3]] Value] P21ID]
@@ -624,13 +638,13 @@ proc spmiGeotolReport {objEntity} {
                     }
 
 # check identical datums
-                    if {$gt == "datum_system"} {
+                    if {[string first "datum_system" $gt] == 0} {
                       set idx [string trim [expr {int([[$cells($gt) Item $r 1] Value])}]]
                       set datumSystem($idx) "$val | $objValue"
                       if {$objValue == $val} {
                         set msg "Syntax Error: At least two datums are identical for a datum reference frame.$spaces\($recPracNames(pmi242), Sec. 6.9.7)"
                         errorMsg $msg
-                        lappend syntaxErr(datum_system) [list [$gtEntity P21ID] "Datum Reference Frame" $msg]
+                        lappend syntaxErr($gt) [list [$gtEntity P21ID] "Datum Reference Frame" $msg]
                       }
                     }
                   }
@@ -1264,7 +1278,7 @@ proc spmiGeotolReport {objEntity} {
                     }
                   }
 
-                  "datum_system product_definitional" -
+                  "datum_system* product_definitional" -
                   "datum_reference_element product_definitional" -
                   "datum_reference_compartment product_definitional" {
 # product_definitional should be false
@@ -1510,17 +1524,19 @@ proc spmiGeotolReport {objEntity} {
       }
 
 # check for unique datum systems
-      if {$gt == "datum_system" && [llength [array names datumSystem]] == $entCount(datum_system)} {
-        foreach id [array names datumSystem] {
-          set idx "$datumSystem($id) $datumSystemPDS($id)"
-          lappend ds($idx) $id
-        }
-        foreach id [array names ds] {
-          if {[llength $ds($id)] > 1} {
-            foreach id1 $ds($id) {
-              set msg "Syntax Error: Datum Reference Frames for 'datum_system' should be unique for the same product_definition_shape.$spaces\($recPracNames(pmi242), Sec. 6.9.7)"
-              errorMsg $msg
-              lappend syntaxErr(datum_system) [list $id1 "Datum Reference Frame" $msg]
+      foreach dsEnt {datum_system datum_system_for_composite_group_element} {
+        if {$gt == $dsEnt && [llength [array names datumSystem]] == $entCount($dsEnt)} {
+          foreach id [array names datumSystem] {
+            set idx "$datumSystem($id) $datumSystemPDS($id)"
+            lappend ds($idx) $id
+          }
+          foreach id [array names ds] {
+            if {[llength $ds($id)] > 1} {
+              foreach id1 $ds($id) {
+                set msg "Syntax Error: Datum Reference Frames for 'datum_system' should be unique for the same product_definition_shape.$spaces\($recPracNames(pmi242), Sec. 6.9.7)"
+                errorMsg $msg
+                lappend syntaxErr($dsEnt) [list $id1 "Datum Reference Frame" $msg]
+              }
             }
           }
         }
@@ -1562,8 +1578,8 @@ proc spmiGeotolReport {objEntity} {
         }
       }
 
-# add directed or oriented tolerance zone
-      foreach tz [list directed oriented] {
+# add directed, oriented, or direction_feature tolerance zone
+      foreach tz [list directed oriented direction_feature] {
         if {[info exists tzWithDatum($tz)]} {
           set val [[$cells($gt) Item $r $c] Value]
           $cells($gt) Item $r $c "$val |  $tzWithDatum($tz)"

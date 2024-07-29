@@ -90,7 +90,7 @@ proc x3dFileStart {} {
   puts $x3dFile "\n<table>"
 
 # x3d window size
-  puts $x3dFile "<tr><td valign='top' width='85%'>\n<noscript>JavaScript must be enabled in the web browser</noscript>"
+  puts $x3dFile "<tr><td valign='top' width='85%'>"
   set x3dHeight 900
   set x3dWidth [expr {int($x3dHeight*1.78)}]
   catch {
@@ -205,7 +205,7 @@ proc x3dFileEnd {} {
   set axesDef {}
   set planeDef {}
   set viz(SUPPGEOM) 0
-  if {[info exists entCount(constructive_geometry_representation)]} {
+  if {[info exists entCount(constructive_geometry_representation)] || [info exists entCount(tessellated_constructive_geometry_representation)]} {
     if {$opt(partSupp) && ($opt(viewPart) || $opt(viewTessPart))} {x3dSuppGeom}
   }
 

@@ -1,6 +1,6 @@
 proc spmiDimtolStart {entType} {
   global objDesign
-  global col dt entLevel ent entAttrList gtEntity lastEnt opt pmiCol pmiHeading pmiStartCol spmiRow stepAP
+  global col dt entLevel ent entAttrList gtEntity iloldscr lastEnt opt pmiCol pmiHeading pmiStartCol spmiRow stepAP
 
   if {$opt(DEBUG1)} {outputMsg "START spmiDimtolStart $entType" red}
 
@@ -52,6 +52,8 @@ proc spmiDimtolStart {entType} {
         $a2p3d \
       ]
     ]
+  set PMIP($iloldscr) $PMIP(dimensional_characteristic_representation)
+  lset PMIP($iloldscr) 0 $iloldscr
 
   if {![info exists PMIP($entType)]} {return}
 
@@ -106,7 +108,7 @@ proc spmiDimtolStart {entType} {
 proc spmiDimtolReport {objEntity} {
   global angDegree assocGeom badAttributes cadSystem cells col datsym developer dim dimBasic dimRepeat dimDirected dimName
   global dimModNames dimOrient dimReference dimrep dimrepID dimSizeNames dimtolAttr dimtolEnt dimtolEntType dimtolGeom dimtolID
-  global dimtolPM dimtolType dimval driPropID dt entLevel ent entAttrList entCount entlevel2 equivUnicodeString lastEnt nistName
+  global dimtolPM dimtolType dimval driPropID dt entLevel ent entAttrList entCount entlevel2 equivUnicodeString iloldscr lastEnt nistName
   global numDSnames opt pmiCol pmiColumns pmiHeading pmiModifiers pmiStartCol pmiUnicode propDefIDs recPracNames
   global savedModifier spaces spmiEnts spmiID spmiIDRow spmiRow spmiTypesPerFile syntaxErr tolStandard vftq worksheet
 
@@ -1397,6 +1399,7 @@ proc spmiDimtolReport {objEntity} {
       set cellComment ""
       if {[info exists dimrep] && [info exists spmiIDRow($dt,$spmiID)]} {
         if {![info exists pmiColumns(dmrp)]} {set pmiColumns(dmrp) 4}
+        if {$dt == $iloldscr} {set pmiColumns(dmrp) 5}
         set c [string index [cellRange 1 $pmiColumns(dmrp)] 0]
         set r $spmiIDRow($dt,$spmiID)
         if {![info exists pmiHeading($pmiColumns(dmrp))]} {
@@ -1550,7 +1553,7 @@ proc spmiDimtolReport {objEntity} {
 #-------------------------------------------------------------------------------
 # format values according to NR2 x.y qualifier
 proc valueQualifier {ent1 val {type "length/angle"} {equal "equal"}} {
-  global dim dt gt opt recPracNames spaces spmiID spmiIDRow syntaxErr valRounded
+  global dim dt gt opt recPracNames spaces syntaxErr valRounded
 
   set head "$type precision"
   switch -- $type {
@@ -1605,11 +1608,10 @@ proc valueQualifier {ent1 val {type "length/angle"} {equal "equal"}} {
         set etype "less"
       }
       if {$etype != ""} {
-        set msg "Precision 'NR2 $prec1.y' specifies $etype digits than are necessary ([string length $val1s]) for the $type value ($recPracNames(pmi242), Sec. $sect)"
+        set msg "Precision 'NR2 $prec1.y' specifies $etype digits than are necessary ([string length $val1s]) for the '$type' value on $ent ($recPracNames(pmi242), Sec. $sect)"
         if {$etype == "less"} {set prec1 [string length $val1s]}
         errorMsg $msg
         lappend syntaxErr([$ent1 Type]) [list [$ent1 P21ID] "format_type" $msg]
-        lappend syntaxErr($ent) [list "-$spmiIDRow($ent,$spmiID)" $head $msg]
       }
 
 # format for precision
@@ -1655,19 +1657,17 @@ proc valueQualifier {ent1 val {type "length/angle"} {equal "equal"}} {
 
 # bad NR2 value
     } else {
-      set msg "Syntax Error: Bad value_format_type_qualifier ([$attr Value])$spaces\($recPracNames(pmi242), Sec. $sect)"
+      set msg "Syntax Error: Bad value_format_type_qualifier ([$attr Value]) on $ent$spaces\($recPracNames(pmi242), Sec. $sect)"
       errorMsg $msg
       lappend syntaxErr([$ent1 Type]) [list [$ent1 P21ID] "format_type" $msg]
-      lappend syntaxErr($ent) [list "-$spmiIDRow($ent,$spmiID)" $head $msg]
       set newval $val
     }
 
 # more problems with NR2 values relative to dimension
     if {$newval == 0 && $val != 0} {
-      set msg "value_format_type_qualifier conflicts with the '$type' value, qualifier ignored ($recPracNames(pmi242), Sec. $sect)"
+      set msg "value_format_type_qualifier conflicts with the '$type' value on $ent, qualifier ignored ($recPracNames(pmi242), Sec. $sect)"
       errorMsg $msg
       lappend syntaxErr([$ent1 Type]) [list [$ent1 P21ID] "format_type" $msg]
-      lappend syntaxErr($ent) [list "-$spmiIDRow($ent,$spmiID)" $head $msg]
       set newval $val
     }
   }

@@ -515,7 +515,13 @@ proc nistCheckExpectedPMI {val entstr epmiName} {
 
 # dimensions
             } elseif {[string first "dimension" $valType($val)] != -1} {
-              if {[string first $pmiUnicode(degree) $val] == -1 || [string first $pmiUnicode(degree) $pmi] != -1} {
+              set okdim 1
+              if {[string first $pmiUnicode(degree) $val] == -1 && [string first $pmiUnicode(degree) $pmi] != -1} {
+                set okdim 0
+              } elseif {[string first $pmiUnicode(plusminus) $val] == -1 && [string first $pmiUnicode(plusminus) $pmi] != -1} {
+                set okdim 0
+              }
+              if {$okdim} {
                 set diff [expr {[string length $pmi] - [string length $val]}]
                 if {$diff <= 2 && $diff >= 0 && [string first $val $pmi] != -1} {
                   set pmiSim 0.95
@@ -570,7 +576,7 @@ proc nistCheckExpectedPMI {val entstr epmiName} {
               set pmiSim [stringSimilarity $val $pmi]
             }
 
-            if {$pmiSim < 0.6} {
+            if {$pmiSim < 0.6 && [string first "dimensional" $valType($val)] == -1} {
               if {[string first $val $pmi] != -1 || [string first $pmi $val] != -1 || $valType($val) == "flatness_tolerance"} {set pmiSim 0.6}
             }
 
@@ -1133,7 +1139,7 @@ proc nistAddModelPictures {ent} {
 
 # -------------------------------------------------------------------------------------------------
 proc nistGetName {} {
-  global developer localName opt resetRound
+  global gen localName opt resetRound
 
   set nistName ""
   set filePrefix {}
@@ -1152,9 +1158,9 @@ proc nistGetName {} {
   if {[string first "tgp" $ftail] == 0} {set c 4}
   foreach str {asme1 ap203 ap214 ap242 242 c3e} {regsub $str $ftail "" ftail}
 
-  if {$developer && [string first "step-file-analyzer" $ftail] == 0} {
-    set nistName "nist_ctc_01"
-    return $nistName
+# check for JAMA-JAPIA test case
+  foreach tc {jpmi-gear jpmi-housing jpmi-knuckle jpmi-trim} {
+    if {[string first $tc $ftail] == 0} {set nistName $tc; return}
   }
 
 # check for a NIST CTC, FTC, STC, HTC
@@ -1231,14 +1237,16 @@ proc nistGetName {} {
 
 # check required rounding for ftc 6,7,8,11
   catch {unset resetRound}
-  if {$opt(PMISEM)} {
-    if {$opt(PMISEMRND) && ($nistName == "nist_ftc_06" || $nistName == "nist_stc_06")} {
-      set resetRound $opt(PMISEMRND)
-      set opt(PMISEMRND) 0
-    } elseif {!$opt(PMISEMRND) && ($nistName == "nist_ftc_07" || $nistName == "nist_ftc_08" || \
-              $nistName == "nist_ftc_11" || $nistName == "nist_stc_07" || $nistName == "nist_stc_08")} {
-      set resetRound $opt(PMISEMRND)
-      set opt(PMISEMRND) 1
+  catch {
+    if {$opt(PMISEM) && $gen(Excel)} {
+      if {$opt(PMISEMRND) && ($nistName == "nist_ftc_06" || $nistName == "nist_stc_06")} {
+        set resetRound $opt(PMISEMRND)
+        set opt(PMISEMRND) 0
+      } elseif {!$opt(PMISEMRND) && ($nistName == "nist_ftc_07" || $nistName == "nist_ftc_08" || \
+                $nistName == "nist_ftc_11" || $nistName == "nist_stc_07" || $nistName == "nist_stc_08")} {
+        set resetRound $opt(PMISEMRND)
+        set opt(PMISEMRND) 1
+      }
     }
   }
   return $nistName

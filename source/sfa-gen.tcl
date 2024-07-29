@@ -4,7 +4,7 @@ proc genExcel {{numFile 0}} {
   global col col1 commaSeparator count csvdirnam csvfile csvinhome currLogFile developer dim draughtingModels driUnicode entCategories entCategory
   global entColorIndex entCount entityCount entsIgnored entsWithErrors env epmi epmiUD errmsg equivUnicodeStringErr excel fcsv
   global feaFirstEntity feaLastEntity File fileEntity filesProcessed fileSumRow gen gpmiTypesInvalid gpmiTypesPerFile guiSFA idRow idxColor
-  global ifcsvrDir inverses lastXLS lenfilelist localName localNameList logFile matrixList multiFile multiFileDir mydocs mytemp nistCoverageLegend
+  global ifcsvrDir iloldscr inverses lastXLS lenfilelist localName localNameList logFile matrixList multiFile multiFileDir mydocs mytemp nistCoverageLegend
   global nistName nistPMIexpected nistPMImaster noFontFile nprogBarEnts opt pf32 p21e3Section pmiCol resetRound row rowmax savedViewButtons
   global savedViewName savedViewNames scriptName sheetLast skipEntities skipFileName spmiEntity spmiSumName spmiSumRow spmiTypesPerFile
   global startrow statsOnly stepAP stepAPreport sumHeaderRow syntaxErr tessColor tessEnts tessSolid thisEntType timeStamp tlast tolNames tolStandard tolStandards
@@ -168,7 +168,7 @@ proc genExcel {{numFile 0}} {
     set fname $localName
     set stepAP [getStepAP $fname]
     if {$stepAP == ""} {return}
-    foreach i {2 3 4} {set ap242ed($i) {}}
+    foreach i {1 2 3 4} {set ap242ed($i) {}}
 
 # stepAPreport controls which APs support Analyzer reports
     set stepAPreport 0
@@ -235,7 +235,7 @@ proc genExcel {{numFile 0}} {
             set ent2 [string range $entType 0 $c1+5]
           }
 
-          if {$entType == "dimensional_characteristic_representation"} {
+          if {$entType == "dimensional_characteristic_representation" || $entType == $iloldscr} {
             lappend characteristics "Dimensions"
           } elseif {$entType == "datum"} {
             lappend characteristics "Datums"
@@ -250,10 +250,10 @@ proc genExcel {{numFile 0}} {
           } elseif {$entType == "annotation_placeholder_occurrence" || $entType == "annotation_placeholder_occurrence_with_leader_line"} {
             lappend characteristics "Placeholder PMI"
 
-          } elseif {$entType == "tessellated_solid" || $entType == "tessellated_shell"} {
-            lappend characteristics "Part geometry (tessellated)"
           } elseif {$entType == "constructive_geometry_representation"} {
             lappend characteristics "Supplemental geometry"
+          } elseif {$entType == "tessellated_constructive_geometry_representation"} {
+            lappend characteristics "Supplemental geometry (tessellated)"
           } elseif {$entType == "property_definition_representation"} {
             lappend characteristics "Properties"
 
@@ -265,7 +265,6 @@ proc genExcel {{numFile 0}} {
             lappend characteristics "Features"
           } else {
             foreach tol $tolNames {if {[string first $tol $entType] != -1} {lappend characteristics "Geometric tolerances"}}
-            foreach brep $brepGeomEntTypes {if {[string first $brep $entType] != -1} {lappend characteristics "Part geometry (b-rep)"}}
           }
 
 # make sure some entity types are always processed
@@ -279,14 +278,41 @@ proc genExcel {{numFile 0}} {
           }
         }
 
-# check for entities in AP242 editions > 1
-        foreach i {2 3 4} {if {[lsearch $ap242only(e$i) $entType] != -1} {lappend ap242ed($i) $entType}}
+# check for entities in AP242
+        foreach i {1 2 3 4} {if {[lsearch $ap242only(e$i) $entType] != -1} {lappend ap242ed($i) $entType}}
+      }
+      if {[llength $characteristics] > 0} {set characteristics [lrmdups $characteristics]}
+
+# check for type of part geometry
+      set bSolid 0
+      set bSurface 0
+      set tSolid 0
+      set tSurface 0
+      foreach entType [list manifold_solid_brep shell_based_surface_model tessellated_solid tessellated_shell] {
+        set num [$objDesign CountEntities "$entType"]
+        if {$num > 0} {
+          switch $entType {
+            "manifold_solid_brep" {set bSolid 1}
+            "shell_based_surface_model" {set bSurface 1}
+            "tessellated_solid" {set tSolid 1}
+            "tessellated_shell" {set tSurface 1}
+          }
+        }
+      }
+      set str ""
+      if {$bSolid}   {append str "b-rep solid, "}
+      if {$bSurface} {append str "b-rep surface, "}
+      if {$tSolid}   {append str "tessellated solid, "}
+      if {$tSurface} {append str "tessellated surface, "}
+      if {$str != ""} {
+        set str [list "Part geometry ([string range $str 0 end-2])"]
+        set characteristics [concat $str $characteristics]
       }
 
 # report characteristics
       if {[llength $characteristics] > 0} {
         set str ""
-        foreach item [lrmdups $characteristics] {append str "$item, "}
+        foreach item $characteristics {append str "$item, "}
         set str [string range $str 0 end-2]
         if {$str != "Part geometry"} {outputMsg "This file contains: $str" red}
       }
@@ -429,7 +455,7 @@ proc genExcel {{numFile 0}} {
         catch {$buttons(genExcel) configure -state normal}
       }
 
-# turning off ScreenUpdating, saves A LOT of time
+# turning off ScreenUpdating
       $excel Visible 0
       catch {$excel ScreenUpdating 0}
 
@@ -747,8 +773,8 @@ proc genExcel {{numFile 0}} {
 # decide how to process tessellated geometry by SFA (original) or by stp2x3d
   set brep 0
   set tessEnts 0
-  foreach item $brepGeomEntTypes {if {[info exists entCount($item)]} {if {$entCount($item) > 0} {set brep 1}}}
-  foreach item [list tessellated_solid tessellated_shell] {if {[info exists entCount($item)]} {if {$entCount($item) > 0} {set tessEnts 1}}}
+  foreach item $brepGeomEntTypes {if {[info exists entCount($item)] && $entCount($item) > 0} {set brep 1}}
+  foreach item [list tessellated_solid tessellated_shell] {if {[info exists entCount($item)] && $entCount($item) > 0} {set tessEnts 1}}
 
 # setting for SFA original
   set tessSolid 0
@@ -773,13 +799,13 @@ proc genExcel {{numFile 0}} {
   if {$gen(View)} {
     if {$opt(viewPMI)} {
       foreach ao $aoEntTypes {
-        if {[info exists entCount($ao)]}  {if {$entCount($ao)  > 0} {set viz(PMI) 1}}
+        if {[info exists entCount($ao)] && $entCount($ao) > 0} {set viz(PMI) 1}
         set ao1 "$ao\_and_characterized_object"
-        if {[info exists entCount($ao1)]} {if {$entCount($ao1) > 0} {set viz(PMI) 1}}
+        if {[info exists entCount($ao1)] && $entCount($ao1) > 0} {set viz(PMI) 1}
         set ao1 "$ao\_and_geometric_representation_item"
-        if {[info exists entCount($ao1)]} {if {$entCount($ao1) > 0} {set viz(PMI) 1}}
+        if {[info exists entCount($ao1)] && $entCount($ao1) > 0} {set viz(PMI) 1}
         if {[string first "placeholder" $ao] != -1} {
-          if {[info exists entCount($ao)]} {if {$entCount($ao) > 0} {set viz(PLACE) 1}}
+          if {[info exists entCount($ao)] && $entCount($ao) > 0} {set viz(PLACE) 1}
         }
       }
     }
@@ -834,7 +860,7 @@ proc genExcel {{numFile 0}} {
                    characterized_representation_and_draughting_model \
                    characterized_representation_and_draughting_model_and_representation \
                    characterized_representation_and_draughting_model_and_tessellated_shape_representation] {
-    if {[info exists entCount($dm)]} {if {$entCount($dm) > 0} {lappend draughtingModels $dm}}
+    if {[info exists entCount($dm)] && $entCount($dm) > 0} {lappend draughtingModels $dm}
   }
 
 # -------------------------------------------------------------------------------------------------
@@ -877,7 +903,8 @@ proc genExcel {{numFile 0}} {
         set str1 [lindex $entsToProcess $i]
         set tc [string range [lindex $entsToProcess $i] 0 1]
         if {$tc == $entColorIndex(stepTOLR)} {set itmp 1}
-        if {[string first $entColorIndex(stepTOLR) $str1] == 0 && ([string first "datum" $str1] == 2 || [string first "dimensional" $str1] == 2)} {
+        if {[string first $entColorIndex(stepTOLR) $str1] == 0 && \
+          ([string first "datum" $str1] == 2 || [string first "dimensional" $str1] == 2 || [string first $iloldscr $str1] == 2)} {
           lappend entsToProcessDatum $str1
         } else {
           lappend entsToProcessTmp($itmp) $str1
@@ -889,11 +916,13 @@ proc genExcel {{numFile 0}} {
     }
 
 # move dimensional_characteristic_representation to the beginning
-    if {[info exists entCount(dimensional_characteristic_representation)]} {
-      set dcr "$entColorIndex(stepTOLR)\dimensional_characteristic_representation"
-      set c1 [lsearch $entsToProcess $dcr]
-      set entsToProcess [lreplace $entsToProcess $c1 $c1]
-      set entsToProcess [linsert $entsToProcess 0 $dcr]
+    foreach entdim {$iloldscr dimensional_characteristic_representation} {
+      if {[info exists entCount($entdim)]} {
+        set dcr "$entColorIndex(stepTOLR)$entdim"
+        set c1 [lsearch $entsToProcess $dcr]
+        set entsToProcess [lreplace $entsToProcess $c1 $c1]
+        set entsToProcess [linsert $entsToProcess 0 $dcr]
+      }
     }
   }
 
@@ -1197,11 +1226,11 @@ proc genExcel {{numFile 0}} {
     if {$gen(View) && ($opt(tessPartOld) || $opt(viewTessPart))} {
       set tp 0
       foreach item [list tessellated_solid tessellated_shell tessellated_wire] {
-        if {[info exists entCount($item)]} {if {$entCount($item) > 0} {tessPart $item; set tp 1}}
+        if {[info exists entCount($item)] && $entCount($item) > 0} {tessPart $item; set tp 1}
       }
       if {$tp == 0} {
         set item "triangulated_face"
-        if {[info exists entCount($item)]} {if {$entCount($item) > 0} {tessPart $item}}
+        if {[info exists entCount($item)] && $entCount($item) > 0} {tessPart $item}
       }
     }
 
@@ -1275,7 +1304,7 @@ proc genExcel {{numFile 0}} {
     set entsUUID [list HASH_BASED_V5_UUID_ATTRIBUTE V4_UUID_ATTRIBUTE V5_UUID_ATTRIBUTE UUID_ATTRIBUTE_WITH_APPROXIMATE_LOCATION]
     foreach ent $entsUUID {
       set entlc [string tolower $ent]
-      if {[info exists entCount($entlc)]} {if {$entCount($entlc) > 0} {set totalUUID [expr {$totalUUID+$entCount($entlc)}]}}
+      if {[info exists entCount($entlc)] && $entCount($entlc) > 0} {set totalUUID [expr {$totalUUID+$entCount($entlc)}]}
     }
 
     if {$totalUUID > 0} {
@@ -1775,29 +1804,29 @@ proc addHeaderWorksheet {numFile fname} {
           if {$id == 1} {
             append str " (Edition 1)"
             if {[llength $ap242ed(2)] > 0 || [llength $ap242ed(3)] > 0 || [llength $ap242ed(4)] > 0} {
-              errorMsg "Syntax Error: The STEP file contains entities related to AP242 Edition 2, 3, or 4 ([join [lrmdups [concat $ap242ed(2) $ap242ed(3) $ap242ed(4)]]]),$spaces\however, the file is identified as Edition 1."
+              errorMsg "The STEP file contains entities related to AP242 Edition 2, 3, or 4 ([join [lrmdups [concat $ap242ed(2) $ap242ed(3) $ap242ed(4)]]]),$spaces\however, the file is identified as Edition 1." red
             }
           } elseif {$id == 2 || $id == 3} {
             append str " (Edition 2)"
             if {$id == 2} {errorMsg " AP242 Edition 2 should be identified with '\{1 0 10303 442 3 1 4\}'" red}
             if {[llength $ap242ed(3)] > 0 || [llength $ap242ed(4)] > 0} {
-              errorMsg "Syntax Error: The STEP file contains entities related to AP242 Edition 3 or 4 ([join [lrmdups [concat $ap242ed(3) $ap242ed(4)]]]),$spaces\however, the file is identified as Edition 2."
+              errorMsg "The STEP file contains entities related to AP242 Edition 3 or 4 ([join [lrmdups [concat $ap242ed(3) $ap242ed(4)]]]),$spaces\however, the file is identified as Edition 2." red
             }
           } elseif {$id == 4} {
             append str " (Edition 3)"
-            if {[llength $ap242ed(4)] > 0} {
-              errorMsg "Syntax Error: The STEP file contains entities related to AP242 Edition 4 ([join $ap242ed(4)]),$spaces\however, the file is identified as Edition 3."
-            }
+            #if {[llength $ap242ed(4)] > 0} {
+            #  errorMsg "The STEP file contains entities related to AP242 Edition 4 ([join $ap242ed(4)]),$spaces\however, the file is identified as Edition 3." red
+            #}
           } elseif {$id == 5} {
             append str " (Edition 4)"
           } elseif {$id > 99} {
             errorMsg "Unknown AP242 Object Identifier String '$id 1 4' for SchemaName" red
           }
           if {$developer} {
-            foreach i {2 3 4} {if {[llength $ap242ed($i)] > 0} {regsub -all " " [join $ap242ed($i)] ", " str1; outputMsg " AP242e$i: $str1" red}}
+            foreach i {1 2 3 4} {if {[llength $ap242ed($i)] > 0} {regsub -all " " [join $ap242ed($i)] ", " str1; outputMsg " AP242e$i: $str1" red}}
           }
         } elseif {[string first "AP242" $sn] == 0} {
-          errorMsg "Syntax Error: SchemaName is missing the Object Identifier String that specifies the edition of AP242."
+          errorMsg "SchemaName is missing the Object Identifier String that specifies the edition of AP242." red
         }
 
 # check edition of AP214 (object identifier)
@@ -1992,7 +2021,7 @@ proc addHeaderWorksheet {numFile fname} {
 # add summary worksheet
 proc sumAddWorksheet {} {
   global andEntAP209 cells col entCategory entCount entsIgnored equivUnicodeString excel fileSumRow
-  global gpmiEnts opt row sheetLast sheetSort spmiEntity stepAP sum uuidEnts vpEnts worksheet worksheets
+  global gpmiEnts iloldscr opt row sheetLast sheetSort spmiEntity stepAP sum uuidEnts vpEnts worksheet worksheets
 
   outputMsg "\nGenerating Summary worksheet" blue
   set sum "Summary"
@@ -2054,6 +2083,8 @@ proc sumAddWorksheet {} {
           $cells($sum) Item $sumRow 1 "property_definition  \[Properties\]"
         } elseif {$entType == "dimensional_characteristic_representation" && $col($entType) > 3 && $opt(PMISEM)} {
           $cells($sum) Item $sumRow 1 "dimensional_characteristic_representation  \[PMI Representation\]"
+        } elseif {$entType == $iloldscr && $col($entType) > 3 && $opt(PMISEM)} {
+          $cells($sum) Item $sumRow 1 "$iloldscr  \[PMI Representation\]"
         } elseif {[lsearch $spmiEntity $entType] != -1 && $opt(PMISEM)} {
           $cells($sum) Item $sumRow 1 "$entType  \[PMI Representation\]"
         } elseif {[string first "annotation" $entType] != -1 && $opt(PMIGRF)} {

@@ -44,7 +44,7 @@ proc tessPart {entType} {
     }
   }
 
-# open file for tessellated supplemental geometry, might not be used
+# open file for tessellated supplemental geometry
   foreach wire {tessellated_wire tessellated_shell} {
     if {[info exists entCount($wire)] && ![info exists tessSuppGeomFileName]} {
       if {$entCount($wire) > 0} {
@@ -78,10 +78,10 @@ proc tessPartGeometry {objEntity} {
     if {$entLevel == 1} {
       set objEntity1 $objEntity
 
-# check if tessellated shell is an item of constructive_geometry_representation (supplemental geometry)
+# check if tessellated shell is an item of tessellated_constructive_geometry_representation (supplemental geometry)
       set shellSuppGeom 0
       if {[$objEntity1 Type] == "tessellated_shell"} {
-        set e0s [$objEntity1 GetUsedIn [string trim constructive_geometry_representation] [string trim items]]
+        set e0s [$objEntity1 GetUsedIn [string trim tessellated_constructive_geometry_representation] [string trim items]]
         ::tcom::foreach e0 $e0s {set shellSuppGeom 1}
       }
     }

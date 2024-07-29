@@ -364,7 +364,7 @@ proc pmiFormatColumns {str} {
 # -------------------------------------------------------------------------------
 # check for an entity that is checked for semantic PMI
 proc spmiCheckEnt {ent} {
-  global opt spmiEntTypes tolNames
+  global iloldscr opt spmiEntTypes tolNames
   set ok 0
 
 # all tolerances, dimensions, datums, etc. (defined in sfa-data.tcl)
@@ -374,7 +374,7 @@ proc spmiCheckEnt {ent} {
   }
 
 # only dimensions or datum targets
-  if {$opt(PMISEMDIM) && $ent == "dimensional_characteristic_representation"} {set ok 1}
+  if {$opt(PMISEMDIM) && ($ent == "dimensional_characteristic_representation" || $ent == $iloldscr)} {set ok 1}
   if {$opt(PMISEMDT) && ($ent == "placed_datum_target_feature" || $ent == "datum_target")} {set ok 1}
 
 # counter holes
@@ -443,7 +443,7 @@ proc setEntsToProcess {entType} {
 # -------------------------------------------------------------------------------
 # check for all types of reports
 proc checkForReports {entType} {
-  global cells gen gpmiEnts opt pmiColumns savedViewCol skipEntities spmiEnts stepAP stepAPreport
+  global cells gen gpmiEnts iloldscr opt pmiColumns savedViewCol skipEntities spmiEnts stepAP stepAPreport
 
 # check for validation properties report, call valPropStart
   if {$entType == "property_definition_representation" || $entType == "shape_definition_representation"} {
@@ -483,7 +483,7 @@ proc checkForReports {entType} {
             if {$stepAPreport} {
 
 # dimensions
-              if {$entType == "dimensional_characteristic_representation"} {
+              if {$entType == "dimensional_characteristic_representation" || $entType == $iloldscr} {
                 spmiDimtolStart $entType
 
 # hole occurrences
