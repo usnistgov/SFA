@@ -270,7 +270,7 @@ proc x3dTessGeom {objID tessEnt faceEnt {aoname ""}} {
 # -------------------------------------------------------------------------------
 # TAO check for transform related to assembly
 proc x3dAssemblyTransform {tessEnt} {
-  global ao assemTransform entCount noGroupTransform syntaxErr taoLastID x3dMsg
+  global ao assemTransform developer entCount noGroupTransform syntaxErr taoLastID x3dMsg
 
   set debugTAO 0
   set taoID [$tessEnt P21ID]
@@ -380,7 +380,7 @@ proc x3dAssemblyTransform {tessEnt} {
                       if {$nssr == 0} {
                         set ssrRep 4
                         set e5s [$e4 GetUsedIn [string trim shape_representation_relationship] [string trim rep_1]]
-                        errorMsg " Error getting ABSR in SSR rep_2, checking for ABSR in rep_1" red
+                        if {$developer} {errorMsg " Error getting ABSR in SSR rep_2, checking for ABSR in rep_1" red}
                       }
 
 # shape representation

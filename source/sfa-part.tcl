@@ -42,7 +42,7 @@ proc x3dBrepGeom {} {
               foreach e1 [[[$e0 Attributes] Item [expr 1]] Value] {
                 if {[$e1 Type] == "styled_item"} {
                   set e2 [[[$e1 Attributes] Item [expr 3]] Value]
-                  if {[$e2 Type] == "shell_based_surface_model"} {errorMsg "Surface invisibility is not supported" red}
+                  if {[$e2 Type] == "shell_based_surface_model"} {errorMsg " Surface invisibility is not supported" red}
                 }
               }
             }

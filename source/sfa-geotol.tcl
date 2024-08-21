@@ -2118,8 +2118,8 @@ proc spmiProjectedToleranceZone {objGuiEntity} {
 
 # composite shape aspects
             } elseif {[$tsa Type] == "composite_group_shape_aspect" || [$tsa Type] == "composite_shape_aspect" || \
-                      [$tsa Type] == "composite_shape_aspect_and_datum_feature" || [$tsa Type] == "centre_of_symmetry" || \
-                      [$tsa Type] == "dimensional_size_with_datum_feature"} {
+                      [$tsa Type] == "composite_shape_aspect_and_datum_feature" || [$tsa Type] == "composite_group_shape_aspect_and_datum_feature" || \
+                      [$tsa Type] == "centre_of_symmetry" || [$tsa Type] == "dimensional_size_with_datum_feature"} {
               set e1s {}
               ::tcom::foreach e1 [$tsa GetUsedIn [string trim shape_aspect_relationship] [string trim relating_shape_aspect]] {lappend e1s $e1}
               foreach e1 $e1s {
@@ -2147,13 +2147,13 @@ proc spmiProjectedToleranceZone {objGuiEntity} {
                     }
                   }
                 } else {
-                  errorMsg "For projected tolerance zone, shape_aspect '[$e2 Type]' is not supported."
+                  errorMsg "For projected tolerance zone, shape_aspect '[formatComplexEnt [$e2 Type]]' is not supported."
                 }
               }
 
 # toleranced_shape_aspect not supported
             } else {
-              errorMsg "For projected tolerance zone, toleranced_shape_aspect '[$tsa Type]' is not supported."
+              errorMsg "For projected tolerance zone, toleranced_shape_aspect '[formatComplexEnt [$tsa Type]]' is not supported."
             }
 
 # get the edge_curve that are shared between the shape aspects from (1) toleranced_shape_aspect and (2) projection_end

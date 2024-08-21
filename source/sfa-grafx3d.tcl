@@ -763,7 +763,6 @@ proc x3dFileEnd {} {
     puts $x3dFile "\n<!-- Part geometry checkbox -->\n<input type='checkbox' checked onclick='togPRT(this.value)'/>$str\Part Geometry"
     if {[info exists nsketch]} {
       if {$nsketch > -1} {puts $x3dFile "<!-- Sketch geometry checkbox -->\n<br><input type='checkbox' checked onclick='togSKH(this.value)'/>Sketch Geometry"}
-      if {$nsketch > 1000} {errorMsg " Sketch geometry ([expr {$nsketch+1}]) might take too long to view.  Turn off Sketch and regenerate the View."}
     }
     if {$opt(partEdges) && $viz(EDGE)} {puts $x3dFile "<!-- Edges checkbox -->\n<br><input type='checkbox' checked onclick='togEDG(this.value)' id='swEDG'/>Edges"}
   }
@@ -844,7 +843,10 @@ proc x3dFileEnd {} {
 
 # draughting model name not the same as the camera model name
       if {[info exists savedViewDMName($svn)]} {
-        if {$savedViewDMName($svn) != $svn && [string first "\[" $savedViewDMName($svn)] == -1 && [string first "\]" $savedViewDMName($svn)] == -1} {set svname "$savedViewDMName($svn) / $svn"}
+        if {$savedViewDMName($svn) != $svn && [string first "\[" $savedViewDMName($svn)] == -1 && \
+          [string first "\]" $savedViewDMName($svn)] == -1 && [string first "&\#x" $svn] == -1} {
+            set svname "$savedViewDMName($svn) / $svn"
+        }
       }
       append str "<input type='checkbox' id='cbView$id' checked onclick='togView$id\(this.value)'/>$svname"
       puts $x3dFile $str
@@ -1057,7 +1059,9 @@ proc x3dFileEnd {} {
       if {!$viz(PMI) || [llength $savedViewButtons] == 0} {set svb [array names savedViewpoint]}
 
       foreach svn $svb {
-        lappend onload "\n var view$id = document.getElementById('$svn');\n view$id.addEventListener('outputchange', function(event) \{"
+        set svn1 $svn
+        if {[string first "\;" $svn1] != -1} {regsub -all "&" $svn1 "" svn1; regsub -all "\#" $svn1 "" svn1; regsub -all "\;" $svn1 "" svn1;}
+        lappend onload "\n var view$id = document.getElementById('$svn1');\n view$id.addEventListener('outputchange', function(event) \{"
         lappend onload "  document.getElementById('clickedView').innerHTML = '$svn';"
         incr id
         if {$viz(PMI)} {
@@ -1207,7 +1211,9 @@ proc x3dSavedViewpoint {name} {
       if {$parallel} {
         lappend savedViewVP "<OrthoViewpoint id='$name' position='[lindex $savedViewpoint($name) 0]' centerOfRotation='$xyzcen(x) $xyzcen(y) $xyzcen(z)' orientation='$rotation' fieldOfView='\[-$fov,-$fov,$fov,$fov\]'></OrthoViewpoint>"
       } else {
-        lappend savedViewVP "<Transform translation='[lindex $savedViewpoint($name) 0]' rotation='$rotation'><Viewpoint id='$name' position='0 0 0' orientation='0 1 0 3.14156'/></Transform>"
+        set name1 $name
+        if {[string first "\;" $name1] != -1} {regsub -all "&" $name1 "" name1; regsub -all "\#" $name1 "" name1; regsub -all "\;" $name1 "" name1;}
+        lappend savedViewVP "<Transform translation='[lindex $savedViewpoint($name) 0]' rotation='$rotation'><Viewpoint id='$name1' position='0 0 0' orientation='0 1 0 3.14156'/></Transform>"
       }
     }
 

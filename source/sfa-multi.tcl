@@ -273,6 +273,7 @@ proc openMultiFile {{ask 1}} {
           append msg "Views"
         } elseif {$useXL} {
           append msg "Spreadsheets"
+          if {$gen(View)} {append msg " and Views"}
         } elseif {$opt(xlFormat) == "CSV"} {
           append msg "CSV files"
         }

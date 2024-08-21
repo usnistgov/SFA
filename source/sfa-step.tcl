@@ -412,9 +412,8 @@ proc gpmiCheckEnt {ent} {
 }
 
 # -------------------------------------------------------------------------------
-# which STEP entities are processed depending on options (most are already selected through Process categories)
+# which STEP entities are processed depending on options
 proc setEntsToProcess {entType} {
-  global objDesign
   global gen gpmiEnts spmiEnts opt
 
   set ok 0
@@ -425,17 +424,10 @@ proc setEntsToProcess {entType} {
   if {($opt(PMIGRF) || ($gen(View) && $opt(viewPMI))) && $ok == 0} {
     set ok [gpmiCheckEnt $entType]
     set gpmiEnts($entType) $ok
-    if {$entType == "geometric_curve_set" || $entType == "planar_box" || [string first "geometric_set" $entType] != -1} {set ok 1}
   }
 
 # for PMI (semantic) representation
-  if {$opt(PMISEM) && $ok == 0} {
-    set spmiEnts($entType) [spmiCheckEnt $entType]
-    if {$entType == "axis2_placement_3d" && [$objDesign CountEntities "placed_datum_target_feature"] > 0} {set ok 1}
-  }
-
-# for tessellated geometry
-  if {$gen(View) && $opt(viewTessPart) && $ok == 0} {if {[string first "tessellated" $entType] != -1} {set ok 1}}
+  if {$opt(PMISEM) && $ok == 0} {set spmiEnts($entType) [spmiCheckEnt $entType]}
 
   return $ok
 }
@@ -732,7 +724,7 @@ proc getSchemaFromFile {fname {limit 0}} {
   catch {unset rawBytes}
 
   set ulimit 100
-  if {$limit} {set ulimit 500000}
+  if {$limit} {set ulimit 1000000}
 
 # read first N lines, all HEADER section information should be in the first 100 lines, reading more detects \X2\ Unicode characters
   while {[gets $stepfile line] != -1 && $nline < $ulimit} {
@@ -849,16 +841,19 @@ proc getSchemaFromFile {fname {limit 0}} {
 # convert \X2\ in strings, see sfa-data.tcl for unicodeAttributes
 # \X\ does not have to be handled separately for a spreadsheet, complex entities need to be handled explicitly
 proc unicodeStrings {unicodeEnts} {
-  global driUnicode localName unicodeActual unicodeAttributes unicodeNumEnts unicodeString
+  global developer driUnicode localName stepAP unicodeActual unicodeAttributes unicodeNumEnts unicodeString unicodeStringCM
 
   if {[catch {
     set nent 0
     set okread 1
     set unicodeActual {}
     set sf [open $localName r]
+    set ap [string range $stepAP 0 4]
+    outputMsg "\nChecking for Unicode (non-English) characters (see More tab)" blue
 
     while {[gets $sf line] >= 0 && $okread} {
-      while {[string first ";" $line] == -1} {gets $sf line1; append line $line1}
+      while {[string first ";" $line] == -1} {gets $sf nextLine; append line $nextLine}
+      if {[string first "END-ISO-10303-21" $line] != -1} {set okread 0}
 
       set ok 0
       set c1 [string first "=" $line]
@@ -867,9 +862,27 @@ proc unicodeStrings {unicodeEnts} {
       foreach ent $unicodeEnts {
         if {$str == $ent} {
           set ok 1
-        } elseif {[string first "COMPOSITE_SHAPE_ASPECT()DATUM_FEATURE" $line] != -1} {
-          set ok 1
-          set ent "COMPOSITE_SHAPE_ASPECT_AND_DATUM_FEATURE"
+
+# special cases for AP242 complex entities
+        } elseif {$ap == "AP242"} {
+          if {[string first "COMPOSITE_SHAPE_ASPECT()DATUM_FEATURE" $line] != -1} {
+            set ent "COMPOSITE_SHAPE_ASPECT_AND_DATUM_FEATURE"
+            set ok 1
+          } elseif {[string first "TESSELLATED_SHAPE_REPRESENTATION" $line] != -1} {
+            if {[string first "DRAUGHTING_MODEL" $line] != -1} {
+              if {[string first "CHARACTERIZED_REPRESENTATION" $line] != -1} {
+                set ent "CHARACTERIZED_REPRESENTATION_AND_DRAUGHTING_MODEL_AND_TESSELLATED_SHAPE_REPRESENTATION"
+              } else {
+                set ent "DRAUGHTING_MODEL_AND_TESSELLATED_SHAPE_REPRESENTATION"
+              }
+            }
+            set ok 1
+          } elseif {[string first "DIMENSIONAL_SIZE_WITH_DATUM_FEATURE" $line] != -1} {
+            if {[string first "ANGULAR_SIZE" $line] != -1} {
+              set ent "ANGULAR_SIZE_AND_DIMENSIONAL_SIZE_WITH_DATUM_FEATURE"
+              set ok 1
+            }
+          }
         }
         if {$ok} {
           set ent1 [string tolower $ent]
@@ -880,18 +893,18 @@ proc unicodeStrings {unicodeEnts} {
 # process Unicode
       if {$ok} {
         set lattr [llength $unicodeAttributes($ent1)]
-        incr nent
 
 # check for Unicode X2
         set oku 0
         set cx2 [string first "\\X2\\" $line]
         if {$cx2 != -1} {
           set oku 1
+          incr nent
         } elseif {[string first "equivalent" $line] != -1} {
           if {[string first "\\w" $line] != -1 || [string first "\\n" $line] != -1 || [string first "\\u" $line] != -1 || [string first "\\x" $line] != -1} {set oku 1}
         }
         if {$oku} {
-          if {$cx2 != -1} {errorMsg "\nProcessing Unicode characters (See Help > Text Strings and Numbers)" blue}
+          if {$cx2 != -1} {errorMsg " Processing Unicode characters (See Help > Text Strings and Numbers)" black}
 
           set id [string trim [string range $line 1 [string first "=" $line]-1]]
           set idx "$ent1,[lindex $unicodeAttributes($ent1) 0],$id"
@@ -955,12 +968,26 @@ proc unicodeStrings {unicodeEnts} {
                   set c1 [string first "'" $str]
                   set c2 [string last  "'" $str]
                   if {$c1 != -1 && $c2 != -2} {set str [string range $str $c1+1 $c2-1]}
-                  set idx "$ent1,[lindex $unicodeAttributes($ent1) $ia],$id"
-                  if {[string index $str 0] == "="} {set str " $str"}
-                  set unicodeString($idx) $str
+                  set attrName [lindex $unicodeAttributes($ent1) $ia]
+                  if {$attrName != ""} {
+                    set idx "$ent1,[lindex $unicodeAttributes($ent1) $ia],$id"
+                    if {[string index $str 0] == "="} {set str " $str"}
+                    set unicodeString($idx) $str
+                  }
                 }
               }
               if {[lsearch $unicodeActual $ent1] == -1} {lappend unicodeActual $ent1}
+
+# camera model special case
+              if {[string first "CAMERA_MODEL" $line] != -1} {
+                set line2 [getUnicode $line]
+                set c1 [string first "'" $line2]
+                set c2 [string last  "'" $line2]
+                set str [string range $line2 $c1+1 $c2-1]
+                set idx "$ent1,$id"
+                set unicodeStringCM($idx) $str
+                if {$developer} {errorMsg " Unicode in camera model name" red}
+              }
             }
           }
         }
@@ -972,8 +999,9 @@ proc unicodeStrings {unicodeEnts} {
 
 # report entity types with Unicode
     if {[llength $unicodeActual] > 0} {
-      regsub -all " " [join [lsort $unicodeActual]] ", " str
-      outputMsg " [llength $unicodeActual] entity type(s): $str"
+      set str2 ""
+      foreach item [lsort $unicodeActual] {append str2 "[formatComplexEnt $item], "}
+      outputMsg " [llength $unicodeActual] entity type(s): [string range $str2 0 end-2]"
       if {[lsearch $unicodeActual "descriptive_representation_item"] != -1} {set driUnicode 1}
     }
 

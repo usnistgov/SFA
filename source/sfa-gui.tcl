@@ -1,5 +1,5 @@
 # SFA version
-proc getVersion {} {return 5.16}
+proc getVersion {} {return 5.17}
 
 # see proc installIFCsvr in sfa-proc.tcl for the IFCsvr version
 # see below (line 37) for the sfaVersion when IFCsvr was updated
@@ -79,45 +79,10 @@ proc openUserGuide {} {
 #-------------------------------------------------------------------------------
 # start window, bind keys
 proc guiStartWindow {} {
-  global fout editorCmd lastX3DOM lastXLS lastXLS1 localName localNameList wingeo winpos
+  global fout editorCmd lastX3DOM lastXLS lastXLS1 localName localNameList
 
   wm title . "STEP File Analyzer and Viewer [getVersion]"
   wm protocol . WM_DELETE_WINDOW {exit}
-
-# check that the saved window dimensions do not exceed the screen size
-  if {[info exists wingeo]} {
-    set gwid [lindex [split $wingeo "x"] 0]
-    set ghgt [lindex [split $wingeo "x"] 1]
-    if {$gwid > [winfo screenwidth  .]} {set gwid [winfo screenwidth  .]}
-    if {$ghgt > [winfo screenheight .]} {set ghgt [winfo screenheight .]}
-    set wingeo "$gwid\x$ghgt"
-  }
-
-# check that the saved window position is on the screen
-  if {[info exists winpos]} {
-    set pwid [lindex [split $winpos "+"] 1]
-    set phgt [lindex [split $winpos "+"] 2]
-    if {$pwid > [winfo screenwidth  .] || $pwid < -10} {set pwid 300}
-    if {$phgt > [winfo screenheight .] || $phgt < -10} {set phgt 200}
-    set winpos "+$pwid+$phgt"
-  }
-
-# check that the saved window position keeps the entire window on the screen
-  if {[info exists wingeo] && [info exists winpos]} {
-    if {[expr {$pwid+$gwid}] > [winfo screenwidth  .]} {
-      set pwid [expr {[winfo screenwidth  .]-$gwid-40}]
-      if {$pwid < 0} {set pwid 300}
-    }
-    if {[expr {$phgt+$ghgt}] > [winfo screenheight  .]} {
-      set phgt [expr {[winfo screenheight  .]-$ghgt-40}]
-      if {$phgt < 0} {set phgt 200}
-    }
-    set winpos "+$pwid+$phgt"
-  }
-
-# set the window position and dimensions
-  if {[info exists winpos]} {catch {wm geometry . $winpos}}
-  if {[info exists wingeo]} {catch {wm geometry . $wingeo}}
 
 # yellow background color
   set bgcolor  "#ffffbb"
@@ -167,7 +132,7 @@ proc guiStartWindow {} {
 #-------------------------------------------------------------------------------
 # buttons and progress bar
 proc guiButtons {} {
-  global buttons ftrans mytemp nprogBarEnts nprogBarFiles opt wdir
+  global buttons ftrans mytemp nprogBarEnts nprogBarFiles opt wdir wingeo winpos
 
 # generate button
   set ftrans [frame .ftrans1 -bd 2 -background "#F0F0F0"]
@@ -214,6 +179,10 @@ proc guiButtons {} {
 
 # NIST icon bitmap
   catch {wm iconbitmap . -default [file join $wdir images NIST.ico]}
+
+# set the window position and dimensions
+  catch {wm geometry . $winpos}
+  catch {wm geometry . $wingeo}
 }
 
 #-------------------------------------------------------------------------------
@@ -963,7 +932,7 @@ proc guiMoreTab {} {
     tooltip::tooltip $buttons(viewCorrect) "Correct for older implementations of camera models that\nmight not conform to current recommended practices.\nThe corrected viewpoint should fix the orientation but\nmaybe not the position.\n\nSee Help > Viewer > Viewpoints\nSee the CAx-IF Recommended Practice for\n $recPracNames(pmi242), Sec. 9.4.2.6"
     tooltip::tooltip $buttons(viewNoPMI)   "If the model has viewpoints with and without graphic PMI,\nthen also show the viewpoints without graphic PMI.  Those\nviewpoints are typically top, front, side, etc."
     tooltip::tooltip $buttons(debugVP)     "Debug viewpoint orientation defined by a camera model\nby showing the view frustum in the viewer.\n\nSee Help > Viewer > Viewpoints\nSee the CAx-IF Recommended Practice for\n $recPracNames(pmi242), Sec. 9.4.2.6"
-    tooltip::tooltip $buttons(partNoCap)   "Use when capped surfaces for section view clipping planes\ncannot be generated or when they do not look right.\nSee Help > Viewer > New Features"
+    tooltip::tooltip $buttons(partNoCap)   "Use when capped surfaces for section view clipping planes\ntake a long time to generate, look wrong, or if the software\ncrashes when generating them.\nSee Help > Viewer > New Features"
     tooltip::tooltip $buttons(brepAlt)     "If curved surfaces for Part Geometry look wrong even with\nQuality set to High, use an alternative b-rep geometry\nprocessing algorithm.  It will take longer to process the STEP\nfile and the resulting Viewer file will be larger."
     tooltip::tooltip $buttons(tessPartOld) "Process AP242 tessellated part geometry with the old method in SFA < 5.10.\nIt is not recommended for assemblies or large STEP files."
     tooltip::tooltip $buttons(x3dSave)     "The X3D file can be shown in an X3D viewer or imported to other software.\nUse this option if an Internet connection is not available for the Viewer.\nSee Help > Viewer"
@@ -1035,7 +1004,7 @@ proc guiMoreTab {} {
 #-------------------------------------------------------------------------------
 # help menu
 proc guiHelpMenu {} {
-  global ap242e3 ap242e4 bits developer Examples filesProcessed Help ifcsvrDir ifcsvrVer mytemp opt scriptName stepAPs
+  global bits developer Examples filesProcessed Help ifcsvrDir ifcsvrVer mytemp opt scriptName stepAPs
 
   $Help add command -label "User Guide" -command {openUserGuide}
   $Help add command -label "Release Notes" -command {openURL https://www.nist.gov/document/sfa-release-notes}
@@ -1211,8 +1180,8 @@ manually select the clipping plane that is associated with a viewpoint or saved 
 
 Capped surfaces, in the plane of the black square, are usually generated when there is only one
 clipping plane per section view.  Switching off parts in an assembly does not turn off their capped
-surfaces.  If the capped surfaces look bad or if the software crashes when generating them use the
-option on the More tab to disable them.
+surfaces.  If the capped surfaces take a long time to generate, look wrong, or if the software
+crashes when generating them, then use the option on the More tab to disable them.
 
 4 - Parallel projection viewpoints
 
@@ -1267,6 +1236,9 @@ projection.
 If there are duplicate saved view names, then a number in parentheses is appended to the name.  For
 example, two viewpoints named MBD_A will appear as MBD_A (1) and MBD_A (2) for the Viewpoint name
 in the upper left corner of the viewer when cycling through the viewpoints with PageDown.
+
+Saved view names with non-English characters (Unicode) are supported in the viewer if a spreadsheet
+is also generated.
 
 On the More tab, parallel projection viewpoints as defined in the STEP file can be used instead of
 the default perspective.  Also, if the model has viewpoints with and without graphic PMI, then the
@@ -1770,16 +1742,6 @@ See Examples > NIST CAD Models
 See Examples > Spreadsheets - PMI Representation"
     .tnb select .tnb.status
   }
-# report new entities
-  if {$developer} {
-    $helpAnalyze add command -label "New AP242 Entities" -command {
-      outputMsg "\nNew AP242 Entities --------------------------------------------------------------------------------" blue
-      set newent [lindex [intersect3 $ap242e3 $ap242e4] 2]
-      outputMsg "There are [llength $newent] new entities in AP242 edition 3+\n"
-      foreach item $newent {outputMsg $item}
-      .tnb select .tnb.status
-    }
-  }
   $Help add separator
 
   $Help add command -label "Syntax Checker" -command {
@@ -1962,6 +1924,9 @@ Unicode characters for GD&T symbols are used by Equivalent Unicode Strings repor
 descriptive_representation_item worksheet and worksheets for semantic and graphic PMI where there
 is an associated PMI validation property.  Equivalent Unicode Strings are not documented in the
 User Guide.  See Recommended Practice for PMI Unicode String Specification.
+
+Unicode characters using \\X2\\ control directives for attribute strings on Geometry entities and
+some Presentation entities are not processed.
 
 ---------------------------------------------------------------------------------------------------
 Viewer - All control directives are supported for part and assembly names.  Non-English characters
@@ -2205,7 +2170,7 @@ See Help > Disclaimers and NIST Disclaimer"
 #-------------------------------------------------------------------------------
 # Websites menu
 proc guiWebsitesMenu {} {
-  global Websites
+  global ap242e3 ap242e4 developer Websites
 
   $Websites add command -label "STEP File Analyzer and Viewer"              -command {openURL https://www.nist.gov/services-resources/software/step-file-analyzer-and-viewer}
   $Websites add command -label "STEP at NIST"                               -command {openURL https://www.nist.gov/ctl/smart-connected-systems-division/smart-connected-manufacturing-systems-group/step-nist}
@@ -2226,6 +2191,17 @@ proc guiWebsitesMenu {} {
   $Websites0 add command -label "AP203 vs AP214 vs AP242" -command {openURL https://www.capvidia.com/blog/best-step-file-to-use-ap203-vs-ap214-vs-ap242}
   $Websites0 add command -label "Benchmark Testing"       -command {openURL http://www.asd-ssg.org/step-ap242-benchmark.html}
   $Websites0 add command -label "Domain Model XML"        -command {openURL https://www.mbx-if.org/home/pdm/recpractices/}
+
+# report new entities
+  if {$developer} {
+    $Websites0 add command -label "New Entities" -command {
+      outputMsg "\nNew AP242 Entities --------------------------------------------------------------------------------" blue
+      set newent [lindex [intersect3 $ap242e3 $ap242e4] 2]
+      outputMsg "There are [llength $newent] new entities in AP242 edition 3+\n"
+      foreach item $newent {outputMsg $item}
+      .tnb select .tnb.status
+    }
+  }
 
   $Websites0 add separator
   $Websites0 add command -label "ISO 10303-242"           -command {openURL https://www.iso.org/standard/84667.html}
@@ -2263,7 +2239,6 @@ proc guiWebsitesMenu {} {
   $Websites4 add command -label "MBx Interoperability Forum (MBx-IF)"       -command {openURL https://www.mbx-if.org/home/}
   $Websites4 add command -label "LOTAR - LOng Term Archiving and Retrieval" -command {openURL https://lotar-international.org}
   $Websites4 add command -label "ISO/TC 184/SC 4 - Industrial Data"         -command {openURL https://committee.iso.org/home/tc184sc4}
-  $Websites4 add command -label "3D PDF Formats"                            -command {openURL https://pdfa.org/pdf-2-0-adds-step-3d-model-support/}
   $Websites4 add command -label "JT-IF"                                     -command {openURL https://www.prostep.org/en/projects/jt-project-groups-jt-wf-jt-if-jt-bm}
 }
 
@@ -2821,10 +2796,6 @@ proc checkValues {} {
 # graphic PMI view
   if {$opt(viewPMI)} {
     lappend butNormal gpmiColor0 gpmiColor1 gpmiColor2 gpmiColor3 labelPMIcolor viewNoPMI
-    if {$gen(View) && ($gen(Excel) || $gen(CSV)) && $opt(xlFormat) != "None"} {
-      set opt(stepPRES) 1
-      lappend butDisabled stepPRES
-    }
   } else {
     lappend butDisabled gpmiColor0 gpmiColor1 gpmiColor2 gpmiColor3 labelPMIcolor viewNoPMI
   }

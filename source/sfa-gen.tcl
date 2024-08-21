@@ -8,7 +8,7 @@ proc genExcel {{numFile 0}} {
   global nistName nistPMIexpected nistPMImaster noFontFile nprogBarEnts opt pf32 p21e3Section pmiCol resetRound row rowmax savedViewButtons
   global savedViewName savedViewNames scriptName sheetLast skipEntities skipFileName spmiEntity spmiSumName spmiSumRow spmiTypesPerFile
   global startrow statsOnly stepAP stepAPreport sumHeaderRow syntaxErr tessColor tessEnts tessSolid thisEntType timeStamp tlast tolNames tolStandard tolStandards
-  global totalEntity unicodeActual unicodeAttributes unicodeEnts unicodeInFile unicodeNumEnts unicodeString userEntityFile userEntityList
+  global totalEntity unicodeActual unicodeAttributes unicodeEnts unicodeInFile unicodeNumEnts unicodeString unicodeStringCM userEntityFile userEntityList
   global userWriteDir useXL uuid uuidEnts valRounded viz wdir workbook workbooks worksheet worksheet1 worksheets writeDir wsCount wsNames x3dAxes
   global x3dColor x3dColorFile x3dColors x3dFileName x3dIndex x3dMax x3dMin x3dMsg x3dMsgColor x3dStartFile x3dViewOK xlFileName xlFileNames xlInstalled
   global objDesign
@@ -820,6 +820,7 @@ proc genExcel {{numFile 0}} {
   if {$opt(PMISEM) && [string first "AP242" $stepAP] == 0 && $opt(xlFormat) != "None"} {
 
 # NIST test case
+    if {![info exists nistName]} {set nistName ""}
     if {$nistName != ""} {
       set tols [concat $tolNames [list dimensional_characteristic_representation datum datum_feature datum_reference_compartment datum_reference_element datum_system placed_datum_target_feature]]
       foreach tol $tols {if {[info exists entCount($tol)]} {set ok 1; break}}
@@ -1037,6 +1038,7 @@ proc genExcel {{numFile 0}} {
 
 # check for entities in unicodeAttributes that might have Unicode strings, complex entities require special exceptions in proc unicodeStrings
   catch {unset unicodeString}
+  catch {unset unicodeStringCM}
   set unicodeEnts {}
   if {$opt(xlUnicode) && $opt(xlFormat) != "None" && $useXL} {
     set unicodeNumEnts 0

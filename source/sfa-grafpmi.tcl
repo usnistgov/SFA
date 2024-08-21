@@ -333,11 +333,11 @@ proc gpmiAnnotationReport {objEntity} {
                   foreach e0 $objValue {if {[$e0 Type] == "apll_point_with_surface"} {set surfacePoint 1}}
                   set msg ""
                   if {[llength $objValue] == 1} {
-                    set msg "Syntax Error: Leader line has only one 'point'."
+                    set msg "Syntax Error: Leader line has only one 'point' on '[lindex $ent1 0]'."
                   } elseif {([string first "to_model" $ent1] != -1 || [string first "auxiliary" $ent1] != -1) && $surfacePoint == 0} {
-                    set msg "Syntax Error: Missing an 'apll_point_with_surface' for model leader line.  Or use 'annotation_to_annotation_leader_line' if the line does not end on a surface."
+                    set msg "Syntax Error: Missing an 'apll_point_with_surface' for model leader line on '[lindex $ent1 0]'.  Or use 'annotation_to_annotation_leader_line' if the line does not end on a surface."
                   } elseif {[string first "to_annotation" $ent1] != -1 && $surfacePoint == 1} {
-                    set msg "Syntax Error: Leader line should not include 'apll_point_with_surface'.  Or use 'annotation_to_model_leader_line' if the line does end on a surface."
+                    set msg "Syntax Error: Leader line should not include 'apll_point_with_surface' on '[lindex $ent1 0]'.  Or use 'annotation_to_model_leader_line' if the line does end on a surface."
                   }
                   if {$msg != ""} {
                     append msg "$spaces\($recPracNames(pmi242), Sec. 7.2.4)"
@@ -1458,7 +1458,7 @@ proc pmiGetCameras {} {
   global objDesign
   global cameraModels cmNameID draughtingModels draftModelCameraNames draftModelCameras dupViewpoint entCount gen mytemp opt
   global recPracNames savedViewFile savedViewDMName savedViewFileName savedViewItems savedViewName savedViewNames savedViewpoint
-  global spaces spmiTypesPerFile syntaxErr viewsWithPMI
+  global spaces spmiTypesPerFile syntaxErr unicodeString unicodeStringCM viewsWithPMI
 
   outputMsg " Processing viewpoints (camera_model_d3)" green
   catch {unset draftModelCameras}
@@ -1479,6 +1479,8 @@ proc pmiGetCameras {} {
           regsub -all {\[} $cmname "" cmname
           regsub -all {\]} $cmname "" cmname
           set cmname [string trim $cmname]
+          set idx "$cm,[$e0 P21ID]"
+          if {[info exists unicodeStringCM($idx)]} {set cmname $unicodeStringCM($idx)}
           set cmNameID([$e0 P21ID]) $cmname
           lappend cmnames $cmname
         }
@@ -1527,6 +1529,10 @@ proc pmiGetCameras {} {
                   set nameDraughtingModel [$attrDraughtingModel Name]
                   if {$nameDraughtingModel == "name" && $nattr == $iattr} {
                     set dmname [$attrDraughtingModel Value]
+                    if {$dmname == ""} {
+                      set idx "$dm,name,[$entDraughtingModel P21ID]"
+                      if {[info exists unicodeString($idx)]} {set dmname $unicodeString($idx)}
+                    }
                     if {$dmname == ""} {
                       set msg "Syntax Error: For viewpoints, missing required 'name' attribute on [formatComplexEnt $dm]$spaces"
                       append msg "($recPracNames(pmi242), Sec. 9.4.2)"
