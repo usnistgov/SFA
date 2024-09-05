@@ -1,5 +1,5 @@
 # SFA version
-proc getVersion {} {return 5.17}
+proc getVersion {} {return 5.20}
 
 # see proc installIFCsvr in sfa-proc.tcl for the IFCsvr version
 # see below (line 37) for the sfaVersion when IFCsvr was updated
@@ -41,13 +41,13 @@ Use F9 and F10 to change the font size here.  See Help > Function Keys"
       openUserGuide
     }
   }
-
   if {$sfaVersion < 5.10} {outputMsg "- Faster processing of B-rep and AP242 tessellated part geometry for the Viewer, see Release Notes" red}
-  if {$sfaVersion < 5.10} {outputMsg "- Updated Sample STEP Files, see Examples menu"}
-  if {$sfaVersion < 5.06} {outputMsg "- New 'Other' Entity Types category on the Generate tab"}
   if {$sfaVersion < 5.0}  {outputMsg "- Renamed 'Options' and 'Spreadsheet' tabs to 'Generate' and 'More'"}
+  if {$sfaVersion < 5.20} {outputMsg "- Renamed 'PMI Representation' to 'Semantic PMI' and 'PMI Presentation' to' Graphic PMI'"}
+  if {$sfaVersion < 5.06} {outputMsg "- New 'Other' Entity Types category on the Generate tab"}
   if {$sfaVersion < 5.03} {outputMsg "- Hidden checkboxes and sliders in the Viewer"}
   if {$sfaVersion < 5.02} {outputMsg "- Help > Viewer > Viewpoints, and Help > Viewer > New Features"}
+  if {$sfaVersion < 5.10} {outputMsg "- Updated Sample STEP Files, see Examples menu"}
   if {$sfaVersion < 5.16} {outputMsg "- The CAx-IF website and Recommended Practices for PMI in AP242 have been updated, see Websites"}
   if {$sfaVersion < 4.84 && [file exists [file join [file dirname [info nameofexecutable]] STEP-File-Analyzer-Release-Notes.xlsx]]} {
     outputMsg "- The local Release Notes file 'STEP-File-Analyzer-Release-Notes.xlsx' is not up-to-date and should be deleted." red
@@ -557,19 +557,12 @@ proc guiGenerateTab {} {
   set foptd1 [frame $foptd.1 -bd 0]
 
   foreach item {{" Validation Properties" opt(valProp)} \
-                {" AP242 PMI Representation (Semantic PMI)" opt(PMISEM)} \
-                {" PMI Presentation (Graphic PMI)" opt(PMIGRF)} \
-                {" Presentation Coverage" opt(PMIGRFCOV)} \
+                {" AP242 Semantic Representation PMI" opt(PMISEM)} \
+                {" Graphic Presentation PMI" opt(PMIGRF)} \
                 {" Inverse Relationships and Backwards References" opt(INVERSE)}} {
     set idx [string range [lindex $item 1] 4 end-1]
     set buttons($idx) [ttk::checkbutton $foptd1.$cb -text [lindex $item 0] -variable [lindex $item 1] -command {checkValues}]
-    if {$idx == "PMIGRF"} {
-      pack $buttons($idx) -side top -anchor w -padx {5 10} -pady 0 -ipady 0
-    } elseif {$idx == "PMIGRFCOV"} {
-      pack $buttons($idx) -side top -anchor w -padx {26 10} -pady {0 5} -ipady 0
-    } else {
-      pack $buttons($idx) -side top -anchor w -padx {5 10} -pady {0 5} -ipady 0
-    }
+    pack $buttons($idx) -side top -anchor w -padx {5 10} -pady {0 5} -ipady 0
     incr cb
   }
   pack $foptd1 -side top -anchor w -pady 0 -padx 0 -fill y
@@ -577,9 +570,8 @@ proc guiGenerateTab {} {
 
   catch {
     tooltip::tooltip $buttons(valProp) "Geometric, assembly, PMI, annotation, attribute, tessellated, composite, and FEA\nvalidation properties, and semantic text are reported.  Properties are shown on\nthe 'property_definition' and other entities.  Some properties are reported only if\nAnalyzer option for Semantic PMI is selected.  Some properties might not be\nshown depending on the value of Maximum Rows (More tab).\n\nSee Help > Analyzer > Validation Properties\nSee Help > User Guide (section 6.3)\nSee Help > Analyzer > Syntax Errors\n\nValidation properties must conform to recommended practices.\nSee Websites > CAx Recommended Practices"
-    tooltip::tooltip $buttons(PMISEM)  "Semantic PMI is the information necessary to represent geometric\nand dimensional tolerances without any graphic PMI.  It is shown\non dimension, tolerance, datum target, and datum entities.\nSemantic PMI is mainly in STEP AP242 files.  See the More tab for\nmore options.\n\nSee Help > Analyzer > PMI Representation\nSee Help > User Guide (section 6.1)\nSee Help > Analyzer > Syntax Errors\nSee Websites > AP242\n\nSemantic PMI must conform to recommended practices.\nSee Websites > CAx Recommended Practices"
-    tooltip::tooltip $buttons(PMIGRF)  "Graphic PMI is the geometric elements necessary to draw annotations.\nThe information is shown on 'annotation occurrence' entities.\n\nSee Help > Analyzer > PMI Presentation\nSee Help > User Guide (section 6.2)\nSee Help > Analyzer > Syntax Errors\n\nGraphic PMI must conform to recommended practices.\nSee Websites > CAx Recommended Practices"
-    tooltip::tooltip $buttons(PMIGRFCOV) "The PMI Presentation Coverage worksheet counts the number of recommended\nnames used from the Recommended Practice for Representation and Presentation\nof PMI (AP242), Section 8.4.  The names do not have any semantic meaning.\n\nSee Help > Analyzer > PMI Coverage Analysis"
+    tooltip::tooltip $buttons(PMISEM)  "Semantic PMI is the information necessary to represent geometric\nand dimensional tolerances without any graphic PMI.  It is shown\non dimension, tolerance, datum target, and datum entities.\nSemantic PMI is mainly in STEP AP242 files.  See the More tab for\nmore options.\n\nSee Help > Analyzer > Semantic Representation PMI\nSee Help > User Guide (section 6.1)\nSee Help > Analyzer > Syntax Errors\nSee Websites > AP242\n\nSemantic PMI must conform to recommended practices.\nSee Websites > CAx Recommended Practices"
+    tooltip::tooltip $buttons(PMIGRF)  "Graphic PMI is the geometric elements necessary to draw annotations.\nThe information is shown on 'annotation occurrence' entities.\n\nSee Help > Analyzer > Graphic Presentation PMI\nSee Help > User Guide (section 6.2)\nSee Help > Analyzer > Syntax Errors\n\nGraphic PMI must conform to recommended practices.\nSee Websites > CAx Recommended Practices"
 
     set ttmsg "Inverse Relationships and Backwards References (Used In) are reported for some attributes for these entities in\nadditional columns highlighted in light blue and purple.  This option is useful for debugging some Syntax Errors\nand finding missing relationships and references.  See Help > User Guide (section 6.4)"
     set ttmsg [guiToolTip $ttmsg "inverses" "Inverse"]
@@ -665,7 +657,7 @@ proc guiGenerateTab {} {
     tooltip::tooltip $buttons(feaLoadScale) "The length of load vectors can be scaled by their magnitude.\nLoad vectors are always colored by their magnitude."
     tooltip::tooltip $buttons(feaDispNoTail) "The length of displacement vectors with a tail are scaled by\ntheir magnitude.  Vectors without a tail are not.\nDisplacement vectors are always colored by their magnitude.\nLoad vectors always have a tail."
     tooltip::tooltip $foptv21 "Quality controls the number of facets used for curved surfaces.\nFor example, the higher the quality the more facets around the\ncircumference of a cylinder.\n\nNormals improve the default smooth shading of surfaces.  Using\nHigh Quality and Normals results in the best appearance for b-rep\npart geometry.  Quality and normals do not apply to tessellated\npart geometry.\n\nIf curved surfaces for b-rep part geometry look wrong even with\nQuality set to High, then use the Alternative B-rep Geometry\nProcessing method on the More tab."
-    tooltip::tooltip $foptv4  "For 'By View' PMI colors, each Saved View is set to a different color.  If there\nis only one or no Saved Views, then 'Random' PMI colors are used.\n\nFor 'Random' PMI colors, each annotation is set to a different color to help\ndifferentiate one from another.\n\nPMI color does not apply to annotation placeholders which are always yellow."
+    tooltip::tooltip $foptv4  "For 'By View' PMI colors, each Saved View is set to a different color.  If there\nis only one or no Saved Views, then 'Random' PMI colors are used.\n\nFor 'Random' PMI colors, each annotation is set to a different color to help\ndifferentiate one from another.\n\nPMI color does not apply to annotation placeholders which are always black."
     set tt "FEM nodes, elements, boundary conditions, loads, and\ndisplacements in AP209 files are shown.\n\nSee Help > Viewer > AP209 Finite Element Model\nSee Help > User Guide (section 4.4)"
     tooltip::tooltip $foptv7 $tt
     tooltip::tooltip $foptv8 $tt
@@ -912,7 +904,7 @@ proc guiMoreTab {} {
 # other analyzer options
   set fxlsa [ttk::labelframe $fxls.a -text " Analyzer "]
   foreach item {{" Round dimensions and geometric tolerances for semantic PMI" opt(PMISEMRND)} \
-                {" Show all PMI Elements on PMI Representation Coverage worksheet" opt(SHOWALLPMI)}} {
+                {" Show all PMI Elements on Semantic PMI Coverage worksheet" opt(SHOWALLPMI)}} {
     set idx [string range [lindex $item 1] 4 end-1]
     set buttons($idx) [ttk::checkbutton $fxlsa.$cb -text [lindex $item 0] -variable [lindex $item 1] -command {checkValues}]
     pack $buttons($idx) -side top -anchor w -padx {5 10} -pady 0 -ipady 0
@@ -925,7 +917,7 @@ proc guiMoreTab {} {
     tooltip::tooltip $buttons(xlUnicode)   "Use this option if there are non-English characters or symbols\nencoded with the \\X2\\ control directive in the STEP file.\n\nSee Help > Text Strings and Numbers\nSee User Guide (section 5.5.2)"
     tooltip::tooltip $buttons(xlSort)      "Worksheets can be sorted by column values.\nWorksheets related to Analyzer options are always sorted.\n\nSee Help > User Guide (section 5.5.3)"
     tooltip::tooltip $buttons(xlNoRound)   "See Help > User Guide (section 5.5.4)"
-    tooltip::tooltip $buttons(SHOWALLPMI)  "The complete list of [expr {$pmiElementsMaxRows-3}] PMI Elements, including those that are not in the\nSTEP file, will be shown on the PMI Representation Coverage worksheet.\n\nSee Help > Analyzer > PMI Coverage Analysis\nSee Help > User Guide (section 6.1.7)"
+    tooltip::tooltip $buttons(SHOWALLPMI)  "The complete list of [expr {$pmiElementsMaxRows-3}] PMI Elements, including those that are not in the\nSTEP file, will be shown on the Semantic PMI Coverage worksheet.\n\nSee Help > Analyzer > PMI Coverage Analysis\nSee Help > User Guide (section 6.1.7)"
     tooltip::tooltip $buttons(xlHideLinks) "This option is useful when sharing a Spreadsheet with another user."
     tooltip::tooltip $buttons(PMISEMRND)   "Rounding values might result in a better match to graphic PMI shown in\nthe viewer or to expected PMI in the NIST CAD models (FTC/STC 7, 8, 11).\n\nSee User Guide (section 6.1.3.1)\nSee Websites > Recommended Practice for\n   $recPracNames(pmi242), Section 5.4"
     tooltip::tooltip $buttons(viewParallel) "Use parallel projection defined in the STEP file for saved view viewpoints,\ninstead of the default perspective projection.  Pan and zoom might not\nwork with parallel projection.  See Help > Viewer > Viewpoints"
@@ -1051,9 +1043,9 @@ AP209, AP210, and AP238.  The categories are used to group and color-code entiti
 worksheet.  The tooltip help lists all the entities associated with that type.
 
 Analyzer options report PMI and check for conformance to recommended practices.
-- PMI Representation: Dimensional tolerances, geometric tolerances, and datum features are reported
-  on various entities indicated by PMI Representation on the Summary worksheet.
-- PMI Presentation: Geometric entities used for PMI Presentation annotations are reported.
+- Semantic Representation PMI: Dimensional tolerances, geometric tolerances, and datum features are
+  reported on various entities indicated by Semantic PMI on the Summary worksheet.
+- Graphic Presentation PMI: Geometric entities used for Graphic PMI annotations are reported.
   Associated Saved Views, Validation Properties, and Geometry are also reported.
 - Validation Properties: Geometric, assembly, PMI, annotation, attribute, and tessellated
   validation properties are reported.
@@ -1178,10 +1170,10 @@ be centered on the model.  Checkboxes show the names of each clipping plane.  If
 duplicate clipping plane names, a number in parentheses is appended to the name.  You have to
 manually select the clipping plane that is associated with a viewpoint or saved view graphic PMI.
 
-Capped surfaces, in the plane of the black square, are usually generated when there is only one
-clipping plane per section view.  Switching off parts in an assembly does not turn off their capped
-surfaces.  If the capped surfaces take a long time to generate, look wrong, or if the software
-crashes when generating them, then use the option on the More tab to disable them.
+Capped surfaces, in the plane of the black square, are generated when there is only one clipping
+plane per section view.  Sometimes capped surfaces are not generated.  Switching off parts in an
+assembly does not turn off their capped surfaces.  If capped surfaces take a long time to generate,
+or they look wrong, then use the option on the More tab to disable them.
 
 4 - Parallel projection viewpoints
 
@@ -1332,7 +1324,7 @@ See Websites > CAx Recommended Practices (Supplemental Geometry)"
 
   $helpView add command -label "Graphic PMI" -command {
 outputMsg "\nGraphic PMI ---------------------------------------------------------------------------------------" blue
-outputMsg "Graphic PMI (PMI Presentation) annotations for geometric dimensioning and tolerancing composed of
+outputMsg "Graphic Presentation PMI annotations for geometric dimensioning and tolerancing composed of
 polylines, lines, circles, and tessellated geometry are supported.  On the Generate tab, the color
 of the annotations can be modified.  PMI associated with saved views can be switched on and off.
 
@@ -1347,7 +1339,7 @@ See Websites > CAx Recommended Practices
 Graphic PMI on parts in an assembly might have the wrong position and orientation.
 
 See Help > User Guide (section 4.2)
-See Help > Analyzer > PMI Presentation
+See Help > Analyzer > Graphic Presentation PMI
 See Examples > Viewer
 See Examples > Sample STEP Files
 
@@ -1369,7 +1361,7 @@ graphic PMI.  Placeholders are supported in AP242 editions >=2.  They are not do
 User Guide.
 
 Placeholder coordinate systems are shown with an axes triad, gray sphere, and text label with the
-name of the placeholder.  Leader lines and a rectangle for the annotation are shown with yellow
+name of the placeholder.  Leader lines and a rectangle for the annotation are shown with black
 lines.  To identify which annotation a leader line is associated with, the first and last points of
 a leader line have a text label.  Leader line symbols show their type and position with blue text.
 Some implemetations of placeholders might not contain all of the graphic elements.
@@ -1477,7 +1469,7 @@ The Summary worksheet indicates if properties are reported on property_definitio
 entities.
 
 See Help > User Guide (section 6.3)
-See Examples > PMI Presentation, Validation Properties
+See Examples > Graphic PMI, Validation Properties
 
 Validation properties must conform to recommended practices.
  See Websites > CAx Recommended Practices (Geometric and Assembly Validation Properties,
@@ -1486,34 +1478,33 @@ Validation properties must conform to recommended practices.
     .tnb select .tnb.status
   }
 
-  $helpAnalyze add command -label "PMI Representation (Semantic PMI)" -command {
-outputMsg "\nPMI Representation --------------------------------------------------------------------------------" blue
-outputMsg "PMI Representation (Semantic PMI) includes all information necessary to represent geometric and
-dimensional tolerances (GD&T) without any graphic presentation elements.  PMI Representation is
+  $helpAnalyze add command -label "Semantic Representation PMI" -command {
+outputMsg "\nSemantic Representation PMI -----------------------------------------------------------------------" blue
+outputMsg "Semantic Representation PMI includes all information necessary to represent geometric and
+dimensional tolerances (GD&T) without any graphic presentation elements.  Semantic PMI is
 associated with CAD model geometry and is computer-interpretable to facilitate automated
 consumption by downstream applications for manufacturing, measurement, inspection, and other
-processes.  PMI Representation is mainly in AP242 files.
+processes.  Semantic Representation PMI is mainly in AP242 files.
 
-Worksheets for the PMI Representation Analyzer report show a visual recreation of the
+Worksheets for the Semantic Representation PMI Analyzer report show a visual recreation of the
 representation for Dimensional Tolerances, Geometric Tolerances, and Datum Features.  The results
 are in columns, highlighted in yellow and green, on the relevant worksheets.  The GD&T is recreated
 as best as possible given the constraints of Excel.
 
 All of the visual recreation of Datum Systems, Dimensional Tolerances, and Geometric Tolerances
-that are reported on individual worksheets are collected on one PMI Representation Summary
-worksheet.
+that are reported on individual worksheets are collected on one Semantic PMI Summary worksheet.
 
-If STEP files from the NIST CAD models (Examples > NIST CAD Models) are processed, then the PMI
-Representation Summary is color-coded by the expected PMI in each CAD model.
+If STEP files from the NIST CAD models (Examples > NIST CAD Models) are processed, then the
+Semantic PMI Summary is color-coded by the expected PMI in each CAD model.
 See Help > Analyzer > NIST CAD Models
 
 Datum Features are reported on datum_* entities.  Datum_system will show the complete Datum
 Reference Frame.  Datum Targets are reported on placed_datum_target_feature.
 
 Dimensional Tolerances are reported on the dimensional_characteristic_representation worksheet.
-The dimension name, representation name, length/angle, length/angle name, and plus minus bounds are
-reported.  The relevant section in the recommended practice is shown in the column headings.
-Dimensional tolerances for holes are reported on *_hole_definition worksheets.
+The dimension name, representation name, length/angle, length/angle name, plus minus bounds, and
+other associated information are reported.  The relevant section in the recommended practice is
+shown in the column headings.
 
 Geometric Tolerances are reported on *_tolerance entities by showing the complete Feature Control
 Frame (FCF), and possible Dimensional Tolerance and Datum Feature.  The FCF should contain the
@@ -1524,11 +1515,12 @@ If a Dimensional Tolerance refers to the same geometric element as a Geometric T
 will be shown above the FCF.  If a Datum Feature refers to the same geometric face as a Geometric
 Tolerance, then it is shown below the FCF.  If an expected Dimensional Tolerance is not shown above
 a Geometric Tolerance, then the tolerances do not reference the same geometric element.  For
-example, referencing the edge of a hole versus the surfaces of a hole.
+example, the dimensional tolerance referencing the curved edge of a hole and the geometric
+tolerance referencing the cylindrical surfaces of the same hole.
 
 The association of the Datum Feature with a Geometric Tolerance is based on each referring to the
-same geometric element.  However, the PMI Presentation might show the Geometric Tolerance and
-Datum Feature as two separate annotations with leader lines attached to the same geometric element.
+same geometric element.  However, the Graphic PMI might show the Geometric Tolerance and Datum
+Feature as two separate annotations with leader lines attached to the same geometric element.
 
 The number of decimal places for dimension and geometric tolerance values can be specified in the
 STEP file.  By definition the value is always truncated, however, the values can be rounded instead.
@@ -1540,11 +1532,11 @@ Some syntax errors that indicate non-conformance to a CAx-IF Recommended Practic
 Representation are also reported in the Status tab and the relevant worksheet cells.  Syntax errors
 are highlighted in red.  See Help > Analyzer > Syntax Errors
 
-A PMI Representation Coverage Analysis worksheet is also generated.
+A Semantic PMI Coverage Analysis worksheet is also generated.
 
 See Help > User Guide (section 6.1)
 See Help > Analyzer > PMI Coverage Analysis
-See Examples > Spreadsheets - PMI Representation
+See Examples > Spreadsheets - Semantic PMI
 See Examples > Sample STEP Files
 
 Semantic PMI must conform to recommended practices.
@@ -1552,31 +1544,30 @@ Semantic PMI must conform to recommended practices.
     .tnb select .tnb.status
   }
 
-  $helpAnalyze add command -label "PMI Presentation (Graphic PMI)" -command {
-outputMsg "\nPMI Presentation ----------------------------------------------------------------------------------" blue
-outputMsg "PMI Presentation (Graphic PMI) consists of geometric elements including lines and curves
-preserving the exact appearance (color, shape, positioning) of the geometric and dimensional
-tolerance (GD&T) annotations.  PMI Presentation is not intended to be computer-interpretable and
-does not have any representation information, although it can be linked to its corresponding PMI
-Representation.
+  $helpAnalyze add command -label "Graphic Presentation PMI" -command {
+outputMsg "\Graphic Presentation PMI ---------------------------------------------------------------------------" blue
+outputMsg "Graphic Presentation PMI consists of geometric elements including lines and curves preserving the
+exact appearance (color, shape, positioning) of the geometric and dimensional tolerance (GD&T)
+annotations.  Graphic PMI is not intended to be computer-interpretable and does not have any
+representation information, although it can be linked to its corresponding Semantic PMI.
 
 The Analyzer report for Graphic PMI supports annotation_curve_occurrence, annotation_curve,
 annotation_fill_area_occurrence, and tessellated_annotation_occurrence entities.  Geometric
-entities used for PMI Presentation annotations are reported in columns, highlighted in yellow and
-green, on those worksheets.  Presentation Style, Saved Views, Validation Properties, Annotation
-Plane, Associated Geometry, and Associated Representation are also reported.
+entities used for Graphic PMI annotations are reported in columns, highlighted in yellow and green,
+on those worksheets.  Presentation Style, Saved Views, Validation Properties, Annotation Plane,
+Associated Geometry, and Associated Semantic PMI are also reported.
 
-The Summary worksheet indicates on which worksheets PMI Presentation is reported.  Some syntax
-errors related to PMI Presentation are also reported in the Status tab and the relevant worksheet
+The Summary worksheet indicates on which worksheets Graphic PMI is reported.  Some syntax errors
+related to Graphic PMI are also reported in the Status tab and the relevant worksheet
 cells.  Syntax errors are highlighted in red.  See Help > Analyzer > Syntax Errors
 
-An optional PMI Presentation Coverage Analysis worksheet can be generated.
+A Graphic PMI Coverage Analysis worksheet is also generated.
 
 See Help > User Guide (section 6.2)
 See Help > Viewer > Graphic PMI
 See Help > Analyzer > PMI Coverage Analysis
 See Examples > Viewer
-See Examples > PMI Presentation, Validation Properties
+See Examples > Graphic PMI, Validation Properties
 See Examples > Sample STEP Files
 
 Graphic PMI must conform to recommended practices.
@@ -1589,32 +1580,31 @@ Graphic PMI must conform to recommended practices.
   $helpAnalyze add command -label "PMI Coverage Analysis" -command {
 outputMsg "\nPMI Coverage Analysis -----------------------------------------------------------------------------" blue
 outputMsg "PMI Coverage Analysis worksheets are generated when processing single or multiple files and when
-reports for PMI Representation or Presentation are selected.
+reports for Semantic Representation PMI or Graphic Presentation PMI are selected.
 
-PMI Representation Coverage Analysis (semantic PMI) counts the number of PMI Elements in a STEP
-file for tolerances, dimensions, datums, modifiers, and CAx-IF Recommended Practices for PMI
-Representation.  On the Coverage Analysis worksheet, some PMI Elements show their associated
-symbol, while others show the relevant section in the recommended practice.  PMI Elements without
-a section number do not have a recommended practice for their implementation.  The PMI Elements are
-grouped by features related tolerances, tolerance zones, dimensions, dimension modifiers, datums,
-datum targets, and other modifiers.  The number of some modifiers, e.g., maximum material
-condition, does not differentiate whether they appear in the tolerance zone definition or datum
-reference frame.  Rows with no count of a PMI Element can be shown, see More tab.
+Semantic PMI Coverage Analysis counts the number of PMI Elements in a STEP file for tolerances,
+dimensions, datums, modifiers, and CAx-IF Recommended Practices for PMI Representation.  On the
+Coverage Analysis worksheet, some PMI Elements show their associated symbol, while others show the
+relevant section in the recommended practice.  PMI Elements without a section number do not have a
+recommended practice for their implementation.  The PMI Elements are grouped by features related
+tolerances, tolerance zones, dimensions, dimension modifiers, datums, datum targets, and other
+modifiers.  The number of some modifiers, e.g., maximum material condition, does not differentiate
+whether they appear in the tolerance zone definition or datum reference frame.  Rows with no count
+of a PMI Element can be shown, see More tab.
 
 Some PMI Elements might not be exported to a STEP file by your CAD system.  Some PMI Elements are
 only in AP242 editions > 1.
 
-If STEP files from the NIST CAD models (Examples > NIST CAD Models) are processed, then the PMI
-Representation Coverage Analysis worksheet is color-coded by the expected number of PMI elements in
+If STEP files from the NIST CAD models (Examples > NIST CAD Models) are processed, then the
+Semantic PMI Coverage Analysis worksheet is color-coded by the expected number of PMI elements in
 each CAD model.  See Help > Analyzer > NIST CAD Models
 
-The optional PMI Presentation Coverage Analysis (graphic PMI) counts the occurrences of the
-recommended name attribute defined in the CAx-IF Recommended Practice for PMI Representation and
-Presentation of PMI (AP242) or PMI Polyline Presentation (AP203/AP242).  The name attribute is
-associated with the graphic elements used to draw a PMI annotation or placeholder.  There is no
-semantic PMI meaning to the name attributes.
+The Graphic PMI Coverage Analysis counts the occurrences of the recommended name attribute defined
+in the CAx-IF Recommended Practice for PMI Representation and Presentation of PMI (AP242).  The
+name attribute is associated with the graphic elements used to draw a PMI annotation or placeholder.
+There is no semantic PMI meaning to the name attributes.
 
-See Help > Analyzer > PMI Representation
+See Help > Analyzer > Semantic Representation PMI
 See Help > User Guide (sections 6.1.7 and 6.2.1)
 See Examples > PMI Coverage Analysis"
     .tnb select .tnb.status
@@ -1657,9 +1647,8 @@ See Help > User Guide (section 6.5)"
   $helpAnalyze add command -label "NIST CAD Models" -command {
 outputMsg "\nNIST CAD Models -----------------------------------------------------------------------------------" blue
 outputMsg "If a STEP file from a NIST CAD model (CTC/FTC/STC) is processed, then the PMI in the STEP file is
-automatically checked against the expected PMI in the corresponding NIST test case.  The PMI
-Representation Coverage and Summary worksheets are color-coded by the expected PMI in each NIST
-test case.
+automatically checked against the expected PMI in the corresponding NIST test case.  The Semantic
+PMI Coverage and Summary worksheets are color-coded by the expected PMI in each NIST test case.
 
 The color-coding only works if the STEP file name can be recognized as having been generated from
 one of the NIST CAD models.  For example, nist_ctc_02-some-text.stp would recognize the STEP file
@@ -1667,7 +1656,7 @@ as being generated from CTC 2.  nist_ftc_06-more-text.stp would be for FTC 6 and
 nist_stc_10-whatever.stp would be for STC 10.
 
 ---------------------------------------------------------------------------------------------------
-* PMI Representation Summary *
+* Semantic PMI Summary *
 This worksheet is color-coded by the Expected PMI annotations in a test case drawing.
 - Green is an Exact match to an expected PMI annotation in the test case drawing
 - Green (lighter shade) is an Exact match with Exceptions
@@ -1698,7 +1687,7 @@ example, PMI annotations for hole features including counterbore, countersink, a
 supported.
 
 ---------------------------------------------------------------------------------------------------
-* PMI Representation Coverage Analysis *
+* Graphic PMI Coverage Analysis *
 This worksheet is color-coded by the expected number of PMI elements in a test case drawing.  The
 expected results were determined by manually counting the number of PMI elements in each drawing.
 Counting of some modifiers, e.g., maximum material condition, does not differentiate whether they
@@ -1709,16 +1698,17 @@ appear in the tolerance zone definition or datum reference frame.
 - Cyan means that more were found than expected. (4/3)
 - Magenta means that some PMI elements were found when none were expected. (3/0)
 
-From the PMI Representation Summary results, color-coded percentages of Exact, Partial, Possible
-and Missing matches is shown in a table below the PMI Representation Coverage Analysis.  Exceptions
-are counted as an Exact match and do not affect the percentage, except one or two points are
-deducted when the percentage would be 100.
+---------------------------------------------------------------------------------------------------
+From the Semantic PMI Summary results, color-coded percentages of Exact, Partial, Possible and
+Missing matches is shown in a table below the Semantic PMI Coverage Analysis.  Exceptions are
+counted as an Exact match and do not affect the percentage, except one or two points are deducted
+when the percentage would be 100.
 
 The Total PMI on which the percentages are based on is also shown.  Coverage Analysis is only based
-on individual PMI elements.  The PMI Representation Summary is based on the entire PMI feature
-control frame and provides a better understanding of the PMI.  The Coverage Analysis might show
-that there is an exact match for all of the PMI elements, however, the Representation
-Summary might show less than exact matches.
+on individual PMI elements.  The Semantic PMI Summary is based on the entire PMI feature control
+frame and provides a better understanding of the PMI.  The Coverage Analysis might show that there
+is an exact match for all of the PMI elements, however, the Semantic PMI Summary might show less
+than exact matches.
 
 ---------------------------------------------------------------------------------------------------
 * Missing PMI *
@@ -1739,7 +1729,7 @@ might be ambiguities in counting the number of PMI elements.
 
 See Help > User Guide (section 6.6)
 See Examples > NIST CAD Models
-See Examples > Spreadsheets - PMI Representation"
+See Examples > Spreadsheets - Semantic PMI"
     .tnb select .tnb.status
   }
   $Help add separator
@@ -1902,31 +1892,30 @@ respectively. AP242 edition 4 is in development.  See Websites > AP242\n"
 outputMsg "\nText Strings and Numbers --------------------------------------------------------------------------" blue
 outputMsg "Text strings in STEP files might use non-English characters or symbols.  Some examples are accented
 characters in European languages (for example é), and Asian languages that use different characters
-sets such as Cyrillic or Chinese.  Text strings with non-English characters or symbols are usually
+sets such as Japanese or Cyrillic.  Text strings with non-English characters or symbols are usually
 on descriptive measure or product related entities with name, description, or id attributes.
 
 According to ISO 10303 Part 21 section 6.4.3, Unicode can be used for non-English characters and
-symbols with the control directives \\X\\ and \\X2\\.  For example, \\X\\E9 or \\X2\\00E9\\X0\\ is used for
-the accented character é.  Definitions of Unicode characters, such as E9, can be found at
-www.unicode.org/charts  Some CAD software does not support these control directives when exporting
+symbols with the control directives \\X2\\ and \\X0\\.  For example, \\X2\\00E9\\X0\\ is used for the
+accented character é.  Some CAD software does not support these control directives when exporting
 or importing a STEP file.
 
 ---------------------------------------------------------------------------------------------------
-Spreadsheet - The \\X\\ and \\S\\ control directives are supported by default.  Use the option on the
-More tab to support non-English characters using the \\X2\\ control directive.  In some cases the
-option will be automatically selected based on the file schema or size.  There is a warning message
-if \\X2\\ is detected in the STEP file and the option is not selected.  In this case the \\X2\\
-characters are ignored and will be missing in the spreadsheet.  Non-English characters that do not
-use the control directives might be missing in the spreadsheet.  Control directives are supported
-only if Excel is installed.
+Spreadsheet - Use the option on the More tab to support non-English characters using the \\X2\\
+control directive.  In some cases the option will be automatically selected based on the file size
+or schema.  There is a warning message if \\X2\\ is detected in the STEP file and the option is not
+selected.  In this case the \\X2\\ characters are ignored and will be missing in the spreadsheet.
+Non-English characters that do not use the control directives might be missing in the spreadsheet.
+Control directives are supported only if Excel is installed.
 
 Unicode characters for GD&T symbols are used by Equivalent Unicode Strings reported on the
 descriptive_representation_item worksheet and worksheets for semantic and graphic PMI where there
 is an associated PMI validation property.  Equivalent Unicode Strings are not documented in the
-User Guide.  See Recommended Practice for PMI Unicode String Specification.
+User Guide.  See the Recommended Practice for PMI Unicode String Specification.
 
-Unicode characters using \\X2\\ control directives for attribute strings on Geometry entities and
-some Presentation entities are not processed.
+Unicode characters using \\X2\\ control directives are not processed for attribute strings on
+Geometry entities and some Presentation entities.  The \\X\\ and \\S\\ control directives are supported
+by default although they are no longer implemented in STEP files.
 
 ---------------------------------------------------------------------------------------------------
 Viewer - All control directives are supported for part and assembly names.  Non-English characters
@@ -1995,8 +1984,8 @@ and STEP files.
 If only the File Summary spreadsheet is needed, it can be generated faster by deselecting most
 Entity Types and options on the Generate tab.
 
-If the reports for PMI Representation or Presentation are selected, then Coverage Analysis
-worksheets are also generated.
+If the reports for Semantic or Graphic PMI are selected, then Coverage Analysis worksheets are also
+generated.
 
 In some rare cases an error will be reported with an entity when processing multiple files that is
 not an error when processing it as a single file.  Reporting the error is a bug.
@@ -2157,11 +2146,11 @@ See Help > Disclaimers and NIST Disclaimer"
   }
 
 # examples menu
-  $Examples add command -label "Viewer"                                  -command {openURL https://pages.nist.gov/CAD-PMI-Testing/}
-  $Examples add command -label "Spreadsheets - PMI Representation"       -command {openURL https://www.nist.gov/document/sfa-semantic-pmi-spreadsheet}
-  $Examples add command -label "PMI Presentation, Validation Properties" -command {openURL https://www.nist.gov/document/sfa-spreadsheet}
-  $Examples add command -label "PMI Coverage Analysis"                   -command {openURL https://www.nist.gov/document/sfa-multiple-files-spreadsheet}
-  $Examples add command -label "Bill of Materials"                       -command {openURL https://www.nist.gov/document/sfa-bill-materials-spreadsheet}
+  $Examples add command -label "Viewer"                   -command {openURL https://pages.nist.gov/CAD-PMI-Testing/}
+  $Examples add command -label "Spreadsheets - AP242 PMI" -command {openURL https://www.nist.gov/document/sfa-semantic-pmi-spreadsheet}
+  $Examples add command -label "- AP203 PMI"              -command {openURL https://www.nist.gov/document/sfa-spreadsheet}
+  $Examples add command -label "- PMI Coverage Analysis"  -command {openURL https://www.nist.gov/document/sfa-multiple-files-spreadsheet}
+  $Examples add command -label "- Bill of Materials"      -command {openURL https://www.nist.gov/document/sfa-bill-materials-spreadsheet}
   $Examples add separator
   $Examples add command -label "Sample STEP Files (zip)" -command {openURL https://www.nist.gov/document/nist-pmi-step-files}
   $Examples add command -label "NIST CAD Models"         -command {openURL https://www.nist.gov/ctl/smart-connected-systems-division/smart-connected-manufacturing-systems-group/mbe-pmi-0}
@@ -2742,7 +2731,7 @@ proc checkValues {} {
     foreach item [array names opt] {
       if {[string first "step" $item] == 0} {lappend butDisabled $item}
     }
-    lappend butDisabled PMIGRF PMIGRFCOV PMISEM PMISEMDIM PMISEMDT PMISEMRND valProp stepUSER BOM INVERSE
+    lappend butDisabled PMIGRF PMISEM PMISEMDIM PMISEMDT PMISEMRND valProp stepUSER BOM INVERSE
     lappend butDisabled allNone0
     lappend butDisabled userentity userentityopen
     set userEntityList {}
@@ -2775,12 +2764,10 @@ proc checkValues {} {
         lappend butDisabled $b
       }
     }
-    lappend butNormal PMIGRFCOV
   } else {
     lappend butNormal stepPRES
     if {!$opt(valProp)} {lappend butNormal stepQUAN}
     if {!$opt(PMISEM)}  {lappend butNormal stepSHAP stepREPR}
-    lappend butDisabled PMIGRFCOV
   }
 
 # validation properties

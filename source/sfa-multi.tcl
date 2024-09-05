@@ -128,9 +128,9 @@ proc openMultiFile {{ask 1}} {
 # determine how many worksheets to add for coverage analysis
               set n1 1
               set coverageSTEP 0
-              if {($opt(PMIGRF) && $opt(PMIGRFCOV)) || $opt(PMISEM)} {
+              if {$opt(PMIGRF) || $opt(PMISEM)} {
                 set coverageSTEP 1
-                if {$opt(PMIGRF) && $opt(PMIGRFCOV) && $opt(PMISEM)} {
+                if {$opt(PMIGRF) && $opt(PMISEM)} {
                   set n1 3
                 } else {
                   set n1 2
@@ -181,7 +181,7 @@ proc openMultiFile {{ask 1}} {
 # start STEP coverage analysis worksheet
               if {$coverageSTEP} {
                 if {$opt(PMISEM)} {spmiCoverageStart}
-                if {$opt(PMIGRF) && $opt(PMIGRFCOV)} {gpmiCoverageStart}
+                if {$opt(PMIGRF)} {gpmiCoverageStart}
               }
               $worksheet1($sum) Activate
 
@@ -249,7 +249,7 @@ proc openMultiFile {{ask 1}} {
 # STEP coverage analysis
             if {$coverageSTEP} {
               if {$opt(PMISEM)} {spmiCoverageWrite $fn $sum}
-              if {$opt(PMIGRF) && $opt(PMIGRFCOV)} {gpmiCoverageWrite $fn $sum}
+              if {$opt(PMIGRF)} {gpmiCoverageWrite $fn $sum}
             }
           }
 
@@ -465,11 +465,9 @@ proc openMultiFile {{ask 1}} {
                     [$borders Item [expr -4152]] Weight [expr 2]
                   }
                   catch {
-                    if {$opt(PMIGRFCOV)} {
-                      set range [$worksheet1($gpmiCoverageWS) Range [cellRange 3 $nf1] [cellRange $gpmiRows $nf1]]
-                      set borders [$range Borders]
-                      [$borders Item [expr -4152]] Weight [expr 2]
-                    }
+                    set range [$worksheet1($gpmiCoverageWS) Range [cellRange 3 $nf1] [cellRange $gpmiRows $nf1]]
+                    set borders [$range Borders]
+                    [$borders Item [expr -4152]] Weight [expr 2]
                   }
                 }
               }
@@ -505,7 +503,7 @@ proc openMultiFile {{ask 1}} {
 # format STEP coverage analysis sheet
           if {$coverageSTEP} {
             if {$opt(PMISEM)} {spmiCoverageFormat $sum}
-            if {$opt(PMIGRF) && $opt(PMIGRFCOV)} {gpmiCoverageFormat $sum}
+            if {$opt(PMIGRF)} {gpmiCoverageFormat $sum}
             catch {$worksheet1($sum) Activate}
           }
           catch {$excel1 ScreenUpdating 1}

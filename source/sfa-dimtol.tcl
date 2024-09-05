@@ -67,10 +67,10 @@ proc spmiDimtolStart {entType} {
   catch {unset ent}
   catch {unset gtEntity}
 
-  outputMsg " Adding PMI Representation Analysis" blue
+  outputMsg " Adding Semantic PMI Analyzer report" blue
 
   if {[string first "AP203" $stepAP] == 0 || [string first "AP214" $stepAP] == 0} {
-    errorMsg "There is no Recommended Practice for PMI Representation in $stepAP files.  Use AP242 for PMI Representation."
+    errorMsg "There is no Recommended Practice for Semantic PMI in $stepAP files.  Use AP242 for Semantic PMI."
   }
 
   if {$opt(DEBUG1)} {outputMsg \n}
@@ -365,7 +365,9 @@ proc spmiDimtolReport {objEntity} {
 
 # check for problems with related_shape_aspect
                     set msg ""
-                    set rsa [[[$objEntity Attributes] Item [expr 4]] Value]
+                    set i1 4
+                    if {[string first "with_datum_feature" $ent1] != -1} {set i1 8}
+                    set rsa [[[$objEntity Attributes] Item [expr $i1]] Value]
                     if {$rsa == ""} {
                       set msg "Syntax Error: Missing 'related_shape_aspect'"
                     } elseif {[$objValue P21ID] == [$rsa P21ID]} {
@@ -1408,18 +1410,18 @@ proc spmiDimtolReport {objEntity} {
           set pmiHeading($pmiColumns(dmrp)) 1
           set pmiCol [expr {max($pmiColumns(dmrp),$pmiCol)}]
 
-          set comment "See Help > User Guide (section 6.1.3) for an explanation of how the Dimensional Tolerances are constructed.  Results are summarized on the PMI Representation Summary worksheet."
+          set comment "See Help > User Guide (section 6.1.3) for an explanation of how the Dimensional Tolerances are constructed.  Results are summarized on the Semantic PMI Summary worksheet."
           if {[info exists dim(unit)]} {append comment "\n\nDimension units: $dim(unit)"}
           append comment "\n\nRepetitive dimensions (e.g., 4X) are shown for diameter and radius.  They are computed based on the number of cylindrical, spherical, and toroidal surfaces associated with a dimension (see Associated Geometry column to the right) and, depending on the CAD system, might be off by a factor of two, have the wrong value, or be missing.  Repetitive dimensions are not computed for linear distance."
           if {$nistName != ""} {
-            append comment "\n\nSee the PMI Representation Summary worksheet to see how the Dimensional Tolerance compares to the expected PMI."
+            append comment "\n\nSee the Semantic PMI Summary worksheet to see how the Dimensional Tolerance compares to the expected PMI."
           }
           addCellComment $dt 3 $c $comment
 
           catch {
             set hlink [$worksheet($dt) Hyperlinks]
             set anchor [$worksheet($dt) Range [cellRange 3 $c]]
-            set hlsheet "'PMI Representation Summary'"
+            set hlsheet "'Semantic PMI Summary'"
             $hlink Add $anchor [string trim ""] "$hlsheet![cellRange 3 3]" ""
           }
         }

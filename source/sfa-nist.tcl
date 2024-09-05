@@ -24,7 +24,7 @@ proc nistReadExpectedPMI {{epmiFile ""}} {
       set fname [file nativename [file join $mytemp $fn]]
 
       if {[file exists $fname]} {
-        outputMsg "\nReading Expected PMI Representation Coverage"
+        outputMsg "\nReading Expected Semantic PMI Coverage"
         set lf 0
         set f [open $fname r]
         set r 0
@@ -109,7 +109,7 @@ proc nistReadExpectedPMI {{epmiFile ""}} {
 }
 
 # -------------------------------------------------------------------------------
-# get expected PMI for PMI Representation Summary worksheet
+# get expected PMI for Semantic PMI Summary worksheet
 proc nistGetSummaryPMI {name} {
   global nistPMIactual nistPMIexpected nistPMIexpectedGND nistPMIexpectedNX nistPMIfound nistPMImap nistPMImaster
   global nistName nsimilar opt pmiType pmiUnicode spmiSumName tolNames tolSymbols worksheet
@@ -298,6 +298,20 @@ proc nistCheckExpectedPMI {val entstr epmiName} {
       set c1 [string first "\u25BD" $val]
       if {$c1 != -1} {set val [string range $val 0 $c1-5]}
     }
+  }
+
+# JPMI test cases
+  if {[string first "jpmi" $epmiName] == 0} {
+# circle (E)
+    set c1 [string first "\u24BA" $val]
+    if {$c1 > 0} {
+      regsub "\u24BA" $val "" val
+      set idx "Envelope requirement"
+      set pmiException($idx) 1
+    }
+# composite
+    set c1 [string first "\n(composite" $val]
+    if {$c1 > 0} {set val [string range $val 0 $c1-1]}
   }
 
 # remove zeros from val, also removes linefeeds so FCF is one line for comparison to actual FCF
@@ -700,11 +714,11 @@ proc nistCheckExpectedPMI {val entstr epmiName} {
       [$worksheet($spmiSumName) Range [cellRange -1 4]] ColumnWidth [expr 48]
       set cmnt ""
       if {[string first "Similar PMI" $heading] != -1} {
-        append cmnt "Similar PMI (gray) is the best match of the PMI Representation in column C, for Partial or Possible matches (blue and yellow), to the expected PMI in the NIST test case drawing."
+        append cmnt "Similar PMI (gray) is the best match of the Semantic PMI in column C, for Partial or Possible matches (blue and yellow), to the expected PMI in the NIST test case drawing."
       }
       if {[string first "Exception" $heading] != -1} {
         if {[string length $cmnt] > 0} {append cmnt "\n\n"}
-        append cmnt "Exceptions (light gray) are items in the PMI Representation in column C that are ignored when matching Expected PMI from the NIST test case drawing."
+        append cmnt "Exceptions (light gray) are items in the Semantic PMI in column C that are ignored when matching Expected PMI from the NIST test case drawing."
       }
       addCellComment $spmiSumName 3 4 $cmnt
       set range [$worksheet($spmiSumName) Range D3]
@@ -806,12 +820,17 @@ proc nistPMICoverage {nf} {
                   set ci1 0
                   set clr "magenta"
                 }
-                set str "'$tval/[expr {int($ci1)}]"
-                $cells($spmiCoverageWS) Item $r 2 $str
-                [[$worksheet($spmiCoverageWS) Range B$r] Interior] Color $legendColor($clr)
-                [$worksheet($spmiCoverageWS) Range B$r] NumberFormat "@"
-                set nistCoverageLegend 1
-                lappend nistCoverageStyle "$r $nf $clr $str"
+
+# some exceptions for JPMI files
+                if {[string first "jpmi" $nistName] == -1 || \
+                  ([string first "dimension association" $item] == -1 && $item != "repetitive dimensions")} {
+                  set str "'$tval/[expr {int($ci1)}]"
+                  $cells($spmiCoverageWS) Item $r 2 $str
+                  [[$worksheet($spmiCoverageWS) Range B$r] Interior] Color $legendColor($clr)
+                  [$worksheet($spmiCoverageWS) Range B$r] NumberFormat "@"
+                  set nistCoverageLegend 1
+                  lappend nistCoverageStyle "$r $nf $clr $str"
+                }
 
 # just right - green
               } elseif {$tval != 0} {
@@ -826,14 +845,14 @@ proc nistPMICoverage {nf} {
     }
   }
 
-# summarize PMI Representation Summary on PMI Representation Coverage worksheet
+# summarize Semantic PMI Summary on Semantic PMI Coverage worksheet
   set name $nistName
   if {[info exists epmi]} {if {$epmi != ""} {set name $epmi}}
   if {[info exists nistPMIexpected($name)]} {nistAddExpectedPMIPercent $nf $name}
 }
 
 # -------------------------------------------------------------------------------
-# summarize PMI Representation Summary with percentages
+# summarize Semantic PMI Summary with percentages
 proc nistAddExpectedPMIPercent {nf name} {
   global cells cells1 legendColor lenfilelist nistCoverageStyle pmiElementsMaxRows spmiCoverageWS worksheet worksheet1
   global nistExpectedPMI nistPMIdeduct nistPMIexpected nistPMIfound
@@ -846,21 +865,21 @@ proc nistAddExpectedPMIPercent {nf name} {
   }
 
   set r [expr {$pmiElementsMaxRows+4}]
-  $cells($spmiCoverageWS) Item $r 1 "Expected PMI[format "%c" 10]  (See PMI Representation Summary worksheet)"
+  $cells($spmiCoverageWS) Item $r 1 "Expected PMI[format "%c" 10]  (See Semantic PMI Summary worksheet)"
   $cells($spmiCoverageWS) Item $r 2 "%"
   set range [$worksheet($spmiCoverageWS) Range A$r:B$r]
   [$range Font] Bold [expr 1]
   catch {foreach i {8 10 11} {[[$range Borders] Item $i] Weight [expr 2]}}
   set range [$worksheet($spmiCoverageWS) Range B$r]
   $range HorizontalAlignment [expr -4108]
-  addCellComment $spmiCoverageWS $r 1 "These are color-coded percentages based on the Total PMI of the number Exact, Partial, Possible, and Missing matches from column B on the PMI Representation Summary worksheet.  The percentages for all matches should total 100.\n\'Missing match' is based on Missing PMI that would appear below the color legend.  'No match' is based on the number of PMI Representation that appear in red.\n\nCoverage Analysis is only based on individual PMI elements.  The PMI Representation Summary is based on the complete Feature Control Frame and provides a better understanding of the PMI.  The Coverage Analysis might show that there is an Exact match (all green above) for all of the PMI elements, however, the Representation Summary might show less than Exact matches.\n\nSee Help > Analyzer > NIST CAD Models\nSee Help > User Guide (section 6.6.2.1)"
+  addCellComment $spmiCoverageWS $r 1 "These are color-coded percentages based on the Total PMI of the number Exact, Partial, Possible, and Missing matches from column B on the Semantic PMI Summary worksheet.  The percentages for all matches should total 100.\n\'Missing match' is based on Missing PMI that would appear below the color legend.  'No match' is based on the number of Semantic PMI that appear in red.\n\nCoverage Analysis is only based on individual PMI elements.  The Semantic PMI Summary is based on the complete Feature Control Frame and provides a better understanding of the PMI.  The Coverage Analysis might show that there is an Exact match (all green above) for all of the PMI elements, however, the Representation Summary might show less than Exact matches.\n\nSee Help > Analyzer > NIST CAD Models\nSee Help > User Guide (section 6.6.2.1)"
 
 # for multiple files, add more formatting
   if {[info exists lenfilelist]} {
     if {$lenfilelist > 1 && ![info exists nistPMIexpectedFormat]} {
       incr nistPMIexpectedFormat
       set r1 [expr {$pmiElementsMaxRows+4}]
-      $cells1($spmiCoverageWS) Item $r1 1 "Expected PMI[format "%c" 10]  (% from PMI Representation Summary worksheets)"
+      $cells1($spmiCoverageWS) Item $r1 1 "Expected PMI[format "%c" 10]  (% from Semantic PMI Summary worksheets)"
       set range [$worksheet1($spmiCoverageWS) Range A$r]
       [$range Font] Bold [expr 1]
       set range [$worksheet1($spmiCoverageWS) Range [cellRange [expr {$pmiElementsMaxRows+4}] 1] [cellRange [expr {$pmiElementsMaxRows+10}] [expr {$lenfilelist+1}]]]
@@ -1158,9 +1177,11 @@ proc nistGetName {} {
   if {[string first "tgp" $ftail] == 0} {set c 4}
   foreach str {asme1 ap203 ap214 ap242 242 c3e} {regsub $str $ftail "" ftail}
 
-# check for JAMA-JAPIA test case
-  foreach tc {jpmi-gear jpmi-housing jpmi-knuckle jpmi-trim} {
-    if {[string first $tc $ftail] == 0} {set nistName $tc; return}
+# check for JPMI test case
+  if {[string first "jpmi" $ftail] == 0} {
+    if {[string first "jpmi_" $ftail] == 0} {regsub "jpmi_" $ftail "jpmi-" ftail}
+    if {[string first "gears" $ftail] == -1 && [string first "gear" $ftail] != -1} {regsub "gear" $ftail "gears" ftail}
+    foreach tc {jpmi-gears jpmi-housing jpmi-knuckle jpmi-trim} {if {[string first $tc $ftail] == 0} {return $tc}}
   }
 
 # check for a NIST CTC, FTC, STC, HTC

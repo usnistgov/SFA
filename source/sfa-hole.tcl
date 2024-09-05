@@ -95,8 +95,9 @@ proc spmiHoleStart {entType} {
 
 # -------------------------------------------------------------------------------
 proc spmiHoleReport {objEntity} {
-  global badAttributes cells col dim DTR hole holerep holeDim holeDimType holeDefinitions holeEntity holeType ht entLevel ent entAttrList lastEnt
-  global numBore opt pmiCol pmiColumns pmiHeading pmiModifiers pmiUnicode recPracNames spaces spmiEnts spmiID spmiIDRow spmiRow spmiTypesPerFile syntaxErr thruHole
+  global badAttributes cells col dim DTR hole holerep holeDim holeDimType holeDefinitions holeEntity holeType holeUnit ht
+  global entLevel ent entAttrList lastEnt numBore opt pmiCol pmiColumns pmiHeading pmiModifiers pmiUnicode recPracNames spaces
+  global spmiEnts spmiID spmiIDRow spmiRow spmiTypesPerFile syntaxErr thruHole
 
   if {$opt(DEBUG1)} {outputMsg "spmiHoleReport" red}
 
@@ -151,7 +152,6 @@ proc spmiHoleReport {objEntity} {
         set objNodeType [$objAttribute NodeType]
         set objSize [$objAttribute Size]
         set objAttrType [$objAttribute Type]
-
         set idx [lsearch $entAttrList $ent1]
 
 # -----------------
@@ -173,6 +173,7 @@ proc spmiHoleReport {objEntity} {
                   "explicit_round_hole d*" -
                   "spotface_definition d*" -
                   "spotface_definition s*" {
+
 # get type of hole dimension or tolerance
                     set holeDimType $objName
 
@@ -210,7 +211,6 @@ proc spmiHoleReport {objEntity} {
                             lappend spmiTypesPerFile "bilateral tolerance"
                           } elseif {$objValue != [expr {abs($holeDim($holeDimType))}]} {
                             append holeDim($holeDimType) " $objValue"
-                            errorMsg "Non-bilateral tolerance for '$holeDimType'"
                             lappend spmiTypesPerFile "non-bilateral tolerance"
                           } else {
                             set msg "Syntax Error: Tolerance lower and upper bounds ($objValue) are equal."
@@ -225,15 +225,15 @@ proc spmiHoleReport {objEntity} {
                       incr hole(idx)
                     }
                   }
+
                   "*length_measure_with_unit* unit_component" {
 # get units if not already found processing dimensional tolerances
-                    if {![info exists dim(unit)]} {
-                      if {[string first "conversion" [$objValue Type]] == 1} {
-                        set dim(unit) "MM"
-                      } else {
-                        set dim(unit) "INCH"
-                      }
+                    if {[string first "si_unit" [$objValue Type]] != -1} {
+                      set holeUnit "MM"
+                    } else {
+                      set holeUnit "INCH"
                     }
+                    if {![info exists dim(unit)]} {set dim(unit) $holeUnit}
                   }
                 }
               }
@@ -324,20 +324,17 @@ proc spmiHoleReport {objEntity} {
     set holerep ""
 
 # check for repetitive dimensions
-    set ename [$holeEntity Type]
-    if {[string first "simplified" $ename] == 0} {set ename [string range $ename 11 end]}
-    set c1 [string last "_" $ename]
-    set ename [string range $ename 0 $c1]
-    append ename "occurrence"
-    if {[string first "basic_round" $ename] == 0} {set ename "basic_round_hole_occurrence"}
     set nhole 0
-    set e0s [$holeEntity GetUsedIn [string trim $ename] [string trim definition]]
-    ::tcom::foreach e0 $e0s {incr nhole}
+    foreach occ [list basic_round_hole_occurrence counterbore_hole_occurrence counterdrill_hole_occurrence \
+              countersink_hole_occurrence spotface_occurrence] {
+      set e0s [$holeEntity GetUsedIn [string trim $occ] [string trim definition]]
+      ::tcom::foreach e0 $e0s {incr nhole}
+    }
     if {$nhole > 1} {
       append holerep "$nhole\X "
       lappend spmiTypesPerFile "repetitive dimensions"
     } elseif {$nhole == 0} {
-      errorMsg "There are no hole occurrences that reference a [$holeEntity Type]."
+      errorMsg "No hole occurrences refer to '[$holeEntity Type]'."
     }
 
 # main hole diameter, depth, and tolerances

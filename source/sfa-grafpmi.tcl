@@ -89,9 +89,9 @@ proc gpmiAnnotation {entType} {
   if {[info exists pmiHeading]} {unset pmiHeading}
   if {[info exists ent]} {unset ent}
 
-  if {$opt(PMIGRF) && $opt(xlFormat) != "None"} {outputMsg " Adding PMI Presentation Analyzer report" blue}
+  if {$opt(PMIGRF) && $opt(xlFormat) != "None"} {outputMsg " Adding Graphic PMI Analyzer report" blue}
   if {$gen(View) && $opt(viewPMI)} {
-    set msg " Adding Graphic PMI"
+    set msg " Adding Graphic PMI for the Viewer"
     if {$opt(xlFormat) == "None"} {append msg " ([formatComplexEnt $entType])"}
     outputMsg $msg green
   }
@@ -101,17 +101,17 @@ proc gpmiAnnotation {entType} {
     set c1 [string first "_and_characterized_object" $ao]
     set c2 [string first "characterized_object_and_" $ao]
     if {$c1 != -1} {
-      set msg "Syntax Error: Using 'characterized_object' with '[string range $ao 0 $c1-1]' is not valid for PMI Presentation.$spaces\($recPracNames(pmi242), Sec. 10.2, 10.3)"
+      set msg "Syntax Error: Using 'characterized_object' with '[string range $ao 0 $c1-1]' is not valid for Graphic PMI.$spaces\($recPracNames(pmi242), Sec. 10.2, 10.3)"
       errorMsg $msg
       lappend syntaxErr($ao) [list 1 1 $msg]
     } elseif {$c2 != -1} {
-      set msg "Syntax Error: Using 'characterized_object' with '[string range $ao 25 end]' is not valid for PMI Presentation.$spaces\($recPracNames(pmi242), Sec. 10.2, 10.3)"
+      set msg "Syntax Error: Using 'characterized_object' with '[string range $ao 25 end]' is not valid for Graphic PMI.$spaces\($recPracNames(pmi242), Sec. 10.2, 10.3)"
       errorMsg $msg
       lappend syntaxErr($ao) [list 1 1 $msg]
     }
 
     if {[string first "annotation_occurrence" $ao] != -1 && [string first "tessellated" $ao] == -1 && [string first "draughting_annotation_occurrence" $ao] == -1} {
-      set msg "Syntax Error: Using 'annotation_occurrence' with $stepAP is not valid for PMI Presentation.$spaces\($recPracNames(pmi242), Sec. 8.1.1)"
+      set msg "Syntax Error: Using 'annotation_occurrence' with $stepAP is not valid for Graphic PMI.$spaces\($recPracNames(pmi242), Sec. 8.1.1)"
       errorMsg $msg
       lappend syntaxErr($ao) [list 1 1 $msg]
     }
@@ -119,14 +119,14 @@ proc gpmiAnnotation {entType} {
 
   if {[string first "AP203" $stepAP] == 0 || [string first "AP214" $stepAP] == 0} {
     if {[string first "annotation_curve_occurrence" $ao] != -1} {
-      set msg "Syntax Error: Using 'annotation_curve_occurrence' with $stepAP is not valid for PMI Presentation.$spaces\($recPracNames(pmi203), Sec. 4.1.1)"
+      set msg "Syntax Error: Using 'annotation_curve_occurrence' with $stepAP is not valid for Graphic PMI.$spaces\($recPracNames(pmi203), Sec. 4.1.1)"
       errorMsg $msg
       lappend syntaxErr($ao) [list 1 1 $msg]
     }
   }
 
   if {[string first "draughting" $ao] != -1} {
-    set msg "Syntax Error: Using 'draughting_annotation_*_occurrence' is not valid for PMI Presentation.$spaces"
+    set msg "Syntax Error: Using 'draughting_annotation_*_occurrence' is not valid for Graphic PMI.$spaces"
     append msg "($recPracNames(pmi242), Sec. 8.1)"
     errorMsg $msg
     lappend syntaxErr($ao) [list 1 1 $msg]
@@ -762,7 +762,6 @@ proc gpmiAnnotationReport {objEntity} {
                       set crdm [$drcall GetUsedIn [string trim $dm] [string trim items]]
                       ::tcom::foreach item $crdm {set placeSavedView($aoname) 1}
                     }
-                    if {![info exists placeSavedView($aoname)]} {errorMsg " Some annotation placeholders are not associated with a saved view" red}
                   }
                 }
 
@@ -833,7 +832,6 @@ proc gpmiAnnotationReport {objEntity} {
                     append colorRGB " $objValue"
                     if {$opt(gpmiColor) == 0} {
                       append x3dColor " $objValue"
-                      if {[expr {([lindex $x3dColor 0]+[lindex $x3dColor 1]+[lindex $x3dColor 2])/3.}] > 0.93} {set grayBackground 1}
                     }
                     if {$opt(PMIGRF) && $opt(xlFormat) != "None"} {
                       set ok 1
@@ -928,8 +926,9 @@ proc gpmiAnnotationReport {objEntity} {
                     if {$ov == "" || [lsearch $gpmiTypes $ov] == -1} {
                       if {$ov == ""} {
                         set msg "Missing 'name' attribute on [formatComplexEnt [lindex $ent1 0]]"
+                        set ov "(missing)"
                       } else {
-                        set msg "The [formatComplexEnt [lindex $ent1 0]] 'name' attribute is not a recommended name for presented PMI type."
+                        set msg "The 'name' attribute ($ov) is not a recommended name for presented PMI type on [formatComplexEnt [lindex $ent1 0]]."
                       }
                       append msg " ($recPracNames(pmi242), Sec. 8.4)"
                       errorMsg $msg
@@ -1197,7 +1196,7 @@ proc gpmiAnnotationReport {objEntity} {
         if {$nspmi == 1} {set str [string range $str 4 end]}
         if {$str != ""} {
           if {![info exists pmiColumns(spmi)]} {set pmiColumns(spmi) [getNextUnusedColumn $ao]}
-          set colName "Associated Representation[format "%c" 10](Sec. 7.3)"
+          set colName "Associated Semantic PMI[format "%c" 10](Sec. 7.3)"
           set c [string index [cellRange 1 $pmiColumns(spmi)] 0]
           set r $gpmiIDRow($ao,$gpmiID)
           if {![info exists pmiHeading($pmiColumns(spmi))]} {
@@ -1456,7 +1455,7 @@ proc gpmiEquivUnicodeString {eus} {
 # get camera models
 proc pmiGetCameras {} {
   global objDesign
-  global cameraModels cmNameID draughtingModels draftModelCameraNames draftModelCameras dupViewpoint entCount gen mytemp opt
+  global cameraModels cmNameID draughtingModels draftModelCameraNames draftModelCameras entCount gen mytemp opt
   global recPracNames savedViewFile savedViewDMName savedViewFileName savedViewItems savedViewName savedViewNames savedViewpoint
   global spaces spmiTypesPerFile syntaxErr unicodeString unicodeStringCM viewsWithPMI
 
@@ -1488,7 +1487,6 @@ proc pmiGetCameras {} {
     }
 
 # check for duplicate names
-    set dupViewpoint {}
     set dupnames {}
     set cmnames [lsort $cmnames]
     for {set i 1} {$i < [llength $cmnames]} {incr i} {if {[lindex $cmnames $i] == [lindex $cmnames $i-1]} {lappend dupnames [lindex $cmnames $i]}}
@@ -1634,15 +1632,6 @@ proc pmiGetCameras {} {
                   }
                 }
 
-# check for duplicate viewpoint position and orientation
-                catch {
-                  foreach svn [array names savedViewpoint] {
-                    if {$svn != $name1} {
-                      if {$savedViewpoint($svn) == $savedViewpoint($name1)} {lappend dupViewpoint $name1; break}
-                    }
-                  }
-                }
-
 # cameras associated with draughting models
                 set str "[$entCameraModel P21ID] ($name)  "
                 set id [$entDraughtingModel P21ID]
@@ -1683,9 +1672,6 @@ proc pmiGetCameras {} {
           }
         }
       }
-
-# report duplicate viewpoints
-      if {[llength $dupViewpoint] > 0} {errorMsg " Some viewpoints (position and orientation) are identical to another" red}
 
     } emsg]} {
       errorMsg "Error getting Camera Models: $emsg"

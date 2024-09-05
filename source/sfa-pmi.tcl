@@ -11,7 +11,7 @@ proc x3dTessGeom {objID tessEnt faceEnt {aoname ""}} {
   if {$x3dColor == ""} {
     set x3dColor "0 0 0"
     if {[string first "annotation" [$tessEnt Type]] != -1} {
-      set msg "Syntax Error: Missing PMI Presentation color (using black).$spaces\($recPracNames(pmi242), Sec. 8.5, Fig. 85)"
+      set msg "Syntax Error: Missing Graphic PMI color (using black).$spaces\($recPracNames(pmi242), Sec. 8.5, Fig. 85)"
       errorMsg $msg
       lappend syntaxErr([$tessEnt Type]) [list [$tessEnt P21ID] "color" $msg]
     }
@@ -270,7 +270,7 @@ proc x3dTessGeom {objID tessEnt faceEnt {aoname ""}} {
 # -------------------------------------------------------------------------------
 # TAO check for transform related to assembly
 proc x3dAssemblyTransform {tessEnt} {
-  global ao assemTransform developer entCount noGroupTransform syntaxErr taoLastID x3dMsg
+  global ao assemTransform entCount noGroupTransform opt syntaxErr taoLastID x3dMsg
 
   set debugTAO 0
   set taoID [$tessEnt P21ID]
@@ -380,7 +380,7 @@ proc x3dAssemblyTransform {tessEnt} {
                       if {$nssr == 0} {
                         set ssrRep 4
                         set e5s [$e4 GetUsedIn [string trim shape_representation_relationship] [string trim rep_1]]
-                        if {$developer} {errorMsg " Error getting ABSR in SSR rep_2, checking for ABSR in rep_1" red}
+                        if {$opt(debugX3D)} {errorMsg " Error getting ABSR in SSR rep_2, checking for ABSR in rep_1" red}
                       }
 
 # shape representation
@@ -542,7 +542,7 @@ proc x3dPolylinePMI {{objEntity1 ""}} {
             puts $f "<Shape$idstr><Appearance><Material emissiveColor='$x3dColor'/></Appearance>"
           } else {
             puts $f "<Shape$idstr><Appearance><Material emissiveColor='0 0 0'/></Appearance>"
-            errorMsg "Syntax Error: Missing PMI Presentation color for [formatComplexEnt $ao] (using black)$spaces\($recPracNames(pmi242), Sec. 8.5, Fig. 85)"
+            errorMsg "Syntax Error: Missing Graphic PMI color for [formatComplexEnt $ao] (using black)$spaces\($recPracNames(pmi242), Sec. 8.5, Fig. 85)"
           }
           catch {unset idshape}
 

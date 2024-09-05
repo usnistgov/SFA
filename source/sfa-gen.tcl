@@ -815,7 +815,7 @@ proc genExcel {{numFile 0}} {
     if {$opt(viewFEA) && [string first "AP209" $stepAP] == 0} {set viz(FEA) 1}
   }
 
-# read expected PMI worksheet (once) if PMI representation and correct file name
+# read expected PMI worksheet (once) if semantic PMI and correct file name
   set epmiUD ""
   if {$opt(PMISEM) && [string first "AP242" $stepAP] == 0 && $opt(xlFormat) != "None"} {
 
@@ -1214,12 +1214,12 @@ proc genExcel {{numFile 0}} {
         }
       }
 
-# check for reports (validation properties, PMI presentation and representation, AP209 FEM)
+# check for reports (validation properties, semantic and graphic PMI, AP209 FEM)
       checkForReports $entType
 
 # report errors related to descriptive_representation_item equivalent Unicode strings
       if {$entType == "descriptive_representation_item" && [info exists equivUnicodeStringErr]} {
-        outputMsg " Warnings for 'equivalent unicode string': [join [lrmdups $equivUnicodeStringErr] ", "]" red
+        outputMsg " Warnings for 'equivalent unicode string': [join [lrmdups $equivUnicodeStringErr] "\; "]" red
         unset equivUnicodeStringErr
       }
     }
@@ -1433,7 +1433,7 @@ proc genExcel {{numFile 0}} {
     sumAddColorLinks $sum $sumHeaderRow $sumLinks $sheetSort $sumRow
 
 # -------------------------------------------------------------------------------------------------
-# add PMI Rep. Coverage Analysis worksheet for a single file
+# add Semantic PMI Coverage Analysis worksheet for a single file
     if {$opt(PMISEM) && $stepAPreport} {
 
 # check for datum and datum_system
@@ -1458,9 +1458,9 @@ proc genExcel {{numFile 0}} {
         }
 
         if {$ok} {
-          set spmiCoverageWS "PMI Representation Coverage"
+          set spmiCoverageWS "Semantic PMI Coverage"
           if {![info exists worksheet($spmiCoverageWS)]} {
-            outputMsg " Adding PMI Representation Coverage worksheet" blue
+            outputMsg " Adding Semantic PMI Coverage worksheet" blue
             spmiCoverageStart 0
             spmiCoverageWrite "" "" 0
             spmiCoverageFormat "" 0
@@ -1470,7 +1470,7 @@ proc genExcel {{numFile 0}} {
         }
       }
 
-# format PMI Representation Summary worksheet
+# format Semantic PMI Summary worksheet
       if {[info exists spmiSumName]} {
         set name $nistName
         if {[info exists epmiFile]} {if {$epmiFile != ""} {set name $epmiUD}}
@@ -1481,12 +1481,12 @@ proc genExcel {{numFile 0}} {
       catch {unset spmiSumName}
     }
 
-# add PMI Presentation Coverage Analysis worksheet for a single file
-    if {$opt(PMIGRF) && $opt(xlFormat) != "None" && $opt(PMIGRFCOV) && $stepAPreport} {
+# add Graphic PMI Coverage Analysis worksheet for a single file
+    if {$opt(PMIGRF) && $opt(xlFormat) != "None" && $stepAPreport} {
       if {[info exists gpmiTypesPerFile]} {
-        set gpmiCoverageWS "PMI Presentation Coverage"
+        set gpmiCoverageWS "Graphic PMI Coverage"
         if {![info exists worksheet($gpmiCoverageWS)]} {
-          outputMsg " Adding PMI Presentation Coverage worksheet" blue
+          outputMsg " Adding Graphic PMI Coverage worksheet" blue
           gpmiCoverageStart 0
           gpmiCoverageWrite "" "" 0
           gpmiCoverageFormat "" 0
@@ -1825,7 +1825,7 @@ proc addHeaderWorksheet {numFile fname} {
             errorMsg "Unknown AP242 Object Identifier String '$id 1 4' for SchemaName" red
           }
           if {$developer} {
-            foreach i {1 2 3 4} {if {[llength $ap242ed($i)] > 0} {regsub -all " " [join $ap242ed($i)] ", " str1; outputMsg " AP242e$i: $str1" red}}
+            foreach i {2 3 4} {if {[llength $ap242ed($i)] > 0} {regsub -all " " [join $ap242ed($i)] ", " str1; outputMsg " AP242e$i: $str1" red}}
           }
         } elseif {[string first "AP242" $sn] == 0} {
           errorMsg "SchemaName is missing the Object Identifier String that specifies the edition of AP242." red
@@ -1952,8 +1952,8 @@ proc addHeaderWorksheet {numFile fname} {
           }
 
           if {[string first "CATIA Version" $app] == 0} {set app1 "CATIA V[string range $app 14 end]"}
-          if {$app == "3D EXPERIENCE"} {set app1 "3D Experience"}
-          if {$app == "3DEXPERIENCE"}  {set app1 "3D Experience"}
+          if {$app == "3D EXPERIENCE"} {set app1 "3DX"}
+          if {$app == "3DEXPERIENCE"}  {set app1 "3DX"}
 
           if {[string first "CATIA SOLUTIONS V4"      $fos] != -1} {set app1 "CATIA V4"}
           if {[string first "Autodesk Inventor"       $fos] != -1} {set app1 $fos}
@@ -2079,16 +2079,16 @@ proc sumAddWorksheet {} {
       if {$ok} {
         $cells($sum) Item $sumRow 1 $entType
 
-# for STEP add [Properties], [PMI Presentation], [PMI Representation] [Assembly] text string
+# for STEP add text strings
         set okao 0
         if {$entType == "property_definition" && $col($entType) > 4 && $opt(valProp)} {
           $cells($sum) Item $sumRow 1 "property_definition  \[Properties\]"
         } elseif {$entType == "dimensional_characteristic_representation" && $col($entType) > 3 && $opt(PMISEM)} {
-          $cells($sum) Item $sumRow 1 "dimensional_characteristic_representation  \[PMI Representation\]"
+          $cells($sum) Item $sumRow 1 "dimensional_characteristic_representation  \[Semantic PMI\]"
         } elseif {$entType == $iloldscr && $col($entType) > 3 && $opt(PMISEM)} {
-          $cells($sum) Item $sumRow 1 "$iloldscr  \[PMI Representation\]"
+          $cells($sum) Item $sumRow 1 "$iloldscr  \[Semantic PMI\]"
         } elseif {[lsearch $spmiEntity $entType] != -1 && $opt(PMISEM)} {
-          $cells($sum) Item $sumRow 1 "$entType  \[PMI Representation\]"
+          $cells($sum) Item $sumRow 1 "$entType  \[Semantic PMI\]"
         } elseif {[string first "annotation" $entType] != -1 && $opt(PMIGRF)} {
           if {$gpmiEnts($entType) && $col($entType) > 5} {set okao 1}
         } elseif {[lsearch $vpEnts $entType] != -1} {
@@ -2100,7 +2100,7 @@ proc sumAddWorksheet {} {
         } elseif {[lsearch $uuidEnts $entType] != -1} {
           $cells($sum) Item $sumRow 1 "$entType  \[UUID\]"
         }
-        if {$okao} {$cells($sum) Item $sumRow 1 "$entType  \[PMI Presentation\]"}
+        if {$okao} {$cells($sum) Item $sumRow 1 "$entType  \[Graphic PMI\]"}
 
 # for '_and_' (complex entity) split on multiple lines
 # '10' is the ascii character for a linefeed
@@ -2109,17 +2109,17 @@ proc sumAddWorksheet {} {
         set entType_multiline "($entType_multiline)"
         $cells($sum) Item $sumRow 1 $entType_multiline
 
-# for STEP add [Properties] or [PMI Presentation] text string
+# for STEP add [Properties] or [Graphic PMI] text string
         set okao 0
         if {[string first "annotation" $entType] != -1} {
           if {$gpmiEnts($entType) && $col($entType) > 7} {set okao 1}
         } elseif {[lsearch $spmiEntity $entType] != -1} {
-          $cells($sum) Item $sumRow 1 "$entType_multiline  \[PMI Representation\]"
+          $cells($sum) Item $sumRow 1 "$entType_multiline  \[Semantic PMI\]"
         } elseif {[lsearch $vpEnts $entType] != -1} {
           $cells($sum) Item $sumRow 1 "$entType_multiline  \[Properties\]"
         }
         if {$okao} {
-          $cells($sum) Item $sumRow 1 "$entType_multiline  \[PMI Presentation\]"
+          $cells($sum) Item $sumRow 1 "$entType_multiline  \[Graphic PMI\]"
         }
         set range [$worksheet($sum) Range $sumRow:$sumRow]
         $range VerticalAlignment [expr -4108]
@@ -2468,13 +2468,13 @@ proc formatWorksheets {sheetSort sumRow inverseEnts} {
 
 # color STEP annotation occurrence (Graphic PMI)
       } elseif {$gpmiEnts($thisEntType) && $opt(PMIGRF) && $stepAPreport} {
-        pmiFormatColumns "PMI Presentation"
+        pmiFormatColumns "Graphic PMI"
 
 # color STEP semantic PMI
       } elseif {$spmiEnts($thisEntType) && $opt(PMISEM) && $stepAPreport} {
-        pmiFormatColumns "PMI Representation"
+        pmiFormatColumns "Semantic PMI"
 
-# add PMI Representation Summary worksheet
+# add Semantic PMI Summary worksheet
         if {$thisEntType != "datum_feature" && $stepAPreport} {spmiSummary}
 
 # extra validation properties
@@ -2794,9 +2794,9 @@ proc addP21e3Section {idType {uuidEnt ""}} {
     }
   }
 
-# add anchor ids to representation summary worksheet
+# add anchor ids to semantic PMI summary worksheet
   if {[info exists anchorSum]} {
-    set spmiSumName "PMI Representation Summary"
+    set spmiSumName "Semantic PMI Summary"
     set c 4
     if {[[$cells($spmiSumName) Item 3 $c] Value] != ""} {
       set c 5

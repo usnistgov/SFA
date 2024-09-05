@@ -1,13 +1,13 @@
-# PMI Representation Summary worksheet
+# Semantic PMI Summary worksheet
 proc spmiSummary {} {
   global allPMI cells entName env epmi epmiUD localName mytemp nistName nistPMIexpected opt pmiModifiers recPracNames row sheetLast
   global spmiSumName spmiSumRow spmiSumRowID spmiTypesPerFile thisEntType timeStamp valRounded wdir worksheet worksheets
 
 # first time through, start worksheet
   if {$spmiSumRow == 1} {
-    outputMsg " Adding PMI Representation Summary worksheet" blue
+    outputMsg " Adding Semantic PMI Summary worksheet" blue
 
-    set spmiSumName "PMI Representation Summary"
+    set spmiSumName "Semantic PMI Summary"
     set worksheet($spmiSumName) [$worksheets Add [::tcom::na] $sheetLast]
     $worksheet($spmiSumName) Activate
     $worksheet($spmiSumName) Name $spmiSumName
@@ -24,12 +24,14 @@ proc spmiSummary {} {
     incr spmiSumRow 2
     $cells($spmiSumName) Item $spmiSumRow 1 "ID"
     $cells($spmiSumName) Item $spmiSumRow 2 "Entity"
-    $cells($spmiSumName) Item $spmiSumRow 3 "PMI Representation"
+    $cells($spmiSumName) Item $spmiSumRow 3 "Semantic PMI"
 
-    set comment "PMI Representation summarizes results from Datum System, Dimension, Geometric Tolerance, and Datum Target entities.  See Help > User Guide (section 6.1.6)"
+    set comment "Semantic PMI summarizes results from Datum System, Dimension, Geometric Tolerance, and Datum Target entities.  See Help > User Guide (section 6.1.6)"
     if {$valRounded} {append comment "\n\nSome dimension or tolerance values are rounded."}
     if {$nistName != ""} {
       append comment "\n\nIt is color-coded by the expected PMI in the NIST test case drawing.  The color-coding is explained at the bottom of the column.  Determining if the PMI is Partial and Possible match and corresponding Similar PMI depends on leading and trailing zeros, number precision, associated datum features and dimensions, and repetitive dimensions.\n\nSee Help > Analyzer > NIST CAD Models\nSee Help > User Guide (section 6.6.1)"
+    } else {
+      append comment "\n\nCompare this PMI to what is in your CAD model or the Viewer"
     }
     append comment "."
     addCellComment $spmiSumName $spmiSumRow 3 $comment
@@ -68,7 +70,7 @@ proc spmiSummary {} {
       set str ""
       foreach pmi $pmiTypes {if {[lsearch $spmiTypesPerFile $pmi] != -1} {set ok 1; set str " ($pmi)"; break}}
       if {$opt(SHOWALLPMI) || $ok} {
-        errorMsg "Some GD&T symbols$str will appear as a question mark on the PMI Representation\n Summary and Coverage worksheets.  To fix the problem, copy the font file that contains the symbols\n [file join $mytemp ARIALUNI.TTF]  to  C:/Windows/Fonts  to install the fonts.\n You might need administrator privileges."
+        errorMsg "Some GD&T symbols$str will appear as a question mark on the Semantic PMI\n Summary and Coverage worksheets.  To fix the problem, copy the font file that contains the symbols\n [file join $mytemp ARIALUNI.TTF]  to  C:/Windows/Fonts  to install the fonts.\n You might need administrator privileges."
       }
     }
   }
@@ -158,13 +160,13 @@ proc spmiSummary {} {
 }
 
 # -------------------------------------------------------------------------------
-# start PMI Representation Coverage analysis worksheet
+# start Semantic PMI Coverage analysis worksheet
 proc spmiCoverageStart {{multi 1}} {
   global allPMIelements cells cells1 multiFileDir nistName pmiElements pmiElements1 pmiModifiers pmiModifiersRP
   global pmiUnicode sheetLast spmiCoverageWS spmiTypes worksheet worksheet1 worksheets worksheets1
 
   if {[catch {
-    set spmiCoverageWS "PMI Representation Coverage"
+    set spmiCoverageWS "Semantic PMI Coverage"
 
 # single file
     if {!$multi} {
@@ -173,7 +175,7 @@ proc spmiCoverageStart {{multi 1}} {
       set cells($spmiCoverageWS) [$worksheet($spmiCoverageWS) Cells]
       set wsCount [$worksheets Count]
       set i 4
-      if {[[$worksheets Item [expr 3]] Name] != "PMI Representation Summary"} {set i 3}
+      if {[[$worksheets Item [expr 3]] Name] != "Semantic PMI Summary"} {set i 3}
       [$worksheets Item [expr $wsCount]] -namedarg Move Before [$worksheets Item [expr $i]]
 
       $cells($spmiCoverageWS) Item 3 1 "PMI Element[format "%c" 10]  (See Help > Analyzer > PMI Coverage Analysis)"
@@ -233,12 +235,12 @@ proc spmiCoverageStart {{multi 1}} {
       }
     }
   } emsg3]} {
-    errorMsg "Error starting PMI Representation Coverage worksheet: $emsg3"
+    errorMsg "Error starting Semantic PMI Coverage worksheet: $emsg3"
   }
 }
 
 # -------------------------------------------------------------------------------
-# write PMI Representation Coverage analysis worksheet
+# write Semantic PMI Coverage analysis worksheet
 proc spmiCoverageWrite {{fn ""} {sum ""} {multi 1}} {
   global allPMI allPMIelements cells cells1 col1 developer entCount epmi fileList nfile nistCoverageStyle nistName
   global pmiModifiers spmiCoverageWS spmiTypesPerFile totalPMI totalPMIrows usedPMIrows worksheet worksheet1
@@ -355,12 +357,12 @@ proc spmiCoverageWrite {{fn ""} {sum ""} {multi 1}} {
     }
 
   } emsg3]} {
-    errorMsg "Error adding to PMI Representation Coverage worksheet: $emsg3"
+    errorMsg "Error adding to Semantic PMI Coverage worksheet: $emsg3"
   }
 }
 
 # -------------------------------------------------------------------------------
-# format PMI Representation Coverage analysis worksheet, also PMI totals
+# format Semantic PMI Coverage analysis worksheet, also PMI totals
 proc spmiCoverageFormat {sum {multi 1}} {
   global cells cells1 col1 epmi epmiMulti excel1 lenfilelist localName nistCoverageLegend nistCoverageStyle nistName opt pmiElementsMaxRows
   global pmiHorizontalLineBreaks recPracNames spmiCoverageWS timeStamp totalPMI totalPMIrows usedPMIrows worksheet worksheet1
@@ -390,7 +392,7 @@ proc spmiCoverageFormat {sum {multi 1}} {
       $worksheet1($spmiCoverageWS) Activate
     }
 
-# horizontal break lines, depends on items in representation coverage worksheet, items defined in sfa-data
+# horizontal break lines, depends on items in semantic PMI coverage worksheet, items defined in sfa-data
     set idx1 $pmiHorizontalLineBreaks
     if {!$multi} {set idx1 [concat [list 3 4] $idx1]}
     for {set r $pmiElementsMaxRows} {$r >= [lindex $idx1 end]} {incr r -1} {
@@ -520,17 +522,20 @@ proc spmiCoverageFormat {sum {multi 1}} {
 
 # errors
   } emsg]} {
-    errorMsg "Error formatting PMI Representation Coverage worksheet: $emsg"
+    errorMsg "Error formatting Semantic PMI Coverage worksheet: $emsg"
   }
 }
 
 # -------------------------------------------------------------------------------
-# start PMI Presentation Coverage analysis worksheet
+# start Graphic PMI Coverage analysis worksheet
 proc gpmiCoverageStart {{multi 1}} {
-  global cells cells1 gpmiCoverageWS gpmiTypes multiFileDir opt sheetLast worksheet worksheet1 worksheets worksheets1
+  global cells cells1 gpmiCoverageWS gpmiTypes multiFileDir opt recPracNames sheetLast worksheet worksheet1 worksheets worksheets1
 
   if {[catch {
-    set gpmiCoverageWS "PMI Presentation Coverage"
+    set gpmiCoverageWS "Graphic PMI Coverage"
+
+# rec prac message
+    set msgrp "Recommended Graphic PMI names defined in $recPracNames(pmi242), Sec. 8.4"
 
 # multiple files
     if {$multi} {
@@ -542,14 +547,14 @@ proc gpmiCoverageStart {{multi 1}} {
       $worksheet1($gpmiCoverageWS) Name $gpmiCoverageWS
       set cells1($gpmiCoverageWS) [$worksheet1($gpmiCoverageWS) Cells]
       $cells1($gpmiCoverageWS) Item 1 2 "[file nativename $multiFileDir]"
-      $cells1($gpmiCoverageWS) Item 3 1 "PMI Presentation Names"
+      $cells1($gpmiCoverageWS) Item 3 1 "Graphic PMI Names"
       set range [$worksheet1($gpmiCoverageWS) Range "B1:K1"]
       $range MergeCells [expr 1]
       set row1($gpmiCoverageWS) 3
 
 # single file
     } else {
-      set spmiCoverageWS "PMI Representation Coverage"
+      set spmiCoverageWS "Graphic PMI Coverage"
       set n 3
       if {[info exists worksheet($spmiCoverageWS)]} {
         set n 5
@@ -559,8 +564,9 @@ proc gpmiCoverageStart {{multi 1}} {
       set cells($gpmiCoverageWS) [$worksheet($gpmiCoverageWS) Cells]
       set wsCount [$worksheets Count]
       [$worksheets Item [expr $wsCount]] -namedarg Move Before [$worksheets Item [expr $n]]
-      $cells($gpmiCoverageWS) Item 3 1 "PMI Presentation Names"
+      $cells($gpmiCoverageWS) Item 3 1 "Graphic PMI Names"
       $cells($gpmiCoverageWS) Item 3 2 "Count"
+      addCellComment $gpmiCoverageWS 3 1 $msgrp
       set range [$worksheet($gpmiCoverageWS) Range "1:3"]
       [$range Font] Bold [expr 1]
       set row($gpmiCoverageWS) 3
@@ -575,12 +581,12 @@ proc gpmiCoverageStart {{multi 1}} {
       }
     }
   } emsg3]} {
-    errorMsg "Error starting PMI Presentation Coverage worksheet: $emsg3"
+    errorMsg "Error starting Graphic PMI Coverage worksheet: $emsg3"
   }
 }
 
 # -------------------------------------------------------------------------------
-# write PMI Presentation Coverage analysis worksheet
+# write Graphic PMI Coverage analysis worksheet
 proc gpmiCoverageWrite {{fn ""} {sum ""} {multi 1}} {
   global cells cells1 col1 gpmiCoverageWS gpmiRows gpmiTotals gpmiTypes gpmiTypesInvalid gpmiTypesPerFile legendColor worksheet worksheet1
 
@@ -681,15 +687,15 @@ proc gpmiCoverageWrite {{fn ""} {sum ""} {multi 1}} {
       catch {if {$multi} {unset gpmiTypesPerFile}}
     }
   } emsg3]} {
-    errorMsg "Error adding to PMI Presentation Coverage worksheet: $emsg3"
+    errorMsg "Error adding to Graphic PMI Coverage worksheet: $emsg3"
   }
 }
 
 # -------------------------------------------------------------------------------
-# format PMI Presentation Coverage analysis worksheet, also PMI totals
+# format Graphic PMI Coverage analysis worksheet, also PMI totals
 proc gpmiCoverageFormat {{sum ""} {multi 1}} {
   global cells cells1 col1 excel excel1 lenfilelist localName nistName
-  global gpmiCoverageWS gpmiRows gpmiTotals recPracNames stepAP timeStamp worksheet worksheet1
+  global gpmiCoverageWS gpmiRows gpmiTotals timeStamp worksheet worksheet1
 
 # delete worksheet if no graphic PMI
   if {$multi && ![info exists gpmiTotals]} {
@@ -713,8 +719,8 @@ proc gpmiCoverageFormat {{sum ""} {multi 1}} {
     }
 
 # horizontal break lines
-    set idx1 [list 21 28 30 35 36]
-    if {!$multi} {set idx1 [list 3 4 21 28 30 35 36]}
+    set idx1 [list 21 28 30 35]
+    if {!$multi} {set idx1 [list 3 4 21 28 30 35]}
     for {set r 100} {$r >= 35} {incr r -1} {
       if {$multi} {
         set val [[$cells1($gpmiCoverageWS) Item $r 1] Value]
@@ -737,10 +743,6 @@ proc gpmiCoverageFormat {{sum ""} {multi 1}} {
       catch {[[$range Borders] Item [expr 8]] Weight [expr 2]}
     }
 
-# rec prac
-    set rp "$recPracNames(pmi242), Sec. 8.4"
-    if {[string first "AP203" $stepAP] == 0} {set rp "$recPracNames(pmi203), Sec. 4.3"}
-
 # vertical line(s)
     if {$multi} {
       set range [$worksheet1($gpmiCoverageWS) Range [cellRange 1 $col1($gpmiCoverageWS)] [cellRange [expr {[lindex $idx1 end]-1}] $col1($gpmiCoverageWS)]]
@@ -756,11 +758,6 @@ proc gpmiCoverageFormat {{sum ""} {multi 1}} {
       set range [$worksheet1($gpmiCoverageWS) Range 3:3]
       $range RowHeight 300
       [$worksheet1($gpmiCoverageWS) Columns] AutoFit
-
-      $cells1($gpmiCoverageWS) Item [expr {$gpmiRows+2}] 1 "Presentation Names defined in $rp"
-      set anchor [$worksheet1($gpmiCoverageWS) Range [cellRange [expr {$gpmiRows+2}] 1]]
-      [$worksheet1($gpmiCoverageWS) Hyperlinks] Add $anchor [join "https://www.mbx-if.org/home/cax/recpractices/"] [join ""] [join "Link to CAx-IF Recommended Practices"]
-
       [$worksheet1($gpmiCoverageWS) Rows] AutoFit
       [$worksheet1($gpmiCoverageWS) Range "B4"] Select
       catch {[$excel1 ActiveWindow] FreezePanes [expr 1]}
@@ -775,12 +772,6 @@ proc gpmiCoverageFormat {{sum ""} {multi 1}} {
       }
       [$worksheet($gpmiCoverageWS) Columns] AutoFit
 
-      set range [$worksheet($gpmiCoverageWS) Range E1:O1]
-      $range MergeCells [expr 1]
-      $cells($gpmiCoverageWS) Item 1 E "Presentation Names defined in $rp"
-      set anchor [$worksheet($gpmiCoverageWS) Range E1]
-      [$worksheet($gpmiCoverageWS) Hyperlinks] Add $anchor [join "https://www.mbx-if.org/home/cax/recpractices/"] [join ""] [join "Link to CAx-IF Recommended Practices"]
-
       [$worksheet($gpmiCoverageWS) Range "A1"] Select
       set txt [file tail $localName]
       if {$timeStamp != ""} {append txt "[format "%c" 10]  ($timeStamp)"}
@@ -793,6 +784,6 @@ proc gpmiCoverageFormat {{sum ""} {multi 1}} {
 
 # errors
   } emsg]} {
-    errorMsg "Error formatting PMI Presentation Coverage worksheet: $emsg"
+    errorMsg "Error formatting Graphic PMI Coverage worksheet: $emsg"
   }
 }

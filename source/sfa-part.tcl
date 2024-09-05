@@ -1,8 +1,9 @@
 # -------------------------------------------------------------------------------
 # B-rep part geometry, new stp2x3d in SFA 5.10 also processes tessellated geometry
 proc x3dBrepGeom {} {
-  global brepFile brepFileName buttons cadSystem clippingCap developer DTR edgeMatID entCount grayBackground localName matTrans maxxyz mytemp
-  global nistVersion nsketch opt rawBytes rosetteGeom tessSolid viz x3dApps x3dBbox x3dMax x3dMin x3dMsg x3dMsgColor x3dParts
+  global brepFile brepFileName brepScale buttons cadSystem clippingCap developer DTR edgeMatID entCount grayBackground localName
+  global matTrans maxxyz mytemp nistVersion nsketch opt rawBytes rosetteGeom tessSolid viz x3dApps x3dBbox x3dMax x3dMin x3dMsg
+  global x3dMsgColor x3dParts
   global objDesign
 
   if {[catch {
@@ -22,7 +23,7 @@ proc x3dBrepGeom {} {
 
 # output dir for stp2x3d-part, delete if it exists
       set ftail [file tail [file rootname $localName]]
-      set msg " Processing STEP part geometry"
+      set msg " Processing STEP part geometry for the Viewer"
       if {[info exists buttons]} {
         set fsize [file size $localName]
         if {$fsize > 200000000} {
@@ -35,7 +36,7 @@ proc x3dBrepGeom {} {
       if {$opt(brepAlt)} {outputMsg " Using alternative geometry processing, see More tab" red}
 
 # check if invisibility is applied to surfaces
-      if {[info exists entCount(invisibility)] && $developer} {
+      if {[info exists entCount(invisibility)] && $opt(debugX3D)} {
         if {$entCount(invisibility) > 0} {
           ::tcom::foreach e0 [$objDesign FindObjects [string trim invisibility]] {
             catch {
@@ -53,7 +54,7 @@ proc x3dBrepGeom {} {
 # check for tessellated edges
       if {[info exists tessSolid] && $tessSolid} {
         if {[info exists entCount(tessellated_connecting_edge)]} {
-          if {$entCount(tessellated_connecting_edge) > 0} {errorMsg " Tessellated edges are not supported." red}
+          if {$entCount(tessellated_connecting_edge) > 0} {errorMsg " Tessellated edges are not supported" red}
         }
       }
 
@@ -107,7 +108,7 @@ proc x3dBrepGeom {} {
             set x3dApps {}
 
 # check for conversion units, mm > inch
-            set sc [x3dBrepUnits]
+            set brepScale [x3dBrepUnits]
 
 # get min and max, number of materials, indents used to add Switch nodes
             set x3dBbox ""
@@ -121,7 +122,7 @@ proc x3dBrepGeom {} {
                 foreach id1 {1 2 3} id2 {x y z} {
                   set num [expr {[lindex $sline $id1]}]
                   regsub -all "," $num "." num
-                  set x3dMin($id2) [expr {$sc*$num}]
+                  set x3dMin($id2) [expr {$brepScale*$num}]
                   set prec 3
                   if {[expr {abs($num)}] >= 100.} {set prec 2}
                   set num [trimNum $num $prec]
@@ -136,7 +137,7 @@ proc x3dBrepGeom {} {
                 foreach id1 {1 2 3} id2 {x y z} {
                   set num [expr {[lindex $sline $id1]}]
                   regsub -all "," $num "." num
-                  set x3dMax($id2) [expr {$sc*$num}]
+                  set x3dMax($id2) [expr {$brepScale*$num}]
                   set prec 3
                   if {[expr {abs($num)}] >= 100.} {set prec 2}
                   set num [trimNum $num $prec]
@@ -203,8 +204,8 @@ proc x3dBrepGeom {} {
 
 # integrate x3d from stp2x3d-part with existing x3dom file
             set str "\n<!-- PART GEOMETRY -->\n<Switch whichChoice='0' id='swPRT'>"
-            if {$sc != 1} {
-              append str "<Transform scale='$sc $sc $sc' onclick='handleGroupClick(event)'>"
+            if {$brepScale != 1} {
+              append str "<Transform scale='$brepScale $brepScale $brepScale' onclick='handleGroupClick(event)'>"
             } else {
               append str "<Group onclick='handleGroupClick(event)'>"
             }
@@ -267,8 +268,8 @@ proc x3dBrepGeom {} {
                             }
                           }
                           set nsize [trimNum [expr {$maxxyz*0.02}]]
-                          puts $brepFile "   <Transform translation='$p11(x1) $p11(y1) $p11(z1)' scale='$nsize $nsize $nsize'><Billboard axisOfRotation='0 0 0'><Shape><Text string='$curve11($id11)'><FontStyle family='SANS' justify='BEGIN'/></Text><Appearance><Material diffuseColor='1 1 1'/></Appearance></Shape></Billboard></Transform>"
-                          puts $brepFile "   <Transform translation='$p11(x2) $p11(y2) $p11(z2)' scale='$nsize $nsize $nsize'><Billboard axisOfRotation='0 0 0'><Shape><Text string='$curve11($id11)'><FontStyle family='SANS' justify='BEGIN'/></Text><Appearance><Material diffuseColor='1 1 1'/></Appearance></Shape></Billboard></Transform>"
+                          puts $brepFile "   <Transform translation='$p11(x1) $p11(y1) $p11(z1)' scale='$nsize $nsize $nsize'><Billboard axisOfRotation='0 0 0'><Shape><Text string='$curve11($id11)'><FontStyle family='SANS' justify='BEGIN'/></Text><Appearance><Material diffuseColor='0 0 0'/></Appearance></Shape></Billboard></Transform>"
+                          puts $brepFile "   <Transform translation='$p11(x2) $p11(y2) $p11(z2)' scale='$nsize $nsize $nsize'><Billboard axisOfRotation='0 0 0'><Shape><Text string='$curve11($id11)'><FontStyle family='SANS' justify='BEGIN'/></Text><Appearance><Material diffuseColor='0 0 0'/></Appearance></Shape></Billboard></Transform>"
                           set line ""
                         }
                       } emsg2]} {
@@ -318,15 +319,6 @@ proc x3dBrepGeom {} {
                       set matTrans($id) $trans
                       if {$trans != 1} {errorMsg " Some surfaces are transparent" red}
                     }
-                  }
-                }
-
-# check if any sketch geometry is white
-                if {$oksketch && ![info exists grayBackground]} {
-                  if {[string first "<Appearance" $line] != -1} {
-                    if {[string first "'1 1 1'" $line] != -1} {set grayBackground 1}
-                  } elseif {[string first "<Color" $line] != -1} {
-                    if {[string first "1 1 1" $line] != -1} {set grayBackground 1}
                   }
                 }
 
@@ -548,7 +540,7 @@ proc x3dBrepGeom {} {
             }
 
 # end the brep file
-            if {$sc == 1} {
+            if {$brepScale == 1} {
               puts $brepFile "</Group></Switch>"
             } else {
               puts $brepFile "</Transform></Switch>"
@@ -577,8 +569,6 @@ proc x3dBrepGeom {} {
           set msg "Change the file or directory name and process the file again."
         } elseif {[string first "permission denied" $errs] != -1} {
           set msg "Antivirus software might be blocking stp2x3d-part.exe from running in $mytemp"
-        } elseif {[string first "Color will not be supported." $errs] != -1} {
-          set msg "Values on 'colour_rgb' must be >= 0 and <= 1."
         } elseif {[info exists entCount(tessellated_brep_shape_representation)]} {
           if {$entCount(tessellated_brep_shape_representation)} {set msg "Polyhedral b-rep geometry (tessellated_brep_shape_representation) is not supported."}
 
@@ -615,7 +605,7 @@ proc x3dBrepUnits {} {
   global objDesign
   if {![info exists objDesign]} {return 1}
 
-  set sc 1.
+  set scale 1.
   set a2 ""
   ::tcom::foreach e0 [$objDesign FindObjects [string trim advanced_brep_shape_representation]] {
     set e1 [[[$e0 Attributes] Item [expr 3]] Value]
@@ -632,11 +622,11 @@ proc x3dBrepUnits {} {
       if {[$e3 Type] == "conversion_based_unit_and_length_unit"} {
         set e4 [[[$e3 Attributes] Item [expr 3]] Value]
         set cf [[[$e4 Attributes] Item [expr 1]] Value]
-        set sc [trimNum [expr {1./$cf}] 5]
+        set scale [trimNum [expr {1./$cf}] 5]
       }
     }
   }
-  return $sc
+  return $scale
 }
 
 # -------------------------------------------------------------------------------

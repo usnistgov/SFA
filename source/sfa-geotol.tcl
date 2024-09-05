@@ -84,7 +84,7 @@ proc spmiGeotolStart {entType} {
   set spmiRow($gt) {}
   foreach var {ent pmiHeading} {if {[info exists $var]} {unset $var}}
 
-  outputMsg " Adding PMI Representation Analyzer report" blue
+  outputMsg " Adding Semantic PMI Analyzer report" blue
   lappend spmiEntity $entType
 
   if {$opt(DEBUG1)} {outputMsg \n}
@@ -147,7 +147,7 @@ proc spmiGeotolReport {objEntity} {
 
     if {[string first "AP242" $stepAP] == 0} {
       if {$objType == "datum_reference"} {
-        set msg "Syntax Error: Use 'datum_system' instead of 'datum_reference' for PMI Representation in AP242 files.$spaces\($recPracNames(pmi242), Sec. 6.9.7)"
+        set msg "Syntax Error: Use 'datum_system' instead of 'datum_reference' for Semantic PMI in AP242 files.$spaces\($recPracNames(pmi242), Sec. 6.9.7)"
         errorMsg $msg
         lappend syntaxErr(datum_reference) [list 1 1 $msg]
       }
@@ -517,7 +517,7 @@ proc spmiGeotolReport {objEntity} {
                     } elseif {$ATR(1) == "displacement" && [string first "unequally_disposed" $gt] != -1} {
                       set ok 1
                       set idx "unequally_disposed"
-                      if {$tolStandard(type) != "ISO"} {
+                      if {$tolStandard(type) != "ISO" && $nistName != "jpmi-trim"} {
                         set objValue " $pmiModifiers($idx) $objValue"
                       } else {
                         set uz " UZ"
@@ -573,23 +573,23 @@ proc spmiGeotolReport {objEntity} {
                     if {[info exists colName]} {
                       $cells($gt) Item 3 $c $colName
                       if {[string first "GD&T" $colName] != -1} {
-                        set comment "See Help > User Guide (section 6.1.4) for an explanation of how the annotations below are constructed.  Results are summarized on the PMI Representation Summary worksheet."
+                        set comment "See Help > User Guide (section 6.1.4) for an explanation of how the annotations below are constructed.  Results are summarized on the Semantic PMI Summary worksheet."
                         append comment "\n\nThe geometric tolerance might be shown with associated dimensions (above) and datum features (below).  The association depends on any of the two referring to the same Associated Geometry as the Toleranced Geometry in the column to the right.  See the Associated Geometry columns on the 'dimensional_characteristic_representation' (DCR) and 'datum_feature' worksheets to see if they match the Toleranced Geometry."
                         append comment "\n\nSee the DCR worksheet for an explanation of Repetitive Dimensions."
                         if {$nistName != ""} {
-                          append comment "\n\nSee the PMI Representation Summary worksheet to see how the GD&T Annotation below compares to the expected PMI."
+                          append comment "\n\nSee the Semantic PMI Summary worksheet to see how the GD&T Annotation below compares to the expected PMI."
                         }
                         addCellComment $gt 3 $c $comment
 
                         catch {
                           set hlink [$worksheet($gt) Hyperlinks]
                           set anchor [$worksheet($gt) Range [cellRange 3 $c]]
-                          set hlsheet "'PMI Representation Summary'"
+                          set hlsheet "'Semantic PMI Summary'"
                           $hlink Add $anchor [string trim ""] "$hlsheet![cellRange 3 3]" ""
                         }
                       }
                       if {[string first "Datum Reference Frame" $colName] == 0} {
-                        set comment "Results are summarized on the PMI Representation Summary worksheet.  Section numbers refer to the CAx-IF Recommended Practice for Representation and Presentation of PMI (AP242)."
+                        set comment "Results are summarized on the Semantic PMI Summary worksheet.  Section numbers refer to the CAx-IF Recommended Practice for Representation and Presentation of PMI (AP242)."
                         addCellComment $gt 3 $c $comment
                       }
                     }
@@ -728,11 +728,11 @@ proc spmiGeotolReport {objEntity} {
 
                           if {[string first "_material_condition" $val] != -1 && [string first "AP242" $stepAP] == 0} {
                             if {[string first "max" $val] == 0} {
-                              set msg "Syntax Error: Use 'maximum_material_requirement' instead of 'maximum_material_condition' for PMI Representation in AP242 files.$spaces\($recPracNames(pmi242), Sec. 6.9.3)"
+                              set msg "Syntax Error: Use 'maximum_material_requirement' instead of 'maximum_material_condition' for Semantic PMI in AP242 files.$spaces\($recPracNames(pmi242), Sec. 6.9.3)"
                               errorMsg $msg
                               lappend syntaxErr([lindex $ent1 0]) [list [$gtEntity P21ID] [lindex $ent1 1] $msg]
                             } elseif {[string first "least" $val] == 0} {
-                              set msg "Syntax Error: Use 'least_material_requirement' instead of 'least_material_condition' for PMI Representation in AP242 files.$spaces\($recPracNames(pmi242), Sec. 6.9.3)"
+                              set msg "Syntax Error: Use 'least_material_requirement' instead of 'least_material_condition' for Semantic PMI in AP242 files.$spaces\($recPracNames(pmi242), Sec. 6.9.3)"
                               errorMsg $msg
                               lappend syntaxErr([lindex $ent1 0]) [list [$gtEntity P21ID] [lindex $ent1 1] $msg]
                             }
@@ -1143,9 +1143,10 @@ proc spmiGeotolReport {objEntity} {
                       set e0s [$gtEntity GetUsedIn [string trim feature_for_datum_target_relationship] [string trim relating_shape_aspect]]
                       ::tcom::foreach e0 $e0s {
                         if {[$e0 Type] == "feature_for_datum_target_relationship"} {
-                          set msg "Syntax Error: For [$e0 Type] the related_shape_aspect should be 'placed_datum_target_feature'.$spaces\($recPracNames(pmi242), Sec. 6.6.3, Fig. 45)"
+                          set msg "Syntax Error: For [$e0 Type] the 'relating' and 'related' shape aspects might be reversed.$spaces\($recPracNames(pmi242), Sec. 6.6.3, Fig. 45)"
                           errorMsg $msg
                           lappend syntaxErr([$e0 Type]) [list [$e0 P21ID] "related_shape_aspect" $msg]
+                          lappend syntaxErr([$e0 Type]) [list [$e0 P21ID] "relating_shape_aspect" $msg]
                         }
                       }
 
@@ -1181,10 +1182,16 @@ proc spmiGeotolReport {objEntity} {
                         ::tcom::foreach a1 [$e1 Attributes] {
                           if {[$a1 Name] == "identified_item"} {
                             set e2 [$a1 Value]
-                            append datumTargetGeom "[$e2 Type] [$e2 P21ID]"
 
 # save datum target geometric entity for view
-                            set datumTargetView([$gtEntity P21ID]) [list $datumTargetType $e2]
+                            if {[catch {
+                              append datumTargetGeom "[$e2 Type] [$e2 P21ID]"
+                              set datumTargetView([$gtEntity P21ID]) [list $datumTargetType $e2]
+                            }]} {
+                              set msg "Syntax Error: Bad 'identified_item' attribute on geometric_item_specific_usage related to datum_target.$spaces\($recPracNames(pmi242), Sec. 6.6.2, Fig. 44)"
+                              errorMsg $msg
+                              lappend syntaxErr(geometric_item_specific_usage) [list [$e1 P21ID] "identified_item" $msg]
+                            }
                           }
                         }
                       }
@@ -1301,7 +1308,7 @@ proc spmiGeotolReport {objEntity} {
                   "*modified_geometric_tolerance* modifier" {
 # AP203 get geotol modifier, not used in AP242
                     if {[string first "modified_geometric_tolerance" $objType] != -1 && [string first "AP242" $stepAP] == 0} {
-                      set msg "Syntax Error: Use 'geometric_tolerance_with_modifiers' instead of 'modified_geometric_tolerance' for PMI Representation in AP242 files.$spaces\($recPracNames(pmi242), Sec. 6.9.3)"
+                      set msg "Syntax Error: Use 'geometric_tolerance_with_modifiers' instead of 'modified_geometric_tolerance' for Semantic PMI in AP242 files.$spaces\($recPracNames(pmi242), Sec. 6.9.3)"
                       errorMsg $msg
                       lappend syntaxErr($objType) [list 1 1 $msg]
                     }
@@ -1314,11 +1321,11 @@ proc spmiGeotolReport {objEntity} {
                         lappend spmiTypesPerFile $val
                         if {[string first "_material_condition" $val] != -1 && [string first "AP242" $stepAP] == 0} {
                           if {[string first "max" $val] == 0} {
-                            set msg "Syntax Error: Use 'maximum_material_requirement' instead of 'maximum_material_condition' for PMI Representation in AP242 files.$spaces\($recPracNames(pmi242), Sec. 6.9.3)"
+                            set msg "Syntax Error: Use 'maximum_material_requirement' instead of 'maximum_material_condition' for Semantic PMI in AP242 files.$spaces\($recPracNames(pmi242), Sec. 6.9.3)"
                             errorMsg $msg
                             lappend syntaxErr([lindex $ent1 0]) [list [$gtEntity P21ID] [lindex $ent1 1] $msg]
                           } elseif {[string first "least" $val] == 0} {
-                            set msg "Syntax Error: Use 'least_material_requirement' instead of 'least_material_condition' for PMI Representation in AP242 files.$spaces\($recPracNames(pmi242), Sec. 6.9.3)"
+                            set msg "Syntax Error: Use 'least_material_requirement' instead of 'least_material_condition' for Semantic PMI in AP242 files.$spaces\($recPracNames(pmi242), Sec. 6.9.3)"
                             errorMsg $msg
                             lappend syntaxErr([lindex $ent1 0]) [list [$gtEntity P21ID] [lindex $ent1 1] $msg]
                           }
@@ -1618,6 +1625,7 @@ proc spmiGeotolReport {objEntity} {
             } elseif {[$a1 Name] == "relating_geometric_tolerance"} {
               set compositeID [[$a1 Value] P21ID]
               lappend spmiTypesPerFile "composite tolerance"
+              if {$tolStandard(type) == "ISO"} {errorMsg "Composite tolerances are not supported in ISO 1101."}
             }
           }
         }
@@ -2328,6 +2336,10 @@ proc spmiPlacedDatumTarget {objEntity objValue} {
                   } elseif {$datumTargetType == "line"} {
                     append objValue "[format "%c" 10](L = $dtv)"
                   } elseif {$datumTargetType == "circular curve"} {
+                    if {[string first "(D = " $objValue] != -1} {
+                      set msg "Multiple diameter dimensions associated with the same 'circular_curve' placed_datum_target_feature"
+                      errorMsg $msg
+                    }
                     append objValue "[format "%c" 10](D = $dtv)"
 
 # rectangular, smaller value first

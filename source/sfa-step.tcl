@@ -250,11 +250,11 @@ proc pmiFormatColumns {str} {
     set r1 1
     set r2 $r1
     set r3 {}
-    if {[string first "PMI Presentation" $str] != -1} {
+    if {[string first "Graphic PMI" $str] != -1} {
       set rs $gpmiRow($thisEntType)
     } elseif {[string first "Validation Properties" $str] != -1} {
       set rs $vpmiRow($thisEntType)
-    } elseif {[string first "PMI Representation" $str] != -1} {
+    } elseif {[string first "Semantic PMI" $str] != -1} {
       set rs $spmiRow($thisEntType)
     }
     foreach r $rs {
@@ -424,6 +424,7 @@ proc setEntsToProcess {entType} {
   if {($opt(PMIGRF) || ($gen(View) && $opt(viewPMI))) && $ok == 0} {
     set ok [gpmiCheckEnt $entType]
     set gpmiEnts($entType) $ok
+    if {[string first "tessellated_geometric_set" $entType] != -1} {set ok 1}
   }
 
 # for PMI (semantic) representation
@@ -451,7 +452,7 @@ proc checkForReports {entType} {
       errorMsg "Error adding Validation Properties for $entType: $emsg"
     }
 
-# check for PMI Presentation report or view graphic PMI, call gpmiAnnotation
+# check for Graphic PMI report or view graphic PMI, call gpmiAnnotation
   } elseif {$gpmiEnts($entType)} {
     if {[catch {
       set ok 0
@@ -463,7 +464,7 @@ proc checkForReports {entType} {
         catch {unset pmiColumns}
       }
     } emsg]} {
-      errorMsg "Error adding PMI Presentation for [formatComplexEnt $entType]: $emsg"
+      errorMsg "Error adding Graphic PMI for [formatComplexEnt $entType]: $emsg"
     }
 
 # check for Semantic PMI reports
@@ -495,7 +496,7 @@ proc checkForReports {entType} {
         }
       }
     } emsg]} {
-      errorMsg "Error adding PMI Representation for [formatComplexEnt $entType]: $emsg"
+      errorMsg "Error adding Semantic PMI for [formatComplexEnt $entType]: $emsg"
     }
 
 # check for AP209 entities that contain information to be processed for the viewer
@@ -1127,6 +1128,20 @@ proc getEquivUnicodeString {c1 ent ent1 msgChar5} {
   if {[catch {
     regsub -all {\\\\} $ent {\\} ent
     set eus [string range $ent $c1+28 end-3]
+
+# check for duplicate strings
+    set msg ""
+    foreach tag [list DIM FCF DTM TGT] {
+      if {[string first $tag $eus] != -1} {
+        set eusl [split $eus $tag]
+        if {[llength $eusl] >= 7} {
+          if {[lindex $eusl 3] != ""} {
+            if {[lindex $eusl 3] == [lindex $eusl 6] || [lindex $eusl 3] == [lindex $eusl 7]} {if {$msg == ""} {set msg "Duplicate string"}}
+          }
+        }
+      }
+    }
+
     regsub -all {\\w} $eus " | " eus
     regsub -all {\\n} $eus [format "%c" 10] eus
     foreach tag {"DIM |" "FCF |" "TXT |"} {
@@ -1141,14 +1156,13 @@ proc getEquivUnicodeString {c1 ent ent1 msgChar5} {
     set equivUnicodeString($num) $eus
 
 # check for errors
-    set msg ""
     set nu 0
     set upos 0
     while {[string first "\\u" $ent $upos] != -1} {
       incr nu
       set upos [expr {[string first "\\u" $ent $upos]+2}]
     }
-    if {[expr {$nu%2}] != 0} {set msg "There should be an even number of '\\u' delimiters"}
+    if {[expr {$nu%2}] != 0} {set msg "There should be an even number of grouping symbols '\\u'"}
 
     if {$msg == ""} {foreach tag {"<COUNTERBORE" "DIM\\\\wHOLE"} {if {[string first $tag $ent1] != -1} {set msg "Unexpected keyword"}}}
     if {$msg == ""} {
@@ -1163,7 +1177,6 @@ proc getEquivUnicodeString {c1 ent ent1 msgChar5} {
       }
     }
     if {$msg == ""} {foreach char {F055 F056} {if {[string first "\\X2\\$char\\X0\\" $ent1] != -1} {set msg "Unicode character $char is not valid"}}}
-    if {$msg == "" && [string first "\\X2\\2501\\X0\\" $ent1] != -1} {set msg "Unexpected Unicode character 2501"}
     if {$msg == "" && [string first "\\X2\\2313\\X0\\AAS" $ent1] != -1} {set msg "AAS is in the wrong position"}
     if {$msg == "" && [string first "\\\\s" $ent1] != -1} {set msg "Unexpected delimiter \\s"}
     if {$msgChar5} {set msg "Unicode using five characters is not supported"}

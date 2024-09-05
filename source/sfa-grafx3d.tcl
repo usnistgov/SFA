@@ -419,7 +419,6 @@ proc x3dFileEnd {} {
 # duplicate saved views
             } else {
               foreach xf $x3dFiles {puts $xf "<!-- SAME AS $svMap($svn) -->"}
-              errorMsg " Two or more Saved Views have identical graphic PMI" red
               set torg ""
             }
 
@@ -440,7 +439,6 @@ proc x3dFileEnd {} {
           lappend savedViewButtons $svn
           if {[info exists savedViewpoint($svn)]} {x3dSavedViewpoint $svn}
           foreach xf $x3dFiles {puts $xf "\n<!-- SAVED VIEW$i NO PMI - $svn -->\n<Switch whichChoice='0' id='sw$svnfn'><Group></Group></Switch>"}
-          errorMsg " Some saved views do not have graphic PMI" red
         }
         catch {file delete -force -- $savedViewFileName($svnfn)}
       }
@@ -809,7 +807,7 @@ proc x3dFileEnd {} {
       puts $x3dFile "<details><summary>Clipping Planes</summary>"
     }
     for {set i 1} {$i <= $nclipPlane} {incr i} {
-      puts $x3dFile "<input type='checkbox' onclick='togClipping$i\(this.value)'/>$clipPlaneName($i)<br>"
+      puts $x3dFile "<input type='checkbox' id='cbClipping$i' onclick='togClipping$i\(this.value)'/>$clipPlaneName($i)<br>"
     }
     if {$nclipPlane > 4} {puts $x3dFile "</details>"}
   }
@@ -1558,7 +1556,7 @@ proc x3dDatumTarget {} {
 # -------------------------------------------------------------------------------
 # holes counter and spotface
 proc x3dHoles {} {
-  global dim DTR entCount gen holeDefinitions maxxyz opt recPracNames spaces syntaxErr viz x3dFile
+  global brepScale DTR entCount gen holeDefinitions holeUnit maxxyz opt recPracNames spaces syntaxErr viz x3dFile
   global objDesign
 
   set drillPoint [trimNum [expr {$maxxyz*0.02}]]
@@ -1566,7 +1564,7 @@ proc x3dHoles {} {
   set holeDEF {}
 
   set scale 1.
-  if {$dim(unit) == "INCH"} {set scale 25.4}
+  if {$brepScale == 1. && $holeUnit == "INCH"} {set scale 25.4}
 
   ::tcom::foreach e0 [$objDesign FindObjects [string trim item_identified_representation_usage]] {
     if {[catch {
@@ -1724,7 +1722,7 @@ proc x3dHoles {} {
                 if {[lindex $hole 2] != ""} {
                   set holeDep [expr {[lindex $hole 2]*$scale}]
                 } else {
-                  set holeDep [expr {[lindex $hole 1]*0.01*$scale}]
+                  set holeDep [expr {[lindex $hole 1]*0.1*$scale}]
                 }
                 if {[lsearch $holeDEF $defID] == -1} {
                   puts $x3dFile "$transform<Group DEF='$holeName$defID'>"
@@ -1767,7 +1765,7 @@ proc x3dHoles {} {
 # -------------------------------------------------------------------------------
 # placeholder axes, coordinates, text, box, leader line
 proc x3dPlaceholder {{aoname ""} {fname ""}} {
-  global grayBackground leaderCoords maxxyz minview opt x3dFile
+  global leaderCoords maxxyz minview opt x3dFile
   global placeAxes placeAxesDef placeBox placeCoords placeNames placeSize placeSphereDef placeSymbol
   global savedPlaceFile savedPlaceFileName savedViewFile savedViewFileName
 
@@ -1778,15 +1776,10 @@ proc x3dPlaceholder {{aoname ""} {fname ""}} {
   } else {
     set pcnames [list $aoname]
   }
-
-# no saved views
-  if {$fname == ""} {
-    set fname $x3dFile
-    set nview -1
-    set minview 0
-  } else {
+  set phColor "0 0 0"
 
 # get minimum view number for def and use below
+  if {$fname != ""} {
     if {![info exists minview]} {
       set minview 10000
       foreach name [array names savedViewFile] {
@@ -1808,7 +1801,7 @@ proc x3dPlaceholder {{aoname ""} {fname ""}} {
         }
       }
     }
-    set fname $savedPlaceFile($name2)
+    catch {set fname $savedPlaceFile($name2)}
     set nview [string range $name2 5 end]
   }
   if {[info exists maxxyz] && $aoname == ""} {
@@ -1820,6 +1813,13 @@ proc x3dPlaceholder {{aoname ""} {fname ""}} {
     set size2 "placeSize2"
     set size3 "placeSize3"
     set placeSize 1
+  }
+
+# no saved views
+  if {$fname == ""} {
+    set fname $x3dFile
+    set nview -1
+    set minview 0
   }
 
 # placeholder coordinates
@@ -1858,9 +1858,8 @@ proc x3dPlaceholder {{aoname ""} {fname ""}} {
           set boxCoord "0 [expr {-0.5*$placeBox($name,y)}] 0 $placeBox($name,x) [expr {-0.5*$placeBox($name,y)}] 0 0 [expr {0.5*$placeBox($name,y)}] 0 $placeBox($name,x) [expr {0.5*$placeBox($name,y)}] 0"
           set boxIndex "0 1 3 2 0 -1"
           puts $fname " $transform"
-          puts $fname "  <Shape><Appearance><Material emissiveColor='1 1 0'/></Appearance><IndexedLineSet coordIndex='$boxIndex'><Coordinate point='$boxCoord'/></IndexedLineSet></Shape>"
+          puts $fname "  <Shape><Appearance><Material emissiveColor='$phColor'/></Appearance><IndexedLineSet coordIndex='$boxIndex'><Coordinate point='$boxCoord'/></IndexedLineSet></Shape>"
           puts $fname " </Transform>"
-          set grayBackground 1
         }
         puts $fname "</Group></Transform>"
       }
@@ -1871,7 +1870,6 @@ proc x3dPlaceholder {{aoname ""} {fname ""}} {
 
 # leader line coordinates and line
   if {[info exists leaderCoords]} {
-    set grayBackground 1
     if {[catch {
       if {$aoname == ""} {
         if {![info exists placeCoords]} {
@@ -1903,7 +1901,7 @@ proc x3dPlaceholder {{aoname ""} {fname ""}} {
         append index "-1"
         set idstr ""
         if {$opt(debugX3D)} {set idstr " id='LL $name'"}
-        puts $fname "<Shape$idstr><Appearance><Material emissiveColor='1 1 0'/></Appearance><IndexedLineSet coordIndex='$index'><Coordinate point='[join $leaderLine($id)]'/></IndexedLineSet></Shape>"
+        puts $fname "<Shape$idstr><Appearance><Material emissiveColor='$phColor'/></Appearance><IndexedLineSet coordIndex='$index'><Coordinate point='[join $leaderLine($id)]'/></IndexedLineSet></Shape>"
 
 # text at first and last point
         foreach idx [list 0 [expr {[llength $leaderLine($id)]-1}]] {
@@ -1938,7 +1936,7 @@ proc x3dPlaceholder {{aoname ""} {fname ""}} {
 # -------------------------------------------------------------------------------
 # composite rosette cartesian_11 (curve_11 is handled by stp2x3d and processed in sfa-part.tcl)
 proc x3dComposites {} {
-  global entCount grayBackground maxxyz rosetteGeom viz x3dFile
+  global entCount maxxyz rosetteGeom viz x3dFile
   global objDesign
 
   if {![info exists rosetteGeom]} {set rosetteGeom 0}
@@ -1946,7 +1944,6 @@ proc x3dComposites {} {
   if {[info exists entCount($entType)]} {
     if {$entCount($entType) > 0} {
       set viz(COMPOSITES) 1
-      set grayBackground 1
 
 # rosetteGeom: 1=curve, 2=axis, 3=both
       set rosetteGeom [expr {$rosetteGeom+2}]
@@ -1961,11 +1958,11 @@ proc x3dComposites {} {
           set size1 [trimNum [expr {0.25*$size}]]
           set size2 [trimNum [expr {0.7*$size}]]
           set points "0. 0. 0. $size 0. 0. 0. $size 0. $size2 $size2 0. $size2 -$size2 0."
-          puts $x3dFile " <Shape><Appearance><Material emissiveColor='1 1 1'/></Appearance><IndexedLineSet coordIndex='0 1 -1 0 2 -1 0 3 -1 0 4 -1'><Coordinate point='$points'/></IndexedLineSet></Shape>"
-          puts $x3dFile " <Transform translation='$size 0. 0.' scale='$size1 $size1 $size1'><Billboard axisOfRotation='0 0 0'><Shape><Text string='0'><FontStyle family='SANS' justify='BEGIN'/></Text><Appearance><Material diffuseColor='1 1 1'/></Appearance></Shape></Billboard></Transform>"
-          puts $x3dFile " <Transform translation='0. $size 0.' scale='$size1 $size1 $size1'><Billboard axisOfRotation='0 0 0'><Shape><Text string='90'><FontStyle family='SANS' justify='BEGIN'/></Text><Appearance><Material diffuseColor='1 1 1'/></Appearance></Shape></Billboard></Transform>"
-          puts $x3dFile " <Transform translation='$size2 $size2 0.' scale='$size1 $size1 $size1'><Billboard axisOfRotation='0 0 0'><Shape><Text string='45'><FontStyle family='SANS' justify='BEGIN'/></Text><Appearance><Material diffuseColor='1 1 1'/></Appearance></Shape></Billboard></Transform>"
-          puts $x3dFile " <Transform translation='$size2 -$size2 0.' scale='$size1 $size1 $size1'><Billboard axisOfRotation='0 0 0'><Shape><Text string='-45'><FontStyle family='SANS' justify='BEGIN'/></Text><Appearance><Material diffuseColor='1 1 1'/></Appearance></Shape></Billboard></Transform>"
+          puts $x3dFile " <Shape><Appearance><Material emissiveColor='0 0 0'/></Appearance><IndexedLineSet coordIndex='0 1 -1 0 2 -1 0 3 -1 0 4 -1'><Coordinate point='$points'/></IndexedLineSet></Shape>"
+          puts $x3dFile " <Transform translation='$size 0. 0.' scale='$size1 $size1 $size1'><Billboard axisOfRotation='0 0 0'><Shape><Text string='0'><FontStyle family='SANS' justify='BEGIN'/></Text><Appearance><Material diffuseColor='0 0 0'/></Appearance></Shape></Billboard></Transform>"
+          puts $x3dFile " <Transform translation='0. $size 0.' scale='$size1 $size1 $size1'><Billboard axisOfRotation='0 0 0'><Shape><Text string='90'><FontStyle family='SANS' justify='BEGIN'/></Text><Appearance><Material diffuseColor='0 0 0'/></Appearance></Shape></Billboard></Transform>"
+          puts $x3dFile " <Transform translation='$size2 $size2 0.' scale='$size1 $size1 $size1'><Billboard axisOfRotation='0 0 0'><Shape><Text string='45'><FontStyle family='SANS' justify='BEGIN'/></Text><Appearance><Material diffuseColor='0 0 0'/></Appearance></Shape></Billboard></Transform>"
+          puts $x3dFile " <Transform translation='$size2 -$size2 0.' scale='$size1 $size1 $size1'><Billboard axisOfRotation='0 0 0'><Shape><Text string='-45'><FontStyle family='SANS' justify='BEGIN'/></Text><Appearance><Material diffuseColor='0 0 0'/></Appearance></Shape></Billboard></Transform>"
           puts $x3dFile "</Transform>"
         }
       } emsg]} {
