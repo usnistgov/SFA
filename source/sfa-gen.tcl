@@ -1806,23 +1806,23 @@ proc addHeaderWorksheet {numFile fname} {
           if {$id == 1} {
             append str " (Edition 1)"
             if {[llength $ap242ed(2)] > 0 || [llength $ap242ed(3)] > 0 || [llength $ap242ed(4)] > 0} {
-              errorMsg "The STEP file contains entities related to AP242 Edition 2, 3, or 4 ([join [lrmdups [concat $ap242ed(2) $ap242ed(3) $ap242ed(4)]]]),$spaces\however, the file is identified as Edition 1." red
+              errorMsg "The STEP file contains entities found in AP242 Edition 2, 3, or 4 ([join [lrmdups [concat $ap242ed(2) $ap242ed(3) $ap242ed(4)]]]),$spaces\however, the file is identified as Edition 1." red
             }
           } elseif {$id == 2 || $id == 3} {
             append str " (Edition 2)"
             if {$id == 2} {errorMsg " AP242 Edition 2 should be identified with '\{1 0 10303 442 3 1 4\}'" red}
             if {[llength $ap242ed(3)] > 0 || [llength $ap242ed(4)] > 0} {
-              errorMsg "The STEP file contains entities related to AP242 Edition 3 or 4 ([join [lrmdups [concat $ap242ed(3) $ap242ed(4)]]]),$spaces\however, the file is identified as Edition 2." red
+              errorMsg "The STEP file contains entities found in AP242 Edition 3 or 4 ([join [lrmdups [concat $ap242ed(3) $ap242ed(4)]]]),$spaces\however, the file is identified as Edition 2." red
             }
           } elseif {$id == 4} {
             append str " (Edition 3)"
             #if {[llength $ap242ed(4)] > 0} {
-            #  errorMsg "The STEP file contains entities related to AP242 Edition 4 ([join $ap242ed(4)]),$spaces\however, the file is identified as Edition 3." red
+            #  errorMsg "The STEP file contains entities found in AP242 Edition 4 ([join $ap242ed(4)]),$spaces\however, the file is identified as Edition 3." red
             #}
           } elseif {$id == 5} {
             append str " (Edition 4)"
-          } elseif {$id > 99} {
-            errorMsg "Unknown AP242 Object Identifier String '$id 1 4' for SchemaName" red
+          } elseif {$id > 5} {
+            errorMsg "Unsupported AP242 Object Identifier String '... $id 1 4' for SchemaName.\n Entities specific to this edition of AP242 are not supported in the spreadsheet but will be reported in the Syntax Checker." red
           }
           if {$developer} {
             foreach i {2 3 4} {if {[llength $ap242ed($i)] > 0} {regsub -all " " [join $ap242ed($i)] ", " str1; outputMsg " AP242e$i: $str1" red}}
@@ -1995,7 +1995,12 @@ proc addHeaderWorksheet {numFile fname} {
       if {$c1 != -1} {append app2 " [string range $fos $c1+11 end]"}
     } elseif {[string first "Kubotek" $app2] == 0} {
       set c1 [string first "Kosmos Version" $fpv]
-      if {$c1 != -1} {append app2 " [string range $fpv $c1+15 end]"}
+      if {$c1 != -1} {
+        append app2 " [string range $fpv $c1+15 end]"
+      } else {
+        set c1 [string first "Framework Version" $fpv]
+        if {$c1 != -1} {append app2 " [string range $fpv $c1+18 end]"}
+      }
     }
 
 # add app2 to multiple file summary worksheet

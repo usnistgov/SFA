@@ -998,11 +998,9 @@ proc spmiDimtolReport {objEntity} {
               foreach item $badGeom {
                 if {$okSurf} {
                   if {[lindex $item 1] != "edge_curve"} {
-                    errorMsg "Associated Geometry for a '[lindex $item 0]' dimension also refers to '[lindex $item 1]'.  Check that this is the intended association."
                     addCellComment $dt $r $pmiColumns(ch) "[string totitle $dimName] dimension (column E) also refers to '[lindex $item 1]'.  Check that this is the intended association."
                   }
                 } else {
-                  errorMsg "Associated Geometry for a '[lindex $item 0]' dimension is only a '[lindex $item 1]'.  Check that this is the intended association."
                   addCellComment $dt $r $pmiColumns(ch) "[string totitle $dimName] dimension (column E) is not associated with curved surfaces.  Check that this is the intended association."
                 }
               }
@@ -1529,12 +1527,8 @@ proc spmiDimtolReport {objEntity} {
                 if {$n <  [expr {$lendtg-1}]} {append dtg ", "}
                 if {$n == [expr {$lendtg-1}]} {append dtg " and "}
               }
-              if {($nistName != "nist_ftc_07" && $nistName != "nist_stc_07") || [string first ".875 ±" $dtg] == -1} {
-                if {[string first "Siemens NX" $cadSystem] == -1 || $developer} {
-                  errorMsg "Multiple ([llength $dimtolGeom($dimtolGeomEnts)]) dimensions $dtg are associated with the same geometry. (IDs $dimtolGeomEnts)"
-                }
-                addCellComment $dt $r $pmiColumns(ch) "Multiple dimensions are associated with the same geometry.  The identical information in this cell should appear in another Associated Geometry cell above."
-              }
+              addCellComment $dt $r $pmiColumns(ch) "Multiple dimensions are associated with the same geometry.  The entities in this cell appear elsewhere in this column."
+              #errorMsg "Multiple ([llength $dimtolGeom($dimtolGeomEnts)]) dimensions $dtg are associated with the same geometry. (IDs $dimtolGeomEnts)"
             }
           }
         }

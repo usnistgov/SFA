@@ -486,7 +486,7 @@ proc nistCheckExpectedPMI {val entstr epmiName} {
 # unexpected dimension association
         if {$pmiMatch == 0} {
           set pmiMatchGND [lsearch $nistPMIexpected($epmiName) $valgnd]
-          if {$pmiMatchGND != -1} {
+          if {$pmiMatchGND != -1 && [string first "\u2B69\u25CE" $val] == -1} {
             set pmiMatch 0.99
             set pmiSimilar "Unexpected dimension association"
             set nistPMIexpected($epmiName) [lreplace $nistPMIexpected($epmiName) $pmiMatchGND $pmiMatchGND]
@@ -559,20 +559,20 @@ proc nistCheckExpectedPMI {val entstr epmiName} {
                   lappend nistPMIfound $pmi
                 }
 
+# make sure tolerance datum features are the same
+              } elseif {[string first "\u25BD" $val] != -1} {
+                set valDF [string index $val [string first "\u25BD" $val]+2]
+                set c2 [string first "\u25BD" $pmi]
+                if {$c2 != -1} {
+                  set pmiDF [string index $pmi $c2+2]
+                  if {$valDF == $pmiDF} {set pmiSim [stringSimilarity $val $pmi]}
+                }
+
               } elseif {[string first $val $pmi] != -1 || [string first $pmi $val] != -1} {
                 set pmiSim 0.95
               } else {
                 set tol $pmiUnicode([string range $valType($val) 0 [string last "_" $valType($val)]-1])
                 set pmiSim [stringSimilarity $val $pmi]
-
-# make sure tolerance datum features are the same
-                if {[string index $val end] == "\]" && [string index $pmi end] == "\]"} {
-                  if {[string index $val end-1] != [string index $pmi end-1]} {
-                    set pmiSim [expr {$pmiSim-0.025}]
-                  } else {
-                    set pmiSim [expr {$pmiSim+0.025}]
-                  }
-                }
 
                 if {$pmiSim < 0.9} {
                   set sval [split $val $tol]
@@ -1181,72 +1181,73 @@ proc nistGetName {} {
   if {[string first "jpmi" $ftail] == 0} {
     if {[string first "jpmi_" $ftail] == 0} {regsub "jpmi_" $ftail "jpmi-" ftail}
     if {[string first "gears" $ftail] == -1 && [string first "gear" $ftail] != -1} {regsub "gear" $ftail "gears" ftail}
-    foreach tc {jpmi-gears jpmi-housing jpmi-knuckle jpmi-trim} {if {[string first $tc $ftail] == 0} {return $tc}}
-  }
+    foreach tc {jpmi-gears jpmi-housing jpmi-knuckle jpmi-trim} {if {[string first $tc $ftail] == 0} {set nistName $tc}}
 
 # check for a NIST CTC, FTC, STC, HTC
-  set testCase ""
-  set ok  0
-  set ok1 0
-
-  if {[lsearch $filePrefix [string range $ftail 0 $c]] != -1 || [string first "nist" $ftail] != -1 || \
-      [string first "ctc" $ftail] != -1 || [string first "ftc" $ftail] != -1 || [string first "stc" $ftail] != -1 || \
-      [string first "htc" $ftail] != -1} {
-    if {[lsearch $filePrefix [string range $ftail 0 $c]] != -1} {set ftail [string range $ftail $c+1 end]}
-
-    set tmp "nist_"
-    foreach item {ctc ftc stc htc} {
-      if {[string first $item $ftail] != -1} {
-        append tmp "$item\_"
-        set testCase $item
+  } else {
+    set testCase ""
+    set ok  0
+    set ok1 0
+  
+    if {[lsearch $filePrefix [string range $ftail 0 $c]] != -1 || [string first "nist" $ftail] != -1 || \
+        [string first "ctc" $ftail] != -1 || [string first "ftc" $ftail] != -1 || [string first "stc" $ftail] != -1 || \
+        [string first "htc" $ftail] != -1} {
+      if {[lsearch $filePrefix [string range $ftail 0 $c]] != -1} {set ftail [string range $ftail $c+1 end]}
+  
+      set tmp "nist_"
+      foreach item {ctc ftc stc htc} {
+        if {[string first $item $ftail] != -1} {
+          append tmp "$item\_"
+          set testCase $item
+        }
       }
-    }
-    if {$testCase == "htc"} {set nistName "nist_htc"}
+      if {$testCase == "htc"} {set nistName "nist_htc"}
 
 # find nist_ctc_01 directly
-    if {$testCase != ""} {
-      foreach zero {"0" ""} {
-        for {set i 1} {$i <= 11} {incr i} {
-          set i1 $i
-          if {$i < 10} {set i1 "$zero$i"}
-          set tmp1 "$tmp$i1"
-          if {[string first $tmp1 $ftail] != -1 && !$ok1} {
-            set nistName $tmp1
-            set ok1 1
+      if {$testCase != ""} {
+        foreach zero {"0" ""} {
+          for {set i 1} {$i <= 11} {incr i} {
+            set i1 $i
+            if {$i < 10} {set i1 "$zero$i"}
+            set tmp1 "$tmp$i1"
+            if {[string first $tmp1 $ftail] != -1 && !$ok1} {
+              set nistName $tmp1
+              set ok1 1
+            }
           }
         }
       }
-    }
 
 # find the number in the string
-    if {!$ok1 && $testCase != "htc"} {
-      foreach zero {"0" ""} {
-        for {set i 1} {$i <= 11} {incr i} {
-          if {!$ok} {
-            set i1 $i
-            if {$i < 10} {
-              set i1 "$zero$i"
-              set k "0$i"
-            } else {
+      if {!$ok1 && $testCase != "htc"} {
+        foreach zero {"0" ""} {
+          for {set i 1} {$i <= 11} {incr i} {
+            if {!$ok} {
               set i1 $i
-              set k $i
-            }
-            set c {""}
-            if {[string first $i1 $ftail] != [string last $i1 $ftail]} {set c {"_" "-"}}
-            foreach c1 $c {
-              for {set j 0} {$j < 2} {incr j} {
-                if {$j == 0} {set i2 "$c1$i1"}
-                if {$j == 1} {set i2 "$i1$c1"}
-                if {[string first $i2 $ftail] != -1 && !$ok} {
-                  if {$testCase != ""} {
-                    append tmp $k
-                  } elseif {$i <= 5} {
-                    append tmp "ctc_$k"
-                  } else {
-                    append tmp "ftc_$k"
+              if {$i < 10} {
+                set i1 "$zero$i"
+                set k "0$i"
+              } else {
+                set i1 $i
+                set k $i
+              }
+              set c {""}
+              if {[string first $i1 $ftail] != [string last $i1 $ftail]} {set c {"_" "-"}}
+              foreach c1 $c {
+                for {set j 0} {$j < 2} {incr j} {
+                  if {$j == 0} {set i2 "$c1$i1"}
+                  if {$j == 1} {set i2 "$i1$c1"}
+                  if {[string first $i2 $ftail] != -1 && !$ok} {
+                    if {$testCase != ""} {
+                      append tmp $k
+                    } elseif {$i <= 5} {
+                      append tmp "ctc_$k"
+                    } else {
+                      append tmp "ftc_$k"
+                    }
+                    set nistName $tmp
+                    set ok 1
                   }
-                  set nistName $tmp
-                  set ok 1
                 }
               }
             }
@@ -1256,7 +1257,7 @@ proc nistGetName {} {
     }
   }
 
-# check required rounding for ftc 6,7,8,11
+# check required rounding for some ftc, stc, and jpmi models
   catch {unset resetRound}
   catch {
     if {$opt(PMISEM) && $gen(Excel)} {
@@ -1264,7 +1265,8 @@ proc nistGetName {} {
         set resetRound $opt(PMISEMRND)
         set opt(PMISEMRND) 0
       } elseif {!$opt(PMISEMRND) && ($nistName == "nist_ftc_07" || $nistName == "nist_ftc_08" || \
-                $nistName == "nist_ftc_11" || $nistName == "nist_stc_07" || $nistName == "nist_stc_08")} {
+                $nistName == "nist_ftc_11" || $nistName == "nist_stc_07" || $nistName == "nist_stc_08" || \
+                [string first "jpmi" $nistName] == 0)} {
         set resetRound $opt(PMISEMRND)
         set opt(PMISEMRND) 1
       }
@@ -1337,14 +1339,26 @@ proc pmiRemoveZeros {pmi} {
         }
 
 # reference dimension
+        set deg 0
+        if {[string first "$pmiUnicode(degree)\]" $spmi] != -1} {
+          set deg 1
+          regsub $pmiUnicode(degree) $spmi "" spmi
+        }
         if {[string first "0\]" $spmi] != -1} {for {set j 0} {$j < 4} {incr j} {regsub {0\]} $spmi "\]" spmi}}
         if {[string first ".\]" $spmi] != -1} {regsub {.\]} $spmi "\]" spmi}
         if {[string first "\[0" $spmi]  == 1} {regsub {\[0} $spmi "\[" spmi}
+        if {$deg} {regsub {\]} $spmi "$pmiUnicode(degree)\]" spmi}
 
 # basic dimension
+        set deg 0
+        if {[string first "$pmiUnicode(degree)\)" $spmi] != -1} {
+          set deg 1
+          regsub $pmiUnicode(degree) $spmi "" spmi
+        }
         if {[string first "0)" $spmi] != -1} {for {set j 0} {$j < 3} {incr j} {regsub {0\)} $spmi "\)" spmi}}
         if {[string first ".)" $spmi] != -1} {regsub {\.\)} $spmi ")" spmi}
         if {[string first "\(0" $spmi] == 1} {regsub {\(0}  $spmi "(" spmi}
+        if {$deg} {regsub {\)} $spmi "$pmiUnicode(degree)\)" spmi}
 
 # radius < 1
         if {[string first "R0" $spmi] != -1} {regsub "R0" $spmi "R" spmi}

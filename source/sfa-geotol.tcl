@@ -717,8 +717,10 @@ proc spmiGeotolReport {objEntity} {
                             if {[string first "datum" $ent1] == 0 && [string is alpha $pmimod]} {set pmimod "\[$pmimod\]"}
                             append nval " $pmimod"
 
-# reverse the order of some modifiers to match the expect PMI for FTC 8
+# reverse the order of some modifiers to match the expected PMI
                             if {$nistName != ""} {
+                              if {$nval == " $pmiModifiers(free_state) $pmiModifiers(common_zone)"} {set nval " $pmiModifiers(common_zone) $pmiModifiers(free_state)"}
+                              if {$nval == " $pmiModifiers(maximum_material_requirement) $pmiModifiers(common_zone)"} {set nval " $pmiModifiers(common_zone) $pmiModifiers(maximum_material_requirement)"}
                               if {$nval == " $pmiModifiers(free_state) $pmiModifiers(maximum_material_requirement)"} {set nval " $pmiModifiers(maximum_material_requirement) $pmiModifiers(free_state)"}
                               if {$nval == " $pmiModifiers(tangent_plane) $pmiModifiers(free_state)"} {set nval " $pmiModifiers(free_state) $pmiModifiers(tangent_plane)"}
                             }
