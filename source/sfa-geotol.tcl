@@ -399,13 +399,13 @@ proc spmiGeotolReport {objEntity} {
                               } else {
                                 set msg ""
                                 if {$tzfName != ""} {
-                                  set msg "Syntax Error: Bad tolerance_zone_form 'name' attribute ($tzfName) on [formatComplexEnt [$gtEntity Type]]$spaces\($recPracNames(pmi242), Sec. 6.9.2, Table 12)"
+                                  set msg "Syntax Error: Bad tolerance_zone_form 'name' attribute ($tzfName) on [formatComplexEnt [$gtEntity Type]]$spaces\($recPracNames(pmi242), Sec. 6.9.2, Table 13)"
                                   errorMsg $msg
                                   set invalid $msg
                                   lappend syntaxErr(tolerance_zone_form) [list [[$attrTZ Value] P21ID] "name" $msg]
                                   set tzf1 "(Invalid TZF: $tzfName)"
                                 } elseif {$tzfName == ""} {
-                                  set msg "Syntax Error: Missing tolerance_zone_form 'name' attribute.$spaces\($recPracNames(pmi242), Sec. 6.9.2, Table 12)"
+                                  set msg "Syntax Error: Missing tolerance_zone_form 'name' attribute.$spaces\($recPracNames(pmi242), Sec. 6.9.2, Table 13)"
                                   errorMsg $msg
                                   lappend syntaxErr(tolerance_zone_form) [list [[$attrTZ Value] P21ID] "name" $msg]
                                 }
@@ -1087,10 +1087,10 @@ proc spmiGeotolReport {objEntity} {
                     set dtemsg "Syntax Error: Bad 'description' attribute ($ov) on [$gtEntity Type].$spaces\($recPracNames(pmi242), Sec. "
                     if {[string first "_feature" $ent1] != -1} {
                       set sect 6.6.1
-                      append dtemsg "$sect, Table 9)"
+                      append dtemsg "$sect, Table 10)"
                     } else {
                       set sect 6.6.2
-                      append dtemsg "$sect, Table 10)"
+                      append dtemsg "$sect, Table 11)"
                     }
                     if {[lsearch $datumTargetDesc $ov] != -1} {
                       lappend spmiTypesPerFile "$ov datum target ($sect)"
@@ -1551,7 +1551,7 @@ proc spmiGeotolReport {objEntity} {
         }
       }
 
-# check for tolerances that require a datum system (section 6.8, table 11), don't check if using old method of datum_reference
+# check for tolerances that require a datum system (section 6.8, table 12), don't check if using old method of datum_reference
       if {![info exists datsys] && [string first "_tolerance" [$gtEntity Type]] != -1 && ![info exists entCount(datum_reference)]} {
         set ok1 0
         foreach item {"angularity" "circular_runout" "coaxiality" "concentricity" "parallelism" "perpendicularity" "symmetry" "total_runout"} {
@@ -1559,7 +1559,7 @@ proc spmiGeotolReport {objEntity} {
           if {[string first $gtol [$gtEntity Type]] != -1} {set ok1 1; set gtol1 $gtol}
         }
         if {$ok1} {
-          set msg "Syntax Error: Datum system required with $gtol1.$spaces\($recPracNames(pmi242), Sec. 6.8, Table 11)"
+          set msg "Syntax Error: Datum system required with $gtol1.$spaces\($recPracNames(pmi242), Sec. 6.8, Table 12)"
           errorMsg $msg
           lappend syntaxErr([$gtEntity Type]) [list [$gtEntity P21ID] "GD&T" $msg]
         }
@@ -1574,14 +1574,14 @@ proc spmiGeotolReport {objEntity} {
         $cells($gt) Item $r $c "$val | $ds"
         lappend spmiTypesPerFile "datum system"
 
-# check for tolerances that do not allow a datum system (section 6.8, table 11)
+# check for tolerances that do not allow a datum system (section 6.8, table 12)
         set ok1 0
         foreach item {"cylindricity" "flatness" "roundness" "straightness"} {
           set gtol "$item\_tolerance"
           if {[string first $gtol [$gtEntity Type]] != -1} {set ok1 1; set gtol1 $gtol}
         }
         if {$ok1} {
-          set msg "Syntax Error: Datum system ($ds) not allowed with $gtol1.$spaces\($recPracNames(pmi242), Sec. 6.8, Table 11)"
+          set msg "Syntax Error: Datum system ($ds) not allowed with $gtol1.$spaces\($recPracNames(pmi242), Sec. 6.8, Table 12)"
           errorMsg $msg
           lappend syntaxErr([$gtEntity Type]) [list [$gtEntity P21ID] "datum_system" $msg]
         }
@@ -2315,7 +2315,7 @@ proc spmiPlacedDatumTarget {objEntity objValue} {
                       set msg "Syntax Error: Bad datum target 'name' ($datumTargetName) on [formatComplexEnt [$e4 Type]], use 'target length' or 'target width' for a '$datumTargetType' target$spaces\($recPracNames(pmi242), Sec. 6.6.1)"
                     }
                   } else {
-                    set msg "Syntax Error: Missing datum target dimension 'name' on [formatComplexEnt [$e4 Type]].$spaces\($recPracNames(pmi242), Sec. 6.6.1, Table 9)"
+                    set msg "Syntax Error: Missing datum target dimension 'name' on [formatComplexEnt [$e4 Type]].$spaces\($recPracNames(pmi242), Sec. 6.6.1, Table 10)"
                   }
                   if {$datumTargetType == "point"} {
                     set msg "Syntax Error: No length_measure attribute on shape_representation_with_parameters is required for a 'point' datum target$spaces\($recPracNames(pmi242), Sec. 6.6.1)"

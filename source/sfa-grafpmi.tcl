@@ -1,7 +1,7 @@
 proc gpmiAnnotation {entType} {
   global objDesign
-  global ao aoEntTypes col ent entAttrList entLevel gen geomType gpmiRow gtEntity nindex opt pmiCol
-  global pmiHeading pmiStartCol recPracNames spaces stepAP syntaxErr tessCoordID useXL x3dShape
+  global ao aoEntTypes col ent entAttrList entCount entLevel gen geomType gpmiRow gtEntity nindex opt pmiCol
+  global pmiHeading pmiStartCol recPracNames spaces stepAP syntaxErr useXL x3dShape
 
   if {$opt(DEBUG1)} {outputMsg "START gpmiAnnotation $entType" red}
 
@@ -63,6 +63,9 @@ proc gpmiAnnotation {entType} {
   set PMIP(annotation_placeholder_occurrence_with_leader_line) \
     [list annotation_placeholder_occurrence_with_leader_line name styles $curve_style item $geometric_set role line_spacing leader_line $leader_line1 $leader_line2 $leader_line3]
 
+# external image
+  set PMIP(external_image_placement_in_callout) [list external_image_placement_in_callout name styles $curve_style item $geometric_set image role]
+
 # generate correct PMIP variable accounting for variations like characterized_object
   if {![info exists PMIP($entType)]} {
     foreach item $aoEntTypes {
@@ -83,7 +86,6 @@ proc gpmiAnnotation {entType} {
   set x3dShape 0
   set gpmiRow($ao) {}
   set geomType ""
-  set tessCoordID {}
   catch {unset gtEntity}
 
   if {[info exists pmiHeading]} {unset pmiHeading}
@@ -122,6 +124,11 @@ proc gpmiAnnotation {entType} {
       set msg "Syntax Error: Using 'annotation_curve_occurrence' with $stepAP is not valid for Graphic PMI.$spaces\($recPracNames(pmi203), Sec. 4.1.1)"
       errorMsg $msg
       lappend syntaxErr($ao) [list 1 1 $msg]
+    }
+
+  } elseif {[string first "AP242" $stepAP] == 0 && ([string first "annotation_curve_occurrence" $ao] != -1 || [string first "annotation_fill_area_occurrence" $ao] != -1)} {
+    if {![info exists entCount(tessellated_annotation_occurrence)] && ![info exists entCount(annotation_placeholder_occurrence)]} {
+      errorMsg " For AP242, tessellated_annotation_occurrence is prefered for Graphic PMI" red
     }
   }
 
@@ -357,7 +364,7 @@ proc gpmiAnnotationReport {objEntity} {
                   if {[info exists tessRepo]} {if {$tessRepo} {lappend tessPlacement(origin) $coord}}
 
 # placeholder coordinates
-                  if {[string first "placeholder" $ao] != -1} {
+                  if {[string first "placeholder" $ao] != -1 || [string first "external_image" $ao] != -1} {
                     if {[string first "apll" $ent1] == -1} {
                       if {$ent(2) == "geometric_set"} {lappend placeCoords($aoname) $coord}
 
@@ -423,7 +430,7 @@ proc gpmiAnnotationReport {objEntity} {
                   if {$opt(PMIGRF) && $opt(xlFormat) != "None"} {
                     set col($ao) [expr {$pmiStartCol($ao)+1}]
                     set colName "elements[format "%c" 10](Sec. "
-                    if {[string first "placeholder" $ao] != -1} {
+                    if {[string first "placeholder" $ao] != -1 || [string first "external_image" $ao] != -1} {
                       append colName "7.2.2"
                     } elseif {[string first "AP242" $stepAP] == 0} {
                       append colName "8.1.1"
@@ -434,7 +441,7 @@ proc gpmiAnnotationReport {objEntity} {
                   }
 
 # for placeholder, check elements in geometric_set
-                  if {[string first "placeholder" $ao] != -1} {
+                  if {[string first "placeholder" $ao] != -1 || [string first "external_image" $ao] != -1} {
                     set elements {}
                     foreach elem $objValue {
                       set etype [$elem Type]
@@ -502,7 +509,7 @@ proc gpmiAnnotationReport {objEntity} {
                       }
                     }
                   }
-                  if {[string first "placeholder" $ao] != -1} {set placeAxes($aoname,$dirType) $dir}
+                  if {[string first "placeholder" $ao] != -1 || [string first "external_image" $ao] != -1} {set placeAxes($aoname,$dirType) $dir}
                 }
               }
 
@@ -710,6 +717,7 @@ proc gpmiAnnotationReport {objEntity} {
                 "annotation_fill_area_occurrence* name" -
                 "annotation_placeholder_occurrence* name" -
                 "annotation_occurrence* name" -
+                "external_image_placement_in_callout name" -
                 "*tessellated_annotation_occurrence* name" {
                   set aoname $objValue
 
@@ -721,7 +729,7 @@ proc gpmiAnnotationReport {objEntity} {
                     set msg "Syntax Error: Missing draughting_callout entity referring to [formatComplexEnt [$objEntity Type]].$spaces"
                     if {[string first "tessellated" $ent1] != -1} {
                       append msg "\($recPracNames(pmi242), Sec. 8.2, Fig. 82)"
-                    } elseif {[string first "placeholder" $ent1] != -1} {
+                    } elseif {[string first "placeholder" $ent1] != -1 || [string first "external_image" $ent1] != -1} {
                       append msg "\($recPracNames(pmi242), Sec. 7.2.2, Fig. 72)"
                     } else {
                       append msg "\($recPracNames(pmi242), Sec. 8.1.1, Fig. 79)"
@@ -754,10 +762,13 @@ proc gpmiAnnotationReport {objEntity} {
                       }
                     }
                   }
-                  if {$opt(PMISEM) && [string first "placeholder" $ent1] != -1} {lappend spmiTypesPerFile "annotation placeholder"}
+                  if {$opt(PMISEM)} {
+                    if {[string first "placeholder" $ent1] != -1}    {lappend spmiTypesPerFile "annotation placeholder"}
+                    if {[string first "external_image" $ent1] != -1} {lappend spmiTypesPerFile "external image"}
+                  }
 
 # check if placeholder in saved view
-                  if {[string first "placeholder" $ao] != -1} {
+                  if {[string first "placeholder" $ao] != -1 || [string first "external_image" $ao] != -1} {
                     foreach dm $draughtingModels {
                       set crdm [$drcall GetUsedIn [string trim $dm] [string trim items]]
                       ::tcom::foreach item $crdm {set placeSavedView($aoname) 1}
@@ -889,7 +900,8 @@ proc gpmiAnnotationReport {objEntity} {
 
 # value in spreadsheet
               if {$ok} {
-                if {[info exists gpmiIDRow($ao,$gpmiID)] && [string first "occurrence" $ao] != -1 && $opt(PMIGRF) && $opt(xlFormat) != "None"} {
+                if {[info exists gpmiIDRow($ao,$gpmiID)] && $opt(PMIGRF) && $opt(xlFormat) != "None" && \
+                  ([string first "occurrence" $ao] != -1 || [string first "external_image" $ao] != -1)} {
                   set c [string index [cellRange 1 $col($ao)] 0]
                   set r $gpmiIDRow($ao,$gpmiID)
 
@@ -1029,7 +1041,7 @@ proc gpmiAnnotationReport {objEntity} {
 
       if {[string first "placeholder" $ao] == -1} {
         set dmia "draughting_model_item_association"
-      } else {
+      } elseif {[string first "external_image" $ao] == -1} {
         set dmia "draughting_model_item_association_with_placeholder"
       }
 
@@ -1315,7 +1327,7 @@ proc gpmiAnnotationReport {objEntity} {
                     ::tcom::foreach rep2Ent $rep2Ents {set mdadrID [$rep2Ent P21ID]}
                     if {[info exists mdadrID]} {
                       set msg "Syntax Error: For Saved Views, '$relType' reference to '[formatComplexEnt [$entDraughtingModel Type]]' uses rep_2 instead of rep_1$spaces"
-                      append msg "($recPracNames(pmi242), Sec. 9.4.4 Note 1, Fig. 106, Table 18)"
+                      append msg "($recPracNames(pmi242), Sec. 9.4.4 Note 1, Fig. 106, Table 20)"
                       errorMsg $msg
                       lappend syntaxErr($relType) [list $mdadrID rep_2 $msg]
                     }
@@ -1501,7 +1513,7 @@ proc pmiGetCameras {} {
         }
       }
     }
-    if {[llength $dupnames] > 0} {outputMsg " Appending number to duplicate viewpoint names" red}
+    if {[llength $dupnames] > 0} {outputMsg " Appending number to duplicate Saved View Viewpoint names that are in the Viewer." red}
 
 # loop over camera model entities
     if {[catch {

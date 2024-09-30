@@ -1,7 +1,7 @@
 proc initData {} {
 
 global ap203all ap214all ap242all ap242e1 ap242e2 ap242e3 ap242e4 ap242only supertypes
-global allVendor andEntAP209 aoEntTypes badAttributes bits brepGeomEntTypes cadApps cameraModels datumTargetDesc defaultColor dimModNames
+global allVendor andEntAP209 aoEntTypes badAttributes brepGeomEntTypes cadApps cameraModels datumTargetDesc defaultColor dimModNames
 global dimSizeNames DTR entCategory entColorIndex feaElemFace feaIndex gpmiTypes ifcsvrDir ifcsvrKey ifcsvrVer iloldscr indentStart
 global indentStop legendColor letters nistModelPictures pmiElementsMaxRows pmiHorizontalLineBreaks pmiModifiers pmiModifiersRP
 global pmiUnicode recPracNames roseLogical spaces spmiEntTypes spmiTypes statusFont stepAPs tolNames tzfNames unicodeAttributes
@@ -38,7 +38,7 @@ foreach id {BOM logFile outputOpen partEdges partSketch partSupp PMIGRF PMISEM s
 
 # options, set to 0
 foreach id {DEBUG1 debugAG DEBUGINV debugNOXL debugVP debugX3D feaBounds feaDisp feaDispNoTail feaLoads feaLoadScale indentGeometry \
-  indentStyledItem INVERSE partNoCap partNoGroup partNormals partOnly PMISEMDIM PMISEMDT PMISEMRND SHOWALLPMI stepAP242 \
+  indentStyledItem INVERSE partCap partNoGroup partNormals partOnly PMISEMDIM PMISEMDT PMISEMRND SHOWALLPMI stepAP242 \
   stepCOMP stepCONS stepCPNT stepFEAT stepGEOM stepKINE stepOTHR stepQUAL stepUSER syntaxChecker brepAlt tessPartOld viewCorrect viewFEA \
   viewNoPMI viewParallel viewTessPart writeDirType x3dSave xlHideLinks xlNoRound xlSort xlUnicode} {set opt($id) 0}
 
@@ -78,14 +78,6 @@ set roseLogical(2) "UNKNOWN"
 set ifcsvrDir [file join $pf32 IFCsvrR300 dll]
 set ifcsvrKey "HKEY_LOCAL_MACHINE\\SOFTWARE\\Classes\\IFCsvr.R300\\CLSID"
 set ifcsvrVer "HKEY_LOCAL_MACHINE\\SOFTWARE\\WOW6432Node\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\{3C8CE0A4-803B-48A6-96A0-A3DDD5AE5596}"
-
-# 64 or 32 bit
-set bits ""
-catch {
-  set bits [registry get {HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\Session Manager\Environment} {PROCESSOR_ARCHITECTURE}]
-  if {$bits == "AMD64"} {set bits "64-bit"}
-  if {$bits == "x86"}   {set bits "32-bit"}
-}
 
 # STEP AP names for those that do not start with AP2nn
 set stepAPs(CONFIG_CONTROL_DESIGN) AP203e1
@@ -289,7 +281,7 @@ set recPracNames(holes)    "Representation of Hole and Fastener Information (AP2
 
 # -----------------------------------------------------------------------------------------------------
 # list of annotation occurrence entities, *order is important*
-set aoEntTypes [list tessellated_annotation_occurrence annotation_placeholder_occurrence \
+set aoEntTypes [list tessellated_annotation_occurrence external_image_placement_in_callout annotation_placeholder_occurrence \
   annotation_placeholder_occurrence_with_leader_line annotation_fill_area_occurrence annotation_curve_occurrence \
   annotation_occurrence]
 
@@ -309,7 +301,7 @@ set cameraModels [list camera_model_d3 camera_model_d3_multi_clipping camera_mod
 
 # -----------------------------------------------------------------------------------------------------
 # max rows for PMI elements on PMI representation coverage worksheet, depends on number and order of items below
-set pmiElementsMaxRows 184
+set pmiElementsMaxRows 185
 # line breaks are above the row, depends on the grouping of PMI elements below
 set pmiHorizontalLineBreaks [list 19 35 49 55 66 74 84 [expr {$pmiElementsMaxRows-11}]]
 
@@ -321,10 +313,10 @@ set dimSizeNames [list "curve length" diameter thickness "spherical diameter" ra
 set dimModNames [list "any cross section" "any part of the feature" "area diameter calculated size" "average rank order size" "circumference diameter calculated size" "common tolerance" "continuous feature" "controlled radius" "free state condition" "least squares association criteria" "local size defined by a sphere" "maximum inscribed association criteria" "maximum rank order size" "median rank order size" "mid range rank order size" "minimum circumscribed association criteria" "minimum rank order size" "range rank order size" "specific fixed cross section" square statistical "two point size" "united feature of size" "volume diameter calculated size"]
 
 # -----------------------------------------------------------------------------------------------------
-# tolerance entity names (Section 6.8, Table 10)
+# tolerance entity names (Section 6.8, Table 12)
 set tolNames [list angularity_tolerance circular_runout_tolerance coaxiality_tolerance concentricity_tolerance cylindricity_tolerance flatness_tolerance line_profile_tolerance parallelism_tolerance perpendicularity_tolerance position_tolerance roundness_tolerance straightness_tolerance surface_profile_tolerance symmetry_tolerance total_runout_tolerance]
 
-# tolerance zone form names (Section 6.9.2, Table 12)
+# tolerance zone form names (Section 6.9.2, Table 13)
 set tzfNames [list "within a circle" "within a cylinder" "cylindrical or circular" spherical "within a sphere" "between two concentric circles" "between two equidistant curves" "between two coaxial cylinders" "between two equidistant surfaces" "non uniform" "between two parallel circles on a conical surface" "between two parallel circles of the same diameter" "between two equidistant complex lines of two parallel straight lines" "between two non-equidistant complex lines or two non-parallel straight lines" "within a cone" "within a single complex surface" "between two equidistant complex surfaces or two parallel planes" "between two non-equidistant complex surfaces or two non-parallel straight planes" unknown]
 
 # -----------------------------------------------------------------------------------------------------
@@ -472,7 +464,7 @@ foreach item [lsort [array names pmiModifiers]] {
 }
 
 # a few more overall PMI 'types'
-set spmiTypes [concat $spmiTypes [list "saved views (9.4)" "section views (9.4.3)" "annotation placeholder (7.2)" "editable text (7.4)" "supplemental geometry" "bounded supplemental geometry" "document identification (3, see Header worksheet)" "ASME dimensioning standard (4, Fig. 1)" "ASME modeling standard (4, Fig. 2)" "ISO dimensioning standard (4, Fig. 1)" "ISO modeling standard (4, Fig. 2)" "default tolerance decimal places (4.1)"]]
+set spmiTypes [concat $spmiTypes [list "saved views (9.4)" "section views (9.4.3)" "annotation placeholder (7.2)" "external image" "editable text (7.4)" "supplemental geometry" "bounded supplemental geometry" "document identification (3, see Header worksheet)" "ASME dimensioning standard (4, Fig. 1)" "ASME modeling standard (4, Fig. 2)" "ISO dimensioning standard (4, Fig. 1)" "ISO modeling standard (4, Fig. 2)" "default tolerance decimal places (4.1)"]]
 
 # -----------------------------------------------------------------------------------------------------
 # pmiUnicode are the symbols associated with tolerances and a few others
@@ -733,7 +725,7 @@ proc checkVariables {} {
      [string range $opt(xlMaxRows) end-1 end] != "76" && [string range $opt(xlMaxRows) end-1 end] != "36")} {set opt(xlMaxRows) 103}
 
 # unset old opt variables from older versions of SFA
-  foreach item {COUNT CRASH DELCOVROWS DISPGUIDE1 feaDisptail feaNodeType FIRSTTIME FN_APPEND GENX3DOM indentGeomtry PMIGRFCOV PMIP PMIPROP PMIVRML ROWLIM SEMPROP SORT stepADDM viewPMIVP VPDBG XLSBUG XLSBUG1} {catch {unset opt($item)}}
+  foreach item {COUNT CRASH DELCOVROWS DISPGUIDE1 feaDisptail feaNodeType FIRSTTIME FN_APPEND GENX3DOM indentGeomtry partNoCap PMIGRFCOV PMIP PMIPROP PMIVRML ROWLIM SEMPROP SORT stepADDM viewPMIVP VPDBG XLSBUG XLSBUG1} {catch {unset opt($item)}}
   foreach id [array names opt] {foreach str {EX_ PR_ XL_ VIZ} {if {[string first $str $id] == 0} {unset opt($id)}}}
 }
 

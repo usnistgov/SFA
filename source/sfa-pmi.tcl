@@ -193,8 +193,8 @@ proc x3dTessGeom {objID tessEnt faceEnt {aoname ""}} {
         set indexedSet "<Indexed[string totitle $x3dIndexType]\Set $solid coordIndex='[string trim $x3dIndex]'>"
 
 # coordinates
-        if {[lsearch $tessCoordID $tessIndexCoord($objID)] == -1} {
-          lappend tessCoordID $tessIndexCoord($objID)
+        if {![info exists tessCoordID($f)] || [lsearch $tessCoordID($f) $tessIndexCoord($objID)] == -1} {
+          lappend tessCoordID($f) $tessIndexCoord($objID)
           puts $f " $indexedSet\n  <Coordinate DEF='coord$tessIndexCoord($objID)' point='[string trim $x3dCoord]'/></Indexed[string totitle $x3dIndexType]\Set></Shape>"
         } else {
           puts $f " $indexedSet<Coordinate USE='coord$tessIndexCoord($objID)'/></Indexed[string totitle $x3dIndexType]\Set></Shape>"

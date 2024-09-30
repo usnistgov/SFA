@@ -142,8 +142,8 @@ proc x3dFileEnd {} {
   global tessCoord tessEdges tessEnts tessPartFile tessPartFileName tessRepo tessSolid tsName viewsWithPMI viz xyzcen
   global savedPlaceFile savedPlaceFileName savedViewButtons savedViewDMName savedViewFile
   global savedViewFileName savedViewItems savedViewNames savedViewpoint savedViewVP
-  global x3dApps x3dAxes x3dBbox x3dCoord x3dFile x3dFileNameSave x3dFiles x3dFileSave x3dIndex x3dMax x3dMin
-  global x3dMsg x3dPartClick x3dParts x3dShape x3dStartFile x3dTessParts x3dTitle x3dViewOK
+  global x3dApps x3dAxes x3dBbox x3dCoord x3dFile x3dFileNameSave x3dFiles x3dFileSave x3dIndex x3dHeight x3dMax x3dMin
+  global x3dMsg x3dPartClick x3dParts x3dShape x3dStartFile x3dTessParts x3dTitle x3dViewOK x3dWidth
   global objDesign
 
   if {!$x3dViewOK} {
@@ -250,7 +250,6 @@ proc x3dFileEnd {} {
 
 # write clipping planes
           if {![info exists clippingCap]} {set clippingCap 0}
-          if {!$clippingCap && $opt(viewPart)} {errorMsg " Capped surfaces are not generated for clipping planes" red}
           if {[llength $cplanes] > 0} {foreach cplane $cplanes {x3dClipPlane $cplane $cpname}}
         } emsg]} {
           errorMsg "Error adding Clipping Plane: $emsg"
@@ -753,21 +752,28 @@ proc x3dFileEnd {} {
     }
   }
 
-# part geometry, sketch geometry, edges checkboxes
-  set pcb 0
+# part geometry, edges, sketch geometry checkboxes
   if {$viz(PART)} {
     set str ""
     if {$tessEnts && $tessSolid} {set str "Tessellated "}
-    puts $x3dFile "\n<!-- Part geometry checkbox -->\n<input type='checkbox' checked onclick='togPRT(this.value)'/>$str\Part Geometry"
+    puts $x3dFile "\n<!-- Part geometry checkbox -->\n<input type='checkbox' checked onclick='togPRT(this.value)'/>$str\Part Geometry<br>"
+    if {$opt(partEdges) && $viz(EDGE)} {puts $x3dFile "<!-- Edges checkbox -->\n<input type='checkbox' checked onclick='togEDG(this.value)' id='swEDG'/>Edges<br>"}
     if {[info exists nsketch]} {
-      if {$nsketch > -1} {puts $x3dFile "<!-- Sketch geometry checkbox -->\n<br><input type='checkbox' checked onclick='togSKH(this.value)'/>Sketch Geometry"}
+      if {$nsketch > -1} {puts $x3dFile "<!-- Sketch geometry checkbox -->\n<input type='checkbox' checked onclick='togSKH(this.value)'/>Sketch Geometry<br>"}
     }
-    if {$opt(partEdges) && $viz(EDGE)} {puts $x3dFile "<!-- Edges checkbox -->\n<br><input type='checkbox' checked onclick='togEDG(this.value)' id='swEDG'/>Edges"}
   }
+
+# more checkboxes
+  if {$viz(SUPPGEOM)}   {puts $x3dFile "\n<!-- Supplemental geometry checkbox -->\n<input type='checkbox' checked onclick='togSMG(this.value)'/>Supplemental Geometry<br>"}
+  if {$viz(DTMTAR)}     {puts $x3dFile "\n<!-- Datum targets checkbox -->\n<input type='checkbox' checked onclick='togDTR(this.value)'/>Datum Targets<br>"}
+  if {$viz(PLACE)}      {puts $x3dFile "\n<!-- Placeholder checkbox -->\n<input type='checkbox' checked onclick='togPlaceholder(this.value)'/>PMI Placeholders<br>"}
+  if {$viz(COMPOSITES)} {puts $x3dFile "\n<!-- Composites checkbox -->\n<input type='checkbox' checked onclick='togComposites(this.value)'/>Composite Rosettes<br>"}
+  if {$viz(POINTS)}     {puts $x3dFile "\n<!-- $pointsLabel checkbox -->\n<input type='checkbox' checked onclick='togPoints(this.value)'/>$pointsLabel<br>"}
+  if {$viz(HOLE)}       {puts $x3dFile "\n<!-- Holes checkbox -->\n<input type='checkbox' checked onclick='togHole(this.value)'/>Holes<br>"}
 
 # part checkboxes
   if {$viz(PART)} {
-    if {[info exists x3dParts]} {if {[llength [array names x3dParts]] > 1} {x3dPartCheckbox "Part"; set pcb 1}}
+    if {[info exists x3dParts]} {if {[llength [array names x3dParts]] > 1} {x3dPartCheckbox "Part"}}
     puts $x3dFile "<p>"
   }
 
@@ -783,22 +789,21 @@ proc x3dFileEnd {} {
       set ntess 0
       if {[info exists entCount(tessellated_solid)]} {incr ntess $entCount(tessellated_solid)}
       if {[info exists entCount(tessellated_shell)]} {incr ntess $entCount(tessellated_shell)}
-      if {$ntess > 1} {puts $x3dFile "<p><font size='-1'>Tessellated Parts in an assembly might be in the wrong position and orientation or be missing.</font>"}
+      if {$ntess > 1} {
+        set str "<p><font size='-1'>Tessellated Parts"
+        if {$viz(TESSEDGE)} {append str " and Edges"}
+        append str " in an assembly might be in the wrong position and orientation or be missing.</font>"
+        puts $x3dFile $str
+      }
     }
 
 # tessellated part checkboxes
     if {[info exists x3dTessParts]} {if {[llength [array names x3dTessParts]] > 1} {x3dPartCheckbox "Tess"}}
     puts $x3dFile "<p>"
-    if {$pcb} {puts $x3dFile "<hr>"}
     if {$viz(PART)} {puts $x3dFile "</details><p>"}
   }
 
-# more checkboxes
-  if {$viz(SUPPGEOM)}   {puts $x3dFile "\n<!-- Supplemental geometry checkbox -->\n<input type='checkbox' checked onclick='togSMG(this.value)'/>Supplemental Geometry<br>"}
-  if {$viz(DTMTAR)}     {puts $x3dFile "\n<!-- Datum targets checkbox -->\n<input type='checkbox' checked onclick='togDTR(this.value)'/>Datum Targets<br>"}
-  if {$viz(COMPOSITES)} {puts $x3dFile "\n<!-- Composites checkbox -->\n<input type='checkbox' checked onclick='togComposites(this.value)'/>Composite Rosettes<br>"}
-  if {$viz(POINTS)}     {puts $x3dFile "\n<!-- $pointsLabel checkbox -->\n<input type='checkbox' checked onclick='togPoints(this.value)'/>$pointsLabel<br>"}
-  if {$viz(HOLE)}       {puts $x3dFile "\n<!-- Holes checkbox -->\n<input type='checkbox' checked onclick='togHole(this.value)'/>Holes<br>"}
+# clipping plane checkboxes 
   if {$viz(CLIPPING)}   {
     puts $x3dFile "\n<!-- Clipping planes checkboxes -->"
     if {$nclipPlane <= 4} {
@@ -806,9 +811,11 @@ proc x3dFileEnd {} {
     } else {
       puts $x3dFile "<details><summary>Clipping Planes</summary>"
     }
+    puts $x3dFile "<font size='-1'>"
     for {set i 1} {$i <= $nclipPlane} {incr i} {
       puts $x3dFile "<input type='checkbox' id='cbClipping$i' onclick='togClipping$i\(this.value)'/>$clipPlaneName($i)<br>"
     }
+    puts $x3dFile "</font>"
     if {$nclipPlane > 4} {puts $x3dFile "</details>"}
   }
   if {$viz(SUPPGEOM) || $viz(DTMTAR) || $viz(COMPOSITES) || $viz(POINTS) || $viz(HOLE) || $viz(CLIPPING)} {puts $x3dFile "<p>"}
@@ -825,13 +832,25 @@ proc x3dFileEnd {} {
     }
     puts $x3dFile "\n<!-- Saved view PMI checkboxes -->"
     if {$sv} {
-      if {[llength $savedViewButtons] <= 10} {
+      if {[llength $savedViewButtons] <= 8} {
         puts $x3dFile "Saved View Graphic PMI"
       } else {
-        puts $x3dFile "<details><summary>Saved View Graphic PMI</summary><font size='-1'>"
+        puts $x3dFile "<details><summary>Saved View Graphic PMI</summary>"
       }
     }
-    if {[info exists savedViewVP]} {puts $x3dFile "<br><font size='-1'>(PageDown to switch Saved Views)</font>"}
+    if {[llength $savedViewButtons] > 1} {puts $x3dFile "<font size='-1'>"}
+    if {[info exists savedViewVP]} {puts $x3dFile "(PageDown to switch Saved Views)"}
+
+    set nsvn [llength $savedViewButtons]
+    set div ""
+    set max 30
+    if {$nsvn > $max} {
+      append div "<style>div.SavedViewPMI \{overflow: scroll;"
+      if {$nsvn > $max} {append div " width: [expr {int($x3dWidth*.15)}]px;"}
+      if {$nsvn > $max} {append div " height: [expr {int($x3dHeight*.6)}]px;"}
+      append div "\}</style>"
+      if {$div != ""} {puts $x3dFile "$div\n<div class='SavedViewPMI'>"}
+    }
 
     foreach svn $savedViewButtons {
       set str ""
@@ -843,19 +862,19 @@ proc x3dFileEnd {} {
       if {[info exists savedViewDMName($svn)]} {
         if {$savedViewDMName($svn) != $svn && [string first "\[" $savedViewDMName($svn)] == -1 && \
           [string first "\]" $savedViewDMName($svn)] == -1 && [string first "&\#x" $svn] == -1} {
-            set svname "$savedViewDMName($svn) / $svn"
+            if {[string first $savedViewDMName($svn) $svn] == 0} {
+              set svname $svn
+            } else {
+              set svname "$savedViewDMName($svn) / $svn"
+            }
         }
       }
       append str "<input type='checkbox' id='cbView$id' checked onclick='togView$id\(this.value)'/>$svname"
       puts $x3dFile $str
     }
-    if {[llength $savedViewButtons] > 10} {puts $x3dFile "</font></details>"}
-  }
-
-# PMI placeholder
-  if {$viz(PLACE)} {
-    if {[llength $savedViewButtons] > 0} {puts $x3dFile "<p>"}
-    puts $x3dFile "\n<!-- Placeholder checkbox -->\n<input type='checkbox' checked onclick='togPlaceholder(this.value)'/>PMI Placeholders"
+    if {$div != ""} {puts $x3dFile "</div>"}
+    if {[llength $savedViewButtons] > 1} {puts $x3dFile "</font>"}
+    if {[llength $savedViewButtons] > 8} {puts $x3dFile "</details>"}
   }
 
 # FEM checkboxes
@@ -875,7 +894,12 @@ proc x3dFileEnd {} {
     if {[llength $x3dMsg] > 0} {
       puts $x3dFile "\n<!-- Messages -->"
       puts $x3dFile "<ul style=\"padding-left:20px\">"
-      foreach item $x3dMsg {puts $x3dFile "<li>$item"}
+      foreach item $x3dMsg {
+        if {[string first "Graphic PMI on parts" $item] == 0 && $viz(SUPPGEOM)} {
+          set item "Graphic PMI and Supplemental Geometry on parts in an assembly might have the wrong position and orientation"
+        }
+        puts $x3dFile "<li>$item"
+      }
       puts $x3dFile "</ul>"
       unset x3dMsg
     }
@@ -924,7 +948,7 @@ proc x3dFileEnd {} {
   }
 
 # mouse message
-  puts $x3dFile "\n<p>PageDown for Viewpoints.  Key 'r' to restore, 'a' to view all.  <a href=\"https://www.x3dom.org/documentation/interaction/\">Use the mouse</a> in 'Examine Mode' to rotate, pan, zoom."
+  puts $x3dFile "\n<p><font size='-1'>PageDown for Viewpoints.  Key 'r' to restore, 'a' to view all.  <a href=\"https://www.x3dom.org/documentation/interaction/\">Use the mouse</a> in 'Examine Mode' to rotate, pan, zoom.</font>"
   puts $x3dFile "</details>"
   puts $x3dFile "</td></tr></table>"
 
@@ -1037,25 +1061,52 @@ proc x3dFileEnd {} {
       set id 0
       set lfront [list "Front (SFA)" "Front parallel (SFA)"]
       if {$opt(viewParallel) && [info exists savedViewVP]} {set lfront [list "Front (SFA)" "Front perspective (SFA)"]}
+
+# front views
       foreach svn $lfront {
         lappend onload "\n var view$id = document.getElementById('$svn');\n view$id.addEventListener('outputchange', function(event) \{"
         lappend onload "  document.getElementById('clickedView').innerHTML = '$svn';"
         incr id
         if {$viz(PMI)} {
-          foreach svn1 $savedViewButtons {
-            if {[info exists viewsWithPMI($svn1)]} {
-              lappend onload "  document.getElementById('swView$viewsWithPMI($svn1)').setAttribute('whichChoice', 0);"
-              lappend onload "  document.getElementById('swView$viewsWithPMI($svn1)').checked = false;"
-              lappend onload "  document.getElementById('cbView$viewsWithPMI($svn1)').checked = true;"
-            }
+          foreach svn1 $savedViewButtons {if {[info exists viewsWithPMI($svn1)]} {lappend viewList $viewsWithPMI($svn1)}}
+          set viewList [join $viewList ","]
+
+# function to switch PMI in views
+          if {$id == 1} {
+            puts $x3dFile "\n<!-- Switch views with PMI -->"
+            puts $x3dFile "<script>function switchViewPMI(nview)\{"
+            puts $x3dFile "  const nv = \[$viewList\];"
+            puts $x3dFile "  nv.forEach( function(i) \{"
+            puts $x3dFile "    swView = 'swView' + i;"
+            puts $x3dFile "    cbView = 'cbView' + i;"
+            puts $x3dFile "    if (i == nview) \{"
+            puts $x3dFile "      document.getElementById(`$\{swView\}`).setAttribute('whichChoice', 0);"
+            puts $x3dFile "      document.getElementById(`$\{swView\}`).checked = false;"
+            puts $x3dFile "      document.getElementById(`$\{cbView\}`).checked = true;"
+            puts $x3dFile "    \} else \{"
+            puts $x3dFile "      document.getElementById(`$\{swView\}`).setAttribute('whichChoice', -1);"
+            puts $x3dFile "      document.getElementById(`$\{swView\}`).checked = true;"
+            puts $x3dFile "      document.getElementById(`$\{cbView\}`).checked = false;"
+            puts $x3dFile "    \}"
+            puts $x3dFile "  \})"
+            puts $x3dFile "\}</script>"
           }
+
+          lappend onload "  const nv = \[$viewList\];"
+          lappend onload "  nv.forEach( function(i) \{"
+          lappend onload "    swView = 'swView' + i;"
+          lappend onload "    cbView = 'cbView' + i;"
+          lappend onload "    document.getElementById(`$\{swView\}`).setAttribute('whichChoice', 0);"
+          lappend onload "    document.getElementById(`$\{swView\}`).checked = false;"
+          lappend onload "    document.getElementById(`$\{cbView\}`).checked = true;"
+          lappend onload "  \})"
         }
         lappend onload " \}, false);"
       }
 
+# views with PMI
       set svb $savedViewButtons
       if {!$viz(PMI) || [llength $savedViewButtons] == 0} {set svb [array names savedViewpoint]}
-
       foreach svn $svb {
         set svn1 $svn
         if {[string first "\;" $svn1] != -1} {regsub -all "&" $svn1 "" svn1; regsub -all "\#" $svn1 "" svn1; regsub -all "\;" $svn1 "" svn1;}
@@ -1064,18 +1115,9 @@ proc x3dFileEnd {} {
         incr id
         if {$viz(PMI)} {
           foreach svn1 $savedViewButtons {
-            if {[info exists viewsWithPMI($svn1)]} {
-              set wc -1
-              set ch1 "true"
-              set ch2 "false"
-              if {$svn == $svn1} {set wc 0; set ch1 "false"; set ch2 "true"}
-              if {$svn == $svMap($svn) || $svn == $svn1} {
-                lappend onload "  document.getElementById('swView$viewsWithPMI($svn1)').setAttribute('whichChoice', $wc);"
-                lappend onload "  document.getElementById('swView$viewsWithPMI($svn1)').checked = $ch1;"
-              }
-              lappend onload "  document.getElementById('cbView$viewsWithPMI($svn1)').checked = $ch2;"
-            }
+            if {[info exists viewsWithPMI($svn1)]} {if {$svn == $svn1} {set i1 $viewsWithPMI($svn1)}}
           }
+          lappend onload "  switchViewPMI($i1);"
         }
         lappend onload " \}, false);"
       }
@@ -1193,7 +1235,7 @@ proc x3dSavedViewpoint {name} {
     set msg "Viewpoints are not modeled correctly"
     if {$opt(viewCorrect)} {set msg "Using corrected viewpoints (More tab)"}
     if {[lsearch $x3dMsg $msg] == -1} {lappend x3dMsg $msg}
-    if {!$opt(viewCorrect)} {errorMsg " Use the option to correct the viewpoints (More tab).  The corrected viewpoints should fix the orientation but maybe not the position."}
+    if {!$opt(viewCorrect)} {errorMsg " Use the option to correct the viewpoints (More tab).  The corrected viewpoints might fix the orientation but maybe not the position."}
   }
 
 # default viewpoint with transform
@@ -2213,7 +2255,9 @@ proc x3dPartCheckbox {type} {
   set txt ""
   set nparts [llength $arparts]
   if {$nparts > 2} {set txt "&nbsp;&nbsp;<button onclick='$tog\All\(this.value)'>Show/Hide</button>"}
-  puts $x3dFile "\n<!-- $name checkboxes -->\n<p>$name$txt\n<br><font size='-1'>"
+  puts $x3dFile "\n<!-- $name checkboxes -->"
+  if {$nparts > 20} {puts $x3dFile "<p><details><summary>Parts List</summary>"}
+  puts $x3dFile "\n<p>$name$txt\n<br><font size='-1'>"
 
   set lenname 0
   foreach name $arparts {if {[string length $name] > $lenname} {set lenname [string length $name]}}
@@ -2235,6 +2279,7 @@ proc x3dPartCheckbox {type} {
   }
   if {$div != ""} {puts $x3dFile "</div>"}
   puts $x3dFile "</font>"
+  if {$nparts > 20} {puts $x3dFile "</details>"}
 }
 
 # -------------------------------------------------------------------------------

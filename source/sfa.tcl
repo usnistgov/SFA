@@ -293,9 +293,12 @@ if {[llength $pids] > 0} {
 set warning {}
 if {$opt(writeDirType) == 2} {lappend warning "Output files will be written to a User-Defined directory (More tab)"}
 if {$opt(PMISEMRND)}         {lappend warning "Rounding semantic PMI dimensions and tolerances (More tab)"}
-if {$opt(tessPartOld)}       {lappend warning "Using old tessellated geometry processing (More tab)"}
+if {$opt(tessPartOld)}       {lappend warning "Using alternative tessellated geometry processing (More tab)"}
 if {$opt(brepAlt)}           {lappend warning "Using alternative b-rep geometry processing (More tab)"}
-if {$bits == "32-bit"}       {lappend warning "The Viewer for Part Geometry does not run on 32-bit computers and will be disabled"}
+catch {
+  set winver [registry get {HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows NT\CurrentVersion} {ProductName}]
+  if {[string first "Server" $winver] != -1} {lappend warning "$winver is not supported."}
+}
 if {[llength $warning] > 0}  {foreach item $warning {errorMsg $item red}; .tnb select .tnb.status}
 
 # set window minimum size

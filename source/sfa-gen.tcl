@@ -8,7 +8,7 @@ proc genExcel {{numFile 0}} {
   global nistName nistPMIexpected nistPMImaster noFontFile nprogBarEnts opt pf32 p21e3Section pmiCol resetRound row rowmax savedViewButtons
   global savedViewName savedViewNames scriptName sheetLast skipEntities skipFileName spmiEntity spmiSumName spmiSumRow spmiTypesPerFile
   global startrow statsOnly stepAP stepAPreport sumHeaderRow syntaxErr tessColor tessEnts tessSolid thisEntType timeStamp tlast tolNames tolStandard tolStandards
-  global totalEntity unicodeActual unicodeAttributes unicodeEnts unicodeInFile unicodeNumEnts unicodeString unicodeStringCM userEntityFile userEntityList
+  global totalEntity unicodeActual unicodeAttr unicodeAttributes unicodeEnts unicodeInFile unicodeNumEnts unicodeString unicodeStringCM userEntityFile userEntityList
   global userWriteDir useXL uuid uuidEnts valRounded viz wdir workbook workbooks worksheet worksheet1 worksheets writeDir wsCount wsNames x3dAxes
   global x3dColor x3dColorFile x3dColors x3dFileName x3dIndex x3dMax x3dMin x3dMsg x3dMsgColor x3dStartFile x3dViewOK xlFileName xlFileNames xlInstalled
   global objDesign
@@ -249,6 +249,8 @@ proc genExcel {{numFile 0}} {
             lappend characteristics "Graphic PMI (polyline)"
           } elseif {$entType == "annotation_placeholder_occurrence" || $entType == "annotation_placeholder_occurrence_with_leader_line"} {
             lappend characteristics "Placeholder PMI"
+          } elseif {$entType == "external_image_placement_in_callout"} {
+            lappend characteristics "External image"
 
           } elseif {$entType == "constructive_geometry_representation"} {
             lappend characteristics "Supplemental geometry"
@@ -361,7 +363,7 @@ proc genExcel {{numFile 0}} {
       }
       close $skipFile
     }
-    catch {if {$developer && ($cadSystem == "CREO" || $cadSystem == "Pro/E")} {set badAttributes(presentation_style_assignment) {styles}}}
+    catch {if {$developer && ([string toupper $cadSystem] == "CREO" || $cadSystem == "Pro/E")} {set badAttributes(presentation_style_assignment) {styles}}}
 
 # check if a file generated from a NIST test case (and some other files) is being processed
     set nistName [nistGetName]
@@ -1040,13 +1042,31 @@ proc genExcel {{numFile 0}} {
   catch {unset unicodeString}
   catch {unset unicodeStringCM}
   set unicodeEnts {}
-  if {$opt(xlUnicode) && $opt(xlFormat) != "None" && $useXL} {
+  if {$opt(xlUnicode) && (($opt(xlFormat) != "None" && $useXL) || $gen(View))} {
     set unicodeNumEnts 0
-    foreach ent [array names unicodeAttributes] {
-      if {[lsearch $entsToProcess $ent] != -1} {
-        if {([string first "AP2" $stepAP] == 0 && $unicodeInFile) || [string first "ISO13" $stepAP] == 0 || [string first "CUTTING_TOOL_" $stepAP] == 0} {
-          lappend unicodeEnts [string toupper $ent]
-          incr unicodeNumEnts $entCount($ent)
+    if {[info exists entsToProcess]} {
+      foreach ent [array names unicodeAttributes] {
+        if {[lsearch $entsToProcess $ent] != -1} {
+          if {([string first "AP2" $stepAP] == 0 && $unicodeInFile) || [string first "ISO13" $stepAP] == 0 || [string first "CUTTING_TOOL_" $stepAP] == 0} {
+            lappend unicodeEnts [string toupper $ent]
+            incr unicodeNumEnts $entCount($ent)
+            set unicodeAttr($ent) $unicodeAttributes($ent)
+          }
+        }
+      }
+    }
+    if {$gen(View)} {
+      if {$opt(xlFormat) == "None"} {
+        set unicodeEnts {}
+        set unicodeNumEnts 0
+      }
+      foreach cment [list camera_model_d3 camera_model_d3_multi_clipping] {
+        if {[info exists entCount($cment)] && $entCount($cment) > 0} {
+          if {[lsearch $unicodeEnts [string toupper $cment]] == -1} {
+            lappend unicodeEnts [string toupper $cment]
+            incr unicodeNumEnts $entCount($cment)
+            set unicodeAttr($cment) $unicodeAttributes($cment)
+          }
         }
       }
     }
@@ -1376,7 +1396,7 @@ proc genExcel {{numFile 0}} {
 
                 if {[info exists uuid($uuidEnt,[$e1 P21ID])]} {
                   set msg " Multiple UUIDs are associated with the same entity"
-                  errorMsg $msg
+                  errorMsg $msg red
                   lappend syntaxErr([string tolower $ent]) [list $entid identified_item $msg]
                 }
                 set uuid($uuidEnt,[$e1 P21ID]) $uuidstr
@@ -1387,7 +1407,9 @@ proc genExcel {{numFile 0}} {
               }
 
 # write identified_items to uuid_attribute entity
-              $cells([string tolower $ent]) Item $idRow([string tolower $ent],$entid) 3 $iditem
+              if {[info exists idRow([string tolower $ent],$entid)]} {
+                $cells([string tolower $ent]) Item $idRow([string tolower $ent],$entid) 3 $iditem
+              }
             }
           } emsg2]} {
             errorMsg "Error getting UUID: $emsg2"
@@ -1723,7 +1745,7 @@ proc genExcel {{numFile 0}} {
   update idletasks
 
 # unset variables
-  foreach var {assemTransformPMI brepScale cells cgrObjects cmNameID colColor commasep count currx3dPID datumEntType datumGeom datumIDs datumSymbol datumSystem datumSystemPDS defComment dimrep dimrepID dimtolEnt dimtolEntID dimtolGeom draughtingModels draftModelCameraNames draftModelCameras driPropID entCount entName entsIgnored epmi epmiUD equivUnicodeString feaDOFR feaDOFT feaNodes fileSumRow fontErr gpmiID gpmiIDRow gpmiRow heading idRow invCol invGroup noFontFile npart nrep numx3dPID placeAxes placeAxesDef placeCoords placeSphereDef pmiCol pmiColumns pmiStartCol pmivalprop propDefID propDefIDRow propDefName propDefOK propDefRow ptzError savedsavedViewNames savedViewFile savedViewFileName savedViewItems savedViewNames savedViewpoint savedViewVP shapeRepName srNames suppGeomEnts syntaxErr taoLastID tessCoord tessCoordName tessIndex tessIndexCoord tessPlacement tessRepo trimVal unicode unicodeActual unicodeNumEnts unicodeString viz vpEnts workbook workbooks worksheet worksheets x3dCoord x3dFile x3dFileName x3dIndex x3dMax x3dMin x3dStartFile} {
+  foreach var {assemTransformPMI brepScale cells cgrObjects cmNameID colColor commasep count currx3dPID datumEntType datumGeom datumIDs datumSymbol datumSystem datumSystemPDS defComment dimrep dimrepID dimtolEnt dimtolEntID dimtolGeom draughtingModels draftModelCameraNames draftModelCameras driPropID entCount entName entsIgnored epmi epmiUD equivUnicodeString feaDOFR feaDOFT feaNodes fileSumRow fontErr gpmiID gpmiIDRow gpmiRow heading idRow invCol invGroup noFontFile npart nrep numx3dPID placeAxes placeAxesDef placeCoords placeSphereDef pmiCol pmiColumns pmiStartCol pmivalprop propDefID propDefIDRow propDefName propDefOK propDefRow ptzError savedsavedViewNames savedViewFile savedViewFileName savedViewItems savedViewNames savedViewpoint savedViewVP shapeRepName srNames suppGeomEnts syntaxErr taoLastID tessCoord tessCoordID tessCoordName tessIndex tessIndexCoord tessPlacement tessRepo trimVal unicode unicodeActual unicodeNumEnts unicodeString viz vpEnts workbook workbooks worksheet worksheets x3dCoord x3dFile x3dFileName x3dIndex x3dMax x3dMin x3dStartFile} {
     catch {global $var}
     if {[info exists $var]} {unset $var}
   }
@@ -1805,6 +1827,7 @@ proc addHeaderWorksheet {numFile fname} {
           set msg ""
           if {$id == 1} {
             append str " (Edition 1)"
+            errorMsg "AP242 Edition 1 is not the current version.  See Help > Supported STEP APs" red
             if {[llength $ap242ed(2)] > 0 || [llength $ap242ed(3)] > 0 || [llength $ap242ed(4)] > 0} {
               errorMsg "The STEP file contains entities found in AP242 Edition 2, 3, or 4 ([join [lrmdups [concat $ap242ed(2) $ap242ed(3) $ap242ed(4)]]]),$spaces\however, the file is identified as Edition 1." red
             }
@@ -1822,11 +1845,9 @@ proc addHeaderWorksheet {numFile fname} {
           } elseif {$id == 5} {
             append str " (Edition 4)"
           } elseif {$id > 5} {
-            errorMsg "Unsupported AP242 Object Identifier String '... $id 1 4' for SchemaName.\n Entities specific to this edition of AP242 are not supported in the spreadsheet but will be reported in the Syntax Checker." red
+            errorMsg "Unsupported AP242 Object Identifier String '... $id 1 4' for SchemaName.\nEntities specific to this edition of AP242 are not supported in the spreadsheet.  Use the Syntax Checker to list those entities." red
           }
-          if {$developer} {
-            foreach i {2 3 4} {if {[llength $ap242ed($i)] > 0} {regsub -all " " [join $ap242ed($i)] ", " str1; outputMsg " AP242e$i: $str1" red}}
-          }
+          if {$developer} {foreach i {3 4} {if {[llength $ap242ed($i)] > 0} {regsub -all " " [join $ap242ed($i)] ", " str1; outputMsg " AP242e$i: $str1" red}}}
         } elseif {[string first "AP242" $sn] == 0} {
           errorMsg "SchemaName is missing the Object Identifier String that specifies the edition of AP242." red
         }
@@ -2515,10 +2536,11 @@ proc formatWorksheets {sheetSort sumRow inverseEnts} {
           addCellComment "descriptive_representation_item" 3 4 "The string interprets the characters '\\w' as ' | ' and '\\n' as a new line.  Unicode characters not supported by Windows fonts appear as a question mark.  When this column is sorted, the row height might need to be increased.  See Recommended Practice for PMI Unicode String Specification."
           incr rancol
         }
+      }
 
 # UUIDs
-      } elseif {[lsearch $uuidEnts $thisEntType] != -1} {
-        outputMsg " $thisEntType"
+      if {[lsearch $uuidEnts $thisEntType] != -1} {
+        outputMsg " [formatComplexEnt $thisEntType]"
         addP21e3Section 2 $thisEntType
       }
 

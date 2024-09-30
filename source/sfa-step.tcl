@@ -839,10 +839,10 @@ proc getSchemaFromFile {fname {limit 0}} {
 }
 
 #-------------------------------------------------------------------------------
-# convert \X2\ in strings, see sfa-data.tcl for unicodeAttributes
+# convert \X2\ in strings, see sfa-data.tcl for unicodeAttributes, unicodeAttr is set in sfa-gen.tcl
 # \X\ does not have to be handled separately for a spreadsheet, complex entities need to be handled explicitly
 proc unicodeStrings {unicodeEnts} {
-  global developer driUnicode localName stepAP unicodeActual unicodeAttributes unicodeNumEnts unicodeString unicodeStringCM
+  global developer driUnicode localName stepAP unicodeActual unicodeAttr unicodeNumEnts unicodeString unicodeStringCM
 
   if {[catch {
     set nent 0
@@ -892,8 +892,8 @@ proc unicodeStrings {unicodeEnts} {
       }
 
 # process Unicode
-      if {$ok} {
-        set lattr [llength $unicodeAttributes($ent1)]
+      if {$ok && [info exists unicodeAttr($ent1)]} {
+        set lattr [llength $unicodeAttr($ent1)]
 
 # check for Unicode X2
         set oku 0
@@ -908,7 +908,7 @@ proc unicodeStrings {unicodeEnts} {
           if {$cx2 != -1} {errorMsg " Processing Unicode characters (See Help > Text Strings and Numbers)" black}
 
           set id [string trim [string range $line 1 [string first "=" $line]-1]]
-          set idx "$ent1,[lindex $unicodeAttributes($ent1) 0],$id"
+          set idx "$ent1,[lindex $unicodeAttr($ent1) 0],$id"
 
 # get strings that have Unicode and convert
           switch -- $ent1 {
@@ -963,15 +963,15 @@ proc unicodeStrings {unicodeEnts} {
               }
               foreach ia [array names attr] {
                 set str [string trim $attr($ia)]
-                if {[lindex $unicodeAttributes($ent1) $ia] == "reference_designator"} {set str [string range $str [string first "'" $str] [string last "'" $str]]}
+                if {[lindex $unicodeAttr($ent1) $ia] == "reference_designator"} {set str [string range $str [string first "'" $str] [string last "'" $str]]}
                 set c0 [string index $str 0]
                 if {$c0 != "$" && $c0 != "#"} {
                   set c1 [string first "'" $str]
                   set c2 [string last  "'" $str]
                   if {$c1 != -1 && $c2 != -2} {set str [string range $str $c1+1 $c2-1]}
-                  set attrName [lindex $unicodeAttributes($ent1) $ia]
+                  set attrName [lindex $unicodeAttr($ent1) $ia]
                   if {$attrName != ""} {
-                    set idx "$ent1,[lindex $unicodeAttributes($ent1) $ia],$id"
+                    set idx "$ent1,[lindex $unicodeAttr($ent1) $ia],$id"
                     if {[string index $str 0] == "="} {set str " $str"}
                     set unicodeString($idx) $str
                   }

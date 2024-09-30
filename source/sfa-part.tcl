@@ -1,7 +1,7 @@
 # -------------------------------------------------------------------------------
 # B-rep part geometry, new stp2x3d in SFA 5.10 also processes tessellated geometry
 proc x3dBrepGeom {} {
-  global brepFile brepFileName brepScale buttons cadSystem clippingCap developer DTR edgeMatID entCount grayBackground localName
+  global brepFile brepFileName brepScale buttons cadSystem clippingCap developer DTR edgeMatID entCount localName
   global matTrans maxxyz mytemp nistVersion nsketch opt rawBytes rosetteGeom tessSolid viz x3dApps x3dBbox x3dMax x3dMin x3dMsg
   global x3dMsgColor x3dParts
   global objDesign
@@ -78,7 +78,7 @@ proc x3dBrepGeom {} {
 
 # check for clipping planes to cap
       set clippingCap 0
-      if {!$opt(partNoCap)} {
+      if {$opt(partCap)} {
         set ent "camera_model_d3_multi_clipping"
         if {[info exists entCount($ent)]} {
           if {$entCount($ent) > 0 && $entCount($ent) < 17} {
@@ -577,8 +577,8 @@ proc x3dBrepGeom {} {
           set msg "Error processing STEP part geometry."
           if {$tessSolid && !$opt(partOnly)} {append msg "\n Try the option for 'Alternative processing of tessellated geometry' (More tab)"}
           set ename "camera_model_d3_multi_clipping"
-          if {[info exists entCount($ename)] && !$opt(partNoCap)} {
-            if {$entCount($ename) > 0} {append msg "\n Try the option to 'not generate capped surfaces for clipping planes' (More tab)"}
+          if {[info exists entCount($ename)] && $opt(partCap)} {
+            if {$entCount($ename) > 0} {append msg "\n Turn off generating capped surfaces for clipping planes' (More tab)"}
           }
           append msg "\n Try opening the file in another STEP viewer.  See Websites > STEP > STEP File Viewers"
           append msg "\n Use F8 to run the Syntax Checker to check for STEP file errors.  See Help > Syntax Checker"

@@ -1,6 +1,6 @@
 proc tessPart {entType} {
   global objDesign
-  global ao ent entAttrList entCount entLevel mytemp opt tessCoordID
+  global ao ent entAttrList entCount entLevel mytemp opt
   global tessPartFile tessPartFileName tessSuppGeomFile tessSuppGeomFileName
 
   if {$opt(DEBUG1)} {outputMsg "START tessPart $entType" red}
@@ -26,7 +26,6 @@ proc tessPart {entType} {
 # initialize
   set ao $entType
   set entAttrList {}
-  set tessCoordID {}
   catch {unset ent}
   set entLevel 0
   setEntAttrList $PMIP($ao)
