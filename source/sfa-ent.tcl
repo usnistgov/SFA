@@ -273,11 +273,11 @@ proc getEntity {objEntity rmax checkInverse checkBadAttributes unicodeCheck} {
                 if {[info exists unicodeString($idx)]} {set pname $unicodeString($idx)}
 
 # look for name on product
-                if {$pname == "" || $pname == "design" || $pname == "part definition" || $pname == "None" || $pname == "UNKNOWN" || $pname == "BLNMEYEN"} {
+                if {$pname == "" || $pname == "design" || $pname == "part definition" || $pname == "None" || $pname == "UNKNOWN" || $pname == "UNSPECIFIED" || $pname == "BLNMEYEN"} {
                   set pdf [[[$refEntity Attributes] Item [expr 3]] Value]
                   set pro [[[$pdf Attributes] Item [expr 3]] Value]
                   set pname [string trim [[[$pro Attributes] Item [expr 1]] Value]]
-                  set idx "$refType,id,[$refEntity P21ID]"
+                  set idx "[$pro Type],id,[$pro P21ID]"
                   if {[info exists unicodeString($idx)]} {set pname $unicodeString($idx)}
                 }
               }

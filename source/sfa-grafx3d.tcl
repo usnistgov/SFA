@@ -803,7 +803,7 @@ proc x3dFileEnd {} {
     if {$viz(PART)} {puts $x3dFile "</details><p>"}
   }
 
-# clipping plane checkboxes 
+# clipping plane checkboxes
   if {$viz(CLIPPING)}   {
     puts $x3dFile "\n<!-- Clipping planes checkboxes -->"
     if {$nclipPlane <= 4} {
@@ -1069,37 +1069,40 @@ proc x3dFileEnd {} {
         incr id
         if {$viz(PMI)} {
           foreach svn1 $savedViewButtons {if {[info exists viewsWithPMI($svn1)]} {lappend viewList $viewsWithPMI($svn1)}}
-          set viewList [join $viewList ","]
 
 # function to switch PMI in views
-          if {$id == 1} {
-            puts $x3dFile "\n<!-- Switch views with PMI -->"
-            puts $x3dFile "<script>function switchViewPMI(nview)\{"
-            puts $x3dFile "  const nv = \[$viewList\];"
-            puts $x3dFile "  nv.forEach( function(i) \{"
-            puts $x3dFile "    swView = 'swView' + i;"
-            puts $x3dFile "    cbView = 'cbView' + i;"
-            puts $x3dFile "    if (i == nview) \{"
-            puts $x3dFile "      document.getElementById(`$\{swView\}`).setAttribute('whichChoice', 0);"
-            puts $x3dFile "      document.getElementById(`$\{swView\}`).checked = false;"
-            puts $x3dFile "      document.getElementById(`$\{cbView\}`).checked = true;"
-            puts $x3dFile "    \} else \{"
-            puts $x3dFile "      document.getElementById(`$\{swView\}`).setAttribute('whichChoice', -1);"
-            puts $x3dFile "      document.getElementById(`$\{swView\}`).checked = true;"
-            puts $x3dFile "      document.getElementById(`$\{cbView\}`).checked = false;"
-            puts $x3dFile "    \}"
-            puts $x3dFile "  \})"
-            puts $x3dFile "\}</script>"
-          }
+          if {[info exists viewList]} {
+            set viewList [join $viewList ","]
+            if {$id == 1} {
+              puts $x3dFile "\n<!-- Switch views with PMI -->"
+              puts $x3dFile "<script>function switchViewPMI(nview)\{"
+              puts $x3dFile "  const nv = \[$viewList\];"
+              puts $x3dFile "  nv.forEach( function(i) \{"
+              puts $x3dFile "    swView = 'swView' + i;"
+              puts $x3dFile "    cbView = 'cbView' + i;"
+              puts $x3dFile "    if (i == nview) \{"
+              puts $x3dFile "      document.getElementById(`$\{swView\}`).setAttribute('whichChoice', 0);"
+              puts $x3dFile "      document.getElementById(`$\{swView\}`).checked = false;"
+              puts $x3dFile "      document.getElementById(`$\{cbView\}`).checked = true;"
+              puts $x3dFile "    \} else \{"
+              puts $x3dFile "      document.getElementById(`$\{swView\}`).setAttribute('whichChoice', -1);"
+              puts $x3dFile "      document.getElementById(`$\{swView\}`).checked = true;"
+              puts $x3dFile "      document.getElementById(`$\{cbView\}`).checked = false;"
+              puts $x3dFile "    \}"
+              puts $x3dFile "  \})"
+              puts $x3dFile "\}</script>"
+            }
 
-          lappend onload "  const nv = \[$viewList\];"
-          lappend onload "  nv.forEach( function(i) \{"
-          lappend onload "    swView = 'swView' + i;"
-          lappend onload "    cbView = 'cbView' + i;"
-          lappend onload "    document.getElementById(`$\{swView\}`).setAttribute('whichChoice', 0);"
-          lappend onload "    document.getElementById(`$\{swView\}`).checked = false;"
-          lappend onload "    document.getElementById(`$\{cbView\}`).checked = true;"
-          lappend onload "  \})"
+            lappend onload "  const nv = \[$viewList\];"
+            lappend onload "  nv.forEach( function(i) \{"
+            lappend onload "    swView = 'swView' + i;"
+            lappend onload "    cbView = 'cbView' + i;"
+            lappend onload "    document.getElementById(`$\{swView\}`).setAttribute('whichChoice', 0);"
+            lappend onload "    document.getElementById(`$\{swView\}`).checked = false;"
+            lappend onload "    document.getElementById(`$\{cbView\}`).checked = true;"
+            lappend onload "  \})"
+            unset viewList
+          }
         }
         lappend onload " \}, false);"
       }
@@ -1117,7 +1120,7 @@ proc x3dFileEnd {} {
           foreach svn1 $savedViewButtons {
             if {[info exists viewsWithPMI($svn1)]} {if {$svn == $svn1} {set i1 $viewsWithPMI($svn1)}}
           }
-          lappend onload "  switchViewPMI($i1);"
+          if {[info exists i1]} {lappend onload "  switchViewPMI($i1);"}
         }
         lappend onload " \}, false);"
       }

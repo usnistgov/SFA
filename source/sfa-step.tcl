@@ -18,15 +18,15 @@ proc generateBOM {} {
           if {[info exists unicodeString($id1)]} {set name $unicodeString($id1)}
 
 # or product name
-          if {$name == "" || $name == "design" || $name == "part definition" || $name == "None" || $name == "UNKNOWN" || $name == "BLNMEYEN" || $name == "NON CONOSCIUTO" || $name == "NEZNM"} {
+          if {$name == "" || $name == "design" || $name == "part definition" || $name == "None" || $name == "UNKNOWN" || $name == "UNSPECIFIED" || $name == "BLNMEYEN" || $name == "NON CONOSCIUTO" || $name == "NEZNM"} {
             set pdf [[[$pd($idx) Attributes] Item [expr 3]] Value]
             set pro [[[$pdf Attributes] Item [expr 3]] Value]
             set name [string trim [[[$pro Attributes] Item [expr 1]] Value]]
-            set id1 "product,id,[$pro P21ID]"
+            set id1 "[$pro Type],id,[$pro P21ID]"
             if {[info exists unicodeString($id1)]} {set name $unicodeString($id1)}
             if {$name == ""} {
               set name "NoName$p21id"
-              errorMsg " Product name attribute is blank or contains non-English characters, using NoName...  See Help > Text Strings and Numbers" red
+              errorMsg " Some product/product_definition entities are missing required id/name attributes, using NoName... in the BOM" red
             }
           }
           set prodName($p21id) $name
@@ -52,9 +52,6 @@ proc generateBOM {} {
 
     if {[info exists bomNAUO(relating)]} {
       outputMsg "Generating BOM worksheet" blue
-      #outputMsg "\nbomNAUO relating $bomNAUO(relating)\nbomNAUO related $bomNAUO(related)" green
-      #foreach idx [lsort [array names bomAssembly]] {outputMsg "assembly $idx / $bomAssembly($idx)"}
-      #compareLists "relating related" [lrmdups $bomNAUO(relating)] [lrmdups $bomNAUO(related)]
 
 # assembly structure (uses ID to account for assemblies and parts with the same names)
       set bomIndent 0
@@ -64,7 +61,6 @@ proc generateBOM {} {
       foreach asm $root {
         if {[info exists bomAssemblyID($asm)]} {
           set bomIndent 0
-          #outputMsg [string range $asm 0 [string last " " $asm]-1] green
           foreach assem $bomAssemblyID($asm) {bomAssembly $assem}
         }
       }
@@ -312,7 +308,7 @@ proc pmiFormatColumns {str} {
         for {set i 1} {$i <= $colrange} {incr i} {
           set val [[$cells($thisEntType) Item 3 $i] Value]
           if {[string first "Associated Geometry" $val] != -1} {
-            [[$worksheet($thisEntType) Range [cellRange 1 5] [cellRange [expr {$row($thisEntType)+2}] [expr {$i-1}]]] Columns] Group
+            catch {[[$worksheet($thisEntType) Range [cellRange 1 5] [cellRange [expr {$row($thisEntType)+2}] [expr {$i-1}]]] Columns] Group}
           }
         }
       } elseif {[string first "tolerance" $thisEntType] != -1} {
@@ -321,17 +317,17 @@ proc pmiFormatColumns {str} {
           if {[string first "GD&T" $val] != -1} {
             set cgdt [expr {$i+1}]
           } elseif {[string first "Equivalent Unicode String" $val] != -1} {
-            [[$worksheet($thisEntType) Range [cellRange 1 $cgdt] [cellRange [expr {$row($thisEntType)+2}] [expr {$i-1}]]] Columns] Group
+            catch {[[$worksheet($thisEntType) Range [cellRange 1 $cgdt] [cellRange [expr {$row($thisEntType)+2}] [expr {$i-1}]]] Columns] Group}
           }
         }
       } elseif {[string first "annotation" $thisEntType] != -1} {
         for {set i 1} {$i <= $colrange} {incr i} {
           set val [[$cells($thisEntType) Item 3 $i] Value]
           if {[string first "Associated Geometry" $val] != -1} {
-            [[$worksheet($thisEntType) Range [cellRange 1 6] [cellRange [expr {$row($thisEntType)+2}] [expr {$i-1}]]] Columns] Group
+            catch {[[$worksheet($thisEntType) Range [cellRange 1 6] [cellRange [expr {$row($thisEntType)+2}] [expr {$i-1}]]] Columns] Group}
             set cag [expr {$i+1}]
           } elseif {[string first "Equivalent Unicode String" $val] != -1 && [info exists cag]} {
-            [[$worksheet($thisEntType) Range [cellRange 1 $cag] [cellRange [expr {$row($thisEntType)+2}] [expr {$i-1}]]] Columns] Group
+            catch {[[$worksheet($thisEntType) Range [cellRange 1 $cag] [cellRange [expr {$row($thisEntType)+2}] [expr {$i-1}]]] Columns] Group}
           }
         }
       }
@@ -609,6 +605,7 @@ proc syntaxChecker {fileName} {
       catch {unset sfaerr}
       set lineLast ""
       set paren 0
+      set ignored 0
       foreach line $sfaout {
 
 # get lines with errors and warnings
@@ -622,6 +619,7 @@ proc syntaxChecker {fileName} {
           if {[string first "warning: No schemas" $line] != -1} {break}
           if {[string first "warning: Couldn't find schema" $line] != -1} {errorMsg "See Help > Supported STEP APs"}
           if {[string first "(" $line] != -1 && [string first ")" $line] != -1} {set paren 1}
+          if {[string first "entity ignored" $line] != -1} {set ignored 1}
         } elseif {[string first "Error opening" $line] != -1} {
           append sfaerr "$line "
         }
@@ -630,7 +628,14 @@ proc syntaxChecker {fileName} {
 # done
       if {[info exists sfaerr]} {
         outputMsg [string range $sfaerr 0 end-1] red
-        if {$paren} {outputMsg "The number in parentheses is the line number in the file where the error or warning was detected."}
+        if {$paren} {
+          set msgp "The number in parentheses is the line number in the file where the error or warning was detected."
+          outputMsg $msgp
+        }
+        if {$ignored} {
+          set msgi "Ignored entities will not appear in the spreadsheet.  Attributes on other entities that refer to ignored entities will be blank.  Analyzer reports and the Viewer may be affected."
+          outputMsg $msgi red
+        }
 
 # output to log file
         if {$opt(logFile)} {
@@ -638,8 +643,10 @@ proc syntaxChecker {fileName} {
           if {$opt(writeDirType) == 2} {set lfile [file join $writeDir [file rootname [file tail $fileName]]]}
           append lfile "-sfa-err.log"
           set lf [open $lfile w]
-          puts $lf "Syntax Checker results for: $fileName\nGenerated by the NIST STEP File Analyzer and Viewer [getVersion] ([string trim [clock format [clock seconds]]])\nThe number in parentheses is the line number in the STEP file where the error or warning was detected.\n"
+          puts $lf "Syntax Checker results for: $fileName\nGenerated by the NIST STEP File Analyzer and Viewer [getVersion] ([string trim [clock format [clock seconds]]])"
           puts $lf [string range $sfaerr 0 end-1]
+          if {$paren}   {puts $lf $msgp}
+          if {$ignored} {puts $lf $msgi}
           close $lf
           outputMsg "Syntax Checker results saved to: [truncFileName [file nativename $lfile]]" blue
         }

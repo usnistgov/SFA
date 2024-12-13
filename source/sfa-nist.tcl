@@ -1188,12 +1188,12 @@ proc nistGetName {} {
     set testCase ""
     set ok  0
     set ok1 0
-  
-    if {[lsearch $filePrefix [string range $ftail 0 $c]] != -1 || [string first "nist" $ftail] != -1 || \
+
+    if {[lsearch $filePrefix [string range $ftail 0 $c]] != -1 || [string first "htc" $ftail] != -1 || \
         [string first "ctc" $ftail] != -1 || [string first "ftc" $ftail] != -1 || [string first "stc" $ftail] != -1 || \
-        [string first "htc" $ftail] != -1} {
+        ([string first "nist" $ftail] != -1 && [string first "pdi" $ftail] == -1 && [string first "pdc" $ftail] == -1)} {
       if {[lsearch $filePrefix [string range $ftail 0 $c]] != -1} {set ftail [string range $ftail $c+1 end]}
-  
+
       set tmp "nist_"
       foreach item {ctc ftc stc htc} {
         if {[string first $item $ftail] != -1} {

@@ -1,5 +1,5 @@
 # SFA version
-proc getVersion {} {return 5.22}
+proc getVersion {} {return 5.24}
 
 # see proc installIFCsvr in sfa-proc.tcl for the IFCsvr version
 # see below (line 37) for the sfaVersion when IFCsvr was updated
@@ -34,7 +34,7 @@ Use F9 and F10 to change the font size here.  See Help > Function Keys"
   if {$sfaVersion > 0} {
 
 # update the version number when IFCsvr is repackaged to include updated STEP schemas
-    if {$sfaVersion < 5.16} {outputMsg "- The IFCsvr toolkit might need to be reinstalled.  Please follow the directions carefully." red}
+    if {$sfaVersion < 5.24} {outputMsg "- The IFCsvr toolkit might need to be reinstalled.  Please follow the directions carefully." red}
 
     if {$sfaVersion < 4.60} {
       outputMsg "- User Guide (Update 7) is based on version 4.60 (October 2021)"
@@ -1135,7 +1135,8 @@ Other STEP file viewers are available.  See Websites > STEP > STEP File Viewers.
 viewers are faster and have better features for viewing and measuring part geometry.  This viewer
 supports many features that other viewers do not, including: graphic PMI, sketch geometry,
 supplemental geometry, datum targets, viewpoints, clipping planes, point clouds, composite rosettes,
-hole features, AP242 tessellated part geometry, and AP209 finite element models and results."
+hole features, AP242 tessellated part geometry, and AP209 finite element models and results.  Try
+the Open STEP Viewer with AP242 Domain Model XML files (.stpx)."
     .tnb select .tnb.status
   }
 
@@ -1292,7 +1293,9 @@ wrong position and orientation.
 
 Transparency for assemblies with AP242 tessellated geometry might look wrong.  In some rare cases,
 parts in an assembly using tessellated geometry might have the wrong position and orientation or be
-missing."
+missing.
+
+Assembly Structure is also supported by the AP242 Domain Model XML. See Websites > CAx Recommended Practices"
     .tnb select .tnb.status
   }
 
@@ -1744,6 +1747,10 @@ unexpected characters, and other problems with entity attributes.  Some errors m
 software and others from processing a STEP file.  Characters that are identified as illegal or
 unexpected might not be shown in a spreadsheet or in the viewer.  See Help > Text Strings and Numbers
 
+Entities in the STEP file that are not in the STEP AP schema are reported as ignored entities. They
+will not appear in the spreadsheet.  Attributes on other entities that refer to ignored entities
+will be blank.  Analyzer reports and the Viewer might be affected.
+
 If errors and warnings are reported, the number in parentheses is the line number in the STEP file
 where the error or warning was detected.  There should not be any of these types of syntax errors
 in a STEP file.  Errors should be fixed to ensure that the STEP file conforms to the STEP schema
@@ -1789,10 +1796,6 @@ might not be listed as a component of an assembly.  See Examples > Bill of Mater
 Generate the Analyzer report for Validation Properties to see possible properties associated with
 Parts.
 
-If part and assembly names use non-English characters, then the names in the BOM might be missing
-characters.  In some cases the name will appear as NoName with a number appended.
-See Help > Text Strings and Numbers
-
 Bill of Materials are not documented in the User Guide.  See Examples > Bill of Materials"
     .tnb select .tnb.status
   }
@@ -1836,8 +1839,7 @@ The name of the AP is on the FILE_SCHEMA entity in the HEADER section of a STEP 
 notation below, after an AP number, refers to an older Edition of that AP.  Some APs have multiple
 editions with the same name.
 
-AP242 editions 1, 2, and 3 were released in 2014, 2020, and 2022, respectively.  AP242 edition 4 is
-in development.  See Websites > AP242\n"
+AP242 editions 1-4 were released in 2014, 2020, 2022, and 2025.  See Websites > AP242\n"
 
     set schemas {}
     set ifcschemas {}
@@ -2141,7 +2143,7 @@ See Help > Disclaimers and NIST Disclaimer"
 
       outputMsg "Environment variables" red
       foreach id [lsort [array names env]] {
-        foreach id1 [list HOME USER APP] {if {[string first $id1 $id] == 0} {outputMsg " $id  $env($id)"; break}}
+        foreach id1 [list HOME USER APP ROSE_SCHEMAS] {if {[string first $id1 $id] == 0} {catch {outputMsg " $id  $env($id)"; break}}}
       }
     }
     .tnb select .tnb.status
@@ -2161,14 +2163,9 @@ See Help > Disclaimers and NIST Disclaimer"
 #-------------------------------------------------------------------------------
 # Websites menu
 proc guiWebsitesMenu {} {
-  global ap242e3 ap242e4 developer Websites
+  global Websites
 
   $Websites add command -label "STEP File Analyzer and Viewer"              -command {openURL https://www.nist.gov/services-resources/software/step-file-analyzer-and-viewer}
-  $Websites add command -label "STEP at NIST"                               -command {openURL https://www.nist.gov/ctl/smart-connected-systems-division/smart-connected-manufacturing-systems-group/step-nist}
-  $Websites add command -label "Digital Thread for Manufacturing"           -command {openURL https://www.nist.gov/programs-projects/digital-thread-manufacturing}
-  $Websites add command -label "Conformance Checking of PMI in STEP Files"  -command {openURL https://www.nist.gov/publications/conformance-checking-pmi-representation-cad-model-step-data-exchange-files}
-  $Websites add command -label "MBE PMI Validation and Comformance Testing" -command {openURL https://www.nist.gov/ctl/smart-connected-systems-division/smart-connected-manufacturing-systems-group/mbe-pmi-validation}
-
   $Websites add separator
   $Websites add command -label "CAx Interoperability Forum (CAx-IF)" -command {openURL https://www.mbx-if.org/home/cax/}
   $Websites add command -label "CAx Recommended Practices"           -command {openURL https://www.mbx-if.org/home/cax/recpractices/}
@@ -2183,19 +2180,8 @@ proc guiWebsitesMenu {} {
   $Websites0 add command -label "Benchmark Testing"       -command {openURL http://www.asd-ssg.org/step-ap242-benchmark.html}
   $Websites0 add command -label "Domain Model XML"        -command {openURL https://www.mbx-if.org/home/pdm/recpractices/}
 
-# report new entities
-  if {$developer} {
-    $Websites0 add command -label "New Entities" -command {
-      outputMsg "\nNew AP242 Entities --------------------------------------------------------------------------------" blue
-      set newent [lindex [intersect3 $ap242e3 $ap242e4] 2]
-      outputMsg "There are [llength $newent] new entities in AP242 edition 3+\n"
-      foreach item $newent {outputMsg $item}
-      .tnb select .tnb.status
-    }
-  }
-
   $Websites0 add separator
-  $Websites0 add command -label "ISO 10303-242"           -command {openURL https://www.iso.org/standard/84667.html}
+  $Websites0 add command -label "ISO 10303-242"           -command {openURL https://www.iso.org/standard/84300.html}
   $Websites0 add command -label "STEP in 3D PDF"          -command {openURL https://www.iso.org/standard/77686.html}
   $Websites0 add command -label "STEP Geometry Services"  -command {openURL https://www.iso.org/standard/84820.html}
 
@@ -2208,7 +2194,6 @@ proc guiWebsitesMenu {} {
   $Websites2 add command -label "STEP to X3D Translator" -command {openURL https://www.nist.gov/services-resources/software/step-x3d-translator}
 
   $Websites2 add separator
-  $Websites2 add command -label "CAE-IF"        -command {openURL https://www.mbx-if.org/home/cae/}
   $Websites2 add command -label "AP209 FEA"     -command {openURL http://www.ap209.org}
   $Websites2 add command -label "AP238 STEP-NC" -command {openURL https://www.ap238.org}
   $Websites2 add command -label "AP239 PLCS"    -command {openURL http://www.ap239.org}
@@ -2222,6 +2207,7 @@ proc guiWebsitesMenu {} {
 
   $Websites add cascade -label "Organizations" -menu $Websites.4
   set Websites4 [menu $Websites.4 -tearoff 1]
+  $Websites4 add command -label "STEP at NIST"           -command {openURL https://www.nist.gov/ctl/smart-connected-systems-division/smart-connected-manufacturing-systems-group/step-nist}
   $Websites4 add command -label "PDES, Inc. (U.S.)"      -command {}
   $Websites4 add command -label "prostep ivip (Germany)" -command {openURL https://www.prostep.org/en/projects/mbx-interoperability-forum-mbx-if}
   $Websites4 add command -label "AFNeT (France)"         -command {openURL https://atlas.afnet.fr/en/domaines/plm/}

@@ -659,6 +659,7 @@ proc runOpenProgram {} {
       set ap242 "ap242"
       if {[string first "442 2 1 4" $fschema] != -1 || [string first "442 3 1 4" $fschema] != -1} {append ap242 "e2"}
       if {[string first "442 4 1 4" $fschema] != -1} {append ap242 "e3"}
+      if {[string first "442 5 1 4" $fschema] != -1} {append ap242 "e4"}
       puts $scriptFile "Database>Open($edmDB, $ap242, $edmPW, \"$edmDBopen\")"
     } else {
       outputMsg "$idisp cannot be used with: $fschema" red
@@ -1443,7 +1444,7 @@ proc installIFCsvr {{exit 0}} {
   global buttons ifcsvrVer mydocs mytemp nistVersion upgradeIFCsvr wdir
 
 # IFCsvr version depends on string entered when IFCsvr is repackaged for new STEP schemas
-  set versionIFCsvr 20240705
+  set versionIFCsvr 20241206
 
 # if IFCsvr is alreadly installed, get version from registry, decide to reinstall newer version
   if {[catch {

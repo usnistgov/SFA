@@ -153,6 +153,11 @@ proc genExcel {{numFile 0}} {
   if {[catch {
     set objIFCsvr [::tcom::ref createobject IFCsvr.R300]
 
+# set environment variable that is sometimes necessary
+    set roseSchemas ""
+    if {[info exists env(ROSE_SCHEMAS)]} {set roseSchemas $env(ROSE_SCHEMAS)}
+    set env(ROSE_SCHEMAS) [file nativename $ifcsvrDir]
+
 # error
   } emsg]} {
     errorMsg "\nError connecting to the IFCsvr toolkit that is used to read STEP files: $emsg"
@@ -326,6 +331,8 @@ proc genExcel {{numFile 0}} {
 # exit if stats only from command-line version
     if {[info exists statsOnly]} {
       if {[info exists logFile]} {saveLogFile $lfile}
+      unset env(ROSE_SCHEMAS)
+      if {$roseSchemas != ""} {set env(ROSE_SCHEMAS) $roseSchemas}
       exit
     }
 
@@ -370,6 +377,9 @@ proc genExcel {{numFile 0}} {
 
 # error opening file
   } emsg]} {
+    unset env(ROSE_SCHEMAS)
+    if {$roseSchemas != ""} {set env(ROSE_SCHEMAS) $roseSchemas}
+
     if {$openStage == 2} {
       errorMsg "Error opening STEP file: $emsg"
 
@@ -1389,20 +1399,24 @@ proc genExcel {{numFile 0}} {
                 set uuidEnt [$e1 Type]
                 if {[lsearch $uuidEnts $uuidEnt] == -1} {lappend uuidEnts $uuidEnt}
                 if {$uuidEnt == "id_attribute"} {
-                  set msg " identified_item should refer directly to entities assigned a UUID and not id_attribute"
+                  set msg " Error: identified_item should refer directly to entities assigned a UUID and not id_attribute"
                   errorMsg $msg
                   lappend syntaxErr([string tolower $ent]) [list $entid identified_item $msg]
                 }
 
                 if {[info exists uuid($uuidEnt,[$e1 P21ID])]} {
-                  set msg " Multiple UUIDs are associated with the same entity"
-                  errorMsg $msg red
+                  set msg " Error: Multiple UUIDs are associated with the same entity"
+                  errorMsg $msg
                   lappend syntaxErr([string tolower $ent]) [list $entid identified_item $msg]
                 }
                 set uuid($uuidEnt,[$e1 P21ID]) $uuidstr
                 set okid 1
                 if {![info exist cells($uuidEnt)]} {lappend noUUIDent $uuidEnt}
-                if {$iditem != ""} {errorMsg " Some UUIDs are associated with multiple entities" red}
+                if {$iditem != ""} {
+                  set msg " Some UUIDs are associated with multiple entities"
+                  errorMsg $msg red
+                  lappend syntaxErr([string tolower $ent]) [list $entid identified_item $msg]
+                }
                 append iditem "[formatComplexEnt $uuidEnt] [$e1 P21ID]   "
               }
 
@@ -1542,6 +1556,8 @@ proc genExcel {{numFile 0}} {
     $objDesign Delete
     unset objDesign
     unset objIFCsvr
+    unset env(ROSE_SCHEMAS)
+    if {$roseSchemas != ""} {set env(ROSE_SCHEMAS) $roseSchemas}
 
 # errors
   } emsg]} {
@@ -1745,7 +1761,7 @@ proc genExcel {{numFile 0}} {
   update idletasks
 
 # unset variables
-  foreach var {assemTransformPMI brepScale cells cgrObjects cmNameID colColor commasep count currx3dPID datumEntType datumGeom datumIDs datumSymbol datumSystem datumSystemPDS defComment dimrep dimrepID dimtolEnt dimtolEntID dimtolGeom draughtingModels draftModelCameraNames draftModelCameras driPropID entCount entName entsIgnored epmi epmiUD equivUnicodeString feaDOFR feaDOFT feaNodes fileSumRow fontErr gpmiID gpmiIDRow gpmiRow heading idRow invCol invGroup noFontFile npart nrep numx3dPID placeAxes placeAxesDef placeCoords placeSphereDef pmiCol pmiColumns pmiStartCol pmivalprop propDefID propDefIDRow propDefName propDefOK propDefRow ptzError savedsavedViewNames savedViewFile savedViewFileName savedViewItems savedViewNames savedViewpoint savedViewVP shapeRepName srNames suppGeomEnts syntaxErr taoLastID tessCoord tessCoordID tessCoordName tessIndex tessIndexCoord tessPlacement tessRepo trimVal unicode unicodeActual unicodeNumEnts unicodeString viz vpEnts workbook workbooks worksheet worksheets x3dCoord x3dFile x3dFileName x3dIndex x3dMax x3dMin x3dStartFile} {
+  foreach var {assemTransformPMI brepScale cells cgrObjects cmNameID colColor commasep count currx3dPID datumEntType datumGeom datumIDs datumSymbol datumSystem datumSystemPDS defComment dimrep dimrepID dimtolEnt dimtolEntID dimtolGeom draughtingModels draftModelCameraNames draftModelCameras driPropID entCount entName entsIgnored epmi epmiUD equivUnicodeString feaDOFR feaDOFT feaNodes fileSumRow fontErr gpmiID gpmiIDRow gpmiRow heading idRow invCol invGroup noFontFile npart nrep numx3dPID placeAxes placeAxesDef placeCoords placeSphereDef pmiCol pmiColumns pmiStartCol pmivalprop propDefID propDefIDRow propDefName propDefOK propDefRow ptzError savedsavedViewNames savedViewFile savedViewFileName savedViewItems savedViewNames savedViewpoint savedViewVP shapeRepName srNames suppGeomEnts syntaxErr taoLastID tessCoord tessCoordID tessCoordName tessIndex tessIndexCoord tessPlacement tessRepo trimVal unicode unicodeActual unicodeNumEnts unicodeString uuidInserted viz vpEnts workbook workbooks worksheet worksheets x3dCoord x3dFile x3dFileName x3dIndex x3dMax x3dMin x3dStartFile} {
     catch {global $var}
     if {[info exists $var]} {unset $var}
   }
@@ -1916,7 +1932,7 @@ proc addHeaderWorksheet {numFile fname} {
 
 # check and add time stamp to multi file summary
         if {$attr == "FileTimeStamp"} {
-          if {([string first "-" $objAttr] == -1 || [string first "T" $objAttr] == -1 || [string length $objAttr] < 17 || [string length $objAttr] > 25) && $objAttr != ""} {
+          if {([string first "-" $objAttr] == -1 || [string first "T" $objAttr] == -1 || [string length $objAttr] < 17 || [string length $objAttr] > 26) && $objAttr != ""} {
             errorMsg "FileTimeStamp has the wrong format.  See Header worksheet."
             if {$useXL} {
               [[$worksheet($hdr) Range B5] Interior] Color $legendColor(red)
@@ -2675,7 +2691,7 @@ proc moveWorksheet {items {where "Before"}} {
 # -------------------------------------------------------------------------------------------------
 # add worksheets for Part 21 edition 3 sections (idType=1) AND add persistent IDs (UUID) with id_attribute or v4/5_attribute (idType=2)
 proc addP21e3Section {idType {uuidEnt ""}} {
-  global cells entCount entName fileSumRow idRow legendColor p21e3Section spmiSumRowID sumHeaderRow uuid worksheet worksheets
+  global cells entCount entName fileSumRow idRow legendColor p21e3Section spmiSumRowID sumHeaderRow uuid uuidInserted worksheet worksheets
   global objDesign
 
   catch {unset anchorSum}
@@ -2827,15 +2843,18 @@ proc addP21e3Section {idType {uuidEnt ""}} {
     set c 4
     if {[[$cells($spmiSumName) Item 3 $c] Value] != ""} {
       set c 5
-      set range [$worksheet($spmiSumName) Range E2]
-      [$range EntireColumn] Insert [expr -4161]
-      set range [$worksheet($spmiSumName) Range E:E]
-      [$range Interior] Pattern [expr -4142]
+      if {![info exists uuidInserted]} {
+        set range [$worksheet($spmiSumName) Range E2]
+        [$range EntireColumn] Insert [expr -4161]
+        set range [$worksheet($spmiSumName) Range E:E]
+        [$range Interior] Pattern [expr -4142]
+        set uuidInserted 1
+      }
     }
 
     $cells($spmiSumName) Item 3 $c $heading
     set range [$worksheet($spmiSumName) Range [cellRange 3 $c]]
-    addCellComment $spmiSumName 3 $c "See Help > User Guide (section 5.6)\n\nIDs for dimensional_characteristic_representation are for the corresponding dimensional_location or dimensional_size."
+    addCellComment $spmiSumName 3 $c "See Help > User Guide (section 5.6)\n\nUUIDs for dimensional_characteristic_representation are found on the corresponding dimensional_location or dimensional_size entities."
     catch {foreach i {8 9} {[[$range Borders] Item $i] Weight [expr 2]}}
     [$range Font] Bold [expr 1]
     $range HorizontalAlignment [expr -4108]
