@@ -106,9 +106,9 @@ proc spmiDimtolStart {entType} {
 
 # -------------------------------------------------------------------------------
 proc spmiDimtolReport {objEntity} {
-  global angDegree assocGeom badAttributes cadSystem cells col datsym developer dim dimBasic dimRepeat dimDirected dimName
-  global dimModNames dimOrient dimReference dimrep dimrepID dimSizeNames dimtolAttr dimtolEnt dimtolEntType dimtolGeom dimtolID
-  global dimtolPM dimtolType dimval driPropID dt entLevel ent entAttrList entCount entlevel2 equivUnicodeString iloldscr lastEnt nistName
+  global angDegree assocGeom badAttributes cells col datsym dim dimBasic dimRepeat dimDirected dimName dimModNames dimOrient
+  global dimReference dimrep dimrepID dimSizeNames dimtolAttr dimtolEnt dimtolEntType dimtolGeom dimtolID dimtolPM dimtolType
+  global dimval driPropID dt entLevel ent entAttrList entCount entlevel2 equivUnicodeString iloldscr lastEnt nistName
   global numDSnames opt pmiCol pmiColumns pmiHeading pmiModifiers pmiStartCol pmiUnicode propDefIDs recPracNames
   global savedModifier spaces spmiEnts spmiID spmiIDRow spmiRow spmiTypesPerFile syntaxErr tolStandard vftq worksheet
 

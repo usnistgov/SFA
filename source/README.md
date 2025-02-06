@@ -16,7 +16,7 @@ Each Tcl file contains multiple procedures.
 - sfa-gen.tcl - generate a spreadsheet
 - sfa-geom.tcl- process associated geometry
 - sfa-geotol.tcl- process geometric tolerances
-- sfa-grafpmi.tcl - process graphical PMI and tessellated geometry
+- sfa-grafpmi.tcl - process graphic PMI and tessellated geometry
 - sfa-grafx3d.tcl - generate viewer X3D graphics
 - sfa-gui.tcl - generate user interface
 - sfa-hole.tcl - process counterbore/sink/drill and spotface holes
@@ -25,11 +25,12 @@ Each Tcl file contains multiple procedures.
 - sfa-multi.tcl - process multiple STEP files
 - sfa-nist.tcl - process expected PMI for NIST models
 - sfa-part.tcl - generate b-rep part geometry
-- sfa-pmi.tcl - generate graphical PMI and tessellated part geometry
+- sfa-pmi.tcl - generate graphic PMI and tessellated part geometry
 - sfa-proc.tcl - utility procedures
 - sfa-step.tcl - STEP utility procedures
 - sfa-supp.tcl - generate supplemental geometry graphics
 - sfa-tess.tcl - process tessellated geometry
+- sfa-uuid.tcl - process UUIDs
 - sfa-valprop.tcl - process validation properties
 
 - tclIndex - required Tcl code that lists all procedures in each Tcl file

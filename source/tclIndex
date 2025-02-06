@@ -42,7 +42,6 @@ set auto_index(feaModel) [list source [file join $dir sfa-fea.tcl]]
 set auto_index(feaWriteIndex) [list source [file join $dir sfa-fea.tcl]]
 
 set auto_index(addHeaderWorksheet) [list source [file join $dir sfa-gen.tcl]]
-set auto_index(addP21e3Section) [list source [file join $dir sfa-gen.tcl]]
 set auto_index(formatWorksheets) [list source [file join $dir sfa-gen.tcl]]
 set auto_index(genExcel) [list source [file join $dir sfa-gen.tcl]]
 set auto_index(moveWorksheet) [list source [file join $dir sfa-gen.tcl]]
@@ -230,6 +229,9 @@ set auto_index(tessPartGeometry) [list source [file join $dir sfa-tess.tcl]]
 set auto_index(tessReadGeometry) [list source [file join $dir sfa-tess.tcl]]
 set auto_index(tessSetColor) [list source [file join $dir sfa-tess.tcl]]
 set auto_index(tessSetPlacement) [list source [file join $dir sfa-tess.tcl]]
+
+set auto_index(uuidGetAttributes) [list source [file join $dir sfa-uuid.tcl]]
+set auto_index(uuidReportAttributes) [list source [file join $dir sfa-uuid.tcl]]
 
 set auto_index(addValProps) [list source [file join $dir sfa-valprop.tcl]]
 set auto_index(getValProps) [list source [file join $dir sfa-valprop.tcl]]

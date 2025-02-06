@@ -399,8 +399,10 @@ proc nistCheckExpectedPMI {val entstr epmiName} {
               }
             }
             if {$debug} {outputMsg "remove3 [lindex $nistPMIexpected($epmiName) $pmiMatchNX]" green}
-            set nistPMIexpected($epmiName)   [lreplace $nistPMIexpected($epmiName)   $pmiMatchNX $pmiMatchNX]
-            set nistPMIexpectedNX($epmiName) [lreplace $nistPMIexpectedNX($epmiName) $pmiMatchNX $pmiMatchNX]
+            catch {
+              set nistPMIexpected($epmiName)   [lreplace $nistPMIexpected($epmiName)   $pmiMatchNX $pmiMatchNX]
+              set nistPMIexpectedNX($epmiName) [lreplace $nistPMIexpectedNX($epmiName) $pmiMatchNX $pmiMatchNX]
+            }
           }
 
 # try simple match as above
@@ -424,7 +426,7 @@ proc nistCheckExpectedPMI {val entstr epmiName} {
         }
       }
     } emsg]} {
-      errorMsg "Error matching dimension without nX: $emsg"
+      errorMsg "Error matching dimension ($val) without nX: $emsg"
     }
 
 # -------------------------------------------------------------------------------
@@ -872,7 +874,7 @@ proc nistAddExpectedPMIPercent {nf name} {
   catch {foreach i {8 10 11} {[[$range Borders] Item $i] Weight [expr 2]}}
   set range [$worksheet($spmiCoverageWS) Range B$r]
   $range HorizontalAlignment [expr -4108]
-  addCellComment $spmiCoverageWS $r 1 "These are color-coded percentages based on the Total PMI of the number Exact, Partial, Possible, and Missing matches from column B on the Semantic PMI Summary worksheet.  The percentages for all matches should total 100.\n\'Missing match' is based on Missing PMI that would appear below the color legend.  'No match' is based on the number of Semantic PMI that appear in red.\n\nCoverage Analysis is only based on individual PMI elements.  The Semantic PMI Summary is based on the complete Feature Control Frame and provides a better understanding of the PMI.  The Coverage Analysis might show that there is an Exact match (all green above) for all of the PMI elements, however, the Representation Summary might show less than Exact matches.\n\nSee Help > Analyzer > NIST CAD Models\nSee Help > User Guide (section 6.6.2.1)"
+  addCellComment $spmiCoverageWS $r 1 "These are color-coded percentages based on the Total PMI of the number Exact, Partial, Possible, and Missing matches from column B on the Semantic PMI Summary worksheet.  The percentages for all matches should total 100.\n\'Missing match' is based on Missing PMI that would appear below the color legend.  'No match' is based on the number of Semantic PMI that appear in red.\n\nCoverage Analysis is only based on individual PMI elements.  The Semantic PMI Summary is based on the complete Feature Control Frame and provides a better understanding of the PMI.  The Coverage Analysis might show that there is an Exact match (all green above) for all of the PMI elements, however, the PMI Summary might show less than Exact matches.\n\nSee Help > Analyzer > NIST CAD Models\nSee Help > User Guide (section 6.6.2.1)"
 
 # for multiple files, add more formatting
   if {[info exists lenfilelist]} {
@@ -1123,7 +1125,7 @@ proc nistAddModelPictures {ent} {
 
 # freeze panes
           if {$nlink == 0} {
-            if {[string first "Representation" $ent] != -1} {
+            if {[string first "Semantic" $ent] != -1} {
               [$worksheet($ent) Range "E4"] Select
             } else {
               [$worksheet($ent) Range "C4"] Select

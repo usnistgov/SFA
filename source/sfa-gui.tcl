@@ -1,16 +1,15 @@
 # SFA version
-proc getVersion {} {return 5.24}
+proc getVersion {} {return 5.25}
 
 # see proc installIFCsvr in sfa-proc.tcl for the IFCsvr version
 # see below (line 37) for the sfaVersion when IFCsvr was updated
 
 # -------------------------------------------------------------------------------
 proc whatsNew {} {
-  global progtime sfaVersion upgrade
+  global progtime sfaVersion
 
   if {$sfaVersion > 0 && $sfaVersion < [getVersion]} {
     outputMsg "\nThe previous version of the STEP File Analyzer and Viewer was: $sfaVersion" red
-    set upgrade [clock seconds]
   }
 
 # new user welcome message
@@ -49,9 +48,6 @@ Use F9 and F10 to change the font size here.  See Help > Function Keys"
   if {$sfaVersion < 5.02} {outputMsg "- Help > Viewer > Viewpoints, and Help > Viewer > New Features"}
   if {$sfaVersion < 5.10} {outputMsg "- Updated Sample STEP Files, see Examples menu"}
   if {$sfaVersion < 5.16} {outputMsg "- The CAx-IF website and Recommended Practices for PMI in AP242 have been updated, see Websites"}
-  if {$sfaVersion < 4.84 && [file exists [file join [file dirname [info nameofexecutable]] STEP-File-Analyzer-Release-Notes.xlsx]]} {
-    outputMsg "- The local Release Notes file 'STEP-File-Analyzer-Release-Notes.xlsx' is not up-to-date and should be deleted." red
-  }
   outputMsg "- See Help > Release Notes for all new features and bug fixes"
   set sfaVersion [getVersion]
 
@@ -1837,9 +1833,8 @@ AP238 STEP-NC files (.stpnc) are supported by renaming the file extension to '.s
 
 The name of the AP is on the FILE_SCHEMA entity in the HEADER section of a STEP file.  The 'e1'
 notation below, after an AP number, refers to an older Edition of that AP.  Some APs have multiple
-editions with the same name.
-
-AP242 editions 1-4 were released in 2014, 2020, 2022, and 2025.  See Websites > AP242\n"
+editions with the same name.  AP242 editions 1-4 were released in 2014, 2020, 2022, and 2025.
+See Websites > AP242\n"
 
     set schemas {}
     set ifcschemas {}
@@ -2187,28 +2182,26 @@ proc guiWebsitesMenu {} {
 
   $Websites add cascade -label "STEP" -menu $Websites.2
   set Websites2 [menu $Websites.2 -tearoff 1]
-  $Websites2 add command -label "STEP File Format"  -command {openURL https://www.loc.gov/preservation/digital/formats/fdd/fdd000448.shtml}
-  $Websites2 add command -label "STEP ISO 10303-21" -command {openURL https://en.wikipedia.org/wiki/ISO_10303-21}
-  $Websites2 add separator
   $Websites2 add command -label "STEP File Viewers"      -command {openURL https://www.mbx-if.org/home/mbx/resources/}
   $Websites2 add command -label "STEP to X3D Translator" -command {openURL https://www.nist.gov/services-resources/software/step-x3d-translator}
+  $Websites2 add command -label "STEP File Format"  -command {openURL https://www.loc.gov/preservation/digital/formats/fdd/fdd000448.shtml}
+  $Websites2 add command -label "STEP ISO 10303-21" -command {openURL https://en.wikipedia.org/wiki/ISO_10303-21}
 
   $Websites2 add separator
   $Websites2 add command -label "AP209 FEA"     -command {openURL http://www.ap209.org}
   $Websites2 add command -label "AP238 STEP-NC" -command {openURL https://www.ap238.org}
   $Websites2 add command -label "AP239 PLCS"    -command {openURL http://www.ap239.org}
-  $Websites2 add command -label "AP243 MoSSEC"  -command {openURL http://www.mossec.org}
   $Websites2 add separator
+  $Websites2 add command -label "Learning EXPRESS"               -command {openURL https://www.expresslang.org/learn/}
+  $Websites2 add command -label "easyEXPRESS"                    -command {openURL https://www.nist.gov/news-events/news/2023/12/nist-releases-easyexpress-its-first-official-visual-studio-code-extension}
   $Websites2 add command -label "EXPRESS ISO 10303-11"           -command {openURL https://www.loc.gov/preservation/digital/formats/fdd/fdd000449.shtml}
   $Websites2 add command -label "EXPRESS data modeling language" -command {openURL https://en.wikipedia.org/wiki/EXPRESS_(data_modeling_language)}
-  $Websites2 add command -label "easyEXPRESS"                    -command {openURL https://www.nist.gov/news-events/news/2023/12/nist-releases-easyexpress-its-first-official-visual-studio-code-extension}
-  $Websites2 add command -label "Learning EXPRESS"               -command {openURL https://www.expresslang.org/learn/}
   $Websites2 add command -label "EXPRESS Schemas"                -command {openURL https://www.mbx-if.org/home/mbx/resources/express-schemas/}
 
   $Websites add cascade -label "Organizations" -menu $Websites.4
   set Websites4 [menu $Websites.4 -tearoff 1]
   $Websites4 add command -label "STEP at NIST"           -command {openURL https://www.nist.gov/ctl/smart-connected-systems-division/smart-connected-manufacturing-systems-group/step-nist}
-  $Websites4 add command -label "PDES, Inc. (U.S.)"      -command {}
+  $Websites4 add command -label "PDES, Inc. (U.S.)"      -command {openURL https://pdesinc.org/}
   $Websites4 add command -label "prostep ivip (Germany)" -command {openURL https://www.prostep.org/en/projects/mbx-interoperability-forum-mbx-if}
   $Websites4 add command -label "AFNeT (France)"         -command {openURL https://atlas.afnet.fr/en/domaines/plm/}
   $Websites4 add command -label "KStep (Korea)"          -command {openURL https://www.kstep.or.kr}
@@ -2553,7 +2546,7 @@ proc getOpenPrograms {} {
 # remove old commands
   set oldcmd [list 3DJuump 3DPDFConverter 3DReviewer avwin BIMsight Magics QuickStep roamer \
                    apconformgui checkgui stepbrws stepcleangui STEPNCExplorer_x86 STEPNCExplorer stview]
-  foreach cmd $dispCmds {if {[string first "notepad++.exe" $cmd]} {lappend oldcmd "notepad"}}
+  foreach cmd $dispCmds {if {[string first "notepad++.exe" $cmd] != -1} {lappend oldcmd "notepad"}}
 
   set ndcs {}
   foreach cmd $dispCmds {

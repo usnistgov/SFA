@@ -496,7 +496,7 @@ proc checkFileSize {} {
 # save the state of variables to STEP-File-Analyzer-options.dat
 proc saveState {{ok 1}} {
   global buttons commaSeparator dispCmd dispCmds fileDir fileDir1 filesProcessed gen lastX3DOM lastXLS lastXLS1 mydocs openFileList
-  global opt optionsFile sfaVersion statusFont upgrade upgradeIFCsvr userEntityFile userWriteDir
+  global opt optionsFile sfaVersion statusFont upgradeIFCsvr userEntityFile userWriteDir
 
 # ok = 0 only after installing IFCsvr from the command-line version
   if {![info exists buttons] && $ok} {return}
@@ -540,7 +540,7 @@ proc saveState {{ok 1}} {
     catch {puts $fileOptions "set winpos \"$winpos\""}
 
 # variables in varlist, handle variables with [ or ]
-    set varlist(1) [list statusFont upgrade upgradeIFCsvr sfaVersion filesProcessed commaSeparator]
+    set varlist(1) [list statusFont upgradeIFCsvr sfaVersion filesProcessed commaSeparator]
     set varlist(2) [list fileDir fileDir1 userWriteDir userEntityFile lastXLS lastXLS1 lastX3DOM]
     set varlist(3) [list openFileList dispCmd dispCmds]
     foreach idx {1 2 3} {

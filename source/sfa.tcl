@@ -188,25 +188,6 @@ if {$sfaVersion == 0} {
 }
 
 #-------------------------------------------------------------------------------
-# check for update every 90 days
-if {$nistVersion} {
-  if {$upgrade > 0} {
-    set lastupgrade [expr {round(([clock seconds] - $upgrade)/86400.)}]
-    if {$lastupgrade > 90} {
-      set str ""
-      if {$lastupgrade > 365} {set str ".  Welcome Back!"}
-      outputMsg "The last check for an update was $lastupgrade days ago$str\nTo check for an updated version, go to Websites > STEP File Analyzer and Viewer\nTo see what is new in an updated version, go to Help > Release Notes" red
-      .tnb select .tnb.status
-      set upgrade [clock seconds]
-      saveState
-    }
-  } else {
-    set upgrade [clock seconds]
-    saveState
-  }
-}
-
-#-------------------------------------------------------------------------------
 # install IFCsvr
 installIFCsvr
 

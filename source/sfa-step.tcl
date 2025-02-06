@@ -191,8 +191,6 @@ proc bomAssembly {assem} {
 
   if {![info exists lastAssem]} {set lastAssem ""}
   set str [string repeat " " $bomIndent]$assem1
-  #outputMsg $str blue
-  #if {$str != $lastAssem} {outputMsg $str blue}
   set lastAssem $str
 
   if {[info exists bomAssemblyID($assem)]} {
@@ -204,7 +202,7 @@ proc bomAssembly {assem} {
 
 # -------------------------------------------------------------------------------
 proc pmiFormatColumns {str} {
-  global cells col gpmiRow pmiStartCol recPracNames row spmiRow stepAP thisEntType vpmiRow worksheet
+  global cells col formattedEnts gpmiRow pmiStartCol recPracNames row spmiRow stepAP thisEntType vpmiRow worksheet
 
   if {![info exists pmiStartCol($thisEntType)]} {
     return
@@ -231,7 +229,9 @@ proc pmiFormatColumns {str} {
     set c3 $col($thisEntType)
 
 # PMI heading
-    outputMsg " [formatComplexEnt $thisEntType]"
+    set fthis [formatComplexEnt $thisEntType]
+    outputMsg " $fthis"
+    if {[lsearch $formattedEnts $fthis] == -1} {lappend formattedEnts $fthis}
     if {$str != "Validation Properties" || $thisEntType == "property_definition"} {
       $cells($thisEntType) Item 2 $c2 $str
       set range [$worksheet($thisEntType) Range [cellRange 2 $c2]]
@@ -562,12 +562,12 @@ proc setEntAttrList {abc} {
 #-------------------------------------------------------------------------------
 # run syntax checker with the command-line version (sfa-cl.exe) and output filtered result
 proc syntaxChecker {fileName} {
-  global buttons env ifcsvrDir opt wdir writeDir
+  global buttons env ifcsvrDir opt roseSchemas wdir writeDir
 
   if {[file size $fileName] > 429000000} {outputMsg " The file is too large to run the Syntax Checker.  The limit is about 430 MB." red; return}
 
   set roseSchemas ""
-  if {[info exists env(ROSE_SCHEMAS)]} {set roseSchemas $env(ROSE_SCHEMAS)}
+  catch {if {$env(ROSE_SCHEMAS) != $ifcsvrDir} {set roseSchemas $env(ROSE_SCHEMAS)}}
   set env(ROSE_SCHEMAS) [file nativename $ifcsvrDir]
 
   if {[info exists buttons]} {
@@ -665,8 +665,10 @@ proc syntaxChecker {fileName} {
     outputMsg " Syntax Checker cannot be run.  Make sure the command-line version 'sfa-cl.exe' is in the same directory as 'STEP-File-Analyzer.exe" red
   }
 
-  unset env(ROSE_SCHEMAS)
-  if {$roseSchemas != ""} {set env(ROSE_SCHEMAS) $roseSchemas}
+  if {$roseSchemas != "" && $roseSchemas != $ifcsvrDir} {
+    unset env(ROSE_SCHEMAS)
+    if {$roseSchemas != ""} {set env(ROSE_SCHEMAS) $roseSchemas}
+  }
 
   if {[info exists buttons]} {outputMsg "[string repeat "-" 29]"}
 }

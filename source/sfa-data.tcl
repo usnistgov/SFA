@@ -7,7 +7,7 @@ global indentStop legendColor letters nistModelPictures pmiElementsMaxRows pmiHo
 global pmiUnicode recPracNames roseLogical spaces spmiEntTypes spmiTypes statusFont stepAPs tolNames tzfNames unicodeAttributes
 
 global coverageSTEP developer dispCmd dispCmds env fileDir fileDir1 filesProcessed gen lastX3DOM lastXLS lastXLS1
-global mydocs openFileList opt pf32 pf64 sfaVersion upgrade userWriteDir writeDir x3dom x3dFileName x3dStartFile
+global mydocs openFileList opt pf32 pf64 sfaVersion userWriteDir writeDir x3dom x3dFileName x3dStartFile
 
 # see sfa-gui.tcl for SFA version number
 
@@ -57,7 +57,6 @@ set lastXLS ""
 set lastXLS1 ""
 set openFileList {}
 set sfaVersion 0
-set upgrade 0
 set x3dFileName ""
 set x3dStartFile 1
 set statusFont "-*-Consolas-Medium-R-Normal--*-170-*-*-*-*-*-*"
