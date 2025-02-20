@@ -161,6 +161,15 @@ proc spmiHoleReport {objEntity} {
             if {$idx != -1} {
               if {$opt(DEBUG1)} {outputMsg "$ind   ATR $entLevel $objName - $objValue ($objNodeType-[$objAttribute AggNodeType], $objSize, $objAttrType)"}
 
+# missing values
+              if {$objName == "countersink_angle" || $objName == "countersink_diameter" || $objName == "drilled_hole_diameter"} {
+                if {$objValue == ""} {
+                  set msg "Syntax Error: Missing required '$objName' attribute.$spaces\($recPracNames(holes), Sec. 5.1.1.1)"
+                  errorMsg $msg
+                  lappend syntaxErr([$holeEntity Type]) [list [$holeEntity P21ID] $objName $msg]
+                }
+              }
+
               if {[info exists cells($ht)]} {
                 set ok 0
 
@@ -322,6 +331,8 @@ proc spmiHoleReport {objEntity} {
 # done processing entities, construct hole dimension
   if {$entLevel == 0} {
     set holerep ""
+    set htype [$holeEntity Type]
+    set hid [$holeEntity P21ID]
 
 # check for repetitive dimensions
     set nhole 0
@@ -334,7 +345,7 @@ proc spmiHoleReport {objEntity} {
       append holerep "$nhole\X "
       lappend spmiTypesPerFile "repetitive dimensions"
     } elseif {$nhole == 0} {
-      errorMsg "No hole occurrences refer to '[$holeEntity Type]'."
+      errorMsg "No hole occurrences refer to '$htype'."
     }
 
 # main hole diameter, depth, and tolerances
@@ -353,36 +364,40 @@ proc spmiHoleReport {objEntity} {
       lappend spmiTypesPerFile "depth"
       append hd " $holeDim(drilled_hole_depth)"
       if {$thruHole} {
-        set msg "Syntax Error: through_hole should be FALSE if drilled_hole_depth is specified OR if though_hole is TRUE then the drilled_hole_depth should not be specified.$spaces\($recPracNames(holes), Sec. 5.1.1.1)"
+        set msg "Syntax Error: drilled_hole_depth is not required if though_hole is TRUE.$spaces\($recPracNames(holes), Sec. 5.1.1.1)"
         errorMsg $msg
-        lappend syntaxErr([$holeEntity Type]) [list [$holeEntity P21ID] "through_hole" $msg]
-        lappend syntaxErr([$holeEntity Type]) [list [$holeEntity P21ID] "drilled_hole_depth" $msg]
+        lappend syntaxErr($htype) [list $hid "through_hole" $msg]
+        lappend syntaxErr($htype) [list $hid "drilled_hole_depth" $msg]
       }
 
 # no depth and not a thru hole
     } elseif {!$thruHole} {
-      set msg ""
-      if {[string first "basic_round" [$holeEntity Type]] == -1} {
-        set msg "Syntax Error: through_hole should be TRUE if drilled_hole_depth is not specified.$spaces\($recPracNames(holes), Sec. 5.1.1.1)"
-      } elseif {![info exists holeDim(depth)]} {
-        set msg "Syntax Error: through_hole should be TRUE if depth is not specified.$spaces\($recPracNames(holes), Sec. 5.1.1.1)"
-      }
-      if {$msg != ""} {
+      if {[string first "basic_round" $htype] == -1 || ![info exists holeDim(depth)]} {
+        set aname "drilled_hole_depth"
+        if {[string first "basic_round" $htype] != -1} {set aname "depth"}
+        set msg "Syntax Error: $aname is required if through_hole is FALSE.$spaces\($recPracNames(holes), Sec. 5.1.1.1)"
         errorMsg $msg
-        lappend syntaxErr([$holeEntity Type]) [list [$holeEntity P21ID] "through_hole" $msg]
+        lappend syntaxErr($htype) [list $hid "through_hole" $msg]
+        lappend syntaxErr($htype) [list $hid $aname $msg]
       }
     }
-    if {[info exists hd]} {lappend holeDefinitions([$holeEntity P21ID]) $hd}
+    if {[info exists hd]} {lappend holeDefinitions($hid) $hd}
 
-# countersink diameter, angle, and tolerances
-    if {[info exists holeDim(countersink_diameter)]} {
-      append holerep "[format "%c" 10]$pmiModifiers(countersink)$pmiUnicode(diameter)[trimNum $holeDim(countersink_diameter)]"
-      if {[info exists holeDim(countersink_diameter_tolerance)]} {append holerep " $holeDim(countersink_diameter_tolerance)"}
-      append holerep " X $holeDim(countersink_angle)$pmiUnicode(degree)"
-      lappend spmiTypesPerFile "diameter"
+# countersink angle, diameter, and tolerances
+    if {[info exists holeDim(countersink_angle)]} {
+      append holerep "[format "%c" 10]$pmiModifiers(countersink)"
+      if {[info exists holeDim(countersink_diameter)]} {
+        append holerep "$pmiUnicode(diameter)[trimNum $holeDim(countersink_diameter)]"
+        if {[info exists holeDim(countersink_diameter_tolerance)]} {append holerep " $holeDim(countersink_diameter_tolerance)"}
+        lappend spmiTypesPerFile "diameter"
+        append holerep " X "
+      }
+      append holerep "$holeDim(countersink_angle)$pmiUnicode(degree)"
       lappend spmiTypesPerFile "countersink"
       if {[info exists holeDim(countersink_angle_tolerance)]} {append holerep " $holeDim(countersink_angle_tolerance)$pmiUnicode(degree)"}
-      lappend holeDefinitions([$holeEntity P21ID]) "countersink $holeDim(countersink_diameter) $holeDim(countersink_angle)"
+      if {[info exists holeDim(countersink_diameter)]} {
+        lappend holeDefinitions($hid) "countersink $holeDim(countersink_diameter) $holeDim(countersink_angle)"
+      }
     }
 
 # basic, (multiple) counterbore, or spotface diameter, depth, and tolerances
@@ -390,15 +405,15 @@ proc spmiHoleReport {objEntity} {
       set nhdim 0
       foreach hdim $holeDim(diameter) {
         if {$holerep != ""} {append holerep [format "%c" 10]}
-        if {[string first "counterbore" [$holeEntity Type]] != -1} {
+        if {[string first "counterbore" $htype] != -1} {
           append holerep $pmiModifiers(counterbore)
           lappend spmiTypesPerFile "counterbore"
           set type "counterbore"
-        } elseif {[string first "spotface" [$holeEntity Type]] != -1} {
+        } elseif {[string first "spotface" $htype] != -1} {
           append holerep "$pmiModifiers(spotface) "
           lappend spmiTypesPerFile "spotface"
           set type "spotface"
-        } elseif {[string first "basic_round" [$holeEntity Type]] != -1} {
+        } elseif {[string first "basic_round" $htype] != -1} {
           lappend spmiTypesPerFile "round_hole"
           set type "round_hole"
         }
@@ -410,31 +425,37 @@ proc spmiHoleReport {objEntity} {
           append holerep "  $pmiModifiers(depth)[lindex $holeDim(depth) $nhdim]"
           if {[info exists holeDim(depth_tolerance)]} {append holerep " $holeDim(depth_tolerance)"}
           lappend spmiTypesPerFile "depth"
-          lappend holeDefinitions([$holeEntity P21ID]) "$type $hdim [lindex $holeDim(depth) $nhdim]"
+          lappend holeDefinitions($hid) "$type $hdim [lindex $holeDim(depth) $nhdim]"
+          if {$thruHole && [string first "counter" $htype] == -1} {
+            set msg "Syntax Error: depth is not required if though_hole is TRUE.$spaces\($recPracNames(holes), Sec. 5.1.1.1)"
+            errorMsg $msg
+            lappend syntaxErr($htype) [list $hid "through_hole" $msg]
+            lappend syntaxErr($htype) [list $hid "depth" $msg]
+          }
         } else {
-          lappend holeDefinitions([$holeEntity P21ID]) "$type $hdim"
+          lappend holeDefinitions($hid) "$type $hdim"
         }
         incr nhdim
       }
     }
 
 # thru hole and name
-    lappend holeDefinitions([$holeEntity P21ID]) $thruHole
-    lappend holeDefinitions([$holeEntity P21ID]) $holeName
+    lappend holeDefinitions($hid) $thruHole
+    lappend holeDefinitions($hid) $holeName
 
 # -------------------------------------------------------------------------------
 # report complete hole representation (holerep)
     if {[catch {
       set cellComment ""
       if {[info exists holerep] && [info exists spmiIDRow($ht,$spmiID)]} {
-        if {![info exists pmiColumns([$holeEntity Type])]} {set pmiColumns([$holeEntity Type]) [getNextUnusedColumn $ht]}
-        set c [string index [cellRange 1 $pmiColumns([$holeEntity Type])] 0]
+        if {![info exists pmiColumns($htype)]} {set pmiColumns($htype) [getNextUnusedColumn $ht]}
+        set c [string index [cellRange 1 $pmiColumns($htype)] 0]
         set r $spmiIDRow($ht,$spmiID)
-        if {![info exists pmiHeading($pmiColumns([$holeEntity Type]))]} {
+        if {![info exists pmiHeading($pmiColumns($htype))]} {
           set colName "Hole[format "%c" 10]Feature"
           $cells($ht) Item 3 $c $colName
-          set pmiHeading($pmiColumns([$holeEntity Type])) 1
-          set pmiCol [expr {max($pmiColumns([$holeEntity Type]),$pmiCol)}]
+          set pmiHeading($pmiColumns($htype)) 1
+          set pmiCol [expr {max($pmiColumns($htype),$pmiCol)}]
           set comment "See Help > User Guide (section 6.1.3) for an explanation of how the hole dimensions below are constructed."
           if {[info exists hole(unit)]} {append comment "\n\nDimension units: $hole(unit)"}
           append comment "\n\nRepetitive dimensions (e.g., 4X) might be shown for holes.  They are computed based on the number of counterbore, sink, drill, and spotface occurrence entities that reference the hole definition."
@@ -442,7 +463,7 @@ proc spmiHoleReport {objEntity} {
         }
 
 # write hole to spreadsheet
-        $cells($ht) Item $r $pmiColumns([$holeEntity Type]) $holerep
+        $cells($ht) Item $r $pmiColumns($htype) $holerep
         catch {unset holerep}
         catch {unset holeDim}
 
@@ -458,4 +479,249 @@ proc spmiHoleReport {objEntity} {
   }
 
   return 0
+}
+
+# -------------------------------------------------------------------------------
+# holes counter and spotface
+proc x3dHoles {} {
+  global brepScale DTR entCount gen holeDefinitions holeUnit maxxyz opt recPracNames spaces syntaxErr viz x3dFile
+  global objDesign
+
+  set drillPoint [trimNum [expr {$maxxyz*0.02}]]
+  set head 1
+  set holeDEF {}
+
+  set scale 1.
+  if {$brepScale == 1. && $holeUnit == "INCH"} {set scale 25.4}
+
+  ::tcom::foreach e0 [$objDesign FindObjects [string trim item_identified_representation_usage]] {
+    if {[catch {
+      set e1 [[[$e0 Attributes] Item [expr 3]] Value]
+      set e2 [[[$e0 Attributes] Item [expr 5]] Value]
+      if {[catch {
+        set e2type [$e2 Type]
+      } emsg1]} {
+        ::tcom::foreach e2a $e2 {set e2 $e2a; break}
+      }
+      if {[string first "occurrence" [$e1 Type]] != -1 && [$e2 Type] == "mapped_item"} {
+        set defID   [[[[$e1 Attributes] Item [expr 5]] Value] P21ID]
+        set defType [[[[$e1 Attributes] Item [expr 5]] Value] Type]
+        set holeOccName [[[$e1 Attributes] Item [expr 1]] Value]
+
+# hole name
+        set holeName [split $defType "_"]
+        foreach idx {0 1} {
+          if {[string first "counter" [lindex $holeName $idx]] != -1 || [string first "spotface" [lindex $holeName $idx]] != -1} {set holeName [lindex $holeName $idx]}
+        }
+        if {$defType == "basic_round_hole"} {set holeName $defType}
+
+# check if there is an a2p3d associated with a hole occurrence
+        set e3 [[[$e2 Attributes] Item [expr 3]] Value]
+        if {[$e3 Type] == "axis2_placement_3d"} {
+          if {$head} {
+            outputMsg " Processing hole geometry" green
+            puts $x3dFile "\n<!-- HOLES -->\n<Switch whichChoice='0' id='swHole'><Group>"
+            set head 0
+            set viz(HOLE) 1
+          }
+          if {[lsearch $holeDEF $defID] == -1} {puts $x3dFile "<!-- $defType $defID -->"}
+
+# hole geometry
+          if {[info exists holeDefinitions($defID)]} {
+
+# hole origin and axis transform
+            set a2p3d [x3dGetA2P3D $e3]
+            set transform [x3dTransform [lindex $a2p3d 0] [lindex $a2p3d 1] [lindex $a2p3d 2] $holeName]
+
+# drilled hole dimensions
+            set drill [lindex $holeDefinitions($defID) 0]
+            set drillRad [trimNum [expr {[lindex $drill 1]*0.5*$scale}] 5]
+            set drillPoint $drillRad
+            catch {unset drillDep}
+            if {[llength $drill] > 2} {set drillDep [expr {[lindex $drill 2]*$scale}]}
+
+# through hole
+            set holeTop "true"
+            set thruHole [lindex $holeDefinitions($defID) end-1]
+            if {$thruHole == 1} {set holeTop "false"}
+
+# bottom condition
+            catch {unset tipDepth}
+            set e4s [[[[$e1 Attributes] Item [expr 5]] Value] GetUsedIn [string trim "round_hole_bottom_condition"] [string trim target]]
+            ::tcom::foreach e4 $e4s {
+              if {$e4 != ""} {
+                set rhbc [[[$e4 Attributes] Item [expr 2]] Value]
+                if {$rhbc == "conical"} {
+                  set e5 [[[$e4 Attributes] Item [expr 6]] Value]
+                  if {$e5 != ""} {
+                    set tipAngle [[[$e5 Attributes] Item [expr 1]] Value]
+                    set tipDepth [expr {$drillRad/tan($tipAngle*0.5*$DTR)}]
+                  } else {
+                    set msg "Syntax Error: Missing 'tip_angle' for 'conical' round hole bottom condition"
+                    errorMsg $msg
+                    lappend syntaxErr(round_hole_bottom_condition) [list [$e4 P21ID] "tip_angle" $msg]
+                  }
+                } elseif {$rhbc != "flat"} {
+                  errorMsg " Round hole bottom condition '$rhbc' is not supported"
+                }
+              }
+            }
+
+            catch {unset sink}
+            catch {unset bore}
+            set lhd [llength $holeDefinitions($defID)]
+            if {$lhd > 1} {
+              set holeType [lindex [lindex $holeDefinitions($defID) [expr {$lhd-3}]] 0]
+
+# countersink hole (cylinder, cone)
+              if {$holeType == "countersink"} {
+                set sink [lindex $holeDefinitions($defID) 1]
+
+# compute length of countersink from angle and radius
+                set sinkRad [trimNum [expr {[lindex $sink 1]*0.5*$scale}] 5]
+                set sinkAng [expr {[lindex $sink 2]*0.5}]
+                set sinkDep [expr {($sinkRad-$drillRad)/tan($sinkAng*$DTR)}]
+
+# check for bad radius and depth
+                if {$sinkRad <= $drillRad} {
+                  set msg "Syntax Error: $holeType diameter <= drill diameter"
+                  errorMsg $msg
+                  foreach ent [list $holeType\_hole_definition simplified_$holeType\_hole_definition] {
+                    if {[info exists entCount($ent)]} {
+                      lappend syntaxErr($ent) [list $defID "countersink_diameter" $msg]
+                      lappend syntaxErr($ent) [list $defID "drilled_hole_diameter" $msg]
+                    }
+                  }
+                }
+                if {[info exists drillDep]} {
+                  if {$sinkDep >= $drillDep} {
+                    set msg "Syntax Error: $holeType computed 'depth' >= drill depth"
+                    errorMsg $msg
+                    foreach ent [list $holeType\_hole_definition simplified_$holeType\_hole_definition] {
+                      if {[info exists entCount($ent)]} {lappend syntaxErr($ent) [list $defID "drilled_hole_depth" $msg]}
+                    }
+                  }
+                }
+
+                if {[lsearch $holeDEF $defID] == -1} {
+                  puts $x3dFile "$transform<Group DEF='$holeName$defID'>"
+                  if {[info exists drillDep]} {
+                    puts $x3dFile " <Transform rotation='1 0 0 1.5708' translation='0 0 [trimNum [expr {($drillDep+$sinkDep)*0.5}] 5]'>"
+                    if {$holeTop == "false" || ![info exists tipDepth]} {
+                      puts $x3dFile "  <Shape><Cylinder radius='$drillRad' height='[trimNum [expr {$drillDep-$sinkDep}] 5]' top='$holeTop' bottom='false' solid='false'></Cylinder><Appearance><Material diffuseColor='0 1 1'/></Appearance></Shape></Transform>"
+                    } else {
+                      puts $x3dFile "  <Shape><Cylinder radius='$drillRad' height='[trimNum [expr {$drillDep-$sinkDep}] 5]' top='false' bottom='false' solid='false'></Cylinder><Appearance><Material diffuseColor='0 1 1'/></Appearance></Shape></Transform>"
+                      puts $x3dFile "  <Transform rotation='1 0 0 1.5708' translation='0 0 [trimNum [expr {$drillDep+($tipDepth*0.5)}] 5]'>"
+                      puts $x3dFile "   <Shape><Cone bottomRadius='$drillRad' topRadius='0' height='[trimNum $tipDepth 5]' top='false' bottom='false' solid='false'></Cone><Appearance><Material diffuseColor='0 1 1'/></Appearance></Shape></Transform>"
+                    }
+                  }
+                  puts $x3dFile " <Transform rotation='1 0 0 1.5708' translation='0 0 [trimNum [expr {$sinkDep*0.5}] 5]'>"
+                  puts $x3dFile "  <Shape><Cone bottomRadius='$sinkRad' topRadius='$drillRad' height='[trimNum $sinkDep 5]' top='false' bottom='false' solid='false'></Cone><Appearance><Material diffuseColor='0 1 1'/></Appearance></Shape></Transform>"
+                  puts $x3dFile "</Group></Transform>"
+                  lappend holeDEF $defID
+                } else {
+                  puts $x3dFile "$transform<Group USE='$holeName$defID'></Group></Transform>"
+                }
+
+# counterbore or spotface hole (2 cylinders, flat cone)
+              } elseif {$holeType == "counterbore" || $holeType == "spotface"} {
+                set bore [lindex $holeDefinitions($defID) 1]
+                set boreRad [expr {[lindex $bore 1]*0.5*$scale}]
+                set boreDep [expr {[lindex $bore 2]*$scale}]
+
+# check for bad radius and depth
+                if {$boreRad <= $drillRad} {
+                  set msg "Syntax Error: $holeType diameter <= drill diameter"
+                  errorMsg $msg
+                  foreach ent [list $holeType\_hole_definition simplified_$holeType\_hole_definition] {
+                    if {[info exists entCount($ent)]} {
+                      lappend syntaxErr($ent) [list $defID "counterbore" $msg]
+                      lappend syntaxErr($ent) [list $defID "drilled_hole_diameter" $msg]
+                    }
+                  }
+                }
+                if {[info exists drillDep]} {
+                  if {$boreDep >= $drillDep} {
+                    set msg "Syntax Error: $holeType depth >= drill depth"
+                    errorMsg $msg
+                    foreach ent [list $holeType\_hole_definition simplified_$holeType\_hole_definition] {
+                      if {[info exists entCount($ent)]} {
+                        lappend syntaxErr($ent) [list $defID "counterbore" $msg]
+                        lappend syntaxErr($ent) [list $defID "drilled_hole_depth" $msg]
+                      }
+                    }
+                  }
+                }
+
+                if {[lsearch $holeDEF $defID] == -1} {
+                  puts $x3dFile "$transform<Group DEF='$holeName$defID'>"
+                  if {[info exists drillDep]} {
+                    puts $x3dFile " <Transform rotation='1 0 0 1.5708' translation='0 0 [trimNum [expr {($drillDep+$boreDep)*0.5}] 5]'>"
+                    if {$holeTop == "false" || ![info exists tipDepth]} {
+                      puts $x3dFile "  <Shape><Cylinder radius='$drillRad' height='[trimNum [expr {$drillDep-$boreDep}] 5]' top='$holeTop' bottom='false' solid='false'></Cylinder><Appearance><Material diffuseColor='0 1 0'/></Appearance></Shape></Transform>"
+                    } else {
+                      puts $x3dFile "  <Shape><Cylinder radius='$drillRad' height='[trimNum [expr {$drillDep-$boreDep}] 5]' top='false' bottom='false' solid='false'></Cylinder><Appearance><Material diffuseColor='0 1 0'/></Appearance></Shape></Transform>"
+                      puts $x3dFile "  <Transform rotation='1 0 0 1.5708' translation='0 0 [trimNum [expr {$drillDep+($tipDepth*0.5)}] 5]'>"
+                      puts $x3dFile "   <Shape><Cone bottomRadius='$drillRad' topRadius='0' height='[trimNum $tipDepth 5]' top='false' bottom='false' solid='false'></Cone><Appearance><Material diffuseColor='0 1 0'/></Appearance></Shape></Transform>"
+                    }
+                  }
+                  puts $x3dFile " <Transform rotation='1 0 0 1.5708' translation='0 0 [trimNum $boreDep 5]'>"
+                  puts $x3dFile "  <Shape><Cone bottomRadius='$boreRad' topRadius='$drillRad' height='0.001' top='false' bottom='false' solid='false'></Cone><Appearance><Material diffuseColor='0 1 0'/></Appearance></Shape></Transform>"
+                  puts $x3dFile " <Transform rotation='1 0 0 1.5708' translation='0 0 [trimNum [expr {$boreDep*0.5}] 5]'>"
+                  puts $x3dFile "  <Shape><Cylinder radius='$boreRad' height='[trimNum $boreDep 5]' top='false' bottom='false' solid='false'></Cylinder><Appearance><Material diffuseColor='0 1 0'/></Appearance></Shape></Transform>"
+                  puts $x3dFile "</Group></Transform>"
+                  lappend holeDEF $defID
+                } else {
+                  puts $x3dFile "$transform<Group USE='$holeName$defID'></Group></Transform>"
+                }
+
+# basic round hole
+              } elseif {$holeType == "round_hole"} {
+                set hole [lindex $holeDefinitions($defID) 0]
+                set holeRad [expr {[lindex $hole 1]*0.5*$scale}]
+                if {[lindex $hole 2] != ""} {
+                  set holeDep [expr {[lindex $hole 2]*$scale}]
+                } else {
+                  set holeDep [expr {[lindex $hole 1]*0.15*$scale}]
+                }
+                if {[lsearch $holeDEF $defID] == -1} {
+                  puts $x3dFile "$transform<Group DEF='$holeName$defID'>"
+                  puts $x3dFile " <Transform rotation='1 0 0 1.5708' translation='0 0 [trimNum [expr {$holeDep*0.5}] 5]'>"
+                  if {$holeTop == "false" || ![info exists tipDepth]} {
+                    puts $x3dFile "  <Shape><Cylinder radius='$holeRad' height='[trimNum $holeDep 5]' top='$holeTop' bottom='false' solid='false'></Cylinder><Appearance><Material diffuseColor='0 1 0'/></Appearance></Shape></Transform>"
+                  } else {
+                    puts $x3dFile "  <Shape><Cylinder radius='$holeRad' height='[trimNum $holeDep 5]' top='false' bottom='false' solid='false'></Cylinder><Appearance><Material diffuseColor='0 1 0'/></Appearance></Shape></Transform>"
+                    puts $x3dFile "  <Transform rotation='1 0 0 1.5708' translation='0 0 [trimNum [expr {$holeDep+($tipDepth*0.5)}] 5]'>"
+                    puts $x3dFile "   <Shape><Cone bottomRadius='$holeRad' topRadius='0' height='[trimNum $tipDepth 5]' top='false' bottom='false' solid='false'></Cone><Appearance><Material diffuseColor='0 1 0'/></Appearance></Shape></Transform>"
+                  }
+                  puts $x3dFile "</Group></Transform>"
+                  lappend holeDEF $defID
+                } else {
+                  puts $x3dFile "$transform<Group USE='$holeName$defID'></Group></Transform>"
+                }
+              }
+            }
+          } elseif {!$opt(PMISEM) || $gen(None)} {
+            errorMsg " Only hole drill entry points are shown when the Analyzer report for Semantic PMI is not selected."
+            if {[lsearch $holeDEF $defID] == -1} {lappend holeDEF $defID}
+          }
+
+# point and occurrence name at origin of hole
+          set e4 [[[$e3 Attributes] Item [expr 2]] Value]
+          if {![info exists thruHole]} {set thruHole 0}
+          set hname $holeOccName
+          if {$hname == ""} {set hname [lindex $holeDefinitions($defID) end]}
+          x3dSuppGeomPoint $e4 $drillPoint $hname
+        }
+      }
+    } emsg]} {
+      errorMsg "Error adding 'hole' geometry: $emsg"
+    }
+  }
+  if {$viz(HOLE)} {puts $x3dFile "</Group></Switch>\n"}
+  catch {unset holeDefinitions}
+
+  set ok 0
+  if {![info exists entCount(item_identified_representation_usage)]} {set ok 1} elseif {$entCount(item_identified_representation_usage) == 0} {set ok 1}
+  if {$ok} {errorMsg "Syntax Error: Missing IIRU to link hole with explicit geometry.$spaces\($recPracNames(holes), Sec. 5.1.1.2)"}
 }

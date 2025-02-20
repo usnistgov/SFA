@@ -1,6 +1,6 @@
 # add UUIDs from uuid_attribute entities (AP242 Edition >= 4)
 proc uuidGetAttributes {totalUUID entsUUID} {
-  global cells entCount idRow localName opt syntaxErr uuid uuidEnts
+  global cells idRow localName syntaxErr uuid uuidEnts
   global objDesign
 
   errorMsg "\nProcessing UUID attributes" blue

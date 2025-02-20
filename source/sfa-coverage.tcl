@@ -79,14 +79,12 @@ proc spmiSummary {} {
   set hlink [$worksheet($spmiSumName) Hyperlinks]
   for {set i 3} {$i <= $row($thisEntType)} {incr i} {
 
-# which entities are processed, check for holes
+# which entities are processed
     set okent 0
     if {$thisEntType != "datum_reference_compartment" && $thisEntType != "datum_reference_element" && \
         $thisEntType != "datum_reference_modifier_with_value" && [string first "datum_feature" $thisEntType] == -1} {
       set okent 1
     }
-    set notHole 1
-    if {[string first "counter" $thisEntType] != -1 || [string first "spotface" $thisEntType] != -1} {set notHole 0}
 
 # which entities and columns to summarize
     if {$okent} {
@@ -140,7 +138,7 @@ proc spmiSummary {} {
           if {[string first "tolerance" $thisEntType] != -1} {append allPMI $val}
 
 # check actual vs. expected PMI for NIST files
-          if {[info exists nistPMIexpected($epmi)] && $notHole} {nistCheckExpectedPMI $val $entstr $epmi}
+          if {[info exists nistPMIexpected($epmi)] && $entstr != "basic_round_hole"} {nistCheckExpectedPMI $val $entstr $epmi}
 
 # -------------------------------------------------------------------------------
 # link back to worksheets

@@ -1599,215 +1599,6 @@ proc x3dDatumTarget {} {
 }
 
 # -------------------------------------------------------------------------------
-# holes counter and spotface
-proc x3dHoles {} {
-  global brepScale DTR entCount gen holeDefinitions holeUnit maxxyz opt recPracNames spaces syntaxErr viz x3dFile
-  global objDesign
-
-  set drillPoint [trimNum [expr {$maxxyz*0.02}]]
-  set head 1
-  set holeDEF {}
-
-  set scale 1.
-  if {$brepScale == 1. && $holeUnit == "INCH"} {set scale 25.4}
-
-  ::tcom::foreach e0 [$objDesign FindObjects [string trim item_identified_representation_usage]] {
-    if {[catch {
-      set e1 [[[$e0 Attributes] Item [expr 3]] Value]
-      set e2 [[[$e0 Attributes] Item [expr 5]] Value]
-      if {[catch {
-        set e2type [$e2 Type]
-      } emsg1]} {
-        ::tcom::foreach e2a $e2 {set e2 $e2a; break}
-      }
-      if {[string first "occurrence" [$e1 Type]] != -1 && [$e2 Type] == "mapped_item"} {
-        set defID   [[[[$e1 Attributes] Item [expr 5]] Value] P21ID]
-        set defType [[[[$e1 Attributes] Item [expr 5]] Value] Type]
-
-# hole name
-        set holeName [split $defType "_"]
-        foreach idx {0 1} {
-          if {[string first "counter" [lindex $holeName $idx]] != -1 || [string first "spotface" [lindex $holeName $idx]] != -1} {set holeName [lindex $holeName $idx]}
-        }
-        if {$defType == "basic_round_hole"} {set holeName $defType}
-
-# check if there is an a2p3d associated with a hole occurrence
-        set e3 [[[$e2 Attributes] Item [expr 3]] Value]
-        if {[$e3 Type] == "axis2_placement_3d"} {
-          if {$head} {
-            outputMsg " Processing hole geometry" green
-            puts $x3dFile "\n<!-- HOLES -->\n<Switch whichChoice='0' id='swHole'><Group>"
-            set head 0
-            set viz(HOLE) 1
-          }
-          if {[lsearch $holeDEF $defID] == -1} {puts $x3dFile "<!-- $defType $defID -->"}
-
-# hole geometry
-          if {[info exists holeDefinitions($defID)]} {
-
-# hole origin and axis transform
-            set a2p3d [x3dGetA2P3D $e3]
-            set transform [x3dTransform [lindex $a2p3d 0] [lindex $a2p3d 1] [lindex $a2p3d 2] $holeName]
-
-# drilled hole dimensions
-            set drill [lindex $holeDefinitions($defID) 0]
-            set drillRad [trimNum [expr {[lindex $drill 1]*0.5*$scale}] 5]
-            set drillPoint $drillRad
-            catch {unset drillDep}
-            if {[llength $drill] > 2} {set drillDep [expr {[lindex $drill 2]*$scale}]}
-
-# through hole
-            set holeTop "true"
-            set thruHole [lindex $holeDefinitions($defID) end-1]
-            if {$thruHole == 1} {set holeTop "false"}
-
-# hole name
-            set holeName [lindex $holeDefinitions($defID) end]
-
-            catch {unset sink}
-            catch {unset bore}
-            set lhd [llength $holeDefinitions($defID)]
-            if {$lhd > 1} {
-              set holeType [lindex [lindex $holeDefinitions($defID) [expr {$lhd-3}]] 0]
-
-# countersink hole (cylinder, cone)
-              if {$holeType == "countersink"} {
-                set sink [lindex $holeDefinitions($defID) 1]
-
-# compute length of countersink from angle and radius
-                set sinkRad [trimNum [expr {[lindex $sink 1]*0.5*$scale}] 5]
-                set sinkAng [expr {[lindex $sink 2]*0.5}]
-                set sinkDep [expr {($sinkRad-$drillRad)/tan($sinkAng*$DTR)}]
-
-# check for bad radius and depth
-                if {$sinkRad <= $drillRad} {
-                  set msg "Syntax Error: $holeType diameter <= drill diameter"
-                  errorMsg $msg
-                  foreach ent [list $holeType\_hole_definition simplified_$holeType\_hole_definition] {
-                    if {[info exists entCount($ent)]} {
-                      lappend syntaxErr($ent) [list $defID "countersink_diameter" $msg]
-                      lappend syntaxErr($ent) [list $defID "drilled_hole_diameter" $msg]
-                    }
-                  }
-                }
-                if {[info exists drillDep]} {
-                  if {$sinkDep >= $drillDep} {
-                    set msg "Syntax Error: $holeType computed 'depth' >= drill depth"
-                    errorMsg $msg
-                    foreach ent [list $holeType\_hole_definition simplified_$holeType\_hole_definition] {
-                      if {[info exists entCount($ent)]} {lappend syntaxErr($ent) [list $defID "drilled_hole_depth" $msg]}
-                    }
-                  }
-                }
-
-                if {[lsearch $holeDEF $defID] == -1} {
-                  puts $x3dFile "$transform<Group DEF='$holeName$defID'>"
-                  if {[info exists drillDep]} {
-                    puts $x3dFile " <Transform rotation='1 0 0 1.5708' translation='0 0 [trimNum [expr {($drillDep+$sinkDep)*0.5}] 5]'>"
-                    puts $x3dFile "  <Shape><Cylinder radius='$drillRad' height='[trimNum [expr {$drillDep-$sinkDep}] 5]' top='$holeTop' bottom='false' solid='false'></Cylinder><Appearance><Material diffuseColor='0 1 1'/></Appearance></Shape></Transform>"
-                  }
-                  puts $x3dFile " <Transform rotation='1 0 0 1.5708' translation='0 0 [trimNum [expr {$sinkDep*0.5}] 5]'>"
-                  puts $x3dFile "  <Shape><Cone bottomRadius='$sinkRad' topRadius='$drillRad' height='[trimNum $sinkDep 5]' top='false' bottom='false' solid='false'></Cone><Appearance><Material diffuseColor='0 1 1'/></Appearance></Shape></Transform>"
-                  puts $x3dFile "</Group></Transform>"
-                  lappend holeDEF $defID
-                } else {
-                  puts $x3dFile "$transform<Group USE='$holeName$defID'></Group></Transform>"
-                }
-
-# counterbore or spotface hole (2 cylinders, flat cone)
-              } elseif {$holeType == "counterbore" || $holeType == "spotface"} {
-                set bore [lindex $holeDefinitions($defID) 1]
-                set boreRad [expr {[lindex $bore 1]*0.5*$scale}]
-                set boreDep [expr {[lindex $bore 2]*$scale}]
-
-# check for bad radius and depth
-                if {$boreRad <= $drillRad} {
-                  set msg "Syntax Error: $holeType diameter <= drill diameter"
-                  errorMsg $msg
-                  foreach ent [list $holeType\_hole_definition simplified_$holeType\_hole_definition] {
-                    if {[info exists entCount($ent)]} {
-                      lappend syntaxErr($ent) [list $defID "counterbore" $msg]
-                      lappend syntaxErr($ent) [list $defID "drilled_hole_diameter" $msg]
-                    }
-                  }
-                }
-                if {[info exists drillDep]} {
-                  if {$boreDep >= $drillDep} {
-                    set msg "Syntax Error: $holeType depth >= drill depth"
-                    errorMsg $msg
-                    foreach ent [list $holeType\_hole_definition simplified_$holeType\_hole_definition] {
-                      if {[info exists entCount($ent)]} {
-                        lappend syntaxErr($ent) [list $defID "counterbore" $msg]
-                        lappend syntaxErr($ent) [list $defID "drilled_hole_depth" $msg]
-                      }
-                    }
-                  }
-                }
-
-                if {[lsearch $holeDEF $defID] == -1} {
-                  puts $x3dFile "$transform<Group DEF='$holeName$defID'>"
-                  if {[info exists drillDep]} {
-                    puts $x3dFile " <Transform rotation='1 0 0 1.5708' translation='0 0 [trimNum [expr {($drillDep+$boreDep)*0.5}] 5]'>"
-                    puts $x3dFile "  <Shape><Cylinder radius='$drillRad' height='[trimNum [expr {$drillDep-$boreDep}] 5]' top='$holeTop' bottom='false' solid='false'></Cylinder><Appearance><Material diffuseColor='0 1 0'/></Appearance></Shape></Transform>"
-                  }
-                  puts $x3dFile " <Transform rotation='1 0 0 1.5708' translation='0 0 [trimNum $boreDep 5]'>"
-                  puts $x3dFile "  <Shape><Cone bottomRadius='$boreRad' topRadius='$drillRad' height='0.001' top='false' bottom='false' solid='false'></Cone><Appearance><Material diffuseColor='0 1 0'/></Appearance></Shape></Transform>"
-                  puts $x3dFile " <Transform rotation='1 0 0 1.5708' translation='0 0 [trimNum [expr {$boreDep*0.5}] 5]'>"
-                  puts $x3dFile "  <Shape><Cylinder radius='$boreRad' height='[trimNum $boreDep 5]' top='false' bottom='false' solid='false'></Cylinder><Appearance><Material diffuseColor='0 1 0'/></Appearance></Shape></Transform>"
-                  puts $x3dFile "</Group></Transform>"
-                  lappend holeDEF $defID
-                } else {
-                  puts $x3dFile "$transform<Group USE='$holeName$defID'></Group></Transform>"
-                }
-
-# basic round hole
-              } elseif {$holeType == "round_hole"} {
-                set hole [lindex $holeDefinitions($defID) 0]
-                set holeRad [expr {[lindex $hole 1]*0.5*$scale}]
-                if {[lindex $hole 2] != ""} {
-                  set holeDep [expr {[lindex $hole 2]*$scale}]
-                } else {
-                  set holeDep [expr {[lindex $hole 1]*0.1*$scale}]
-                }
-                if {[lsearch $holeDEF $defID] == -1} {
-                  puts $x3dFile "$transform<Group DEF='$holeName$defID'>"
-                  if {!$thruHole && [lindex $hole 2] != ""} {
-                    puts $x3dFile " <Transform rotation='1 0 0 1.5708' translation='0 0 [trimNum $holeDep 5]'>"
-                    puts $x3dFile "  <Shape><Cone bottomRadius='$holeRad' topRadius='0' height='0.001' top='false' bottom='false' solid='false'></Cone><Appearance><Material diffuseColor='0 1 0'/></Appearance></Shape></Transform>"
-                  }
-                  puts $x3dFile " <Transform rotation='1 0 0 1.5708' translation='0 0 [trimNum [expr {$holeDep*0.5}] 5]'>"
-                  puts $x3dFile "  <Shape><Cylinder radius='$holeRad' height='[trimNum $holeDep 5]' top='false' bottom='false' solid='false'></Cylinder><Appearance><Material diffuseColor='0 1 0'/></Appearance></Shape></Transform>"
-                  puts $x3dFile "</Group></Transform>"
-                  lappend holeDEF $defID
-                } else {
-                  puts $x3dFile "$transform<Group USE='$holeName$defID'></Group></Transform>"
-                }
-              }
-            }
-          } elseif {!$opt(PMISEM) || $gen(None)} {
-            errorMsg " Only hole drill entry points are shown when the Analyzer report for Semantic PMI is not selected."
-            if {[lsearch $holeDEF $defID] == -1} {lappend holeDEF $defID}
-          }
-
-# point at origin of hole
-          set e4 [[[$e3 Attributes] Item [expr 2]] Value]
-          if {![info exists thruHole]} {set thruHole 0}
-          x3dSuppGeomPoint $e4 $drillPoint $thruHole $holeName
-        }
-      }
-    } emsg]} {
-      errorMsg "Error adding 'hole' geometry: $emsg"
-    }
-  }
-  if {$viz(HOLE)} {puts $x3dFile "</Group></Switch>\n"}
-  catch {unset holeDefinitions}
-
-  set ok 0
-  if {![info exists entCount(item_identified_representation_usage)]} {set ok 1} elseif {$entCount(item_identified_representation_usage) == 0} {set ok 1}
-  if {$ok} {errorMsg "Syntax Error: Missing IIRU to link hole with explicit geometry.$spaces\($recPracNames(holes), Sec. 5.1.1.2)"}
-}
-
-# -------------------------------------------------------------------------------
 # placeholder axes, coordinates, text, box, leader line
 proc x3dPlaceholder {{aoname ""} {fname ""}} {
   global leaderCoords maxxyz minview opt x3dFile
@@ -2335,14 +2126,20 @@ proc x3dGetA2P3D {e0 {type ""}} {
   }
 
 # a2p3d reference direction
-  set a4 [[$e0 Attributes] Item [expr 4]]
-  set e4 [$a4 Value]
-  if {$e4 != ""} {
-    set refdir [[[$e4 Attributes] Item [expr 2]] Value]
-    if {$debug} {errorMsg "      [$e4 Type] [$e4 P21ID] ([$a4 Name]) $refdir" red}
+  if {[$e0 Type] == "axis2_placement_3d"} {
+    set a4 [[$e0 Attributes] Item [expr 4]]
+    set e4 [$a4 Value]
+    if {$e4 != ""} {
+      set refdir [[[$e4 Attributes] Item [expr 2]] Value]
+      if {$debug} {errorMsg "      [$e4 Type] [$e4 P21ID] ([$a4 Name]) $refdir" red}
 
 # if refdir not specified, do not use default 1 0 0 if axis is 1 0 0
-  } elseif {$axis == "1.0 0.0 0.0"} {
+    } elseif {$axis == "1.0 0.0 0.0"} {
+      set refdir "0 0 1"
+    }
+
+# axis1_placement, no refdir
+  } elseif {[$e0 Type] == "axis1_placement" && $axis == "1.0 0.0 0.0"} {
     set refdir "0 0 1"
   }
   return [list $origin $axis $refdir]

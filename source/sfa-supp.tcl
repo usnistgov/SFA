@@ -104,6 +104,7 @@ proc x3dSuppGeom {} {
             ellipse  {x3dSuppGeomCircle $e2 $tsize $ename}
             plane    {x3dSuppGeomPlane $e2 $size}
             cartesian_point     {x3dSuppGeomPoint $e2 $tsize}
+            axis1_placement -
             axis2_placement_3d  {x3dSuppGeomAxis $e2 $size $tsize}
             cylindrical_surface {x3dSuppGeomCylinder $e2 $tsize}
 
@@ -252,24 +253,27 @@ proc x3dSuppGeom {} {
 proc x3dSuppGeomAxis {e2 size tsize} {
   global axesDef spmiTypesPerFile viz x3dFile
 
-  set e3 $e2
-  set a2p3d [x3dGetA2P3D $e3]
+  set a2p3d [x3dGetA2P3D $e2]
   set transform [x3dTransform [lindex $a2p3d 0] [lindex $a2p3d 1] [lindex $a2p3d 2] "supplemental geometry 'axes'"]
 
 # check for axis color
-  set axisColor [lindex [x3dSuppGeomColor $e3 "axes"] 0]
+  set axisColor [lindex [x3dSuppGeomColor $e2 "axes"] 0]
 
 # red, green, blue axes
   if {$axisColor == ""} {
     set id [lsearch $axesDef $size]
-    if {$id != -1} {
+    if {$id != -1 && [$e2 Type] == "axis2_placement_3d"} {
       puts $x3dFile "$transform<Group USE='axes$id'></Group>"
     } else {
       lappend axesDef $size
       puts $x3dFile $transform
-      puts $x3dFile " <Group DEF='axes[expr {[llength $axesDef]-1}]'><Shape><Appearance><Material emissiveColor='1 0 0'/></Appearance><IndexedLineSet coordIndex='0 1 -1'><Coordinate point='0. 0. 0. $size 0. 0.'/></IndexedLineSet></Shape>"
-      puts $x3dFile " <Shape><Appearance><Material emissiveColor='0 .5 0'/></Appearance><IndexedLineSet coordIndex='0 1 -1'><Coordinate point='0. 0. 0. 0. $size 0.'/></IndexedLineSet></Shape>"
-      puts $x3dFile " <Shape><Appearance><Material emissiveColor='0 0 1'/></Appearance><IndexedLineSet coordIndex='0 1 -1'><Coordinate point='0. 0. 0. 0. 0. $size'/></IndexedLineSet></Shape></Group>"
+      if {[$e2 Type] == "axis2_placement_3d"} {
+        puts $x3dFile " <Group DEF='axes[expr {[llength $axesDef]-1}]'><Shape><Appearance><Material emissiveColor='1 0 0'/></Appearance><IndexedLineSet coordIndex='0 1 -1'><Coordinate point='0. 0. 0. $size 0. 0.'/></IndexedLineSet></Shape>"
+        puts $x3dFile " <Shape><Appearance><Material emissiveColor='0 .5 0'/></Appearance><IndexedLineSet coordIndex='0 1 -1'><Coordinate point='0. 0. 0. 0. $size 0.'/></IndexedLineSet></Shape>"
+        puts $x3dFile " <Shape><Appearance><Material emissiveColor='0 0 1'/></Appearance><IndexedLineSet coordIndex='0 1 -1'><Coordinate point='0. 0. 0. 0. 0. $size'/></IndexedLineSet></Shape></Group>"
+      } elseif {[$e2 Type] == "axis1_placement"} {
+        puts $x3dFile " <Shape><Appearance><Material emissiveColor='0 .5 0'/></Appearance><IndexedLineSet coordIndex='0 1 -1'><Coordinate point='0. 0. 0. 0. $size 0.'/></IndexedLineSet></Shape>"
+      }
     }
 
 # colored axes
@@ -307,11 +311,11 @@ proc x3dSuppGeomAxis {e2 size tsize} {
 
 # -------------------------------------------------------------------------------
 # supplemental geometry for point and the origin of a hole
-proc x3dSuppGeomPoint {e2 tsize {thruHole ""} {holeName ""}} {
+proc x3dSuppGeomPoint {e2 tsize {holeName ""}} {
   global sphereDef spmiTypesPerFile viz x3dFile
 
 # check for point color
-  if {$thruHole != "" || $holeName != ""} {
+  if {$holeName != ""} {
     set pointColor "0 0 0"
   } else {
     set pointColor [lindex [x3dSuppGeomColor $e2 "point"] 0]
@@ -325,17 +329,8 @@ proc x3dSuppGeomPoint {e2 tsize {thruHole ""} {holeName ""}} {
     if {$holeName != ""} {set name $holeName}
     set name [string trim $name]
 
-# append THRU for thru holes
-    if {$thruHole == 1} {
-      if {[string length $name] > 0} {
-        append name " (THRU)"
-      } else {
-        append name "THRU"
-      }
-    }
-    set coord1 [[[$e2 Attributes] Item [expr 2]] Value]
-
 # point is a black emissive sphere
+    set coord1 [[[$e2 Attributes] Item [expr 2]] Value]
     set id [lsearch $sphereDef "$tsize $pointColor"]
     if {$id != -1} {
       puts $x3dFile "<Transform translation='[vectrim $coord1]'><Shape USE='point$id'></Shape></Transform>"
@@ -350,7 +345,7 @@ proc x3dSuppGeomPoint {e2 tsize {thruHole ""} {holeName ""}} {
       puts $x3dFile " <Transform translation='[vectrim $coord1]' scale='$nsize $nsize $nsize'><Billboard axisOfRotation='0 0 0'><Shape><Text string='$name'><FontStyle family='SANS' justify='BEGIN'/></Text><Appearance><Material diffuseColor='$pointColor'/></Appearance></Shape></Billboard></Transform>"
     }
     set viz(SUPPGEOM) 1
-    if {$thruHole == ""} {lappend spmiTypesPerFile "supplemental geometry"}
+    if {$holeName == ""} {lappend spmiTypesPerFile "supplemental geometry"}
   } emsg]} {
     errorMsg "Error adding 'point' Supplemental Geometry: $emsg"
   }
