@@ -10,6 +10,7 @@ sfa-geotol.tcl
 sfa-grafpmi.tcl
 sfa-grafx3d.tcl
 sfa-gui.tcl
+sfa-help.tcl
 sfa-hole.tcl
 sfa-indent.tcl
 sfa-inv.tcl
