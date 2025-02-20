@@ -20,6 +20,7 @@ Each Tcl file contains multiple procedures.
 - sfa-grafx3d.tcl - generate viewer X3D graphics
 - sfa-gui.tcl - generate user interface
 - sfa-hole.tcl - process counterbore/sink/drill and spotface holes
+- sfa-help.tcl - help and examples menu
 - sfa-indent.tcl - indents STEP file for tree view
 - sfa-inv.tcl - process inverse relationships
 - sfa-multi.tcl - process multiple STEP files
