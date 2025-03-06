@@ -13,7 +13,7 @@ proc spmiGeotolStart {entType} {
   set len3 [list length_measure_with_unit_and_measure_representation_item_and_qualified_representation_item value_component qualifiers $qualifier1 $qualifier2]
   set len4 [list plane_angle_measure_with_unit value_component]
 
-  set dtm [list datum identification]
+  set dtm [list datum product_definitional identification]
   set cdt [list common_datum identification]
 
   set df1 [list datum_feature name product_definitional]
@@ -42,8 +42,8 @@ proc spmiGeotolStart {entType} {
   set PMIP(datum_reference_compartment) $drc
   set PMIP(datum_system)                [list datum_system constituents [list datum_reference_compartment base]]
   set PMIP(referenced_modified_datum)   $rmd
-  set PMIP(placed_datum_target_feature) [list placed_datum_target_feature description target_id]
-  set PMIP(datum_target)                [list datum_target description target_id]
+  set PMIP(placed_datum_target_feature) [list placed_datum_target_feature description product_definitional target_id]
+  set PMIP(datum_target)                [list datum_target description product_definitional target_id]
   set PMIP(datum_system_for_composite_group_element) $PMIP(datum_system)
   lset PMIP(datum_system_for_composite_group_element) 0 "datum_system_for_composite_group_element"
 
@@ -1287,6 +1287,7 @@ proc spmiGeotolReport {objEntity} {
                     }
                   }
 
+                  "datum product_definitional" -
                   "datum_system* product_definitional" -
                   "datum_reference_element product_definitional" -
                   "datum_reference_compartment product_definitional" {
@@ -1298,6 +1299,7 @@ proc spmiGeotolReport {objEntity} {
                     }
                   }
 
+                  "*datum_target* product_definitional" -
                   "*datum_feature* product_definitional"  {
 # product_definitional should be true
                     if {$objValue == 0 && [$gtEntity Type] == [lindex $ent1 0]} {

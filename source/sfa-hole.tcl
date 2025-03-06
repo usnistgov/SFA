@@ -210,17 +210,16 @@ proc spmiHoleReport {objEntity} {
                       }
 # first value
                       if {![info exists holeDim($holeDimType)]} {
-                        set holeDim($holeDimType) $objValue
+                        set holeDim($holeDimType) [trimNum $objValue 4]
 # second value
                       } else {
 # format for bilateral tolerance
                         if {[string first "tolerance" $holeDimType] != -1} {
-                          if {$objValue == [expr {abs($holeDim($holeDimType))}] && $objValue > $holeDim($holeDimType)} {
-                            set holeDim($holeDimType) "$pmiUnicode(plusminus) $objValue"
-                            lappend spmiTypesPerFile "bilateral tolerance"
-                          } elseif {$objValue != [expr {abs($holeDim($holeDimType))}]} {
-                            append holeDim($holeDimType) " $objValue"
-                            lappend spmiTypesPerFile "non-bilateral tolerance"
+                          set hdt [trimNum $objValue 4]
+                          if {$hdt == [expr {abs($holeDim($holeDimType))}] && $hdt > $holeDim($holeDimType)} {
+                            set holeDim($holeDimType) "$pmiUnicode(plusminus) $hdt"
+                          } elseif {$hdt != [expr {abs($holeDim($holeDimType))}]} {
+                            append holeDim($holeDimType) " $hdt"
                           } else {
                             set msg "Syntax Error: Tolerance lower and upper bounds ($objValue) are equal."
                             errorMsg $msg
@@ -228,7 +227,7 @@ proc spmiHoleReport {objEntity} {
                             lappend syntaxErr(tolerance_value) [list "-$spmiIDRow($ht,$spmiID)" "upper_bound" $msg]
                           }
                         } else {
-                          append holeDim($holeDimType) " $objValue"
+                          append holeDim($holeDimType) " $hdt"
                         }
                       }
                       incr hole(idx)
@@ -303,7 +302,6 @@ proc spmiHoleReport {objEntity} {
                     append holeDim($holeDimType) "$objValue "
                     if {[string first "grade" $ent1] != -1} {
                       set holeDim($holeDimType) "([string trim $holeDim($holeDimType)])"
-                      lappend spmiTypesPerFile "limits and fits"
                     }
                   }
                   "basic_round_hole through_hole" -
@@ -343,7 +341,6 @@ proc spmiHoleReport {objEntity} {
     }
     if {$nhole > 1} {
       append holerep "$nhole\X "
-      lappend spmiTypesPerFile "repetitive dimensions"
     } elseif {$nhole == 0} {
       errorMsg "No hole occurrences refer to '$htype'."
     }
@@ -351,15 +348,14 @@ proc spmiHoleReport {objEntity} {
 # main hole diameter, depth, and tolerances
     catch {unset hd}
     if {[info exists holeDim(drilled_hole_diameter)]} {
-      append holerep "$pmiUnicode(diameter)[trimNum $holeDim(drilled_hole_diameter)]"
-      lappend spmiTypesPerFile "diameter"
+      append holerep "$pmiUnicode(diameter)$holeDim(drilled_hole_diameter)"
       set hd "drill $holeDim(drilled_hole_diameter)"
       if {[info exists holeDim(drilled_hole_diameter_tolerance)]} {append holerep " $holeDim(drilled_hole_diameter_tolerance)"}
     }
 
 # drill depth specified, correct only if thru hole is false
     if {[info exists holeDim(drilled_hole_depth)]} {
-      append holerep "  $pmiModifiers(depth)[trimNum $holeDim(drilled_hole_depth)]"
+      append holerep "  $pmiModifiers(depth)$holeDim(drilled_hole_depth)"
       if {[info exists holeDim(drilled_hole_depth_tolerance)]} {append holerep " $holeDim(drilled_hole_depth_tolerance)"}
       lappend spmiTypesPerFile "depth"
       append hd " $holeDim(drilled_hole_depth)"
@@ -387,9 +383,8 @@ proc spmiHoleReport {objEntity} {
     if {[info exists holeDim(countersink_angle)]} {
       append holerep "[format "%c" 10]$pmiModifiers(countersink)"
       if {[info exists holeDim(countersink_diameter)]} {
-        append holerep "$pmiUnicode(diameter)[trimNum $holeDim(countersink_diameter)]"
+        append holerep "$pmiUnicode(diameter)$holeDim(countersink_diameter)"
         if {[info exists holeDim(countersink_diameter_tolerance)]} {append holerep " $holeDim(countersink_diameter_tolerance)"}
-        lappend spmiTypesPerFile "diameter"
         append holerep " X "
       }
       append holerep "$holeDim(countersink_angle)$pmiUnicode(degree)"
@@ -404,7 +399,7 @@ proc spmiHoleReport {objEntity} {
     if {[info exists holeDim(diameter)]} {
       set nhdim 0
       foreach hdim $holeDim(diameter) {
-        if {$holerep != ""} {append holerep [format "%c" 10]}
+        if {$holerep != "" && [string length $holerep] > 4} {append holerep [format "%c" 10]}
         if {[string first "counterbore" $htype] != -1} {
           append holerep $pmiModifiers(counterbore)
           lappend spmiTypesPerFile "counterbore"
@@ -420,7 +415,6 @@ proc spmiHoleReport {objEntity} {
 
         append holerep "$pmiUnicode(diameter)$hdim"
         if {[info exists holeDim(diameter_tolerance)]} {append holerep " $holeDim(diameter_tolerance)"}
-        lappend spmiTypesPerFile "diameter"
         if {[info exists holeDim(depth)]} {
           append holerep "  $pmiModifiers(depth)[lindex $holeDim(depth) $nhdim]"
           if {[info exists holeDim(depth_tolerance)]} {append holerep " $holeDim(depth_tolerance)"}
@@ -702,7 +696,7 @@ proc x3dHoles {} {
               }
             }
           } elseif {!$opt(PMISEM) || $gen(None)} {
-            errorMsg " Only hole drill entry points are shown when the Analyzer report for Semantic PMI is not selected."
+            errorMsg " Generate the Semantic PMI Analyzer report to view hole features.  See Help > Viewer > Hole Features"
             if {[lsearch $holeDEF $defID] == -1} {lappend holeDEF $defID}
           }
 

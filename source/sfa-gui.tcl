@@ -1,5 +1,5 @@
 # SFA version
-proc getVersion {} {return 5.26}
+proc getVersion {} {return 5.27}
 
 # see proc installIFCsvr in sfa-proc.tcl for the IFCsvr version
 # see below (line 37) for the sfaVersion when IFCsvr was updated
@@ -40,9 +40,9 @@ Use F9 and F10 to change the font size here.  See Help > Function Keys"
       openUserGuide
     }
   }
-  if {$sfaVersion < 5.10} {outputMsg "- Faster processing of B-rep and AP242 tessellated part geometry for the Viewer, see Release Notes" red}
+  if {$sfaVersion < 5.10} {outputMsg "- Faster processing of B-rep and AP242 tessellated part geometry for the Viewer"}
   if {$sfaVersion < 5.0}  {outputMsg "- Renamed 'Options' and 'Spreadsheet' tabs to 'Generate' and 'More'"}
-  if {$sfaVersion < 5.20} {outputMsg "- Renamed 'PMI Representation' to 'Semantic PMI' and 'PMI Presentation' to' Graphic PMI'"}
+  if {$sfaVersion < 5.20} {outputMsg "- Renamed 'PMI Representation' to 'Semantic PMI' and 'PMI Presentation' to 'Graphic PMI'"}
   if {$sfaVersion < 5.06} {outputMsg "- New 'Other' Entity Types category on the Generate tab"}
   if {$sfaVersion < 5.03} {outputMsg "- Hidden checkboxes and sliders in the Viewer"}
   if {$sfaVersion < 5.02} {outputMsg "- Help > Viewer > Viewpoints, and Help > Viewer > New Features"}

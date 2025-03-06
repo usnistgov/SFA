@@ -127,7 +127,6 @@ proc genExcel {{numFile 0}} {
 
 # clean up and return
       incr filesProcessed
-      if {[expr {$filesProcessed%500}] == 0} {outputMsg "Congratulations! You have processed $filesProcessed files." red}
       saveState
     }
 
@@ -1168,6 +1167,7 @@ proc genExcel {{numFile 0}} {
           if {$opt(PMIGRF)} {if {[string first "annotation" $entType] != -1 && [string first "plane" $entType] == -1} {set rmax $newmax}}
           if {$opt(valProp)} {if {$entType == "property_definition"} {set rmax $newmax}}
           if {$entType == "descriptive_representation_item" && [info exists driUnicode]} {set rmax $newmax; unset driUnicode}
+          if {[string first "uuid" $entType] != -1} {set rmax $newmax}
         }
 
 # decide if inverses should be checked for this entity type
@@ -1484,7 +1484,6 @@ proc genExcel {{numFile 0}} {
   if {!$useXL} {set clr "blue"}
   outputMsg "Processing time: $proctime seconds" $clr
   incr filesProcessed
-  if {[expr {$filesProcessed%500}] == 0} {outputMsg "Congratulations! You have processed $filesProcessed files." red}
   update
 
 # -------------------------------------------------------------------------------------------------
@@ -1747,7 +1746,7 @@ proc addHeaderWorksheet {numFile fname} {
         }
         set str "$attr:  $sn"
 
-# check edition of AP242 (object identifier)
+# check edition of AP242 (schema identifier)
         set c1 [string first "1 0 10303 442" $sn]
         if {$c1 != -1} {
           set id [lindex [split [string range $sn $c1+14 end] " "] 0]
@@ -1756,30 +1755,30 @@ proc addHeaderWorksheet {numFile fname} {
             append str " (Edition 1)"
             errorMsg "AP242 Edition 1 is not the current version.  See Help > Supported STEP APs" red
             if {[llength $ap242ed(2)] > 0 || [llength $ap242ed(3)] > 0 || [llength $ap242ed(4)] > 0} {
-              errorMsg "The STEP file contains entities found in AP242 Edition 2, 3, or 4 ([join [lrmdups [concat $ap242ed(2) $ap242ed(3) $ap242ed(4)]]]),$spaces\however, the file is identified as Edition 1." red
+              errorMsg "The STEP file contains entities found in AP242 Edition 2, 3, or 4 ([join [lrmdups [concat $ap242ed(2) $ap242ed(3) $ap242ed(4)]]]),$spaces\however, the file is identified as Edition 1.  See Websites > STEP > EXPRESS Schemas" red
             }
           } elseif {$id == 2 || $id == 3} {
             append str " (Edition 2)"
-            if {$id == 2} {errorMsg " AP242 Edition 2 should be identified with '\{1 0 10303 442 3 1 4\}'" red}
+            if {$id == 2} {errorMsg " AP242 Edition 2 should be identified with '\{1 0 10303 442 3 1 4\}'  See Websites > STEP > EXPRESS Schemas" red}
             if {[llength $ap242ed(3)] > 0 || [llength $ap242ed(4)] > 0} {
-              errorMsg "The STEP file contains entities found in AP242 Edition 3 or 4 ([join [lrmdups [concat $ap242ed(3) $ap242ed(4)]]]),$spaces\however, the file is identified as Edition 2." red
+              errorMsg "The STEP file contains entities found in AP242 Edition 3 or 4 ([join [lrmdups [concat $ap242ed(3) $ap242ed(4)]]]),$spaces\however, the file is identified as Edition 2.  See Websites > STEP > EXPRESS Schemas" red
             }
           } elseif {$id == 4} {
             append str " (Edition 3)"
             #if {[llength $ap242ed(4)] > 0} {
-            #  errorMsg "The STEP file contains entities found in AP242 Edition 4 ([join $ap242ed(4)]),$spaces\however, the file is identified as Edition 3." red
+            #  errorMsg "The STEP file contains entities found in AP242 Edition 4 ([join $ap242ed(4)]),$spaces\however, the file is identified as Edition 3.  See Websites > STEP > EXPRESS Schemas" red
             #}
           } elseif {$id == 5} {
             append str " (Edition 4)"
           } elseif {$id > 5} {
-            errorMsg "Unsupported AP242 Object Identifier String '... $id 1 4' for SchemaName.\nEntities specific to this edition of AP242 are not supported in the spreadsheet.  Use the Syntax Checker to list those entities." red
+            errorMsg "Unsupported AP242 Schema Identifier '\{... $id 1 4\}' for SchemaName.\Use the Syntax Checker to list the unsupported entities in the STEP file for this edition of AP242." red
           }
           if {$developer} {foreach i {3 4} {if {[llength $ap242ed($i)] > 0} {regsub -all " " [join $ap242ed($i)] ", " str1; outputMsg " AP242e$i: $str1" red}}}
         } elseif {[string first "AP242" $sn] == 0} {
-          errorMsg "SchemaName is missing the Object Identifier String that specifies the edition of AP242." red
+          errorMsg "SchemaName is missing the Schema Identifier '\{1 0 10303 442 ...\}' that specifies the edition of AP242.  See Websites > STEP > EXPRESS Schemas" red
         }
 
-# check edition of AP214 (object identifier)
+# check edition of AP214 (schema identifier)
         set c1 [string first "1 0 10303 214" $sn]
         if {$c1 != -1} {
           set id [lindex [split [string range $sn $c1+14 end] " "] 0]

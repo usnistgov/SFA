@@ -137,8 +137,15 @@ proc spmiSummary {} {
 # allPMI used to count some modifiers for coverage analysis
           if {[string first "tolerance" $thisEntType] != -1} {append allPMI $val}
 
+# -------------------------------------------------------------------------------
 # check actual vs. expected PMI for NIST files
-          if {[info exists nistPMIexpected($epmi)] && $entstr != "basic_round_hole"} {nistCheckExpectedPMI $val $entstr $epmi}
+          if {[info exists nistPMIexpected($epmi)]} {
+            if {$entstr != "basic_round_hole"} {
+              if {[string first "stc" $nistName] == -1 || [string first "counter" $entstr] == -1} {
+                nistCheckExpectedPMI $val $entstr $epmi
+              }
+            }
+          }
 
 # -------------------------------------------------------------------------------
 # link back to worksheets

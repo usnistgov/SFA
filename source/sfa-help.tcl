@@ -379,6 +379,31 @@ See Websites > CAx Recommended Practices (Representation and Presentation of PMI
     .tnb select .tnb.status
   }
 
+  $helpView add command -label "Hole Features" -command {
+outputMsg "\nHole Features -------------------------------------------------------------------------------------" blue
+outputMsg "The position, orientation, dimensions and tolerances for drilled, counterbore, and countersink hole
+features are supported.  Hole features in STEP are not the same as explicitly modeling holes in
+part geometry.  Hole features can be used without explicitly modeling holes.
+
+The Analyzer report for Semantic PMI must be generated to show hole features in the Viewer.
+Cylindrical and conical surfaces are used to show the depth and diameter of the drilled hole,
+counterbore, and countersink.  These surfaces are derived from the hole feature dimensions and not
+the part geometry.  Countersink holes are cyan and other holes are green, and can be switched on
+and off in the Viewer.  If no hole depth is specified (through hole), then only a short cylindrical
+surface with the correct diameter is shown.  Flat and conical hole bottoms are supported if it is
+not a through hole.  A text label is shown for each hole.  If the report for Semantic PMI is not
+generated, then only the text label is shown.
+
+In the Entity Types section on the Generate tab, Features is automatically selected when hole
+feature entities are in the STEP file.  Semantic information related to holes is reported on
+*_hole_definition and basic_round_hole worksheets.  Hole feature dimensions are not the same as
+semantic PMI using dimensional_size and dimensional_location.  Hole features are supported in
+AP242 editions > 1, but have not been widely implemented.
+
+See Help > User Guide (section 4.2.3)"
+    .tnb select .tnb.status
+  }
+
   $helpView add command -label "AP209 Finite Element Model" -command {
 outputMsg "\nAP209 Finite Element Model ------------------------------------------------------------------------" blue
 outputMsg "All AP209 entities are always processed and written to a spreadsheet unless a User-defined list is

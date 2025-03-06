@@ -15,6 +15,7 @@ proc uuidGetAttributes {totalUUID entsUUID} {
     set ok 0
     foreach ent $entsUUID {if {[string first $ent $line] != -1} {set ok 1; break}}
     if {$ok} {
+      set ent [string tolower $ent]
 
 # get rest of entity if one multiple lines
       while {1} {
@@ -29,18 +30,27 @@ proc uuidGetAttributes {totalUUID entsUUID} {
 # entity ID
       if {[catch {
         set entid [string range $line 1 [string first "=" $line]-1]
+
+# get UUID (pid)
         set pid [string range $line [string first "'" $line]+1 [string last "'" $line]-1]
+        regsub -all {[0123456789abcdefABCDEF-]} $pid "" npid
+        if {[string length $npid] > 0} {
+          set msg "Unexpected characters ($npid) in UUID"
+          errorMsg " $msg"
+          lappend syntaxErr($ent) [list $entid identifier $msg]
+        }
         if {[string length $pid] == 36 && [string first "-" $pid] == 8 && [string last "-" $pid] == 23} {
 
 # check for duplicate UUIDs
           if {[lsearch $allUUID $pid] == -1} {
             lappend allUUID $pid
           } else {
-            lappend syntaxErr([string tolower $ent]) [list $entid identifier " UUID is assigned to multiple identified_item"]
-            errorMsg " UUID is assigned to multiple identified_item on [string tolower $ent]" red
+            set msg "UUID is assigned to multiple identified_item.  Only one UUID entity is needed that lists all entities in identified_item."
+            lappend syntaxErr($ent) [list $entid identifier $msg]
+            errorMsg " $msg" red
           }
           set uuidstr $pid
-          if {[string index $ent 0] == "V"} {append uuidstr " (v[string index $ent 1])"}
+          if {[string index $ent 0] == "v"} {append uuidstr " ([string range $ent 0 1])"}
           if {[string first "HASH" $line] != -1} {append uuidstr " (hash v5)"}
           if {[string first "LOCATION" $line] != -1} {append uuidstr " (location)"}
 
@@ -63,31 +73,37 @@ proc uuidGetAttributes {totalUUID entsUUID} {
             set uuidEnt [$e1 Type]
             if {[lsearch $uuidEnts $uuidEnt] == -1} {lappend uuidEnts $uuidEnt}
             if {$uuidEnt == "id_attribute"} {
-              set msg " Error: identified_item should refer directly to entities assigned a UUID and not id_attribute"
-              errorMsg $msg
-              lappend syntaxErr([string tolower $ent]) [list $entid identified_item $msg]
+              set msg "Error: identified_item should refer directly to entities assigned a UUID and not id_attribute"
+              errorMsg " $msg"
+              lappend syntaxErr($ent) [list $entid identified_item $msg]
             }
 
             if {[info exists uuid($uuidEnt,[$e1 P21ID])]} {
-              set msg " Error: Multiple UUIDs are associated with the same entity"
-              errorMsg $msg
-              lappend syntaxErr([string tolower $ent]) [list $entid identified_item $msg]
+              set msg "Error: Multiple UUIDs are associated with the same entity"
+              errorMsg " $msg"
+              lappend syntaxErr($ent) [list $entid identified_item $msg]
             }
             set uuid($uuidEnt,[$e1 P21ID]) $uuidstr
             set okid 1
             if {![info exist cells($uuidEnt)]} {lappend noUUIDent $uuidEnt}
             if {$iditem != ""} {
-              set msg " Some UUIDs are associated with multiple entities"
-              errorMsg $msg red
-              lappend syntaxErr([string tolower $ent]) [list $entid identified_item $msg]
+              errorMsg " Some UUIDs are associated with multiple entities" red
+              if {[info exists idRow($ent,$entid)]} {
+                addCellComment $ent $idRow($ent,$entid) 3 "UUID is associated with multiple entities"
+              }
             }
             append iditem "[formatComplexEnt $uuidEnt] [$e1 P21ID]   "
           }
 
 # write identified_items to uuid_attribute entity
-          if {[info exists idRow([string tolower $ent],$entid)]} {
-            $cells([string tolower $ent]) Item $idRow([string tolower $ent],$entid) 3 $iditem
+          if {[info exists idRow($ent,$entid)]} {
+            $cells($ent) Item $idRow($ent,$entid) 3 $iditem
           }
+
+        } else {
+          set msg "Error with UUID format"
+          errorMsg " $msg"
+          lappend syntaxErr($ent) [list $entid identifier $msg]
         }
       } emsg2]} {
         errorMsg "Error getting UUID: $emsg2"
