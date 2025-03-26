@@ -31,7 +31,7 @@ proc x3dTessGeom {objID tessEnt faceEnt {aoname ""}} {
     set solid "solid='false'"
 
 # tessellated part geometry
-    if {$ao == "tessellated_solid" || $ao == "tessellated_shell"} {
+    if {$ao == "tessellated_solid" || $ao == "tessellated_shell" || $ao == "tessellated_closed_shell" || $ao == "tessellated_open_shell"} {
       set tsID [$tessEnt P21ID]
       set tessRepo 0
       set x3dSolid 1
@@ -71,7 +71,7 @@ proc x3dTessGeom {objID tessEnt faceEnt {aoname ""}} {
 
 # file list where to write geometry
   set flist $x3dFile
-  if {$ao == "tessellated_solid" || $ao == "tessellated_shell"} {
+  if {$ao == "tessellated_solid" || $ao == "tessellated_shell" || $ao == "tessellated_closed_shell" || $ao == "tessellated_open_shell"} {
     set flist $tessPartFile
     if {$ao == "tessellated_shell" && [info exists shellSuppGeom]} {if {$shellSuppGeom} {set flist $tessSuppGeomFile}}
   }
@@ -80,7 +80,7 @@ proc x3dTessGeom {objID tessEnt faceEnt {aoname ""}} {
   if {[info exists draftModelCameras] && $ao == "tessellated_annotation_occurrence"} {set savedViewName [x3dGetSavedViewName $tessEnt]}
 
 # no savedViewName, i.e., PMI not in a Saved View
-  if {$ao != "tessellated_solid" && $ao != "tessellated_shell"} {
+  if {$ao != "tessellated_solid" && $ao != "tessellated_shell" && $ao != "tessellated_closed_shell" && $ao != "tessellated_open_shell"} {
     if {![info exists savedViewName]} {set savedViewName ""}
     if {$savedViewName == ""} {
       set svn "Not in a Saved View"
@@ -208,7 +208,7 @@ proc x3dTessGeom {objID tessEnt faceEnt {aoname ""}} {
 # -------------------------------------------------------------------------------
 # for tessellated part geometry only, write mesh based on faces
       if {$opt(tessPartMesh)} {
-        if {$x3dIndexType == "face" && ($ao == "tessellated_solid" || $ao == "tessellated_shell")} {
+        if {$x3dIndexType == "face" && ($ao == "tessellated_solid" || $ao == "tessellated_shell" || $ao == "tessellated_closed_shell" || $ao == "tessellated_open_shell")} {
           if {$np == 0} {
             set x3dMesh ""
 

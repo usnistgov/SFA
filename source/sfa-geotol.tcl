@@ -454,6 +454,8 @@ proc spmiGeotolReport {objEntity} {
 
 # -------------------------------------------------------------------------------
 # get directed, oriented, or direction feature tolerance zone
+                    set tsatz ""
+                    catch {set tsatz [[[[$gtEntity Attributes] Item [expr 4]] Value] Type]}
                     foreach tz [list directed oriented direction_feature] {
                       set e0s [$gtEntity GetUsedIn [string trim $tz\_tolerance_zone] [string trim defining_tolerance]]
                       ::tcom::foreach e0 $e0s {
@@ -467,10 +469,14 @@ proc spmiGeotolReport {objEntity} {
                             set angle [trimNum [[[$e1 Attributes] Item [expr 1]] Value]]
                           }
                           if {[info exists pmiUnicode($dir)]} {
-                            if {$tz != "direction_feature"} {
-                              set tzWithDatum($tz) "\u25C1"
+                            if {$tsatz != "all_around_shape_aspect"} {
+                              if {$tz != "direction_feature"} {
+                                set tzWithDatum($tz) "\u25C1"
+                              } else {
+                                set tzWithDatum($tz) "\u2190\|"
+                              }
                             } else {
-                              set tzWithDatum($tz) "\u2190\|"
+                              set tzWithDatum($tz) "\u25CB\|"
                             }
                             append tzWithDatum($tz) " $pmiUnicode($dir) | $datumSystem([$ds P21ID])"
                             if {$tz == "oriented"} {append tzWithDatum($tz) " \u25B7"}
@@ -1593,7 +1599,7 @@ proc spmiGeotolReport {objEntity} {
       foreach tz [list directed oriented direction_feature] {
         if {[info exists tzWithDatum($tz)]} {
           set val [[$cells($gt) Item $r $c] Value]
-          $cells($gt) Item $r $c "$val |  $tzWithDatum($tz)"
+          $cells($gt) Item $r $c "$val |   $tzWithDatum($tz)"
           unset tzWithDatum($tz)
         }
       }

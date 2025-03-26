@@ -23,6 +23,10 @@ proc tessPart {entType} {
     $tessellated_edge $tessellated_connecting_edge $triangulated_face $complex_triangulated_face $complex_triangulated_surface_set $triangulated_surface_set]
   set PMIP(tessellated_wire)  [list tessellated_wire name items $tessellated_edge $tessellated_connecting_edge]
 
+  set tessellated_face_surface [list tessellated_face_surface name bounds tessellated_face_geometry $triangulated_face $complex_triangulated_face]
+  set PMIP(tessellated_closed_shell) [list tessellated_closed_shell name cfs_faces $tessellated_face_surface]
+  set PMIP(tessellated_open_shell)   [list tessellated_open_shell   name cfs_faces $tessellated_face_surface]
+
 # initialize
   set ao $entType
   set entAttrList {}
@@ -33,7 +37,7 @@ proc tessPart {entType} {
 
 # open file for tessellated parts
   checkTempDir
-  foreach tess {tessellated_solid tessellated_shell tessellated_wire} {
+  foreach tess {tessellated_solid tessellated_shell tessellated_closed_shell tessellated_open_shell tessellated_wire} {
     if {[info exists entCount($tess)] && ![info exists tessPartFileName]} {
       if {$entCount($tess) > 0} {
         set tessPartFileName [file join $mytemp tessPart.txt]
@@ -112,6 +116,9 @@ proc tessPartGeometry {objEntity} {
                 foreach item $objValue {lappend line_strip [expr {$item-1}]}
                 lappend tessEdges($tessEdgeCoord) "[join $line_strip] -1"
               }
+              "tessellated_face_surface bounds" {
+                errorMsg " Face bounds for tessellated surfaces are not supported" red
+              }
             }
 
 # recursively get the entities that are referred to
@@ -130,6 +137,8 @@ proc tessPartGeometry {objEntity} {
 # get values for these entity and attribute pairs
               switch -glob $ent1 {
                 "tessellated_shell name" -
+                "tessellated_closed_shell name" -
+                "tessellated_open_shell name" -
                 "tessellated_solid name" {
 # start x3dom file, read tessellated geometry
                   if {$gen(View) && $x3dStartFile} {x3dFileStart}
@@ -138,7 +147,7 @@ proc tessPartGeometry {objEntity} {
                 "*triangulated_surface_set name" -
                 "tessellated_curve_set name" {
 # write tessellated coords and index for part geometry (objEntity1 - tessellated_* entity, objEntity - triangulated face entity)
-                  if {$ao == "tessellated_solid" || $ao == "tessellated_shell"} {
+                  if {$ao == "tessellated_solid" || $ao == "tessellated_shell" || $ao == "tessellated_closed_shell" || $ao == "tessellated_open_shell"} {
                     if {[info exists tessIndex($objID)] && [info exists tessCoord($tessIndexCoord($objID))]} {
                       x3dTessGeom $objID $objEntity1 $objEntity
                     } else {
@@ -161,6 +170,13 @@ proc tessPartGeometry {objEntity} {
 # tessellated edge coordinate list
                 set tessEdgeCoord [$objValue P21ID]
               }
+            }
+
+# recursively get the entities that are referred to
+            if {[catch {
+              ::tcom::foreach val1 $objValue {tessPartGeometry $val1}
+            } emsg]} {
+              foreach val2 $objValue {tessPartGeometry $val2}
             }
           }
         }
@@ -529,7 +545,10 @@ proc tessCountColors {} {
     errorMsg " Error counting unique colors: $emsg"
   }
 
-  if {[llength $colors] == 0 && ([info exists entCount(tessellated_solid)] || [info exists entCount(tessellated_shell)])} {lappend colors $defaultColor}
+  if {[llength $colors] == 0 && ([info exists entCount(tessellated_solid)] || [info exists entCount(tessellated_shell)] || \
+                                 [info exists entCount(tessellated_closed_shell)] || [info exists entCount(tessellated_open_shell)])} {
+    lappend colors $defaultColor
+  }
   return [llength $colors]
 }
 

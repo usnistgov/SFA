@@ -705,9 +705,6 @@ proc spmiDimtolReport {objEntity} {
 
                   "descriptive_representation_item name" {
 # dimension modifiers, Sec 5.3, descriptive_representation_item.name must be 'dimensional note'
-                    set ok 1
-                    set col($dt) [expr {$pmiStartCol($dt)+6}]
-                    set colName "modifier type 1[format "%c" 10](Sec. 5.3)"
                     if {$ov == "" || $ov != "dimensional note"} {
                       set msg "Syntax Error: Bad 'name' attribute on [lindex $ent1 0], must be 'dimensional note'.$spaces\($recPracNames(pmi242), Sec. 5.3)"
                       errorMsg $msg
@@ -719,8 +716,13 @@ proc spmiDimtolReport {objEntity} {
                   "descriptive_representation_item description" {
 # dimension modifiers, Sec 5.3, Tables 7 and 8
                     set ok 1
-                    set col($dt) [expr {$pmiStartCol($dt)+7}]
-                    set colName "modifier type 2[format "%c" 10](Sec. 5.3)"
+                    if {$ov == "theoretical" || $ov == "auxiliary"} {
+                      set col($dt) [expr {$pmiStartCol($dt)+6}]
+                      set colName "modifier type 1[format "%c" 10](Sec. 5.3)"
+                    } else {
+                      set col($dt) [expr {$pmiStartCol($dt)+7}]
+                      set colName "modifier type 2[format "%c" 10](Sec. 5.3)"
+                    }
                     if {$ov == ""} {
                       set msg "Syntax Error: Missing 'description' attribute on [lindex $ent1 0].$spaces\($recPracNames(pmi242), Sec. 5.3, Table 7)"
                       errorMsg $msg

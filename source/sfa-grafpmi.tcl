@@ -128,7 +128,7 @@ proc gpmiAnnotation {entType} {
 
   } elseif {[string first "AP242" $stepAP] == 0 && ([string first "annotation_curve_occurrence" $ao] != -1 || [string first "annotation_fill_area_occurrence" $ao] != -1)} {
     if {![info exists entCount(tessellated_annotation_occurrence)] && ![info exists entCount(annotation_placeholder_occurrence)]} {
-      errorMsg " For AP242, tessellated_annotation_occurrence is prefered for Graphic PMI" red
+      errorMsg " For AP242, tessellated_annotation_occurrence is preferred for Graphic PMI" red
     }
   }
 
@@ -341,10 +341,8 @@ proc gpmiAnnotationReport {objEntity} {
                   set msg ""
                   if {[llength $objValue] == 1} {
                     set msg "Syntax Error: Leader line has only one 'point' on '[lindex $ent1 0]'."
-                  } elseif {([string first "to_model" $ent1] != -1 || [string first "auxiliary" $ent1] != -1) && $surfacePoint == 0} {
-                    set msg "Syntax Error: Missing an 'apll_point_with_surface' for model leader line on '[lindex $ent1 0]'.  Or use 'annotation_to_annotation_leader_line' if the line does not end on a surface."
                   } elseif {[string first "to_annotation" $ent1] != -1 && $surfacePoint == 1} {
-                    set msg "Syntax Error: Leader line should not include 'apll_point_with_surface' on '[lindex $ent1 0]'.  Or use 'annotation_to_model_leader_line' if the line does end on a surface."
+                    set msg "Syntax Error: Leader line should not include 'apll_point_with_surface' on '[lindex $ent1 0]'."
                   }
                   if {$msg != ""} {
                     append msg "$spaces\($recPracNames(pmi242), Sec. 7.2.4)"

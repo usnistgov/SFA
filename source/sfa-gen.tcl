@@ -7,7 +7,7 @@ proc genExcel {{numFile 0}} {
   global ifcsvrDir ifcsvrVer iloldscr inverses lastXLS lenfilelist localName localNameList logFile matrixList multiFile multiFileDir mydocs mytemp nistCoverageLegend
   global nistName nistPMIexpected nistPMImaster noFontFile nprogBarEnts opt pf32 p21e3Section pmiCol resetRound roseSchemas row rowmax savedViewButtons
   global savedViewName savedViewNames scriptName sheetLast skipEntities skipFileName spmiEntity spmiSumName spmiSumRow spmiTypesPerFile
-  global startrow statsOnly stepAP stepAPreport sumHeaderRow syntaxErr tessColor tessEnts tessSolid thisEntType timeStamp tlast tolNames tolStandard tolStandards
+  global startrow statsOnly stepAP stepAPreport sumHeaderRow syntaxErr tessBrep tessColor tessEnts tessSolid thisEntType timeStamp tlast tolNames tolStandard tolStandards
   global totalEntity unicodeActual unicodeAttr unicodeAttributes unicodeEnts unicodeInFile unicodeNumEnts unicodeString unicodeStringCM userEntityFile userEntityList
   global userWriteDir useXL uuidEnts valRounded viz wdir workbook workbooks worksheet worksheet1 worksheets writeDir wsCount wsNames x3dAxes
   global x3dColor x3dColorFile x3dColors x3dFileName x3dIndex x3dMax x3dMin x3dMsg x3dMsgColor x3dStartFile x3dViewOK xlFileName xlFileNames xlInstalled
@@ -150,6 +150,8 @@ proc genExcel {{numFile 0}} {
 # -------------------------------------------------------------------------------------------------
 # connect to IFCsvr, cannot redirect createobject output to suppress it
   if {[catch {
+    outputMsg "Connecting to IFCsvr"
+    update idletasks
     set objIFCsvr [::tcom::ref createobject IFCsvr.R300]
 
 # set environment variable that is sometimes necessary
@@ -301,14 +303,16 @@ proc genExcel {{numFile 0}} {
       set bSurface 0
       set tSolid 0
       set tSurface 0
-      foreach entType [list manifold_solid_brep shell_based_surface_model tessellated_solid tessellated_shell] {
+      foreach entType [list manifold_solid_brep shell_based_surface_model tessellated_solid tessellated_shell tessellated_closed_shell tessellated_open_shell] {
         set num [$objDesign CountEntities "$entType"]
         if {$num > 0} {
           switch $entType {
             "manifold_solid_brep" {set bSolid 1}
             "shell_based_surface_model" {set bSurface 1}
             "tessellated_solid" {set tSolid 1}
-            "tessellated_shell" {set tSurface 1}
+            "tessellated_shell" -
+            "tessellated_closed_shell" -
+            "tessellated_open_shell" {set tSurface 1}
           }
         }
       }
@@ -327,7 +331,10 @@ proc genExcel {{numFile 0}} {
         set str ""
         foreach item $characteristics {append str "$item, "}
         set str [string range $str 0 end-2]
-        if {$str != "Part geometry"} {outputMsg "This file contains: $str" red}
+        if {$str != "Part geometry"} {
+          if {![info exists buttons]} {outputMsg \n}
+          outputMsg "This file contains: $str" red
+        }
       }
     } else {
       errorMsg "The number of entities could not be counted or there are no entities in the STEP file.\n See Examples menu for sample STEP files.\n See Help > Syntax Checker"
@@ -796,7 +803,11 @@ proc genExcel {{numFile 0}} {
   set brep 0
   set tessEnts 0
   foreach item $brepGeomEntTypes {if {[info exists entCount($item)] && $entCount($item) > 0} {set brep 1}}
-  foreach item [list tessellated_solid tessellated_shell] {if {[info exists entCount($item)] && $entCount($item) > 0} {set tessEnts 1}}
+  foreach item [list tessellated_solid tessellated_shell tessellated_closed_shell tessellated_open_shell] {
+    if {[info exists entCount($item)] && $entCount($item) > 0} {set tessEnts 1}
+  }
+  set tessBrep 0
+  if {[info exists entCount(tessellated_brep_shape_representation)] && $entCount(tessellated_brep_shape_representation) > 0} {set tessBrep 1}
 
 # setting for SFA original
   set tessSolid 0
@@ -806,7 +817,7 @@ proc genExcel {{numFile 0}} {
   if {$tessEnts} {set viz(TESSPART) 1}
 
 # use new stp2x3d for tessellated geometry, except if there is also b-rep or not using SFA original method
-  if {$tessEnts && $brep == 0 && $opt(tessPartOld) == 0} {
+  if {$tessEnts && $brep == 0 && $opt(tessPartOld) == 0 && $tessBrep == 0} {
     set tessSolid 1
     set opt(viewTessPart) 0
     set opt(tessPartMesh) 0
@@ -832,7 +843,8 @@ proc genExcel {{numFile 0}} {
       }
     }
     if {$opt(viewTessPart)} {
-      if {[info exists entCount(tessellated_solid)] || [info exists entCount(tessellated_shell)]} {set viz(TESSPART) 1}
+      if {[info exists entCount(tessellated_solid)] || [info exists entCount(tessellated_shell)] || \
+          [info exists entCount(tessellated_closed_shell)] || [info exists entCount(tessellated_open_shell)]} {set viz(TESSPART) 1}
     }
     if {$opt(viewFEA) && [string first "AP209" $stepAP] == 0} {set viz(FEA) 1}
   }
@@ -1267,7 +1279,7 @@ proc genExcel {{numFile 0}} {
 # generate tessellated geometry for viewer if using old SFA method
     if {$gen(View) && ($opt(tessPartOld) || $opt(viewTessPart))} {
       set tp 0
-      foreach item [list tessellated_solid tessellated_shell tessellated_wire] {
+      foreach item [list tessellated_solid tessellated_shell tessellated_closed_shell tessellated_open_shell tessellated_wire] {
         if {[info exists entCount($item)] && $entCount($item) > 0} {tessPart $item; set tp 1}
       }
       if {$tp == 0} {
@@ -1748,34 +1760,34 @@ proc addHeaderWorksheet {numFile fname} {
 
 # check edition of AP242 (schema identifier)
         set c1 [string first "1 0 10303 442" $sn]
+        set simsg ""
         if {$c1 != -1} {
           set id [lindex [split [string range $sn $c1+14 end] " "] 0]
-          set msg ""
           if {$id == 1} {
             append str " (Edition 1)"
-            errorMsg "AP242 Edition 1 is not the current version.  See Help > Supported STEP APs" red
+            set simsg " AP242 Edition 1 is not the current version.  See Help > Supported STEP APs"
             if {[llength $ap242ed(2)] > 0 || [llength $ap242ed(3)] > 0 || [llength $ap242ed(4)] > 0} {
-              errorMsg "The STEP file contains entities found in AP242 Edition 2, 3, or 4 ([join [lrmdups [concat $ap242ed(2) $ap242ed(3) $ap242ed(4)]]]),$spaces\however, the file is identified as Edition 1.  See Websites > STEP > EXPRESS Schemas" red
+              append simsg "\nThe STEP file contains entities found in AP242 Edition 2, 3, or 4 ([join [lrmdups [concat $ap242ed(2) $ap242ed(3) $ap242ed(4)]]]), however, the file is identified as Edition 1.  See Websites > STEP > EXPRESS Schemas"
             }
           } elseif {$id == 2 || $id == 3} {
             append str " (Edition 2)"
-            if {$id == 2} {errorMsg " AP242 Edition 2 should be identified with '\{1 0 10303 442 3 1 4\}'  See Websites > STEP > EXPRESS Schemas" red}
             if {[llength $ap242ed(3)] > 0 || [llength $ap242ed(4)] > 0} {
-              errorMsg "The STEP file contains entities found in AP242 Edition 3 or 4 ([join [lrmdups [concat $ap242ed(3) $ap242ed(4)]]]),$spaces\however, the file is identified as Edition 2.  See Websites > STEP > EXPRESS Schemas" red
+              set simsg " The STEP file contains entities found in AP242 Edition 3 or 4 ([join [lrmdups [concat $ap242ed(3) $ap242ed(4)]]]), however, the file is identified as Edition 2.  See Websites > STEP > EXPRESS Schemas"
             }
           } elseif {$id == 4} {
             append str " (Edition 3)"
             #if {[llength $ap242ed(4)] > 0} {
-            #  errorMsg "The STEP file contains entities found in AP242 Edition 4 ([join $ap242ed(4)]),$spaces\however, the file is identified as Edition 3.  See Websites > STEP > EXPRESS Schemas" red
+            #  set simsg " The STEP file contains entities found in AP242 Edition 4 ([join $ap242ed(4)]), however, the file is identified as Edition 3.  See Websites > STEP > EXPRESS Schemas"
             #}
-          } elseif {$id == 5} {
+          } elseif {$id >= 5 && $id <= 7} {
+            if {$id != 7} {set simsg " AP242 Edition 4 should be identified with '\{1 0 10303 442 7 1 4\}'  See Websites > STEP > EXPRESS Schemas"}
             append str " (Edition 4)"
-          } elseif {$id > 5} {
-            errorMsg "Unsupported AP242 Schema Identifier '\{... $id 1 4\}' for SchemaName.\Use the Syntax Checker to list the unsupported entities in the STEP file for this edition of AP242." red
+          } elseif {$id > 7} {
+            set simsg " Unsupported AP242 Schema Identifier '\{... $id 1 4\}' for SchemaName.\n Use the Syntax Checker to list the unsupported entities in the STEP file for this edition of AP242."
           }
           if {$developer} {foreach i {3 4} {if {[llength $ap242ed($i)] > 0} {regsub -all " " [join $ap242ed($i)] ", " str1; outputMsg " AP242e$i: $str1" red}}}
         } elseif {[string first "AP242" $sn] == 0} {
-          errorMsg "SchemaName is missing the Schema Identifier '\{1 0 10303 442 ...\}' that specifies the edition of AP242.  See Websites > STEP > EXPRESS Schemas" red
+          set simsg " SchemaName is missing the Schema Identifier '\{1 0 10303 442 ...\}' that specifies the edition of AP242.  See Websites > STEP > EXPRESS Schemas"
         }
 
 # check edition of AP214 (schema identifier)
@@ -1787,7 +1799,10 @@ proc addHeaderWorksheet {numFile fname} {
 
 # check for IFC files
         if {[string first "IFC" $sn] == 0} {append str "  (Use the NIST IFC File Analyzer)"}
+
+# schema name
         outputMsg $str blue
+        if {$simsg != ""} {errorMsg $simsg red}
 
 # check for multiple schemas
         if {[string first "," $sn] != -1} {

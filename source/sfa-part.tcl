@@ -569,8 +569,6 @@ proc x3dBrepGeom {} {
           set msg "Change the file or directory name and process the file again."
         } elseif {[string first "permission denied" $errs] != -1} {
           set msg "Antivirus software might be blocking stp2x3d-part.exe from running in $mytemp"
-        } elseif {[info exists entCount(tessellated_brep_shape_representation)]} {
-          if {$entCount(tessellated_brep_shape_representation)} {set msg "Polyhedral b-rep geometry (tessellated_brep_shape_representation) is not supported."}
 
 # crash with STEP file
         } else {

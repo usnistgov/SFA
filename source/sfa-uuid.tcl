@@ -70,29 +70,35 @@ proc uuidGetAttributes {totalUUID entsUUID} {
             if {$c2 != -1} {set eid [string range $eid $c2+1 end]}
 
             set e1 [$objDesign FindObjectByP21Id [expr $eid]]
-            set uuidEnt [$e1 Type]
-            if {[lsearch $uuidEnts $uuidEnt] == -1} {lappend uuidEnts $uuidEnt}
-            if {$uuidEnt == "id_attribute"} {
-              set msg "Error: identified_item should refer directly to entities assigned a UUID and not id_attribute"
-              errorMsg " $msg"
-              lappend syntaxErr($ent) [list $entid identified_item $msg]
-            }
-
-            if {[info exists uuid($uuidEnt,[$e1 P21ID])]} {
-              set msg "Error: Multiple UUIDs are associated with the same entity"
-              errorMsg " $msg"
-              lappend syntaxErr($ent) [list $entid identified_item $msg]
-            }
-            set uuid($uuidEnt,[$e1 P21ID]) $uuidstr
-            set okid 1
-            if {![info exist cells($uuidEnt)]} {lappend noUUIDent $uuidEnt}
-            if {$iditem != ""} {
-              errorMsg " Some UUIDs are associated with multiple entities" red
-              if {[info exists idRow($ent,$entid)]} {
-                addCellComment $ent $idRow($ent,$entid) 3 "UUID is associated with multiple entities"
+            if {$e1 != ""} {
+              set uuidEnt [$e1 Type]
+              if {[lsearch $uuidEnts $uuidEnt] == -1} {lappend uuidEnts $uuidEnt}
+              if {$uuidEnt == "id_attribute"} {
+                set msg "Error: identified_item should refer directly to entities assigned a UUID and not id_attribute"
+                errorMsg " $msg"
+                lappend syntaxErr($ent) [list $entid identified_item $msg]
               }
+
+              if {[info exists uuid($uuidEnt,[$e1 P21ID])]} {
+                set msg "Error: Multiple UUIDs are associated with the same entity"
+                errorMsg " $msg"
+                lappend syntaxErr($ent) [list $entid identified_item $msg]
+              }
+              set uuid($uuidEnt,[$e1 P21ID]) $uuidstr
+              set okid 1
+              if {![info exist cells($uuidEnt)]} {lappend noUUIDent $uuidEnt}
+              if {$iditem != ""} {
+                errorMsg " Some UUIDs are associated with multiple entities" red
+                if {[info exists idRow($ent,$entid)]} {
+                  addCellComment $ent $idRow($ent,$entid) 3 "UUID is associated with multiple entities"
+                }
+              }
+              append iditem "[formatComplexEnt $uuidEnt] [$e1 P21ID]   "
+            } else {
+              set msg "Error: Missing entity referred to in identified_item.  Run the Syntax Checker"
+              errorMsg " $msg"
+              lappend syntaxErr($ent) [list $entid identified_item $msg]
             }
-            append iditem "[formatComplexEnt $uuidEnt] [$e1 P21ID]   "
           }
 
 # write identified_items to uuid_attribute entity
@@ -140,7 +146,12 @@ proc uuidReportAttributes {idType {uuidEnt ""}} {
         set anchorID  [lindex $idx 1]
         if {[info exists worksheet($anchorEnt)]} {
           if {![info exists urow($anchorEnt)]} {set urow($anchorEnt) [[[$worksheet($anchorEnt) UsedRange] Rows] Count]}
-          if {![info exists ucol($anchorEnt)]} {set ucol($anchorEnt) [getNextUnusedColumn $anchorEnt]}
+          if {![info exists ucol($anchorEnt)]} {
+            set ucol($anchorEnt) [getNextUnusedColumn $anchorEnt]
+            set col1 [expr {$ucol($anchorEnt)-1}]
+            set val [[$cells($anchorEnt) Item 3 $col1] Value]
+            if {$val == ""} {set ucol($anchorEnt) $col1}
+          }
           if {[info exists idRow($anchorEnt,$anchorID)]} {
             set ur $idRow($anchorEnt,$anchorID)
             $cells($anchorEnt) Item $ur $ucol($anchorEnt) $uuidval

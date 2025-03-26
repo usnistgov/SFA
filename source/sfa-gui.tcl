@@ -1,5 +1,5 @@
 # SFA version
-proc getVersion {} {return 5.27}
+proc getVersion {} {return 5.28}
 
 # see proc installIFCsvr in sfa-proc.tcl for the IFCsvr version
 # see below (line 37) for the sfaVersion when IFCsvr was updated

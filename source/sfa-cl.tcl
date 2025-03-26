@@ -129,9 +129,11 @@ getOpenPrograms
 # check for custom options file
 set optionsFile [file nativename [file join $fileDir STEP-File-Analyzer-options.dat]]
 set customFile ""
+set readOptions 1
 for {set i 1} {$i <= 10} {incr i} {
   set arg [lindex $argv $i]
   set arg1 [string tolower $arg]
+  if {[string first "syn" $arg1] == 0 || [string first "sta" $arg1] == 0} {set readOptions 0}
   if {$arg != "" && $arg1 != "csv" && [string first "vi" $arg1] == -1 && [string first "noo" $arg1] == -1 && [string first "sta" $arg1] == -1 && [string first "nol" $arg1] == -1 && [string first "syn" $arg1] == -1} {
     if {[file exists $arg]} {
       set customFile [file nativename $arg]
@@ -144,15 +146,17 @@ for {set i 1} {$i <= 10} {incr i} {
 }
 
 # check for options file and read (source)
-if {[file exists $optionsFile]} {
-  if {[catch {
-    puts "Reading options file: [truncFileName $optionsFile]"
-    source $optionsFile
-  } emsg]} {
-    errorMsg "Error reading options file [truncFileName $optionsFile]: $emsg"
+if {$readOptions} {
+  if {[file exists $optionsFile]} {
+    if {[catch {
+      puts "Reading options file: [truncFileName $optionsFile]"
+      source $optionsFile
+    } emsg]} {
+      errorMsg "Error reading options file [truncFileName $optionsFile]: $emsg"
+    }
+  } else {
+    errorMsg "No options file was found.  Default options will be used."
   }
-} else {
-  errorMsg "No options file was found.  Default options will be used."
 }
 checkVariables
 

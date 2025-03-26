@@ -76,9 +76,9 @@ users including those on non-Windows systems.  The viewer does not support measu
 The viewer can be used without generating a spreadsheet.  See Generate on the Options tab.  The
 Part Only option is useful when no other Viewer features are needed and for large STEP files.
 
-The viewer supports boundary representation (b-rep) and AP242 tessellated part geometry, both with
-color, transparency, part edges, sketch geometry, and assemblies.  Polyhedral b-rep geometry is not
-supported.  B-rep geometry is also known as exact geometry.  Part geometry viewer features:
+The viewer supports boundary representation (b-rep) exact geometry.  For AP242, tessellated and
+polyhedral b-rep geometry are supported.  Color, transparency, part edges, sketch geometry, and
+assemblies are supported.  Part geometry viewer features:
 
 - Part edges are shown in black.  Use the transparency slider to show only edges.  Some parts might
   not be affected by the transparency slider.  If a part is completely transparent and edges are
@@ -247,6 +247,9 @@ If there is graphic PMI associated with saved views, then the PMI is automatical
 on/off when using PageDown if 'Saved View Viewpoints' is checked on the Generate tab.  If there are
 duplicate saved view names as described above, then the list of Saved View Graphic PMI will append,
 after a slash, the saved view name to the PMI name.
+
+Saved views always show all part geometry and ignore any view-specific geometry that is not visible
+in a view.
 
 ---------------------------------------------------------------------------------------------------
 In the viewer, use key 'a' to view all and 'r' to restore to the original view.  The function of
@@ -1170,7 +1173,7 @@ See Help > Disclaimers and NIST Disclaimer"
 
       outputMsg "Environment variables" red
       foreach id [lsort [array names env]] {
-        foreach id1 [list HOME USER APP ROSE_SCHEMAS] {if {[string first $id1 $id] == 0} {catch {outputMsg " $id  $env($id)"; break}}}
+        foreach id1 [list HOME USER APP ROSE] {if {[string first $id1 $id] == 0} {catch {outputMsg " $id  $env($id)"; break}}}
       }
     }
     .tnb select .tnb.status
