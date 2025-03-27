@@ -50,6 +50,7 @@ proc genExcel {{numFile 0}} {
 # initialize for x3dom geometry
   set x3dViewOK 0
   set x3dMsg {}
+  set tessBrep 0
   if {$gen(View)} {
     set x3dMsgColor green
     if {$opt(viewPMI) || $opt(viewTessPart) ||$opt(viewFEA) || $opt(viewPart)} {
@@ -806,7 +807,6 @@ proc genExcel {{numFile 0}} {
   foreach item [list tessellated_solid tessellated_shell tessellated_closed_shell tessellated_open_shell] {
     if {[info exists entCount($item)] && $entCount($item) > 0} {set tessEnts 1}
   }
-  set tessBrep 0
   if {[info exists entCount(tessellated_brep_shape_representation)] && $entCount(tessellated_brep_shape_representation) > 0} {set tessBrep 1}
 
 # setting for SFA original
@@ -1767,17 +1767,17 @@ proc addHeaderWorksheet {numFile fname} {
             append str " (Edition 1)"
             set simsg " AP242 Edition 1 is not the current version.  See Help > Supported STEP APs"
             if {[llength $ap242ed(2)] > 0 || [llength $ap242ed(3)] > 0 || [llength $ap242ed(4)] > 0} {
-              append simsg "\nThe STEP file contains entities found in AP242 Edition 2, 3, or 4 ([join [lrmdups [concat $ap242ed(2) $ap242ed(3) $ap242ed(4)]]]), however, the file is identified as Edition 1.  See Websites > STEP > EXPRESS Schemas"
+              append simsg "\n The STEP file contains entities ([join [lrmdups [concat $ap242ed(2) $ap242ed(3) $ap242ed(4)]]]) found in AP242 Edition 2, 3, or 4, however, the file is identified as Edition 1.  See Websites > STEP > EXPRESS Schemas"
             }
           } elseif {$id == 2 || $id == 3} {
             append str " (Edition 2)"
             if {[llength $ap242ed(3)] > 0 || [llength $ap242ed(4)] > 0} {
-              set simsg " The STEP file contains entities found in AP242 Edition 3 or 4 ([join [lrmdups [concat $ap242ed(3) $ap242ed(4)]]]), however, the file is identified as Edition 2.  See Websites > STEP > EXPRESS Schemas"
+              set simsg " The STEP file contains entities ([join [lrmdups [concat $ap242ed(3) $ap242ed(4)]]]) found in AP242 Edition 3 or 4, however, the file is identified as Edition 2.  See Websites > STEP > EXPRESS Schemas"
             }
           } elseif {$id == 4} {
             append str " (Edition 3)"
             #if {[llength $ap242ed(4)] > 0} {
-            #  set simsg " The STEP file contains entities found in AP242 Edition 4 ([join $ap242ed(4)]), however, the file is identified as Edition 3.  See Websites > STEP > EXPRESS Schemas"
+            #  set simsg " The STEP file contains entities ([join $ap242ed(4)]) found in AP242 Edition 4, however, the file is identified as Edition 3.  See Websites > STEP > EXPRESS Schemas"
             #}
           } elseif {$id >= 5 && $id <= 7} {
             if {$id != 7} {set simsg " AP242 Edition 4 should be identified with '\{1 0 10303 442 7 1 4\}'  See Websites > STEP > EXPRESS Schemas"}
