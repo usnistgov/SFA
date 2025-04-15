@@ -20,7 +20,7 @@ directory is not important.
 
 freewrap wraps the SFA Tcl code to create an executable.
 
-- Download freewrap651.zip from <https://sourceforge.net/projects/freewrap/files/freewrap/freeWrap%206.51/>  More recent versions of freewrap will **not** work with wrapping SFA.
+- Download freewrap651.zip from <https://sourceforge.net/projects/freewrap/files/freewrap%206/freeWrap%206.51/>  More recent versions of freewrap will **not** work with wrapping SFA.
 - Extract freewrap.exe and put it in the same directory as the SFA files that were downloaded from the 'source' directory.
 
 Several Tcl packages not included in freewrap also need to be installed.
