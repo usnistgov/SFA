@@ -6,10 +6,12 @@ including the [STEP File Analyzer and Viewer User Guide](https://www.nist.gov/pu
 
 The [NIST STEP to X3D Translator](https://www.nist.gov/services-resources/software/step-x3d-translator) is used by the SFA Viewer to convert STEP b-rep part geometry to X3D and has its own source code and executable.
 
-Download a pre-built Windows version of SFA with the Release link (zip file) above or to the right. 
-Follow the instructions below to build your own version of SFA from the source code.  
+## Download or Build
 
-## Prerequisites
+**Download** a pre-built Windows version of SFA with the Release link (zip file) above or to the right. 
+**Build** your own version of SFA from the source code with the instructions below.  
+
+## Build Prerequisites
 
 Microsoft Excel is required to generate spreadsheets.  CSV (comma-separated values) files will be generated if Excel is not 
 installed.  SFA is written in [Tcl](https://wiki.tcl-lang.org/) with some of the Tcl code based 
