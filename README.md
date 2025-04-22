@@ -8,7 +8,7 @@ The [NIST STEP to X3D Translator](https://www.nist.gov/services-resources/softwa
 
 ## Download or Build
 
-**Download** a pre-built Windows version of SFA with the Release link (zip file) above or to the right. 
+**Download** a pre-built Windows version of SFA in the Release directory above or with Releases to the right. 
 **Build** your own version of SFA from the source code with the instructions below.  
 
 ## Build Prerequisites
