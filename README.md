@@ -18,7 +18,7 @@ Microsoft Excel is required to generate spreadsheets.  CSV (comma-separated valu
 installed.  SFA is written in [Tcl](https://wiki.tcl-lang.org/) with some of the Tcl code based 
 on [CAWT](https://www.tcl3d.org/cawt/).
 
-To build SFA, first download the Tcl and other files from the GitHub 'source' directory to a directory on your computer.  The name of the 
+To build SFA, first download the Tcl and other files from the 'source' directory above.  The name of the 
 directory is not important.
 
 freewrap wraps the SFA Tcl code to create an executable.
@@ -48,7 +48,7 @@ Optionally build the command-line version:
 ## Running the Software
 
 **You must first install and run the NIST version of the STEP File Analyzer and Viewer before running your own version.**
-- Click on Release above or to the right and download the zip file.
+- Click on Release directory above.
 - Extract STEP-File-Analyzer.exe from the zip file, run it and process a STEP file to install other software.
 - Some features are not available in the user-built version including tooltips, unzipping compressed STEP files, and those related to the NIST CAD models.
 - Internally at NIST, SFA is built with [ActiveTcl 8.5.18 32-bit](https://www.activestate.com/products/tcl/) and the [Tcl Dev Kit](https://www.activestate.com/blog/tcl-dev-kit-now-open-source/) which is now an open source project.
