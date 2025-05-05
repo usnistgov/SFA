@@ -51,7 +51,6 @@ Optionally build the command-line version:
 - Click on Release directory above.
 - Extract STEP-File-Analyzer.exe from the zip file, run it and process a STEP file to install other software.
 - Some features are not available in the user-built version including tooltips, unzipping compressed STEP files, and those related to the NIST CAD models.
-- Internally at NIST, SFA is built with [ActiveTcl 8.5.18 32-bit](https://www.activestate.com/products/tcl/) and the [Tcl Dev Kit](https://www.activestate.com/blog/tcl-dev-kit-now-open-source/) which is now an open source project.
 
 ## Disclaimers
 
