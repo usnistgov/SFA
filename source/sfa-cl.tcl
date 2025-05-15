@@ -55,15 +55,16 @@ if {[catch {
 catch {package require vfs::zip}
 
 # no arguments, no file, print help, and exit
-set helpText "\nUsage: sfa-cl.exe myfile.stp \[csv\] \{\[view\]|\[stats\]|\[syntax\]\} \[noopen\] \[nolog\] \[file\]
+set helpText "\nUsage: sfa-cl.exe myfile.stp \{\[view\]|\[syntax\]|\[tree\]|\[stats\]} \[noopen\] \[nolog\] \[csv\] \[file\]
 
 Optional command line settings:
-  csv     Generate CSV files
-  view    Only run the Viewer and do not generate a Spreadsheet
-  stats   Only report characteristics of the STEP file, no output files are generated
+  view    Only run the Viewer
   syntax  Only run the Syntax Checker
+  tree    Only run the Tree View
+  stats   Only report characteristics of the STEP file
   noopen  Do not open the Spreadsheet or Viewer file after it has been generated
   nolog   Do not generate a Log file
+  csv     Generate CSV files
   file    Name of custom options file, e.g., C:/mydir/myoptions.dat  This file should
           be similar to STEP-File-Analyzer-options.dat in your home directory.
 
@@ -80,7 +81,7 @@ Optional command line settings:
 Disclaimers
  NIST Disclaimer: https://www.nist.gov/disclaimer
 
- This software uses IFCsvr, Microsoft Excel, and software based on Open CASCADE that
+ This software uses IFCsvr, Microsoft Excel, and software based on Open Cascade that
  are covered by their own Software License Agreements.  If you are using this software
  in your own application, please explicitly acknowledge NIST as the source of the
  software.
@@ -88,7 +89,7 @@ Disclaimers
 Credits
 - Reading and parsing STEP files
    IFCsvr ActiveX Component, Copyright \u00A9 1999, 2005 SECOM Co., Ltd. All Rights Reserved
-   IFCsvr has been modified by NIST to include STEP schemas.
+   IFCsvr has been modified by NIST to include STEP schemas
    The license agreement can be found in C:\\Program Files (x86)\\IFCsvrR300\\doc
 - Viewer for b-rep part geometry
    STEP to X3D Translator (stp2x3d)
@@ -124,6 +125,7 @@ if {![file exists $localName]} {
 initData
 initDataInverses
 getOpenPrograms
+append spaces "    "
 
 # -----------------------------------------------------------------------------------------------------
 # check for custom options file
@@ -133,8 +135,10 @@ set readOptions 1
 for {set i 1} {$i <= 10} {incr i} {
   set arg [lindex $argv $i]
   set arg1 [string tolower $arg]
-  if {[string first "syn" $arg1] == 0 || [string first "sta" $arg1] == 0} {set readOptions 0}
-  if {$arg != "" && $arg1 != "csv" && [string first "vi" $arg1] == -1 && [string first "noo" $arg1] == -1 && [string first "sta" $arg1] == -1 && [string first "nol" $arg1] == -1 && [string first "syn" $arg1] == -1} {
+  if {[string first "syn" $arg1] == 0 || [string first "sta" $arg1] == 0|| [string first "tre" $arg1] == 0} {set readOptions 0}
+  if {$arg != "" && $arg1 != "csv" && [string first "vi" $arg1] == -1 && [string first "noo" $arg1] == -1 && \
+      [string first "sta" $arg1] == -1 && [string first "nol" $arg1] == -1 && [string first "syn" $arg1] == -1 && \
+      [string first "tre" $arg1] == -1} {
     if {[file exists $arg]} {
       set customFile [file nativename $arg]
       puts "Using custom options file: [truncFileName $customFile]"
@@ -190,6 +194,8 @@ for {set i 1} {$i <= 10} {incr i} {
     if {[string first "nol" $arg] == 0} {set opt(logFile) 0}
 # syntax, run syntax checker and exit
     if {[string first "syn" $arg] == 0} {syntaxChecker $localName; exit}
+# run tree view and exit
+    if {[string first "tre" $arg] == 0} {indentFile $localName; exit}
   }
 }
 

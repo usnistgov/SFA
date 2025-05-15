@@ -775,7 +775,7 @@ proc gpmiAnnotationReport {objEntity} {
                 }
 
                 "annotation_placeholder_occurrence* line_spacing" {
-                  if {$objValue < 1.E-6} {errorMsg "[lindex $ent1 0] 'line_spacing' is zero."}
+                  if {$objValue < 1.E-6} {errorMsg " [lindex $ent1 0] 'line_spacing' is zero." red}
                 }
 
                 "*triangulated_face name" -
@@ -950,7 +950,7 @@ proc gpmiAnnotationReport {objEntity} {
 
 # count number of gpmi types
                   if {[info exists aoname]} {
-                    if {$ov != $aoname} {
+                    if {$ov != $aoname && $aoname != ""} {
                       lappend gpmiTypesPerFile "$ov/$aoname"
                     } else {
                       set n 0

@@ -304,7 +304,7 @@ set cameraModels [list camera_model_d3 camera_model_d3_multi_clipping camera_mod
 # max rows for PMI elements on PMI representation coverage worksheet, depends on number and order of items below
 set pmiElementsMaxRows 185
 # line breaks are above the row, depends on the grouping of PMI elements below
-set pmiHorizontalLineBreaks [list 19 35 49 55 66 74 84 [expr {$pmiElementsMaxRows-11}]]
+set pmiHorizontalLineBreaks [list 19 35 49 55 66 74 84 [expr {$pmiElementsMaxRows-12}]]
 
 # -----------------------------------------------------------------------------------------------------
 # dimensional_size names (Section 5.1.5, Table 4)

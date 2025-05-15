@@ -1,5 +1,5 @@
 # SFA version
-proc getVersion {} {return 5.28}
+proc getVersion {} {return 5.30}
 
 # see proc installIFCsvr in sfa-proc.tcl for the IFCsvr version
 # see below (line 37) for the sfaVersion when IFCsvr was updated
@@ -989,11 +989,13 @@ proc guiMoreTab {} {
 }
 
 #-------------------------------------------------------------------------------
-# Websites menu
+# Examples and Websites menus
 proc guiWebsitesMenu {} {
-  global Websites
+  global Examples Websites
 
-  $Websites add command -label "STEP File Analyzer and Viewer"              -command {openURL https://www.nist.gov/services-resources/software/step-file-analyzer-and-viewer}
+  $Websites add command -label "STEP File Analyzer and Viewer" -command {openURL https://www.nist.gov/services-resources/software/step-file-analyzer-and-viewer}
+  $Websites add command -label "- on CAx-IF"                   -command {openURL https://www.mbx-if.org/home/cax/resources/sfa/}
+  $Websites add command -label "- on GitHub"                   -command {openURL https://github.com/usnistgov/SFA}
   $Websites add separator
   $Websites add command -label "CAx Interoperability Forum (CAx-IF)" -command {openURL https://www.mbx-if.org/home/cax/}
   $Websites add command -label "CAx Recommended Practices"           -command {openURL https://www.mbx-if.org/home/cax/recpractices/}
@@ -1043,6 +1045,16 @@ proc guiWebsitesMenu {} {
   $Websites4 add command -label "LOTAR - LOng Term Archiving and Retrieval" -command {openURL https://lotar-international.org}
   $Websites4 add command -label "ISO/TC 184/SC 4 - Industrial Data"         -command {openURL https://committee.iso.org/home/tc184sc4}
   $Websites4 add command -label "JT-IF"                                     -command {openURL https://www.prostep.org/en/projects/jt-project-groups-jt-wf-jt-if-jt-bm}
+
+  $Examples add command -label "Viewer"                   -command {openURL https://pages.nist.gov/CAD-PMI-Testing/}
+  $Examples add command -label "Spreadsheets - AP242 PMI" -command {openURL https://www.nist.gov/document/sfa-semantic-pmi-spreadsheet}
+  $Examples add command -label "- AP203 PMI"              -command {openURL https://www.nist.gov/document/sfa-spreadsheet}
+  $Examples add command -label "- PMI Coverage Analysis"  -command {openURL https://www.nist.gov/document/sfa-multiple-files-spreadsheet}
+  $Examples add command -label "- Bill of Materials"      -command {openURL https://www.nist.gov/document/sfa-bill-materials-spreadsheet}
+  $Examples add separator
+  $Examples add command -label "Sample STEP Files (zip)" -command {openURL https://www.nist.gov/document/nist-pmi-step-files}
+  $Examples add command -label "NIST CAD Models"         -command {openURL https://www.nist.gov/ctl/smart-connected-systems-division/smart-connected-manufacturing-systems-group/mbe-pmi-0}
+  $Examples add command -label "- on CAx-IF"             -command {openURL https://www.mbx-if.org/home/cax/resources/}
 }
 
 #-------------------------------------------------------------------------------

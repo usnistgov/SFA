@@ -1700,7 +1700,7 @@ proc genExcel {{numFile 0}} {
 proc addHeaderWorksheet {numFile fname} {
   global objDesign
   global ap242ed cadApps cadSystem cells cells1 col1 csvdirnam developer excel excel1 fileSchema legendColor
-  global localName opt row spaces spmiTypesPerFile timeStamp useXL writeDir worksheet worksheet1 worksheets
+  global localName opt row spmiTypesPerFile timeStamp useXL writeDir worksheet worksheet1 worksheets
 
   if {[catch {
     set cadSystem ""
@@ -1767,12 +1767,12 @@ proc addHeaderWorksheet {numFile fname} {
             append str " (Edition 1)"
             set simsg " AP242 Edition 1 is not the current version.  See Help > Supported STEP APs"
             if {[llength $ap242ed(2)] > 0 || [llength $ap242ed(3)] > 0 || [llength $ap242ed(4)] > 0} {
-              append simsg "\n The STEP file contains entities ([join [lrmdups [concat $ap242ed(2) $ap242ed(3) $ap242ed(4)]]]) found in AP242 Edition 2, 3, or 4, however, the file is identified as Edition 1.  See Websites > STEP > EXPRESS Schemas"
+              append simsg "\n The STEP file contains entities ([join [lrmdups [concat $ap242ed(2) $ap242ed(3) $ap242ed(4)]]]) from a newer edition of AP242, however, the file is identified as Edition 1.  See Websites > STEP > EXPRESS Schemas"
             }
           } elseif {$id == 2 || $id == 3} {
             append str " (Edition 2)"
             if {[llength $ap242ed(3)] > 0 || [llength $ap242ed(4)] > 0} {
-              set simsg " The STEP file contains entities ([join [lrmdups [concat $ap242ed(3) $ap242ed(4)]]]) found in AP242 Edition 3 or 4, however, the file is identified as Edition 2.  See Websites > STEP > EXPRESS Schemas"
+              set simsg " The STEP file contains entities ([join [lrmdups [concat $ap242ed(3) $ap242ed(4)]]]) from a newer edition of AP242, however, the file is identified as Edition 2.  See Websites > STEP > EXPRESS Schemas"
             }
           } elseif {$id == 4} {
             append str " (Edition 3)"

@@ -893,7 +893,7 @@ proc openXLS {filename {check 0} {multiFile 0}} {
 # -------------------------------------------------------------------------------------------------
 # open x3dom file
 proc openX3DOM {{fn ""} {numFile 0}} {
-  global guiSFA lastX3DOM multiFile opt x3dMsgColor x3dFileName viz
+  global buttons guiSFA lastX3DOM multiFile opt x3dMsgColor x3dFileName viz
 
 # f3 is for opening last x3dom file with function key F3
   set f3 1
@@ -932,7 +932,7 @@ proc openX3DOM {{fn ""} {numFile 0}} {
     outputMsg "\nOpening Viewer file: [file tail $fn] ([fileSize $fn])" $x3dMsgColor
     openURL [file nativename $fn]
     update idletasks
-  } elseif {$numFile == 0 && $guiSFA != -1} {
+  } elseif {$numFile == 0 && $guiSFA != -1 && [info exists buttons]} {
     outputMsg " Use F3 to open the Viewer file" red
   }
 }
@@ -1123,7 +1123,7 @@ proc addCellComment {ent r c comment {multi 0}} {
 #-------------------------------------------------------------------------------
 # color bad cells red, add cell comment with message
 proc colorBadCells {ent} {
-  global cells count entsWithErrors idRow legendColor stepAP syntaxErr worksheet
+  global buttons cells count entsWithErrors idRow legendColor stepAP syntaxErr worksheet
 
   if {$stepAP == ""} {return}
 
@@ -1131,7 +1131,10 @@ proc colorBadCells {ent} {
   set rmax [expr {$count($ent)+3}]
   set okcomment 0
 
-  outputMsg " [formatComplexEnt $ent]" red
+  set star " "
+  if {![info exists buttons]} {set star " * "}
+  outputMsg "$star[formatComplexEnt $ent]" red
+
   set syntaxErr($ent) [lsort -integer -index 0 [lrmdups $syntaxErr($ent)]]
   foreach err $syntaxErr($ent) {
     set lastr 4

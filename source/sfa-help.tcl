@@ -128,6 +128,8 @@ an X3D viewer or imported to other software.  Part geometry including tessellate
 graphic PMI is supported.  Use this option if an Internet connection is not available for the
 Viewer.
 
+The Viewer might indicate that there are possible syntax errors and to run the Syntax Checker.
+
 See Help > User Guide (section 4)
 See Help > Viewer for other topics
 
@@ -806,6 +808,8 @@ The Syntax Checker can also be run from the command-line version with the comman
 The Syntax Checker works with any supported schema.  See Help > Supported STEP APs and
 Help > Large STEP files
 
+The Viewer might indicate that there are possible syntax errors and to run the Syntax Checker.
+
 NOTE - Syntax Checker errors and warnings are unrelated to those detected when CAx-IF Recommended
 Practices are checked with one of the Analyzer options.  See Help > Analyzer > Syntax Errors"
     .tnb select .tnb.status
@@ -1085,7 +1089,12 @@ See Help > User Guide (section 2.4)
 If the software crashes the first time you run it, there might be a problem with the installation
 of the IFCsvr toolkit.  First uninstall the IFCsvr toolkit.  Then run SFA as Administrator and when
 prompted, install the IFCsvr toolkit for Everyone, not Just Me.  Subsequently, SFA does not have to
-be run as Administrator."
+be run as Administrator.
+
+If that does not work, then an environment variable might need to be set.  From the Windows menu,
+search for ‘Edit the system environment variables’.  On the Advanced tab, select Environment
+Variables.  Then create a new System Variable and set ROSE_SCHEMAS to C:\\Program Files (x86)\\IFCsvrR300\\dll
+You might need administrator privileges."
     .tnb select .tnb.status
   }
 
@@ -1178,14 +1187,4 @@ See Help > Disclaimers and NIST Disclaimer"
     }
     .tnb select .tnb.status
   }
-
-# examples menu
-  $Examples add command -label "Viewer"                   -command {openURL https://pages.nist.gov/CAD-PMI-Testing/}
-  $Examples add command -label "Spreadsheets - AP242 PMI" -command {openURL https://www.nist.gov/document/sfa-semantic-pmi-spreadsheet}
-  $Examples add command -label "- AP203 PMI"              -command {openURL https://www.nist.gov/document/sfa-spreadsheet}
-  $Examples add command -label "- PMI Coverage Analysis"  -command {openURL https://www.nist.gov/document/sfa-multiple-files-spreadsheet}
-  $Examples add command -label "- Bill of Materials"      -command {openURL https://www.nist.gov/document/sfa-bill-materials-spreadsheet}
-  $Examples add separator
-  $Examples add command -label "Sample STEP Files (zip)" -command {openURL https://www.nist.gov/document/nist-pmi-step-files}
-  $Examples add command -label "NIST CAD Models"         -command {openURL https://www.nist.gov/ctl/smart-connected-systems-division/smart-connected-manufacturing-systems-group/mbe-pmi-0}
 }

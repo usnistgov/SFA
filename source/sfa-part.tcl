@@ -159,14 +159,10 @@ proc x3dBrepGeom {} {
 
 # STEP file errors
               } elseif {([string first "ERR StepFile" $line] != -1 || [string first "ERR StepReaderData" $line] != -1) && \
-                         [string first "Fails Count : 1 " $line] == -1} {
-                outputMsg $line red
-                errorMsg " Use F8 to run the Syntax Checker to check for possible STEP file errors.  See Help > Syntax Checker" red
-
-# other stp2x3d error messages
-              } elseif {$developer && [string first "*" $line] == 0} {
-                outputMsg $line red
+                         [string first "Fails Count : 1 " $line] == -1 && !$developer} {
+                errorMsg "  There are possible syntax errors.  Use F8 to run the Syntax Checker to check for STEP file errors.  See Help > Syntax Checker" red
               }
+              if {$developer && [string first "*" $line] == 0} {outputMsg $line red}
 
 # coordinate min, max
               if {[info exists x3dMax(x)] && [info exists x3dMin(x)]} {

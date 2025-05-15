@@ -337,7 +337,6 @@ proc x3dFileEnd {} {
         if {[info exists savedViewFileName($svnfn)]} {
           if {[file size $savedViewFileName($svnfn)] > 0} {
             set svMap($svn) $svn
-            set svWrite 1
 
 # check if same saved view graphics already written
             if {[info exists savedViewItems($svn)]} {
@@ -345,8 +344,7 @@ proc x3dFileEnd {} {
                 set svn1 [lindex $savedViewNames $j]
                 if {[info exists savedViewItems($svn1)]} {
                   if {$savedViewItems($svn) == $savedViewItems($svn1)} {
-                    set svMap($svn) $svn1
-                    set svWrite 0
+                    errorMsg " Some Saved Views have identical Graphic PMI" red
                     break
                   }
                 }
@@ -365,61 +363,54 @@ proc x3dFileEnd {} {
             if {[info exists savedViewpoint($svn2)]} {x3dSavedViewpoint $svn2}
 
 # get saved view graphics from file
-            if {$svWrite} {
-              set lastTransform ""
-              set f [open $savedViewFileName($svnfn) r]
-              while {[gets $f line] >= 0} {
+            set lastTransform ""
+            set f [open $savedViewFileName($svnfn) r]
+            while {[gets $f line] >= 0} {
 
 # check for similar transforms
-                if {![info exists noGroupTransform]} {
-                  if {[string first "<Transform" $line] == -1 && [string first "</Transform>" $line] == -1} {
-                    foreach xf $x3dFiles {puts $xf $line}
-                  } elseif {[string first "<Transform" $line] == 0} {
-                    if {$line != $lastTransform} {
-                      if {$lastTransform != ""} {foreach xf $x3dFiles {puts $xf "</Transform>"}}
-                      foreach xf $x3dFiles {puts $xf $line}
-                      set lastTransform $line
-                    }
-                    set torg "Transform"
-                  }
-                  if {[string first "<Group" $line]   == 0} {set torg "Group"}
-                } else {
+              if {![info exists noGroupTransform]} {
+                if {[string first "<Transform" $line] == -1 && [string first "</Transform>" $line] == -1} {
                   foreach xf $x3dFiles {puts $xf $line}
+                } elseif {[string first "<Transform" $line] == 0} {
+                  if {$line != $lastTransform} {
+                    if {$lastTransform != ""} {foreach xf $x3dFiles {puts $xf "</Transform>"}}
+                    foreach xf $x3dFiles {puts $xf $line}
+                    set lastTransform $line
+                  }
+                  set torg "Transform"
                 }
+                if {[string first "<Group" $line]   == 0} {set torg "Group"}
+              } else {
+                foreach xf $x3dFiles {puts $xf $line}
               }
-              if {$lastTransform != ""} {foreach xf $x3dFiles {puts $xf "</Transform>"}}
+            }
+            if {$lastTransform != ""} {foreach xf $x3dFiles {puts $xf "</Transform>"}}
 
-              close $f
-              catch {unset savedViewFile($svnfn)}
+            close $f
+            catch {unset savedViewFile($svnfn)}
 
 # write placeholder
-              set placefn "Place$i"
-              if {[info exists savedPlaceFileName($placefn)]} {
-                catch {close $savedPlaceFile($placefn)}
-                set f [open $savedPlaceFileName($placefn) r]
-                foreach xf $x3dFiles {puts $xf "\n<!-- SAVED VIEW$i Placeholder - $svn2 -->\n<Switch whichChoice='0' id='sw$placefn'><Group>"}
-                while {[gets $f line] >= 0} {
+            set placefn "Place$i"
+            if {[info exists savedPlaceFileName($placefn)]} {
+              catch {close $savedPlaceFile($placefn)}
+              set f [open $savedPlaceFileName($placefn) r]
+              foreach xf $x3dFiles {puts $xf "\n<!-- SAVED VIEW$i Placeholder - $svn2 -->\n<Switch whichChoice='0' id='sw$placefn'><Group>"}
+              while {[gets $f line] >= 0} {
 
 # placeholder size
-                  if {[info exists placeSize]} {
-                    if {[string first "placeSize" $line] != -1} {
-                      regsub -all "placeSize1" $line $phsize1 line
-                      regsub -all "placeSize2" $line $phsize2 line
-                      regsub -all "placeSize3" $line $phsize3 line
-                    }
+                if {[info exists placeSize]} {
+                  if {[string first "placeSize" $line] != -1} {
+                    regsub -all "placeSize1" $line $phsize1 line
+                    regsub -all "placeSize2" $line $phsize2 line
+                    regsub -all "placeSize3" $line $phsize3 line
                   }
-                  foreach xf $x3dFiles {puts $xf $line}
                 }
-                foreach xf $x3dFiles {puts $xf "</Group></Switch>"}
-                close $f
-                catch {unset savedPlaceFile($placefn)}
-                catch {unset savedPlaceFileName($placefn)}
+                foreach xf $x3dFiles {puts $xf $line}
               }
-
-# duplicate saved views
-            } else {
-              foreach xf $x3dFiles {puts $xf "<!-- SAME AS $svMap($svn) -->"}
-              set torg ""
+              foreach xf $x3dFiles {puts $xf "</Group></Switch>"}
+              close $f
+              catch {unset savedPlaceFile($placefn)}
+              catch {unset savedPlaceFileName($placefn)}
             }
 
 # ending group and switch

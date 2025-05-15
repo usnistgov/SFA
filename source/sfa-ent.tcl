@@ -144,13 +144,15 @@ proc getEntity {objEntity rmax checkInverse checkBadAttributes unicodeCheck} {
           }
         }
 
-# error getting attribute value
+# report error getting attribute value, with one exception
       } emsgv]} {
-        set msg "Error processing '$attrName' attribute on '[formatComplexEnt [$objEntity Type]]': $emsgv"
-        errorMsg $msg
-        lappend syntaxErr([$objEntity Type]) [list -$row($thisEntType) $attrName $msg]
         set objValue ""
-        catch {raise .}
+        if {$attrName != "elements" || [$objEntity Type] != "annotation_plane"} {
+          set msg "Error processing '$attrName' attribute on '[formatComplexEnt [$objEntity Type]]': $emsgv"
+          errorMsg $msg
+          lappend syntaxErr([$objEntity Type]) [list -$row($thisEntType) $attrName $msg]
+          catch {raise .}
+        }
       }
 
       incr nattr

@@ -465,7 +465,7 @@ proc openMultiFile {{ask 1}} {
                     [$borders Item [expr -4152]] Weight [expr 2]
                   }
                   catch {
-                    set range [$worksheet1($gpmiCoverageWS) Range [cellRange 3 $nf1] [cellRange $gpmiRows $nf1]]
+                    set range [$worksheet1($gpmiCoverageWS) Range [cellRange 3 $nf1] [cellRange [expr {$gpmiRows-1}] $nf1]]
                     set borders [$range Borders]
                     [$borders Item [expr -4152]] Weight [expr 2]
                   }

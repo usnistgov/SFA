@@ -184,7 +184,7 @@ proc indentFile {ifile} {
   }
   if {[info exists opt(indentStyledItem)]} {if {!$opt(indentStyledItem)} {lappend indentStop STYLED_ITEM}}
 
-  .tnb select .tnb.status
+  catch {.tnb select .tnb.status}
   outputMsg "Processing: [truncFileName [file nativename $ifile] 1]"
   outputMsg " Pass 1 of 2"
   set indentPass 1
