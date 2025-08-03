@@ -1,5 +1,5 @@
 # SFA version
-proc getVersion {} {return 5.30}
+proc getVersion {} {return 5.31}
 
 # see proc installIFCsvr in sfa-proc.tcl for the IFCsvr version
 # see below (line 37) for the sfaVersion when IFCsvr was updated
@@ -36,19 +36,18 @@ Use F9 and F10 to change the font size here.  See Help > Function Keys"
     if {$sfaVersion < 5.24} {outputMsg "- The IFCsvr toolkit might need to be reinstalled.  Please follow the directions carefully." red}
 
     if {$sfaVersion < 4.60} {
-      outputMsg "- User Guide (Update 7) is based on version 4.60 (October 2021)"
+      outputMsg "- User Guide is based on version 4.60"
       openUserGuide
     }
   }
   if {$sfaVersion < 5.10} {outputMsg "- Faster processing of B-rep and AP242 tessellated part geometry for the Viewer"}
   if {$sfaVersion < 5.0}  {outputMsg "- Renamed 'Options' and 'Spreadsheet' tabs to 'Generate' and 'More'"}
-  if {$sfaVersion < 5.20} {outputMsg "- Renamed 'PMI Representation' to 'Semantic PMI' and 'PMI Presentation' to 'Graphic PMI'"}
-  if {$sfaVersion < 5.06} {outputMsg "- New 'Other' Entity Types category on the Generate tab"}
-  if {$sfaVersion < 5.03} {outputMsg "- Hidden checkboxes and sliders in the Viewer"}
-  if {$sfaVersion < 5.02} {outputMsg "- Help > Viewer > Viewpoints, and Help > Viewer > New Features"}
-  if {$sfaVersion < 5.10} {outputMsg "- Updated Sample STEP Files, see Examples menu"}
+  if {$sfaVersion < 5.20} {outputMsg "- Renamed 'PMI Representation' and 'PMI Presentation' to 'Semantic PMI' and 'Graphic PMI'"}
+  if {$sfaVersion < 5.27} {outputMsg "- Help > Viewer > Hole Features"}
+  if {$sfaVersion < 5.14} {outputMsg "- Help > Viewer > PMI Placeholders"}
+  if {$sfaVersion < 5.02} {outputMsg "- Help > Viewer > Viewpoints"}
   if {$sfaVersion < 5.16} {outputMsg "- The CAx-IF website and Recommended Practices for PMI in AP242 have been updated, see Websites"}
-  outputMsg "- See Help > Release Notes for all new features and bug fixes"
+  outputMsg "- See Help > Release Notes for all new features, updates, and bug fixes"
   set sfaVersion [getVersion]
 
   .tnb select .tnb.status
@@ -62,8 +61,8 @@ proc openUserGuide {} {
 
 # update for new versions, local and online
   if {$sfaVersion > 4.6} {
-    outputMsg "\nThe User Guide (Update 7) is based on version 4.60 (October 2021)" blue
-    outputMsg "- See Help > Release Notes for software updates\n- New and updated features are documented in the Help menu\n- The Options and Spreadsheet tabs have been renamed Generate and More\n- PMI Representation and PMI Presentation have been renamed Semantic PMI and Graphic PMI"
+    outputMsg "\nThe User Guide is based on version 4.60" blue
+    outputMsg "- See Help > Release Notes for updates\n- New and updated features are documented in the Help menu\n- The Options and Spreadsheet tabs have been renamed Generate and More\n- PMI Representation and PMI Presentation have been renamed Semantic PMI and Graphic PMI"
     .tnb select .tnb.status
   }
   set fname [file nativename [file join [file dirname [info nameofexecutable]] "SFA-User-Guide-v7.pdf"]]
@@ -270,7 +269,7 @@ proc guiFileMenu {} {
 #-------------------------------------------------------------------------------
 # generate tab (formerly options)
 proc guiGenerateTab {} {
-  global allNone buttons cb entCategory fopt fopta nb opt recPracNames useXL xlInstalled
+  global allNone buttons cb entCategory fopt fopta nb lastPartOnly opt optSave recPracNames useXL xlInstalled
 
   set cb 0
   set wopt [ttk::panedwindow $nb.generate -orient horizontal]
@@ -375,7 +374,24 @@ proc guiGenerateTab {} {
 # part only
   foreach item {{" Part Only" opt(partOnly)} {" BOM" opt(BOM)} {" Syntax Checker" opt(syntaxChecker)} {" Log File" opt(logFile)} {" Open Files  " opt(outputOpen)}} {
     set idx [string range [lindex $item 1] 4 end-1]
-    set buttons($idx) [ttk::checkbutton $foptk.$cb -text [lindex $item 0] -variable [lindex $item 1] -command {checkValues}]
+    set buttons($idx) [ttk::checkbutton $foptk.$cb -text [lindex $item 0] -variable [lindex $item 1] -command {
+
+# save and restore options if Part Only changes
+      set opts [list partCap partSupp syntaxChecker tessPartOld viewCorrect viewFEA viewNoPMI viewParallel viewPMI]
+      if {[info exists lastPartOnly]} {
+        if {$opt(partOnly) != $lastPartOnly} {
+          if {$opt(partOnly) == 1} {
+            foreach i $opts {set optSave($i) $opt($i)}
+          } elseif {$opt(partOnly) == 0} {
+            foreach i $opts {catch {set opt($i) $optSave($i)}}
+          }
+        }
+      } else {
+        foreach i $opts {set optSave($i) $opt($i)}
+      }
+      set lastPartOnly $opt(partOnly)
+      checkValues
+    }]
     pack $buttons($idx) -side left -anchor w -padx {5 0} -pady {0 3} -ipady 0
     incr cb
 
@@ -387,10 +403,10 @@ proc guiGenerateTab {} {
 
   pack $foptk -side left -anchor w -pady {5 2} -padx 10 -fill both -expand true
 
-  set txt "Spreadsheets contain one worksheet for each STEP entity type.  The categories below\ncontrol which STEP entity types are written to the Spreadsheet.  Analyzer options\nbelow also write information to the Spreadsheet.  See the More tab for more options.\n\nIf Excel is installed, then Spreadsheets and CSV files can be generated.  If CSV Files\nis selected, the Spreadsheet is also generated.  CSV files do not contain any cell\ncolors, comments, or links.  GD&T symbols in CSV files are only supported with\nExcel 2016 or newer.\n\nIf Excel is not installed, only CSV files can be generated.  Analyzer options are disabled."
+  set txt "Spreadsheets contain one worksheet for each STEP entity type.  The categories below\ncontrol which STEP entity types are written to the Spreadsheet.  Analyzer options\nbelow also write information to the Spreadsheet.  See the More tab for more options.\n\nIf Excel is installed, then Spreadsheets and CSV files can be generated.  If CSV Files\nis selected, the Spreadsheet is also generated.  CSV files do not contain any cell\ncolors, comments, or links.\n\nIf Excel is not installed, only CSV files can be generated.  Analyzer options are disabled."
   catch {tooltip::tooltip $buttons(genExcel) $txt}
   catch {tooltip::tooltip $buttons(genCSV) $txt}
-  set txt "The Viewer supports b-rep and tessellated part geometry, graphic PMI, sketch\ngeometry, supplemental geometry, datum targets, finite element models, and more.\nUse the Viewer options below to control what features of the STEP file are shown.\n\nPart Only generates only Part Geometry.  This is useful when no other Viewer\nfeatures are needed and for large STEP files.\n\nSee Help > Viewer"
+  set txt "The Viewer supports b-rep and tessellated part geometry, graphic PMI, sketch\ngeometry, supplemental geometry, datum targets, finite element models, and more.\nUse the Viewer options below to control what features of the STEP file are shown.\n\nPart Only generates only Part Geometry.  This is useful when no other Viewer\nfeatures are needed and for large STEP files greater than about 430 MB.\n\nSee Help > Viewer"
   catch {tooltip::tooltip $buttons(genView) $txt}
   catch {tooltip::tooltip $buttons(partOnly) $txt}
   catch {tooltip::tooltip $buttons(BOM) "Generate a Bill of Materials (BOM) of parts and assemblies\n\nSee Help > Bill of Materials\nSee Examples > Bill of Materials"}
@@ -417,7 +433,7 @@ proc guiGenerateTab {} {
     if {[info exists entCategory($idx)]} {
       set ttmsg ""
       if {$idx == "stepCOMM"} {
-        append ttmsg "Entity Type categories control which entities from AP203, AP214, and AP242 are written to the Spreadsheet.  The categories\nare used to group and color-code entities on the Summary worksheet.  All entities specific to other APs are always written\nto the Spreadsheet.  See Help > Supported STEP APs\n\n"
+        append ttmsg "Entity Type categories control which entities from AP242, AP203, and AP214 are written to the Spreadsheet.  The categories\nare used to group and color-code entities on the Summary worksheet.  All entities specific to other APs are always written\nto the Spreadsheet.  See Help > Supported STEP APs\n\n"
       }
       append ttmsg "[llength $entCategory($idx)] [string trim [lindex $item 0]] entities are supported in most STEP APs."
       set ttmsg [guiToolTip $ttmsg $idx [string trim [lindex $item 0]]]
@@ -459,7 +475,7 @@ proc guiGenerateTab {} {
         if {$idx != "stepFEAT"} {
           append ttmsg " most STEP APs."
         } else {
-          append ttmsg " AP214 and AP242."
+          append ttmsg " AP242 and AP214."
         }
       } else {
         set ttmsg "[llength $entCategory($idx)] [string trim [lindex $item 0]] entities"
@@ -472,7 +488,7 @@ proc guiGenerateTab {} {
   pack $fopta3 -side left -anchor w -pady 0 -padx 0 -fill y
 
   set fopta4 [frame $fopta.4 -bd 0]
-  foreach item {{" Kinematics" opt(stepKINE)} {" Composites" opt(stepCOMP)} {" AP242" opt(stepAP242)}} {
+  foreach item {{" AP242" opt(stepAP242)} {" Composites" opt(stepCOMP)} {" Kinematics" opt(stepKINE)}} {
     set idx [string range [lindex $item 1] 4 end-1]
     set buttons($idx) [ttk::checkbutton $fopta4.$cb -text [lindex $item 0] -variable [lindex $item 1] -command {checkValues}]
     pack $buttons($idx) -side top -anchor w -padx 5 -pady 0 -ipady 0
@@ -482,15 +498,14 @@ proc guiGenerateTab {} {
       if {$idx == "stepAP242"} {
         append ttmsg " are supported in AP242.  Commonly used AP242 entities are in the other Entity Type categories.\nSuperscript indicates edition of AP242"
       } else {
-        append ttmsg " are supported in"
-        if {$idx == "stepCOMP"} {append ttmsg " AP203 and"}
-        if {$idx == "stepKINE"} {append ttmsg " AP214 and"}
-        append ttmsg " AP242."
+        append ttmsg " are supported in AP242"
+        if {$idx == "stepCOMP"} {append ttmsg " and AP203."}
+        if {$idx == "stepKINE"} {append ttmsg " and AP214."}
       }
       set ttmsg [guiToolTip $ttmsg $idx [string trim [lindex $item 0]]]
-      if {$idx == "stepKINE"} {append ttmsg "\n\nKinematics is now implemented with the AP242 Domain Model XML.  See Websites > CAx Recommended Practices"}
-      if {$idx == "stepCOMP"} {append ttmsg "\n\nSee Websites > Recommended Practices for Composite Materials"}
       if {$idx == "stepAP242"} {append ttmsg "\n\nAssembly Structure is also supported by the AP242 Domain Model XML.  See Websites > CAx Recommended Practices"}
+      if {$idx == "stepCOMP"} {append ttmsg "\n\nSee Websites > Recommended Practices for Composite Materials"}
+      if {$idx == "stepKINE"} {append ttmsg "\n\nKinematics is also supported by the AP242 Domain Model XML.  See Websites > CAx Recommended Practices"}
       catch {tooltip::tooltip $buttons($idx) $ttmsg}
     }
   }
@@ -544,7 +559,7 @@ proc guiGenerateTab {} {
   }
   pack $fopta9 -side left -anchor w -pady 0 -padx 15 -fill y
   pack $fopta -side top -anchor w -pady {5 2} -padx 10 -fill both
-  catch {tooltip::tooltip $fopta "Entity Type categories control which entities from AP203, AP214, and AP242\nare written to the Spreadsheet.  The categories are used to group and\ncolor-code entities on the Summary worksheet.  All entities specific to other\nAPs are always written to the Spreadsheet.\n\nSee Help > Supported STEP APs"}
+  catch {tooltip::tooltip $fopta "Entity Type categories control which entities from AP242, AP203, and AP214\nare written to the Spreadsheet.  The categories are used to group and\ncolor-code entities on the Summary worksheet.  All entities specific to other\nAPs are always written to the Spreadsheet.\n\nSee Help > Supported STEP APs"}
 
 #-------------------------------------------------------------------------------
 # analyzer section
@@ -648,8 +663,8 @@ proc guiGenerateTab {} {
   pack $foptv -side left -anchor w -pady {5 2} -padx 10 -fill both -expand true
   pack $foptRV -side top -anchor w -pady 0 -fill x
   catch {
-    tooltip::tooltip $foptv20 "The viewer supports b-rep and AP242 tessellated part geometry, color,\ntransparency, edges, sketch and supplemental geometry, and clipping planes.\nTesselated part geometry is typically written to an AP242 file instead of or in\naddition to b-rep part geometry.\n\nThe viewer uses the default web browser.  An Internet connection is required.\nThe viewer does not support measurements.\n\nSee the More tab for more Viewer options.\nSee Help > Viewer > Overview and other topics"
-    tooltip::tooltip $buttons(viewPMI) "Graphic PMI for annotations is supported in AP242, AP203, and AP214 files.\nPMI (annotation) placeholders are supported in AP242.\n\nA Saved View is a subset of graphic PMI which has its own viewpoint position\nand orientation.  Use PageDown in the viewer to cycle through saved views to\nswitch to the associated viewpoint and subset of graphic PMI.\n\nSee the options related to viewpoints on the More tab.\nSee Help > Viewer > Graphic PMI\nSee Help > Viewer > PMI Placeholders\nSee Help > User Guide (section 4.2)\n\nGraphic PMI and placeholders must conform to recommended practices.\nSee Websites > CAx Recommended Practices"
+    tooltip::tooltip $foptv20 "The Viewer supports b-rep and AP242 tessellated part geometry, color,\ntransparency, edges, sketch and supplemental geometry, and clipping planes.\nTesselated part geometry is typically written to an AP242 file instead of or in\naddition to b-rep part geometry.\n\nThe Viewer uses the default web browser.  An Internet connection is required.\nThe Viewer does not support measurements.\n\nSee the More tab for more Viewer options.\nSee Help > Viewer > Overview and other topics"
+    tooltip::tooltip $buttons(viewPMI) "Graphic PMI for annotations is supported in AP242, AP203, and AP214 files.\nPMI (annotation) placeholders are supported in AP242.\n\nA Saved View is a subset of graphic PMI which has its own viewpoint position\nand orientation.  Use PageDown in the Viewer to cycle through saved views to\nswitch to the associated viewpoint and subset of graphic PMI.\n\nSee the options related to viewpoints on the More tab.\nSee Help > Viewer > Graphic PMI\nSee Help > Viewer > PMI Placeholders\nSee Help > User Guide (section 4.2)\n\nGraphic PMI and placeholders must conform to recommended practices.\nSee Websites > CAx Recommended Practices"
     tooltip::tooltip $buttons(feaLoadScale) "The length of load vectors can be scaled by their magnitude.\nLoad vectors are always colored by their magnitude."
     tooltip::tooltip $buttons(feaDispNoTail) "The length of displacement vectors with a tail are scaled by\ntheir magnitude.  Vectors without a tail are not.\nDisplacement vectors are always colored by their magnitude.\nLoad vectors always have a tail."
     tooltip::tooltip $foptv21 "Quality controls the number of facets used for curved surfaces.\nFor example, the higher the quality the more facets around the\ncircumference of a cylinder.\n\nNormals improve the default smooth shading of surfaces.  Using\nHigh Quality and Normals results in the best appearance for b-rep\npart geometry.  Quality and normals do not apply to tessellated\npart geometry.\n\nIf curved surfaces for b-rep part geometry look wrong even with\nQuality set to High, then use the Alternative B-rep Geometry\nProcessing method on the More tab."
@@ -805,7 +820,7 @@ proc guiOpenSTEPFile {} {
 #-------------------------------------------------------------------------------
 # more tab
 proc guiMoreTab {} {
-  global buttons cb developer fileDir fxls mydocs nb opt pmiElementsMaxRows recPracNames userWriteDir writeDir
+  global buttons cb developer fileDir fxls mydocs nb opt pmiElementsMaxRows recPracNames userWriteDir writeDir xlsManual
 
   set wxls [ttk::panedwindow $nb.xls -orient horizontal]
   $nb add $wxls -text " More " -padding 2
@@ -915,54 +930,68 @@ proc guiMoreTab {} {
     tooltip::tooltip $buttons(xlNoRound)   "See Help > User Guide (section 5.5.4)"
     tooltip::tooltip $buttons(SHOWALLPMI)  "The complete list of [expr {$pmiElementsMaxRows-3}] PMI Elements, including those that are not in the\nSTEP file, will be shown on the Semantic PMI Coverage worksheet.\n\nSee Help > Analyzer > PMI Coverage Analysis\nSee Help > User Guide (section 6.1.7)"
     tooltip::tooltip $buttons(xlHideLinks) "This option is useful when sharing a Spreadsheet with another user."
-    tooltip::tooltip $buttons(PMISEMRND)   "Rounding values might result in a better match to graphic PMI shown in\nthe viewer or to expected PMI in the NIST CAD models (FTC/STC 7, 8, 11).\n\nSee User Guide (section 6.1.3.1)\nSee Websites > Recommended Practice for\n   $recPracNames(pmi242), Section 5.4"
+    tooltip::tooltip $buttons(PMISEMRND)   "Rounding values might result in a better match to graphic PMI shown in\nthe Viewer or to expected PMI in the NIST CAD models (FTC/STC 7, 8, 11).\n\nSee User Guide (section 6.1.3.1)\nSee Websites > Recommended Practice for\n   $recPracNames(pmi242), Section 5.4"
     tooltip::tooltip $buttons(viewParallel) "Use parallel projection defined in the STEP file for saved view viewpoints,\ninstead of the default perspective projection.  Pan and zoom might not\nwork with parallel projection.  See Help > Viewer > Viewpoints"
     tooltip::tooltip $buttons(viewCorrect) "Correct for older implementations of camera models that\nmight not conform to current recommended practices.\nThe corrected viewpoint might fix the orientation but\nmaybe not the position.\n\nSee Help > Viewer > Viewpoints\nSee the CAx-IF Recommended Practice for\n $recPracNames(pmi242), Sec. 9.4.2.6"
     tooltip::tooltip $buttons(viewNoPMI)   "If the model has viewpoints with and without graphic PMI,\nthen also show the viewpoints without graphic PMI.  Those\nviewpoints are typically top, front, side, etc."
-    tooltip::tooltip $buttons(debugVP)     "Debug viewpoint orientation defined by a camera model\nby showing the view frustum in the viewer.\n\nSee Help > Viewer > Viewpoints\nSee the CAx-IF Recommended Practice for\n $recPracNames(pmi242), Sec. 9.4.2.6"
+    tooltip::tooltip $buttons(debugVP)     "Debug viewpoint orientation defined by a camera model\nby showing the view frustum in the Viewer.\n\nSee Help > Viewer > Viewpoints\nSee the CAx-IF Recommended Practice for\n $recPracNames(pmi242), Sec. 9.4.2.6"
     tooltip::tooltip $buttons(partCap)     "Generate capped surfaces for section view clipping planes.  Capped\nsurfaces might take a long time to generate or look wrong for parts\nin an assembly.  See Help > Viewer > New Features"
     tooltip::tooltip $buttons(brepAlt)     "If curved surfaces for Part Geometry look wrong even with\nQuality set to High, use an alternative b-rep geometry\nprocessing algorithm.  It will take longer to process the STEP\nfile and the resulting Viewer file will be larger."
     tooltip::tooltip $buttons(tessPartOld) "Process AP242 tessellated part geometry with the old method in SFA < 5.10.\nIt is not recommended for assemblies or large STEP files."
     tooltip::tooltip $buttons(x3dSave)     "The X3D file can be shown in an X3D viewer or imported to other software.\nUse this option if an Internet connection is not available for the Viewer.\nSee Help > Viewer"
-    tooltip::tooltip $buttons(partNoGroup) "This option might create a very long list of parts names in the viewer.\nIdentical parts have a underscore and number appended to their name.\nSee Help > Assemblies"
+    tooltip::tooltip $buttons(partNoGroup) "This option might create a very long list of parts names in the Viewer.\nIdentical parts have a underscore and number appended to their name.\nSee Help > Assemblies"
   }
 
 # output directory
   set fxlse [ttk::labelframe $fxls.e -text " Write Output to "]
-  set buttons(fileDir) [ttk::radiobutton $fxlse.$cb -text " Same directory as STEP file" -variable opt(writeDirType) -value 0 -command checkValues]
-  pack $fxlse.$cb -side left -anchor w -padx 5 -pady 2
-  incr cb
-
   set fxls1 [frame $fxlse.1]
-  ttk::radiobutton $fxls1.$cb -text " User-defined directory: " -variable opt(writeDirType) -value 2 -command {
+
+# writeDirType = 0
+  set buttons(fileDir) [ttk::radiobutton $fxls1.$cb -text " Same directory as STEP file" -variable opt(writeDirType) -value 0 -command checkValues]
+  pack $fxls1.$cb -side left -anchor w -padx 5 -pady 2
+  incr cb
+  catch {tooltip::tooltip $buttons(fileDir) "If possible, existing output files are always overwritten by new files.\nIf spreadsheets cannot be overwritten, a number is appended to the\nfile name: myfile-sfa-1.xlsx"}
+
+# writeDirType = 2
+  set buttons(userDir) [ttk::radiobutton $fxls1.$cb -text " User-defined directory: " -variable opt(writeDirType) -value 2 -command {
     checkValues
     if {[file exists $userWriteDir] && [file isdirectory $userWriteDir]} {
       set writeDir $userWriteDir
     } else {
       set userWriteDir $mydocs
-      tk_messageBox -type ok -icon error -title "Bad Directory" \
-        -message "The user-defined directory to write the Spreadsheet is bad.\nIt has been set to $userWriteDir"
+      tk_messageBox -type ok -icon error -title "Invalid Directory" \
+        -message "The user-defined directory is not valid.\nIt has been set to $userWriteDir"
     }
-    focus $buttons(userdir)
-  }
+    focus $buttons(userBrowse)
+  }]
   pack $fxls1.$cb -side left -anchor w -padx {5 0}
-  catch {tooltip::tooltip $fxls1 "This option is useful when the directory containing the STEP file is\nprotected (read-only) and none of the output can be written to it.\nDo not use a directory name containing bracket \[\] characters."}
   incr cb
 
-  set buttons(userentry) [ttk::entry $fxls1.entry -width 35 -textvariable userWriteDir]
+  set buttons(userEntry) [ttk::entry $fxls1.entry -width 35 -textvariable userWriteDir]
   pack $fxls1.entry -side left -anchor w -pady 2
-  set buttons(userdir) [ttk::button $fxls1.button -text "Browse" -command {
+  set buttons(userBrowse) [ttk::button $fxls1.button -text "Browse" -command {
     set uwd [tk_chooseDirectory -title "Select directory"]
     if {[file isdirectory $uwd]} {
       set userWriteDir $uwd
       set writeDir $userWriteDir
     }
   }]
-  pack $fxls1.button -side left -anchor w -padx 5 -pady 2
+  pack $fxls1.button -side top -anchor w -padx 5 -pady 2
   pack $fxls1 -side top -anchor w
+  set ttmsg "This option is useful when the directory containing the STEP file is\nprotected (read-only) and none of the output can be written to it."
+  catch {
+    tooltip::tooltip $buttons(userDir)    $ttmsg
+    tooltip::tooltip $buttons(userEntry)  $ttmsg
+    tooltip::tooltip $buttons(userBrowse) $ttmsg
+  }
+
+# manually save spreadsheet
+  set buttons(xlsManual) [ttk::checkbutton $fxlse.$cb -text " Manually save Excel spreadsheet" -variable xlsManual -command checkValues]
+  pack $fxlse.$cb -side top -anchor w -padx 5 -pady 2
+  incr cb
+  catch {tooltip::tooltip $buttons(xlsManual) "Use this option if other Excel options need to be set when saving\nthe spreadsheet or to set a user-defined file name.  Does not work\nwhen processing multiple STEP files."}
 
   pack $fxlse -side top -anchor w -pady {10 2} -padx 10 -fill both
-  catch {tooltip::tooltip $fxlse "If possible, existing output files are always overwritten by new files.\nIf spreadsheets cannot be overwritten, a number is appended to the\nfile name: myfile-sfa-1.xlsx"}
 
 # developer only options
   if {$developer} {
@@ -994,8 +1023,8 @@ proc guiWebsitesMenu {} {
   global Examples Websites
 
   $Websites add command -label "STEP File Analyzer and Viewer" -command {openURL https://www.nist.gov/services-resources/software/step-file-analyzer-and-viewer}
-  $Websites add command -label "- on CAx-IF"                   -command {openURL https://www.mbx-if.org/home/cax/resources/sfa/}
   $Websites add command -label "- on GitHub"                   -command {openURL https://github.com/usnistgov/SFA}
+  $Websites add command -label "- on CAx-IF"                   -command {openURL https://www.mbx-if.org/home/cax/resources/sfa/}
   $Websites add separator
   $Websites add command -label "CAx Interoperability Forum (CAx-IF)" -command {openURL https://www.mbx-if.org/home/cax/}
   $Websites add command -label "CAx Recommended Practices"           -command {openURL https://www.mbx-if.org/home/cax/recpractices/}
@@ -1006,7 +1035,6 @@ proc guiWebsitesMenu {} {
   $Websites add cascade -label "AP242" -menu $Websites.0
   set Websites0 [menu $Websites.0 -tearoff 1]
   $Websites0 add command -label "AP242 Project"           -command {openURL http://www.ap242.org}
-  $Websites0 add command -label "AP203 vs AP214 vs AP242" -command {openURL https://www.capvidia.com/blog/best-step-file-to-use-ap203-vs-ap214-vs-ap242}
   $Websites0 add command -label "Benchmark Testing"       -command {openURL http://www.asd-ssg.org/step-ap242-benchmark.html}
   $Websites0 add command -label "Domain Model XML"        -command {openURL https://www.mbx-if.org/home/pdm/recpractices/}
 
@@ -1017,21 +1045,21 @@ proc guiWebsitesMenu {} {
 
   $Websites add cascade -label "STEP" -menu $Websites.2
   set Websites2 [menu $Websites.2 -tearoff 1]
+  $Websites2 add command -label "STEP File Format"       -command {openURL https://www.loc.gov/preservation/digital/formats/fdd/fdd000448.shtml}
+  $Websites2 add command -label "STEP ISO 10303-21"      -command {openURL https://en.wikipedia.org/wiki/ISO_10303-21}
   $Websites2 add command -label "STEP File Viewers"      -command {openURL https://www.mbx-if.org/home/mbx/resources/}
   $Websites2 add command -label "STEP to X3D Translator" -command {openURL https://www.nist.gov/services-resources/software/step-x3d-translator}
-  $Websites2 add command -label "STEP File Format"  -command {openURL https://www.loc.gov/preservation/digital/formats/fdd/fdd000448.shtml}
-  $Websites2 add command -label "STEP ISO 10303-21" -command {openURL https://en.wikipedia.org/wiki/ISO_10303-21}
 
   $Websites2 add separator
   $Websites2 add command -label "AP209 FEA"     -command {openURL http://www.ap209.org}
   $Websites2 add command -label "AP238 STEP-NC" -command {openURL https://www.ap238.org}
   $Websites2 add command -label "AP239 PLCS"    -command {openURL http://www.ap239.org}
   $Websites2 add separator
-  $Websites2 add command -label "Learning EXPRESS"               -command {openURL https://www.expresslang.org/learn/}
-  $Websites2 add command -label "easyEXPRESS"                    -command {openURL https://www.nist.gov/news-events/news/2023/12/nist-releases-easyexpress-its-first-official-visual-studio-code-extension}
   $Websites2 add command -label "EXPRESS ISO 10303-11"           -command {openURL https://www.loc.gov/preservation/digital/formats/fdd/fdd000449.shtml}
   $Websites2 add command -label "EXPRESS data modeling language" -command {openURL https://en.wikipedia.org/wiki/EXPRESS_(data_modeling_language)}
   $Websites2 add command -label "EXPRESS Schemas"                -command {openURL https://www.mbx-if.org/home/mbx/resources/express-schemas/}
+  $Websites2 add command -label "Learning EXPRESS"               -command {openURL https://www.expresslang.org/learn/}
+  $Websites2 add command -label "easyEXPRESS"                    -command {openURL https://marketplace.visualstudio.com/items?itemName=usnistgov.easyEXPRESS}
 
   $Websites add cascade -label "Organizations" -menu $Websites.4
   set Websites4 [menu $Websites.4 -tearoff 1]
@@ -1504,11 +1532,11 @@ proc checkValues {} {
   }
 
   if {!$gen(Excel)} {
-    lappend butDisabled labelMaxRows xlHideLinks xlUnicode xlSort xlNoRound
+    lappend butDisabled labelMaxRows xlHideLinks xlUnicode xlSort xlNoRound xlsManual
     if {$opt(xlFormat) == "None"} {for {set i 0} {$i < 8} {incr i} {lappend butDisabled "maxrows$i"}}
     set opt(xlHideLinks) 0
   } else {
-    lappend butNormal labelMaxRows xlHideLinks xlUnicode xlSort xlNoRound
+    lappend butNormal labelMaxRows xlHideLinks xlUnicode xlSort xlNoRound xlsManual
     for {set i 0} {$i < 8} {incr i} {lappend butNormal "maxrows$i"}
   }
   if {$gen(Excel) && $gen(CSV)} {lappend butDisabled genExcel}
@@ -1535,7 +1563,7 @@ proc checkValues {} {
     foreach item [array names opt] {
       if {[string first "step" $item] == 0} {lappend butNormal $item}
     }
-    lappend butDisabled xlHideLinks xlUnicode xlSort xlNoRound BOM INVERSE PMIGRF PMISEM valProp genExcel
+    lappend butDisabled xlHideLinks xlUnicode xlSort xlNoRound BOM INVERSE PMIGRF PMISEM valProp genExcel xlsManual
     lappend butNormal viewFEA viewPMI viewPart
     lappend butNormal allNone0 allNone1 stepUSER
 
@@ -1544,7 +1572,7 @@ proc checkValues {} {
     foreach item [array names opt] {
       if {[string first "step" $item] == 0} {lappend butNormal $item}
     }
-    lappend butNormal xlHideLinks xlUnicode xlSort xlNoRound BOM INVERSE PMIGRF PMISEM valProp
+    lappend butNormal xlHideLinks xlUnicode xlSort xlNoRound BOM INVERSE PMIGRF PMISEM valProp xlsManual
     lappend butNormal viewFEA viewPMI viewPart
     lappend butNormal allNone0 allNone1 stepUSER
   }
@@ -1710,9 +1738,9 @@ proc checkValues {} {
 
 # user-defined directory text entry and browse button
   if {$opt(writeDirType) == 0} {
-    lappend butDisabled userdir userentry
+    lappend butDisabled userBrowse userEntry
   } elseif {$opt(writeDirType) == 2} {
-    lappend butNormal userdir userentry
+    lappend butNormal userBrowse userEntry
   }
 
 # make sure there is some entity type to process

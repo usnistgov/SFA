@@ -64,7 +64,7 @@ proc gpmiAnnotation {entType} {
     [list annotation_placeholder_occurrence_with_leader_line name styles $curve_style item $geometric_set role line_spacing leader_line $leader_line1 $leader_line2 $leader_line3]
 
 # external image
-  set PMIP(external_image_placement_in_callout) [list external_image_placement_in_callout name styles $curve_style item $geometric_set image role]
+  set PMIP(external_image_placement_in_callout) [list external_image_placement_in_callout name styles $curve_style item $geometric_set image [list document_file id]]
 
 # generate correct PMIP variable accounting for variations like characterized_object
   if {![info exists PMIP($entType)]} {
@@ -173,7 +173,7 @@ proc gpmiAnnotationReport {objEntity} {
   global ao aoname assocGeom badAttributes cells circleCenter col currx3dPID curveTrim dirRatio dirType draughtingModels draftModelCameraNames
   global draftModelCameras driPropID ent entAttrList entCount entLevel equivUnicodeString gen geomType gpmiEnts gpmiID gpmiIDRow gpmiName
   global gpmiRow gpmiTypes gpmiTypesInvalid gpmiTypesPerFile gpmiValProp grayBackground iCompCurve iCompCurveSeg iPolyline leaderCoords
-  global leaderLineID nindex numCompCurve numCompCurveSeg numPolyline numx3dPID objEntity1 opt placeAxes placeBox placeCoords placeSavedView
+  global leaderLineID localName nindex numCompCurve numCompCurveSeg numPolyline numx3dPID objEntity1 opt placeAxes placeBox placeCoords placeSavedView
   global placeSymbol pmiCol pmiColumns pmiHeading pmiStartCol propDefIDs recPracNames savedViewCol savedViewName spaces spmiTypesPerFile stepAP
   global syntaxErr tessCoord tessIndex tessIndexCoord tessPlacement tessPlacementID tessRepo useXL
   global x3dColor x3dCoord x3dFile x3dFileName x3dIndex x3dIndexType x3dMax x3dMin x3dPID x3dPoint x3dShape x3dStartFile
@@ -493,7 +493,7 @@ proc gpmiAnnotationReport {objEntity} {
                     if {$tessRepo} {
                       lappend tessPlacement($dirType) $dir
 
-# check for bad directions
+# check for invalid directions
                       set msg ""
                       if {[veclen $dir] == 0} {
                         set msg "Syntax Error: The axis2_placement_3d axis or ref_direction vector is '0 0 0' for a repositioned_tessellated_item."
@@ -534,7 +534,7 @@ proc gpmiAnnotationReport {objEntity} {
                     incr nval
                     if {[string first "tessellated_geometric_set" $ent1] != -1 && [$val Type] != "tessellated_curve_set" && \
                         [$val Type] != "triangulated_surface_set" && [$val Type] != "complex_triangulated_surface_set"} {
-                      set msg "Syntax Error: Bad '[$val Type]' attribute for tessellated_geometric_set.children$spaces\($recPracNames(pmi242), Sec. 8.2)"
+                      set msg "Syntax Error: Invalid '[$val Type]' attribute for tessellated_geometric_set.children$spaces\($recPracNames(pmi242), Sec. 8.2)"
                       errorMsg $msg
                       lappend syntaxErr($objType) [list $objID children $msg]
                     }
@@ -549,7 +549,7 @@ proc gpmiAnnotationReport {objEntity} {
                   foreach val [$objAttribute Value] {
                     append cellval([$val Type]) "[$val P21ID] "
                     if {$ent1 == "geometric_curve_set items" && [$val Type] != "polyline" && [$val Type] != "trimmed_curve" && [$val Type] != "circle"} {
-                      set msg "Syntax Error: Bad '[$val Type]' attribute for geometric_curve_set 'items'$spaces"
+                      set msg "Syntax Error: Invalid '[$val Type]' attribute for geometric_curve_set 'items'$spaces"
                       append msg "($recPracNames(pmi242), Sec. 8.1.1, 8.1.2)"
                       errorMsg $msg
                       lappend syntaxErr(tessellated_geometric_set) [list "-$r" children $msg]
@@ -894,6 +894,18 @@ proc gpmiAnnotationReport {objEntity} {
                     set placeBox($aoname,x) [trimNum $objValue]
                   }
                 }
+
+                "document_file id" {
+                  set e0s [$objEntity GetUsedIn [string trim applied_external_identification_assignment] [string trim items]]
+                  ::tcom::foreach e0 $e0s {
+                    set imageFileName [[[$e0 Attributes] Item [expr 1]] Value]
+                    if {[file exists [file join [file dirname $localName] $imageFileName]]} {
+                      set placeBox($aoname,image) $imageFileName
+                    } else {
+                      errorMsg "External image does not exist: $imageFileName" red
+                    }
+                  }
+                }
               }
 
 # value in spreadsheet
@@ -1071,7 +1083,7 @@ proc gpmiAnnotationReport {objEntity} {
                     lappend assocSPMI($dmiaDefType) $spmi_p21id
                   }
                 } elseif {[string first "property_definition" $dmiaDefType] == -1} {
-                  set msg "Syntax Error: Bad 'definition' attribute on $dmia when 'name' attribute is 'PMI representation to presentation link'.$spaces\($recPracNames(pmi242), Sec. 7.3)"
+                  set msg "Syntax Error: Invalid 'definition' attribute on $dmia when 'name' attribute is 'PMI representation to presentation link'.$spaces\($recPracNames(pmi242), Sec. 7.3)"
                   errorMsg $msg
                   lappend syntaxErr($dmia) [list [$entDMIA P21ID] definition $msg]
                 }
@@ -1091,7 +1103,7 @@ proc gpmiAnnotationReport {objEntity} {
             if {[string first "handle" $dmiaDef] != -1} {
               set dmiaDefType [$dmiaDef Type]
               if {[string first "draughting_model" $dmiaDefType] == -1} {
-                set msg "Syntax Error: Bad 'used_representation' attribute ($dmiaDefType) on $dmia.$spaces\($recPracNames(pmi242), Sec. 7.3)"
+                set msg "Syntax Error: Invalid 'used_representation' attribute ($dmiaDefType) on $dmia.$spaces\($recPracNames(pmi242), Sec. 7.3)"
                 errorMsg $msg
                 lappend syntaxErr([$entDMIA Type]) [list [$entDMIA P21ID] "used_representation" $msg]
               }

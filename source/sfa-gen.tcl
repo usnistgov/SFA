@@ -10,7 +10,7 @@ proc genExcel {{numFile 0}} {
   global startrow statsOnly stepAP stepAPreport sumHeaderRow syntaxErr tessBrep tessColor tessEnts tessSolid thisEntType timeStamp tlast tolNames tolStandard tolStandards
   global totalEntity unicodeActual unicodeAttr unicodeAttributes unicodeEnts unicodeInFile unicodeNumEnts unicodeString unicodeStringCM userEntityFile userEntityList
   global userWriteDir useXL uuidEnts valRounded viz wdir workbook workbooks worksheet worksheet1 worksheets writeDir wsCount wsNames x3dAxes
-  global x3dColor x3dColorFile x3dColors x3dFileName x3dIndex x3dMax x3dMin x3dMsg x3dMsgColor x3dStartFile x3dViewOK xlFileName xlFileNames xlInstalled
+  global x3dColor x3dColorFile x3dColors x3dFileName x3dIndex x3dMax x3dMin x3dMsg x3dMsgColor x3dStartFile x3dViewOK xlFileName xlFileNames xlInstalled xlsManual
   global objDesign
 
 # check a few variables
@@ -1505,27 +1505,35 @@ proc genExcel {{numFile 0}} {
     if {[catch {
       outputMsg " "
       if {$xlsmsg != ""} {outputMsg $xlsmsg red}
-      set xlFileName [checkFileName $xlFileName]
-      set xlfn $xlFileName
+
+      if {!$xlsManual || $numFile != 0} {
+        set xlFileName [checkFileName $xlFileName]
+        set xlfn $xlFileName
 
 # create new file name if spreadsheet already exists, delete new file name spreadsheets if possible
-      if {[file exists $xlfn]} {set xlfn [incrFileName $xlfn]}
+        if {[file exists $xlfn]} {set xlfn [incrFileName $xlfn]}
 
 # always save as spreadsheet
-      outputMsg "Saving Spreadsheet to:"
-      outputMsg " [truncFileName $xlfn 1]" blue
-      if {[catch {
-        catch {$excel DisplayAlerts False}
-        if {$xlFormat == 51} {
-          $workbook -namedarg SaveAs Filename $xlfn FileFormat $xlFormat
-        } else {
-          $workbook -namedarg SaveAs Filename $xlfn
+        outputMsg "Saving Spreadsheet to:"
+        outputMsg " [truncFileName $xlfn 1]" blue
+        if {[catch {
+          catch {$excel DisplayAlerts False}
+          if {$xlFormat == 51} {
+            $workbook -namedarg SaveAs Filename $xlfn FileFormat $xlFormat
+          } else {
+            $workbook -namedarg SaveAs Filename $xlfn
+          }
+          catch {$excel DisplayAlerts True}
+          set lastXLS $xlfn
+          lappend xlFileNames $xlfn
+        } emsg1]} {
+          errorMsg "Error Saving Spreadsheet: $emsg1"
         }
-        catch {$excel DisplayAlerts True}
-        set lastXLS $xlfn
-        lappend xlFileNames $xlfn
-      } emsg1]} {
-        errorMsg "Error Saving Spreadsheet: $emsg1"
+
+# user to manually save spreadsheet
+      } else {
+        $excel Visible 1
+        outputMsg "You have to manually save the Excel spreadsheet" red
       }
 
 # save worksheets as CSV files
@@ -1571,7 +1579,6 @@ proc genExcel {{numFile 0}} {
             if {[file exists $csvfname]} {set csvfname [incrFileName $csvfname]}
             set csvfname [checkFileName $csvfname]
 
-            if {[string first "PMI-Representation" $csvfname] != -1 && $excelVersion < 16} {errorMsg "GD&T symbols in CSV files are only supported with Excel 2016 or newer." red}
             $workbook -namedarg SaveAs Filename [file rootname $csvfname] FileFormat $csvFormat
             incr nprogBarEnts
             update
@@ -1583,11 +1590,14 @@ proc genExcel {{numFile 0}} {
 
       catch {$excel ScreenUpdating 1}
 
-# close Excel
-      $excel Quit
-      set openxl 1
-      catch {unset excel}
-      catch {if {[llength $pidExcel] == 1} {twapi::end_process $pidExcel -force}}
+# close Excel if not manually saving spreadsheet
+      set openxl 0
+      if {!$xlsManual || $numFile != 0} {
+        $excel Quit
+        set openxl 1
+        catch {unset excel}
+        catch {if {[llength $pidExcel] == 1} {twapi::end_process $pidExcel -force}}
+      }
 
 # add Link(n) text to multi file summary
       if {$numFile != 0 && [info exists cells1(Summary)]} {
@@ -1624,7 +1634,7 @@ proc genExcel {{numFile 0}} {
     if {$useXL} {
       if {$ok} {
         openXLS $xlfn
-      } elseif {!$opt(outputOpen) && $numFile == 0 && $guiSFA} {
+      } elseif {!$opt(outputOpen) && $numFile == 0 && $guiSFA && !$xlsManual} {
         outputMsg " Use F2 to open the Spreadsheet" red
       }
     }
@@ -1776,9 +1786,9 @@ proc addHeaderWorksheet {numFile fname} {
             }
           } elseif {$id == 4} {
             append str " (Edition 3)"
-            #if {[llength $ap242ed(4)] > 0} {
-            #  set simsg " The STEP file contains entities ([join $ap242ed(4)]) found in AP242 Edition 4, however, the file is identified as Edition 3.  See Websites > STEP > EXPRESS Schemas"
-            #}
+            if {[llength $ap242ed(4)] > 0} {
+              set simsg " The STEP file contains entities ([join $ap242ed(4)]) found in AP242 Edition 4, however, the file is identified as Edition 3.  See Websites > STEP > EXPRESS Schemas"
+            }
           } elseif {$id >= 5 && $id <= 7} {
             if {$id != 7} {set simsg " AP242 Edition 4 should be identified with '\{1 0 10303 442 7 1 4\}'  See Websites > STEP > EXPRESS Schemas"}
             append str " (Edition 4)"
@@ -2056,7 +2066,7 @@ proc sumAddWorksheet {} {
           $cells($sum) Item $sumRow 1 "$iloldscr  \[Semantic PMI\]"
         } elseif {[lsearch $spmiEntity $entType] != -1 && $opt(PMISEM)} {
           $cells($sum) Item $sumRow 1 "$entType  \[Semantic PMI\]"
-        } elseif {[string first "annotation" $entType] != -1 && $opt(PMIGRF)} {
+        } elseif {([string first "annotation" $entType] != -1 || [string first "external_image" $entType] == 0) && $opt(PMIGRF)} {
           if {$gpmiEnts($entType) && $col($entType) > 5} {set okao 1}
         } elseif {[lsearch $vpEnts $entType] != -1} {
           $cells($sum) Item $sumRow 1 "$entType  \[Properties\]"
