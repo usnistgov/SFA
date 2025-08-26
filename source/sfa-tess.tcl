@@ -1,7 +1,7 @@
 proc tessPart {entType} {
   global objDesign
   global ao ent entAttrList entCount entLevel mytemp opt
-  global tessPartFile tessPartFileName tessSuppGeomFile tessSuppGeomFileName
+  global tessPartFile tessPartFileName
 
   if {$opt(DEBUG1)} {outputMsg "START tessPart $entType" red}
   set msg " Adding Tessellated Part Geometry"
@@ -47,17 +47,6 @@ proc tessPart {entType} {
     }
   }
 
-# open file for tessellated supplemental geometry
-  foreach wire {tessellated_wire tessellated_shell} {
-    if {[info exists entCount($wire)] && ![info exists tessSuppGeomFileName]} {
-      if {$entCount($wire) > 0} {
-        set tessSuppGeomFileName [file join $mytemp tessSuppGeom.txt]
-        catch {file delete -force -- $tessSuppGeomFileName}
-        set tessSuppGeomFile [open $tessSuppGeomFileName w]
-      }
-    }
-  }
-
 # process entities, call tessPartGeometry
   ::tcom::foreach objEntity [$objDesign FindObjects [join $entType]] {
     if {[$objEntity Type] == $entType} {tessPartGeometry $objEntity}
@@ -66,7 +55,7 @@ proc tessPart {entType} {
 
 # -------------------------------------------------------------------------------
 proc tessPartGeometry {objEntity} {
-  global ao badAttributes ent entAttrList entLevel gen objEntity1 opt shellSuppGeom tessCoord
+  global ao badAttributes ent entAttrList entLevel gen objEntity1 opt tessCoord
   global tessEdgeCoord tessEdges tessIndex tessIndexCoord x3dFile x3dStartFile
 
   if {$opt(DEBUG1)} {outputMsg "tessPartGeometry [$objEntity Type] [$objEntity P21ID]" red}
@@ -78,16 +67,7 @@ proc tessPartGeometry {objEntity} {
     set objID   [$objEntity P21ID]
     set objAttributes [$objEntity Attributes]
     set ent($entLevel) $objType
-    if {$entLevel == 1} {
-      set objEntity1 $objEntity
-
-# check if tessellated shell is an item of tessellated_constructive_geometry_representation (supplemental geometry)
-      set shellSuppGeom 0
-      if {[$objEntity1 Type] == "tessellated_shell"} {
-        set e0s [$objEntity1 GetUsedIn [string trim tessellated_constructive_geometry_representation] [string trim items]]
-        ::tcom::foreach e0 $e0s {set shellSuppGeom 1}
-      }
-    }
+    if {$entLevel == 1} {set objEntity1 $objEntity}
 
     if {$opt(DEBUG1)} {outputMsg "$ind ENT $entLevel #$objID=$objType (ATR=[$objAttributes Count])" blue}
 
@@ -191,7 +171,10 @@ proc tessPartGeometry {objEntity} {
 # if coordOnly=1, then only read coordinates_list, used for saved view pmi validation properties
 # if coordOnly=2, then only read point_cloud_dataset
 proc tessReadGeometry {{coordOnly 0}} {
-  global entCount localName recPracNames syntaxErr spaces tessCoord tessCoordName tessIndex tessIndexCoord x3dMax x3dMin
+  global entCount localName recPracNames syntaxErr spaces tessCoord tessCoordName tessIndex tessIndexCoord tessReadOnce x3dMax x3dMin
+  
+  if {[info exists tessReadOnce]} {return}
+  set tessReadOnce 1
 
   set tg [open $localName r]
   set ncl  0

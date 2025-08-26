@@ -3,7 +3,7 @@ proc uuidGetAttributes {totalUUID entsUUID} {
   global cells idRow localName syntaxErr uuid uuidEnts
   global objDesign
 
-  errorMsg "\nProcessing UUID attributes" blue
+  outputMsg "\nProcessing UUID attributes" blue
   set nUUID 0
   set allUUID {}
   set noUUIDent {}
@@ -274,7 +274,7 @@ proc uuidReportAttributes {idType {uuidEnt ""}} {
 # bad ID in anchor section
           if {$badEnt} {
             [[$worksheet($sect) Range [cellRange $r 1] [cellRange $r 1]] Interior] Color $legendColor(red)
-            errorMsg "Syntax Error: Bad format for entity ID in ANCHOR section."
+            errorMsg "Syntax Error: Invalid format for entity ID in ANCHOR section."
           }
         }
       }

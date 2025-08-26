@@ -580,7 +580,7 @@ proc x3dBrepGeom {} {
         if {[info exists msg]} {
           errorMsg $msg
           outputMsg " "
-          lappend x3dMsg "Error generating STEP part geometry"
+          lappend x3dMsg "Error generating B-rep part geometry"
         }
       }
     } else {

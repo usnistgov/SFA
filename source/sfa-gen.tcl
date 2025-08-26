@@ -230,6 +230,7 @@ proc genExcel {{numFile 0}} {
 
 # get stats
     set openStage 3
+    if {![info exists gen(CSV)]} {set gen(CSV) 0}
     if {$entityCount > 0} {
       outputMsg " $entityCount entities"
       set entityTypeNames [$objDesign EntityTypeNames [expr 2]]
@@ -300,31 +301,33 @@ proc genExcel {{numFile 0}} {
       if {[llength $characteristics] > 0} {set characteristics [lrmdups $characteristics]}
 
 # check for type of part geometry
-      set bSolid 0
-      set bSurface 0
-      set tSolid 0
-      set tSurface 0
-      foreach entType [list manifold_solid_brep shell_based_surface_model tessellated_solid tessellated_shell tessellated_closed_shell tessellated_open_shell] {
-        set num [$objDesign CountEntities "$entType"]
-        if {$num > 0} {
-          switch $entType {
-            "manifold_solid_brep" {set bSolid 1}
-            "shell_based_surface_model" {set bSurface 1}
-            "tessellated_solid" {set tSolid 1}
-            "tessellated_shell" -
-            "tessellated_closed_shell" -
-            "tessellated_open_shell" {set tSurface 1}
+      catch {
+        set bSolid 0
+        set bSurface 0
+        set tSolid 0
+        set tSurface 0
+        foreach entType [list manifold_solid_brep shell_based_surface_model tessellated_solid tessellated_shell tessellated_closed_shell tessellated_open_shell] {
+          set num [$objDesign CountEntities "$entType"]
+          if {$num > 0} {
+            switch $entType {
+              "manifold_solid_brep" {set bSolid 1}
+              "shell_based_surface_model" {set bSurface 1}
+              "tessellated_solid" {set tSolid 1}
+              "tessellated_shell" -
+              "tessellated_closed_shell" -
+              "tessellated_open_shell" {set tSurface 1}
+            }
           }
         }
-      }
-      set str ""
-      if {$bSolid}   {append str "b-rep solid, "}
-      if {$bSurface} {append str "b-rep surface, "}
-      if {$tSolid}   {append str "tessellated solid, "}
-      if {$tSurface} {append str "tessellated surface, "}
-      if {$str != ""} {
-        set str [list "Part geometry ([string range $str 0 end-2])"]
-        set characteristics [concat $str $characteristics]
+        set str ""
+        if {$bSolid}   {append str "b-rep solid, "}
+        if {$bSurface} {append str "b-rep surface, "}
+        if {$tSolid}   {append str "tessellated solid, "}
+        if {$tSurface} {append str "tessellated surface, "}
+        if {$str != ""} {
+          set str [list "Part geometry ([string range $str 0 end-2])"]
+          set characteristics [concat $str $characteristics]
+        }
       }
 
 # report characteristics
@@ -1693,7 +1696,7 @@ proc genExcel {{numFile 0}} {
   update idletasks
 
 # unset variables
-  foreach var {anchorSum assemTransformPMI brepScale cells cgrObjects cmNameID colColor commasep count currx3dPID datumEntType datumGeom datumIDs datumSymbol datumSystem datumSystemPDS defComment dimrep dimrepID dimtolEnt dimtolEntID dimtolGeom draughtingModels draftModelCameraNames draftModelCameras driPropID entCount entName entsIgnored epmi epmiUD equivUnicodeString feaDOFR feaDOFT feaNodes fileSumRow fontErr gpmiID gpmiIDRow gpmiRow heading idRow invCol invGroup noFontFile npart nrep numx3dPID placeAxes placeAxesDef placeCoords placeSphereDef pmiCol pmiColumns pmiStartCol pmivalprop propDefID propDefIDRow propDefName propDefOK propDefRow ptzError savedsavedViewNames savedViewFile savedViewFileName savedViewItems savedViewNames savedViewpoint savedViewVP shapeRepName spmiSumRowID srNames suppGeomEnts syntaxErr taoLastID tessCoord tessCoordID tessCoordName tessIndex tessIndexCoord tessPlacement tessRepo trimVal unicode unicodeActual unicodeNumEnts unicodeString viz vpEnts workbook workbooks worksheet worksheets x3dCoord x3dFile x3dFileName x3dIndex x3dMax x3dMin x3dStartFile} {
+  foreach var {anchorSum assemTransformPMI brepScale cells cgrObjects cmNameID colColor commasep count currx3dPID datumEntType datumGeom datumIDs datumSymbol datumSystem datumSystemPDS defComment dimrep dimrepID dimtolEnt dimtolEntID dimtolGeom draughtingModels draftModelCameraNames draftModelCameras driPropID entCount entName entsIgnored epmi epmiUD equivUnicodeString feaDOFR feaDOFT feaNodes fileSumRow fontErr gpmiID gpmiIDRow gpmiRow heading idRow invCol invGroup noFontFile npart nrep numx3dPID placeAxes placeAxesDef placeCoords placeSphereDef pmiCol pmiColumns pmiStartCol pmivalprop propDefID propDefIDRow propDefName propDefOK propDefRow ptzError savedsavedViewNames savedViewFile savedViewFileName savedViewItems savedViewNames savedViewpoint savedViewVP shapeRepName spmiSumRowID srNames suppGeomEnts syntaxErr taoLastID tessCoord tessCoordID tessCoordName tessIndex tessIndexCoord tessPlacement tessReadOnce tessRepo trimVal unicode unicodeActual unicodeNumEnts unicodeString viz vpEnts workbook workbooks worksheet worksheets x3dCoord x3dFile x3dFileName x3dIndex x3dMax x3dMin x3dStartFile} {
     catch {global $var}
     if {[info exists $var]} {unset $var}
   }

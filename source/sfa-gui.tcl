@@ -1,5 +1,5 @@
 # SFA version
-proc getVersion {} {return 5.31}
+proc getVersion {} {return 5.32}
 
 # see proc installIFCsvr in sfa-proc.tcl for the IFCsvr version
 # see below (line 37) for the sfaVersion when IFCsvr was updated
@@ -267,7 +267,7 @@ proc guiFileMenu {} {
 }
 
 #-------------------------------------------------------------------------------
-# generate tab (formerly options)
+# generate tab
 proc guiGenerateTab {} {
   global allNone buttons cb entCategory fopt fopta nb lastPartOnly opt optSave recPracNames useXL xlInstalled
 
@@ -668,7 +668,7 @@ proc guiGenerateTab {} {
     tooltip::tooltip $buttons(feaLoadScale) "The length of load vectors can be scaled by their magnitude.\nLoad vectors are always colored by their magnitude."
     tooltip::tooltip $buttons(feaDispNoTail) "The length of displacement vectors with a tail are scaled by\ntheir magnitude.  Vectors without a tail are not.\nDisplacement vectors are always colored by their magnitude.\nLoad vectors always have a tail."
     tooltip::tooltip $foptv21 "Quality controls the number of facets used for curved surfaces.\nFor example, the higher the quality the more facets around the\ncircumference of a cylinder.\n\nNormals improve the default smooth shading of surfaces.  Using\nHigh Quality and Normals results in the best appearance for b-rep\npart geometry.  Quality and normals do not apply to tessellated\npart geometry.\n\nIf curved surfaces for b-rep part geometry look wrong even with\nQuality set to High, then use the Alternative B-rep Geometry\nProcessing method on the More tab."
-    tooltip::tooltip $foptv4  "For 'By View' PMI colors, each Saved View is set to a different color.  If there\nis only one or no Saved Views, then 'Random' PMI colors are used.\n\nFor 'Random' PMI colors, each annotation is set to a different color to help\ndifferentiate one from another.\n\nPMI color does not apply to annotation placeholders which are always black."
+    tooltip::tooltip $foptv4  "For 'By View' PMI colors, all of the annotations in a Saved View are set to the\nsame color.  If there is only one or no Saved Views, then 'Random' PMI colors\nare used.  For 'Random' PMI colors, each annotation is set to a different color.\nPMI color does not apply to annotation placeholders which are always black."
     set tt "FEM nodes, elements, boundary conditions, loads, and\ndisplacements in AP209 files are shown.\n\nSee Help > Viewer > AP209 Finite Element Model\nSee Help > User Guide (section 4.4)"
     tooltip::tooltip $foptv7 $tt
     tooltip::tooltip $foptv8 $tt
@@ -935,7 +935,7 @@ proc guiMoreTab {} {
     tooltip::tooltip $buttons(viewCorrect) "Correct for older implementations of camera models that\nmight not conform to current recommended practices.\nThe corrected viewpoint might fix the orientation but\nmaybe not the position.\n\nSee Help > Viewer > Viewpoints\nSee the CAx-IF Recommended Practice for\n $recPracNames(pmi242), Sec. 9.4.2.6"
     tooltip::tooltip $buttons(viewNoPMI)   "If the model has viewpoints with and without graphic PMI,\nthen also show the viewpoints without graphic PMI.  Those\nviewpoints are typically top, front, side, etc."
     tooltip::tooltip $buttons(debugVP)     "Debug viewpoint orientation defined by a camera model\nby showing the view frustum in the Viewer.\n\nSee Help > Viewer > Viewpoints\nSee the CAx-IF Recommended Practice for\n $recPracNames(pmi242), Sec. 9.4.2.6"
-    tooltip::tooltip $buttons(partCap)     "Generate capped surfaces for section view clipping planes.  Capped\nsurfaces might take a long time to generate or look wrong for parts\nin an assembly.  See Help > Viewer > New Features"
+    tooltip::tooltip $buttons(partCap)     "Generate capped surfaces for section view clipping planes.  Capped\nsurfaces might take a long time to generate or look wrong for parts\nin an assembly.  See Help > Viewer > Other Features"
     tooltip::tooltip $buttons(brepAlt)     "If curved surfaces for Part Geometry look wrong even with\nQuality set to High, use an alternative b-rep geometry\nprocessing algorithm.  It will take longer to process the STEP\nfile and the resulting Viewer file will be larger."
     tooltip::tooltip $buttons(tessPartOld) "Process AP242 tessellated part geometry with the old method in SFA < 5.10.\nIt is not recommended for assemblies or large STEP files."
     tooltip::tooltip $buttons(x3dSave)     "The X3D file can be shown in an X3D viewer or imported to other software.\nUse this option if an Internet connection is not available for the Viewer.\nSee Help > Viewer"
@@ -1509,7 +1509,6 @@ proc checkValues {} {
     set gen(Excel) 0
     set gen(Excel1) 0
     set gen(CSV) 0
-    set opt(tessPartOld) 0
     lappend butNormal genExcel
     lappend butDisabled partCap debugVP tessPartOld viewParallel viewCorrect viewNoPMI
   } else {
@@ -1521,8 +1520,6 @@ proc checkValues {} {
     if {!$opt(partOnly)} {lappend butNormal tessPartOld}
   } else {
     lappend butDisabled brepAlt tessPartOld
-    set opt(brepAlt) 0
-    set opt(tessPartOld) 0
   }
 
   if {$opt(tessPartOld)} {
@@ -1534,7 +1531,6 @@ proc checkValues {} {
   if {!$gen(Excel)} {
     lappend butDisabled labelMaxRows xlHideLinks xlUnicode xlSort xlNoRound xlsManual
     if {$opt(xlFormat) == "None"} {for {set i 0} {$i < 8} {incr i} {lappend butDisabled "maxrows$i"}}
-    set opt(xlHideLinks) 0
   } else {
     lappend butNormal labelMaxRows xlHideLinks xlUnicode xlSort xlNoRound xlsManual
     for {set i 0} {$i < 8} {incr i} {lappend butNormal "maxrows$i"}
@@ -1679,7 +1675,6 @@ proc checkValues {} {
   if {$opt(PMISEM) && $gen(Excel)} {
     lappend butNormal SHOWALLPMI
   } else {
-    set opt(SHOWALLPMI) 0
     lappend butDisabled SHOWALLPMI
   }
 

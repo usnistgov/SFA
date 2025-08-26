@@ -1,6 +1,7 @@
 # supplemental geometry
 proc x3dSuppGeom {} {
-  global entCount maxxyz recPracNames skipEntities syntaxErr tessSuppGeomFile tessSuppGeomFileName trimVal x3dFile
+  global entCount maxxyz recPracNames skipEntities spmiTypesPerFile syntaxErr
+  global tessCoord tessCoordID tessIndex tessIndexCoord trimVal viz x3dFile
   global objDesign
   if {![info exists objDesign]} {return}
 
@@ -21,55 +22,65 @@ proc x3dSuppGeom {} {
 
 # get all *constructive_geometry_representation
   if {![info exists cgrObjects]} {
-    if {$cgr}  {set cgrObjects  [$objDesign FindObjects [string trim constructive_geometry_representation]]}
-    if {$tcgr} {set tcgrObjects [$objDesign FindObjects [string trim tessellated_constructive_geometry_representation]]}
-    if {$cgr && $tcgr} {
-      set cgrObjects [concat $cgrObjects $tcgrObjects]
-    } elseif {$tcgr} {
-      set cgrObjects $tcgrObjects
+    set obj {}
+    if {$cgr} {
+      set cgrObjects [$objDesign FindObjects [string trim constructive_geometry_representation]]
+      ::tcom::foreach e0 $cgrObjects {lappend obj $e0}
     }
+    if {$tcgr} {
+      set tcgrObjects [$objDesign FindObjects [string trim tessellated_constructive_geometry_representation]]
+      ::tcom::foreach e0 $tcgrObjects {lappend obj $e0}
+    }
+    set cgrObjects $obj
   }
-  ::tcom::foreach e0 $cgrObjects {
+
+  foreach e0 $cgrObjects {
     if {$debugSG} {outputMsg "[$e0 Type] [$e0 P21ID]" green; puts $x3dFile "<!-- CGR [$e0 P21ID] -->"}
 
 # for SG in assemblies, find related shape_representation > item_defined_transformation > a2p3d > transform
     if {[catch {
-      if {$cgr}  {set cgrrs  [$e0 GetUsedIn [string trim constructive_geometry_representation_relationship] [string trim rep_2]]}
-      if {$tcgr} {set tcgrrs [$e0 GetUsedIn [string trim tessellated_constructive_geometry_representation_relationship] [string trim rep_2]]}
-      if {$cgr && $tcgr} {
-        set cgrrs [concat $cgrrs $tcgrrs]
-      } elseif {$tcgr} {
-        set cgrrs $tcgrrs
-      }
-      ::tcom::foreach cgrr $cgrrs {
-        set shapeRep [[[$cgrr Attributes] Item [expr 3]] Value]
-        set rrwts [$shapeRep GetUsedIn [string trim representation_relationship_with_transformation_and_shape_representation_relationship] [string trim rep_1]]
-        if {$debugSG} {outputMsg " [$cgrr Type] [$cgrr P21ID]\n  [$shapeRep Type] [$shapeRep P21ID] [[[$shapeRep Attributes] Item [expr 1]] Value]" red}
+      if {[$e0 Type] == "constructive_geometry_representation"} {
+        set obj {}
+        if {$cgr} {
+          set cgrrs [$e0 GetUsedIn [string trim constructive_geometry_representation_relationship] [string trim rep_2]]
+          ::tcom::foreach e1 $cgrrs {lappend obj $e1}
+        }
+        if {$tcgr} {
+          set tcgrrs [$e0 GetUsedIn [string trim tessellated_constructive_geometry_representation_relationship] [string trim rep_2]]
+          ::tcom::foreach e1 $tcgrrs {lappend obj $e1}
+        }
+        set cgrrs $obj
+
+        foreach cgrr $cgrrs {
+          set shapeRep [[[$cgrr Attributes] Item [expr 3]] Value]
+          set rrwts [$shapeRep GetUsedIn [string trim representation_relationship_with_transformation_and_shape_representation_relationship] [string trim rep_1]]
+          if {$debugSG} {outputMsg " [$cgrr Type] [$cgrr P21ID]\n  [$shapeRep Type] [$shapeRep P21ID] [[[$shapeRep Attributes] Item [expr 1]] Value]" red}
 
 # count NRRWT, if none use rep_2
-        set rep_2 0
-        set nrrwt 0
-        ::tcom::foreach rrwt $rrwts {incr nrrwt}
-        if {$nrrwt == 0} {
-          set rrwts [$shapeRep GetUsedIn [string trim representation_relationship_with_transformation_and_shape_representation_relationship] [string trim rep_2]]
+          set rep_2 0
+          set nrrwt 0
           ::tcom::foreach rrwt $rrwts {incr nrrwt}
-        }
+          if {$nrrwt == 0} {
+            set rrwts [$shapeRep GetUsedIn [string trim representation_relationship_with_transformation_and_shape_representation_relationship] [string trim rep_2]]
+            ::tcom::foreach rrwt $rrwts {incr nrrwt}
+          }
 
 # get transform (assumes no nesting)
-        if {$nrrwt > 0} {
-          ::tcom::foreach rrwt $rrwts {
-            set idt [[[$rrwt Attributes] Item [expr 5]] Value]
-            switch -- $rep_2 {
-              0 {set a2p3d [[[$idt Attributes] Item [expr 4]] Value]}
-              1 {set a2p3d [[[$idt Attributes] Item [expr 3]] Value]}
-            }
-            if {$debugSG} {outputMsg "   [$idt Type] [$idt P21ID]\n    [$a2p3d Type] [$a2p3d P21ID]" red}
+          if {$nrrwt > 0} {
+            ::tcom::foreach rrwt $rrwts {
+              set idt [[[$rrwt Attributes] Item [expr 5]] Value]
+              switch -- $rep_2 {
+                0 {set a2p3d [[[$idt Attributes] Item [expr 4]] Value]}
+                1 {set a2p3d [[[$idt Attributes] Item [expr 3]] Value]}
+              }
+              if {$debugSG} {outputMsg "   [$idt Type] [$idt P21ID]\n    [$a2p3d Type] [$a2p3d P21ID]" red}
 
 # transform
-            set a2p3d [x3dGetA2P3D $a2p3d]
-            set transform [x3dTransform [lindex $a2p3d 0] [lindex $a2p3d 1] [lindex $a2p3d 2] "supplemental geometry 'transform'"]
-            lappend transforms $transform
-            if {$debugSG} {outputMsg "     $transform" red}
+              set a2p3d [x3dGetA2P3D $a2p3d]
+              set transform [x3dTransform [lindex $a2p3d 0] [lindex $a2p3d 1] [lindex $a2p3d 2] "supplemental geometry 'transform'"]
+              lappend transforms $transform
+              if {$debugSG} {outputMsg "     $transform" red}
+            }
           }
         }
       }
@@ -207,15 +218,94 @@ proc x3dSuppGeom {} {
               }
             }
 
+            triangulated_surface_set -
+            complex_triangulated_surface_set -
+            triangulated_face -
+            complex_triangulated_face {
+              tessReadGeometry
+              set objID [$e2 P21ID]
+              puts $x3dFile "<Shape><Appearance><Material diffuseColor='0 0 1' transparency='0.8'/></Appearance>"
+              puts $x3dFile " <IndexedFaceSet solid='false' coordIndex='[string trim $tessIndex($objID)]'>"
+              if {![info exists tessCoordID($x3dFile)] || [lsearch $tessCoordID($x3dFile) $tessIndexCoord($objID)] == -1} {
+                lappend tessCoordID($x3dFile) $tessIndexCoord($objID)
+                puts $x3dFile "  <Coordinate DEF='coord$tessIndexCoord($objID)' point='[string trim $tessCoord($tessIndexCoord($objID))]'/></IndexedFaceSet></Shape>"
+              } else {
+                puts $x3dFile "  <Coordinate USE='coord$tessIndexCoord($objID)'/></IndexedFaceSet></Shape>"
+              }
+              set name [[[$e2 Attributes] Item [expr 1]] Value]
+              if {$name != ""} {
+                set index [expr {[lindex $tessIndex($objID) 0]*3}]
+                set coord [lrange [string trim $tessCoord($tessIndexCoord($objID))] $index $index+2]
+                set nsize [trimNum [expr {$tsize*0.5}]]
+                puts $x3dFile " <Transform translation='[vectrim $coord]' scale='$nsize $nsize $nsize'><Billboard axisOfRotation='0 0 0'><Shape><Text string='$name'><FontStyle family='SANS' justify='BEGIN'/></Text><Appearance><Material diffuseColor='0 0 1'/></Appearance></Shape></Billboard></Transform>"
+              }
+              lappend spmiTypesPerFile "supplemental geometry"
+              set viz(SUPPGEOM) 1
+            }
+
+            tessellated_curve_set {
+              tessReadGeometry
+              set objID [$e2 P21ID]
+              puts $x3dFile "<Shape><Appearance><Material emissiveColor='1 0 1'/></Appearance>"
+              puts $x3dFile " <IndexedLineSet coordIndex='[string trim $tessIndex($objID)]'>"
+              if {![info exists tessCoordID($x3dFile)] || [lsearch $tessCoordID($x3dFile) $tessIndexCoord($objID)] == -1} {
+                lappend tessCoordID($x3dFile) $tessIndexCoord($objID)
+                puts $x3dFile "  <Coordinate DEF='coord$tessIndexCoord($objID)' point='[string trim $tessCoord($tessIndexCoord($objID))]'/></IndexedLineSet></Shape>"
+              } else {
+                puts $x3dFile "  <Coordinate USE='coord$tessIndexCoord($objID)'/></IndexedLineSet></Shape>"
+              }
+              set name [[[$e2 Attributes] Item [expr 1]] Value]
+              if {$name != ""} {
+                set index [expr {[lindex $tessIndex($objID) 0]*3}]
+                set coord [lrange [string trim $tessCoord($tessIndexCoord($objID))] $index $index+2]
+                set nsize [trimNum [expr {$tsize*0.5}]]
+                puts $x3dFile " <Transform translation='[vectrim $coord]' scale='$nsize $nsize $nsize'><Billboard axisOfRotation='0 0 0'><Shape><Text string='$name'><FontStyle family='SANS' justify='BEGIN'/></Text><Appearance><Material diffuseColor='0 0 1'/></Appearance></Shape></Billboard></Transform>"
+              }
+              lappend spmiTypesPerFile "supplemental geometry"
+              set viz(SUPPGEOM) 1
+            }
+
+            tessellated_edge {
+              tessReadGeometry
+              set coordList [[[[$e2 Attributes] Item [expr 2]] Value] P21ID]
+              set coordIndex [[[$e2 Attributes] Item [expr 4]] Value]
+              puts $x3dFile "<Shape><Appearance><Material emissiveColor='1 0 1'/></Appearance>"
+              puts $x3dFile " <IndexedLineSet coordIndex='[string trim $coordIndex]'>"
+              puts $x3dFile "  <Coordinate point='[string trim $tessCoord($coordList)]'/></IndexedLineSet></Shape>"
+              set name [[[$e2 Attributes] Item [expr 1]] Value]
+              if {$name != ""} {
+                set index [expr {[lindex $coordIndex 0]*3}]
+                set coord [lrange [string trim $tessCoord($coordList)] $index $index+2]
+                set nsize [trimNum [expr {$tsize*0.5}]]
+                puts $x3dFile " <Transform translation='[vectrim $coord]' scale='$nsize $nsize $nsize'><Billboard axisOfRotation='0 0 0'><Shape><Text string='$name'><FontStyle family='SANS' justify='BEGIN'/></Text><Appearance><Material diffuseColor='1 0 1'/></Appearance></Shape></Billboard></Transform>"
+              }
+              lappend spmiTypesPerFile "supplemental geometry"
+              set viz(SUPPGEOM) 1
+            }
+
+            tessellated_vertex {
+              tessReadGeometry
+              set coordList [[[[$e2 Attributes] Item [expr 2]] Value] P21ID]
+              set coordIndex [[[$e2 Attributes] Item [expr 4]] Value]
+              set j [expr {$coordIndex*3}]
+              set coord "[lindex $tessCoord($coordList) $j] [lindex $tessCoord($coordList) $j+1] [lindex $tessCoord($coordList) $j+2]"
+              puts $x3dFile "<Transform translation='$coord'><Shape><Sphere radius='[trimNum [expr {$tsize*0.05}]]'></Sphere><Appearance><Material diffuseColor='0 0 0' emissiveColor='0 0 0'/></Appearance></Shape></Transform>"
+              set name [[[$e2 Attributes] Item [expr 1]] Value]
+              if {$name != ""} {
+                set nsize [trimNum [expr {$tsize*0.5}]]
+                puts $x3dFile " <Transform translation='[vectrim $coord]' scale='$nsize $nsize $nsize'><Billboard axisOfRotation='0 0 0'><Shape><Text string='$name'><FontStyle family='SANS' justify='BEGIN'/></Text><Appearance><Material diffuseColor='0 0 0'/></Appearance></Shape></Billboard></Transform>"
+              }
+              lappend spmiTypesPerFile "supplemental geometry"
+              set viz(SUPPGEOM) 1
+            }
+
             default {
-              if {$ename != "tessellated_shell" && $ename != "tessellated_wire"} {
-                if {$ename == "direction"} {
-                  set msg "Syntax Error: Supplemental geometry for '$ename' is not valid.  ($recPracNames(suppgeom), Sec. 4.2)"
-                  errorMsg $msg
-                  lappend syntaxErr(constructive_geometry_representation) [list [$e0 P21ID] "items" $msg]
-                } else {
-                  errorMsg " Supplemental geometry for '[formatComplexEnt $ename]' is not supported."
-                }
+              if {$ename == "direction"} {
+                set msg "Syntax Error: Supplemental geometry for '$ename' is not valid.  ($recPracNames(suppgeom), Sec. 4.2)"
+                errorMsg $msg
+                lappend syntaxErr(constructive_geometry_representation) [list [$e0 P21ID] "items" $msg]
+              } else {
+                errorMsg " Supplemental geometry defined by '[formatComplexEnt $ename]' is not supported."
               }
             }
           }
@@ -230,20 +320,6 @@ proc x3dSuppGeom {} {
       if {$tf != "<Transform>"} {puts $x3dFile "</Transform>"}
     }
     catch {unset transforms}
-  }
-
-# check for tessellated edges that are supplemental geometry
-  if {[info exists tessSuppGeomFile]} {
-    close $tessSuppGeomFile
-    if {[file size $tessSuppGeomFileName] > 0} {
-      set f [open $tessSuppGeomFileName r]
-      puts $x3dFile "<!-- TESSELLATED GEOMETRY that is SUPPLEMENTAL GEOMETRY -->"
-      while {[gets $f line] >= 0} {puts $x3dFile $line}
-      close $f
-    }
-    catch {file delete -force -- $tessSuppGeomFileName}
-    unset tessSuppGeomFile
-    unset tessSuppGeomFileName
   }
   puts $x3dFile "</Group></Switch>"
 }
@@ -449,7 +525,7 @@ proc x3dSuppGeomCircle {e3 tsize {type "circle"}} {
       set sy [expr {$rad1/$rad}]
       set scale "1 $sy 1"
       set dsy [trimNum [expr {abs($sy-1.)}]]
-      if {$dsy > 0. && $dsy <= 0.05} {errorMsg " Supplemental geometry $type axes ($rad,$rad1) are almost identical."}
+      if {$dsy > 0. && $dsy <= 0.05} {errorMsg " Supplemental geometry $type axes ([trimNum $rad 4],[trimNum $rad1 4]) are almost identical."}
     }
 
 # circle position and orientation
@@ -739,7 +815,6 @@ proc x3dSuppGeomCylinder {e2 size} {
 # -------------------------------------------------------------------------------
 # supplemental geometry color and transparency
 proc x3dSuppGeomColor {e0 type} {
-  global grayBackground
 
   set sgColor ""
   set sgTrans ""
@@ -813,6 +888,8 @@ proc x3dSuppGeomColor {e0 type} {
     errorMsg " Error getting color for '$type' Supplemental Geometry: $emsg"
   }
 
-  foreach color [list "1. 1. 1." "1 1 1" "1. 1. 0." "1 1 0"] {if {$sgColor == $color} {set grayBackground 1}}
+  foreach color [list "1. 1. 1." "1 1 1" "1. 1. 0." "1 1 0"] {
+    if {$sgColor == $color} {errorMsg " Some supplemental geometry might not be visible against a white background" red}
+  }
   return [list $sgColor $sgTrans]
 }

@@ -202,7 +202,7 @@ proc spmiHoleReport {objEntity} {
                       if {[string first "angle" $ent1] != -1} {
                         set aunit [[[[$objEntity Attributes] Item [expr 2]] Value] Type]
                         if {[string first "length_unit" $aunit] != -1} {
-                          set msg "Syntax Error: Bad units [formatComplexEnt $aunit] for a '$objType'."
+                          set msg "Syntax Error: Invalid units [formatComplexEnt $aunit] for a '$objType'."
                           errorMsg $msg
                           lappend syntaxErr([lindex $ent1 0]) [list [$objEntity P21ID] "unit_component" $msg]
                         }
@@ -359,12 +359,7 @@ proc spmiHoleReport {objEntity} {
       if {[info exists holeDim(drilled_hole_depth_tolerance)]} {append holerep " $holeDim(drilled_hole_depth_tolerance)"}
       lappend spmiTypesPerFile "depth"
       append hd " $holeDim(drilled_hole_depth)"
-      if {$thruHole} {
-        set msg "Syntax Error: drilled_hole_depth is not required if though_hole is TRUE.$spaces\($recPracNames(holes), Sec. 5.1.1.1)"
-        errorMsg $msg
-        lappend syntaxErr($htype) [list $hid "through_hole" $msg]
-        lappend syntaxErr($htype) [list $hid "drilled_hole_depth" $msg]
-      }
+      if {$thruHole} {errorMsg "drilled_hole_depth is not required if though_hole is TRUE" red}
 
 # no depth and not a thru hole
     } elseif {!$thruHole} {
@@ -395,6 +390,13 @@ proc spmiHoleReport {objEntity} {
       }
     }
 
+# counterdrill angle and tolerances
+    if {[info exists holeDim(counterdrill_angle)]} {
+      append holerep "[format "%c" 10]$pmiModifiers(counterdrill)"
+      append holerep "$holeDim(counterdrill_angle)$pmiUnicode(degree)"
+      if {[info exists holeDim(counterdrill_angle_tolerance)]} {append holerep " $holeDim(counterdrill_angle_tolerance)$pmiUnicode(degree)"}
+    }
+
 # basic, (multiple) counterbore, or spotface diameter, depth, and tolerances
     if {[info exists holeDim(diameter)]} {
       set nhdim 0
@@ -404,6 +406,10 @@ proc spmiHoleReport {objEntity} {
           append holerep $pmiModifiers(counterbore)
           lappend spmiTypesPerFile "counterbore"
           set type "counterbore"
+        } elseif {[string first "counterdrill" $htype] != -1} {
+          append holerep $pmiModifiers(counterdrill)
+          lappend spmiTypesPerFile "counterdrill"
+          set type "counterdrill"
         } elseif {[string first "spotface" $htype] != -1} {
           append holerep "$pmiModifiers(spotface) "
           lappend spmiTypesPerFile "spotface"
@@ -420,18 +426,16 @@ proc spmiHoleReport {objEntity} {
           if {[info exists holeDim(depth_tolerance)]} {append holerep " $holeDim(depth_tolerance)"}
           lappend spmiTypesPerFile "depth"
           lappend holeDefinitions($hid) "$type $hdim [lindex $holeDim(depth) $nhdim]"
-          if {$thruHole && [string first "counter" $htype] == -1} {
-            set msg "Syntax Error: depth is not required if though_hole is TRUE.$spaces\($recPracNames(holes), Sec. 5.1.1.1)"
-            errorMsg $msg
-            lappend syntaxErr($htype) [list $hid "through_hole" $msg]
-            lappend syntaxErr($htype) [list $hid "depth" $msg]
-          }
+          if {$thruHole && [string first "counter" $htype] == -1} {errorMsg "hole depth is not required if though_hole is TRUE" red}
         } else {
           lappend holeDefinitions($hid) "$type $hdim"
         }
         incr nhdim
       }
     }
+
+# counterdrill angle
+    if {[info exists holeDim(counterdrill_angle)]} {lappend holeDefinitions($hid) $holeDim(counterdrill_angle)}
 
 # thru hole and name
     lappend holeDefinitions($hid) $thruHole
@@ -485,8 +489,9 @@ proc x3dHoles {} {
   set head 1
   set holeDEF {}
 
+# hole scale
   set scale 1.
-  if {$brepScale == 1. && $holeUnit == "INCH"} {set scale 25.4}
+  if {[info exists brepScale] && [info exists holeUnit]} {if {$brepScale == 1. && $holeUnit == "INCH"} {set scale 25.4}}
 
   ::tcom::foreach e0 [$objDesign FindObjects [string trim item_identified_representation_usage]] {
     if {[catch {
@@ -565,7 +570,8 @@ proc x3dHoles {} {
             catch {unset bore}
             set lhd [llength $holeDefinitions($defID)]
             if {$lhd > 1} {
-              set holeType [lindex [lindex $holeDefinitions($defID) [expr {$lhd-3}]] 0]
+              set holeType [lindex [lindex $holeDefinitions($defID) 1] 0]
+              if {$holeType == 0 || $holeType == 1} {set holeType [lindex [lindex $holeDefinitions($defID) 0] 0]}
 
 # countersink hole (cylinder, cone)
               if {$holeType == "countersink"} {
@@ -599,16 +605,22 @@ proc x3dHoles {} {
 
                 if {[lsearch $holeDEF $defID] == -1} {
                   puts $x3dFile "$transform<Group DEF='$holeName$defID'>"
+
+# drilled hole
                   if {[info exists drillDep]} {
                     puts $x3dFile " <Transform rotation='1 0 0 1.5708' translation='0 0 [trimNum [expr {($drillDep+$sinkDep)*0.5}] 5]'>"
                     if {$holeTop == "false" || ![info exists tipDepth]} {
                       puts $x3dFile "  <Shape><Cylinder radius='$drillRad' height='[trimNum [expr {$drillDep-$sinkDep}] 5]' top='$holeTop' bottom='false' solid='false'></Cylinder><Appearance><Material diffuseColor='0 1 1'/></Appearance></Shape></Transform>"
+
+# drilled hole end condition
                     } else {
                       puts $x3dFile "  <Shape><Cylinder radius='$drillRad' height='[trimNum [expr {$drillDep-$sinkDep}] 5]' top='false' bottom='false' solid='false'></Cylinder><Appearance><Material diffuseColor='0 1 1'/></Appearance></Shape></Transform>"
                       puts $x3dFile "  <Transform rotation='1 0 0 1.5708' translation='0 0 [trimNum [expr {$drillDep+($tipDepth*0.5)}] 5]'>"
                       puts $x3dFile "   <Shape><Cone bottomRadius='$drillRad' topRadius='0' height='[trimNum $tipDepth 5]' top='false' bottom='false' solid='false'></Cone><Appearance><Material diffuseColor='0 1 1'/></Appearance></Shape></Transform>"
                     }
                   }
+
+# countersink cone
                   puts $x3dFile " <Transform rotation='1 0 0 1.5708' translation='0 0 [trimNum [expr {$sinkDep*0.5}] 5]'>"
                   puts $x3dFile "  <Shape><Cone bottomRadius='$sinkRad' topRadius='$drillRad' height='[trimNum $sinkDep 5]' top='false' bottom='false' solid='false'></Cone><Appearance><Material diffuseColor='0 1 1'/></Appearance></Shape></Transform>"
                   puts $x3dFile "</Group></Transform>"
@@ -617,11 +629,13 @@ proc x3dHoles {} {
                   puts $x3dFile "$transform<Group USE='$holeName$defID'></Group></Transform>"
                 }
 
-# counterbore or spotface hole (2 cylinders, flat cone)
-              } elseif {$holeType == "counterbore" || $holeType == "spotface"} {
+# counterbore, counterdrill, or spotface hole (2 cylinders, cone for counterdrill, flat cone otherwise)
+              } elseif {$holeType == "counterbore" || $holeType == "spotface" || $holeType == "counterdrill"} {
                 set bore [lindex $holeDefinitions($defID) 1]
                 set boreRad [expr {[lindex $bore 1]*0.5*$scale}]
                 set boreDep [expr {[lindex $bore 2]*$scale}]
+                catch {unset drillAng}
+                if {$holeType == "counterdrill"} {set drillAng [lindex $holeDefinitions($defID) 2]}
 
 # check for bad radius and depth
                 if {$boreRad <= $drillRad} {
@@ -649,18 +663,33 @@ proc x3dHoles {} {
 
                 if {[lsearch $holeDEF $defID] == -1} {
                   puts $x3dFile "$transform<Group DEF='$holeName$defID'>"
+
+# drilled hole
+                  set counterDep 0.
                   if {[info exists drillDep]} {
-                    puts $x3dFile " <Transform rotation='1 0 0 1.5708' translation='0 0 [trimNum [expr {($drillDep+$boreDep)*0.5}] 5]'>"
+                    if {[info exists drillAng]} {set counterDep [expr {($boreRad-$drillRad)/tan(0.5*$drillAng*$DTR)}]}
+                    puts $x3dFile " <Transform rotation='1 0 0 1.5708' translation='0 0 [trimNum [expr {($drillDep+$boreDep+$counterDep)*0.5}] 5]'>"
                     if {$holeTop == "false" || ![info exists tipDepth]} {
-                      puts $x3dFile "  <Shape><Cylinder radius='$drillRad' height='[trimNum [expr {$drillDep-$boreDep}] 5]' top='$holeTop' bottom='false' solid='false'></Cylinder><Appearance><Material diffuseColor='0 1 0'/></Appearance></Shape></Transform>"
+                      puts $x3dFile "  <Shape><Cylinder radius='$drillRad' height='[trimNum [expr {$drillDep-$boreDep-$counterDep}] 5]' top='$holeTop' bottom='false' solid='false'></Cylinder><Appearance><Material diffuseColor='0 1 0'/></Appearance></Shape></Transform>"
+
+# drilled hole end condition
                     } else {
                       puts $x3dFile "  <Shape><Cylinder radius='$drillRad' height='[trimNum [expr {$drillDep-$boreDep}] 5]' top='false' bottom='false' solid='false'></Cylinder><Appearance><Material diffuseColor='0 1 0'/></Appearance></Shape></Transform>"
                       puts $x3dFile "  <Transform rotation='1 0 0 1.5708' translation='0 0 [trimNum [expr {$drillDep+($tipDepth*0.5)}] 5]'>"
                       puts $x3dFile "   <Shape><Cone bottomRadius='$drillRad' topRadius='0' height='[trimNum $tipDepth 5]' top='false' bottom='false' solid='false'></Cone><Appearance><Material diffuseColor='0 1 0'/></Appearance></Shape></Transform>"
                     }
                   }
-                  puts $x3dFile " <Transform rotation='1 0 0 1.5708' translation='0 0 [trimNum $boreDep 5]'>"
-                  puts $x3dFile "  <Shape><Cone bottomRadius='$boreRad' topRadius='$drillRad' height='0.001' top='false' bottom='false' solid='false'></Cone><Appearance><Material diffuseColor='0 1 0'/></Appearance></Shape></Transform>"
+
+# counterbore hole
+                  if {$counterDep == 0.} {
+                    puts $x3dFile " <Transform rotation='1 0 0 1.5708' translation='0 0 [trimNum $boreDep 5]'>"
+                    puts $x3dFile "  <Shape><Cone bottomRadius='$boreRad' topRadius='$drillRad' height='0.001' top='false' bottom='false' solid='false'></Cone><Appearance><Material diffuseColor='0 1 0'/></Appearance></Shape></Transform>"
+
+# counterdrill hole
+                  } else {
+                    puts $x3dFile " <Transform rotation='1 0 0 1.5708' translation='0 0 [trimNum [expr {$boreDep+($counterDep*0.5)}] 5]'>"
+                    puts $x3dFile "  <Shape><Cone bottomRadius='$boreRad' topRadius='$drillRad' height='[trimNum $counterDep 5]' top='false' bottom='false' solid='false'></Cone><Appearance><Material diffuseColor='0 1 0'/></Appearance></Shape></Transform>"
+                  }
                   puts $x3dFile " <Transform rotation='1 0 0 1.5708' translation='0 0 [trimNum [expr {$boreDep*0.5}] 5]'>"
                   puts $x3dFile "  <Shape><Cylinder radius='$boreRad' height='[trimNum $boreDep 5]' top='false' bottom='false' solid='false'></Cylinder><Appearance><Material diffuseColor='0 1 0'/></Appearance></Shape></Transform>"
                   puts $x3dFile "</Group></Transform>"

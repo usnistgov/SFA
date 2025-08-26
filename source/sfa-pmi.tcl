@@ -1,8 +1,8 @@
 # write tessellated geometry for PMI annotations and parts
 proc x3dTessGeom {objID tessEnt faceEnt {aoname ""}} {
   global ao assemTransform defaultColor draftModelCameras entCount leaderCoords mytemp noGroupTransform opt placeCoords placeSavedView
-  global recPracNames savedViewFile savedViewFileName savedViewNames shapeRepName shellSuppGeom spaces srNames syntaxErr tessCoord tessCoordID
-  global tessGeomTxt tessIndex tessIndexCoord tessPartFile tessPlacement tessRepo tessSuppGeomFile tsName x3dColor x3dColorFile x3dColors
+  global recPracNames savedViewFile savedViewFileName savedViewNames shapeRepName spaces srNames syntaxErr tessCoord tessCoordID
+  global tessGeomTxt tessIndex tessIndexCoord tessPartFile tessPlacement tessRepo tsName x3dColor x3dColorFile x3dColors
   global x3dCoord x3dFile x3dIndex
 
   set x3dIndex $tessIndex($objID)
@@ -73,7 +73,6 @@ proc x3dTessGeom {objID tessEnt faceEnt {aoname ""}} {
   set flist $x3dFile
   if {$ao == "tessellated_solid" || $ao == "tessellated_shell" || $ao == "tessellated_closed_shell" || $ao == "tessellated_open_shell"} {
     set flist $tessPartFile
-    if {$ao == "tessellated_shell" && [info exists shellSuppGeom]} {if {$shellSuppGeom} {set flist $tessSuppGeomFile}}
   }
 
 # get saved view name
@@ -270,7 +269,7 @@ proc x3dTessGeom {objID tessEnt faceEnt {aoname ""}} {
 # -------------------------------------------------------------------------------
 # TAO check for transform related to assembly
 proc x3dAssemblyTransform {tessEnt} {
-  global ao assemTransform entCount noGroupTransform opt syntaxErr taoLastID x3dMsg
+  global ao assemTransform entCount noGroupTransform opt syntaxErr taoLastID
 
   set debugTAO 0
   set taoID [$tessEnt P21ID]
@@ -355,9 +354,6 @@ proc x3dAssemblyTransform {tessEnt} {
                     if {$debugTAO} {outputMsg "    SA in CPSA"}
                   }
                 }
-
-                set msg "Graphic PMI on parts in an assembly might have the wrong position and orientation"
-                if {[lsearch $x3dMsg $msg] == -1} {lappend x3dMsg $msg}
 
 # GISU
                 if {[string first "shape_aspect" [$e2 Type]] != -1 && $oksa} {
