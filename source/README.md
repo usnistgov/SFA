@@ -2,7 +2,7 @@
 
 ## Tcl files
 
-[Release Notes](https://www.nist.gov/document/sfa-release-notes)
+See the Release Notes in the Release directory.
 
 Each Tcl file contains multiple procedures.
 
