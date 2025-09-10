@@ -438,9 +438,12 @@ proc nistCheckExpectedPMI {val entstr epmiName} {
           if {$posSym > 0} {break}
         }
         set valgnd [string trim [string range $val $posSym end]]
+        set valdim [string trim [string range $val 0 $posSym-1]]
+        set okdim 0
+        if {$valdim != "" && ![string is alpha $valdim]} {set okdim 1}
 
 # check geometric tolerances
-        if {[info exists nistPMIexpectedGND($epmiName)]} {
+        if {[info exists nistPMIexpectedGND($epmiName)] && $okdim} {
           set ok 0
           set pmiMatchGND [lsearch $nistPMIexpectedGND($epmiName) $valgnd]
           if {$pmiMatchGND != -1} {
@@ -486,7 +489,7 @@ proc nistCheckExpectedPMI {val entstr epmiName} {
         }
 
 # unexpected dimension association
-        if {$pmiMatch == 0} {
+        if {$pmiMatch == 0 && $okdim} {
           set pmiMatchGND [lsearch $nistPMIexpected($epmiName) $valgnd]
           if {$pmiMatchGND != -1 && [string first "\u2B69\u25CE" $val] == -1} {
             set pmiMatch 0.99
@@ -774,8 +777,9 @@ proc nistPMICoverage {nf} {
             }
           }
 
-# need better fix for free_state_condition conflict with free_state
-          if {[string first "free_state_condition" $ttyp] != -1} {set ok 0}
+# need better fix for these that conflict with other PMI elements
+          if {[string first "free_state_condition" $ttyp]   != -1} {set ok 0}
+          if {[string first "united_feature_of_size" $ttyp] != -1} {set ok 0}
 
           if {$ok} {
             set ci $coverage($item)
@@ -874,7 +878,7 @@ proc nistAddExpectedPMIPercent {nf name} {
   catch {foreach i {8 10 11} {[[$range Borders] Item $i] Weight [expr 2]}}
   set range [$worksheet($spmiCoverageWS) Range B$r]
   $range HorizontalAlignment [expr -4108]
-  addCellComment $spmiCoverageWS $r 1 "These are color-coded percentages based on the Total PMI of the number Exact, Partial, Possible, and Missing matches from column B on the Semantic PMI Summary worksheet.  The percentages for all matches should total 100.\n\'Missing match' is based on Missing PMI that would appear below the color legend.  'No match' is based on the number of Semantic PMI that appear in red.\n\nCoverage Analysis is only based on individual PMI elements.  The Semantic PMI Summary is based on the complete Feature Control Frame and provides a better understanding of the PMI.  The Coverage Analysis might show that there is an Exact match (all green above) for all of the PMI elements, however, the PMI Summary might show less than Exact matches.\n\nSee Help > Analyzer > NIST CAD Models\nSee Help > User Guide (section 6.6.2.1)"
+  addCellComment $spmiCoverageWS $r 2 "The color-coded PERCENTAGES (not absolute numbers) are based on the Total PMI of the number Exact, Partial, Possible, and Missing matches from column B on the Semantic PMI Summary worksheet.  The percentages for all matches should total 100.\n\n'Missing match' is based on Missing PMI that would appear below the color legend.  'No match' is based on the number of Semantic PMI that appear in red above the legend.\n\nCoverage Analysis is only based on individual PMI elements.  The Semantic PMI Summary is based on the complete Feature Control Frame and provides a better understanding of the PMI.  The Coverage Analysis might show that there is an Exact match (all green above) for all of the PMI elements, however, the PMI Summary might show less than Exact matches.\n\nSee Help > Analyzer > NIST CAD Models\nSee Help > User Guide (section 6.6.2.1)"
 
 # for multiple files, add more formatting
   if {[info exists lenfilelist]} {

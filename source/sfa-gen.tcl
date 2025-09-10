@@ -1773,6 +1773,7 @@ proc addHeaderWorksheet {numFile fname} {
 
 # check edition of AP242 (schema identifier)
         set c1 [string first "1 0 10303 442" $sn]
+        set checkEntities 0
         set simsg ""
         if {$c1 != -1} {
           set id [lindex [split [string range $sn $c1+14 end] " "] 0]
@@ -1796,7 +1797,8 @@ proc addHeaderWorksheet {numFile fname} {
             if {$id != 7} {set simsg " AP242 Edition 4 should be identified with '\{1 0 10303 442 7 1 4\}'  See Websites > STEP > EXPRESS Schemas"}
             append str " (Edition 4)"
           } elseif {$id > 7} {
-            set simsg " Unsupported AP242 Schema Identifier '\{... $id 1 4\}' for SchemaName.\n Use the Syntax Checker to list the unsupported entities in the STEP file for this edition of AP242."
+            set simsg " Unsupported AP242 Schema Identifier '\{... $id 1 4\}'  See Websites > STEP > EXPRESS Schemas"
+            if {$id < 100} {set checkEntities 1}
           }
           if {$developer} {foreach i {3 4} {if {[llength $ap242ed($i)] > 0} {regsub -all " " [join $ap242ed($i)] ", " str1; outputMsg " AP242e$i: $str1" red}}}
         } elseif {[string first "AP242" $sn] == 0} {
@@ -1816,6 +1818,9 @@ proc addHeaderWorksheet {numFile fname} {
 # schema name
         outputMsg $str blue
         if {$simsg != ""} {errorMsg $simsg red}
+
+# check for entities in newer unsupported versions of AP242
+        if {$checkEntities} {syntaxChecker $localName 1}
 
 # check for multiple schemas
         if {[string first "," $sn] != -1} {

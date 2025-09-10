@@ -810,7 +810,15 @@ proc spmiGeotolReport {objEntity} {
                     }
                   } else {
                     if {[string first "modifiers" $ent1] != -1} {
-                      set nval $val$ov
+
+# some modifiers appear on a separate line above the FCF
+                      set modFirst 0
+                      foreach mod [list ACS ALS LE LD MD PD UF] {if {$ov == " $mod"} {set modFirst 1}}
+                      if {$modFirst == 0} {
+                        set nval $val$ov
+                      } else {
+                        set nval [string trim $ov][format "%c" 10]$val
+                      }
                       $cells($gt) Item $r $c $nval
                       if {$gt == "datum_reference_compartment"} {
                         set idx [string trim [expr {int([[$cells($gt) Item $r 1] Value])}]]
@@ -1772,27 +1780,7 @@ proc spmiGeotolReport {objEntity} {
       }
 
 # -------------------------------------------------------------------------------
-# fix position of some modifiers to be under or over the FCF
-      catch {
-        set val [[$cells($gt) Item $r $c] Value]
-        foreach mod {"ACS" "ALS"} {
-          set c1 [string first $mod $val]
-          if {$c1 != -1} {
-            set val [string range $val 0 $c1-1][string range $val $c1+3 end]
-            $cells($gt) Item $r $c "$mod[format "%c" 10]$val"
-          }
-        }
-      }
-      catch {
-        set val [[$cells($gt) Item $r $c] Value]
-        foreach mod {"LE" "MD" "LD" "PD"} {
-          set c1 [string first $mod $val]
-          if {$c1 != -1} {
-            set val [string range $val 0 $c1-1][string range $val $c1+2 end]
-            $cells($gt) Item $r $c "$val[format "%c" 10]$mod"
-          }
-        }
-      }
+# fix position of some modifiers
       catch {
         set val [[$cells($gt) Item $r $c] Value]
         set c1 [string first "ERE" $val]

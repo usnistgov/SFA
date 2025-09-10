@@ -759,8 +759,10 @@ proc spmiDimtolReport {objEntity} {
                           set ov "controlled radius"
                           set pos [lsearch $spmiTypesPerFile "radius"]
                           set spmiTypesPerFile [lreplace $spmiTypesPerFile $pos $pos]
-                        } elseif {$ov == "united_feature_of_size" || $ov == "square"} {
+                        } elseif {$ov == "square"} {
                           set dimrep($dimrepID) "$pmiModifiers($ov)$dimrep($dimrepID)"
+                        } elseif {$ov == "united_feature_of_size"} {
+                          set dimrep($dimrepID) "$pmiModifiers($ov)[format "%c" 10]$dimrep($dimrepID)"
 
 # suffix, append to savedModifier
                         } else {

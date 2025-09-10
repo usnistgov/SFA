@@ -1724,9 +1724,11 @@ proc x3dPlaceholder {{aoname ""} {fname ""}} {
           if {[info exists placeBox($name,image)]} {
             set boxIndex "0 1 3 2 -1"
             puts $fname " $transform"
-            puts $fname "  <Shape><Appearance><ImageTexture url='$placeBox($name,image)'/></Appearance><IndexedFaceSet solid='false' coordIndex='$boxIndex'><Coordinate point='$boxCoord'/></IndexedFaceSet></Shape>"
+            puts $fname "  <Shape><Appearance><ImageTexture url='$placeBox($name,image)'/></Appearance>"
+            puts $fname "   <IndexedFaceSet solid='false' coordIndex='$boxIndex'><Coordinate point='$boxCoord'></Coordinate>"
+            puts $fname "   <TextureCoordinate point='0 0, 1 0, 0 1, 1 1'></TextureCoordinate></IndexedFaceSet></Shape>"
             puts $fname " </Transform>"
-            errorMsg "You must open the Viewer html file in a local http server (localhost) to see the placeholder image." red
+            errorMsg "To see the placeholder image, open the Viewer file on a server (localhost or external).  If not, the image will appear black." red
           }
         }
         puts $fname "</Group></Transform>"

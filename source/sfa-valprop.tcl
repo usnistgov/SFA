@@ -263,7 +263,7 @@ proc valPropStart {defRep} {
 # -------------------------------------------------------------------------------
 proc valPropReport {objEntity} {
   global cells col convUnit defComment entLevel ent entAttrList gen maxelem maxrep ncartpt nelem nrep opt pd pdclass pdcol pdheading
-  global pmivalprop prefix propDefID propDefIDRow propDefName propDefOK propDefRow recPracNames repName repNameOK samplingPoints spaces
+  global pmivalprop prefix propDefID propDefIDRow propDefName propDefOK propDefRow recPracNames repName repNameOK samplingPoints semanticText spaces
   global stepAP syntaxErr tessCoord tessCoordName unicodeEnts unicodeString valName valPropEnts valPropLink valPropNames valProps
 
   if {$opt(DEBUG1)} {outputMsg "valPropReport" red}
@@ -348,7 +348,7 @@ proc valPropReport {objEntity} {
 # wrong units
               catch {
                 if {[string first "length" [$objValue Type]] != -1 && [string first "mass" $valName] != -1} {
-                  set msg "Syntax Error: Bad units for the validation property value."
+                  set msg "Syntax Error: Invalid units for the validation property value."
                   errorMsg $msg
                   lappend syntaxErr($ent($entLevel)) [list $objID unit_component $msg]
                   lappend syntaxErr(property_definition) [list $propDefID 11 $msg]
@@ -556,7 +556,7 @@ proc valPropReport {objEntity} {
                 set id [$val1 P21ID]
                 if {[$val1 Type] == "coordinates_list" && ![info exists tessCoord($id)]} {tessReadGeometry 1}
                 if {[llength $tessCoord($id)] != 24} {
-                  set msg "Syntax Error: Bad number of points ([expr {[llength $tessCoord($id)]/3}]) in coordinates_list for saved view validation property.$spaces\($recPracNames(pmi242), Sec. 10.2.2)"
+                  set msg "Syntax Error: Invalid number of points ([expr {[llength $tessCoord($id)]/3}]) in coordinates_list for saved view validation property.$spaces\($recPracNames(pmi242), Sec. 10.2.2)"
                   errorMsg $msg
                   lappend syntaxErr(property_definition) [list $propDefID 9 $msg]
                 }
@@ -589,6 +589,7 @@ proc valPropReport {objEntity} {
                     if {[info exists unicodeString($idx)]} {set objValue $unicodeString($idx)}
                   }
                   addValProps 2 $objValue "#$objID [formatComplexEnt $ent2]"
+                  if {[info exists semanticText] && $semanticText == 1 && $objValue == ""} {errorMsg "  Empty text string in Semantic Text ($recPracNames(pmi242), Sec. 7.4.2)" red}
                 }
 
                 "*_unit_and_si_unit prefix" -
@@ -645,7 +646,7 @@ proc valPropReport {objEntity} {
                     if {([string first "length" $valName] != -1 && $objValue != 1) || \
                         ([string first "area" $valName]   != -1 && $objValue != 2) || \
                         ([string first "volume" $valName] != -1 && $objValue != 3)} {
-                      set msg "Syntax Error: Bad exponent for the value name and units"
+                      set msg "Syntax Error: Invalid exponent for the value name and units"
                       errorMsg $msg
                       lappend syntaxErr($ent($entLevel)) [list $objID exponent $msg]
                       lappend syntaxErr(property_definition) [list $propDefID 13 $msg]
@@ -667,9 +668,10 @@ proc valPropReport {objEntity} {
 # check for valid validation property names and 'semantic text'
                   if {[string first "validation property" $objValue] != -1 || $objValue == "semantic text"} {
                     set okvp 0
+                    set semanticText 0
                     set vps [list "geometric" "assembly" "pmi" "tessellated" "attribute" "FEA" "composite"]
                     foreach vp $vps {if {[string first $vp $objValue] == 0} {set okvp 1}}
-                    if {$objValue == "semantic text"} {set okvp 1}
+                    if {$objValue == "semantic text"} {set okvp 1; set semanticText 1}
 
 # bad valprop name
                     if {!$okvp} {
@@ -767,12 +769,12 @@ proc valPropReport {objEntity} {
                       if {!$ok1} {
                         set repNameOK 0
                         if {$propDefName != "pmi_validation_property" && $propDefName != "attribute_validation_property"} {
-                          set emsg "Syntax Error: Bad '$ent2' attribute for '$propDefName'."
+                          set emsg "Syntax Error: Invalid '$ent2' attribute for '$propDefName'."
                           if {$propDefName == "geometric_validation_property" && ($repName == "number of children" || $repName == "notional solids centroid")} {
                             append emsg "  '$repName' is an assembly validation property."
                           }
                         } else {
-                          set emsg "Syntax Error: The [lindex $ent1 0] 'name' attribute must be empty."
+                          set emsg "Syntax Error: The [lindex $ent1 0] 'name' attribute must be blank."
                         }
                         switch $propDefName {
                           geometric_validation_property -
@@ -819,7 +821,7 @@ proc valPropReport {objEntity} {
                               if {$objValue == $item} {
                                 set ok1 1
                                 if {$objValue == "sampling point" && $repName == ""} {
-                                  set emsg "Syntax Error: Bad representation 'name' attribute for '$objValue'.$spaces\($recPracNames(valprop), Sec. 4.11)"
+                                  set emsg "Syntax Error: Invalid representation 'name' attribute for '$objValue'.$spaces\($recPracNames(valprop), Sec. 4.11)"
                                   errorMsg $emsg
                                 }
                                 break
@@ -836,7 +838,7 @@ proc valPropReport {objEntity} {
                       }
 
                       if {!$ok1 && $propDefName != "semantic_text"} {
-                        set emsg "Syntax Error: Bad '[formatComplexEnt $ent2]' attribute for '$propDefName'."
+                        set emsg "Syntax Error: Invalid '[formatComplexEnt $ent2]' attribute for '$propDefName'."
                         switch $propDefName {
                           geometric_validation_property -
                           assembly_validation_property {append emsg "$spaces\($recPracNames(valprop), Sec. 8)"}

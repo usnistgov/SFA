@@ -390,13 +390,6 @@ proc spmiHoleReport {objEntity} {
       }
     }
 
-# counterdrill angle and tolerances
-    if {[info exists holeDim(counterdrill_angle)]} {
-      append holerep "[format "%c" 10]$pmiModifiers(counterdrill)"
-      append holerep "$holeDim(counterdrill_angle)$pmiUnicode(degree)"
-      if {[info exists holeDim(counterdrill_angle_tolerance)]} {append holerep " $holeDim(counterdrill_angle_tolerance)$pmiUnicode(degree)"}
-    }
-
 # basic, (multiple) counterbore, or spotface diameter, depth, and tolerances
     if {[info exists holeDim(diameter)]} {
       set nhdim 0
@@ -435,7 +428,12 @@ proc spmiHoleReport {objEntity} {
     }
 
 # counterdrill angle
-    if {[info exists holeDim(counterdrill_angle)]} {lappend holeDefinitions($hid) $holeDim(counterdrill_angle)}
+    if {[info exists holeDim(counterdrill_angle)]} {
+      append holerep "[format "%c" 10]$pmiModifiers(countersink)"
+      append holerep "$holeDim(counterdrill_angle)$pmiUnicode(degree)"
+      if {[info exists holeDim(counterdrill_angle_tolerance)]} {append holerep " $holeDim(counterdrill_angle_tolerance)$pmiUnicode(degree)"}
+      lappend holeDefinitions($hid) $holeDim(counterdrill_angle)
+    }
 
 # thru hole and name
     lappend holeDefinitions($hid) $thruHole

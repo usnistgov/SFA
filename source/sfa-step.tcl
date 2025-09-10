@@ -420,7 +420,6 @@ proc setEntsToProcess {entType} {
   if {($opt(PMIGRF) || ($gen(View) && $opt(viewPMI))) && $ok == 0} {
     set ok [gpmiCheckEnt $entType]
     set gpmiEnts($entType) $ok
-    if {[string first "tessellated_geometric_set" $entType] != -1} {set ok 1}
   }
 
 # for PMI (semantic) representation
@@ -561,7 +560,7 @@ proc setEntAttrList {abc} {
 
 #-------------------------------------------------------------------------------
 # run syntax checker with the command-line version (sfa-cl.exe) and output filtered result
-proc syntaxChecker {fileName} {
+proc syntaxChecker {fileName {checkInSchema 0}} {
   global buttons env ifcsvrDir opt roseSchemas wdir writeDir
 
   if {[file size $fileName] > 429000000} {outputMsg " The file is too large to run the Syntax Checker.  The limit is about 430 MB." red; return}
@@ -571,10 +570,10 @@ proc syntaxChecker {fileName} {
   set env(ROSE_SCHEMAS) [file nativename $ifcsvrDir]
 
   if {[info exists buttons]} {
-    outputMsg "\n[string repeat "-" 29]\nRunning Syntax Checker"
+    if {!$checkInSchema} {outputMsg "\n[string repeat "-" 29]\nRunning Syntax Checker"}
     set exe "STEP-File-Analyzer.exe"
   } else {
-    outputMsg "\nRunning Syntax Checker"
+    if {!$checkInSchema} {outputMsg "\nRunning Syntax Checker"}
     set exe "sfa-cl.exe"
   }
 
@@ -598,7 +597,7 @@ proc syntaxChecker {fileName} {
 # get syntax errors and warnings by running command-line version with stats option
   if {[file exists $sfacl]} {
     if {[info exists buttons]} {.tnb select .tnb.status}
-    outputMsg "Syntax Checker results for: [file tail $fileName]"
+    if {!$checkInSchema} {outputMsg "Syntax Checker results for: [file tail $fileName]"}
     if {[catch {
       set sfaout [exec $sfacl [file nativename $fileName] stats nolog]
       set sfaout [split $sfaout "\n"]
@@ -606,6 +605,7 @@ proc syntaxChecker {fileName} {
       set lineLast ""
       set paren 0
       set ignored 0
+      set ap242UnknownEnts {}
       foreach line $sfaout {
 
 # get lines with errors and warnings
@@ -619,7 +619,10 @@ proc syntaxChecker {fileName} {
           if {[string first "warning: No schemas" $line] != -1} {break}
           if {[string first "warning: Couldn't find schema" $line] != -1} {errorMsg "See Help > Supported STEP APs"}
           if {[string first "(" $line] != -1 && [string first ")" $line] != -1} {set paren 1}
-          if {[string first "entity ignored" $line] != -1} {set ignored 1}
+          if {[string first "entity ignored" $line] != -1} {
+            set ignored 1
+            lappend ap242UnknownEnts [lindex [split $line "'"] 1]
+          }
         } elseif {[string first "Error opening" $line] != -1} {
           append sfaerr "$line "
         }
@@ -627,18 +630,27 @@ proc syntaxChecker {fileName} {
 
 # done
       if {[info exists sfaerr]} {
-        outputMsg [string range $sfaerr 0 end-1] red
-        if {$paren} {
-          set msgp "The number in parentheses is the line number in the file where the error or warning was detected."
-          outputMsg $msgp
+        if {!$checkInSchema} {
+          outputMsg [string range $sfaerr 0 end-1] red
+          if {$paren} {
+            set msgp "The number in parentheses is the line number in the file where the error or warning was detected."
+            outputMsg $msgp
+          }
         }
         if {$ignored} {
-          set msgi "Ignored entities will not appear in the spreadsheet.  Attributes on other entities that refer to ignored entities will be blank.  Analyzer reports and the Viewer may be affected."
+          if {$checkInSchema && [llength $ap242UnknownEnts] > 0} {
+            outputMsg "\n[string repeat "-" 29]"
+            outputMsg "Unique entities for this edition of AP242:"
+            foreach item $ap242UnknownEnts {outputMsg " $item" red}
+            outputMsg "Run the Syntax Checker (F8) for more details"
+          }
+          set msgi "\nIgnored/Unique entities may not appear in the spreadsheet.\n Attributes on other entities that refer to these entities will be blank.\n Analyzer reports and the Viewer may be affected."
           outputMsg $msgi red
+          if {$checkInSchema && [llength $ap242UnknownEnts] > 0} {outputMsg "[string repeat "-" 29]"}
         }
 
 # output to log file
-        if {$opt(logFile)} {
+        if {$opt(logFile) && !$checkInSchema} {
           set lfile [file rootname $fileName]
           if {$opt(writeDirType) == 2} {set lfile [file join $writeDir [file rootname [file tail $fileName]]]}
           append lfile "-sfa-err.log"
@@ -652,10 +664,10 @@ proc syntaxChecker {fileName} {
         }
 
 # no errors
-      } else {
+      } elseif {!$checkInSchema} {
         outputMsg " No syntax errors or warnings" green
       }
-      if {[info exists buttons]} {outputMsg "See Help > Syntax Checker"}
+      if {[info exists buttons] && !$checkInSchema} {outputMsg "See Help > Syntax Checker"}
 
 # error running syntax checker
     } emsg]} {
@@ -670,7 +682,7 @@ proc syntaxChecker {fileName} {
     if {$roseSchemas != ""} {set env(ROSE_SCHEMAS) $roseSchemas}
   }
 
-  if {[info exists buttons]} {outputMsg "[string repeat "-" 29]"}
+  if {[info exists buttons] && !$checkInSchema} {outputMsg "[string repeat "-" 29]"}
 }
 
 # -------------------------------------------------------------------------------

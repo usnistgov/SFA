@@ -849,7 +849,7 @@ The name of the AP is on the FILE_SCHEMA entity in the HEADER section of a STEP 
 notation below, after an AP number, refers to an older Edition of that AP.
 
 Some APs have multiple editions with the same name.  AP242 editions 1-4 were released in 2014, 2020,
-2022, and 2025.  See Websites > AP242 > ISO 10303-242\n"
+2022, and 2025.  See Websites > STEP > EXPRESS Schemas and Websites > AP242 > ISO 10303-242\n"
 
     set schemas {}
     set ifcschemas {}

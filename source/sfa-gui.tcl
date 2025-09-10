@@ -1,5 +1,5 @@
 # SFA version
-proc getVersion {} {return 5.32}
+proc getVersion {} {return 5.33}
 
 # see proc installIFCsvr in sfa-proc.tcl for the IFCsvr version
 # see below (line 37) for the sfaVersion when IFCsvr was updated
@@ -843,7 +843,7 @@ proc guiMoreTab {} {
     incr n
   }
   pack $fxlsb0 -side bottom -anchor w -pady {8 3} -padx 0 -fill y
-  set msg "Maximum rows limits the number of rows (entities) written to any one worksheet.\nIf the maximum number of rows is exceeded, the number of entities processed will be reported\nas, for example, 'property_definition (100 of 147)'.  For large STEP files, setting a low maximum\ncan speed up processing at the expense of not processing all of the entities.\n\nMaximum rows is increased to 5000 for entities where Analyzer results are reported.  Syntax\nErrors might be missed if some entities are not processed due to a low value of maximum rows.\nMaximum rows does not affect the Viewer.\n\nSee Help > User Guide (section 5.5.1)"
+  set msg "Maximum rows limits the number of rows (entities) written to any one worksheet.\nIf the maximum number of rows is exceeded, the number of entities processed will be reported\nas, for example, 'cartesian_point (100 of 147)'.  For large STEP files, setting a low maximum\ncan speed up processing at the expense of not processing all of the entities.\n\nMaximum rows is ignored for entities where Analyzer results are reported.  Syntax Errors\nmight be missed if some entities are not processed due to a low value of maximum rows.\nMaximum rows does not affect the Viewer.\n\nSee Help > User Guide (section 5.5.1)"
   catch {tooltip::tooltip $fxlsb0 $msg}
 
 # checkboxes
@@ -1063,7 +1063,6 @@ proc guiWebsitesMenu {} {
 
   $Websites add cascade -label "Organizations" -menu $Websites.4
   set Websites4 [menu $Websites.4 -tearoff 1]
-  $Websites4 add command -label "STEP at NIST"           -command {openURL https://www.nist.gov/ctl/smart-connected-systems-division/smart-connected-manufacturing-systems-group/step-nist}
   $Websites4 add command -label "PDES, Inc. (U.S.)"      -command {openURL https://pdesinc.org/}
   $Websites4 add command -label "prostep ivip (Germany)" -command {openURL https://www.prostep.org/en/projects/mbx-interoperability-forum-mbx-if}
   $Websites4 add command -label "AFNeT (France)"         -command {openURL https://atlas.afnet.fr/en/domaines/plm/}
