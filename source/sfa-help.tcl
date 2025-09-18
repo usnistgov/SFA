@@ -76,9 +76,9 @@ users including those on non-Windows systems.  The Viewer does not support measu
 The Viewer can be used without generating a spreadsheet.  See Generate on the Options tab.  The
 Part Only option is useful when no other Viewer features are needed and for large STEP files.
 
-The Viewer supports boundary representation (b-rep) exact geometry.  For AP242, tessellated and
-polyhedral b-rep geometry are supported.  Color, transparency, part edges, sketch geometry, and
-assemblies are supported.  Part geometry viewer features:
+The Viewer supports boundary representation (B-rep) exact geometry.  For AP242, tessellated
+geometry and polyhedral B-rep geometry are supported.  Color, transparency, part edges, sketch
+geometry, and assemblies are supported.  Part geometry viewer features:
 
 - Part edges are shown in black.  Use the transparency slider to show only edges.  Some parts might
   not be affected by the transparency slider.  If a part is completely transparent and edges are
@@ -100,7 +100,7 @@ assemblies are supported.  Part geometry viewer features:
   Geometry Processing.
 
 - AP242 tessellated part geometry is typically written to a STEP file in addition to or instead of
-  b-rep part geometry.  A wireframe mesh, outlining the facets of the tessellated surfaces can be
+  B-rep part geometry.  A wireframe mesh, outlining the facets of the tessellated surfaces can be
   shown with the Edges option.  In some cases, parts in an assembly might have the wrong position and
   orientation or be missing.  Quality and normals do not apply to tessellated part geometry.
   See Websites > CAx Recommended Practices (Tessellated 3D Geometry)
@@ -141,8 +141,8 @@ Other STEP file viewers are available.  See Websites > STEP > STEP File Viewers.
 viewers are faster and have better features for viewing and measuring part geometry.  This viewer
 supports many features that other viewers do not, including: graphic PMI, sketch geometry,
 supplemental geometry, datum targets, viewpoints, clipping planes, point clouds, composite rosettes,
-hole features, AP242 tessellated part geometry, and AP209 finite element models and results.  Try
-the Open STEP Viewer with AP242 Domain Model XML files (.stpx)."
+hole features, AP242 tessellated part geometry and polyhedral B-rep geometry, and AP209 finite
+element models and results.  Try the Open STEP Viewer with AP242 Domain Model XML files (.stpx)."
     .tnb select .tnb.status
   }
 
@@ -205,7 +205,7 @@ Saved views are ignored with Part Only.  Part visibility in saved views is not s
 outputMsg "\nAssemblies ----------------------------------------------------------------------------------------" blue
 outputMsg "Assemblies are related to part geometry, graphic PMI, and supplemental geometry.
 
-Part Geometry for assemblies with b-rep or tessellated geometry is supported in the Viewer.  Most
+Part Geometry for assemblies with B-rep or tessellated geometry is supported in the Viewer.  Most
 assemblies and parts can be switched on and off depending on the assembly structure.  An alphabetic
 list of part and assembly names is shown on the right.
 
@@ -377,7 +377,7 @@ Point clouds from 3D scans are supported in AP242.  Colors and intensities are n
 
 STL files can be converted to STEP AP242 tessellated geometry that can be shown in the Viewer.
 In the Open File(s) dialog, change the 'Files of type' to 'STL (*.stl)'.  ASCII and binary STL
-files are supported.  Tessellated geometry is not exact b-rep surfaces and may not be supported in
+files are supported.  Tessellated geometry is not exact B-rep surfaces and may not be supported in
 some CAD software.
 
 4 - Composite rosettes defined by cartesian points and curves are shown in the Viewer."
@@ -1111,7 +1111,7 @@ Credits
    IFCsvr ActiveX Component, Copyright \u00A9 1999, 2005 SECOM Co., Ltd. All Rights Reserved
    IFCsvr has been modified by NIST to include STEP schemas
    The license agreement is in C:\\Program Files (x86)\\IFCsvrR300\\doc
-- Viewer for b-rep and tessellated part geometry
+- Viewer for B-rep and tessellated part geometry
    STEP to X3D Translator (stp2x3d) developed by Soonjo Kwon, former NIST Associate
    See Websites > STEP
 - Some Tcl code is based on CAWT https://www.tcl3d.org/cawt/

@@ -1,5 +1,5 @@
 # SFA version
-proc getVersion {} {return 5.33}
+proc getVersion {} {return 5.34}
 
 # see proc installIFCsvr in sfa-proc.tcl for the IFCsvr version
 # see below (line 37) for the sfaVersion when IFCsvr was updated
@@ -406,7 +406,7 @@ proc guiGenerateTab {} {
   set txt "Spreadsheets contain one worksheet for each STEP entity type.  The categories below\ncontrol which STEP entity types are written to the Spreadsheet.  Analyzer options\nbelow also write information to the Spreadsheet.  See the More tab for more options.\n\nIf Excel is installed, then Spreadsheets and CSV files can be generated.  If CSV Files\nis selected, the Spreadsheet is also generated.  CSV files do not contain any cell\ncolors, comments, or links.\n\nIf Excel is not installed, only CSV files can be generated.  Analyzer options are disabled."
   catch {tooltip::tooltip $buttons(genExcel) $txt}
   catch {tooltip::tooltip $buttons(genCSV) $txt}
-  set txt "The Viewer supports b-rep and tessellated part geometry, graphic PMI, sketch\ngeometry, supplemental geometry, datum targets, finite element models, and more.\nUse the Viewer options below to control what features of the STEP file are shown.\n\nPart Only generates only Part Geometry.  This is useful when no other Viewer\nfeatures are needed and for large STEP files greater than about 430 MB.\n\nSee Help > Viewer"
+  set txt "The Viewer supports B-rep and tessellated part geometry, graphic PMI, sketch\ngeometry, supplemental geometry, datum targets, finite element models, and more.\nUse the Viewer options below to control what features of the STEP file are shown.\n\nPart Only generates only Part Geometry.  This is useful when no other Viewer\nfeatures are needed and for large STEP files greater than about 430 MB.\n\nSee Help > Viewer"
   catch {tooltip::tooltip $buttons(genView) $txt}
   catch {tooltip::tooltip $buttons(partOnly) $txt}
   catch {tooltip::tooltip $buttons(BOM) "Generate a Bill of Materials (BOM) of parts and assemblies\n\nSee Help > Bill of Materials\nSee Examples > Bill of Materials"}
@@ -663,11 +663,11 @@ proc guiGenerateTab {} {
   pack $foptv -side left -anchor w -pady {5 2} -padx 10 -fill both -expand true
   pack $foptRV -side top -anchor w -pady 0 -fill x
   catch {
-    tooltip::tooltip $foptv20 "The Viewer supports b-rep and AP242 tessellated part geometry, color,\ntransparency, edges, sketch and supplemental geometry, and clipping planes.\nTesselated part geometry is typically written to an AP242 file instead of or in\naddition to b-rep part geometry.\n\nThe Viewer uses the default web browser.  An Internet connection is required.\nThe Viewer does not support measurements.\n\nSee the More tab for more Viewer options.\nSee Help > Viewer > Overview and other topics"
+    tooltip::tooltip $foptv20 "The Viewer supports B-rep and AP242 tessellated part geometry, color,\ntransparency, edges, sketch and supplemental geometry, and clipping planes.\nTesselated part geometry is typically written to an AP242 file instead of or in\naddition to B-rep part geometry.\n\nThe Viewer uses the default web browser.  An Internet connection is required.\nThe Viewer does not support measurements.\n\nSee the More tab for more Viewer options.\nSee Help > Viewer > Overview and other topics"
     tooltip::tooltip $buttons(viewPMI) "Graphic PMI for annotations is supported in AP242, AP203, and AP214 files.\nPMI (annotation) placeholders are supported in AP242.\n\nA Saved View is a subset of graphic PMI which has its own viewpoint position\nand orientation.  Use PageDown in the Viewer to cycle through saved views to\nswitch to the associated viewpoint and subset of graphic PMI.\n\nSee the options related to viewpoints on the More tab.\nSee Help > Viewer > Graphic PMI\nSee Help > Viewer > PMI Placeholders\nSee Help > User Guide (section 4.2)\n\nGraphic PMI and placeholders must conform to recommended practices.\nSee Websites > CAx Recommended Practices"
     tooltip::tooltip $buttons(feaLoadScale) "The length of load vectors can be scaled by their magnitude.\nLoad vectors are always colored by their magnitude."
     tooltip::tooltip $buttons(feaDispNoTail) "The length of displacement vectors with a tail are scaled by\ntheir magnitude.  Vectors without a tail are not.\nDisplacement vectors are always colored by their magnitude.\nLoad vectors always have a tail."
-    tooltip::tooltip $foptv21 "Quality controls the number of facets used for curved surfaces.\nFor example, the higher the quality the more facets around the\ncircumference of a cylinder.\n\nNormals improve the default smooth shading of surfaces.  Using\nHigh Quality and Normals results in the best appearance for b-rep\npart geometry.  Quality and normals do not apply to tessellated\npart geometry.\n\nIf curved surfaces for b-rep part geometry look wrong even with\nQuality set to High, then use the Alternative B-rep Geometry\nProcessing method on the More tab."
+    tooltip::tooltip $foptv21 "Quality controls the number of facets used for curved surfaces.\nFor example, the higher the quality the more facets around the\ncircumference of a cylinder.\n\nNormals improve the default smooth shading of surfaces.  Using\nHigh Quality and Normals results in the best appearance for B-rep\npart geometry.  Quality and normals do not apply to tessellated\npart geometry.\n\nIf curved surfaces for B-rep part geometry look wrong even with\nQuality set to High, then use the Alternative B-rep Geometry\nProcessing method on the More tab."
     tooltip::tooltip $foptv4  "For 'By View' PMI colors, all of the annotations in a Saved View are set to the\nsame color.  If there is only one or no Saved Views, then 'Random' PMI colors\nare used.  For 'Random' PMI colors, each annotation is set to a different color.\nPMI color does not apply to annotation placeholders which are always black."
     set tt "FEM nodes, elements, boundary conditions, loads, and\ndisplacements in AP209 files are shown.\n\nSee Help > Viewer > AP209 Finite Element Model\nSee Help > User Guide (section 4.4)"
     tooltip::tooltip $foptv7 $tt
@@ -896,7 +896,7 @@ proc guiMoreTab {} {
                   {" Do not group identical parts in an assembly" opt(partNoGroup)} \
                   {" Save X3D file generated by the Viewer" opt(x3dSave)} \
                   {" Alternative processing of tessellated part geometry" opt(tessPartOld)} \
-                  {" Alternative processing of b-rep part geometry" opt(brepAlt)}]
+                  {" Alternative processing of B-rep part geometry" opt(brepAlt)}]
   set n 0
   foreach item $items {
     incr n
@@ -936,7 +936,7 @@ proc guiMoreTab {} {
     tooltip::tooltip $buttons(viewNoPMI)   "If the model has viewpoints with and without graphic PMI,\nthen also show the viewpoints without graphic PMI.  Those\nviewpoints are typically top, front, side, etc."
     tooltip::tooltip $buttons(debugVP)     "Debug viewpoint orientation defined by a camera model\nby showing the view frustum in the Viewer.\n\nSee Help > Viewer > Viewpoints\nSee the CAx-IF Recommended Practice for\n $recPracNames(pmi242), Sec. 9.4.2.6"
     tooltip::tooltip $buttons(partCap)     "Generate capped surfaces for section view clipping planes.  Capped\nsurfaces might take a long time to generate or look wrong for parts\nin an assembly.  See Help > Viewer > Other Features"
-    tooltip::tooltip $buttons(brepAlt)     "If curved surfaces for Part Geometry look wrong even with\nQuality set to High, use an alternative b-rep geometry\nprocessing algorithm.  It will take longer to process the STEP\nfile and the resulting Viewer file will be larger."
+    tooltip::tooltip $buttons(brepAlt)     "If curved surfaces for Part Geometry look wrong even with\nQuality set to High, use an alternative B-rep geometry\nprocessing algorithm.  It will take longer to process the STEP\nfile and the resulting Viewer file will be larger."
     tooltip::tooltip $buttons(tessPartOld) "Process AP242 tessellated part geometry with the old method in SFA < 5.10.\nIt is not recommended for assemblies or large STEP files."
     tooltip::tooltip $buttons(x3dSave)     "The X3D file can be shown in an X3D viewer or imported to other software.\nUse this option if an Internet connection is not available for the Viewer.\nSee Help > Viewer"
     tooltip::tooltip $buttons(partNoGroup) "This option might create a very long list of parts names in the Viewer.\nIdentical parts have a underscore and number appended to their name.\nSee Help > Assemblies"
@@ -1034,7 +1034,7 @@ proc guiWebsitesMenu {} {
   $Websites add separator
   $Websites add cascade -label "AP242" -menu $Websites.0
   set Websites0 [menu $Websites.0 -tearoff 1]
-  $Websites0 add command -label "AP242 Project"           -command {openURL http://www.ap242.org}
+  $Websites0 add command -label "AP242 Project"           -command {openURL https://www.ap242.org}
   $Websites0 add command -label "Benchmark Testing"       -command {openURL http://www.asd-ssg.org/step-ap242-benchmark.html}
   $Websites0 add command -label "Domain Model XML"        -command {openURL https://www.mbx-if.org/home/pdm/recpractices/}
 
@@ -1051,9 +1051,9 @@ proc guiWebsitesMenu {} {
   $Websites2 add command -label "STEP to X3D Translator" -command {openURL https://www.nist.gov/services-resources/software/step-x3d-translator}
 
   $Websites2 add separator
-  $Websites2 add command -label "AP209 FEA"     -command {openURL http://www.ap209.org}
+  $Websites2 add command -label "AP209 FEA"     -command {openURL https://www.ap209.org}
   $Websites2 add command -label "AP238 STEP-NC" -command {openURL https://www.ap238.org}
-  $Websites2 add command -label "AP239 PLCS"    -command {openURL http://www.ap239.org}
+  $Websites2 add command -label "AP239 PLCS"    -command {openURL https://www.ap239.org}
   $Websites2 add separator
   $Websites2 add command -label "EXPRESS ISO 10303-11"           -command {openURL https://www.loc.gov/preservation/digital/formats/fdd/fdd000449.shtml}
   $Websites2 add command -label "EXPRESS data modeling language" -command {openURL https://en.wikipedia.org/wiki/EXPRESS_(data_modeling_language)}

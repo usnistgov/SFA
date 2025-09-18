@@ -9,7 +9,7 @@ proc genExcel {{numFile 0}} {
   global savedViewName savedViewNames scriptName sheetLast skipEntities skipFileName spmiEntity spmiSumName spmiSumRow spmiTypesPerFile
   global startrow statsOnly stepAP stepAPreport sumHeaderRow syntaxErr tessBrep tessColor tessEnts tessSolid thisEntType timeStamp tlast tolNames tolStandard tolStandards
   global totalEntity unicodeActual unicodeAttr unicodeAttributes unicodeEnts unicodeInFile unicodeNumEnts unicodeString unicodeStringCM userEntityFile userEntityList
-  global userWriteDir useXL uuidEnts valRounded viz wdir workbook workbooks worksheet worksheet1 worksheets writeDir wsCount wsNames x3dAxes
+  global userWriteDir useXL uuidCount uuidEnts valRounded viz wdir workbook workbooks worksheet worksheet1 worksheets writeDir wsCount wsNames x3dAxes
   global x3dColor x3dColorFile x3dColors x3dFileName x3dIndex x3dMax x3dMin x3dMsg x3dMsgColor x3dStartFile x3dViewOK xlFileName xlFileNames xlInstalled xlsManual
   global objDesign
 
@@ -306,7 +306,9 @@ proc genExcel {{numFile 0}} {
         set bSurface 0
         set tSolid 0
         set tSurface 0
-        foreach entType [list manifold_solid_brep shell_based_surface_model tessellated_solid tessellated_shell tessellated_closed_shell tessellated_open_shell] {
+        set pSolid 0
+        foreach entType [list manifold_solid_brep shell_based_surface_model tessellated_solid tessellated_shell tessellated_closed_shell \
+                         tessellated_open_shell tessellated_brep_shape_representation] {
           set num [$objDesign CountEntities "$entType"]
           if {$num > 0} {
             switch $entType {
@@ -316,12 +318,17 @@ proc genExcel {{numFile 0}} {
               "tessellated_shell" -
               "tessellated_closed_shell" -
               "tessellated_open_shell" {set tSurface 1}
+              "tessellated_brep_shape_representation" {set pSolid 1}
             }
           }
         }
         set str ""
-        if {$bSolid}   {append str "b-rep solid, "}
-        if {$bSurface} {append str "b-rep surface, "}
+        if {$pSolid == 0} {
+          if {$bSolid}   {append str "B-rep solid, "}
+          if {$bSurface} {append str "B-rep surface, "}
+        } else {
+          append str "polyhedral B-rep, "
+        }
         if {$tSolid}   {append str "tessellated solid, "}
         if {$tSurface} {append str "tessellated surface, "}
         if {$str != ""} {
@@ -819,7 +826,7 @@ proc genExcel {{numFile 0}} {
   set viz(TESSMESH) 1
   if {$tessEnts} {set viz(TESSPART) 1}
 
-# use new stp2x3d for tessellated geometry, except if there is also b-rep or not using SFA original method
+# use new stp2x3d for tessellated geometry, except if there is also B-rep or not using SFA original method
   if {$tessEnts && $brep == 0 && $opt(tessPartOld) == 0 && $tessBrep == 0} {
     set tessSolid 1
     set opt(viewTessPart) 0
@@ -1326,7 +1333,7 @@ proc genExcel {{numFile 0}} {
   }
 
 # -------------------------------------------------------------------------------------------------
-# generate b-rep part geometry if no other viz exists
+# generate B-rep part geometry if no other viz exists
   set vizprt 0
   if {$gen(View)} {
     if {$opt(viewPart) && !$viz(PMI) && !$viz(FEA) && !$viz(TESSPART) && ![info exists statsOnly]} {
@@ -1334,7 +1341,7 @@ proc genExcel {{numFile 0}} {
       set vizprt 1
     }
 
-# generate b-rep part geom, set viewpoints, and close x3dom geometry file
+# generate B-rep part geom, set viewpoints, and close x3dom geometry file
     if {($viz(PMI) || $viz(FEA) || $viz(TESSPART) || $vizprt) && $x3dFileName != ""} {x3dFileEnd}
   }
 
@@ -1461,6 +1468,9 @@ proc genExcel {{numFile 0}} {
     }
 
 # -------------------------------------------------------------------------------------------------
+# add UUID summary
+    if {[info exists uuidCount]} {uuidSummary}
+
 # add ANCHOR and other sections from Part 21 Edition 3
     if {[info exists p21e3Section]} {if {[llength $p21e3Section] > 0} {uuidReportAttributes 1}}
 
@@ -1779,9 +1789,10 @@ proc addHeaderWorksheet {numFile fname} {
           set id [lindex [split [string range $sn $c1+14 end] " "] 0]
           if {$id == 1} {
             append str " (Edition 1)"
-            set simsg " AP242 Edition 1 is not the current version.  See Help > Supported STEP APs"
+            if {$timeYear > 2022} {set simsg " AP242 Edition 1 is not the current version.  See Help > Supported STEP APs"}
             if {[llength $ap242ed(2)] > 0 || [llength $ap242ed(3)] > 0 || [llength $ap242ed(4)] > 0} {
-              append simsg "\n The STEP file contains entities ([join [lrmdups [concat $ap242ed(2) $ap242ed(3) $ap242ed(4)]]]) from a newer edition of AP242, however, the file is identified as Edition 1.  See Websites > STEP > EXPRESS Schemas"
+              if {$simsg != ""} {append simsg \n}
+              append simsg " The STEP file contains entities ([join [lrmdups [concat $ap242ed(2) $ap242ed(3) $ap242ed(4)]]]) from a newer edition of AP242, however, the file is identified as Edition 1.  See Websites > STEP > EXPRESS Schemas"
             }
           } elseif {$id == 2 || $id == 3} {
             append str " (Edition 2)"
@@ -1883,6 +1894,7 @@ proc addHeaderWorksheet {numFile fname} {
             }
           }
           set timeStamp $objAttr
+          set timeYear [string range $timeStamp 0 3]
           if {$numFile != 0 && [info exists cells1(Summary)] && $useXL} {
             set colsum [expr {$col1(Summary)+1}]
             set range [$worksheet1(Summary) Range [cellRange 5 $colsum]]

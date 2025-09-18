@@ -233,6 +233,7 @@ set auto_index(tessSetPlacement) [list source [file join $dir sfa-tess.tcl]]
 
 set auto_index(uuidGetAttributes) [list source [file join $dir sfa-uuid.tcl]]
 set auto_index(uuidReportAttributes) [list source [file join $dir sfa-uuid.tcl]]
+set auto_index(uuidSummary) [list source [file join $dir sfa-uuid.tcl]]
 
 set auto_index(addValProps) [list source [file join $dir sfa-valprop.tcl]]
 set auto_index(getValProps) [list source [file join $dir sfa-valprop.tcl]]

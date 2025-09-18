@@ -123,9 +123,6 @@ set legendColor(litgray) [expr {int (232) << 16 | int (232) << 8 | int(232)}]
 
 # -----------------------------------------------------------------------------------------------------
 # entity attributes (mostly geometry) that cause a crash with 'LIST of LIST' due to limitations of the IFCsvr toolkit
-set badAttributes(axisymmetric_curve_2d_element_descriptor) {purpose}
-set badAttributes(axisymmetric_surface_2d_element_descriptor) {purpose}
-set badAttributes(axisymmetric_volume_2d_element_descriptor) {purpose}
 set badAttributes(b_spline_surface_with_knots) {control_points_list}
 set badAttributes(b_spline_surface_with_knots_and_rational_b_spline_surface) {control_points_list weights_data}
 set badAttributes(b_spline_volume_with_knots) {control_points_list}
@@ -134,12 +131,10 @@ set badAttributes(bezier_surface) {control_points_list}
 set badAttributes(bezier_surface_and_rational_b_spline_surface) {control_points_list weights_data}
 set badAttributes(bezier_volume) {control_points_list}
 set badAttributes(bezier_volume_and_rational_b_spline_volume) {control_points_list weights_data}
-set badAttributes(cc_design_approval) {items}
 set badAttributes(complex_shelled_solid) {thickened_face_list}
 set badAttributes(complex_triangulated_face) {normals triangle_fans triangle_strips}
 set badAttributes(complex_triangulated_surface_set) {normals triangle_fans triangle_strips}
 set badAttributes(coordinates_list) {position_coords}
-set badAttributes(curve_3d_element_descriptor) {purpose}
 set badAttributes(cubic_bezier_triangulated_face) {normals ctriangles}
 set badAttributes(explicit_element_matrix) {node_dof_list}
 set badAttributes(extruded_face_solid_with_multiple_draft_angles) {drafted_edges}
@@ -147,9 +142,6 @@ set badAttributes(finite_function) {pairs}
 set badAttributes(indices_list) {indices}
 set badAttributes(locally_refined_spline_surface) {domain}
 set badAttributes(locally_refined_spline_volume) {domain}
-set badAttributes(plane_curve_2d_element_descriptor) {purpose}
-set badAttributes(plane_surface_2d_element_descriptor) {purpose}
-set badAttributes(plane_volume_2d_element_descriptor) {purpose}
 set badAttributes(point_cloud_dataset) {point_coordinates}
 set badAttributes(point_cloud_dataset_with_colours) {point_coordinates colour_indices}
 set badAttributes(point_cloud_dataset_with_intensities) {point_coordinates}
@@ -170,7 +162,6 @@ set badAttributes(solid_with_straight_slot) {end_exit_faces}
 set badAttributes(solid_with_tee_section_slot) {end_exit_faces}
 set badAttributes(solid_with_trapezoidal_section_slot) {end_exit_faces}
 set badAttributes(styled_tessellated_item_with_colours) {colour_values}
-set badAttributes(surface_3d_element_descriptor) {purpose}
 set badAttributes(tessellated_curve_set) {line_strips}
 set badAttributes(tessellated_face) {normals}
 set badAttributes(tessellated_surface_set) {normals}
@@ -179,6 +170,17 @@ set badAttributes(triangulated_point_cloud_dataset) {triangles}
 set badAttributes(triangulated_surface_set) {normals triangles}
 set badAttributes(uniform_surface) {control_points_list}
 set badAttributes(uniform_volume) {control_points_list}
+
+set badAttributes(axisymmetric_curve_2d_element_descriptor) {purpose}
+set badAttributes(axisymmetric_surface_2d_element_descriptor) {purpose}
+set badAttributes(axisymmetric_volume_2d_element_descriptor) {purpose}
+set badAttributes(plane_curve_2d_element_descriptor) {purpose}
+set badAttributes(plane_surface_2d_element_descriptor) {purpose}
+set badAttributes(plane_volume_2d_element_descriptor) {purpose}
+set badAttributes(curve_3d_element_descriptor) {purpose}
+set badAttributes(surface_3d_element_descriptor) {purpose}
+set badAttributes(cc_design_approval) {items}
+
 set badAttributes(v4_uuid_attribute) {identified_item}
 set badAttributes(v5_uuid_attribute) {identified_item}
 set badAttributes(hash_based_v5_uuid_attribute) {identified_item}
@@ -201,57 +203,21 @@ set badAttributes(IfcTriangulatedIrregularNetwork) {CoordIndex Normals NormalInd
 # entity attributes that might have text strings with unicode \x2\ that have to be handled separately
 # in AP2.., not all but a few commonly used, all would be any entity with a name attribute, basic geometry is not included
 # complex entities require special exceptions in proc unicodeStrings
-set unicodeAttributes(advanced_brep_shape_representation) {name}
-set unicodeAttributes(angular_size_and_dimensional_size_with_datum_feature) {name}
-set unicodeAttributes(annotation_curve_occurrence) {name}
-set unicodeAttributes(annotation_placeholder_occurrence) {name}
-set unicodeAttributes(annotation_placeholder_occurrence_with_leader_line) {name}
-set unicodeAttributes(annotation_plane) {name}
-set unicodeAttributes(annotation_to_annotation_leader_line) {name}
-set unicodeAttributes(annotation_to_model_leader_line) {name}
-set unicodeAttributes(auxiliary_leader_line) {name}
-set unicodeAttributes(brep_with_voids) {name}
-set unicodeAttributes(camera_model_d3) {name}
-set unicodeAttributes(camera_model_d3_multi_clipping) {name}
-set unicodeAttributes(centre_of_symmetry) {name}
-set unicodeAttributes(characterized_representation_and_draughting_model_and_tessellated_shape_representation) {name}
-set unicodeAttributes(component_path_shape_aspect) {name}
-set unicodeAttributes(composite_group_shape_aspect) {name}
-set unicodeAttributes(composite_shape_aspect) {name}
-set unicodeAttributes(composite_shape_aspect_and_datum_feature) {name}
-set unicodeAttributes(datum_feature) {name}
-set unicodeAttributes(descriptive_representation_item) {name description}
-set unicodeAttributes(dimensional_size_with_datum_feature) {name}
-set unicodeAttributes(draughting_callout) {name}
-set unicodeAttributes(draughting_model) {name}
-set unicodeAttributes(draughting_model_and_tessellated_shape_representation) {name}
-set unicodeAttributes(general_property) {name description}
-set unicodeAttributes(geometric_alignment) {name}
-set unicodeAttributes(geometric_curve_set) {name}
-set unicodeAttributes(geometric_item_specific_usage) {name}
-set unicodeAttributes(group) {name}
-set unicodeAttributes(item_identified_representation_usage) {name}
-set unicodeAttributes(item_defined_transformation) {name description}
-set unicodeAttributes(machining_tool_usage) {name}
-set unicodeAttributes(manifold_solid_brep) {name}
+
+# name
+foreach item [list advanced_brep_shape_representation angular_size_and_dimensional_size_with_datum_feature annotation_curve_occurrence annotation_placeholder_occurrence annotation_placeholder_occurrence_with_leader_line annotation_plane annotation_to_annotation_leader_line annotation_to_model_leader_line auxiliary_leader_line brep_with_voids camera_model_d3 camera_model_d3_multi_clipping centre_of_symmetry characterized_representation_and_draughting_model_and_tessellated_shape_representation component_path_shape_aspect composite_group_shape_aspect composite_shape_aspect composite_shape_aspect_and_datum_feature datum_feature dimensional_size_with_datum_feature draughting_callout draughting_model draughting_model_and_tessellated_shape_representation geometric_alignment geometric_curve_set geometric_item_specific_usage group item_identified_representation_usage machining_tool_usage manifold_solid_brep open_shell person_and_organization_role property_definition representation shape_aspect shape_representation tessellated_annotation_occurrence] {set unicodeAttributes($item) {name}}
+
+# name description
+foreach item [list descriptive_representation_item general_property item_defined_transformation product_definition_shape product_related_product_category representation_relationship shape_representation_relationship] {set unicodeAttributes($item) {name description}}
+
 set unicodeAttributes(next_assembly_usage_occurrence) {id name description reference_designator}
-set unicodeAttributes(open_shell) {name}
 set unicodeAttributes(organization) {id name description}
 set unicodeAttributes(person) {id last_name first_name}
-set unicodeAttributes(person_and_organization_role) {name}
 set unicodeAttributes(product) {id name description}
 set unicodeAttributes(product_definition) {id description}
 set unicodeAttributes(product_definition_formation_with_specified_source) {id description}
-set unicodeAttributes(product_definition_shape) {name description}
-set unicodeAttributes(product_related_product_category) {name description}
-set unicodeAttributes(property_definition) {name}
-set unicodeAttributes(representation) {name}
 set unicodeAttributes(representation_context) {context_identifier context_type}
-set unicodeAttributes(representation_relationship) {name description}
-set unicodeAttributes(shape_aspect) {name}
-set unicodeAttributes(shape_representation) {name}
-set unicodeAttributes(shape_representation_relationship) {name description}
-set unicodeAttributes(tessellated_annotation_occurrence) {name}
+
 # in ISO 13584, ISO 13399
 set unicodeAttributes(item_names) {preferred_name}
 set unicodeAttributes(string_with_language) {contents}
@@ -266,7 +232,7 @@ set cadApps {3D_Evolution 3DEXPERIENCE 3DTransVidia Alibre "Anark CORE" Area21 "
 set cadApps [sortlength2 $cadApps]
 
 # CAx-IF vendor codes (General Guidelines for the MBx Interoperability Forum)
-set pairs [list {3de "3D Evolution"} {c3e "3D Experience"} {c5 "CATIA V5"} {cr "Creo"} {ct3d "3D Evolution (3DX)"} {ct5 "3D Evolution (V5)"} {cto "3D Evolution (Creo)"} {ctx "3D Evolution (NX)"} {d3e "Datakit (3DX)"} {d5 "Datakit (V5)"} {dc "Datakit"} {di "Datakit (Inventor)"} {do "Datakit (Creo)"} {dw "Datakit (SolidWorks)"} {dx "Datakit (NX)"} {e3e "Elysium (3DX)"} {e5 "Elysium (V5)"} {ec "Elysium CadDoctor"} {eo "Elysium (Creo)"} {ex "Elysium (NX)"} {in "Autodesk Inventor"} {k3d "Kubotek (3D Framework)"} {k3d "Kubotek (3DX)"} {k5 "Kubotek (V5)"} {ko "Kubotek (Creo)"} {kx "Kubotek (NX)"} {nx "Siemens NX"} {oc "Datakit (OpenCascade)"} {osv "ODA Open STEP Viewer"} {pdm "prostep ivip PDM-IF"} {sw "SolidWorks"} \
+set pairs [list {3de "3D Evolution"} {c3e "3D Experience"} {c5 "CATIA V5"} {cr "Creo"} {ct3e "3D Evolution (3DX)"} {ct5 "3D Evolution (V5)"} {cto "3D Evolution (Creo)"} {ctx "3D Evolution (NX)"} {d3e "Datakit (3DX)"} {d5 "Datakit (V5)"} {dc "Datakit"} {di "Datakit (Inventor)"} {do "Datakit (Creo)"} {dw "Datakit (SolidWorks)"} {dx "Datakit (NX)"} {e3e "Elysium (3DX)"} {e5 "Elysium (V5)"} {ec "Elysium CadDoctor"} {eo "Elysium (Creo)"} {ex "Elysium (NX)"} {in "Autodesk Inventor"} {k3d "Kubotek (3D Framework)"} {k3e "Kubotek (3DX)"} {k5 "Kubotek (V5)"} {ko "Kubotek (Creo)"} {kx "Kubotek (NX)"} {nx "Siemens NX"} {oc "Datakit (OpenCascade)"} {osv "ODA Open STEP Viewer"} {pdm "prostep ivip PDM-IF"} {sw "SolidWorks"} \
 {a3 "Acrobat 3D"} {a5 "Acrobat_3D (V5)"} {ac "AutoCAD"} {al "Autodesk AliasStudio"} {au "Acrobat_3D (NX)"} {c4 "CATIA V4"} {cm "PTC CoCreate Modeling"} {fs "Vistagy FiberSim"} {h3 "HOOPS 3D Exchange"} {h5 "HOOPS 3D (V5)"} {hc "HOOPS 3D (Creo)"} {hx "HOOPS 3D (NX)"} {i5 "ITI CADfix (V5)"} {ew "Elysium (SolidWorks)"} {ic "ITI CADfix (Creo)"} {id "Siemens NX I-DEAS"} {if "ITI CADfix"} {ii "ITI CADfix (Inventor)"} {iw "ITI CADfix (SolidWorks)"} {ix "ITI CADfix (NX)"} {jn "Jotne EPM NASTRAN"} {jo "Jotne EPM openSimDM"} {kc "Kubotek KeyCreator"} {kr "Kubotek REALyze"} {kw "Kubotek (SolidWorks)"} {lk "LKSoft IDA-STEP"} {mm "Mitutoyo MiCAT Planner"} {mp "MSC Patran"} {nas "MSC NASTRAN"} {oc "Datakit (OpenCascade)"} {pc "PTC CADDS"} {pe "PTC Pro/E"} {s4 "T-Systems COM/STEP (V4)"} {s5 "T-Systems COM/FOX (V5)"} {se "Siemens SolidEdge"} {sp "Spatial ACIS"} {stp "ISO 10303 STEP"} {t3d "TechSoft3D"} {t4 "Theorem Cadverter (V4)"} {tc "Theorem Cadverter (CADDS)"} {tp "Theorem Cadverter (Pro/E)"} {tx "Theorem Cadverter (NX)"} {ug "Unigraphics"}]
 foreach pair $pairs {set allVendor([lindex $pair 0]) [lindex $pair 1]}
 
@@ -303,7 +269,7 @@ set cameraModels [list camera_model_d3 camera_model_d3_multi_clipping camera_mod
 
 # -----------------------------------------------------------------------------------------------------
 # max rows for PMI elements on PMI representation coverage worksheet, depends on number and order of items below
-set pmiElementsMaxRows 187
+set pmiElementsMaxRows 189
 # line breaks are above the row, depends on the grouping of PMI elements below
 set pmiHorizontalLineBreaks [list 19 35 49 55 66 74 84 [expr {$pmiElementsMaxRows-12}]]
 
@@ -368,10 +334,12 @@ set pmiModifiersArray(median_rank_order_size,5.3)                     "(SM)"
 set pmiModifiersArray(mid_range_rank_order_size,5.3)                  "(SD)"
 set pmiModifiersArray(minimum_circumscribed_association_criteria,5.3) "(GN)"
 set pmiModifiersArray(minimum_rank_order_size,5.3)                    "(SN)"
+set pmiModifiersArray(minimax_chebyshev_association_criteria,5.3)     "(GC)"
 set pmiModifiersArray(projected,6.9.2.2)                              "\u24C5"
 set pmiModifiersArray(range_rank_order_size,5.3)                      "(SR)"
 set pmiModifiersArray(specific_fixed_cross_section,5.3)               "SCS"
 set pmiModifiersArray(square,5.3)                                     "\u25A1"
+set pmiModifiersArray(standard_deviation_of_sizes,5.3)                "(SQ)"
 set pmiModifiersArray(statistical_dimension,5.3)                      "<ST>"
 set pmiModifiersArray(two_point_size,5.3)                             "(LP)"
 set pmiModifiersArray(unequally_disposed,6.9.4)                       "\u24CA"

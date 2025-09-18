@@ -438,12 +438,9 @@ proc nistCheckExpectedPMI {val entstr epmiName} {
           if {$posSym > 0} {break}
         }
         set valgnd [string trim [string range $val $posSym end]]
-        set valdim [string trim [string range $val 0 $posSym-1]]
-        set okdim 0
-        if {$valdim != "" && ![string is alpha $valdim]} {set okdim 1}
 
 # check geometric tolerances
-        if {[info exists nistPMIexpectedGND($epmiName)] && $okdim} {
+        if {[info exists nistPMIexpectedGND($epmiName)]} {
           set ok 0
           set pmiMatchGND [lsearch $nistPMIexpectedGND($epmiName) $valgnd]
           if {$pmiMatchGND != -1} {
@@ -465,6 +462,7 @@ proc nistCheckExpectedPMI {val entstr epmiName} {
                 set pmiSimilar "Dimension does not match"
               } else {
                 set pmiSimilar "Missing dimension association"
+                if {$epmiName == "jpmi-trim"} {set pmiSimilar "Missing UF tolerance modifier"}
               }
               lappend nistPMIfound $val
               set nistPMIdeduct(tol) 1
@@ -489,7 +487,7 @@ proc nistCheckExpectedPMI {val entstr epmiName} {
         }
 
 # unexpected dimension association
-        if {$pmiMatch == 0 && $okdim} {
+        if {$pmiMatch == 0} {
           set pmiMatchGND [lsearch $nistPMIexpected($epmiName) $valgnd]
           if {$pmiMatchGND != -1 && [string first "\u2B69\u25CE" $val] == -1} {
             set pmiMatch 0.99
@@ -1189,25 +1187,25 @@ proc nistGetName {} {
     if {[string first "gears" $ftail] == -1 && [string first "gear" $ftail] != -1} {regsub "gear" $ftail "gears" ftail}
     foreach tc {jpmi-gears jpmi-housing jpmi-knuckle jpmi-trim} {if {[string first $tc $ftail] == 0} {set nistName $tc}}
 
-# check for a NIST CTC, FTC, STC, HTC
+# check for a NIST CTC, FTC, STC, HTC, PDC
   } else {
     set testCase ""
     set ok  0
     set ok1 0
 
     if {[lsearch $filePrefix [string range $ftail 0 $c]] != -1 || [string first "htc" $ftail] != -1 || \
-        [string first "ctc" $ftail] != -1 || [string first "ftc" $ftail] != -1 || [string first "stc" $ftail] != -1 || \
-        ([string first "nist" $ftail] != -1 && [string first "pdi" $ftail] == -1 && [string first "pdc" $ftail] == -1)} {
+        [string first "ctc" $ftail] != -1 || [string first "ftc" $ftail] != -1 || [string first "stc" $ftail] != -1 || [string first "pdc" $ftail] != -1 || \
+        ([string first "nist" $ftail] != -1 && [string first "pdi" $ftail] == -1)} {
       if {[lsearch $filePrefix [string range $ftail 0 $c]] != -1} {set ftail [string range $ftail $c+1 end]}
 
       set tmp "nist_"
-      foreach item {ctc ftc stc htc} {
+      foreach item {ctc ftc stc htc pdc} {
         if {[string first $item $ftail] != -1} {
           append tmp "$item\_"
           set testCase $item
         }
       }
-      if {$testCase == "htc"} {set nistName "nist_htc"}
+      if {$testCase == "htc" || $testCase == "pdc"} {set nistName "nist_htc"}
 
 # find nist_ctc_01 directly
       if {$testCase != ""} {

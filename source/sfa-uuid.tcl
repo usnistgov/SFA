@@ -1,13 +1,14 @@
 # add UUIDs from uuid_attribute entities (AP242 Edition >= 4)
 proc uuidGetAttributes {totalUUID entsUUID} {
-  global cells idRow localName syntaxErr uuid uuidEnts
+  global cells idRow localName syntaxErr uuid uuidCount uuidEnts
   global objDesign
 
   outputMsg "\nProcessing UUID attributes" blue
   set nUUID 0
   set allUUID {}
-  set noUUIDent {}
+  set uuidCount {}
   catch {unset uuid}
+  catch {unset uuidCount}
 
 # read STEP file for UUID entities because one of the attributes is a LIST of LIST
   set f [open $localName r]
@@ -86,14 +87,20 @@ proc uuidGetAttributes {totalUUID entsUUID} {
               }
               set uuid($uuidEnt,[$e1 P21ID]) $uuidstr
               set okid 1
-              if {![info exist cells($uuidEnt)]} {lappend noUUIDent $uuidEnt}
               if {$iditem != ""} {
                 errorMsg " Some UUIDs are associated with multiple entities" red
                 if {[info exists idRow($ent,$entid)]} {
                   addCellComment $ent $idRow($ent,$entid) 3 "UUID is associated with multiple entities"
                 }
               }
+
               append iditem "[formatComplexEnt $uuidEnt] [$e1 P21ID]   "
+              incr uuidCount($uuidEnt)
+              if {$uuidEnt == "advanced_face"} {
+                set e1 [[[$e1 Attributes] Item [expr 3]] Value]
+                set idx "$uuidEnt > [$e1 Type]"
+                incr uuidCount($idx)
+              }
             } else {
               set msg "Error: Missing entity referred to in identified_item.  Run the Syntax Checker"
               errorMsg " $msg"
@@ -120,13 +127,55 @@ proc uuidGetAttributes {totalUUID entsUUID} {
     }
   }
   close $f
+}
 
-  set noUUIDent [lrmdups $noUUIDent]
-  if {[llength $noUUIDent] > 0} {
-    regsub -all " " [join [lrmdups $noUUIDent]] ", " str
-    outputMsg " UUIDs are also associated with: $str" red
-    unset noUUIDent
+# -------------------------------------------------------------------------------------------------
+# add UUID Summary worksheet
+proc uuidSummary {} {
+  global cells entCount entName uuidCount worksheet worksheets
+
+# generate UUID summary worksheet
+  outputMsg "\nGenerating UUID Summary worksheet" blue
+  if {[catch {
+    set usum "UUID Summary"
+    set worksheet($usum) [$worksheets Add [::tcom::na] [$worksheets Item [$worksheets Count]]]
+    set n [$worksheets Count]
+    [$worksheets Item [expr $n]] -namedarg Move Before [$worksheets Item [expr 3]]
+    $worksheet($usum) Activate
+    $worksheet($usum) Name $usum
+    set hlink [$worksheet($usum) Hyperlinks]
+    set cells($usum) [$worksheet($usum) Cells]
+
+    set r 1
+    $cells($usum) Item $r 1 "Count"
+    $cells($usum) Item $r 2 "Entity Types with UUIDs"
+    [[$worksheet($usum) Range "A1"] Font] Bold [expr 1]
+    [[$worksheet($usum) Range "B1"] Font] Bold [expr 1]
+
+    foreach idx [lsort [array names uuidCount]] {
+      set str $uuidCount($idx)
+      if {[info exists entCount($idx)]} {if {$entCount($idx) > $uuidCount($idx)} {append str " of $entCount($idx)"}}
+      incr r
+      $cells($usum) Item $r 1 $str
+      set str [formatComplexEnt $idx]
+      if {[string first ">" $idx] != -1} {set str "   $idx"}
+      $cells($usum) Item $r 2 $str
+      if {[info exists worksheet($idx)]} {
+        set anchor [$worksheet($usum) Range "B$r"]
+        set hlsheet $idx
+        if {[string length $idx] > 31} {
+          foreach item [array names entName] {if {$entName($item) == $idx} {set hlsheet $item}}
+        }
+        catch {$hlink Add $anchor [string trim ""] "$hlsheet!A1" "Go to [formatComplexEnt $idx]"}
+      }
+    }
+    [$worksheet($usum) Columns] AutoFit
+    outputMsg " "
+  } emsg]} {
+    errorMsg "Error generating UUID Summary worksheet: $emsg"
   }
+
+  unset uuidCount
 }
 
 # -------------------------------------------------------------------------------------------------
