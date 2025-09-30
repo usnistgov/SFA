@@ -61,6 +61,7 @@ proc uuidGetAttributes {totalUUID entsUUID} {
           if {[string index $line1 0] == "\#"} {set c1 0}
           set items [split [string range $line1 $c1 [string first "))" $line1]-1] ","]
           set iditem ""
+          set iditemName ""
 
 # loop over all items
           foreach item $items {
@@ -95,10 +96,22 @@ proc uuidGetAttributes {totalUUID entsUUID} {
               }
 
               append iditem "[formatComplexEnt $uuidEnt] [$e1 P21ID]   "
+              set i 1
+              if {$uuidEnt == "dimensional_size" || $uuidEnt == "angular_size"} {set i 2}
+              append iditemName "[[[$e1 Attributes] Item [expr $i]] Value]   "
+
               incr uuidCount($uuidEnt)
               if {$uuidEnt == "advanced_face"} {
-                set e1 [[[$e1 Attributes] Item [expr 3]] Value]
-                set idx "$uuidEnt > [$e1 Type]"
+                set e2 [[[$e1 Attributes] Item [expr 3]] Value]
+                set idx "$uuidEnt > [$e2 Type]"
+                incr uuidCount($idx)
+              } elseif {$uuidEnt == "edge_curve"} {
+                set e2 [[[$e1 Attributes] Item [expr 4]] Value]
+                set idx "$uuidEnt > [$e2 Type]"
+                incr uuidCount($idx)
+              } elseif {$uuidEnt == "trimmed_curve"} {
+                set e2 [[[$e1 Attributes] Item [expr 2]] Value]
+                set idx "$uuidEnt > [$e2 Type]"
                 incr uuidCount($idx)
               }
             } else {
@@ -111,8 +124,14 @@ proc uuidGetAttributes {totalUUID entsUUID} {
 # write identified_items to uuid_attribute entity
           if {[info exists idRow($ent,$entid)]} {
             $cells($ent) Item $idRow($ent,$entid) 3 $iditem
+            if {[string first "handle" $uuidEnt] == -1} {
+              $cells($ent) Item $idRow($ent,$entid) 4 [string trim $iditemName]
+              incr heading
+              if {$heading == 1} {$cells($ent) Item 3 4 "identified_item name"}
+            }
           }
 
+# errors
         } else {
           set msg "Error with UUID format"
           errorMsg " $msg"
@@ -135,7 +154,7 @@ proc uuidSummary {} {
   global cells entCount entName uuidCount worksheet worksheets
 
 # generate UUID summary worksheet
-  outputMsg "\nGenerating UUID Summary worksheet" blue
+  outputMsg "Generating UUID Summary worksheet" blue
   if {[catch {
     set usum "UUID Summary"
     set worksheet($usum) [$worksheets Add [::tcom::na] [$worksheets Item [$worksheets Count]]]
@@ -170,7 +189,6 @@ proc uuidSummary {} {
       }
     }
     [$worksheet($usum) Columns] AutoFit
-    outputMsg " "
   } emsg]} {
     errorMsg "Error generating UUID Summary worksheet: $emsg"
   }
@@ -228,7 +246,7 @@ proc uuidReportAttributes {idType {uuidEnt ""}} {
         set hlink [$worksheet($sect) Hyperlinks]
         set cells($sect) [$worksheet($sect) Cells]
         set r 0
-        outputMsg " Adding $line worksheet" blue
+        outputMsg "Generating $line worksheet" blue
       }
 
 # add to worksheet

@@ -1201,7 +1201,11 @@ proc spmiGeotolReport {objEntity} {
 
 # save datum target geometric entity for view
                             if {[catch {
-                              append datumTargetGeom "[$e2 Type] [$e2 P21ID]"
+                              if {![info exists datumTargetGeom]} {
+                                set datumTargetGeom "[$e2 Type] [$e2 P21ID]"
+                              } else {
+                                append datumTargetGeom " [$e2 P21ID]"
+                              }
                               set datumTargetView([$gtEntity P21ID]) [list $datumTargetType $e2]
                             }]} {
                               set msg "Syntax Error: Invalid 'identified_item' attribute on geometric_item_specific_usage related to datum_target.$spaces\($recPracNames(pmi242), Sec. 6.6.2, Fig. 44)"

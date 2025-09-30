@@ -403,7 +403,8 @@ proc tessReadGeometry {{coordOnly 0}} {
 
 # -------------------------------------------------------------------------------
 proc tessSetColor {tessEnt faceEnt} {
-  global defaultColor recPracNames spaces tessColor x3dColor
+  global defaultColor entCount recPracNames spaces tessColor x3dColor
+  global objDesign
 
 # color already exists for the tessellation
   set id(tess) [$tessEnt P21ID]
@@ -427,6 +428,21 @@ proc tessSetColor {tessEnt faceEnt} {
     set tsID $id(tess)
     set objEntity $tessEnt
     set e0s [$objEntity GetUsedIn [string trim styled_item] [string trim item]]
+  }
+
+# get styled_item.item for tessellated_closed_shell (tessellated brep)
+  set n 0
+  ::tcom::foreach e0 $e0s {incr n}
+  if {$n == 0} {
+    if {[info exists entCount(manifold_solid_brep)] && $entCount(manifold_solid_brep) > 0} {
+      ::tcom::foreach msb [$objDesign FindObjects [string trim "manifold_solid_brep"]] {
+        set tcs [[[$msb Attributes] Item [expr 2]] Value]
+        set tcsType [$tcs Type]
+        if {$tcsType == "tessellated_closed_shell" || $tcsType == "tessellated_open_shell"} {
+          if {[$tcs P21ID] == $id(tess)} {set e0s [$msb GetUsedIn [string trim styled_item] [string trim item]]}
+        }
+      }
+    }
   }
 
 # no styled_item for either

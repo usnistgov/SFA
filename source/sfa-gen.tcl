@@ -302,38 +302,21 @@ proc genExcel {{numFile 0}} {
 
 # check for type of part geometry
       catch {
-        set bSolid 0
-        set bSurface 0
-        set tSolid 0
-        set tSurface 0
-        set pSolid 0
-        foreach entType [list manifold_solid_brep shell_based_surface_model tessellated_solid tessellated_shell tessellated_closed_shell \
-                         tessellated_open_shell tessellated_brep_shape_representation] {
+        set str "Part geometry ("
+        set gtypes {}
+        foreach entType [list closed_shell open_shell surface_of_linear_extrusion surface_of_revolution tessellated_solid tessellated_shell tessellated_closed_shell tessellated_open_shell] {
           set num [$objDesign CountEntities "$entType"]
           if {$num > 0} {
-            switch $entType {
-              "manifold_solid_brep" {set bSolid 1}
-              "shell_based_surface_model" {set bSurface 1}
-              "tessellated_solid" {set tSolid 1}
-              "tessellated_shell" -
-              "tessellated_closed_shell" -
-              "tessellated_open_shell" {set tSurface 1}
-              "tessellated_brep_shape_representation" {set pSolid 1}
-            }
+            if {$entType == "closed_shell"} {lappend gtypes "B-rep solid"}
+            if {$entType == "open_shell" || [string first "surface_of_" $entType] != -1} {lappend gtypes "B-rep surface"}
+            if {$entType == "tessellated_solid"} {lappend gtypes "tessellated solid"}
+            if {$entType == "tessellated_shell"} {lappend gtypes "tessellated surface"}
+            if {$entType == "tessellated_closed_shell" || $entType == "tessellated_open_shell"} {lappend gtypes "polyhedral B-rep"}
           }
         }
-        set str ""
-        if {$pSolid == 0} {
-          if {$bSolid}   {append str "B-rep solid, "}
-          if {$bSurface} {append str "B-rep surface, "}
-        } else {
-          append str "polyhedral B-rep, "
-        }
-        if {$tSolid}   {append str "tessellated solid, "}
-        if {$tSurface} {append str "tessellated surface, "}
-        if {$str != ""} {
-          set str [list "Part geometry ([string range $str 0 end-2])"]
-          set characteristics [concat $str $characteristics]
+        if {[llength $gtypes] > 0} {
+          set gtypes "Part geometry ([join [lrmdups $gtypes] ", "])"
+          set characteristics [concat [list $gtypes] $characteristics]
         }
       }
 
@@ -817,7 +800,9 @@ proc genExcel {{numFile 0}} {
   foreach item [list tessellated_solid tessellated_shell tessellated_closed_shell tessellated_open_shell] {
     if {[info exists entCount($item)] && $entCount($item) > 0} {set tessEnts 1}
   }
-  if {[info exists entCount(tessellated_brep_shape_representation)] && $entCount(tessellated_brep_shape_representation) > 0} {set tessBrep 1}
+  if {[info exists entCount(tessellated_brep_shape_representation)] && $entCount(tessellated_brep_shape_representation) > 0} {
+    set tessBrep 1
+  }
 
 # setting for SFA original
   set tessSolid 0
@@ -1427,7 +1412,7 @@ proc genExcel {{numFile 0}} {
         if {$ok} {
           set spmiCoverageWS "Semantic PMI Coverage"
           if {![info exists worksheet($spmiCoverageWS)]} {
-            outputMsg " Adding Semantic PMI Coverage worksheet" blue
+            outputMsg "Generating Semantic PMI Coverage worksheet" blue
             spmiCoverageStart 0
             spmiCoverageWrite "" "" 0
             spmiCoverageFormat "" 0
@@ -1453,7 +1438,7 @@ proc genExcel {{numFile 0}} {
       if {[info exists gpmiTypesPerFile]} {
         set gpmiCoverageWS "Graphic PMI Coverage"
         if {![info exists worksheet($gpmiCoverageWS)]} {
-          outputMsg " Adding Graphic PMI Coverage worksheet" blue
+          outputMsg "Generating Graphic PMI Coverage worksheet" blue
           gpmiCoverageStart 0
           gpmiCoverageWrite "" "" 0
           gpmiCoverageFormat "" 0
@@ -1788,25 +1773,24 @@ proc addHeaderWorksheet {numFile fname} {
         if {$c1 != -1} {
           set id [lindex [split [string range $sn $c1+14 end] " "] 0]
           if {$id == 1} {
-            append str " (Edition 1)"
-            if {$timeYear > 2022} {set simsg " AP242 Edition 1 is not the current version.  See Help > Supported STEP APs"}
+            append str " (Edition 1, 2014)"
             if {[llength $ap242ed(2)] > 0 || [llength $ap242ed(3)] > 0 || [llength $ap242ed(4)] > 0} {
               if {$simsg != ""} {append simsg \n}
               append simsg " The STEP file contains entities ([join [lrmdups [concat $ap242ed(2) $ap242ed(3) $ap242ed(4)]]]) from a newer edition of AP242, however, the file is identified as Edition 1.  See Websites > STEP > EXPRESS Schemas"
             }
           } elseif {$id == 2 || $id == 3} {
-            append str " (Edition 2)"
+            append str " (Edition 2, 2020)"
             if {[llength $ap242ed(3)] > 0 || [llength $ap242ed(4)] > 0} {
               set simsg " The STEP file contains entities ([join [lrmdups [concat $ap242ed(3) $ap242ed(4)]]]) from a newer edition of AP242, however, the file is identified as Edition 2.  See Websites > STEP > EXPRESS Schemas"
             }
           } elseif {$id == 4} {
-            append str " (Edition 3)"
+            append str " (Edition 3, 2022)"
             if {[llength $ap242ed(4)] > 0} {
               set simsg " The STEP file contains entities ([join $ap242ed(4)]) found in AP242 Edition 4, however, the file is identified as Edition 3.  See Websites > STEP > EXPRESS Schemas"
             }
           } elseif {$id >= 5 && $id <= 7} {
             if {$id != 7} {set simsg " AP242 Edition 4 should be identified with '\{1 0 10303 442 7 1 4\}'  See Websites > STEP > EXPRESS Schemas"}
-            append str " (Edition 4)"
+            append str " (Edition 4, 2025)"
           } elseif {$id > 7} {
             set simsg " Unsupported AP242 Schema Identifier '\{... $id 1 4\}'  See Websites > STEP > EXPRESS Schemas"
             if {$id < 100} {set checkEntities 1}
@@ -1894,7 +1878,6 @@ proc addHeaderWorksheet {numFile fname} {
             }
           }
           set timeStamp $objAttr
-          set timeYear [string range $timeStamp 0 3]
           if {$numFile != 0 && [info exists cells1(Summary)] && $useXL} {
             set colsum [expr {$col1(Summary)+1}]
             set range [$worksheet1(Summary) Range [cellRange 5 $colsum]]
