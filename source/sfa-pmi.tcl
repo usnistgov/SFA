@@ -53,7 +53,11 @@ proc x3dTessGeom {objID tessEnt faceEnt {aoname ""}} {
 # set default color
       set x3dColor $defaultColor
       tessSetColor $tessEnt $faceEnt
-      set spec "specularColor='[vectrim [vecmult $x3dColor 0.2]]'"
+      if {$ao == "tessellated_solid" || $ao == "tessellated_shell" || $ao == "tessellated_closed_shell" || $ao == "tessellated_open_shell"} {
+        set spec "specularColor='0.2 0.2 0.2'"
+      } else {
+        set spec "specularColor='[vectrim [vecmult $x3dColor 0.2]]'"
+      }
       set emit ""
 
 # set placement for tessellated part geometry in assemblies (axis and ref_direction)
@@ -533,7 +537,7 @@ proc x3dPolylinePMI {{objEntity1 ""}} {
 # start shape
         if {[string length $x3dCoord] > 0} {
           set idstr ""
-          if {[info exists idshape]} {if {$idshape != "" && [lsearch $savedViewNames $idshape] == -1} {set idstr " id='$idshape'"}}
+          if {[info exists idshape]} {if {[string trim $idshape] != "" && [lsearch $savedViewNames $idshape] == -1} {set idstr " id='$idshape'"}}
           if {$x3dColor != ""} {
             puts $f "<Shape$idstr><Appearance><Material emissiveColor='$x3dColor'/></Appearance>"
           } else {

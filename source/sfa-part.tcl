@@ -2,8 +2,8 @@
 # B-rep part geometry, new stp2x3d in SFA 5.10 also processes tessellated geometry
 proc x3dBrepGeom {} {
   global brepFile brepFileName brepScale buttons cadSystem clippingCap developer DTR edgeMatID entCount localName
-  global matTrans maxxyz mytemp nistVersion nsketch opt rawBytes rosetteGeom tessSolid viz x3dApps x3dBbox x3dMax x3dMin x3dMsg
-  global x3dMsgColor x3dParts
+  global matTrans maxxyz mytemp nistVersion nsketch opt rawBytes rosetteGeom tessBrep tessMinMax tessSolid viz
+  global x3dApps x3dBbox x3dMax x3dMin x3dMsg x3dMsgColor x3dParts
   global objDesign
 
   if {[catch {
@@ -111,41 +111,32 @@ proc x3dBrepGeom {} {
             set brepScale [x3dBrepUnits]
 
 # get min and max, number of materials, indents used to add Switch nodes
-            set x3dBbox ""
             catch {unset indents}
             foreach line [split $errs "\n"] {
               if {[string first "No color will be supported." $line] != -1} {outputMsg "  Using gray for the part color" red}
 
               set sline [split [string trim $line] " "]
               if {[string first "MinXYZ" $line] != -1} {
-                append x3dBbox "<br>Min:"
                 foreach id1 {1 2 3} id2 {x y z} {
                   set num [expr {[lindex $sline $id1]}]
                   regsub -all "," $num "." num
-                  set x3dMin($id2) [expr {$brepScale*$num}]
-                  set prec 3
-                  if {[expr {abs($num)}] >= 100.} {set prec 2}
-                  set num [trimNum $num $prec]
-                  if {[expr {abs($num)}] > 1.e8} {
-                    set num "?"
-                    errorMsg " Part min/max XYZ coordinate too small/large" red
+                  set num [expr {$brepScale*$num}]
+                  if {$tessMinMax && ($viz(TESSPART) || $tessBrep)} {
+                    set x3dMin($id2) [expr {min($num,$x3dMin($id2))}]
+                  } else {
+                    set x3dMin($id2) $num
                   }
-                  append x3dBbox "&nbsp;&nbsp;$num"
                 }
               } elseif {[string first "MaxXYZ" $line] != -1} {
-                append x3dBbox "<br>Max:"
                 foreach id1 {1 2 3} id2 {x y z} {
                   set num [expr {[lindex $sline $id1]}]
                   regsub -all "," $num "." num
-                  set x3dMax($id2) [expr {$brepScale*$num}]
-                  set prec 3
-                  if {[expr {abs($num)}] >= 100.} {set prec 2}
-                  set num [trimNum $num $prec]
-                  if {[expr {abs($num)}] > 1.e8} {
-                    set num "?"
-                    errorMsg " Part min/max XYZ coordinate too small/large" red
+                  set num [expr {$brepScale*$num}]
+                  if {$tessMinMax && ($viz(TESSPART) || $tessBrep)} {
+                    set x3dMax($id2) [expr {max($num,$x3dMax($id2))}]
+                  } else {
+                    set x3dMax($id2) $num
                   }
-                  append x3dBbox "&nbsp;&nbsp;$num"
                 }
               } elseif {[string first "Number of Materials" $line] != -1} {
                 set napps [string trim [string range $line [string last " " $line] end]]
@@ -172,9 +163,9 @@ proc x3dBrepGeom {} {
                   set delt($idx) [expr {$x3dMax($idx)-$x3dMin($idx)}]
                 }
                 set maxxyz [expr {max($delt(x),$delt(y),$delt(z))}]
+                set x3dBbox 1
               }
             }
-            if {$x3dBbox != ""} {set x3dBbox "Bounding Box$x3dBbox"}
 
 # determine assembly level to insert Switch nodes
             foreach idx [lsort -integer [array names indents]] {lappend nind $indents($idx)}
@@ -315,6 +306,8 @@ proc x3dBrepGeom {} {
                       set matTrans($id) $trans
                       if {$trans != 1} {errorMsg " Some surfaces are transparent" red}
                     }
+                  } elseif {$tessSolid && [string first "emissive" $line] != -1} {
+                    regsub "'0 0 0'>" $line "'0 0 0' transparency='1'>" line
                   }
                 }
 
@@ -390,7 +383,6 @@ proc x3dBrepGeom {} {
                         }
                         if {![info exists parts($nid)]} {
                           set id $nid
-                          #if {$opt(debugX3D)} {outputMsg $id red}
                           break
                         }
                       }
@@ -556,12 +548,8 @@ proc x3dBrepGeom {} {
       } else {
         outputMsg $errs red
 
-# missing Microsoft Visual C++ Redistributable
-        if {$errs == "child killed: unknown signal"} {
-          set msg "To process STEP part geometry, you have to install the Microsoft Visual C++ Redistributable.\n Follow the instructions in the SFA-README-FIRST.pdf included with the SFA zip file that you\n downloaded from the NIST website.  After the Redistributable is installed the Viewer should be\n able to process part geometry."
-
-# other errors
-        } elseif {[string first "No such file or directory" $errs] == 0} {
+# errors
+        if {[string first "No such file or directory" $errs] == 0} {
           set msg "Change the file or directory name and process the file again."
         } elseif {[string first "permission denied" $errs] != -1} {
           set msg "Antivirus software might be blocking stp2x3d-part.exe from running in $mytemp"
@@ -580,7 +568,7 @@ proc x3dBrepGeom {} {
         if {[info exists msg]} {
           errorMsg $msg
           outputMsg " "
-          lappend x3dMsg "Error generating B-rep part geometry"
+          lappend x3dMsg "Error generating part geometry"
         }
       }
     } else {

@@ -591,7 +591,7 @@ proc saveState {{ok 1}} {
 #-------------------------------------------------------------------------------
 # open a STEP file in an app
 proc runOpenProgram {} {
-  global appName dispCmd drive editorCmd edmIds edmr edmw edmWhereRules edmWriteToFile File localName
+  global appName dispCmd File localName
 
   set dispFile $localName
   set idisp [file rootname [file tail $dispCmd]]
@@ -600,8 +600,7 @@ proc runOpenProgram {} {
   outputMsg "\nOpening STEP file in: $idisp"
 
 # open file
-  if {[string first "Tree View" $idisp] == -1 && [string first "Default" $idisp] == -1 && \
-      [string first "EDMsdk" $idisp] == -1} {
+  if {[string first "Tree View" $idisp] == -1 && [string first "Default" $idisp] == -1} {
 
 # start up with a file
     if {[catch {
@@ -619,173 +618,6 @@ proc runOpenProgram {} {
     .tnb select .tnb.status
     indentFile $dispFile
 
-#-------------------------------------------------------------------------------
-# Jotne EDM Model Checker
-  } elseif {[string first "EDMsdk" $idisp] != -1} {
-    set filename $dispFile
-    outputMsg "Ready to validate: [file tail $filename]" blue
-    cd [file dirname $filename]
-
-# set version and password
-    set edmVer 6
-    set edmPW "NIST@edm$edmVer"
-
-# write script file to open database
-    set edmScript [file join [file dirname $filename] edm$edmVer-script.txt]
-    catch {file delete -force -- $edmScript}
-    set scriptFile [open $edmScript w]
-    set okschema 1
-
-    set edmDir [split [file nativename $dispCmd] [file separator]]
-    set i [lsearch $edmDir "bin"]
-    set edmDir [join [lrange $edmDir 0 [expr {$i-1}]] [file separator]]
-    set edmDBopen "ACCUMULATING_COMMAND_OUTPUT,OPEN_SESSION"
-
-# open file to find STEP schema name
-    set fschema [getSchemaFromFile $filename]
-
-# set database dir
-    set edmDB [file nativename [file join $drive edm edm6 db]]
-
-    if {[string first "AP203_CONFIGURATION_CONTROLLED_3D_DESIGN_OF_MECHANICAL_PARTS_AND_ASSEMBLIES_MIM_LF" $fschema] == 0 && $edmVer == 5} {
-      puts $scriptFile "Database>Open($edmDB, ap203, $edmPW, \"$edmDBopen\")"
-    } elseif {[string first "CONFIG_CONTROL_DESIGN" $fschema] == 0 && $edmVer == 5} {
-      puts $scriptFile "Database>Open($edmDB, ap203e1, $edmPW, \"$edmDBopen\")"
-    } elseif {[string first "AP209_MULTIDISCIPLINARY_ANALYSIS_AND_DESIGN_MIM_LF" $fschema] == 0 && $edmVer == 5} {
-      puts $scriptFile "Database>Open($edmDB, ap209, $edmPW, \"$edmDBopen\")"
-    } elseif {[string first "AUTOMOTIVE_DESIGN" $fschema] == 0 && $edmVer == 5} {
-      puts $scriptFile "Database>Open($edmDB, ap214, $edmPW, \"$edmDBopen\")"
-    } elseif {[string first "AP242_MANAGED_MODEL_BASED_3D_ENGINEERING_MIM_LF" $fschema] == 0} {
-      set ap242 "ap242"
-      if {[string first "442 2 1 4" $fschema] != -1 || [string first "442 3 1 4" $fschema] != -1} {append ap242 "e2"}
-      if {[string first "442 4 1 4" $fschema] != -1} {append ap242 "e3"}
-      if {[string first "442 5 1 4" $fschema] != -1} {append ap242 "e4"}
-      puts $scriptFile "Database>Open($edmDB, $ap242, $edmPW, \"$edmDBopen\")"
-    } else {
-      outputMsg "$idisp cannot be used with: $fschema" red
-      set okschema 0
-      .tnb select .tnb.status
-    }
-
-# create a temporary file if certain characters appear in the name, copy original to temporary and process that one
-    if {$okschema} {
-      set tmpfile 0
-      set fileRoot [file rootname [file tail $filename]]
-      if {[string is integer [string index $fileRoot 0]] || \
-        [string first " " $fileRoot] != -1 || \
-        [string first "." $fileRoot] != -1 || \
-        [string first "+" $fileRoot] != -1 || \
-        [string first "%" $fileRoot] != -1 || \
-        [string first "(" $fileRoot] != -1 || \
-        [string first ")" $fileRoot] != -1} {
-        if {[string is integer [string index $fileRoot 0]]} {set fileRoot "a_$fileRoot"}
-        regsub -all " " $fileRoot "_" fileRoot
-        regsub -all {[\.()+%]} $fileRoot "_" fileRoot
-        set edmFile [file join [file dirname $filename] $fileRoot]
-        append edmFile [file extension $filename]
-        file copy -force -- $filename $edmFile
-        set tmpfile 1
-      } else {
-        set edmFile $filename
-      }
-
-# validate everything
-      #set edmValidate "FULL_VALIDATION,OUTPUT_STEPID"
-
-# not validating DERIVE, ARRAY_REQUIRED_ELEMENTS
-      set edmValidate "GLOBAL_RULES,REQUIRED_ATTRIBUTES,ATTRIBUTE_DATA_TYPE,AGGREGATE_DATA_TYPE,AGGREGATE_SIZE,AGGREGATE_UNIQUENESS,OUTPUT_STEPID"
-      if {$edmWhereRules} {append edmValidate ",LOCAL_RULES,UNIQUENESS_RULES,INVERSE_RULES"}
-
-# write script file if not writing output to file, just import model and validate
-      set edmImport "ACCUMULATING_COMMAND_OUTPUT,KEEP_STEP_IDENTIFIERS,DELETING_EXISTING_MODEL,LOG_ERRORS_AND_WARNINGS_ONLY"
-      if {$edmWriteToFile == 0} {
-        puts $scriptFile "Data>ImportModel(DataRepository, $fileRoot, DataRepository, $fileRoot\_HeaderModel, \"[file nativename $edmFile]\", \$, \$, \$, \"$edmImport,LOG_TO_STDOUT\")"
-        puts $scriptFile "Data>Validate>Model(DataRepository, $fileRoot, \$, \$, \$, \"ACCUMULATING_COMMAND_OUTPUT,$edmValidate,FULL_OUTPUT\")"
-
-# write script file if writing output to file, create file names, import model, validate, and exit
-      } else {
-        set edmLog  "[file rootname $filename]-edm$edmVer.log"
-        set edmLogImport "[file rootname $filename]-edm$edmVer\_import.log"
-        puts $scriptFile "Data>ImportModel(DataRepository, $fileRoot, DataRepository, $fileRoot\_HeaderModel, \"[file nativename $edmFile]\", \"[file nativename $edmLogImport]\", \$, \$, \"$edmImport,LOG_TO_FILE\")"
-        puts $scriptFile "Data>Validate>Model(DataRepository, $fileRoot, \$, \"[file nativename $edmLog]\", \$, \"ACCUMULATING_COMMAND_OUTPUT,$edmValidate,FULL_OUTPUT\")"
-        puts $scriptFile "Data>Close>Model(DataRepository, $fileRoot, \" ACCUMULATING_COMMAND_OUTPUT\")"
-        puts $scriptFile "Data>Delete>ModelContents(DataRepository, $fileRoot, ACCUMULATING_COMMAND_OUTPUT)"
-        puts $scriptFile "Data>Delete>Model(DataRepository, $fileRoot, header_section_schema, \"ACCUMULATING_COMMAND_OUTPUT,DELETE_ALL_MODELS_OF_SCHEMA\")"
-        puts $scriptFile "Data>Delete>Model(DataRepository, $fileRoot, \$, ACCUMULATING_COMMAND_OUTPUT)"
-        puts $scriptFile "Data>Delete>Model(DataRepository, $fileRoot, \$, \"ACCUMULATING_COMMAND_OUTPUT,CLOSE_MODEL_BEFORE_DELETION\")"
-        puts $scriptFile "Exit>Exit()"
-      }
-      close $scriptFile
-
-# run EDM Model Checker with the script file
-      outputMsg "Running $idisp"
-      if {[catch {
-        eval exec {$dispCmd} $edmScript
-      } emsg]} {
-        errorMsg $emsg
-      }
-
-# if results are written to a file, open output file from the validation (edmLog) and output file if there are import errors (edmLogImport)
-      if {$edmWriteToFile && [file exists $edmLog]} {
-
-# compact log file
-        set edmtmp "[file rootname $filename]-edm$edmVer-tmp.log"
-        file copy -force -- $edmLog $edmtmp
-        set edmr [open $edmtmp r]
-        set edmw [open $edmLog w]
-
-# read the results of the validation and count errors and warnings
-        while {[gets $edmr line] != -1} {
-          set ok 0
-          set num [string trim [string range $line 0 7]]
-          if {$num != ""} {if {[string is digit $num] && $num > 1} {set ok 1}}
-          if {$ok} {
-            set edmIds {}
-            set eedErrs {}
-            set line [edmGetErrors $line]
-          }
-          puts $edmw $line
-        }
-        update idletasks
-        close $edmr
-        close $edmw
-        file delete -force -- $edmtmp
-
-        .tnb select .tnb.status
-        if {[string first "Notepad++" $editorCmd] != -1} {
-          outputMsg "Opening log file(s) in editor"
-          exec $editorCmd $edmLog &
-          if {[file size $edmLogImport] > 0} {
-            exec $editorCmd $edmLogImport &
-          } else {
-            catch {file delete -force -- $edmLogImport}
-          }
-        } else {
-          outputMsg "Wait until the EDM Model Checker has finished and then open the log file"
-        }
-      }
-
-# attempt to delete the script file
-      set nerr 0
-      while {[file exists $edmScript]} {
-        catch {file delete -force -- $edmScript}
-        after 1000
-        incr nerr
-        if {$nerr > 10} {break}
-      }
-
-# if using a temporary file, attempt to delete it
-      if {$tmpfile} {
-        set nerr 0
-        while {[file exists $edmFile]} {
-          catch {file delete -force -- $edmFile}
-          after 1000
-          incr nerr
-          if {$nerr > 10} {break}
-        }
-      }
-    }
-
 # all others
   } else {
     .tnb select .tnb.status
@@ -795,60 +627,6 @@ proc runOpenProgram {} {
 
 # add file to menu
   addFileToMenu
-}
-
-#-------------------------------------------------------------------------------
-# get errors and warnings in EDM output file
-proc edmGetErrors {line} {
-  global edmErrs edmIds edmr edmw
-
-# entity, check for messages
-  puts $edmw $line
-  foreach i {0 1} {gets $edmr line1}
-
-# not Instance
-  if {[string first "Instance" $line1] == -1} {
-    set ok 0
-    set num [string trim [string range $line1 0 7]]
-    if {$num != ""} {if {[string is digit $num] && $num > 1} {set ok 1}}
-    if {$ok} {
-      set edmIds {}
-      set edmErrs {}
-      set line1 [edmGetErrors $line1]
-    }
-
-# Instance - count errors and warnings
-  } else {
-    lappend edmIds [string range $line1 [string first "#" $line1] end-1]
-    set ok1 1
-    while {$ok1} {
-      gets $edmr line2
-      if {[string first "ERROR:" $line2] != -1 || [string first "WARNING:" $line2] != -1} {
-        if {[lsearch $edmErrs [string trim $line2]] == -1} {lappend edmErrs [string trim $line2]}
-        set ok2 1
-        while {$ok2} {
-          gets $edmr line3
-          if {[string first "ERROR:" $line3] != -1 || [string first "WARNING:" $line3] != -1} {
-            if {[lsearch $edmErrs [string trim $line3]] == -1} {lappend edmErrs [string trim $line3]}
-          }
-          if {$line3 == ""} {set ok2 0}
-        }
-      } elseif {[string first "Instance" $line2] != -1} {
-        lappend edmIds [string range $line2 [string first "#" $line2] end-1]
-      }
-      if {$line2 == ""} {
-        set ok1 0
-        set str "\n   Instance stepIds ([llength $edmIds]): [join [lrange $edmIds 0 99]]"
-        if {[llength $edmIds] > 100} {append str " ... [expr {[llength $edmIds]-100}] more stepIds"}
-        puts $edmw $str
-        foreach err $edmErrs {puts $edmw "          $err"}
-        set edmIds {}
-        set edmErrs {}
-        set line1 $line2
-      }
-    }
-  }
-  return $line1
 }
 
 #-------------------------------------------------------------------------------
@@ -1210,41 +988,25 @@ proc colorBadCells {ent} {
 }
 
 #-------------------------------------------------------------------------------
-# trim the precision of a number, probably an easier way to do this, but it's old code
+# trim the precision of a number
 proc trimNum {num {prec 3}} {
-  global unq_num
-
-# check for already trimmed number
-  set numsav $num
-  if {[info exists unq_num($numsav)]} {
-    set num $unq_num($numsav)
-  } else {
-
-# trim number
-    if {[catch {
 
 # format number with 'prec'
-      set form "\%."
-      append form $prec
-      append form "f"
-      set num [format $form $num]
+  set tnum $num
+  if {[catch {
+    set form "\%.$prec"
+    append form "f"
+    set tnum [format $form $tnum]
 
 # remove trailing zeros
-      if {[string first "." $num] != -1} {
-        for {set i 0} {$i < $prec} {incr i} {
-          set num [string trimright $num "0"]
-        }
-        if {$num == "-0"} {set num 0.}
-      }
-    } errmsg]} {
-      errorMsg "# $errmsg ($numsav reset to 0.0)" red
-      set num 0.
+    if {[string first "." $tnum] != -1 && [string index $tnum end] == 0} {
+      for {set i 0} {$i < $prec} {incr i} {set tnum [string trimright $tnum "0"]}
+      if {$tnum == "-0"} {set tnum 0.}
     }
-
-# save the number for next occurrence
-    set unq_num($numsav) $num
+  } errmsg]} {
+    set tnum $num
   }
-  return $num
+  return $tnum
 }
 
 #-------------------------------------------------------------------------------
@@ -1447,7 +1209,7 @@ proc installIFCsvr {{exit 0}} {
   global buttons ifcsvrVer mydocs mytemp nistVersion upgradeIFCsvr wdir
 
 # IFCsvr version depends on string entered when IFCsvr is repackaged for new STEP schemas
-  set versionIFCsvr 20241206
+  set versionIFCsvr 20251215
 
 # if IFCsvr is alreadly installed, get version from registry, decide to reinstall newer version
   if {[catch {
@@ -1502,15 +1264,13 @@ proc installIFCsvr {{exit 0}} {
 - If the IFCsvr toolkit cannot be installed or if you choose to Cancel the installation,
   you will still be able to use the Viewer for Part Geometry.  Open a STEP file, check
   View and Part Only, and click Generate View.
-- If SFA crashes the first time you run it, first uninstall the IFCsvr toolkit.  Then run
-  SFA as Administrator and when prompted, install the IFCsvr toolkit for Everyone, not
-  Just Me.  Subsequently, SFA does not have to be run as Administrator."
+- If SFA crashes the first time you run it, see SFA-README-FIRST.pdf"
 
     if {[file exists $ifcsvrInst] && [info exists buttons]} {
       set msg "The IFCsvr toolkit must be installed to read and process STEP files (User Guide section 2.2.1).  After clicking OK the IFCsvr toolkit installation will start."
       append msg "\n\nYou might need administrator privileges (Run as administrator) to install the toolkit.  Antivirus software might respond that there is a security issue with the toolkit.  The toolkit is safe to install.  Use the default installation folder for the toolkit."
       append msg "\n\nIf the IFCsvr toolkit cannot be installed or if you choose to Cancel the installation, you will still be able to use the Viewer for Part Geometry.  Open a STEP file, check View and Part Only, and click Generate View."
-      append msg "\n\nIf SFA crashes the first time you run it, first uninstall the IFCsvr toolkit.  Then run SFA as Administrator and when prompted, install the IFCsvr toolkit for Everyone, not Just Me.  Subsequently, SFA does not have to be run as Administrator."
+      append msg "\n\nIf SFA crashes the first time you run it, see SFA-README-FIRST.pdf"
       set choice [tk_messageBox -type ok -message $msg -icon info -title "Install IFCsvr"]
       outputMsg "\nWait for the installation to finish before processing a STEP file." red
     } elseif {![info exists buttons]} {

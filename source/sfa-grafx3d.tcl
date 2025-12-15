@@ -1,6 +1,6 @@
 # start x3dom file for non-FEM graphics
 proc x3dFileStart {} {
-  global cadSystem entCount gen localName opt recPracNames spaces stepAP tessEnts tessBrep timeStamp viz writeDir writeDirType x3dom x3dFile x3dFileName x3dFiles
+  global cadSystem entCount gen localName opt stepAP tessBrep timeStamp viz writeDir writeDirType x3dom x3dFile x3dFileName x3dFiles
   global x3dFileSave x3dFileNameSave x3dHeight x3dMax x3dMin x3dPartClick x3dStartFile x3dTitle x3dViewOK x3dWidth
 
   if {!$gen(View)} {return}
@@ -138,7 +138,7 @@ proc x3dFileStart {} {
 proc x3dFileEnd {} {
   global ao assemblyTransform axesDef brepFile brepFileName brepGeomEntTypes clippingCap clippingDef clipPlaneName cmNameID datumTargetView
   global delt edgeMatID entCount grayBackground leaderCoords matTrans maxxyz meshlines nclipPlane nistName noGroupTransform npart nsketch
-  global numTessColor opt parts partstg placeCoords placeSize planeDef rosetteGeom samplingPoints sphereDef spmiTypesPerFile stepAP
+  global numTessColor opt parts partstg placeCoords placeSize planeDef pointsLabel rosetteGeom samplingPoints sphereDef spmiTypesPerFile stepAP
   global tessBrep tessCoord tessEdges tessEnts tessPartFile tessPartFileName tessRepo tessSolid tsName viewsWithPMI viz xyzcen
   global savedPlaceFile savedPlaceFileName savedViewButtons savedViewDMName savedViewFile
   global savedViewFileName savedViewItems savedViewNames savedViewpoint savedViewVP
@@ -598,29 +598,27 @@ proc x3dFileEnd {} {
 # -------------------------------------------------------------------------------
 # part geometry
   if {![info exists x3dFiles]} {set x3dFiles [list $x3dFile]}
-  if {$viz(PART)} {
+  if {$viz(PART) || ($viz(TESSPART) && ($opt(tessPartOld) || $tessBrep))} {
 
 # bounding box
     if {[info exists x3dBbox]} {
-      if {$x3dBbox != ""} {
-        foreach idx {x y z} {
-          set pmin($idx) [trimNum $x3dMin($idx)]
-          set pmax($idx) [trimNum $x3dMax($idx)]
-        }
-        set p(0) "$pmin(x) $pmin(y) $pmin(z)"
-        set p(1) "$pmax(x) $pmin(y) $pmin(z)"
-        set p(2) "$pmax(x) $pmax(y) $pmin(z)"
-        set p(3) "$pmin(x) $pmax(y) $pmin(z)"
-        set p(4) "$pmin(x) $pmin(y) $pmax(z)"
-        set p(5) "$pmax(x) $pmin(y) $pmax(z)"
-        set p(6) "$pmax(x) $pmax(y) $pmax(z)"
-        set p(7) "$pmin(x) $pmax(y) $pmax(z)"
-        puts $x3dFile "\n<!-- BOUNDING BOX -->"
-        puts $x3dFile "<Switch whichChoice='-1' id='swBbox'><Group>"
-        puts $x3dFile " <Shape><Appearance><Material emissiveColor='0 0 0'/></Appearance>"
-        puts $x3dFile "  <IndexedLineSet coordIndex='0 1 2 3 0 -1 4 5 6 7 4 -1 0 4 -1 1 5 -1 2 6 -1 3 7 -1'><Coordinate point='$p(0) $p(1) $p(2) $p(3) $p(4) $p(5) $p(6) $p(7)'/></IndexedLineSet></Shape>"
-        puts $x3dFile "</Group></Switch>"
+      foreach idx {x y z} {
+        set pmin($idx) [trimNum $x3dMin($idx)]
+        set pmax($idx) [trimNum $x3dMax($idx)]
       }
+      set p(0) "$pmin(x) $pmin(y) $pmin(z)"
+      set p(1) "$pmax(x) $pmin(y) $pmin(z)"
+      set p(2) "$pmax(x) $pmax(y) $pmin(z)"
+      set p(3) "$pmin(x) $pmax(y) $pmin(z)"
+      set p(4) "$pmin(x) $pmin(y) $pmax(z)"
+      set p(5) "$pmax(x) $pmin(y) $pmax(z)"
+      set p(6) "$pmax(x) $pmax(y) $pmax(z)"
+      set p(7) "$pmin(x) $pmax(y) $pmax(z)"
+      puts $x3dFile "\n<!-- BOUNDING BOX -->"
+      puts $x3dFile "<Switch whichChoice='-1' id='swBbox'><Group>"
+      puts $x3dFile " <Shape><Appearance><Material emissiveColor='0 0 0'/></Appearance>"
+      puts $x3dFile "  <IndexedLineSet coordIndex='0 1 2 3 0 -1 4 5 6 7 4 -1 0 4 -1 1 5 -1 2 6 -1 3 7 -1'><Coordinate point='$p(0) $p(1) $p(2) $p(3) $p(4) $p(5) $p(6) $p(7)'/></IndexedLineSet></Shape>"
+      puts $x3dFile "</Group></Switch>"
     }
 
 # add b-rep part geometry from temp file
@@ -756,24 +754,21 @@ proc x3dFileEnd {} {
 # part geometry, edges, sketch geometry checkboxes
   if {$viz(PART)} {
     set str ""
-    if {$tessEnts && $tessSolid} {set str "$tessLabel "}
+    set checked "checked"
+    if {$tessEnts && $tessSolid} {
+      set str "$tessLabel "
+      set checked ""
+    }
     puts $x3dFile "\n<!-- Part geometry checkbox -->\n<input type='checkbox' checked onclick='togPRT(this.value)'/>$str\Part Geometry<br>"
-    if {$opt(partEdges) && $viz(EDGE)} {puts $x3dFile "<!-- Edges checkbox -->\n<input type='checkbox' checked onclick='togEDG(this.value)' id='swEDG'/>Edges<br>"}
+    if {$opt(partEdges) && $viz(EDGE)} {puts $x3dFile "<!-- Edges checkbox -->\n<input type='checkbox' $checked onclick='togEDG(this.value)' id='swEDG'/>Edges<br>"}
     if {[info exists nsketch]} {
       if {$nsketch > -1} {puts $x3dFile "<!-- Sketch geometry checkbox -->\n<input type='checkbox' checked onclick='togSKH(this.value)'/>Sketch Geometry<br>"}
     }
-  }
 
-# more checkboxes
-  if {$viz(SUPPGEOM)}   {puts $x3dFile "\n<!-- Supplemental geometry checkbox -->\n<input type='checkbox' checked onclick='togSMG(this.value)'/>Supplemental Geometry<br>"}
-  if {$viz(DTMTAR)}     {puts $x3dFile "\n<!-- Datum targets checkbox -->\n<input type='checkbox' checked onclick='togDTR(this.value)'/>Datum Targets<br>"}
-  if {$viz(PLACE)}      {puts $x3dFile "\n<!-- Placeholder checkbox -->\n<input type='checkbox' checked onclick='togPlaceholder(this.value)'/>PMI Placeholders<br>"}
-  if {$viz(COMPOSITES)} {puts $x3dFile "\n<!-- Composites checkbox -->\n<input type='checkbox' checked onclick='togComposites(this.value)'/>Composite Rosettes<br>"}
-  if {$viz(POINTS)}     {puts $x3dFile "\n<!-- $pointsLabel checkbox -->\n<input type='checkbox' checked onclick='togPoints(this.value)'/>$pointsLabel<br>"}
-  if {$viz(HOLE)}       {puts $x3dFile "\n<!-- Holes checkbox -->\n<input type='checkbox' checked onclick='togHole(this.value)'/>Holes<br>"}
+# checkboxes for supplemental geometry, datum targets, placeholders, composites, points, and holes
+    x3dMoreCheckboxes
 
 # part checkboxes
-  if {$viz(PART)} {
     if {[info exists x3dParts]} {if {[llength [array names x3dParts]] > 1} {x3dPartCheckbox "Part"}}
     puts $x3dFile "<p>"
   }
@@ -781,10 +776,10 @@ proc x3dFileEnd {} {
 # tessellated or polyhedral part geometry checkbox
   if {$viz(TESSPART)} {
     puts $x3dFile "\n<!-- $tessLabel part geometry checkbox -->"
-    if {$viz(PART)} {puts $x3dFile "<details><summary>$tessLabel Part Geometry</summary><p>"}
+    if {$viz(PART)} {puts $x3dFile "<details><summary>$tessLabel Part Geometry</summary><p>\n<table cellpadding=0 cellspacing=0 bgcolor='#eeeeee'><tr><td>"}
     puts $x3dFile "<input type='checkbox' checked onclick='togTPG(this.value)'/>$tessLabel Part Geometry"
     if {$viz(TESSEDGE)} {puts $x3dFile "<!-- $tessLabel edges checkbox -->\n<br><input type='checkbox' checked onclick='togTED(this.value)'/>Tessellated Edges"}
-    if {$viz(TESSMESH)} {puts $x3dFile "<!-- $tessLabel mesh checkbox -->\n<br><input type='checkbox' checked onclick='togTPM(this.value)'/>Wireframe"}
+    if {$viz(TESSMESH)} {puts $x3dFile "<!-- $tessLabel mesh checkbox -->\n<br><input type='checkbox' onclick='togTPM(this.value)'/>Wireframe"}
 
     if {[info exists entCount(next_assembly_usage_occurrence)] || [info exists entCount(repositioned_tessellated_item_and_tessellated_geometric_set)]} {
       set ntess 0
@@ -799,10 +794,23 @@ proc x3dFileEnd {} {
       }
     }
 
+# checkboxes for supplemental geometry, datum targets, placeholders, composites, points, and holes
+    if {!$viz(PART)} {
+      if {$viz(SUPPGEOM) || $viz(DTMTAR) || $viz(PLACE) || $viz(COMPOSITES) || $viz(POINTS) || $viz(HOLE)} {puts $x3dFile "<br>"}
+      x3dMoreCheckboxes
+    }
+
 # tessellated or polyhedral part checkboxes
     if {[info exists x3dTessParts]} {if {[llength [array names x3dTessParts]] > 1} {x3dPartCheckbox "Tess"}}
+    if {$viz(PART)} {puts $x3dFile "</td></tr></table>"}
     puts $x3dFile "<p>"
     if {$viz(PART)} {puts $x3dFile "</details><p>"}
+  }
+
+# rare case with no brep or tessellated geometry
+  if {!$viz(PART) && !$viz(TESSPART)} {
+    x3dMoreCheckboxes
+    puts $x3dFile "<br>"
   }
 
 # clipping plane checkboxes
@@ -893,8 +901,10 @@ proc x3dFileEnd {} {
 
 # message about PMI and supplemental geometry on assemblies
   set ok 0
-  if {[info exists x3dParts]} {if {[llength [array names x3dParts]] > 1} {set ok 1}}
-  if {[info exists x3dTessParts]} {if {[llength [array names x3dTessParts]] > 1} {set ok 1}}
+  if {[info exists entCount(next_assembly_usage_occurrence)] && $entCount(next_assembly_usage_occurrence) > 0} {
+    if {[info exists x3dParts]} {if {[llength [array names x3dParts]] > 1} {set ok 1}}
+    if {[info exists x3dTessParts]} {if {[llength [array names x3dTessParts]] > 1} {set ok 1}}
+  }
   if {$ok} {
     set msg ""
     if {$viz(PMI) && $viz(SUPPGEOM)} {
@@ -944,9 +954,25 @@ proc x3dFileEnd {} {
   }
 
 # bounding box
-  if {$viz(PART) && [info exists x3dBbox]} {
-    if {$x3dBbox != ""} {puts $x3dFile "\n<!-- Bounding box checkbox -->\n<p><input type='checkbox' onclick='togBbox(this.value)'/>$x3dBbox"}
+  if {[info exists x3dBbox] && ($viz(PART) || ($viz(TESSPART) && ($opt(tessPartOld) || $tessBrep)))} {
+    set str "Bounding Box<br>Min:"
+    foreach idx {x y z} {
+      set prec 3
+      if {[expr {abs($x3dMin($idx))}] >= 100.}  {set prec 2}
+      if {[expr {abs($x3dMin($idx))}] >= 1000.} {set prec 1}
+      append str "&nbsp;&nbsp;[trimNum $x3dMin($idx) $prec]"
+    }
+    append str "<br>Max:"
+    foreach idx {x y z} {
+      set prec 3
+      if {[expr {abs($x3dMax($idx))}] >= 100.}  {set prec 2}
+      if {[expr {abs($x3dMax($idx))}] >= 1000.} {set prec 1}
+      append str "&nbsp;&nbsp;[trimNum $x3dMax($idx) $prec]"
+    }
+    puts $x3dFile "\n<!-- Bounding box checkbox -->\n<p><input type='checkbox' onclick='togBbox(this.value)'/>$str"
     if {$viz(FEA)} {puts $x3dFile "<p>"}
+  } else {
+    catch {unset x3dBbox}
   }
 
 # axes checkbox
@@ -1010,9 +1036,6 @@ proc x3dFileEnd {} {
       }
       catch {unset parts}
     }
-
-# bounding box
-    if {[info exists x3dBbox]} {if {$x3dBbox != ""} {x3dSwitchScript Bbox}}
   }
 
 # switch functions for fem
@@ -1056,6 +1079,7 @@ proc x3dFileEnd {} {
   }
 
 # more functions
+  if {[info exists x3dBbox]} {x3dSwitchScript Bbox}
   if {$viz(SUPPGEOM)} {x3dSwitchScript SMG}
   if {$viz(DTMTAR)} {x3dSwitchScript DTR}
   if {$viz(PLACE)} {x3dSwitchScript Placeholder}
@@ -1236,6 +1260,19 @@ proc x3dFileEnd {} {
 
 # unset variables
   foreach var [list x3dCoord x3dFile x3dFiles x3dIndex x3dMax x3dMin x3dShape x3dStartFile] {catch {unset -- $var}}
+}
+
+# -------------------------------------------------------------------------------
+# checkboxes for supplemental geometry, datum targets, placeholders, composites, points, and holes
+proc x3dMoreCheckboxes {} {
+  global pointsLabel viz x3dFile
+
+  if {$viz(SUPPGEOM)}   {puts $x3dFile "\n<!-- Supplemental geometry checkbox -->\n<input type='checkbox' checked onclick='togSMG(this.value)'/>Supplemental Geometry<br>"}
+  if {$viz(DTMTAR)}     {puts $x3dFile "\n<!-- Datum targets checkbox -->\n<input type='checkbox' checked onclick='togDTR(this.value)'/>Datum Targets<br>"}
+  if {$viz(PLACE)}      {puts $x3dFile "\n<!-- Placeholder checkbox -->\n<input type='checkbox' checked onclick='togPlaceholder(this.value)'/>PMI Placeholders<br>"}
+  if {$viz(COMPOSITES)} {puts $x3dFile "\n<!-- Composites checkbox -->\n<input type='checkbox' checked onclick='togComposites(this.value)'/>Composite Rosettes<br>"}
+  if {$viz(POINTS)}     {puts $x3dFile "\n<!-- $pointsLabel checkbox -->\n<input type='checkbox' checked onclick='togPoints(this.value)'/>$pointsLabel<br>"}
+  if {$viz(HOLE)}       {puts $x3dFile "\n<!-- Holes checkbox -->\n<input type='checkbox' checked onclick='togHole(this.value)'/>Holes<br>"}
 }
 
 # -------------------------------------------------------------------------------
@@ -1951,7 +1988,7 @@ proc x3dWireframeMesh {} {
 
     foreach xf $x3dFile {
       if {$group} {puts $xf "<!-- Wireframe mesh -->"}
-      puts $xf "<Switch id='swTessMesh$npart(TESSPART)' whichChoice='0'><Group>"
+      puts $xf "<Switch id='swTessMesh$npart(TESSPART)' whichChoice='-1'><Group>"
       if {$group} {
         puts $xf "$shape\n <IndexedLineSet coordIndex='$index'$coord"
       } else {
@@ -2004,7 +2041,7 @@ proc x3dSwitchScript {name {name1 ""}} {
       catch {if {$viz(SUPPGEOM)} {set ok 0}}
       catch {if {$viz(COMPOSITES)} {set ok 0}}
     }
-    if {$name == "Bbox"} {set ok 0}
+    if {$name == "Bbox" || [string first "TessMesh" $name] == 0} {set ok 0}
 
     if {($name != "Composites" || $rosetteGeom >= 2) && $name != "Placeholder"} {
       if {[string first "TessMesh" $name] == -1} {puts $x3dFile "\n<!-- $name$viewName switch -->\n<script>function tog$name\(choice)\{"}

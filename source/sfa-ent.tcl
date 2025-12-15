@@ -410,7 +410,7 @@ proc setIDRow {entType p21id} {
   set idRow($entType,$p21id) $row($entType)
 
 # specific arrays for properties and PMI
-  if {$entType == "property_definition"} {
+  if {$entType == "property_definition" || $entType == "material_property"} {
     set propDefIDRow($p21id) $row($entType)
   } elseif {$gpmiEnts($entType)} {
     set gpmiIDRow($entType,$p21id) $row($entType)

@@ -3,11 +3,11 @@ proc genExcel {{numFile 0}} {
   global allEntity aoEntTypes ap203all ap214all ap242all ap242only ap242ed badAttributes brepGeomEntTypes buttons cadSystem cameraModels cells cells1
   global col col1 commaSeparator count csvdirnam csvfile csvinhome currLogFile developer dim draughtingModels driUnicode entCategories entCategory
   global entColorIndex entCount entityCount entsIgnored entsWithErrors env epmi epmiUD errmsg equivUnicodeStringErr excel fcsv
-  global feaFirstEntity feaLastEntity File fileEntity filesProcessed fileSumRow gen gpmiTypesInvalid gpmiTypesPerFile guiSFA idRow idxColor
+  global feaFirstEntity feaLastEntity File fileEntity fileItems filesProcessed fileSumRow gen gpmiTypesInvalid gpmiTypesPerFile guiSFA idRow idxColor
   global ifcsvrDir ifcsvrVer iloldscr inverses lastXLS lenfilelist localName localNameList logFile matrixList multiFile multiFileDir mydocs mytemp nistCoverageLegend
   global nistName nistPMIexpected nistPMImaster noFontFile nprogBarEnts opt pf32 p21e3Section pmiCol resetRound roseSchemas row rowmax savedViewButtons
   global savedViewName savedViewNames scriptName sheetLast skipEntities skipFileName spmiEntity spmiSumName spmiSumRow spmiTypesPerFile
-  global startrow statsOnly stepAP stepAPreport sumHeaderRow syntaxErr tessBrep tessColor tessEnts tessSolid thisEntType timeStamp tlast tolNames tolStandard tolStandards
+  global startrow statsOnly stepAP stepAPreport sumHeaderRow syntaxErr tessBrep tessColor tessEnts tessMinMax tessSolid thisEntType timeStamp tlast tolNames tolStandard tolStandards
   global totalEntity unicodeActual unicodeAttr unicodeAttributes unicodeEnts unicodeInFile unicodeNumEnts unicodeString unicodeStringCM userEntityFile userEntityList
   global userWriteDir useXL uuidCount uuidEnts valRounded viz wdir workbook workbooks worksheet worksheet1 worksheets writeDir wsCount wsNames x3dAxes
   global x3dColor x3dColorFile x3dColors x3dFileName x3dIndex x3dMax x3dMin x3dMsg x3dMsgColor x3dStartFile x3dViewOK xlFileName xlFileNames xlInstalled xlsManual
@@ -51,9 +51,10 @@ proc genExcel {{numFile 0}} {
   set x3dViewOK 0
   set x3dMsg {}
   set tessBrep 0
+  set tessMinMax 0
   if {$gen(View)} {
     set x3dMsgColor green
-    if {$opt(viewPMI) || $opt(viewTessPart) ||$opt(viewFEA) || $opt(viewPart)} {
+    if {$opt(viewPMI) || $opt(viewTessPart) || $opt(viewFEA) || $opt(viewPart)} {
       set tessEnts 0
       set x3dStartFile 1
       set x3dAxes 1
@@ -182,7 +183,7 @@ proc genExcel {{numFile 0}} {
     set fname $localName
     set stepAP [getStepAP $fname]
     if {$stepAP == ""} {return}
-    foreach i {1 2 3 4} {set ap242ed($i) {}}
+    for {set i 1} {$i < 10} {incr i} {set ap242ed($i) {}}
 
 # stepAPreport controls which APs support Analyzer reports
     set stepAPreport 0
@@ -223,7 +224,10 @@ proc genExcel {{numFile 0}} {
     set openStage 2
     if {![info exists buttons]} {outputMsg "\n<Reading STEP file and checking for syntax errors>"}
     set objDesign [$objIFCsvr OpenDesign [file nativename $fname]]
-    if {![info exists buttons]} {outputMsg "<Done>\n"}
+    if {![info exists buttons]} {
+      update idletasks
+      outputMsg "<Done>\n"
+    }
 
 # CountEntities causes the error if the STEP file cannot be opened because objDesign is null
     set entityCount [$objDesign CountEntities "*"]
@@ -271,7 +275,7 @@ proc genExcel {{numFile 0}} {
             lappend characteristics "Supplemental geometry"
           } elseif {$entType == "tessellated_constructive_geometry_representation"} {
             lappend characteristics "Supplemental geometry (tessellated)"
-          } elseif {$entType == "property_definition_representation"} {
+          } elseif {$entType == "property_definition_representation" || $entType == "material_property_representation"} {
             lappend characteristics "Properties"
 
           } elseif {[lsearch $entCategory(stepCOMP) $entType] != -1} {
@@ -283,6 +287,7 @@ proc genExcel {{numFile 0}} {
           } else {
             foreach tol $tolNames {if {[string first $tol $entType] != -1} {lappend characteristics "Geometric tolerances"}}
           }
+          if {[string first "uuid" $entType] != -1} {lappend characteristics "UUIDs"}
 
 # make sure some entity types are always processed
           if {$opt(xlFormat) != "None"} {
@@ -295,8 +300,10 @@ proc genExcel {{numFile 0}} {
           }
         }
 
-# check for entities in AP242
-        foreach i {1 2 3 4} {if {[lsearch $ap242only(e$i) $entType] != -1} {lappend ap242ed($i) $entType}}
+# check for entities in different editions of AP242
+        for {set i 1} {$i < 9} {incr i} {
+          if {[info exists ap242only(e$i)]} {if {[lsearch $ap242only(e$i) $entType] != -1} {lappend ap242ed($i) $entType}}
+        }
       }
       if {[llength $characteristics] > 0} {set characteristics [lrmdups $characteristics]}
 
@@ -321,13 +328,34 @@ proc genExcel {{numFile 0}} {
       }
 
 # report characteristics
+      set fileItems ""
       if {[llength $characteristics] > 0} {
-        set str ""
-        foreach item $characteristics {append str "$item, "}
-        set str [string range $str 0 end-2]
-        if {$str != "Part geometry"} {
+        set str  ""
+        set str1 ""
+        foreach item $characteristics {
+          append str1 "$item, "
+          if {[string length $str1] > 100} {
+            append str " $str1\n"
+            set str1 ""
+          }
+        }
+        if {[string length $str1] > 0} {append str " $str1"}
+        set str [string trim $str]
+        if {[string index $str end] == ","} {set str [string range $str 0 end-1]}
+        if {$str != "Part geometry (B-rep solid)"} {
           if {![info exists buttons]} {outputMsg \n}
-          outputMsg "This file contains: $str" red
+          outputMsg "\nThis file contains:" blue
+          outputMsg " $str"
+          set fileItems $str
+
+          if {[string range $stepAP 0 4] == "AP203" || [string range $stepAP 0 4] == "AP214"} {
+            foreach item [list Datums Dimensions "Geometric tolerances" "Graphic PMI"] {
+              if {[string first $item $fileItems] != -1} {
+                errorMsg " Semantic and Graphic PMI is best supported in AP242" red
+                if {$opt(PMISEM) || $opt(PMIGRF)} {errorMsg  "  Checking PMI is based on AP242 Recommended Practices" red}
+              }
+            }
+          }
         }
       }
     } else {
@@ -553,6 +581,29 @@ proc genExcel {{numFile 0}} {
   } else {
     set rowmax [expr {2**20}]
     if {$opt(xlMaxRows) < $rowmax} {set rowmax $opt(xlMaxRows)}
+  }
+
+# -------------------------------------------------------------------------------------------------
+# security classifications
+  set secClass {}
+  catch {
+    ::tcom::foreach sc [$objDesign FindObjects [string trim security_classification]] {
+      set scn {}
+      set val [string trim [[[$sc Attributes] Item [expr 1]] Value]]
+      if {$val != ""} {lappend scn $val}
+      set val [string trim [[[$sc Attributes] Item [expr 2]] Value]]
+      if {$val != ""} {lappend scn $val}
+      set scl [[[$sc Attributes] Item [expr 3]] Value]
+      set val [string trim [[[$scl Attributes] Item [expr 1]] Value]]
+      if {$val != ""} {lappend scn $val}
+      set scn [join $scn " | "]
+      if {[lsearch $secClass $scn] == -1} {lappend secClass $scn}
+    }
+    if {[llength $secClass] > 0} {
+      outputMsg "Security classification(s):"
+      foreach sc $secClass {outputMsg " $sc" red}
+      outputMsg " "
+    }
   }
 
 # -------------------------------------------------------------------------------------------------
@@ -1172,9 +1223,9 @@ proc genExcel {{numFile 0}} {
             }
           }
           if {$opt(PMIGRF)} {if {[string first "annotation" $entType] != -1 && [string first "plane" $entType] == -1} {set rmax $newmax}}
-          if {$opt(valProp)} {if {$entType == "property_definition"} {set rmax $newmax}}
+          if {$opt(valProp)} {if {$entType == "property_definition" || $entType == "material_property"} {set rmax $newmax}}
           if {$entType == "descriptive_representation_item" && [info exists driUnicode]} {set rmax $newmax; unset driUnicode}
-          if {[string first "uuid" $entType] != -1} {set rmax $newmax}
+          if {$opt(PMIUUID)} {if {[string first "uuid" $entType] != -1} {set rmax $newmax}}
         }
 
 # decide if inverses should be checked for this entity type
@@ -1261,7 +1312,7 @@ proc genExcel {{numFile 0}} {
         }
       }
 
-# check for reports (validation properties, semantic and graphic PMI, AP209 FEM)
+# check for reports (properties, semantic and graphic PMI, AP209 FEM)
       checkForReports $entType
 
 # report errors related to descriptive_representation_item equivalent Unicode strings
@@ -1350,14 +1401,16 @@ proc genExcel {{numFile 0}} {
     set entsUUID {}
     set uuidEnts {}
     set totalUUID 0
-    foreach ent [list HASH_BASED_V5_UUID_ATTRIBUTE V4_UUID_ATTRIBUTE V5_UUID_ATTRIBUTE UUID_ATTRIBUTE_WITH_APPROXIMATE_LOCATION] {
-      set entlc [string tolower $ent]
-      if {[info exists entCount($entlc)] && $entCount($entlc) > 0} {
-        set totalUUID [expr {$totalUUID+$entCount($entlc)}]
-        lappend entsUUID $ent
+    if {$opt(PMIUUID)} {
+      foreach ent [list HASH_BASED_V5_UUID_ATTRIBUTE V4_UUID_ATTRIBUTE V5_UUID_ATTRIBUTE UUID_ATTRIBUTE_WITH_APPROXIMATE_LOCATION] {
+        set entlc [string tolower $ent]
+        if {[info exists entCount($entlc)] && $entCount($entlc) > 0} {
+          set totalUUID [expr {$totalUUID+$entCount($entlc)}]
+          lappend entsUUID $ent
+        }
       }
+      if {$totalUUID > 0} {uuidGetAttributes $totalUUID $entsUUID}
     }
-    if {$totalUUID > 0} {uuidGetAttributes $totalUUID $entsUUID}
   }
 
 # -------------------------------------------------------------------------------------------------
@@ -1707,8 +1760,8 @@ proc genExcel {{numFile 0}} {
 # -------------------------------------------------------------------------------------------------
 proc addHeaderWorksheet {numFile fname} {
   global objDesign
-  global ap242ed cadApps cadSystem cells cells1 col1 csvdirnam developer excel excel1 fileSchema legendColor
-  global localName opt row spmiTypesPerFile timeStamp useXL writeDir worksheet worksheet1 worksheets
+  global ap242ed cadApps cadSystem cells cells1 col1 csvdirnam developer excel excel1 fileItems fileSchema legendColor
+  global localName opt recPracVersions row spmiTypesPerFile stepAP timeStamp useXL writeDir worksheet worksheet1 worksheets
 
   if {[catch {
     set cadSystem ""
@@ -1795,7 +1848,7 @@ proc addHeaderWorksheet {numFile fname} {
             set simsg " Unsupported AP242 Schema Identifier '\{... $id 1 4\}'  See Websites > STEP > EXPRESS Schemas"
             if {$id < 100} {set checkEntities 1}
           }
-          if {$developer} {foreach i {3 4} {if {[llength $ap242ed($i)] > 0} {regsub -all " " [join $ap242ed($i)] ", " str1; outputMsg " AP242e$i: $str1" red}}}
+          if {$developer} {foreach i {4 5} {if {[llength $ap242ed($i)] > 0} {regsub -all " " [join $ap242ed($i)] ", " str1; outputMsg " AP242e$i: $str1" red}}}
         } elseif {[string first "AP242" $sn] == 0} {
           set simsg " SchemaName is missing the Schema Identifier '\{1 0 10303 442 ...\}' that specifies the edition of AP242.  See Websites > STEP > EXPRESS Schemas"
         }
@@ -1889,15 +1942,43 @@ proc addHeaderWorksheet {numFile fname} {
 
 # check for CAx-IF Recommended Practices in the file description
     set caxifrp {}
+    set okcheck 0
+    if {[string first "AP242" $stepAP] == 0 && $stepAP != "AP242e1" && $stepAP != "AP242e2" && $stepAP != "AP242"} {set okcheck 1}
+
     foreach fd [$objDesign "FileDescription"] {
       set c1 [string first "CAx-IF Rec." $fd]
       if {$c1 != -1} {lappend caxifrp [string trim [string range $fd $c1+20 end]]}
     }
+
     if {[llength $caxifrp] > 0} {
       outputMsg "\nCAx-IF Recommended Practices (See Websites):" blue
       foreach item $caxifrp {
-        outputMsg " $item"
+        set str " $item"
+        set c1 [string first "---" $item]
+        if {$c1 != -1} {
+          catch {
+            set name [string trim [string range $item 0 $c1-1]]
+            set c2 [string first "(" $name]
+            if {$c2 != -1} {set name [string trim [string range $name 0 $c2-1]]}
+
+# check version number
+            if {[info exists recPracVersions($name)] && $okcheck} {
+              set num [string range $item $c1+3 $c1+5]
+              if {$num < $recPracVersions($name)} {set str " $item  (Current version is $recPracVersions($name))"}
+            }
+          }
+        }
+        outputMsg $str
         if {$opt(PMISEM)} {lappend spmiTypesPerFile "document identification"}
+      }
+
+# check if recommended practices are missing for recent versions of AP242
+    } elseif {$okcheck} {
+      set ok 0
+      foreach item [list "Datum targets" Datums Dimensions "Geometric tolerances" "Supplemental geometry"] {
+        if {[string first $item $fileItems] != -1} {
+          errorMsg " FILE_DESCRIPTION is missing references to CAx-IF Recommended Practices (See Websites)" red
+        }
       }
     }
 
@@ -2061,8 +2142,8 @@ proc sumAddWorksheet {} {
 
 # add text strings
         set okao 0
-        if {$entType == "property_definition" && $col($entType) > 4 && $opt(valProp)} {
-          $cells($sum) Item $sumRow 1 "property_definition  \[Properties\]"
+        if {($entType == "property_definition" || $entType == "material_property") && $col($entType) > 4 && $opt(valProp)} {
+          $cells($sum) Item $sumRow 1 "$entType  \[Properties\]"
         } elseif {$entType == "dimensional_characteristic_representation" && $col($entType) > 3 && $opt(PMISEM)} {
           $cells($sum) Item $sumRow 1 "dimensional_characteristic_representation  \[Semantic PMI\]"
         } elseif {$entType == $iloldscr && $col($entType) > 3 && $opt(PMISEM)} {
@@ -2085,6 +2166,12 @@ proc sumAddWorksheet {} {
       } else {
         regsub -all "_and_" $entType ")[format "%c" 10][format "%c" 32][format "%c" 32][format "%c" 32](" entType_multiline
         set entType_multiline "($entType_multiline)"
+
+# special case
+        if {[[$cells($entType) Item 3 G] Value] == "datum_system" && [string first "(" [formatComplexEnt $entType]] == 0 && \
+             [string first "with_datum_reference" $entType] == -1} {
+           set entType_multiline "(geometric_tolerance_with_datum_reference)[format "%c" 10][format "%c" 32][format "%c" 32][format "%c" 32]$entType_multiline"
+        }
         $cells($sum) Item $sumRow 1 $entType_multiline
 
 # add [Properties] or [Graphic PMI] text string
@@ -2378,7 +2465,7 @@ proc sumAddColorLinks {sum sumHeaderRow sumLinks sheetSort sumRow} {
 #-------------------------------------------------------------------------------------------------
 # format worksheets
 proc formatWorksheets {sheetSort sumRow inverseEnts} {
-  global buttons cells col count entCount entRows equivUnicodeString excel formattedEnts gpmiEnts idRow nprogBarEnts opt pmiStartCol
+  global buttons cells col count developer entCount entRows equivUnicodeString excel formattedEnts gpmiEnts idRow nprogBarEnts opt pmiStartCol
   global row spmiEnts stepAP stepAPreport sumHeaderRow syntaxErr thisEntType useXL uuidEnts viz vpEnts worksheet
   outputMsg "Formatting Worksheets" blue
 
@@ -2440,14 +2527,14 @@ proc formatWorksheets {sheetSort sumRow inverseEnts} {
       [$worksheet($thisEntType) Range "B4"] Select
       catch {[$excel ActiveWindow] FreezePanes [expr 1]}
 
-# set A1 as default cell, was A4
+# set A1 as default cell
       [$worksheet($thisEntType) Range "A1"] Select
 
 # set column color, border, group for INVERSES and Used In
       if {$opt(INVERSE)} {if {[lsearch $inverseEnts $thisEntType] != -1} {invFormat $rancol}}
 
-# property_definition (Validation Properties)
-      if {$thisEntType == "property_definition" && $opt(valProp)} {
+# properties
+      if {($thisEntType == "property_definition" || $thisEntType == "material_property") && $opt(valProp)} {
         valPropFormat
 
 # color STEP annotation occurrence (Graphic PMI)
@@ -2519,6 +2606,13 @@ proc formatWorksheets {sheetSort sumRow inverseEnts} {
           append txt "([expr {$row1-3}] of $count($thisEntType))"
         }
       }
+
+# special case
+      if {[[$cells($thisEntType) Item 3 G] Value] == "datum_system" && [string first "(" $txt] == 0 && \
+           [string first "with_datum_reference" $txt] == -1} {
+         set txt "(geometric_tolerance_with_datum_reference)$txt"
+         if {$developer} {errorMsg " [formatComplexEnt $thisEntType] was missing (geometric_tolerance_with_datum_reference)" red}
+      }
       $cells($thisEntType) Item 1 1 $txt
 
 # set range of cells to merge with A1
@@ -2535,7 +2629,7 @@ proc formatWorksheets {sheetSort sumRow inverseEnts} {
         }
       }
       if {!$okinv && [info exists pmiStartCol($thisEntType)]} {set c [expr {$pmiStartCol($thisEntType)-1}]}
-      if {$thisEntType == "property_definition"} {set c 4}
+      if {$thisEntType == "property_definition" || $thisEntType == "material_property"} {set c 4}
       if {$c > 8} {set c 8}
       if {$c == 1} {set c 2}
       set range [$worksheet($thisEntType) Range [cellRange 1 1] [cellRange 1 $c]]
@@ -2554,7 +2648,7 @@ proc formatWorksheets {sheetSort sumRow inverseEnts} {
             set wid [[$cells($thisEntType) Item 3 $i] Width]
             if {$wid > $widlim} {
               set range [$worksheet($thisEntType) Range [cellRange -1 $i]]
-              if {$thisEntType != "property_definition" || $i != 9} {
+              if {($thisEntType != "property_definition" && $thisEntType != "material_property") || $i != 9} {
                 $range ColumnWidth [expr {[$range ColumnWidth]/$wid * $widlim}]
                 $range WrapText [expr 1]
               }

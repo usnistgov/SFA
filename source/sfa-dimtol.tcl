@@ -1,6 +1,6 @@
 proc spmiDimtolStart {entType} {
   global objDesign
-  global col dt entLevel ent entAttrList gtEntity iloldscr lastEnt opt pmiCol pmiHeading pmiStartCol spmiRow stepAP
+  global col dt entLevel ent entAttrList gtEntity iloldscr lastEnt opt pmiCol pmiHeading pmiStartCol spmiRow
 
   if {$opt(DEBUG1)} {outputMsg "START spmiDimtolStart $entType" red}
 
@@ -68,10 +68,6 @@ proc spmiDimtolStart {entType} {
   catch {unset gtEntity}
 
   outputMsg " Adding Semantic PMI Analyzer report" blue
-
-  if {[string first "AP203" $stepAP] == 0 || [string first "AP214" $stepAP] == 0} {
-    errorMsg "There is no Recommended Practice for Semantic PMI in $stepAP files.  Use AP242 for Semantic PMI."
-  }
 
   if {$opt(DEBUG1)} {outputMsg \n}
   set entLevel 0

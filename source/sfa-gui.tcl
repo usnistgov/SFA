@@ -1,8 +1,8 @@
 # SFA version
-proc getVersion {} {return 5.35}
+proc getVersion {} {return 5.40}
 
 # see proc installIFCsvr in sfa-proc.tcl for the IFCsvr version
-# see below (line 37) for the sfaVersion when IFCsvr was updated
+# see below (line 36) for the sfaVersion when IFCsvr was updated
 
 # -------------------------------------------------------------------------------
 proc whatsNew {} {
@@ -33,20 +33,18 @@ Use F9 and F10 to change the font size here.  See Help > Function Keys"
   if {$sfaVersion > 0} {
 
 # update the version number when IFCsvr is repackaged to include updated STEP schemas
-    if {$sfaVersion < 5.24} {outputMsg "- The IFCsvr toolkit might need to be reinstalled.  Please follow the directions carefully." red}
+    if {$sfaVersion < 5.40} {outputMsg "- The IFCsvr toolkit might need to be reinstalled.  Please follow the directions carefully." red}
 
     if {$sfaVersion < 4.60} {
       outputMsg "- User Guide is based on version 4.60"
       openUserGuide
     }
   }
-  if {$sfaVersion < 5.10} {outputMsg "- Faster processing of B-rep and AP242 tessellated part geometry for the Viewer"}
-  if {$sfaVersion < 5.0}  {outputMsg "- Renamed 'Options' and 'Spreadsheet' tabs to 'Generate' and 'More'"}
+
+# significant changes since version 5.20
+  if {$sfaVersion < 5.40} {outputMsg "- Renamed 'Validation Properties' to 'Properties'"}
+  if {$sfaVersion < 5.40} {outputMsg "- Optionally process UUIDs (More tab)"}
   if {$sfaVersion < 5.20} {outputMsg "- Renamed 'PMI Representation' and 'PMI Presentation' to 'Semantic PMI' and 'Graphic PMI'"}
-  if {$sfaVersion < 5.27} {outputMsg "- Help > Viewer > Hole Features"}
-  if {$sfaVersion < 5.14} {outputMsg "- Help > Viewer > PMI Placeholders"}
-  if {$sfaVersion < 5.02} {outputMsg "- Help > Viewer > Viewpoints"}
-  if {$sfaVersion < 5.16} {outputMsg "- The CAx-IF website and Recommended Practices for PMI in AP242 have been updated, see Websites"}
   outputMsg "- See Help > Release Notes for all new features, updates, and bug fixes"
   set sfaVersion [getVersion]
 
@@ -61,8 +59,7 @@ proc openUserGuide {} {
 
 # update for new versions, local and online
   if {$sfaVersion > 4.6} {
-    outputMsg "\nThe User Guide is based on version 4.60" blue
-    outputMsg "- See Help > Release Notes for updates\n- New and updated features are documented in the Help menu\n- The Options and Spreadsheet tabs have been renamed Generate and More\n- PMI Representation and PMI Presentation have been renamed Semantic PMI and Graphic PMI"
+    outputMsg "\nThe User Guide is based on version 4.60\n- Documentation in the Help menu and Release notes is up-to-date"
     .tnb select .tnb.status
   }
   set fname [file nativename [file join [file dirname [info nameofexecutable]] "SFA-User-Guide-v7.pdf"]]
@@ -545,7 +542,7 @@ proc guiGenerateTab {} {
           }
         } elseif {$allNone == 1} {
           foreach item [array names opt] {if {[string first "step" $item] == 0} {set opt($item) 0}}
-          foreach item {BOM INVERSE PMIGRF PMISEM valProp stepUSER x3dSave} {set opt($item) 0}
+          foreach item {BOM INVERSE PMIGRF PMISEM PMIUUID valProp stepUSER x3dSave} {set opt($item) 0}
           set opt(stepCOMM) 1
           set gen(None) 0
           set gen(Excel) 1
@@ -567,7 +564,7 @@ proc guiGenerateTab {} {
   set foptd [ttk::labelframe $foptRV.1 -text " Analyzer "]
   set foptd1 [frame $foptd.1 -bd 0]
 
-  foreach item {{" Validation Properties" opt(valProp)} \
+  foreach item {{" Properties" opt(valProp)} \
                 {" AP242 Semantic Representation PMI" opt(PMISEM)} \
                 {" Graphic Presentation PMI" opt(PMIGRF)} \
                 {" Inverse Relationships and Backwards References" opt(INVERSE)}} {
@@ -580,7 +577,7 @@ proc guiGenerateTab {} {
   pack $foptd -side left -anchor w -pady {5 2} -padx 10 -fill both -expand true
 
   catch {
-    tooltip::tooltip $buttons(valProp) "Geometric, assembly, PMI, annotation, attribute, tessellated, composite, and FEA\nvalidation properties, and semantic text are reported.  Properties are shown on\nthe 'property_definition' and other entities.  Some properties are reported only if\nAnalyzer option for Semantic PMI is selected.  Some properties might not be\nshown depending on the value of Maximum Rows (More tab).\n\nSee Help > Analyzer > Validation Properties\nSee Help > User Guide (section 6.3)\nSee Help > Analyzer > Syntax Errors\n\nValidation properties must conform to recommended practices.\nSee Websites > CAx Recommended Practices"
+    tooltip::tooltip $buttons(valProp) "Properties including geometric, assembly, PMI, annotation, attribute, tessellated,\ncomposite, and FEA validation properties, and semantic text are reported on the\nproperty_definition, material_property, and other worksheets.  Validation property\nvalues are highlighted in green and yellow.  Some properties are reported only if\nthe Analyzer option for Semantic PMI is selected.\n\nSee Help > Analyzer > Properties\nSee Help > User Guide (section 6.3)\nSee Help > Analyzer > Syntax Errors\n\nProperties must conform to recommended practices.\nSee Websites > CAx Recommended Practices"
     tooltip::tooltip $buttons(PMISEM)  "Semantic PMI is the information necessary to represent geometric\nand dimensional tolerances without any graphic PMI.  It is shown\non dimension, tolerance, datum target, and datum entities.\nSemantic PMI is mainly in STEP AP242 files.  See the More tab for\nmore options.\n\nSee Help > Analyzer > Semantic Representation PMI\nSee Help > User Guide (section 6.1)\nSee Help > Analyzer > Syntax Errors\nSee Websites > AP242\n\nSemantic PMI must conform to recommended practices.\nSee Websites > CAx Recommended Practices"
     tooltip::tooltip $buttons(PMIGRF)  "Graphic PMI is the geometric elements necessary to draw annotations.\nThe information is shown on 'annotation occurrence' entities.\n\nSee Help > Analyzer > Graphic Presentation PMI\nSee Help > User Guide (section 6.2)\nSee Help > Analyzer > Syntax Errors\n\nGraphic PMI must conform to recommended practices.\nSee Websites > CAx Recommended Practices"
 
@@ -724,7 +721,7 @@ proc guiUserDefinedEntities {} {
 #-------------------------------------------------------------------------------
 # open STEP file
 proc guiOpenSTEPFile {} {
-  global appName appNames buttons cb developer dispApps dispCmds edmWhereRules edmWriteToFile
+  global appName appNames buttons cb dispApps dispCmds
   global fopt foptf
 
   set foptOP [frame $fopt.op -bd 0]
@@ -735,19 +732,6 @@ proc guiOpenSTEPFile {} {
 
   bind $buttons(appCombo) <<ComboboxSelected>> {
     set appName [$buttons(appCombo) get]
-
-# Jotne EDM Model Checker
-    if {$developer} {
-      catch {
-        if {[string first "EDMsdk" $appName] != -1} {
-          pack $buttons(edmWriteToFile) -side left -anchor w -padx {5 0}
-          pack $buttons(edmWhereRules) -side left -anchor w -padx {5 0}
-        } else {
-          pack forget $buttons(edmWriteToFile)
-          pack forget $buttons(edmWhereRules)
-        }
-      }
-    }
 
 # file tree view
     catch {
@@ -787,20 +771,6 @@ proc guiOpenSTEPFile {} {
   }]
   pack $foptf.$cb -side left -anchor w -padx {10 0} -pady {0 3}
   incr cb
-
-# Jotne EDM Model Checker
-  if {$developer} {
-    foreach item $appNames {
-      if {[string first "EDMsdk" $item] != -1} {
-        foreach item {{"Check rules" edmWhereRules} {"Write to file" edmWriteToFile}} {
-          set idx [lindex $item 1]
-          set buttons($idx) [ttk::checkbutton $foptf.$cb -text [lindex $item 0] -variable [lindex $item 1] -command {checkValues}]
-          pack forget $buttons($idx)
-          incr cb
-        }
-      }
-    }
-  }
 
 # built-in file tree view
   if {[lsearch $appNames "Tree View (for debugging)"] != -1} {
@@ -852,11 +822,12 @@ proc guiMoreTab {} {
   set n 0
   foreach item {{" Process text strings with non-English characters" opt(xlUnicode)} \
                 {" Generate tables for sorting and filtering" opt(xlSort)} \
+                {" Process UUIDs" opt(PMIUUID)} \
                 {" Do not round real numbers in spreadsheet cells" opt(xlNoRound)} \
                 {" Do not generate links on File Summary worksheet" opt(xlHideLinks)}} {
     incr n
     set frm $fxlsb1
-    if {$n > 2} {set frm $fxlsb2}
+    if {$n > 3} {set frm $fxlsb2}
     set idx [string range [lindex $item 1] 4 end-1]
     set buttons($idx) [ttk::checkbutton $frm.$cb -text [lindex $item 0] -variable [lindex $item 1] -command {checkValues}]
     pack $buttons($idx) -side top -anchor w -padx 5 -pady 0 -ipady 0
@@ -914,11 +885,11 @@ proc guiMoreTab {} {
 
 # other analyzer options
   set fxlsa [ttk::labelframe $fxls.a -text " Analyzer "]
-  foreach item {{" Round dimensions and geometric tolerances for semantic PMI" opt(PMISEMRND)} \
-                {" Show all PMI Elements on Semantic PMI Coverage worksheet" opt(SHOWALLPMI)}} {
+  foreach item {{" Round dimensions and tolerances for semantic PMI" opt(PMISEMRND)} \
+                {" Show all PMI on Semantic PMI Coverage worksheet" opt(SHOWALLPMI)}} {
     set idx [string range [lindex $item 1] 4 end-1]
     set buttons($idx) [ttk::checkbutton $fxlsa.$cb -text [lindex $item 0] -variable [lindex $item 1] -command {checkValues}]
-    pack $buttons($idx) -side top -anchor w -padx {5 10} -pady 0 -ipady 0
+    pack $buttons($idx) -side left -anchor w -padx {5 10} -pady 0 -ipady 0
     incr cb
   }
   pack $fxlsa -side top -anchor w -pady {10 2} -padx 10 -fill both
@@ -929,6 +900,7 @@ proc guiMoreTab {} {
     tooltip::tooltip $buttons(xlSort)      "Worksheets can be sorted by column values.\nWorksheets related to Analyzer options are always sorted.\n\nSee Help > User Guide (section 5.5.3)"
     tooltip::tooltip $buttons(xlNoRound)   "See Help > User Guide (section 5.5.4)"
     tooltip::tooltip $buttons(SHOWALLPMI)  "The complete list of [expr {$pmiElementsMaxRows-3}] PMI Elements, including those that are not in the\nSTEP file, will be shown on the Semantic PMI Coverage worksheet.\n\nSee Help > Analyzer > PMI Coverage Analysis\nSee Help > User Guide (section 6.1.7)"
+    tooltip::tooltip $buttons(PMIUUID)     "UUIDs (Universally Unique IDs), also known as Persistent IDs, are used for\nmaintaining traceability of engineering product data.  UUIDs are supported\nin AP242. They are reported on tolerance, geometry, and a few other entities.\nA UUID Summary worksheet is generated showing all entity types associated\nwith UUIDs.\n\nUUIDs must conform to recommended practices.\nSee Websites > CAx Recommended Practices"
     tooltip::tooltip $buttons(xlHideLinks) "This option is useful when sharing a Spreadsheet with another user."
     tooltip::tooltip $buttons(PMISEMRND)   "Rounding values might result in a better match to graphic PMI shown in\nthe Viewer or to expected PMI in the NIST CAD models (FTC/STC 7, 8, 11).\n\nSee User Guide (section 6.1.3.1)\nSee Websites > Recommended Practice for\n   $recPracNames(pmi242), Section 5.4"
     tooltip::tooltip $buttons(viewParallel) "Use parallel projection defined in the STEP file for saved view viewpoints,\ninstead of the default perspective projection.  Pan and zoom might not\nwork with parallel projection.  See Help > Viewer > Viewpoints"
@@ -1075,7 +1047,6 @@ proc guiWebsitesMenu {} {
 
   $Examples add command -label "Viewer"                   -command {openURL https://pages.nist.gov/CAD-PMI-Testing/}
   $Examples add command -label "Spreadsheets - AP242 PMI" -command {openURL https://www.nist.gov/document/sfa-semantic-pmi-spreadsheet}
-  $Examples add command -label "- AP203 PMI"              -command {openURL https://www.nist.gov/document/sfa-spreadsheet}
   $Examples add command -label "- PMI Coverage Analysis"  -command {openURL https://www.nist.gov/document/sfa-multiple-files-spreadsheet}
   $Examples add command -label "- Bill of Materials"      -command {openURL https://www.nist.gov/document/sfa-bill-materials-spreadsheet}
   $Examples add separator
@@ -1096,7 +1067,7 @@ Processing very large STEP files might also cause a crash.  See Help > Large STE
 
 More details about recovering from a crash are explained in Help > Crash Recovery.
 
-If the software crashes the first time you run it, there might be a problem with the installation of the IFCsvr toolkit.  First uninstall the IFCsvr toolkit.  Then run SFA as Administrator and when prompted, install the IFCsvr toolkit for Everyone, not Just Me.  Subsequently, SFA does not have to be run as Administrator."
+If the software crashes the first time you run it, see SFA-README-FIRST.pdf"
 
   tk_messageBox -type ok -icon error -title "What to do if the STEP File Analyzer and Viewer crashes?" -message $txt
 }
@@ -1232,7 +1203,7 @@ proc guiToolTip {ttmsg tt {name ""}} {
 #-------------------------------------------------------------------------------
 proc getOpenPrograms {} {
   global env dispApps dispCmds dispCmd appNames appName
-  global drive editorCmd developer myhome pf32 pf64 pflist
+  global drive editorCmd myhome pf32 pf64 pflist
 
 # Including any of the CAD viewers and software does not imply a recommendation or endorsement of them by NIST https://www.nist.gov/disclaimer
 # For more STEP viewers, go to https://www.mbx-if.org/home/mbx/resources/
@@ -1244,14 +1215,6 @@ proc getOpenPrograms {} {
     lappend pflist $p64
   }
   set lastver 0
-
-# Jotne EDM Model Checker
-  if {$developer} {
-    foreach match [glob -nocomplain -directory [file join $pf64 Jotne] -join EDMsdk6* bin edms.exe] {
-      set ver [lindex [split $match "/"] 3]
-      set dispApps($match) [string range $ver 0 [string last "." $ver]-1]
-    }
-  }
 
 # STEP file viewers, use * when the directory or name has a number
   foreach pf $pflist {
@@ -1450,7 +1413,7 @@ proc getOpenPrograms {} {
 #-------------------------------------------------------------------------------
 # turn on/off values and enable/disable buttons depending on values
 proc checkValues {} {
-  global allNone appName appNames buttons developer edmWhereRules edmWriteToFile gen opt userEntityList useXL
+  global allNone appName appNames buttons developer gen opt userEntityList useXL
 
   set butNormal {}
   set butDisabled {}
@@ -1459,19 +1422,6 @@ proc checkValues {} {
     set ic [lsearch $appNames $appName]
     if {$ic < 0} {set ic 0}
     catch {$buttons(appCombo) current $ic}
-
-# Jotne EDM Model Checker
-    if {$developer} {
-      catch {
-        if {[string first "EDMsdk" $appName] != -1} {
-          pack $buttons(edmWhereRules) -side left -anchor w -padx {5 0}
-          pack $buttons(edmWriteToFile) -side left -anchor w -padx {5 0}
-        } else {
-          pack forget $buttons(edmWriteToFile)
-          pack forget $buttons(edmWhereRules)
-        }
-      }
-    }
 
     catch {
       if {$appName == "Tree View (for debugging)"} {
@@ -1554,7 +1504,7 @@ proc checkValues {} {
 
 # no Excel
   if {!$useXL} {
-    foreach item {BOM INVERSE PMIGRF PMISEM valProp} {set opt($item) 0}
+    foreach item {BOM INVERSE PMIGRF PMISEM PMIUUID valProp} {set opt($item) 0}
     foreach item [array names opt] {
       if {[string first "step" $item] == 0} {lappend butNormal $item}
     }
@@ -1567,7 +1517,7 @@ proc checkValues {} {
     foreach item [array names opt] {
       if {[string first "step" $item] == 0} {lappend butNormal $item}
     }
-    lappend butNormal xlHideLinks xlUnicode xlSort xlNoRound BOM INVERSE PMIGRF PMISEM valProp xlsManual
+    lappend butNormal xlHideLinks xlUnicode xlSort xlNoRound BOM INVERSE PMIGRF PMISEM PMIUUID valProp xlsManual
     lappend butNormal viewFEA viewPMI viewPart
     lappend butNormal allNone0 allNone1 stepUSER
   }
@@ -1577,7 +1527,7 @@ proc checkValues {} {
     foreach item [array names opt] {
       if {[string first "step" $item] == 0} {lappend butDisabled $item}
     }
-    lappend butDisabled PMIGRF PMISEM PMISEMDIM PMISEMDT PMISEMRND valProp stepUSER BOM INVERSE
+    lappend butDisabled PMIGRF PMISEM PMISEMDIM PMISEMDT PMISEMRND PMIUUID valProp stepUSER BOM INVERSE
     lappend butDisabled allNone0
     lappend butDisabled userentity userentityopen
     set userEntityList {}
@@ -1616,7 +1566,7 @@ proc checkValues {} {
     if {!$opt(PMISEM)}  {lappend butNormal stepSHAP stepREPR}
   }
 
-# validation properties
+# properties
   if {$opt(valProp)} {
     foreach b {stepQUAN stepREPR stepSHAP} {
       set opt($b) 1

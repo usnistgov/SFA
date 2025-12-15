@@ -111,24 +111,10 @@ proc gpmiAnnotation {entType} {
       errorMsg $msg
       lappend syntaxErr($ao) [list 1 1 $msg]
     }
-
-    if {[string first "annotation_occurrence" $ao] != -1 && [string first "tessellated" $ao] == -1 && [string first "draughting_annotation_occurrence" $ao] == -1} {
-      set msg "Syntax Error: Using 'annotation_occurrence' with $stepAP is not valid for Graphic PMI.$spaces\($recPracNames(pmi242), Sec. 8.1.1)"
-      errorMsg $msg
-      lappend syntaxErr($ao) [list 1 1 $msg]
-    }
-  }
-
-  if {[string first "AP203" $stepAP] == 0 || [string first "AP214" $stepAP] == 0} {
-    if {[string first "annotation_curve_occurrence" $ao] != -1} {
-      set msg "Syntax Error: Using 'annotation_curve_occurrence' with $stepAP is not valid for Graphic PMI.$spaces\($recPracNames(pmi203), Sec. 4.1.1)"
-      errorMsg $msg
-      lappend syntaxErr($ao) [list 1 1 $msg]
-    }
-
-  } elseif {[string first "AP242" $stepAP] == 0 && ([string first "annotation_curve_occurrence" $ao] != -1 || [string first "annotation_fill_area_occurrence" $ao] != -1)} {
-    if {![info exists entCount(tessellated_annotation_occurrence)] && ![info exists entCount(annotation_placeholder_occurrence)]} {
-      errorMsg " For AP242, tessellated_annotation_occurrence is preferred for Graphic PMI" red
+    if {[string first "annotation_curve_occurrence" $ao] != -1 || [string first "annotation_fill_area_occurrence" $ao] != -1} {
+      if {![info exists entCount(tessellated_annotation_occurrence)] && ![info exists entCount(annotation_placeholder_occurrence)]} {
+        errorMsg " For AP242, tessellated_annotation_occurrence is preferred for Graphic PMI" red
+      }
     }
   }
 

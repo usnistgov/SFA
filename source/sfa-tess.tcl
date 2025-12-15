@@ -171,8 +171,10 @@ proc tessPartGeometry {objEntity} {
 # if coordOnly=1, then only read coordinates_list, used for saved view pmi validation properties
 # if coordOnly=2, then only read point_cloud_dataset
 proc tessReadGeometry {{coordOnly 0}} {
-  global entCount localName recPracNames syntaxErr spaces tessCoord tessCoordName tessIndex tessIndexCoord tessReadOnce x3dMax x3dMin
-  
+  global entCount localName opt recPracNames syntaxErr spaces
+  global tessBrep tessCoord tessCoordName tessIndex tessIndexCoord tessMinMax tessReadOnce x3dBbox x3dMax x3dMin
+  global objDesign
+
   if {[info exists tessReadOnce]} {return}
   set tessReadOnce 1
 
@@ -189,6 +191,31 @@ proc tessReadGeometry {{coordOnly 0}} {
     }
     set ents [list COORDINATES_LIST TESSELLATED_CURVE_SET TRIANGULATED_FACE COMPLEX_TRIANGULATED_FACE TRIANGULATED_SURFACE_SET COMPLEX_TRIANGULATED_SURFACE_SET]
     outputMsg " Reading tessellated geometry" green
+
+# which coordinates_list are associated with tessellated geometry entities for checking xyz min/max
+    if {$opt(tessPartOld) || $tessBrep || [info exists entCount(tessellated_closed_shell)]} {
+      set tsCoordID {}
+      set tessMinMax 1
+      foreach item [list tessellated_solid tessellated_shell] {
+        if {[info exists entCount($item)] && $entCount($item) > 0} {
+          ::tcom::foreach ts [$objDesign FindObjects [string trim $item]] {
+            set e0s [[[$ts Attributes] Item [expr 2]] Value]
+            ::tcom::foreach e0 $e0s {lappend tsCoordID [[[[$e0 Attributes] Item [expr 2]] Value] P21ID]}
+          }
+        }
+      }
+      if {[info exists entCount(tessellated_closed_shell)] && $entCount(tessellated_closed_shell) > 0} {
+        ::tcom::foreach tcs [$objDesign FindObjects [string trim tessellated_closed_shell]] {
+          set e0s [[[$tcs Attributes] Item [expr 2]] Value]
+          ::tcom::foreach e0 $e0s {
+            set e1 [[[$e0 Attributes] Item [expr 3]] Value]
+            lappend tsCoordID [[[[$e1 Attributes] Item [expr 2]] Value] P21ID]
+          }
+        }
+      }
+      set tsCoordID [lrmdups $tsCoordID]
+      if {[llength $tsCoordID] == 0} {unset tsCoordID}
+    }
 
 # read only coordinates list
   } elseif {$coordOnly == 1} {
@@ -254,9 +281,15 @@ proc tessReadGeometry {{coordOnly 0}} {
               set prec 3
               if {[expr {abs($x3dPoint($idx))}] < 0.01} {set prec 4}
               append tc "[trimNum $x3dPoint($idx) $prec] "
-              if {$coordOnly == 0} {
-                if {$x3dPoint($idx) > $x3dMax($idx)} {set x3dMax($idx) $x3dPoint($idx)}
-                if {$x3dPoint($idx) < $x3dMin($idx)} {set x3dMin($idx) $x3dPoint($idx)}
+
+# get min/max
+              if {$tessMinMax} {
+                set ok1 0
+                if {![info exists tsCoordID] || [lsearch $tsCoordID $id] != -1} {set ok1 1}
+                if {$coordOnly == 0 && $ok1} {
+                  if {$x3dPoint($idx) > $x3dMax($idx)} {set x3dMax($idx) $x3dPoint($idx)}
+                  if {$x3dPoint($idx) < $x3dMin($idx)} {set x3dMin($idx) $x3dPoint($idx)}
+                }
               }
             }
             append tessCoord($id) $tc
@@ -395,6 +428,9 @@ proc tessReadGeometry {{coordOnly 0}} {
           if {!$tessellated} {errorMsg " No tessellated curves, faces, or surfaces found."}
         }
         close $tg
+
+# bounding box
+        if {[info exists x3dMin(x)] && ($opt(tessPartOld) || $tessBrep)} {set x3dBbox 1}
         return
       }
     }

@@ -35,7 +35,7 @@ proc nistReadExpectedPMI {{epmiFile ""}} {
             foreach colName $lline {
               if {$colName != ""} {
                 if {[string first "ctc" $colName] == 0 || [string first "ftc" $colName] == 0 || \
-                    [string first "stc" $colName] == 0 || [string first "htc" $colName] == 0} {
+                    [string first "stc" $colName] == 0 || [string first "htc" $colName] == 0 || [string first "pdc" $colName] == 0} {
                   set i2($c) "nist_$colName"
                 } else {
                   set i2($c) "$colName"
@@ -1193,7 +1193,7 @@ proc nistGetName {} {
     set ok  0
     set ok1 0
 
-    if {[lsearch $filePrefix [string range $ftail 0 $c]] != -1 || [string first "htc" $ftail] != -1 || \
+    if {[lsearch $filePrefix [string range $ftail 0 $c]] != -1 || [string first "htc" $ftail] != -1 || [string first "pdc" $ftail] != -1 || \
         [string first "ctc" $ftail] != -1 || [string first "ftc" $ftail] != -1 || [string first "stc" $ftail] != -1 || [string first "pdc" $ftail] != -1 || \
         ([string first "nist" $ftail] != -1 && [string first "pdi" $ftail] == -1)} {
       if {[lsearch $filePrefix [string range $ftail 0 $c]] != -1} {set ftail [string range $ftail $c+1 end]}
@@ -1205,7 +1205,8 @@ proc nistGetName {} {
           set testCase $item
         }
       }
-      if {$testCase == "htc" || $testCase == "pdc"} {set nistName "nist_htc"}
+      if {$testCase == "htc"} {set nistName "nist_htc"}
+      if {$testCase == "pdc"} {set nistName "nist_pdc"}
 
 # find nist_ctc_01 directly
       if {$testCase != ""} {
@@ -1223,7 +1224,7 @@ proc nistGetName {} {
       }
 
 # find the number in the string
-      if {!$ok1 && $testCase != "htc"} {
+      if {!$ok1 && $testCase != "htc" && $testCase != "pdc"} {
         foreach zero {"0" ""} {
           for {set i 1} {$i <= 11} {incr i} {
             if {!$ok} {

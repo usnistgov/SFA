@@ -1,9 +1,13 @@
 # help menu, examples menu at the end
 proc guiHelpMenu {} {
-  global developer Examples filesProcessed Help ifcsvrDir ifcsvrVer mytemp opt scriptName stepAPs
+  global developer Examples filesProcessed Help ifcsvrVer mytemp opt scriptName
 
-  $Help add command -label "User Guide" -command {openUserGuide}
-  $Help add command -label "Release Notes" -command {openURL https://www.nist.gov/document/sfa-release-notes}
+  $Help add command -label "User Guide"    -command {openUserGuide}
+  $Help add command -label "Release Notes" -command {
+    openURL https://github.com/usnistgov/SFA/tree/master/Release
+    outputMsg "\nOn the GitHub webpage, click on the file name, then on the download symbol to the right."
+    .tnb select .tnb.status
+  }
 
   $Help add separator
   $Help add command -label "Overview" -command {
@@ -14,7 +18,7 @@ Product model data) Part 21 file (.stp or .step or .p21 file extension) and
 1 - generates an Excel spreadsheet or CSV files of all entity and attribute information,
 2 - creates a visualization (view) of part geometry, graphic PMI, and other features that is
     displayed in a web browser,
-3 - reports and analyzes validation properties, semantic PMI, and graphic PMI, and checks them for
+3 - reports and analyzes properties, semantic PMI, and graphic PMI, and checks them for
     conformance to recommended practices, and
 4 - checks for basic syntax errors.
 
@@ -51,7 +55,7 @@ Analyzer options report PMI and check for conformance to recommended practices.
   reported on various entities indicated by Semantic PMI on the Summary worksheet.
 - Graphic Presentation PMI: Geometric entities used for Graphic PMI annotations are reported.
   Associated Saved Views, Validation Properties, and Geometry are also reported.
-- Validation Properties: Geometric, assembly, PMI, annotation, attribute, and tessellated
+- Properties: Properties including geometric, assembly, PMI, annotation, attribute, and tessellated
   validation properties are reported.
 - Inverse Relationships: For some entities, Inverse relationships and backwards references (Used In)
   are shown on the worksheets.
@@ -107,10 +111,10 @@ geometry, and assemblies are supported.  Part geometry viewer features:
 
 - The bounding box min and max XYZ coordinates are based on the faceted geometry being shown and
   not the exact geometry in the STEP file.  There might be a variation in the coordinates depending
-  on the Quality option.  The bounding box also accounts for any sketch geometry if it is displayed
-  but not graphic PMI and supplemental geometry.  The bounding box can be shown to confirm that the
-  min and max coordinates are correct.  If the part is too large to rotate smoothly, turn off the
-  part and rotate the bounding box.
+  on the Quality option.  The bounding box also accounts for any sketch geometry, regardless if it
+  is displayed, but not graphic PMI and supplemental geometry.  The bounding box can be shown to
+  confirm that the min and max coordinates are correct.  If the part is too large to rotate
+  smoothly, turn off the part and rotate the bounding box.
 
 - The origin of the model at '0 0 0' is shown with a small XYZ coordinate axis that can be switched
   off.  The background color can be changed between white, blue, gray, and black.
@@ -241,8 +245,8 @@ Assembly Structure is also supported by the AP242 Domain Model XML. See Websites
   $helpView add command -label "Supplemental Geometry" -command {
 outputMsg "\nSupplemental Geometry -----------------------------------------------------------------------------" blue
 outputMsg "Supplemental geometry is geometrical elements created in the CAD system that do not belong to the
-manufactured part.  It is usually used to create other geometric shapes.  Supplemental geometry is
-also known as construction, auxiliary, design, support, or reference geometry.
+manufactured part.  It is used to help generate other part geometry.  Supplemental geometry is also
+known as construction, auxiliary, design, support, or reference geometry.
 
 B-rep and tessellated geometry are supported for supplemental geometry. These types of supplemental
 geometry and associated text are supported.  Colors defined in the STEP file override the default
@@ -254,12 +258,11 @@ colors below.
 - Line/Circle/Ellipse: purple line/circle/ellipse (trimming with cartesian_point is not supported)
 - Point: black dot
 
-Supplemental geometry:
-- can be optionally generated
-- can be switched on and off
-- is not associated with graphic PMI Saved Views
-- in assemblies might have the wrong position and orientation (See Help > Assemblies)
-- is counted on the PMI Coverage Analysis worksheet if a Viewer file is generated
+Supplemental geometry can be optionally generated.  In the Viewer, it can be switched on and off,
+and is not associated with graphic PMI Saved Views.  Also in the Viewer, supplemental geometry in
+assemblies might have the wrong position and orientation, and subsets are not supported.
+Supplemental geomery is counted on the PMI Coverage Analysis worksheet if a Viewer file is
+generated.
 
 See Websites > CAx Recommended Practices (Supplemental Geometry)"
     .tnb select .tnb.status
@@ -364,8 +367,8 @@ their capped surfaces.
 
 The cloud of points (COPS) geometric validation property are sampling points generated by the CAD
 system on the surfaces and edges of a part.  The points are used to check the deviation of surfaces
-from those points in an importing system.  The report for Validation Properties must be generated
-to show the COPS.  See Websites > CAx Recommended Practices (Geometric and Assembly Validation Properties)
+from those points in an importing system.  The report for Properties must be generated to show the
+COPS.  See Websites > CAx Recommended Practices (Geometric and Assembly Validation Properties)
 
 Points are shown with a blue dot.  The exact points might not appear on part surfaces because part
 geometry in the Viewer is only a faceted approximation.  For parts in an assembly, the COPS might
@@ -424,10 +427,9 @@ See Websites > STEP > AP209 FEA"
 # analyzer overview
   $helpAnalyze add command -label "Overview" -command {
 outputMsg "\nAnalyzer Overview ---------------------------------------------------------------------------------" blue
-outputMsg "The Analyzer reports information related to validation properties, semantic PMI, and graphic PMI,
-and checks them for conformance to recommended practices.  Syntax Errors are reported for
-nonconformance.  Entities that report this information are highlighted on the File Summary
-worksheet.
+outputMsg "The Analyzer reports information related to properties, semantic PMI, and graphic PMI, and checks
+them for conformance to recommended practices.  Syntax Errors are reported for nonconformance.
+Entities that report this information are highlighted on the File Summary worksheet.
 
 Inverse relationships and Backwards References show the relationship between some entities through
 other entities.
@@ -445,16 +447,18 @@ See Examples > NIST CAD Models"
     .tnb select .tnb.status
   }
 
-# validation properties, PMI, conformance checking help
-  $helpAnalyze add command -label "Validation Properties" -command {
-outputMsg "\nValidation Properties -----------------------------------------------------------------------------" blue
-outputMsg "Geometric, assembly, PMI, annotation, attribute, tessellated, composite, and FEA validation
-properties are reported.  The property values are reported in columns highlighted in yellow and
-green on the property_definition worksheet.  The worksheet can also be sorted and filtered.  All
-properties might not be shown depending on the Maximum Rows set on the More tab.
+# properties, PMI, conformance checking help
+  $helpAnalyze add command -label "Properties" -command {
+outputMsg "\nProperties ----------------------------------------------------------------------------------------" blue
+outputMsg "
+Properties are reported on property_definition and material_property entities.  A subset of
+properties are geometric, assembly, PMI, annotation, attribute, tessellated, composite, and FEA
+validation properties that are highlighted in yellow and green on the property_definition worksheet.
+The worksheets can also be sorted and filtered.  All properties might not be shown depending on the
+Maximum Rows set on the More tab.
 
-The name or description attribute of the entity referred to by the property_definition definition
-attribute is included in brackets.
+The name or description attribute of the entity referred to by the property_definition or
+material_property definition attribute is included in brackets.
 
 Validation properties are also reported on their associated annotation, dimension, geometric
 tolerance, and shape aspect entities.  The report includes the validation property name and names
@@ -472,23 +476,23 @@ graphic PMI with that validation property.  The sampling points for the Cloud of
 property are shown in the Viewer.  See Help > Viewer > Other Features.  Neither of these features
 are documented in the User Guide.
 
-Syntax errors related to validation property attribute values are also reported in the Status tab
-and the relevant worksheet cells.  Syntax errors are highlighted in red.  See Help > Analyzer > Syntax Errors
+Syntax errors related to property attribute values are also reported in the Status tab and the
+relevant worksheet cells.  Syntax errors are highlighted in red.  See Help > Analyzer > Syntax Errors
 
 Clicking on the plus '+' symbols above the columns shows other columns that contain the entity ID
-and attribute name of the validation property value.  All of the other columns can be shown or
-hidden by clicking the '1' or '2' in the upper right corner of the spreadsheet.
+and attribute name of the property value.  All of the other columns can be shown or hidden by
+clicking the '1' or '2' in the upper right corner of the spreadsheet.
 
-The Summary worksheet indicates if properties are reported on property_definition and other
-entities.
+The Summary worksheet indicates if properties are reported on property_definition,
+material_property, and other entities.
 
 See Help > User Guide (section 6.3)
-See Examples > Graphic PMI, Validation Properties
+See Examples > Spreadsheets - AP242 PMI
 
-Validation properties must conform to recommended practices.
+Properties must conform to recommended practices.
  See Websites > CAx Recommended Practices (Geometric and Assembly Validation Properties,
   User Defined Attributes, Representation and Presentation of PMI for AP242,
-  Tessellated 3D Geometry)"
+  Tessellated 3D Geometry, Material Identification Assignment and Related Properties)"
     .tnb select .tnb.status
   }
 
@@ -550,7 +554,7 @@ A Semantic PMI Coverage Analysis worksheet is also generated.
 
 See Help > User Guide (section 6.1)
 See Help > Analyzer > PMI Coverage Analysis
-See Examples > Spreadsheets - Semantic PMI
+See Examples > Spreadsheets - AP242 PMI
 See Examples > Sample STEP Files
 
 Semantic PMI must conform to recommended practices.
@@ -581,7 +585,7 @@ See Help > User Guide (section 6.2)
 See Help > Viewer > Graphic PMI
 See Help > Analyzer > PMI Coverage Analysis
 See Examples > Viewer
-See Examples > Graphic PMI, Validation Properties
+See Examples > Spreadsheets - AP242 PMI
 See Examples > Sample STEP Files
 
 Graphic PMI must conform to recommended practices.
@@ -627,10 +631,9 @@ See Examples > PMI Coverage Analysis"
   $helpAnalyze add command -label "Syntax Errors" -command {
 outputMsg "\nSyntax Errors -------------------------------------------------------------------------------------" blue
 outputMsg "Syntax Errors are generated when an Analyzer option related to Semantic PMI, Graphic PMI, and
-Validation Properties is selected.  The errors refer to specific sections, figures, or tables in
-the relevant CAx-IF Recommended Practice.  Errors should be fixed so that the STEP file can
-interoperate with other CAx software and conform to recommended practices.
-See Websites > CAx Recommended Practices
+Properties is selected.  The errors refer to specific sections, figures, or tables in the relevant
+CAx-IF Recommended Practice.  Errors should be fixed so that the STEP file can interoperate with
+other CAx software and conform to recommended practices.  See Websites > CAx Recommended Practices
 
 Syntax errors are highlighted in red in the Status tab.  Other informative warnings are highlighted
 in yellow.  Syntax errors that refer to section, figure, and table numbers might use numbers that
@@ -742,7 +745,7 @@ might be ambiguities in counting the number of PMI elements.
 
 See Help > User Guide (section 6.6)
 See Examples > NIST CAD Models
-See Examples > Spreadsheets - Semantic PMI"
+See Examples > Spreadsheets - AP242 PMI"
     .tnb select .tnb.status
   }
   $Help add separator
@@ -803,8 +806,7 @@ not contain all the necessary information to generate a complete BOM.  Parts do 
 contained in an assembly, therefore some BOMs will not have a list of assemblies and some parts
 might not be listed as a component of an assembly.  See Examples > Bill of Materials
 
-Generate the Analyzer report for Validation Properties to see possible properties associated with
-Parts.
+Generate the Analyzer report for Properties to see possible properties associated with Parts.
 
 Bill of Materials are not documented in the User Guide.  See Examples > Bill of Materials"
     .tnb select .tnb.status
@@ -845,60 +847,38 @@ outputMsg "These STEP Application Protocols (AP) and other schemas are supported
 The Viewer works with STEP AP242, AP203, AP214, AP238, and AP209.  See Websites > STEP
 AP238 STEP-NC files (.stpnc) are supported by renaming the file extension to '.stp'.
 
-The name of the AP is on the FILE_SCHEMA entity in the HEADER section of a STEP file.  The 'e1'
-notation below, after an AP number, refers to an older Edition of that AP.
+The name of the AP is on the FILE_SCHEMA entity in the HEADER section of a STEP file.  Some APs
+have multiple editions with the same name.  AP242 editions 1-4 were released in 2014, 2020, 2022,
+and 2025.  See Websites > STEP > EXPRESS Schemas and Websites > AP242 > ISO 10303-242
 
-Some APs have multiple editions with the same name.  AP242 editions 1-4 were released in 2014, 2020,
-2022, and 2025.  See Websites > STEP > EXPRESS Schemas and Websites > AP242 > ISO 10303-242\n"
+ AP242 - AP242_MANAGED_MODEL_BASED_3D_ENGINEERING_MIM_LF
+ AP203 - AP203_CONFIGURATION_CONTROLLED_3D_DESIGN_OF_MECHANICAL_PARTS_AND_ASSEMBLIES_MIM_LF
+ AP214 - AUTOMOTIVE_DESIGN
+ AP238 - MODEL_BASED_INTEGRATED_MANUFACTURING_SCHEMA
+ AP209 - AP209_MULTIDISCIPLINARY_ANALYSIS_AND_DESIGN_MIM_LF
+ AP210 - AP210_ELECTRONIC_ASSEMBLY_INTERCONNECT_AND_PACKAGING_DESIGN_MIM_LF
+ AP239 - AP239_PRODUCT_LIFE_CYCLE_SUPPORT_MIM_LF
 
-    set schemas {}
-    set ifcschemas {}
-    foreach match [lsort [glob -nocomplain -directory $ifcsvrDir *.rose]] {
-      set schema [string toupper [file rootname [file tail $match]]]
-      if {[string first "HEADER_SECTION" $schema] == -1 && [string first "KEYSTONE" $schema] == -1 && \
-          [string first "ENGINEERING_MIM_LF-OLD" $schema] == -1 && [string range $schema end-2 end] != "MIM"} {
-        if {[info exists stepAPs($schema)] && $schema != "STRUCTURAL_FRAME_SCHEMA"} {
-          if {[string first "CONFIGURATION" $schema] != 0} {
-            set str $stepAPs($schema)
-            if {[string first "e1" $str] == -1} {append str "  "}
-            lappend schemas "$str - $schema"
-          } else {
-            lappend schemas $schema
-          }
-        } elseif {[string first "AP2" $schema] == 0} {
-          lappend schemas "[string range $schema 0 4]   - $schema"
-        } elseif {[string first "IFC" $schema] == -1} {
-          lappend schemas $schema
-        } elseif {$schema == "IFC2X3" || [string first "IFC4" $schema] == 0 || [string first "IFC5" $schema] == 0} {
-          lappend ifcschemas [string range $schema 3 end]
+Older Schemas (e1 refers to an older edition)
+ AP203e1 - CONFIG_CONTROL_DESIGN
+ AP238e1 - INTEGRATED_CNC_SCHEMA
+ AP209e1 - STRUCTURAL_ANALYSIS_DESIGN
+
+Other Schemas
+ ISO13584_25_IEC61360_5_LIBRARY_IMPLICIT_SCHEMA (Supplier library)
+ ISO13584_42_2_LONG_FORM_SCHEMA (Parts library)
+ CUTTING_TOOL_SCHEMA_ARM (ISO 13399)
+ STRUCTURAL_FRAME_SCHEMA (CIS/2)
+ IFC (2X3 4 4X3)"
+
+    if {$opt(xlMaxRows) == 100003} {
+      outputMsg " "
+      foreach match [lsort [glob -nocomplain -directory $ifcsvrDir *.rose]] {
+        set schema [string toupper [file rootname [file tail $match]]]
+        if {[string first "HEADER_SECTION" $schema] == -1 && [string first "KEYSTONE" $schema] == -1 && \
+            [string first "ENGINEERING_MIM_LF-OLD" $schema] == -1 && [string range $schema end-2 end] != "MIM" && [string first "IFC" $schema] == -1} {
+            outputMsg "[string tolower $schema]  [clock format [file mtime $match] -format "%d %b %Y"]" red
         }
-      }
-    }
-    if {[llength $ifcschemas] > 0} {lappend schemas "IFC ($ifcschemas)"}
-
-    if {[llength $schemas] <= 1} {
-      errorMsg "No Supported STEP APs were found."
-      if {[llength $schemas] == 1} {errorMsg "- Manually uninstall the existing IFCsvrR300 ActiveX Component 'App'."}
-      errorMsg "- Restart this software to install the new IFCsvr toolkit."
-    }
-
-    set n 0
-    foreach item [lsort $schemas] {
-      set c1 [string first "-" $item]
-      if {$c1 == -1} {
-        if {$n == 0} {
-          incr n
-          outputMsg "\nOther Schemas"
-        }
-        set txt [string toupper $item]
-        if {$txt == "CUTTING_TOOL_SCHEMA_ARM"} {append txt " (ISO 13399)"}
-        if {[string first "ISO13584_25" $txt] == 0} {append txt " (Supplier library)"}
-        if {[string first "ISO13584_42" $txt] == 0} {append txt " (Parts library)"}
-        if {$txt == "STRUCTURAL_FRAME_SCHEMA"} {append txt " (CIS/2)"}
-        outputMsg "  $txt"
-      } else {
-        set txt "[string range $item 0 $c1][string toupper [string range $item $c1+1 end]]"
-        outputMsg "  $txt"
       }
     }
     .tnb select .tnb.status
@@ -1059,18 +1039,9 @@ User-Defined List can be used to process only the required entities for a spread
 
 For errors similar to 'unable to realloc xxx bytes', see Help > Large STEP Files
 
-See Help > User Guide (section 2.4)
+If the software crashes the first time you run it, see SFA-README-FIRST.pdf
 
----------------------------------------------------------------------------------------------------
-If the software crashes the first time you run it, there might be a problem with the installation
-of the IFCsvr toolkit.  First uninstall the IFCsvr toolkit.  Then run SFA as Administrator and when
-prompted, install the IFCsvr toolkit for Everyone, not Just Me.  Subsequently, SFA does not have to
-be run as Administrator.
-
-If that does not work, then an environment variable might need to be set.  From the Windows menu,
-search for ‘Edit the system environment variables’.  On the Advanced tab, select Environment
-Variables.  Then create a new System Variable and set ROSE_SCHEMAS to C:\\Program Files (x86)\\IFCsvrR300\\dll
-You might need administrator privileges."
+See Help > User Guide (section 2.4)"
     .tnb select .tnb.status
   }
 
@@ -1119,20 +1090,8 @@ Credits
 See Help > Disclaimers and NIST Disclaimer"
 
     set winver ""
-    if {[catch {
-      set winver [registry get {HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows NT\CurrentVersion} {ProductName}]
-    } emsg]} {
-      set winver "Windows [expr {int($tcl_platform(osVersion))}]"
-    }
-    catch {
-      set build [string range [lindex [split [::twapi::get_os_description] " "] end] 0 end-1]
-      if {[string is integer $build] && $build >=22000} {regsub "10" $winver "11" winver}
-    }
-    if {[string first "Server" $winver] != -1 || $tcl_platform(osVersion) < 6.1} {
-      outputMsg "\n$winver is not supported." red
-    } elseif {$tcl_platform(osVersion) < 10.0} {
-      outputMsg "\nThis software is no longer tested in $winver." red
-    }
+    catch {set winver [registry get {HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows NT\CurrentVersion} {ProductName}]}
+    if {[string first "Server" $winver] != -1 || $tcl_platform(osVersion) < 10.0} {outputMsg "\nThis version of Windows is not supported." red}
 
 # debug
     if {$opt(xlMaxRows) == 100003} {
@@ -1147,7 +1106,6 @@ See Help > Disclaimers and NIST Disclaimer"
       outputMsg " pf32  $pf32"
       if {$pf64 != ""} {outputMsg " pf64  $pf64"}
       outputMsg " S [winfo screenwidth  .]x[winfo screenheight  .], M [winfo reqwidth .]x[expr {int([winfo reqheight .]*1.05)}]"
-      outputMsg " $winver"
       catch {outputMsg " scriptName [file nativename $scriptName]"}
 
       outputMsg "Registry values" red

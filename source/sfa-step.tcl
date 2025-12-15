@@ -117,7 +117,7 @@ proc generateBOM {} {
             if {$opt(valProp)} {
               set msg "See the property_definition worksheet"
             } else {
-              set msg "Generate the Analyzer report for Validation Properties"
+              set msg "Generate the Analyzer report for Properties"
             }
             append msg " for possible properties associated with Parts."
             addCellComment "BOM" 3 2 $msg
@@ -202,7 +202,7 @@ proc bomAssembly {assem} {
 
 # -------------------------------------------------------------------------------
 proc pmiFormatColumns {str} {
-  global cells col formattedEnts gpmiRow pmiStartCol recPracNames row spmiRow stepAP thisEntType vpmiRow worksheet
+  global cells col formattedEnts gpmiRow pmiStartCol recPracNames row spmiRow thisEntType vpmiRow worksheet
 
   if {![info exists pmiStartCol($thisEntType)]} {
     return
@@ -230,6 +230,9 @@ proc pmiFormatColumns {str} {
 
 # PMI heading
     set fthis [formatComplexEnt $thisEntType]
+    if {[[$cells($thisEntType) Item 3 G] Value] == "datum_system" && [string first "(" $fthis] == 0 && \
+         [string first "with_datum_reference" $fthis] == -1} {set fthis "(geometric_tolerance_with_datum_reference)$fthis"}
+
     outputMsg " $fthis"
     if {[lsearch $formattedEnts $fthis] == -1} {lappend formattedEnts $fthis}
     if {$str != "Validation Properties" || $thisEntType == "property_definition"} {
@@ -343,9 +346,7 @@ proc pmiFormatColumns {str} {
     [$worksheet($thisEntType) Rows] AutoFit
 
 # link to RP
-    set str1 "pmi242"
-    if {[string first "AP203" $stepAP] == 0} {set str1 "pmi203"}
-    $cells($thisEntType) Item 2 1 "See CAx-IF Rec. Prac. for $recPracNames($str1)"
+    $cells($thisEntType) Item 2 1 "See CAx-IF Rec. Prac. for $recPracNames(pmi242)"
     if {$thisEntType != "dimensional_characteristic_representation" && $thisEntType != "datum_reference"} {
       set range [$worksheet($thisEntType) Range A2:D2]
     } else {
@@ -433,13 +434,18 @@ proc setEntsToProcess {entType} {
 proc checkForReports {entType} {
   global cells gen gpmiEnts iloldscr opt pmiColumns savedViewCol skipEntities spmiEnts stepAP stepAPreport
 
-# check for validation properties report, call valPropStart
-  if {$entType == "property_definition_representation" || $entType == "shape_definition_representation"} {
+# check for validation or material properties report, call valPropStart
+  if {$entType == "property_definition_representation" || $entType == "shape_definition_representation" || \
+      $entType == "material_property_representation"} {
     if {[catch {
       if {[info exists opt(valProp)]} {
         if {$opt(valProp)} {
           if {[lsearch $skipEntities "representation"] == -1} {
-            if {[info exists cells(property_definition)]} {valPropStart $entType}
+            if {$entType != "material_property_representation"} {
+              if {[info exists cells(property_definition)]} {valPropStart $entType}
+            } else {
+              if {[info exists cells(material_property)]} {valPropStart $entType}
+            }
           }
         }
       }
@@ -561,7 +567,7 @@ proc setEntAttrList {abc} {
 #-------------------------------------------------------------------------------
 # run syntax checker with the command-line version (sfa-cl.exe) and output filtered result
 proc syntaxChecker {fileName {checkInSchema 0}} {
-  global buttons env ifcsvrDir opt roseSchemas wdir writeDir
+  global buttons env ifcsvrDir opt recPracNames roseSchemas wdir writeDir
 
   if {[file size $fileName] > 429000000} {outputMsg " The file is too large to run the Syntax Checker.  The limit is about 430 MB." red; return}
 
@@ -605,6 +611,7 @@ proc syntaxChecker {fileName {checkInSchema 0}} {
       set lineLast ""
       set paren 0
       set ignored 0
+      set realInt 1
       set ap242UnknownEnts {}
       foreach line $sfaout {
 
@@ -612,9 +619,13 @@ proc syntaxChecker {fileName {checkInSchema 0}} {
         if {[string first "error:" $line] != -1 || [string first "warning:" $line] != -1} {
 
 # but not with these messages
-          if {[string first "Converting 'integer' value" $line] == -1 && [string first "<Done>" $line] == -1} {
+          if {[string first "<Done>" $line] == -1} {
             if {$line != $lineLast} {append sfaerr " $line\n"}
             set lineLast $line
+          }
+          if {[string first "Converting 'integer' value" $line] != -1 && $realInt} {
+            append sfaerr "  See Recommended Practice for $recPracNames(pmi242), Sec. 10.1, Note\n"
+            set realInt 0
           }
           if {[string first "warning: No schemas" $line] != -1} {break}
           if {[string first "warning: Couldn't find schema" $line] != -1} {errorMsg "See Help > Supported STEP APs"}
@@ -780,7 +791,7 @@ proc getSchemaFromFile {fname {limit 0}} {
 
 # check for time stamp
       if {![info exists timeStamp]} {
-        foreach year {199 200 201 202 203} {
+        foreach year {199 200 201 202 203 204} {
           set c1 [string first "'$year" $line]
           if {$c1 != -1} {
             set c2 [string first "'" [string range $line $c1+1 end]]
@@ -801,7 +812,7 @@ proc getSchemaFromFile {fname {limit 0}} {
 
 # check for OPTIONS comment
     if {[string first "/* OPTION:" $line] == 0} {
-      if {[string first "raw bytes" $line] != -1 || ($developer && [string first "custom schema-name" $line] == -1)} {
+      if {[string first "raw bytes" $line] != -1 || ($developer && [string first "custom" $line] == -1)} {
         set emsg "HEADER section comment: [string range $line 11 end-3]"
         if {[string first "raw bytes" $emsg] != -1} {
           append emsg " (See Help > Text Strings and Numbers)\nThis might affect Parts displayed in the Viewer."
@@ -865,7 +876,7 @@ proc getSchemaFromFile {fname {limit 0}} {
 # convert \X2\ in strings, see sfa-data.tcl for unicodeAttributes, unicodeAttr is set in sfa-gen.tcl
 # \X\ does not have to be handled separately for a spreadsheet, complex entities need to be handled explicitly
 proc unicodeStrings {unicodeEnts} {
-  global developer driUnicode localName stepAP unicodeActual unicodeAttr unicodeNumEnts unicodeString unicodeStringCM
+  global developer driUnicode localName stepAP tolsAfterG tolsBeforeG unicodeActual unicodeAttr unicodeNumEnts unicodeString unicodeStringCM
 
   if {[catch {
     set nent 0
@@ -873,151 +884,189 @@ proc unicodeStrings {unicodeEnts} {
     set unicodeActual {}
     set sf [open $localName r]
     set ap [string range $stepAP 0 4]
+    foreach tol $tolsAfterG  {lappend afterG  [string toupper $tol]}
+    foreach tol $tolsBeforeG {lappend beforeG [string toupper $tol]}
     outputMsg "\nChecking for Unicode (non-English) characters (see More tab)" blue
 
     while {[gets $sf line] >= 0 && $okread} {
       while {[string first ";" $line] == -1} {gets $sf nextLine; append line $nextLine}
       if {[string first "END-ISO-10303-21" $line] != -1} {set okread 0}
 
-      set ok 0
-      set c1 [string first "=" $line]
-      set c2 [string first "(" $line]
-      set str [string trim [string range $line $c1+1 $c2-1]]
-      foreach ent $unicodeEnts {
-        if {$str == $ent} {
-          set ok 1
+# process if \x2\ is found
+      if {[string first "\\X2\\" $line] != -1} {
+        set ok 0
+        set c1 [string first "=" $line]
+        set c2 [string first "(" $line]
+        set str [string trim [string range $line $c1+1 $c2-1]]
+        foreach ent $unicodeEnts {
+          if {$str == $ent} {
+            set ok 1
 
 # special cases for AP242 complex entities
-        } elseif {$ap == "AP242"} {
-          if {[string first "COMPOSITE_SHAPE_ASPECT()DATUM_FEATURE" $line] != -1} {
-            set ent "COMPOSITE_SHAPE_ASPECT_AND_DATUM_FEATURE"
-            set ok 1
-          } elseif {[string first "TESSELLATED_SHAPE_REPRESENTATION" $line] != -1} {
-            if {[string first "DRAUGHTING_MODEL" $line] != -1} {
-              if {[string first "CHARACTERIZED_REPRESENTATION" $line] != -1} {
-                set ent "CHARACTERIZED_REPRESENTATION_AND_DRAUGHTING_MODEL_AND_TESSELLATED_SHAPE_REPRESENTATION"
-              } else {
-                set ent "DRAUGHTING_MODEL_AND_TESSELLATED_SHAPE_REPRESENTATION"
-              }
-            }
-            set ok 1
-          } elseif {[string first "DIMENSIONAL_SIZE_WITH_DATUM_FEATURE" $line] != -1} {
-            if {[string first "ANGULAR_SIZE" $line] != -1} {
-              set ent "ANGULAR_SIZE_AND_DIMENSIONAL_SIZE_WITH_DATUM_FEATURE"
+          } elseif {$ap == "AP242"} {
+            if {[string first "COMPOSITE_SHAPE_ASPECT()DATUM_FEATURE" $line] != -1} {
+              set ent "COMPOSITE_SHAPE_ASPECT_AND_DATUM_FEATURE"
               set ok 1
-            }
-          }
-        }
-        if {$ok} {
-          set ent1 [string tolower $ent]
-          break
-        }
-      }
-
-# process Unicode
-      if {$ok && [info exists unicodeAttr($ent1)]} {
-        set lattr [llength $unicodeAttr($ent1)]
-
-# check for Unicode X2
-        set oku 0
-        set cx2 [string first "\\X2\\" $line]
-        if {$cx2 != -1} {
-          set oku 1
-          incr nent
-        } elseif {[string first "equivalent" $line] != -1} {
-          if {[string first "\\w" $line] != -1 || [string first "\\n" $line] != -1 || [string first "\\u" $line] != -1 || [string first "\\x" $line] != -1} {set oku 1}
-        }
-        if {$oku} {
-          if {$cx2 != -1} {errorMsg " Processing Unicode characters (See Help > Text Strings and Numbers)" black}
-
-          set id [string trim [string range $line 1 [string first "=" $line]-1]]
-          set idx "$ent1,[lindex $unicodeAttr($ent1) 0],$id"
-
-# get strings that have Unicode and convert
-          switch -- $ent1 {
-            item_names {
-# entity attributes from iso13...
-              if {[string first "LABEL" $line] != -1} {
-                set str [string range $line [string first "'" $line]+1 [string first ")" $line]-2]
-              } else {
-                set str [string range $line [string first "'" $line]+1 [string first "," $line]-2]
-              }
-              set unicodeString($idx) [getUnicode $str "attr"]
-              if {[lsearch $unicodeActual $ent1] == -1} {lappend unicodeActual $ent1}
-            }
-            string_with_language {
-              set str [string range $line [string first "'" $line]+1 [string last "'" $line]-1]
-              set unicodeString($idx) [getUnicode $str "attr"]
-              if {[lsearch $unicodeActual $ent1] == -1} {lappend unicodeActual $ent1}
-            }
-            translated_label -
-            translated_text {
-              set str1 [string range $line [string first "('" $line]+2 [string first "')" $line]-1]
-              set str1 [getUnicode $str1 "attr"]
-              set str {}
-              set len [string length $str1]
-              for {set i 0} {$i < $len} {incr i} {
-                if {[string index $str1 $i] == "'" && [string index $str1 $i+1] == ","} {
-                  lappend str [string range $str1 0 $i-1]
-                  lappend str [string range $str1 $i+3 end]
-                  break
+            } elseif {[string first "TESSELLATED_SHAPE_REPRESENTATION" $line] != -1} {
+              if {[string first "DRAUGHTING_MODEL" $line] != -1} {
+                if {[string first "CHARACTERIZED_REPRESENTATION" $line] != -1} {
+                  set ent "CHARACTERIZED_REPRESENTATION_AND_DRAUGHTING_MODEL_AND_TESSELLATED_SHAPE_REPRESENTATION"
+                } else {
+                  set ent "DRAUGHTING_MODEL_AND_TESSELLATED_SHAPE_REPRESENTATION"
                 }
               }
-              regsub -all "''" $str "'" str
-              set unicodeString($idx) $str
-              if {[lsearch $unicodeActual $ent1] == -1} {lappend unicodeActual $ent1}
-            }
-
-            default {
-# entity attributes from ap2..
-              catch {unset attr}
-              set na 0
-              set line1 [getUnicode $line "attr"]
-              set i1 [expr {[string first "(" $line1]+1}]
-              set i2 [string last  ")" $line1]
-              for {set i $i1} {$i < $i2} {incr i} {
-                append attr($na) [string index $line1 $i]
-                if {([string index $line1 $i] == "'" && [string index $line1 $i+1] == ",") || \
-                    ($i == $i1 && [string index $line1 $i] == "$")} {
-                  incr i
-                  incr na
-                  if {$na > $lattr} {break}
+              set ok 1
+            } elseif {[string first "DIMENSIONAL_SIZE_WITH_DATUM_FEATURE" $line] != -1} {
+              if {[string first "ANGULAR_SIZE" $line] != -1} {
+                set ent "ANGULAR_SIZE_AND_DIMENSIONAL_SIZE_WITH_DATUM_FEATURE"
+                set ok 1
+              }
+            } elseif {[string first "GEOMETRIC_TOLERANCE_WITH_" $line] != -1} {
+              set ent ""
+              foreach tol $afterG {
+                if {[string first $tol $line] != -1} {
+                  foreach mod [list GEOMETRIC_TOLERANCE_WITH_DEFINED_AREA_UNIT GEOMETRIC_TOLERANCE_WITH_DEFINED_UNIT \
+                                    GEOMETRIC_TOLERANCE_WITH_DATUM_REFERENCE GEOMETRIC_TOLERANCE_WITH_MODIFIERS] {
+                    if {[string first $mod $line] != -1} {append ent "$mod\_AND_"}
+                  }
+                  append ent $tol
                 }
               }
-              foreach ia [array names attr] {
-                set str [string trim $attr($ia)]
-                if {[lindex $unicodeAttr($ent1) $ia] == "reference_designator"} {set str [string range $str [string first "'" $str] [string last "'" $str]]}
-                set c0 [string index $str 0]
-                if {$c0 != "$" && $c0 != "#"} {
-                  set c1 [string first "'" $str]
-                  set c2 [string last  "'" $str]
-                  if {$c1 != -1 && $c2 != -2} {set str [string range $str $c1+1 $c2-1]}
-                  set attrName [lindex $unicodeAttr($ent1) $ia]
-                  if {$attrName != ""} {
-                    set idx "$ent1,[lindex $unicodeAttr($ent1) $ia],$id"
-                    if {[string index $str 0] == "="} {set str " $str"}
-                    set unicodeString($idx) $str
+              foreach tol $beforeG {
+                if {[string first $tol $line] != -1} {
+                  append ent $tol
+                  foreach mod [list GEOMETRIC_TOLERANCE_WITH_DEFINED_AREA_UNIT GEOMETRIC_TOLERANCE_WITH_DEFINED_UNIT \
+                                    GEOMETRIC_TOLERANCE_WITH_DATUM_REFERENCE GEOMETRIC_TOLERANCE_WITH_MODIFIERS] {
+                    if {[string first $mod $line] != -1} {append ent "_AND_$mod"}
                   }
                 }
               }
-              if {[lsearch $unicodeActual $ent1] == -1} {lappend unicodeActual $ent1}
+              if {[string first "UNEQUALLY" $line] != -1} {append ent "_AND_UNEQUALLY_DISPOSED_GEOMETRIC_TOLERANCE"}
 
-# camera model special case
-              if {[string first "CAMERA_MODEL" $line] != -1} {
-                set line2 [getUnicode $line]
-                set c1 [string first "'" $line2]
-                set c2 [string last  "'" $line2]
-                set str [string range $line2 $c1+1 $c2-1]
-                set idx "$ent1,$id"
-                set unicodeStringCM($idx) $str
-                if {$developer} {errorMsg " Unicode in camera model name" red}
+# special cases to file missing parts of the complex entity
+              if {[string first "DATUM_REFERENCE" $ent] != -1 && [string first "WITH_MODIFIERS" $ent] != -1} {
+                foreach tol [list PARALLELISM PERPENDICULARITY STRAIGHTNESS] {
+                  if {[string first $tol $ent] != -1 && ![info exists unicodeAttr([string tolower $ent])]} {
+                    set ent "GEOMETRIC_TOLERANCE_WITH_MODIFIERS_AND_$tol\_TOLERANCE"
+                  }
+                }
+              } elseif {[string first "DEFINED_AREA_UNIT" $ent] != -1 && [string first "DEFINED_UNIT" $ent] != -1 && [string first "FLATNESS" $ent] != -1} {
+                set ent "FLATNESS_TOLERANCE_AND_GEOMETRIC_TOLERANCE_WITH_DEFINED_AREA_UNIT"
               }
+              set ok 1
             }
+          }
+          if {$ok} {
+            set ent1 [string tolower $ent]
+            break
           }
         }
 
+# process Unicode
+        if {$ok && [info exists unicodeAttr($ent1)]} {
+          set lattr [llength $unicodeAttr($ent1)]
+
+# check for Unicode X2
+          set oku 0
+          set cx2 [string first "\\X2\\" $line]
+          if {$cx2 != -1} {
+            set oku 1
+            incr nent
+          } elseif {[string first "equivalent" $line] != -1} {
+            if {[string first "\\w" $line] != -1 || [string first "\\n" $line] != -1 || [string first "\\u" $line] != -1 || [string first "\\x" $line] != -1} {set oku 1}
+          }
+          if {$oku} {
+            if {$cx2 != -1} {errorMsg " Processing Unicode characters (See Help > Text Strings and Numbers)" black}
+
+            set id [string trim [string range $line 1 [string first "=" $line]-1]]
+            set idx "$ent1,[lindex $unicodeAttr($ent1) 0],$id"
+
+# get strings that have Unicode and convert
+            switch -- $ent1 {
+              item_names {
+# entity attributes from iso13...
+                if {[string first "LABEL" $line] != -1} {
+                  set str [string range $line [string first "'" $line]+1 [string first ")" $line]-2]
+                } else {
+                  set str [string range $line [string first "'" $line]+1 [string first "," $line]-2]
+                }
+                set unicodeString($idx) [getUnicode $str "attr"]
+                if {[lsearch $unicodeActual $ent1] == -1} {lappend unicodeActual $ent1}
+              }
+              string_with_language {
+                set str [string range $line [string first "'" $line]+1 [string last "'" $line]-1]
+                set unicodeString($idx) [getUnicode $str "attr"]
+                if {[lsearch $unicodeActual $ent1] == -1} {lappend unicodeActual $ent1}
+              }
+              translated_label -
+              translated_text {
+                set str1 [string range $line [string first "('" $line]+2 [string first "')" $line]-1]
+                set str1 [getUnicode $str1 "attr"]
+                set str {}
+                set len [string length $str1]
+                for {set i 0} {$i < $len} {incr i} {
+                  if {[string index $str1 $i] == "'" && [string index $str1 $i+1] == ","} {
+                    lappend str [string range $str1 0 $i-1]
+                    lappend str [string range $str1 $i+3 end]
+                    break
+                  }
+                }
+                regsub -all "''" $str "'" str
+                set unicodeString($idx) $str
+                if {[lsearch $unicodeActual $ent1] == -1} {lappend unicodeActual $ent1}
+              }
+
+              default {
+# entity attributes from ap2..
+                catch {unset attr}
+                set na 0
+                set line1 [getUnicode $line "attr"]
+                set i1 [expr {[string first "(" $line1]+1}]
+                set i2 [string last  ")" $line1]
+                for {set i $i1} {$i < $i2} {incr i} {
+                  append attr($na) [string index $line1 $i]
+                  if {([string index $line1 $i] == "'" && [string index $line1 $i+1] == ",") || \
+                      ($i == $i1 && [string index $line1 $i] == "$")} {
+                    incr i
+                    incr na
+                    if {$na > $lattr} {break}
+                  }
+                }
+                foreach ia [array names attr] {
+                  set str [string trim $attr($ia)]
+                  if {[lindex $unicodeAttr($ent1) $ia] == "reference_designator"} {set str [string range $str [string first "'" $str] [string last "'" $str]]}
+                  set c0 [string index $str 0]
+                  if {$c0 != "$" && $c0 != "#"} {
+                    set c1 [string first "'" $str]
+                    set c2 [string last  "'" $str]
+                    if {$c1 != -1 && $c2 != -2} {set str [string range $str $c1+1 $c2-1]}
+                    set attrName [lindex $unicodeAttr($ent1) $ia]
+                    if {$attrName != ""} {
+                      set idx "$ent1,[lindex $unicodeAttr($ent1) $ia],$id"
+                      if {[string index $str 0] == "="} {set str " $str"}
+                      set unicodeString($idx) $str
+                    }
+                  }
+                }
+                if {[lsearch $unicodeActual $ent1] == -1} {lappend unicodeActual $ent1}
+
+# camera model special case
+                if {[string first "CAMERA_MODEL" $line] != -1} {
+                  set line2 [getUnicode $line]
+                  set c1 [string first "'" $line2]
+                  set c2 [string last  "'" $line2]
+                  set str [string range $line2 $c1+1 $c2-1]
+                  set idx "$ent1,$id"
+                  set unicodeStringCM($idx) $str
+                  if {$developer} {errorMsg " Unicode in camera model name" red}
+                }
+              }
+            }
+          }
+
 # stop reading
-        if {$nent == $unicodeNumEnts} {set okread 0}
+          if {$nent == $unicodeNumEnts} {set okread 0}
+        }
       }
     }
 
@@ -1081,13 +1130,6 @@ proc getUnicode {ent {type "view"}} {
                 }
               }
 
-# check for double backslash instead of single backslash
-              set cx2 [string first "\\\\X2\\\\" $ent]
-              if {$cx2 != -1} {
-                errorMsg " Double backslash '\\\\X2\\\\' is not valid for delimiting Unicode characters with \\X2\\ and \\X0\\."
-                set uc [string range $ent [expr {$cx+$i+1}] [expr {$cx+$i+4}]]
-              }
-
 # check for Unicode using five characters
               set xcheck [string range $ent [expr {$cx+$i+5}] [expr {$cx+$i+8}]]
               if {$xcheck == "\\X0\\"} {
@@ -1115,6 +1157,9 @@ proc getUnicode {ent {type "view"}} {
               } else {
                 set cx0 [string first "\\X0\\" $ent]
                 if {$cx0 != -1} {
+
+# check for double backslash instead of single backslash (which is a bug)
+                  set cx2 [string first "\\\\X2\\\\" $ent]
                   if {$cx2 == -1} {
                     set ent "[string range $ent 0 $cx-1]$xu[string range $ent $cx0+4 end]"
                   } else {
