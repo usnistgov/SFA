@@ -219,23 +219,32 @@ proc x3dFileEnd {} {
 # -------------------------------------------------------------------------------
 # camera clipping planes for section views (9.4.3)
   set viz(CLIPPING) 0
-  if {[info exists entCount(camera_model_d3_multi_clipping)]} {
-    if {$entCount(camera_model_d3_multi_clipping) < 17} {
-      outputMsg " Processing clipping planes (section views)" green
-      set clippingDef {}
-      set nclipPlane 0
-      puts $x3dFile "\n<!-- CLIPPING PLANES -->"
-      ::tcom::foreach cm [$objDesign FindObjects [string trim camera_model_d3_multi_clipping]] {
-        if {[catch {
-          set cplanes {}
-          set cpname $cmNameID([$cm P21ID])
-          set e0 [[[$cm Attributes] Item [expr 4]] Value]
-          if {$opt(PMISEM)} {lappend spmiTypesPerFile "section views"}
+  set cms {}
+  set totalPlanes 0
+  foreach mclip [list camera_model_d3_multi_clipping camera_model_d3_multi_clipping_based_on_plane] {
+    if {[info exists entCount($mclip)] && $entCount($mclip) > 0} {
+      ::tcom::foreach item [$objDesign FindObjects [string trim $mclip]] {lappend cms $item}
+    }
+  }
 
-# follow union and intersection for more planes
-          if {[llength $e0] == 1} {
-            if {[$e0 Type] == "camera_model_d3_multi_clipping_union"} {
-              errorMsg " The intersection and union of clipping planes is not supported" red
+  if {[llength $cms] > 0} {
+    outputMsg " Processing clipping planes (section views)" green
+    set clippingDef {}
+    set nclipPlane 0
+    puts $x3dFile "\n<!-- CLIPPING PLANES -->"
+    foreach cm $cms {
+      if {[catch {
+        set cplanes {}
+        set cpname $cmNameID([$cm P21ID])
+        set e0s [[[$cm Attributes] Item [expr 4]] Value]
+        if {$opt(PMISEM)} {lappend spmiTypesPerFile "section views"}
+        if {[catch {
+
+# defined by camera_model_d3_multi_clipping
+          foreach e0 $e0s {
+            if {[$e0 Type] == "plane"} {
+              lappend cplanes $e0
+            } elseif {[$e0 Type] == "camera_model_d3_multi_clipping_union"} {
               foreach e1 [[[$e0 Attributes] Item [expr 2]] Value] {
                 if {[$e1 Type] == "plane"} {
                   lappend cplanes $e1
@@ -243,29 +252,43 @@ proc x3dFileEnd {} {
                   foreach e2 [[[$e1 Attributes] Item [expr 2]] Value] {lappend cplanes $e2}
                 }
               }
-
-# single plane (most common)
             } else {
-              lappend cplanes $e0
+              errorMsg " '[$e0 Type]' is not a valid clipping plane" red
             }
-
-# multiple planes (less common)
-          } else {
-            errorMsg " Multiple clipping planes per section view" red
-            foreach e1 $e0 {lappend cplanes $e1}
           }
+        }]} {
+
+# defined by camera_model_d3_multi_clipping_based_on_plane
+          ::tcom::foreach e0 $e0s {
+            if {[$e0 Type] == "plane"} {
+              lappend cplanes $e0
+            } else {
+              errorMsg " '[$e0 Type]' is not a valid clipping plane" red
+            }
+          }
+        }
 
 # write clipping planes
-          if {![info exists clippingCap]} {set clippingCap 0}
-          if {[llength $cplanes] > 0} {foreach cplane $cplanes {x3dClipPlane $cplane $cpname}}
-        } emsg]} {
-          errorMsg "Error adding Clipping Plane: $emsg"
+        if {![info exists clippingCap]} {set clippingCap 0}
+        set ncp 0
+        if {[llength $cplanes] > 0} {
+          foreach cplane $cplanes {
+            incr totalPlanes
+            set cpn $cpname
+            if {[llength $cplanes] > 1} {
+              set cpn "$cpname \[[incr ncp]\]"
+              errorMsg " Multiple clipping planes per section view.  Clipping planes are not combined in the Viewer." red
+            }
+            x3dClipPlane $cplane $cpn
+          }
         }
+      } emsg]} {
+        errorMsg "Error adding Clipping Plane: $emsg"
       }
-    } else {
-      outputMsg " Too many 'camera_model_d3_multi_clipping' to process ($entCount(camera_model_d3_multi_clipping))" red
     }
+    catch {unset cplanes}
   }
+  if {$totalPlanes > 30} {errorMsg " ($totalPlanes) clipping planes" red}
 
 # -------------------------------------------------------------------------------
 # datum targets

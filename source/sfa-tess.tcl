@@ -23,7 +23,7 @@ proc tessPart {entType} {
     $tessellated_edge $tessellated_connecting_edge $triangulated_face $complex_triangulated_face $complex_triangulated_surface_set $triangulated_surface_set]
   set PMIP(tessellated_wire)  [list tessellated_wire name items $tessellated_edge $tessellated_connecting_edge]
 
-  set tessellated_face_surface [list tessellated_face_surface name bounds tessellated_face_geometry $triangulated_face $complex_triangulated_face]
+  set tessellated_face_surface [list tessellated_face_surface name tessellated_face_geometry $triangulated_face $complex_triangulated_face]
   set PMIP(tessellated_closed_shell) [list tessellated_closed_shell name cfs_faces $tessellated_face_surface]
   set PMIP(tessellated_open_shell)   [list tessellated_open_shell   name cfs_faces $tessellated_face_surface]
 
@@ -95,9 +95,6 @@ proc tessPartGeometry {objEntity} {
                 set line_strip {}
                 foreach item $objValue {lappend line_strip [expr {$item-1}]}
                 lappend tessEdges($tessEdgeCoord) "[join $line_strip] -1"
-              }
-              "tessellated_face_surface bounds" {
-                errorMsg " Face bounds for tessellated surfaces are not supported" red
               }
             }
 
@@ -189,7 +186,9 @@ proc tessReadGeometry {{coordOnly 0}} {
     foreach ent {tessellated_curve_set complex_triangulated_surface_set triangulated_surface_set complex_triangulated_face triangulated_face} {
       if {[info exists entCount($ent)]} {set ntc1 [expr {$ntc1+$entCount($ent)}]}
     }
-    set ents [list COORDINATES_LIST TESSELLATED_CURVE_SET TRIANGULATED_FACE COMPLEX_TRIANGULATED_FACE TRIANGULATED_SURFACE_SET COMPLEX_TRIANGULATED_SURFACE_SET]
+    foreach ent [list COORDINATES_LIST TESSELLATED_CURVE_SET TRIANGULATED_FACE COMPLEX_TRIANGULATED_FACE TRIANGULATED_SURFACE_SET COMPLEX_TRIANGULATED_SURFACE_SET] {
+      if {[info exists entCount([string tolower $ent])]} {lappend ents $ent}
+    }
     outputMsg " Reading tessellated geometry" green
 
 # which coordinates_list are associated with tessellated geometry entities for checking xyz min/max

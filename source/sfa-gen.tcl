@@ -351,8 +351,9 @@ proc genExcel {{numFile 0}} {
           if {[string range $stepAP 0 4] == "AP203" || [string range $stepAP 0 4] == "AP214"} {
             foreach item [list Datums Dimensions "Geometric tolerances" "Graphic PMI"] {
               if {[string first $item $fileItems] != -1} {
-                errorMsg " Semantic and Graphic PMI is best supported in AP242" red
-                if {$opt(PMISEM) || $opt(PMIGRF)} {errorMsg  "  Checking PMI is based on AP242 Recommended Practices" red}
+                set msg " Graphic and Semantic PMI is best supported in AP242"
+                if {$gen(Excel) && ($opt(PMISEM) || $opt(PMIGRF))} {append msg  ".  Analyzer reports are based on AP242 Recommended Practices."}
+                errorMsg $msg red
               }
             }
           }
@@ -858,7 +859,6 @@ proc genExcel {{numFile 0}} {
 # setting for SFA original
   set tessSolid 0
   set opt(viewTessPart) 1
-  set opt(tessPartMesh) 1
   set viz(TESSMESH) 1
   if {$tessEnts} {set viz(TESSPART) 1}
 
@@ -1321,6 +1321,9 @@ proc genExcel {{numFile 0}} {
         unset equivUnicodeStringErr
       }
     }
+
+# check for entities in the STEP file that are not in the schema
+    if {$opt(checkEntities)} {syntaxChecker $localName 1}
 
 # generate tessellated geometry for viewer if using old SFA method
     if {$gen(View) && ($opt(tessPartOld) || $opt(viewTessPart))} {
@@ -1821,7 +1824,6 @@ proc addHeaderWorksheet {numFile fname} {
 
 # check edition of AP242 (schema identifier)
         set c1 [string first "1 0 10303 442" $sn]
-        set checkEntities 0
         set simsg ""
         if {$c1 != -1} {
           set id [lindex [split [string range $sn $c1+14 end] " "] 0]
@@ -1846,7 +1848,6 @@ proc addHeaderWorksheet {numFile fname} {
             append str " (Edition 4, 2025)"
           } elseif {$id > 7} {
             set simsg " Unsupported AP242 Schema Identifier '\{... $id 1 4\}'  See Websites > STEP > EXPRESS Schemas"
-            if {$id < 100} {set checkEntities 1}
           }
           if {$developer} {foreach i {4 5} {if {[llength $ap242ed($i)] > 0} {regsub -all " " [join $ap242ed($i)] ", " str1; outputMsg " AP242e$i: $str1" red}}}
         } elseif {[string first "AP242" $sn] == 0} {
@@ -1866,9 +1867,6 @@ proc addHeaderWorksheet {numFile fname} {
 # schema name
         outputMsg $str blue
         if {$simsg != ""} {errorMsg $simsg red}
-
-# check for entities in newer unsupported versions of AP242
-        if {$checkEntities} {syntaxChecker $localName 1}
 
 # check for multiple schemas
         if {[string first "," $sn] != -1} {

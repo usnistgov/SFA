@@ -215,6 +215,12 @@ set auto_index(spmiCheckEnt) [list source [file join $dir sfa-step.tcl]]
 set auto_index(syntaxChecker) [list source [file join $dir sfa-step.tcl]]
 set auto_index(unicodeStrings) [list source [file join $dir sfa-step.tcl]]
 
+set auto_index(parseStepEntities) [list source [file join $dir sfa-step.tcl]]
+set auto_index(parseStepParams) [list source [file join $dir sfa-step.tcl]]
+set auto_index(reportUnknownEntities) [list source [file join $dir sfa-step.tcl]]
+set auto_index(stepParseTokens) [list source [file join $dir sfa-step.tcl]]
+set auto_index(stepTokenize) [list source [file join $dir sfa-step.tcl]]
+
 set auto_index(x3dSuppGeom) [list source [file join $dir sfa-supp.tcl]]
 set auto_index(x3dSuppGeomAxis) [list source [file join $dir sfa-supp.tcl]]
 set auto_index(x3dSuppGeomCircle) [list source [file join $dir sfa-supp.tcl]]
