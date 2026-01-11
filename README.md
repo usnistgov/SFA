@@ -11,14 +11,14 @@ The [NIST STEP to X3D Translator](https://www.nist.gov/services-resources/softwa
 
 **Download** the Windows version of SFA in the Release directory above.
 
-- Click on the zip file (SFA-5.nn.zip) and then the download icon to the right.
-- See the README file for information about what is in the zip file.
+- Click on the zip file (SFA-5.nn.zip) in the Release directory and then the download icon to the right.
+- See the README file for more information.
 
 **Build** your own version of SFA from the source code with the instructions below.
 
-- SFA depends on two software packages (IFCsvr, stp2x3d) that only run on Windows.  See Running the Software below.
+- SFA depends on two software packages (IFCsvr, stp2x3d) that only run on Windows.  Those packages are included with the Download version.  See Running the Software below.
 - Some features are not available in the user-built version including tooltips, unzipping compressed STEP files, and those related to the NIST CAD models.
-- The NIST version of SFA is built with proprietary software not available to the public.
+- The Download version of SFA is built with proprietary software not available to the public.
 
 ## Build Prerequisites
 
