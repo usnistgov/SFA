@@ -1,11 +1,8 @@
 # STEP File Analyzer and Viewer
 
 The [STEP File Analyzer and Viewer](https://www.nist.gov/services-resources/software/step-file-analyzer-and-viewer) (SFA) 
-generates a spreadsheet and visualization from an ISO 10303 Part 21 STEP file.  More information, sample spreadsheets and visualizations, and documentation about SFA is available on the website 
-including the [STEP File Analyzer and Viewer User Guide](https://www.nist.gov/publications/step-file-analyzer-and-viewer-user-guide-update-7) and
-Release Notes in the Release directory above.
-
-The [STEP to X3D Translator](https://www.nist.gov/services-resources/software/step-x3d-translator) is used by the SFA Viewer to convert STEP b-rep part geometry to X3D and has its own source code and executable.
+generates a spreadsheet and visualization from an ISO 10303 Part 21 STEP file.  The [STEP to X3D Translator](https://www.nist.gov/services-resources/software/step-x3d-translator) is
+used by the SFA Viewer to convert STEP b-rep part geometry to X3D and has its own source code and executable.
 
 ## Download or Build
 
