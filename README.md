@@ -9,10 +9,7 @@ The [NIST STEP to X3D Translator](https://www.nist.gov/services-resources/softwa
 
 ## Download or Build
 
-**Download** the Windows version of SFA in the Release directory above.
-
-- Click on the zip file (SFA-5.nn.zip) in the Release directory and then the download icon to the right.
-- See the README file for more information.
+**Download** the Windows version of SFA in the Release directory above.  Click on the zip file (SFA-5.nn.zip) in the Release directory and then the download icon to the right.
 
 **Build** your own version of SFA from the source code with the instructions below.
 
