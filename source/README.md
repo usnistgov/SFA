@@ -2,8 +2,6 @@
 
 ## Tcl files
 
-See the Release Notes in the Release directory.
-
 Each Tcl file contains multiple procedures.
 
 - sfa.tcl - main program
@@ -31,6 +29,7 @@ Each Tcl file contains multiple procedures.
 - sfa-step.tcl - STEP utility procedures
 - sfa-supp.tcl - generate supplemental geometry graphics
 - sfa-tess.tcl - process tessellated geometry
+- sfa-unknown.tcl - process unknown entity types
 - sfa-uuid.tcl - process UUIDs
 - sfa-valprop.tcl - process validation properties
 
@@ -42,4 +41,4 @@ Each Tcl file contains multiple procedures.
 
 ## Disclaimers
 
-[NIST Disclaimer](https://www.nist.gov/disclaimer)
+[NIST Disclaimer](https://www.nist.gov/pao/nist-disclaimer-statement)
