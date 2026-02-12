@@ -450,8 +450,7 @@ See Examples > NIST CAD Models"
 # properties, PMI, conformance checking help
   $helpAnalyze add command -label "Properties" -command {
 outputMsg "\nProperties ----------------------------------------------------------------------------------------" blue
-outputMsg "
-Properties are reported on property_definition and material_property entities.  A subset of
+outputMsg "Properties are reported on property_definition and material_property entities.  A subset of
 properties are geometric, assembly, PMI, annotation, attribute, tessellated, composite, and FEA
 validation properties that are highlighted in yellow and green on the property_definition worksheet.
 The worksheets can also be sorted and filtered.  All properties might not be shown depending on the
@@ -759,9 +758,8 @@ software and others from processing a STEP file.  Characters that are identified
 unexpected might not be shown in a spreadsheet or in the Viewer.  See Help > Text Strings and Numbers
 
 Entities in the STEP file that are not in the STEP AP schema are reported as ignored entities. They
-can be written to the spreadsheet with the option on the More tab to Process unsupported entity
-types.  Attributes on other entities that refer to ignored entities will be blank.  Analyzer
-reports and the Viewer might be affected.
+can be written to the spreadsheet with the option on the More tab to Process unknown entity types.
+Attributes on known entities that refer to ignored entities will be blank.
 
 If errors and warnings are reported, the number in parentheses is the line number in the STEP file
 where the error or warning was detected.  There should not be any of these types of syntax errors
@@ -1068,7 +1066,7 @@ source of the software."
   .tnb select .tnb.status
   }
 
-  $Help add command -label "NIST Disclaimer" -command {openURL https://www.nist.gov/disclaimer}
+  $Help add command -label "NIST Disclaimer" -command {openURL https://www.nist.gov/pao/nist-disclaimer-statement}
   $Help add command -label "About" -command {
     outputMsg "\nSTEP File Analyzer and Viewer ---------------------------------------------------------------------" blue
     set sysvar "Version: [getVersion] ([string trim [clock format $progtime -format "%e %b %Y"]])"

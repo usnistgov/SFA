@@ -21,6 +21,7 @@ sfa-proc.tcl
 sfa-step.tcl
 sfa-supp.tcl
 sfa-tess.tcl
+sfa-unknown.tcl
 sfa-uuid.tcl
 sfa-valprop.tcl
 tclIndex

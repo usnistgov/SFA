@@ -68,10 +68,11 @@ proc setColorIndex {ent {multi 0}} {
   }
 
 # entity not in any category, color by AP
-  foreach ap {AP209 AP210 AP224 AP235 AP238 AP239 ISO13584 CUTTING_TOOL} {if {[string first $ap $stepAP] != -1} {return 19}}
+  foreach ap {AP209 AP210 AP238 AP239 ISO13584 CUTTING_TOOL CIS/2} {if {[string first $ap $stepAP] != -1} {return 19}}
+  if {[string first "IFC" $stepAP] != -1} {return -2}
 
-# entity from other APs (no color)
-  return -2
+# other entities
+  return 15
 }
 
 #-------------------------------------------------------------------------------

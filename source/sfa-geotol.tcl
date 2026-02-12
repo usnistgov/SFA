@@ -273,6 +273,11 @@ proc spmiGeotolReport {objEntity} {
                     if {$objValue != ""} {
                       set tsaType [$objValue Type]
                       set tsaID   [$objValue P21ID]
+                      if {[string first "profile_tolerance" $gt] == -1 && $tsaType == "product_definition_shape"} {
+                        set msg "Syntax Error: 'toleranced_shape_aspect' should be a shape_aspect on [formatComplexEnt $objType]$spaces\($recPracNames(pmi242), Sec. 6.3)"
+                        errorMsg $msg
+                        lappend syntaxErr([lindex $ent1 0]) [list [$gtEntity P21ID] "toleranced_shape_aspect" $msg]
+                      }
                     } else {
                       set oktsa 0
                       set msg "Syntax Error: Missing 'toleranced_shape_aspect' attribute on [formatComplexEnt $objType]$spaces\($recPracNames(pmi242), Sec. 6.9)"

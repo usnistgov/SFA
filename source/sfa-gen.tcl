@@ -1,8 +1,8 @@
 # generate an Excel spreadsheet and/or view from a STEP file
 proc genExcel {{numFile 0}} {
   global allEntity aoEntTypes ap203all ap214all ap242all ap242only ap242ed badAttributes brepGeomEntTypes buttons cadSystem cameraModels cells cells1
-  global col col1 commaSeparator count csvdirnam csvfile csvinhome currLogFile developer dim draughtingModels driUnicode entCategories entCategory
-  global entColorIndex entCount entityCount entsIgnored entsWithErrors env epmi epmiUD errmsg equivUnicodeStringErr excel fcsv
+  global col col1 commaSeparator count csvdirnam csvfile csvinhome currLogFile dim draughtingModels driUnicode entCategories entCategory
+  global entColorIndex entCount entityCount entsIgnored entsToProcessColor entsWithErrors env epmi epmiUD errmsg equivUnicodeStringErr excel fcsv
   global feaFirstEntity feaLastEntity File fileEntity fileItems filesProcessed fileSumRow gen gpmiTypesInvalid gpmiTypesPerFile guiSFA idRow idxColor
   global ifcsvrDir ifcsvrVer iloldscr inverses lastXLS lenfilelist localName localNameList logFile matrixList multiFile multiFileDir mydocs mytemp nistCoverageLegend
   global nistName nistPMIexpected nistPMImaster noFontFile nprogBarEnts opt pf32 p21e3Section pmiCol resetRound roseSchemas row rowmax savedViewButtons
@@ -360,7 +360,8 @@ proc genExcel {{numFile 0}} {
         }
       }
     } else {
-      errorMsg "The number of entities could not be counted or there are no entities in the STEP file.\n See Examples menu for sample STEP files.\n See Help > Syntax Checker"
+      errorMsg "No known entities in the STEP file.  Checking for unknown entities."
+      syntaxChecker $localName
     }
     outputMsg " "
 
@@ -408,7 +409,6 @@ proc genExcel {{numFile 0}} {
       }
       close $skipFile
     }
-    catch {if {$developer && ([string toupper $cadSystem] == "CREO" || $cadSystem == "Pro/E")} {set badAttributes(presentation_style_assignment) {styles}}}
 
 # check if a file generated from a NIST test case (and some other files) is being processed
     set nistName [nistGetName]
@@ -455,9 +455,9 @@ proc genExcel {{numFile 0}} {
           append msg "\n- Syntax errors in the STEP file"
           append msg "\n   Use F8 to run the Syntax Checker to check for errors in the STEP file.  See Help > Syntax Checker"
           append msg "\n   Try opening the file in another STEP viewer.  See Websites > STEP > STEP File Viewers"
-          append msg "\n- File or directory name contains accented, non-English, or symbol characters."
+          append msg "\n- File or directory name might have accented, non-English, or symbol characters."
           append msg "\n   [file nativename $fname]"
-          append msg "\n   Change the file name or directory name"
+          append msg "\n   Rename the file or directory to remove them."
           errorMsg $msg red
         }
       }
@@ -601,8 +601,8 @@ proc genExcel {{numFile 0}} {
       if {[lsearch $secClass $scn] == -1} {lappend secClass $scn}
     }
     if {[llength $secClass] > 0} {
-      outputMsg "Security classification(s):"
-      foreach sc $secClass {outputMsg " $sc" red}
+      outputMsg "Security classification(s):" red
+      foreach sc $secClass {outputMsg " $sc"}
       outputMsg " "
     }
   }
@@ -996,13 +996,18 @@ proc genExcel {{numFile 0}} {
       }
     }
 
-# move dimensional_characteristic_representation to the beginning
-    foreach entdim {$iloldscr dimensional_characteristic_representation} {
+# move dimensional_characteristic_representation to the beginning of tolerance entities
+    set idx 0
+    foreach item $entsToProcess {
+      if {[string first $entColorIndex(stepTOLR) $item] == 0} {set firstTolIndex $idx; break}
+      incr idx
+    }
+    foreach entdim [list $iloldscr dimensional_characteristic_representation] {
       if {[info exists entCount($entdim)]} {
         set dcr "$entColorIndex(stepTOLR)$entdim"
         set c1 [lsearch $entsToProcess $dcr]
         set entsToProcess [lreplace $entsToProcess $c1 $c1]
-        set entsToProcess [linsert $entsToProcess 0 $dcr]
+        set entsToProcess [linsert $entsToProcess $idx $dcr]
       }
     }
   }
@@ -1057,6 +1062,7 @@ proc genExcel {{numFile 0}} {
   }
 
 # then strip off the color index
+  set entsToProcessColor $entsToProcess
   for {set i 0} {$i < [llength $entsToProcess]} {incr i} {
     lset entsToProcess $i [string range [lindex $entsToProcess $i] 2 end]
   }
@@ -1973,9 +1979,11 @@ proc addHeaderWorksheet {numFile fname} {
 # check if recommended practices are missing for recent versions of AP242
     } elseif {$okcheck} {
       set ok 0
-      foreach item [list "Datum targets" Datums Dimensions "Geometric tolerances" "Supplemental geometry"] {
-        if {[string first $item $fileItems] != -1} {
-          errorMsg " FILE_DESCRIPTION is missing references to CAx-IF Recommended Practices (See Websites)" red
+      if {[info exists fileItems]} {
+        foreach item [list "Datum targets" Datums Dimensions "Geometric tolerances" "Supplemental geometry"] {
+          if {[string first $item $fileItems] != -1} {
+            errorMsg " FILE_DESCRIPTION is missing references to CAx-IF Recommended Practices (See Websites)" red
+          }
         }
       }
     }
@@ -2145,7 +2153,9 @@ proc sumAddWorksheet {} {
         } elseif {$entType == "dimensional_characteristic_representation" && $col($entType) > 3 && $opt(PMISEM)} {
           $cells($sum) Item $sumRow 1 "dimensional_characteristic_representation  \[Semantic PMI\]"
         } elseif {$entType == $iloldscr && $col($entType) > 3 && $opt(PMISEM)} {
-          $cells($sum) Item $sumRow 1 "$iloldscr  \[Semantic PMI\]"
+          $cells($sum) Item $sumRow 1 "independent_limits_of_linear_dimensional_size_[format "%c" 10][format "%c" 32][format "%c" 32][format "%c" 32]characteristic_representation  \[Semantic PMI\]"
+          set range [$worksheet($sum) Range $sumRow:$sumRow]
+          $range VerticalAlignment [expr -4108]
         } elseif {[lsearch $spmiEntity $entType] != -1 && $opt(PMISEM)} {
           $cells($sum) Item $sumRow 1 "$entType  \[Semantic PMI\]"
         } elseif {([string first "annotation" $entType] != -1 || [string first "external_image" $entType] == 0) && $opt(PMIGRF)} {
@@ -2210,7 +2220,13 @@ proc sumAddWorksheet {} {
         foreach item [array names entCategory] {if {[lsearch $entCategory($item) $ent0] != -1} {set ok 1}}
       }
       if {$ok} {
-        $cells($sum) Item [incr rowIgnored] 1 $ent0
+        if {$ent0 != $iloldscr} {
+          $cells($sum) Item [incr rowIgnored] 1 $ent0
+        } else {
+          $cells($sum) Item [incr rowIgnored] 1 "independent_limits_of_linear_dimensional_size_[format "%c" 10][format "%c" 32][format "%c" 32][format "%c" 32]characteristic_representation"
+          set range [$worksheet($sum) Range $rowIgnored:$rowIgnored]
+          $range VerticalAlignment [expr -4108]
+        }
       } else {
 # '10' is the ascii character for a linefeed
         regsub -all "_and_" $ent0 ")[format "%c" 10][format "%c" 32][format "%c" 32][format "%c" 32](" ent1
@@ -2463,8 +2479,8 @@ proc sumAddColorLinks {sum sumHeaderRow sumLinks sheetSort sumRow} {
 #-------------------------------------------------------------------------------------------------
 # format worksheets
 proc formatWorksheets {sheetSort sumRow inverseEnts} {
-  global buttons cells col count developer entCount entRows equivUnicodeString excel formattedEnts gpmiEnts idRow nprogBarEnts opt pmiStartCol
-  global row spmiEnts stepAP stepAPreport sumHeaderRow syntaxErr thisEntType useXL uuidEnts viz vpEnts worksheet
+  global buttons cells col count developer entCount entRows entsToProcessColor equivUnicodeString excel formattedEnts gpmiEnts idRow iloldscr
+  global nprogBarEnts opt pmiStartCol row spmiEnts stepAP stepAPreport sumHeaderRow syntaxErr thisEntType useXL uuidEnts viz vpEnts worksheet
   outputMsg "Formatting Worksheets" blue
 
   if {[info exists buttons]} {$buttons(progressBar) configure -maximum [llength $sheetSort]}
@@ -2484,8 +2500,8 @@ proc formatWorksheets {sheetSort sumRow inverseEnts} {
 # move some worksheets to the correct position, originally moved to process semantic PMI data in the necessary order
       set moveWS 0
       if {$opt(PMISEM)} {
-        foreach item {angularity_tolerance circular_runout_tolerance coaxiality_tolerance \
-                      concentricity_tolerance cylindricity_tolerance dimensional_characteristic_representation} {
+        foreach item [list angularity_tolerance circular_runout_tolerance coaxiality_tolerance concentricity_tolerance \
+                           cylindricity_tolerance dimensional_characteristic_representation $iloldscr] {
           if {[info exists entCount($item)] && $item == $thisEntType} {set moveWS 1}
         }
       }
@@ -2501,6 +2517,17 @@ proc formatWorksheets {sheetSort sumRow inverseEnts} {
       if {$moveWS} {
         if {[string first "dimensional_characteristic_repr" $thisEntType] == 0} {
           moveWorksheet [list dimensional_characteristic_repr dimensional_location dimensional_size]
+        }
+        if {[string first "independent_limits_of_linear_di" $thisEntType] == 0} {
+          set i 0
+          set entc [lsort $entsToProcessColor]
+          foreach ent $entc {
+            incr i
+            if {[string first "independent_limits_of_linear_di" $ent] != -1} {
+              moveWorksheet [list independent_limits_of_linear_di [string range [lindex $entc $i] 2 33]]
+              break
+            }
+          }
         }
         foreach item {angularity_tolerance circular_runout_tolerance coaxiality_tolerance concentricity_tolerance cylindricity_tolerance} {
           if {$thisEntType == $item} {moveWorksheet [list $item datum]}

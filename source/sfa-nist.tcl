@@ -1194,7 +1194,7 @@ proc nistGetName {} {
     set ok1 0
 
     if {[lsearch $filePrefix [string range $ftail 0 $c]] != -1 || [string first "htc" $ftail] != -1 || [string first "pdc" $ftail] != -1 || \
-        [string first "ctc" $ftail] != -1 || [string first "ftc" $ftail] != -1 || [string first "stc" $ftail] != -1 || [string first "pdc" $ftail] != -1 || \
+        [string first "ctc" $ftail] != -1 || [string first "ftc" $ftail] != -1 || [string first "stc" $ftail] != -1 || \
         ([string first "nist" $ftail] != -1 && [string first "pdi" $ftail] == -1)} {
       if {[lsearch $filePrefix [string range $ftail 0 $c]] != -1} {set ftail [string range $ftail $c+1 end]}
 
@@ -1205,8 +1205,8 @@ proc nistGetName {} {
           set testCase $item
         }
       }
-      if {$testCase == "htc"} {set nistName "nist_htc"}
-      if {$testCase == "pdc"} {set nistName "nist_pdc"}
+      if {$testCase == "htc"} {set nistName "nist_htc"; return $nistName}
+      if {$testCase == "pdc"} {set nistName "nist_pdc"; return $nistName}
 
 # find nist_ctc_01 directly
       if {$testCase != ""} {

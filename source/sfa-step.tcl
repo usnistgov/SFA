@@ -346,15 +346,17 @@ proc pmiFormatColumns {str} {
     [$worksheet($thisEntType) Rows] AutoFit
 
 # link to RP
-    $cells($thisEntType) Item 2 1 "See CAx-IF Rec. Prac. for $recPracNames(pmi242)"
-    if {$thisEntType != "dimensional_characteristic_representation" && $thisEntType != "datum_reference"} {
-      set range [$worksheet($thisEntType) Range A2:D2]
-    } else {
-      set range [$worksheet($thisEntType) Range A2:C2]
+    if {[string first "_hole" $thisEntType] == -1} {
+      $cells($thisEntType) Item 2 1 "See CAx-IF Rec. Prac. for $recPracNames(pmi242)"
+      if {$thisEntType != "dimensional_characteristic_representation" && $thisEntType != "datum_reference"} {
+        set range [$worksheet($thisEntType) Range A2:D2]
+      } else {
+        set range [$worksheet($thisEntType) Range A2:C2]
+      }
+      $range MergeCells [expr 1]
+      set anchor [$worksheet($thisEntType) Range A2]
+      [$worksheet($thisEntType) Hyperlinks] Add $anchor [join "https://www.mbx-if.org/home/cax/recpractices/"] [join ""] [join "Link to CAx-IF Recommended Practices"]
     }
-    $range MergeCells [expr 1]
-    set anchor [$worksheet($thisEntType) Range A2]
-    [$worksheet($thisEntType) Hyperlinks] Add $anchor [join "https://www.mbx-if.org/home/cax/recpractices/"] [join ""] [join "Link to CAx-IF Recommended Practices"]
   }
 }
 
@@ -656,16 +658,18 @@ proc syntaxChecker {fileName {checkInSchema 0}} {
 
 # report and process unknown entities
           if {$gen(Excel) && $checkInSchema && [llength $unknownEnts] > 0} {
-            outputMsg "\nWriting unknown entities to the spreadsheet" blue
-            outputMsg "Attribute names are not supported.  Attributes on known entities that refer to unknown entities will be blank.  Comments in the STEP file can affect the results.  Run the Syntax Checker (F8) for more details." red
+            outputMsg "\nGenerating Unknown Entity worksheets, run the Syntax Checker (F8) for more details" blue
             if {[catch {
               reportUnknownEntities
             } emsg]} {
               errorMsg "Error reporting unknown entities: $emsg"
             }
           } elseif {[llength $unknownEnts] > 0 && !$opt(checkEntities)} {
-            errorMsg "Try the option to 'Process unsupported entity types' (More tab)"
+            errorMsg "Try the option to 'Process unknown entity types' (More tab)"
           }
+        } elseif {$gen(Excel) && $checkInSchema} {
+          outputMsg " "
+          errorMsg "There are no unknown entity types to process.  Turn off the option on the More tab."
         }
 
 # output to log file
@@ -684,6 +688,9 @@ proc syntaxChecker {fileName {checkInSchema 0}} {
 # no errors
       } elseif {!$checkInSchema} {
         outputMsg " No syntax errors or warnings" green
+      } elseif {$gen(Excel) && $checkInSchema && !$unknown} {
+        outputMsg " "
+        errorMsg "There are no unknown entity types to process.  Turn off the option on the More tab."
       }
       if {[info exists buttons] && !$checkInSchema} {outputMsg "See Help > Syntax Checker"}
 
@@ -706,7 +713,15 @@ proc syntaxChecker {fileName {checkInSchema 0}} {
 # -------------------------------------------------------------------------------
 # get STEP AP name
 proc getStepAP {fname} {
-  global fileSchema opt stepAPs useXL
+  global fileSchema opt useXL
+
+# STEP AP names for those that do not start with AP2nn
+  set stepAPs(CONFIG_CONTROL_DESIGN) AP203e1
+  set stepAPs(STRUCTURAL_ANALYSIS_DESIGN) AP209e1
+  set stepAPs(AUTOMOTIVE_DESIGN) AP214
+  set stepAPs(MODEL_BASED_INTEGRATED_MANUFACTURING_SCHEMA) AP238
+  set stepAPs(INTEGRATED_CNC_SCHEMA) AP238e1
+  set stepAPs(STRUCTURAL_FRAME_SCHEMA) CIS/2
 
   set ap ""
   set limit 0
@@ -1366,253 +1381,4 @@ proc setCAXIFvendor {} {
       }
     }
   }
-}
-
-# -------------------------------------------------------------------------------
-proc reportUnknownEntities {} {
-  global cells col count entCount entName entRows gpmiEnts heading localName numUnknownEnts row
-  global sheetLast spmiEnts unknownEnts worksheets worksheet wsCount wsNames ws_name
-
-  set debug 0
-  set result [parseStepEntities $localName $unknownEnts]
-
-# get IDs for unknown entities
-  for {set i 0} {$i < [llength $result]} {incr i} {
-    set r0 [lindex $result $i]
-    if {[expr {$i%2}] == 0} {
-      set ent [string tolower $r0]
-    }
-    for {set j 0} {$j < [llength $r0]} {incr j} {
-      set r1 [lindex $r0 $j]
-      set idx [lindex $r1 0]
-      if {[string is integer $idx]} {set unknownEntityID($idx) $ent}
-    }
-  }
-
-# process results to spreadsheet
-  for {set i 0} {$i < [llength $result]} {incr i} {
-    set r0 [lindex $result $i]
-    if {$debug} {outputMsg "\n$i / [llength $r0]  $r0"}
-
-    for {set j 0} {$j < [llength $r0]} {incr j} {
-      set r1 [lindex $r0 $j]
-      if {$debug} {outputMsg "$j / [llength $r1]    $r1" green}
-
-# entity name, start new worksheet
-      if {[catch {
-        if {[llength $r1] == 1} {
-          set ent [string tolower [lindex $r1 0]]
-          set count($ent) $numUnknownEnts($ent)
-          set entCount($ent) $numUnknownEnts($ent)
-          set entRows($ent) [expr {$numUnknownEnts($ent)+3}]
-          set gpmiEnts($ent) 0
-          set spmiEnts($ent) 0
-          outputMsg " $ent ($numUnknownEnts($ent))"
-
-          set wsCount [$worksheets Count]
-          if {$wsCount < 1} {
-            set worksheet($ent) [$worksheets Item [expr [incr wsCount]]]
-          } else {
-            set worksheet($ent) [$worksheets Add [::tcom::na] $sheetLast]
-          }
-          $worksheet($ent) Activate
-          set sheetLast $worksheet($ent)
-          set name $ent
-          if {[string length $name] > 31} {
-            set name [string range $name 0 30]
-            for {set n 1} {$n < 10} {incr n} {
-              if {[info exists entName($name)]} {set name "[string range $name 0 29]$n"}
-            }
-          }
-          set wsNames($name) $ent
-          set ws_name($ent) [$worksheet($ent) Name $name]
-          set cells($ent)   [$worksheet($ent) Cells]
-          set heading($ent) 1
-          set row($ent) 3
-          set col($ent) 1
-
-          $cells($ent) Item 3 1 ID
-          $cells($ent) VerticalAlignment [expr -4160]
-
-# entity ID and attributes
-        } elseif {[llength $r1] == 2} {
-          lappend rowList [lindex $r1 0]
-          foreach item [lindex $r1 1] {
-            if {[string first "_MEASURE" $item] == -1} {
-              set jitem [join $item]
-              if {[string first "\{" $jitem] == 0} {set jitem [join $jitem]}
-
-# substitute unknown entity name
-              if {[string first "#" $jitem] == [string last "#" $jitem]} {
-                set idx [string range $jitem 1 end]
-                if {[info exists unknownEntityID($idx)]} {set jitem "$unknownEntityID($idx) $idx"}
-              }
-              lappend rowList $jitem
-              if {$row($ent) == 3} {
-                incr col($ent)
-                $cells($ent) Item 3 $col($ent) "a[expr {$col($ent)-1}]"
-              }
-            }
-          }
-          incr row($ent)
-          lappend matrixList $rowList
-          unset rowList
-        }
-      } emsg]} {
-        errorMsg "Error processing unsupported entity: $emsg"
-      }
-    }
-
-# write all rows at once
-    if {[info exists matrixList]} {
-      if {[llength $matrixList] == $numUnknownEnts($ent)} {
-        set range [$worksheet($ent) Range [cellRange 4 1] [cellRange [expr {[llength $matrixList]+3}] [llength [lindex $matrixList 0]]]]
-        $range Value2 $matrixList
-        unset matrixList
-      }
-    }
-  }
-}
-
-# -------------------------------------------------------------------------------
-# code to parse STEP entities - based on ChatGPT https://chatgpt.com/share/694a0c30-8944-8005-ae26-eb0eacff81c7
-proc parseStepEntities {filename typeList} {
-  global ncomplex
-
-  set fh [open $filename r]
-  set data [read $fh]
-  close $fh
-
-  set result {}
-  set buffer ""
-
-  foreach line [split $data "\n"] {
-    set line [string trim $line]
-    if {$line eq ""} continue
-
-    append buffer " $line"
-    if {[string match *\; $line]} {
-      set entity [string trim $buffer]
-      set buffer ""
-
-      if {[regexp {^#([0-9]+)\s*=\s*([A-Z0-9_]+)\s*\((.*)\)\s*;} $entity -> id type params]} {
-        if {[lsearch -exact $typeList $type] >= 0} {
-          dict lappend result $type [list $id [parseStepParams $params]]
-        }
-      } else {
-
-# check for complex entities
-        if {![info exists ncomplex]} {
-          foreach ent $typeList {
-            if {[string first $ent $entity] != -1 && [string first "\#" [string trim $entity]] == 0} {
-              errorMsg " Complex unknown entities are not supported, for example:" red
-              outputMsg "  $entity"
-              set ncomplex 1
-            }
-          }
-        }
-      }
-    }
-  }
-  catch {unset ncomplex}
-  return $result
-}
-
-# -------------------------------------------------------------------------------
-proc parseStepParams {paramString} {
-  set tokens [stepTokenize $paramString]
-  set idx 0
-  return [stepParseTokens $tokens idx]
-}
-
-# -------------------------------------------------------------------------------
-proc stepTokenize {s} {
-  set tokens {}
-  set token ""
-  set inString 0
-  set len [string length $s]
-
-  for {set i 0} {$i < $len} {incr i} {
-    set c [string index $s $i]
-
-    if {$inString} {
-      append token $c
-      if {$c eq "'"} {
-        set inString 0
-        lappend tokens $token
-        set token ""
-      }
-      continue
-    }
-
-    switch -- $c {
-      "'" {
-        set inString 1
-        set token "'"
-      }
-      "(" - ")" - "," {
-        if {$token ne ""} {
-          lappend tokens [string trim $token]
-          set token ""
-        }
-        lappend tokens $c
-      }
-      default {
-        append token $c
-      }
-    }
-  }
-
-  if {$token ne ""} {lappend tokens [string trim $token]}
-  return $tokens
-}
-
-# -------------------------------------------------------------------------------
-proc stepParseTokens {tokens idxVar} {
-  global objDesign
-  upvar $idxVar idx
-
-  set result {}
-  while {$idx < [llength $tokens]} {
-    set tok [lindex $tokens $idx]
-    incr idx
-
-    switch -- $tok {
-      "(" {
-        # Start nested list
-        lappend result [stepParseTokens $tokens idx]
-      }
-      ")" {
-        # End current list
-        return $result
-      }
-      "," {
-        # Comma only separates elements
-        continue
-      }
-      default {
-        # Atom
-        if {$tok eq "$" || $tok eq "*"} {
-          lappend result $tok
-        } elseif {[regexp {^#([0-9]+)$} $tok -> ref]} {
-
-# add known entity name for an ID (ref)
-          set objValue [$objDesign FindObjectByP21Id [expr {int($ref)}]]
-          if {$objValue != ""} {
-            set ref "[formatComplexEnt [$objValue Type]] $ref"
-          } else {
-            set ref "\#$ref"
-          }
-          lappend result [list $ref]
-        } elseif {[regexp {^'.*'$} $tok]} {
-          lappend result [string range $tok 1 end-1]
-        } elseif {[string is double -strict $tok]} {
-          lappend result [expr {double($tok)}]
-        } else {
-          lappend result $tok
-        }
-      }
-    }
-  }
-  return $result
 }

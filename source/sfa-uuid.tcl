@@ -1,4 +1,5 @@
 # add UUIDs from uuid_attribute entities (AP242 Edition >= 4)
+# identified_item attribute is processed here because SFA (IFCsvr) cannot process LIST of LIST, see badAttributes variable in sfa-data.tcl
 proc uuidGetAttributes {totalUUID entsUUID} {
   global cells idRow localName syntaxErr uuid uuidCount uuidEnts
   global objDesign
@@ -30,10 +31,13 @@ proc uuidGetAttributes {totalUUID entsUUID} {
 
 # entity ID
       if {[catch {
+        regsub -all " " $line "" line
         set entid [string range $line 1 [string first "=" $line]-1]
 
 # get UUID (pid)
-        set pid [string range $line [string first "'" $line]+1 [string last "'" $line]-1]
+        set c1 [string first "'" $line]
+        set c2 [string first "'" $line [expr {$c1+1}]]
+        set pid [string range $line $c1+1 $c2-1]
         regsub -all {[0123456789abcdefABCDEF-]} $pid "" npid
         if {[string length $npid] > 0} {
           set msg "Unexpected characters ($npid) in UUID"
@@ -46,99 +50,122 @@ proc uuidGetAttributes {totalUUID entsUUID} {
           if {[lsearch $allUUID $pid] == -1} {
             lappend allUUID $pid
           } else {
-            set msg "UUID is assigned to multiple identified_item.  Only one UUID entity is needed that lists all entities in identified_item."
+            set msg "UUID is assigned to multiple identified_item.  Only one UUID entity is needed that lists all entities in identified_item.  Sort this column to find the other duplicate UUIDs."
             lappend syntaxErr($ent) [list $entid identifier $msg]
             errorMsg " $msg" red
           }
           set uuidstr $pid
-          if {[string index $ent 0] == "v"} {append uuidstr " ([string range $ent 0 1])"}
-          if {[string first "HASH" $line] != -1} {append uuidstr " (hash v5)"}
-          if {[string first "LOCATION" $line] != -1} {append uuidstr " (location)"}
+          if {[string index $ent 0] == "v"} {
+            append uuidstr " ([string range $ent 0 1])"
+          } elseif {[string first "HASH" $line] != -1} {
+            append uuidstr " (hash v5)"
+          } elseif {[string first "LOCATION" $line] != -1} {
+            append uuidstr " (location)"
+          }
 
 # get identified_items
-          set line1 [string range $line [string last "'" $line]+3 end]
-          set c1 1
-          if {[string index $line1 0] == "\#"} {set c1 0}
-          set items [split [string range $line1 $c1 [string first "))" $line1]-1] ","]
+          set c1 [string first "((" $line]
+          if {$c1 == -1} {set c1 [expr {[string first "(\#" $line]-1}]}
+          set c2 [string first "))" $line]
+          set line1 [string range $line $c1+2 $c2-1]
+          regsub -all {[ ,]} $line1 "" line1
+          set items [split $line1 ")("]
           set iditem ""
           set iditemName ""
 
 # loop over all items
           foreach item $items {
-            set eid [string range $item [string first "\#" $item]+1 end]
-            set c2 [string first ")" $eid]
-            if {$c2 != -1} {set eid [string range $eid 0 $c2-1]}
-            set c2 [string first "(" $eid]
-            if {$c2 != -1} {set eid [string range $eid $c2+1 end]}
-
-            set e1 [$objDesign FindObjectByP21Id [expr $eid]]
-            if {$e1 != ""} {
-              set uuidEnt [$e1 Type]
-              if {[lsearch $uuidEnts $uuidEnt] == -1} {lappend uuidEnts $uuidEnt}
-              if {$uuidEnt == "id_attribute"} {
-                set msg "Error: identified_item should refer directly to entities assigned a UUID and not id_attribute"
-                errorMsg " $msg"
-                lappend syntaxErr($ent) [list $entid identified_item $msg]
-              }
-
-              if {[info exists uuid($uuidEnt,[$e1 P21ID])]} {
-                set msg "Error: Multiple UUIDs are associated with the same entity"
-                errorMsg " $msg"
-                lappend syntaxErr($ent) [list $entid identified_item $msg]
-              }
-              set uuid($uuidEnt,[$e1 P21ID]) $uuidstr
-              set okid 1
-              if {$iditem != ""} {
-                errorMsg " Some UUIDs are associated with multiple entities" red
-                if {[info exists idRow($ent,$entid)]} {
-                  addCellComment $ent $idRow($ent,$entid) 3 "UUID is associated with multiple entities"
+            foreach eid [lrange [split $item "\#"] 1 end] {
+              set e1 [$objDesign FindObjectByP21Id [expr $eid]]
+              if {$e1 != ""} {
+                set uuidEnt [$e1 Type]
+                if {[lsearch $uuidEnts $uuidEnt] == -1} {lappend uuidEnts $uuidEnt}
+                if {[info exists uuid($uuidEnt,[$e1 P21ID])]} {
+                  set msg "Error: Multiple UUIDs are associated with the same identified_item"
+                  errorMsg " $msg"
+                  lappend syntaxErr($ent) [list $entid identifier $msg]
+                  lappend syntaxErr($ent) [list $entid identified_item $msg]
                 }
-              }
 
-              append iditem "[formatComplexEnt $uuidEnt] [$e1 P21ID]   "
-              set i 1
-              if {$uuidEnt == "dimensional_size" || $uuidEnt == "angular_size"} {set i 2}
-              append iditemName "[[[$e1 Attributes] Item [expr $i]] Value]   "
+                set uuid($uuidEnt,[$e1 P21ID]) $uuidstr
+                set okid 1
+                if {$iditem != ""} {
+                  if {[llength $items] == 1} {
+                    errorMsg " Some UUIDs are associated with multiple entities" red
+                    if {[info exists idRow($ent,$entid)]} {addCellComment $ent $idRow($ent,$entid) 3 "UUID is associated with multiple entities"}
+                  } else {
+                    set msg " Multiple lists of UUIDs are grouped together"
+                    errorMsg $msg red
+                    if {[info exists idRow($ent,$entid)]} {addCellComment $ent $idRow($ent,$entid) 3 [string trim $msg]}
+                  }
+                }
 
-              incr uuidCount($uuidEnt)
-              if {$uuidEnt == "advanced_face"} {
-                set e2 [[[$e1 Attributes] Item [expr 3]] Value]
-                set idx "$uuidEnt > [$e2 Type]"
-                incr uuidCount($idx)
-              } elseif {$uuidEnt == "edge_curve"} {
-                set e2 [[[$e1 Attributes] Item [expr 4]] Value]
-                set idx "$uuidEnt > [$e2 Type]"
-                incr uuidCount($idx)
-              } elseif {$uuidEnt == "trimmed_curve"} {
-                set e2 [[[$e1 Attributes] Item [expr 2]] Value]
-                set idx "$uuidEnt > [$e2 Type]"
-                incr uuidCount($idx)
+                append iditem "[formatComplexEnt $uuidEnt] [$e1 P21ID]   "
+                lappend iditems($uuidEnt) $eid
+                set i 1
+                if {$uuidEnt == "dimensional_size" || $uuidEnt == "angular_size"} {set i 2}
+                append iditemName "[[[$e1 Attributes] Item [expr $i]] Value]   "
+
+                incr uuidCount($uuidEnt)
+                if {$uuidEnt == "advanced_face"} {
+                  set e2 [[[$e1 Attributes] Item [expr 3]] Value]
+                  set idx "$uuidEnt > [$e2 Type]"
+                  incr uuidCount($idx)
+                } elseif {$uuidEnt == "edge_curve"} {
+                  set e2 [[[$e1 Attributes] Item [expr 4]] Value]
+                  set idx "$uuidEnt > [$e2 Type]"
+                  incr uuidCount($idx)
+                } elseif {$uuidEnt == "trimmed_curve"} {
+                  set e2 [[[$e1 Attributes] Item [expr 2]] Value]
+                  set idx "$uuidEnt > [$e2 Type]"
+                  incr uuidCount($idx)
+                }
+              } else {
+                set msg "Error: Missing entity referred to in identified_item.  Run the Syntax Checker"
+                errorMsg " $msg"
+                lappend syntaxErr($ent) [list $entid identified_item $msg]
+                set uuidEnt "Missing"
+                lappend iditems($uuidEnt) "\#$eid"
               }
-            } else {
-              set msg "Error: Missing entity referred to in identified_item.  Run the Syntax Checker"
-              errorMsg " $msg"
-              lappend syntaxErr($ent) [list $entid identified_item $msg]
             }
           }
 
 # write identified_items to uuid_attribute entity
           if {[info exists idRow($ent,$entid)]} {
-            $cells($ent) Item $idRow($ent,$entid) 3 $iditem
-            if {[string first "handle" $uuidEnt] == -1} {
-              $cells($ent) Item $idRow($ent,$entid) 4 [string trim $iditemName]
-              incr heading
-              if {$heading == 1} {$cells($ent) Item 3 4 "identified_item name"}
+            set idstr ""
+            foreach ename [lsort [array names iditems]] {
+              set num ""
+              if {[llength $iditems($ename)] > 1} {set num "([llength $iditems($ename)]) "}
+              append idstr "$num[formatComplexEnt $ename] $iditems($ename)   "
             }
+            $cells($ent) Item $idRow($ent,$entid) 3 [string trim $idstr]
+
+# identified_item name
+            if {[string first "handle" $uuidEnt] == -1} {
+              set iditemName [string trim $iditemName]
+              if {[string length $iditemName] > 0} {
+                set c 4
+                if {$ent == "hash_based_v5_uuid_attribute"} {set c 5}
+                if {$ent == "uuid_attribute_with_approximate_location"} {set c 6}
+                $cells($ent) Item $idRow($ent,$entid) $c $iditemName
+                incr heading($ent)
+                if {$heading($ent) == 1} {
+                  $cells($ent) Item 3 $c "identified_item name"
+                  addCellComment $ent 3 $c "name attribute of entities in column C"
+                }
+              }
+            }
+            catch {unset iditems}
           }
 
 # errors
         } else {
-          set msg "Error with UUID format"
+          set msg "Error with UUID format ($pid)"
           errorMsg " $msg"
           lappend syntaxErr($ent) [list $entid identifier $msg]
         }
       } emsg2]} {
-        errorMsg "Error getting UUID: $emsg2"
+        errorMsg "Error processing UUIDs: $emsg2"
       }
 
       incr nUUID
@@ -151,7 +178,7 @@ proc uuidGetAttributes {totalUUID entsUUID} {
 # -------------------------------------------------------------------------------------------------
 # add UUID Summary worksheet
 proc uuidSummary {} {
-  global cells entCount entName uuidCount worksheet worksheets
+  global cells entCount entName row uuidCount worksheet worksheets
 
 # generate UUID summary worksheet
   outputMsg "Generating UUID Summary worksheet" blue
@@ -168,14 +195,22 @@ proc uuidSummary {} {
     set r 1
     $cells($usum) Item $r 1 "Count"
     $cells($usum) Item $r 2 "Entity Types with UUIDs"
-    [[$worksheet($usum) Range "A1"] Font] Bold [expr 1]
-    [[$worksheet($usum) Range "B1"] Font] Bold [expr 1]
+    foreach idx [list A1 B1] {
+      [[$worksheet($usum) Range $idx] Font] Bold [expr 1]
+      set range [$worksheet($usum) Range $idx]
+      $range HorizontalAlignment [expr -4108]
+    }
 
     foreach idx [lsort [array names uuidCount]] {
+# count
       set str $uuidCount($idx)
       if {[info exists entCount($idx)]} {if {$entCount($idx) > $uuidCount($idx)} {append str " of $entCount($idx)"}}
       incr r
       $cells($usum) Item $r 1 $str
+      set range [$worksheet($usum) Range A$r]
+      $range HorizontalAlignment [expr -4152]
+
+# entity types
       set str [formatComplexEnt $idx]
       if {[string first ">" $idx] != -1} {set str "   $idx"}
       $cells($usum) Item $r 2 $str
@@ -193,6 +228,23 @@ proc uuidSummary {} {
     errorMsg "Error generating UUID Summary worksheet: $emsg"
   }
 
+# color column for identified_item name on uuid_attribute entities
+  foreach ent [list v5_uuid_attribute v4_uuid_attribute hash_based_v5_uuid_attribute uuid_attribute_with_approximate_location] {
+    if {[info exists row($ent)] && [info exists entCount($ent)]} {
+      set c 4
+      if {$ent == "hash_based_v5_uuid_attribute"} {set c 5}
+      if {$ent == "uuid_attribute_with_approximate_location"} {set c 6}
+      set val [[$cells($ent) Item 3 $c] Value]
+      if {$val != ""} {
+        set r $row($ent)
+        if {$r == 5004} {set r 5003}
+        set range [$worksheet($ent) Range [cellRange 3 $c] [cellRange $r $c]]
+        [$range Interior] ColorIndex [expr 40]
+        set range [$worksheet($ent) Range [cellRange 4 $c] [cellRange $r $c]]
+        [[$range Borders] Item 12] Weight [expr 1]
+      }
+    }
+  }
   unset uuidCount
 }
 
@@ -210,7 +262,7 @@ proc uuidReportAttributes {idType {uuidEnt ""}} {
       set idx [split $idx ","]
       set anchorEnt [lindex $idx 0]
       if {$uuidEnt == "" || $anchorEnt == $uuidEnt} {
-        set anchorID  [lindex $idx 1]
+        set anchorID [lindex $idx 1]
         if {[info exists worksheet($anchorEnt)]} {
           if {![info exists urow($anchorEnt)]} {set urow($anchorEnt) [[[$worksheet($anchorEnt) UsedRange] Rows] Count]}
           if {![info exists ucol($anchorEnt)]} {
@@ -226,7 +278,17 @@ proc uuidReportAttributes {idType {uuidEnt ""}} {
             [$range Interior] ColorIndex [expr 40]
             catch {foreach i {8 9} {[[$range Borders] Item $i] Weight [expr 1]}}
           }
-          if {[info exists spmiSumRowID($anchorID)]} {set anchorSum($spmiSumRowID($anchorID)) $uuidval}
+
+          if {[info exists spmiSumRowID($anchorID)]} {
+            set anchorSum($spmiSumRowID($anchorID)) $uuidval
+          } elseif {[string first "dimensional_" $anchorEnt] != -1} {
+            set dls [$objDesign FindObjectByP21Id [expr {int($anchorID)}]]
+            set dcrs [$dls GetUsedIn [string trim dimensional_characteristic_representation] [string trim dimension]]
+            ::tcom::foreach dcr $dcrs {
+              set dcrID [$dcr P21ID]
+              if {[info exists spmiSumRowID($dcrID)]} {set anchorSum($spmiSumRowID($dcrID)) $uuidval}
+            }
+          }
         }
       }
     }
@@ -359,7 +421,7 @@ proc uuidReportAttributes {idType {uuidEnt ""}} {
     if {[[$cells($spmiSumName) Item 3 $c] Value] == ""} {
       $cells($spmiSumName) Item 3 $c $heading
       set range [$worksheet($spmiSumName) Range [cellRange 3 $c]]
-      addCellComment $spmiSumName 3 $c "See Help > User Guide (section 5.6)\n\nUUIDs for dimensional_characteristic_representation are found on the corresponding dimensional_location or dimensional_size entities."
+      addCellComment $spmiSumName 3 $c "UUIDs for dimension tolerances are on dimensional_location/size entities."
       catch {foreach i {8 9} {[[$range Borders] Item $i] Weight [expr 2]}}
       [$range Font] Bold [expr 1]
       $range HorizontalAlignment [expr -4108]
@@ -368,6 +430,8 @@ proc uuidReportAttributes {idType {uuidEnt ""}} {
     set rmax 0
     foreach r [array names anchorSum] {
       $cells($spmiSumName) Item $r $c $anchorSum($r)
+      set range [$worksheet($spmiSumName) Range [cellRange $r $c]]
+      $range VerticalAlignment [expr -4160]
       if {$r > $rmax} {set rmax $r}
     }
     set range [$worksheet($spmiSumName) Range [cellRange 3 $c] [cellRange $rmax $c]]

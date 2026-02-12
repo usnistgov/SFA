@@ -276,7 +276,7 @@ proc valPropStart {defRep} {
 proc valPropReport {objEntity} {
   global cells col convUnit defComment entLevel ent entAttrList gen maxelem maxrep ncartpt nelem nrep opt pd pdclass pdcol pdheading
   global pmivalprop prefix propDefID propDefIDRow propDefName propDefOK propDefRow recPracNames repName repNameOK samplingPoints semanticText
-  global spaces syntaxErr tessCoord tessCoordName unicodeEnts unicodeString valName valPropEnts valPropLink valPropNames valProps
+  global spaces syntaxErr tessCoord tessCoordName unicodeEnts unicodeString valName valPropEnts valPropLink valPropNames valProps viz
 
   if {$opt(DEBUG1)} {outputMsg "valPropReport" red}
   if {[info exists propDefOK]} {if {$propDefOK == 0} {return}}
@@ -575,7 +575,9 @@ proc valPropReport {objEntity} {
             } else {
               ::tcom::foreach val1 $objValue {
                 set id [$val1 P21ID]
-                if {[$val1 Type] == "coordinates_list" && ![info exists tessCoord($id)]} {tessReadGeometry 1}
+                set arg 1
+                if {$viz(TESSPART)} {set arg 0}
+                if {[$val1 Type] == "coordinates_list" && ![info exists tessCoord($id)]} {tessReadGeometry $arg}
                 if {[llength $tessCoord($id)] != 24} {
                   set msg "Syntax Error: Invalid number of points ([expr {[llength $tessCoord($id)]/3}]) in coordinates_list for saved view validation property.$spaces\($recPracNames(pmi242), Sec. 10.2.2)"
                   errorMsg $msg
@@ -1057,13 +1059,14 @@ proc valPropFormat {} {
     set range [$worksheet($thisEntType) Range [cellRange 2 5] [cellRange 2 $colrange]]
     catch {[[$range Borders] Item [expr 9]] Weight [expr -4138]}
 
-# fix column widths, first make them wider (160), then autofit to make them smaller, then check if they are too wide because of the autofit
+# fix column widths, first make them wider (colWidth), then autofit to make them smaller, then check if they are too wide because of the autofit
+    set colWidth 140
     for {set i 1} {$i <= $colrange} {incr i} {
       set val [[$cells($thisEntType) Item 3 $i] Value]
       if {$val == "value name"} {
         for {set i1 $i} {$i1 <= $colrange} {incr i1} {
           set range [$worksheet($thisEntType) Range [cellRange -1 $i1]]
-          $range ColumnWidth [expr 160]
+          $range ColumnWidth [expr $colWidth]
         }
         break
       }
@@ -1074,8 +1077,8 @@ proc valPropFormat {} {
       if {$val == "value name"} {
         for {set i1 $i} {$i1 <= $colrange} {incr i1} {
           set range [$worksheet($thisEntType) Range [cellRange -1 $i1]]
-          if {[$range ColumnWidth] > 160} {
-            $range ColumnWidth [expr 160]
+          if {[$range ColumnWidth] > $colWidth} {
+            $range ColumnWidth [expr $colWidth]
             $range WrapText [expr 1]
           }
         }

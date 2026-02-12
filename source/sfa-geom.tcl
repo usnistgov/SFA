@@ -12,7 +12,8 @@ proc getAssocGeom {entDef {tolType 0} {tolName ""}} {
   }
 
   if {[catch {
-    if {$entDefType == "shape_aspect" || $entDefType == "all_around_shape_aspect" || $entDefType == "centre_of_symmetry" || $entDefType == "geometric_alignment" || \
+    if {$entDefType == "shape_aspect" || $entDefType == "all_around_shape_aspect" || $entDefType == "centre_of_symmetry" || \
+        $entDefType == "geometric_alignment" || [string first "_occurrence" $entDefType] != -1 || \
       ([string first "datum" $entDefType] != -1 && [string first "_and_" $entDefType] == -1)} {
 
 # add shape_aspect to AG for dimtol (tolType = 1)
@@ -415,7 +416,8 @@ proc reportAssocGeom {entType {row ""}} {
         $item == "all_around_shape_aspect" || $item == " between_shape_aspect"} {
       set ncsa [llength $assocGeom($item)]
       set csaEnt $item
-    } elseif {$item == "shape_aspect" || $item == "centre_of_symmetry" || $item == "datum_feature" || $item == "geometric_alignment" || [string first "datum_target" $item] != -1} {
+    } elseif {$item == "shape_aspect" || $item == "centre_of_symmetry" || $item == "datum_feature" || $item == "geometric_alignment" || \
+              [string first "datum_target" $item] != -1 || [string first "_occurrence" $item] != -1} {
       incr nsa [llength $assocGeom($item)]
     }
     if {($ncsa == 1 && $nsa < 2) || ($ncsa > 1 && $ncsa == $nsa)} {

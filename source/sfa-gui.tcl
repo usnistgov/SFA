@@ -1,5 +1,5 @@
 # SFA version
-proc getVersion {} {return 5.41}
+proc getVersion {} {return 5.42}
 
 # see proc installIFCsvr in sfa-proc.tcl for the IFCsvr version
 # see below (line 36) for the sfaVersion when IFCsvr was updated
@@ -542,7 +542,7 @@ proc guiGenerateTab {} {
           }
         } elseif {$allNone == 1} {
           foreach item [array names opt] {if {[string first "step" $item] == 0} {set opt($item) 0}}
-          foreach item {BOM INVERSE PMIGRF PMISEM PMIUUID valProp stepUSER x3dSave} {set opt($item) 0}
+          foreach item {BOM INVERSE PMIGRF PMISEM valProp syntaxChecker stepUSER} {set opt($item) 0}
           set opt(stepCOMM) 1
           set gen(None) 0
           set gen(Excel) 1
@@ -825,7 +825,7 @@ proc guiMoreTab {} {
                 {" Process UUIDs" opt(PMIUUID)} \
                 {" Do not round real numbers in spreadsheet cells" opt(xlNoRound)} \
                 {" Do not generate links on File Summary worksheet" opt(xlHideLinks)} \
-                {" Process unsupported entity types" opt(checkEntities)}} {
+                {" Process unknown entity types" opt(checkEntities)}} {
     incr n
     set frm $fxlsb1
     if {$n > 3} {set frm $fxlsb2}
@@ -903,7 +903,7 @@ proc guiMoreTab {} {
     tooltip::tooltip $buttons(PMIUUID)     "UUIDs (Universally Unique IDs), also known as Persistent IDs, are used for\nmaintaining traceability of engineering product data.  UUIDs are supported\nin AP242. They are reported on tolerance, geometry, and a few other entities.\nA UUID Summary worksheet is generated showing all entity types associated\nwith UUIDs.\n\nUUIDs must conform to recommended practices.\nSee Websites > CAx Recommended Practices"
     tooltip::tooltip $buttons(xlNoRound)   "See Help > User Guide (section 5.5.4)"
     tooltip::tooltip $buttons(xlHideLinks) "This option is useful when sharing a Spreadsheet with another user."
-    tooltip::tooltip $buttons(checkEntities) "Use this with future editions of current APs that are not supported by the IFCsvr toolkit.\nSee Help > Supported STEP APs"
+    tooltip::tooltip $buttons(checkEntities) "Use this with future or trial editions of current APs that are not supported.\nThe Syntax Checker can identify unknown entity types.  This experimental\nfeature should only be used when absolutely necessary.\nSee Help > Supported STEP APs"
     tooltip::tooltip $buttons(viewParallel) "Use parallel projection defined in the STEP file for saved view viewpoints,\ninstead of the default perspective projection.  Pan and zoom might not\nwork with parallel projection.  See Help > Viewer > Viewpoints"
     tooltip::tooltip $buttons(viewCorrect) "Correct for older implementations of camera models that\nmight not conform to current recommended practices.\nThe corrected viewpoint might fix the orientation but\nmaybe not the position.\n\nSee Help > Viewer > Viewpoints\nSee the CAx-IF Recommended Practice for\n $recPracNames(pmi242), Sec. 9.4.2.6"
     tooltip::tooltip $buttons(viewNoPMI)   "If the model has viewpoints with and without graphic PMI,\nthen also show the viewpoints without graphic PMI.  Those\nviewpoints are typically top, front, side, etc."
@@ -1035,7 +1035,6 @@ proc guiWebsitesMenu {} {
   $Websites2 add command -label "EXPRESS data modeling language" -command {openURL https://en.wikipedia.org/wiki/EXPRESS_(data_modeling_language)}
   $Websites2 add command -label "EXPRESS Schemas"                -command {openURL https://www.mbx-if.org/home/mbx/resources/express-schemas/}
   $Websites2 add command -label "Learning EXPRESS"               -command {openURL https://www.expresslang.org/learn/}
-  $Websites2 add command -label "easyEXPRESS"                    -command {openURL https://marketplace.visualstudio.com/items?itemName=usnistgov.easyEXPRESS}
 
   $Websites add cascade -label "Organizations" -menu $Websites.4
   set Websites4 [menu $Websites.4 -tearoff 1]
@@ -1054,7 +1053,7 @@ proc guiWebsitesMenu {} {
   $Examples add command -label "- PMI Coverage Analysis"  -command {openURL https://www.nist.gov/document/sfa-multiple-files-spreadsheet}
   $Examples add command -label "- Bill of Materials"      -command {openURL https://www.nist.gov/document/sfa-bill-materials-spreadsheet}
   $Examples add separator
-  $Examples add command -label "Sample STEP Files (zip)" -command {openURL https://www.nist.gov/document/nist-pmi-step-files}
+  $Examples add command -label "Sample STEP Files (zip)" -command {openURL https://github.com/usnistgov/SFA/tree/master/Release}
   $Examples add command -label "NIST CAD Models"         -command {openURL https://www.nist.gov/ctl/smart-connected-systems-division/smart-connected-manufacturing-systems-group/mbe-pmi-0}
   $Examples add command -label "- on CAx-IF"             -command {openURL https://www.mbx-if.org/home/cax/resources/}
 }
@@ -1209,7 +1208,7 @@ proc getOpenPrograms {} {
   global env dispApps dispCmds dispCmd appNames appName
   global drive editorCmd myhome pf32 pf64 pflist
 
-# Including any of the CAD viewers and software does not imply a recommendation or endorsement of them by NIST https://www.nist.gov/disclaimer
+# Including any of the CAD viewers and software does not imply a recommendation or endorsement of them by NIST
 # For more STEP viewers, go to https://www.mbx-if.org/home/mbx/resources/
 
   regsub {\\} $pf32 "/" p32
