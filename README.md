@@ -56,4 +56,4 @@ Optionally build the command-line version:
 
 ## Disclaimers
 
-[NIST Disclaimer](https://www.nist.gov/disclaimer)
+[NIST Disclaimer](https://www.nist.gov/pao/nist-disclaimer-statement)
