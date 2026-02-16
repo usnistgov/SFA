@@ -6,10 +6,10 @@ used by the SFA Viewer to convert STEP part geometry to X3D and has its own sour
 
 ## Download or Build
 
-**Download** the Windows version of SFA in the Release directory above.  Click on the zip file (SFA-5.nn.zip) in the Release directory and then the 
+**Download** the NIST version of SFA in the Release directory above.  Click on the zip file (SFA-5.nn.zip) in the Release directory and then the 
 download icon to the right.  Read the README file.
 
-**Build** your own version of SFA from the source code with the instructions below.  The Download version of SFA is built with proprietary software not available to the public.
+**Build** your own version of SFA from the source code with the instructions below.
 
 ## Build Prerequisites
 
@@ -20,7 +20,7 @@ on [CAWT](https://www.tcl3d.org/cawt/).
 To build SFA, first download the Tcl and other files from the 'source' directory above to a directory on your computer.  The name of the 
 directory is not important.
 
-freewrap wraps the SFA Tcl code to create an executable.
+**freewrap** wraps the SFA Tcl code to create an executable.
 
 - Download [freewrap651.zip](https://sourceforge.net/projects/freewrap/files/freewrap%206/freeWrap%206.51/).  More recent versions of freewrap will **not** work with wrapping SFA.
 - Extract freewrap.exe and put it in the same directory as the SFA files that were downloaded from the 'source' directory.
@@ -34,17 +34,16 @@ Several Tcl packages not included in freewrap also need to be installed.
 ## Build the STEP File Analyzer and Viewer
 
 - Open a command prompt window and change to the directory with the SFA Tcl files and freewrap.
-- To generate the executable **sfa.exe**, enter the command: freewrap -f sfa-files.txt
+- To generate the executable **sfa.exe**, enter the command: **freewrap -f sfa-files.txt**
 
 Optionally build the command-line version:
 
 - Download [freewrapTCLSH.zip](https://sourceforge.net/projects/freewrap/files/freewrap%206/freeWrap%206.51/)
 - Extract freewrapTCLSH.exe to the directory with the SFA Tcl files
 - Edit sfa-files.txt and change the first line 'sfa.tcl' to 'sfa-cl.tcl'
-- Edit sfa-cl.tcl similar to sfa.tcl above
-- To generate **sfa-cl.exe**, enter the command: freewrapTCLSH -f sfa-files.txt
+- To generate **sfa-cl.exe**, enter the command: **freewrapTCLSH -f sfa-files.txt**
 
-## Running the User-built version
+## Run the User-built version
 
 You must first install and run the NIST version of the SFA before running your own version.  SFA depends 
 on two software packages (IFCsvr, stp2x3d) that are included with the Download version.  Some features are not available in the 
