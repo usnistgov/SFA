@@ -2,17 +2,14 @@
 
 The [STEP File Analyzer and Viewer](https://www.nist.gov/services-resources/software/step-file-analyzer-and-viewer) (SFA) 
 generates a spreadsheet and visualization from an ISO 10303 Part 21 STEP file.  The [STEP to X3D Translator](https://www.nist.gov/services-resources/software/step-x3d-translator) is
-used by the SFA Viewer to convert STEP b-rep part geometry to X3D and has its own source code and executable.
+used by the SFA Viewer to convert STEP part geometry to X3D and has its own source code and executable.
 
 ## Download or Build
 
-**Download** the Windows version of SFA in the Release directory above.  Click on the zip file (SFA-5.nn.zip) in the Release directory and then the download icon to the right.
+**Download** the Windows version of SFA in the Release directory above.  Click on the zip file (SFA-5.nn.zip) in the Release directory and then the 
+download icon to the right.  Read the README file.
 
-**Build** your own version of SFA from the source code with the instructions below.
-
-- SFA depends on two software packages (IFCsvr, stp2x3d) that only run on Windows.  Those packages are included with the Download version.  See Running the Software below.
-- Some features are not available in the user-built version including tooltips, unzipping compressed STEP files, and those related to the NIST CAD models.
-- The Download version of SFA is built with proprietary software not available to the public.
+**Build** your own version of SFA from the source code with the instructions below.  The Download version of SFA is built with proprietary software not available to the public.
 
 ## Build Prerequisites
 
@@ -47,9 +44,12 @@ Optionally build the command-line version:
 - Edit sfa-cl.tcl similar to sfa.tcl above
 - To generate **sfa-cl.exe**, enter the command: freewrapTCLSH -f sfa-files.txt
 
-## Running the Software
+## Running the User-built version
 
-**You must first install and run the NIST version of the STEP File Analyzer and Viewer before running your own version.**
+You must first install and run the NIST version of the SFA before running your own version.  SFA depends 
+on two software packages (IFCsvr, stp2x3d) that are included with the Download version.  Some features are not available in the 
+User-built version including tooltips, unzipping compressed STEP files, and those related to the NIST CAD models.
+
 - Click on Release directory above.
 - Extract STEP-File-Analyzer.exe from SFA-5.nn.zip, run it and process a STEP file to install other software.
 - Now you can run your own version of SFA.
