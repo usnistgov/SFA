@@ -58,9 +58,8 @@ You must first install and run the NIST version of the SFA before running your o
 on two software packages (IFCsvr, stp2x3d) that are included with the Download version.  Some features are not available in the 
 User-built version including tooltips, unzipping compressed STEP files, and those related to the NIST CAD models.
 
-- Click on Release directory above.
-- Extract STEP-File-Analyzer.exe from SFA-5.nn.zip, run it and process a STEP file to install other software.
-- Now you can run your own version of SFA.
+Click on Release directory above.  Extract STEP-File-Analyzer.exe from SFA-5.nn.zip, run it and process a STEP file to 
+install other software.  Now you can run your own version of SFA.
 
 ## Disclaimers
 
