@@ -8,10 +8,10 @@ AP214, AP209, and other APs and EXPRESS schemas are supported.
 
 ## Viewer and Spreadsheet Examples
 
-**Viewer:** [Part with graphic PMI for GD&T](https://pages.nist.gov/CAD-PMI-Testing/graphical-pmi-viewer.html), [Box assembly](https://pages.nist.gov/CAD-PMI-Testing/step-file-viewer.html),  
+**Viewer:** [Part with graphic PMI for GD&T](https://pages.nist.gov/CAD-PMI-Testing/graphical-pmi-viewer.html), [Box assembly](https://pages.nist.gov/CAD-PMI-Testing/step-file-viewer.html),
 [Bracket assembly](https://pages.nist.gov/CAD-PMI-Testing/bracket.html), [Section view clipping planes](https://pages.nist.gov/CAD-PMI-Testing/section-views.html), 
-[AP209 finite element analysis models](https://pages.nist.gov/CAD-PMI-Testing/ap209-viewer.html) **Spreadsheet:** [Spreadsheet](https://www.nist.gov/document/sfa-semantic-pmi-spreadsheet) 
-generated from an AP242 file with reports for semantic PMI, graphic PMI, and validation properties.
+[AP209 finite element analysis models](https://pages.nist.gov/CAD-PMI-Testing/ap209-viewer.html) 
+**Spreadsheet:** [Spreadsheet](https://www.nist.gov/document/sfa-semantic-pmi-spreadsheet) generated from an AP242 file with reports for semantic PMI, graphic PMI, and validation properties.
 
 ## Download or Build
 
