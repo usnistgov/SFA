@@ -6,11 +6,12 @@ tolerances, and more.  The Analyzer generates a spreadsheet of all entity and at
 graphic PMI, and validation properties for conformance to recommended practices; and checks for basic STEP file format errors.  STEP AP242, AP203, 
 AP214, AP209, and other APs and EXPRESS schemas are supported.
 
-### Viewer and Spreadsheet Examples
-
-[Part with graphic PMI for GD&T](https://pages.nist.gov/CAD-PMI-Testing/graphical-pmi-viewer.html), [Box assembly](https://pages.nist.gov/CAD-PMI-Testing/step-file-viewer.html),
-[Bracket assembly](https://pages.nist.gov/CAD-PMI-Testing/bracket.html), [Section view clipping planes](https://pages.nist.gov/CAD-PMI-Testing/section-views.html), 
-[AP209 finite element analysis models](https://pages.nist.gov/CAD-PMI-Testing/ap209-viewer.html), [Spreadsheet](https://www.nist.gov/document/sfa-semantic-pmi-spreadsheet) 
+**Viewer and Spreadsheet Examples:** [Part with graphic PMI for GD&T](https://pages.nist.gov/CAD-PMI-Testing/graphical-pmi-viewer.html), 
+[Box assembly](https://pages.nist.gov/CAD-PMI-Testing/step-file-viewer.html), 
+[Bracket assembly](https://pages.nist.gov/CAD-PMI-Testing/bracket.html), 
+[Section view clipping planes](https://pages.nist.gov/CAD-PMI-Testing/section-views.html), 
+[AP209 finite element analysis models](https://pages.nist.gov/CAD-PMI-Testing/ap209-viewer.html), 
+[Spreadsheet](https://www.nist.gov/document/sfa-semantic-pmi-spreadsheet) 
 with reports for semantic PMI, graphic PMI, and validation properties.
 
 ## Download or Build
