@@ -1,8 +1,17 @@
 # STEP File Analyzer and Viewer
 
-The [STEP File Analyzer and Viewer](https://www.nist.gov/services-resources/software/step-file-analyzer-and-viewer) (SFA) 
-generates a spreadsheet and visualization from an ISO 10303 Part 21 STEP file.  The [STEP to X3D Translator](https://www.nist.gov/services-resources/software/step-x3d-translator) is
-used by the SFA Viewer to convert STEP part geometry to X3D and has its own source code and executable.
+The free [STEP File Analyzer and Viewer](https://www.nist.gov/services-resources/software/step-file-analyzer-and-viewer) (SFA) 
+generates a spreadsheet and visualization from an ISO 10303 Part 21 STEP file.  The STEP File Viewer supports parts, assemblies, dimensions, 
+tolerances, and more.  The Analyzer generates a spreadsheet of all entity and attribute information; reports and analyzes any semantic PMI, 
+graphic PMI, and validation properties for conformance to recommended practices; and checks for basic STEP file format errors.  STEP AP242, AP203, 
+AP214, AP209, and other APs and EXPRESS schemas are supported.
+
+## Viewer and Spreadsheet Examples
+
+**Viewer:** [Part with graphic PMI for GD&T](https://pages.nist.gov/CAD-PMI-Testing/graphical-pmi-viewer.html), [Box assembly](https://pages.nist.gov/CAD-PMI-Testing/step-file-viewer.html),  
+[Bracket assembly](https://pages.nist.gov/CAD-PMI-Testing/bracket.html), [Section view clipping planes](https://pages.nist.gov/CAD-PMI-Testing/section-views.html), 
+[AP209 finite element analysis models](https://pages.nist.gov/CAD-PMI-Testing/ap209-viewer.html) **Spreadsheet:** [Spreadsheet](https://www.nist.gov/document/sfa-semantic-pmi-spreadsheet) 
+generated from an AP242 file with reports for semantic PMI, graphic PMI, and validation properties.
 
 ## Download or Build
 
