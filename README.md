@@ -13,7 +13,7 @@ AP214, AP209, and other APs and EXPRESS schemas are supported.
 [AP209 finite element analysis models](https://pages.nist.gov/CAD-PMI-Testing/ap209-viewer.html), 
 [Spreadsheet](https://www.nist.gov/document/sfa-semantic-pmi-spreadsheet) with reports for semantic PMI, graphic PMI, and validation properties.
 
-See the [NIST website](https://www.nist.gov/services-resources/software/step-file-analyzer-and-viewer) for more details.
+See the [NIST website](https://www.nist.gov/services-resources/software/step-file-analyzer-and-viewer) for more information.
 
 ## Download or Build
 
