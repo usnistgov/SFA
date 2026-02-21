@@ -1,6 +1,4 @@
-# Build the STEP File Analyzer and Viewer from the source code
-
-## Build Prerequisites
+## Build SAF from the source code
 
 Microsoft Excel is required to generate spreadsheets.  CSV (comma-separated values) files will be generated if Excel is not 
 installed.  SFA is written in [Tcl](https://wiki.tcl-lang.org/) with some of the Tcl code based 
