@@ -20,7 +20,7 @@ See the [NIST website](https://www.nist.gov/services-resources/software/step-fil
 **Download** the NIST version of SFA in the Release directory above.  Click on the zip file (SFA-5.nn.zip) in the Release directory and then the 
 download icon to the right.  Read the README file.
 
-**Build** your own version of SFA from the source code and instructions in the 'source' directory above.
+**Build** your own version of SFA from the source code with instructions in the 'source' directory above.
 
 ## Disclaimers
 

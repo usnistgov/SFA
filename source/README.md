@@ -4,8 +4,8 @@ Microsoft Excel is required to generate spreadsheets.  CSV (comma-separated valu
 installed.  SFA is written in [Tcl](https://wiki.tcl-lang.org/) with some of the Tcl code based 
 on [CAWT](https://www.tcl3d.org/cawt/).
 
-To build SFA, first download the SFA repository with the green 'Code' button on the main SFA page to a directory on your computer.  The name of the 
-directory is not important.
+To build SFA, first download the entire SFA repository with the green 'Code' button on the main SFA page or all of the Tcl files here 
+to a directory on your computer.  The name of the directory is not important.
 
 **freewrap** wraps the SFA Tcl code to create an executable.
 
@@ -71,7 +71,7 @@ Each Tcl file contains multiple procedures.
 - sfa-unknown.tcl - process unknown entity types
 - sfa-uuid.tcl - process UUIDs
 - sfa-valprop.tcl - process validation properties
-- tclIndex - required Tcl code that lists all procedures in each Tcl file
+- tclIndex - required code that lists all procedures in each Tcl file
 - sfa-files.txt - freewrap input file that lists all of the above files
 - teapot.zip - additional Tcl packages
 
