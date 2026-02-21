@@ -4,7 +4,7 @@ Microsoft Excel is required to generate spreadsheets.  CSV (comma-separated valu
 installed.  SFA is written in [Tcl](https://wiki.tcl-lang.org/) with some of the Tcl code based 
 on [CAWT](https://www.tcl3d.org/cawt/).
 
-To build SFA, first download the SFA repository with the green 'Code' button on the previous page to a directory on your computer.  The name of the 
+To build SFA, first download the SFA repository with the green 'Code' button on the main SFA page to a directory on your computer.  The name of the 
 directory is not important.
 
 **freewrap** wraps the SFA Tcl code to create an executable.
