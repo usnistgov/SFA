@@ -10,7 +10,7 @@ directory is not important.
 **freewrap** wraps the SFA Tcl code to create an executable.
 
 - Download [freewrap651.zip](https://sourceforge.net/projects/freewrap/files/freewrap%206/freeWrap%206.51/).  More recent versions of freewrap will **not** work with wrapping SFA.
-- Extract freewrap.exe and put it in the same directory as the SFA files that were downloaded from the 'source' directory.
+- Extract freewrap.exe and put it in the same directory as the SFA files from the 'source' directory.
 
 Several Tcl packages not included in freewrap also need to be installed.
 
@@ -36,7 +36,7 @@ You must first install and run the NIST version of the SFA before running your o
 on two software packages (IFCsvr, stp2x3d) that are included with the Download version.  Some features are not available in the 
 User-built version including tooltips, unzipping compressed STEP files, and those related to the NIST CAD models.
 
-Click on Release directory above.  Extract STEP-File-Analyzer.exe from SFA-5.nn.zip, run it and process a STEP file to 
+Go to the Release directory.  Download SFA-5.nn.zip and extract STEP-File-Analyzer.exe.  Run it and process a STEP file to 
 install other software.  Now you can run your own version of SFA.
 
 ## Tcl files
