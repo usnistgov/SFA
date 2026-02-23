@@ -757,9 +757,9 @@ unexpected characters, and other problems with entity attributes.  Some errors m
 software and others from processing a STEP file.  Characters that are identified as illegal or
 unexpected might not be shown in a spreadsheet or in the Viewer.  See Help > Text Strings and Numbers
 
-Entities in the STEP file that are not in the STEP AP schema are reported as ignored entities. They
-can be written to the spreadsheet with the option on the More tab to Process unknown entity types.
-Attributes on known entities that refer to ignored entities will be blank.
+Entities in the STEP file that are not in the STEP AP schema are reported as unknown entity types.
+They can be written to the spreadsheet with the option on the More tab to Process unknown entity
+types.  Attributes on known entities that refer to unknown entities will be blank.
 
 If errors and warnings are reported, the number in parentheses is the line number in the STEP file
 where the error or warning was detected.  There should not be any of these types of syntax errors

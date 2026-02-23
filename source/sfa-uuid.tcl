@@ -50,9 +50,9 @@ proc uuidGetAttributes {totalUUID entsUUID} {
           if {[lsearch $allUUID $pid] == -1} {
             lappend allUUID $pid
           } else {
-            set msg "UUID is assigned to multiple identified_item.  Only one UUID entity is needed that lists all entities in identified_item.  Sort this column to find the other duplicate UUIDs."
-            lappend syntaxErr($ent) [list $entid identifier $msg]
+            set msg "Duplicate UUIDs are assigned to multiple identified_item"
             errorMsg " $msg" red
+            lappend syntaxErr($ent) [list $entid identifier "$msg.  Sort column B to find other duplicate UUIDs."]
           }
           set uuidstr $pid
           if {[string index $ent 0] == "v"} {
@@ -72,6 +72,7 @@ proc uuidGetAttributes {totalUUID entsUUID} {
           set items [split $line1 ")("]
           set iditem ""
           set iditemName ""
+          set iditemGeom ""
 
 # loop over all items
           foreach item $items {
@@ -83,28 +84,36 @@ proc uuidGetAttributes {totalUUID entsUUID} {
                 if {[info exists uuid($uuidEnt,[$e1 P21ID])]} {
                   set msg "Error: Multiple UUIDs are associated with the same identified_item"
                   errorMsg " $msg"
-                  lappend syntaxErr($ent) [list $entid identifier $msg]
-                  lappend syntaxErr($ent) [list $entid identified_item $msg]
+                  lappend syntaxErr($ent) [list $entid identifier "$msg.  Sort column C to find other duplicate items."]
+                  lappend syntaxErr($ent) [list $entid identified_item "$msg.  Sort column C to find other duplicate items."]
                 }
 
                 set uuid($uuidEnt,[$e1 P21ID]) $uuidstr
                 set okid 1
                 if {$iditem != ""} {
-                  if {[llength $items] == 1} {
-                    errorMsg " Some UUIDs are associated with multiple entities" red
-                    if {[info exists idRow($ent,$entid)]} {addCellComment $ent $idRow($ent,$entid) 3 "UUID is associated with multiple entities"}
-                  } else {
-                    set msg " Multiple lists of UUIDs are grouped together"
+                  if {[llength $items] > 1} {
+                    set msg " Multiple lists of identified_item are grouped together"
                     errorMsg $msg red
                     if {[info exists idRow($ent,$entid)]} {addCellComment $ent $idRow($ent,$entid) 3 [string trim $msg]}
                   }
                 }
 
+# identified item name
                 append iditem "[formatComplexEnt $uuidEnt] [$e1 P21ID]   "
                 lappend iditems($uuidEnt) $eid
                 set i 1
                 if {$uuidEnt == "dimensional_size" || $uuidEnt == "angular_size"} {set i 2}
-                append iditemName "[[[$e1 Attributes] Item [expr $i]] Value]   "
+                append iditemName "[[[$e1 Attributes] Item [expr $i]] Value]  "
+
+# identified item geometry
+                if {$uuidEnt == "advanced_face" || $uuidEnt == "edge_curve" || $uuidEnt == "trimmed_curve" || $uuidEnt == "vertex_point"} {
+                  set c 3
+                  if {$uuidEnt == "edge_curve"} {set c 4}
+                  if {$uuidEnt == "trimmed_curve" || $uuidEnt == "vertex_point"} {set c 2}
+                  set geomEnt [[[$e1 Attributes] Item [expr $c]] Value]
+                  append iditemGeom "[$geomEnt Type] [$geomEnt P21ID]  "
+                  lappend idgeoms([$geomEnt Type]) [$geomEnt P21ID]
+                }
 
                 incr uuidCount($uuidEnt)
                 if {$uuidEnt == "advanced_face"} {
@@ -148,14 +157,35 @@ proc uuidGetAttributes {totalUUID entsUUID} {
                 if {$ent == "hash_based_v5_uuid_attribute"} {set c 5}
                 if {$ent == "uuid_attribute_with_approximate_location"} {set c 6}
                 $cells($ent) Item $idRow($ent,$entid) $c $iditemName
-                incr heading($ent)
-                if {$heading($ent) == 1} {
+                incr heading1($ent)
+                if {$heading1($ent) == 1} {
                   $cells($ent) Item 3 $c "identified_item name"
                   addCellComment $ent 3 $c "name attribute of entities in column C"
                 }
               }
+
+# identified_item geometry
+              set iditemGeom [string trim $iditemGeom]
+              if {[string length $iditemGeom] > 0} {
+                set c 5
+                if {$ent == "hash_based_v5_uuid_attribute"} {set c 6}
+                if {$ent == "uuid_attribute_with_approximate_location"} {set c 7}
+                set idstr ""
+                foreach ename [lsort [array names idgeoms]] {
+                  set num ""
+                  if {[llength $idgeoms($ename)] > 1} {set num "([llength $idgeoms($ename)]) "}
+                  append idstr "$num[formatComplexEnt $ename] $idgeoms($ename)   "
+                }
+                $cells($ent) Item $idRow($ent,$entid) $c [string trim $idstr]
+                incr heading2($ent)
+                if {$heading2($ent) == 1} {
+                  $cells($ent) Item 3 $c "identified_item geometry"
+                  addCellComment $ent 3 $c "geometry type of entities in column C"
+                }
+              }
             }
             catch {unset iditems}
+            catch {unset idgeoms}
           }
 
 # errors
@@ -228,12 +258,14 @@ proc uuidSummary {} {
     errorMsg "Error generating UUID Summary worksheet: $emsg"
   }
 
-# color column for identified_item name on uuid_attribute entities
+# color column for identified_item name and geometry on uuid_attribute entities
   foreach ent [list v5_uuid_attribute v4_uuid_attribute hash_based_v5_uuid_attribute uuid_attribute_with_approximate_location] {
     if {[info exists row($ent)] && [info exists entCount($ent)]} {
       set c 4
       if {$ent == "hash_based_v5_uuid_attribute"} {set c 5}
       if {$ent == "uuid_attribute_with_approximate_location"} {set c 6}
+
+# name
       set val [[$cells($ent) Item 3 $c] Value]
       if {$val != ""} {
         set r $row($ent)
@@ -242,6 +274,20 @@ proc uuidSummary {} {
         [$range Interior] ColorIndex [expr 40]
         set range [$worksheet($ent) Range [cellRange 4 $c] [cellRange $r $c]]
         [[$range Borders] Item 12] Weight [expr 1]
+        $range HorizontalAlignment [expr -4131]
+      }
+
+# geometry
+      incr c
+      set val [[$cells($ent) Item 3 $c] Value]
+      if {$val != ""} {
+        set r $row($ent)
+        if {$r == 5004} {set r 5003}
+        set range [$worksheet($ent) Range [cellRange 3 $c] [cellRange $r $c]]
+        [$range Interior] ColorIndex [expr 40]
+        set range [$worksheet($ent) Range [cellRange 4 $c] [cellRange $r $c]]
+        [[$range Borders] Item 12] Weight [expr 1]
+        [[$range Borders] Item 7] Weight [expr 1]
       }
     }
   }

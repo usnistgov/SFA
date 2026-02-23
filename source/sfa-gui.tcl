@@ -1,5 +1,5 @@
 # SFA version
-proc getVersion {} {return 5.42}
+proc getVersion {} {return 5.43}
 
 # see proc installIFCsvr in sfa-proc.tcl for the IFCsvr version
 # see below (line 36) for the sfaVersion when IFCsvr was updated
@@ -409,7 +409,7 @@ proc guiGenerateTab {} {
   catch {tooltip::tooltip $buttons(BOM) "Generate a Bill of Materials (BOM) of parts and assemblies\n\nSee Help > Bill of Materials\nSee Examples > Bill of Materials"}
 
   catch {tooltip::tooltip $buttons(logFile) "Status tab text can be written to a Log file myfile-sfa.log\nUse F4 to open the Log file.\nSyntax Checker results are written to myfile-sfa-err.log\n\nAll text in the Status tab can be saved by right-clicking\nand selecting Save."}
-  catch {tooltip::tooltip $buttons(syntaxChecker) "Use this option to run the Syntax Checker when generating a Spreadsheet\nor View.  The Syntax Checker can also be run with function key F8.\n\nThis checks for basic syntax errors and warnings in the STEP file related to\nmissing or extra attributes, incompatible and unresolved\ entity references,\nselect value types, illegal and unexpected characters, and other problems\nwith entity attributes.\n\nSee Help > Syntax Checker\nSee Help > User Guide (section 7)"}
+  catch {tooltip::tooltip $buttons(syntaxChecker) "Use this option to run the Syntax Checker when generating a Spreadsheet\nor View.  The Syntax Checker can also be run with function key F8.\n\nThis checks for basic syntax errors and warnings in the STEP file related to\nmissing or extra attributes, incompatible and unresolved\ entity references,\nselect value types, illegal and unexpected characters, and other problems\nwith entity attributes.  Unknown entity types are also identified.\n\nSee Help > Syntax Checker\nSee Help > User Guide (section 7)"}
   catch {tooltip::tooltip $buttons(outputOpen) "If output files are not opened after they have been generated,\nthey can be opened with functions keys.  See Help > Function Keys\n\nIf possible, existing output files are always overwritten by new files.\nOutput files can be written to a user-defined directory (More tab)."}
   pack $foptOF -side top -anchor w -pady 0 -fill x
 
@@ -911,9 +911,9 @@ proc guiMoreTab {} {
     tooltip::tooltip $buttons(partCap)     "Generate capped surfaces for section view clipping planes.  Capped\nsurfaces might take a long time to generate or look wrong for parts\nin an assembly.  Sometimes capped surfaces are not generated.\nSee Help > Viewer > Other Features"
     tooltip::tooltip $buttons(brepAlt)     "If curved surfaces for Part Geometry look wrong even with\nQuality set to High, use an alternative B-rep geometry\nprocessing algorithm.  It will take longer to process the STEP\nfile and the resulting Viewer file will be larger."
     tooltip::tooltip $buttons(partNoGroup) "This option might create a very long list of parts names in the Viewer.\nIdentical parts have a underscore and number appended to their name.\nSee Help > Assemblies"
-    tooltip::tooltip $buttons(tessPartOld) "Process AP242 tessellated part geometry with the slower method in SFA < 5.10.\nIt is not recommended for assemblies or large STEP files."
+    tooltip::tooltip $buttons(tessPartOld) "Process AP242 tessellated part geometry with the previous slower method.\nIt is not recommended for assemblies or large STEP files."
     tooltip::tooltip $buttons(x3dSave)     "The X3D file can be shown in an X3D viewer or imported to other software.\nUse this option if an Internet connection is not available for the Viewer.\nSee Help > Viewer"
-    tooltip::tooltip $buttons(tessPartMesh) "This option only applies to the option above for Alternative processing\nof Tessellated geometry or with Polyhedral b-rep geometry.  It is not\nrecommended for large STEP files."
+    tooltip::tooltip $buttons(tessPartMesh) "This option only applies:\n- to the option above for 'Alternative processing of Tessellated part geometry'\n- if there is both B-rep and tessellated part geometry\n- to Polyhedral b-rep geometry\n\nIt is not recommended for large STEP files."
     tooltip::tooltip $buttons(PMISEMRND)   "Rounding values might result in a better match to graphic PMI shown in\nthe Viewer or to expected PMI in the NIST CAD models (FTC/STC 7, 8, 11).\n\nSee User Guide (section 6.1.3.1)\nSee Websites > Recommended Practice for\n   $recPracNames(pmi242), Section 5.4"
     tooltip::tooltip $buttons(SHOWALLPMI)  "The complete list of [expr {$pmiElementsMaxRows-3}] PMI Elements, including those that are not in the\nSTEP file, will be shown on the Semantic PMI Coverage worksheet.\n\nSee Help > Analyzer > PMI Coverage Analysis\nSee Help > User Guide (section 6.1.7)"
   }
@@ -998,8 +998,8 @@ proc guiMoreTab {} {
 proc guiWebsitesMenu {} {
   global Examples Websites
 
-  $Websites add command -label "STEP File Analyzer and Viewer" -command {openURL https://www.nist.gov/services-resources/software/step-file-analyzer-and-viewer}
-  $Websites add command -label "- on GitHub"                   -command {openURL https://github.com/usnistgov/SFA}
+  $Websites add command -label "STEP File Analyzer and Viewer" -command {openURL https://github.com/usnistgov/SFA}
+  $Websites add command -label "- on NIST"                     -command {openURL https://www.nist.gov/services-resources/software/step-file-analyzer-and-viewer}
   $Websites add command -label "- on CAx-IF"                   -command {openURL https://www.mbx-if.org/home/cax/resources/sfa/}
   $Websites add separator
   $Websites add command -label "CAx Interoperability Forum (CAx-IF)" -command {openURL https://www.mbx-if.org/home/cax/}

@@ -224,10 +224,7 @@ proc genExcel {{numFile 0}} {
     set openStage 2
     if {![info exists buttons]} {outputMsg "\n<Reading STEP file and checking for syntax errors>"}
     set objDesign [$objIFCsvr OpenDesign [file nativename $fname]]
-    if {![info exists buttons]} {
-      update idletasks
-      outputMsg "<Done>\n"
-    }
+    if {![info exists buttons]} {outputMsg "<Done>\n"}
 
 # CountEntities causes the error if the STEP file cannot be opened because objDesign is null
     set entityCount [$objDesign CountEntities "*"]
@@ -2693,7 +2690,7 @@ proc formatWorksheets {sheetSort sumRow inverseEnts} {
       if {[catch {
         set oksort 0
         if {($opt(xlSort) && $useXL && $thisEntType != "property_definition")} {set oksort 1}
-        if {$thisEntType == "descriptive_representation_item" && $okequiv} {set oksort 1}
+        if {$thisEntType == "descriptive_representation_item"} {set oksort 1}
         if {$spmiEnts($thisEntType) && $opt(PMISEM) && $stepAPreport} {set oksort 1}
         if {$gpmiEnts($thisEntType) && $opt(PMIGRF) && $stepAPreport} {set oksort 1}
         if {[string first "uuid_attribute" $thisEntType] != -1} {set oksort 1}

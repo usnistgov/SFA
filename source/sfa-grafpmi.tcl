@@ -1299,10 +1299,7 @@ proc gpmiAnnotationReport {objEntity} {
 
                   if {$okcm} {
                     if {$okmi == 0 && $opt(xlFormat) != "None"} {
-                      set msg "Syntax Error: For Saved Views, missing required reference to 'mapped_item' on [formatComplexEnt [$entDraughtingModel Type]] 'items'$spaces"
-                      append msg "($recPracNames(pmi242), Sec. 9.4.2.1, Fig. 96)"
-                      errorMsg $msg
-                      lappend syntaxErr([$entDraughtingModel Type]) [list [$entDraughtingModel P21ID] items $msg]
+                      errorMsg "For saved views, 'mapped_item' not found on [formatComplexEnt [$entDraughtingModel Type]] 'items'  ($recPracNames(pmi242), Sec. 9.4.2.1, Fig. 96)" red
                     }
                   }
                 }
