@@ -8,19 +8,19 @@ The STEP File Viewer supports parts, assemblies, graphic PMI for dimensions and 
 viewpoints, clipping planes, point clouds, composite rosettes, hole features, AP242 tessellated part geometry and polyhedral B-rep geometry, and 
 AP209 finite element models and results.
 
-The Analyzer generates a spreadsheet of all entity and attribute information; reports and analyzes any semantic PMI, 
-graphic PMI, and validation properties for conformance to recommended practices; and checks for basic STEP file format errors.
-
-See the [NIST website](https://www.nist.gov/services-resources/software/step-file-analyzer-and-viewer) for more information.
-
-**Viewer Examples:** [Part with graphic PMI for GD&T](https://pages.nist.gov/CAD-PMI-Testing/graphical-pmi-viewer.html), 
+Viewer Examples: [Part with graphic PMI for GD&T](https://pages.nist.gov/CAD-PMI-Testing/graphical-pmi-viewer.html), 
 [Box assembly](https://pages.nist.gov/CAD-PMI-Testing/step-file-viewer.html), 
 [Bracket assembly](https://pages.nist.gov/CAD-PMI-Testing/bracket.html), 
 [Section view clipping planes](https://pages.nist.gov/CAD-PMI-Testing/section-views.html), 
 [AP209 finite element analysis models](https://pages.nist.gov/CAD-PMI-Testing/ap209-viewer.html)
 
-**Spreadsheet Example:** [Spreadsheet](https://www.nist.gov/document/sfa-semantic-pmi-spreadsheet) with reports for semantic PMI, graphic PMI, and 
+The Analyzer generates a spreadsheet of all entity and attribute information; reports and analyzes any semantic PMI, 
+graphic PMI, and validation properties for conformance to recommended practices; and checks for basic STEP file format errors.
+
+Spreadsheet Example: [Spreadsheet](https://www.nist.gov/document/sfa-semantic-pmi-spreadsheet) with reports for semantic PMI, graphic PMI, and 
 validation properties.
+
+See the [NIST website](https://www.nist.gov/services-resources/software/step-file-analyzer-and-viewer) for more information.
 
 ## Download or Build
 
