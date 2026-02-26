@@ -1,8 +1,7 @@
-# STEP File Analyzer and Viewer
+# NIST STEP File Analyzer and Viewer
 
 The free [STEP File Analyzer and Viewer](https://www.nist.gov/services-resources/software/step-file-analyzer-and-viewer) (SFA) 
-generates a spreadsheet and visualization from an ISO 10303 Part 21 STEP file.  STEP AP242, AP203, AP214, AP209, and other APs and 
-EXPRESS schemas are supported.
+generates a spreadsheet and visualization from an ISO 10303 Part 21 STEP file.  STEP AP242, AP203, AP214, AP209, AP238, and other EXPRESS schemas are supported.
 
 The STEP File Viewer supports parts, assemblies, graphic PMI for dimensions and tolerances, datum targets, sketch geometry, supplemental geometry, 
 viewpoints, clipping planes, point clouds, composite rosettes, hole features, AP242 tessellated part geometry and polyhedral B-rep geometry, and 
