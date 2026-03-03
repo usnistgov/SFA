@@ -27,7 +27,8 @@ longer being updated.
 **Download** the most recent NIST version of SFA (SFA-5.nn.zip) in the Release directory above.  Also in the Release directory are the README file, Release Notes,
 User Guide, sample STEP files, and old versions of SFA.
 
-**Build** your own version of SFA from the source code and instructions in the 'source' directory above.
+**Build** your own version of SFA from the source code and instructions in the 'source' directory above.  There is no need to build your own version
+unless you are modifying the source code.
 
 ## Disclaimers
 
