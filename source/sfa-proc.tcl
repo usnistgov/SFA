@@ -1358,11 +1358,10 @@ proc installIFCsvr {{exit 0}} {
     } else {
       outputMsg " "
       errorMsg "To install the IFCsvr toolkit you must first run the NIST version of the STEP File Analyzer and Viewer."
-      outputMsg "- Download the zip file on the software web page.
-- Follow the instructions to run the software.
-- The IFCsvr toolkit will be installed when the NIST STEP File Analyzer and Viewer is run."
+      outputMsg "- Download SFA-5.nn.zip in the Release directory on GitHub.
+- The IFCsvr toolkit will be installed when STEP-File-Analyzer.exe from the zip file is run.
       after 1000
-      openURL https://www.nist.gov/services-resources/software/step-file-analyzer-and-viewer
+      openURL https://github.com/usnistgov/SFA
     }
   }
 }

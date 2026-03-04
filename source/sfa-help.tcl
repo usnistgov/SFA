@@ -3,11 +3,7 @@ proc guiHelpMenu {} {
   global developer Examples filesProcessed Help ifcsvrVer mytemp opt scriptName
 
   $Help add command -label "User Guide"    -command {openUserGuide}
-  $Help add command -label "Release Notes" -command {
-    openURL https://github.com/usnistgov/SFA/tree/master/Release
-    outputMsg "\nOn the GitHub webpage, click on the file name, then on the download symbol to the right."
-    .tnb select .tnb.status
-  }
+  $Help add command -label "Release Notes" -command {openURL https://github.com/usnistgov/SFA/tree/master/Release}
 
   $Help add separator
   $Help add command -label "Overview" -command {
@@ -1066,7 +1062,7 @@ source of the software."
   .tnb select .tnb.status
   }
 
-  $Help add command -label "NIST Disclaimer" -command {openURL https://www.nist.gov/pao/nist-disclaimer-statement}
+  $Help add command -label "NIST Disclaimer" -command {openURL https://www.nist.gov/copyrights-disclaimers}
   $Help add command -label "About" -command {
     outputMsg "\nSTEP File Analyzer and Viewer ---------------------------------------------------------------------" blue
     set sysvar "Version: [getVersion] ([string trim [clock format $progtime -format "%e %b %Y"]])"

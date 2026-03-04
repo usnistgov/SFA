@@ -2243,7 +2243,7 @@ proc sumAddWorksheet {} {
 # name and link to program website that generated the spreadsheet
     $cells($sum) Item [expr {$row($sum)+2}] 1 "NIST STEP File Analyzer and Viewer [getVersion]"
     set anchor [$worksheet($sum) Range [cellRange [expr {$row($sum)+2}] 1]]
-    [$worksheet($sum) Hyperlinks] Add $anchor [join "https://www.nist.gov/services-resources/software/step-file-analyzer-and-viewer"] [join ""] \
+    [$worksheet($sum) Hyperlinks] Add $anchor [join "https://github.com/usnistgov/SFA"] [join ""] \
       [join "Link to NIST STEP File Analyzer and Viewer"]
     $cells($sum) Item [expr {$row($sum)+3}] 1 "[clock format [clock seconds]]"
 
@@ -2601,6 +2601,7 @@ proc formatWorksheets {sheetSort sumRow inverseEnts} {
           [$worksheet($thisEntType) Columns] AutoFit
           [$worksheet($thisEntType) Rows] AutoFit
           addCellComment "descriptive_representation_item" 3 4 "The string interprets the characters '\\w' as ' | ' and '\\n' as a new line.  Unicode characters not supported by Windows fonts appear as a question mark.  When this column is sorted, the row height might need to be increased.  See Recommended Practice for PMI Unicode String Specification."
+          set pmiStartCol($thisEntType) 4
           incr rancol
         }
       }
@@ -2652,7 +2653,7 @@ proc formatWorksheets {sheetSort sumRow inverseEnts} {
       }
       if {!$okinv && [info exists pmiStartCol($thisEntType)]} {set c [expr {$pmiStartCol($thisEntType)-1}]}
       if {$thisEntType == "property_definition" || $thisEntType == "material_property"} {set c 4}
-      if {$c > 8} {set c 8}
+      if {$c > 6} {set c 6}
       if {$c == 1} {set c 2}
       set range [$worksheet($thisEntType) Range [cellRange 1 1] [cellRange 1 $c]]
       $range MergeCells [expr 1]

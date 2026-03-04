@@ -1225,11 +1225,6 @@ proc spmiGeotolReport {objEntity} {
                         set col($gt) [expr {$pmiStartCol($gt)+2}]
                         set colName "Target Geometry[format "%c" 10](Sec. 6.6.1, 6.6.2)"
                         set objValue $datumTargetGeom
-                        if {$ov == "area" && [string first "advanced_face" $datumTargetGeom] == -1} {
-                          set msg "Syntax Error: [string totitle $ov] datum target defined by '[lindex [split $datumTargetGeom " "] 0]' should use an 'advanced_face'.$spaces\($recPracNames(pmi242), Sec. 6.6.2, Fig. 44)"
-                          errorMsg $msg
-                          lappend syntaxErr([$gtEntity Type]) [list [$gtEntity P21ID] "Target Geometry" $msg]
-                        }
                       } elseif {$ov == "curve" || $ov == "area"} {
                         set msg "Syntax Error: Missing [$gtEntity Type] on GISU 'definition' attribute for '$ov' target geometry.$spaces\($recPracNames(pmi242), Sec. 6.6.2)"
                         errorMsg $msg

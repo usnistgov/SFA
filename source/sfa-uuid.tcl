@@ -1,7 +1,7 @@
 # add UUIDs from uuid_attribute entities (AP242 Edition >= 4)
 # identified_item attribute is processed here because SFA (IFCsvr) cannot process LIST of LIST, see badAttributes variable in sfa-data.tcl
 proc uuidGetAttributes {totalUUID entsUUID} {
-  global cells idRow localName syntaxErr uuid uuidCount uuidEnts
+  global cells idRow localName pmiStartCol syntaxErr uuid uuidCount uuidEnts
   global objDesign
 
   outputMsg "\nProcessing UUID attributes" blue
@@ -113,6 +113,11 @@ proc uuidGetAttributes {totalUUID entsUUID} {
                   set geomEnt [[[$e1 Attributes] Item [expr $c]] Value]
                   append iditemGeom "[$geomEnt Type] [$geomEnt P21ID]  "
                   lappend idgeoms([$geomEnt Type]) [$geomEnt P21ID]
+                } elseif {$uuidEnt == "geometric_curve_set"} {
+                  foreach e2 [[[$e1 Attributes] Item [expr 2]] Value] {
+                    append iditemGeom "[$e2 Type] [$e2 P21ID]  "
+                    lappend idgeoms([$e2 Type]) [$e2 P21ID]
+                  }
                 }
 
                 incr uuidCount($uuidEnt)
@@ -161,6 +166,7 @@ proc uuidGetAttributes {totalUUID entsUUID} {
                 if {$heading1($ent) == 1} {
                   $cells($ent) Item 3 $c "identified_item name"
                   addCellComment $ent 3 $c "name attribute of entities in column C"
+                  set pmiStartCol($ent) $c
                 }
               }
 
@@ -297,7 +303,7 @@ proc uuidSummary {} {
 # -------------------------------------------------------------------------------------------------
 # add UUIDs with uuid_attribute (idType=2) OR add worksheets for Part 21 edition 3 sections (idType=1)
 proc uuidReportAttributes {idType {uuidEnt ""}} {
-  global cells entCount entName fileSumRow idRow legendColor nistName p21e3Section spmiSumRowID sumHeaderRow uuid worksheet worksheets
+  global cells entCount entName fileSumRow idRow legendColor nistName p21e3Section pmiStartCol spmiSumRowID sumHeaderRow uuid worksheet worksheets
   global objDesign
 
 # add UUIDs with uuid_attribute
@@ -323,6 +329,7 @@ proc uuidReportAttributes {idType {uuidEnt ""}} {
             set range [$worksheet($anchorEnt) Range [cellRange $ur $ucol($anchorEnt)]]
             [$range Interior] ColorIndex [expr 40]
             catch {foreach i {8 9} {[[$range Borders] Item $i] Weight [expr 1]}}
+            if {![info exists pmiStartCol($anchorEnt)]} {set pmiStartCol($anchorEnt) $ucol($anchorEnt)}
           }
 
           if {[info exists spmiSumRowID($anchorID)]} {
