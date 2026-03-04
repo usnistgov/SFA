@@ -1,11 +1,7 @@
 ## Build SFA from the source code
 
-Microsoft Excel is required to generate spreadsheets.  CSV (comma-separated values) files will be generated if Excel is not 
-installed.  SFA is written in [Tcl](https://wiki.tcl-lang.org/) with some of the Tcl code based 
-on [CAWT](https://www.tcl3d.org/cawt/).
-
-To build SFA, first download the entire SFA repository with the green 'Code' button on the main SFA page or all of the Tcl files here 
-to a directory on your computer.  The name of the directory is not important.
+Build your own version of SFA if you want to modify the source code.  To build SFA, first download the entire SFA repository with the 
+green 'Code' button on the main SFA page or all of the Tcl files here to a directory on your computer.  The name of the directory is not important.
 
 **freewrap** wraps the SFA Tcl code to create an executable.
 
@@ -33,15 +29,15 @@ Optionally build the command-line version:
 ## Run the User-built version
 
 You must first install and run the NIST version of the SFA before running your own version.  SFA depends 
-on two software packages (IFCsvr, stp2x3d) that are included with the Download version.  Some features are not available in the 
+on two software packages (IFCsvr, stp2x3d) that are included with the NIST version.  Some features are not available in the 
 User-built version including tooltips, unzipping compressed STEP files, and those related to the NIST CAD models.
 
 Go to the Release directory.  Download SFA-5.nn.zip and extract STEP-File-Analyzer.exe.  Run it and process a STEP file to 
-install other software.  Now you can run your own version of SFA.
+install the other software.  Now you can run your own version of SFA.
 
 ## Tcl files
 
-Each Tcl file contains multiple procedures.
+SFA is written in [Tcl](https://wiki.tcl-lang.org/) with some of the Tcl code based on [CAWT](https://www.tcl3d.org/cawt/).
 
 - sfa.tcl - main program
 - sfa-cl.tcl - main program for command-line version
@@ -51,8 +47,8 @@ Each Tcl file contains multiple procedures.
 - sfa-ent.tcl - write STEP entity to worksheet or CSV file
 - sfa-fea.tcl - process AP209 files
 - sfa-gen.tcl - generate a spreadsheet
-- sfa-geom.tcl- process associated geometry
-- sfa-geotol.tcl- process geometric tolerances
+- sfa-geom.tcl - process associated geometry
+- sfa-geotol.tcl - process geometric tolerances
 - sfa-grafpmi.tcl - process graphic PMI and tessellated geometry
 - sfa-grafx3d.tcl - generate viewer X3D graphics
 - sfa-gui.tcl - generate user interface
@@ -71,10 +67,11 @@ Each Tcl file contains multiple procedures.
 - sfa-unknown.tcl - process unknown entity types
 - sfa-uuid.tcl - process UUIDs
 - sfa-valprop.tcl - process validation properties
+
 - tclIndex - required code that lists all procedures in each Tcl file
 - sfa-files.txt - freewrap input file that lists all of the above files
 - teapot.zip - additional Tcl packages
 
 ## Disclaimers
 
-[NIST Disclaimer](https://www.nist.gov/pao/nist-disclaimer-statement)
+[NIST Disclaimer](https://www.nist.gov/copyrights-disclaimers)
