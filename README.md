@@ -32,4 +32,4 @@ unless you are modifying the source code.
 
 ## Disclaimers
 
-[NIST Disclaimer](https://www.nist.gov/pao/nist-disclaimer-statement)
+[NIST Disclaimer](https://www.nist.gov/copyrights-disclaimers)
