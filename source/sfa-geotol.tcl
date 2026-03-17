@@ -20,8 +20,9 @@ proc spmiGeotolStart {entType} {
   set df2 [list composite_shape_aspect_and_datum_feature name description product_definitional]
   set df3 [list composite_group_shape_aspect_and_datum_feature name product_definitional]
   set df4 [list datum_feature_and_derived_shape_aspect name product_definitional]
-  set df5 [list dimensional_size_with_datum_feature name product_definitional]
-  set df6 [list composite_unit_shape_aspect_and_dimensional_size_with_datum_feature name product_definitional]
+  set df5 [list dimensional_location_with_datum_feature name product_definitional]
+  set df6 [list dimensional_size_with_datum_feature name product_definitional]
+  set df7 [list composite_unit_shape_aspect_and_dimensional_size_with_datum_feature name product_definitional]
 
   set dr  [list datum_reference precedence referenced_datum $dtm $cdt]
   set drm [list datum_reference_modifier_with_value modifier_type modifier_value $len1 $len2 $len3]
@@ -34,8 +35,9 @@ proc spmiGeotolStart {entType} {
   set PMIP(composite_shape_aspect_and_datum_feature)       $df2
   set PMIP(composite_group_shape_aspect_and_datum_feature) $df3
   set PMIP(datum_feature_and_derived_shape_aspect)         $df4
-  set PMIP(dimensional_size_with_datum_feature)            $df5
-  set PMIP(composite_unit_shape_aspect_and_dimensional_size_with_datum_feature) $df6
+  set PMIP(dimensional_location_with_datum_feature)        $df5
+  set PMIP(dimensional_size_with_datum_feature)            $df6
+  set PMIP(composite_unit_shape_aspect_and_dimensional_size_with_datum_feature) $df7
 
   set PMIP(datum_reference)             $dr
   set PMIP(datum_reference_element)     $dre
@@ -51,7 +53,7 @@ proc spmiGeotolStart {entType} {
   foreach tol $tolNames {set PMIP($tol) \
     [list $tol name magnitude $len1 $len2 $len3 $len4 \
       toleranced_shape_aspect \
-        $df1 $df2 $df3 $df4 $df5 $df6 [list centre_of_symmetry name description] [list centre_of_symmetry_and_datum_feature name description] \
+        $df1 $df2 $df3 $df4 $df5 $df6 $df7 [list centre_of_symmetry name description] [list centre_of_symmetry_and_datum_feature name description] \
         [list composite_group_shape_aspect name description] [list composite_shape_aspect name] \
         [list composite_unit_shape_aspect name] [list composite_unit_shape_aspect_and_datum_feature name] \
         [list all_around_shape_aspect name] [list between_shape_aspect name] [list shape_aspect name] [list product_definition_shape name] \
@@ -126,7 +128,7 @@ proc spmiGeotolStart {entType} {
 proc spmiGeotolReport {objEntity} {
   global all_around all_over assocGeom ATR badAttributes between cells col datsys datumCompartment datumFeature datumModValue datumTargetDesc
   global datumSymbol datumSystem datumSystemPDS dim datumEntType datumGeom datumIDs datumTarget datumTargetType datumTargetView dimrep dimtolEntType
-  global dimtolGeom driPropID entLevel ent entAttrList entCount equivUnicodeString gt gtEntity head1 magQualified magType multipleDatumFeature
+  global dimtolGeom driPropID entLevel ent entAttrList entCount equivUnicodeString gen gt gtEntity head1 magQualified magType multipleDatumFeature
   global nistName objID opt pmiCol pmiHeading pmiModifiers pmiStartCol pmiUnicode propDefIDs ptz recPracNames spaces spmiEnts spmiID spmiIDRow
   global spmiRow spmiTypesPerFile stepAP syntaxErr tolNames tolStandard tolStandards tolval tzf1 tzfNames tzWithDatum worksheet
   global objDesign
@@ -1196,26 +1198,43 @@ proc spmiGeotolReport {objEntity} {
                         }
                       }
 
-# datum target geometry
+# datum target geometry, check GISU or IIRU
                     } elseif {[$gtEntity Type] == "datum_target"} {
-                      set e1s [$gtEntity GetUsedIn [string trim geometric_item_specific_usage] [string trim definition]]
-                      ::tcom::foreach e1 $e1s {
-                        ::tcom::foreach a1 [$e1 Attributes] {
-                          if {[$a1 Name] == "identified_item"} {
-                            set e2 [$a1 Value]
+                      set usages [list geometric_item_specific_usage item_identified_representation_usage]
+                      foreach usage $usages {
+                        set e1s [$gtEntity GetUsedIn [string trim $usage] [string trim definition]]
+                        ::tcom::foreach e1 $e1s {
+                          if {[$e1 Type] == $usage} {
+                            set usageEnt [$e1 Type]
+                            ::tcom::foreach a1 [$e1 Attributes] {
+                              if {[$a1 Name] == "identified_item"} {
+                                set e2 [$a1 Value]
 
-# save datum target geometric entity for view
-                            if {[catch {
-                              if {![info exists datumTargetGeom]} {
-                                set datumTargetGeom "[$e2 Type] [$e2 P21ID]"
-                              } else {
-                                append datumTargetGeom " [$e2 P21ID]"
+# save datum target geometric entity for view, single or multiple entities
+                                if {[catch {
+                                  if {![info exists datumTargetGeom]} {
+                                    set datumTargetGeom "[$e2 Type] [$e2 P21ID]"
+                                  } else {
+                                    append datumTargetGeom " [$e2 P21ID]"
+                                  }
+                                  set datumTargetView([$gtEntity P21ID]) [list $datumTargetType $e2]
+                                }]} {
+                                  ::tcom::foreach e3 $e2 {
+                                    if {![info exists datumTargetGeom]} {
+                                      set datumTargetGeom "[$e3 Type] [$e3 P21ID]"
+                                    } else {
+                                      append datumTargetGeom " [$e3 P21ID]"
+                                    }
+                                    set datumTargetView([$gtEntity P21ID]) [list $datumTargetType $e3]
+                                  }
+                                  if {$gen(View)} {errorMsg "Multiple geometric entities for datum target geometry are not supported in the Viewer" red}
+                                  if {$usageEnt == "geometric_item_specific_usage"} {
+                                    set msg "Syntax Error: Use IIRU instead of GISU if there are multiple 'identified_item' related to datum_target.$spaces\($recPracNames(pmi242), Sec. 6.6.2, Fig. 44)"
+                                    errorMsg $msg
+                                    lappend syntaxErr($usageEnt) [list [$e1 P21ID] "identified_item" $msg]
+                                  }
+                                }
                               }
-                              set datumTargetView([$gtEntity P21ID]) [list $datumTargetType $e2]
-                            }]} {
-                              set msg "Syntax Error: Invalid 'identified_item' attribute on geometric_item_specific_usage related to datum_target.$spaces\($recPracNames(pmi242), Sec. 6.6.2, Fig. 44)"
-                              errorMsg $msg
-                              lappend syntaxErr(geometric_item_specific_usage) [list [$e1 P21ID] "identified_item" $msg]
                             }
                           }
                         }
@@ -1226,7 +1245,7 @@ proc spmiGeotolReport {objEntity} {
                         set colName "Target Geometry[format "%c" 10](Sec. 6.6.1, 6.6.2)"
                         set objValue $datumTargetGeom
                       } elseif {$ov == "curve" || $ov == "area"} {
-                        set msg "Syntax Error: Missing [$gtEntity Type] on GISU 'definition' attribute for '$ov' target geometry.$spaces\($recPracNames(pmi242), Sec. 6.6.2)"
+                        set msg "Syntax Error: Missing [$gtEntity Type] on GISU or IIRU 'definition' attribute for '$ov' target geometry.$spaces\($recPracNames(pmi242), Sec. 6.6.2)"
                         errorMsg $msg
                         lappend syntaxErr(datum_target) [list $objID "Datum Target" $msg]
                       }
@@ -1495,7 +1514,10 @@ proc spmiGeotolReport {objEntity} {
                     } elseif {$ov == "circular"} {
                       regsub -all "/ " $val "/ $pmiUnicode(diameter)" nval
                       $cells($gt) Item $r $c $nval
+
+# everything else
                     } elseif {$ov != "rectangular" && $ov != "cylindrical" && $ov != "spherical" && \
+                              [string first "dimensional_location_with_datum_feature" $gt] == -1 && \
                               [string first "dimensional_size_with_datum_feature" $gt] == -1} {
                       $cells($gt) Item $r $c "$val[format "%c" 10]$ov"
                     }

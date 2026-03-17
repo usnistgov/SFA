@@ -2023,6 +2023,7 @@ proc addHeaderWorksheet {numFile fname} {
 
 # set caxifVendor based on CAx-IF vendor notation used in testing rounds, use for app if appropriate
           set caxifVendor [setCAXIFvendor]
+          if {[string first "Spatial" $caxifVendor] == 0} {set app1 "Spatial"}
           if {$caxifVendor != ""} {
             if {[string first [lindex [split $caxifVendor " "] 0] $app1] != -1} {
               if {[string length $caxifVendor] > [string length $app1]} {set app1 $caxifVendor}

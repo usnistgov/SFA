@@ -1676,7 +1676,7 @@ proc x3dDatumTarget {} {
 
         default {
           set target ""
-          errorMsg " [string totitle $dttype] datum target$feat defined by '$shape' is not supported."
+          errorMsg " [string totitle $dttype] datum target$feat defined by '$shape' is not supported." red
         }
       }
 

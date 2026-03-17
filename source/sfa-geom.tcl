@@ -280,7 +280,8 @@ proc reportAssocGeom {entType {row ""}} {
   set str ""
   set dimRepeat 0
   set dimtol 0
-  if {[string first "dimensional_" $entType] != -1 || [string first "angular_" $entType] != -1} {
+  if {([string first "dimensional_" $entType] != -1 || [string first "angular_" $entType] != -1) && 
+       [string first "with_datum_feature" $entType] == -1} {
     set dimtol 1
 
 # set divider based on cylinders, assume two half cylinders, but different if dim is a radius because cylinders are not closed

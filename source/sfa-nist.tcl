@@ -278,6 +278,19 @@ proc nistCheckExpectedPMI {val entstr epmiName} {
     }
   }
 
+# ignore datum feature on a dimension, except for jpmi-trim model
+  if {$entstr == "dimensional_characteristic_representation" && $epmiName != "jpmi-trim"} {
+    set c1 [string first "\u25BD" $val]
+    if {$c1 != -1} {
+      set c2 [string first "\u005B" $val]
+      if {$c2 != -1} {
+        set idx "df[string tolower [string index $val $c2+1]]"
+        set pmiException($idx) 1
+      }
+      set val [string range $val 0 $c1-5]
+    }
+  }
+
 # remove some items for NIST test cases typically found in CATIA files
 # circle (I), independency
   if {[string first "nist" $epmiName] == 0} {
@@ -292,11 +305,6 @@ proc nistCheckExpectedPMI {val entstr epmiName} {
       regsub "<CF>" $val "" val
       set idx "Continuous feature"
       set pmiException($idx) 1
-    }
-# datum feature on a dimension
-    if {$entstr == "dimensional_characteristic_representation"} {
-      set c1 [string first "\u25BD" $val]
-      if {$c1 != -1} {set val [string range $val 0 $c1-5]}
     }
   }
 
@@ -349,9 +357,9 @@ proc nistCheckExpectedPMI {val entstr epmiName} {
     lappend nistPMIfound $val
     set pmiMatch 1
 
-# exceptions
-    foreach idx {dfa dfc dff dfj dfk dfl} {
-      if {[info exists pmiException($idx)]} {
+# datum feature exceptions
+    foreach idx [array names pmiException] {
+      if {[string range $idx 0 1] == "df"} {
         set pmiSimilar "Datum feature [string toupper [string index $idx 2]] is ignored"
         set pmiMatch 0.99
       }

@@ -626,41 +626,44 @@ proc spmiDimtolReport {objEntity} {
 
                   "*dimensional_location* name" {
 # dimensional_location.name, add nothing to dimrep as there is no symbol associated with the location
-                    set ok 1
-                    set col($dt) $pmiStartCol($dt)
-                    set colName "dimension name[format "%c" 10](Sec. 5.1.1, 5.1.5)"
-                    set dimtolEnt $objEntity
-                    set dimtolType [$dimtolEnt Type]
-                    set dimtolID   [$dimtolEnt P21ID]
-                    set dimtolAttr [$dimtolEnt Attributes]
-                    set dimtolPM   [$dimtolEnt GetUsedIn [string trim plus_minus_tolerance] [string trim toleranced_dimension]]
+                    incr numDimName
+                    if {[string first "with_datum_feature" $ent1] == -1 || $numDimName == 2} {
+                      set ok 1
+                      set col($dt) $pmiStartCol($dt)
+                      set colName "dimension name[format "%c" 10](Sec. 5.1.1, 5.1.5)"
+                      set dimtolEnt $objEntity
+                      set dimtolType [$dimtolEnt Type]
+                      set dimtolID   [$dimtolEnt P21ID]
+                      set dimtolAttr [$dimtolEnt Attributes]
+                      set dimtolPM   [$dimtolEnt GetUsedIn [string trim plus_minus_tolerance] [string trim toleranced_dimension]]
 
-                    set dimrepID $objID
-                    set dim(symbol) ""
-                    set dimrep($dimrepID) ""
-                    set dimName $ov
+                      set dimrepID $objID
+                      set dim(symbol) ""
+                      set dimrep($dimrepID) ""
+                      set dimName $ov
 
-                    lappend spmiTypesPerFile "dimensional location"
-                    if {$nistName != ""} {lappend spmiTypesPerFile "dimensions"}
+                      lappend spmiTypesPerFile "dimensional location"
+                      if {$nistName != ""} {lappend spmiTypesPerFile "dimensions"}
 
-                    if {$dimName == "curved distance" || $dimName == "linear distance"} {
-                      lappend spmiTypesPerFile $dimName
-                    } elseif {[string first "inner" $dimName] != -1 || [string first "outer" $dimName] != -1} {
-                      lappend spmiTypesPerFile "linear distance inner/outer"
-                    }
-                    if {[string first "directed" $ent1] != -1} {
-                      set dimDirected 1
-                      lappend spmiTypesPerFile "directed dimension"
-                    }
+                      if {$dimName == "curved distance" || $dimName == "linear distance"} {
+                        lappend spmiTypesPerFile $dimName
+                      } elseif {[string first "inner" $dimName] != -1 || [string first "outer" $dimName] != -1} {
+                        lappend spmiTypesPerFile "linear distance inner/outer"
+                      }
+                      if {[string first "directed" $ent1] != -1} {
+                        set dimDirected 1
+                        lappend spmiTypesPerFile "directed dimension"
+                      }
 
 # syntax check for correct dimensional_location.name attribute from the RP
-                    if {$dimName == "" || ($dimName != "curved distance" && [string first "linear distance" $dimName] == -1)} {
-                      set errstr "Invalid"
-                      if {$dimName == ""} {set errstr "Missing"}
-                      set msg "Syntax Error: $errstr 'name' attribute on [lindex $ent1 0].$spaces\($recPracNames(pmi242), Sec. 5.1.1, Tables 1 and 2)"
-                      errorMsg $msg
-                      lappend syntaxErr([lindex [split $ent1 " "] 0]) [list $objID [lindex [split $ent1 " "] 1] $msg]
-                      set invalid $msg
+                      if {$dimName == "" || ($dimName != "curved distance" && [string first "linear distance" $dimName] == -1)} {
+                        set errstr "Invalid"
+                        if {$dimName == ""} {set errstr "Missing"}
+                        set msg "Syntax Error: $errstr 'name' attribute on [lindex $ent1 0].$spaces\($recPracNames(pmi242), Sec. 5.1.1, Tables 1 and 2)"
+                        errorMsg $msg
+                        lappend syntaxErr([lindex [split $ent1 " "] 0]) [list $objID [lindex [split $ent1 " "] 1] $msg]
+                        set invalid $msg
+                      }
                     }
                   }
 
