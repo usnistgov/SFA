@@ -5,7 +5,7 @@ generates a spreadsheet and visualization from an ISO 10303 Part 21 STEP file.  
 
 The STEP File Viewer supports parts, assemblies, graphic PMI for dimensions and tolerances, datum targets, sketch geometry, supplemental geometry, 
 viewpoints, clipping planes, point clouds, composite rosettes, hole features, AP242 tessellated part geometry and polyhedral B-rep geometry, and 
-AP209 finite element models and results.
+AP209 finite element models and results.  AP242 XML files (.stpx) are also supported in the Viewer.
 
 Viewer Examples: [Part with graphic PMI for GD&T](https://pages.nist.gov/CAD-PMI-Testing/graphical-pmi-viewer.html), 
 [Box assembly](https://pages.nist.gov/CAD-PMI-Testing/step-file-viewer.html), 
