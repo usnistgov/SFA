@@ -622,6 +622,8 @@ proc spmiDimtolReport {objEntity} {
                       lappend syntaxErr([lindex [split $ent1 " "] 0]) [list $objID [lindex [split $ent1 " "] 1] $msg]
                       set invalid $msg
                     }
+
+                    if {[string first "_with_datum_feature" $ent1] != -1} {errorMsg "Using [lindex [split $ent1 " "] 0] is not recommended.  Use two entities 'dimensional_size' and 'datum_feature' instead."}
                   }
 
                   "*dimensional_location* name" {
@@ -665,6 +667,8 @@ proc spmiDimtolReport {objEntity} {
                         set invalid $msg
                       }
                     }
+
+                    if {[string first "_with_datum_feature" $ent1] != -1} {errorMsg "Using [lindex [split $ent1 " "] 0] is not recommended.  Use two entities 'dimensional_location' and 'datum_feature' instead."}
                   }
 
                   "shape_dimension_representation name" {
@@ -1040,7 +1044,7 @@ proc spmiDimtolReport {objEntity} {
           if {[info exists equivUnicodeString($driPropID($dimtolID))]} {
             set eus $equivUnicodeString($driPropID($dimtolID))
             if {$eus != ""} {
-              if {![info exists pmiColumns(eusdim)]} {set pmiColumns(eusdim) [expr {$pmiStartCol($dt)+14}]}
+              if {![info exists pmiColumns(eusdim)]} {set pmiColumns(eusdim) [expr {$pmiStartCol($dt)+15}]}
               set colName "Equivalent Unicode String[format "%c" 10](Sec. 10.1.3.3)"
               set c [string index [cellRange 1 $pmiColumns(eusdim)] 0]
               set r $spmiIDRow($dt,$spmiID)

@@ -1,8 +1,8 @@
 # This is the main routine for the STEP File Analyzer and Viewer command-line version
 
+# Current release and source code - https://github.com/usnistgov/SFA
 # Website - https://www.nist.gov/services-resources/software/step-file-analyzer-and-viewer
-# NIST Disclaimer - https://www.nist.gov/disclaimer
-# Source code - https://github.com/usnistgov/SFA
+# NIST Disclaimer - https://www.nist.gov/copyrights-disclaimers
 
 global env
 
@@ -57,7 +57,7 @@ catch {package require vfs::zip}
 # no arguments, no file, print help, and exit
 set helpText "\nUsage: sfa-cl.exe myfile.stp \{\[view\]|\[syntax\]|\[tree\]|\[stats\]} \[noopen\] \[nolog\] \[csv\] \[file\]
 
-Optional command line settings:
+Optional command line settings override settings last used in the GUI version:
   view    Only run the Viewer
   syntax  Only run the Syntax Checker
   tree    Only run the Tree View
@@ -68,18 +68,15 @@ Optional command line settings:
   file    Name of custom options file, e.g., C:/mydir/myoptions.dat  This file should
           be similar to STEP-File-Analyzer-options.dat in your home directory.
 
- Most options last used in the GUI version are used in this program unless the 'file'
- option is used.  If 'myfile.stp' has spaces, put double quotes around the file name
- \"C:/my dir/my file.stp\"
+ If 'myfile.stp' has spaces, put double quotes around the file name \"C:/my dir/my file.stp\"
 
- You should run the GUI version of the software first.  If not already installed, the
- IFCsvr toolkit will be installed the first time this software is run.
-
- When the STEP file is processed, syntax errors and warnings might appear at the
- beginning of the output.  Existing Spreadsheets and Viewer files are always overwritten.
+ If not already installed, the IFCsvr toolkit will be installed the first time this
+ software is run.  When a STEP file is processed, syntax errors and warnings might
+ appear at the beginning of the output.  Existing Spreadsheets and Viewer files are
+ always overwritten.
 
 Disclaimers
- NIST Disclaimer: https://www.nist.gov/disclaimer
+ NIST Disclaimer: https://www.nist.gov/copyrights-disclaimers
 
  This software uses IFCsvr, Microsoft Excel, and software based on Open Cascade that
  are covered by their own Software License Agreements.  If you are using this software
@@ -91,9 +88,8 @@ Credits
    IFCsvr ActiveX Component, Copyright \u00A9 1999, 2005 SECOM Co., Ltd. All Rights Reserved
    IFCsvr has been modified by NIST to include STEP schemas
    The license agreement can be found in C:\\Program Files (x86)\\IFCsvrR300\\doc
-- Viewer for b-rep part geometry
-   STEP to X3D Translator (stp2x3d)
-   Developed by Soonjo Kwon, former NIST Associate
+- Viewer for B-rep and tessellated part geometry
+   STEP to X3D Translator (stp2x3d) developed by Soonjo Kwon, former NIST Associate
    https://www.nist.gov/services-resources/software/step-x3d-translator
 - Some Tcl code is based on CAWT https://www.tcl3d.org/cawt/"
 
@@ -126,6 +122,9 @@ initData
 initDataInverses
 getOpenPrograms
 append spaces "    "
+
+# check for AP242 XML file
+if {[string first ".stpx" [string tolower $localName]] != -1} {set ap242XML 1}
 
 # -----------------------------------------------------------------------------------------------------
 # check for custom options file
@@ -162,6 +161,8 @@ if {$readOptions} {
     errorMsg "No options file was found.  Default options will be used."
   }
 }
+
+set gen(None) 0
 checkVariables
 
 #-------------------------------------------------------------------------------
@@ -173,10 +174,21 @@ installIFCsvr 1
 for {set i 1} {$i <= 10} {incr i} {
   set arg [string tolower [lindex $argv $i]]
   if {$arg != ""} {
+ 
+# AP242 XML
+   if {$ap242XML} {
+      if {[string first "vi" $arg] == -1 && [string first "noo" $arg] == -1 && [string first "nol" $arg] == -1} {
+        errorMsg "For AP242 XML files, '$arg' is not valid"
+        set arg "view"
+      }
+    }
+
 # noopen
     if {[string first "noo" $arg] == 0} {set opt(outputOpen) 0}
+
 # csv
     if {[string first "csv" $arg] == 0 && [lsearch [string tolower $argv] "vi"] == -1} {set opt(xlFormat) "CSV"}
+
 # view
     if {[string first "vi" $arg] == 0} {
       set opt(xlFormat) "None"
@@ -188,12 +200,16 @@ for {set i 1} {$i <= 10} {incr i} {
       foreach id {feaDispNoTail feaLoadScale PMIGRF PMISEM tessPartMesh valProp} {set opt($id) 0}
       checkValues
     }
+
 # stats
     if {[string first "sta" $arg] == 0} {set statsOnly 1}
+
 # nolog
     if {[string first "nol" $arg] == 0} {set opt(logFile) 0}
+
 # syntax, run syntax checker and exit
     if {[string first "syn" $arg] == 0} {syntaxChecker $localName; exit}
+
 # run tree view and exit
     if {[string first "tre" $arg] == 0} {indentFile $localName; exit}
   }
@@ -206,5 +222,5 @@ if {$sfaVersion < [getVersion]} {
 }
 
 # -----------------------------------------------------------------------------------------------------
-# generate spreadsheet or CSV files
+# generate spreadsheet or CSV files or view
 genExcel

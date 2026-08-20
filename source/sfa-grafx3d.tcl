@@ -1,6 +1,6 @@
 # start x3dom file for non-FEM graphics
 proc x3dFileStart {} {
-  global cadSystem entCount gen localName opt stepAP tessBrep timeStamp viz writeDir writeDirType x3dom x3dFile x3dFileName x3dFiles
+  global ap242XML cadSystem entCount gen localName opt stepAP tessBrep timeStamp viz writeDir writeDirType x3dom x3dFile x3dFileName x3dFiles
   global x3dFileSave x3dFileNameSave x3dHeight x3dMax x3dMin x3dPartClick x3dStartFile x3dTitle x3dViewOK x3dWidth
 
   if {!$gen(View)} {return}
@@ -8,6 +8,9 @@ proc x3dFileStart {} {
   if {$x3dStartFile == 0} {return}
 
   if {![info exists stepAP]} {set stepAP [getStepAP $localName]}
+  set apname [string range $stepAP 0 4]
+  if {$ap242XML} {set apname "AP242 XML"}
+
   if {[string first "IFC" $stepAP] == 0 || [string first "ISO" $stepAP] == 0 || $stepAP == "AP210" || \
       $stepAP == "CUTTING_TOOL_SCHEMA_ARM" || $stepAP == "STRUCTURAL_FRAME_SCHEMA" || $stepAP == ""} {
     set msg "The Viewer only works with STEP AP242, AP203, AP214, AP238, and AP209 files.  See Help > Support STEP APs"
@@ -16,7 +19,7 @@ proc x3dFileStart {} {
     set x3dViewOK 0
     return
   } elseif {$opt(partOnly)} {
-    set str "Opening [string range $stepAP 0 4] file"
+    set str "Opening $apname file"
     if {[info exists cadSystem]} {append str " ($cadSystem)"}
     outputMsg $str
   }
@@ -33,7 +36,7 @@ proc x3dFileStart {} {
 
 # start x3d file
   set title [encoding convertto utf-8 [file tail $localName]]
-  if {$stepAP != "" && [string range $stepAP 0 1] == "AP"} {append title " | $stepAP"}
+  if {$stepAP != "" && [string range $stepAP 0 1] == "AP"} {append title " | $apname"}
   puts $x3dFile "<!DOCTYPE html>\n<html>\n<head>\n<title>$title</title>\n<base target=\"_blank\">\n<meta http-equiv='Content-Type' content='text/html;charset=utf-8'/>"
 
 # see sfa-data.tcl for the x3dom server location and version
@@ -72,7 +75,7 @@ proc x3dFileStart {} {
 
 # x3d title
   set x3dTitle [encoding convertto utf-8 [file tail $localName]]
-  if {$stepAP != "" && [string range $stepAP 0 1] == "AP"} {append x3dTitle "&nbsp;&nbsp;&nbsp;$stepAP"}
+  if {$stepAP != "" && [string range $stepAP 0 1] == "AP"} {append x3dTitle "&nbsp;&nbsp;&nbsp;$apname"}
   if {[info exists timeStamp]} {
     if {$timeStamp != ""} {
       set ts [fixTimeStamp $timeStamp]
@@ -137,7 +140,7 @@ proc x3dFileStart {} {
 # finish x3d file, write lots of geometry, set viewpoints, add navigation and background color, and close x3dom file
 proc x3dFileEnd {} {
   global ao assemblyTransform axesDef brepFile brepFileName brepGeomEntTypes clippingCap clippingDef clipPlaneName cmNameID datumTargetView
-  global delt edgeMatID entCount grayBackground leaderCoords matTrans maxxyz meshlines nclipPlane nistName noGroupTransform npart nsketch
+  global delt edgeMatID entCount grayBackground holeOccurrences leaderCoords matTrans maxxyz meshlines nclipPlane nistName noGroupTransform npart nsketch
   global numTessColor opt parts partstg placeCoords placeSize planeDef pointsLabel rosetteGeom samplingPoints sphereDef spmiTypesPerFile stepAP
   global tessBrep tessCoord tessEdges tessEnts tessPartFile tessPartFileName tessRepo tessSolid tsName viewsWithPMI viz xyzcen
   global savedPlaceFile savedPlaceFileName savedViewButtons savedViewDMName savedViewFile
@@ -194,7 +197,7 @@ proc x3dFileEnd {} {
   set ok 0
   set viz(HOLE) 0
   set sphereDef {}
-  foreach ent [list basic_round_hole_occurrence counterbore_hole_occurrence counterdrill_hole_occurrence countersink_hole_occurrence spotface_occurrence] {
+  foreach ent $holeOccurrences {
     if {[info exists entCount($ent)]} {set ok 1}
     set ent1 "$ent\_in_assembly"
     if {[info exists entCount($ent1)]} {set ok 1}
@@ -258,7 +261,7 @@ proc x3dFileEnd {} {
           }
         }]} {
 
-# defined by camera_model_d3_multi_clipping_based_on_plane
+# defined by camera_model_d3_multi_clipping_based_on_plane (never added to schema)
           ::tcom::foreach e0 $e0s {
             if {[$e0 Type] == "plane"} {
               lappend cplanes $e0
@@ -1372,7 +1375,7 @@ proc x3dSavedViewpoint {name} {
 # -------------------------------------------------------------------------------
 # datum targets
 proc x3dDatumTarget {} {
-  global datumTargetView dttype maxxyz recPracNames spaces tessCoord tessIndex tessIndexCoord viz x3dFile
+  global datumTargetView dttype maxxyz tessCoord tessIndex tessIndexCoord viz x3dFile
 
   outputMsg " Processing datum targets" green
   puts $x3dFile "\n<!-- DATUM TARGETS -->\n<Switch whichChoice='0' id='swDTR'><Group>"
@@ -1789,12 +1792,13 @@ proc x3dPlaceholder {{aoname ""} {fname ""}} {
         }
 
 # coordinate sphere and text
-        set bbtext "<Transform scale='$size2 $size2 $size2'><Billboard axisOfRotation='0 0 0'><Shape><Text string='$name'><FontStyle family='SANS' justify='BEGIN'/></Text><Appearance><Material diffuseColor='0 0 0'/></Appearance></Shape></Billboard></Transform>"
+        set bbtext ""
+        if {$name != ""} {set bbtext "<Transform scale='$size2 $size2 $size2'><Billboard axisOfRotation='0 0 0'><Shape><Text string='$name'><FontStyle family='SANS' justify='BEGIN'/></Text><Appearance><Material diffuseColor='0 0 0'/></Appearance></Shape></Billboard></Transform>"}
         if {[info exists placeSphereDef] || $nview > $minview} {
           puts $fname " <Shape USE='placeSphere'></Shape>$bbtext"
         } else {
           puts $fname " <Shape DEF='placeSphere'><Appearance><Material diffuseColor='0 0 0' emissiveColor='0 0 0' transparency='0.5'/></Appearance><Sphere radius='$size1'></Sphere></Shape>"
-          puts $fname " $bbtext"
+          if {$bbtext != ""} {puts $fname " $bbtext"}
           set placeSphereDef 1
         }
 
@@ -1851,27 +1855,31 @@ proc x3dPlaceholder {{aoname ""} {fname ""}} {
 
 # leader lines
       foreach id [array names leaderLine] {
-        set name $leaderName($id)
-        set index ""
-        for {set i 0} {$i < [llength $leaderLine($id)]} {incr i} {append index "$i "}
-        append index "-1"
-        set idstr ""
-        if {$opt(debugX3D)} {set idstr " id='LL $name'"}
-        puts $fname "<Shape$idstr><Appearance><Material emissiveColor='$phColor'/></Appearance><IndexedLineSet coordIndex='$index'><Coordinate point='[join $leaderLine($id)]'/></IndexedLineSet></Shape>"
+        if {[llength $leaderLine($id)] > 1} {
+          set name $leaderName($id)
+          set index ""
+          for {set i 0} {$i < [llength $leaderLine($id)]} {incr i} {append index "$i "}
+          append index "-1"
+          set idstr ""
+          if {$opt(debugX3D)} {set idstr " id='LL $name'"}
+          puts $fname "<Shape$idstr><Appearance><Material emissiveColor='$phColor'/></Appearance><IndexedLineSet coordIndex='$index'><Coordinate point='[join $leaderLine($id)]'/></IndexedLineSet></Shape>"
 
 # text at first and last point
-        foreach idx [list 0 [expr {[llength $leaderLine($id)]-1}]] {
-          set coord [join [lindex $leaderLine($id) $idx]]
-          puts $fname "<Transform translation='$coord' scale='$size2 $size2 $size2'><Billboard axisOfRotation='0 0 0'><Shape><Text string='$name'><FontStyle family='SANS' justify='BEGIN'/></Text><Appearance><Material diffuseColor='0 0 0'/></Appearance></Shape></Billboard></Transform>"
-        }
+          if {$name != ""} {
+            foreach idx [list 0 [expr {[llength $leaderLine($id)]-1}]] {
+              set coord [join [lindex $leaderLine($id) $idx]]
+              puts $fname "<Transform translation='$coord' scale='$size2 $size2 $size2'><Billboard axisOfRotation='0 0 0'><Shape><Text string='$name'><FontStyle family='SANS' justify='BEGIN'/></Text><Appearance><Material diffuseColor='0 0 0'/></Appearance></Shape></Billboard></Transform>"
+            }
+          }
 
 # check for symbols
-        foreach coord $leaderLine($id) {
-          if {[info exists placeSymbol($coord)]} {
-            set sym $placeSymbol($coord)
-            if {[string first "internal" $sym] == 0} {set sym [string range $sym 14 end]}
-            puts $fname "<Transform translation='$coord' scale='$size3 $size3 $size3'><Billboard axisOfRotation='0 0 0'><Shape><Text string='$sym'><FontStyle family='SANS' justify='END'/></Text><Appearance><Material diffuseColor='0 0 1'/></Appearance></Shape></Billboard></Transform>"
-            unset placeSymbol($coord)
+          foreach coord $leaderLine($id) {
+            if {[info exists placeSymbol($coord)]} {
+              set sym $placeSymbol($coord)
+              if {[string first "internal" $sym] == 0} {set sym [string range $sym 14 end]}
+              puts $fname "<Transform translation='$coord' scale='$size3 $size3 $size3'><Billboard axisOfRotation='0 0 0'><Shape><Text string='$sym'><FontStyle family='SANS' justify='END'/></Text><Appearance><Material diffuseColor='0 0 1'/></Appearance></Shape></Billboard></Transform>"
+              unset placeSymbol($coord)
+            }
           }
         }
       }

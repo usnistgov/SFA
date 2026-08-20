@@ -69,10 +69,9 @@ proc setColorIndex {ent {multi 0}} {
 
 # entity not in any category, color by AP
   foreach ap {AP209 AP210 AP238 AP239 ISO13584 CUTTING_TOOL CIS/2} {if {[string first $ap $stepAP] != -1} {return 19}}
-  if {[string first "IFC" $stepAP] != -1} {return -2}
 
 # other entities
-  return 15
+  return -1
 }
 
 #-------------------------------------------------------------------------------
@@ -119,12 +118,12 @@ proc openURL {url} {
 #-------------------------------------------------------------------------------
 # file open dialog
 proc openFile {{openName ""}} {
-  global buttons drive editorCmd fileDir gen localName localNameList
+  global ap242XML buttons drive editorCmd fileDir gen localName localNameList nmsg opt
 
   if {$openName == ""} {
 
 # file types for file select dialog
-    set typelist [list {"STEP " {".stp" ".step" ".p21" ".stpZ" ".stpA"}}]
+    set typelist [list {"STEP " {".stp" ".step" ".p21" ".stpx" ".stpZ" ".stpA"}}]
     lappend typelist {"STL " {".stl"}}
     lappend typelist {"IFC " {".ifc"}}
 
@@ -149,6 +148,24 @@ proc openFile {{openName ""}} {
   } else {
     set localName $openName
     set localNameList [list $localName]
+  }
+
+# STPX file
+  set ap242XML 0
+  if {[llength $localNameList] > 1} {
+    if {[string tolower [file extension [lindex $localNameList 0]]] == ".stpx"} {set ap242XML 1}
+  } elseif {[file exists $localName]} {
+    if {[string tolower [file extension $localName]] == ".stpx"} {set ap242XML 1}
+  }
+  if {$ap242XML} {
+    set opt(viewPart) 1
+    set opt(partOnly) 1
+    set gen(View) 1
+    set allNone -1
+    saveRestoreViewer
+    addFileToMenu
+    if {![info exists nmsg]} {set nmsg 0}
+    if {$openName == "" && $nmsg < 2} {errorMsg "AP242 XML (.stpx) only supports View with Part Only" red; incr nmsg}
   }
 
 # STL file
@@ -245,11 +262,24 @@ proc openFile {{openName ""}} {
 # -------------------------------------------------------------------------------------------------
 # get first file from file menu
 proc getFirstFile {} {
-  global buttons editorCmd openFileList
+  global ap242XML buttons editorCmd gen openFileList opt
 
   set localName [lindex $openFileList 0]
   if {$localName != ""} {
     outputMsg "\nReady to process: [file tail $localName]  ([fileSize $localName]  [fileTime $localName])" green
+
+# check for .stpx file
+    set ap242XML 0
+    set fext [string tolower [file extension $localName]]
+    if {$fext == ".stpx"} {
+      set ap242XML 1
+      if {!$gen(View) || !$opt(partOnly)} {
+        set gen(View) 1
+        set opt(partOnly) 1
+        set opt(partEdges) 1
+        saveRestoreViewer
+      }
+    }
 
     if {[info exists buttons(appOpen)]} {
       .tnb select .tnb.status
@@ -310,7 +340,7 @@ proc addFileToMenu {} {
 
 # insert file name at top of list
   set fext [string tolower [file extension $localName]]
-  if {$ifile != 0 && ($fext == ".stp" || $fext == ".stpa" || $fext == ".step" || $fext == ".p21" || $fext == ".ifc" || $fext == ".stl")} {
+  if {$ifile != 0 && ($fext == ".stp" || $fext == ".stpx" || $fext == ".stpa" || $fext == ".step" || $fext == ".p21" || $fext == ".ifc" || $fext == ".stl")} {
     if {$fext == ".stl"} {set stlFile 1}
     if {![info exists stlFile] || $fext == ".stl"} {
       set openFileList [linsert $openFileList 0 $localName]
@@ -592,7 +622,7 @@ proc saveState {{ok 1}} {
 #-------------------------------------------------------------------------------
 # open a STEP file in an app
 proc runOpenProgram {} {
-  global appName dispCmd File localName
+  global ap242XML appName dispCmd File localName
 
   set dispFile $localName
   set idisp [file rootname [file tail $dispCmd]]
@@ -617,7 +647,11 @@ proc runOpenProgram {} {
 # file tree view
   } elseif {[string first "Tree View" $idisp] != -1} {
     .tnb select .tnb.status
-    indentFile $dispFile
+    if {!$ap242XML} {
+      indentFile $dispFile
+    } else {
+      errorMsg " Tree View does not support AP242 XML files" red
+    }
 
 # all others
   } else {
@@ -1210,7 +1244,7 @@ proc installIFCsvr {{exit 0}} {
   global buttons ifcsvrVer mydocs mytemp nistVersion upgradeIFCsvr wdir
 
 # IFCsvr version depends on string entered when IFCsvr is repackaged for new STEP schemas
-  set versionIFCsvr 20251223
+  set versionIFCsvr 20260820
 
 # if IFCsvr is alreadly installed, get version from registry, decide to reinstall newer version
   if {[catch {

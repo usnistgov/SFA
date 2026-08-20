@@ -66,7 +66,7 @@ proc gpmiAnnotation {entType} {
 # external image
   set PMIP(external_image_placement_in_callout) [list external_image_placement_in_callout name styles $curve_style item $geometric_set image [list document_file id]]
 
-# generate correct PMIP variable accounting for variations like characterized_object
+# generate correct PMIP variable accounting for complex instances of annotation occurrence entities
   if {![info exists PMIP($entType)]} {
     foreach item $aoEntTypes {
       if {[string first $item $entType] != -1} {
@@ -705,6 +705,13 @@ proc gpmiAnnotationReport {objEntity} {
                 "*tessellated_annotation_occurrence* name" {
                   set aoname $objValue
 
+# missing name attribute
+                  if {$aoname == ""} {
+                    set msg "Syntax Error: Missing required 'name' attribute on [formatComplexEnt [$objEntity Type]].$spaces\($recPracNames(pmi242), Sec. 8.1.1, 8.2)"
+                    errorMsg $msg
+                    lappend syntaxErr([lindex $ent1 0]) [list $objID "name" $msg]
+                  }
+
 # check if in draughting callout
                   set dcs [$objEntity GetUsedIn [string trim draughting_callout] [string trim contents]]
                   set ndc 0
@@ -827,6 +834,7 @@ proc gpmiAnnotationReport {objEntity} {
                     append colorRGB " $objValue"
                     if {$opt(gpmiColor) == 0} {
                       append x3dColor " $objValue"
+                      if {[expr {([lindex $x3dColor 0]+[lindex $x3dColor 1]+[lindex $x3dColor 2])/3.}] > 0.8} {set grayBackground 1}
                     }
                     if {$opt(PMIGRF) && $opt(xlFormat) != "None"} {
                       set ok 1
@@ -1594,7 +1602,7 @@ proc pmiGetCameras {} {
                         if {$opt(viewParallel)} {
                           set parallelView 1
                         } elseif {$gen(View) && $opt(viewPart)} {
-                          errorMsg " Try the option for parallel projection viewpoints (More tab)."
+                          errorMsg " Try the option for parallel projection viewpoints (More tab)." red
                         }
                       }
 

@@ -569,8 +569,9 @@ proc setEntAttrList {abc} {
 #-------------------------------------------------------------------------------
 # run syntax checker with the command-line version (sfa-cl.exe) and output filtered result
 proc syntaxChecker {fileName {checkInSchema 0}} {
-  global buttons env errmsg gen ifcsvrDir numUnknownEnts opt recPracNames roseSchemas unknownEnts wdir writeDir
+  global ap242XML buttons env errmsg gen ifcsvrDir numUnknownEnts opt recPracNames roseSchemas unknownEnts wdir writeDir
 
+  if {$ap242XML} {outputMsg "The Syntax Checker does not support AP242 XML files." red; return}
   if {[file size $fileName] > 429000000} {outputMsg " The file is too large to run the Syntax Checker.  The limit is about 430 MB." red; return}
 
   set roseSchemas ""
@@ -611,10 +612,14 @@ proc syntaxChecker {fileName {checkInSchema 0}} {
       set sfaout [split $sfaout "\n"]
       catch {unset sfaerr}
       set lineLast ""
+      set nerr 0
       set paren 0
       set realInt 1
+      set numRealInt 0
       set unknown 0
       set unknownEnts {}
+      set maxErr 5000
+      set maxErr1 500
       catch {unset numUnknownEnts}
       if {[info exists errmsg]} {unset errmsg}
       foreach line $sfaout {
@@ -624,12 +629,17 @@ proc syntaxChecker {fileName {checkInSchema 0}} {
 
 # but not with these messages
           if {[string first "<Done>" $line] == -1} {
-            if {$line != $lineLast && [string first "entity ignored" $line] == -1} {append sfaerr " $line\n"}
+            incr nerr
+            set ok 1
+            if {[string first "Converting 'integer' value" $line] != -1 && $numRealInt > $maxErr1} {set ok 0}
+            if {$line != $lineLast && [string first "entity ignored" $line] == -1 && $ok && $nerr <= $maxErr} {append sfaerr " $line\n"}
             set lineLast $line
+            if {$nerr == $maxErr} {append sfaerr " ** Only the first $maxErr messages are listed\n"}
           }
-          if {[string first "Converting 'integer' value" $line] != -1 && $realInt} {
-            append sfaerr "  See Recommended Practice for $recPracNames(pmi242), Sec. 10.1, Note\n"
-            set realInt 0
+          if {[string first "Converting 'integer' value" $line] != -1} {
+            incr numRealInt
+            if {$realInt} {append sfaerr " ** See Recommended Practice for $recPracNames(pmi242), Sec. 10.1, Note\n"; set realInt 0}
+            if {$numRealInt == $maxErr1} {append sfaerr " ** Only the first $maxErr1 warnings about 'integer' and 'real' are listed\n"}
           }
           if {[string first "warning: No schemas" $line] != -1} {break}
           if {[string first "warning: Couldn't find schema" $line] != -1} {errorMsg "See Help > Supported STEP APs"}
@@ -649,6 +659,7 @@ proc syntaxChecker {fileName {checkInSchema 0}} {
       if {[info exists sfaerr]} {
         if {!$checkInSchema} {
           outputMsg [string range $sfaerr 0 end-1] red
+          if {$nerr > $maxErr} {outputMsg "There are [expr {$nerr-$maxErr}] more error and warning messages"}
           if {$paren} {
             set msgp "The number in parentheses is the line number in the file where the error or warning was detected."
             outputMsg $msgp
@@ -668,7 +679,7 @@ proc syntaxChecker {fileName {checkInSchema 0}} {
           } elseif {[llength $unknownEnts] > 0 && !$opt(checkEntities)} {
             outputMsg " "
             errorMsg "Try the option to 'Process unknown entity types' (More tab)"
-            set str " Unknown entity types:"
+            set str " Unknown entity types ([llength [lrmdups $unknownEnts]]):"
             foreach uent [lrmdups $unknownEnts] {append str " [string tolower $uent],"}
             errorMsg [string range $str 0 end-1]
             outputMsg " "
@@ -719,7 +730,9 @@ proc syntaxChecker {fileName {checkInSchema 0}} {
 # -------------------------------------------------------------------------------
 # get STEP AP name
 proc getStepAP {fname} {
-  global fileSchema opt useXL
+  global ap242XML fileSchema opt useXL
+
+  if {$ap242XML} {return "AP242XML"}
 
 # STEP AP names for those that do not start with AP2nn
   set stepAPs(CONFIG_CONTROL_DESIGN) AP203e1
@@ -772,8 +785,9 @@ proc getStepAP {fname} {
 
 #-------------------------------------------------------------------------------
 proc getSchemaFromFile {fname {limit 0}} {
-  global cadApps cadSystem developer opt p21e3 rawBytes timeStamp unicodeInFile useXL
+  global ap242XML cadApps cadSystem developer opt p21e3 rawBytes timeStamp unicodeInFile useXL
 
+  if {$ap242XML} {return "AP242XML"}
   set p21e3 0
   set schema ""
   set fsline ""

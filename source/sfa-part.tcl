@@ -1,7 +1,7 @@
 # -------------------------------------------------------------------------------
 # B-rep part geometry, new stp2x3d in SFA 5.10 also processes tessellated geometry
 proc x3dBrepGeom {} {
-  global brepFile brepFileName brepScale buttons cadSystem clippingCap developer DTR edgeMatID entCount localName
+  global ap242XML brepFile brepFileName brepScale buttons cadSystem clippingCap developer DTR edgeMatID entCount localName
   global matTrans maxxyz mytemp nistVersion nsketch opt rawBytes rosetteGeom tessBrep tessMinMax tessSolid viz
   global x3dApps x3dBbox x3dMax x3dMin x3dMsg x3dMsgColor x3dParts
   global objDesign
@@ -152,8 +152,11 @@ proc x3dBrepGeom {} {
               } elseif {([string first "ERR StepFile" $line] != -1 || [string first "ERR StepReaderData" $line] != -1) && \
                          [string first "Fails Count : 1 " $line] == -1 && !$developer} {
                 errorMsg "  There are possible syntax errors.  Use F8 to run the Syntax Checker to check for STEP file errors.  See Help > Syntax Checker" red
+              } elseif {[string first "Referenced AP242 file does not exist:" $line] != -1} {
+                set c1 [string first ":" $line]
+                outputMsg "  Missing referenced STEP file: [file tail [string range $line $c1+2 end]]" red
               }
-              if {$developer && [string first "*" $line] == 0} {outputMsg $line red}
+              if {$developer && [string first "*" $line] == 0 && [string first "Fails Count : 1 " $line] == -1} {outputMsg $line red}
 
 # coordinate min, max
               if {[info exists x3dMax(x)] && [info exists x3dMin(x)]} {
@@ -306,7 +309,7 @@ proc x3dBrepGeom {} {
                       set matTrans($id) $trans
                       if {$trans != 1} {errorMsg " Some surfaces are transparent" red}
                     }
-                  } elseif {$tessSolid && [string first "emissive" $line] != -1} {
+                  } elseif {$tessSolid && [string first "emissive" $line] != -1 && !$opt(partOnly)} {
                     regsub "'0 0 0'>" $line "'0 0 0' transparency='1'>" line
                   }
                 }
@@ -562,8 +565,12 @@ proc x3dBrepGeom {} {
           if {[info exists entCount($ename)] && $opt(partCap)} {
             if {$entCount($ename) > 0} {append msg "\n Turn off generating capped surfaces for clipping planes' (More tab)"}
           }
-          append msg "\n Try opening the file in another STEP viewer.  See Websites > STEP > STEP File Viewers"
-          append msg "\n Use F8 to run the Syntax Checker to check for STEP file errors.  See Help > Syntax Checker"
+          if {!$ap242XML} {
+            append msg "\n Try opening the file in another STEP viewer.  See Websites > STEP > STEP File Viewers"
+            append msg "\n Use F8 to run the Syntax Checker to check for STEP file errors.  See Help > Syntax Checker"
+          } else {
+            append msg "\n Only AP242 XML Assembly Structure is supported.  Try opening the file in the Open STEP Viewer.  See Websites > STEP > STEP File Viewers"
+          }
         }
         if {[info exists msg]} {
           errorMsg $msg
@@ -618,6 +625,12 @@ proc x3dCopySTP2X3D {} {
 
   if {!$nistVersion} {return}
 
+# delete old dlls
+  foreach fname [glob -nocomplain -directory $mytemp *.dll] {
+    foreach name [list "vcruntime" "msvcp"] {if {[string first $name $fname] != -1} {file delete -force [file nativename $fname]}}
+  }
+
+# copy dll zip and executable from internal
   if {[catch {
     foreach fn {stp2x3d-dll.zip stp2x3d-part.exe} {
       set internal [file join $wdir exe $fn]
@@ -645,7 +658,7 @@ proc x3dCopySTP2X3D {} {
     if {[catch {
       vfs::zip::Mount $stp2x3dz stp2x3d-dll
       foreach file [glob -nocomplain stp2x3d-dll/*] {
-        set fn [file join $mytemp [file tail $file]]
+        set fn [file nativename [file join $mytemp [file tail $file]]]
         set copy 0
         if {![file exists $fn]} {
           set copy 1

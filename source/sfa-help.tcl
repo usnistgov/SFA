@@ -14,13 +14,13 @@ Product model data) Part 21 file (.stp or .step or .p21 file extension) and
 1 - generates an Excel spreadsheet or CSV files of all entity and attribute information,
 2 - creates a visualization (view) of part geometry, graphic PMI, and other features that is
     displayed in a web browser,
-3 - reports and analyzes properties, semantic PMI, and graphic PMI, and checks them for
+3 - reports and analyzes semantic PMI, graphic PMI, properties, and UUIDs and checks them for
     conformance to recommended practices, and
 4 - checks for basic syntax errors.
 
-Compressed STEP files (.stpZ) and STEP archive files (.stpA) are supported.
 AP238 STEP-NC files (.stpnc) are supported by renaming the file extension to .stp
-AP242 Domain Model XML files (.stpx) are not supported.
+AP242 XML files (.stpx) are supported in the Viewer.
+Compressed STEP files (.stpZ) and STEP archive files (.stpA) are supported.
 
 Help is available in this menu, in the User Guide, and in tooltip help.  New features are listed in
 the Release Notes and described in some Help.  Help in the menu, tooltips, and spreadsheet comments
@@ -44,7 +44,9 @@ asterisks *.  Use F4 to open the log file.
 Entity Types: Select which types of entities are processed from AP242, AP203, and AP214 for the
 Spreadsheet.  All entities specific to other APs are always written to the Spreadsheet such as
 AP238, AP209, and AP210.  The categories are used to group and color-code entities on the Summary
-worksheet.  The tooltip help lists all the entities associated with that type.
+worksheet.  The tooltip help lists all the entities associated with that type.  Some entity type
+categories are automatically selected depending on the Analyzer options or by the entity types in
+the STEP file.
 
 Analyzer options report PMI and check for conformance to recommended practices.
 - Semantic Representation PMI: Dimensional tolerances, geometric tolerances, and datum features are
@@ -53,6 +55,8 @@ Analyzer options report PMI and check for conformance to recommended practices.
   Associated Saved Views, Validation Properties, and Geometry are also reported.
 - Properties: Properties including geometric, assembly, PMI, annotation, attribute, and tessellated
   validation properties are reported.
+- UUIDs: Universally Unique IDs, also known as Persistent IDs, are used for maintaining
+  traceability of engineering product data.
 - Inverse Relationships: For some entities, Inverse relationships and backwards references (Used In)
   are shown on the worksheets.
 
@@ -78,7 +82,9 @@ Part Only option is useful when no other Viewer features are needed and for larg
 
 The Viewer supports boundary representation (B-rep) exact geometry.  For AP242, tessellated
 geometry and polyhedral B-rep geometry are supported.  Color, transparency, part edges, sketch
-geometry, and assemblies are supported.  Part geometry viewer features:
+geometry, and assemblies are supported.  AP242 XML files (.stpx) are also supported.
+
+Part geometry viewer features:
 
 - Part edges are shown in black.  Use the transparency slider to show only edges.  Some parts might
   not be affected by the transparency slider.  If a part is completely transparent and edges are
@@ -141,8 +147,8 @@ Other STEP file viewers are available.  See Websites > STEP > STEP File Viewers.
 viewers are faster and have better features for viewing and measuring part geometry.  This viewer
 supports many features that other viewers do not, including: graphic PMI, sketch geometry,
 supplemental geometry, datum targets, viewpoints, clipping planes, point clouds, composite rosettes,
-hole features, AP242 tessellated part geometry and polyhedral B-rep geometry, and AP209 finite
-element models and results.  Try the Open STEP Viewer with AP242 Domain Model XML files (.stpx)."
+hole features, AP242 tessellated part geometry and polyhedral B-rep geometry, AP242 XML, and
+AP209 finite element models and results."
     .tnb select .tnb.status
   }
 
@@ -234,7 +240,7 @@ Transparency for assemblies with AP242 tessellated geometry might look wrong.  I
 parts in an assembly using tessellated geometry might have the wrong position and orientation or be
 missing.
 
-Assembly Structure is also supported by the AP242 Domain Model XML. See Websites > CAx Recommended Practices"
+Assembly Structure is also supported in the Viewer with AP242 XML.  See Help > Viewer > Other Features"
     .tnb select .tnb.status
   }
 
@@ -335,7 +341,7 @@ In the Entity Types section on the Generate tab, Features is automatically selec
 feature entities are in the STEP file.  Semantic information related to holes is reported on
 *_hole_definition and basic_round_hole worksheets.  Hole feature dimensions are not the same as
 semantic PMI using dimensional_size and dimensional_location.  Hole features are supported in
-AP242 editions > 1, but have not been widely implemented.
+AP242 editions > 1.
 
 See Help > User Guide (section 4.2.3)"
     .tnb select .tnb.status
@@ -359,7 +365,17 @@ plane per section view.  Capped surfaces for parts in an assembly might be in th
 Sometimes capped surfaces are not generated.  Switching off parts in an assembly does not turn off
 their capped surfaces.
 
-2 - Cloud of points and point clouds
+2 - AP242 XML files
+
+AP242 Domain Model XML files with Assembly Structure are supported in the Viewer.  An AP242 XML
+file has a extension of .stpx.  The XML file contains the assembly structure with the position and
+orientation of all of its parts and refers to STEP Part 21 files (.stp) for the geometry of each
+individual part.  When processing an AP242 XML file, View and Part Only are automatically selected.
+No spreadsheet can be generated.
+
+See Websites > CAx Recommended Practices (Product and Assembly Structure)
+
+3 - Cloud of points and point clouds
 
 The cloud of points (COPS) geometric validation property are sampling points generated by the CAD
 system on the surfaces and edges of a part.  The points are used to check the deviation of surfaces
@@ -372,14 +388,14 @@ have the wrong position and orientation.
 
 Point clouds from 3D scans are supported in AP242.  Colors and intensities are not supported.
 
-3 - Convert STL to AP242
+4 - Convert STL to AP242
 
 STL files can be converted to STEP AP242 tessellated geometry that can be shown in the Viewer.
 In the Open File(s) dialog, change the 'Files of type' to 'STL (*.stl)'.  ASCII and binary STL
 files are supported.  Tessellated geometry is not exact B-rep surfaces and may not be supported in
 some CAD software.
 
-4 - Composite rosettes defined by cartesian points and curves are shown in the Viewer."
+5 - Composite rosettes defined by cartesian points and curves are shown in the Viewer."
     .tnb select .tnb.status
   }
 

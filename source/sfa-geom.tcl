@@ -280,7 +280,7 @@ proc reportAssocGeom {entType {row ""}} {
   set str ""
   set dimRepeat 0
   set dimtol 0
-  if {([string first "dimensional_" $entType] != -1 || [string first "angular_" $entType] != -1) && 
+  if {([string first "dimensional_" $entType] != -1 || [string first "angular_" $entType] != -1) && \
        [string first "with_datum_feature" $entType] == -1} {
     set dimtol 1
 
@@ -505,7 +505,11 @@ proc reportAssocGeom {entType {row ""}} {
       set str [string replace $str $c1 [expr {$c1+$lid-1}] $nid]
     }
   }
-  return $str
+
+# reverse order
+  set nstr ""
+  foreach item [lreverse [split $str [format "%c" 10]]] {append nstr "$item[format "%c" 10]"}
+  return $nstr
 }
 
 # -------------------------------------------------------------------------------

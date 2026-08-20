@@ -141,7 +141,7 @@ proc getEntity {objEntity rmax checkInverse checkBadAttributes unicodeCheck} {
                 errorMsg " '???' will appear in spreadsheet for these attribute(s).  See User Guide section 5.4" red
               }
             } elseif {!$opt(PMIUUID)} {
-              errorMsg "Use the option to 'Process UUIDs' to see identified_item values instead of '???' (More tab)"
+              errorMsg "For $thisEntType, use the option for 'UUIDs' to see identified_item values instead of '???' (Generate tab)"
             }
           }
         }

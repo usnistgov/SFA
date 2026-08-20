@@ -95,7 +95,7 @@ proc spmiHoleStart {entType} {
 
 # -------------------------------------------------------------------------------
 proc spmiHoleReport {objEntity} {
-  global badAttributes cells col dim DTR hole holerep holeDim holeDimType holeDefinitions holeEntity holeType holeUnit ht
+  global badAttributes cells col dim DTR hole holerep holeDim holeDimType holeDefinitions holeEntity holeOccurrences holeType holeUnit ht
   global entLevel ent entAttrList lastEnt numBore opt pmiCol pmiColumns pmiHeading pmiModifiers pmiUnicode recPracNames spaces
   global spmiEnts spmiID spmiIDRow spmiRow spmiTypesPerFile syntaxErr thruHole
 
@@ -334,8 +334,7 @@ proc spmiHoleReport {objEntity} {
 
 # check for repetitive dimensions
     set nhole 0
-    foreach occ [list basic_round_hole_occurrence counterbore_hole_occurrence counterdrill_hole_occurrence \
-              countersink_hole_occurrence spotface_occurrence] {
+    foreach occ $holeOccurrences {
       set e0s [$holeEntity GetUsedIn [string trim $occ] [string trim definition]]
       ::tcom::foreach e0 $e0s {incr nhole}
     }

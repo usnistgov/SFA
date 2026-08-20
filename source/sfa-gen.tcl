@@ -1,6 +1,6 @@
 # generate an Excel spreadsheet and/or view from a STEP file
 proc genExcel {{numFile 0}} {
-  global allEntity aoEntTypes ap203all ap214all ap242all ap242only ap242ed badAttributes brepGeomEntTypes buttons cadSystem cameraModels cells cells1
+  global allEntity aoEntTypes ap203all ap214all ap242all ap242only ap242ed ap242XML badAttributes brepGeomEntTypes buttons cadSystem cameraModels cells cells1
   global col col1 commaSeparator count csvdirnam csvfile csvinhome currLogFile dim draughtingModels driUnicode entCategories entCategory
   global entColorIndex entCount entityCount entsIgnored entsToProcessColor entsWithErrors env epmi epmiUD errmsg equivUnicodeStringErr excel fcsv
   global feaFirstEntity feaLastEntity File fileEntity fileItems filesProcessed fileSumRow gen gpmiTypesInvalid gpmiTypesPerFile guiSFA idRow idxColor
@@ -44,6 +44,15 @@ proc genExcel {{numFile 0}} {
   if {[string tolower [file extension $localName]] == ".stl"} {
     STL2STEP
     if {$localName == ""} {return}
+  }
+
+# check for AP242 XML
+  if {[string tolower [file extension $localName]] == ".stpx"} {set ap242XML 1}
+  if {$ap242XML} {
+    set opt(viewPart) 1
+    set opt(partOnly) 1
+    set gen(View) 1
+    saveRestoreViewer
   }
 
 # -------------------------------------------------------------------------------------------------
@@ -277,10 +286,12 @@ proc genExcel {{numFile 0}} {
 
           } elseif {[lsearch $entCategory(stepCOMP) $entType] != -1} {
             lappend characteristics "Composites"
-          } elseif {[lsearch $entCategory(stepKINE) $entType] != -1} {
-            lappend characteristics "Kinematics"
+          } elseif {[lsearch $entCategory(stepHOLE) $entType] != -1} {
+            lappend characteristics "Holes"
           } elseif {[lsearch $entCategory(stepFEAT) $entType] != -1 || [lsearch $entCategory(stepFEAT) $ent1] != -1 || [lsearch $entCategory(stepFEAT) $ent2] != -1} {
             lappend characteristics "Features"
+          } elseif {[lsearch $entCategory(stepKINE) $entType] != -1} {
+            lappend characteristics "Kinematics"
           } else {
             foreach tol $tolNames {if {[string first $tol $entType] != -1} {lappend characteristics "Geometric tolerances"}}
           }
@@ -288,7 +299,7 @@ proc genExcel {{numFile 0}} {
 
 # make sure some entity types are always processed
           if {$opt(xlFormat) != "None"} {
-            foreach cat {stepCOMP stepKINE stepFEAT stepAP242 stepQUAL stepCONS stepOTHR} {
+            foreach cat {stepCOMP stepKINE stepFEAT stepHOLE stepAP242 stepQUAL stepOTHR} {
               if {$opt($cat) == 0 && [lsearch $entCategory($cat) $entType] != -1} {
                 set opt($cat) 1
                 checkValues
@@ -1217,7 +1228,7 @@ proc genExcel {{numFile 0}} {
         set lastEnt $entType
 
 # increase maximum rows for Analyzer options
-        set newmax 5003
+        set newmax 1003
         set rmax $rowmax
         if {$stepAPreport && $rowmax < $newmax} {
           if {$opt(PMISEM)} {
@@ -2183,7 +2194,7 @@ proc sumAddWorksheet {} {
 # add [Properties] or [Graphic PMI] text string
         set okao 0
         if {[string first "annotation" $entType] != -1} {
-          if {$gpmiEnts($entType) && $col($entType) > 7} {set okao 1}
+          if {$gpmiEnts($entType) && $col($entType) > 5} {set okao 1}
         } elseif {[lsearch $spmiEntity $entType] != -1} {
           $cells($sum) Item $sumRow 1 "$entType_multiline  \[Semantic PMI\]"
         } elseif {[lsearch $vpEnts $entType] != -1} {
@@ -2635,7 +2646,6 @@ proc formatWorksheets {sheetSort sumRow inverseEnts} {
       if {[[$cells($thisEntType) Item 3 G] Value] == "datum_system" && [string first "(" $txt] == 0 && \
            [string first "with_datum_reference" $txt] == -1} {
          set txt "(geometric_tolerance_with_datum_reference)$txt"
-         if {$developer} {errorMsg " [formatComplexEnt $thisEntType] was missing (geometric_tolerance_with_datum_reference)" red}
       }
       $cells($thisEntType) Item 1 1 $txt
 

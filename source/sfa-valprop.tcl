@@ -52,22 +52,11 @@ proc valPropStart {defRep} {
 
 # composite structures validation properties recommended practice
   set valPropNames(composite_validation_property) [list \
-    [list "" [list "number of cores" "number of materials" "number of orientations" "number of plies" "number of ply pieces per ply" \
-      "number of rosettes" "number of sequences" "number of tables" "ordered list of orientation names" "ordered list of orientation values" \
-      "ordered sequences per laminate table"]] \
-    [list "centroid" [list "centre point"]] \
-    [list "curve centroid" [list "curve centre point"]] \
-    [list "curve length" [list "curve length measure"]] \
-    [list "guide curve length" [list "curve length measure"]] \
-    [list "notional rosette centroid" [list "notional centre point"]] \
-    [list "number of facets" [list "number of facets"]] \
-    [list "ply centroid" [list "centre point of all plies"]] \
-    [list "sum of all core volumes" [list "volume measure"]] \
-    [list "sum of all geometric boundary curve length" [list "curve length measure"]] \
-    [list "sum of all ply surface areas" [list "surface area measure"]] \
-    [list "sum of all ply volumes" [list "volume measure"]] \
-    [list "surface area" [list "surface area measure"]] \
-    [list "volume" [list "volume measure"]]]
+    [list "" [list "centre point of all contours" "centre point of all plies" "centre point" "curve centre point" "curve length measure" \
+      "guide curve centre point" "guide curve length" "number of cores" "number of facets" "number of materials" "number of orientations" \
+      "number of plies" "number of ply pieces per ply" "number of rosettes" "number of sequences" "number of tables" \
+      "ordered list of orientation names" "ordered list of orientation values" "ordered sequences per laminate table" "surface area measure" \
+      "total boundary curve length" "total core volume" "total ply surface area" "total ply volume" "volume measure"]]]
 
 # FEA validation properties
   set valPropNames(FEA_validation_property) [list \
@@ -797,7 +786,7 @@ proc valPropReport {objEntity} {
                       if {!$ok1} {
                         set repNameOK 0
                         if {$propDefName != "pmi_validation_property" && $propDefName != "attribute_validation_property"} {
-                          set emsg "Syntax Error: Invalid '$ent2' attribute for '$propDefName'."
+                          set emsg "Syntax Error: Invalid '$ent2' attribute ($repName) for '$propDefName'."
                           if {$propDefName == "geometric_validation_property" && ($repName == "number of children" || $repName == "notional solids centroid")} {
                             append emsg "  '$repName' is an assembly validation property."
                           }
@@ -810,7 +799,7 @@ proc valPropReport {objEntity} {
                           pmi_validation_property         {append emsg "$spaces\($recPracNames(pmi242), Sec. 10)"}
                           tessellated_validation_property {append emsg "$spaces\($recPracNames(tessgeom), Sec. 8.4)"}
                           attribute_validation_property   {append emsg "$spaces\($recPracNames(uda), Sec. 8)"}
-                          composite_validation_property   {append emsg "$spaces\($recPracNames(comp), Sec. 3)"}
+                          composite_validation_property   {append emsg "$spaces\($recPracNames(comp), Sec. 5)"}
                         }
                         errorMsg $emsg
                         set invalid $emsg
@@ -860,14 +849,14 @@ proc valPropReport {objEntity} {
                       }
 
                       if {!$ok1 && $propDefName != "semantic_text"} {
-                        set emsg "Syntax Error: Invalid '[formatComplexEnt $ent2]' attribute for '$propDefName'."
+                        set emsg "Syntax Error: Invalid '[formatComplexEnt $ent2]' attribute ($valName) for '$propDefName'."
                         switch $propDefName {
                           geometric_validation_property -
                           assembly_validation_property    {append emsg "$spaces\($recPracNames(valprop), Sec. 8)"}
                           pmi_validation_property         {append emsg "$spaces\($recPracNames(pmi242), Sec. 10)"}
                           tessellated_validation_property {append emsg "$spaces\($recPracNames(tessgeom), Sec. 8.4)"}
                           attribute_validation_property   {append emsg "$spaces\($recPracNames(uda), Sec. 8)"}
-                          composite_validation_property   {append emsg "$spaces\($recPracNames(comp), Sec. 4)"}
+                          composite_validation_property   {append emsg "$spaces\($recPracNames(comp), Sec. 5)"}
                         }
                         errorMsg $emsg
                         set invalid $emsg
