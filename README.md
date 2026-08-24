@@ -1,7 +1,7 @@
 # NIST STEP File Analyzer and Viewer
 
 The free [STEP File Analyzer and Viewer](https://www.nist.gov/services-resources/software/step-file-analyzer-and-viewer) (SFA) 
-generates a spreadsheet and visualization from an ISO 10303 Part 21 STEP file.  STEP [AP242](https://www.ap242.org/), 
+generates a spreadsheet and visualization from an [ISO 10303 Part 21](https://www.loc.gov/preservation/digital/formats/fdd/fdd000448.shtml) STEP file.  STEP [AP242](https://www.ap242.org/), 
 [AP203](https://www.iso.org/standard/44305.html), [AP214](https://www.iso.org/standard/43669.html), 
 [AP209](https://www.ap209.org/), [AP238](https://ap238.org/), and other EXPRESS schemas are supported.
 
