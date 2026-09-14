@@ -141,7 +141,7 @@ proc x3dFileStart {} {
 proc x3dFileEnd {} {
   global ao assemblyTransform axesDef brepFile brepFileName brepGeomEntTypes clippingCap clippingDef clipPlaneName cmNameID datumTargetView
   global delt edgeMatID entCount grayBackground holeOccurrences leaderCoords matTrans maxxyz meshlines nclipPlane nistName noGroupTransform npart nsketch
-  global numTessColor opt parts partstg placeCoords placeSize planeDef pointsLabel rosetteGeom samplingPoints sphereDef spmiTypesPerFile stepAP
+  global numTessColor opt parallelView parts partstg placeCoords placeSize planeDef pointsLabel rosetteGeom samplingPoints sphereDef spmiTypesPerFile stepAP
   global tessBrep tessCoord tessEdges tessEnts tessPartFile tessPartFileName tessRepo tessSolid tsName viewsWithPMI viz xyzcen
   global savedPlaceFile savedPlaceFileName savedViewButtons savedViewDMName savedViewFile
   global savedViewFileName savedViewItems savedViewNames savedViewpoint savedViewVP
@@ -206,7 +206,7 @@ proc x3dFileEnd {} {
     if {$opt(PMISEM)} {
       x3dHoles
     } else {
-      errorMsg " Generate the Semantic PMI Analyzer report to view hole features.  See Help > Viewer > Hole Features" red
+      errorMsg " Generate the Analyzer report for Semantic PMI to view hole features.  See Help > Viewer > Hole Features" red
     }
   }
 
@@ -669,7 +669,6 @@ proc x3dFileEnd {} {
 
 # default
   set cor "centerOfRotation='$xyzcen(x) $xyzcen(y) $xyzcen(z)'"
-  set fov [trimNum [expr {0.55*max($delt(x),$delt(z))}]]
   set xmin [trimNum [expr {$x3dMin(x) - 1.4*max($delt(y),$delt(z))}]]
   set xmax [trimNum [expr {$x3dMax(x) + 1.4*max($delt(y),$delt(z))}]]
   set ymin [trimNum [expr {$x3dMin(y) - 1.4*max($delt(x),$delt(z))}]]
@@ -680,20 +679,45 @@ proc x3dFileEnd {} {
 # front viewpoint, perspective or parallel
   set sfastr ""
   if {[info exists savedViewVP]} {set sfastr " (SFA)"}
-  if {[info exists savedViewVP] && $opt(viewParallel)} {
-    foreach xf $x3dFiles {puts $xf "<OrthoViewpoint id='Front$sfastr' position='$xyzcen(x) [trimNum [expr {$x3dMin(y) - 1.4*max($delt(x),$delt(z))}]] $xyzcen(z)' $cor orientation='1 0 0 1.5708' fieldOfView='\[-$fov,-$fov,$fov,$fov\]'></OrthoViewpoint>"}
+
+  if {!$opt(viewYAxisUp)} {
+    set fov [trimNum [expr {0.55*max($delt(x),$delt(z))}]]
   } else {
-    foreach xf $x3dFiles {puts $xf "<Viewpoint id='Front$sfastr' position='$xyzcen(x) $ymin $xyzcen(z)' $cor orientation='1 0 0 1.5708'></Viewpoint>"}
+    set fov [trimNum [expr {0.55*max($delt(x),$delt(y))}]]
+  }
+  set fov "fieldOfView='\[-$fov,-$fov,$fov,$fov\]'"
+
+  if {[info exists savedViewVP] && $opt(viewParallel)} {
+    foreach xf $x3dFiles {
+      if {!$opt(viewYAxisUp)} {
+        puts $xf "<OrthoViewpoint id='Front$sfastr' position='$xyzcen(x) [trimNum [expr {$x3dMin(y) - 1.4*max($delt(x),$delt(z))}]] $xyzcen(z)' orientation='1 0 0 1.5708' $cor $fov></OrthoViewpoint>"
+      } else {
+        puts $xf "<OrthoViewpoint id='Front$sfastr' position='$xyzcen(x) $xyzcen(y) [trimNum [expr {$x3dMin(z) - 1.4*max($delt(x),$delt(y))}]]' $cor $fov></OrthoViewpoint>"
+      }
+    }
+  } elseif {!$opt(viewYAxisUp)} {
+    foreach xf $x3dFiles {puts $xf "<Viewpoint id='Front$sfastr' position='$xyzcen(x) $ymin $xyzcen(z)' orientation='1 0 0 1.5708' $cor></Viewpoint>"}
+  } else {
+    foreach xf $x3dFiles {puts $xf "<Viewpoint id='Front$sfastr' position='$xyzcen(x) $xyzcen(y) $zmax' $cor></Viewpoint>"}
   }
 
-# other front/side/top/isometric viewpoints if no saved views
+# other right, back, left, top, bottom, and isometric viewpoints if no saved views
   if {![info exists savedViewVP]} {
-    puts $x3dFile "<Viewpoint id='Side' position='$xmax $xyzcen(y) $xyzcen(z)' $cor orientation='1 1 1 2.094'></Viewpoint>"
-    puts $x3dFile "<Viewpoint id='Top' position='$xyzcen(x) $xyzcen(y) $zmax' $cor></Viewpoint>"
-    puts $x3dFile "<Viewpoint id='Front 2' position='$xyzcen(x) $xyzcen(y) $zmin' $cor orientation='0 1 0 3.1416'></Viewpoint>"
-    puts $x3dFile "<Viewpoint id='Side 2' position='$xmax $xyzcen(y) $xyzcen(z)' $cor orientation='0 1 0 1.5708'></Viewpoint>"
-    puts $x3dFile "<Viewpoint id='Top 2' position='$xyzcen(x) $ymax $xyzcen(z)' $cor orientation='1 0 0 -1.5708'></Viewpoint>"
-    puts $x3dFile "<Viewpoint id='Isometric' position='$xmax $ymin $zmax' $cor orientation='1. 0.4142 0.8002 1.2171'></Viewpoint>"
+    if {!$opt(viewYAxisUp)} {
+      puts $x3dFile "<Viewpoint id='Right' position='$xmax $xyzcen(y) $xyzcen(z)' orientation='1 1 1 2.094' $cor></Viewpoint>"
+      puts $x3dFile "<Viewpoint id='Back' position='$xyzcen(x) $ymax $xyzcen(z)' orientation='0 0.7071 0.7071 3.1416' $cor></Viewpoint>"
+      puts $x3dFile "<Viewpoint id='Left' position='$xmin $xyzcen(y) $xyzcen(z)' orientation='-1 1 1 4.1888' $cor></Viewpoint>"
+      puts $x3dFile "<Viewpoint id='Top' position='$xyzcen(x) $xyzcen(y) $zmax' $cor></Viewpoint>"
+      puts $x3dFile "<Viewpoint id='Bottom' position='$xyzcen(x) $xyzcen(y) $zmin' orientation='1 0 0 3.1416' $cor></Viewpoint>"
+      puts $x3dFile "<Viewpoint id='Isometric' position='$xmax $ymin $zmax' orientation='0.7429 0.3077 0.5945 1.2171' $cor viewAll='true'></Viewpoint>"
+    } else {
+      puts $x3dFile "<Viewpoint id='Right' position='$xmax $xyzcen(y) $xyzcen(z)' orientation='0 1 0 1.5708' $cor></Viewpoint>"
+      puts $x3dFile "<Viewpoint id='Back' position='$xyzcen(x) $xyzcen(y) $zmin' orientation='0 1 0 3.1416' $cor></Viewpoint>"
+      puts $x3dFile "<Viewpoint id='Left' position='$xmin $xyzcen(y) $xyzcen(z)' orientation='0 -1 0 1.5708' $cor></Viewpoint>"
+      puts $x3dFile "<Viewpoint id='Top' position='$xyzcen(x) $ymax $xyzcen(z)' orientation='-1 0 0 1.5708' $cor></Viewpoint>"
+      puts $x3dFile "<Viewpoint id='Bottom' position='$xyzcen(x) $ymin $xyzcen(z)' orientation='1 0 0 1.5708' $cor></Viewpoint>"
+      puts $x3dFile "<Viewpoint id='Isometric' position='$xmax $ymax $zmax' orientation='-0.5903 0.7693 0.2445 0.9879' $cor viewAll='true'></Viewpoint>"
+    }
 
 # saved views and other viewpoints
   } else {
@@ -702,9 +726,17 @@ proc x3dFileEnd {} {
 
 # front viewpoint, perspective or parallel
   if {[info exists savedViewVP] && $opt(viewParallel)} {
-    puts $x3dFile "<Viewpoint id='Front perspective$sfastr' position='$xyzcen(x) $ymin $xyzcen(z)' $cor orientation='1 0 0 1.5708'></Viewpoint>"
+    if {!$opt(viewYAxisUp)} {
+      puts $x3dFile "<Viewpoint id='Front perspective$sfastr' position='$xyzcen(x) $ymin $xyzcen(z)' orientation='1 0 0 1.5708' $cor></Viewpoint>"
+    } else {
+      puts $x3dFile "<Viewpoint id='Front perspective$sfastr' position='$xyzcen(x) $xyzcen(y) $zmax' $cor></Viewpoint>"
+    }
   } else {
-    puts $x3dFile "<OrthoViewpoint id='Front parallel$sfastr' position='$xyzcen(x) [trimNum [expr {$x3dMin(y) - 1.4*max($delt(x),$delt(z))}]] $xyzcen(z)' $cor orientation='1 0 0 1.5708' fieldOfView='\[-$fov,-$fov,$fov,$fov\]'></OrthoViewpoint>"
+    if {!$opt(viewYAxisUp)} {
+      puts $x3dFile "<OrthoViewpoint id='Front parallel$sfastr' position='$xyzcen(x) [trimNum [expr {$x3dMin(y) - 1.4*max($delt(x),$delt(z))}]] $xyzcen(z)' orientation='1 0 0 1.5708' $cor $fov></OrthoViewpoint>"
+    } else {
+      puts $x3dFile "<OrthoViewpoint id='Front parallel$sfastr' position='$xyzcen(x) $xyzcen(y) [trimNum [expr {$x3dMin(z) - 1.4*max($delt(x),$delt(y))}]]' $cor $fov></OrthoViewpoint>"
+    }
   }
 
 # background color, default gray
@@ -738,7 +770,10 @@ proc x3dFileEnd {} {
   if {!$bgcss} {puts $x3dFile "<Background id='BG' skyColor='$bgcolor'/>"}
   if {$opt(x3dSave)} {puts $x3dFileSave "<Background skyColor='0.9 0.9 0.9'/>"}
 
-  puts $x3dFile "<NavigationInfo type='\"EXAMINE\",\"ANY\"'/>"
+  set speed ""
+  if {[info exists parallelView] && $parallelView} {set speed " speed='[trimNum [expr {max($delt(x),$delt(y),$delt(z))}]]'"}
+  puts $x3dFile "<NavigationInfo type='\"EXAMINE\",\"ANY\"'$speed></NavigationInfo>"
+  catch {unset parallelView}
 
   regsub -all "&nbsp;" $x3dTitle " " title
   foreach xf $x3dFiles {puts $xf "<WorldInfo title='$title' info='Generated by the NIST STEP File Analyzer and Viewer [getVersion]'/>"}
@@ -1202,7 +1237,7 @@ proc x3dFileEnd {} {
 # functions for eventListener for viewpoint if no saved views
   if {![info exists savedViewVP]} {
     set id 0
-    foreach svn [list "Front" "Side" "Top" "Front 2" "Side 2" "Top 2" "Isometric" "Front parallel"] {
+    foreach svn [list "Front" "Right" "Back" "Left" "Top" "Bottom" "Isometric" "Front parallel"] {
       lappend onload " var view$id = document.getElementById('$svn');\n view$id.addEventListener('outputchange', function(event) \{document.getElementById('clickedView').innerHTML = '$svn';\}, false);"
       incr id
     }
@@ -1321,9 +1356,7 @@ proc x3dSavedViewpoint {name} {
     append msg "$spaces\($recPracNames(pmi242), Sec. 9.4.2.6)"
     errorMsg "Syntax Error: Camera model viewpoint is not modeled correctly.$msg"
     set msg "Viewpoints are not modeled correctly"
-    if {$opt(viewCorrect)} {set msg "Using corrected viewpoints (More tab)"}
     if {[lsearch $x3dMsg $msg] == -1} {lappend x3dMsg $msg}
-    if {!$opt(viewCorrect)} {errorMsg " Use the option to correct the viewpoints (More tab).  The corrected viewpoints might fix the orientation but maybe not the position."}
   }
 
 # default viewpoint with transform

@@ -479,16 +479,21 @@ proc spmiGeotolReport {objEntity} {
                             if {$tsatz != "all_around_shape_aspect"} {
                               if {$tz != "direction_feature"} {
                                 set tzWithDatum($tz) "\u25C1"
+                                if {$tz == "directed"} {lappend spmiTypesPerFile "intersection plane indicator"}
                               } else {
                                 set tzWithDatum($tz) "\u2190\|"
+                                lappend spmiTypesPerFile "direction feature indicator"
                               }
                             } else {
                               set tzWithDatum($tz) "\u25CB\|"
+                              lappend spmiTypesPerFile "collection plane indicator"
                             }
                             append tzWithDatum($tz) " $pmiUnicode($dir) | $datumSystem([$ds P21ID])"
-                            if {$tz == "oriented"} {append tzWithDatum($tz) " \u25B7"}
+                            if {$tz == "oriented"} {
+                              append tzWithDatum($tz) " \u25B7"
+                              lappend spmiTypesPerFile "orientation plane indicator"
+                            }
                             if {$tz != "directed"} {append tzWithDatum($tz) " \[$angle$pmiUnicode(degree)\]"}
-                            lappend spmiTypesPerFile "directed/oriented/direction_feature tolerance zone"
                           } else {
                             set msg "Syntax Error: Invalid orientation attribute '$dir' on '$tz\_tolerance_zone'."
                             errorMsg $msg

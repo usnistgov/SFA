@@ -15,7 +15,9 @@ proc uuidGetAttributes {totalUUID entsUUID} {
   set f [open $localName r]
   while {[gets $f line] >= 0} {
     set ok 0
-    foreach ent $entsUUID {if {[string first $ent $line] != -1} {set ok 1; break}}
+    foreach ent $entsUUID {
+      if {[string first $ent $line] != -1 && [string first "/*" $line] == -1} {set ok 1; break}
+    }
     if {$ok} {
       set ent [string tolower $ent]
 
@@ -55,8 +57,20 @@ proc uuidGetAttributes {totalUUID entsUUID} {
             lappend syntaxErr($ent) [list $entid identifier "$msg.  Sort column B to find other duplicate UUIDs."]
           }
           set uuidstr $pid
-          if {[string index $ent 0] == "v"} {
-            append uuidstr " ([string range $ent 0 1])"
+          if {[string range $ent 0 1] == "v5"} {
+            append uuidstr " (v5)"
+            if {[string index $pid 14] != 5} {
+              set msg "Error: The 15th character of the UUID on '$ent' must be a '5'."
+              errorMsg " $msg"
+              if {[info exists idRow($ent,$entid)]} {addCellComment $ent $idRow($ent,$entid) 2 [string trim $msg]}
+            }
+          } elseif {[string range $ent 0 1] == "v4"} {
+            append uuidstr " (v4)"
+            if {[string index $pid 14] != 4} {
+              set msg "Error: The 15th character of the UUID on '$ent' must be a '4'."
+              errorMsg " $msg"
+              if {[info exists idRow($ent,$entid)]} {addCellComment $ent $idRow($ent,$entid) 2 [string trim $msg]}
+            }
           } elseif {[string first "HASH" $line] != -1} {
             append uuidstr " (hash v5)"
           } elseif {[string first "LOCATION" $line] != -1} {
@@ -92,7 +106,7 @@ proc uuidGetAttributes {totalUUID entsUUID} {
                 set okid 1
                 if {$iditem != ""} {
                   if {[llength $items] > 1} {
-                    set msg " Multiple lists of identified_item are grouped together"
+                    set msg " Lists of lists of identified_item are grouped together"
                     errorMsg $msg red
                     if {[info exists idRow($ent,$entid)]} {addCellComment $ent $idRow($ent,$entid) 3 [string trim $msg]}
                   }

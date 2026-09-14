@@ -294,6 +294,7 @@ proc genExcel {{numFile 0}} {
             lappend characteristics "Kinematics"
           } else {
             foreach tol $tolNames {if {[string first $tol $entType] != -1} {lappend characteristics "Geometric tolerances"}}
+            if {[string first "camera_model_d3" $entType] != -1} {lappend characteristics "Viewpoints"}
           }
           if {[string first "uuid" $entType] != -1} {lappend characteristics "UUIDs"}
 
@@ -2153,7 +2154,11 @@ proc sumAddWorksheet {} {
 
 # no '_and_' or explicit '_and_'
       if {$ok} {
-        $cells($sum) Item $sumRow 1 $entType
+        if {$entType != $iloldscr} {
+          $cells($sum) Item $sumRow 1 $entType
+        } else {
+          $cells($sum) Item $sumRow 1 "independent_limits_of_linear_dimensional_size_[format "%c" 10][format "%c" 32][format "%c" 32][format "%c" 32]characteristic_representation"
+        }
 
 # add text strings
         set okao 0
@@ -2488,7 +2493,7 @@ proc sumAddColorLinks {sum sumHeaderRow sumLinks sheetSort sumRow} {
 #-------------------------------------------------------------------------------------------------
 # format worksheets
 proc formatWorksheets {sheetSort sumRow inverseEnts} {
-  global buttons cells col count developer entCount entRows entsToProcessColor equivUnicodeString excel formattedEnts gpmiEnts idRow iloldscr
+  global buttons cells col count entCount entRows entsToProcessColor equivUnicodeString excel formattedEnts gpmiEnts idRow iloldscr
   global nprogBarEnts opt pmiStartCol row spmiEnts stepAP stepAPreport sumHeaderRow syntaxErr thisEntType useXL uuidEnts viz vpEnts worksheet
   outputMsg "Formatting Worksheets" blue
 

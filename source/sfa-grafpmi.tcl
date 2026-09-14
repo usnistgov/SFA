@@ -1,6 +1,6 @@
 proc gpmiAnnotation {entType} {
   global objDesign
-  global ao aoEntTypes col ent entAttrList entCount entLevel gen geomType gpmiRow gtEntity nindex opt pmiCol
+  global ao aoEntTypes col ent entAttrList entLevel gen geomType gpmiRow gtEntity nindex opt pmiCol
   global pmiHeading pmiStartCol recPracNames spaces stepAP syntaxErr useXL x3dShape
 
   if {$opt(DEBUG1)} {outputMsg "START gpmiAnnotation $entType" red}
@@ -77,6 +77,12 @@ proc gpmiAnnotation {entType} {
     }
   }
 
+# check for missing geometric_representation_item
+  if {[string first "annotation" $entType] != -1 && [string first "occurrence" $entType] != -1 && [string first "placeholder" $entType] == -1 && \
+      [string first "geometric_representation_item" $entType] == -1 && ($stepAP == "AP242e4" || $stepAP == "AP242e5")} {
+    errorMsg " All '$entType' must be a complex entity with 'geometric_representation_item'." red
+  }
+
   if {![info exists PMIP($entType)]} {return}
   set ao $entType
 
@@ -110,11 +116,6 @@ proc gpmiAnnotation {entType} {
       set msg "Syntax Error: Using 'characterized_object' with '[string range $ao 25 end]' is not valid for Graphic PMI.$spaces\($recPracNames(pmi242), Sec. 10.2, 10.3)"
       errorMsg $msg
       lappend syntaxErr($ao) [list 1 1 $msg]
-    }
-    if {[string first "annotation_curve_occurrence" $ao] != -1 || [string first "annotation_fill_area_occurrence" $ao] != -1} {
-      if {![info exists entCount(tessellated_annotation_occurrence)] && ![info exists entCount(annotation_placeholder_occurrence)]} {
-        errorMsg " For AP242, tessellated_annotation_occurrence is preferred for Graphic PMI" red
-      }
     }
   }
 
@@ -706,7 +707,7 @@ proc gpmiAnnotationReport {objEntity} {
                   set aoname $objValue
 
 # missing name attribute
-                  if {$aoname == ""} {
+                  if {$aoname == "" && [string first "characterized_object" $ent1] == -1} {
                     set msg "Syntax Error: Missing required 'name' attribute on [formatComplexEnt [$objEntity Type]].$spaces\($recPracNames(pmi242), Sec. 8.1.1, 8.2)"
                     errorMsg $msg
                     lappend syntaxErr([lindex $ent1 0]) [list $objID "name" $msg]
@@ -1468,9 +1469,9 @@ proc gpmiEquivUnicodeString {eus} {
 # get camera models
 proc pmiGetCameras {} {
   global objDesign
-  global cameraModels cmNameID draughtingModels draftModelCameraNames draftModelCameras entCount gen mytemp opt
+  global cameraModels cmNameID draughtingModels draftModelCameraNames draftModelCameras entCount gen mytemp opt parallelView
   global recPracNames savedViewFile savedViewDMName savedViewFileName savedViewItems savedViewName savedViewNames savedViewpoint
-  global spaces spmiTypesPerFile syntaxErr unicodeString unicodeStringCM viewsWithPMI
+  global spaces spmiTypesPerFile stepAP syntaxErr unicodeString unicodeStringCM viewsWithPMI
 
   outputMsg " Processing viewpoints (camera_model_d3)" green
   catch {unset draftModelCameras}
@@ -1514,7 +1515,7 @@ proc pmiGetCameras {} {
         }
       }
     }
-    if {[llength $dupnames] > 0} {outputMsg " Appending number to duplicate Saved View Viewpoint names that are in the Viewer." red}
+    if {[llength $dupnames] > 0} {outputMsg " Appending number to duplicate Saved View Viewpoint names that are in the Viewer" red}
 
 # loop over camera model entities
     if {[catch {
@@ -1580,6 +1581,26 @@ proc pmiGetCameras {} {
                       lappend syntaxErr($cm) [list [$entCameraModel P21ID] name $msg]
                     }
 
+# check model_geometric_view
+                    if {[string first "AP242" $stepAP] == 0 && $stepAP != "AP242e1"} {
+                      if {![info exists entCount(model_geometric_view)] && ![info exists entCount(default_model_geometric_view)]} {
+                        set msg "Syntax Error: Missing 'model_geometric_view' entities that connect camera and draughting model entities$spaces"
+                        append msg "($recPracNames(pmi242), Sec. 9.4.2, Fig. 96)"
+                        errorMsg $msg
+                        lappend syntaxErr($cm) [list [$entCameraModel P21ID] ID $msg]
+                      } else {
+                        ::tcom::foreach e0 [$entCameraModel GetUsedIn [string trim model_geometric_view] [string trim item]] {
+                          set nameMGV [string trim [[[$e0 Attributes] Item [expr 1]] Value]]
+                          if {$nameMGV == ""} {
+                            set msg "Syntax Error: Missing required 'name' attribute on 'model_geometric_view'.$spaces"
+                            append msg "($recPracNames(pmi242), Sec. 9.4.2, Fig. 96)"
+                            errorMsg $msg
+                            lappend syntaxErr(model_geometric_view) [list [$e0 P21ID] name $msg]
+                          }
+                        }
+                      }
+                    }
+
 # check for default saved view
                     ::tcom::foreach e0 [$entCameraModel GetUsedIn [string trim default_model_geometric_view] [string trim item]] {
                       if {[$e0 Type] == "default_model_geometric_view"} {append name " (Default)"; append name1 " (Default)"}
@@ -1598,15 +1619,9 @@ proc pmiGetCameras {} {
 # projection type (parallel or central)
                       set projectionType [[[[[$attrCameraModels Item [expr 3]] Value] Attributes] Item [expr 1]] Value]
                       set parallelView 0
-                      if {$projectionType == "parallel"} {
-                        if {$opt(viewParallel)} {
-                          set parallelView 1
-                        } elseif {$gen(View) && $opt(viewPart)} {
-                          errorMsg " Try the option for parallel projection viewpoints (More tab)." red
-                        }
-                      }
+                      if {$projectionType == "parallel" && $opt(viewParallel)} {set parallelView 1}
 
-                      if {(!$opt(viewCorrect) && !$parallelView) || ($opt(viewCorrect) && $parallelView)} {
+                      if {!$parallelView} {
                         lappend savedViewpoint($name1) [list $parallelView [x3dGetRotation $axis $refdir]]
                       } else {
                         lappend savedViewpoint($name1) [list $parallelView [x3dGetRotation [vecmult $axis -1.] [vecmult $refdir -1.]]]

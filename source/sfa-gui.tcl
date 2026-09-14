@@ -1,5 +1,5 @@
 # SFA version
-proc getVersion {} {return 5.50}
+proc getVersion {} {return 5.51}
 
 # see proc installIFCsvr in sfa-proc.tcl for the IFCsvr version
 # see below (line 36) for the sfaVersion when IFCsvr was updated
@@ -41,7 +41,8 @@ Use F9 and F10 to change the font size here.  See Help > Function Keys"
     }
   }
 
-# significant changes since version 5.20
+# significant what's new
+  if {$sfaVersion < 5.51} {outputMsg "- Option to set viewpoint up-axis (More tab)"}
   if {$sfaVersion < 5.50} {outputMsg "- Support for AP242 XML files in the Viewer (Help > Viewer > Other Features)"}
   if {$sfaVersion < 5.40} {outputMsg "- Process UUIDs"}
   if {$sfaVersion < 5.40} {outputMsg "- Renamed 'Validation Properties' to 'Properties'"}
@@ -60,13 +61,18 @@ proc openUserGuide {} {
 
 # update for new versions, local and online
   if {$sfaVersion > 4.6} {
-    outputMsg "\nThe User Guide is based on version 4.60\n- Documentation in the Help menu and Release Notes is up-to-date"
+    outputMsg "\nThe User Guide from October 2021 is based on version 4.60\n- Documentation in the Help menu and Release Notes is up-to-date"
     .tnb select .tnb.status
   }
-  set fname [file nativename [file join [file dirname [info nameofexecutable]] "SFA-User-Guide-v7.pdf"]]
-  set URL https://doi.org/10.6028/NIST.AMS.200-12
-  if {![file exists $fname]} {set fname $URL}
-  openURL $fname
+  set ok 0
+  foreach guide [list "SFA-User-Guide-v7.pdf" "NIST.AMS.200-12.pdf"] {
+    set fname [file nativename [file join [file dirname [info nameofexecutable]] $guide]]
+    if {[file exists $fname] && !$ok} {openURL $fname; set ok 1}
+  }
+  if {!$ok} {
+    set URL https://doi.org/10.6028/NIST.AMS.200-12
+    openURL $URL
+  }
 }
 
 #-------------------------------------------------------------------------------
@@ -450,7 +456,7 @@ proc guiGenerateTab {} {
     if {[info exists entCategory($idx)]} {
       set ttmsg "[llength $entCategory($idx)] [string trim [lindex $item 0]] entities"
       if {$idx == "stepGEOM"} {append ttmsg " are supported in most STEP APs."}
-      if {$idx == "stepAP242"} {append ttmsg ".  Commonly used AP242 entities are in the other Entity Type categories.\nSuperscript indicates edition of AP242"}
+      if {$idx == "stepAP242"} {append ttmsg ".  More AP242 entities are in the other Entity Type categories.\nSuperscript indicates edition of AP242"}
       set ttmsg [guiToolTip $ttmsg $idx [string trim [lindex $item 0]]]
       catch {tooltip::tooltip $buttons($idx) $ttmsg}
     }
@@ -806,9 +812,9 @@ proc guiMoreTab {} {
   set fxlsda [frame $fxlsd.a -bd 0]
   set fxlsd1 [frame $fxlsda.1 -bd 0]
   set fxlsd2 [frame $fxlsda.2 -bd 0]
-  set items [list {" Use parallel projection viewpoints defined in file" opt(viewParallel)} \
+  set items [list {" For viewpoints use the Y-axis as the up-axis" opt(viewYAxisUp)} \
+                  {" Use parallel projection viewpoints defined in file" opt(viewParallel)} \
                   {" Show viewpoints without graphic PMI" opt(viewNoPMI)} \
-                  {" Correct for older viewpoint implementations" opt(viewCorrect)} \
                   {" Debug saved view camera model viewpoint" opt(debugVP)}]
   set n 0
   foreach item $items {
@@ -867,10 +873,10 @@ proc guiMoreTab {} {
     tooltip::tooltip $buttons(xlSort)      "Worksheets can be sorted by column values.\nWorksheets related to Analyzer options are always sorted.\n\nSee Help > User Guide (section 5.5.3)"
     tooltip::tooltip $buttons(xlNoRound)   "See Help > User Guide (section 5.5.4)"
     tooltip::tooltip $buttons(xlHideLinks) "This option is useful when sharing a Spreadsheet with another user."
-    tooltip::tooltip $buttons(checkEntities) "Use this with future or trial editions of current APs that are not supported\nor with deprecated entity types.  The Syntax Checker can identify unknown\nentity types.  Complex entities are not supported and comments might\naffect processing unknown entities.  This experimental feature should only\nbe used when absolutely necessary.\nSee Help > Supported STEP APs"
-    tooltip::tooltip $buttons(viewParallel) "Use parallel projection defined in the STEP file for saved view viewpoints,\ninstead of the default perspective projection.  Pan and zoom might not\nwork with parallel projection.  See Help > Viewer > Viewpoints"
-    tooltip::tooltip $buttons(viewCorrect) "Correct for older implementations of camera models that\nmight not conform to current recommended practices.\nThe corrected viewpoint might fix the orientation but\nmaybe not the position.\n\nSee Help > Viewer > Viewpoints\nSee the CAx-IF Recommended Practice for\n $recPracNames(pmi242), Sec. 9.4.2.6"
-    tooltip::tooltip $buttons(viewNoPMI)   "If the model has viewpoints with and without graphic PMI,\nthen also show the viewpoints without graphic PMI.  Those\nviewpoints are typically top, front, side, etc."
+    tooltip::tooltip $buttons(checkEntities) "Use this with future or trial editions of current APs that are not supported.\nThe Syntax Checker can identify unknown entity types.  Complex entities\nare not supported and comments might affect processing unknown entities.\nThis experimental feature should only be used when absolutely necessary.\nSee Help > Supported STEP APs"
+    tooltip::tooltip $buttons(viewParallel) "Use parallel projection defined in the STEP file for saved view viewpoints, instead\nof the default perspective projection.  See Help > Viewer > Viewpoints"
+    tooltip::tooltip $buttons(viewYAxisUp) "If viewpoints are not defined in the STEP file, then use\nthe +Y-axis as the up-axis instead of the default +Z-axis.\nThe up-axis is usually dependent on the CAD system that\ngenerated the STEP file.  See > Help > Viewer > Viewpoints"
+    tooltip::tooltip $buttons(viewNoPMI)   "If the model has viewpoints with and without graphic PMI,\nthen also show the viewpoints without graphic PMI."
     tooltip::tooltip $buttons(debugVP)     "Debug viewpoint orientation defined by a camera model\nby showing the view frustum in the Viewer.\n\nSee Help > Viewer > Viewpoints\nSee the CAx-IF Recommended Practice for\n $recPracNames(pmi242), Sec. 9.4.2.6"
     tooltip::tooltip $buttons(partCap)     "Generate capped surfaces for section view clipping planes.  Capped\nsurfaces might take a long time to generate or look wrong for parts\nin an assembly.  Sometimes capped surfaces are not generated.\nSee Help > Viewer > Other Features"
     tooltip::tooltip $buttons(brepAlt)     "If curved surfaces for Part Geometry look wrong even with\nQuality set to High, use an alternative B-rep geometry\nprocessing algorithm.  It will take longer to process the STEP\nfile and the resulting Viewer file will be larger."
@@ -1090,20 +1096,22 @@ proc guiToolTip {ttmsg tt {name ""}} {
     set prefix {}
     set n 0
     foreach ent $entCategory($tt) {
-      if {$tt != "stepCOMM" || [lsearch $ap242all $ent] != -1} {
-        set c1 [string first "_" $ent]
-        if {$c1 != -1} {
-          set pre [string range $ent 0 3]
-          if {[lsearch $prefix $pre] == -1} {
-            incr n
-            set ok 0
-            if {$tt != "stepAP242" && $tt != "stepOTHR"} {
-              set ok 1
-            } elseif {[expr {$n%3}] != 0} {
-              set ok 1
+      if {$tt != "stepAP242" || [lsearch $ap242only(e1) $ent] == -1} {
+        if {$tt != "stepCOMM" || [lsearch $ap242all $ent] != -1} {
+          set c1 [string first "_" $ent]
+          if {$c1 != -1} {
+            set pre [string range $ent 0 3]
+            if {[lsearch $prefix $pre] == -1} {
+              incr n
+              set ok 0
+              if {$tt != "stepOTHR"} {
+                set ok 1
+              } elseif {[expr {$n%3}] != 0} {
+                set ok 1
+              }
+              lappend prefix $pre
+              if {$ok} {lappend ents $ent}
             }
-            lappend prefix $pre
-            if {$ok} {lappend ents $ent}
           }
         }
       }
@@ -1401,12 +1409,12 @@ proc checkValues {} {
 
 # view
   if {$gen(View)} {
-    lappend butNormal viewFEA viewPMI viewPart partOnly partCap partNoGroup x3dSave viewParallel viewCorrect viewNoPMI
+    lappend butNormal viewFEA viewPMI viewPart partOnly partCap partNoGroup x3dSave viewParallel viewYAxisUp viewNoPMI
     if {!$opt(viewFEA) && !$opt(viewPMI) && !$opt(viewPart)} {set opt(viewPart) 1}
     if {$developer} {lappend butNormal debugX3D}
   } else {
     set opt(x3dSave) 0
-    lappend butDisabled viewFEA viewPMI viewPart partOnly partCap partNoGroup x3dSave viewParallel viewCorrect viewNoPMI
+    lappend butDisabled viewFEA viewPMI viewPart partOnly partCap partNoGroup x3dSave viewParallel viewYAxisUp viewNoPMI
     lappend butDisabled gpmiColor0 gpmiColor1 gpmiColor2 gpmiColor3 labelPMIcolor
     lappend butDisabled partEdges partSketch partSupp partNormals labelPartQuality partQuality4 partQuality7 partQuality10
     lappend butDisabled feaBounds feaLoads feaLoadScale feaDisp feaDispNoTail
@@ -1417,16 +1425,15 @@ proc checkValues {} {
   if {$opt(partOnly)} {
     set opt(viewPart) 1
     set opt(viewParallel) 0
-    set opt(viewCorrect) 0
     set opt(viewNoPMI) 0
     set opt(xlFormat) "None"
     set gen(Excel) 0
     set gen(Excel1) 0
     set gen(CSV) 0
     lappend butNormal genExcel
-    lappend butDisabled partCap debugVP tessPartMesh tessPartOld viewParallel viewCorrect viewNoPMI
+    lappend butDisabled partCap debugVP tessPartMesh tessPartOld viewParallel viewNoPMI
   } else {
-    lappend butNormal partCap debugVP tessPartMesh tessPartOld viewParallel viewCorrect viewNoPMI
+    lappend butNormal partCap debugVP tessPartMesh tessPartOld viewParallel viewNoPMI
   }
 
   if {$gen(View) && $opt(viewPart)} {
@@ -1699,7 +1706,7 @@ proc checkValues {} {
 proc saveRestoreViewer {} {
   global lastPartOnly opt optSave
 
-  set opts [list partCap partSupp syntaxChecker tessPartOld viewCorrect viewFEA viewNoPMI viewParallel viewPMI]
+  set opts [list partCap partSupp syntaxChecker tessPartOld viewFEA viewNoPMI viewParallel viewPMI]
   if {[info exists lastPartOnly]} {
     if {$opt(partOnly) != $lastPartOnly} {
       if {$opt(partOnly) == 1} {

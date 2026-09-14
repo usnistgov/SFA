@@ -157,17 +157,20 @@ outputMsg "\nViewpoints --------------------------------------------------------
 outputMsg "Use PageDown to switch between viewpoints in the Viewer window.  Viewpoint names are shown in the
 upper left corner of the Viewer.  User-defined viewpoints are used with saved view graphic PMI.
 
-If there are no user-defined viewpoints (saved views) in the STEP file, then front, side, top, and
-isometric viewpoints are generated.  Since the default orientation of the part is not known, the
-viewpoints might not correspond to the actual front, side, and top of the model.  The isometric
-viewpoint might not be centered.  All of the viewpoints use perspective except for an additional
-front parallel projection.
+If there are no user-defined viewpoints (saved views) in the STEP file, then front, back, left,
+right, top, bottom, and isometric viewpoints are generated.  The default orientation of the part
+uses the Z-axis as the up-axis.  Use the option on the More tab to switch the up-axis to the Y-axis.
+The up-axis is dependent on the CAD system that generated the STEP file.  All of the viewpoints use
+perspective except for an additional front parallel projection.
 
 ---------------------------------------------------------------------------------------------------
 If there are user-defined viewpoints (saved views) in the STEP file, then in addition to the saved
 views from the file, two additional front viewpoints named 'Front (SFA)' are generated, one
-perspective and the other a parallel projection.  Pan and zoom might not work with parallel
-projection.
+perspective and the other a parallel projection.
+
+On the More tab, parallel projection viewpoints as defined in the STEP file can be used instead of
+the default perspective.  Also, if the model has viewpoints with and without graphic PMI, then the
+viewpoints without graphic PMI can also be shown.
 
 If there are duplicate saved view names, then a number in parentheses is appended to the name.  For
 example, two viewpoints named MBD_A will appear as MBD_A (1) and MBD_A (2) for the Viewpoint name
@@ -175,11 +178,6 @@ in the upper left corner of the Viewer when cycling through the viewpoints with 
 
 Saved view names with non-English characters (Unicode) are supported in the Viewer if a spreadsheet
 is also generated.
-
-On the More tab, parallel projection viewpoints as defined in the STEP file can be used instead of
-the default perspective.  Also, if the model has viewpoints with and without graphic PMI, then the
-viewpoints without graphic PMI can also be shown.  Those viewpoints are usually top, front, and
-side viewpoints.
 
 If there is graphic PMI associated with saved views, then the PMI is automatically switched
 on/off when using PageDown if 'Saved View Viewpoints' is checked on the Generate tab.  If there are
@@ -305,7 +303,7 @@ outputMsg "\nPMI Placeholders --------------------------------------------------
 outputMsg "PMI (annotation) placeholders provide information about the position, orientation, and organization
 of an annotation without the graphic presentation of numeric values, symbols, and text for
 geometric or dimensional tolerances.  Placeholders are associated with saved views if there is also
-graphic PMI.  Placeholders are supported in AP242 editions >= 2.  They are not documented in the
+graphic PMI.  Placeholders are supported in AP242 editions > 1.  They are not documented in the
 User Guide.
 
 Required placeholder coordinate systems are shown with an axes triad, gray sphere, and text label
@@ -439,15 +437,12 @@ See Websites > STEP > AP209 FEA"
 # analyzer overview
   $helpAnalyze add command -label "Overview" -command {
 outputMsg "\nAnalyzer Overview ---------------------------------------------------------------------------------" blue
-outputMsg "The Analyzer reports information related to properties, semantic PMI, and graphic PMI, and checks
-them for conformance to recommended practices.  Syntax Errors are reported for nonconformance.
-Entities that report this information are highlighted on the File Summary worksheet.
+outputMsg "The Analyzer reports information related to semantic PMI, graphic PMI, properties, and UUIDs, and
+checks them for conformance to recommended practices.  Syntax Errors are reported for
+nonconformance. Entities that report this information are highlighted on the File Summary worksheet.
 
 Inverse relationships and Backwards References show the relationship between some entities through
 other entities.
-
-PMI Coverage Analysis shows the distribution of specific semantic PMI elements related to geometric
-dimensioning and tolerancing.
 
 If a STEP AP242 file is processed that is generated from one of the NIST CAD models, the semantic
 PMI Analyzer report is color-coded by the expected PMI.
@@ -860,7 +855,7 @@ AP238 STEP-NC files (.stpnc) are supported by renaming the file extension to '.s
 
 The name of the AP is on the FILE_SCHEMA entity in the HEADER section of a STEP file.  Some APs
 have multiple editions with the same name.  AP242 editions 1-4 were released in 2014, 2020, 2022,
-and 2025.  See Websites > STEP > EXPRESS Schemas and Websites > AP242 > ISO 10303-242
+and 2025.  See Websites > STEP > EXPRESS Schemas, and Websites > AP242 > ISO 10303-242
 
  AP242 - AP242_MANAGED_MODEL_BASED_3D_ENGINEERING_MIM_LF
  AP203 - AP203_CONFIGURATION_CONTROLLED_3D_DESIGN_OF_MECHANICAL_PARTS_AND_ASSEMBLIES_MIM_LF
@@ -870,7 +865,7 @@ and 2025.  See Websites > STEP > EXPRESS Schemas and Websites > AP242 > ISO 1030
  AP210 - AP210_ELECTRONIC_ASSEMBLY_INTERCONNECT_AND_PACKAGING_DESIGN_MIM_LF
  AP239 - AP239_PRODUCT_LIFE_CYCLE_SUPPORT_MIM_LF
 
-Older Schemas (e1 refers to an older edition)
+Older APs (e1 refers to an older edition)
  AP203e1 - CONFIG_CONTROL_DESIGN
  AP238e1 - INTEGRATED_CNC_SCHEMA
  AP209e1 - STRUCTURAL_ANALYSIS_DESIGN
@@ -1009,6 +1004,9 @@ outputMsg "The largest STEP file that can be processed for a Spreadsheet or the 
 approximately 430 MB.  Processing a larger STEP file might cause a crash.  A popup dialog might
 appear that says 'unable to realloc xxx bytes'.  See Help > Crash Recovery
 
+Select Part Only on the Generate tab to use the Viewer with a STEP file larger than about 430 MB.
+A 1.5 GB STEP file has been tested this way in the Viewer.
+
 Some workarounds are available to (1) prevent a crash with a smaller file that can be processed,
 (2) to reduce the processing time, or (3) to reduce the size of the spreadsheet:
 - Deselect Entity Types that might not need to be processed such as Geometry and Coordinates
@@ -1016,11 +1014,7 @@ Some workarounds are available to (1) prevent a crash with a smaller file that c
 - Use a smaller value for the Maximum Rows
 - Deselect Analyzer options
 
-The Status tab might be grayed out when a large STEP file is being read.
-
----------------------------------------------------------------------------------------------------
-Select Part Only on the Generate tab to use the Viewer with a STEP file larger than about 430 MB.
-A 1.5 GB STEP file has been tested this way in the Viewer."
+The Status tab might be grayed out when a large STEP file is being read."
     .tnb select .tnb.status
   }
 
@@ -1032,8 +1026,8 @@ Basekit has stopped working'.
 
 A crash is most likely due to syntax errors in the STEP file, a very large STEP file, the options
 selected for the software, or due to limitations of the toolkit used to read STEP files.  Run the
-Syntax Checker with function key F8 or the option on the Generate tab to check for errors with
-entities that might have caused the crash.  See Help > Syntax Checker
+Syntax Checker to check for errors with entities that might have caused the crash.
+See Help > Syntax Checker
 
 The software keeps track of the last entity processed when it crashed.  The list of bad entity
 types is stored in myfile-skip.dat.  Simply restart this software and use F1 to process the last

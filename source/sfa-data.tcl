@@ -3,9 +3,9 @@ proc initData {} {
 global ap203all ap214all ap242all ap242e1 ap242e2 ap242e3 ap242e4 ap242e5 ap242only ap242XML supertypes
 global allVendor andEntAP209 aoEntTypes badAttributes brepGeomEntTypes cadApps cameraModels datumTargetDesc defaultColor dimModNames
 global dimSizeNames DTR entCategory entColorIndex feaElemFace feaIndex gpmiTypes ifcsvrDir ifcsvrKey ifcsvrVer iloldscr indentStart
-global indentStop holeOccurrences legendColor letters nistModelPictures pmiElementsMaxRows pmiHorizontalLineBreaks pmiModifiers pmiModifiersRP 
-global pmiUnicode recPracNames recPracVersions roseLogical spaces spmiEntTypes spmiTypes statusFont tolNames tolsAfterG tolsBeforeG tzfNames
-global unicodeAttributes xlsManual
+global indentStop holeOccurrences legendColor letters nistModelPictures optVar0 optVar1 pmiElementsMaxRows pmiHorizontalLineBreaks pmiModifiers
+global pmiModifiersRP pmiUnicode recPracNames recPracVersions roseLogical spaces spmiEntTypes spmiTypes statusFont tolNames tolsAfterG tolsBeforeG
+global tzfNames unicodeAttributes xlsManual
 
 global coverageSTEP developer dispCmd dispCmds env fileDir fileDir1 filesProcessed gen lastX3DOM lastXLS lastXLS1
 global mydocs openFileList opt pf32 pf64 sfaVersion userWriteDir writeDir x3dom x3dFileName x3dStartFile
@@ -35,21 +35,23 @@ set writeDir $userWriteDir
 # set variables to their default values, most control options for the user interface
 # all are subsequently set by reading the options file (that stores options from running the software - STEP-File-Analyzer-options.dat) in sfa.tcl and sfa-cl.tcl
 # options, set to 1
-foreach id {logFile outputOpen partEdges partSketch partSupp PMIGRF PMISEM PMIUUID stepCOMM stepPRES stepQUAN stepREPR stepSHAP \
-  stepTOLR valProp viewPart viewPMI} {set opt($id) 1}
+set optVar1 [list logFile outputOpen partEdges partSketch partSupp PMIGRF PMISEM PMIUUID stepCOMM stepPRES stepQUAN stepREPR stepSHAP stepTOLR \
+  valProp viewPart viewPMI]
+foreach item $optVar1 {set opt($item) 1}
 
 # options, set to 0
-foreach id {BOM checkEntities DEBUG1 debugAG DEBUGINV debugNOXL debugVP debugX3D feaBounds feaDisp feaDispNoTail feaLoads feaLoadScale indentGeometry \
-  indentStyledItem INVERSE partCap partNoGroup partNormals partOnly PMISEMDIM PMISEMDT PMISEMRND SHOWALLPMI stepAP242 \
-  stepCOMP stepCPNT stepFEAT stepGEOM stepHOLE stepKINE stepOTHR stepQUAL stepUSER syntaxChecker brepAlt tessPartMesh tessPartOld \
-  viewCorrect viewFEA viewNoPMI viewParallel viewTessPart writeDirType x3dSave xlHideLinks xlNoRound xlSort xlUnicode} {set opt($id) 0}
+set optVar0 [list BOM checkEntities DEBUG1 debugAG DEBUGINV debugNOXL debugVP debugX3D feaBounds feaDisp feaDispNoTail feaLoads feaLoadScale \
+  gpmiColor indentGeometry indentStyledItem INVERSE partCap partNoGroup partNormals partOnly partQuality PMISEMDIM PMISEMDT PMISEMRND SHOWALLPMI \
+  stepAP242 stepCOMP stepCPNT stepFEAT stepGEOM stepHOLE stepKINE stepOTHR stepQUAL stepUSER syntaxChecker brepAlt tessPartMesh tessPartOld \
+  viewYAxisUp viewFEA viewNoPMI viewParallel viewTessPart writeDirType x3dSave xlFormat xlHideLinks xlMaxRows xlNoRound xlSort xlUnicode]
+foreach item $optVar0 {set opt($item) 0}
 
-set ap242XML 0
-set gen(View) 1
-set opt(gpmiColor) 0
 set opt(partQuality) 7
 set opt(xlMaxRows) 1003
 set opt(xlFormat) Excel
+
+set ap242XML 0
+set gen(View) 1
 set coverageSTEP 0
 set dispCmd "Default"
 set dispCmds {}
@@ -310,9 +312,9 @@ set holeOccurrences [list basic_round_hole_occurrence basic_round_hole_occurrenc
 
 # -----------------------------------------------------------------------------------------------------
 # max rows for PMI elements on PMI representation coverage worksheet, depends on number and order of items below
-set pmiElementsMaxRows 189
+set pmiElementsMaxRows 192
 # line breaks are above the row, depends on the grouping of PMI elements below
-set pmiHorizontalLineBreaks [list 19 35 49 55 66 74 84 [expr {$pmiElementsMaxRows-12}]]
+set pmiHorizontalLineBreaks [list 19 38 52 58 69 77 87 [expr {$pmiElementsMaxRows-12}]]
 
 # -----------------------------------------------------------------------------------------------------
 # dimensional_size names (Section 5.1.5, Table 4)
@@ -336,7 +338,8 @@ set gpmiTypes [list angularity "circular runout" circularity coaxiality concentr
 # Semantic PMI types for coverage analysis, order is important
 set spmiTypes $tolNames
 
-foreach item [list "tolerance zone diameter \u2300 (6.9.2)" "tolerance zone within a cylinder \u2300 (6.9.2)" "tolerance zone spherical diameter S\u2300 (6.9.2)" "tolerance zone other (6.9.2)" "composite tolerance (6.9.9)" "all_over \u2B69\u25CE (6.3)" "all_around \u232E (6.4.2)" "projected \u24C5 (6.9.2.2)" "non-uniform tolerance zone (6.9.2.3)" "unequally_disposed \u24CA or UZ (6.9.4)" "tolerance with max value (6.9.5)" "unit-basis tolerance (6.9.6)" "pattern of features (6.4.1)" "affected plane tolerance zone (6.9.2.1)" "tolerance zone precision (6.9)" "directed/oriented/direction_feature tolerance zone" \
+foreach item [list "tolerance zone diameter \u2300 (6.9.2)" "tolerance zone within a cylinder \u2300 (6.9.2)" "tolerance zone spherical diameter S\u2300 (6.9.2)" "tolerance zone other (6.9.2)" "composite tolerance (6.9.9)" "all_over \u2B69\u25CE (6.3)" "all_around \u232E (6.4.2)" "projected \u24C5 (6.9.2.2)" "non-uniform tolerance zone (6.9.2.3)" "unequally_disposed \u24CA or UZ (6.9.4)" "tolerance with max value (6.9.5)" "unit-basis tolerance (6.9.6)" "pattern of features (6.4.1)" "affected plane tolerance zone (6.9.2.1)" "tolerance zone precision (6.9)" \
+  "intersection plane indicator \u25C1" "orientation plane indicator \u25C1 \u25B7" "direction feature indicator \u2190" "collection plane indicator \u25CB" \
   "dimensions (location+size)" "dimensional location (5.1.1)" "dimensional size (5.1.5)" "angular location (5.1.2)" "angular size (5.1.6)" "dimension basic (5.3)" "reference dimension (5.3)" "directed dimension \u2331 (5.1.1)" "oriented dimensional location (5.1.3)" "derived shapes dimensional location (5.1.4)" "location with path (5.1.7)" "dimension association to geometric tolerance (5.1)" "repetitive dimensions 'nX' (5.1, User Guide 6.1.3)" "dimension precision (5.4)" \
   "bilateral tolerance (5.2.3)" "non-bilateral tolerance (5.2.3)" "type qualifier (5.2.2)" "value range (5.2.4)" "limits and fits (5.2.5)" "tolerance precision (5.2.3)" \
   "diameter \u2300 (5.1.5)" "radius R (5.1.5)" "spherical diameter S\u2300 (5.1.5)" "spherical radius SR (5.1.5)" "controlled radius CR (5.3)" "curved distance (5.1.1)" "linear distance (5.1.1)" "linear distance inner/outer (5.1.1)" "curve length (5.1.5)" "thickness (5.1.5)" "toroidal radius/diameter (5.1.5)" \
@@ -707,16 +710,16 @@ set ap242only(e5) [lindex [intersect3 $ap242e4 $ap242e5] 2]
 set ap242only(all) [lindex [intersect3 $ap242all [lrmdups [concat $ap203all $ap214all]]] 0]
 
 # for Tree View indenting
-set indentStart [list ACTION_PROPERTY_REPRESENTATION ANNOTATION_CURVE_OCCURRENCE ANNOTATION_FILL_AREA_OCCURRENCE ANNOTATION_OCCURRENCE ANNOTATION_PLANE APPLICATION_PROTOCOL APPLIED APPROVAL_DATE APPROVAL_PERSON AREA_COMPONENT CC_DESIGN CONSTRUCTIVE_GEOMETRY_REPRESENTATION_RELATIONSHIP CONTROL_LINEAR_STATIC_ANALYSIS_STEP CONTROL_LINEAR_STATIC_LOAD_INCREMENT_PROCESS COUNTER CYLINDRICAL_PAIR_WITH_RANGE CURVE_3D_ELEMENT_REPRESENTATION CURVE_3D_ELEMENT_LOCATION_POINT_VARIABLE_VALUES DATA_QUALITY DATUM_FEATURE DATUM_SYSTEM DATUM_TARGET DRAUGHTING_CALLOUT DRAUGHTING_MODEL DIMENSIONAL_CHARACTERISTIC_REPRESENTATION DOCUMENT_PRODUCT_EQUIVALENCE ELEMENT_MATERIAL EXPLICIT_CONSTRAINT EXPLICIT_GEOMETRIC_CONSTRAINT FEATURE_COMPONENT_RELATIONSHIP FEATURE_DEFINITION FEA_MODEL_3D GEOMETRIC_ITEM_SPECIFIC_USAGE GEOMETRIC_REPRESENTATION_CONTEXT ITEM_IDENTIFIED_REPRESENTATION_USAGE KINEMATIC_PAIR KINEMATIC_PATH KINEMATIC_PROPERTY KINEMATIC_TOPOLOGY LAMINATE_COMPONENT MACHINING MAKE_FROM_USAGE_OPTION MANIFOLD_SOLID_BREP( MATHS_ MECHANICAL_DESIGN NEXT_ASSEMBLY_USAGE_OCCURRENCE NON_UNIFORM_ZONE_DEFINITION PACKAGE PRESENTATION_LAYER_ASSIGNMENT PRISMATIC_PAIR_WITH_RANGE PRODUCT_CATEGORY_RELATIONSHIP PRODUCT_DEFINITION( PRODUCT_DEFINITION_SHAPE PRODUCT_RELATED PROJECTED_ZONE_DEFINITION PROPERTY_DEFINITION_REPRESENTATION REPRESENTATION_RELATIONSHIP REQUIREMENT_FOR_ACTION_RESOURCE RESOURCE_PROPERTY_REPRESENTATION REVOLUTE_PAIR_WITH_RANGE RIGID_LINK_REPRESENTATION SECURITY_CLASSIFICATION SIMPLIFIED SHAPE_ASPECT_RELATIONSHIP SHAPE_DEFINING_RELATIONSHIP SHAPE_DEFINITION_REPRESENTATION SHAPE_REPRESENTATION_RELATIONSHIP SINGLE_POINT_CONSTRAINT_ELEMENT_VALUES SPOTFACE STATE_RELATIONSHIP STRATUM_FEATURE STRUCTURAL_RESPONSE_PROPERTY SURFACE_3D_ELEMENT_REPRESENTATION SURFACE_3D_ELEMENT_LOCATION_POINT_VOLUME_VARIABLE_VALUES SURFACE_3D_ELEMENT_LOCATION_POINT_VARIABLE_VALUES VOLUME_3D_ELEMENT_REPRESENTATION VOLUME_3D_ELEMENT_LOCATION_POINT_VARIABLE_VALUES TOLERANCE WORKPLAN UUID_ATTRIBUTE]
+set indentStart [list ACTION_PROPERTY_REPRESENTATION ANNOTATION_CURVE_OCCURRENCE ANNOTATION_FILL_AREA_OCCURRENCE ANNOTATION_OCCURRENCE ANNOTATION_PLANE APPLICATION_PROTOCOL APPLIED APPROVAL_DATE APPROVAL_PERSON AREA_COMPONENT CC_DESIGN CONSTRUCTIVE_GEOMETRY_REPRESENTATION_RELATIONSHIP CONTROL_LINEAR_STATIC_ANALYSIS_STEP CONTROL_LINEAR_STATIC_LOAD_INCREMENT_PROCESS COUNTER CYLINDRICAL_PAIR_WITH_RANGE CURVE_3D_ELEMENT_REPRESENTATION CURVE_3D_ELEMENT_LOCATION_POINT_VARIABLE_VALUES DATA_QUALITY DATUM_FEATURE DATUM_SYSTEM DATUM_TARGET DRAUGHTING_CALLOUT DRAUGHTING_MODEL DIMENSIONAL_CHARACTERISTIC_REPRESENTATION DOCUMENT_PRODUCT_EQUIVALENCE ELEMENT_MATERIAL ENGINEERING_NOTE EXPLICIT_CONSTRAINT EXPLICIT_GEOMETRIC_CONSTRAINT FEATURE_COMPONENT_RELATIONSHIP FEATURE_DEFINITION FEA_MODEL_3D GEOMETRIC_ITEM_SPECIFIC_USAGE GEOMETRIC_REPRESENTATION_CONTEXT ITEM_IDENTIFIED_REPRESENTATION_USAGE KINEMATIC_PAIR KINEMATIC_PATH KINEMATIC_PROPERTY KINEMATIC_TOPOLOGY LAMINATE_COMPONENT MACHINING MAKE_FROM_USAGE_OPTION MANIFOLD_SOLID_BREP( MATHS_ MECHANICAL_DESIGN NEXT_ASSEMBLY_USAGE_OCCURRENCE NON_UNIFORM_ZONE_DEFINITION PACKAGE PRESENTATION_LAYER_ASSIGNMENT PRISMATIC_PAIR_WITH_RANGE PRODUCT_CATEGORY_RELATIONSHIP PRODUCT_DEFINITION( PRODUCT_DEFINITION_SHAPE PRODUCT_RELATED PROJECTED_ZONE_DEFINITION PROPERTY_DEFINITION_REPRESENTATION REPRESENTATION_RELATIONSHIP REQUIREMENT_FOR_ACTION_RESOURCE RESOURCE_PROPERTY_REPRESENTATION REVOLUTE_PAIR_WITH_RANGE RIGID_LINK_REPRESENTATION ROUND_HOLE SCREW_THREAD SECURITY_CLASSIFICATION SIMPLIFIED SHAPE_ASPECT_RELATIONSHIP SHAPE_DEFINING_RELATIONSHIP SHAPE_DEFINITION_REPRESENTATION SHAPE_REPRESENTATION_RELATIONSHIP SINGLE_POINT_CONSTRAINT_ELEMENT_VALUES SPOTFACE STATE_RELATIONSHIP STRATUM_FEATURE STRUCTURAL_RESPONSE_PROPERTY SURFACE_3D_ELEMENT_REPRESENTATION SURFACE_3D_ELEMENT_LOCATION_POINT_VOLUME_VARIABLE_VALUES SURFACE_3D_ELEMENT_LOCATION_POINT_VARIABLE_VALUES VOLUME_3D_ELEMENT_REPRESENTATION VOLUME_3D_ELEMENT_LOCATION_POINT_VARIABLE_VALUES TOLERANCE WORKPLAN UUID_ATTRIBUTE]
 
-set indentStop  [list ADVANCED_BREP_SHAPE_REPRESENTATION ANNOTATION_OCCURRENCE ANNOTATION_PLANE B_SPLINE_CURVE B_SPLINE_SURFACE COUNTERBORE COUNTERDRILL COUNTERSINK CSG_2D_SHAPE_REPRESENTATION CYLINDRICAL_PAIR_WITH_RANGE COMPOSITE_TEXT CURVE_3D_ELEMENT_REPRESENTATION DATUM( DATUM_FEATURE( DATUM_FEATURE_CALLOUT DATUM_SYSTEM( DRAUGHTING_CALLOUT ELEMENT_MATERIAL FEA_AXIS2_PLACEMENT_3D FEA_MODEL_3D GEOMETRIC_REPRESENTATION_CONTEXT LAYERED_ASSEMBLY_MODULE_USAGE_VIEW NODE PATH_AREA POLYLINE PRIMARY_REFERENCE_TERMINAL PRISMATIC_PAIR_WITH_RANGE PRODUCT_DEFINITION_SHAPE REVOLUTE_PAIR_WITH_RANGE RIGID_LINK_REPRESENTATION SIMPLIFIED SINGLE_AREA_CSG SINGLE_BOUNDARY_CSG SPOTFACE SURFACE_3D_ELEMENT_REPRESENTATION TEXT_LITERAL_WITH_EXTENT TOLERANCE_VALUE VOLUME_3D_ELEMENT_REPRESENTATION USAGE_CONCEPT_USAGE_RELATIONSHIP]
+set indentStop  [list ADVANCED_BREP_SHAPE_REPRESENTATION ANNOTATION_OCCURRENCE ANNOTATION_PLANE B_SPLINE_CURVE B_SPLINE_SURFACE COUNTERBORE COUNTERDRILL COUNTERSINK CSG_2D_SHAPE_REPRESENTATION CYLINDRICAL_PAIR_WITH_RANGE COMPOSITE_TEXT CURVE_3D_ELEMENT_REPRESENTATION DATUM( DATUM_FEATURE( DATUM_FEATURE_CALLOUT DATUM_SYSTEM( DRAUGHTING_CALLOUT ELEMENT_MATERIAL FEA_AXIS2_PLACEMENT_3D FEA_MODEL_3D GEOMETRIC_REPRESENTATION_CONTEXT LAYERED_ASSEMBLY_MODULE_USAGE_VIEW NODE PATH_AREA POLYLINE PRIMARY_REFERENCE_TERMINAL PRISMATIC_PAIR_WITH_RANGE PRODUCT_DEFINITION_SHAPE REVOLUTE_PAIR_WITH_RANGE RIGID_LINK_REPRESENTATION ROUND_HOLE SIMPLIFIED SINGLE_AREA_CSG SINGLE_BOUNDARY_CSG SPOTFACE SURFACE_3D_ELEMENT_REPRESENTATION TEXT_LITERAL_WITH_EXTENT TOLERANCE_VALUE VOLUME_3D_ELEMENT_REPRESENTATION USAGE_CONCEPT_USAGE_RELATIONSHIP]
 
 if {[clock format [clock seconds] -format "%b%d"] == "Apr01"} {set pmiUnicode(diameter) "\u263A"}
 }
 
 #-------------------------------------------------------------------------------
 proc checkVariables {} {
-  global fileDir fileDir1 mydocs opt userEntityFile userWriteDir writeDirType xlsManual
+  global fileDir fileDir1 mydocs opt optVar0 optVar1 userEntityFile userWriteDir writeDirType xlsManual
 
 # check that directories exist
   if {[info exists userWriteDir]} {if {![file exists $userWriteDir]} {set userWriteDir $mydocs}}
@@ -729,22 +732,15 @@ proc checkVariables {} {
     }
   }
 
-# rename and unset old opt variables from older versions of SFA
-  foreach pair [list {HIDELINKS xlHideLinks} {LOGFILE logFile} {SYNCHK syntaxChecker} {tessAlt brepAlt} {VALPROP valProp} {VIZBRP VIZPRT} {VIZFEA viewFEA} {VIZFEABC feaBounds} {VIZFEADS feaDisp} {VIZFEADSntail feaDispNoTail} {VIZFEALV feaLoads} {VIZFEALVS feaLoadScale} {VIZPMI viewPMI} {VIZPRT viewPart} {VIZPRTEDGE partEdges} {VIZPRTNORMAL partNormals} {VIZPRTONLY partOnly} {VIZPRTWIRE partSketch} {VIZTES viewTessPart} {VIZTESMSH tessPartMesh} {VIZTPG viewTessPart} {VIZTPGMSH tessPartMesh} {x3dQuality partQuality} {XL_FPREC xlNoRound} {XL_OPEN outputOpen} {XL_ROWLIM xlMaxRows} {XL_SORT xlSort} {XLSCSV xlFormat}] {
-    set old [lindex $pair 0]
-    set new [lindex $pair 1]
-    if {[info exists opt($old)]} {set opt($new) $opt($old); unset opt($old)}
-  }
+# check a few variables
   if {$opt(writeDirType) == 3} {set xlsManual 1; set opt(writeDirType) 0}
   if {$opt(writeDirType) == 1} {set opt(writeDirType) 0}
   if {$opt(partQuality)  == 9} {set opt(partQuality) 10}
-
   if {$opt(xlMaxRows) < 103 || ([string range $opt(xlMaxRows) end-1 end] != "03" && \
      [string range $opt(xlMaxRows) end-1 end] != "76" && [string range $opt(xlMaxRows) end-1 end] != "36")} {set opt(xlMaxRows) 103}
 
-# unset old opt variables from older versions of SFA
-  foreach item {COUNT CRASH DELCOVROWS DISPGUIDE1 feaDisptail feaNodeType FIRSTTIME FN_APPEND GENX3DOM indentGeomtry partNoCap PMIGRFCOV PMIP PMIPROP PMIVRML ROWLIM SEMPROP SORT stepADDM viewPMIVP VPDBG XLSBUG XLSBUG1} {catch {unset opt($item)}}
-  foreach id [array names opt] {foreach str {EX_ PR_ XL_ VIZ} {if {[string first $str $id] == 0} {unset opt($id)}}}
+# unset unused opt variables
+  foreach item [array names opt] {if {[lsearch $optVar0 $item] == -1 && [lsearch $optVar1 $item] == -1} {catch {unset opt($item)}}}
 }
 
 # -----------------------------------------------------------------------------------------------------
