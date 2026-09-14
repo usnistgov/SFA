@@ -30,6 +30,12 @@ User Guide, sample STEP files, and old versions of SFA.
 **Build** your own version of SFA from the source code and instructions in the 'source' directory above.  There is no need to build your own version
 unless you are modifying the source code.
 
+## Archived NIST Resources
+
+- [STEP at NIST](https://www.nist.gov/ctl/smart-connected-systems-division/smart-connected-manufacturing-systems-group/step-nist)
+- [MBE PMI Validation and Conformance Testing Project](https://www.nist.gov/ctl/smart-connected-systems-division/smart-connected-manufacturing-systems-group/mbe-pmi-validation)
+- [Enabling the Digital Thread for Manufacturing](https://www.nist.gov/ctl/smart-connected-systems-division/smart-connected-manufacturing-systems-group/enabling-digital)
+
 ## Disclaimers
 
 [NIST Disclaimer](https://www.nist.gov/copyrights-disclaimers)
