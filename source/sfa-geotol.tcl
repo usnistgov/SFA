@@ -591,11 +591,11 @@ proc spmiGeotolReport {objEntity} {
                     if {[info exists colName]} {
                       $cells($gt) Item 3 $c $colName
                       if {[string first "GD&T" $colName] != -1} {
-                        set comment "See Help > User Guide (section 6.1.4) for an explanation of how the annotations below are constructed.  Results are summarized on the Semantic PMI Summary worksheet."
+                        set comment "See Help > User Guide (section 6.1.4) for an explanation of how the annotations are constructed.  Results are summarized on the Semantic PMI Summary worksheet."
                         append comment "\n\nThe geometric tolerance might be shown with associated dimensions (above) and datum features (below).  The association depends on any of the two referring to the same Associated Geometry as the Toleranced Geometry in the column to the right.  See the Associated Geometry columns on the 'dimensional_characteristic_representation' (DCR) and 'datum_feature' worksheets to see if they match the Toleranced Geometry."
                         append comment "\n\nSee the DCR worksheet for an explanation of Repetitive Dimensions."
                         if {$nistName != ""} {
-                          append comment "\n\nSee the Semantic PMI Summary worksheet to see how the GD&T Annotation below compares to the expected PMI."
+                          append comment "\n\nSee the Semantic PMI Summary worksheet to see how the GD&T Annotation compares to the expected PMI."
                         }
                         addCellComment $gt 3 $c $comment
 
@@ -756,6 +756,11 @@ proc spmiGeotolReport {objEntity} {
                               errorMsg $msg
                               lappend syntaxErr([lindex $ent1 0]) [list [$gtEntity P21ID] [lindex $ent1 1] $msg]
                             }
+                          }
+                          if {$val == "circle_a"} {
+                            set msg "Use 'derived_feature' instead of 'circle_a' for the geometric tolerance modifier.\n ($recPracNames(pmi242), Sec. 6.9.3, Table 14)"
+                            errorMsg $msg
+                            lappend syntaxErr([lindex $ent1 0]) [list [$gtEntity P21ID] [lindex $ent1 1] $msg]
                           }
                         } else {
                           if {$val != ""} {append nval " \[$val\]"}
@@ -1628,7 +1633,7 @@ proc spmiGeotolReport {objEntity} {
           if {[string first $gtol [$gtEntity Type]] != -1} {set ok1 1; set gtol1 $gtol}
         }
         if {$ok1} {
-          set msg "Syntax Error: Datum system ($ds) not allowed with $gtol1.$spaces\($recPracNames(pmi242), Sec. 6.8, Table 12)"
+          set msg "Syntax Error: Datum systems are not allowed with $gtol1.$spaces\($recPracNames(pmi242), Sec. 6.8, Table 12)"
           errorMsg $msg
           lappend syntaxErr([$gtEntity Type]) [list [$gtEntity P21ID] "datum_system" $msg]
         }
@@ -1638,13 +1643,46 @@ proc spmiGeotolReport {objEntity} {
       foreach tz [list directed oriented direction_feature] {
         if {[info exists tzWithDatum($tz)]} {
           set val [[$cells($gt) Item $r $c] Value]
-          $cells($gt) Item $r $c "$val |   $tzWithDatum($tz)"
+          $cells($gt) Item $r $c "$val | $tzWithDatum($tz)"
           unset tzWithDatum($tz)
         }
       }
 
     } emsg3]} {
       errorMsg "Error adding Datum Feature: $emsg3"
+    }
+
+# check auxiliary classification for all over and UOS (PMI RP Sec. 6.3)
+    if {[catch {
+      if {[string first "tolerance" [$gtEntity Type]] != -1} {
+        set gtac "geometric_tolerance_auxiliary_classification"
+        if {[info exists entCount($gtac)]} {
+          if {$entCount($gtac) > 0} {
+            set e0s [$gtEntity GetUsedIn [string trim $gtac] [string trim described_item]]
+            ::tcom::foreach e0 $e0s {
+              set gtAuxClass [[[$e0 Attributes] Item [expr 1]] Value]
+              set val [[$cells($gt) Item $r $c] Value]
+              if {$gtAuxClass == "all_over"} {
+                if {[string first $pmiModifiers(all_over) $val] == -1} {
+                  $cells($gt) Item $r $c "$pmiModifiers(all_over) | $val"
+                  addCellComment $gt $r $c "The All Over symbol is approximated with two symbols. ($recPracNames(pmi242), Sec. 6.3)"
+                  lappend spmiTypesPerFile $gtAuxClass
+                }
+              } elseif {$gtAuxClass == "unless_otherwise_specified"} {
+                if {[string first "UNLESS OTHERWISE SPECIFIED" $val] == -1} {
+                  regsub -all "_" $gtAuxClass " " gtac
+                  lappend spmiTypesPerFile $gtac
+                  set idx 0
+                  if {[string first $pmiModifiers(all_over) $val] != -1} {set idx 5}
+                  $cells($gt) Item $r $c "[string range $val $idx end][format "%c" 10][string toupper $gtac]"
+                }
+              }
+            }
+          }
+        }
+      }
+    } emsg4]} {
+      errorMsg "Error adding Auxiliary Classification: $emsg4"
     }
 
 # check for composite tolerance (not stacked)
@@ -1659,15 +1697,16 @@ proc spmiGeotolReport {objEntity} {
           ::tcom::foreach a1 [$e1 Attributes] {
             if {[$a1 Name] == "name"} {
               set compval [$a1 Value]
+              #if {$compval != "composite tolerance"}
               if {$compval != "composite"} {
-                if {[string tolower $compval] == "composite"} {
-                  set msg "Syntax Error: Use lower case for 'name' attribute ($compval) on geometric_tolerance_relationship.$spaces\($recPracNames(pmi242), Sec. 6.9.9)"
-                  set compval [string tolower $compval]
+                if {$compval == "composite"} {
+                  set msg "Syntax Error: Use 'composite tolerance' instead of 'composite' for the 'name' attribute"
                 } elseif {$compval == "precedence" || $compval == "simultaneity"} {
-                  set msg "Syntax Error: 'name' attribute ($compval) not recommended on geometric_tolerance_relationship.$spaces\($recPracNames(pmi242), Sec. 6.9.9)"
+                  set msg "Syntax Error: 'name' attribute ($compval) not recommended"
                 } else {
-                  set msg "Syntax Error: Invalid 'name' attribute ($compval) on geometric_tolerance_relationship.$spaces\($recPracNames(pmi242), Sec. 6.9.9)"
+                  set msg "Syntax Error: Invalid 'name' attribute ($compval)"
                 }
+                append msg " on geometric_tolerance_relationship.$spaces\($recPracNames(pmi242), Sec. 6.9.9)"
                 errorMsg $msg
                 lappend syntaxErr(geometric_tolerance_relationship) [list [$e1 P21ID] "name" $msg]
               }
@@ -2366,8 +2405,9 @@ proc spmiPlacedDatumTarget {objEntity objValue} {
                     append objValue "[format "%c" 10](L = $dtv)"
                   } elseif {$datumTargetType == "circular curve"} {
                     if {[string first "(D = " $objValue] != -1} {
-                      set msg "Multiple diameter dimensions associated with the same 'circular_curve' placed_datum_target_feature"
+                      set msg "Syntax Error: Multiple diameter dimensions associated with the same 'circular_curve' placed_datum_target_feature.$spaces\($recPracNames(pmi242), Sec. 6.6.1)"
                       errorMsg $msg
+                      lappend syntaxErr([$gtEntity Type]) [list [$gtEntity P21ID] "Datum Target" $msg]
                     }
                     append objValue "[format "%c" 10](D = $dtv)"
 

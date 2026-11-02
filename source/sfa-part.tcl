@@ -347,7 +347,6 @@ proc x3dBrepGeom {} {
                     set id [string range $line $c1+1 $c2-3]
                     set cx [string first "\\X" $id]
                     if {$cx != -1} {set id [getUnicode $id]}
-                    #if {$opt(debugX3D)} {outputMsg $id blue}
                     set parts($id) $npart(PRT)
                     set line "$space\Switch id='swPart$npart(PRT)' whichChoice='0'><Group>\n$line"
                     set close 1
@@ -451,39 +450,33 @@ proc x3dBrepGeom {} {
             if {[info exists parts]} {
 
 # group duplicate parts
-              if {!$opt(partNoGroup)} {
-                foreach name [lsort [array names parts]] {
-                  if {$opt(debugX3D)} {outputMsg "$name $parts($name)"}
+              foreach name [lsort [array names parts]] {
+                if {$opt(debugX3D)} {outputMsg "$name $parts($name)"}
 
 # S control directive
-                  if {[string first "\\S\\" $name] != -1} {errorMsg " The \\S\\ control directive is not supported for accented characters.  See Help > Text Strings and Numbers" red}
+                if {[string first "\\S\\" $name] != -1} {errorMsg " The \\S\\ control directive is not supported for accented characters.  See Help > Text Strings and Numbers" red}
 
 # check for _n at end of name
-                  if {[string index $name end-1] == "_" || [string index $name end-2] == "_" || [string index $name end-3] == "_"} {
+                if {[string index $name end-1] == "_" || [string index $name end-2] == "_" || [string index $name end-3] == "_"} {
 
 # remove _n
-                    set c1 [string last "_" $name]
-                    set name1 [string range $name 0 $c1-1]
-                    if {$opt(debugX3D)} {outputMsg " $name1" red}
+                  set c1 [string last "_" $name]
+                  set name1 [string range $name 0 $c1-1]
+                  if {$opt(debugX3D)} {outputMsg " $name1" red}
 
 # add to x3dParts
-                    if {[string range $name $c1 end] == "_1" && ![info exists parts($name1)]} {
-                      set x3dParts($name1) $parts($name)
-                    } else {
-                      if {[lsearch [array names x3dParts] $name1] != -1} {
-                        append x3dParts($name1) " $parts($name)"
-                      } else {
-                        set x3dParts($name) $parts($name)
-                      }
-                    }
+                  if {[string range $name $c1 end] == "_1" && ![info exists parts($name1)]} {
+                    set x3dParts($name1) $parts($name)
                   } else {
-                    set x3dParts($name) $parts($name)
+                    if {[lsearch [array names x3dParts] $name1] != -1} {
+                      append x3dParts($name1) " $parts($name)"
+                    } else {
+                      set x3dParts($name) $parts($name)
+                    }
                   }
+                } else {
+                  set x3dParts($name) $parts($name)
                 }
-
-# do not group duplicate parts
-              } else {
-                foreach name [lsort [array names parts]] {set x3dParts($name) $parts($name)}
               }
             }
 
@@ -706,7 +699,7 @@ proc STL2STEP {} {
 # header and entities
     puts $w2 "ISO-10303-21;
 HEADER;
-FILE_DESCRIPTION(('','CAx-IF Rec.Pracs.---3D Tessellated Geometry---1.1---2019-08-22'),'2;1');
+FILE_DESCRIPTION(('Convert [file tail $f1] to STEP','CAx-IF Rec.Pracs.---3D Tessellated Geometry---1.1---2019-08-22'),'2;1');
 FILE_NAME('[file tail $f1]','[clock format [clock seconds] -format "%Y-%m-%d\T%T"]',(' '),(' '),' ','NIST SFA [getVersion]',' ');
 FILE_SCHEMA(('AP242_MANAGED_MODEL_BASED_3D_ENGINEERING_MIM_LF { 1 0 10303 442 3 1 4 }'));
 ENDSEC;\n
@@ -793,7 +786,7 @@ DATA;
         }
       }
 
-# read binary STL (https://www.johann-oberdorfer.eu/blog/2018/01/12/18-01-12_stl_files_convert_from_ascii2binary/)
+# read binary STL (www.johann-oberdorfer.eu/blog/2018/01/12/18-01-12_stl_files_convert_from_ascii2binary/)
     } else {
       set ilen [GetByteLength "UINT32"]
       set rlen [expr {[GetByteLength "REAL"] * 3}]
@@ -802,7 +795,7 @@ DATA;
 
 # number of triangles
       binary scan [read $r1 $ilen] i ntriangles
-      outputMsg " Reading [expr {$ntriangles*3}] coordinates, $ntriangles faces"
+      outputMsg " Reading [expr {$ntriangles*3}] coordinates and $ntriangles faces from STL file"
       for {set ntri 0} {$ntri < $ntriangles} {incr ntri} {
 
 # normal
@@ -846,7 +839,7 @@ DATA;
 # finish STEP file
     if {$nface > 0} {
       if {[info exists ntriangles]} {outputMsg " Removed [expr {$ntriangles*3 - [llength $clist]}] duplicate coordinates" red}
-      outputMsg " Writing [llength $clist] coordinates, $nface faces"
+      outputMsg " Writing [llength $clist] coordinates and $nface faces to STEP file"
       set str "#$id=COORDINATES_LIST('',[llength $clist],([string range [join $clist] 0 end-1]));"
       regsub -all " " $str "" str
       puts $w2 $str

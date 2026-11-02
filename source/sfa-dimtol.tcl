@@ -52,8 +52,13 @@ proc spmiDimtolStart {entType} {
         $a2p3d \
       ]
     ]
-  set PMIP($iloldscr) $PMIP(dimensional_characteristic_representation)
-  lset PMIP($iloldscr) 0 $iloldscr
+
+# independent_limits_of_linear_dimensional_size_characteristic_representation
+  if {$entType == $iloldscr} {
+    set PMIP($iloldscr) $PMIP(dimensional_characteristic_representation)
+    lset PMIP($iloldscr) 0 $iloldscr
+    errorMsg " The 'limits' attribute is not supported on $iloldscr." red
+  }
 
   if {![info exists PMIP($entType)]} {return}
 
@@ -624,6 +629,7 @@ proc spmiDimtolReport {objEntity} {
                     }
 
                     if {[string first "_with_datum_feature" $ent1] != -1} {errorMsg "Using [lindex [split $ent1 " "] 0] is not recommended.  Use two entities 'dimensional_size' and 'datum_feature' instead."}
+                    #if {[string first "_with_datum_feature" $ent1] != -1} {errorMsg "Syntax Error: Using [lindex [split $ent1 " "] 0] is not recommended.$spaces\($recPracNames(pmi242), Sec. 6.5.3)"}
                   }
 
                   "*dimensional_location* name" {
@@ -669,6 +675,7 @@ proc spmiDimtolReport {objEntity} {
                     }
 
                     if {[string first "_with_datum_feature" $ent1] != -1} {errorMsg "Using [lindex [split $ent1 " "] 0] is not recommended.  Use two entities 'dimensional_location' and 'datum_feature' instead."}
+                    #if {[string first "_with_datum_feature" $ent1] != -1} {errorMsg "Syntax Error: Using [lindex [split $ent1 " "] 0] is not recommended.$spaces\($recPracNames(pmi242), Sec. 6.5.3)"}
                   }
 
                   "shape_dimension_representation name" {
@@ -1535,7 +1542,6 @@ proc spmiDimtolReport {objEntity} {
                 if {$n == [expr {$lendtg-1}]} {append dtg " and "}
               }
               addCellComment $dt $r $pmiColumns(ch) "Multiple dimensions are associated with the same geometry.  The entities in this cell appear elsewhere in this column."
-              #errorMsg "Multiple ([llength $dimtolGeom($dimtolGeomEnts)]) dimensions $dtg are associated with the same geometry. (IDs $dimtolGeomEnts)"
             }
           }
         }

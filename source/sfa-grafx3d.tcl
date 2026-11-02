@@ -667,6 +667,17 @@ proc x3dFileEnd {} {
 # viewpoints
   foreach xf $x3dFiles {puts $xf "\n<!-- VIEWPOINTS -->"}
 
+# check if up-axis is specified
+  if {[info exists objDesign]} {
+    if {[info exists entCount(description_attribute)] && $entCount(description_attribute) > 0} {
+      ::tcom::foreach da [$objDesign FindObjects [string trim description_attribute]] {
+        set up [string trim [[[$da Attributes] Item [expr 1]] Value]]
+        if {[string first "y-up" $up] != -1 && !$opt(viewYAxisUp)} {set opt(viewYAxisUp) 1; outputMsg " Setting the Y-axis as the up-axis (More tab)" red}
+        if {[string first "z-up" $up] != -1 && $opt(viewYAxisUp)}  {set opt(viewYAxisUp) 0; outputMsg " Setting the Z-axis as the up-axis (More tab)" red}
+      }
+    }
+  }
+
 # default
   set cor "centerOfRotation='$xyzcen(x) $xyzcen(y) $xyzcen(z)'"
   set xmin [trimNum [expr {$x3dMin(x) - 1.4*max($delt(y),$delt(z))}]]
@@ -1973,7 +1984,7 @@ proc x3dComposites {} {
 # -------------------------------------------------------------------------------
 # write clipping plane
 proc x3dClipPlane {shapeClipping cpname} {
-  global clipPlaneName nclipPlane viz x3dFile
+  global clipPlaneName maxxyz nclipPlane opt viz x3dFile
 
   if {[catch {
     if {[$shapeClipping Type] == "plane"} {
@@ -1981,10 +1992,14 @@ proc x3dClipPlane {shapeClipping cpname} {
 # get normal to the plane
       set e0 [[[$shapeClipping Attributes] Item [expr 2]] Value]
       set a2p3d [x3dGetA2P3D $e0]
-      set clipplane [join [vectrim [vecmult [lindex $a2p3d 1] -1.] 8]]
+      set axis [lindex $a2p3d 1]
+
+# option to flip plane orientation
+      if {$opt(x3dClipFlip)} {set axis [vecmult $axis -1.]}
+      set clipplane [join [vectrim [vecmult $axis -1.] 8]]
 
 # compute plane offset
-      set dot [vecdot [lindex $a2p3d 0] [lindex $a2p3d 1]]
+      set dot [vecdot [lindex $a2p3d 0] $axis]
       set offset [trimNum [expr {$dot+0.002}] 8]
       append clipplane " $offset"
 
@@ -1996,9 +2011,12 @@ proc x3dClipPlane {shapeClipping cpname} {
 # ClipPlane does the clipping in x3d
       puts $x3dFile "<ClipPlane enabled='false' plane='$clipplane' id='swClipPlane$nclipPlane'></ClipPlane>"
 
-# plane that represents the position and orientation of the plane
+# plane and axes that represents the position and orientation of the plane
       puts $x3dFile "<Switch whichChoice='-1' id='swClipping$nclipPlane'><Group>"
       x3dSuppGeomPlane $shapeClipping 1. "clipping plane" $clipPlaneName($nclipPlane)
+      set size [trimNum [expr {$maxxyz*0.1}]]
+      set tsize [trimNum [expr {$size*0.2}]]
+      x3dSuppGeomAxis $e0 $size $tsize
       puts $x3dFile "</Group></Switch>"
       set viz(CLIPPING) 1
 

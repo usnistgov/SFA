@@ -33,7 +33,7 @@ proc getEntity {objEntity rmax checkInverse checkBadAttributes unicodeCheck} {
     set sheetLast $worksheet($thisEntType)
 
     set name $thisEntType
-    if {[string length $name] > 31} {
+    if {[string length $name] >= 31} {
       set name [string range $name 0 30]
       for {set i 1} {$i < 10} {incr i} {
         if {[info exists entName($name)]} {set name "[string range $name 0 29]$i"}
@@ -141,7 +141,7 @@ proc getEntity {objEntity rmax checkInverse checkBadAttributes unicodeCheck} {
                 errorMsg " '???' will appear in spreadsheet for these attribute(s).  See User Guide section 5.4" red
               }
             } elseif {!$opt(PMIUUID)} {
-              errorMsg "For $thisEntType, use the option for 'UUIDs' to see identified_item values instead of '???' (Generate tab)"
+              errorMsg " Use the 'UUIDs' option to see 'identified_item' values instead of '???' (Generate tab)" red
             }
           }
         }

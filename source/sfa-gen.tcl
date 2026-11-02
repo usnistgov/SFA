@@ -283,6 +283,8 @@ proc genExcel {{numFile 0}} {
             lappend characteristics "Supplemental geometry (tessellated)"
           } elseif {$entType == "property_definition_representation" || $entType == "material_property_representation"} {
             lappend characteristics "Properties"
+          } elseif {$entType == "next_assembly_usage_occurrence"} {
+            lappend characteristics "Assemblies"
 
           } elseif {[lsearch $entCategory(stepCOMP) $entType] != -1} {
             lappend characteristics "Composites"
@@ -292,15 +294,20 @@ proc genExcel {{numFile 0}} {
             lappend characteristics "Features"
           } elseif {[lsearch $entCategory(stepKINE) $entType] != -1} {
             lappend characteristics "Kinematics"
+          } elseif {[lsearch $entCategory(stepQUAL) $entType] != -1} {
+            lappend characteristics "Data quality"
+
+          } elseif {[string first "camera_model_d3" $entType] != -1} {
+            lappend characteristics "Viewpoints"
+          } elseif {[string first "uuid" $entType] != -1} {
+            lappend characteristics "UUIDs"
           } else {
             foreach tol $tolNames {if {[string first $tol $entType] != -1} {lappend characteristics "Geometric tolerances"}}
-            if {[string first "camera_model_d3" $entType] != -1} {lappend characteristics "Viewpoints"}
           }
-          if {[string first "uuid" $entType] != -1} {lappend characteristics "UUIDs"}
 
-# make sure some entity types are always processed
+# some entity types are always processed
           if {$opt(xlFormat) != "None"} {
-            foreach cat {stepCOMP stepKINE stepFEAT stepHOLE stepAP242 stepQUAL stepOTHR} {
+            foreach cat {stepCOMP stepFEAT stepHOLE stepAP242 stepOTHR} {
               if {$opt($cat) == 0 && [lsearch $entCategory($cat) $entType] != -1} {
                 set opt($cat) 1
                 checkValues
@@ -325,9 +332,9 @@ proc genExcel {{numFile 0}} {
           if {$num > 0} {
             if {$entType == "closed_shell"} {lappend gtypes "B-rep solid"}
             if {$entType == "open_shell" || [string first "surface_of_" $entType] != -1} {lappend gtypes "B-rep surface"}
-            if {$entType == "tessellated_solid"} {lappend gtypes "tessellated solid"}
-            if {$entType == "tessellated_shell"} {lappend gtypes "tessellated surface"}
-            if {$entType == "tessellated_closed_shell" || $entType == "tessellated_open_shell"} {lappend gtypes "polyhedral B-rep"}
+            if {$entType == "tessellated_solid"} {lappend gtypes "Tessellated solid"}
+            if {$entType == "tessellated_shell"} {lappend gtypes "Tessellated surface"}
+            if {$entType == "tessellated_closed_shell" || $entType == "tessellated_open_shell"} {lappend gtypes "B-rep polyhedral"}
           }
         }
         if {[llength $gtypes] > 0} {
@@ -343,7 +350,7 @@ proc genExcel {{numFile 0}} {
         set str1 ""
         foreach item $characteristics {
           append str1 "$item, "
-          if {[string length $str1] > 100} {
+          if {[string length $str1] > 80} {
             append str " $str1\n"
             set str1 ""
           }
@@ -360,9 +367,7 @@ proc genExcel {{numFile 0}} {
           if {[string range $stepAP 0 4] == "AP203" || [string range $stepAP 0 4] == "AP214"} {
             foreach item [list Datums Dimensions "Geometric tolerances" "Graphic PMI"] {
               if {[string first $item $fileItems] != -1} {
-                set msg " Graphic and Semantic PMI is best supported in AP242"
-                if {$gen(Excel) && ($opt(PMISEM) || $opt(PMIGRF))} {append msg  ".  Analyzer reports are based on AP242 Recommended Practices."}
-                errorMsg $msg red
+                if {$gen(Excel) && ($opt(PMISEM) || $opt(PMIGRF))} {errorMsg " Analyzer reports are based on AP242 Recommended Practices" red}
               }
             }
           }
@@ -412,7 +417,7 @@ proc genExcel {{numFile 0}} {
     if {[file exists $skipFileName]} {
       set skipFile [open $skipFileName r]
       while {[gets $skipFile line] >= 0} {
-        if {[lsearch $skipEntities $line] == -1 && $line != "" && ![info exists badAttributes($line)]} {
+        if {[lsearch $skipEntities $line] == -1 && $line != ""} {
           lappend skipEntities $line
         }
       }
@@ -842,6 +847,7 @@ proc genExcel {{numFile 0}} {
           set entsIgnored($cidx$entType) $entCount($entType)
         }
       } else {
+        if {!$noSkip} {lappend skipList $entType}
         lappend entsToIgnore $entType
         set entsIgnored($cidx$entType) $entCount($entType)
       }
@@ -961,16 +967,15 @@ proc genExcel {{numFile 0}} {
       if {$opt(xlFormat) != "None"} {
         set msg "Worksheets"
         if {!$useXL} {set msg "CSV files"}
-        append msg " will not be generated for the entities listed in"
+        append msg " will not be generated for the entities in "
       } else {
-        set msg "The Viewer might not generate anything because of the entities listed in:"
+        set msg "The Viewer might not generate anything because of the entities in "
       }
-      append msg " [truncFileName [file nativename $skipFileName]]"
+      append msg [file tail $skipFileName]
       errorMsg $msg
       set str ""
-      foreach item [lsort $skipList] {append str " [formatComplexEnt $item],"}
-      outputMsg [string range $str 0 end-1] red
-      if {$guiSFA} {errorMsg "Use F8 to run the Syntax Checker and See Help > Crash Recovery"}
+      foreach item [lsort $skipList] {outputMsg " [formatComplexEnt $item]" red}
+      if {$guiSFA} {outputMsg "Use F8 to run the Syntax Checker, and see Help > Crash Recovery"}
     }
   }
 
@@ -1357,8 +1362,8 @@ proc genExcel {{numFile 0}} {
     catch {raise .}
     if {[llength $entsToProcess] > 0} {
       set msg "Error processing STEP file"
-      if {[info exists objEntity]} {if {[string first "handle" $objEntity] != -1} {append msg " with entity \#[$objEntity P21ID]=[string toupper [$objEntity Type]]"}}
-      append msg ": $emsg2\nProcessing of the STEP file has stopped"
+      if {[info exists objEntity]} {if {[string first "handle" $objEntity] != -1} {append msg "\n \#[$objEntity P21ID]=[string toupper [$objEntity Type]]"}}
+      append msg ": $emsg2\nProcessing stopped"
       errorMsg $msg
     } else {
       return
@@ -1671,13 +1676,9 @@ proc genExcel {{numFile 0}} {
 # add Link(n) text to multi file summary
       if {$numFile != 0 && [info exists cells1(Summary)]} {
         set colsum [expr {$col1(Summary)+1}]
-        if {!$opt(xlHideLinks)} {
-          $cells1(Summary) Item 3 $colsum "Link ($numFile)"
-          set range [$worksheet1(Summary) Range [cellRange 3 $colsum]]
-          regsub -all {\\} $xlFileName "/" xls
-        } else {
-          $cells1(Summary) Item 3 $colsum "$numFile"
-        }
+        $cells1(Summary) Item 3 $colsum "Link ($numFile)"
+        set range [$worksheet1(Summary) Range [cellRange 3 $colsum]]
+        regsub -all {\\} $xlFileName "/" xls
       }
       update idletasks
 
@@ -1864,7 +1865,7 @@ proc addHeaderWorksheet {numFile fname} {
           } elseif {$id > 7} {
             set simsg " Unsupported AP242 Schema Identifier '\{... $id 1 4\}'  See Websites > STEP > EXPRESS Schemas"
           }
-          if {$developer} {foreach i {4 5} {if {[llength $ap242ed($i)] > 0} {regsub -all " " [join $ap242ed($i)] ", " str1; outputMsg " AP242e$i: $str1" red}}}
+          if {$developer} {foreach i {4 5} {if {[llength $ap242ed($i)] > 0} {regsub -all " " [join $ap242ed($i)] ", " str1; outputMsg " AP242e$i ([llength $ap242ed($i)]): $str1" red}}}
         } elseif {[string first "AP242" $sn] == 0} {
           set simsg " SchemaName is missing the Schema Identifier '\{1 0 10303 442 ...\}' that specifies the edition of AP242.  See Websites > STEP > EXPRESS Schemas"
         }
@@ -1877,7 +1878,7 @@ proc addHeaderWorksheet {numFile fname} {
         }
 
 # check for IFC files
-        if {[string first "IFC" $sn] == 0} {append str "  (Use the NIST IFC File Analyzer)"}
+        if {[string first "IFC" $sn] == 0} {errorMsg "Use the NIST IFC File Analyzer"}
 
 # schema name
         outputMsg $str blue
@@ -1977,7 +1978,7 @@ proc addHeaderWorksheet {numFile fname} {
 # check version number
             if {[info exists recPracVersions($name)] && $okcheck} {
               set num [string range $item $c1+3 $c1+5]
-              if {$num < $recPracVersions($name)} {set str " $item  (Current version is $recPracVersions($name))"}
+              if {$num < $recPracVersions($name)} {set str " $item  ** Current version is $recPracVersions($name) **"}
             }
           }
         }
@@ -2016,7 +2017,8 @@ proc addHeaderWorksheet {numFile fname} {
           if {$app == "PRO/ENGINEER"}           {set app1 "Pro/E"}
           if {$app == "SOLIDWORKS"}             {set app1 "SolidWorks"}
           if {$app == "SOLIDWORKS MBD"}         {set app1 "SolidWorks MBD"}
-          if {$app == "SIEMENS PLM Software NX"} {set app1 "Siemens NX"}
+          if {$app == "SIEMENS PLM Software NX"}           {set app1 "Siemens NX"}
+          if {$app == "SIEMENS PLM Software Designcenter"} {set app1 "Siemens Designcenter"}
           if {$app == "CREO"} {
             set app1 "Creo"
             if {[string index $cadSystem 28] == 2} {append app1 [string range $cadSystem 27 35]}
@@ -2030,8 +2032,10 @@ proc addHeaderWorksheet {numFile fname} {
           if {[string first "Autodesk Inventor"       $fos] != -1} {set app1 $fos}
           if {[string first "SolidWorks 2"            $fos] != -1} {set app1 $fos}
           if {[string first "MBDVidia"                $fos] != -1} {set app1 "MBDVidia"}
-          if {[string first "SIEMENS PLM Software NX" $fos] ==  0} {set app1 "Siemens NX [string range $fos 24 end]"}
           if {[string first "THEOREM"                 $fpv] != -1} {set app1 "Theorem Solutions"}
+
+          if {[string first "SIEMENS PLM Software NX" $fos] ==  0}           {set app1 "Siemens NX [string range $fos 24 end]"}
+          if {[string first "SIEMENS PLM Software Designcenter" $fos] ==  0} {set app1 "Siemens Designcenter [string range $fos 34 end]"}
 
 # set caxifVendor based on CAx-IF vendor notation used in testing rounds, use for app if appropriate
           set caxifVendor [setCAXIFvendor]
@@ -2099,8 +2103,8 @@ proc addHeaderWorksheet {numFile fname} {
 #-------------------------------------------------------------------------------------------------
 # add summary worksheet
 proc sumAddWorksheet {} {
-  global andEntAP209 cells col entCategory entCount entsIgnored equivUnicodeString excel fileSumRow
-  global gpmiEnts iloldscr opt row sheetLast sheetSort spmiEntity stepAP sum uuidEnts vpEnts worksheet worksheets
+  global cells col entCount entsIgnored equivUnicodeString fileSumRow gpmiEnts iloldscr opt row
+  global sheetLast sheetSort spmiEntity sum uuidEnts vpEnts worksheet worksheets
 
   outputMsg "\nGenerating Summary worksheet" blue
   set sum "Summary"
@@ -2148,8 +2152,9 @@ proc sumAddWorksheet {} {
 
 # check for explicit '_and_'
       } else {
-        foreach item [array names entCategory] {if {[lsearch $entCategory($item) $entType] != -1} {set ok 1}}
-        if {[string first "AP209" $stepAP] != -1} {foreach str $andEntAP209 {if {[string first $str $entType] != -1} {set ok 1}}}
+        set ok 1
+        set ok1 [formatEntity $entType]
+        if {$ok1} {set ok 0}
       }
 
 # no '_and_' or explicit '_and_'
@@ -2231,7 +2236,9 @@ proc sumAddWorksheet {} {
       if {[string first "_and_" $ent] == -1} {
         set ok 1
       } else {
-        foreach item [array names entCategory] {if {[lsearch $entCategory($item) $ent0] != -1} {set ok 1}}
+        set ok 1
+        set ok1 [formatEntity $ent0]
+        if {$ok1} {set ok 0}
       }
       if {$ok} {
         if {$ent0 != $iloldscr} {
@@ -2251,7 +2258,6 @@ proc sumAddWorksheet {} {
       $cells($sum) Item $rowIgnored 2 $entsIgnored($ent)
     }
     set row($sum) $rowIgnored
-    [$excel ActiveWindow] ScrollRow [expr 1]
 
 # autoformat entire summary worksheet
     set range [$worksheet($sum) Range [cellRange 1 1] [cellRange $row($sum) $col($sum)]]
@@ -2275,7 +2281,7 @@ proc sumAddWorksheet {} {
 #-------------------------------------------------------------------------------------------------
 # add file name and other info to top of Summary
 proc sumAddFileName {sum sumLinks} {
-  global cadSystem cells dim entityCount fileSchema localName opt stepAP sumHeaderRow timeStamp tolStandard worksheet xlFileName
+  global cadSystem cells dim entityCount fileSchema localName stepAP sumHeaderRow timeStamp tolStandard worksheet xlFileName
 
   set sumHeaderRow 0
   if {[catch {
@@ -2369,7 +2375,7 @@ proc sumAddFileName {sum sumLinks} {
     set range [$worksheet($sum) Range "B1:K1"]
     $range MergeCells [expr 1]
     set anchor [$worksheet($sum) Range "B1"]
-    if {!$opt(xlHideLinks) && [string first "#" $localName] == -1} {
+    if {[string first "#" $localName] == -1} {
       regsub -all {\\} $localName "/" ln
       $sumLinks Add $anchor [join $ln] [join ""] [join "Link to STEP file"]
     }
@@ -2395,7 +2401,8 @@ proc sumAddFileName {sum sumLinks} {
 #-------------------------------------------------------------------------------------------------
 # add file name and other info to top of Summary
 proc sumAddColorLinks {sum sumHeaderRow sumLinks sheetSort sumRow} {
-  global cells col entCount entName entsIgnored entsWithErrors excel fileEntity nfile row worksheet
+  global cells col entCount entName entsIgnored entsWithErrors fileEntity nfile row worksheet
+  outputMsg "Formatting Summary worksheet" blue
 
   if {[catch {
     set row($sum) [expr {$sumHeaderRow+2}]
@@ -2412,14 +2419,12 @@ proc sumAddColorLinks {sum sumHeaderRow sumLinks sheetSort sumRow} {
 
       incr row($sum)
       set nrow [expr {20-$sumHeaderRow}]
-      if {$row($sum) > $nrow} {[$excel ActiveWindow] ScrollRow [expr {$row($sum)-$nrow}]}
-
       set sumRow [expr {[lsearch $sheetSort $ent]+3+$sumHeaderRow}]
 
 # link from summary to entity worksheet
       set anchor [$worksheet($sum) Range "A$sumRow"]
       set hlsheet $ent
-      if {[string length $ent] > 31} {
+      if {[string length $ent] >= 31} {
         foreach item [array names entName] {
           if {$entName($item) == $ent} {set hlsheet $item}
         }
@@ -2458,7 +2463,7 @@ proc sumAddColorLinks {sum sumHeaderRow sumLinks sheetSort sumRow} {
 
 # add links for entsIgnored entities, find row where they start
     set i1 [expr {max([array size worksheet],9)}]
-    for {set i $i1} {$i < 1000} {incr i} {
+    for {set i $i1} {$i < 3000} {incr i} {
       if {[string first "Entity types" [[$cells($sum) Item $i 1] Value]] == 0} {
         set rowIgnored $i
         break
@@ -2467,6 +2472,7 @@ proc sumAddColorLinks {sum sumHeaderRow sumLinks sheetSort sumRow} {
     set range [$worksheet($sum) Range "A$rowIgnored"]
     [$range Font] Bold [expr 1]
 
+# border before not processed entities
     set i1 0
     set range [$worksheet($sum) Range [cellRange $rowIgnored 1] [cellRange $rowIgnored [expr {$col($sum)+$i1}]]]
     catch {[[$range Borders] Item [expr 8]] Weight [expr -4138]}
@@ -2474,13 +2480,15 @@ proc sumAddColorLinks {sum sumHeaderRow sumLinks sheetSort sumRow} {
     foreach ent [lsort [array names entsIgnored]] {
       incr rowIgnored
       set nrow [expr {20-$sumHeaderRow}]
-      if {$rowIgnored > $nrow} {[$excel ActiveWindow] ScrollRow [expr {$rowIgnored-$nrow}]}
       set ncol [expr {$col($sum)-1}]
 
       set range [$worksheet($sum) Range [cellRange $rowIgnored 1]]
       set cidx [string range $ent 0 1]
       if {$cidx > 0} {[$range Interior] ColorIndex [expr $cidx]}
+      catch {foreach i {8 9} {[[$range Borders] Item $i] Weight [expr 1]}}
     }
+    set range [$worksheet($sum) Range [cellRange $rowIgnored 1]]
+    [[$range Borders] Item 9] Weight [expr -4138]
     [$worksheet($sum) Columns] AutoFit
     [$worksheet($sum) Rows] AutoFit
 

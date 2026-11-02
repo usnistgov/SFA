@@ -17,7 +17,7 @@ proc setCoordMinMax {coord} {
 # -------------------------------------------------------------------------------------------------
 # set color based on entColorIndex variable
 proc setColorIndex {ent {multi 0}} {
-  global andEntAP209 entCategory entColorIndex stepAP
+  global apAllEntities entCategory entColorIndex stepAP
 
 # special case
   if {[string first "geometric_representation_context" $ent] != -1} {set ent "geometric_representation_context"}
@@ -29,6 +29,13 @@ proc setColorIndex {ent {multi 0}} {
         return $entColorIndex($i)
       }
     }
+  }
+
+# entities not in AP203/214/242, assumes that they cannot be compound entities
+  if {[string first "Ifc" $ent] == 0} {return -1}
+  if {[lsearch $apAllEntities $ent] == -1} {
+    set c1 [string first "_and_" $ent]
+    if {$c1 == -1 || [lsearch $apAllEntities [string range $ent 0 $c1-1]] == -1} {return 19}
   }
 
 # compound entity with _and_
@@ -57,17 +64,14 @@ proc setColorIndex {ent {multi 0}} {
     set tc [expr {min($tc1,$tc2,$tc3)}]
 
 # exception for STEP measures (except *_11 composites entities)
-    if {($tc1 == $entColorIndex(stepQUAN) || $tc2 == $entColorIndex(stepQUAN) || $tc3 == $entColorIndex(stepQUAN)) && [string first "_11" $ent] == -1} {
-      set tc $entColorIndex(stepQUAN)
+    if {($tc1 == $entColorIndex(stepMEAS) || $tc2 == $entColorIndex(stepMEAS) || $tc3 == $entColorIndex(stepMEAS)) && [string first "_11" $ent] == -1} {
+      set tc $entColorIndex(stepMEAS)
     }
-
-# fix some AP209 entities with '_and_'
-    if {[string first "AP209" $stepAP] != -1} {foreach str $andEntAP209 {if {[string first $str $ent] != -1} {set tc 19}}}
 
     if {$tc < 1000} {return $tc}
   }
 
-# entity not in any category, color by AP
+# in case not set above, entity not in any category, color by AP
   foreach ap {AP209 AP210 AP238 AP239 ISO13584 CUTTING_TOOL CIS/2} {if {[string first $ap $stepAP] != -1} {return 19}}
 
 # other entities
@@ -123,9 +127,7 @@ proc openFile {{openName ""}} {
   if {$openName == ""} {
 
 # file types for file select dialog
-    set typelist [list {"STEP " {".stp" ".step" ".p21" ".stpx" ".stpZ" ".stpA"}}]
-    lappend typelist {"STL " {".stl"}}
-    lappend typelist {"IFC " {".ifc"}}
+    set typelist [list {"All Files " {".stp" ".step" ".p21" ".stpx" ".stpZ" ".stpA" ".stl" ".ifc"}}]
 
 # file open dialog
     set localNameList [tk_getOpenFile -title "Open File(s)" -filetypes $typelist -initialdir $fileDir -multiple true]
@@ -541,7 +543,7 @@ proc saveState {{ok 1}} {
 # opt variables
     foreach idx [lsort -nocase [array names opt]] {
       if {[string first "DEBUG" [string toupper $idx]] == -1 && [string first "indent" $idx] == -1 && \
-          $idx != "PMISEMDIM" && $idx != "PMISEMDT" && $idx != "partNoGroup" && $idx != "tessPartMesh" && $idx != "viewTessPart"} {
+          $idx != "PMISEMDIM" && $idx != "PMISEMDT" && $idx != "tessPartMesh" && $idx != "viewTessPart"} {
         set var opt($idx)
         set vartmp [set $var]
         if {[string first "/" $vartmp] != -1 || [string first "\\" $vartmp] != -1 || [string first " " $vartmp] != -1} {
@@ -813,7 +815,6 @@ proc getNextUnusedColumn {ent} {
 # -------------------------------------------------------------------------------
 # format a complex entity name, e.g., first_and_second > (first)(second)
 proc formatComplexEnt {str {space 0}} {
-  global andEntAP209 entCategory opt stepAP
 
 # check for an attribute name, i.e., a_and_b.attr
   set attr ""
@@ -827,14 +828,8 @@ proc formatComplexEnt {str {space 0}} {
   set str1 $str
   if {[string first "_and_" $str1] != -1} {
 
-# check if _and_ is part of the entity name
-    set ok 1
-    foreach cat {stepAP242 stepCOMM stepTOLR stepPRES stepKINE stepCOMP stepOTHR} {
-      if {$opt($cat)} {if {[lsearch $entCategory($cat) $str] != -1} {set ok 0; break}}
-    }
-    if {[info exists stepAP]} {
-      if {[string first "AP209" $stepAP] != -1} {foreach str2 $andEntAP209 {if {[string first $str2 $str] != -1} {set ok 0}}}
-    }
+# check if entity needs to be formatted
+    set ok [formatEntity $str1]
 
 # format a_and_b to (a)(b)
     if {$ok} {
@@ -849,6 +844,30 @@ proc formatComplexEnt {str {space 0}} {
 # add back attribute
   if {$attr != ""} {append str1 $attr}
   return $str1
+}
+
+# -------------------------------------------------------------------------------
+# decide to format a complex entity
+proc formatEntity {ent} {
+  global apAllEntities
+
+  set format 1
+  set c1 [string first "_and_" $ent]
+
+# no _and_
+  if {$c1 == -1} {
+    set format 0
+
+# expected _and_ in AP203/214/242
+  } elseif {[lsearch $apAllEntities $ent] != -1} {
+    set format 0
+
+# check the string before _and_ against AP203/214/242
+#  if not found then AP is different than AP203/214/242 and do not format
+  } elseif {[lsearch $apAllEntities [string range $ent 0 $c1-1]] == -1} {
+    set format 0
+  }
+  return $format
 }
 
 #-------------------------------------------------------------------------------
@@ -1558,7 +1577,7 @@ proc getTiming {{str ""}} {
 }
 
 #-------------------------------------------------------------------------------
-# From https://wiki.tcl-lang.org/page/Custom+sorting
+# From wiki.tcl-lang.org/page/Custom+sorting
 proc sortlength2 {wordlist} {
   set words {}
   foreach word $wordlist {
@@ -1572,7 +1591,7 @@ proc sortlength2 {wordlist} {
 }
 
 #-------------------------------------------------------------------------------
-# Based on http://www.cawt.tcl3d.org/
+# Based on www.tcl3d.org/cawt/
 proc GetWorksheetAsMatrix {worksheetId} {
   set cellId [[$worksheetId Cells] Range [GetCellRange 1 1 [[[$worksheetId UsedRange] Rows] Count] [[[$worksheetId UsedRange] Columns] Count]]]
   set matrixList [$cellId Value2]

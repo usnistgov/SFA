@@ -1,6 +1,6 @@
 # supplemental geometry
 proc x3dSuppGeom {} {
-  global entCount maxxyz recPracNames skipEntities spmiTypesPerFile syntaxErr
+  global entCount maxxyz recPracNames skipEntities syntaxErr
   global tessCoord tessCoordID tessIndex tessIndexCoord trimVal viz x3dFile
   global objDesign
   if {![info exists objDesign]} {return}
@@ -239,7 +239,6 @@ proc x3dSuppGeom {} {
                 set nsize [trimNum [expr {$tsize*0.5}]]
                 puts $x3dFile " <Transform translation='[vectrim $coord]' scale='$nsize $nsize $nsize'><Billboard axisOfRotation='0 0 0'><Shape><Text string='$name'><FontStyle family='SANS' justify='BEGIN'/></Text><Appearance><Material diffuseColor='0 0 1'/></Appearance></Shape></Billboard></Transform>"
               }
-              lappend spmiTypesPerFile "supplemental geometry"
               set viz(SUPPGEOM) 1
             }
 
@@ -261,7 +260,6 @@ proc x3dSuppGeom {} {
                 set nsize [trimNum [expr {$tsize*0.5}]]
                 puts $x3dFile " <Transform translation='[vectrim $coord]' scale='$nsize $nsize $nsize'><Billboard axisOfRotation='0 0 0'><Shape><Text string='$name'><FontStyle family='SANS' justify='BEGIN'/></Text><Appearance><Material diffuseColor='0 0 1'/></Appearance></Shape></Billboard></Transform>"
               }
-              lappend spmiTypesPerFile "supplemental geometry"
               set viz(SUPPGEOM) 1
             }
 
@@ -279,7 +277,6 @@ proc x3dSuppGeom {} {
                 set nsize [trimNum [expr {$tsize*0.5}]]
                 puts $x3dFile " <Transform translation='[vectrim $coord]' scale='$nsize $nsize $nsize'><Billboard axisOfRotation='0 0 0'><Shape><Text string='$name'><FontStyle family='SANS' justify='BEGIN'/></Text><Appearance><Material diffuseColor='1 0 1'/></Appearance></Shape></Billboard></Transform>"
               }
-              lappend spmiTypesPerFile "supplemental geometry"
               set viz(SUPPGEOM) 1
             }
 
@@ -295,7 +292,6 @@ proc x3dSuppGeom {} {
                 set nsize [trimNum [expr {$tsize*0.5}]]
                 puts $x3dFile " <Transform translation='[vectrim $coord]' scale='$nsize $nsize $nsize'><Billboard axisOfRotation='0 0 0'><Shape><Text string='$name'><FontStyle family='SANS' justify='BEGIN'/></Text><Appearance><Material diffuseColor='0 0 0'/></Appearance></Shape></Billboard></Transform>"
               }
-              lappend spmiTypesPerFile "supplemental geometry"
               set viz(SUPPGEOM) 1
             }
 
@@ -327,7 +323,7 @@ proc x3dSuppGeom {} {
 # -------------------------------------------------------------------------------
 # supplemental geometry for axis
 proc x3dSuppGeomAxis {e2 size tsize} {
-  global axesDef spmiTypesPerFile viz x3dFile
+  global axesDef viz x3dFile
 
   set a2p3d [x3dGetA2P3D $e2]
   set transform [x3dTransform [lindex $a2p3d 0] [lindex $a2p3d 1] [lindex $a2p3d 2] "supplemental geometry 'axes'"]
@@ -382,13 +378,12 @@ proc x3dSuppGeomAxis {e2 size tsize} {
   }
   puts $x3dFile "</Transform>"
   set viz(SUPPGEOM) 1
-  lappend spmiTypesPerFile "supplemental geometry"
 }
 
 # -------------------------------------------------------------------------------
 # supplemental geometry for point and the origin of a hole
 proc x3dSuppGeomPoint {e2 tsize {holeName ""}} {
-  global sphereDef spmiTypesPerFile viz x3dFile
+  global sphereDef viz x3dFile
 
 # check for point color
   if {$holeName != ""} {
@@ -421,7 +416,6 @@ proc x3dSuppGeomPoint {e2 tsize {holeName ""}} {
       puts $x3dFile " <Transform translation='[vectrim $coord1]' scale='$nsize $nsize $nsize'><Billboard axisOfRotation='0 0 0'><Shape><Text string='$name'><FontStyle family='SANS' justify='BEGIN'/></Text><Appearance><Material diffuseColor='$pointColor'/></Appearance></Shape></Billboard></Transform>"
     }
     set viz(SUPPGEOM) 1
-    if {$holeName == ""} {lappend spmiTypesPerFile "supplemental geometry"}
   } emsg]} {
     errorMsg "Error adding 'point' Supplemental Geometry: $emsg"
   }
@@ -430,7 +424,7 @@ proc x3dSuppGeomPoint {e2 tsize {holeName ""}} {
 # -------------------------------------------------------------------------------
 # supplemental geometry for line, polyline
 proc x3dSuppGeomLine {e3 tsize {type "line"}} {
-  global spmiTypesPerFile trimVal viz x3dFile
+  global trimVal viz x3dFile
 
 # check for line color
   set lineColor [lindex [x3dSuppGeomColor $e3 $type] 0]
@@ -494,7 +488,6 @@ proc x3dSuppGeomLine {e3 tsize {type "line"}} {
       puts $x3dFile " <Transform translation='$origin' scale='$nsize $nsize $nsize'><Billboard axisOfRotation='0 0 0'><Shape><Text string='$name'><FontStyle family='SANS' justify='BEGIN'/></Text><Appearance><Material diffuseColor='$lineColor'/></Appearance></Shape></Billboard></Transform>"
     }
     set viz(SUPPGEOM) 1
-    lappend spmiTypesPerFile "supplemental geometry"
 
   } emsg]} {
     errorMsg "Error adding '$type' Supplemental Geometry: $emsg"
@@ -504,7 +497,7 @@ proc x3dSuppGeomLine {e3 tsize {type "line"}} {
 # -------------------------------------------------------------------------------
 # supplemental geometry for circle, ellipse
 proc x3dSuppGeomCircle {e3 tsize {type "circle"}} {
-  global DTR spmiTypesPerFile trimVal viz x3dFile
+  global DTR trimVal viz x3dFile
 
   if {$tsize == 0} {
     set circleColor "0 0 1"
@@ -582,7 +575,6 @@ proc x3dSuppGeomCircle {e3 tsize {type "circle"}} {
     }
     puts $x3dFile "</Transform>"
     set viz(SUPPGEOM) 1
-    lappend spmiTypesPerFile "supplemental geometry"
 
   } emsg]} {
     errorMsg "Error adding '$type' Supplemental Geometry: $emsg"
@@ -592,7 +584,7 @@ proc x3dSuppGeomCircle {e3 tsize {type "circle"}} {
 # -------------------------------------------------------------------------------
 # supplemental geometry for plane, also used for section view clipping plane
 proc x3dSuppGeomPlane {e2 size {type ""} {name ""}} {
-  global clippingDef maxxyz planeDef spmiTypesPerFile viz x3dFile
+  global clippingDef maxxyz planeDef viz x3dFile
 
 # check for plane color and transparency
   set tmp [x3dSuppGeomColor $e2 "plane"]
@@ -634,7 +626,6 @@ proc x3dSuppGeomPlane {e2 size {type ""} {name ""}} {
 # use DEF'd plane
       if {$id != -1} {
         puts $x3dFile "$transform<Group USE='plane$id'></Group>"
-        if {$type == "supplemental geometry"} {lappend spmiTypesPerFile $type}
       } else {
 
 # look for line corners
@@ -682,8 +673,6 @@ proc x3dSuppGeomPlane {e2 size {type ""} {name ""}} {
           if {$ncorners > 2} {
             set txtpos [lindex $corners 0]
             set corners [join $corners " "]
-            errorMsg " Using bounding edges for $type 'plane'" red
-            if {$type == "supplemental geometry"} {lappend spmiTypesPerFile "bounded supplemental geometry"}
           } else {
             set corners {}
           }
@@ -695,7 +684,6 @@ proc x3dSuppGeomPlane {e2 size {type ""} {name ""}} {
           set txtpos "-$nsize -$nsize 0."
           set ncorners 4
           lappend planeDef "$nsize $planeColor"
-          if {$type == "supplemental geometry"} {lappend spmiTypesPerFile "supplemental geometry"}
         }
 
 # set index
@@ -800,12 +788,7 @@ proc x3dSuppGeomCylinder {e2 size} {
     set viz(SUPPGEOM) 1
 
 # circles at cylinder ends
-    if {[llength $circles] == 0} {
-      lappend spmiTypesPerFile "supplemental geometry"
-    } else {
-      lappend spmiTypesPerFile "bounded supplemental geometry"
-      foreach circle $circles {x3dSuppGeomCircle $circle 0}
-    }
+    if {[llength $circles] > 0} {foreach circle $circles {x3dSuppGeomCircle $circle 0}}
 
   } emsg]} {
     errorMsg "Error adding 'cylinder' Supplemental Geometry: $emsg"

@@ -78,9 +78,11 @@ proc gpmiAnnotation {entType} {
   }
 
 # check for missing geometric_representation_item
-  if {[string first "annotation" $entType] != -1 && [string first "occurrence" $entType] != -1 && [string first "placeholder" $entType] == -1 && \
-      [string first "geometric_representation_item" $entType] == -1 && ($stepAP == "AP242e4" || $stepAP == "AP242e5")} {
+  if {[string first "AP242e" $stepAP] == 0 && [string range $stepAP 6 end] >= 4 && \
+      [string first "annotation" $entType] != -1 && [string first "occurrence" $entType] != -1 && \
+      [string first "placeholder" $entType] == -1 && [string first "geometric_representation_item" $entType] == -1} {
     errorMsg " All '$entType' must be a complex entity with 'geometric_representation_item'." red
+    #errorMsg "  See Recommended Practice for $recPracNames(pmi242), Sec. 8.1.1, 8.2, Change Note" red
   }
 
   if {![info exists PMIP($entType)]} {return}
@@ -161,7 +163,7 @@ proc gpmiAnnotationReport {objEntity} {
   global draftModelCameras driPropID ent entAttrList entCount entLevel equivUnicodeString gen geomType gpmiEnts gpmiID gpmiIDRow gpmiName
   global gpmiRow gpmiTypes gpmiTypesInvalid gpmiTypesPerFile gpmiValProp grayBackground iCompCurve iCompCurveSeg iPolyline leaderCoords
   global leaderLineID localName nindex numCompCurve numCompCurveSeg numPolyline numx3dPID objEntity1 opt placeAxes placeBox placeCoords placeSavedView
-  global placeSymbol pmiCol pmiColumns pmiHeading pmiStartCol propDefIDs recPracNames savedViewCol savedViewName spaces spmiTypesPerFile stepAP
+  global placeSymbol pmiCol pmiColumns pmiHeading pmiStartCol propDefIDs recPracNames savedViewCol savedViewName spaces stepAP
   global syntaxErr tessCoord tessIndex tessIndexCoord tessPlacement tessPlacementID tessRepo useXL
   global x3dColor x3dCoord x3dFile x3dFileName x3dIndex x3dIndexType x3dMax x3dMin x3dPID x3dPoint x3dShape x3dStartFile
 
@@ -753,10 +755,6 @@ proc gpmiAnnotationReport {objEntity} {
                         errorMsg "Syntax Error: Missing (draughting_model)(tessellated_shape_representation) entity$spaces\($recPracNames(pmi242), Sec. 8.2, note for AP242 Edition 2)"
                       }
                     }
-                  }
-                  if {$opt(PMISEM)} {
-                    if {[string first "placeholder" $ent1] != -1}    {lappend spmiTypesPerFile "annotation placeholder"}
-                    if {[string first "external_image" $ent1] != -1} {lappend spmiTypesPerFile "external image"}
                   }
 
 # check if placeholder in saved view

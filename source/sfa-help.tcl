@@ -34,8 +34,8 @@ outputMsg "\nOptions -----------------------------------------------------------
 outputMsg "See Help > User Guide (sections 3.4, 3.5, 4, and 6)
 
 Generate: Generate Excel spreadsheets, CSV files, and/or Views.  If Excel is not installed, CSV
-files are automatically generated.  Some options are not supported with CSV files.  The Syntax
-Checker can also be run when processing a STEP file.
+files are generated.  Some options are not supported with CSV files.  The Syntax Checker can also
+be run when processing a STEP file.
 
 All text in the Status tab can be written to a Log File when a STEP file is processed.  The log
 file is written to myfile-sfa.log.  Syntax errors, warnings, and other messages are highlighted by
@@ -102,8 +102,7 @@ Part geometry viewer features:
 
 - Quality controls the number of facets used for curved surfaces.  Higher quality uses more facets
   around the circumference of a cylinder.  Using High Quality and the Normals options results in
-  the best appearance for part geometry.  See the new feature below for the Alternative B-rep
-  Geometry Processing.
+  the best appearance for part geometry.
 
 - AP242 tessellated part geometry is typically written to a STEP file in addition to or instead of
   B-rep part geometry.  A wireframe mesh, outlining the facets of the tessellated surfaces can be
@@ -156,58 +155,49 @@ AP209 finite element models and results."
 outputMsg "\nViewpoints ----------------------------------------------------------------------------------------" blue
 outputMsg "Use PageDown to switch between viewpoints in the Viewer window.  Viewpoint names are shown in the
 upper left corner of the Viewer.  User-defined viewpoints are used with saved view graphic PMI.
+Viewpoints are not documented in the User Guide.
+
+The default orientation of the part uses the Z-axis as the up-axis.  Use the option on the More tab
+to switch the up-axis to the Y-axis.  The up-axis is dependent on the CAD system that generated the
+STEP file.
 
 If there are no user-defined viewpoints (saved views) in the STEP file, then front, back, left,
-right, top, bottom, and isometric viewpoints are generated.  The default orientation of the part
-uses the Z-axis as the up-axis.  Use the option on the More tab to switch the up-axis to the Y-axis.
-The up-axis is dependent on the CAD system that generated the STEP file.  All of the viewpoints use
-perspective except for an additional front parallel projection.
+right, top, bottom, and isometric viewpoints are generated.  All of the viewpoints use perspective
+except for an additional front parallel projection.
 
----------------------------------------------------------------------------------------------------
 If there are user-defined viewpoints (saved views) in the STEP file, then in addition to the saved
 views from the file, two additional front viewpoints named 'Front (SFA)' are generated, one
-perspective and the other a parallel projection.
+perspective and one parallel projection.  If there is graphic PMI associated with saved views, then
+the PMI is switched on/off when using PageDown.
 
-On the More tab, parallel projection viewpoints as defined in the STEP file can be used instead of
-the default perspective.  Also, if the model has viewpoints with and without graphic PMI, then the
-viewpoints without graphic PMI can also be shown.
-
-If there are duplicate saved view names, then a number in parentheses is appended to the name.  For
-example, two viewpoints named MBD_A will appear as MBD_A (1) and MBD_A (2) for the Viewpoint name
-in the upper left corner of the Viewer when cycling through the viewpoints with PageDown.
-
-Saved view names with non-English characters (Unicode) are supported in the Viewer if a spreadsheet
-is also generated.
-
-If there is graphic PMI associated with saved views, then the PMI is automatically switched
-on/off when using PageDown if 'Saved View Viewpoints' is checked on the Generate tab.  If there are
-duplicate saved view names as described above, then the list of Saved View Graphic PMI will append,
-after a slash, the saved view name to the PMI name.
-
-Saved views always show all part geometry and ignore any view-specific geometry that is not visible
-in a view.
-
----------------------------------------------------------------------------------------------------
 In the Viewer, use key 'a' to view all and 'r' to restore to the original view.  The function of
 other keys is described in the link 'Use the mouse'.  Navigation uses the Examine Mode.
 
-Sometimes a part is located far from the origin and not visible.  In this case, turn off the Origin
-and Sketch Geometry and then use 'a' to view all.
+---------------------------------------------------------------------------------------------------
+Parallel projection viewpoints as defined in the STEP file can be used instead of the default
+perspective (More tab).  If the model has viewpoints with and without graphic PMI, then the
+viewpoints without graphic PMI can also be shown.
 
-Older implementations of saved views might not conform to current recommended practices.  The
-resulting model orientation will look wrong.  Use the option on the More tab to correct for the
-wrong orientation.  The position of the model might still be wrong.
+If there are duplicate saved view names, then a number in parentheses is appended to the name.  For
+example, two viewpoints named MBD_A will appear as MBD_A (1) and MBD_A (2).  Saved view names with
+non-English characters (Unicode) are supported in the Viewer if a spreadsheet is also generated.
 
-The More tab option 'Show save view camera model viewpoints' can be used to debug the camera model
-(view frustum) viewpoint geometry.
+---------------------------------------------------------------------------------------------------
+Saved views are ignored with Part Only.  Saved views always show all part geometry and ignore any
+view-specific geometry that is invisible in a view.  Sometimes a part is located far from the
+origin and not visible.  In this case, turn off the Origin and Sketch Geometry, and then use 'a' to
+view all.
 
-Saved views are ignored with Part Only.  Part visibility in saved views is not supported."
+Older implementations of saved views might not conform to current recommended practices.  The model
+position and orientation will look wrong.  The option 'Debug saved view camera model viewpoint' can
+be used to debug the camera model view frustum viewpoint geometry (More tab)."
     .tnb select .tnb.status
   }
 
   $helpView add command -label "Assemblies" -command {
 outputMsg "\nAssemblies ----------------------------------------------------------------------------------------" blue
-outputMsg "Assemblies are related to part geometry, graphic PMI, and supplemental geometry.
+outputMsg "Assemblies are related to part geometry, graphic PMI, and supplemental geometry.  Assemblies are
+not documented in the User Guide.
 
 Part Geometry for assemblies with B-rep or tessellated geometry is supported in the Viewer.  Most
 assemblies and parts can be switched on and off depending on the assembly structure.  An alphabetic
@@ -230,13 +220,13 @@ Numbers for how non-English characters in part names are supported.
 Nested assemblies are also supported where one file contains the assembly structure with external
 file references to individual assembly components that contain part geometry.
 
-NOTE: Graphic PMI, supplemental geometry, capped surfaces for clipping planes, and cloud of points
-on parts in an assembly is supported, however, it has not been thoroughly tested and might have the
+Graphic PMI, supplemental geometry, capped surfaces for clipping planes, and cloud of points on
+parts in an assembly is supported, however, it has not been thoroughly tested and might have the
 wrong position and orientation.
 
-Transparency for assemblies with AP242 tessellated geometry might look wrong.  In some rare cases,
-parts in an assembly using tessellated geometry might have the wrong position and orientation or be
-missing.
+Transparency for assemblies with AP242 tessellated geometry might look wrong.  With the option
+for 'Alternative processing of Tessellated part geometry' parts in an assembly might have the wrong
+position and orientation or be missing.
 
 Assembly Structure is also supported in the Viewer with AP242 XML.  See Help > Viewer > Other Features"
     .tnb select .tnb.status
@@ -250,7 +240,7 @@ known as construction, auxiliary, design, support, or reference geometry.
 
 B-rep and tessellated geometry are supported for supplemental geometry. These types of supplemental
 geometry and associated text are supported.  Colors defined in the STEP file override the default
-colors below.
+colors.
 
 - Coordinate System: X axis red, Y axis green, Z axis blue
 - Plane: blue transparent surface (unbounded planes are with shown with a square surface)
@@ -264,6 +254,7 @@ assemblies might have the wrong position and orientation, and subsets are not su
 Supplemental geomery is counted on the PMI Coverage Analysis worksheet if a Viewer file is
 generated.
 
+See Help > User Guide (section 4.3)
 See Websites > CAx Recommended Practices (Supplemental Geometry)"
     .tnb select .tnb.status
   }
@@ -335,11 +326,9 @@ a short cylindrical surface with the correct diameter is shown.  Flat and conica
 supported if it is not a through hole.  A text label is shown for each hole.  If the report for
 Semantic PMI is not generated, then only the text label is shown.
 
-In the Entity Types section on the Generate tab, Features is automatically selected when hole
-feature entities are in the STEP file.  Semantic information related to holes is reported on
-*_hole_definition and basic_round_hole worksheets.  Hole feature dimensions are not the same as
-semantic PMI using dimensional_size and dimensional_location.  Hole features are supported in
-AP242 editions > 1.
+Semantic information related to holes is reported on *_hole_definition and basic_round_hole
+worksheets.  Hole feature dimensions are not the same as semantic PMI using dimensional_size and
+dimensional_location.  Hole features are supported in AP242 editions > 1.
 
 See Help > User Guide (section 4.2.3)"
     .tnb select .tnb.status
@@ -363,13 +352,18 @@ plane per section view.  Capped surfaces for parts in an assembly might be in th
 Sometimes capped surfaces are not generated.  Switching off parts in an assembly does not turn off
 their capped surfaces.
 
+The orientation of clipping planes can also be flipped.  The default behavior is that the material
+on the -Z side of the clipping plane remains visible and on the +Z side it is clipped.  Flipping
+the orientation of the clipping plane reverses this so that the +Z side is visible and the -Z side
+is clipped.  Flipping the orientation might be necessary for some implemenations of clipping planes.
+
 2 - AP242 XML files
 
 AP242 Domain Model XML files with Assembly Structure are supported in the Viewer.  An AP242 XML
 file has a extension of .stpx.  The XML file contains the assembly structure with the position and
 orientation of all of its parts and refers to STEP Part 21 files (.stp) for the geometry of each
-individual part.  When processing an AP242 XML file, View and Part Only are automatically selected.
-No spreadsheet can be generated.
+individual part.  When processing an AP242 XML file, View and Part Only are selected.  No
+spreadsheet can be generated.
 
 See Websites > CAx Recommended Practices (Product and Assembly Structure)
 
@@ -642,12 +636,8 @@ CAx-IF Recommended Practice.  Errors should be fixed so that the STEP file can i
 other CAx software and conform to recommended practices.  See Websites > CAx Recommended Practices
 
 Syntax errors are highlighted in red in the Status tab.  Other informative warnings are highlighted
-in yellow.  Syntax errors that refer to section, figure, and table numbers might use numbers that
-are in a newer version of a recommended practice that has not been publicly released.
-
-Some syntax errors use abbreviations for STEP entities:
- GISU - geometric_item_specific_usage
- IIRU - identified_item_representation_usage
+in yellow or with red text.  Some syntax errors use abbreviations for STEP entities:
+GISU for geometric_item_specific_usage and IIRU for identified_item_representation_usage.
 
 On the Summary worksheet in column A, most entities that have syntax errors are colored gray.  A
 comment indicating that there are errors is also shown with a small red triangle in the upper right
@@ -670,8 +660,8 @@ See Help > User Guide (section 6.5)"
   $helpAnalyze add command -label "NIST CAD Models" -command {
 outputMsg "\nNIST CAD Models -----------------------------------------------------------------------------------" blue
 outputMsg "If a STEP file from a NIST CAD model (CTC/FTC/STC) is processed, then the PMI in the STEP file is
-automatically checked against the expected PMI in the corresponding NIST test case.  The Semantic
-PMI Coverage and Summary worksheets are color-coded by the expected PMI in each NIST test case.
+checked against the expected PMI in the corresponding NIST test case.  The Semantic PMI Coverage
+and Summary worksheets are color-coded by the expected PMI in each NIST test case.
 
 The color-coding only works if the STEP file name can be recognized as having been generated from
 one of the NIST CAD models.  For example, nist_ctc_02-some-text.stp would recognize the STEP file
@@ -746,9 +736,6 @@ worksheet might mean that the CAD system or translator:
 A user-defined file of expected PMI can also be used.  The file must be named SFA-EPMI-yourstepfilename.xlsx
 Contact the developer for more information.  This feature is not documented in the User Guide.
 
-NOTE - Some of the NIST test cases have complex PMI annotations that are not commonly used.  There
-might be ambiguities in counting the number of PMI elements.
-
 See Help > User Guide (section 6.6)
 See Examples > NIST CAD Models
 See Examples > Spreadsheets - AP242 PMI"
@@ -776,6 +763,8 @@ and can interoperate with other software.
 There are other validation rules defined by STEP schemas (where, uniqueness, and global rules,
 inverses, derived attributes, and aggregates) that are NOT checked.  Conforming to the validation
 rules is also important for interoperability with STEP files.  See Websites > STEP
+
+See Help > User Guide (section 7)
 
 ---------------------------------------------------------------------------------------------------
 The Syntax Checker can be run with function key F8 or when a Spreadsheet or View is generated.  All
@@ -855,7 +844,7 @@ AP238 STEP-NC files (.stpnc) are supported by renaming the file extension to '.s
 
 The name of the AP is on the FILE_SCHEMA entity in the HEADER section of a STEP file.  Some APs
 have multiple editions with the same name.  AP242 editions 1-4 were released in 2014, 2020, 2022,
-and 2025.  See Websites > STEP > EXPRESS Schemas, and Websites > AP242 > ISO 10303-242
+and 2025.  See Websites > STEP > EXPRESS Schemas
 
  AP242 - AP242_MANAGED_MODEL_BASED_3D_ENGINEERING_MIM_LF
  AP203 - AP203_CONFIGURATION_CONTROLLED_3D_DESIGN_OF_MECHANICAL_PARTS_AND_ASSEMBLIES_MIM_LF
@@ -904,20 +893,18 @@ or importing a STEP file.
 
 ---------------------------------------------------------------------------------------------------
 Spreadsheet - Use the option on the More tab to support non-English characters using the \\X2\\
-control directive.  In some cases the option will be automatically selected based on the file size
-or schema.  There is a warning message if \\X2\\ is detected in the STEP file and the option is not
-selected.  In this case the \\X2\\ characters are ignored and will be missing in the spreadsheet.
-Non-English characters that do not use the control directives might be missing in the spreadsheet.
-Control directives are supported only if Excel is installed.
+control directive.  The option is automatically selected if \\X2\\ is detected in the file.  If it is
+not selected then \\X2\\ characters are ignored and will be missing in the spreadsheet.  Non-English
+characters that do not use the control directives might be missing in the spreadsheet.
 
 Unicode characters for GD&T symbols are used by Equivalent Unicode Strings reported on the
 descriptive_representation_item worksheet and worksheets for semantic and graphic PMI where there
 is an associated PMI validation property.  Equivalent Unicode Strings are not documented in the
 User Guide.  See the Recommended Practice for PMI Unicode String Specification.
 
-Unicode characters using \\X2\\ control directives are not processed for attribute strings on
-Geometry entities and some Presentation entities.  The \\X\\ and \\S\\ control directives are supported
-by default although they are no longer implemented in STEP files.
+Unicode characters using \\X2\\ control directives are not processed for all entity types.  The \\X\\
+and \\S\\ control directives are supported by default although they are no longer implemented in STEP
+files.  \\X4\\ is not supported.
 
 ---------------------------------------------------------------------------------------------------
 Viewer - All control directives are supported for part and assembly names.  Non-English characters
@@ -935,10 +922,6 @@ CAD software to see if it supports non-English characters or control directives.
 Numbers in a STEP file use a period '.' as the decimal separator.  Some non-English language
 versions of Excel use a comma ',' as a decimal separator.  This might cause some real numbers to be
 formatted as a date in a spreadsheet.  For example, the number 1.5 might appear as 1-Mai.
-
-To check if the formatting is a problem, process the STEP file nist_ctc_05.stp included with the
-SFA zip file and select the Geometry Entity Type category.  Check the 'radius' attribute on the
-resulting 'circle' worksheet.
 
 To change the formatting in Excel, go to the Excel File menu > Options > Advanced.  Uncheck
 'Use system separators' and change 'Decimal separator' to a period . and 'Thousands separator' to a
@@ -1088,9 +1071,9 @@ Credits
    IFCsvr has been modified by NIST to include STEP schemas
    The license agreement is in C:\\Program Files (x86)\\IFCsvrR300\\doc
 - Viewer for B-rep and tessellated part geometry
-   STEP to X3D Translator (stp2x3d) developed by Soonjo Kwon, former NIST Associate
+   STEP to X3D Translator (stp2x3d) developed by a former NIST Associate
    See Websites > STEP
-- Some Tcl code is based on CAWT https://www.tcl3d.org/cawt/
+- Some Tcl code is based on CAWT (www.tcl3d.org/cawt)
 
 See Help > Disclaimers and NIST Disclaimer"
 

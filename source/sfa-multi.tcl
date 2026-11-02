@@ -1,8 +1,8 @@
 # process multiple files in a directory
 proc openMultiFile {{ask 1}} {
-  global allEntity andEntAP209 buttons cells1 col1 coverageSTEP entCategory excel1 fileDir fileDir1 fileEntity fileList gen
+  global allEntity buttons cells1 col1 coverageSTEP excel1 fileDir fileDir1 fileEntity fileList gen
   global gpmiCoverageWS gpmiRows gpmiTotals gpmiTypes gpmiTypesInvalid lastXLS1 lenfilelist localName localNameList multiFileDir mydocs nfile
-  global nistCoverageStyle nprogBarFiles opt pmiElementsMaxRows row1 spmiCoverageWS startrow stepAP totalEntity totalPMI totalPMIrows
+  global nistCoverageStyle nprogBarFiles opt pmiElementsMaxRows row1 spmiCoverageWS startrow totalEntity totalPMI totalPMIrows
   global useXL worksheet1 worksheets1 xlFileNames
 
   set multiFileDir ""
@@ -305,8 +305,9 @@ proc openMultiFile {{ask 1}} {
               if {[string first "_and_" $ent] == -1} {
                 set ok 1
               } else {
-                foreach item [array names entCategory] {if {[lsearch $entCategory($item) $ent] != -1} {set ok 1}}
-                if {[string first "AP209" $stepAP] != -1} {foreach str $andEntAP209 {if {[string first $str $ent] != -1} {set ok 1}}}
+                set ok 1
+                set ok1 [formatEntity $ent]
+                if {$ok1} {set ok 0}
               }
               if {$ok} {
                 $cells1($sum) Item [incr row1($sum)] 1 $ent
@@ -440,7 +441,7 @@ proc openMultiFile {{ask 1}} {
               if {$stat([expr {$nf-1}]) != 0} {
 
 # link to file
-                if {!$opt(xlHideLinks) && [string first "#" $file1] == -1} {
+                if {[string first "#" $file1] == -1} {
                   set range [$worksheet1($sum) Range [cellRange 4 $nf]]
                   $links Add $range [join $file1] [join ""] [join "Link to STEP file"]
                 }
@@ -449,7 +450,7 @@ proc openMultiFile {{ask 1}} {
                 set range [$worksheet1($sum) Range [cellRange 3 $nf]]
                 incr idx
                 regsub -all {\\} [lindex $xlFileNames $idx] "/" xls
-                if {!$opt(xlHideLinks) && [string first "#" $file1] == -1} {$links Add $range [join $xls] [join ""] [join "Link to Spreadsheet"]}
+                if {[string first "#" $file1] == -1} {$links Add $range [join $xls] [join ""] [join "Link to Spreadsheet"]}
 
 # add vertical border when directory changes from column to column
                 if {[lsearch $dirchange $nf] != -1} {
@@ -556,7 +557,7 @@ proc openMultiFile {{ask 1}} {
 # open spreadsheet
           if {$opt(outputOpen)} {
             openXLS $aname 0 1
-            if {!$opt(xlHideLinks)} {outputMsg " Click on the Links in Row 3 to open individual spreadsheets." blue}
+            outputMsg " Click on the Links in Row 3 to open individual spreadsheets." blue
           } else {
             outputMsg " Use F7 to open the spreadsheet (see Help > Function Keys)" red
           }

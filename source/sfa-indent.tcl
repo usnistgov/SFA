@@ -8,7 +8,6 @@ proc indentPutLine {line {comment ""} {putstat 1}} {
   set t1 [string first "\#" $line]
   set t2 [string first "=" [string range $line [expr {$t1 + 1}] end]]
   set indent [expr {$t1 + $t2 + 2}]
-  #outputMsg "($indent $t1 $t2) [string range $line $t1 [expr {$t1+$t2}]] $line"
 
 # reset id list
   if {$t1 == 0} {
@@ -24,18 +23,12 @@ proc indentPutLine {line {comment ""} {putstat 1}} {
   if {![info exists idlist]} {set idlist ""}
   if {[string first $id $idlist] != -1} {
     set id1 [string first $id $idpatr]
-    #outputMsg "\n$id1 $id"
     if {$id1 != -1} {
       if {[info exists npatr]} {
         if {$id1 == 0} {
           for {set i 0} {$i < $npatr} {incr i} {
-            #outputMsg $spatr($i)
-            #outputMsg $idpatr
-            #outputMsg [string first $spatr($i) [string range $idpatr [string length $spatr($i)] end]]
-            #outputMsg "$i ($lpatr($i)) - $npatr ($lpatr($npatr))"
             if {$lpatr($i) == $lpatr($npatr)} {
-              #outputMsg $idpatr
-              errorMsg "Repeating pattern of entities"
+              errorMsg " Repeating pattern of entities" red
               puts $indentWriteFile "(Repeating pattern of entities)"
               set stat -1
               return $stat
@@ -45,22 +38,18 @@ proc indentPutLine {line {comment ""} {putstat 1}} {
         }
         lappend lpatr($npatr) $id1
         append spatr($npatr) $id
-        #outputMsg "$npatr - $lpatr($npatr)"
       }
     }
     append idpatr $id
-    #outputMsg PATR$idpatr
   } else {
-    #outputMsg "RESET PATTERN"
     set idpatr ""
   }
   append idlist [string range $line $t1 [expr {$t1+$t2}]]
-  #outputMsg LIST$idlist
 
 # stop when indentation is out of control
   if {$indent > 40 && [string range $line 0 1] != "/*"} {
     outputMsg $line
-    errorMsg "Indentation greater than 40 spaces" red
+    errorMsg " Indentation greater than 40 spaces" red
     puts $indentWriteFile "(Indentation greater than 40 spaces)"
     set stat 0
     return $stat
@@ -68,7 +57,6 @@ proc indentPutLine {line {comment ""} {putstat 1}} {
 
 # write short lines
   if {$ll <= 120} {
-    #if {$comment != ""} {puts $indentWriteFile [string range $line 0 [expr {$t1-1}]]$comment}
 
 # check for styled_item
     set ok 1
@@ -128,7 +116,6 @@ proc indentSearchLine {line ndent} {
   global comment indentEntity indentMissing indentstat indentStop
 
   incr ndent
-  #outputMsg "------------- $ndent"
 
   set sline [split $line "\#"]
   for {set i 1} {$i < [llength $sline]} {incr i} {
@@ -172,17 +159,14 @@ proc indentSearchLine {line ndent} {
 
 #-------------------------------------------------------------------------------
 proc indentFile {ifile} {
-  global editorCmd errmsg indentEntity indentMissing indentPass indentReadFile indentstat indentStart indentStop indentWriteFile opt writeDir
+  global editorCmd errmsg indentEntity indentMissing indentPass indentReadFile indentstat
+  global indentStart indentStartEnts indentStop indentStopEnts indentStopEntsGeom indentWriteFile opt writeDir
 
-# more entities to start and stop with
-  if {[info exists opt(indentStyledItem)]} {if {$opt(indentStyledItem)} {lappend indentStart STYLED_ITEM}}
-
-  if {[info exists opt(indentGeometry)]} {
-    if {!$opt(indentGeometry)} {
-      lappend indentStop ADVANCED_FACE CLOSED_SHELL GEOMETRIC_CURVE_SET GEOMETRIC_SET CONSTRUCTIVE_GEOMETRY_REPRESENTATION TESSELLATED_SOLID
-    }
-  }
-  if {[info exists opt(indentStyledItem)]} {if {!$opt(indentStyledItem)} {lappend indentStop STYLED_ITEM}}
+# start and stop entities
+  set indentStart $indentStartEnts
+  set indentStop  $indentStopEnts
+  if {!$opt(indentGeometry)}  {set indentStop [concat $indentStop $indentStopEntsGeom]}
+  if {$opt(indentStyledItem)} {lappend indentStart PRESENTATION_STYLE_ASSIGNMENT STYLED_ITEM}
 
   catch {.tnb select .tnb.status}
   outputMsg "Processing: [truncFileName [file nativename $ifile] 1]"
@@ -243,10 +227,8 @@ proc indentFile {ifile} {
       foreach idx $indentStart {
         if {[string first $idx $line] != -1} {
           puts $indentWriteFile "\n"
-          #outputMsg "PUT LINE 2"
           set stat [indentPutLine $line]
           if {$stat == 0} {break}
-          #outputMsg "SEARCH LINE 2"
           set stat [indentSearchLine $line1 0]
           break
         }
